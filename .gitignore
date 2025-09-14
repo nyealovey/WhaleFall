@@ -36,10 +36,10 @@ venv.bak/
 .env.production.local
 
 # Database
-*.db
-*.sqlite
-*.sqlite3
-userdata/
+*.db-shm
+*.db-wal
+userdata/logs/
+userdata/backups/
 migrations/versions/*.py
 
 # Logs
