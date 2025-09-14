@@ -401,7 +401,7 @@ class AccountClassificationService:
         batch_type: str = "manual",
         created_by: int = None,
     ) -> dict[str, Any]:
-        """自动分类账户"""
+        """自动分类账户 - 优化版本"""
         batch_id = None
         try:
             # 获取所有活跃的分类规则
@@ -417,7 +417,7 @@ class AccountClassificationService:
                 CurrentAccountSyncData.is_deleted == False,
             )
             if instance_id:
-                query = query.filter_by(instance_id=instance_id)
+                query = query.filter(CurrentAccountSyncData.instance_id == instance_id)
 
             accounts = query.all()
 
@@ -429,140 +429,102 @@ class AccountClassificationService:
                 active_rules=len(rules),
             )
 
-            classified_accounts = 0  # 实际匹配的账户数（去重）
-            total_matches = 0  # 总匹配次数
+            # 使用优化版本处理
+            return self._auto_classify_accounts_optimized(accounts, rules, batch_id)
+
+        except Exception as e:
+            if batch_id:
+                ClassificationBatchService.complete_batch(batch_id, status="failed", error_message=str(e))
+            log_error(f"自动分类账户失败: {e}", module="account_classification")
+            return {"success": False, "error": f"自动分类账户失败: {str(e)}"}
+
+    def _auto_classify_accounts_optimized(self, accounts: list, rules: list, batch_id: str) -> dict[str, Any]:
+        """优化版本的自动分类处理"""
+        try:
+            # 1. 预分组规则，避免重复过滤和排序
+            rules_by_db_type = {}
+            for rule in rules:
+                if rule.db_type not in rules_by_db_type:
+                    rules_by_db_type[rule.db_type] = []
+                rules_by_db_type[rule.db_type].append(rule)
+
+            # 预排序规则，避免重复排序
+            for db_type in rules_by_db_type:
+                rules_by_db_type[db_type].sort(
+                    key=lambda r: (r.classification.priority if r.classification else 0), reverse=True
+                )
+
+            # 2. 按数据库类型分组账户
+            accounts_by_db_type = {}
+            for account in accounts:
+                if account.db_type not in accounts_by_db_type:
+                    accounts_by_db_type[account.db_type] = []
+                accounts_by_db_type[account.db_type].append(account)
+
+            # 3. 批量查询所有账户的分类分配（解决N+1查询问题）
+            account_ids = [account.id for account in accounts]
+            all_assignments = AccountClassificationAssignment.query.filter(
+                AccountClassificationAssignment.account_id.in_(account_ids),
+                AccountClassificationAssignment.is_active == True,
+            ).all()
+
+            # 按账户ID分组
+            assignments_by_account = {}
+            for assignment in all_assignments:
+                if assignment.account_id not in assignments_by_account:
+                    assignments_by_account[assignment.account_id] = []
+                assignments_by_account[assignment.account_id].append(assignment)
+
+            # 4. 批量查询分类信息
+            classification_ids = set()
+            for rule in rules:
+                classification_ids.add(rule.classification_id)
+
+            classifications = {
+                c.id: c
+                for c in AccountClassification.query.filter(AccountClassification.id.in_(classification_ids)).all()
+            }
+
+            classified_accounts = 0
+            total_matches = 0
             failed_count = 0
             errors = []
 
-            for account in accounts:
-                try:
-                    # 根据账户的数据库类型获取对应的规则，按优先级排序
-                    account_rules = [rule for rule in rules if rule.db_type == account.instance.db_type]
+            # 5. 按数据库类型批量处理账户
+            for db_type, db_accounts in accounts_by_db_type.items():
+                if db_type not in rules_by_db_type:
+                    continue
 
-                    if not account_rules:
-                        continue
+                db_rules = rules_by_db_type[db_type]
+                result = self._process_accounts_by_db_type(
+                    db_accounts, db_rules, batch_id, assignments_by_account, classifications
+                )
 
-                    # 按分类优先级排序规则（优先级高的先匹配）
-                    account_rules.sort(
-                        key=lambda r: (r.classification.priority if r.classification else 0),
-                        reverse=True,
-                    )
-
-                    # 获取当前账户的分类分配
-                    current_assignments = AccountClassificationAssignment.query.filter_by(
-                        account_id=account.id, is_active=True
-                    ).all()
-                    current_classification_ids = {assignment.classification_id for assignment in current_assignments}
-
-                    # 应用规则进行自动分类，收集新的分类
-                    new_classification_ids = set()
-                    account_matched = False
-                    for rule in account_rules:
-                        if self._evaluate_rule(account, rule):
-                            new_classification_ids.add(rule.classification_id)
-                            total_matches += 1
-                            if not account_matched:
-                                classified_accounts += 1
-                                account_matched = True
-
-                    # 比较当前分类和新分类
-                    if current_classification_ids != new_classification_ids:
-                        # 分类有变化，更新账户记录
-                        account.last_classified_at = datetime.utcnow()
-                        account.last_classification_batch_id = batch_id
-
-                        # 清除当前所有分类
-                        for assignment in current_assignments:
-                            assignment.is_active = False
-                            assignment.updated_at = datetime.utcnow()
-
-                        # 记录分类变化日志
-                        if new_classification_ids:
-                            classification_names = []
-                            for cid in new_classification_ids:
-                                classification = AccountClassification.query.get(cid)
-                                if classification:
-                                    classification_names.append(classification.name)
-
-                            log_info(
-                                f"账户 {account.username} 分类已更新: {', '.join(classification_names)}",
-                                module="account_classification",
-                                batch_id=batch_id,
-                                account_id=account.id,
-                                old_classifications=list(current_classification_ids),
-                                new_classifications=list(new_classification_ids),
-                            )
-                        else:
-                            log_info(
-                                f"账户 {account.username} 已移除所有分类",
-                                module="account_classification",
-                                batch_id=batch_id,
-                                account_id=account.id,
-                                old_classifications=list(current_classification_ids),
-                            )
-                    else:
-                        # 分类没有变化，不更新账户记录，但为了批次记录完整性，仍然记录当前分类
-                        log_info(
-                            f"账户 {account.username} 分类无变化，保持现有分类",
-                            module="account_classification",
-                            batch_id=batch_id,
-                            account_id=account.id,
-                            current_classifications=list(current_classification_ids),
-                        )
-
-                    # 无论分类是否有变化，都创建新的批次记录以保持批次完整性
-                    # 先清除该账户的所有现有批次记录，避免重复
-                    existing_batch_assignments = AccountClassificationAssignment.query.filter_by(
-                        account_id=account.id, batch_id=batch_id
-                    ).all()
-                    for assignment in existing_batch_assignments:
-                        db.session.delete(assignment)
-
-                    # 创建新的批次记录
-                    for classification_id in new_classification_ids:
-                        assignment = AccountClassificationAssignment(
-                            account_id=account.id,
-                            classification_id=classification_id,
-                            assigned_by=None,  # 自动分类
-                            assignment_type="auto",
-                            notes=None,
-                            batch_id=batch_id,
-                        )
-                        db.session.add(assignment)
-
-                except Exception as e:
-                    failed_count += 1
-                    error_msg = f"账户 {account.username}: {str(e)}"
-                    errors.append(error_msg)
-                    log_error(
-                        f"账户分类失败: {error_msg}",
-                        module="account_classification",
-                        batch_id=batch_id,
-                        account_id=account.id,
-                        error=str(e),
-                    )
+                classified_accounts += result["classified_accounts"]
+                total_matches += result["total_matches"]
+                failed_count += result["failed_count"]
+                errors.extend(result["errors"])
 
             # 提交数据库事务
             db.session.commit()
 
-            # 更新批次统计信息
+            # 更新批次统计
             ClassificationBatchService.update_batch_stats(
-                batch_id=batch_id,
+                batch_id,
                 total_accounts=len(accounts),
-                matched_accounts=classified_accounts,  # 使用实际匹配的账户数
+                matched_accounts=classified_accounts,
                 failed_accounts=failed_count,
             )
 
             # 完成批次
             ClassificationBatchService.complete_batch(
-                batch_id=batch_id,
-                status="completed" if not errors else "failed",
-                error_message="; ".join(errors) if errors else None,
+                batch_id,
+                status="completed",
                 batch_details={
-                    "instance_id": instance_id,
-                    "total_rules": len(rules),
-                    "active_rules": len(rules),
-                    "errors": errors,
+                    "total_accounts": len(accounts),
+                    "classified_accounts": classified_accounts,
+                    "total_matches": total_matches,
+                    "failed_count": failed_count,
                 },
             )
 
@@ -570,40 +532,127 @@ class AccountClassificationService:
                 "自动分类账户完成",
                 module="account_classification",
                 batch_id=batch_id,
-                instance_id=instance_id,
                 classified_accounts=classified_accounts,
                 total_matches=total_matches,
                 failed_count=failed_count,
-                total_accounts=len(accounts),
             )
 
             return {
                 "success": True,
-                "message": f"自动分类完成，成功分类 {classified_accounts} 个账户，共 {total_matches} 次匹配",
+                "message": "自动分类完成",
                 "batch_id": batch_id,
                 "classified_accounts": classified_accounts,
                 "total_matches": total_matches,
                 "failed_count": failed_count,
-                "total_accounts": len(accounts),
                 "errors": errors,
             }
 
         except Exception as e:
-            # 如果批次已创建，标记为失败
-            if batch_id:
-                ClassificationBatchService.complete_batch(batch_id=batch_id, status="failed", error_message=str(e))
+            db.session.rollback()
+            log_error(f"优化自动分类处理失败: {e}", module="account_classification")
+            return {"success": False, "error": f"优化自动分类处理失败: {str(e)}"}
 
-            log_error(
-                f"自动分类账户失败: {e}",
-                module="account_classification",
-                batch_id=batch_id,
-                error=str(e),
-            )
-            return {
-                "success": False,
-                "error": f"自动分类账户失败: {str(e)}",
-                "batch_id": batch_id,
-            }
+    def _process_accounts_by_db_type(
+        self, accounts: list, rules: list, batch_id: str, assignments_by_account: dict, classifications: dict
+    ) -> dict[str, Any]:
+        """按数据库类型处理账户"""
+        classified_accounts = 0
+        total_matches = 0
+        failed_count = 0
+        errors = []
+
+        for account in accounts:
+            try:
+                # 获取当前账户的分类分配（从预查询的结果中获取）
+                current_assignments = assignments_by_account.get(account.id, [])
+                current_classification_ids = {assignment.classification_id for assignment in current_assignments}
+
+                # 应用规则进行自动分类，收集新的分类
+                new_classification_ids = set()
+                account_matched = False
+                for rule in rules:
+                    if self._evaluate_rule(account, rule):
+                        new_classification_ids.add(rule.classification_id)
+                        total_matches += 1
+                        if not account_matched:
+                            classified_accounts += 1
+                            account_matched = True
+
+                # 比较当前分类和新分类
+                if current_classification_ids != new_classification_ids:
+                    # 分类有变化，更新账户记录
+                    account.last_classified_at = datetime.utcnow()
+                    account.last_classification_batch_id = batch_id
+
+                    # 清除当前所有分类
+                    for assignment in current_assignments:
+                        assignment.is_active = False
+                        assignment.updated_at = datetime.utcnow()
+
+                    # 记录分类变化日志
+                    if new_classification_ids:
+                        classification_names = []
+                        for cid in new_classification_ids:
+                            classification = classifications.get(cid)
+                            if classification:
+                                classification_names.append(classification.name)
+
+                        log_info(
+                            f"账户 {account.username} 分类已更新: {', '.join(classification_names)}",
+                            module="account_classification",
+                            batch_id=batch_id,
+                            account_id=account.id,
+                            old_classifications=list(current_classification_ids),
+                            new_classifications=list(new_classification_ids),
+                        )
+                    else:
+                        log_info(
+                            f"账户 {account.username} 已移除所有分类",
+                            module="account_classification",
+                            batch_id=batch_id,
+                            account_id=account.id,
+                            old_classifications=list(current_classification_ids),
+                        )
+                else:
+                    # 分类没有变化，记录日志
+                    log_info(
+                        f"账户 {account.username} 分类无变化，保持现有分类",
+                        module="account_classification",
+                        batch_id=batch_id,
+                        account_id=account.id,
+                        current_classifications=list(current_classification_ids),
+                    )
+
+                # 创建新的批次记录
+                for classification_id in new_classification_ids:
+                    assignment = AccountClassificationAssignment(
+                        account_id=account.id,
+                        classification_id=classification_id,
+                        assigned_by=None,  # 自动分类
+                        assignment_type="auto",
+                        notes=None,
+                        batch_id=batch_id,
+                    )
+                    db.session.add(assignment)
+
+            except Exception as e:
+                failed_count += 1
+                error_msg = f"账户 {account.username}: {str(e)}"
+                errors.append(error_msg)
+                log_error(
+                    f"账户分类失败: {error_msg}",
+                    module="account_classification",
+                    batch_id=batch_id,
+                    account_id=account.id,
+                    error=str(e),
+                )
+
+        return {
+            "classified_accounts": classified_accounts,
+            "total_matches": total_matches,
+            "failed_count": failed_count,
+            "errors": errors,
+        }
 
     def evaluate_rule(self, rule: ClassificationRule, account: CurrentAccountSyncData) -> bool:
         """评估规则是否匹配账户 - 公共方法"""
@@ -766,7 +815,7 @@ class AccountClassificationService:
 
             # 获取操作符，默认为OR
             operator = rule_expression.get("operator", "OR").upper()
-            
+
             # 检查全局权限
             required_global = rule_expression.get("global_privileges", [])
             if required_global:
@@ -777,10 +826,8 @@ class AccountClassificationService:
                     actual_global_set = set(actual_global)
                 else:
                     # 旧格式：字典列表
-                    actual_global_set = set([
-                        p["privilege"] for p in actual_global if p.get("granted", False)
-                    ])
-                
+                    actual_global_set = set([p["privilege"] for p in actual_global if p.get("granted", False)])
+
                 if operator == "AND":
                     # AND操作：必须拥有所有必需权限
                     if not all(perm in actual_global_set for perm in required_global):
@@ -797,10 +844,8 @@ class AccountClassificationService:
                 if isinstance(actual_global, list):
                     actual_global_set = set(actual_global)
                 else:
-                    actual_global_set = set([
-                        p["privilege"] for p in actual_global if p.get("granted", False)
-                    ])
-                
+                    actual_global_set = set([p["privilege"] for p in actual_global if p.get("granted", False)])
+
                 # 如果拥有任何排除权限，则不匹配
                 if any(perm in actual_global_set for perm in exclude_global):
                     return False
@@ -1088,11 +1133,36 @@ class AccountClassificationService:
             if not permissions:
                 return False
 
+            # PostgreSQL权限名称映射表
+            # 配置中的权限名称 -> 实际数据中的字段名
+            role_attr_mapping = {
+                "SUPERUSER": "can_create_role",  # 超级用户通过can_create_role判断
+                "CREATEDB": "can_create_db",
+                "CREATEROLE": "can_create_role",
+                "INHERIT": "can_inherit",
+                "LOGIN": "can_login",
+                "REPLICATION": "can_replicate",
+                "BYPASSRLS": "can_bypass_rls",
+            }
+
             # 检查角色属性权限
             required_role_attrs = rule_expression.get("role_attributes", [])
             for required_attr in required_role_attrs:
-                if required_attr not in permissions.get("role_attributes", []):
-                    return False
+                # 映射权限名称
+                mapped_attr = role_attr_mapping.get(required_attr, required_attr)
+
+                # 特殊处理SUPERUSER：检查system_privileges或can_create_role
+                if required_attr == "SUPERUSER":
+                    has_superuser = "SUPERUSER" in permissions.get("system_privileges", []) or permissions.get(
+                        "role_attributes", {}
+                    ).get("can_create_role", False)
+                    if not has_superuser:
+                        return False
+                else:
+                    # 检查角色属性
+                    role_attrs = permissions.get("role_attributes", {})
+                    if not role_attrs.get(mapped_attr, False):
+                        return False
 
             # 检查数据库权限
             required_db_perms = rule_expression.get("database_privileges", [])

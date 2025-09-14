@@ -272,7 +272,9 @@ class SyncDataManager:
                     rolname as username,
                     rolsuper as is_superuser,
                     rolcreaterole as can_create_role,
-                    rolcreatedb as can_create_db
+                    rolcreatedb as can_create_db,
+                    rolreplication as can_replicate,
+                    rolbypassrls as can_bypass_rls
                 FROM pg_roles
                 WHERE {where_clause}
             """
@@ -282,20 +284,15 @@ class SyncDataManager:
 
             accounts = []
             for row in roles:
-                username, is_superuser, can_create_role, can_create_db = row
+                username, is_superuser, can_create_role, can_create_db, can_replicate, can_bypass_rls = row
+
+                # 获取详细的权限信息
+                permissions = self._get_postgresql_permissions(conn, username, is_superuser)
 
                 accounts.append(
                     {
                         "username": username,
-                        "permissions": {
-                            "predefined_roles": [],
-                            "role_attributes": {
-                                "can_create_role": can_create_role,
-                                "can_create_db": can_create_db,
-                            },
-                            "database_privileges": {},
-                            "tablespace_privileges": {},
-                        },
+                        "permissions": permissions,
                         "is_superuser": is_superuser,
                     }
                 )
@@ -304,6 +301,103 @@ class SyncDataManager:
         except Exception as e:
             self.sync_logger.error("获取PostgreSQL账户失败", error=str(e))
             return []
+
+    def _get_postgresql_permissions(self, conn, username: str, is_superuser: bool) -> dict:
+        """获取PostgreSQL用户的详细权限信息"""
+        try:
+            permissions = {
+                "predefined_roles": [],
+                "role_attributes": {},
+                "database_privileges": {},
+                "tablespace_privileges": {},
+                "system_privileges": [],
+            }
+
+            # 如果是超级用户，直接返回超级用户权限
+            if is_superuser:
+                permissions["role_attributes"] = {
+                    "can_create_role": True,
+                    "can_create_db": True,
+                    "can_replicate": True,
+                    "can_bypass_rls": True,
+                    "can_login": True,
+                    "can_inherit": True,
+                }
+                permissions["system_privileges"] = ["SUPERUSER"]
+                return permissions
+
+            # 获取角色属性
+            role_attrs_sql = """
+                SELECT
+                    rolcreaterole,
+                    rolcreatedb,
+                    rolcanlogin,
+                    rolinherit,
+                    rolreplication,
+                    rolbypassrls
+                FROM pg_roles
+                WHERE rolname = %s
+            """
+            role_attrs = conn.execute_query(role_attrs_sql, (username,))
+            if role_attrs:
+                attrs = role_attrs[0]
+                permissions["role_attributes"] = {
+                    "can_create_role": attrs[0],
+                    "can_create_db": attrs[1],
+                    "can_login": attrs[2],
+                    "can_inherit": attrs[3],
+                    "can_replicate": attrs[4],
+                    "can_bypass_rls": attrs[5],
+                }
+
+            # 获取系统权限
+            sys_privs_sql = """
+                SELECT DISTINCT privilege_type
+                FROM information_schema.role_usage_grants
+                WHERE grantee = %s
+                ORDER BY privilege_type
+            """
+            sys_privs = conn.execute_query(sys_privs_sql, (username,))
+            permissions["system_privileges"] = [priv[0] for priv in sys_privs]
+
+            # 获取数据库权限
+            db_privs_sql = """
+                SELECT
+                    table_catalog,
+                    privilege_type
+                FROM information_schema.table_privileges
+                WHERE grantee = %s
+                ORDER BY table_catalog, privilege_type
+            """
+            db_privs = conn.execute_query(db_privs_sql, (username,))
+            for priv in db_privs:
+                db_name = priv[0]
+                priv_type = priv[1]
+                if db_name not in permissions["database_privileges"]:
+                    permissions["database_privileges"][db_name] = []
+                permissions["database_privileges"][db_name].append(priv_type)
+
+            # 获取角色成员关系
+            role_members_sql = """
+                SELECT r.rolname
+                FROM pg_auth_members m
+                JOIN pg_roles r ON m.roleid = r.oid
+                WHERE m.member = (SELECT oid FROM pg_roles WHERE rolname = %s)
+            """
+            role_members = conn.execute_query(role_members_sql, (username,))
+            permissions["predefined_roles"] = [member[0] for member in role_members]
+
+            return permissions
+
+        except Exception as e:
+            self.sync_logger.error(f"获取PostgreSQL权限失败: {username}", error=str(e))
+            return {
+                "predefined_roles": [],
+                "role_attributes": {},
+                "database_privileges": {},
+                "tablespace_privileges": {},
+                "system_privileges": [],
+            }
 
     def _get_sqlserver_accounts(self, conn) -> list:
         """获取SQL Server账户信息"""
@@ -612,9 +706,10 @@ class SyncDataManager:
             db_type="postgresql",
             username=username,
             predefined_roles=permissions_data.get("predefined_roles", []),
-            role_attributes=permissions_data.get("role_attributes", []),
+            role_attributes=permissions_data.get("role_attributes", {}),
             database_privileges_pg=permissions_data.get("database_privileges", {}),
-            tablespace_privileges=permissions_data.get("tablespace_privileges", []),
+            tablespace_privileges=permissions_data.get("tablespace_privileges", {}),
+            system_privileges=permissions_data.get("system_privileges", []),
             type_specific=permissions_data.get("type_specific", {}),
             is_superuser=is_superuser,
             last_change_type="add",
@@ -743,12 +838,12 @@ class SyncDataManager:
             }
 
         # 检测角色属性变更
-        old_attrs = set(account.role_attributes or [])
-        new_attrs = set(new_permissions.get("role_attributes", []))
+        old_attrs = account.role_attributes or {}
+        new_attrs = new_permissions.get("role_attributes", {})
         if old_attrs != new_attrs:
             changes["role_attributes"] = {
-                "added": list(new_attrs - old_attrs),
-                "removed": list(old_attrs - new_attrs),
+                "added": {k: v for k, v in new_attrs.items() if k not in old_attrs or old_attrs[k] != v},
+                "removed": {k: v for k, v in old_attrs.items() if k not in new_attrs or new_attrs[k] != v},
             }
 
         # 检测数据库权限变更
@@ -764,6 +859,32 @@ class SyncDataManager:
                     for k, v in old_db_perms.items()
                     if k not in new_db_perms or set(new_db_perms.get(k, [])) != set(v)
                 },
+            }
+
+        # 检测表空间权限变更
+        old_tablespace_perms = account.tablespace_privileges or {}
+        new_tablespace_perms = new_permissions.get("tablespace_privileges", {})
+        if old_tablespace_perms != new_tablespace_perms:
+            changes["tablespace_privileges"] = {
+                "added": {
+                    k: v
+                    for k, v in new_tablespace_perms.items()
+                    if k not in old_tablespace_perms or set(old_tablespace_perms[k]) != set(v)
+                },
+                "removed": {
+                    k: v
+                    for k, v in old_tablespace_perms.items()
+                    if k not in new_tablespace_perms or set(new_tablespace_perms.get(k, [])) != set(v)
+                },
+            }
+
+        # 检测系统权限变更
+        old_sys_perms = set(account.system_privileges or [])
+        new_sys_perms = set(new_permissions.get("system_privileges", []))
+        if old_sys_perms != new_sys_perms:
+            changes["system_privileges"] = {
+                "added": list(new_sys_perms - old_sys_perms),
+                "removed": list(old_sys_perms - new_sys_perms),
             }
 
         return changes
@@ -873,9 +994,10 @@ class SyncDataManager:
     def _update_postgresql_account(cls, account: CurrentAccountSyncData, permissions_data: dict, is_superuser: bool):
         """更新PostgreSQL账户数据"""
         account.predefined_roles = permissions_data.get("predefined_roles", [])
-        account.role_attributes = permissions_data.get("role_attributes", [])
+        account.role_attributes = permissions_data.get("role_attributes", {})
         account.database_privileges_pg = permissions_data.get("database_privileges", {})
-        account.tablespace_privileges = permissions_data.get("tablespace_privileges", [])
+        account.tablespace_privileges = permissions_data.get("tablespace_privileges", {})
+        account.system_privileges = permissions_data.get("system_privileges", [])
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
         account.last_change_type = "modify_privilege"
@@ -920,6 +1042,9 @@ class SyncDataManager:
         session_id: str = None,
     ):
         """记录权限变更日志"""
+        # 生成详细的变更描述
+        change_description = cls._generate_change_description(db_type, changes)
+
         change_log = AccountChangeLog(
             instance_id=instance_id,
             db_type=db_type,
@@ -927,10 +1052,175 @@ class SyncDataManager:
             change_type="modify_privilege",
             session_id=session_id,
             privilege_diff=changes,
+            message=change_description,
             status="success",
         )
         db.session.add(change_log)
         db.session.commit()
+
+    @classmethod
+    def _generate_change_description(cls, db_type: str, changes: dict) -> str:
+        """生成变更描述"""
+        descriptions = []
+
+        if db_type == "mysql":
+            descriptions.extend(cls._generate_mysql_change_description(changes))
+        elif db_type == "postgresql":
+            descriptions.extend(cls._generate_postgresql_change_description(changes))
+        elif db_type == "sqlserver":
+            descriptions.extend(cls._generate_sqlserver_change_description(changes))
+        elif db_type == "oracle":
+            descriptions.extend(cls._generate_oracle_change_description(changes))
+
+        return "; ".join(descriptions) if descriptions else "权限已更新"
+
+    @classmethod
+    def _generate_mysql_change_description(cls, changes: dict) -> list[str]:
+        """生成MySQL变更描述"""
+        descriptions = []
+
+        if "global_privileges" in changes:
+            added = changes["global_privileges"].get("added", [])
+            removed = changes["global_privileges"].get("removed", [])
+            if added:
+                descriptions.append(f"新增全局权限: {', '.join(added)}")
+            if removed:
+                descriptions.append(f"移除全局权限: {', '.join(removed)}")
+
+        if "database_privileges" in changes:
+            added = changes["database_privileges"].get("added", {})
+            removed = changes["database_privileges"].get("removed", {})
+            if added:
+                for db_name, perms in added.items():
+                    descriptions.append(f"数据库 {db_name} 新增权限: {', '.join(perms)}")
+            if removed:
+                for db_name, perms in removed.items():
+                    descriptions.append(f"数据库 {db_name} 移除权限: {', '.join(perms)}")
+
+        return descriptions
+
+    @classmethod
+    def _generate_postgresql_change_description(cls, changes: dict) -> list[str]:
+        """生成PostgreSQL变更描述"""
+        descriptions = []
+
+        if "role_attributes" in changes:
+            added = changes["role_attributes"].get("added", {})
+            removed = changes["role_attributes"].get("removed", {})
+            if added:
+                if isinstance(added, dict):
+                    for attr, value in added.items():
+                        descriptions.append(f"角色属性 {attr}: {value}")
+                elif isinstance(added, list):
+                    descriptions.append(f"新增角色属性: {', '.join(added)}")
+            if removed:
+                if isinstance(removed, dict):
+                    for attr, value in removed.items():
+                        descriptions.append(f"移除角色属性 {attr}: {value}")
+                elif isinstance(removed, list):
+                    descriptions.append(f"移除角色属性: {', '.join(removed)}")
+
+        if "predefined_roles" in changes:
+            added = changes["predefined_roles"].get("added", [])
+            removed = changes["predefined_roles"].get("removed", [])
+            if added:
+                descriptions.append(f"新增预定义角色: {', '.join(added)}")
+            if removed:
+                descriptions.append(f"移除预定义角色: {', '.join(removed)}")
+
+        if "database_privileges" in changes:
+            added = changes["database_privileges"].get("added", {})
+            removed = changes["database_privileges"].get("removed", {})
+            if added:
+                for db_name, perms in added.items():
+                    descriptions.append(f"数据库 {db_name} 新增权限: {', '.join(perms)}")
+            if removed:
+                for db_name, perms in removed.items():
+                    descriptions.append(f"数据库 {db_name} 移除权限: {', '.join(perms)}")
+
+        if "system_privileges" in changes:
+            added = changes["system_privileges"].get("added", [])
+            removed = changes["system_privileges"].get("removed", [])
+            if added:
+                descriptions.append(f"新增系统权限: {', '.join(added)}")
+            if removed:
+                descriptions.append(f"移除系统权限: {', '.join(removed)}")
+
+        return descriptions
+
+    @classmethod
+    def _generate_sqlserver_change_description(cls, changes: dict) -> list[str]:
+        """生成SQL Server变更描述"""
+        descriptions = []
+
+        if "server_roles" in changes:
+            added = changes["server_roles"].get("added", [])
+            removed = changes["server_roles"].get("removed", [])
+            if added:
+                descriptions.append(f"新增服务器角色: {', '.join(added)}")
+            if removed:
+                descriptions.append(f"移除服务器角色: {', '.join(removed)}")
+
+        if "server_permissions" in changes:
+            added = changes["server_permissions"].get("added", [])
+            removed = changes["server_permissions"].get("removed", [])
+            if added:
+                descriptions.append(f"新增服务器权限: {', '.join(added)}")
+            if removed:
+                descriptions.append(f"移除服务器权限: {', '.join(removed)}")
+
+        if "database_roles" in changes:
+            added = changes["database_roles"].get("added", {})
+            removed = changes["database_roles"].get("removed", {})
+            if added:
+                for db_name, roles in added.items():
+                    descriptions.append(f"数据库 {db_name} 新增角色: {', '.join(roles)}")
+            if removed:
+                for db_name, roles in removed.items():
+                    descriptions.append(f"数据库 {db_name} 移除角色: {', '.join(roles)}")
+
+        if "database_permissions" in changes:
+            added = changes["database_permissions"].get("added", {})
+            removed = changes["database_permissions"].get("removed", {})
+            if added:
+                for db_name, perms in added.items():
+                    descriptions.append(f"数据库 {db_name} 新增权限: {', '.join(perms)}")
+            if removed:
+                for db_name, perms in removed.items():
+                    descriptions.append(f"数据库 {db_name} 移除权限: {', '.join(perms)}")
+
+        return descriptions
+
+    @classmethod
+    def _generate_oracle_change_description(cls, changes: dict) -> list[str]:
+        """生成Oracle变更描述"""
+        descriptions = []
+
+        if "roles" in changes:
+            added = changes["roles"].get("added", [])
+            removed = changes["roles"].get("removed", [])
+            if added:
+                descriptions.append(f"新增Oracle角色: {', '.join(added)}")
+            if removed:
+                descriptions.append(f"移除Oracle角色: {', '.join(removed)}")
+
+        if "system_privileges" in changes:
+            added = changes["system_privileges"].get("added", [])
+            removed = changes["system_privileges"].get("removed", [])
+            if added:
+                descriptions.append(f"新增系统权限: {', '.join(added)}")
+            if removed:
+                descriptions.append(f"移除系统权限: {', '.join(removed)}")
+
+        if "tablespace_privileges" in changes:
+            added = changes["tablespace_privileges"].get("added", [])
+            removed = changes["tablespace_privileges"].get("removed", [])
+            if added:
+                descriptions.append(f"新增表空间权限: {', '.join(added)}")
+            if removed:
+                descriptions.append(f"移除表空间权限: {', '.join(removed)}")
+
+        return descriptions
 
     @classmethod
     def mark_account_deleted(cls, instance_id: int, db_type: str, username: str, session_id: str = None):

@@ -5,6 +5,15 @@
 -- 设置时区
 SET timezone = 'Asia/Shanghai';
 
+-- 创建默认的postgres超级用户（如果不存在）
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'postgres') THEN
+        CREATE ROLE postgres WITH LOGIN SUPERUSER CREATEDB CREATEROLE;
+    END IF;
+END
+$$;
+
 -- 创建扩展
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
@@ -84,9 +93,9 @@ RETURNS INTEGER AS $$
 DECLARE
     deleted_count INTEGER;
 BEGIN
-    DELETE FROM logs 
+    DELETE FROM logs
     WHERE created_at < NOW() - INTERVAL '1 day' * days_to_keep;
-    
+
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
     RETURN deleted_count;
 END;
@@ -102,16 +111,16 @@ BEGIN
     CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_logs_module ON logs(module);
     CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_logs_source ON logs(source);
     CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_logs_user_id ON logs(user_id);
-    
+
     -- 复合索引
     CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_logs_level_created_at ON logs(level, created_at);
     CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_logs_module_level ON logs(module, level);
-    
+
     -- 为账户表创建索引
     CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_accounts_instance_id ON accounts(instance_id);
     CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_accounts_username ON accounts(username);
     CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_accounts_is_active ON accounts(is_active);
-    
+
     -- 为任务表创建索引
     CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);
@@ -121,48 +130,48 @@ $$ LANGUAGE plpgsql;
 
 -- 创建数据库统计视图
 CREATE OR REPLACE VIEW database_stats AS
-SELECT 
+SELECT
     'Database Size' as metric,
     get_database_size() as value
 UNION ALL
-SELECT 
+SELECT
     'Total Tables' as metric,
     count(*)::text as value
-FROM information_schema.tables 
+FROM information_schema.tables
 WHERE table_schema = 'public'
 UNION ALL
-SELECT 
+SELECT
     'Total Logs' as metric,
     count(*)::text as value
 FROM logs
 UNION ALL
-SELECT 
+SELECT
     'Total Accounts' as metric,
     count(*)::text as value
 FROM accounts
 UNION ALL
-SELECT 
+SELECT
     'Active Accounts' as metric,
     count(*)::text as value
-FROM accounts 
+FROM accounts
 WHERE is_active = true;
 
 -- 创建日志统计视图
 CREATE OR REPLACE VIEW log_stats AS
-SELECT 
+SELECT
     level,
     module,
     source,
     COUNT(*) as count,
     MIN(created_at) as earliest,
     MAX(created_at) as latest
-FROM logs 
+FROM logs
 GROUP BY level, module, source
 ORDER BY count DESC;
 
 -- 创建用户活动统计视图
 CREATE OR REPLACE VIEW user_activity_stats AS
-SELECT 
+SELECT
     u.username,
     u.role,
     u.is_active,
@@ -188,7 +197,7 @@ DECLARE
 BEGIN
     backup_file := '/tmp/taifish_backup_' || to_char(NOW(), 'YYYYMMDD_HH24MISS') || '.sql';
     backup_cmd := 'pg_dump -h localhost -U taifish_user -d taifish_prod > ' || backup_file;
-    
+
     -- 这里只是示例，实际备份需要系统级权限
     RETURN 'Backup command: ' || backup_cmd;
 END;
@@ -201,6 +210,6 @@ ALTER DATABASE taifish_prod SET max_connections TO 200;
 COMMENT ON DATABASE taifish_prod IS '泰摸鱼吧生产数据库 - 建议使用连接池，最大连接数200';
 
 -- 完成初始化
-INSERT INTO logs (level, module, message, details, source) 
+INSERT INTO logs (level, module, message, details, source)
 VALUES ('INFO', 'database', '数据库初始化完成', 'PostgreSQL生产环境初始化脚本执行完成', 'system_operation')
 ON CONFLICT DO NOTHING;

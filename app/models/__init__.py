@@ -13,6 +13,9 @@ from .account_classification import (
 )
 from .classification_batch import ClassificationBatch
 from .credential import Credential
+
+# 新增模型
+from .global_param import GlobalParam
 from .instance import Instance
 from .log import Log
 from .permission_config import PermissionConfig
@@ -24,9 +27,6 @@ from .task import Task
 
 # 导入所有模型
 from .user import User
-
-# 新增模型
-from .global_param import GlobalParam
 
 # 导出所有模型
 __all__ = [

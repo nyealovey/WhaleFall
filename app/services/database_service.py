@@ -46,16 +46,15 @@ class DatabaseService:
                     host=instance.host,
                 )
                 return connection_obj
-            else:
-                self.db_logger.error(
-                    "无法建立数据库连接",
-                    module="database",
-                    operation="database_connect",
-                    instance_id=instance.id,
-                    db_type=instance.db_type,
-                    host=instance.host,
-                )
-                return None
+            self.db_logger.error(
+                "无法建立数据库连接",
+                module="database",
+                operation="database_connect",
+                instance_id=instance.id,
+                db_type=instance.db_type,
+                host=instance.host,
+            )
+            return None
 
         except Exception as e:
             self.db_logger.error(

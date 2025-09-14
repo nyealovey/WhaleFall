@@ -13,11 +13,10 @@ database_filters:
     exclude_roles: []
     include_only: false
     custom_rules: []
-    
+
   postgresql:
     description: "PostgreSQL数据库过滤规则"
     exclude_users:
-      - postgres
       - rdsadmin
       - rds_superuser
     exclude_patterns:
@@ -25,7 +24,9 @@ database_filters:
     exclude_roles: []
     include_only: false
     custom_rules: []
-    
+    # 特殊处理：postgres用户虽然以pg开头，但应该被包含
+    # 在代码中会特殊处理postgres用户
+
   sqlserver:
     description: "SQL Server数据库过滤规则"
     exclude_users:
@@ -41,7 +42,7 @@ database_filters:
     exclude_roles: []
     include_only: false
     custom_rules: []
-    
+
   oracle:
     description: "Oracle数据库过滤规则"
     exclude_users:

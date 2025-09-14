@@ -100,11 +100,25 @@ def build_safe_filter_conditions(
     # 排除特定用户
     exclude_users = rules.get("exclude_users", [])
     if exclude_users:
-        builder.add_in_condition(username_field, exclude_users)
+        # 特殊处理：PostgreSQL的postgres用户不应该被排除
+        if db_type == "postgresql" and "postgres" not in exclude_users:
+            # 排除指定用户，但包含postgres
+            builder.add_condition(
+                f"({username_field} NOT IN ({', '.join(['%s'] * len(exclude_users))}) OR {username_field} = %s)",
+                *exclude_users,
+                "postgres",
+            )
+        else:
+            builder.add_in_condition(username_field, exclude_users)
 
     # 排除模式匹配
     exclude_patterns = rules.get("exclude_patterns", [])
     for pattern in exclude_patterns:
-        builder.add_like_condition(username_field, pattern)
+        # 特殊处理：PostgreSQL的postgres用户不应该被pg_%模式排除
+        if db_type == "postgresql" and pattern == "pg_%":
+            # 使用更复杂的条件：排除pg_%模式但包含postgres
+            builder.add_condition(f"({username_field} NOT LIKE %s OR {username_field} = %s)", pattern, "postgres")
+        else:
+            builder.add_like_condition(username_field, pattern)
 
     return builder.build_where_clause()

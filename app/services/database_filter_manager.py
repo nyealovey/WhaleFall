@@ -199,6 +199,11 @@ class DatabaseFilterManager:
         """
         rules = self.filter_rules.get(db_type, {})
 
+        # 特殊处理：PostgreSQL的postgres用户应该被包含
+        if db_type == "postgresql" and username == "postgres":
+            logger.debug(f"账户 {username} 是PostgreSQL的默认超级用户，强制包含")
+            return True
+
         # 检查排除用户列表
         if username in rules.get("exclude_users", []):
             logger.debug(f"账户 {username} 在排除用户列表中")

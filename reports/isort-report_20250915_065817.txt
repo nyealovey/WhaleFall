@@ -1,0 +1,17 @@
+错误: ERROR: /Users/shiyijiufei/TaifishingV4/app/models/unified_log.py Imports are incorrectly sorted and/or formatted.
+
+
+标准输出:
+--- /Users/shiyijiufei/TaifishingV4/app/models/unified_log.py:before	2025-09-14 23:21:37.931273
++++ /Users/shiyijiufei/TaifishingV4/app/models/unified_log.py:after	2025-09-15 06:58:19.501666
+@@ -7,8 +7,9 @@
+ from enum import Enum
+ from typing import Any
+ 
+-from sqlalchemy import JSON, Column, DateTime, Index, Integer, String, Text
++from sqlalchemy import JSON, Column, DateTime
+ from sqlalchemy import Enum as SQLEnum
++from sqlalchemy import Index, Integer, String, Text
+ 
+ from app import db
+ from app.utils.timezone import now, utc_to_china

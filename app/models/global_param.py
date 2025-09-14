@@ -3,7 +3,6 @@
 管理系统的全局配置参数
 """
 
-import json
 from datetime import datetime
 from typing import Any
 
@@ -72,7 +71,7 @@ class GlobalParam(db.Model):
                 updated_at=datetime.utcnow(),
             )
             db.session.add(param)
-        
+
         db.session.commit()
         return param
 
