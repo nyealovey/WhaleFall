@@ -24,18 +24,14 @@ class Instance(db.Model):
         db.String(20), default="production", nullable=False, index=True
     )  # 环境：production, development, testing
     sync_count = db.Column(db.Integer, default=0, nullable=False)
-    credential_id = db.Column(
-        db.Integer, db.ForeignKey("credentials.id"), nullable=True
-    )
+    credential_id = db.Column(db.Integer, db.ForeignKey("credentials.id"), nullable=True)
     description = db.Column(db.Text, nullable=True)
     tags = db.Column(db.JSON, nullable=True)
     status = db.Column(db.String(20), default="active", index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     last_connected = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     deleted_at = db.Column(db.DateTime, nullable=True)
 
     # 关系
@@ -159,9 +155,7 @@ class Instance(db.Model):
                     try:
                         conn = oracledb.connect(
                             user=self.credential.username if self.credential else "",
-                            password=(
-                                self.credential.password if self.credential else ""
-                            ),
+                            password=(self.credential.password if self.credential else ""),
                             dsn=dsn,
                         )
                         conn.close()
@@ -199,9 +193,7 @@ class Instance(db.Model):
             "tags": self.tags,
             "status": self.status,
             "is_active": self.is_active,
-            "last_connected": (
-                self.last_connected.isoformat() if self.last_connected else None
-            ),
+            "last_connected": (self.last_connected.isoformat() if self.last_connected else None),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -276,9 +268,7 @@ class Instance(db.Model):
     @staticmethod
     def get_by_db_type_and_environment(db_type: str, environment: str) -> list:
         """根据数据库类型和环境类型获取实例"""
-        return Instance.query.filter_by(
-            db_type=db_type, environment=environment, deleted_at=None
-        ).all()
+        return Instance.query.filter_by(db_type=db_type, environment=environment, deleted_at=None).all()
 
     @staticmethod
     def get_environment_choices() -> list:

@@ -1,6 +1,6 @@
 {
   "errors": [],
-  "generated_at": "2025-09-14T15:14:12Z",
+  "generated_at": "2025-09-14T15:15:07Z",
   "metrics": {
     "_totals": {
       "CONFIDENCE.HIGH": 4,
@@ -11,7 +11,7 @@
       "SEVERITY.LOW": 8,
       "SEVERITY.MEDIUM": 5,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 17615,
+      "loc": 18680,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -24,7 +24,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 306,
+      "loc": 308,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -89,7 +89,7 @@
       "SEVERITY.LOW": 1,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 255,
+      "loc": 298,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -128,7 +128,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 42,
+      "loc": 48,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -141,7 +141,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 118,
+      "loc": 123,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -167,7 +167,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 68,
+      "loc": 78,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -180,7 +180,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 172,
+      "loc": 180,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -206,7 +206,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 70,
+      "loc": 75,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -219,7 +219,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 232,
+      "loc": 242,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -232,7 +232,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 217,
+      "loc": 227,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -245,7 +245,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 733,
+      "loc": 737,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -258,7 +258,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 106,
+      "loc": 125,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -271,7 +271,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 93,
+      "loc": 104,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -297,7 +297,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 181,
+      "loc": 189,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -336,7 +336,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 709,
+      "loc": 772,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -349,7 +349,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 350,
+      "loc": 352,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -362,7 +362,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 214,
+      "loc": 221,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -375,7 +375,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 408,
+      "loc": 434,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -388,7 +388,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 337,
+      "loc": 356,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -414,7 +414,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 176,
+      "loc": 187,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -427,7 +427,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 355,
+      "loc": 360,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -440,7 +440,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 309,
+      "loc": 317,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -479,7 +479,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 189,
+      "loc": 246,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -492,7 +492,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 1182,
+      "loc": 1215,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -505,7 +505,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 293,
+      "loc": 306,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -518,7 +518,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 74,
+      "loc": 79,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -531,7 +531,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 355,
+      "loc": 363,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -544,7 +544,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 126,
+      "loc": 175,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -557,7 +557,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 259,
+      "loc": 288,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -570,7 +570,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 272,
+      "loc": 299,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -583,7 +583,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 133,
+      "loc": 156,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -609,7 +609,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 823,
+      "loc": 875,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -622,7 +622,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 187,
+      "loc": 200,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -635,7 +635,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 206,
+      "loc": 219,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -648,7 +648,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 199,
+      "loc": 239,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -661,7 +661,7 @@
       "SEVERITY.LOW": 1,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 489,
+      "loc": 508,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -674,7 +674,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 259,
+      "loc": 272,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -726,7 +726,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 227,
+      "loc": 271,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -739,7 +739,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 4,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 752,
+      "loc": 811,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -752,7 +752,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 268,
+      "loc": 301,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -765,7 +765,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 1,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 279,
+      "loc": 287,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -778,7 +778,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 269,
+      "loc": 282,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -843,7 +843,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 172,
+      "loc": 177,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -869,7 +869,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 359,
+      "loc": 452,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -895,7 +895,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 176,
+      "loc": 186,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -908,7 +908,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 148,
+      "loc": 178,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -921,7 +921,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 76,
+      "loc": 78,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -934,7 +934,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 239,
+      "loc": 243,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -947,7 +947,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 237,
+      "loc": 247,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -986,7 +986,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 157,
+      "loc": 235,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -1154,7 +1154,7 @@
       "test_name": "hardcoded_password_funcarg"
     },
     {
-      "code": "296                     return True\n297                 except Exception:\n298                     continue\n299                     \n",
+      "code": "304                     return True\n305                 except Exception:\n306                     continue\n307 \n",
       "col_offset": 16,
       "end_col_offset": 28,
       "filename": "app/services/connection_factory.py",
@@ -1165,17 +1165,17 @@
       },
       "issue_severity": "LOW",
       "issue_text": "Try, Except, Continue detected.",
-      "line_number": 297,
+      "line_number": 305,
       "line_range": [
-        297,
-        298
+        305,
+        306
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html",
       "test_id": "B112",
       "test_name": "try_except_continue"
     },
     {
-      "code": "186             where_clause, params = filter_conditions\n187             sql = f\"\"\"\n188                 SELECT\n189                     User as username,\n190                     Host as host,\n191                     Super_priv as is_superuser,\n192                     Grant_priv as can_grant\n193                 FROM mysql.user\n194                 WHERE User != '' AND {where_clause}\n195             \"\"\"\n196 \n",
+      "code": "192             where_clause, params = filter_conditions\n193             sql = f\"\"\"\n194                 SELECT\n195                     User as username,\n196                     Host as host,\n197                     Super_priv as is_superuser,\n198                     Grant_priv as can_grant\n199                 FROM mysql.user\n200                 WHERE User != '' AND {where_clause}\n201             \"\"\"\n202 \n",
       "col_offset": 22,
       "end_col_offset": 37,
       "filename": "app/services/sync_data_manager.py",
@@ -1186,24 +1186,24 @@
       },
       "issue_severity": "MEDIUM",
       "issue_text": "Possible SQL injection vector through string-based query construction.",
-      "line_number": 187,
+      "line_number": 193,
       "line_range": [
-        187,
-        188,
-        189,
-        190,
-        191,
-        192,
         193,
         194,
-        195
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
     },
     {
-      "code": "260             where_clause, params = filter_conditions\n261             sql = f\"\"\"\n262                 SELECT\n263                     rolname as username,\n264                     rolsuper as is_superuser,\n265                     rolcreaterole as can_create_role,\n266                     rolcreatedb as can_create_db\n267                 FROM pg_roles\n268                 WHERE {where_clause}\n269             \"\"\"\n270 \n",
+      "code": "269             where_clause, params = filter_conditions\n270             sql = f\"\"\"\n271                 SELECT\n272                     rolname as username,\n273                     rolsuper as is_superuser,\n274                     rolcreaterole as can_create_role,\n275                     rolcreatedb as can_create_db\n276                 FROM pg_roles\n277                 WHERE {where_clause}\n278             \"\"\"\n279 \n",
       "col_offset": 22,
       "end_col_offset": 22,
       "filename": "app/services/sync_data_manager.py",
@@ -1214,24 +1214,24 @@
       },
       "issue_severity": "MEDIUM",
       "issue_text": "Possible SQL injection vector through string-based query construction.",
-      "line_number": 261,
+      "line_number": 270,
       "line_range": [
-        261,
-        262,
-        263,
-        264,
-        265,
-        266,
-        267,
-        268,
-        269
+        270,
+        271,
+        272,
+        273,
+        274,
+        275,
+        276,
+        277,
+        278
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
     },
     {
-      "code": "306             where_clause, params = filter_conditions\n307             sql = f\"\"\"\n308                 SELECT\n309                     name as username,\n310                     is_disabled as is_disabled,\n311                     type_desc as login_type\n312                 FROM sys.server_principals\n313                 WHERE type IN ('S', 'U', 'G') AND {where_clause}\n314             \"\"\"\n315 \n",
+      "code": "318             where_clause, params = filter_conditions\n319             sql = f\"\"\"\n320                 SELECT\n321                     name as username,\n322                     is_disabled as is_disabled,\n323                     type_desc as login_type\n324                 FROM sys.server_principals\n325                 WHERE type IN ('S', 'U', 'G') AND {where_clause}\n326             \"\"\"\n327 \n",
       "col_offset": 22,
       "end_col_offset": 50,
       "filename": "app/services/sync_data_manager.py",
@@ -1242,23 +1242,23 @@
       },
       "issue_severity": "MEDIUM",
       "issue_text": "Possible SQL injection vector through string-based query construction.",
-      "line_number": 307,
+      "line_number": 319,
       "line_range": [
-        307,
-        308,
-        309,
-        310,
-        311,
-        312,
-        313,
-        314
+        319,
+        320,
+        321,
+        322,
+        323,
+        324,
+        325,
+        326
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
     },
     {
-      "code": "453             where_clause, params = filter_conditions\n454             sql = f\"\"\"\n455                 SELECT\n456                     username,\n457                     account_status,\n458                     created,\n459                     expiry_date\n460                 FROM dba_users\n461                 WHERE {where_clause}\n462             \"\"\"\n463 \n",
+      "code": "465             where_clause, params = filter_conditions\n466             sql = f\"\"\"\n467                 SELECT\n468                     username,\n469                     account_status,\n470                     created,\n471                     expiry_date\n472                 FROM dba_users\n473                 WHERE {where_clause}\n474             \"\"\"\n475 \n",
       "col_offset": 22,
       "end_col_offset": 22,
       "filename": "app/services/sync_data_manager.py",
@@ -1269,24 +1269,24 @@
       },
       "issue_severity": "MEDIUM",
       "issue_text": "Possible SQL injection vector through string-based query construction.",
-      "line_number": 454,
+      "line_number": 466,
       "line_range": [
-        454,
-        455,
-        456,
-        457,
-        458,
-        459,
-        460,
-        461,
-        462
+        466,
+        467,
+        468,
+        469,
+        470,
+        471,
+        472,
+        473,
+        474
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html",
       "test_id": "B608",
       "test_name": "hardcoded_sql_expressions"
     },
     {
-      "code": "189                 # \u6267\u884cPython\u4ee3\u7801\n190                 exec(task.python_code, exec_globals)\n191 \n",
+      "code": "197                 # \u6267\u884cPython\u4ee3\u7801\n198                 exec(task.python_code, exec_globals)\n199 \n",
       "col_offset": 16,
       "end_col_offset": 52,
       "filename": "app/services/task_executor.py",
@@ -1297,9 +1297,9 @@
       },
       "issue_severity": "MEDIUM",
       "issue_text": "Use of exec detected.",
-      "line_number": 190,
+      "line_number": 198,
       "line_range": [
-        190
+        198
       ],
       "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b102_exec_used.html",
       "test_id": "B102",

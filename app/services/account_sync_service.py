@@ -34,9 +34,7 @@ class AccountSyncService:
     def __init__(self) -> None:
         self.sync_logger = get_sync_logger()
 
-    def sync_accounts(
-        self, instance: Instance, sync_type: str = "batch", session_id: str = None
-    ) -> dict[str, Any]:
+    def sync_accounts(self, instance: Instance, sync_type: str = "batch", session_id: str = None) -> dict[str, Any]:
         """
         同步账户信息 - 统一入口
 
@@ -94,9 +92,7 @@ class AccountSyncService:
                     module="account_sync",
                     instance_name=instance.name,
                 )
-                result = sync_manager.sync_postgresql_accounts(
-                    instance, conn, session_id
-                )
+                result = sync_manager.sync_postgresql_accounts(instance, conn, session_id)
                 self.sync_logger.info(
                     "PostgreSQL同步完成",
                     module="account_sync",
@@ -104,9 +100,7 @@ class AccountSyncService:
                     synced_count=result.get("synced_count", 0),
                 )
             elif instance.db_type == "sqlserver":
-                result = sync_manager.sync_sqlserver_accounts(
-                    instance, conn, session_id
-                )
+                result = sync_manager.sync_sqlserver_accounts(instance, conn, session_id)
             elif instance.db_type == "oracle":
                 result = sync_manager.sync_oracle_accounts(instance, conn, session_id)
             else:

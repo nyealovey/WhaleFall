@@ -37,9 +37,7 @@ class CacheManager:
         try:
             return self.cache.get(key)
         except Exception as e:
-            self.system_logger.warning(
-                "获取缓存失败", module="cache", key=key, exception=str(e)
-            )
+            self.system_logger.warning("获取缓存失败", module="cache", key=key, exception=str(e))
             return None
 
     def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
@@ -49,9 +47,7 @@ class CacheManager:
             self.cache.set(key, value, timeout=timeout)
             return True
         except Exception as e:
-            self.system_logger.warning(
-                "设置缓存失败", module="cache", key=key, exception=str(e)
-            )
+            self.system_logger.warning("设置缓存失败", module="cache", key=key, exception=str(e))
             return False
 
     def delete(self, key: str) -> bool:
@@ -72,9 +68,7 @@ class CacheManager:
             self.system_logger.warning(f"清空缓存失败: {e}")
             return False
 
-    def get_or_set(
-        self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs
-    ) -> Any:
+    def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs) -> Any:
         """获取缓存值，如果不存在则设置"""
         value = self.get(key)
         if value is None:
@@ -135,9 +129,7 @@ def cached(
             if key_func:
                 cache_key = key_func(*args, **kwargs)
             else:
-                cache_key = cache_manager._generate_key(
-                    f"{key_prefix}:{f.__name__}", *args, **kwargs
-                )
+                cache_key = cache_manager._generate_key(f"{key_prefix}:{f.__name__}", *args, **kwargs)
 
             # 尝试获取缓存
             cached_value = cache_manager.get(cache_key)

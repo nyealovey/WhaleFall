@@ -13,14 +13,10 @@ class AccountChangeLog(db.Model):
     __tablename__ = "account_change_log"
 
     id = db.Column(db.Integer, primary_key=True)
-    instance_id = db.Column(
-        db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True
-    )
+    instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
     db_type = db.Column(db.String(20), nullable=False, index=True)
     username = db.Column(db.String(255), nullable=False, index=True)
-    change_type = db.Column(
-        db.String(50), nullable=False
-    )  # 'add', 'modify_privilege', 'modify_other', 'delete'
+    change_type = db.Column(db.String(50), nullable=False)  # 'add', 'modify_privilege', 'modify_other', 'delete'
     change_time = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     session_id = db.Column(db.String(36), nullable=True)
     status = db.Column(db.String(20), default="success")

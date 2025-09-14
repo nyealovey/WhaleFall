@@ -57,9 +57,7 @@ def get_instance_accounts(instance_id: int) -> Response:
             account_count=len(accounts_data),
         )
 
-        return jsonify(
-            {"success": True, "data": accounts_data, "count": len(accounts_data)}
-        )
+        return jsonify({"success": True, "data": accounts_data, "count": len(accounts_data)})
 
     except Exception as e:
         log_error(
@@ -110,19 +108,9 @@ def get_account_permissions(instance_id: int, username: str) -> Response:
                 "db_type": account.db_type,
                 "is_superuser": account.is_superuser,
                 "is_deleted": account.is_deleted,
-                "deleted_time": (
-                    account.deleted_time.isoformat() if account.deleted_time else None
-                ),
-                "last_sync_time": (
-                    account.last_sync_time.isoformat()
-                    if account.last_sync_time
-                    else None
-                ),
-                "last_change_time": (
-                    account.last_change_time.isoformat()
-                    if account.last_change_time
-                    else None
-                ),
+                "deleted_time": (account.deleted_time.isoformat() if account.deleted_time else None),
+                "last_sync_time": (account.last_sync_time.isoformat() if account.last_sync_time else None),
+                "last_change_time": (account.last_change_time.isoformat() if account.last_change_time else None),
                 "permissions": permissions_data,
             },
         }
@@ -181,9 +169,7 @@ def get_account_history(instance_id: int, username: str) -> Response:
             change_count=len(changes_data),
         )
 
-        return jsonify(
-            {"success": True, "data": changes_data, "count": len(changes_data)}
-        )
+        return jsonify({"success": True, "data": changes_data, "count": len(changes_data)})
 
     except Exception as e:
         log_error(
@@ -199,9 +185,7 @@ def get_account_history(instance_id: int, username: str) -> Response:
         )
 
 
-@instance_accounts_bp.route(
-    "/<int:instance_id>/accounts/<username>/delete", methods=["POST"]
-)
+@instance_accounts_bp.route("/<int:instance_id>/accounts/<username>/delete", methods=["POST"])
 @login_required
 @view_required
 def delete_account(instance_id: int, username: str) -> Response:
@@ -265,9 +249,7 @@ def delete_account(instance_id: int, username: str) -> Response:
 def get_account_statistics(instance_id: int) -> Response:
     """获取实例账户统计信息"""
     try:
-        api_logger.info(
-            "获取实例账户统计信息", module="instance_accounts", instance_id=instance_id
-        )
+        api_logger.info("获取实例账户统计信息", module="instance_accounts", instance_id=instance_id)
 
         # 获取所有数据库类型的账户统计
         db_types = ["mysql", "postgresql", "sqlserver", "oracle"]

@@ -141,9 +141,7 @@ class DatabaseFilterManager:
 
         return default_rules
 
-    def get_sql_filter_conditions(
-        self, db_type: str, username_field: str = "username"
-    ) -> str:
+    def get_sql_filter_conditions(self, db_type: str, username_field: str = "username") -> str:
         """
         获取SQL过滤条件
 
@@ -175,9 +173,7 @@ class DatabaseFilterManager:
         # 如果没有任何条件，返回1=1（表示不过滤）
         return " AND ".join(conditions) if conditions else "1=1"
 
-    def get_safe_sql_filter_conditions(
-        self, db_type: str, username_field: str = "username"
-    ) -> tuple[str, list[Any]]:
+    def get_safe_sql_filter_conditions(self, db_type: str, username_field: str = "username") -> tuple[str, list[Any]]:
         """
         获取安全的SQL过滤条件（参数化查询）
 
@@ -274,9 +270,7 @@ class DatabaseFilterManager:
             logger.error(f"更新过滤规则失败: {e}")
             return False
 
-    def save_filter_rules_to_file(
-        self, file_path: str = "config/database_filters.yaml"
-    ) -> bool:
+    def save_filter_rules_to_file(self, file_path: str = "config/database_filters.yaml") -> bool:
         """
         保存过滤规则到配置文件
 
@@ -298,9 +292,7 @@ class DatabaseFilterManager:
             }
 
             with open(file_path, "w", encoding="utf-8") as f:
-                yaml.dump(
-                    save_data, f, default_flow_style=False, allow_unicode=True, indent=2
-                )
+                yaml.dump(save_data, f, default_flow_style=False, allow_unicode=True, indent=2)
 
             logger.info(f"过滤规则已保存到 {file_path}")
             return True

@@ -4,7 +4,7 @@
 
 import json
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, render_template, request, Response
 from flask_login import current_user, login_required
 
 from app import db
@@ -23,9 +23,7 @@ from app.utils.decorators import (
 )
 from app.utils.structlog_config import log_error, log_info
 
-account_classification_bp = Blueprint(
-    "account_classification", __name__, url_prefix="/account-classification"
-)
+account_classification_bp = Blueprint("account_classification", __name__, url_prefix="/account-classification")
 
 
 @account_classification_bp.route("/")
@@ -84,16 +82,8 @@ def get_classifications() -> "Response":
                     "priority": classification.priority,
                     "is_system": classification.is_system,
                     "rules_count": rules_count,
-                    "created_at": (
-                        classification.created_at.isoformat()
-                        if classification.created_at
-                        else None
-                    ),
-                    "updated_at": (
-                        classification.updated_at.isoformat()
-                        if classification.updated_at
-                        else None
-                    ),
+                    "created_at": (classification.created_at.isoformat() if classification.created_at else None),
+                    "updated_at": (classification.updated_at.isoformat() if classification.updated_at else None),
                 }
             )
 
@@ -164,16 +154,8 @@ def get_classification(classification_id: int) -> "Response":
                     "color": classification.color,
                     "priority": classification.priority,
                     "is_system": classification.is_system,
-                    "created_at": (
-                        classification.created_at.isoformat()
-                        if classification.created_at
-                        else None
-                    ),
-                    "updated_at": (
-                        classification.updated_at.isoformat()
-                        if classification.updated_at
-                        else None
-                    ),
+                    "created_at": (classification.created_at.isoformat() if classification.created_at else None),
+                    "updated_at": (classification.updated_at.isoformat() if classification.updated_at else None),
                 },
             }
         )
@@ -183,9 +165,7 @@ def get_classification(classification_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route(
-    "/classifications/<int:classification_id>", methods=["PUT"]
-)
+@account_classification_bp.route("/classifications/<int:classification_id>", methods=["PUT"])
 @login_required
 @update_required
 def update_classification(classification_id: int) -> "Response":
@@ -210,9 +190,7 @@ def update_classification(classification_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route(
-    "/classifications/<int:classification_id>", methods=["DELETE"]
-)
+@account_classification_bp.route("/classifications/<int:classification_id>", methods=["DELETE"])
 @login_required
 @delete_required
 def delete_classification(classification_id: int) -> "Response":
@@ -261,18 +239,12 @@ def get_rules() -> "Response":
                     "id": rule.id,
                     "rule_name": rule.rule_name,
                     "classification_id": rule.classification_id,
-                    "classification_name": (
-                        rule.classification.name if rule.classification else None
-                    ),
+                    "classification_name": (rule.classification.name if rule.classification else None),
                     "db_type": rule.db_type,
                     "rule_expression": rule.rule_expression,
                     "is_active": rule.is_active,
-                    "created_at": (
-                        rule.created_at.isoformat() if rule.created_at else None
-                    ),
-                    "updated_at": (
-                        rule.updated_at.isoformat() if rule.updated_at else None
-                    ),
+                    "created_at": (rule.created_at.isoformat() if rule.created_at else None),
+                    "updated_at": (rule.updated_at.isoformat() if rule.updated_at else None),
                 }
             )
 
@@ -290,11 +262,7 @@ def list_rules() -> "Response":
     """获取所有规则列表（按数据库类型分组）"""
     try:
         # 获取所有规则
-        rules = (
-            ClassificationRule.query.filter_by(is_active=True)
-            .order_by(ClassificationRule.created_at.desc())
-            .all()
-        )
+        rules = ClassificationRule.query.filter_by(is_active=True).order_by(ClassificationRule.created_at.desc()).all()
 
         # 获取匹配账户数量
         service = AccountClassificationService()
@@ -306,19 +274,13 @@ def list_rules() -> "Response":
                     "id": rule.id,
                     "rule_name": rule.rule_name,
                     "classification_id": rule.classification_id,
-                    "classification_name": (
-                        rule.classification.name if rule.classification else None
-                    ),
+                    "classification_name": (rule.classification.name if rule.classification else None),
                     "db_type": rule.db_type,
                     "rule_expression": rule.rule_expression,
                     "is_active": rule.is_active,
                     "matched_accounts_count": matched_count,
-                    "created_at": (
-                        rule.created_at.isoformat() if rule.created_at else None
-                    ),
-                    "updated_at": (
-                        rule.updated_at.isoformat() if rule.updated_at else None
-                    ),
+                    "created_at": (rule.created_at.isoformat() if rule.created_at else None),
+                    "updated_at": (rule.updated_at.isoformat() if rule.updated_at else None),
                 }
             )
 
@@ -377,9 +339,7 @@ def get_rule(rule_id: int) -> "Response":
 
         # 解析规则表达式JSON字符串为对象
         try:
-            rule_expression_obj = (
-                json.loads(rule.rule_expression) if rule.rule_expression else {}
-            )
+            rule_expression_obj = json.loads(rule.rule_expression) if rule.rule_expression else {}
         except (json.JSONDecodeError, TypeError):
             rule_expression_obj = {}
 
@@ -387,9 +347,7 @@ def get_rule(rule_id: int) -> "Response":
             "id": rule.id,
             "rule_name": rule.rule_name,
             "classification_id": rule.classification_id,
-            "classification_name": (
-                rule.classification.name if rule.classification else None
-            ),
+            "classification_name": (rule.classification.name if rule.classification else None),
             "db_type": rule.db_type,
             "rule_expression": rule_expression_obj,  # 返回解析后的对象
             "is_active": rule.is_active,
@@ -431,9 +389,7 @@ def update_rule(rule_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route(
-    "/rules/<int:rule_id>/matched-accounts", methods=["GET"]
-)
+@account_classification_bp.route("/rules/<int:rule_id>/matched-accounts", methods=["GET"])
 @login_required
 @view_required
 def get_matched_accounts(rule_id: int) -> "Response":
@@ -453,9 +409,7 @@ def get_matched_accounts(rule_id: int) -> "Response":
         from app.models.instance import Instance
 
         all_accounts = (
-            CurrentAccountSyncData.query.join(
-                Instance, CurrentAccountSyncData.instance_id == Instance.id
-            )
+            CurrentAccountSyncData.query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
             .filter(
                 Instance.db_type == rule.db_type,
                 CurrentAccountSyncData.is_deleted == False,
@@ -472,10 +426,10 @@ def get_matched_accounts(rule_id: int) -> "Response":
             # 检查账户是否匹配规则
             if classification_service.evaluate_rule(rule, account):
                 # 对于MySQL，显示用户名@主机名
-                if rule.db_type == "mysql" and account.host:
-                    display_name = f"{account.username}@{account.host}"
+                if rule.db_type == "mysql" and account.instance and account.instance.host:
+                    display_name = f"{account.username}@{account.instance.host}"
                     # 使用用户名@主机名作为唯一标识
-                    unique_key = f"{account.username}@{account.host}"
+                    unique_key = f"{account.username}@{account.instance.host}"
                 else:
                     display_name = account.username
                     # 对于其他数据库类型，使用用户名作为唯一标识
@@ -502,28 +456,16 @@ def get_matched_accounts(rule_id: int) -> "Response":
                             "id": account.id,
                             "username": account.username,  # 使用原始用户名
                             "display_name": display_name,  # 显示名称
-                            "instance_name": (
-                                account.instance.name
-                                if account.instance
-                                else "未知实例"
-                            ),
-                            "instance_host": (
-                                account.instance.host if account.instance else "未知IP"
-                            ),
-                            "instance_environment": (
-                                account.instance.environment
-                                if account.instance
-                                else "unknown"
-                            ),
+                            "instance_name": (account.instance.name if account.instance else "未知实例"),
+                            "instance_host": (account.instance.host if account.instance else "未知IP"),
+                            "instance_environment": (account.instance.environment if account.instance else "unknown"),
                             "db_type": rule.db_type,
                             "is_locked": getattr(account, "is_locked", False),
                             "classifications": account_classifications,
                         }
                     )
 
-        return jsonify(
-            {"success": True, "accounts": matched_accounts, "rule_name": rule.rule_name}
-        )
+        return jsonify({"success": True, "accounts": matched_accounts, "rule_name": rule.rule_name})
 
     except Exception as e:
         log_error(f"获取匹配账户失败: {e}", module="account_classification")
@@ -639,8 +581,7 @@ def get_assignments() -> "Response":
             db.session.query(AccountClassificationAssignment, AccountClassification)
             .join(
                 AccountClassification,
-                AccountClassificationAssignment.classification_id
-                == AccountClassification.id,
+                AccountClassificationAssignment.classification_id == AccountClassification.id,
             )
             .filter(AccountClassificationAssignment.is_active)
             .all()
@@ -654,11 +595,7 @@ def get_assignments() -> "Response":
                     "account_id": assignment.assigned_by,
                     "classification_id": assignment.classification_id,
                     "classification_name": classification.name,
-                    "assigned_at": (
-                        assignment.assigned_at.isoformat()
-                        if assignment.assigned_at
-                        else None
-                    ),
+                    "assigned_at": (assignment.assigned_at.isoformat() if assignment.assigned_at else None),
                 }
             )
 
@@ -815,22 +752,22 @@ def api_get_batch_matches(batch_id: str) -> "Response":
             .join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
             .join(
                 AccountClassification,
-                AccountClassificationAssignment.classification_id
-                == AccountClassification.id,
+                AccountClassificationAssignment.classification_id == AccountClassification.id,
             )
             .filter(
                 AccountClassificationAssignment.batch_id == batch_id,
-                AccountClassificationAssignment.is_active
-                == True,  # 只显示正确匹配的记录
+                AccountClassificationAssignment.is_active == True,  # 只显示正确匹配的记录
             )
             .all()
         )
 
         matches = []
         for assignment, account, instance, classification in assignments:
-            # 获取该分类的第一个规则（用于显示）
+            # 获取该分类中与账户数据库类型匹配的规则
             rule = ClassificationRule.query.filter_by(
-                classification_id=classification.id, is_active=True
+                classification_id=classification.id, 
+                db_type=instance.db_type,
+                is_active=True
             ).first()
             # 解析账户权限信息 - 优先使用新的优化同步模型
             account_permissions = []
@@ -842,9 +779,9 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                 db_type=instance.db_type,
             ).first()
 
-            if sync_data and sync_data.sync_data:
+            if sync_data:
                 try:
-                    permissions_data = json.loads(sync_data.sync_data)
+                    permissions_data = sync_data.get_permissions_by_db_type()
                     if isinstance(permissions_data, dict):
                         # 根据数据库类型解析权限
                         if instance.db_type == "mysql":
@@ -853,21 +790,14 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                                     account_permissions.append(
                                         {
                                             "category": "global_privileges",
-                                            "name": (
-                                                perm.get("privilege", perm)
-                                                if isinstance(perm, dict)
-                                                else perm
-                                            ),
+                                            "name": (perm.get("privilege", perm) if isinstance(perm, dict) else perm),
                                             "description": "",
                                             "granted": True,
                                         }
                                     )
                             if permissions_data.get("database_privileges"):
                                 for db_perm in permissions_data["database_privileges"]:
-                                    if (
-                                        isinstance(db_perm, dict)
-                                        and "privileges" in db_perm
-                                    ):
+                                    if isinstance(db_perm, dict) and "privileges" in db_perm:
                                         for perm in db_perm["privileges"]:
                                             account_permissions.append(
                                                 {
@@ -890,10 +820,7 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                                     )
                             if permissions_data.get("database_privileges"):
                                 for db_perm in permissions_data["database_privileges"]:
-                                    if (
-                                        isinstance(db_perm, dict)
-                                        and "privileges" in db_perm
-                                    ):
+                                    if isinstance(db_perm, dict) and "privileges" in db_perm:
                                         for perm in db_perm["privileges"]:
                                             account_permissions.append(
                                                 {
@@ -915,9 +842,7 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                                         }
                                     )
                             if permissions_data.get("database_roles"):
-                                for db_name, roles in permissions_data[
-                                    "database_roles"
-                                ].items():
+                                for db_name, roles in permissions_data["database_roles"].items():
                                     if isinstance(roles, list):
                                         for role in roles:
                                             account_permissions.append(
@@ -958,39 +883,115 @@ def api_get_batch_matches(batch_id: str) -> "Response":
             matched_permissions = []
             if rule:
                 try:
+                    # 尝试解析JSON格式的规则表达式
                     rule_expression = json.loads(rule.rule_expression)
-                    if (
-                        isinstance(rule_expression, dict)
-                        and "permissions" in rule_expression
-                    ):
-                        rule_perms = rule_expression["permissions"]
-                        if isinstance(rule_perms, list):
-                            for perm in rule_perms:
-                                if isinstance(perm, dict) and "name" in perm:
-                                    matched_permissions.append(
-                                        {
-                                            "name": perm["name"],
-                                            "description": perm.get("description", ""),
-                                            "category": perm.get("category", ""),
-                                        }
-                                    )
-                                elif isinstance(perm, str):
-                                    matched_permissions.append(
-                                        {
-                                            "name": perm,
-                                            "description": "",
-                                            "category": "",
-                                        }
-                                    )
+                    if isinstance(rule_expression, dict):
+                        # 处理新格式的规则表达式
+                        if "permissions" in rule_expression:
+                            rule_perms = rule_expression["permissions"]
+                            if isinstance(rule_perms, list):
+                                for perm in rule_perms:
+                                    if isinstance(perm, dict) and "name" in perm:
+                                        matched_permissions.append(
+                                            {
+                                                "name": perm["name"],
+                                                "description": perm.get("description", ""),
+                                                "category": perm.get("category", ""),
+                                            }
+                                        )
+                                    elif isinstance(perm, str):
+                                        matched_permissions.append(
+                                            {
+                                                "name": perm,
+                                                "description": "",
+                                                "category": "",
+                                            }
+                                        )
+                        # 处理SQL Server特定格式
+                        elif rule_expression.get("type") == "sqlserver_permissions":
+                            server_roles = rule_expression.get("server_roles", [])
+                            for role in server_roles:
+                                matched_permissions.append({
+                                    "name": role,
+                                    "description": f"服务器角色: {role}",
+                                    "category": "server_roles",
+                                })
+                            server_permissions = rule_expression.get("server_permissions", [])
+                            for perm in server_permissions:
+                                matched_permissions.append({
+                                    "name": perm,
+                                    "description": f"服务器权限: {perm}",
+                                    "category": "server_permissions",
+                                })
+                        # 处理MySQL特定格式
+                        elif rule_expression.get("type") == "mysql_permissions":
+                            global_privileges = rule_expression.get("global_privileges", [])
+                            for perm in global_privileges:
+                                matched_permissions.append({
+                                    "name": perm,
+                                    "description": f"全局权限: {perm}",
+                                    "category": "global_privileges",
+                                })
+                            database_privileges = rule_expression.get("database_privileges", [])
+                            for perm in database_privileges:
+                                matched_permissions.append({
+                                    "name": perm,
+                                    "description": f"数据库权限: {perm}",
+                                    "category": "database_privileges",
+                                })
                 except (json.JSONDecodeError, TypeError):
-                    matched_permissions = []
+                    # 处理旧格式的规则表达式（字符串格式）
+                    rule_expression_str = rule.rule_expression
+                    if rule_expression_str:
+                        # 根据数据库类型和规则表达式解析匹配的权限
+                        if instance.db_type == "sqlserver":
+                            if rule_expression_str == "server_roles.sysadmin":
+                                matched_permissions.append({
+                                    "name": "sysadmin",
+                                    "description": "系统管理员角色",
+                                    "category": "server_roles",
+                                })
+                            elif rule_expression_str.startswith("server_permissions."):
+                                perm_name = rule_expression_str.split(".", 1)[1]
+                                matched_permissions.append({
+                                    "name": perm_name,
+                                    "description": f"服务器权限: {perm_name}",
+                                    "category": "server_permissions",
+                                })
+                        elif instance.db_type == "mysql":
+                            if rule_expression_str == "global_privileges.SUPER":
+                                matched_permissions.append({
+                                    "name": "SUPER",
+                                    "description": "超级用户权限",
+                                    "category": "global_privileges",
+                                })
+                        elif instance.db_type == "postgresql":
+                            if rule_expression_str == "role_attributes.SUPERUSER":
+                                matched_permissions.append({
+                                    "name": "SUPERUSER",
+                                    "description": "超级用户属性",
+                                    "category": "role_attributes",
+                                })
+                            elif rule_expression_str == "role_attributes.CREATEROLE":
+                                matched_permissions.append({
+                                    "name": "CREATEROLE",
+                                    "description": "创建角色权限",
+                                    "category": "role_attributes",
+                                })
+                        elif instance.db_type == "oracle":
+                            if rule_expression_str == "system_privileges.GRANT ANY PRIVILEGE":
+                                matched_permissions.append({
+                                    "name": "GRANT ANY PRIVILEGE",
+                                    "description": "授权任何权限",
+                                    "category": "system_privileges",
+                                })
 
             matches.append(
                 {
                     "assignment_id": assignment.id,
                     "account_id": account.id,
                     "account_name": account.username,
-                    "account_host": account.host,
+                    "account_host": account.instance.host if account.instance else None,
                     "instance_id": instance.id,
                     "instance_name": instance.name,
                     "instance_type": instance.db_type,
@@ -998,17 +999,11 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                     "classification_name": classification.name,
                     "rule_id": rule.id if rule else None,
                     "rule_name": rule.rule_name if rule else "无规则",
-                    "rule_description": (
-                        rule.rule_expression if rule else "无规则表达式"
-                    ),
-                    "matched_at": (
-                        batch.started_at.isoformat() if batch.started_at else None
-                    ),
+                    "rule_description": (rule.rule_expression if rule else "无规则表达式"),
+                    "matched_at": (batch.started_at.isoformat() if batch.started_at else None),
                     "confidence": getattr(assignment, "confidence_score", None),
                     "account_permissions": account_permissions,
                     "matched_permissions": matched_permissions,
-                    "is_superuser": account.is_superuser,
-                    "can_grant": account.can_grant,
                 }
             )
 

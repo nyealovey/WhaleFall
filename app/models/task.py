@@ -14,12 +14,8 @@ class Task(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False, unique=True, index=True)
-    task_type = db.Column(
-        db.String(50), nullable=False, index=True
-    )  # sync_accounts, sync_version, sync_size等
-    db_type = db.Column(
-        db.String(50), nullable=False, index=True
-    )  # postgresql, mysql, sqlserver, oracle
+    task_type = db.Column(db.String(50), nullable=False, index=True)  # sync_accounts, sync_version, sync_size等
+    db_type = db.Column(db.String(50), nullable=False, index=True)  # postgresql, mysql, sqlserver, oracle
     schedule = db.Column(db.String(100), nullable=True)  # cron表达式
     description = db.Column(db.Text, nullable=True)
     python_code = db.Column(db.Text, nullable=True)  # 可执行的Python代码
@@ -33,9 +29,7 @@ class Task(db.Model):
     run_count = db.Column(db.Integer, default=0)  # 运行次数
     success_count = db.Column(db.Integer, default=0)  # 成功次数
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # 关系 - 移除instance_id，任务按数据库类型匹配实例
 
@@ -99,11 +93,7 @@ class Task(db.Model):
             "run_count": self.run_count,
             "success_count": self.success_count,
             "success_rate": round(
-                (
-                    (self.success_count / self.run_count * 100)
-                    if self.run_count > 0
-                    else 0
-                ),
+                ((self.success_count / self.run_count * 100) if self.run_count > 0 else 0),
                 2,
             ),
             "created_at": self.created_at.isoformat() if self.created_at else None,

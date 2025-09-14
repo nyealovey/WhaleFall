@@ -32,12 +32,8 @@ oracle_instant_client_path = os.getenv("DYLD_LIBRARY_PATH")
 if oracle_instant_client_path and os.path.exists(oracle_instant_client_path):
     current_dyld_path = os.environ.get("DYLD_LIBRARY_PATH", "")
     if oracle_instant_client_path not in current_dyld_path:
-        os.environ["DYLD_LIBRARY_PATH"] = (
-            f"{oracle_instant_client_path}:{current_dyld_path}"
-        )
-        logger.info(
-            f"🔧 已设置Oracle Instant Client环境变量: {oracle_instant_client_path}"
-        )
+        os.environ["DYLD_LIBRARY_PATH"] = f"{oracle_instant_client_path}:{current_dyld_path}"
+        logger.info(f"🔧 已设置Oracle Instant Client环境变量: {oracle_instant_client_path}")
 
 # 初始化扩展
 db = SQLAlchemy()
@@ -139,9 +135,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:
             import secrets
 
             secret_key = secrets.token_urlsafe(32)
-            logger.warning(
-                "⚠️  开发环境使用随机生成的SECRET_KEY，生产环境请设置环境变量"
-            )
+            logger.warning("⚠️  开发环境使用随机生成的SECRET_KEY，生产环境请设置环境变量")
         else:
             error_msg = "SECRET_KEY environment variable must be set in production"
             raise ValueError(error_msg)
@@ -152,21 +146,15 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:
             import secrets
 
             jwt_secret_key = secrets.token_urlsafe(32)
-            logger.warning(
-                "⚠️  开发环境使用随机生成的JWT_SECRET_KEY，生产环境请设置环境变量"
-            )
+            logger.warning("⚠️  开发环境使用随机生成的JWT_SECRET_KEY，生产环境请设置环境变量")
         else:
             error_msg = "JWT_SECRET_KEY environment variable must be set in production"
             raise ValueError(error_msg)
 
     app.config["SECRET_KEY"] = secret_key
     app.config["JWT_SECRET_KEY"] = jwt_secret_key
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = int(
-        os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 3600)
-    )
-    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = int(
-        os.getenv("JWT_REFRESH_TOKEN_EXPIRES", 2592000)
-    )
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 3600))
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", 2592000))
 
     # 数据库配置
     database_url = os.getenv("DATABASE_URL") or os.getenv("SQLALCHEMY_DATABASE_URI")
@@ -202,9 +190,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:
     app.config["CACHE_TYPE"] = cache_type
 
     if cache_type == "redis":
-        app.config["CACHE_REDIS_URL"] = os.getenv(
-            "REDIS_URL", "redis://localhost:6379/0"
-        )
+        app.config["CACHE_REDIS_URL"] = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
     app.config["CACHE_DEFAULT_TIMEOUT"] = int(os.getenv("CACHE_DEFAULT_TIMEOUT", 300))
 
@@ -247,9 +233,7 @@ def configure_session_security(app: Flask) -> None:
         app: Flask应用实例
     """
     # 会话配置
-    app.config["PERMANENT_SESSION_LIFETIME"] = (
-        SystemConstants.SESSION_LIFETIME
-    )  # 会话1小时过期
+    app.config["PERMANENT_SESSION_LIFETIME"] = SystemConstants.SESSION_LIFETIME  # 会话1小时过期
     app.config["SESSION_COOKIE_SECURE"] = not app.debug  # 生产环境使用HTTPS
     app.config["SESSION_COOKIE_HTTPONLY"] = True  # 防止XSS攻击
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF保护
@@ -297,9 +281,7 @@ def initialize_extensions(app: Flask) -> None:
 
     # 会话安全配置
     login_manager.session_protection = "basic"  # 基础会话保护
-    login_manager.remember_cookie_duration = (
-        SystemConstants.SESSION_LIFETIME
-    )  # 记住我功能1小时过期
+    login_manager.remember_cookie_duration = SystemConstants.SESSION_LIFETIME  # 记住我功能1小时过期
     login_manager.remember_cookie_secure = not app.debug  # 生产环境使用HTTPS
     login_manager.remember_cookie_httponly = True  # 防止XSS攻击
 
@@ -311,9 +293,7 @@ def initialize_extensions(app: Flask) -> None:
         return User.query.get(int(user_id))
 
     # 初始化CORS
-    allowed_origins = os.getenv(
-        "CORS_ORIGINS", "http://localhost:5001,http://127.0.0.1:5001"
-    ).split(",")
+    allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:5001,http://127.0.0.1:5001").split(",")
     cors.init_app(
         app,
         resources={
@@ -393,9 +373,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
     app.register_blueprint(health_bp, url_prefix="/health")
     app.register_blueprint(admin_bp, url_prefix="/admin")
-    app.register_blueprint(
-        account_classification_bp, url_prefix="/account-classification"
-    )
+    app.register_blueprint(account_classification_bp, url_prefix="/account-classification")
 
     # 注册数据库类型管理蓝图
     app.register_blueprint(database_types_bp)
@@ -441,9 +419,7 @@ def configure_logging(app: Flask) -> None:
             backupCount=app.config["LOG_BACKUP_COUNT"],
         )
         file_handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]"
-            )
+            logging.Formatter("%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]")
         )
         file_handler.setLevel(getattr(logging, app.config["LOG_LEVEL"]))
         app.logger.addHandler(file_handler)
@@ -468,9 +444,7 @@ def configure_template_filters(app: Flask) -> None:
     from app.utils.timezone import format_china_time
 
     @app.template_filter("china_time")
-    def china_time_filter(
-        dt: Union[str, "datetime"], format_str: str = "%Y-%m-%d %H:%M:%S"
-    ) -> str:
+    def china_time_filter(dt: Union[str, "datetime"], format_str: str = "%Y-%m-%d %H:%M:%S") -> str:
         """东八区时间格式化过滤器"""
         return format_china_time(dt, format_str)
 

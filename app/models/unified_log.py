@@ -7,9 +7,8 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
-from sqlalchemy import JSON, Column, DateTime
+from sqlalchemy import JSON, Column, DateTime, Index, Integer, String, Text
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import Index, Integer, String, Text
 
 from app import db
 from app.utils.timezone import now, utc_to_china
@@ -110,9 +109,7 @@ class UnifiedLog(db.Model):
         limit: int = 100,
     ) -> list["UnifiedLog"]:
         """获取最近的日志"""
-        query = cls.query.filter(
-            cls.timestamp >= datetime.utcnow() - timedelta(hours=hours)
-        )
+        query = cls.query.filter(cls.timestamp >= datetime.utcnow() - timedelta(hours=hours))
 
         if level:
             query = query.filter(cls.level == level)
@@ -136,9 +133,7 @@ class UnifiedLog(db.Model):
         )
 
     @classmethod
-    def get_logs_by_module(
-        cls, module: str, hours: int = 24, limit: int = 100
-    ) -> list["UnifiedLog"]:
+    def get_logs_by_module(cls, module: str, hours: int = 24, limit: int = 100) -> list["UnifiedLog"]:
         """根据模块获取日志"""
         return (
             cls.query.filter(
@@ -160,14 +155,10 @@ class UnifiedLog(db.Model):
         limit: int = 100,
     ) -> list["UnifiedLog"]:
         """搜索日志"""
-        query = cls.query.filter(
-            cls.timestamp >= datetime.utcnow() - timedelta(hours=hours)
-        )
+        query = cls.query.filter(cls.timestamp >= datetime.utcnow() - timedelta(hours=hours))
 
         # 全文搜索消息和上下文
-        search_filter = db.or_(
-            cls.message.like(f"%{search_term}%"), cls.context.like(f"%{search_term}%")
-        )
+        search_filter = db.or_(cls.message.like(f"%{search_term}%"), cls.context.like(f"%{search_term}%"))
         query = query.filter(search_filter)
 
         if level:
@@ -252,9 +243,7 @@ class UnifiedLog(db.Model):
             "debug_count": level_counts.get("DEBUG", 0),
             "critical_count": level_counts.get("CRITICAL", 0),
             "level_distribution": level_counts,
-            "top_modules": [
-                {"module": module, "count": count} for module, count in module_stats
-            ],
+            "top_modules": [{"module": module, "count": count} for module, count in module_stats],
             "error_rate": (error_count / total_logs * 100) if total_logs > 0 else 0,
         }
 

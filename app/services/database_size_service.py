@@ -35,9 +35,7 @@ class DatabaseSizeService:
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
 
-    def sync_database_size(
-        self, instance: Instance, sync_type: str = "batch"
-    ) -> dict[str, Any]:
+    def sync_database_size(self, instance: Instance, sync_type: str = "batch") -> dict[str, Any]:
         """
         同步数据库大小信息 - 统一入口
 

@@ -35,9 +35,7 @@ def sanitize_input(value: Any) -> str:
     return value.strip()
 
 
-def validate_required_fields(
-    data: dict[str, Any], required_fields: list[str]
-) -> str | None:
+def validate_required_fields(data: dict[str, Any], required_fields: list[str]) -> str | None:
     """
     验证必填字段
 

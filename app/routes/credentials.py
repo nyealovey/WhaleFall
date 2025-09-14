@@ -39,9 +39,9 @@ def index() -> str:
     credential_type = request.args.get("credential_type", "", type=str)
 
     # 构建查询，包含实例数量统计
-    query = db.session.query(
-        Credential, db.func.count(Instance.id).label("instance_count")
-    ).outerjoin(Instance, Credential.id == Instance.credential_id)
+    query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
+        Instance, Credential.id == Instance.credential_id
+    )
 
     if search:
         query = query.filter(
@@ -197,9 +197,7 @@ def create() -> "str | Response":
 
             if request.is_json:
                 return (
-                    jsonify(
-                        {"message": "凭据创建成功", "credential": credential.to_dict()}
-                    ),
+                    jsonify({"message": "凭据创建成功", "credential": credential.to_dict()}),
                     201,
                 )
 
@@ -313,9 +311,7 @@ def edit(credential_id: int) -> "str | Response":
         try:
             # 更新凭据信息
             credential.name = data.get("name", credential.name).strip()
-            credential.credential_type = data.get(
-                "credential_type", credential.credential_type
-            )
+            credential.credential_type = data.get("credential_type", credential.credential_type)
             credential.db_type = data.get("db_type", credential.db_type)
             credential.username = data.get("username", credential.username).strip()
             credential.description = data.get("description", credential.description)
@@ -348,9 +344,7 @@ def edit(credential_id: int) -> "str | Response":
             )
 
             if request.is_json:
-                return jsonify(
-                    {"message": "凭据更新成功", "credential": credential.to_dict()}
-                )
+                return jsonify({"message": "凭据更新成功", "credential": credential.to_dict()})
 
             flash("凭据更新成功！", "success")
             return redirect(url_for("credentials.detail", credential_id=credential_id))

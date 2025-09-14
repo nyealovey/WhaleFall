@@ -16,11 +16,7 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", DefaultConfig.SECRET_KEY)
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", DefaultConfig.JWT_SECRET_KEY)
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
-        seconds=int(
-            os.getenv(
-                "JWT_ACCESS_TOKEN_EXPIRES", SystemConstants.JWT_ACCESS_TOKEN_EXPIRES
-            )
-        )
+        seconds=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", SystemConstants.JWT_ACCESS_TOKEN_EXPIRES))
     )
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(
         days=int(
@@ -46,31 +42,23 @@ class Config:
     # Redis配置
     CACHE_TYPE = "redis"
     CACHE_REDIS_URL = os.getenv("REDIS_URL", DefaultConfig.REDIS_URL)
-    CACHE_DEFAULT_TIMEOUT = int(
-        os.getenv("CACHE_DEFAULT_TIMEOUT", SystemConstants.DEFAULT_CACHE_TIMEOUT)
-    )
+    CACHE_DEFAULT_TIMEOUT = int(os.getenv("CACHE_DEFAULT_TIMEOUT", SystemConstants.DEFAULT_CACHE_TIMEOUT))
 
     # 安全配置
-    BCRYPT_LOG_ROUNDS = int(
-        os.getenv("BCRYPT_LOG_ROUNDS", SystemConstants.PASSWORD_HASH_ROUNDS)
-    )
+    BCRYPT_LOG_ROUNDS = int(os.getenv("BCRYPT_LOG_ROUNDS", SystemConstants.PASSWORD_HASH_ROUNDS))
 
     # 临时禁用CSRF用于测试
     WTF_CSRF_ENABLED = True
 
     # 文件上传配置
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", DefaultConfig.UPLOAD_FOLDER)
-    MAX_CONTENT_LENGTH = int(
-        os.getenv("MAX_CONTENT_LENGTH", SystemConstants.MAX_FILE_SIZE)
-    )
+    MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", SystemConstants.MAX_FILE_SIZE))
 
     # 日志配置
     LOG_LEVEL = os.getenv("LOG_LEVEL", DefaultConfig.LOG_LEVEL)
     LOG_FILE = os.getenv("LOG_FILE", DefaultConfig.LOG_FILE)
     LOG_MAX_SIZE = int(os.getenv("LOG_MAX_SIZE", SystemConstants.LOG_MAX_SIZE))
-    LOG_BACKUP_COUNT = int(
-        os.getenv("LOG_BACKUP_COUNT", SystemConstants.LOG_BACKUP_COUNT)
-    )
+    LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", SystemConstants.LOG_BACKUP_COUNT))
 
     # 外部数据库配置
     SQL_SERVER_HOST = os.getenv("SQL_SERVER_HOST", DefaultConfig.SQL_SERVER_HOST)

@@ -43,9 +43,7 @@ class SyncDataManager:
                     elif account.last_change_type == "modify_privilege":
                         modified_count += 1
                 except Exception as e:
-                    self.sync_logger.error(
-                        f"同步MySQL账户失败: {account_data['username']}", error=str(e)
-                    )
+                    self.sync_logger.error(f"同步MySQL账户失败: {account_data['username']}", error=str(e))
 
             return {
                 "success": True,
@@ -168,9 +166,7 @@ class SyncDataManager:
                     elif account.last_change_type == "modify_privilege":
                         modified_count += 1
                 except Exception as e:
-                    self.sync_logger.error(
-                        f"同步Oracle账户失败: {account_data['username']}", error=str(e)
-                    )
+                    self.sync_logger.error(f"同步Oracle账户失败: {account_data['username']}", error=str(e))
 
             return {
                 "success": True,
@@ -190,9 +186,7 @@ class SyncDataManager:
             from app.services.database_filter_manager import DatabaseFilterManager
 
             filter_manager = DatabaseFilterManager()
-            filter_conditions = filter_manager.get_safe_sql_filter_conditions(
-                "mysql", "User"
-            )
+            filter_conditions = filter_manager.get_safe_sql_filter_conditions("mysql", "User")
 
             # 构建查询SQL
             where_clause, params = filter_conditions
@@ -226,26 +220,18 @@ class SyncDataManager:
                         global_privileges.append("ALL PRIVILEGES")
                     elif "ON *.*" in grant:
                         # 全局权限 - 分割权限字符串
-                        privs_string = (
-                            grant.split("ON *.*")[0].replace("GRANT ", "").strip()
-                        )
+                        privs_string = grant.split("ON *.*")[0].replace("GRANT ", "").strip()
                         # 分割权限并添加到列表中
-                        privs_list = [
-                            p.strip() for p in privs_string.split(",") if p.strip()
-                        ]
+                        privs_list = [p.strip() for p in privs_string.split(",") if p.strip()]
                         for priv in privs_list:
                             if priv not in global_privileges:
                                 global_privileges.append(priv)
                     elif "ON `" in grant and "`.*" in grant:
                         # 数据库权限
                         db_name = grant.split("ON `")[1].split("`.*")[0]
-                        privs_string = (
-                            grant.split("ON `")[0].replace("GRANT ", "").strip()
-                        )
+                        privs_string = grant.split("ON `")[0].replace("GRANT ", "").strip()
                         # 分割权限
-                        privs_list = [
-                            p.strip() for p in privs_string.split(",") if p.strip()
-                        ]
+                        privs_list = [p.strip() for p in privs_string.split(",") if p.strip()]
                         if db_name not in database_privileges:
                             database_privileges[db_name] = []
                         database_privileges[db_name].extend(privs_list)
@@ -277,9 +263,7 @@ class SyncDataManager:
             from app.services.database_filter_manager import DatabaseFilterManager
 
             filter_manager = DatabaseFilterManager()
-            filter_conditions = filter_manager.get_safe_sql_filter_conditions(
-                "postgresql", "rolname"
-            )
+            filter_conditions = filter_manager.get_safe_sql_filter_conditions("postgresql", "rolname")
 
             # 构建查询SQL
             where_clause, params = filter_conditions
@@ -328,9 +312,7 @@ class SyncDataManager:
             from app.services.database_filter_manager import DatabaseFilterManager
 
             filter_manager = DatabaseFilterManager()
-            filter_conditions = filter_manager.get_safe_sql_filter_conditions(
-                "sqlserver", "name"
-            )
+            filter_conditions = filter_manager.get_safe_sql_filter_conditions("sqlserver", "name")
 
             # 构建查询SQL
             where_clause, params = filter_conditions
@@ -354,14 +336,10 @@ class SyncDataManager:
                 server_roles = self._get_sqlserver_server_roles(conn, username)
 
                 # 获取服务器权限
-                server_permissions = self._get_sqlserver_server_permissions(
-                    conn, username
-                )
+                server_permissions = self._get_sqlserver_server_permissions(conn, username)
 
                 # 获取数据库角色和权限
-                database_roles, database_permissions = (
-                    self._get_sqlserver_database_permissions(conn, username)
-                )
+                database_roles, database_permissions = self._get_sqlserver_database_permissions(conn, username)
 
                 # 判断是否为超级用户（sa账户或sysadmin角色）
                 is_superuser = username.lower() == "sa" or "sysadmin" in server_roles
@@ -397,9 +375,7 @@ class SyncDataManager:
             roles = conn.execute_query(sql, (username,))
             return [role[0] for role in roles]
         except Exception as e:
-            self.sync_logger.error(
-                f"获取SQL Server服务器角色失败: {username}", error=str(e)
-            )
+            self.sync_logger.error(f"获取SQL Server服务器角色失败: {username}", error=str(e))
             return []
 
     def _get_sqlserver_server_permissions(self, conn, username: str) -> list:
@@ -418,9 +394,7 @@ class SyncDataManager:
             permissions = conn.execute_query(sql, (username,))
             return [perm[0] for perm in permissions]
         except Exception as e:
-            self.sync_logger.error(
-                f"获取SQL Server服务器权限失败: {username}", error=str(e)
-            )
+            self.sync_logger.error(f"获取SQL Server服务器权限失败: {username}", error=str(e))
             return []
 
     def _get_sqlserver_database_permissions(self, conn, username: str) -> tuple:
@@ -431,9 +405,7 @@ class SyncDataManager:
             database_permissions = {}
 
             # 获取所有数据库列表
-            databases_sql = (
-                "SELECT name FROM sys.databases WHERE state = 0"  # 只获取在线数据库
-            )
+            databases_sql = "SELECT name FROM sys.databases WHERE state = 0"  # 只获取在线数据库
             databases = conn.execute_query(databases_sql)
 
             for db_row in databases:
@@ -467,9 +439,7 @@ class SyncDataManager:
                     """
                     permissions = conn.execute_query(perms_sql, (username,))
                     if permissions:
-                        database_permissions[db_name] = [
-                            perm[0] for perm in permissions
-                        ]
+                        database_permissions[db_name] = [perm[0] for perm in permissions]
 
                 except Exception as e:
                     # 如果无法访问某个数据库，跳过
@@ -479,9 +449,7 @@ class SyncDataManager:
             return database_roles, database_permissions
 
         except Exception as e:
-            self.sync_logger.error(
-                f"获取SQL Server数据库权限失败: {username}", error=str(e)
-            )
+            self.sync_logger.error(f"获取SQL Server数据库权限失败: {username}", error=str(e))
             return {}, {}
 
     def _get_oracle_accounts(self, conn) -> list:
@@ -491,9 +459,7 @@ class SyncDataManager:
             from app.services.database_filter_manager import DatabaseFilterManager
 
             filter_manager = DatabaseFilterManager()
-            filter_conditions = filter_manager.get_safe_sql_filter_conditions(
-                "oracle", "username"
-            )
+            filter_conditions = filter_manager.get_safe_sql_filter_conditions("oracle", "username")
 
             # 构建查询SQL
             where_clause, params = filter_conditions
@@ -540,9 +506,7 @@ class SyncDataManager:
         include_deleted: bool = False,
     ) -> CurrentAccountSyncData | None:
         """获取账户最新状态"""
-        query = CurrentAccountSyncData.query.filter_by(
-            instance_id=instance_id, db_type=db_type
-        )
+        query = CurrentAccountSyncData.query.filter_by(instance_id=instance_id, db_type=db_type)
         if username:
             query = query.filter_by(username=username)
         if not include_deleted:
@@ -550,9 +514,7 @@ class SyncDataManager:
         return query.first()
 
     @classmethod
-    def get_accounts_by_instance(
-        cls, instance_id: int, include_deleted: bool = False
-    ) -> list[CurrentAccountSyncData]:
+    def get_accounts_by_instance(cls, instance_id: int, include_deleted: bool = False) -> list[CurrentAccountSyncData]:
         """获取实例的所有账户"""
         query = CurrentAccountSyncData.query.filter_by(instance_id=instance_id)
         if not include_deleted:
@@ -560,14 +522,10 @@ class SyncDataManager:
         return query.all()
 
     @classmethod
-    def get_account_changes(
-        cls, instance_id: int, db_type: str, username: str
-    ) -> list[AccountChangeLog]:
+    def get_account_changes(cls, instance_id: int, db_type: str, username: str) -> list[AccountChangeLog]:
         """获取账户变更历史"""
         return (
-            AccountChangeLog.query.filter_by(
-                instance_id=instance_id, db_type=db_type, username=username
-            )
+            AccountChangeLog.query.filter_by(instance_id=instance_id, db_type=db_type, username=username)
             .order_by(AccountChangeLog.change_time.desc())
             .all()
         )
@@ -585,21 +543,13 @@ class SyncDataManager:
         """根据数据库类型更新账户权限"""
 
         if db_type == "mysql":
-            return cls._upsert_mysql_account(
-                instance_id, username, permissions_data, is_superuser, session_id
-            )
+            return cls._upsert_mysql_account(instance_id, username, permissions_data, is_superuser, session_id)
         if db_type == "postgresql":
-            return cls._upsert_postgresql_account(
-                instance_id, username, permissions_data, is_superuser, session_id
-            )
+            return cls._upsert_postgresql_account(instance_id, username, permissions_data, is_superuser, session_id)
         if db_type == "sqlserver":
-            return cls._upsert_sqlserver_account(
-                instance_id, username, permissions_data, is_superuser, session_id
-            )
+            return cls._upsert_sqlserver_account(instance_id, username, permissions_data, is_superuser, session_id)
         if db_type == "oracle":
-            return cls._upsert_oracle_account(
-                instance_id, username, permissions_data, is_superuser, session_id
-            )
+            return cls._upsert_oracle_account(instance_id, username, permissions_data, is_superuser, session_id)
         raise ValueError(f"不支持的数据库类型: {db_type}")
 
     @classmethod
@@ -612,9 +562,7 @@ class SyncDataManager:
         session_id: str = None,
     ) -> CurrentAccountSyncData:
         """更新MySQL账户权限"""
-        account = cls.get_account_latest(
-            "mysql", instance_id, username, include_deleted=True
-        )
+        account = cls.get_account_latest("mysql", instance_id, username, include_deleted=True)
 
         if account:
             # 检查权限变更
@@ -649,17 +597,13 @@ class SyncDataManager:
         session_id: str = None,
     ) -> CurrentAccountSyncData:
         """更新PostgreSQL账户权限"""
-        account = cls.get_account_latest(
-            "postgresql", instance_id, username, include_deleted=True
-        )
+        account = cls.get_account_latest("postgresql", instance_id, username, include_deleted=True)
 
         if account:
             # 检查权限变更
             changes = cls._detect_postgresql_changes(account, permissions_data)
             if changes:
-                cls._log_changes(
-                    instance_id, "postgresql", username, changes, session_id
-                )
+                cls._log_changes(instance_id, "postgresql", username, changes, session_id)
                 cls._update_postgresql_account(account, permissions_data, is_superuser)
             return account
         # 创建新账户
@@ -690,17 +634,13 @@ class SyncDataManager:
         session_id: str = None,
     ) -> CurrentAccountSyncData:
         """更新SQL Server账户权限"""
-        account = cls.get_account_latest(
-            "sqlserver", instance_id, username, include_deleted=True
-        )
+        account = cls.get_account_latest("sqlserver", instance_id, username, include_deleted=True)
 
         if account:
             # 检查权限变更
             changes = cls._detect_sqlserver_changes(account, permissions_data)
             if changes:
-                cls._log_changes(
-                    instance_id, "sqlserver", username, changes, session_id
-                )
+                cls._log_changes(instance_id, "sqlserver", username, changes, session_id)
                 cls._update_sqlserver_account(account, permissions_data, is_superuser)
             return account
         # 创建新账户
@@ -731,9 +671,7 @@ class SyncDataManager:
         session_id: str = None,
     ) -> CurrentAccountSyncData:
         """更新Oracle账户权限（移除表空间配额）"""
-        account = cls.get_account_latest(
-            "oracle", instance_id, username, include_deleted=True
-        )
+        account = cls.get_account_latest("oracle", instance_id, username, include_deleted=True)
 
         if account:
             # 检查权限变更
@@ -749,9 +687,7 @@ class SyncDataManager:
             username=username,
             oracle_roles=permissions_data.get("roles", []),
             system_privileges=permissions_data.get("system_privileges", []),
-            tablespace_privileges_oracle=permissions_data.get(
-                "tablespace_privileges", []
-            ),
+            tablespace_privileges_oracle=permissions_data.get("tablespace_privileges", []),
             type_specific=permissions_data.get("type_specific", {}),
             is_superuser=is_superuser,
             last_change_type="add",
@@ -762,9 +698,7 @@ class SyncDataManager:
         return account
 
     @classmethod
-    def _detect_mysql_changes(
-        cls, account: CurrentAccountSyncData, new_permissions: dict
-    ) -> dict:
+    def _detect_mysql_changes(cls, account: CurrentAccountSyncData, new_permissions: dict) -> dict:
         """检测MySQL权限变更"""
         changes = {}
 
@@ -783,9 +717,7 @@ class SyncDataManager:
         if old_db_perms != new_db_perms:
             changes["database_privileges"] = {
                 "added": {
-                    k: v
-                    for k, v in new_db_perms.items()
-                    if k not in old_db_perms or set(old_db_perms[k]) != set(v)
+                    k: v for k, v in new_db_perms.items() if k not in old_db_perms or set(old_db_perms[k]) != set(v)
                 },
                 "removed": {
                     k: v
@@ -797,9 +729,7 @@ class SyncDataManager:
         return changes
 
     @classmethod
-    def _detect_postgresql_changes(
-        cls, account: CurrentAccountSyncData, new_permissions: dict
-    ) -> dict:
+    def _detect_postgresql_changes(cls, account: CurrentAccountSyncData, new_permissions: dict) -> dict:
         """检测PostgreSQL权限变更"""
         changes = {}
 
@@ -827,9 +757,7 @@ class SyncDataManager:
         if old_db_perms != new_db_perms:
             changes["database_privileges"] = {
                 "added": {
-                    k: v
-                    for k, v in new_db_perms.items()
-                    if k not in old_db_perms or set(old_db_perms[k]) != set(v)
+                    k: v for k, v in new_db_perms.items() if k not in old_db_perms or set(old_db_perms[k]) != set(v)
                 },
                 "removed": {
                     k: v
@@ -841,9 +769,7 @@ class SyncDataManager:
         return changes
 
     @classmethod
-    def _detect_sqlserver_changes(
-        cls, account: CurrentAccountSyncData, new_permissions: dict
-    ) -> dict:
+    def _detect_sqlserver_changes(cls, account: CurrentAccountSyncData, new_permissions: dict) -> dict:
         """检测SQL Server权限变更"""
         changes = {}
 
@@ -871,9 +797,7 @@ class SyncDataManager:
         if old_db_roles != new_db_roles:
             changes["database_roles"] = {
                 "added": {
-                    k: v
-                    for k, v in new_db_roles.items()
-                    if k not in old_db_roles or set(old_db_roles[k]) != set(v)
+                    k: v for k, v in new_db_roles.items() if k not in old_db_roles or set(old_db_roles[k]) != set(v)
                 },
                 "removed": {
                     k: v
@@ -888,9 +812,7 @@ class SyncDataManager:
         if old_db_perms != new_db_perms:
             changes["database_permissions"] = {
                 "added": {
-                    k: v
-                    for k, v in new_db_perms.items()
-                    if k not in old_db_perms or set(old_db_perms[k]) != set(v)
+                    k: v for k, v in new_db_perms.items() if k not in old_db_perms or set(old_db_perms[k]) != set(v)
                 },
                 "removed": {
                     k: v
@@ -902,9 +824,7 @@ class SyncDataManager:
         return changes
 
     @classmethod
-    def _detect_oracle_changes(
-        cls, account: CurrentAccountSyncData, new_permissions: dict
-    ) -> dict:
+    def _detect_oracle_changes(cls, account: CurrentAccountSyncData, new_permissions: dict) -> dict:
         """检测Oracle权限变更（移除表空间配额检测）"""
         changes = {}
 
@@ -938,9 +858,7 @@ class SyncDataManager:
         return changes
 
     @classmethod
-    def _update_mysql_account(
-        cls, account: CurrentAccountSyncData, permissions_data: dict, is_superuser: bool
-    ):
+    def _update_mysql_account(cls, account: CurrentAccountSyncData, permissions_data: dict, is_superuser: bool):
         """更新MySQL账户数据"""
         account.global_privileges = permissions_data.get("global_privileges", [])
         account.database_privileges = permissions_data.get("database_privileges", {})
@@ -952,16 +870,12 @@ class SyncDataManager:
         db.session.commit()
 
     @classmethod
-    def _update_postgresql_account(
-        cls, account: CurrentAccountSyncData, permissions_data: dict, is_superuser: bool
-    ):
+    def _update_postgresql_account(cls, account: CurrentAccountSyncData, permissions_data: dict, is_superuser: bool):
         """更新PostgreSQL账户数据"""
         account.predefined_roles = permissions_data.get("predefined_roles", [])
         account.role_attributes = permissions_data.get("role_attributes", [])
         account.database_privileges_pg = permissions_data.get("database_privileges", {})
-        account.tablespace_privileges = permissions_data.get(
-            "tablespace_privileges", []
-        )
+        account.tablespace_privileges = permissions_data.get("tablespace_privileges", [])
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
         account.last_change_type = "modify_privilege"
@@ -970,9 +884,7 @@ class SyncDataManager:
         db.session.commit()
 
     @classmethod
-    def _update_sqlserver_account(
-        cls, account: CurrentAccountSyncData, permissions_data: dict, is_superuser: bool
-    ):
+    def _update_sqlserver_account(cls, account: CurrentAccountSyncData, permissions_data: dict, is_superuser: bool):
         """更新SQL Server账户数据"""
         account.server_roles = permissions_data.get("server_roles", [])
         account.server_permissions = permissions_data.get("server_permissions", [])
@@ -986,15 +898,11 @@ class SyncDataManager:
         db.session.commit()
 
     @classmethod
-    def _update_oracle_account(
-        cls, account: CurrentAccountSyncData, permissions_data: dict, is_superuser: bool
-    ):
+    def _update_oracle_account(cls, account: CurrentAccountSyncData, permissions_data: dict, is_superuser: bool):
         """更新Oracle账户数据"""
         account.oracle_roles = permissions_data.get("roles", [])
         account.system_privileges = permissions_data.get("system_privileges", [])
-        account.tablespace_privileges_oracle = permissions_data.get(
-            "tablespace_privileges", []
-        )
+        account.tablespace_privileges_oracle = permissions_data.get("tablespace_privileges", [])
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
         account.last_change_type = "modify_privilege"
@@ -1025,13 +933,9 @@ class SyncDataManager:
         db.session.commit()
 
     @classmethod
-    def mark_account_deleted(
-        cls, instance_id: int, db_type: str, username: str, session_id: str = None
-    ):
+    def mark_account_deleted(cls, instance_id: int, db_type: str, username: str, session_id: str = None):
         """标记账户为已删除（不支持恢复）"""
-        account = cls.get_account_latest(
-            db_type, instance_id, username, include_deleted=True
-        )
+        account = cls.get_account_latest(db_type, instance_id, username, include_deleted=True)
         if account and not account.is_deleted:
             account.is_deleted = True
             account.deleted_time = datetime.utcnow()
@@ -1051,9 +955,7 @@ class SyncDataManager:
             db.session.commit()
 
     @classmethod
-    def get_accounts_by_db_type(
-        cls, db_type: str, include_deleted: bool = False
-    ) -> list[CurrentAccountSyncData]:
+    def get_accounts_by_db_type(cls, db_type: str, include_deleted: bool = False) -> list[CurrentAccountSyncData]:
         """根据数据库类型获取账户列表"""
         query = CurrentAccountSyncData.query.filter_by(db_type=db_type)
         if not include_deleted:
@@ -1065,9 +967,7 @@ class SyncDataManager:
         cls, instance_id: int, db_type: str, include_deleted: bool = False
     ) -> list[CurrentAccountSyncData]:
         """根据实例ID和数据库类型获取账户列表"""
-        query = CurrentAccountSyncData.query.filter_by(
-            instance_id=instance_id, db_type=db_type
-        )
+        query = CurrentAccountSyncData.query.filter_by(instance_id=instance_id, db_type=db_type)
         if not include_deleted:
             query = query.filter_by(is_deleted=False)
         return query.all()

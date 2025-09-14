@@ -19,9 +19,7 @@ class SyncInstanceRecord(db.Model):
         nullable=False,
         index=True,
     )
-    instance_id = db.Column(
-        db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True
-    )
+    instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
     instance_name = db.Column(db.String(255))
     sync_category = db.Column(
         db.Enum("account", "capacity", "config", "other"),
@@ -79,9 +77,7 @@ class SyncInstanceRecord(db.Model):
             "sync_category": self.sync_category,
             "status": self.status,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": (
-                self.completed_at.isoformat() if self.completed_at else None
-            ),
+            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
             "accounts_synced": self.accounts_synced,
             "accounts_created": self.accounts_created,
             "accounts_updated": self.accounts_updated,

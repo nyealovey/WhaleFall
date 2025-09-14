@@ -52,11 +52,7 @@ class MySQLConnection(DatabaseConnection):
             import pymysql
 
             # 获取连接信息
-            password = (
-                self.instance.credential.get_plain_password()
-                if self.instance.credential
-                else ""
-            )
+            password = self.instance.credential.get_plain_password() if self.instance.credential else ""
 
             self.connection = pymysql.connect(
                 host=self.instance.host,
@@ -64,11 +60,7 @@ class MySQLConnection(DatabaseConnection):
                 database=self.instance.database_name
                 or DatabaseTypeUtils.get_database_type_config("mysql").default_schema
                 or "",
-                user=(
-                    self.instance.credential.username
-                    if self.instance.credential
-                    else ""
-                ),
+                user=(self.instance.credential.username if self.instance.credential else ""),
                 password=password,
                 charset="utf8mb4",
                 autocommit=True,
@@ -156,25 +148,15 @@ class PostgreSQLConnection(DatabaseConnection):
             import psycopg
 
             # 获取连接信息
-            password = (
-                self.instance.credential.get_plain_password()
-                if self.instance.credential
-                else ""
-            )
+            password = self.instance.credential.get_plain_password() if self.instance.credential else ""
 
             self.connection = psycopg.connect(
                 host=self.instance.host,
                 port=self.instance.port,
                 dbname=self.instance.database_name
-                or DatabaseTypeUtils.get_database_type_config(
-                    "postgresql"
-                ).default_schema
+                or DatabaseTypeUtils.get_database_type_config("postgresql").default_schema
                 or "postgres",
-                user=(
-                    self.instance.credential.username
-                    if self.instance.credential
-                    else ""
-                ),
+                user=(self.instance.credential.username if self.instance.credential else ""),
                 password=password,
                 connect_timeout=30,
             )
@@ -258,11 +240,7 @@ class SQLServerConnection(DatabaseConnection):
     def connect(self) -> bool:
         """建立SQL Server连接 - 尝试多种驱动和版本兼容性"""
         # 获取连接信息
-        password = (
-            self.instance.credential.get_plain_password()
-            if self.instance.credential
-            else ""
-        )
+        password = self.instance.credential.get_plain_password() if self.instance.credential else ""
         username = self.instance.credential.username if self.instance.credential else ""
 
         database_name = (
@@ -301,9 +279,7 @@ class SQLServerConnection(DatabaseConnection):
         )
         return False
 
-    def _try_pyodbc_connection(
-        self, username: str, password: str, database_name: str
-    ) -> bool:
+    def _try_pyodbc_connection(self, username: str, password: str, database_name: str) -> bool:
         """尝试使用pyodbc连接 (推荐用于现代SQL Server版本)"""
         try:
             import pyodbc
@@ -334,9 +310,7 @@ class SQLServerConnection(DatabaseConnection):
         except ImportError:
             return False
 
-    def _try_pymssql_connection(
-        self, username: str, password: str, database_name: str
-    ) -> bool:
+    def _try_pymssql_connection(self, username: str, password: str, database_name: str) -> bool:
         """尝试使用pymssql连接 (适用于Linux/Unix环境)"""
         try:
             import pymssql
@@ -358,9 +332,7 @@ class SQLServerConnection(DatabaseConnection):
         except ImportError:
             return False
 
-    def _try_pyodbc_legacy_connection(
-        self, username: str, password: str, database_name: str
-    ) -> bool:
+    def _try_pyodbc_legacy_connection(self, username: str, password: str, database_name: str) -> bool:
         """尝试使用传统pyodbc连接 (兼容老版本)"""
         try:
             import pyodbc
@@ -443,10 +415,9 @@ class SQLServerConnection(DatabaseConnection):
                 result = cursor.fetchone()
                 cursor.close()
                 return result[0] if result else None
-            else:
-                # pymssql使用execute_query
-                result = self.execute_query("SELECT @@VERSION")
-                return result[0][0] if result else None
+            # pymssql使用execute_query
+            result = self.execute_query("SELECT @@VERSION")
+            return result[0][0] if result else None
         except Exception:
             return None
 
@@ -460,11 +431,7 @@ class OracleConnection(DatabaseConnection):
             import oracledb
 
             # 获取连接信息
-            password = (
-                self.instance.credential.get_plain_password()
-                if self.instance.credential
-                else ""
-            )
+            password = self.instance.credential.get_plain_password() if self.instance.credential else ""
 
             # 构建连接字符串
             database_name = (
@@ -486,17 +453,11 @@ class OracleConnection(DatabaseConnection):
                 # 初始化Thick模式（指定Oracle Instant Client路径）
                 import os
 
-                current_dir = os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                )
+                current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                 oracle_client_path = os.path.join(current_dir, "oracle_client", "lib")
                 oracledb.init_oracle_client(lib_dir=oracle_client_path)
                 self.connection = oracledb.connect(
-                    user=(
-                        self.instance.credential.username
-                        if self.instance.credential
-                        else ""
-                    ),
+                    user=(self.instance.credential.username if self.instance.credential else ""),
                     password=password,
                     dsn=dsn,
                 )
@@ -504,15 +465,9 @@ class OracleConnection(DatabaseConnection):
                 # 如果服务名格式失败，尝试SID格式
                 if not dsn.endswith(f":{database_name}") and "." not in database_name:
                     try:
-                        sid_dsn = (
-                            f"{self.instance.host}:{self.instance.port}:{database_name}"
-                        )
+                        sid_dsn = f"{self.instance.host}:{self.instance.port}:{database_name}"
                         self.connection = oracledb.connect(
-                            user=(
-                                self.instance.credential.username
-                                if self.instance.credential
-                                else ""
-                            ),
+                            user=(self.instance.credential.username if self.instance.credential else ""),
                             password=password,
                             dsn=sid_dsn,
                         )

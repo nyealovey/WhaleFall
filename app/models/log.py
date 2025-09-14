@@ -13,23 +13,15 @@ class Log(db.Model):
     __tablename__ = "logs"
 
     id = db.Column(db.Integer, primary_key=True)
-    level = db.Column(
-        db.String(20), nullable=False, index=True
-    )  # DEBUG, INFO, WARNING, ERROR, CRITICAL
-    log_type = db.Column(
-        db.String(50), nullable=False, index=True
-    )  # operation, system, error, security
+    level = db.Column(db.String(20), nullable=False, index=True)  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    log_type = db.Column(db.String(50), nullable=False, index=True)  # operation, system, error, security
     module = db.Column(db.String(100), nullable=True, index=True)  # 模块名称
     message = db.Column(db.Text, nullable=False)  # 日志消息
     details = db.Column(db.Text, nullable=True)  # 详细信息
-    user_id = db.Column(
-        db.Integer, db.ForeignKey("users.id"), nullable=True
-    )  # 操作用户
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)  # 操作用户
     ip_address = db.Column(db.String(45), nullable=True)  # IP地址
     user_agent = db.Column(db.Text, nullable=True)  # 用户代理
-    source = db.Column(
-        db.String(50), nullable=True, index=True, comment="日志来源"
-    )  # 日志来源
+    source = db.Column(db.String(50), nullable=True, index=True, comment="日志来源")  # 日志来源
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     # 关系
@@ -240,16 +232,12 @@ class Log(db.Model):
     @staticmethod
     def get_by_type(log_type: str) -> list:
         """根据类型获取日志"""
-        return (
-            Log.query.filter_by(log_type=log_type).order_by(Log.created_at.desc()).all()
-        )
+        return Log.query.filter_by(log_type=log_type).order_by(Log.created_at.desc()).all()
 
     @staticmethod
     def get_by_user(user_id: int) -> list:
         """根据用户获取日志"""
-        return (
-            Log.query.filter_by(user_id=user_id).order_by(Log.created_at.desc()).all()
-        )
+        return Log.query.filter_by(user_id=user_id).order_by(Log.created_at.desc()).all()
 
     @staticmethod
     def get_recent_logs(limit: int = 100) -> list:
@@ -259,12 +247,7 @@ class Log(db.Model):
     @staticmethod
     def get_error_logs(limit: int = 50) -> list:
         """获取错误日志"""
-        return (
-            Log.query.filter(Log.level.in_(["ERROR", "CRITICAL"]))
-            .order_by(Log.created_at.desc())
-            .limit(limit)
-            .all()
-        )
+        return Log.query.filter(Log.level.in_(["ERROR", "CRITICAL"])).order_by(Log.created_at.desc()).limit(limit).all()
 
     def __repr__(self) -> str:
         return f"<Log {self.level}:{self.message[:50]}>"

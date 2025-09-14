@@ -54,15 +54,9 @@ def get_jobs() -> Response:
             job_info = {
                 "id": job.id,
                 "name": job.name,
-                "next_run_time": (
-                    job.next_run_time.isoformat() if job.next_run_time else None
-                ),
+                "next_run_time": (job.next_run_time.isoformat() if job.next_run_time else None),
                 "trigger": str(job.trigger),
-                "func": (
-                    job.func.__name__
-                    if hasattr(job.func, "__name__")
-                    else str(job.func)
-                ),
+                "func": (job.func.__name__ if hasattr(job.func, "__name__") else str(job.func)),
                 "args": job.args,
                 "kwargs": job.kwargs,
                 "misfire_grace_time": job.misfire_grace_time,
@@ -94,13 +88,9 @@ def get_job(job_id: str) -> Response:
         job_info = {
             "id": job.id,
             "name": job.name,
-            "next_run_time": (
-                job.next_run_time.isoformat() if job.next_run_time else None
-            ),
+            "next_run_time": (job.next_run_time.isoformat() if job.next_run_time else None),
             "trigger": str(job.trigger),
-            "func": (
-                job.func.__name__ if hasattr(job.func, "__name__") else str(job.func)
-            ),
+            "func": (job.func.__name__ if hasattr(job.func, "__name__") else str(job.func)),
             "args": job.args,
             "kwargs": job.kwargs,
             "misfire_grace_time": job.misfire_grace_time,

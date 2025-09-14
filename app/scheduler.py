@@ -26,9 +26,7 @@ class TaskScheduler:
     def _setup_scheduler(self):
         """设置调度器"""
         # 任务存储配置
-        jobstores = {
-            "default": SQLAlchemyJobStore(url="sqlite:///userdata/scheduler.db")
-        }
+        jobstores = {"default": SQLAlchemyJobStore(url="sqlite:///userdata/scheduler.db")}
 
         # 执行器配置
         executors = {"default": ThreadPoolExecutor(max_workers=5)}
@@ -137,9 +135,7 @@ def _add_default_jobs():
         return
 
     # 从配置文件读取默认任务
-    config_file = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "config", "scheduler_tasks.yaml"
-    )
+    config_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "scheduler_tasks.yaml")
 
     try:
         with open(config_file, encoding="utf-8") as f:

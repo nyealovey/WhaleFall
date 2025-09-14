@@ -60,9 +60,7 @@ class User(UserMixin, db.Model):
             error_msg = "密码必须包含数字"
             raise ValueError(error_msg)
 
-        self.password = bcrypt.generate_password_hash(password, rounds=12).decode(
-            "utf-8"
-        )
+        self.password = bcrypt.generate_password_hash(password, rounds=12).decode("utf-8")
 
     def check_password(self, password: str) -> bool:
         """
@@ -111,17 +109,13 @@ class User(UserMixin, db.Model):
         """创建默认管理员用户"""
         admin = User.query.filter_by(username="admin").first()
         if not admin:
-            admin = User(
-                username="admin", password="Admin123", role="admin"
-            )  # noqa: S106
+            admin = User(username="admin", password="Admin123", role="admin")  # noqa: S106
             db.session.add(admin)
             db.session.commit()
             from app.utils.structlog_config import get_system_logger
 
             system_logger = get_system_logger()
-            system_logger.info(
-                "默认管理员用户已创建", module="user_model", username="admin"
-            )
+            system_logger.info("默认管理员用户已创建", module="user_model", username="admin")
         return admin
 
     def __repr__(self) -> str:

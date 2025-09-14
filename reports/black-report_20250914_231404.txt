@@ -14,7 +14,7 @@ Oh no! 💥 💔 💥
          # 获取连接信息
          password = self.instance.credential.get_plain_password() if self.instance.credential else ""
          username = self.instance.credential.username if self.instance.credential else ""
--        
+-
 +
          database_name = (
              self.instance.database_name
@@ -22,12 +22,12 @@ Oh no! 💥 💔 💥
              or "master"
          )
 @@ -273,11 +273,11 @@
- 
+
      def _try_pyodbc_connection(self, username: str, password: str, database_name: str) -> bool:
          """尝试使用pyodbc连接 (推荐用于现代SQL Server版本)"""
          try:
              import pyodbc
--            
+-
 +
              # 构建连接字符串 - 支持多种版本
              connection_strings = [
@@ -40,7 +40,7 @@ Oh no! 💥 💔 💥
                  # 使用命名管道 (本地连接)
                  f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={self.instance.host};DATABASE={database_name};UID={username};PWD={password};Trusted_Connection=no;",
              ]
--            
+-
 +
              for conn_str in connection_strings:
                  try:
@@ -50,19 +50,19 @@ Oh no! 💥 💔 💥
                      return True
                  except Exception:
                      continue
--                    
+-
 +
              return False
--            
+-
 +
          except ImportError:
              return False
- 
+
      def _try_pymssql_connection(self, username: str, password: str, database_name: str) -> bool:
          """尝试使用pymssql连接 (适用于Linux/Unix环境)"""
          try:
              import pymssql
--            
+-
 +
              self.connection = pymssql.connect(
                  server=self.instance.host,
@@ -78,16 +78,16 @@ Oh no! 💥 💔 💥
              self.is_connected = True
              self.driver_type = "pymssql"
              return True
--            
+-
 +
          except ImportError:
              return False
- 
+
      def _try_pyodbc_legacy_connection(self, username: str, password: str, database_name: str) -> bool:
          """尝试使用传统pyodbc连接 (兼容老版本)"""
          try:
              import pyodbc
--            
+-
 +
              # 传统连接字符串，兼容SQL Server 2005-2008
              legacy_conn_str = (
@@ -98,28 +98,28 @@ Oh no! 💥 💔 💥
                  f"PWD={password};"
                  f"Connection Timeout=30;"
              )
--            
+-
 +
              self.connection = pyodbc.connect(legacy_conn_str)
              self.is_connected = True
              self.driver_type = "pyodbc_legacy"
              return True
--            
+-
 +
          except ImportError:
              return False
- 
+
      def disconnect(self) -> None:
          """断开SQL Server连接"""
 --- /Users/shiyijiufei/TaifishingV4/app/utils/sqlserver_version_detector.py	2025-09-14 13:10:39.036114+00:00
 +++ /Users/shiyijiufei/TaifishingV4/app/utils/sqlserver_version_detector.py	2025-09-14 15:14:06.007016+00:00
 @@ -7,50 +7,106 @@
  from typing import Dict, Optional, Tuple
- 
- 
+
+
  class SQLServerVersionDetector:
      """SQL Server版本检测器"""
--    
+-
 +
      # SQL Server版本映射表
      VERSION_MAP = {
@@ -196,34 +196,34 @@ Oh no! 💥 💔 💥
 +            ],
 +        ),
      }
--    
+-
 +
      @classmethod
      def detect_version(cls, version_string: str) -> Dict[str, any]:
          """
          检测SQL Server版本
--        
+-
 +
          Args:
              version_string: SQL Server版本字符串 (如 "Microsoft SQL Server 2019 (RTM-CU18) (KB5003279) - 15.0.4261.1 (X64)")
--            
+-
 +
          Returns:
              包含版本信息的字典
          """
          if not version_string:
              return cls._unknown_version()
--        
+-
 +
          # 提取版本号
 -        version_match = re.search(r'(\d+\.\d+)', version_string)
 +        version_match = re.search(r"(\d+\.\d+)", version_string)
          if not version_match:
              return cls._unknown_version()
--        
+-
 +
          version_number = version_match.group(1)
--        
+-
 +
          # 查找匹配的版本
          for ver, (name, year, features) in cls.VERSION_MAP.items():
@@ -240,7 +240,7 @@ Oh no! 💥 💔 💥
                      "supports_columnstore": "columnstore" in features,
                      "supports_memory_optimized": "memory_optimized" in features,
                  }
--        
+-
 +
          # 如果没找到精确匹配，尝试根据年份推断
 -        year_match = re.search(r'(\d{4})', version_string)
@@ -256,10 +256,10 @@ Oh no! 💥 💔 💥
                      "supports_columnstore": year >= 2012,
                      "supports_memory_optimized": year >= 2014,
                  }
--        
+-
 +
          return cls._unknown_version()
--    
+-
 +
      @classmethod
      def _unknown_version(cls) -> Dict[str, any]:
@@ -272,17 +272,17 @@ Oh no! 💥 💔 💥
              "supports_columnstore": False,
              "supports_memory_optimized": False,
          }
--    
+-
 +
      @classmethod
      def get_recommended_driver(cls, version_info: Dict[str, any]) -> str:
          """
          根据版本信息推荐最佳驱动
--        
+-
 +
          Args:
              version_info: 版本信息字典
--            
+-
 +
          Returns:
              推荐的驱动名称
@@ -294,19 +294,19 @@ Oh no! 💥 💔 💥
 +            return "pyodbc"  # 现代版本推荐pyodbc
          else:
 -            return "pyodbc"   # 默认使用pyodbc
--    
+-
 +            return "pyodbc"  # 默认使用pyodbc
 +
      @classmethod
      def get_connection_string_template(cls, version_info: Dict[str, any], driver: str) -> str:
          """
          根据版本和驱动获取连接字符串模板
--        
+-
 +
          Args:
              version_info: 版本信息字典
              driver: 驱动名称
--            
+-
 +
          Returns:
              连接字符串模板
@@ -319,23 +319,23 @@ Oh no! 💥 💔 💥
              return "server={server};port={port};user={username};password={password};database={database};tds_version=7.4"
          else:
              return ""
--    
+-
 +
      @classmethod
      def get_compatible_features(cls, version_info: Dict[str, any]) -> list[str]:
          """
          获取版本支持的功能列表
--        
+-
 +
          Args:
              version_info: 版本信息字典
--            
+-
 +
          Returns:
              支持的功能列表
          """
          features = []
--        
+-
 +
          if version_info["supports_json"]:
              features.append("JSON数据类型")
@@ -347,11 +347,11 @@ Oh no! 💥 💔 💥
              features.append("列存储索引")
          if version_info["supports_memory_optimized"]:
              features.append("内存优化表")
--        
+-
 +
          return features
- 
- 
+
+
  def test_version_detection():
      """测试版本检测功能"""
 @@ -178,13 +234,13 @@
@@ -360,10 +360,10 @@ Oh no! 💥 💔 💥
          "Microsoft SQL Server 2008 R2 (SP3-GDR) (KB4583465) - 10.50.6560.0 (X64)",
          "Microsoft SQL Server 2005 (SP4) - 9.00.5000.00 (X64)",
      ]
--    
+-
 +
      detector = SQLServerVersionDetector()
--    
+-
 +
      for version_str in test_versions:
          print(f"\n版本字符串: {version_str}")

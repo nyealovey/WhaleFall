@@ -48,9 +48,7 @@ class ErrorSeverity:
 class ErrorContext:
     """错误上下文信息"""
 
-    def __init__(
-        self, error: Exception, request_data: dict[str, Any] | None = None
-    ) -> None:
+    def __init__(self, error: Exception, request_data: dict[str, Any] | None = None) -> None:
         self.error_id = str(uuid.uuid4())
         self.timestamp = now()
         self.error_type = type(error).__name__
@@ -78,15 +76,11 @@ class AdvancedErrorHandler:
         """注册错误处理器"""
         self.error_handlers[error_type] = handler
 
-    def register_recovery_strategy(
-        self, error_category: str, strategy: Callable
-    ) -> None:
+    def register_recovery_strategy(self, error_category: str, strategy: Callable) -> None:
         """注册恢复策略"""
         self.recovery_strategies[error_category] = strategy
 
-    def handle_error(
-        self, error: Exception, context: ErrorContext = None
-    ) -> dict[str, Any]:
+    def handle_error(self, error: Exception, context: ErrorContext = None) -> dict[str, Any]:
         """处理错误"""
         if context is None:
             context = ErrorContext(error)
@@ -116,9 +110,7 @@ class AdvancedErrorHandler:
         # 通用错误处理器
         self.register_error_handler(Exception, self._handle_generic_error)
 
-    def _handle_integrity_error(
-        self, error: IntegrityError, context: ErrorContext
-    ) -> dict[str, Any]:
+    def _handle_integrity_error(self, error: IntegrityError, context: ErrorContext) -> dict[str, Any]:
         """处理完整性错误"""
         error_message = str(error.orig) if hasattr(error, "orig") else str(error)
 
@@ -149,9 +141,7 @@ class AdvancedErrorHandler:
             "suggestions": ["检查数据格式", "联系管理员"],
         }
 
-    def _handle_operational_error(
-        self, error: OperationalError, context: ErrorContext
-    ) -> dict[str, Any]:
+    def _handle_operational_error(self, error: OperationalError, context: ErrorContext) -> dict[str, Any]:
         """处理操作错误"""
         error_message = str(error.orig) if hasattr(error, "orig") else str(error)
 
@@ -182,9 +172,7 @@ class AdvancedErrorHandler:
             "suggestions": ["检查SQL语句", "联系管理员"],
         }
 
-    def _handle_sqlalchemy_error(
-        self, error: SQLAlchemyError, context: ErrorContext
-    ) -> dict[str, Any]:
+    def _handle_sqlalchemy_error(self, error: SQLAlchemyError, context: ErrorContext) -> dict[str, Any]:
         """处理SQLAlchemy错误"""
         return {
             "category": ErrorCategory.DATABASE,
@@ -195,9 +183,7 @@ class AdvancedErrorHandler:
             "suggestions": ["检查数据库状态", "联系管理员"],
         }
 
-    def _handle_http_exception(
-        self, error: HTTPException, context: ErrorContext
-    ) -> dict[str, Any]:
+    def _handle_http_exception(self, error: HTTPException, context: ErrorContext) -> dict[str, Any]:
         """处理HTTP异常"""
         status_code = error.code
 
@@ -246,9 +232,7 @@ class AdvancedErrorHandler:
             "suggestions": ["稍后重试", "联系管理员"],
         }
 
-    def _handle_generic_error(
-        self, error: Exception, context: ErrorContext
-    ) -> dict[str, Any]:
+    def _handle_generic_error(self, error: Exception, context: ErrorContext) -> dict[str, Any]:
         """处理通用错误"""
         return {
             "category": ErrorCategory.UNKNOWN,
@@ -317,9 +301,7 @@ class AdvancedErrorHandler:
         if metrics["first_occurrence"] is None:
             metrics["first_occurrence"] = context.timestamp
 
-    def _attempt_recovery(
-        self, error: Exception, context: ErrorContext
-    ) -> dict[str, Any]:
+    def _attempt_recovery(self, error: Exception, context: ErrorContext) -> dict[str, Any]:
         """尝试错误恢复"""
         error_info = self._get_error_info(error, context)
 
@@ -339,9 +321,7 @@ class AdvancedErrorHandler:
 
         return {"success": False, "message": "无可用恢复策略"}
 
-    def _get_error_info(
-        self, error: Exception, context: ErrorContext
-    ) -> dict[str, Any]:
+    def _get_error_info(self, error: Exception, context: ErrorContext) -> dict[str, Any]:
         """获取错误信息"""
         error_type = type(error)
 
@@ -420,9 +400,7 @@ def handle_advanced_errors(func: Callable) -> Callable:
 
 
 # 恢复策略
-def database_recovery_strategy(
-    error: Exception, context: ErrorContext
-) -> dict[str, Any]:
+def database_recovery_strategy(error: Exception, context: ErrorContext) -> dict[str, Any]:
     """数据库恢复策略"""
     try:
         # 尝试重新连接数据库
@@ -437,20 +415,14 @@ def database_recovery_strategy(
         }
 
 
-def validation_recovery_strategy(
-    error: Exception, context: ErrorContext
-) -> dict[str, Any]:
+def validation_recovery_strategy(error: Exception, context: ErrorContext) -> dict[str, Any]:
     """验证恢复策略"""
     return {"action": "validation_retry", "success": True, "message": "请检查输入数据"}
 
 
 # 注册恢复策略
-advanced_error_handler.register_recovery_strategy(
-    ErrorCategory.DATABASE, database_recovery_strategy
-)
-advanced_error_handler.register_recovery_strategy(
-    ErrorCategory.VALIDATION, validation_recovery_strategy
-)
+advanced_error_handler.register_recovery_strategy(ErrorCategory.DATABASE, database_recovery_strategy)
+advanced_error_handler.register_recovery_strategy(ErrorCategory.VALIDATION, validation_recovery_strategy)
 
 
 # 错误监控装饰器

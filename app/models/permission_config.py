@@ -13,9 +13,7 @@ class PermissionConfig(db.Model):
     __tablename__ = "permission_configs"
 
     id = db.Column(db.Integer, primary_key=True)
-    db_type = db.Column(
-        db.String(50), nullable=False
-    )  # 数据库类型：mysql, postgresql, sqlserver, oracle
+    db_type = db.Column(db.String(50), nullable=False)  # 数据库类型：mysql, postgresql, sqlserver, oracle
     category = db.Column(
         db.String(50), nullable=False
     )  # 权限类别：global_privileges, database_privileges, server_roles, database_roles, server_permissions
@@ -24,23 +22,17 @@ class PermissionConfig(db.Model):
     is_active = db.Column(db.Boolean, default=True)  # 是否启用
     sort_order = db.Column(db.Integer, default=0)  # 排序顺序
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # 唯一约束：同一数据库类型的同一类别下，权限名称不能重复
     __table_args__ = (
-        db.UniqueConstraint(
-            "db_type", "category", "permission_name", name="uq_permission_config"
-        ),
+        db.UniqueConstraint("db_type", "category", "permission_name", name="uq_permission_config"),
         db.Index("idx_permission_config_db_type", "db_type"),
         db.Index("idx_permission_config_category", "category"),
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<PermissionConfig {self.db_type}.{self.category}.{self.permission_name}>"
-        )
+        return f"<PermissionConfig {self.db_type}.{self.category}.{self.permission_name}>"
 
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -70,9 +62,7 @@ class PermissionConfig(db.Model):
         for perm in permissions:
             if perm.category not in result:
                 result[perm.category] = []
-            result[perm.category].append(
-                {"name": perm.permission_name, "description": perm.description}
-            )
+            result[perm.category].append({"name": perm.permission_name, "description": perm.description})
 
         return result
 
@@ -781,7 +771,5 @@ class PermissionConfig(db.Model):
             from app.utils.structlog_config import get_system_logger
 
             system_logger = get_system_logger()
-            system_logger.error(
-                "初始化权限配置失败", module="permission_config", exception=e
-            )
+            system_logger.error("初始化权限配置失败", module="permission_config", exception=e)
             raise

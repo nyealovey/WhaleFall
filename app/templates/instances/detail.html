@@ -264,7 +264,7 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-user text-primary me-2"></i>
-                                        <strong>{{ account.username }}@{{ account.host or '%' }}</strong>
+                                        <strong>{{ account.username }}@{{ account.instance.host if account.instance else '%' }}</strong>
                                     </div>
                                 </td>
                                 <td>
@@ -453,7 +453,7 @@
                                         {% if instance.db_type == 'sqlserver' or instance.db_type == 'postgresql' %}
                                         <strong>{{ account.username }}</strong>
                                         {% else %}
-                                        <strong>{{ account.username }}@{{ account.host or '%' }}</strong>
+                                        <strong>{{ account.username }}@{{ account.instance.host if account.instance else '%' }}</strong>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -468,7 +468,7 @@
                                     {% if instance.db_type == 'sqlserver' or instance.db_type == 'postgresql' %}
                                     <span class="text-muted">-</span>
                                     {% else %}
-                                    <span class="badge bg-info">{{ account.host or '%' }}</span>
+                                    <span class="badge bg-info">{{ account.instance.host if account.instance else '%' }}</span>
                                     {% endif %}
                                 </td>
                                 <td>

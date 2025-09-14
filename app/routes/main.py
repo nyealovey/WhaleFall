@@ -73,11 +73,7 @@ def api_health() -> "Response":
         redis_status = "error"
 
     # 整体状态
-    overall_status = (
-        "healthy"
-        if db_status == "connected" and redis_status == "connected"
-        else "unhealthy"
-    )
+    overall_status = "healthy" if db_status == "connected" and redis_status == "connected" else "unhealthy"
 
     result = {
         "status": overall_status,

@@ -55,9 +55,7 @@ def list_accounts(db_type: str | None = None) -> str:
 
     # 超级用户过滤
     if is_superuser is not None:
-        query = query.filter(
-            CurrentAccountSyncData.is_superuser == (is_superuser == "true")
-        )
+        query = query.filter(CurrentAccountSyncData.is_superuser == (is_superuser == "true"))
 
     # 排序
     query = query.order_by(CurrentAccountSyncData.username.asc())
@@ -71,18 +69,10 @@ def list_accounts(db_type: str | None = None) -> str:
     # 获取统计信息
     stats = {
         "total": CurrentAccountSyncData.query.filter_by(is_deleted=False).count(),
-        "mysql": CurrentAccountSyncData.query.filter_by(
-            db_type="mysql", is_deleted=False
-        ).count(),
-        "postgresql": CurrentAccountSyncData.query.filter_by(
-            db_type="postgresql", is_deleted=False
-        ).count(),
-        "oracle": CurrentAccountSyncData.query.filter_by(
-            db_type="oracle", is_deleted=False
-        ).count(),
-        "sqlserver": CurrentAccountSyncData.query.filter_by(
-            db_type="sqlserver", is_deleted=False
-        ).count(),
+        "mysql": CurrentAccountSyncData.query.filter_by(db_type="mysql", is_deleted=False).count(),
+        "postgresql": CurrentAccountSyncData.query.filter_by(db_type="postgresql", is_deleted=False).count(),
+        "oracle": CurrentAccountSyncData.query.filter_by(db_type="oracle", is_deleted=False).count(),
+        "sqlserver": CurrentAccountSyncData.query.filter_by(db_type="sqlserver", is_deleted=False).count(),
     }
 
     # 构建过滤选项
@@ -203,9 +193,7 @@ def export_accounts() -> "Response":
 
     # 超级用户过滤
     if is_superuser is not None:
-        query = query.filter(
-            CurrentAccountSyncData.is_superuser == (is_superuser == "true")
-        )
+        query = query.filter(CurrentAccountSyncData.is_superuser == (is_superuser == "true"))
 
     # 排序
     query = query.order_by(CurrentAccountSyncData.username.asc())
@@ -226,37 +214,29 @@ def export_accounts() -> "Response":
         for assignment in assignments:
             if assignment.account_id not in classifications:
                 classifications[assignment.account_id] = []
-            classifications[assignment.account_id].append(
-                assignment.classification.name
-            )
+            classifications[assignment.account_id].append(assignment.classification.name)
 
     # 创建CSV内容
     output = io.StringIO()
     writer = csv.writer(output)
 
     # 写入表头（与页面显示格式一致）
-    writer.writerow(
-        ["名称", "实例名称", "IP地址", "环境", "数据库类型", "分类", "锁定状态"]
-    )
+    writer.writerow(["名称", "实例名称", "IP地址", "环境", "数据库类型", "分类", "锁定状态"])
 
     # 写入账户数据
     for account in accounts:
         # 获取实例信息
-        instance = (
-            Instance.query.get(account.instance_id) if account.instance_id else None
-        )
+        instance = Instance.query.get(account.instance_id) if account.instance_id else None
 
         # 获取分类信息
         account_classifications = classifications.get(account.id, [])
-        classification_str = (
-            ", ".join(account_classifications) if account_classifications else "未分类"
-        )
+        classification_str = ", ".join(account_classifications) if account_classifications else "未分类"
 
         # 格式化用户名（与页面显示一致）
         if instance and instance.db_type in ["sqlserver", "oracle", "postgresql"]:
             username_display = account.username
         else:
-            username_display = f"{account.username}@{account.host or '%'}"
+            username_display = f"{account.username}@{account.instance.host if account.instance else '%'}"
 
         # 格式化锁定状态（与页面显示一致）
         if account.is_locked:
@@ -376,9 +356,7 @@ def get_account_permissions(account_id: int) -> "Response":
             "username": account.username,
             "is_superuser": account.is_superuser,
             "last_sync_time": (
-                account.last_sync_time.strftime("%Y-%m-%d %H:%M:%S")
-                if account.last_sync_time
-                else "未知"
+                account.last_sync_time.strftime("%Y-%m-%d %H:%M:%S") if account.last_sync_time else "未知"
             ),
         }
 
@@ -401,9 +379,7 @@ def get_account_permissions(account_id: int) -> "Response":
         elif instance.db_type == "oracle":
             permissions["oracle_roles"] = account.oracle_roles or []
             permissions["system_privileges"] = account.system_privileges or []
-            permissions["tablespace_privileges_oracle"] = (
-                account.tablespace_privileges_oracle or {}
-            )
+            permissions["tablespace_privileges_oracle"] = account.tablespace_privileges_oracle or {}
 
         return jsonify(
             {
@@ -451,11 +427,7 @@ def get_account_change_history(account_id: int) -> "Response":
                 {
                     "id": log.id,
                     "change_type": log.change_type,
-                    "change_time": (
-                        log.change_time.strftime("%Y-%m-%d %H:%M:%S")
-                        if log.change_time
-                        else "未知"
-                    ),
+                    "change_time": (log.change_time.strftime("%Y-%m-%d %H:%M:%S") if log.change_time else "未知"),
                     "status": log.status,
                     "message": log.message,
                     "privilege_diff": log.privilege_diff,

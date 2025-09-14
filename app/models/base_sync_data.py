@@ -18,13 +18,9 @@ class BaseSyncData(db.Model):
 
     @declared_attr
     def instance_id(cls):
-        return db.Column(
-            db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True
-        )
+        return db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
 
-    db_type = db.Column(
-        db.String(20), nullable=False, index=True
-    )  # 'mysql', 'postgresql', 'sqlserver', 'oracle'
+    db_type = db.Column(db.String(20), nullable=False, index=True)  # 'mysql', 'postgresql', 'sqlserver', 'oracle'
     session_id = db.Column(db.String(36), nullable=True, index=True)
     sync_time = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     status = db.Column(db.String(20), default="success", index=True)

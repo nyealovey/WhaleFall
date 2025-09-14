@@ -28,9 +28,7 @@ def logs_dashboard():
     try:
         return render_template("logs/dashboard.html")
     except Exception as e:
-        log_error(
-            "Failed to render logs dashboard", module="unified_logs", error=str(e)
-        )
+        log_error("Failed to render logs dashboard", module="unified_logs", error=str(e))
         return error_response("Failed to load logs dashboard", 500)
 
 
@@ -178,9 +176,7 @@ def get_error_logs():
 
         logs = [log.to_dict() for log in error_logs]
 
-        log_info(
-            "Error logs retrieved", module="unified_logs", count=len(logs), hours=hours
-        )
+        log_info("Error logs retrieved", module="unified_logs", count=len(logs), hours=hours)
 
         return success_response({"logs": logs})
 
@@ -197,11 +193,7 @@ def get_log_modules():
         from sqlalchemy import distinct
 
         # 获取所有模块
-        modules = (
-            db.session.query(distinct(UnifiedLog.module).label("module"))
-            .order_by(UnifiedLog.module)
-            .all()
-        )
+        modules = db.session.query(distinct(UnifiedLog.module).label("module")).order_by(UnifiedLog.module).all()
 
         module_list = [module.module for module in modules]
 
@@ -314,9 +306,7 @@ def cleanup_logs():
     """清理旧日志API"""
     try:
         # 检查权限（仅管理员）
-        if not current_user.is_authenticated or not getattr(
-            current_user, "is_admin", False
-        ):
+        if not current_user.is_authenticated or not getattr(current_user, "is_admin", False):
             return error_response("Permission denied", 403)
 
         days = int(request.json.get("days", 90))

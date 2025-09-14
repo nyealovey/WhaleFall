@@ -25,12 +25,8 @@ class PasswordManager:
             from app.utils.structlog_config import get_system_logger
 
             system_logger = get_system_logger()
-            system_logger.warning(
-                "没有设置PASSWORD_ENCRYPTION_KEY环境变量", module="password_manager"
-            )
-            system_logger.info(
-                "生成的临时密钥", module="password_manager", key=key.decode()
-            )
+            system_logger.warning("没有设置PASSWORD_ENCRYPTION_KEY环境变量", module="password_manager")
+            system_logger.info("生成的临时密钥", module="password_manager", key=key.decode())
             system_logger.info(
                 "请设置环境变量",
                 module="password_manager",

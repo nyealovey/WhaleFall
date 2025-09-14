@@ -72,9 +72,7 @@ class TaskExecutor:
                     # 逐一执行实例
                     for instance in instances:
                         try:
-                            instance_result = self._execute_task_for_instance(
-                                task, instance
-                            )
+                            instance_result = self._execute_task_for_instance(task, instance)
                             if instance_result["success"]:
                                 total_success += 1
                             else:
@@ -113,9 +111,7 @@ class TaskExecutor:
                         "results": results,
                     }
                 except Exception as e:
-                    self.task_logger.error(
-                        "任务执行失败", task_name=task.name, exception=e
-                    )
+                    self.task_logger.error("任务执行失败", task_name=task.name, exception=e)
                     result = {"success": False, "error": str(e)}
 
             # 使用线程执行任务，支持超时
@@ -126,9 +122,7 @@ class TaskExecutor:
             thread.join(timeout=timeout)
 
             if thread.is_alive():
-                self.task_logger.warning(
-                    "任务执行超时", task_name=task.name, timeout=timeout
-                )
+                self.task_logger.warning("任务执行超时", task_name=task.name, timeout=timeout)
                 return {"success": False, "error": f"任务执行超时 ({timeout}秒)"}
 
             # 更新任务状态 - 重新查询任务对象确保是最新的
@@ -148,9 +142,7 @@ class TaskExecutor:
                     result["results"],
                 )
             else:
-                self._update_task_status(
-                    task, 0, 1, [{"instance_name": "unknown", "result": result}]
-                )
+                self._update_task_status(task, 0, 1, [{"instance_name": "unknown", "result": result}])
                 # 记录任务执行汇总（失败情况）
                 self._record_task_execution_summary(
                     task,
@@ -183,18 +175,14 @@ class TaskExecutor:
                     from app.services.account_sync_service import account_sync_service
 
                     # 执行账户同步（同步时自动清理多余账户）
-                    result = account_sync_service.sync_accounts(
-                        instance, sync_type="task"
-                    )
+                    result = account_sync_service.sync_accounts(instance, sync_type="task")
                     return result
 
                 # 对于数据库大小同步任务，使用数据库大小同步服务
                 if task.task_type == "sync_size":
                     from app.services.database_size_service import database_size_service
 
-                    result = database_size_service.sync_database_size(
-                        instance, sync_type="task"
-                    )
+                    result = database_size_service.sync_database_size(instance, sync_type="task")
                     return result
 
                 # 对于其他任务类型，使用原有的动态执行方式
@@ -230,9 +218,7 @@ class TaskExecutor:
                 self.logger.error(f"执行任务代码时出错: {e}")
                 return {"success": False, "error": f"执行任务代码失败: {str(e)}"}
 
-    def _record_task_execution_summary(
-        self, task: "Any", success_count: int, failed_count: int, results: list
-    ) -> None:
+    def _record_task_execution_summary(self, task: "Any", success_count: int, failed_count: int, results: list) -> None:
         """
         记录任务执行汇总数据
 
@@ -249,22 +235,10 @@ class TaskExecutor:
         with app.app_context():
             try:
                 # 计算汇总数据
-                total_synced = sum(
-                    r.get("synced_count", 0) for r in results if r.get("success", False)
-                )
-                total_added = sum(
-                    r.get("added_count", 0) for r in results if r.get("success", False)
-                )
-                total_removed = sum(
-                    r.get("removed_count", 0)
-                    for r in results
-                    if r.get("success", False)
-                )
-                total_modified = sum(
-                    r.get("modified_count", 0)
-                    for r in results
-                    if r.get("success", False)
-                )
+                total_synced = sum(r.get("synced_count", 0) for r in results if r.get("success", False))
+                total_added = sum(r.get("added_count", 0) for r in results if r.get("success", False))
+                total_removed = sum(r.get("removed_count", 0) for r in results if r.get("success", False))
+                total_modified = sum(r.get("modified_count", 0) for r in results if r.get("success", False))
 
                 # 构建汇总消息
                 if failed_count == 0:
@@ -276,15 +250,11 @@ class TaskExecutor:
 
                 # 同步会话记录已通过sync_session_service管理，无需额外创建记录
 
-                self.logger.info(
-                    f"记录任务执行汇总: {task.name}, 成功:{success_count}, 失败:{failed_count}"
-                )
+                self.logger.info(f"记录任务执行汇总: {task.name}, 成功:{success_count}, 失败:{failed_count}")
             except Exception as e:
                 self.logger.error(f"记录任务执行汇总失败: {e}")
 
-    def _update_task_status(
-        self, task: "Any", success_count: int, failed_count: int, results: list
-    ) -> None:
+    def _update_task_status(self, task: "Any", success_count: int, failed_count: int, results: list) -> None:
         """
         更新任务状态
 
@@ -295,9 +265,7 @@ class TaskExecutor:
             results: 执行结果列表
         """
         try:
-            self.logger.info(
-                f"更新任务状态: {task.name}, 成功: {success_count}, 失败: {failed_count}"
-            )
+            self.logger.info(f"更新任务状态: {task.name}, 成功: {success_count}, 失败: {failed_count}")
 
             task.run_count += 1
             if failed_count == 0:
@@ -306,17 +274,13 @@ class TaskExecutor:
                 task.last_message = f"成功执行，处理了 {success_count} 个实例"
             else:
                 task.last_status = "failed"
-                task.last_message = (
-                    f"执行失败，成功: {success_count}, 失败: {failed_count}"
-                )
+                task.last_message = f"执行失败，成功: {success_count}, 失败: {failed_count}"
 
             task.last_run = now()
             task.last_run_at = now()  # 兼容字段
 
             db.session.commit()
-            self.logger.info(
-                f"任务状态更新完成: 运行次数={task.run_count}, 成功次数={task.success_count}"
-            )
+            self.logger.info(f"任务状态更新完成: 运行次数={task.run_count}, 成功次数={task.success_count}")
         except Exception as e:
             self.logger.error(f"更新任务状态失败: {e}")
             db.session.rollback()

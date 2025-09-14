@@ -8,7 +8,7 @@ ERROR: /Users/shiyijiufei/TaifishingV4/app/services/connection_factory.py Import
 +++ /Users/shiyijiufei/TaifishingV4/app/__init__.py:after	2025-09-14 23:14:06.364403
 @@ -461,8 +461,7 @@
  app = create_app()
- 
+
  # 导入模型（确保模型被注册）
 -from app.models import (  # noqa: F401
 -    # account,  # 已废弃，使用CurrentAccountSyncData
@@ -21,12 +21,12 @@ ERROR: /Users/shiyijiufei/TaifishingV4/app/services/connection_factory.py Import
 @@ -7,8 +7,9 @@
  from enum import Enum
  from typing import Any
- 
+
 -from sqlalchemy import JSON, Column, DateTime, Index, Integer, String, Text
 +from sqlalchemy import JSON, Column, DateTime
  from sqlalchemy import Enum as SQLEnum
 +from sqlalchemy import Index, Integer, String, Text
- 
+
  from app import db
  from app.utils.timezone import now, utc_to_china
 --- /Users/shiyijiufei/TaifishingV4/app/services/connection_factory.py:before	2025-09-14 21:10:53.862953
@@ -35,7 +35,7 @@ ERROR: /Users/shiyijiufei/TaifishingV4/app/services/connection_factory.py Import
          """尝试使用pyodbc连接 (推荐用于现代SQL Server版本)"""
          try:
              import pyodbc
--            
+-
 +
              # 构建连接字符串 - 支持多种版本
              connection_strings = [
@@ -44,7 +44,7 @@ ERROR: /Users/shiyijiufei/TaifishingV4/app/services/connection_factory.py Import
          """尝试使用传统pyodbc连接 (兼容老版本)"""
          try:
              import pyodbc
--            
+-
 +
              # 传统连接字符串，兼容SQL Server 2005-2008
              legacy_conn_str = (

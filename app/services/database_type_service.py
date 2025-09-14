@@ -18,9 +18,7 @@ class DatabaseTypeService:
     @staticmethod
     def get_all_types() -> list[DatabaseTypeConfig]:
         """获取所有数据库类型配置"""
-        return DatabaseTypeConfig.query.order_by(
-            DatabaseTypeConfig.sort_order, DatabaseTypeConfig.name
-        ).all()
+        return DatabaseTypeConfig.query.order_by(DatabaseTypeConfig.sort_order, DatabaseTypeConfig.name).all()
 
     @staticmethod
     def get_active_types() -> list[DatabaseTypeConfig]:

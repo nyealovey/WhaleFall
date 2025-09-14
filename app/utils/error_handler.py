@@ -71,9 +71,7 @@ def register_error_handlers(app):
         """通用错误处理"""
         system_logger = get_system_logger()
         system_logger.error("未处理的错误", module="error_handler", error=str(error))
-        system_logger.error(
-            "错误堆栈", module="error_handler", traceback=traceback.format_exc()
-        )
+        system_logger.error("错误堆栈", module="error_handler", traceback=traceback.format_exc())
         return _handle_error(error, 500, "系统错误")
 
 
@@ -105,9 +103,7 @@ def _handle_error(error, status_code, message):
             status_code,
         )
     return (
-        render_template(
-            "errors/error.html", error_code=status_code, error_message=message
-        ),
+        render_template("errors/error.html", error_code=status_code, error_message=message),
         status_code,
     )
 

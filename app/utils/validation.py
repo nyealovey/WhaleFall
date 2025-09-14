@@ -81,9 +81,7 @@ class InputValidator:
         return html.escape(str_value)
 
     @staticmethod
-    def validate_integer(
-        value: Any, min_val: int | None = None, max_val: int | None = None
-    ) -> int | None:
+    def validate_integer(value: Any, min_val: int | None = None, max_val: int | None = None) -> int | None:
         """
         验证整数输入
 
@@ -269,9 +267,7 @@ class InputValidator:
         allowed_attributes = {}
 
         # 使用bleach清理HTML
-        cleaned = bleach.clean(
-            html_content, tags=allowed_tags, attributes=allowed_attributes
-        )
+        cleaned = bleach.clean(html_content, tags=allowed_tags, attributes=allowed_attributes)
 
         return cleaned
 
@@ -340,9 +336,7 @@ class InputValidator:
         return None
 
     @staticmethod
-    def validate_pagination(
-        page: Any, per_page: Any, max_per_page: int = 100
-    ) -> tuple[int, int]:
+    def validate_pagination(page: Any, per_page: Any, max_per_page: int = 100) -> tuple[int, int]:
         """
         验证分页参数
 
@@ -355,17 +349,12 @@ class InputValidator:
             tuple: (page, per_page) 验证后的分页参数
         """
         page = InputValidator.validate_integer(page, min_val=1) or 1
-        per_page = (
-            InputValidator.validate_integer(per_page, min_val=1, max_val=max_per_page)
-            or 10
-        )
+        per_page = InputValidator.validate_integer(per_page, min_val=1, max_val=max_per_page) or 10
 
         return page, per_page
 
     @staticmethod
-    def validate_request_data(
-        required_fields: list[str], optional_fields: list[str] | None = None
-    ) -> dict[str, Any]:
+    def validate_request_data(required_fields: list[str], optional_fields: list[str] | None = None) -> dict[str, Any]:
         """
         验证请求数据
 
@@ -381,11 +370,7 @@ class InputValidator:
 
         # 验证必需字段
         for field in required_fields:
-            value = (
-                request.form.get(field) or request.json.get(field)
-                if request.is_json
-                else request.form.get(field)
-            )
+            value = request.form.get(field) or request.json.get(field) if request.is_json else request.form.get(field)
             if not value:
                 errors.append(f"缺少必需字段: {field}")
             else:
@@ -395,9 +380,7 @@ class InputValidator:
         if optional_fields:
             for field in optional_fields:
                 value = (
-                    request.form.get(field) or request.json.get(field)
-                    if request.is_json
-                    else request.form.get(field)
+                    request.form.get(field) or request.json.get(field) if request.is_json else request.form.get(field)
                 )
                 if value:
                     data[field] = value
@@ -421,9 +404,7 @@ def validate_instance_data(data: dict[str, Any]) -> dict[str, Any]:
     validated = {}
 
     # 验证名称
-    name = InputValidator.validate_string(
-        data.get("name"), min_length=1, max_length=100, allow_empty=False
-    )
+    name = InputValidator.validate_string(data.get("name"), min_length=1, max_length=100, allow_empty=False)
     if not name:
         error_msg = "实例名称无效"
         raise ValueError(error_msg)
@@ -470,9 +451,7 @@ def validate_instance_data(data: dict[str, Any]) -> dict[str, Any]:
     validated["database_name"] = database_name
 
     # 验证描述
-    description = InputValidator.validate_string(
-        data.get("description"), max_length=500, allow_empty=True
-    )
+    description = InputValidator.validate_string(data.get("description"), max_length=500, allow_empty=True)
     validated["description"] = description or ""
 
     # 验证是否激活
@@ -495,9 +474,7 @@ def validate_credential_data(data: dict[str, Any]) -> dict[str, Any]:
     validated = {}
 
     # 验证名称
-    name = InputValidator.validate_string(
-        data.get("name"), min_length=1, max_length=100, allow_empty=False
-    )
+    name = InputValidator.validate_string(data.get("name"), min_length=1, max_length=100, allow_empty=False)
     if not name:
         error_msg = "凭据名称无效"
         raise ValueError(error_msg)
@@ -524,9 +501,7 @@ def validate_credential_data(data: dict[str, Any]) -> dict[str, Any]:
     validated["password"] = password
 
     # 验证描述
-    description = InputValidator.validate_string(
-        data.get("description"), max_length=500, allow_empty=True
-    )
+    description = InputValidator.validate_string(data.get("description"), max_length=500, allow_empty=True)
     validated["description"] = description or ""
 
     # 验证是否激活

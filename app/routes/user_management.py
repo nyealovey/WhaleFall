@@ -19,9 +19,7 @@ from app.utils.decorators import (
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
-user_management_bp = Blueprint(
-    "user_management", __name__, url_prefix="/user-management"
-)
+user_management_bp = Blueprint("user_management", __name__, url_prefix="/user-management")
 
 
 @user_management_bp.route("/")
@@ -35,9 +33,7 @@ def index() -> str:
         per_page = request.args.get("per_page", 10, type=int)
 
         # 分页查询
-        users = User.query.order_by(User.created_at.desc()).paginate(
-            page=page, per_page=per_page, error_out=False
-        )
+        users = User.query.order_by(User.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
         return render_template("user_management/index.html", users=users)
 
@@ -190,9 +186,7 @@ def api_update_user(user_id: int) -> "Response":
                 return APIResponse.error("用户名只能包含字母、数字和下划线，长度3-20位")
 
             # 检查用户名是否已被其他用户使用
-            existing_user = User.query.filter(
-                User.username == username, User.id != user_id
-            ).first()
+            existing_user = User.query.filter(User.username == username, User.id != user_id).first()
             if existing_user:
                 return APIResponse.error("用户名已存在")
 
@@ -360,9 +354,7 @@ def api_toggle_user_status(user_id: int) -> "Response":
             new_status=user.is_active,
         )
 
-        return APIResponse.success(
-            {"message": f"用户{status_text}成功", "user": user.to_dict()}
-        )
+        return APIResponse.success({"message": f"用户{status_text}成功", "user": user.to_dict()})
 
     except Exception as e:
         db.session.rollback()

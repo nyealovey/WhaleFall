@@ -115,10 +115,7 @@ def sync_records() -> str | Response:
             if record.sync_type not in grouped[time_key]["sync_types"]:
                 grouped[time_key]["sync_types"].append(record.sync_type)
 
-            if (
-                not grouped[time_key]["created_at"]
-                or record.sync_time > grouped[time_key]["created_at"]
-            ):
+            if not grouped[time_key]["created_at"] or record.sync_time > grouped[time_key]["created_at"]:
                 grouped[time_key]["created_at"] = record.sync_time
 
         # 始终添加记录到sync_records，用于详情显示
@@ -126,9 +123,7 @@ def sync_records() -> str | Response:
 
     # 转换为聚合记录列表
     aggregated_records = []
-    for time_key, data in sorted(
-        grouped.items(), key=lambda x: x[1]["created_at"], reverse=True
-    ):
+    for time_key, data in sorted(grouped.items(), key=lambda x: x[1]["created_at"], reverse=True):
         # 使用最新记录的时间作为显示时间
         latest_time = max(record.sync_time for record in data["sync_records"])
 
@@ -141,9 +136,7 @@ def sync_records() -> str | Response:
 
         # 创建聚合记录对象
         class AggregatedRecord:
-            def __init__(
-                self, data: dict[str, Any], latest_time: Any, sync_type_display: str
-            ) -> None:
+            def __init__(self, data: dict[str, Any], latest_time: Any, sync_type_display: str) -> None:
                 self.sync_time = latest_time
                 self.sync_type = sync_type_display
                 self.status = "success" if data["failed_count"] == 0 else "failed"
@@ -164,9 +157,7 @@ def sync_records() -> str | Response:
                 """获取记录ID列表"""
                 return [record.id for record in self.sync_records]
 
-        aggregated_records.append(
-            AggregatedRecord(data, latest_time, sync_type_display)
-        )
+        aggregated_records.append(AggregatedRecord(data, latest_time, sync_type_display))
 
     # 处理手动记录，直接显示原始值
     for record in manual_records:
@@ -189,9 +180,7 @@ def sync_records() -> str | Response:
 
     # 创建分页对象
     class Pagination:
-        def __init__(
-            self, items: list[Any], page: int, per_page: int, total: int
-        ) -> None:
+        def __init__(self, items: list[Any], page: int, per_page: int, total: int) -> None:
             self.items = items
             self.page = page
             self.per_page = per_page
@@ -214,17 +203,12 @@ def sync_records() -> str | Response:
             for num in range(1, last + 1):
                 if (
                     num <= left_edge
-                    or (
-                        num > self.page - left_current - 1
-                        and num < self.page + right_current
-                    )
+                    or (num > self.page - left_current - 1 and num < self.page + right_current)
                     or num > last - right_edge
                 ):
                     yield num
 
-    sync_records = Pagination(
-        paginated_records, page, per_page, len(all_display_records)
-    )
+    sync_records = Pagination(paginated_records, page, per_page, len(all_display_records))
 
     if request.is_json:
         return jsonify(
@@ -234,21 +218,13 @@ def sync_records() -> str | Response:
                         record.to_dict()
                         if hasattr(record, "to_dict")
                         else {
-                            "id": getattr(
-                                record, "id", f"batch_{hash(str(record.sync_time))}"
-                            ),
-                            "sync_time": (
-                                record.sync_time.isoformat()
-                                if record.sync_time
-                                else None
-                            ),
+                            "id": getattr(record, "id", f"batch_{hash(str(record.sync_time))}"),
+                            "sync_time": (record.sync_time.isoformat() if record.sync_time else None),
                             "sync_type": record.sync_type,
                             "status": record.status,
                             "message": record.message,
                             "synced_count": record.synced_count,
-                            "instance_name": getattr(
-                                record, "instance_name", "批量同步"
-                            ),
+                            "instance_name": getattr(record, "instance_name", "批量同步"),
                             "is_aggregated": getattr(record, "is_aggregated", False),
                             "record_ids": getattr(record, "sync_records", []),
                         }
@@ -315,9 +291,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 
         # 添加实例记录
         instance_ids = [inst.id for inst in instances]
-        records = sync_session_service.add_instance_records(
-            session.session_id, instance_ids
-        )
+        records = sync_session_service.add_instance_records(session.session_id, instance_ids)
 
         success_count = 0
         failed_count = 0
@@ -341,9 +315,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                 )
 
                 # 使用统一的账户同步服务
-                result = account_sync_service.sync_accounts(
-                    instance, sync_type="batch", session_id=session.session_id
-                )
+                result = account_sync_service.sync_accounts(instance, sync_type="batch", session_id=session.session_id)
 
                 if result["success"]:
                     success_count += 1
@@ -391,9 +363,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                     {
                         "instance_name": instance.name,
                         "success": result["success"],
-                        "message": result.get(
-                            "message", result.get("error", "未知错误")
-                        ),
+                        "message": result.get("message", result.get("error", "未知错误")),
                         "synced_count": result.get("synced_count", 0),
                     }
                 )
@@ -519,9 +489,7 @@ def sync_details_batch() -> str | Response | tuple[Response, int]:
                         instance_records[instance_name] = {
                             "id": record.id,
                             "instance_name": instance_name,
-                            "status": (
-                                "success" if result.get("success", False) else "failed"
-                            ),
+                            "status": ("success" if result.get("success", False) else "failed"),
                             "message": result.get("message", ""),
                             "synced_count": result.get("synced_count", 0),
                             "sync_time": record.sync_time,
@@ -575,11 +543,7 @@ def sync_details(sync_id: int) -> str | Response | tuple[Response, int]:
         record = SyncSession.query.get_or_404(sync_id)
         # 获取会话关联的实例记录
         instance_records = record.instance_records.all()
-        instances = [
-            Instance.query.get(ir.instance_id)
-            for ir in instance_records
-            if ir.instance_id
-        ]
+        instances = [Instance.query.get(ir.instance_id) for ir in instance_records if ir.instance_id]
 
         if request.is_json:
             return jsonify(

@@ -59,9 +59,7 @@ class LogConfig:
         "<level>{message}</level>"
     )
 
-    file_format: str = (
-        "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} | {message}"
-    )
+    file_format: str = "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} | {message}"
 
     # 各类型日志配置
     log_types: dict[LogType, dict[str, Any]] = None

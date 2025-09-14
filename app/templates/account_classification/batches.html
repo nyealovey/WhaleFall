@@ -441,9 +441,6 @@ function displayMatches(batchId, matches) {
                 <div>
                     <strong>${match.account_name}</strong>
                     ${match.account_host ? `@${match.account_host}` : ''}
-                    <br><small class="text-muted">ID: ${match.account_id}</small>
-                    ${match.is_superuser ? '<br><span class="badge bg-danger">超级用户</span>' : ''}
-                    ${match.can_grant ? '<br><span class="badge bg-warning">可授权</span>' : ''}
                 </div>
             </td>
             <td>

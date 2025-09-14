@@ -26,9 +26,7 @@ class APIResponse:
         return jsonify(response)
 
     @staticmethod
-    def error(
-        message: str = "操作失败", code: int = 400, data: "Any" = None
-    ) -> "Response":
+    def error(message: str = "操作失败", code: int = 400, data: "Any" = None) -> "Response":
         """
         错误响应
 

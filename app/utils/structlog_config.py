@@ -197,8 +197,7 @@ class SQLAlchemyLogHandler:
                 # 检查是否需要刷新
                 current_time = time.time()
                 should_flush = len(self.batch_buffer) >= self.batch_size or (
-                    self.batch_buffer
-                    and current_time - self.last_flush >= self.flush_interval
+                    self.batch_buffer and current_time - self.last_flush >= self.flush_interval
                 )
 
                 if should_flush:
@@ -229,9 +228,7 @@ class SQLAlchemyLogHandler:
                         from datetime import datetime
 
                         try:
-                            log_data["timestamp"] = datetime.fromisoformat(
-                                log_data["timestamp"].replace("Z", "+00:00")
-                            )
+                            log_data["timestamp"] = datetime.fromisoformat(log_data["timestamp"].replace("Z", "+00:00"))
                         except ValueError:
                             log_data["timestamp"] = now()
 
@@ -391,9 +388,7 @@ def configure_structlog(app):
     @app.teardown_appcontext
     def shutdown_logging(exception):
         if exception:
-            get_logger("app").error(
-                "Application error", module="system", exception=str(exception)
-            )
+            get_logger("app").error("Application error", module="system", exception=str(exception))
 
 
 def set_debug_logging_enabled(enabled: bool) -> None:
@@ -446,9 +441,7 @@ def log_info(message: str, module: str = "app", **kwargs):
     logger.info(message, module=module, **kwargs)
 
 
-def log_warning(
-    message: str, module: str = "app", exception: Exception | None = None, **kwargs
-):
+def log_warning(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
     """记录警告日志"""
     logger = get_logger("app")
     if exception:
@@ -457,9 +450,7 @@ def log_warning(
         logger.warning(message, module=module, **kwargs)
 
 
-def log_error(
-    message: str, module: str = "app", exception: Exception | None = None, **kwargs
-):
+def log_error(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
     """记录错误日志"""
     logger = get_logger("app")
     if exception:
@@ -468,9 +459,7 @@ def log_error(
         logger.error(message, module=module, **kwargs)
 
 
-def log_critical(
-    message: str, module: str = "app", exception: Exception | None = None, **kwargs
-):
+def log_critical(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
     """记录严重错误日志"""
     logger = get_logger("app")
     if exception:

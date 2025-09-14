@@ -187,9 +187,7 @@ class DatabaseService:
             from app.services.sync_data_manager import SyncDataManager
             from app.utils.timezone import now
 
-            self.db_logger.info(
-                "开始同步账户", instance_name=instance.name, db_type=instance.db_type
-            )
+            self.db_logger.info("开始同步账户", instance_name=instance.name, db_type=instance.db_type)
 
             # 获取数据库连接
             conn = self.get_connection(instance)
@@ -213,13 +211,9 @@ class DatabaseService:
             if instance.db_type == "mysql":
                 result = sync_manager.sync_mysql_accounts(instance, conn, session_id)
             elif instance.db_type == "postgresql":
-                result = sync_manager.sync_postgresql_accounts(
-                    instance, conn, session_id
-                )
+                result = sync_manager.sync_postgresql_accounts(instance, conn, session_id)
             elif instance.db_type == "sqlserver":
-                result = sync_manager.sync_sqlserver_accounts(
-                    instance, conn, session_id
-                )
+                result = sync_manager.sync_sqlserver_accounts(instance, conn, session_id)
             elif instance.db_type == "oracle":
                 result = sync_manager.sync_oracle_accounts(instance, conn, session_id)
             else:
@@ -256,7 +250,5 @@ class DatabaseService:
             }
 
         except Exception as e:
-            self.db_logger.error(
-                "账户同步失败", instance_name=instance.name, error=str(e)
-            )
+            self.db_logger.error("账户同步失败", instance_name=instance.name, error=str(e))
             return {"success": False, "error": f"账户同步失败: {str(e)}"}

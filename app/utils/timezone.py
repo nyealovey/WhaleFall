@@ -41,9 +41,7 @@ def china_to_utc(china_dt: datetime | None) -> datetime | None:
     return china_dt.astimezone(pytz.utc)
 
 
-def format_china_time(
-    dt: datetime | str | None, format_str: str = "%Y-%m-%d %H:%M:%S"
-) -> str | None:
+def format_china_time(dt: datetime | str | None, format_str: str = "%Y-%m-%d %H:%M:%S") -> str | None:
     """格式化东八区时间"""
     if dt is None:
         return None
@@ -91,18 +89,14 @@ def get_china_date() -> date:
 def get_china_today() -> datetime:
     """获取东八区今天的开始时间（UTC）"""
     china_today = get_china_date()
-    china_start: datetime = CHINA_TZ.localize(
-        datetime.combine(china_today, datetime.min.time())
-    )
+    china_start: datetime = CHINA_TZ.localize(datetime.combine(china_today, datetime.min.time()))
     return china_start.astimezone(pytz.utc)
 
 
 def get_china_tomorrow() -> datetime:
     """获取东八区明天的开始时间（UTC）"""
     china_tomorrow = get_china_date() + timedelta(days=1)
-    china_start: datetime = CHINA_TZ.localize(
-        datetime.combine(china_tomorrow, datetime.min.time())
-    )
+    china_start: datetime = CHINA_TZ.localize(datetime.combine(china_tomorrow, datetime.min.time()))
     return china_start.astimezone(pytz.utc)
 
 

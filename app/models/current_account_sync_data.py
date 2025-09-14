@@ -14,9 +14,7 @@ class CurrentAccountSyncData(BaseSyncData):
     __tablename__ = "current_account_sync_data"
 
     __table_args__ = (
-        db.UniqueConstraint(
-            "instance_id", "db_type", "username", name="uq_current_account_sync"
-        ),
+        db.UniqueConstraint("instance_id", "db_type", "username", name="uq_current_account_sync"),
         db.Index("idx_instance_dbtype", "instance_id", "db_type"),
         db.Index("idx_deleted", "is_deleted"),
         db.Index("idx_username", "username"),
@@ -51,9 +49,7 @@ class CurrentAccountSyncData(BaseSyncData):
 
     # 时间戳和状态字段
     last_sync_time = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    last_change_type = db.Column(
-        db.String(20), default="add"
-    )  # 'add', 'modify_privilege', 'modify_other', 'delete'
+    last_change_type = db.Column(db.String(20), default="add")  # 'add', 'modify_privilege', 'modify_other', 'delete'
     last_change_time = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     # 删除标记（不支持恢复）
@@ -87,17 +83,11 @@ class CurrentAccountSyncData(BaseSyncData):
                 "system_privileges": self.system_privileges,
                 "tablespace_privileges_oracle": self.tablespace_privileges_oracle,
                 "type_specific": self.type_specific,
-                "last_sync_time": (
-                    self.last_sync_time.isoformat() if self.last_sync_time else None
-                ),
+                "last_sync_time": (self.last_sync_time.isoformat() if self.last_sync_time else None),
                 "last_change_type": self.last_change_type,
-                "last_change_time": (
-                    self.last_change_time.isoformat() if self.last_change_time else None
-                ),
+                "last_change_time": (self.last_change_time.isoformat() if self.last_change_time else None),
                 "is_deleted": self.is_deleted,
-                "deleted_time": (
-                    self.deleted_time.isoformat() if self.deleted_time else None
-                ),
+                "deleted_time": (self.deleted_time.isoformat() if self.deleted_time else None),
             }
         )
         return base_dict
@@ -134,3 +124,29 @@ class CurrentAccountSyncData(BaseSyncData):
                 "type_specific": self.type_specific,
             }
         return {}
+
+    def get_can_grant_status(self) -> bool:
+        """获取账户是否有授权权限"""
+        try:
+            if self.db_type == "mysql":
+                # MySQL中检查是否有GRANT权限
+                global_privileges = self.global_privileges or []
+                for perm in global_privileges:
+                    if isinstance(perm, dict) and perm.get("privilege") == "GRANT" and perm.get("granted", False):
+                        return True
+                return False
+            elif self.db_type == "postgresql":
+                # PostgreSQL中检查是否有CREATEROLE属性
+                role_attributes = self.role_attributes or []
+                return "CREATEROLE" in role_attributes
+            elif self.db_type == "sqlserver":
+                # SQL Server中检查是否有sysadmin角色
+                server_roles = self.server_roles or []
+                return "sysadmin" in server_roles
+            elif self.db_type == "oracle":
+                # Oracle中检查是否有GRANT ANY PRIVILEGE权限
+                system_privileges = self.system_privileges or []
+                return "GRANT ANY PRIVILEGE" in system_privileges
+            return False
+        except (TypeError, AttributeError):
+            return False

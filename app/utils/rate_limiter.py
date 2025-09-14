@@ -26,9 +26,7 @@ class RateLimiter:
         """生成内存键"""
         return f"{endpoint}:{identifier}"
 
-    def is_allowed(
-        self, identifier: str, endpoint: str, limit: int, window: int
-    ) -> dict[str, any]:
+    def is_allowed(self, identifier: str, endpoint: str, limit: int, window: int) -> dict[str, any]:
         """
         检查是否允许请求
 
@@ -46,9 +44,7 @@ class RateLimiter:
 
         if self.redis_client:
             try:
-                return self._check_redis(
-                    identifier, endpoint, limit, window, current_time, window_start
-                )
+                return self._check_redis(identifier, endpoint, limit, window, current_time, window_start)
             except Exception as e:
                 system_logger = get_system_logger()
                 system_logger.warning(
@@ -57,13 +53,9 @@ class RateLimiter:
                     exception=e,
                 )
                 # 降级到内存模式
-                return self._check_memory(
-                    identifier, endpoint, limit, window, current_time, window_start
-                )
+                return self._check_memory(identifier, endpoint, limit, window, current_time, window_start)
         else:
-            return self._check_memory(
-                identifier, endpoint, limit, window, current_time, window_start
-            )
+            return self._check_memory(identifier, endpoint, limit, window, current_time, window_start)
 
     def _check_redis(
         self,
@@ -124,11 +116,7 @@ class RateLimiter:
             self.memory_store[key] = []
 
         # 清理过期记录
-        self.memory_store[key] = [
-            timestamp
-            for timestamp in self.memory_store[key]
-            if timestamp > window_start
-        ]
+        self.memory_store[key] = [timestamp for timestamp in self.memory_store[key] if timestamp > window_start]
 
         current_count = len(self.memory_store[key])
 
@@ -150,18 +138,14 @@ class RateLimiter:
             "retry_after": 0,
         }
 
-    def get_remaining(
-        self, identifier: str, endpoint: str, limit: int, window: int
-    ) -> int:
+    def get_remaining(self, identifier: str, endpoint: str, limit: int, window: int) -> int:
         """获取剩余请求次数"""
         try:
             result = self.is_allowed(identifier, endpoint, limit, window)
             return result["remaining"]
         except Exception as e:
             system_logger = get_system_logger()
-            system_logger.warning(
-                "获取剩余请求次数失败", module="rate_limiter", exception=e
-            )
+            system_logger.warning("获取剩余请求次数失败", module="rate_limiter", exception=e)
             return limit  # 出错时返回最大限制
 
     def reset(self, identifier: str, endpoint: str):
@@ -172,9 +156,7 @@ class RateLimiter:
                 self.redis_client.delete(key)
             except Exception as e:
                 system_logger = get_system_logger()
-                system_logger.warning(
-                    "Redis重置速率限制失败", module="rate_limiter", exception=e
-                )
+                system_logger.warning("Redis重置速率限制失败", module="rate_limiter", exception=e)
                 # 降级到内存模式
                 key = self._get_memory_key(identifier, endpoint)
                 if key in self.memory_store:
@@ -214,11 +196,7 @@ def rate_limit(
             elif per == "user":
                 from flask_login import current_user
 
-                identifier = (
-                    str(current_user.id)
-                    if current_user.is_authenticated
-                    else request.remote_addr
-                )
+                identifier = str(current_user.id) if current_user.is_authenticated else request.remote_addr
             else:
                 identifier = request.remote_addr
 
@@ -323,9 +301,7 @@ def init_rate_limiter(redis_client=None):
 
 
 # 获取速率限制状态
-def get_rate_limit_status(
-    identifier: str, endpoint: str, limit: int, window: int
-) -> dict[str, any]:
+def get_rate_limit_status(identifier: str, endpoint: str, limit: int, window: int) -> dict[str, any]:
     """获取速率限制状态"""
     return rate_limiter.is_allowed(identifier, endpoint, limit, window)
 
@@ -342,9 +318,7 @@ def cleanup_rate_limits():
         for key in list(rate_limiter.memory_store.keys()):
             timestamps = rate_limiter.memory_store[key]
             # 保留最近1小时的记录
-            rate_limiter.memory_store[key] = [
-                ts for ts in timestamps if ts > current_time - 3600
-            ]
+            rate_limiter.memory_store[key] = [ts for ts in timestamps if ts > current_time - 3600]
             # 如果列表为空，删除键
             if not rate_limiter.memory_store[key]:
                 del rate_limiter.memory_store[key]

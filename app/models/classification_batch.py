@@ -20,9 +20,7 @@ class ClassificationBatch(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     # 批次ID (UUID格式，用于关联日志)
-    batch_id = Column(
-        String(36), unique=True, nullable=False, index=True, comment="批次唯一标识"
-    )
+    batch_id = Column(String(36), unique=True, nullable=False, index=True, comment="批次唯一标识")
 
     # 批次类型
     batch_type = Column(
@@ -40,9 +38,7 @@ class ClassificationBatch(db.Model):
     )
 
     # 开始时间
-    started_at = Column(
-        DateTime, nullable=False, default=func.now(), comment="批次开始时间"
-    )
+    started_at = Column(DateTime, nullable=False, default=func.now(), comment="批次开始时间")
 
     # 完成时间
     completed_at = Column(DateTime, nullable=True, comment="批次完成时间")
@@ -66,9 +62,7 @@ class ClassificationBatch(db.Model):
     created_by = Column(Integer, nullable=True, comment="创建者用户ID")
 
     # 创建时间
-    created_at = Column(
-        DateTime, nullable=False, default=func.now(), comment="创建时间"
-    )
+    created_at = Column(DateTime, nullable=False, default=func.now(), comment="创建时间")
 
     # 更新时间
     updated_at = Column(
@@ -90,9 +84,7 @@ class ClassificationBatch(db.Model):
             "batch_type": self.batch_type,
             "status": self.status,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": (
-                self.completed_at.isoformat() if self.completed_at else None
-            ),
+            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
             "total_accounts": self.total_accounts,
             "matched_accounts": self.matched_accounts,
             "failed_accounts": self.failed_accounts,

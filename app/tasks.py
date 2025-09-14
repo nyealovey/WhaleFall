@@ -31,14 +31,10 @@ def cleanup_old_logs():
             # 清理旧的同步记录（保留最近30天） - 使用新的同步会话模型
             from app.models.sync_session import SyncSession
 
-            deleted_sync = SyncSession.query.filter(
-                SyncSession.created_at < cutoff_date
-            ).delete()
+            deleted_sync = SyncSession.query.filter(SyncSession.created_at < cutoff_date).delete()
 
             # 清理旧的账户变更日志（保留最近30天）
-            deleted_change_logs = AccountChangeLog.query.filter(
-                AccountChangeLog.created_at < cutoff_date
-            ).delete()
+            deleted_change_logs = AccountChangeLog.query.filter(AccountChangeLog.created_at < cutoff_date).delete()
 
             db.session.commit()
 
@@ -96,9 +92,7 @@ def _cleanup_temp_files():
                         if file_mtime < cutoff_time:
                             os.remove(file_path)
                             cleaned_files += 1
-                            task_logger.info(
-                                "删除临时文件", module="task", file_path=file_path
-                            )
+                            task_logger.info("删除临时文件", module="task", file_path=file_path)
 
         return cleaned_files
 
@@ -142,9 +136,7 @@ def sync_accounts():
 
             # 添加实例记录
             instance_ids = [inst.id for inst in instances]
-            records = sync_session_service.add_instance_records(
-                session.session_id, instance_ids
-            )
+            records = sync_session_service.add_instance_records(session.session_id, instance_ids)
 
             success_count = 0
             failed_count = 0
@@ -156,9 +148,7 @@ def sync_accounts():
 
             for instance in instances:
                 # 找到对应的记录
-                record = next(
-                    (r for r in records if r.instance_id == instance.id), None
-                )
+                record = next((r for r in records if r.instance_id == instance.id), None)
                 if not record:
                     continue
 
@@ -217,9 +207,7 @@ def sync_accounts():
                         )
                     else:
                         failed_count += 1
-                        error_msg = result.get(
-                            "message", result.get("error", "未知错误")
-                        )
+                        error_msg = result.get("message", result.get("error", "未知错误"))
 
                         # 标记实例同步失败
                         sync_session_service.fail_instance_sync(
@@ -323,9 +311,7 @@ def health_check():
 
             # 检查关键表
             user_count = User.query.count()
-            account_count = CurrentAccountSyncData.query.filter_by(
-                is_deleted=False
-            ).count()
+            account_count = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
             log_count = Log.query.count()
             sync_data_count = CurrentAccountSyncData.query.count()
             change_log_count = AccountChangeLog.query.count()
@@ -369,16 +355,12 @@ def cleanup_temp_files():
                         file_path = os.path.join(temp_dir, file)
                         if os.path.isfile(file_path):
                             # 删除7天前的临时文件
-                            file_age = datetime.now() - datetime.fromtimestamp(
-                                os.path.getmtime(file_path)
-                            )
+                            file_age = datetime.now() - datetime.fromtimestamp(os.path.getmtime(file_path))
                             if file_age.days > 7:
                                 os.remove(file_path)
                                 cleaned_files += 1
 
-            task_logger.info(
-                "临时文件清理完成", module="task", cleaned_files=cleaned_files
-            )
+            task_logger.info("临时文件清理完成", module="task", cleaned_files=cleaned_files)
             return f"清理了 {cleaned_files} 个临时文件"
 
         except Exception as e:

@@ -323,9 +323,7 @@ def login_required_json(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return (
-                jsonify(
-                    {"success": False, "message": "请先登录", "code": "UNAUTHORIZED"}
-                ),
+                jsonify({"success": False, "message": "请先登录", "code": "UNAUTHORIZED"}),
                 401,
             )
 
@@ -397,9 +395,7 @@ def validate_json(required_fields=None):
                 )
 
             if required_fields:
-                missing_fields = [
-                    field for field in required_fields if field not in data
-                ]
+                missing_fields = [field for field in required_fields if field not in data]
                 if missing_fields:
                     return (
                         jsonify(

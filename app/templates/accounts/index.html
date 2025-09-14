@@ -278,11 +278,11 @@
                         </td>
                         <td>
                             <i class="fas fa-database text-info me-1"></i>
-                            {{ account.instance.name if account.instance else '未知实例' }}
+                            {{ account.instance_name }}
                         </td>
                         <td>
-                            <span class="badge bg-{{ 'success' if account.instance.db_type == 'mysql' else 'primary' if account.instance.db_type == 'postgresql' else 'warning' if account.instance.db_type == 'oracle' else 'info' if account.instance.db_type == 'sqlserver' else 'secondary' }}">
-                                {{ account.instance.db_type.upper() if account.instance else 'UNKNOWN' }}
+                            <span class="badge bg-{{ 'success' if account.db_type == 'mysql' else 'primary' if account.db_type == 'postgresql' else 'warning' if account.db_type == 'oracle' else 'info' if account.db_type == 'sqlserver' else 'secondary' }}">
+                                {{ account.db_type.upper() }}
                             </span>
                         </td>
                         <td>

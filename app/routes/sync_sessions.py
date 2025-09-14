@@ -22,9 +22,7 @@ system_logger = get_system_logger()
 def index():
     """同步会话管理首页"""
     try:
-        log_info(
-            "访问同步会话管理页面", module="sync_sessions", user_id=current_user.id
-        )
+        log_info("访问同步会话管理页面", module="sync_sessions", user_id=current_user.id)
         return render_template("sync_sessions/index.html")
     except Exception as e:
         log_error(
@@ -73,9 +71,7 @@ def api_list_sessions():
             },
         )
 
-        return jsonify(
-            {"success": True, "data": sessions_data, "total": len(sessions_data)}
-        )
+        return jsonify({"success": True, "data": sessions_data, "total": len(sessions_data)})
 
     except Exception as e:
         log_error(
@@ -178,45 +174,15 @@ def api_get_statistics():
 
         # 计算统计信息
         total_sessions = len(scheduled_sessions) + len(manual_sessions)
-        running_sessions = len(
-            [s for s in scheduled_sessions + manual_sessions if s.status == "running"]
-        )
-        completed_sessions = len(
-            [s for s in scheduled_sessions + manual_sessions if s.status == "completed"]
-        )
-        failed_sessions = len(
-            [s for s in scheduled_sessions + manual_sessions if s.status == "failed"]
-        )
+        running_sessions = len([s for s in scheduled_sessions + manual_sessions if s.status == "running"])
+        completed_sessions = len([s for s in scheduled_sessions + manual_sessions if s.status == "completed"])
+        failed_sessions = len([s for s in scheduled_sessions + manual_sessions if s.status == "failed"])
 
         # 按分类统计
-        account_sessions = len(
-            [
-                s
-                for s in scheduled_sessions + manual_sessions
-                if s.sync_category == "account"
-            ]
-        )
-        capacity_sessions = len(
-            [
-                s
-                for s in scheduled_sessions + manual_sessions
-                if s.sync_category == "capacity"
-            ]
-        )
-        config_sessions = len(
-            [
-                s
-                for s in scheduled_sessions + manual_sessions
-                if s.sync_category == "config"
-            ]
-        )
-        other_sessions = len(
-            [
-                s
-                for s in scheduled_sessions + manual_sessions
-                if s.sync_category == "other"
-            ]
-        )
+        account_sessions = len([s for s in scheduled_sessions + manual_sessions if s.sync_category == "account"])
+        capacity_sessions = len([s for s in scheduled_sessions + manual_sessions if s.sync_category == "capacity"])
+        config_sessions = len([s for s in scheduled_sessions + manual_sessions if s.sync_category == "config"])
+        other_sessions = len([s for s in scheduled_sessions + manual_sessions if s.sync_category == "other"])
 
         statistics = {
             "total_sessions": total_sessions,

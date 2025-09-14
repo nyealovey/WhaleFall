@@ -93,9 +93,7 @@ class ClassificationBatchService:
         try:
             batch = ClassificationBatch.query.filter_by(batch_id=batch_id).first()
             if not batch:
-                log_warning(
-                    "批次不存在", module="classification_batch", batch_id=batch_id
-                )
+                log_warning("批次不存在", module="classification_batch", batch_id=batch_id)
                 return False
 
             batch.total_accounts = total_accounts
@@ -147,9 +145,7 @@ class ClassificationBatchService:
         try:
             batch = ClassificationBatch.query.filter_by(batch_id=batch_id).first()
             if not batch:
-                log_warning(
-                    "批次不存在", module="classification_batch", batch_id=batch_id
-                )
+                log_warning("批次不存在", module="classification_batch", batch_id=batch_id)
                 return False
 
             batch.status = status
@@ -235,12 +231,7 @@ class ClassificationBatchService:
             if status:
                 query = query.filter(ClassificationBatch.status == status)
 
-            return (
-                query.order_by(ClassificationBatch.started_at.desc())
-                .offset(offset)
-                .limit(limit)
-                .all()
-            )
+            return query.order_by(ClassificationBatch.started_at.desc()).offset(offset).limit(limit).all()
 
         except Exception as e:
             log_error(
@@ -279,12 +270,8 @@ class ClassificationBatchService:
                 "failed_accounts": batch.failed_accounts,
                 "total_rules": batch.total_rules,
                 "active_rules": batch.active_rules,
-                "started_at": (
-                    batch.started_at.isoformat() if batch.started_at else None
-                ),
-                "completed_at": (
-                    batch.completed_at.isoformat() if batch.completed_at else None
-                ),
+                "started_at": (batch.started_at.isoformat() if batch.started_at else None),
+                "completed_at": (batch.completed_at.isoformat() if batch.completed_at else None),
             }
 
         except Exception as e:

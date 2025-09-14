@@ -182,9 +182,7 @@ def get_system_overview() -> dict:
         # 最近同步数据（东八区） - 使用新的同步会话模型
         from app.models.sync_session import SyncSession
 
-        recent_syncs = SyncSession.query.filter(
-            SyncSession.created_at >= get_china_today() - timedelta(days=7)
-        ).count()
+        recent_syncs = SyncSession.query.filter(SyncSession.created_at >= get_china_today() - timedelta(days=7)).count()
 
         return {
             "users": {"total": total_users, "active": total_users},  # 简化处理
@@ -251,12 +249,8 @@ def get_log_trend_data() -> dict:
             date = start_date + timedelta(days=i)
 
             # 计算该日期的UTC时间范围（东八区转UTC）
-            start_utc = china_to_utc(
-                CHINA_TZ.localize(datetime.combine(date, datetime.min.time()))
-            )
-            end_utc = china_to_utc(
-                CHINA_TZ.localize(datetime.combine(date, datetime.max.time()))
-            )
+            start_utc = china_to_utc(CHINA_TZ.localize(datetime.combine(date, datetime.min.time())))
+            end_utc = china_to_utc(CHINA_TZ.localize(datetime.combine(date, datetime.max.time())))
 
             # 分别统计错误日志和告警日志
             error_count = Log.query.filter(
@@ -305,9 +299,7 @@ def get_instance_type_distribution() -> dict:
     """获取实例类型分布"""
     try:
         type_stats = (
-            db.session.query(
-                Instance.db_type, db.func.count(Instance.id).label("count")
-            )
+            db.session.query(Instance.db_type, db.func.count(Instance.id).label("count"))
             .group_by(Instance.db_type)
             .all()
         )
@@ -322,15 +314,10 @@ def get_task_status_distribution() -> dict:
     """获取任务状态分布"""
     try:
         status_stats = (
-            db.session.query(Task.last_status, db.func.count(Task.id).label("count"))
-            .group_by(Task.last_status)
-            .all()
+            db.session.query(Task.last_status, db.func.count(Task.id).label("count")).group_by(Task.last_status).all()
         )
 
-        return [
-            {"status": stat.last_status or "unknown", "count": stat.count}
-            for stat in status_stats
-        ]
+        return [{"status": stat.last_status or "unknown", "count": stat.count} for stat in status_stats]
     except Exception as e:
         log_error(f"获取任务状态分布失败: {e}", module="dashboard")
         return []
@@ -348,9 +335,7 @@ def get_sync_trend_data() -> dict:
             date = start_date + timedelta(days=i)
             from app.models.sync_session import SyncSession
 
-            count = SyncSession.query.filter(
-                db.func.date(SyncSession.created_at) == date
-            ).count()
+            count = SyncSession.query.filter(db.func.date(SyncSession.created_at) == date).count()
             trend_data.append({"date": date.strftime("%Y-%m-%d"), "count": count})
 
         return trend_data
