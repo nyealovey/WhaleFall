@@ -1,8 +1,0 @@
-错误:
-
-标准输出:
-app/services/account_classification_service.py:26:6: error: Expected an
-indented block after function definition on line 23  [syntax]
-        def create_classification(
-         ^
-Found 1 error in 1 file (errors prevented further checking)
