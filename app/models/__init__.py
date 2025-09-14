@@ -25,6 +25,9 @@ from .task import Task
 # 导入所有模型
 from .user import User
 
+# 新增模型
+from .global_param import GlobalParam
+
 # 导出所有模型
 __all__ = [
     "User",
@@ -42,4 +45,5 @@ __all__ = [
     "AccountClassificationAssignment",
     "ClassificationBatch",
     "PermissionConfig",
+    "GlobalParam",
 ]

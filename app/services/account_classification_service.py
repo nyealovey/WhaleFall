@@ -764,13 +764,45 @@ class AccountClassificationService:
             if not permissions:
                 return False
 
+            # 获取操作符，默认为OR
+            operator = rule_expression.get("operator", "OR").upper()
+            
             # 检查全局权限
             required_global = rule_expression.get("global_privileges", [])
             if required_global:
-                actual_global = [
-                    p["privilege"] for p in permissions.get("global_privileges", []) if p.get("granted", False)
-                ]
-                if not all(perm in actual_global for perm in required_global):
+                # 获取实际权限列表（新格式：JSON数组）
+                actual_global = permissions.get("global_privileges", [])
+                if isinstance(actual_global, list):
+                    # 新格式：直接是权限字符串列表
+                    actual_global_set = set(actual_global)
+                else:
+                    # 旧格式：字典列表
+                    actual_global_set = set([
+                        p["privilege"] for p in actual_global if p.get("granted", False)
+                    ])
+                
+                if operator == "AND":
+                    # AND操作：必须拥有所有必需权限
+                    if not all(perm in actual_global_set for perm in required_global):
+                        return False
+                else:
+                    # OR操作：拥有任一必需权限即可
+                    if not any(perm in actual_global_set for perm in required_global):
+                        return False
+
+            # 检查排除权限
+            exclude_global = rule_expression.get("exclude_privileges", [])
+            if exclude_global:
+                actual_global = permissions.get("global_privileges", [])
+                if isinstance(actual_global, list):
+                    actual_global_set = set(actual_global)
+                else:
+                    actual_global_set = set([
+                        p["privilege"] for p in actual_global if p.get("granted", False)
+                    ])
+                
+                # 如果拥有任何排除权限，则不匹配
+                if any(perm in actual_global_set for perm in exclude_global):
                     return False
 
             # 检查数据库权限
@@ -779,10 +811,18 @@ class AccountClassificationService:
                 # 获取所有数据库的权限
                 all_db_permissions = set()
                 for db_perm in permissions.get("database_privileges", []):
-                    all_db_permissions.update(db_perm.get("privileges", []))
+                    if isinstance(db_perm, dict):
+                        all_db_permissions.update(db_perm.get("privileges", []))
+                    else:
+                        # 如果是字符串列表格式
+                        all_db_permissions.update(db_perm)
 
-                if not all(perm in all_db_permissions for perm in required_db):
-                    return False
+                if operator == "AND":
+                    if not all(perm in all_db_permissions for perm in required_db):
+                        return False
+                else:
+                    if not any(perm in all_db_permissions for perm in required_db):
+                        return False
 
             # 只有匹配成功时才记录日志
             log_info(
