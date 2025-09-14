@@ -141,5 +141,5 @@
 
 ---
 
-**维护者**: 泰摸鱼吧开发团队  
+**维护者**: 泰摸鱼吧开发团队
 **项目地址**: https://github.com/nyealovey/TaifishingV4
