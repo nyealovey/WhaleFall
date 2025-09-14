@@ -1,8 +1,9 @@
 # 泰摸鱼吧 (TaifishV4)
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.0.3-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-v2.1.0-blue.svg)]()
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 
 > 一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。
@@ -29,6 +30,7 @@
   - 📊 分类统计 - 高风险账户、特权账户统计
   - ⚙️ 规则管理 - 灵活的权限规则配置
   - ✅ 权限准确性 - Oracle权限配置基于SYS账户实际权限，确保100%准确性
+  - 🔧 功能修复 - 修复权限显示、分类规则评估、账户管理页面等问题
 - 🔑 **凭据管理** - 安全的数据库连接凭据存储
 - ⏰ **定时任务管理系统** - 基于APScheduler的轻量级任务调度
   - 🚀 内置任务管理 - 同步账户、清理日志等内置任务
@@ -466,26 +468,33 @@ pytest --cov=app tests/
 
 - **问题反馈**: [GitHub Issues](https://github.com/nyealovey/TaifishingV4/issues)
 - **功能建议**: [GitHub Discussions](https://github.com/nyealovey/TaifishingV4/discussions)
-- **文档**: [项目文档](doc/)
-  - [配置管理功能](doc/CONFIG_MANAGEMENT_FEATURES.md)
-  - [日志管理功能](doc/LOG_MANAGEMENT_FEATURES.md)
-  - [项目结构说明](doc/PROJECT_STRUCTURE.md)
+- **文档**: [项目文档](docs/)
+  - [技术规格文档](docs/architecture/spec.md)
+  - [开发指南](docs/development/DEVELOPMENT_GUIDE.md)
+  - [部署指南](docs/guides/README_DEPLOYMENT.md)
+  - [更新日志](CHANGELOG.md)
 
 ## 🗺️ 路线图
 
-### v1.1.0 (计划中)
+### v2.1.0 (已完成) ✅
+- [x] 账户分类管理功能修复
+- [x] 权限显示问题修复
+- [x] 账户管理页面优化
+- [x] 分类规则评估优化
+
+### v2.2.0 (计划中)
 - [ ] 数据库备份与恢复
 - [ ] 数据导入导出功能
 - [ ] 移动端适配
 - [ ] 主题切换
 
-### v1.2.0 (计划中)
+### v3.0.0 (计划中)
 - [ ] 多租户支持
 - [ ] 插件系统
 - [ ] 自动化运维
 - [ ] 监控告警
 
-### v2.0.0 (计划中)
+### v4.0.0 (计划中)
 - [ ] 微服务架构
 - [ ] 云原生部署
 - [ ] 大数据分析

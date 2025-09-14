@@ -4,7 +4,7 @@
 
 import json
 
-from flask import Blueprint, jsonify, render_template, request, Response
+from flask import Blueprint, Response, jsonify, render_template, request
 from flask_login import current_user, login_required
 
 from app import db
@@ -765,9 +765,7 @@ def api_get_batch_matches(batch_id: str) -> "Response":
         for assignment, account, instance, classification in assignments:
             # 获取该分类中与账户数据库类型匹配的规则
             rule = ClassificationRule.query.filter_by(
-                classification_id=classification.id, 
-                db_type=instance.db_type,
-                is_active=True
+                classification_id=classification.id, db_type=instance.db_type, is_active=True
             ).first()
             # 解析账户权限信息 - 优先使用新的优化同步模型
             account_permissions = []
@@ -911,34 +909,42 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                         elif rule_expression.get("type") == "sqlserver_permissions":
                             server_roles = rule_expression.get("server_roles", [])
                             for role in server_roles:
-                                matched_permissions.append({
-                                    "name": role,
-                                    "description": f"服务器角色: {role}",
-                                    "category": "server_roles",
-                                })
+                                matched_permissions.append(
+                                    {
+                                        "name": role,
+                                        "description": f"服务器角色: {role}",
+                                        "category": "server_roles",
+                                    }
+                                )
                             server_permissions = rule_expression.get("server_permissions", [])
                             for perm in server_permissions:
-                                matched_permissions.append({
-                                    "name": perm,
-                                    "description": f"服务器权限: {perm}",
-                                    "category": "server_permissions",
-                                })
+                                matched_permissions.append(
+                                    {
+                                        "name": perm,
+                                        "description": f"服务器权限: {perm}",
+                                        "category": "server_permissions",
+                                    }
+                                )
                         # 处理MySQL特定格式
                         elif rule_expression.get("type") == "mysql_permissions":
                             global_privileges = rule_expression.get("global_privileges", [])
                             for perm in global_privileges:
-                                matched_permissions.append({
-                                    "name": perm,
-                                    "description": f"全局权限: {perm}",
-                                    "category": "global_privileges",
-                                })
+                                matched_permissions.append(
+                                    {
+                                        "name": perm,
+                                        "description": f"全局权限: {perm}",
+                                        "category": "global_privileges",
+                                    }
+                                )
                             database_privileges = rule_expression.get("database_privileges", [])
                             for perm in database_privileges:
-                                matched_permissions.append({
-                                    "name": perm,
-                                    "description": f"数据库权限: {perm}",
-                                    "category": "database_privileges",
-                                })
+                                matched_permissions.append(
+                                    {
+                                        "name": perm,
+                                        "description": f"数据库权限: {perm}",
+                                        "category": "database_privileges",
+                                    }
+                                )
                 except (json.JSONDecodeError, TypeError):
                     # 处理旧格式的规则表达式（字符串格式）
                     rule_expression_str = rule.rule_expression
@@ -946,45 +952,57 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                         # 根据数据库类型和规则表达式解析匹配的权限
                         if instance.db_type == "sqlserver":
                             if rule_expression_str == "server_roles.sysadmin":
-                                matched_permissions.append({
-                                    "name": "sysadmin",
-                                    "description": "系统管理员角色",
-                                    "category": "server_roles",
-                                })
+                                matched_permissions.append(
+                                    {
+                                        "name": "sysadmin",
+                                        "description": "系统管理员角色",
+                                        "category": "server_roles",
+                                    }
+                                )
                             elif rule_expression_str.startswith("server_permissions."):
                                 perm_name = rule_expression_str.split(".", 1)[1]
-                                matched_permissions.append({
-                                    "name": perm_name,
-                                    "description": f"服务器权限: {perm_name}",
-                                    "category": "server_permissions",
-                                })
+                                matched_permissions.append(
+                                    {
+                                        "name": perm_name,
+                                        "description": f"服务器权限: {perm_name}",
+                                        "category": "server_permissions",
+                                    }
+                                )
                         elif instance.db_type == "mysql":
                             if rule_expression_str == "global_privileges.SUPER":
-                                matched_permissions.append({
-                                    "name": "SUPER",
-                                    "description": "超级用户权限",
-                                    "category": "global_privileges",
-                                })
+                                matched_permissions.append(
+                                    {
+                                        "name": "SUPER",
+                                        "description": "超级用户权限",
+                                        "category": "global_privileges",
+                                    }
+                                )
                         elif instance.db_type == "postgresql":
                             if rule_expression_str == "role_attributes.SUPERUSER":
-                                matched_permissions.append({
-                                    "name": "SUPERUSER",
-                                    "description": "超级用户属性",
-                                    "category": "role_attributes",
-                                })
+                                matched_permissions.append(
+                                    {
+                                        "name": "SUPERUSER",
+                                        "description": "超级用户属性",
+                                        "category": "role_attributes",
+                                    }
+                                )
                             elif rule_expression_str == "role_attributes.CREATEROLE":
-                                matched_permissions.append({
-                                    "name": "CREATEROLE",
-                                    "description": "创建角色权限",
-                                    "category": "role_attributes",
-                                })
+                                matched_permissions.append(
+                                    {
+                                        "name": "CREATEROLE",
+                                        "description": "创建角色权限",
+                                        "category": "role_attributes",
+                                    }
+                                )
                         elif instance.db_type == "oracle":
                             if rule_expression_str == "system_privileges.GRANT ANY PRIVILEGE":
-                                matched_permissions.append({
-                                    "name": "GRANT ANY PRIVILEGE",
-                                    "description": "授权任何权限",
-                                    "category": "system_privileges",
-                                })
+                                matched_permissions.append(
+                                    {
+                                        "name": "GRANT ANY PRIVILEGE",
+                                        "description": "授权任何权限",
+                                        "category": "system_privileges",
+                                    }
+                                )
 
             matches.append(
                 {

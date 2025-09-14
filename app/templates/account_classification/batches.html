@@ -397,20 +397,20 @@ function viewBatchLogs(batchId) {
 // 查看批次匹配详情
 function viewBatchMatches(batchId) {
     const modal = new bootstrap.Modal(document.getElementById('matchesModal'));
-    
+
     // 显示加载状态
     document.getElementById('matches-loading').style.display = 'block';
     document.getElementById('matches-content').style.display = 'none';
     document.getElementById('matches-empty').style.display = 'none';
-    
+
     modal.show();
-    
+
     // 获取匹配详情
     fetch(`/account-classification/api/batches/${batchId}/matches`)
         .then(response => response.json())
         .then(data => {
             document.getElementById('matches-loading').style.display = 'none';
-            
+
             if (data.success) {
                 if (data.matches && data.matches.length > 0) {
                     displayMatches(batchId, data.matches);
@@ -433,7 +433,7 @@ function viewBatchMatches(batchId) {
 function displayMatches(batchId, matches) {
     document.getElementById('matches-batch-id').textContent = batchId;
     document.getElementById('matches-count').textContent = matches.length;
-    
+
     const tbody = document.getElementById('matches-table-body');
     tbody.innerHTML = matches.map(match => `
         <tr>
@@ -464,7 +464,7 @@ function displayMatches(batchId, matches) {
             </td>
             <td>
                 <div style="max-height: 150px; overflow-y: auto;">
-                    ${match.matched_permissions && match.matched_permissions.length > 0 
+                    ${match.matched_permissions && match.matched_permissions.length > 0
                         ? match.matched_permissions.map(perm => `
                             <div class="mb-1">
                                 <span class="badge bg-success">${perm.name}</span>
@@ -481,7 +481,7 @@ function displayMatches(batchId, matches) {
             </td>
         </tr>
     `).join('');
-    
+
     document.getElementById('matches-content').style.display = 'block';
 }
 
@@ -540,15 +540,15 @@ function getBatchTypeText(type) {
 // 格式化中国时区时间
 function formatChinaTime(dt) {
     if (!dt) return '-';
-    
+
     try {
         // 如果是ISO格式字符串，解析为Date对象
         const date = new Date(dt);
         if (isNaN(date.getTime())) return '-';
-        
+
         // 转换为中国时区（UTC+8）
         const chinaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
-        
+
         // 格式化为 YYYY-MM-DD HH:mm:ss
         const year = chinaTime.getUTCFullYear();
         const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
@@ -556,7 +556,7 @@ function formatChinaTime(dt) {
         const hours = String(chinaTime.getUTCHours()).padStart(2, '0');
         const minutes = String(chinaTime.getUTCMinutes()).padStart(2, '0');
         const seconds = String(chinaTime.getUTCSeconds()).padStart(2, '0');
-        
+
         return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     } catch (e) {
         console.error('时间格式化错误:', e);

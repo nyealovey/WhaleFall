@@ -1348,193 +1348,6 @@
   },
   {
     "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 39,
-      "row": 56
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 31,
-      "row": 56
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 56,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 41,
-      "row": 100
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 33,
-      "row": 100
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 100,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 60,
-      "row": 141
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 52,
-      "row": 141
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 141,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 63,
-      "row": 171
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 55,
-      "row": 171
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 171,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 63,
-      "row": 196
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 55,
-      "row": 196
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 196,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 29,
-      "row": 219
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 21,
-      "row": 219
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 219,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 30,
-      "row": 261
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 22,
-      "row": 261
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 261,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 31,
-      "row": 305
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 23,
-      "row": 305
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 305,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 40,
-      "row": 335
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 32,
-      "row": 335
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 335,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 43,
-      "row": 368
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 35,
-      "row": 368
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 368,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 52,
-      "row": 395
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 44,
-      "row": 395
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 395,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
     "code": "E712",
     "end_location": {
       "column": 59,
@@ -1601,176 +1414,6 @@
   },
   {
     "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 43,
-      "row": 478
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 35,
-      "row": 478
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 478,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 41,
-      "row": 497
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 33,
-      "row": 497
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 497,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 33,
-      "row": 522
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 25,
-      "row": 522
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 522,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 35,
-      "row": 577
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 27,
-      "row": 577
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 577,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 55,
-      "row": 612
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 47,
-      "row": 612
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 612,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 47,
-      "row": 630
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 39,
-      "row": 630
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 630,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 32,
-      "row": 644
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 24,
-      "row": 644
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 644,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 35,
-      "row": 652
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 27,
-      "row": 652
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 652,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 46,
-      "row": 676
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 38,
-      "row": 676
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 676,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 48,
-      "row": 698
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 40,
-      "row": 698
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 698,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
     "code": "C901",
     "end_location": {
       "column": 26,
@@ -1782,26 +1425,9 @@
       "column": 5,
       "row": 720
     },
-    "message": "`api_get_batch_matches` is too complex (40 > 10)",
+    "message": "`api_get_batch_matches` is too complex (58 > 10)",
     "noqa_row": 720,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 54,
-      "row": 720
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
-    "fix": null,
-    "location": {
-      "column": 46,
-      "row": 720
-    },
-    "message": "Undefined name `Response`",
-    "noqa_row": 720,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
   },
   {
     "cell": null,
@@ -1838,10 +1464,27 @@
   },
   {
     "cell": null,
+    "code": "SIM102",
+    "end_location": {
+      "column": 95,
+      "row": 998
+    },
+    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
+    "fix": null,
+    "location": {
+      "column": 25,
+      "row": 997
+    },
+    "message": "Use a single `if` statement instead of nested `if` statements",
+    "noqa_row": 997,
+    "url": "https://docs.astral.sh/ruff/rules/collapsible-if"
+  },
+  {
+    "cell": null,
     "code": "RET504",
     "end_location": {
       "column": 23,
-      "row": 948
+      "row": 1047
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_classification.py",
     "fix": {
@@ -1851,22 +1494,22 @@
           "content": "return",
           "end_location": {
             "column": 18,
-            "row": 946
+            "row": 1045
           },
           "location": {
             "column": 5,
-            "row": 946
+            "row": 1045
           }
         },
         {
           "content": "",
           "end_location": {
             "column": 1,
-            "row": 949
+            "row": 1048
           },
           "location": {
             "column": 1,
-            "row": 948
+            "row": 1047
           }
         }
       ],
@@ -1874,10 +1517,10 @@
     },
     "location": {
       "column": 12,
-      "row": 948
+      "row": 1047
     },
     "message": "Unnecessary assignment to `permissions` before `return` statement",
-    "noqa_row": 948,
+    "noqa_row": 1047,
     "url": "https://docs.astral.sh/ruff/rules/unnecessary-assign"
   },
   {
@@ -2081,16 +1724,16 @@
     "code": "F821",
     "end_location": {
       "column": 38,
-      "row": 60
+      "row": 61
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_static.py",
     "fix": null,
     "location": {
       "column": 30,
-      "row": 60
+      "row": 61
     },
     "message": "Undefined name `Response`",
-    "noqa_row": 60,
+    "noqa_row": 61,
     "url": "https://docs.astral.sh/ruff/rules/undefined-name"
   },
   {
@@ -2098,16 +1741,16 @@
     "code": "F821",
     "end_location": {
       "column": 34,
-      "row": 76
+      "row": 77
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_static.py",
     "fix": null,
     "location": {
       "column": 26,
-      "row": 76
+      "row": 77
     },
     "message": "Undefined name `Response`",
-    "noqa_row": 76,
+    "noqa_row": 77,
     "url": "https://docs.astral.sh/ruff/rules/undefined-name"
   },
   {
@@ -2115,16 +1758,16 @@
     "code": "C901",
     "end_location": {
       "column": 27,
-      "row": 85
+      "row": 86
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_static.py",
     "fix": null,
     "location": {
       "column": 5,
-      "row": 85
+      "row": 86
     },
-    "message": "`get_account_statistics` is too complex (24 > 10)",
-    "noqa_row": 85,
+    "message": "`get_account_statistics` is too complex (21 > 10)",
+    "noqa_row": 86,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
   },
   {
@@ -2132,7 +1775,7 @@
     "code": "E712",
     "end_location": {
       "column": 59,
-      "row": 173
+      "row": 172
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_static.py",
     "fix": {
@@ -2142,11 +1785,11 @@
           "content": "not CurrentAccountSyncData.is_deleted",
           "end_location": {
             "column": 59,
-            "row": 173
+            "row": 172
           },
           "location": {
             "column": 17,
-            "row": 173
+            "row": 172
           }
         }
       ],
@@ -2154,10 +1797,10 @@
     },
     "location": {
       "column": 17,
-      "row": 173
+      "row": 172
     },
     "message": "Avoid equality comparisons to `False`; use `not CurrentAccountSyncData.is_deleted:` for false checks",
-    "noqa_row": 173,
+    "noqa_row": 172,
     "url": "https://docs.astral.sh/ruff/rules/true-false-comparison"
   },
   {
@@ -2165,7 +1808,7 @@
     "code": "E712",
     "end_location": {
       "column": 63,
-      "row": 181
+      "row": 180
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_static.py",
     "fix": {
@@ -2175,11 +1818,11 @@
           "content": "not CurrentAccountSyncData.is_deleted",
           "end_location": {
             "column": 63,
-            "row": 181
+            "row": 180
           },
           "location": {
             "column": 21,
-            "row": 181
+            "row": 180
           }
         }
       ],
@@ -2187,10 +1830,43 @@
     },
     "location": {
       "column": 21,
-      "row": 181
+      "row": 180
     },
     "message": "Avoid equality comparisons to `False`; use `not CurrentAccountSyncData.is_deleted:` for false checks",
-    "noqa_row": 181,
+    "noqa_row": 180,
+    "url": "https://docs.astral.sh/ruff/rules/true-false-comparison"
+  },
+  {
+    "cell": null,
+    "code": "E712",
+    "end_location": {
+      "column": 55,
+      "row": 206
+    },
+    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_static.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "not CurrentAccountSyncData.is_deleted",
+          "end_location": {
+            "column": 55,
+            "row": 206
+          },
+          "location": {
+            "column": 13,
+            "row": 206
+          }
+        }
+      ],
+      "message": "Replace with `not CurrentAccountSyncData.is_deleted`"
+    },
+    "location": {
+      "column": 13,
+      "row": 206
+    },
+    "message": "Avoid equality comparisons to `False`; use `not CurrentAccountSyncData.is_deleted:` for false checks",
+    "noqa_row": 206,
     "url": "https://docs.astral.sh/ruff/rules/true-false-comparison"
   },
   {
@@ -2198,16 +1874,16 @@
     "code": "G004",
     "end_location": {
       "column": 41,
-      "row": 265
+      "row": 257
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_static.py",
     "fix": null,
     "location": {
       "column": 23,
-      "row": 265
+      "row": 257
     },
     "message": "Logging statement uses f-string",
-    "noqa_row": 265,
+    "noqa_row": 257,
     "url": "https://docs.astral.sh/ruff/rules/logging-f-string"
   },
   {
@@ -2327,108 +2003,6 @@
     "message": "`sync_details_batch` is too complex (11 > 10)",
     "noqa_row": 464,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 23,
-      "row": 170
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_sync_optimized.py",
-    "fix": null,
-    "location": {
-      "column": 21,
-      "row": 170
-    },
-    "message": "Undefined name `db`",
-    "noqa_row": 170,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 23,
-      "row": 171
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_sync_optimized.py",
-    "fix": null,
-    "location": {
-      "column": 21,
-      "row": 171
-    },
-    "message": "Undefined name `db`",
-    "noqa_row": 171,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 23,
-      "row": 209
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_sync_optimized.py",
-    "fix": null,
-    "location": {
-      "column": 21,
-      "row": 209
-    },
-    "message": "Undefined name `db`",
-    "noqa_row": 209,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 23,
-      "row": 210
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_sync_optimized.py",
-    "fix": null,
-    "location": {
-      "column": 21,
-      "row": 210
-    },
-    "message": "Undefined name `db`",
-    "noqa_row": 210,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 19,
-      "row": 258
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_sync_optimized.py",
-    "fix": null,
-    "location": {
-      "column": 17,
-      "row": 258
-    },
-    "message": "Undefined name `db`",
-    "noqa_row": 258,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
-  },
-  {
-    "cell": null,
-    "code": "F821",
-    "end_location": {
-      "column": 19,
-      "row": 259
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/account_sync_optimized.py",
-    "fix": null,
-    "location": {
-      "column": 17,
-      "row": 259
-    },
-    "message": "Undefined name `db`",
-    "noqa_row": 259,
-    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
   },
   {
     "cell": null,
@@ -3233,16 +2807,16 @@
     "code": "C901",
     "end_location": {
       "column": 17,
-      "row": 680
+      "row": 682
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/instances.py",
     "fix": null,
     "location": {
       "column": 5,
-      "row": 680
+      "row": 682
     },
     "message": "`batch_delete` is too complex (12 > 10)",
-    "noqa_row": 680,
+    "noqa_row": 682,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
   },
   {
@@ -3250,16 +2824,16 @@
     "code": "ANN401",
     "end_location": {
       "column": 32,
-      "row": 790
+      "row": 794
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/instances.py",
     "fix": null,
     "location": {
       "column": 29,
-      "row": 790
+      "row": 794
     },
     "message": "Dynamically typed expressions (typing.Any) are disallowed in `file`",
-    "noqa_row": 790,
+    "noqa_row": 794,
     "url": "https://docs.astral.sh/ruff/rules/any-type"
   },
   {
@@ -3267,16 +2841,16 @@
     "code": "C901",
     "end_location": {
       "column": 28,
-      "row": 818
+      "row": 822
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/instances.py",
     "fix": null,
     "location": {
       "column": 5,
-      "row": 818
+      "row": 822
     },
     "message": "`_process_instances_data` is too complex (12 > 10)",
-    "noqa_row": 818,
+    "noqa_row": 822,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
   },
   {
@@ -3284,16 +2858,16 @@
     "code": "DTZ005",
     "end_location": {
       "column": 31,
-      "row": 995
+      "row": 999
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/instances.py",
     "fix": null,
     "location": {
       "column": 17,
-      "row": 995
+      "row": 999
     },
     "message": "`datetime.datetime.now()` called without a `tz` argument",
-    "noqa_row": 995,
+    "noqa_row": 999,
     "url": "https://docs.astral.sh/ruff/rules/call-datetime-now-without-tzinfo"
   },
   {
@@ -3301,7 +2875,7 @@
     "code": "RET504",
     "end_location": {
       "column": 20,
-      "row": 1004
+      "row": 1008
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/instances.py",
     "fix": {
@@ -3311,22 +2885,22 @@
           "content": "return",
           "end_location": {
             "column": 15,
-            "row": 998
+            "row": 1002
           },
           "location": {
             "column": 5,
-            "row": 998
+            "row": 1002
           }
         },
         {
           "content": "",
           "end_location": {
             "column": 1,
-            "row": 1005
+            "row": 1009
           },
           "location": {
             "column": 1,
-            "row": 1004
+            "row": 1008
           }
         }
       ],
@@ -3334,10 +2908,10 @@
     },
     "location": {
       "column": 12,
-      "row": 1004
+      "row": 1008
     },
     "message": "Unnecessary assignment to `response` before `return` statement",
-    "noqa_row": 1004,
+    "noqa_row": 1008,
     "url": "https://docs.astral.sh/ruff/rules/unnecessary-assign"
   },
   {
@@ -3345,7 +2919,7 @@
     "code": "RET504",
     "end_location": {
       "column": 20,
-      "row": 1081
+      "row": 1085
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/instances.py",
     "fix": {
@@ -3355,22 +2929,22 @@
           "content": "return",
           "end_location": {
             "column": 15,
-            "row": 1075
+            "row": 1079
           },
           "location": {
             "column": 5,
-            "row": 1075
+            "row": 1079
           }
         },
         {
           "content": "",
           "end_location": {
             "column": 1,
-            "row": 1082
+            "row": 1086
           },
           "location": {
             "column": 1,
-            "row": 1081
+            "row": 1085
           }
         }
       ],
@@ -3378,10 +2952,10 @@
     },
     "location": {
       "column": 12,
-      "row": 1081
+      "row": 1085
     },
     "message": "Unnecessary assignment to `response` before `return` statement",
-    "noqa_row": 1081,
+    "noqa_row": 1085,
     "url": "https://docs.astral.sh/ruff/rules/unnecessary-assign"
   },
   {
@@ -3389,16 +2963,16 @@
     "code": "C901",
     "end_location": {
       "column": 33,
-      "row": 1249
+      "row": 1253
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/instances.py",
     "fix": null,
     "location": {
       "column": 5,
-      "row": 1249
+      "row": 1253
     },
     "message": "`api_test_instance_connection` is too complex (11 > 10)",
-    "noqa_row": 1249,
+    "noqa_row": 1253,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
   },
   {
@@ -3406,16 +2980,16 @@
     "code": "C901",
     "end_location": {
       "column": 28,
-      "row": 1450
+      "row": 1454
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/routes/instances.py",
     "fix": null,
     "location": {
       "column": 5,
-      "row": 1450
+      "row": 1454
     },
     "message": "`get_account_permissions` is too complex (18 > 10)",
-    "noqa_row": 1450,
+    "noqa_row": 1454,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
   },
   {
@@ -5400,16 +4974,16 @@
     "code": "ANN003",
     "end_location": {
       "column": 69,
-      "row": 90
+      "row": 82
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 61,
-      "row": 90
+      "row": 82
     },
     "message": "Missing type annotation for `**kwargs`",
-    "noqa_row": 90,
+    "noqa_row": 82,
     "url": "https://docs.astral.sh/ruff/rules/missing-type-kwargs"
   },
   {
@@ -5417,16 +4991,16 @@
     "code": "DTZ003",
     "end_location": {
       "column": 58,
-      "row": 102
+      "row": 94
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 41,
-      "row": 102
+      "row": 94
     },
     "message": "`datetime.datetime.utcnow()` used",
-    "noqa_row": 102,
+    "noqa_row": 94,
     "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
   },
   {
@@ -5434,16 +5008,16 @@
     "code": "ANN003",
     "end_location": {
       "column": 49,
-      "row": 218
+      "row": 210
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 41,
-      "row": 218
+      "row": 210
     },
     "message": "Missing type annotation for `**kwargs`",
-    "noqa_row": 218,
+    "noqa_row": 210,
     "url": "https://docs.astral.sh/ruff/rules/missing-type-kwargs"
   },
   {
@@ -5451,16 +5025,16 @@
     "code": "DTZ003",
     "end_location": {
       "column": 48,
-      "row": 233
+      "row": 225
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 31,
-      "row": 233
+      "row": 225
     },
     "message": "`datetime.datetime.utcnow()` used",
-    "noqa_row": 233,
+    "noqa_row": 225,
     "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
   },
   {
@@ -5468,16 +5042,16 @@
     "code": "FBT001",
     "end_location": {
       "column": 51,
-      "row": 279
+      "row": 271
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 35,
-      "row": 279
+      "row": 271
     },
     "message": "Boolean-typed positional argument in function definition",
-    "noqa_row": 279,
+    "noqa_row": 271,
     "url": "https://docs.astral.sh/ruff/rules/boolean-type-hint-positional-argument"
   },
   {
@@ -5485,16 +5059,16 @@
     "code": "FBT002",
     "end_location": {
       "column": 51,
-      "row": 279
+      "row": 271
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 35,
-      "row": 279
+      "row": 271
     },
     "message": "Boolean default positional argument in function definition",
-    "noqa_row": 279,
+    "noqa_row": 271,
     "url": "https://docs.astral.sh/ruff/rules/boolean-default-value-positional-argument"
   },
   {
@@ -5502,16 +5076,16 @@
     "code": "FBT001",
     "end_location": {
       "column": 17,
-      "row": 340
+      "row": 332
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 9,
-      "row": 340
+      "row": 332
     },
     "message": "Boolean-typed positional argument in function definition",
-    "noqa_row": 340,
+    "noqa_row": 332,
     "url": "https://docs.astral.sh/ruff/rules/boolean-type-hint-positional-argument"
   },
   {
@@ -5519,16 +5093,16 @@
     "code": "FBT002",
     "end_location": {
       "column": 17,
-      "row": 340
+      "row": 332
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 9,
-      "row": 340
+      "row": 332
     },
     "message": "Boolean default positional argument in function definition",
-    "noqa_row": 340,
+    "noqa_row": 332,
     "url": "https://docs.astral.sh/ruff/rules/boolean-default-value-positional-argument"
   },
   {
@@ -5536,16 +5110,16 @@
     "code": "DTZ003",
     "end_location": {
       "column": 71,
-      "row": 365
+      "row": 357
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 54,
-      "row": 365
+      "row": 357
     },
     "message": "`datetime.datetime.utcnow()` used",
-    "noqa_row": 365,
+    "noqa_row": 357,
     "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
   },
   {
@@ -5553,16 +5127,16 @@
     "code": "DTZ003",
     "end_location": {
       "column": 71,
-      "row": 372
+      "row": 364
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 54,
-      "row": 372
+      "row": 364
     },
     "message": "`datetime.datetime.utcnow()` used",
-    "noqa_row": 372,
+    "noqa_row": 364,
     "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
   },
   {
@@ -5570,16 +5144,16 @@
     "code": "C901",
     "end_location": {
       "column": 31,
-      "row": 406
+      "row": 398
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 9,
-      "row": 406
+      "row": 398
     },
     "message": "`auto_classify_accounts` is too complex (18 > 10)",
-    "noqa_row": 406,
+    "noqa_row": 398,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
   },
   {
@@ -5587,7 +5161,7 @@
     "code": "E712",
     "end_location": {
       "column": 43,
-      "row": 423
+      "row": 415
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": {
@@ -5597,11 +5171,11 @@
           "content": "Instance.is_active",
           "end_location": {
             "column": 43,
-            "row": 423
+            "row": 415
           },
           "location": {
             "column": 17,
-            "row": 423
+            "row": 415
           }
         }
       ],
@@ -5609,10 +5183,10 @@
     },
     "location": {
       "column": 17,
-      "row": 423
+      "row": 415
     },
     "message": "Avoid equality comparisons to `True`; use `Instance.is_active:` for truth checks",
-    "noqa_row": 423,
+    "noqa_row": 415,
     "url": "https://docs.astral.sh/ruff/rules/true-false-comparison"
   },
   {
@@ -5620,7 +5194,7 @@
     "code": "E712",
     "end_location": {
       "column": 59,
-      "row": 425
+      "row": 417
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": {
@@ -5630,11 +5204,11 @@
           "content": "not CurrentAccountSyncData.is_deleted",
           "end_location": {
             "column": 59,
-            "row": 425
+            "row": 417
           },
           "location": {
             "column": 17,
-            "row": 425
+            "row": 417
           }
         }
       ],
@@ -5642,10 +5216,10 @@
     },
     "location": {
       "column": 17,
-      "row": 425
+      "row": 417
     },
     "message": "Avoid equality comparisons to `False`; use `not CurrentAccountSyncData.is_deleted:` for false checks",
-    "noqa_row": 425,
+    "noqa_row": 417,
     "url": "https://docs.astral.sh/ruff/rules/true-false-comparison"
   },
   {
@@ -5653,16 +5227,16 @@
     "code": "DTZ003",
     "end_location": {
       "column": 71,
-      "row": 479
+      "row": 471
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 54,
-      "row": 479
+      "row": 471
     },
     "message": "`datetime.datetime.utcnow()` used",
-    "noqa_row": 479,
+    "noqa_row": 471,
     "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
   },
   {
@@ -5670,16 +5244,16 @@
     "code": "DTZ003",
     "end_location": {
       "column": 70,
-      "row": 485
+      "row": 477
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 53,
-      "row": 485
+      "row": 477
     },
     "message": "`datetime.datetime.utcnow()` used",
-    "noqa_row": 485,
+    "noqa_row": 477,
     "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
   },
   {
@@ -5687,16 +5261,16 @@
     "code": "C901",
     "end_location": {
       "column": 30,
-      "row": 651
+      "row": 643
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 9,
-      "row": 651
+      "row": 643
     },
-    "message": "`_evaluate_legacy_rule` is too complex (23 > 10)",
-    "noqa_row": 651,
+    "message": "`_evaluate_legacy_rule` is too complex (27 > 10)",
+    "noqa_row": 643,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
   },
   {
@@ -5704,7 +5278,7 @@
     "code": "B007",
     "end_location": {
       "column": 36,
-      "row": 679
+      "row": 671
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": {
@@ -5714,11 +5288,11 @@
           "content": "_db_name",
           "end_location": {
             "column": 36,
-            "row": 679
+            "row": 671
           },
           "location": {
             "column": 29,
-            "row": 679
+            "row": 671
           }
         }
       ],
@@ -5726,10 +5300,10 @@
     },
     "location": {
       "column": 29,
-      "row": 679
+      "row": 671
     },
     "message": "Loop control variable `db_name` not used within loop body",
-    "noqa_row": 679,
+    "noqa_row": 671,
     "url": "https://docs.astral.sh/ruff/rules/unused-loop-control-variable"
   },
   {
@@ -5737,7 +5311,7 @@
     "code": "SIM102",
     "end_location": {
       "column": 79,
-      "row": 726
+      "row": 739
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": {
@@ -5747,11 +5321,11 @@
           "content": "            elif rule.db_type == \"oracle\" and rule_expression == \"system_privileges.GRANT ANY PRIVILEGE\":\n                # 检查是否有GRANT ANY PRIVILEGE权限\n                system_privileges = permissions.get(\"system_privileges\", [])\n                if isinstance(system_privileges, list) and \"GRANT ANY PRIVILEGE\" in system_privileges:\n                    log_info(\n                        f\"账户 {account.username} 匹配Oracle规则: {rule_expression}\",\n                        module=\"account_classification\",\n                    )\n                    return True",
           "end_location": {
             "column": 36,
-            "row": 734
+            "row": 747
           },
           "location": {
             "column": 1,
-            "row": 725
+            "row": 738
           }
         }
       ],
@@ -5759,10 +5333,10 @@
     },
     "location": {
       "column": 13,
-      "row": 725
+      "row": 738
     },
     "message": "Use a single `if` statement instead of nested `if` statements",
-    "noqa_row": 725,
+    "noqa_row": 738,
     "url": "https://docs.astral.sh/ruff/rules/collapsible-if"
   },
   {
@@ -5770,16 +5344,16 @@
     "code": "C901",
     "end_location": {
       "column": 33,
-      "row": 785
+      "row": 798
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 9,
-      "row": 785
+      "row": 798
     },
     "message": "`_evaluate_sqlserver_rule` is too complex (28 > 10)",
-    "noqa_row": 785,
+    "noqa_row": 798,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
   },
   {
@@ -5787,7 +5361,7 @@
     "code": "B007",
     "end_location": {
       "column": 32,
-      "row": 852
+      "row": 865
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": {
@@ -5797,11 +5371,11 @@
           "content": "_db_name",
           "end_location": {
             "column": 32,
-            "row": 852
+            "row": 865
           },
           "location": {
             "column": 25,
-            "row": 852
+            "row": 865
           }
         }
       ],
@@ -5809,10 +5383,10 @@
     },
     "location": {
       "column": 25,
-      "row": 852
+      "row": 865
     },
     "message": "Loop control variable `db_name` not used within loop body",
-    "noqa_row": 852,
+    "noqa_row": 865,
     "url": "https://docs.astral.sh/ruff/rules/unused-loop-control-variable"
   },
   {
@@ -5820,7 +5394,7 @@
     "code": "B007",
     "end_location": {
       "column": 32,
-      "row": 879
+      "row": 892
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": {
@@ -5830,11 +5404,11 @@
           "content": "_db_name",
           "end_location": {
             "column": 32,
-            "row": 879
+            "row": 892
           },
           "location": {
             "column": 25,
-            "row": 879
+            "row": 892
           }
         }
       ],
@@ -5842,10 +5416,10 @@
     },
     "location": {
       "column": 25,
-      "row": 879
+      "row": 892
     },
     "message": "Loop control variable `db_name` not used within loop body",
-    "noqa_row": 879,
+    "noqa_row": 892,
     "url": "https://docs.astral.sh/ruff/rules/unused-loop-control-variable"
   },
   {
@@ -5853,16 +5427,16 @@
     "code": "SIM108",
     "end_location": {
       "column": 44,
-      "row": 911
+      "row": 924
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 13,
-      "row": 906
+      "row": 919
     },
     "message": "Use ternary operator `result = all(match_results) if operator.upper() == \"AND\" else any(match_results)` instead of `if`-`else`-block",
-    "noqa_row": 906,
+    "noqa_row": 919,
     "url": "https://docs.astral.sh/ruff/rules/if-else-block-instead-of-if-exp"
   },
   {
@@ -5870,16 +5444,16 @@
     "code": "DTZ003",
     "end_location": {
       "column": 58,
-      "row": 938
+      "row": 951
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 41,
-      "row": 938
+      "row": 951
     },
     "message": "`datetime.datetime.utcnow()` used",
-    "noqa_row": 938,
+    "noqa_row": 951,
     "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
   },
   {
@@ -5887,16 +5461,16 @@
     "code": "DTZ003",
     "end_location": {
       "column": 54,
-      "row": 972
+      "row": 985
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 37,
-      "row": 972
+      "row": 985
     },
     "message": "`datetime.datetime.utcnow()` used",
-    "noqa_row": 972,
+    "noqa_row": 985,
     "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
   },
   {
@@ -5904,7 +5478,7 @@
     "code": "E712",
     "end_location": {
       "column": 47,
-      "row": 1013
+      "row": 1026
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": {
@@ -5914,11 +5488,11 @@
           "content": "Instance.is_active",
           "end_location": {
             "column": 47,
-            "row": 1013
+            "row": 1026
           },
           "location": {
             "column": 21,
-            "row": 1013
+            "row": 1026
           }
         }
       ],
@@ -5926,10 +5500,10 @@
     },
     "location": {
       "column": 21,
-      "row": 1013
+      "row": 1026
     },
     "message": "Avoid equality comparisons to `True`; use `Instance.is_active:` for truth checks",
-    "noqa_row": 1013,
+    "noqa_row": 1026,
     "url": "https://docs.astral.sh/ruff/rules/true-false-comparison"
   },
   {
@@ -5937,7 +5511,7 @@
     "code": "E712",
     "end_location": {
       "column": 63,
-      "row": 1014
+      "row": 1027
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": {
@@ -5947,11 +5521,11 @@
           "content": "not CurrentAccountSyncData.is_deleted",
           "end_location": {
             "column": 63,
-            "row": 1014
+            "row": 1027
           },
           "location": {
             "column": 21,
-            "row": 1014
+            "row": 1027
           }
         }
       ],
@@ -5959,10 +5533,10 @@
     },
     "location": {
       "column": 21,
-      "row": 1014
+      "row": 1027
     },
     "message": "Avoid equality comparisons to `False`; use `not CurrentAccountSyncData.is_deleted:` for false checks",
-    "noqa_row": 1014,
+    "noqa_row": 1027,
     "url": "https://docs.astral.sh/ruff/rules/true-false-comparison"
   },
   {
@@ -5970,16 +5544,16 @@
     "code": "C901",
     "end_location": {
       "column": 30,
-      "row": 1067
+      "row": 1080
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_classification_service.py",
     "fix": null,
     "location": {
       "column": 9,
-      "row": 1067
+      "row": 1080
     },
     "message": "`_evaluate_oracle_rule` is too complex (16 > 10)",
-    "noqa_row": 1067,
+    "noqa_row": 1080,
     "url": "https://docs.astral.sh/ruff/rules/complex-structure"
   },
   {
@@ -6030,56 +5604,6 @@
     },
     "message": "Dynamically typed expressions (typing.Any) are disallowed in `_get_connection`",
     "noqa_row": 174,
-    "url": "https://docs.astral.sh/ruff/rules/any-type"
-  },
-  {
-    "cell": null,
-    "code": "F841",
-    "end_location": {
-      "column": 53,
-      "row": 130
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_sync_service_new.py",
-    "fix": {
-      "applicability": "unsafe",
-      "edits": [
-        {
-          "content": "_before_count",
-          "end_location": {
-            "column": 53,
-            "row": 130
-          },
-          "location": {
-            "column": 41,
-            "row": 130
-          }
-        }
-      ],
-      "message": "Remove assignment to unused variable `before_count`"
-    },
-    "location": {
-      "column": 41,
-      "row": 130
-    },
-    "message": "Local variable `before_count` is assigned to but never used",
-    "noqa_row": 130,
-    "url": "https://docs.astral.sh/ruff/rules/unused-variable"
-  },
-  {
-    "cell": null,
-    "code": "ANN401",
-    "end_location": {
-      "column": 64,
-      "row": 193
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/services/account_sync_service_new.py",
-    "fix": null,
-    "location": {
-      "column": 54,
-      "row": 193
-    },
-    "message": "Dynamically typed expressions (typing.Any) are disallowed in `_get_connection`",
-    "noqa_row": 193,
     "url": "https://docs.astral.sh/ruff/rules/any-type"
   },
   {
@@ -6612,40 +6136,6 @@
       "row": 148
     },
     "filename": "/Users/shiyijiufei/TaifishingV4/app/services/database_service.py",
-    "fix": null,
-    "location": {
-      "column": 62,
-      "row": 148
-    },
-    "message": "Dynamically typed expressions (typing.Any) are disallowed in `conn`",
-    "noqa_row": 148,
-    "url": "https://docs.astral.sh/ruff/rules/any-type"
-  },
-  {
-    "cell": null,
-    "code": "ANN401",
-    "end_location": {
-      "column": 63,
-      "row": 20
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/services/database_service_new.py",
-    "fix": null,
-    "location": {
-      "column": 53,
-      "row": 20
-    },
-    "message": "Dynamically typed expressions (typing.Any) are disallowed in `get_connection`",
-    "noqa_row": 20,
-    "url": "https://docs.astral.sh/ruff/rules/any-type"
-  },
-  {
-    "cell": null,
-    "code": "ANN401",
-    "end_location": {
-      "column": 65,
-      "row": 148
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/services/database_service_new.py",
     "fix": null,
     "location": {
       "column": 62,
@@ -11557,91 +11047,6 @@
   },
   {
     "cell": null,
-    "code": "G004",
-    "end_location": {
-      "column": 51,
-      "row": 222
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/utils/env_validator.py",
-    "fix": null,
-    "location": {
-      "column": 25,
-      "row": 222
-    },
-    "message": "Logging statement uses f-string",
-    "noqa_row": 222,
-    "url": "https://docs.astral.sh/ruff/rules/logging-f-string"
-  },
-  {
-    "cell": null,
-    "code": "G004",
-    "end_location": {
-      "column": 44,
-      "row": 225
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/utils/env_validator.py",
-    "fix": null,
-    "location": {
-      "column": 26,
-      "row": 225
-    },
-    "message": "Logging statement uses f-string",
-    "noqa_row": 225,
-    "url": "https://docs.astral.sh/ruff/rules/logging-f-string"
-  },
-  {
-    "cell": null,
-    "code": "G004",
-    "end_location": {
-      "column": 40,
-      "row": 237
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/utils/env_validator.py",
-    "fix": null,
-    "location": {
-      "column": 26,
-      "row": 237
-    },
-    "message": "Logging statement uses f-string",
-    "noqa_row": 237,
-    "url": "https://docs.astral.sh/ruff/rules/logging-f-string"
-  },
-  {
-    "cell": null,
-    "code": "G004",
-    "end_location": {
-      "column": 44,
-      "row": 243
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/utils/env_validator.py",
-    "fix": null,
-    "location": {
-      "column": 28,
-      "row": 243
-    },
-    "message": "Logging statement uses f-string",
-    "noqa_row": 243,
-    "url": "https://docs.astral.sh/ruff/rules/logging-f-string"
-  },
-  {
-    "cell": null,
-    "code": "G004",
-    "end_location": {
-      "column": 44,
-      "row": 248
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/utils/env_validator.py",
-    "fix": null,
-    "location": {
-      "column": 25,
-      "row": 248
-    },
-    "message": "Logging statement uses f-string",
-    "noqa_row": 248,
-    "url": "https://docs.astral.sh/ruff/rules/logging-f-string"
-  },
-  {
-    "cell": null,
     "code": "C901",
     "end_location": {
       "column": 28,
@@ -13447,171 +12852,6 @@
     "message": "Use `return any(re.search(pattern, query_lower) for pattern in dangerous_patterns)` instead of `for` loop",
     "noqa_row": 187,
     "url": "https://docs.astral.sh/ruff/rules/reimplemented-builtin"
-  },
-  {
-    "cell": null,
-    "code": "ANN201",
-    "end_location": {
-      "column": 27,
-      "row": 252
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/utils/sqlserver_version_detector.py",
-    "fix": {
-      "applicability": "unsafe",
-      "edits": [
-        {
-          "content": " -> None",
-          "end_location": {
-            "column": 29,
-            "row": 252
-          },
-          "location": {
-            "column": 29,
-            "row": 252
-          }
-        }
-      ],
-      "message": "Add return type annotation: `None`"
-    },
-    "location": {
-      "column": 5,
-      "row": 252
-    },
-    "message": "Missing return type annotation for public function `test_version_detection`",
-    "noqa_row": 252,
-    "url": "https://docs.astral.sh/ruff/rules/missing-return-type-undocumented-public-function"
-  },
-  {
-    "cell": null,
-    "code": "T201",
-    "end_location": {
-      "column": 14,
-      "row": 265
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/utils/sqlserver_version_detector.py",
-    "fix": {
-      "applicability": "unsafe",
-      "edits": [
-        {
-          "content": "",
-          "end_location": {
-            "column": 1,
-            "row": 266
-          },
-          "location": {
-            "column": 1,
-            "row": 265
-          }
-        }
-      ],
-      "message": "Remove `print`"
-    },
-    "location": {
-      "column": 9,
-      "row": 265
-    },
-    "message": "`print` found",
-    "noqa_row": 265,
-    "url": "https://docs.astral.sh/ruff/rules/print"
-  },
-  {
-    "cell": null,
-    "code": "T201",
-    "end_location": {
-      "column": 14,
-      "row": 267
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/utils/sqlserver_version_detector.py",
-    "fix": {
-      "applicability": "unsafe",
-      "edits": [
-        {
-          "content": "",
-          "end_location": {
-            "column": 1,
-            "row": 268
-          },
-          "location": {
-            "column": 1,
-            "row": 267
-          }
-        }
-      ],
-      "message": "Remove `print`"
-    },
-    "location": {
-      "column": 9,
-      "row": 267
-    },
-    "message": "`print` found",
-    "noqa_row": 267,
-    "url": "https://docs.astral.sh/ruff/rules/print"
-  },
-  {
-    "cell": null,
-    "code": "T201",
-    "end_location": {
-      "column": 14,
-      "row": 268
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/utils/sqlserver_version_detector.py",
-    "fix": {
-      "applicability": "unsafe",
-      "edits": [
-        {
-          "content": "",
-          "end_location": {
-            "column": 1,
-            "row": 269
-          },
-          "location": {
-            "column": 1,
-            "row": 268
-          }
-        }
-      ],
-      "message": "Remove `print`"
-    },
-    "location": {
-      "column": 9,
-      "row": 268
-    },
-    "message": "`print` found",
-    "noqa_row": 268,
-    "url": "https://docs.astral.sh/ruff/rules/print"
-  },
-  {
-    "cell": null,
-    "code": "T201",
-    "end_location": {
-      "column": 14,
-      "row": 269
-    },
-    "filename": "/Users/shiyijiufei/TaifishingV4/app/utils/sqlserver_version_detector.py",
-    "fix": {
-      "applicability": "unsafe",
-      "edits": [
-        {
-          "content": "",
-          "end_location": {
-            "column": 1,
-            "row": 270
-          },
-          "location": {
-            "column": 1,
-            "row": 269
-          }
-        }
-      ],
-      "message": "Remove `print`"
-    },
-    "location": {
-      "column": 9,
-      "row": 269
-    },
-    "message": "`print` found",
-    "noqa_row": 269,
-    "url": "https://docs.astral.sh/ruff/rules/print"
   },
   {
     "cell": null,

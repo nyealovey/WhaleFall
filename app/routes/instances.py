@@ -638,6 +638,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 
         # 2. 删除同步数据
         from app.models.current_account_sync_data import CurrentAccountSyncData
+
         sync_data_count = CurrentAccountSyncData.query.filter_by(instance_id=instance.id).count()
         if sync_data_count > 0:
             CurrentAccountSyncData.query.filter_by(instance_id=instance.id).delete()
@@ -724,6 +725,7 @@ def batch_delete() -> str | Response | tuple[Response, int]:
                 # 删除相关数据
                 accounts_count = instance.accounts.count()
                 from app.models.current_account_sync_data import CurrentAccountSyncData
+
                 sync_data_count = CurrentAccountSyncData.query.filter_by(instance_id=instance.id).count()
 
                 if accounts_count > 0:

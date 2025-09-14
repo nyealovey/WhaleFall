@@ -135,15 +135,15 @@ class CurrentAccountSyncData(BaseSyncData):
                     if isinstance(perm, dict) and perm.get("privilege") == "GRANT" and perm.get("granted", False):
                         return True
                 return False
-            elif self.db_type == "postgresql":
+            if self.db_type == "postgresql":
                 # PostgreSQL中检查是否有CREATEROLE属性
                 role_attributes = self.role_attributes or []
                 return "CREATEROLE" in role_attributes
-            elif self.db_type == "sqlserver":
+            if self.db_type == "sqlserver":
                 # SQL Server中检查是否有sysadmin角色
                 server_roles = self.server_roles or []
                 return "sysadmin" in server_roles
-            elif self.db_type == "oracle":
+            if self.db_type == "oracle":
                 # Oracle中检查是否有GRANT ANY PRIVILEGE权限
                 system_privileges = self.system_privileges or []
                 return "GRANT ANY PRIVILEGE" in system_privileges

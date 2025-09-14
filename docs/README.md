@@ -37,6 +37,7 @@
 - [日志管理功能](features/LOG_MANAGEMENT_FEATURES.md) - 日志系统功能说明
 - [PostgreSQL集成报告](features/POSTGRESQL_INTEGRATION_REPORT.md) - PostgreSQL集成情况
 - [性能监控移除报告](features/PERFORMANCE_MONITOR_REMOVAL_REPORT.md) - 功能移除说明
+- [账户分类管理功能修复报告](features/ACCOUNT_CLASSIFICATION_FIX_REPORT.md) - v2.1.0功能修复详情
 
 ### 📖 使用指南 (guides/)
 - [快速参考](guides/QUICK_REFERENCE.md) - 常用命令和配置速查
@@ -86,6 +87,6 @@
 
 ---
 
-**最后更新**: 2025年9月12日
-**文档版本**: v2.0.0
+**最后更新**: 2025年9月14日
+**文档版本**: v2.1.0
 **维护者**: 泰摸鱼吧开发团队
