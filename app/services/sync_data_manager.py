@@ -1095,7 +1095,7 @@ class SyncDataManager:
         new_type_specific = new_permissions.get("type_specific", {})
         
         # 只检测权限相关的字段
-        permission_fields = ["is_locked", "can_grant"]  # 只检测这些权限相关字段
+        permission_fields = ["can_grant"]  # 只检测权限相关字段，锁定状态不是权限
         type_specific_changes = {}
         
         for field in permission_fields:
@@ -1181,7 +1181,7 @@ class SyncDataManager:
         new_type_specific = new_permissions.get("type_specific", {})
         
         # 只检测权限相关的字段
-        permission_fields = ["is_locked"]  # PostgreSQL只检测锁定状态
+        permission_fields = []  # PostgreSQL没有权限相关字段在type_specific中
         type_specific_changes = {}
         
         for field in permission_fields:
@@ -1256,7 +1256,7 @@ class SyncDataManager:
         new_type_specific = new_permissions.get("type_specific", {})
         
         # 只检测权限相关的字段
-        permission_fields = ["is_locked", "account_type", "password_last_set_time"]  # SQL Server检测锁定状态、账户类型和密码修改时间
+        permission_fields = []  # SQL Server没有权限相关字段在type_specific中
         type_specific_changes = {}
         
         for field in permission_fields:
@@ -1310,7 +1310,7 @@ class SyncDataManager:
         new_type_specific = new_permissions.get("type_specific", {})
         
         # 只检测权限相关的字段
-        permission_fields = ["is_locked", "account_status"]  # Oracle检测锁定状态和账户状态
+        permission_fields = []  # Oracle没有权限相关字段在type_specific中
         type_specific_changes = {}
         
         for field in permission_fields:
