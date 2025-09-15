@@ -936,12 +936,13 @@ def _process_instances_data(
         try:
             # 验证必填字段
             required_fields = ["name", "db_type", "host", "port"]
+            missing_fields = []
             for field in required_fields:
                 if not instance_data.get(field):
-                    errors.append(f"第 {i + 1} 个实例缺少必填字段: {field}")
-                    continue
-
-            if errors:
+                    missing_fields.append(field)
+            
+            if missing_fields:
+                errors.append(f"第 {i + 1} 个实例缺少必填字段: {', '.join(missing_fields)}")
                 continue
 
             # 检查实例名称是否已存在
