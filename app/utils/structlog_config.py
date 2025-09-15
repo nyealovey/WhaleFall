@@ -454,7 +454,8 @@ def log_error(message: str, module: str = "app", exception: Exception | None = N
     """记录错误日志"""
     logger = get_logger("app")
     if exception:
-        logger.error(message, module=module, exception=str(exception), **kwargs)
+        # 使用 exc_info=True 来触发堆栈追踪
+        logger.error(message, module=module, error=str(exception), **kwargs, exc_info=True)
     else:
         logger.error(message, module=module, **kwargs)
 
@@ -463,7 +464,8 @@ def log_critical(message: str, module: str = "app", exception: Exception | None 
     """记录严重错误日志"""
     logger = get_logger("app")
     if exception:
-        logger.critical(message, module=module, exception=str(exception), **kwargs)
+        # 使用 exc_info=True 来触发堆栈追踪
+        logger.critical(message, module=module, error=str(exception), **kwargs, exc_info=True)
     else:
         logger.critical(message, module=module, **kwargs)
 

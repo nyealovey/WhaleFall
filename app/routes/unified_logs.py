@@ -240,11 +240,14 @@ def export_logs():
         if module:
             query = query.filter(UnifiedLog.module.like(f"%{module}%"))
 
+        # 先排序，再限制数量
+        query = query.order_by(desc(UnifiedLog.timestamp))
+
         # 限制数量
         query = query.limit(limit)
 
         # 获取日志
-        logs = query.order_by(desc(UnifiedLog.timestamp)).all()
+        logs = query.all()
 
         if format_type == "csv":
             # CSV格式导出
@@ -325,7 +328,17 @@ def export_logs():
         return error_response("Unsupported export format", 400)
 
     except Exception as e:
-        log_error("Failed to export logs", module="unified_logs", error=str(e))
+        log_error(
+            "Failed to export logs", 
+            module="unified_logs", 
+            format_type=format_type,
+            level=level,
+            module_filter=module,
+            start_time=start_time,
+            end_time=end_time,
+            limit=limit,
+            exception=e
+        )
         return error_response("Failed to export logs", 500)
 
 

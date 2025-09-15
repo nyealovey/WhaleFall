@@ -11,6 +11,5 @@ from . import (  # noqa: F401
     credentials,
     dashboard,
     instances,
-    logs,
     main,
 )

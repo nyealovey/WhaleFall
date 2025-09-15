@@ -350,7 +350,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.health import health_bp
     from app.routes.instance_accounts import instance_accounts_bp
     from app.routes.instances import instances_bp
-    from app.routes.logs import logs_bp
+    # from app.routes.logs import logs_bp  # 已停用，使用unified_logs替代
     from app.routes.main import main_bp
     from app.routes.system_logs import system_logs_bp
     from app.routes.unified_logs import unified_logs_bp
@@ -370,7 +370,7 @@ def register_blueprints(app: Flask) -> None:
     # 保留旧的accounts_bp，等测试通过后删除
     # app.register_blueprint(accounts_bp, url_prefix="/accounts")
 
-    app.register_blueprint(logs_bp, url_prefix="/logs")
+    # app.register_blueprint(logs_bp, url_prefix="/logs")  # 已停用，使用unified_logs替代
     app.register_blueprint(system_logs_bp, url_prefix="/system-logs")
     app.register_blueprint(unified_logs_bp)  # unified_logs_bp already has url_prefix="/unified-logs"
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")

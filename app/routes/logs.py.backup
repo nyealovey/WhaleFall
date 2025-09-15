@@ -358,7 +358,15 @@ def export_unified_logs() -> Response:
         from app.utils.structlog_config import get_system_logger
 
         system_logger = get_system_logger()
-        system_logger.error("导出统一日志失败", module="logs", exception=e)
+        system_logger.error(
+            "导出统一日志失败", 
+            module="logs", 
+            format_type=format_type,
+            level=level,
+            module_filter=module,
+            hours=hours,
+            exception=e
+        )
         return error_response("导出统一日志失败", 500)
 
 
