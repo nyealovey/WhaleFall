@@ -142,15 +142,7 @@ def api_status() -> "Response":
 
     status = get_system_status()
 
-    # 记录API调用
-    duration = (time.time() - start_time) * 1000
-    log_info(
-        "获取仪表板系统状态",
-        module="dashboard",
-        user_id=current_user.id,
-        ip_address=request.remote_addr,
-        duration_ms=duration,
-    )
+    # 移除用户查看操作的日志记录
 
     return jsonify(status)
 
