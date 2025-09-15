@@ -796,11 +796,10 @@ def batch_delete() -> str | Response | tuple[Response, int]:
                         'total': total_related
                     }
 
+        # 如果有相关数据，先删除关联数据，然后删除实例
         if related_data_counts:
-            error_msg = "以下实例无法删除，还有相关数据关联：\n"
-            for name, counts in related_data_counts.items():
-                error_msg += f"- {name}: {counts['total']} 条相关记录\n"
-            return jsonify({"success": False, "error": error_msg.strip()}), 400
+            log_info(f"检测到 {len(related_data_counts)} 个实例有关联数据，将先删除关联数据", 
+                    module="instances", user_id=current_user.id)
 
         # 批量删除
         deleted_count = 0
