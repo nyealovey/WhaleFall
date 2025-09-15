@@ -51,7 +51,7 @@ class UnifiedLog(db.Model):
     context = Column(JSON, nullable=True)
 
     # 记录创建时间
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=now, nullable=False)
 
     # 复合索引优化查询性能
     __table_args__ = (

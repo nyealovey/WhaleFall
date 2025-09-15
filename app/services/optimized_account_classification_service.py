@@ -8,6 +8,8 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Set
 
+from app.utils.time_utils import time_utils
+
 from app import db
 from app.models.account_classification import (
     AccountClassification,
@@ -217,7 +219,7 @@ class OptimizedAccountClassificationService:
             ).update(
                 {
                     "is_active": False,
-                    "updated_at": datetime.utcnow(),
+                    "updated_at": time_utils.now(),
                 },
                 synchronize_session=False,
             )
@@ -485,8 +487,8 @@ class OptimizedAccountClassificationService:
                         "notes": None,
                         "batch_id": self.batch_id,
                         "is_active": True,
-                        "created_at": datetime.utcnow(),
-                        "updated_at": datetime.utcnow(),
+                        "created_at": time_utils.now(),
+                        "updated_at": time_utils.now(),
                     })
 
             # 批量插入
@@ -510,7 +512,7 @@ class OptimizedAccountClassificationService:
                 CurrentAccountSyncData.id.in_(account_ids)
             ).update(
                 {
-                    "last_classified_at": datetime.utcnow(),
+                    "last_classified_at": time_utils.now(),
                     "last_classification_batch_id": self.batch_id,
                 },
                 synchronize_session=False,

@@ -200,7 +200,7 @@ function checkSystemStatus() {
         updateStatusText('app-status', '运行中');
         
         document.getElementById('uptime').textContent = data.uptime || '未知';
-        document.getElementById('last-update').textContent = formatChinaTime(new Date().toISOString());
+        document.getElementById('last-update').textContent = formatTime(new Date().toISOString(), 'datetime');
     })
     .catch(error => {
         console.error('检查系统状态失败:', error);
@@ -236,31 +236,7 @@ function refreshData() {
     }, 2000);
 }
 
-// 格式化中国时区时间
-function formatChinaTime(dt) {
-    if (!dt) return '-';
-    
-    try {
-        // 如果是ISO格式字符串，解析为Date对象
-        const date = new Date(dt);
-        if (isNaN(date.getTime())) return '-';
-        
-        // 转换为中国时区（UTC+8）
-        const chinaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
-        
-        // 格式化为 YYYY-MM-DD HH:mm:ss
-        const year = chinaTime.getUTCFullYear();
-        const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(chinaTime.getUTCDate()).padStart(2, '0');
-        const hours = String(chinaTime.getUTCHours()).padStart(2, '0');
-        const minutes = String(chinaTime.getUTCMinutes()).padStart(2, '0');
-        const seconds = String(chinaTime.getUTCSeconds()).padStart(2, '0');
-        
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    } catch (e) {
-        console.error('时间格式化错误:', e);
-        return '-';
-    }
-}
+// 使用统一的时间格式化函数
+// formatChinaTime 函数已由 time-utils.js 提供
 </script>
 {% endblock %}

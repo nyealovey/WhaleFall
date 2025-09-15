@@ -44,7 +44,7 @@ class SyncInstanceRecord(db.Model):
     # 通用字段
     error_message = db.Column(db.Text)
     sync_details = db.Column(db.JSON)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=now)
 
     def __init__(
         self,

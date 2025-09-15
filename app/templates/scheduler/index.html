@@ -274,7 +274,7 @@ function displayJobs(jobs) {
 }
 
 function createJobCard(job) {
-    const nextRunTime = job.next_run_time ? formatChinaTime(job.next_run_time) : '未计划';
+    const nextRunTime = job.next_run_time ? formatTime(job.next_run_time, 'datetime') : '未计划';
     const status = job.status || (job.next_run_time ? 'active' : 'paused');
     const statusText = status === 'active' ? '运行中' : '已暂停';
     const isPaused = job.is_paused || status === 'paused';
@@ -843,31 +843,7 @@ function showAlert(message, type) {
     }, 3000);
 }
 
-// 格式化中国时区时间
-function formatChinaTime(dt) {
-    if (!dt) return '-';
-    
-    try {
-        // 如果是ISO格式字符串，解析为Date对象
-        const date = new Date(dt);
-        if (isNaN(date.getTime())) return '-';
-        
-        // 转换为中国时区（UTC+8）
-        const chinaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
-        
-        // 格式化为 YYYY-MM-DD HH:mm:ss
-        const year = chinaTime.getUTCFullYear();
-        const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(chinaTime.getUTCDate()).padStart(2, '0');
-        const hours = String(chinaTime.getUTCHours()).padStart(2, '0');
-        const minutes = String(chinaTime.getUTCMinutes()).padStart(2, '0');
-        const seconds = String(chinaTime.getUTCSeconds()).padStart(2, '0');
-        
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    } catch (e) {
-        console.error('时间格式化错误:', e);
-        return '-';
-    }
-}
+// 使用统一的时间格式化函数
+// formatChinaTime 函数已由 time-utils.js 提供
 </script>
 {% endblock %}

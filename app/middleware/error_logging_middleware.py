@@ -355,9 +355,9 @@ def _handle_batch_sync_log_merge(request_id: str, status_code: int, response: Re
             return
 
         # 计算持续时间
-        from datetime import datetime
+        from app.utils.timezone import now
 
-        end_time = datetime.utcnow()
+        end_time = now()
         duration = (end_time - start_log.created_at).total_seconds() * 1000
 
         # 查找所有相关的同步日志

@@ -265,8 +265,8 @@ function renderSessions(sessions) {
         const statusClass = getStatusClass(session.status);
         const statusText = getStatusText(session.status);
         const progress = session.progress_percentage || 0;
-        const startedAt = formatChinaTime(session.started_at);
-        const completedAt = session.completed_at ? formatChinaTime(session.completed_at) : '-';
+        const startedAt = formatTime(session.started_at, 'datetime');
+        const completedAt = session.completed_at ? formatTime(session.completed_at, 'datetime') : '-';
 
         return `
             <div class="card session-card ${statusClass} mb-3">
@@ -337,8 +337,8 @@ function showSessionDetail(session) {
         const statusText = getStatusText(record.status);
         const duration = record.started_at && record.completed_at ?
             Math.round((new Date(record.completed_at) - new Date(record.started_at)) / 1000) + '秒' : '-';
-        const startedAt = formatChinaTime(record.started_at);
-        const completedAt = record.completed_at ? formatChinaTime(record.completed_at) : '-';
+        const startedAt = formatTime(record.started_at, 'datetime');
+        const completedAt = record.completed_at ? formatTime(record.completed_at, 'datetime') : '-';
 
         return `
             <div class="card mb-2">
@@ -392,10 +392,10 @@ function showSessionDetail(session) {
         </div>
         <div class="row mb-3">
             <div class="col-md-6">
-                <strong>开始时间:</strong> ${formatChinaTime(session.started_at)}
+                <strong>开始时间:</strong> ${formatTime(session.started_at, 'datetime')}
             </div>
             <div class="col-md-6">
-                <strong>完成时间:</strong> ${session.completed_at ? formatChinaTime(session.completed_at) : '未完成'}
+                <strong>完成时间:</strong> ${session.completed_at ? formatTime(session.completed_at, 'datetime') : '未完成'}
             </div>
         </div>
         <div class="row mb-3">
@@ -513,33 +513,8 @@ function getSyncCategoryText(category) {
     return categoryMap[category] || category;
 }
 
-// 格式化中国时区时间
-function formatChinaTime(dt) {
-    if (!dt) return '-';
-    
-    try {
-        // 解析为Date对象
-        const date = new Date(dt);
-        if (isNaN(date.getTime())) return '-';
-        
-        // 使用toLocaleString正确转换到中国时区
-        const chinaTime = date.toLocaleString('zh-CN', {
-            timeZone: 'Asia/Shanghai',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        });
-        
-        return chinaTime;
-    } catch (e) {
-        console.error('时间格式化错误:', e);
-        return '-';
-    }
-}
+// 使用统一的时间格式化函数
+// formatChinaTime 函数已由 time-utils.js 提供
 
 // 获取CSRF令牌
 function getCSRFToken() {

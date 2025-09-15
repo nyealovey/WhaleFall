@@ -1,15 +1,18 @@
 """
 泰摸鱼吧 - 时区工具模块
 统一管理系统的时区设置，确保所有时间都使用东八区
+基于Python 3.9+的zoneinfo模块，提供更准确和高效的时区处理
 """
 
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
+from typing import Union, Optional
 
-import pytz
+# 使用zoneinfo替代pytz（Python 3.9+）
+CHINA_TZ = ZoneInfo("Asia/Shanghai")
+UTC_TZ = ZoneInfo("UTC")
 
-# 东八区时区
-CHINA_TZ = pytz.timezone("Asia/Shanghai")
-UTC_TZ = pytz.utc
+# 完全基于zoneinfo，不再需要pytz
 
 
 def get_china_time() -> datetime:
@@ -17,31 +20,31 @@ def get_china_time() -> datetime:
     return datetime.now(CHINA_TZ)
 
 
-def utc_to_china(utc_dt: datetime | None) -> datetime | None:
+def utc_to_china(utc_dt: Union[datetime, None]) -> Optional[datetime]:
     """将UTC时间转换为东八区时间"""
     if utc_dt is None:
         return None
 
     if utc_dt.tzinfo is None:
         # 如果没有时区信息，假设为UTC
-        utc_dt = pytz.utc.localize(utc_dt)
+        utc_dt = utc_dt.replace(tzinfo=UTC_TZ)
 
     return utc_dt.astimezone(CHINA_TZ)
 
 
-def china_to_utc(china_dt: datetime | None) -> datetime | None:
+def china_to_utc(china_dt: Union[datetime, None]) -> Optional[datetime]:
     """将东八区时间转换为UTC时间"""
     if china_dt is None:
         return None
 
     if china_dt.tzinfo is None:
         # 如果没有时区信息，假设为东八区
-        china_dt = CHINA_TZ.localize(china_dt)
+        china_dt = china_dt.replace(tzinfo=CHINA_TZ)
 
-    return china_dt.astimezone(pytz.utc)
+    return china_dt.astimezone(UTC_TZ)
 
 
-def format_china_time(dt: datetime | str | None, format_str: str = "%Y-%m-%d %H:%M:%S") -> str | None:
+def format_china_time(dt: Union[datetime, str, None], format_str: str = "%Y-%m-%d %H:%M:%S") -> Optional[str]:
     """格式化东八区时间"""
     if dt is None:
         return None
@@ -56,7 +59,7 @@ def format_china_time(dt: datetime | str | None, format_str: str = "%Y-%m-%d %H:
             elif "T" in dt:
                 # ISO格式，无时区信息，假设为UTC
                 dt_obj = datetime.fromisoformat(dt)
-                dt_obj = pytz.utc.localize(dt_obj)
+                dt_obj = dt_obj.replace(tzinfo=UTC_TZ)
             else:
                 # 其他格式字符串，直接返回
                 return dt
@@ -69,7 +72,7 @@ def format_china_time(dt: datetime | str | None, format_str: str = "%Y-%m-%d %H:
 
     # 如果是datetime对象但没有时区信息，假设为UTC
     if hasattr(dt, "tzinfo") and dt.tzinfo is None:
-        dt = pytz.utc.localize(dt)
+        dt = dt.replace(tzinfo=UTC_TZ)
 
     # 确保dt是datetime类型
     if not isinstance(dt, datetime):
@@ -89,15 +92,15 @@ def get_china_date() -> date:
 def get_china_today() -> datetime:
     """获取东八区今天的开始时间（UTC）"""
     china_today = get_china_date()
-    china_start: datetime = CHINA_TZ.localize(datetime.combine(china_today, datetime.min.time()))
-    return china_start.astimezone(pytz.utc)
+    china_start: datetime = datetime.combine(china_today, datetime.min.time()).replace(tzinfo=CHINA_TZ)
+    return china_start.astimezone(UTC_TZ)
 
 
 def get_china_tomorrow() -> datetime:
     """获取东八区明天的开始时间（UTC）"""
     china_tomorrow = get_china_date() + timedelta(days=1)
-    china_start: datetime = CHINA_TZ.localize(datetime.combine(china_tomorrow, datetime.min.time()))
-    return china_start.astimezone(pytz.utc)
+    china_start: datetime = datetime.combine(china_tomorrow, datetime.min.time()).replace(tzinfo=CHINA_TZ)
+    return china_start.astimezone(UTC_TZ)
 
 
 def now() -> datetime:
@@ -110,11 +113,4 @@ def now_china() -> datetime:
     return datetime.now(CHINA_TZ)
 
 
-def utc_now() -> datetime:
-    """获取当前UTC时间（兼容旧代码）"""
-    return now()
-
-
-def china_now() -> datetime:
-    """获取当前东八区时间（兼容旧代码）"""
-    return now_china()
+# 兼容函数已移除，请使用 app.utils.time_utils.time_utils

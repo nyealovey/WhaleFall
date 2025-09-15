@@ -6,6 +6,8 @@ import json
 from datetime import datetime
 from typing import Any
 
+from app.utils.time_utils import time_utils
+
 from app import db
 from app.models.account_classification import (
     AccountClassification,
@@ -91,7 +93,7 @@ class AccountClassificationService:
                 if hasattr(classification, key):
                     setattr(classification, key, value)
 
-            classification.updated_at = datetime.utcnow()
+            classification.updated_at = time_utils.now()
             db.session.commit()
 
             log_info(
@@ -222,7 +224,7 @@ class AccountClassificationService:
                     else:
                         setattr(rule, key, value)
 
-            rule.updated_at = datetime.utcnow()
+            rule.updated_at = time_utils.now()
             db.session.commit()
 
             log_info(
@@ -354,14 +356,14 @@ class AccountClassificationService:
                     existing_assignment.assignment_type = assignment_type
                     existing_assignment.notes = notes
                     existing_assignment.batch_id = batch_id
-                    existing_assignment.updated_at = datetime.utcnow()
+                    existing_assignment.updated_at = time_utils.now()
                 else:
                     # 如果记录已存在且活跃，更新信息
                     existing_assignment.assigned_by = assigned_by
                     existing_assignment.assignment_type = assignment_type
                     existing_assignment.notes = notes
                     existing_assignment.batch_id = batch_id
-                    existing_assignment.updated_at = datetime.utcnow()
+                    existing_assignment.updated_at = time_utils.now()
             else:
                 # 创建新分配
                 assignment = AccountClassificationAssignment(
@@ -581,13 +583,13 @@ class AccountClassificationService:
                 # 比较当前分类和新分类
                 if current_classification_ids != new_classification_ids:
                     # 分类有变化，更新账户记录
-                    account.last_classified_at = datetime.utcnow()
+                    account.last_classified_at = time_utils.now()
                     account.last_classification_batch_id = batch_id
 
                     # 清除当前所有分类
                     for assignment in current_assignments:
                         assignment.is_active = False
-                        assignment.updated_at = datetime.utcnow()
+                        assignment.updated_at = time_utils.now()
 
                     # 记录分类变化日志
                     if new_classification_ids:
@@ -1033,7 +1035,7 @@ class AccountClassificationService:
 
             for assignment in assignments:
                 assignment.is_active = False
-                assignment.updated_at = datetime.utcnow()
+                assignment.updated_at = time_utils.now()
 
             db.session.commit()
             return True
@@ -1067,7 +1069,7 @@ class AccountClassificationService:
                 return {"success": False, "error": "分配记录不存在"}
 
             assignment.is_active = False
-            assignment.updated_at = datetime.utcnow()
+            assignment.updated_at = time_utils.now()
             db.session.commit()
 
             log_info(

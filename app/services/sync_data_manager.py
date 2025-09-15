@@ -4,6 +4,8 @@
 
 from datetime import datetime
 
+from app.utils.time_utils import time_utils
+
 from app import db
 from app.models.account_change_log import AccountChangeLog
 from app.models.current_account_sync_data import CurrentAccountSyncData
@@ -986,8 +988,8 @@ class SyncDataManager:
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
         account.last_change_type = "modify_privilege"
-        account.last_change_time = datetime.utcnow()
-        account.last_sync_time = datetime.utcnow()
+        account.last_change_time = time_utils.now()
+        account.last_sync_time = time_utils.now()
         db.session.commit()
 
     @classmethod
@@ -1001,8 +1003,8 @@ class SyncDataManager:
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
         account.last_change_type = "modify_privilege"
-        account.last_change_time = datetime.utcnow()
-        account.last_sync_time = datetime.utcnow()
+        account.last_change_time = time_utils.now()
+        account.last_sync_time = time_utils.now()
         db.session.commit()
 
     @classmethod
@@ -1015,8 +1017,8 @@ class SyncDataManager:
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
         account.last_change_type = "modify_privilege"
-        account.last_change_time = datetime.utcnow()
-        account.last_sync_time = datetime.utcnow()
+        account.last_change_time = time_utils.now()
+        account.last_sync_time = time_utils.now()
         db.session.commit()
 
     @classmethod
@@ -1028,8 +1030,8 @@ class SyncDataManager:
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
         account.last_change_type = "modify_privilege"
-        account.last_change_time = datetime.utcnow()
-        account.last_sync_time = datetime.utcnow()
+        account.last_change_time = time_utils.now()
+        account.last_sync_time = time_utils.now()
         db.session.commit()
 
     @classmethod
@@ -1228,9 +1230,9 @@ class SyncDataManager:
         account = cls.get_account_latest(db_type, instance_id, username, include_deleted=True)
         if account and not account.is_deleted:
             account.is_deleted = True
-            account.deleted_time = datetime.utcnow()
+            account.deleted_time = time_utils.now()
             account.last_change_type = "delete"
-            account.last_change_time = datetime.utcnow()
+            account.last_change_time = time_utils.now()
 
             # 记录删除日志
             change_log = AccountChangeLog(

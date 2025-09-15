@@ -27,14 +27,14 @@ class SyncSession(db.Model):
         nullable=False,
         default="running",
     )
-    started_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime, nullable=False, default=now)
     completed_at = db.Column(db.DateTime)
     total_instances = db.Column(db.Integer, default=0)
     successful_instances = db.Column(db.Integer, default=0)
     failed_instances = db.Column(db.Integer, default=0)
     created_by = db.Column(db.Integer)  # 用户ID（手动同步时）
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=now)
+    updated_at = db.Column(db.DateTime, default=now, onupdate=now)
 
     # 关系
     instance_records = db.relationship(

@@ -236,8 +236,8 @@ function renderBatches(batches) {
     const html = batches.map(batch => {
         const statusClass = getStatusClass(batch.status);
         const statusText = getStatusText(batch.status);
-        const startedAt = formatChinaTime(batch.started_at);
-        const completedAt = batch.completed_at ? formatChinaTime(batch.completed_at) : '-';
+        const startedAt = formatTime(batch.started_at, 'datetime');
+        const completedAt = batch.completed_at ? formatTime(batch.completed_at, 'datetime') : '-';
         const duration = batch.duration ? Math.round(batch.duration) + '秒' : '-';
 
         return `
@@ -331,10 +331,10 @@ function showBatchDetail(batch) {
         </div>
         <div class="row mb-3">
             <div class="col-md-6">
-                <strong>开始时间:</strong> ${formatChinaTime(batch.started_at)}
+                <strong>开始时间:</strong> ${formatTime(batch.started_at, 'datetime')}
             </div>
             <div class="col-md-6">
-                <strong>完成时间:</strong> ${batch.completed_at ? formatChinaTime(batch.completed_at) : '未完成'}
+                <strong>完成时间:</strong> ${batch.completed_at ? formatTime(batch.completed_at, 'datetime') : '未完成'}
             </div>
         </div>
         <div class="row mb-3">
@@ -477,7 +477,7 @@ function displayMatches(batchId, matches) {
                 </div>
             </td>
             <td>
-                <small>${match.matched_at ? formatChinaTime(match.matched_at) : '-'}</small>
+                <small>${match.matched_at ? formatTime(match.matched_at, 'datetime') : '-'}</small>
             </td>
         </tr>
     `).join('');
@@ -537,32 +537,8 @@ function getBatchTypeText(type) {
 }
 
 
-// 格式化中国时区时间
-function formatChinaTime(dt) {
-    if (!dt) return '-';
-
-    try {
-        // 如果是ISO格式字符串，解析为Date对象
-        const date = new Date(dt);
-        if (isNaN(date.getTime())) return '-';
-
-        // 转换为中国时区（UTC+8）
-        const chinaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
-
-        // 格式化为 YYYY-MM-DD HH:mm:ss
-        const year = chinaTime.getUTCFullYear();
-        const month = String(chinaTime.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(chinaTime.getUTCDate()).padStart(2, '0');
-        const hours = String(chinaTime.getUTCHours()).padStart(2, '0');
-        const minutes = String(chinaTime.getUTCMinutes()).padStart(2, '0');
-        const seconds = String(chinaTime.getUTCSeconds()).padStart(2, '0');
-
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    } catch (e) {
-        console.error('时间格式化错误:', e);
-        return '-';
-    }
-}
+// 使用统一的时间格式化函数
+// formatChinaTime 函数已由 time-utils.js 提供
 
 // 获取CSRF令牌
 function getCSRFToken() {

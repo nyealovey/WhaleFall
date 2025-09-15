@@ -7,6 +7,8 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from app.utils.time_utils import time_utils
+
 from app import db
 from app.models.classification_batch import ClassificationBatch
 from app.utils.structlog_config import log_error, log_info, log_warning
@@ -149,7 +151,7 @@ class ClassificationBatchService:
                 return False
 
             batch.status = status
-            batch.completed_at = datetime.utcnow()
+            batch.completed_at = time_utils.now()
             batch.error_message = error_message
 
             if batch_details:

@@ -444,22 +444,40 @@ def configure_template_filters(app: Flask) -> None:
     Args:
         app: Flask应用实例
     """
-    from app.utils.timezone import format_china_time
+    from app.utils.time_utils import time_utils
 
     @app.template_filter("china_time")
-    def china_time_filter(dt: Union[str, "datetime"], format_str: str = "%Y-%m-%d %H:%M:%S") -> str:
+    def china_time_filter(dt: Union[str, "datetime"], format_str: str = "%H:%M:%S") -> str:
         """东八区时间格式化过滤器"""
-        return format_china_time(dt, format_str)
+        return time_utils.format_china_time(dt, format_str)
 
     @app.template_filter("china_date")
     def china_date_filter(dt: Union[str, "datetime"]) -> str:
         """东八区日期格式化过滤器"""
-        return format_china_time(dt, "%Y-%m-%d")
+        return time_utils.format_china_time(dt, "%Y-%m-%d")
 
     @app.template_filter("china_datetime")
     def china_datetime_filter(dt: Union[str, "datetime"]) -> str:
         """东八区日期时间格式化过滤器"""
-        return format_china_time(dt, "%Y-%m-%d %H:%M:%S")
+        return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
+
+    @app.template_filter("relative_time")
+    def relative_time_filter(dt: Union[str, "datetime"]) -> str:
+        """相对时间过滤器"""
+        return time_utils.get_relative_time(dt)
+
+    @app.template_filter("is_today")
+    def is_today_filter(dt: Union[str, "datetime"]) -> bool:
+        """判断是否为今天"""
+        return time_utils.is_today(dt)
+
+    @app.template_filter("smart_time")
+    def smart_time_filter(dt: Union[str, "datetime"]) -> str:
+        """智能时间显示过滤器"""
+        if time_utils.is_today(dt):
+            return time_utils.format_china_time(dt, "%H:%M:%S")
+        else:
+            return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
 
 
 # 创建应用实例

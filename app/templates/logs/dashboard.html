@@ -441,7 +441,7 @@ function displayLogs(logs) {
         
         html += `
             <tr>
-                <td>${formatTimestamp(log.timestamp)}</td>
+                <td>${formatTime(log.timestamp, 'datetime')}</td>
                 <td>
                     <span class="badge bg-${getLevelColor(log.level)}">
                         ${log.level}
@@ -549,13 +549,13 @@ function viewLogDetail(logId) {
                 content.innerHTML = `
                     <div class="row">
                         <div class="col-md-6">
-                            <strong>时间:</strong> ${formatTimestamp(log.timestamp)}<br>
+                            <strong>时间:</strong> ${formatTime(log.timestamp, 'datetime')}<br>
                             <strong>级别:</strong> <span class="badge bg-${getLevelColor(log.level)}">${log.level}</span><br>
                             <strong>模块:</strong> <span class="badge bg-secondary">${log.module}</span>
                         </div>
                         <div class="col-md-6">
                             <strong>ID:</strong> <code>${log.id}</code><br>
-                            <strong>创建时间:</strong> ${formatTimestamp(log.created_at)}
+                            <strong>创建时间:</strong> ${formatTime(log.created_at, 'datetime')}
                         </div>
                     </div>
                     <hr>
@@ -608,23 +608,8 @@ function formatJSON(obj) {
     }
 }
 
-// 格式化时间显示
-function formatTimestamp(timestamp) {
-    try {
-        const date = new Date(timestamp);
-        return date.toLocaleString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        });
-    } catch (e) {
-        return timestamp;
-    }
-}
+// 使用统一的时间格式化函数
+// formatTimestamp 函数已由 time-utils.js 提供
 
 // 导出日志
 function exportLogs(format) {
@@ -687,7 +672,7 @@ function viewLogDebug(logId) {
                         <strong>日志ID:</strong> <code>${log.id}</code><br>
                         <strong>模块:</strong> <span class="badge bg-secondary">${log.module}</span><br>
                         <strong>级别:</strong> <span class="badge bg-${getLevelColor(log.level)}">${log.level}</span><br>
-                        <strong>时间:</strong> ${formatTimestamp(log.timestamp)}
+                        <strong>时间:</strong> ${formatTime(log.timestamp, 'datetime')}
                     </div>
                     <div class="mb-3">
                         <strong>错误消息:</strong><br>

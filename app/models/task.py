@@ -28,8 +28,8 @@ class Task(db.Model):
     last_message = db.Column(db.Text, nullable=True)
     run_count = db.Column(db.Integer, default=0)  # 运行次数
     success_count = db.Column(db.Integer, default=0)  # 成功次数
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=now)
+    updated_at = db.Column(db.DateTime, default=now, onupdate=now)
 
     # 关系 - 移除instance_id，任务按数据库类型匹配实例
 

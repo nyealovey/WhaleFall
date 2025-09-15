@@ -5,6 +5,8 @@
 import os
 from datetime import datetime, timedelta
 
+from app.utils.timezone import now
+
 from app import create_app, db
 from app.models.account_change_log import AccountChangeLog
 from app.models.current_account_sync_data import CurrentAccountSyncData
@@ -22,7 +24,7 @@ def cleanup_old_logs():
     with app.app_context():
         try:
             # 删除30天前的日志
-            cutoff_date = datetime.utcnow() - timedelta(days=30)
+            cutoff_date = now() - timedelta(days=30)
             deleted_logs = Log.query.filter(Log.created_at < cutoff_date).delete()
 
             # 清理临时文件

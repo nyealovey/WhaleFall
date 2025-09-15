@@ -18,7 +18,7 @@ from flask_login import current_user
 
 from app import db
 from app.models.unified_log import LogLevel, UnifiedLog
-from app.utils.timezone import now
+from app.utils.time_utils import time_utils
 
 # 请求上下文变量
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
@@ -68,7 +68,7 @@ class SQLAlchemyLogHandler:
                                     log_entry["timestamp"].replace("Z", "+00:00")
                                 )
                             except ValueError:
-                                log_entry["timestamp"] = now()
+                                log_entry["timestamp"] = time_utils.now()
 
                         # 创建并保存日志条目
                         unified_log = UnifiedLog.create_log_entry(**log_entry)
@@ -97,7 +97,7 @@ class SQLAlchemyLogHandler:
                         "module": "unknown",
                         "message": event_dict,
                         "context": {},
-                        "timestamp": now(),
+                        "timestamp": time_utils.now(),
                     }
                 return None
 
@@ -123,12 +123,12 @@ class SQLAlchemyLogHandler:
                 message = event_dict.get("message", "")
 
             # 获取时间戳，使用东八区时间
-            timestamp = event_dict.get("timestamp", now())
+            timestamp = event_dict.get("timestamp", time_utils.now())
             if isinstance(timestamp, str):
                 try:
                     timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
                 except ValueError:
-                    timestamp = now()
+                    timestamp = time_utils.now()
 
             # 提取堆栈追踪
             traceback = None
@@ -243,7 +243,7 @@ class SQLAlchemyLogHandler:
                         try:
                             log_data["timestamp"] = datetime.fromisoformat(log_data["timestamp"].replace("Z", "+00:00"))
                         except ValueError:
-                            log_data["timestamp"] = now()
+                            log_data["timestamp"] = time_utils.now()
 
                     log_entry = UnifiedLog.create_log_entry(**log_data)
                     log_entries.append(log_entry)

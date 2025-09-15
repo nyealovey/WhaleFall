@@ -6,6 +6,8 @@
 from datetime import datetime
 from typing import Any
 
+from app.utils.time_utils import time_utils
+
 from app import db
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
@@ -343,8 +345,8 @@ class SyncSessionService:
 
             if session.status == "running":
                 session.status = "cancelled"
-                session.completed_at = datetime.utcnow()
-                session.updated_at = datetime.utcnow()
+                session.completed_at = time_utils.now()
+                session.updated_at = time_utils.now()
                 db.session.commit()
 
                 self.sync_logger.info("取消同步会话", module="sync_session", session_id=session_id)
