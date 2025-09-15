@@ -198,7 +198,8 @@ class SyncDataManager:
                     Host as host,
                     Super_priv as is_superuser,
                     Grant_priv as can_grant,
-                    account_locked as is_locked
+                    account_locked as is_locked,
+                    plugin as plugin
                 FROM mysql.user
                 WHERE User != '' AND {where_clause}
             """
@@ -208,7 +209,7 @@ class SyncDataManager:
 
             accounts = []
             for row in users:
-                username, host, is_superuser, can_grant, is_locked = row
+                username, host, is_superuser, can_grant, is_locked, plugin = row
 
                 # 获取全局权限
                 grants = conn.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
@@ -242,6 +243,7 @@ class SyncDataManager:
                 accounts.append(
                     {
                         "username": username,
+                        "plugin": plugin,
                         "permissions": {
                             "global_privileges": global_privileges,
                             "database_privileges": database_privileges,
@@ -249,6 +251,7 @@ class SyncDataManager:
                                 "host": host,
                                 "can_grant": can_grant == "Y",
                                 "is_locked": is_locked == "Y",
+                                "plugin": plugin,
                             },
                         },
                         "is_superuser": is_superuser == "Y",

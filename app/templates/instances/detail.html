@@ -231,7 +231,6 @@
                                 {% if instance.db_type == 'mysql' %}
                                 <th>名称</th>
                                 <th>插件</th>
-                                <th>密码最后修改</th>
                                 <th>锁定状态</th>
                                 <th>超级用户</th>
                                 <th>最后变更时间</th>
@@ -284,17 +283,11 @@
                                     </div>
                                 </td>
                                 <td>
-                                    {% if account.plugin %}
-                                        <span class="badge bg-secondary">{{ account.plugin }}</span>
+                                    {% set plugin = account.type_specific.get('plugin') if account.type_specific else None %}
+                                    {% if plugin %}
+                                        <span class="badge bg-secondary">{{ plugin }}</span>
                                     {% else %}
                                         <span class="text-muted">未知</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if account.password_last_changed %}
-                                        <small class="text-muted">{{ account.password_last_changed | china_datetime }}</small>
-                                    {% else %}
-                                        <small class="text-muted">未知</small>
                                     {% endif %}
                                 </td>
                                 <td>
