@@ -1090,25 +1090,8 @@ class SyncDataManager:
                 },
             }
 
-        # 检测type_specific字段中的权限相关变更（忽略非权限字段）
-        old_type_specific = account.type_specific or {}
-        new_type_specific = new_permissions.get("type_specific", {})
-        
-        # 只检测权限相关的字段
-        permission_fields = ["can_grant"]  # 只检测权限相关字段，锁定状态不是权限
-        type_specific_changes = {}
-        
-        for field in permission_fields:
-            old_value = old_type_specific.get(field)
-            new_value = new_type_specific.get(field)
-            if old_value != new_value:
-                type_specific_changes[field] = {
-                    "old": old_value,
-                    "new": new_value,
-                }
-        
-        if type_specific_changes:
-            changes["type_specific"] = type_specific_changes
+        # MySQL的权限字段已在主逻辑中检测，type_specific中不包含权限字段
+        # 因此不需要检测type_specific中的权限变更
 
         return changes
 
@@ -1176,25 +1159,8 @@ class SyncDataManager:
                 "removed": list(old_sys_perms - new_sys_perms),
             }
 
-        # 检测type_specific字段中的权限相关变更（忽略非权限字段）
-        old_type_specific = account.type_specific or {}
-        new_type_specific = new_permissions.get("type_specific", {})
-        
-        # 只检测权限相关的字段
-        permission_fields = []  # PostgreSQL没有权限相关字段在type_specific中
-        type_specific_changes = {}
-        
-        for field in permission_fields:
-            old_value = old_type_specific.get(field)
-            new_value = new_type_specific.get(field)
-            if old_value != new_value:
-                type_specific_changes[field] = {
-                    "old": old_value,
-                    "new": new_value,
-                }
-        
-        if type_specific_changes:
-            changes["type_specific"] = type_specific_changes
+        # PostgreSQL的权限字段已在主逻辑中检测，type_specific中不包含权限字段
+        # 因此不需要检测type_specific中的权限变更
 
         return changes
 
@@ -1251,25 +1217,8 @@ class SyncDataManager:
                 },
             }
 
-        # 检测type_specific字段中的权限相关变更（忽略非权限字段）
-        old_type_specific = account.type_specific or {}
-        new_type_specific = new_permissions.get("type_specific", {})
-        
-        # 只检测权限相关的字段
-        permission_fields = []  # SQL Server没有权限相关字段在type_specific中
-        type_specific_changes = {}
-        
-        for field in permission_fields:
-            old_value = old_type_specific.get(field)
-            new_value = new_type_specific.get(field)
-            if old_value != new_value:
-                type_specific_changes[field] = {
-                    "old": old_value,
-                    "new": new_value,
-                }
-        
-        if type_specific_changes:
-            changes["type_specific"] = type_specific_changes
+        # SQL Server的权限字段已在主逻辑中检测，type_specific中不包含权限字段
+        # 因此不需要检测type_specific中的权限变更
 
         return changes
 
@@ -1305,25 +1254,8 @@ class SyncDataManager:
                 "removed": list(old_tablespace_perms - new_tablespace_perms),
             }
 
-        # 检测type_specific字段中的权限相关变更（忽略非权限字段）
-        old_type_specific = account.type_specific or {}
-        new_type_specific = new_permissions.get("type_specific", {})
-        
-        # 只检测权限相关的字段
-        permission_fields = []  # Oracle没有权限相关字段在type_specific中
-        type_specific_changes = {}
-        
-        for field in permission_fields:
-            old_value = old_type_specific.get(field)
-            new_value = new_type_specific.get(field)
-            if old_value != new_value:
-                type_specific_changes[field] = {
-                    "old": old_value,
-                    "new": new_value,
-                }
-        
-        if type_specific_changes:
-            changes["type_specific"] = type_specific_changes
+        # Oracle的权限字段已在主逻辑中检测，type_specific中不包含权限字段
+        # 因此不需要检测type_specific中的权限变更
 
         return changes
 
