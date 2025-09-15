@@ -105,13 +105,7 @@ def api_get_session_detail(session_id):
         session_data["instance_records"] = records_data
         session_data["progress_percentage"] = session.get_progress_percentage()
 
-        log_info(
-            "获取同步会话详情",
-            module="sync_sessions",
-            user_id=current_user.id,
-            session_id=session_id,
-            record_count=len(records_data),
-        )
+        # 移除用户查看操作的日志记录
 
         return jsonify({"success": True, "data": session_data})
 

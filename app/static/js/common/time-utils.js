@@ -27,7 +27,8 @@ const formatters = {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: false
+        hour12: false,
+        formatMatcher: 'basic'
     }),
     date: new Intl.DateTimeFormat(LOCALE, {
         timeZone: TIMEZONE,
@@ -57,6 +58,27 @@ window.formatTime = function(timestamp, type = 'datetime') {
     try {
         const date = new Date(timestamp);
         if (isNaN(date.getTime())) return '-';
+        
+        // 使用自定义格式化确保使用 - 分隔符
+        if (type === 'datetime') {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        } else if (type === 'date') {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        } else if (type === 'time') {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
         
         return formatters[type].format(date);
     } catch (e) {
