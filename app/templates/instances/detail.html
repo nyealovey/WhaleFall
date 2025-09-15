@@ -255,15 +255,12 @@
                                 <th style="width: 20%;">操作</th>
                                 {% elif instance.db_type == 'oracle' %}
                                 <th style="width: 8%;">ID</th>
-                                <th style="width: 8%;">Oracle ID</th>
-                                <th style="width: 18%;">用户名</th>
-                                <th style="width: 7%;">状态</th>
-                                <th style="width: 10%;">锁定日期</th>
-                                <th style="width: 10%;">过期日期</th>
-                                <th style="width: 7%;">超级用户</th>
-                                <th style="width: 8%;">删除状态</th>
-                                <th style="width: 10%;">最后变更时间</th>
-                                <th style="width: 18%;">操作</th>
+                                <th style="width: 30%;">用户名</th>
+                                <th style="width: 10%;">状态</th>
+                                <th style="width: 10%;">超级用户</th>
+                                <th style="width: 10%;">删除状态</th>
+                                <th style="width: 15%;">最后变更时间</th>
+                                <th style="width: 17%;">操作</th>
                                 {% else %}
                                 <th>名称</th>
                                 <th>用户</th>
@@ -475,13 +472,6 @@
                                     </span>
                                 </td>
                                 <td>
-                                    {% if account.user_id is not none %}
-                                        <span class="badge bg-info">{{ account.user_id }}</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">N/A</span>
-                                    {% endif %}
-                                </td>
-                                <td>
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-user text-primary me-2"></i>
                                         <strong>{{ account.username }}</strong>
@@ -500,26 +490,6 @@
                                         <span class="badge bg-secondary">
                                             <i class="fas fa-times-circle me-1"></i>禁用
                                         </span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if account.lock_date %}
-                                        <small class="text-muted">
-                                            <i class="fas fa-calendar-times me-1"></i>
-                                            {{ account.lock_date.strftime('%Y-%m-%d %H:%M') }}
-                                        </small>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if account.expiry_date %}
-                                        <small class="text-muted">
-                                            <i class="fas fa-calendar-alt me-1"></i>
-                                            {{ account.expiry_date.strftime('%Y-%m-%d %H:%M') }}
-                                        </small>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
                                 <td>
