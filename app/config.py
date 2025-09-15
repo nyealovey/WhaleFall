@@ -1,5 +1,6 @@
 """
-泰摸鱼吧 - 应用配置
+泰摸鱼吧 - 开发环境配置
+简化配置管理，只保留开发环境
 """
 
 import os
@@ -9,12 +10,13 @@ from app.constants import DefaultConfig, SystemConstants
 
 
 class Config:
-    """基础配置类"""
+    """开发环境配置类"""
 
     # 基础配置
-
-    SECRET_KEY = os.getenv("SECRET_KEY", DefaultConfig.SECRET_KEY)
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", DefaultConfig.JWT_SECRET_KEY)
+    DEBUG = True
+    TESTING = False
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-change-in-production")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
         seconds=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", SystemConstants.JWT_ACCESS_TOKEN_EXPIRES))
     )
@@ -36,7 +38,7 @@ class Config:
         "pool_timeout": SystemConstants.CONNECTION_TIMEOUT,
         "max_overflow": 10,
         "pool_size": SystemConstants.MAX_CONNECTIONS,
-        "echo": False,  # 生产环境设为False
+        "echo": False,  # 开发环境设为False
     }
 
     # Redis配置
@@ -46,8 +48,6 @@ class Config:
 
     # 安全配置
     BCRYPT_LOG_ROUNDS = int(os.getenv("BCRYPT_LOG_ROUNDS", SystemConstants.PASSWORD_HASH_ROUNDS))
-
-    # 临时禁用CSRF用于测试
     WTF_CSRF_ENABLED = True
 
     # 文件上传配置
@@ -91,55 +91,8 @@ class Config:
     BACKUP_RETENTION_DAYS = int(os.getenv("BACKUP_RETENTION_DAYS", 30))
 
 
-class DevelopmentConfig(Config):
-    """开发环境配置"""
-
-    DEBUG = True
-    TESTING = False
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "postgresql://taifish_user:taifish_pass@localhost:5432/taifish_dev",
-    )
-    CACHE_REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-
-
-class ProductionConfig(Config):
-    """生产环境配置"""
-
-    DEBUG = False
-    TESTING = False
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "postgresql://taifish_user:taifish_pass@localhost:5432/taifish_prod",
-    )
-    CACHE_REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-
-    # 生产环境安全配置
-    BCRYPT_LOG_ROUNDS = 15
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
-
-
-class TestingConfig(Config):
-    """测试环境配置"""
-
-    DEBUG = True
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "TEST_DATABASE_URL",
-        "postgresql://taifish_user:taifish_pass@localhost:5432/taifish_test",
-    )
-    CACHE_REDIS_URL = os.getenv("TEST_REDIS_URL", "redis://localhost:6379/1")
-
-    # 测试环境配置
-    WTF_CSRF_ENABLED = True
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=5)
-
-
-# 配置字典
+# 简化配置字典，只保留开发环境
 config = {
-    "development": DevelopmentConfig,
-    "production": ProductionConfig,
-    "testing": TestingConfig,
-    "default": DevelopmentConfig,
+    "development": Config,
+    "default": Config,
 }
