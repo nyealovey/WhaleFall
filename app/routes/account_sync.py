@@ -67,7 +67,7 @@ def sync_records() -> str | Response:
 
     # 分离需要聚合的记录和单独显示的记录
     # task类型的记录已经是聚合记录，不需要再次聚合
-    batch_records = [r for r in all_records if r.sync_type == "batch"]
+    batch_records = [r for r in all_records if r.sync_type in ["batch", "manual_batch"]]
     task_records = [r for r in all_records if r.sync_type == "task"]
     manual_records = [r for r in all_records if r.sync_type == "manual"]
 
@@ -90,33 +90,43 @@ def sync_records() -> str | Response:
 
     for record in batch_records:
         # 使用分钟级精度作为分组键，相同分钟的同步记录为一组
-        time_key = record.sync_time.strftime("%Y-%m-%d %H:%M")
+        time_key = record.created_at.strftime("%Y-%m-%d %H:%M")
 
-        # 按实例去重，只计算每个实例的最新记录
-        instance_key = f"{time_key}_{record.instance_id}"
-        if instance_key not in grouped[time_key].get("instance_tracker", {}):
-            if "instance_tracker" not in grouped[time_key]:
-                grouped[time_key]["instance_tracker"] = {}
+        # 从关联的实例记录中获取详细统计和状态
+        total_accounts = 0
+        added_count = 0
+        removed_count = 0
+        modified_count = 0
+        success_count = 0
+        failed_count = 0
+        
+        # 从关联的实例记录中获取详细统计
+        instance_records = record.instance_records.all()  # 执行查询获取实际记录
+        for instance_record in instance_records:
+            total_accounts += instance_record.accounts_synced or 0
+            added_count += instance_record.accounts_created or 0
+            removed_count += instance_record.accounts_deleted or 0
+            modified_count += instance_record.accounts_updated or 0
+            
+            # 统计成功和失败的实例数量
+            if instance_record.status == "completed":
+                success_count += 1
+            elif instance_record.status == "failed":
+                failed_count += 1
 
-            grouped[time_key]["instance_tracker"][instance_key] = record
-            grouped[time_key]["total_instances"] += 1
+        grouped[time_key]["total_instances"] = len(instance_records)
+        grouped[time_key]["success_count"] = success_count
+        grouped[time_key]["failed_count"] = failed_count
+        grouped[time_key]["total_accounts"] = total_accounts
+        grouped[time_key]["added_count"] = added_count
+        grouped[time_key]["removed_count"] = removed_count
+        grouped[time_key]["modified_count"] = modified_count
 
-            if record.status == "success":
-                grouped[time_key]["success_count"] += 1
-            else:
-                grouped[time_key]["failed_count"] += 1
+        if record.sync_type not in grouped[time_key]["sync_types"]:
+            grouped[time_key]["sync_types"].append(record.sync_type)
 
-            # 只累加一次每个实例的数量
-            grouped[time_key]["total_accounts"] += record.synced_count or 0
-            grouped[time_key]["added_count"] += record.added_count or 0
-            grouped[time_key]["removed_count"] += record.removed_count or 0
-            grouped[time_key]["modified_count"] += record.modified_count or 0
-
-            if record.sync_type not in grouped[time_key]["sync_types"]:
-                grouped[time_key]["sync_types"].append(record.sync_type)
-
-            if not grouped[time_key]["created_at"] or record.sync_time > grouped[time_key]["created_at"]:
-                grouped[time_key]["created_at"] = record.sync_time
+        if not grouped[time_key]["created_at"] or record.created_at > grouped[time_key]["created_at"]:
+            grouped[time_key]["created_at"] = record.created_at
 
         # 始终添加记录到sync_records，用于详情显示
         grouped[time_key]["sync_records"].append(record)
@@ -125,7 +135,7 @@ def sync_records() -> str | Response:
     aggregated_records = []
     for time_key, data in sorted(grouped.items(), key=lambda x: x[1]["created_at"], reverse=True):
         # 使用最新记录的时间作为显示时间
-        latest_time = max(record.sync_time for record in data["sync_records"])
+        latest_time = max(record.created_at for record in data["sync_records"])
 
         # 确定同步类型显示文本 - 直接显示原始值
         sync_types = data["sync_types"]
@@ -137,7 +147,7 @@ def sync_records() -> str | Response:
         # 创建聚合记录对象
         class AggregatedRecord:
             def __init__(self, data: dict[str, Any], latest_time: Any, sync_type_display: str) -> None:
-                self.sync_time = latest_time
+                self.created_at = latest_time
                 self.sync_type = sync_type_display
                 self.status = "success" if data["failed_count"] == 0 else "failed"
                 self.synced_count = data["total_accounts"]
@@ -171,7 +181,7 @@ def sync_records() -> str | Response:
     all_display_records = aggregated_records + manual_records + task_records
 
     # 按时间排序
-    all_display_records.sort(key=lambda x: x.sync_time, reverse=True)
+    all_display_records.sort(key=lambda x: x.created_at, reverse=True)
 
     # 手动分页
     start_idx = (page - 1) * per_page
@@ -218,8 +228,8 @@ def sync_records() -> str | Response:
                         record.to_dict()
                         if hasattr(record, "to_dict")
                         else {
-                            "id": getattr(record, "id", f"batch_{hash(str(record.sync_time))}"),
-                            "sync_time": (record.sync_time.isoformat() if record.sync_time else None),
+                            "id": getattr(record, "id", f"batch_{hash(str(record.created_at))}"),
+                            "sync_time": (record.created_at.isoformat() if record.created_at else None),
                             "sync_type": record.sync_type,
                             "status": record.status,
                             "message": record.message,
@@ -481,36 +491,23 @@ def sync_details_batch() -> str | Response | tuple[Response, int]:
         instance_records = {}
 
         for record in records:
-            if record.instance_id is None:
-                # 聚合记录：从data.results中提取每个实例的详细信息
-                if record.data and "results" in record.data:
-                    for result in record.data["results"]:
-                        instance_name = result.get("instance_name", "未知实例")
-                        instance_records[instance_name] = {
-                            "id": record.id,
-                            "instance_name": instance_name,
-                            "status": ("success" if result.get("success", False) else "failed"),
-                            "message": result.get("message", ""),
-                            "synced_count": result.get("synced_count", 0),
-                            "sync_time": record.sync_time,
-                        }
-            else:
-                # 单个实例记录
-                instance = Instance.query.get(record.instance_id)
+            # SyncSession是会话级别的记录，通过instance_records关系获取实例详情
+            for instance_record in record.instance_records.all():
+                instance = Instance.query.get(instance_record.instance_id)
                 instance_name = instance.name if instance else "未知实例"
 
                 # 如果这个实例还没有记录，或者当前记录更新，则保存
                 if (
                     instance_name not in instance_records
-                    or record.sync_time > instance_records[instance_name]["sync_time"]
+                    or instance_record.created_at > instance_records[instance_name]["sync_time"]
                 ):
                     instance_records[instance_name] = {
-                        "id": record.id,
+                        "id": instance_record.id,
                         "instance_name": instance_name,
-                        "status": record.status,
-                        "message": record.message,
-                        "synced_count": record.synced_count,
-                        "sync_time": record.sync_time,
+                        "status": instance_record.status,
+                        "message": instance_record.error_message or "",
+                        "synced_count": instance_record.accounts_synced or 0,
+                        "sync_time": instance_record.created_at,
                     }
 
         # 转换为列表并按实例名称排序

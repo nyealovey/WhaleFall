@@ -182,28 +182,6 @@
             </div>
         </div>
 
-        <!-- 统计信息 -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-chart-bar me-2"></i>统计信息
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-6">
-                        <div class="border-end">
-                            <h4 class="text-primary mb-1">{{ accounts|length }}</h4>
-                            <small class="text-muted">账户数量</small>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <h4 class="text-success mb-1">{{ instance.sync_count or 0 }}</h4>
-                        <small class="text-muted">同步次数</small>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- 连接测试结果 -->
         <div class="card" id="testResult" style="display: none;">
@@ -229,6 +207,22 @@
                 </h5>
             </div>
             <div class="card-body">
+                <!-- 账户显示控制 -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="showDeletedAccounts" 
+                                   onchange="toggleDeletedAccounts()">
+                            <label class="form-check-label" for="showDeletedAccounts">
+                                <i class="fas fa-eye-slash me-1"></i>显示已删除账户
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <span class="badge bg-primary" id="accountCount">共 {{ accounts|length }} 个账户</span>
+                    </div>
+                </div>
+                
                 {% if accounts|length > 0 %}
                 <div class="table-responsive">
                     <table class="table table-hover">
@@ -239,17 +233,21 @@
                                 <th>插件</th>
                                 <th>密码最后修改</th>
                                 <th>锁定状态</th>
+                                <th>超级用户</th>
+                                <th>最后变更时间</th>
                                 <th>操作</th>
                                 {% elif instance.db_type == 'sqlserver' %}
                                 <th>登录名</th>
-                                <th>类型</th>
-                                <th>创建时间</th>
-                                <th>最后修改</th>
+                                <th>密码修改时间</th>
                                 <th>状态</th>
+                                <th>超级用户</th>
+                                <th>最后变更时间</th>
                                 <th>操作</th>
                                 {% elif instance.db_type == 'postgresql' %}
                                 <th>角色名</th>
                                 <th>状态</th>
+                                <th>超级用户</th>
+                                <th>最后变更时间</th>
                                 <th>操作</th>
                                 {% elif instance.db_type == 'oracle' %}
                                 <th>Oracle ID</th>
@@ -260,6 +258,8 @@
                                 <th>过期日期</th>
                                 <th>默认表空间</th>
                                 <th>创建时间</th>
+                                <th>超级用户</th>
+                                <th>最后变更时间</th>
                                 <th>操作</th>
                                 {% else %}
                                 <th>名称</th>
@@ -274,7 +274,8 @@
                         </thead>
                         <tbody>
                             {% for account in accounts %}
-                            <tr>
+                            <tr class="account-row" data-account-id="{{ account.id }}" 
+                                {% if account.is_deleted %}style="opacity: 0.6; background-color: #f8f9fa;"{% endif %}>
                                 {% if instance.db_type == 'mysql' %}
                                 <td>
                                     <div class="d-flex align-items-center">
@@ -304,12 +305,31 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {% if account.is_superuser %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-crown me-1"></i>是
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">否</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if account.last_change_time %}
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ account.last_change_time | china_datetime }}
+                                        </small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})">
-                                            <i class="fas fa-eye me-1"></i>查看权限
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})" title="查看权限">
+                                            <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})">
-                                            <i class="fas fa-history me-1"></i>查看变更记录
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
+                                            <i class="fas fa-history"></i>
                                         </button>
                                     </div>
                                 </td>
@@ -321,20 +341,13 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-info">{{ account.account_type or '未知' }}</span>
-                                </td>
-                                <td>
-                                    {% if account.account_created_at %}
-                                        <small class="text-muted">{{ account.account_created_at | china_datetime }}</small>
-                                    {% else %}
-                                        <small class="text-muted">未知</small>
-                                    {% endif %}
-                                </td>
-                                <td>
                                     {% if account.password_last_changed %}
-                                        <small class="text-muted">{{ account.password_last_changed | china_datetime }}</small>
+                                        <small class="text-muted">
+                                            <i class="fas fa-key me-1"></i>
+                                            {{ account.password_last_changed | china_datetime }}
+                                        </small>
                                     {% else %}
-                                        <small class="text-muted">未知</small>
+                                        <span class="text-muted">未知</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -345,12 +358,31 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {% if account.is_superuser %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-crown me-1"></i>是
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">否</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if account.last_change_time %}
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ account.last_change_time | china_datetime }}
+                                        </small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})">
-                                            <i class="fas fa-eye me-1"></i>查看权限
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})" title="查看权限">
+                                            <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})">
-                                            <i class="fas fa-history me-1"></i>查看变更记录
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
+                                            <i class="fas fa-history"></i>
                                         </button>
                                     </div>
                                 </td>
@@ -369,12 +401,31 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {% if account.is_superuser %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-crown me-1"></i>是
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">否</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if account.last_change_time %}
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ account.last_change_time | china_datetime }}
+                                        </small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})">
-                                            <i class="fas fa-eye me-1"></i>查看权限
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})" title="查看权限">
+                                            <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})">
-                                            <i class="fas fa-history me-1"></i>查看变更记录
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
+                                            <i class="fas fa-history"></i>
                                         </button>
                                     </div>
                                 </td>
@@ -452,12 +503,31 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {% if account.is_superuser %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-crown me-1"></i>是
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">否</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if account.last_change_time %}
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ account.last_change_time | china_datetime }}
+                                        </small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})">
-                                            <i class="fas fa-eye me-1"></i>查看权限
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})" title="查看权限">
+                                            <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})">
-                                            <i class="fas fa-history me-1"></i>查看变更记录
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
+                                            <i class="fas fa-history"></i>
                                         </button>
                                     </div>
                                 </td>
@@ -509,11 +579,11 @@
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})">
-                                            <i class="fas fa-eye me-1"></i>查看权限
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})" title="查看权限">
+                                            <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})">
-                                            <i class="fas fa-history me-1"></i>查看变更记录
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
+                                            <i class="fas fa-history"></i>
                                         </button>
                                     </div>
                                 </td>
@@ -860,6 +930,42 @@ function viewAccountChangeHistory(accountId) {
 }
 
 // showPermissionsModal 函数现在由 permission-modal.js 提供
+
+// 切换已删除账户显示
+function toggleDeletedAccounts() {
+   const checkbox = document.getElementById('showDeletedAccounts');
+   const accountRows = document.querySelectorAll('.account-row');
+   const accountCount = document.getElementById('accountCount');
+   
+   let visibleCount = 0;
+   
+   accountRows.forEach(row => {
+       const isDeleted = row.style.opacity === '0.6';
+       
+       if (checkbox.checked) {
+           // 显示所有账户（包括已删除的）
+           row.style.display = '';
+           visibleCount++;
+       } else {
+           // 只显示非已删除账户
+           if (isDeleted) {
+               row.style.display = 'none';
+           } else {
+               row.style.display = '';
+               visibleCount++;
+           }
+       }
+   });
+   
+   // 更新账户计数
+   accountCount.textContent = `共 ${visibleCount} 个账户`;
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+   // 默认隐藏已删除账户
+   toggleDeletedAccounts();
+});
 
 function showAlert(type, message) {
     const alertDiv = document.createElement('div');

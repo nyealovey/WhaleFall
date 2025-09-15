@@ -44,7 +44,8 @@ def test_timezone():
         print(f"转换为东八区时间: {china_time}")
 
         # 3. 测试带时区的UTC时间
-        utc_time_with_tz = pytz.utc.localize(utc_time)
+        from zoneinfo import ZoneInfo
+        utc_time_with_tz = utc_time.replace(tzinfo=ZoneInfo("UTC"))
         print(f"\n带时区的UTC时间: {utc_time_with_tz}")
         print(f"时区信息: {utc_time_with_tz.tzinfo}")
 

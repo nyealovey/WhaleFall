@@ -241,8 +241,8 @@ def get_log_trend_data() -> dict:
             date = start_date + timedelta(days=i)
 
             # 计算该日期的UTC时间范围（东八区转UTC）
-            start_utc = china_to_utc(CHINA_TZ.localize(datetime.combine(date, datetime.min.time())))
-            end_utc = china_to_utc(CHINA_TZ.localize(datetime.combine(date, datetime.max.time())))
+            start_utc = china_to_utc(datetime.combine(date, datetime.min.time()).replace(tzinfo=CHINA_TZ))
+            end_utc = china_to_utc(datetime.combine(date, datetime.max.time()).replace(tzinfo=CHINA_TZ))
 
             # 分别统计错误日志和告警日志
             error_count = Log.query.filter(

@@ -456,10 +456,13 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
     """实例详情"""
     instance = Instance.query.get_or_404(instance_id)
 
+    # 获取查询参数
+    include_deleted = request.args.get('include_deleted', 'false').lower() == 'true'
+
     # 获取账户数据 - 使用新的优化同步模型
     from app.services.sync_data_manager import SyncDataManager
 
-    sync_accounts = SyncDataManager.get_accounts_by_instance(instance_id, include_deleted=False)
+    sync_accounts = SyncDataManager.get_accounts_by_instance(instance_id, include_deleted=include_deleted)
 
     # 转换数据格式以适配模板
     accounts = []
@@ -480,6 +483,10 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
             "last_sync_time": sync_account.last_sync_time,
             "is_superuser": sync_account.is_superuser,
             "last_change_type": sync_account.last_change_type,
+            "last_change_time": sync_account.last_change_time,
+            "type_specific": sync_account.type_specific,
+            "is_deleted": sync_account.is_deleted,
+            "deleted_time": sync_account.deleted_time,
         }
         accounts.append(account_data)
 

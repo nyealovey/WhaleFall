@@ -197,7 +197,8 @@ class SyncDataManager:
                     User as username,
                     Host as host,
                     Super_priv as is_superuser,
-                    Grant_priv as can_grant
+                    Grant_priv as can_grant,
+                    account_locked as is_locked
                 FROM mysql.user
                 WHERE User != '' AND {where_clause}
             """
@@ -207,7 +208,7 @@ class SyncDataManager:
 
             accounts = []
             for row in users:
-                username, host, is_superuser, can_grant = row
+                username, host, is_superuser, can_grant, is_locked = row
 
                 # 获取全局权限
                 grants = conn.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
@@ -247,6 +248,7 @@ class SyncDataManager:
                             "type_specific": {
                                 "host": host,
                                 "can_grant": can_grant == "Y",
+                                "is_locked": is_locked == "Y",
                             },
                         },
                         "is_superuser": is_superuser == "Y",
@@ -276,7 +278,8 @@ class SyncDataManager:
                     rolcreaterole as can_create_role,
                     rolcreatedb as can_create_db,
                     rolreplication as can_replicate,
-                    rolbypassrls as can_bypass_rls
+                    rolbypassrls as can_bypass_rls,
+                    rolcanlogin as can_login
                 FROM pg_roles
                 WHERE {where_clause}
             """
@@ -286,10 +289,15 @@ class SyncDataManager:
 
             accounts = []
             for row in roles:
-                username, is_superuser, can_create_role, can_create_db, can_replicate, can_bypass_rls = row
+                username, is_superuser, can_create_role, can_create_db, can_replicate, can_bypass_rls, can_login = row
 
                 # 获取详细的权限信息
                 permissions = self._get_postgresql_permissions(conn, username, is_superuser)
+
+                # 将锁定状态添加到permissions的type_specific中
+                if "type_specific" not in permissions:
+                    permissions["type_specific"] = {}
+                permissions["type_specific"]["is_locked"] = not can_login
 
                 accounts.append(
                     {
@@ -448,6 +456,10 @@ class SyncDataManager:
                             "server_permissions": server_permissions,
                             "database_roles": database_roles,
                             "database_permissions": database_permissions,
+                            "type_specific": {
+                                "is_locked": is_disabled,  # SQL Server的is_disabled映射到is_locked
+                                "account_type": login_type,
+                            }
                         },
                         "is_superuser": is_superuser,
                     }
@@ -597,6 +609,17 @@ class SyncDataManager:
                 
                 # 获取用户权限信息
                 permissions = self._get_oracle_user_permissions(conn, username)
+
+                # 将账户状态添加到permissions的type_specific中
+                if "type_specific" not in permissions:
+                    permissions["type_specific"] = {}
+                
+                # 解析Oracle账户状态
+                is_locked = account_status in ['LOCKED', 'LOCKED(TIMED)', 'EXPIRED(GRACE)', 'EXPIRED']
+                permissions["type_specific"]["is_locked"] = is_locked
+                permissions["type_specific"]["account_status"] = account_status
+                permissions["type_specific"]["created"] = created.isoformat() if created else None
+                permissions["type_specific"]["expiry_date"] = expiry_date.isoformat() if expiry_date else None
 
                 accounts.append(
                     {

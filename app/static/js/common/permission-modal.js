@@ -353,9 +353,9 @@ function renderOraclePermissions(permissions) {
     return `
         <div class="mb-3">
             <h6><i class="fas fa-crown text-primary me-2"></i>角色</h6>
-            ${permissions.roles && Array.isArray(permissions.roles) && permissions.roles.length > 0 ? `
+            ${permissions.oracle_roles && Array.isArray(permissions.oracle_roles) && permissions.oracle_roles.length > 0 ? `
                 <div class="row">
-                    ${permissions.roles.map(role => `
+                    ${permissions.oracle_roles.map(role => `
                         <div class="col-md-6 mb-2">
                             <span class="badge bg-primary me-2">
                                 <i class="fas fa-crown me-1"></i>${role}
@@ -381,13 +381,20 @@ function renderOraclePermissions(permissions) {
         </div>
         <div class="mb-3">
             <h6><i class="fas fa-hdd text-info me-2"></i>表空间权限</h6>
-            ${permissions.tablespace_privileges && Array.isArray(permissions.tablespace_privileges) && permissions.tablespace_privileges.length > 0 ? `
+            ${permissions.tablespace_privileges_oracle && typeof permissions.tablespace_privileges_oracle === 'object' && Object.keys(permissions.tablespace_privileges_oracle).length > 0 ? `
                 <div class="row">
-                    ${permissions.tablespace_privileges.map(priv => `
-                        <div class="col-md-6 mb-2">
-                            <span class="badge bg-info me-2">
-                                <i class="fas fa-hdd me-1"></i>${priv}
-                            </span>
+                    ${Object.entries(permissions.tablespace_privileges_oracle).map(([tsName, privileges]) => `
+                        <div class="col-md-12 mb-2">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-info me-2">
+                                    <i class="fas fa-hdd me-1"></i>${tsName}
+                                </span>
+                                <div class="ms-2">
+                                    ${Array.isArray(privileges) ? privileges.map(priv => `
+                                        <span class="badge bg-light text-dark me-1">${priv}</span>
+                                    `).join('') : ''}
+                                </div>
+                            </div>
                         </div>
                     `).join('')}
                 </div>

@@ -43,8 +43,8 @@ def test_log_trend():
         from app.utils.timezone import CHINA_TZ, china_to_utc, get_china_today
 
         today = get_china_today().date()
-        start_utc = china_to_utc(CHINA_TZ.localize(datetime.combine(today, datetime.min.time())))
-        end_utc = china_to_utc(CHINA_TZ.localize(datetime.combine(today, datetime.max.time())))
+        start_utc = china_to_utc(datetime.combine(today, datetime.min.time()).replace(tzinfo=CHINA_TZ))
+        end_utc = china_to_utc(datetime.combine(today, datetime.max.time()).replace(tzinfo=CHINA_TZ))
 
         today_count = Log.query.filter(Log.created_at >= start_utc, Log.created_at <= end_utc).count()
 

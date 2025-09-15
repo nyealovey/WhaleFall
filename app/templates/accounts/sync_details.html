@@ -112,6 +112,97 @@
                     </div>
                     {% endif %}
                     
+                    {% if instance_records %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6><i class="fas fa-list me-2"></i>实例记录</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 20%;">实例名称</th>
+                                            <th style="width: 8%;">状态</th>
+                                            <th style="width: 25%;">同步详情</th>
+                                            <th style="width: 12%;">开始时间</th>
+                                            <th style="width: 12%;">完成时间</th>
+                                            <th style="width: 8%;">耗时</th>
+                                            <th style="width: 15%;">错误信息</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for ir in instance_records | sort(attribute='status', reverse=true) %}
+                                        <tr class="{% if ir.status == 'failed' %}table-danger{% elif ir.status == 'completed' %}table-success{% endif %}">
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-database text-primary me-2"></i>
+                                                    <div>
+                                                        <strong>{{ ir.instance_name or '未知实例' }}</strong>
+                                                        <br><small class="text-muted">ID: {{ ir.instance_id }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{% if ir.status == 'completed' %}success{% elif ir.status == 'failed' %}danger{% elif ir.status == 'running' %}warning{% else %}secondary{% endif %}">
+                                                    {% if ir.status == 'completed' %}已完成
+                                                    {% elif ir.status == 'failed' %}失败
+                                                    {% elif ir.status == 'running' %}运行中
+                                                    {% else %}{{ ir.status }}{% endif %}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="small">
+                                                    <span class="badge bg-info me-1">同步: {{ ir.accounts_synced or 0 }}</span>
+                                                    <span class="badge bg-success me-1">新增: {{ ir.accounts_created or 0 }}</span>
+                                                    <span class="badge bg-warning me-1">更新: {{ ir.accounts_updated or 0 }}</span>
+                                                    <span class="badge bg-danger">删除: {{ ir.accounts_deleted or 0 }}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {% if ir.started_at %}
+                                                        {{ ir.started_at | china_datetime }}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {% if ir.completed_at %}
+                                                        {{ ir.completed_at | china_datetime }}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {% if ir.started_at and ir.completed_at %}
+                                                        {{ ((ir.completed_at - ir.started_at).total_seconds()) | round(0) | int }}秒
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                {% if ir.error_message %}
+                                                    <small class="text-danger" title="{{ ir.error_message }}">
+                                                        <i class="fas fa-exclamation-triangle"></i>
+                                                        {{ ir.error_message[:20] }}{% if ir.error_message|length > 20 %}...{% endif %}
+                                                    </small>
+                                                {% else %}
+                                                    <small class="text-muted">-</small>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
                     {% if record.details %}
                     <div class="row mt-3">
                         <div class="col-12">
