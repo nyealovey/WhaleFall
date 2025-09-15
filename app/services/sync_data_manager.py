@@ -638,8 +638,121 @@ class SyncDataManager:
             system_privs = conn.execute_query(system_privs_sql, {"username": username})
             permissions["system_privileges"] = [priv[0] for priv in system_privs] if system_privs else []
             
-            # 表空间权限暂时跳过，因为dba_ts_quotas视图可能不存在
-            # 后续可以根据实际需要添加其他表空间权限查询
+            # 获取表空间权限
+            # 1. 检查是否有UNLIMITED TABLESPACE系统权限
+            if 'UNLIMITED TABLESPACE' in permissions["system_privileges"]:
+                # 如果有UNLIMITED TABLESPACE权限，设置通用表空间权限
+                # 由于无法访问dba_*视图，我们设置一个通用的表空间权限标识
+                permissions["tablespace_privileges"]["ALL_TABLESPACES"] = ["UNLIMITED"]
+                self.sync_logger.debug(f"用户 {username} 具有UNLIMITED TABLESPACE权限")
+            
+            # 2. 尝试获取具体的表空间配额信息
+            try:
+                # 尝试使用dba_ts_quotas（需要DBA权限）
+                ts_quota_sql = """
+                    SELECT tablespace_name, 
+                           CASE 
+                               WHEN max_bytes = -1 THEN 'UNLIMITED'
+                               ELSE 'QUOTA'
+                           END as privilege
+                    FROM dba_ts_quotas 
+                    WHERE username = :username
+                """
+                ts_quota_privs = conn.execute_query(ts_quota_sql, {"username": username})
+                if ts_quota_privs:
+                    for ts_name, privilege in ts_quota_privs:
+                        if ts_name not in permissions["tablespace_privileges"]:
+                            permissions["tablespace_privileges"][ts_name] = []
+                        if privilege not in permissions["tablespace_privileges"][ts_name]:
+                            permissions["tablespace_privileges"][ts_name].append(privilege)
+            except Exception as e:
+                # 如果dba_ts_quotas不可用，尝试使用user_ts_quotas
+                try:
+                    user_quota_sql = """
+                        SELECT tablespace_name, 
+                               CASE 
+                                   WHEN max_bytes = -1 THEN 'UNLIMITED'
+                                   ELSE 'QUOTA'
+                               END as privilege
+                        FROM user_ts_quotas
+                    """
+                    user_quota_privs = conn.execute_query(user_quota_sql)
+                    if user_quota_privs:
+                        for ts_name, privilege in user_quota_privs:
+                            if ts_name not in permissions["tablespace_privileges"]:
+                                permissions["tablespace_privileges"][ts_name] = []
+                            if privilege not in permissions["tablespace_privileges"][ts_name]:
+                                permissions["tablespace_privileges"][ts_name].append(privilege)
+                except Exception as e2:
+                    self.sync_logger.debug(f"无法获取表空间配额信息: {e2}")
+            
+            # 3. 尝试获取用户在表空间中的对象权限
+            try:
+                # 尝试使用dba_tables（需要DBA权限）
+                user_tables_sql = """
+                    SELECT DISTINCT tablespace_name, 'OWNER' as privilege
+                    FROM dba_tables 
+                    WHERE owner = :username
+                    AND tablespace_name IS NOT NULL
+                """
+                user_tables = conn.execute_query(user_tables_sql, {"username": username})
+                if user_tables:
+                    for ts_name, privilege in user_tables:
+                        if ts_name not in permissions["tablespace_privileges"]:
+                            permissions["tablespace_privileges"][ts_name] = []
+                        if privilege not in permissions["tablespace_privileges"][ts_name]:
+                            permissions["tablespace_privileges"][ts_name].append(privilege)
+            except Exception as e:
+                # 如果dba_tables不可用，尝试使用user_tables
+                try:
+                    user_tables_sql = """
+                        SELECT DISTINCT tablespace_name, 'OWNER' as privilege
+                        FROM user_tables 
+                        WHERE tablespace_name IS NOT NULL
+                    """
+                    user_tables = conn.execute_query(user_tables_sql)
+                    if user_tables:
+                        for ts_name, privilege in user_tables:
+                            if ts_name not in permissions["tablespace_privileges"]:
+                                permissions["tablespace_privileges"][ts_name] = []
+                            if privilege not in permissions["tablespace_privileges"][ts_name]:
+                                permissions["tablespace_privileges"][ts_name].append(privilege)
+                except Exception as e2:
+                    self.sync_logger.debug(f"无法获取用户表空间对象权限: {e2}")
+            
+            # 4. 尝试获取用户在表空间中的索引权限
+            try:
+                # 尝试使用dba_indexes（需要DBA权限）
+                user_indexes_sql = """
+                    SELECT DISTINCT tablespace_name, 'INDEX_OWNER' as privilege
+                    FROM dba_indexes 
+                    WHERE owner = :username
+                    AND tablespace_name IS NOT NULL
+                """
+                user_indexes = conn.execute_query(user_indexes_sql, {"username": username})
+                if user_indexes:
+                    for ts_name, privilege in user_indexes:
+                        if ts_name not in permissions["tablespace_privileges"]:
+                            permissions["tablespace_privileges"][ts_name] = []
+                        if privilege not in permissions["tablespace_privileges"][ts_name]:
+                            permissions["tablespace_privileges"][ts_name].append(privilege)
+            except Exception as e:
+                # 如果dba_indexes不可用，尝试使用user_indexes
+                try:
+                    user_indexes_sql = """
+                        SELECT DISTINCT tablespace_name, 'INDEX_OWNER' as privilege
+                        FROM user_indexes 
+                        WHERE tablespace_name IS NOT NULL
+                    """
+                    user_indexes = conn.execute_query(user_indexes_sql)
+                    if user_indexes:
+                        for ts_name, privilege in user_indexes:
+                            if ts_name not in permissions["tablespace_privileges"]:
+                                permissions["tablespace_privileges"][ts_name] = []
+                            if privilege not in permissions["tablespace_privileges"][ts_name]:
+                                permissions["tablespace_privileges"][ts_name].append(privilege)
+                except Exception as e2:
+                    self.sync_logger.debug(f"无法获取用户表空间索引权限: {e2}")
             
             return permissions
             
