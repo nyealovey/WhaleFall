@@ -1,0 +1,701 @@
+{% extends "base.html" %}
+
+{% block title %}日志中心{% endblock %}
+
+{% block extra_css %}
+<style>
+.log-level-DEBUG { color: #6c757d; }
+.log-level-INFO { color: #17a2b8; }
+.log-level-WARNING { color: #ffc107; }
+.log-level-ERROR { color: #dc3545; }
+.log-level-CRITICAL { color: #721c24; font-weight: bold; }
+
+.log-entry {
+    border-left: 4px solid #dee2e6;
+    padding: 15px;
+    margin-bottom: 12px;
+    background: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #e9ecef;
+}
+
+.log-entry:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+
+.log-entry.log-level-ERROR {
+    border-left-color: #dc3545;
+    background: #fff5f5;
+    border-color: #fecaca;
+}
+
+.log-entry.log-level-CRITICAL {
+    border-left-color: #721c24;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.log-entry.log-level-WARNING {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+    border-color: #fed7aa;
+}
+
+.log-entry.log-level-INFO {
+    border-left-color: #3b82f6;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.log-entry.log-level-DEBUG {
+    border-left-color: #6b7280;
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+.log-timestamp {
+    font-size: 0.8em;
+    color: #6b7280;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 5px;
+}
+
+.log-module {
+    font-weight: 600;
+    color: #374151;
+    background: #e5e7eb;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    display: inline-block;
+    margin-left: 8px;
+}
+
+.log-message {
+    margin: 8px 0;
+    font-size: 0.95em;
+    line-height: 1.5;
+    color: #1f2937;
+}
+
+.log-context {
+    font-size: 0.85em;
+    color: #495057;
+    background: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+    border-left: 3px solid #007bff;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.log-context pre {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: inherit;
+    color: inherit;
+}
+
+.log-traceback {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.8em;
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 8px;
+    white-space: pre-wrap;
+    border: 1px solid #dee2e6;
+    border-left: 3px solid #dc3545;
+    color: #721c24;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.stats-cards {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    flex: 1;
+    background: white;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2em;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #6c757d;
+}
+
+.no-logs {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+}
+
+.no-logs i {
+    font-size: 3em;
+    color: #adb5bd;
+    margin-bottom: 20px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.export-buttons {
+    margin-bottom: 15px;
+}
+
+.export-buttons .btn {
+    margin-right: 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-chart-line me-2"></i>日志中心</h2>
+                <div class="export-buttons">
+                    <button class="btn btn-outline-primary" onclick="exportLogs('csv')">
+                        <i class="fas fa-file-csv me-1"></i>导出CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="stats-cards" id="statsCards">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalLogs">-</div>
+                    <div class="stat-label">总日志数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="errorLogs">-</div>
+                    <div class="stat-label">错误日志</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="warningLogs">-</div>
+                    <div class="stat-label">警告日志</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="modulesCount">-</div>
+                    <div class="stat-label">活跃模块</div>
+                </div>
+            </div>
+
+            <!-- 过滤器 -->
+            <div class="filter-section">
+                <div class="row">
+                    <div class="col-md-2">
+                        <label class="form-label">日志级别</label>
+                        <select class="form-select" id="levelFilter">
+                            <option value="">全部级别</option>
+                            <option value="DEBUG">DEBUG</option>
+                            <option value="INFO">INFO</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                            <option value="CRITICAL">CRITICAL</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">模块</label>
+                        <select class="form-select" id="moduleFilter">
+                            <option value="">全部模块</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">时间范围</label>
+                        <select class="form-select" id="timeRange">
+                            <option value="1">最近1小时</option>
+                            <option value="6">最近6小时</option>
+                            <option value="24" selected>最近24小时</option>
+                            <option value="72">最近3天</option>
+                            <option value="168">最近7天</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">关键词搜索</label>
+                        <input type="text" class="form-control" id="searchTerm" placeholder="搜索日志内容...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button class="btn btn-primary" onclick="searchLogs()">
+                                <i class="fas fa-search me-1"></i>搜索
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 日志列表 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        日志列表
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="logsContainer">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin me-2"></i>加载中...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分页 -->
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 日志详情模态框 -->
+<div class="modal fade" id="logDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">日志详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="logDetailContent">
+                <!-- 日志详情内容 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPage = 1;
+let currentFilters = {};
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadModules();
+    loadStats();
+    searchLogs();
+});
+
+// 加载模块列表
+function loadModules() {
+    fetch('/unified-logs/api/modules')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const moduleSelect = document.getElementById('moduleFilter');
+                moduleSelect.innerHTML = '<option value="">全部模块</option>';
+                data.data.modules.forEach(module => {
+                    const option = document.createElement('option');
+                    option.value = module;
+                    option.textContent = module;
+                    moduleSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => console.error('Error loading modules:', error));
+}
+
+// 加载统计信息
+function loadStats() {
+    fetch('/unified-logs/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('totalLogs').textContent = data.data.total_logs || 0;
+                document.getElementById('errorLogs').textContent = data.data.error_logs || 0;
+                document.getElementById('warningLogs').textContent = data.data.warning_logs || 0;
+                document.getElementById('modulesCount').textContent = data.data.modules_count || 0;
+            }
+        })
+        .catch(error => console.error('Error loading stats:', error));
+}
+
+// 搜索日志
+function searchLogs(page = 1) {
+    currentPage = page;
+    
+    // 收集过滤条件
+    currentFilters = {
+        page: page,
+        per_page: 50,
+        level: document.getElementById('levelFilter').value,
+        module: document.getElementById('moduleFilter').value,
+        q: document.getElementById('searchTerm').value,
+        hours: parseInt(document.getElementById('timeRange').value)
+    };
+
+    // 构建查询参数
+    const params = new URLSearchParams();
+    Object.keys(currentFilters).forEach(key => {
+        if (currentFilters[key]) {
+            params.append(key, currentFilters[key]);
+        }
+    });
+
+    // 显示加载状态
+    document.getElementById('logsContainer').innerHTML = 
+        '<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i>搜索中...</div>';
+
+    // 发送请求
+    fetch(`/unified-logs/api/search?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayLogs(data.data.logs);
+                displayPagination(data.data.pagination);
+            } else {
+                document.getElementById('logsContainer').innerHTML = 
+                    '<div class="no-logs">搜索失败: ' + data.message + '</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error searching logs:', error);
+            document.getElementById('logsContainer').innerHTML = 
+                '<div class="no-logs">搜索出错: ' + error.message + '</div>';
+        });
+}
+
+// 显示日志列表
+function displayLogs(logs) {
+    const container = document.getElementById('logsContainer');
+    
+    if (logs.length === 0) {
+        container.innerHTML = '<div class="no-logs"><i class="fas fa-search"></i><br>没有找到匹配的日志</div>';
+        return;
+    }
+
+    let html = `
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>时间</th>
+                        <th>级别</th>
+                        <th>模块</th>
+                        <th>消息</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    logs.forEach(log => {
+        // 更准确地检查上下文：排除空对象和只有null值的对象
+        const hasContext = log.context && 
+                          typeof log.context === 'object' && 
+                          Object.keys(log.context).length > 0 &&
+                          Object.values(log.context).some(value => value !== null && value !== undefined && value !== '');
+        
+        const hasTraceback = log.traceback && log.traceback.trim().length > 0;
+        
+        html += `
+            <tr>
+                <td>${formatTimestamp(log.timestamp)}</td>
+                <td>
+                    <span class="badge bg-${getLevelColor(log.level)}">
+                        ${log.level}
+                    </span>
+                </td>
+                <td><code>${log.module}</code></td>
+                <td class="text-truncate" style="max-width: 400px;" title="${log.message}">
+                    ${log.message}
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="viewLogDetail(${log.id})" title="查看详情">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${hasContext ? `
+                        <button class="btn btn-sm btn-outline-info me-1" onclick="viewLogContext(${log.id})" title="查看上下文">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    ` : ''}
+                    ${hasTraceback ? `
+                        <button class="btn btn-sm btn-outline-warning me-1" onclick="viewLogDebug(${log.id})" title="查看调试信息">
+                            <i class="fas fa-bug"></i>
+                        </button>
+                    ` : ''}
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// 显示分页
+function displayPagination(pagination) {
+    const container = document.getElementById('pagination');
+    
+    if (!pagination || pagination.pages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '<nav><ul class="pagination">';
+    
+    // 上一页
+    if (pagination.has_prev) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(${pagination.prev_num})">上一页</a></li>`;
+    }
+    
+    // 页码
+    for (let i = pagination.page - 2; i <= pagination.page + 2; i++) {
+        if (i >= 1 && i <= pagination.pages) {
+            const active = i === pagination.page ? 'active' : '';
+            html += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="searchLogs(${i})">${i}</a></li>`;
+        }
+    }
+    
+    // 下一页
+    if (pagination.has_next) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(${pagination.next_num})">下一页</a></li>`;
+    }
+    
+    html += '</ul></nav>';
+    container.innerHTML = html;
+}
+
+// 查看日志详情
+function viewLogDetail(logId) {
+    fetch(`/unified-logs/api/detail/${logId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const log = data.data.log;
+                const content = document.getElementById('logDetailContent');
+                
+                content.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>时间:</strong> ${formatTimestamp(log.timestamp)}<br>
+                            <strong>级别:</strong> <span class="badge bg-${getLevelColor(log.level)}">${log.level}</span><br>
+                            <strong>模块:</strong> <span class="badge bg-secondary">${log.module}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>ID:</strong> <code>${log.id}</code><br>
+                            <strong>创建时间:</strong> ${formatTimestamp(log.created_at)}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <strong>消息:</strong><br>
+                        <div class="alert alert-info">${log.message}</div>
+                    </div>
+                    ${log.context ? `
+                        <div class="mb-3">
+                            <strong>上下文:</strong><br>
+                            <div class="log-context" style="margin-top: 8px;">${formatJSON(log.context)}</div>
+                        </div>
+                    ` : ''}
+                    ${log.traceback ? `
+                        <div class="mb-3">
+                            <strong>堆栈追踪:</strong><br>
+                            <div class="log-traceback" style="margin-top: 8px;">${log.traceback}</div>
+                        </div>
+                    ` : ''}
+                `;
+                
+                new bootstrap.Modal(document.getElementById('logDetailModal')).show();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading log detail:', error);
+            alert('加载日志详情失败: ' + error.message);
+        });
+}
+
+// 获取级别颜色
+function getLevelColor(level) {
+    const colors = {
+        'DEBUG': 'secondary',
+        'INFO': 'info',
+        'WARNING': 'warning',
+        'ERROR': 'danger',
+        'CRITICAL': 'dark'
+    };
+    return colors[level] || 'secondary';
+}
+
+// 格式化JSON显示
+function formatJSON(obj) {
+    if (!obj) return '';
+    try {
+        return JSON.stringify(obj, null, 2);
+    } catch (e) {
+        return String(obj);
+    }
+}
+
+// 格式化时间显示
+function formatTimestamp(timestamp) {
+    try {
+        const date = new Date(timestamp);
+        return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+    } catch (e) {
+        return timestamp;
+    }
+}
+
+// 导出日志
+function exportLogs(format) {
+    const params = new URLSearchParams(currentFilters);
+    params.append('format', format);
+    
+    window.open(`/unified-logs/api/export?${params}`, '_blank');
+}
+
+// 查看日志上下文
+function viewLogContext(logId) {
+    fetch(`/unified-logs/api/detail/${logId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const log = data.data.log;
+                const content = document.getElementById('logDetailContent');
+                
+                content.innerHTML = `
+                    <div class="mb-3">
+                        <h6><i class="fas fa-info-circle me-2"></i>日志上下文信息</h6>
+                        <hr>
+                    </div>
+                    <div class="mb-3">
+                        <strong>日志ID:</strong> <code>${log.id}</code><br>
+                        <strong>模块:</strong> <span class="badge bg-secondary">${log.module}</span><br>
+                        <strong>级别:</strong> <span class="badge bg-${getLevelColor(log.level)}">${log.level}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>上下文数据:</strong><br>
+                        <div class="log-context" style="margin-top: 8px;">${log.context ? formatJSON(log.context) : '暂无上下文信息'}</div>
+                    </div>
+                `;
+                
+                document.getElementById('logDetailModal').querySelector('.modal-title').textContent = '日志上下文';
+                new bootstrap.Modal(document.getElementById('logDetailModal')).show();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading log context:', error);
+            alert('加载日志上下文失败: ' + error.message);
+        });
+}
+
+// 查看调试信息
+function viewLogDebug(logId) {
+    fetch(`/unified-logs/api/detail/${logId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const log = data.data.log;
+                const content = document.getElementById('logDetailContent');
+                
+                content.innerHTML = `
+                    <div class="mb-3">
+                        <h6><i class="fas fa-bug me-2"></i>调试信息</h6>
+                        <hr>
+                    </div>
+                    <div class="mb-3">
+                        <strong>日志ID:</strong> <code>${log.id}</code><br>
+                        <strong>模块:</strong> <span class="badge bg-secondary">${log.module}</span><br>
+                        <strong>级别:</strong> <span class="badge bg-${getLevelColor(log.level)}">${log.level}</span><br>
+                        <strong>时间:</strong> ${formatTimestamp(log.timestamp)}
+                    </div>
+                    <div class="mb-3">
+                        <strong>错误消息:</strong><br>
+                        <div class="alert alert-danger border-0">${log.message}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>堆栈追踪:</strong><br>
+                        <div class="log-traceback" style="margin-top: 8px;">${log.traceback || '暂无堆栈追踪信息'}</div>
+                    </div>
+                    ${log.context ? `
+                        <div class="mb-3">
+                            <strong>调试上下文:</strong><br>
+                            <div class="log-context" style="margin-top: 8px;">${formatJSON(log.context)}</div>
+                        </div>
+                    ` : ''}
+                `;
+                
+                document.getElementById('logDetailModal').querySelector('.modal-title').textContent = '调试信息';
+                new bootstrap.Modal(document.getElementById('logDetailModal')).show();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading log debug info:', error);
+            alert('加载调试信息失败: ' + error.message);
+        });
+}
+
+
+// 回车搜索
+document.getElementById('searchTerm').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchLogs();
+    }
+});
+</script>
+{% endblock %}

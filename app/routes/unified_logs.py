@@ -246,15 +246,11 @@ def export_logs():
         # 获取日志
         logs = query.order_by(desc(UnifiedLog.timestamp)).all()
 
-        if format_type == "json":
-            # JSON格式导出
-            logs_data = [log.to_dict() for log in logs]
-            return jsonify(logs_data)
-
         if format_type == "csv":
             # CSV格式导出
             import csv
             import io
+            from datetime import datetime
 
             output = io.StringIO()
             writer = csv.writer(output)
@@ -263,35 +259,67 @@ def export_logs():
             writer.writerow(
                 [
                     "ID",
-                    "Timestamp",
-                    "Level",
-                    "Module",
-                    "Message",
-                    "Traceback",
-                    "Context",
+                    "时间戳",
+                    "级别",
+                    "模块",
+                    "消息",
+                    "堆栈追踪",
+                    "上下文",
+                    "创建时间"
                 ]
             )
 
             # 写入数据
             for log in logs:
+                # 格式化时间戳（转换为东八区时间）
+                timestamp_str = ""
+                if log.timestamp:
+                    from app.utils.timezone import utc_to_china
+                    china_time = utc_to_china(log.timestamp)
+                    timestamp_str = china_time.strftime("%Y-%m-%d %H:%M:%S")
+                
+                created_at_str = ""
+                if log.created_at:
+                    from app.utils.timezone import utc_to_china
+                    china_created_at = utc_to_china(log.created_at)
+                    created_at_str = china_created_at.strftime("%Y-%m-%d %H:%M:%S")
+
+                # 处理上下文数据，提取关键信息
+                context_str = ""
+                if log.context and isinstance(log.context, dict):
+                    # 提取有意义的上下文信息
+                    context_parts = []
+                    for key, value in log.context.items():
+                        if value is not None and value != "" and key not in ['request_id', 'user_id', 'url', 'method', 'ip_address', 'user_agent']:
+                            context_parts.append(f"{key}: {value}")
+                    context_str = "; ".join(context_parts)
+
                 writer.writerow(
                     [
                         log.id,
-                        log.timestamp.isoformat() if log.timestamp else "",
+                        timestamp_str,
                         log.level.value if log.level else "",
-                        log.module,
-                        log.message,
+                        log.module or "",
+                        log.message or "",
                         log.traceback or "",
-                        json.dumps(log.context) if log.context else "",
+                        context_str,
+                        created_at_str
                     ]
                 )
 
             from flask import Response
 
+            # 生成文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"logs_export_{timestamp}.csv"
+
             return Response(
                 output.getvalue(),
-                mimetype="text/csv",
-                headers={"Content-Disposition": "attachment; filename=logs.csv"},
+                mimetype="text/csv; charset=utf-8",
+                headers={
+                    "Content-Disposition": f"attachment; filename={filename}",
+                    "Content-Type": "text/csv; charset=utf-8"
+                },
             )
 
         return error_response("Unsupported export format", 400)
