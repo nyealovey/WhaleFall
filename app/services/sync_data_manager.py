@@ -18,16 +18,42 @@ class SyncDataManager:
     def __init__(self):
         self.sync_logger = get_sync_logger()
 
+    def _mark_deleted_accounts(self, instance_id: int, db_type: str, current_usernames: set, session_id: str) -> int:
+        """标记已删除的账户"""
+        from app.models.current_account_sync_data import CurrentAccountSyncData
+        
+        existing_accounts = CurrentAccountSyncData.query.filter_by(
+            instance_id=instance_id, 
+            db_type=db_type, 
+            is_deleted=False
+        ).all()
+        
+        removed_count = 0
+        for existing_account in existing_accounts:
+            if existing_account.username not in current_usernames:
+                existing_account.is_deleted = True
+                existing_account.deleted_time = time_utils.now()
+                existing_account.last_change_type = "delete"
+                existing_account.last_change_time = time_utils.now()
+                removed_count += 1
+                self.sync_logger.info(f"标记{db_type}账户为已删除: {existing_account.username}")
+        
+        return removed_count
+
     def sync_mysql_accounts(self, instance, conn, session_id: str) -> dict:
         """同步MySQL账户"""
         try:
             # 获取MySQL账户信息
             accounts = self._get_mysql_accounts(conn)
-
+            
+            # 创建当前同步账户的用户名集合
+            current_usernames = {account_data["username"] for account_data in accounts}
+            
             synced_count = 0
             added_count = 0
             modified_count = 0
 
+            # 处理现有账户
             for account_data in accounts:
                 try:
                     # 使用upsert_account方法
@@ -47,14 +73,21 @@ class SyncDataManager:
                 except Exception as e:
                     self.sync_logger.error(f"同步MySQL账户失败: {account_data['username']}", error=str(e))
 
+            # 处理软删除
+            removed_count = self._mark_deleted_accounts(instance.id, "mysql", current_usernames, session_id)
+
+            # 提交所有更改
+            db.session.commit()
+
             return {
                 "success": True,
                 "synced_count": synced_count,
                 "added_count": added_count,
                 "modified_count": modified_count,
-                "removed_count": 0,
+                "removed_count": removed_count,
             }
         except Exception as e:
+            db.session.rollback()
             self.sync_logger.error("MySQL账户同步失败", error=str(e))
             return {"success": False, "error": str(e)}
 
@@ -63,6 +96,9 @@ class SyncDataManager:
         try:
             # 获取PostgreSQL账户信息
             accounts = self._get_postgresql_accounts(conn)
+            
+            # 创建当前同步账户的用户名集合
+            current_usernames = {account_data["username"] for account_data in accounts}
 
             synced_count = 0
             added_count = 0
@@ -89,14 +125,21 @@ class SyncDataManager:
                         error=str(e),
                     )
 
+            # 处理软删除
+            removed_count = self._mark_deleted_accounts(instance.id, "postgresql", current_usernames, session_id)
+
+            # 提交所有更改
+            db.session.commit()
+
             return {
                 "success": True,
                 "synced_count": synced_count,
                 "added_count": added_count,
                 "modified_count": modified_count,
-                "removed_count": 0,
+                "removed_count": removed_count,
             }
         except Exception as e:
+            db.session.rollback()
             self.sync_logger.error("PostgreSQL账户同步失败", error=str(e))
             return {"success": False, "error": str(e)}
 
@@ -105,6 +148,9 @@ class SyncDataManager:
         try:
             # 获取SQL Server账户信息
             accounts = self._get_sqlserver_accounts(conn)
+            
+            # 创建当前同步账户的用户名集合
+            current_usernames = {account_data["username"] for account_data in accounts}
 
             synced_count = 0
             added_count = 0
@@ -131,14 +177,21 @@ class SyncDataManager:
                         error=str(e),
                     )
 
+            # 处理软删除
+            removed_count = self._mark_deleted_accounts(instance.id, "sqlserver", current_usernames, session_id)
+
+            # 提交所有更改
+            db.session.commit()
+
             return {
                 "success": True,
                 "synced_count": synced_count,
                 "added_count": added_count,
                 "modified_count": modified_count,
-                "removed_count": 0,
+                "removed_count": removed_count,
             }
         except Exception as e:
+            db.session.rollback()
             self.sync_logger.error("SQL Server账户同步失败", error=str(e))
             return {"success": False, "error": str(e)}
 
@@ -147,6 +200,9 @@ class SyncDataManager:
         try:
             # 获取Oracle账户信息
             accounts = self._get_oracle_accounts(conn)
+            
+            # 创建当前同步账户的用户名集合
+            current_usernames = {account_data["username"] for account_data in accounts}
 
             synced_count = 0
             added_count = 0
@@ -170,14 +226,21 @@ class SyncDataManager:
                 except Exception as e:
                     self.sync_logger.error(f"同步Oracle账户失败: {account_data['username']}", error=str(e))
 
+            # 处理软删除
+            removed_count = self._mark_deleted_accounts(instance.id, "oracle", current_usernames, session_id)
+
+            # 提交所有更改
+            db.session.commit()
+
             return {
                 "success": True,
                 "synced_count": synced_count,
                 "added_count": added_count,
                 "modified_count": modified_count,
-                "removed_count": 0,
+                "removed_count": removed_count,
             }
         except Exception as e:
+            db.session.rollback()
             self.sync_logger.error("Oracle账户同步失败", error=str(e))
             return {"success": False, "error": str(e)}
 
