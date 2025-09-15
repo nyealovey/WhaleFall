@@ -240,15 +240,19 @@ class SyncDataManager:
                             database_privileges[db_name] = []
                         database_privileges[db_name].extend(privs_list)
 
+                # 为MySQL创建包含主机名的唯一用户名
+                unique_username = f"{username}@{host}"
+                
                 accounts.append(
                     {
-                        "username": username,
+                        "username": unique_username,  # 使用包含主机名的唯一用户名
                         "plugin": plugin,
                         "permissions": {
                             "global_privileges": global_privileges,
                             "database_privileges": database_privileges,
                             "type_specific": {
                                 "host": host,
+                                "original_username": username,  # 保存原始用户名
                                 "can_grant": can_grant == "Y",
                                 "is_locked": is_locked == "Y",
                                 "plugin": plugin,
