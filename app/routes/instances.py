@@ -457,7 +457,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
     instance = Instance.query.get_or_404(instance_id)
 
     # 获取查询参数
-    include_deleted = request.args.get('include_deleted', 'false').lower() == 'true'
+    include_deleted = request.args.get('include_deleted', 'true').lower() == 'true'  # 默认包含已删除账户
 
     # 获取账户数据 - 使用新的优化同步模型
     from app.services.sync_data_manager import SyncDataManager
@@ -1345,6 +1345,72 @@ def api_detail(instance_id: int) -> Response:
     """获取实例详情API"""
     instance = Instance.query.get_or_404(instance_id)
     return jsonify(instance.to_dict())
+
+
+@instances_bp.route("/instances/<int:instance_id>/accounts")
+@login_required
+@view_required
+def api_get_accounts(instance_id: int) -> Response:
+    """获取实例账户数据API"""
+    instance = Instance.query.get_or_404(instance_id)
+    
+    # 获取查询参数
+    include_deleted = request.args.get('include_deleted', 'false').lower() == 'true'
+    
+    try:
+        # 获取账户数据
+        from app.services.sync_data_manager import SyncDataManager
+        accounts = SyncDataManager.get_accounts_by_instance(instance_id, include_deleted=include_deleted)
+        
+        # 转换为前端需要的格式
+        account_data = []
+        for account in accounts:
+            type_specific = account.type_specific or {}
+            
+            account_info = {
+                "id": account.id,
+                "username": account.username,
+                "is_superuser": account.is_superuser,
+                "is_locked": account.is_locked,
+                "is_deleted": account.is_deleted,
+                "last_change_time": account.last_change_time.isoformat() if account.last_change_time else None,
+                "type_specific": type_specific
+            }
+            
+            # 根据数据库类型添加特定字段
+            if instance.db_type == 'mysql':
+                account_info.update({
+                    "host": type_specific.get("host", "%"),
+                    "plugin": type_specific.get("plugin", "")
+                })
+            elif instance.db_type == 'sqlserver':
+                account_info.update({
+                    "password_change_time": type_specific.get("password_change_time")
+                })
+            elif instance.db_type == 'oracle':
+                account_info.update({
+                    "oracle_id": type_specific.get("oracle_id"),
+                    "authentication_type": type_specific.get("authentication_type"),
+                    "account_status": type_specific.get("account_status"),
+                    "lock_date": type_specific.get("lock_date"),
+                    "expiry_date": type_specific.get("expiry_date"),
+                    "default_tablespace": type_specific.get("default_tablespace"),
+                    "created": type_specific.get("created")
+                })
+            
+            account_data.append(account_info)
+        
+        return jsonify({
+            "success": True,
+            "accounts": account_data
+        })
+        
+    except Exception as e:
+        logger.error(f"获取实例账户数据失败: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 @instances_bp.route("/api/instances/<int:instance_id>/test")

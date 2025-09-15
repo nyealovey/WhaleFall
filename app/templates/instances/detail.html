@@ -970,10 +970,14 @@ function toggleDeletedAccounts() {
    accountCount.textContent = `共 ${visibleCount} 个账户`;
 }
 
+
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
-   // 默认隐藏已删除账户
-   toggleDeletedAccounts();
+   // 默认隐藏已删除账户（复选框未勾选状态）
+   const checkbox = document.getElementById('showDeletedAccounts');
+   if (!checkbox.checked) {
+       toggleDeletedAccounts();
+   }
 });
 
 function showAlert(type, message) {
