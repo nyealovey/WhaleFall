@@ -1492,14 +1492,14 @@ def get_instance_statistics() -> dict[str, Any]:
             .all()
         )
 
-        # 数据库版本统计（使用真实的版本信息）
+        # 数据库版本统计（使用主版本信息）
         version_stats = (
             db.session.query(
                 Instance.db_type,
-                Instance.database_version,
+                Instance.main_version,
                 db.func.count(Instance.id).label("count"),
             )
-            .group_by(Instance.db_type, Instance.database_version)
+            .group_by(Instance.db_type, Instance.main_version)
             .all()
         )
 
@@ -1507,7 +1507,7 @@ def get_instance_statistics() -> dict[str, Any]:
         version_stats = [
             {
                 "db_type": stat.db_type,
-                "version": stat.database_version or "未知版本",
+                "version": stat.main_version or "未知版本",
                 "count": stat.count,
             }
             for stat in version_stats
