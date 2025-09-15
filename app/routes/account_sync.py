@@ -162,6 +162,17 @@ def sync_records() -> str | Response:
                 self.instance = None  # 聚合记录没有单一实例
                 self.sync_records = data["sync_records"]  # 保存原始记录用于详情查看
                 self.is_aggregated = True
+                
+                # 计算开始时间、结束时间和耗时
+                if data["sync_records"]:
+                    # 开始时间：所有记录中最早的started_at
+                    self.started_at = min(record.started_at for record in data["sync_records"])
+                    # 结束时间：所有记录中最晚的completed_at
+                    completed_times = [record.completed_at for record in data["sync_records"] if record.completed_at]
+                    self.completed_at = max(completed_times) if completed_times else None
+                else:
+                    self.started_at = latest_time
+                    self.completed_at = None
 
             def get_record_ids(self) -> list[int]:
                 """获取记录ID列表"""

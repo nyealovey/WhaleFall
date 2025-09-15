@@ -95,7 +95,9 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>时间</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>耗时</th>
                             <th>实例</th>
                             <th>同步类型</th>
                             <th>状态</th>
@@ -112,8 +114,34 @@
                         <tr>
                             <td>
                                 <div>
-                                    <strong>{{ record.sync_time | china_date }}</strong>
-                                    <br><small class="text-muted">{{ record.sync_time | china_time('%H:%M:%S') }}</small>
+                                    <strong>{{ record.started_at | china_date }}</strong>
+                                    <br><small class="text-muted">{{ record.started_at | china_time('%H:%M:%S') }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    {% if record.completed_at %}
+                                        <strong>{{ record.completed_at | china_date }}</strong>
+                                        <br><small class="text-muted">{{ record.completed_at | china_time('%H:%M:%S') }}</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    {% if record.completed_at and record.started_at %}
+                                        {% set duration = (record.completed_at - record.started_at).total_seconds() %}
+                                        {% if duration < 60 %}
+                                            <span class="badge bg-info">{{ "%.1f"|format(duration) }}秒</span>
+                                        {% elif duration < 3600 %}
+                                            <span class="badge bg-info">{{ "%.1f"|format(duration/60) }}分钟</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ "%.1f"|format(duration/3600) }}小时</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
                                 </div>
                             </td>
                             <td>
