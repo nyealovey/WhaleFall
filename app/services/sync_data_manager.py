@@ -497,10 +497,17 @@ class SyncDataManager:
                     sp.name as username,
                     sp.is_disabled as is_disabled,
                     sp.type_desc as login_type,
-                    LOGINPROPERTY(sp.name, 'PasswordLastSetTime') as password_last_set_time,
-                    sl.is_expiration_checked as is_expiration_checked
+                    sp.type as type,
+                    CASE 
+                        WHEN sp.type = 'S' THEN LOGINPROPERTY(sp.name, 'PasswordLastSetTime')
+                        ELSE NULL
+                    END as password_last_set_time,
+                    CASE 
+                        WHEN sp.type = 'S' THEN sl.is_expiration_checked
+                        ELSE NULL
+                    END as is_expiration_checked
                 FROM sys.server_principals sp
-                LEFT JOIN sys.sql_logins sl ON sp.principal_id = sl.principal_id
+                LEFT JOIN sys.sql_logins sl ON sp.principal_id = sl.principal_id AND sp.type = 'S'
                 WHERE sp.type IN ('S', 'U', 'G') AND {where_clause}
             """
 
@@ -509,7 +516,7 @@ class SyncDataManager:
 
             accounts = []
             for row in logins:
-                username, is_disabled, login_type, password_last_set_time, is_expiration_checked = row
+                username, is_disabled, login_type, type, password_last_set_time, is_expiration_checked = row
 
                 # 获取服务器角色
                 server_roles = self._get_sqlserver_server_roles(conn, username)
@@ -534,8 +541,10 @@ class SyncDataManager:
                             "type_specific": {
                                 "is_locked": is_disabled,  # SQL Server的is_disabled映射到is_locked
                                 "account_type": login_type,
-                                "password_last_set_time": password_last_set_time.isoformat() if password_last_set_time else None,
-                                "is_expiration_checked": bool(is_expiration_checked) if is_expiration_checked is not None else None,
+                                "login_type": type,  # 添加原始type字段用于区分登录类型
+                                # 只有SQL登录(S)才存储密码相关信息
+                                **({"password_last_set_time": password_last_set_time.isoformat() if password_last_set_time else None,
+                                   "is_expiration_checked": bool(is_expiration_checked) if is_expiration_checked is not None else None} if type == 'S' else {})
                             }
                         },
                         "is_superuser": is_superuser,
