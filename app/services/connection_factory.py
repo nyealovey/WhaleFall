@@ -78,7 +78,7 @@ class MySQLConnection(DatabaseConnection):
                 module="connection",
                 instance_id=self.instance.id,
                 db_type="MySQL",
-                exception=e,
+                error=str(e),
             )
             return False
 
@@ -93,7 +93,7 @@ class MySQLConnection(DatabaseConnection):
                     module="connection",
                     instance_id=self.instance.id,
                     db_type="MySQL",
-                    exception=e,
+                    error=str(e),
                 )
             finally:
                 self.connection = None
@@ -486,7 +486,7 @@ class OracleConnection(DatabaseConnection):
                 module="connection",
                 instance_id=self.instance.id,
                 db_type="Oracle",
-                exception=e,
+                error=str(e),
             )
             return False
 
