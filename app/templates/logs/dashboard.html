@@ -483,29 +483,54 @@ function displayLogs(logs) {
 function displayPagination(pagination) {
     const container = document.getElementById('pagination');
     
+    // 调试信息
+    console.log('分页数据:', pagination);
+    
     if (!pagination || pagination.pages <= 1) {
         container.innerHTML = '';
         return;
     }
 
-    let html = '<nav><ul class="pagination">';
+    let html = '<nav aria-label="日志分页"><ul class="pagination justify-content-center">';
     
     // 上一页
     if (pagination.has_prev) {
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(${pagination.prev_num})">上一页</a></li>`;
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(${pagination.prev_num}); return false;">上一页</a></li>`;
+    } else {
+        html += `<li class="page-item disabled"><span class="page-link">上一页</span></li>`;
     }
     
     // 页码
-    for (let i = pagination.page - 2; i <= pagination.page + 2; i++) {
-        if (i >= 1 && i <= pagination.pages) {
-            const active = i === pagination.page ? 'active' : '';
-            html += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="searchLogs(${i})">${i}</a></li>`;
+    const startPage = Math.max(1, pagination.page - 2);
+    const endPage = Math.min(pagination.pages, pagination.page + 2);
+    
+    // 第一页和省略号
+    if (startPage > 1) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(1); return false;">1</a></li>`;
+        if (startPage > 2) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
         }
+    }
+    
+    // 中间页码
+    for (let i = startPage; i <= endPage; i++) {
+        const active = i === pagination.page ? 'active' : '';
+        html += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="searchLogs(${i}); return false;">${i}</a></li>`;
+    }
+    
+    // 最后一页和省略号
+    if (endPage < pagination.pages) {
+        if (endPage < pagination.pages - 1) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(${pagination.pages}); return false;">${pagination.pages}</a></li>`;
     }
     
     // 下一页
     if (pagination.has_next) {
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(${pagination.next_num})">下一页</a></li>`;
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(${pagination.next_num}); return false;">下一页</a></li>`;
+    } else {
+        html += `<li class="page-item disabled"><span class="page-link">下一页</span></li>`;
     }
     
     html += '</ul></nav>';

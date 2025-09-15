@@ -124,6 +124,8 @@ def search_logs():
                 "pages": pagination.pages,
                 "has_next": pagination.has_next,
                 "has_prev": pagination.has_prev,
+                "prev_num": pagination.prev_num if pagination.has_prev else None,
+                "next_num": pagination.next_num if pagination.has_next else None,
             },
         }
 
