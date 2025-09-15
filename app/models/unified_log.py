@@ -33,7 +33,7 @@ class UnifiedLog(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     # 日志时间戳 (UTC)
-    timestamp = Column(DateTime, nullable=False, index=True)
+    timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
 
     # 日志级别
     level = Column(SQLEnum(LogLevel, name="log_level"), nullable=False, index=True)
@@ -51,7 +51,7 @@ class UnifiedLog(db.Model):
     context = Column(JSON, nullable=True)
 
     # 记录创建时间
-    created_at = Column(DateTime, default=now, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=now, nullable=False)
 
     # 复合索引优化查询性能
     __table_args__ = (
@@ -91,8 +91,16 @@ class UnifiedLog(db.Model):
         timestamp: datetime | None = None,
     ) -> "UnifiedLog":
         """创建日志条目"""
+        # 确保时间戳带时区信息
+        if timestamp is None:
+            timestamp = now()
+        elif timestamp.tzinfo is None:
+            # 如果没有时区信息，假设为UTC时间
+            from app.utils.timezone import UTC_TZ
+            timestamp = timestamp.replace(tzinfo=UTC_TZ)
+        
         return cls(
-            timestamp=timestamp or now(),  # 使用东八区时间
+            timestamp=timestamp,
             level=level,
             module=module,
             message=message,

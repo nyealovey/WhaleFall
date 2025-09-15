@@ -122,13 +122,18 @@ class SQLAlchemyLogHandler:
                 # 如果没有event字段，尝试其他可能的字段
                 message = event_dict.get("message", "")
 
-            # 获取时间戳，使用东八区时间
+            # 获取时间戳，确保带时区信息
             timestamp = event_dict.get("timestamp", time_utils.now())
             if isinstance(timestamp, str):
                 try:
                     timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
                 except ValueError:
                     timestamp = time_utils.now()
+            
+            # 确保时间戳带时区信息
+            if timestamp.tzinfo is None:
+                from app.utils.timezone import UTC_TZ
+                timestamp = timestamp.replace(tzinfo=UTC_TZ)
 
             # 提取堆栈追踪
             traceback = None
@@ -244,6 +249,11 @@ class SQLAlchemyLogHandler:
                             log_data["timestamp"] = datetime.fromisoformat(log_data["timestamp"].replace("Z", "+00:00"))
                         except ValueError:
                             log_data["timestamp"] = time_utils.now()
+                        
+                        # 确保时间戳带时区信息
+                        if log_data["timestamp"].tzinfo is None:
+                            from app.utils.timezone import UTC_TZ
+                            log_data["timestamp"] = log_data["timestamp"].replace(tzinfo=UTC_TZ)
 
                     log_entry = UnifiedLog.create_log_entry(**log_data)
                     log_entries.append(log_entry)

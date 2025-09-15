@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}日志统计 - 泰摸鱼吧{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- 页面标题 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">日志统计</h2>
+                    <p class="text-muted mb-0">系统日志统计分析</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('logs.index') }}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>返回列表
+                    </a>
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        <i class="fas fa-sync-alt me-1"></i>刷新
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>日志统计信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if stats %}
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4 class="mb-0">{{ stats.total_logs or 0 }}</h4>
+                                            <p class="mb-0">总日志数</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-file-alt fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4 class="mb-0">{{ stats.info_logs or 0 }}</h4>
+                                            <p class="mb-0">信息日志</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-info-circle fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4 class="mb-0">{{ stats.warning_logs or 0 }}</h4>
+                                            <p class="mb-0">警告日志</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4 class="mb-0">{{ stats.error_logs or 0 }}</h4>
+                                            <p class="mb-0">错误日志</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-times-circle fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h6>按模块统计</h6>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>模块</th>
+                                            <th>数量</th>
+                                            <th>百分比</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for module, count in (stats.module_stats or {}).items() %}
+                                        <tr>
+                                            <td>{{ module or '未知' }}</td>
+                                            <td>{{ count }}</td>
+                                            <td>
+                                                <div class="progress" style="height: 20px;">
+                                                    <div class="progress-bar" role="progressbar" 
+                                                         style="width: {{ (count / stats.total_logs * 100) | round(1) }}%">
+                                                        {{ (count / stats.total_logs * 100) | round(1) }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>按类型统计</h6>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>类型</th>
+                                            <th>数量</th>
+                                            <th>百分比</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for log_type, count in (stats.type_stats or {}).items() %}
+                                        <tr>
+                                            <td>{{ log_type or '未知' }}</td>
+                                            <td>{{ count }}</td>
+                                            <td>
+                                                <div class="progress" style="height: 20px;">
+                                                    <div class="progress-bar bg-info" role="progressbar" 
+                                                         style="width: {{ (count / stats.total_logs * 100) | round(1) }}%">
+                                                        {{ (count / stats.total_logs * 100) | round(1) }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        暂无统计数据
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
