@@ -11,30 +11,9 @@
  * @param {object} context - 上下文信息
  */
 function sendLogToBackend(level, message, context = {}) {
-    try {
-        fetch('/api/logs/frontend', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({
-                level: level,
-                message: message,
-                module: 'frontend_alert',
-                context: {
-                    ...context,
-                    user_agent: navigator.userAgent,
-                    url: window.location.href,
-                    timestamp: new Date().toISOString()
-                }
-            })
-        }).catch(error => {
-            console.warn('Failed to send log to backend:', error);
-        });
-    } catch (error) {
-        console.warn('Failed to send log to backend:', error);
-    }
+    // 暂时禁用前端日志发送，避免404错误
+    // 前端日志只在控制台显示
+    console.log(`[${level}] ${message}`, context);
 }
 
 /**

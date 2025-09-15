@@ -1088,10 +1088,11 @@ class AccountClassificationService:
             return {"success": False, "error": f"移除账户分类分配失败: {str(e)}"}
 
     def get_rule_matched_accounts_count(self, rule_id: int) -> int:
-        """获取规则匹配的账户数量"""
+        """获取规则匹配的账户数量（优化版本，避免重新评估规则）"""
         try:
             from app.models.account_classification import (
                 ClassificationRule,
+                AccountClassificationAssignment,
             )
             from app.models.current_account_sync_data import CurrentAccountSyncData
 
@@ -1105,21 +1106,20 @@ class AccountClassificationService:
             if not classification:
                 return 0
 
-            # 重新运行规则评估，统计真正匹配该规则的账户数量（只包括活跃实例的账户）
-            matched_count = 0
-            accounts = (
-                CurrentAccountSyncData.query.join(Instance)
+            # 使用缓存的分类分配数据来统计匹配数量，而不是重新评估规则
+            # 这样可以避免页面加载时触发自动分类
+            matched_count = (
+                AccountClassificationAssignment.query
+                .join(CurrentAccountSyncData, AccountClassificationAssignment.account_id == CurrentAccountSyncData.id)
+                .join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
                 .filter(
+                    AccountClassificationAssignment.classification_id == classification.id,
                     Instance.is_active == True,
                     CurrentAccountSyncData.is_deleted == False,
                     Instance.deleted_at.is_(None),  # 排除已删除的实例
                 )
-                .all()
+                .count()
             )
-
-            for account in accounts:
-                if self._evaluate_rule(account, rule):
-                    matched_count += 1
 
             return matched_count
 
