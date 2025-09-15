@@ -26,8 +26,8 @@ def utc_to_china(utc_dt: Union[datetime, None]) -> Optional[datetime]:
         return None
 
     if utc_dt.tzinfo is None:
-        # 如果没有时区信息，假设为UTC
-        utc_dt = utc_dt.replace(tzinfo=UTC_TZ)
+        # 如果没有时区信息，假设为中国时间（因为数据库中存储的就是中国时间）
+        utc_dt = utc_dt.replace(tzinfo=CHINA_TZ)
 
     return utc_dt.astimezone(CHINA_TZ)
 
