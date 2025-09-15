@@ -177,8 +177,6 @@ def get_error_logs():
 
         logs = [log.to_dict() for log in error_logs]
 
-        log_info("Error logs retrieved", module="unified_logs", count=len(logs), hours=hours)
-
         return success_response({"logs": logs})
 
     except Exception as e:
@@ -197,8 +195,6 @@ def get_log_modules():
         modules = db.session.query(distinct(UnifiedLog.module).label("module")).order_by(UnifiedLog.module).all()
 
         module_list = [module.module for module in modules]
-
-        log_info("Log modules retrieved", module="unified_logs", count=len(module_list))
 
         return success_response({"modules": module_list})
 
@@ -482,8 +478,6 @@ def get_log_stats():
             "time_range_hours": hours
         }
         
-        log_info("Log stats retrieved", module="unified_logs", **stats)
-        
         return success_response(stats)
         
     except Exception as e:
@@ -497,8 +491,6 @@ def get_log_detail(log_id):
     """获取日志详情API"""
     try:
         log = UnifiedLog.query.get_or_404(log_id)
-        
-        log_info("Log detail retrieved", module="unified_logs", log_id=log_id)
         
         return success_response({"log": log.to_dict()})
         
