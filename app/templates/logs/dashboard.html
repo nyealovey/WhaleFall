@@ -420,6 +420,7 @@ function displayLogs(logs) {
             <table class="table table-striped table-hover">
                 <thead class="table-dark">
                     <tr>
+                        <th>日志ID</th>
                         <th>时间</th>
                         <th>级别</th>
                         <th>模块</th>
@@ -441,6 +442,7 @@ function displayLogs(logs) {
         
         html += `
             <tr>
+                <td><code>${log.id}</code></td>
                 <td>${formatTime(log.timestamp, 'datetime')}</td>
                 <td>
                     <span class="badge bg-${getLevelColor(log.level)}">
