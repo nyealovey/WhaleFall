@@ -1088,8 +1088,15 @@ class SyncDataManager:
                 },
             }
 
-        # MySQL的权限字段已在主逻辑中检测，type_specific中不包含权限字段
-        # 因此不需要检测type_specific中的权限变更
+        # 检测type_specific字段中的属性变更
+        old_type_specific = account.type_specific or {}
+        new_type_specific = new_permissions.get("type_specific", {})
+        
+        if old_type_specific != new_type_specific:
+            changes["type_specific"] = {
+                "added": {k: v for k, v in new_type_specific.items() if k not in old_type_specific or old_type_specific[k] != v},
+                "removed": {k: v for k, v in old_type_specific.items() if k not in new_type_specific or new_type_specific[k] != v},
+            }
 
         return changes
 
@@ -1157,8 +1164,15 @@ class SyncDataManager:
                 "removed": list(old_sys_perms - new_sys_perms),
             }
 
-        # PostgreSQL的权限字段已在主逻辑中检测，type_specific中不包含权限字段
-        # 因此不需要检测type_specific中的权限变更
+        # 检测type_specific字段中的属性变更
+        old_type_specific = account.type_specific or {}
+        new_type_specific = new_permissions.get("type_specific", {})
+        
+        if old_type_specific != new_type_specific:
+            changes["type_specific"] = {
+                "added": {k: v for k, v in new_type_specific.items() if k not in old_type_specific or old_type_specific[k] != v},
+                "removed": {k: v for k, v in old_type_specific.items() if k not in new_type_specific or new_type_specific[k] != v},
+            }
 
         return changes
 
@@ -1215,8 +1229,15 @@ class SyncDataManager:
                 },
             }
 
-        # SQL Server的权限字段已在主逻辑中检测，type_specific中不包含权限字段
-        # 因此不需要检测type_specific中的权限变更
+        # 检测type_specific字段中的属性变更
+        old_type_specific = account.type_specific or {}
+        new_type_specific = new_permissions.get("type_specific", {})
+        
+        if old_type_specific != new_type_specific:
+            changes["type_specific"] = {
+                "added": {k: v for k, v in new_type_specific.items() if k not in old_type_specific or old_type_specific[k] != v},
+                "removed": {k: v for k, v in old_type_specific.items() if k not in new_type_specific or new_type_specific[k] != v},
+            }
 
         return changes
 
@@ -1252,8 +1273,15 @@ class SyncDataManager:
                 "removed": list(old_tablespace_perms - new_tablespace_perms),
             }
 
-        # Oracle的权限字段已在主逻辑中检测，type_specific中不包含权限字段
-        # 因此不需要检测type_specific中的权限变更
+        # 检测type_specific字段中的属性变更
+        old_type_specific = account.type_specific or {}
+        new_type_specific = new_permissions.get("type_specific", {})
+        
+        if old_type_specific != new_type_specific:
+            changes["type_specific"] = {
+                "added": {k: v for k, v in new_type_specific.items() if k not in old_type_specific or old_type_specific[k] != v},
+                "removed": {k: v for k, v in old_type_specific.items() if k not in new_type_specific or new_type_specific[k] != v},
+            }
 
         return changes
 
@@ -1376,6 +1404,17 @@ class SyncDataManager:
                 for db_name, perms in removed.items():
                     descriptions.append(f"数据库 {db_name} 移除权限: {', '.join(perms)}")
 
+        # 处理type_specific属性变更
+        if "type_specific" in changes:
+            added = changes["type_specific"].get("added", {})
+            removed = changes["type_specific"].get("removed", {})
+            if added:
+                for attr, value in added.items():
+                    descriptions.append(f"属性 {attr} 已更新: {value}")
+            if removed:
+                for attr, value in removed.items():
+                    descriptions.append(f"属性 {attr} 已移除: {value}")
+
         return descriptions
 
     @classmethod
@@ -1425,6 +1464,17 @@ class SyncDataManager:
             if removed:
                 descriptions.append(f"移除系统权限: {', '.join(removed)}")
 
+        # 处理type_specific属性变更
+        if "type_specific" in changes:
+            added = changes["type_specific"].get("added", {})
+            removed = changes["type_specific"].get("removed", {})
+            if added:
+                for attr, value in added.items():
+                    descriptions.append(f"属性 {attr} 已更新: {value}")
+            if removed:
+                for attr, value in removed.items():
+                    descriptions.append(f"属性 {attr} 已移除: {value}")
+
         return descriptions
 
     @classmethod
@@ -1468,6 +1518,17 @@ class SyncDataManager:
                 for db_name, perms in removed.items():
                     descriptions.append(f"数据库 {db_name} 移除权限: {', '.join(perms)}")
 
+        # 处理type_specific属性变更
+        if "type_specific" in changes:
+            added = changes["type_specific"].get("added", {})
+            removed = changes["type_specific"].get("removed", {})
+            if added:
+                for attr, value in added.items():
+                    descriptions.append(f"属性 {attr} 已更新: {value}")
+            if removed:
+                for attr, value in removed.items():
+                    descriptions.append(f"属性 {attr} 已移除: {value}")
+
         return descriptions
 
     @classmethod
@@ -1498,6 +1559,17 @@ class SyncDataManager:
                 descriptions.append(f"新增表空间权限: {', '.join(added)}")
             if removed:
                 descriptions.append(f"移除表空间权限: {', '.join(removed)}")
+
+        # 处理type_specific属性变更
+        if "type_specific" in changes:
+            added = changes["type_specific"].get("added", {})
+            removed = changes["type_specific"].get("removed", {})
+            if added:
+                for attr, value in added.items():
+                    descriptions.append(f"属性 {attr} 已更新: {value}")
+            if removed:
+                for attr, value in removed.items():
+                    descriptions.append(f"属性 {attr} 已移除: {value}")
 
         return descriptions
 
