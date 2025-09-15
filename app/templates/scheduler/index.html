@@ -683,8 +683,17 @@ function editTrigger(jobId) {
                     const cronMatch = job.trigger.match(/cron\[(.*?)\]/);
                     if (cronMatch) {
                         const params = cronMatch[1];
-                        // 这里可以添加更复杂的cron解析逻辑
-                        // 暂时使用默认值
+                        // 解析cron参数，格式如：hour='2', minute='0'
+                        const paramMatches = params.match(/(\w+)='([^']*)'/g);
+                        if (paramMatches) {
+                            paramMatches.forEach(match => {
+                                const [, key, value] = match.match(/(\w+)='([^']*)'/);
+                                if (key === 'hour') $('#editCronHour').val(value);
+                                if (key === 'minute') $('#editCronMinute').val(value);
+                                if (key === 'day') $('#editCronDay').val(value);
+                                if (key === 'month') $('#editCronMonth').val(value);
+                            });
+                        }
                     }
                 } else if (triggerType === 'interval') {
                     // 解析间隔时间

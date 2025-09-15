@@ -89,7 +89,7 @@ def get_job(job_id: str) -> Response:
         job_info = {
             "id": job.id,
             "name": job.name,
-            "next_run_time": (datetime.fromtimestamp(job.next_run_time).isoformat() if job.next_run_time else None),
+            "next_run_time": (job.next_run_time.isoformat() if job.next_run_time else None),
             "trigger": str(job.trigger),
             "func": (job.func.__name__ if hasattr(job.func, "__name__") else str(job.func)),
             "args": job.args,
@@ -195,12 +195,8 @@ def update_job(job_id: str) -> Response:
             if is_builtin:
                 # 内置任务：只能更新触发器
                 scheduler.modify_job(job_id, trigger=trigger)
-
-                # 强制重新计算下次执行时间
-                job = scheduler.get_job(job_id)
-                if job:
-                    # 重新调度任务以立即生效
-                    scheduler.reschedule_job(job_id, trigger=trigger)
+                # 重新调度任务以立即生效
+                scheduler.reschedule_job(job_id, trigger=trigger)
 
                 system_logger.info(f"内置任务触发器更新成功: {job_id}")
                 return APIResponse.success("触发器更新成功")  # type: ignore
@@ -212,12 +208,8 @@ def update_job(job_id: str) -> Response:
                 args=data.get("args", job.args),
                 kwargs=data.get("kwargs", job.kwargs),
             )
-
-            # 强制重新计算下次执行时间
-            job = scheduler.get_job(job_id)
-            if job:
-                # 重新调度任务以立即生效
-                scheduler.reschedule_job(job_id, trigger=trigger)
+            # 重新调度任务以立即生效
+            scheduler.reschedule_job(job_id, trigger=trigger)
         else:
             if is_builtin:
                 # 内置任务：不允许更新其他属性
@@ -467,9 +459,9 @@ def _build_trigger(
             day=data.get("day"),
             week=data.get("week"),
             day_of_week=data.get("day_of_week"),
-            hour=data.get("hour"),
-            minute=data.get("minute"),
-            second=data.get("second"),
+            hour=data.get("cron_hour") or data.get("hour"),
+            minute=data.get("cron_minute") or data.get("minute"),
+            second=data.get("cron_second") or data.get("second"),
         )
     if trigger_type == "interval":
         # 过滤掉None值
