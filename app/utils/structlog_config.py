@@ -97,7 +97,7 @@ class SQLAlchemyLogHandler:
                         "module": "unknown",
                         "message": event_dict,
                         "context": {},
-                        "timestamp": datetime.utcnow(),
+                        "timestamp": now(),
                     }
                 return None
 

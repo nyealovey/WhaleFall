@@ -119,7 +119,7 @@ def search_logs() -> Response:
 
         # 默认时间范围：最近24小时
         if not start_time and not end_time:
-            default_start = datetime.utcnow() - timedelta(hours=24)
+            default_start = now() - timedelta(hours=24)
             query = query.filter(UnifiedLog.timestamp >= default_start)
 
         # 级别过滤
@@ -203,7 +203,7 @@ def get_log_stats() -> Response:
         hours = int(request.args.get("hours", 24))
         
         # 计算时间范围
-        start_time = datetime.utcnow() - timedelta(hours=hours)
+        start_time = now() - timedelta(hours=hours)
         
         # 总日志数
         total_logs = UnifiedLog.query.filter(UnifiedLog.timestamp >= start_time).count()
@@ -273,7 +273,7 @@ def export_logs() -> Response:
         query = UnifiedLog.query
         
         # 时间过滤
-        start_time = datetime.utcnow() - timedelta(hours=hours)
+        start_time = now() - timedelta(hours=hours)
         query = query.filter(UnifiedLog.timestamp >= start_time)
         
         # 级别过滤
@@ -297,7 +297,7 @@ def export_logs() -> Response:
             return jsonify({
                 "success": True,
                 "data": logs_data,
-                "export_time": datetime.utcnow().isoformat(),
+                "export_time": now().isoformat(),
                 "total_count": len(logs_data)
             })
         elif format_type == "csv":

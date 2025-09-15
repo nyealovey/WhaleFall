@@ -109,7 +109,7 @@ class UnifiedLog(db.Model):
         limit: int = 100,
     ) -> list["UnifiedLog"]:
         """获取最近的日志"""
-        query = cls.query.filter(cls.timestamp >= datetime.utcnow() - timedelta(hours=hours))
+        query = cls.query.filter(cls.timestamp >= now() - timedelta(hours=hours))
 
         if level:
             query = query.filter(cls.level == level)
@@ -124,7 +124,7 @@ class UnifiedLog(db.Model):
         """获取错误日志"""
         return (
             cls.query.filter(
-                cls.timestamp >= datetime.utcnow() - timedelta(hours=hours),
+                cls.timestamp >= now() - timedelta(hours=hours),
                 cls.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]),
             )
             .order_by(cls.timestamp.desc())
@@ -138,7 +138,7 @@ class UnifiedLog(db.Model):
         return (
             cls.query.filter(
                 cls.module == module,
-                cls.timestamp >= datetime.utcnow() - timedelta(hours=hours),
+                cls.timestamp >= now() - timedelta(hours=hours),
             )
             .order_by(cls.timestamp.desc())
             .limit(limit)
@@ -155,7 +155,7 @@ class UnifiedLog(db.Model):
         limit: int = 100,
     ) -> list["UnifiedLog"]:
         """搜索日志"""
-        query = cls.query.filter(cls.timestamp >= datetime.utcnow() - timedelta(hours=hours))
+        query = cls.query.filter(cls.timestamp >= now() - timedelta(hours=hours))
 
         # 全文搜索消息和上下文
         search_filter = db.or_(cls.message.like(f"%{search_term}%"), cls.context.like(f"%{search_term}%"))
@@ -174,7 +174,7 @@ class UnifiedLog(db.Model):
         """获取日志模块列表"""
         from sqlalchemy import func
 
-        start_time = datetime.utcnow() - timedelta(hours=hours)
+        start_time = now() - timedelta(hours=hours)
 
         # 获取不重复的模块列表，按日志数量排序
         modules = (
@@ -203,7 +203,7 @@ class UnifiedLog(db.Model):
 
         from sqlalchemy import func
 
-        start_time = datetime.utcnow() - timedelta(hours=hours)
+        start_time = now() - timedelta(hours=hours)
 
         # 总日志数
         total_logs = cls.query.filter(cls.timestamp >= start_time).count()
@@ -250,7 +250,7 @@ class UnifiedLog(db.Model):
     @classmethod
     def cleanup_old_logs(cls, days: int = 90) -> int:
         """清理旧日志"""
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = now() - timedelta(days=days)
         deleted_count = cls.query.filter(cls.timestamp < cutoff_date).delete()
         db.session.commit()
         return deleted_count

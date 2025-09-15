@@ -69,7 +69,7 @@ def search_logs():
 
         # 默认时间范围：最近24小时
         if not start_time and not end_time:
-            default_start = datetime.utcnow() - timedelta(hours=24)
+            default_start = now() - timedelta(hours=24)
             query = query.filter(UnifiedLog.timestamp >= default_start)
 
         # 级别过滤
@@ -423,7 +423,7 @@ def get_log_health():
             "error_count": stats["error_count"],
             "error_rate": stats["error_rate"],
             "total_logs": stats["total_logs"],
-            "last_updated": datetime.utcnow().isoformat(),
+            "last_updated": now().isoformat(),
         }
 
         return success_response(health_data)
@@ -441,7 +441,7 @@ def get_log_stats():
         hours = int(request.args.get("hours", 24))
         
         # 计算时间范围
-        start_time = datetime.utcnow() - timedelta(hours=hours)
+        start_time = now() - timedelta(hours=hours)
         
         # 总日志数
         total_logs = UnifiedLog.query.filter(UnifiedLog.timestamp >= start_time).count()
