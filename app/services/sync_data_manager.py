@@ -1369,12 +1369,15 @@ class SyncDataManager:
         """记录权限变更日志"""
         # 生成详细的变更描述
         change_description = cls._generate_change_description(db_type, changes)
+        
+        # 判断变更类型
+        change_type = cls._determine_change_type(changes)
 
         change_log = AccountChangeLog(
             instance_id=instance_id,
             db_type=db_type,
             username=username,
-            change_type="modify_privilege",
+            change_type=change_type,
             session_id=session_id,
             privilege_diff=changes,
             message=change_description,
@@ -1382,6 +1385,28 @@ class SyncDataManager:
         )
         db.session.add(change_log)
         db.session.commit()
+
+    @classmethod
+    def _determine_change_type(cls, changes: dict) -> str:
+        """根据变更内容判断变更类型"""
+        # 检查是否只有type_specific变更
+        if len(changes) == 1 and "type_specific" in changes:
+            return "modify_type"
+        
+        # 检查是否包含权限相关变更
+        permission_fields = [
+            "global_privileges", "database_privileges", "predefined_roles", 
+            "role_attributes", "server_roles", "server_permissions",
+            "database_roles", "database_permissions", "roles",
+            "system_privileges", "tablespace_privileges", "tablespace_privileges_oracle"
+        ]
+        
+        has_permission_changes = any(field in changes for field in permission_fields)
+        
+        if has_permission_changes:
+            return "modify_privilege"
+        else:
+            return "modify_type"
 
     @classmethod
     def _generate_change_description(cls, db_type: str, changes: dict) -> str:
