@@ -157,9 +157,9 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-{{ 'success' if record.status == 'success' else 'danger' }}">
-                                    <i class="fas fa-{{ 'check' if record.status == 'success' else 'times' }} me-1"></i>
-                                    {{ record.status }}
+                                <span class="badge bg-{{ 'success' if record.status == 'success' or record.status == 'completed' else 'danger' }}">
+                                    <i class="fas fa-{{ 'check' if record.status == 'success' or record.status == 'completed' else 'times' }} me-1"></i>
+                                    {{ 'success' if record.status == 'completed' else record.status }}
                                 </span>
                             </td>
                             <td>
@@ -420,7 +420,7 @@ function viewFailedDetails(recordIds) {
 // 显示批量同步详情模态框
 function showBatchDetailsModal(details) {
     // 计算统计信息
-    const successCount = details.filter(d => d.status === 'success').length;
+    const successCount = details.filter(d => d.status === 'completed' || d.status === 'success').length;
     const failedCount = details.filter(d => d.status === 'failed').length;
     const totalAccounts = details.reduce((sum, d) => sum + (d.synced_count || 0), 0);
     const totalInstances = details.length;
@@ -485,8 +485,8 @@ function showBatchDetailsModal(details) {
                                         <tr>
                                             <td>${result.instance_name}</td>
                                             <td>
-                                                <span class="badge bg-${result.status === 'success' ? 'success' : 'danger'}">
-                                                    ${result.status === 'success' ? '成功' : '失败'}
+                                                <span class="badge bg-${result.status === 'success' || result.status === 'completed' ? 'success' : 'danger'}">
+                                                    ${result.status === 'success' || result.status === 'completed' ? '成功' : '失败'}
                                                 </span>
                                             </td>
                                             <td>${result.synced_count || 0}</td>
