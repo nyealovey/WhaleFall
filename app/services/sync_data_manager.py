@@ -681,7 +681,8 @@ class SyncDataManager:
                     username,
                     account_status,
                     created,
-                    expiry_date
+                    expiry_date,
+                    password_date
                 FROM dba_users
                 WHERE {where_clause}
             """
@@ -691,7 +692,7 @@ class SyncDataManager:
 
             accounts = []
             for row in users:
-                username, account_status, created, expiry_date = row
+                username, account_status, created, expiry_date, password_date = row
                 
                 # 获取用户权限信息
                 permissions = self._get_oracle_user_permissions(conn, username)
@@ -706,6 +707,7 @@ class SyncDataManager:
                 permissions["type_specific"]["account_status"] = account_status
                 permissions["type_specific"]["created"] = created.isoformat() if created else None
                 permissions["type_specific"]["expiry_date"] = expiry_date.isoformat() if expiry_date else None
+                permissions["type_specific"]["password_date"] = password_date.isoformat() if password_date else None
 
                 accounts.append(
                     {
