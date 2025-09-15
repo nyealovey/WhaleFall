@@ -275,7 +275,7 @@
                         <tbody>
                             {% for account in accounts %}
                             <tr class="account-row" data-account-id="{{ account.id }}" 
-                                {% if account.is_deleted %}style="opacity: 0.6; background-color: #f8f9fa;"{% endif %}>
+                                {% if account.is_deleted %}data-is-deleted="true" style="opacity: 0.6; background-color: #f8f9fa;"{% else %}data-is-deleted="false"{% endif %}>
                                 {% if instance.db_type == 'mysql' %}
                                 <td>
                                     <div class="d-flex align-items-center">
@@ -949,7 +949,7 @@ function toggleDeletedAccounts() {
    let visibleCount = 0;
    
    accountRows.forEach(row => {
-       const isDeleted = row.style.opacity === '0.6';
+       const isDeleted = row.getAttribute('data-is-deleted') === 'true';
        
        if (checkbox.checked) {
            // 显示所有账户（包括已删除的）
