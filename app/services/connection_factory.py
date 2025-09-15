@@ -538,7 +538,7 @@ class OracleConnection(DatabaseConnection):
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | None = None) -> Any:
+    def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:
         """执行Oracle查询"""
         if not self.is_connected:
             if not self.connect():

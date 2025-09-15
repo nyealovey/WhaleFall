@@ -555,10 +555,29 @@ class SyncDataManager:
             from app.services.database_filter_manager import DatabaseFilterManager
 
             filter_manager = DatabaseFilterManager()
-            filter_conditions = filter_manager.get_safe_sql_filter_conditions("oracle", "username")
-
-            # 构建查询SQL
-            where_clause, params = filter_conditions
+            filter_rules = filter_manager.get_filter_rules("oracle")
+            
+            # 构建Oracle专用的过滤条件
+            where_conditions = []
+            params = {}
+            
+            # 排除特定用户
+            exclude_users = filter_rules.get("exclude_users", [])
+            if exclude_users:
+                placeholders = ", ".join([f":exclude_user_{i}" for i in range(len(exclude_users))])
+                where_conditions.append(f"username NOT IN ({placeholders})")
+                for i, user in enumerate(exclude_users):
+                    params[f"exclude_user_{i}"] = user
+            
+            # 排除模式
+            exclude_patterns = filter_rules.get("exclude_patterns", [])
+            for i, pattern in enumerate(exclude_patterns):
+                where_conditions.append(f"username NOT LIKE :exclude_pattern_{i}")
+                params[f"exclude_pattern_{i}"] = pattern
+            
+            # 构建WHERE子句
+            where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+            
             sql = f"""
                 SELECT
                     username,
@@ -575,16 +594,15 @@ class SyncDataManager:
             accounts = []
             for row in users:
                 username, account_status, created, expiry_date = row
+                
+                # 获取用户权限信息
+                permissions = self._get_oracle_user_permissions(conn, username)
 
                 accounts.append(
                     {
                         "username": username,
-                        "permissions": {
-                            "oracle_roles": [],
-                            "system_privileges": [],
-                            "tablespace_privileges": {},
-                        },
-                        "is_superuser": False,
+                        "permissions": permissions,
+                        "is_superuser": username.upper() in ['SYS', 'SYSTEM'],
                     }
                 )
 
@@ -592,6 +610,46 @@ class SyncDataManager:
         except Exception as e:
             self.sync_logger.error("获取Oracle账户失败", error=str(e))
             return []
+
+    def _get_oracle_user_permissions(self, conn, username: str) -> dict:
+        """获取Oracle用户权限信息"""
+        try:
+            permissions = {
+                "roles": [],
+                "system_privileges": [],
+                "tablespace_privileges": {},
+            }
+            
+            # 获取用户角色
+            roles_sql = """
+                SELECT granted_role 
+                FROM dba_role_privs 
+                WHERE grantee = :username
+            """
+            roles = conn.execute_query(roles_sql, {"username": username})
+            permissions["roles"] = [role[0] for role in roles] if roles else []
+            
+            # 获取系统权限
+            system_privs_sql = """
+                SELECT privilege 
+                FROM dba_sys_privs 
+                WHERE grantee = :username
+            """
+            system_privs = conn.execute_query(system_privs_sql, {"username": username})
+            permissions["system_privileges"] = [priv[0] for priv in system_privs] if system_privs else []
+            
+            # 表空间权限暂时跳过，因为dba_ts_quotas视图可能不存在
+            # 后续可以根据实际需要添加其他表空间权限查询
+            
+            return permissions
+            
+        except Exception as e:
+            self.sync_logger.error(f"获取Oracle用户权限失败: {username}", error=str(e))
+            return {
+                "roles": [],
+                "system_privileges": [],
+                "tablespace_privileges": {},
+            }
 
     @classmethod
     def get_account_latest(
@@ -784,7 +842,7 @@ class SyncDataManager:
             username=username,
             oracle_roles=permissions_data.get("roles", []),
             system_privileges=permissions_data.get("system_privileges", []),
-            tablespace_privileges_oracle=permissions_data.get("tablespace_privileges", []),
+            tablespace_privileges_oracle=permissions_data.get("tablespace_privileges", {}),
             type_specific=permissions_data.get("type_specific", {}),
             is_superuser=is_superuser,
             last_change_type="add",
