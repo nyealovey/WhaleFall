@@ -262,7 +262,8 @@ class SyncDataManager:
                     Super_priv as is_superuser,
                     Grant_priv as can_grant,
                     account_locked as is_locked,
-                    plugin as plugin
+                    plugin as plugin,
+                    password_last_changed as password_last_changed
                 FROM mysql.user
                 WHERE User != '' AND {where_clause}
             """
@@ -272,7 +273,7 @@ class SyncDataManager:
 
             accounts = []
             for row in users:
-                username, host, is_superuser, can_grant, is_locked, plugin = row
+                username, host, is_superuser, can_grant, is_locked, plugin, password_last_changed = row
 
                 # 获取全局权限
                 grants = conn.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
@@ -319,6 +320,7 @@ class SyncDataManager:
                                 "can_grant": can_grant == "Y",
                                 "is_locked": is_locked == "Y",
                                 "plugin": plugin,
+                                "password_last_changed": password_last_changed.isoformat() if password_last_changed else None,
                             },
                         },
                         "is_superuser": is_superuser == "Y",
@@ -494,8 +496,11 @@ class SyncDataManager:
                 SELECT
                     sp.name as username,
                     sp.is_disabled as is_disabled,
-                    sp.type_desc as login_type
+                    sp.type_desc as login_type,
+                    LOGINPROPERTY(sp.name, 'PasswordLastSetTime') as password_last_set_time,
+                    sl.is_expiration_checked as is_expiration_checked
                 FROM sys.server_principals sp
+                LEFT JOIN sys.sql_logins sl ON sp.principal_id = sl.principal_id
                 WHERE sp.type IN ('S', 'U', 'G') AND {where_clause}
             """
 
@@ -504,7 +509,7 @@ class SyncDataManager:
 
             accounts = []
             for row in logins:
-                username, is_disabled, login_type = row
+                username, is_disabled, login_type, password_last_set_time, is_expiration_checked = row
 
                 # 获取服务器角色
                 server_roles = self._get_sqlserver_server_roles(conn, username)
@@ -529,6 +534,8 @@ class SyncDataManager:
                             "type_specific": {
                                 "is_locked": is_disabled,  # SQL Server的is_disabled映射到is_locked
                                 "account_type": login_type,
+                                "password_last_set_time": password_last_set_time.isoformat() if password_last_set_time else None,
+                                "is_expiration_checked": bool(is_expiration_checked) if is_expiration_checked is not None else None,
                             }
                         },
                         "is_superuser": is_superuser,
