@@ -476,7 +476,6 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
             "host": type_specific.get("host", "%"),
             "plugin": type_specific.get("plugin", ""),
             "account_type": sync_account.db_type,
-            "password_last_changed": type_specific.get("password_last_set_time"),
             "is_locked": type_specific.get("is_locked", False),
             "is_active": not sync_account.is_deleted,
             "account_created_at": type_specific.get("account_created_at"),

@@ -494,8 +494,7 @@ class SyncDataManager:
                 SELECT
                     sp.name as username,
                     sp.is_disabled as is_disabled,
-                    sp.type_desc as login_type,
-                    NULL as password_last_set_time
+                    sp.type_desc as login_type
                 FROM sys.server_principals sp
                 WHERE sp.type IN ('S', 'U', 'G') AND {where_clause}
             """
@@ -505,7 +504,7 @@ class SyncDataManager:
 
             accounts = []
             for row in logins:
-                username, is_disabled, login_type, password_last_set_time = row
+                username, is_disabled, login_type = row
 
                 # 获取服务器角色
                 server_roles = self._get_sqlserver_server_roles(conn, username)
@@ -530,7 +529,6 @@ class SyncDataManager:
                             "type_specific": {
                                 "is_locked": is_disabled,  # SQL Server的is_disabled映射到is_locked
                                 "account_type": login_type,
-                                "password_last_set_time": password_last_set_time.isoformat() if password_last_set_time else None,
                             }
                         },
                         "is_superuser": is_superuser,
