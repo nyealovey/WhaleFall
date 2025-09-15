@@ -29,10 +29,10 @@ class Instance(db.Model):
     tags = db.Column(db.JSON, nullable=True)
     status = db.Column(db.String(20), default="active", index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    last_connected = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    deleted_at = db.Column(db.DateTime, nullable=True)
+    last_connected = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
+    deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     # 关系
     credential = db.relationship("Credential", backref="instances")

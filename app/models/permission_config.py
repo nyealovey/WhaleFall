@@ -22,8 +22,8 @@ class PermissionConfig(db.Model):
     description = db.Column(db.Text, nullable=True)  # 权限描述
     is_active = db.Column(db.Boolean, default=True)  # 是否启用
     sort_order = db.Column(db.Integer, default=0)  # 排序顺序
-    created_at = db.Column(db.DateTime, default=now)
-    updated_at = db.Column(db.DateTime, default=now, onupdate=now)
+    created_at = db.Column(db.DateTime(timezone=True), default=now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
 
     # 唯一约束：同一数据库类型的同一类别下，权限名称不能重复
     __table_args__ = (

@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any
 
 from app import db
+from app.utils.timezone import now
 
 
 class DatabaseTypeConfig(db.Model):
@@ -29,11 +30,11 @@ class DatabaseTypeConfig(db.Model):
     is_active = db.Column(db.Boolean, default=True, comment="是否启用")
     is_system = db.Column(db.Boolean, default=False, comment="是否系统内置")
     sort_order = db.Column(db.Integer, default=0, comment="排序顺序")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, comment="创建时间")
+    created_at = db.Column(db.DateTime(timezone=True), default=now, comment="创建时间")
     updated_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        db.DateTime(timezone=True),
+        default=now,
+        onupdate=now,
         comment="更新时间",
     )
 

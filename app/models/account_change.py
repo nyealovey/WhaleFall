@@ -5,6 +5,7 @@
 from datetime import datetime
 
 from app import db
+from app.utils.timezone import now
 
 
 class AccountChange(db.Model):
@@ -17,7 +18,7 @@ class AccountChange(db.Model):
     instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False)
     change_type = db.Column(db.String(20), nullable=False)  # 'added', 'removed', 'modified'
     account_data = db.Column(db.JSON, nullable=False)  # 账户的完整信息
-    change_time = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    change_time = db.Column(db.DateTime(timezone=True), default=now, index=True)
 
     # 关联关系
     # sync_data关系已移除，因为SyncData表已删除

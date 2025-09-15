@@ -23,14 +23,14 @@ class Task(db.Model):
     config = db.Column(db.JSON, nullable=True)  # 任务配置参数
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     is_builtin = db.Column(db.Boolean, default=False, nullable=False)  # 是否为内置任务
-    last_run = db.Column(db.DateTime, nullable=True)
-    last_run_at = db.Column(db.DateTime, nullable=True)  # 兼容字段
+    last_run = db.Column(db.DateTime(timezone=True), nullable=True)
+    last_run_at = db.Column(db.DateTime(timezone=True), nullable=True)  # 兼容字段
     last_status = db.Column(db.String(20), nullable=True)
     last_message = db.Column(db.Text, nullable=True)
     run_count = db.Column(db.Integer, default=0)  # 运行次数
     success_count = db.Column(db.Integer, default=0)  # 成功次数
-    created_at = db.Column(db.DateTime, default=now)
-    updated_at = db.Column(db.DateTime, default=now, onupdate=now)
+    created_at = db.Column(db.DateTime(timezone=True), default=now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
 
     # 关系 - 移除instance_id，任务按数据库类型匹配实例
 

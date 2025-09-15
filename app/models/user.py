@@ -19,8 +19,8 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(50), nullable=False, default="user")
-    created_at = db.Column(db.DateTime, nullable=False, default=now)
-    last_login = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=now)
+    last_login = db.Column(db.DateTime(timezone=True), nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     # 关系

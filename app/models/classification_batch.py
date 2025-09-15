@@ -39,10 +39,10 @@ class ClassificationBatch(db.Model):
     )
 
     # 开始时间
-    started_at = Column(DateTime, nullable=False, default=func.now(), comment="批次开始时间")
+    started_at = Column(DateTime(timezone=True), nullable=False, default=now, comment="批次开始时间")
 
     # 完成时间
-    completed_at = Column(DateTime, nullable=True, comment="批次完成时间")
+    completed_at = Column(DateTime(timezone=True), nullable=True, comment="批次完成时间")
 
     # 处理统计
     total_accounts = Column(Integer, default=0, comment="总账户数")
@@ -63,14 +63,14 @@ class ClassificationBatch(db.Model):
     created_by = Column(Integer, nullable=True, comment="创建者用户ID")
 
     # 创建时间
-    created_at = Column(DateTime, nullable=False, default=func.now(), comment="创建时间")
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now, comment="创建时间")
 
     # 更新时间
     updated_at = Column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
-        default=func.now(),
-        onupdate=func.now(),
+        default=now,
+        onupdate=now,
         comment="更新时间",
     )
 

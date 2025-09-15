@@ -5,6 +5,7 @@
 from datetime import datetime
 
 from app import db
+from app.utils.timezone import now
 
 
 class Log(db.Model):
@@ -22,7 +23,7 @@ class Log(db.Model):
     ip_address = db.Column(db.String(45), nullable=True)  # IP地址
     user_agent = db.Column(db.Text, nullable=True)  # 用户代理
     source = db.Column(db.String(50), nullable=True, index=True, comment="日志来源")  # 日志来源
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=now, index=True)
 
     # 关系
     user = db.relationship("User", backref="logs")

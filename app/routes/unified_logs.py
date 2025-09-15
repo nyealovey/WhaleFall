@@ -303,7 +303,7 @@ def export_logs():
             from flask import Response
 
             # 生成文件名
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = now().strftime("%Y%m%d_%H%M%S")
             filename = f"logs_export_{timestamp}.csv"
 
             return Response(

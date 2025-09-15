@@ -328,7 +328,7 @@ def export_logs() -> Response:
             from flask import make_response
             response = make_response(output.getvalue())
             response.headers["Content-Type"] = "text/csv; charset=utf-8"
-            response.headers["Content-Disposition"] = f"attachment; filename=system_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            response.headers["Content-Disposition"] = f"attachment; filename=system_logs_{now().strftime('%Y%m%d_%H%M%S')}.csv"
             return response
         else:
             return error_response("Unsupported format", 400)

@@ -17,6 +17,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app import db
+from app.utils.timezone import now
 
 # Account模型已废弃，使用CurrentAccountSyncData
 from app.models.credential import Credential
@@ -1101,7 +1102,7 @@ def export_instances() -> Response:
 
     # 创建响应
     output.seek(0)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = now().strftime("%Y%m%d_%H%M%S")
     filename = f"instances_export_{timestamp}.csv"
 
     response = Response(
@@ -1204,7 +1205,7 @@ def test_connection(instance_id: int) -> str | Response | tuple[Response, int]:
 
         if result["success"]:
             # 更新最后连接时间
-            instance.last_connected = db.func.now()
+            instance.last_connected = now()
             db.session.commit()
 
             if request.is_json:

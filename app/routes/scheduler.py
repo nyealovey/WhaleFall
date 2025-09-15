@@ -17,6 +17,7 @@ from app.scheduler import get_scheduler
 from app.utils.api_response import APIResponse
 from app.utils.decorators import scheduler_manage_required, scheduler_view_required
 from app.utils.structlog_config import get_system_logger
+from app.utils.timezone import now
 
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__, url_prefix="/scheduler")
@@ -408,7 +409,7 @@ def _create_dynamic_task_function(job_id: str, code: str) -> Callable[..., Any] 
         # 创建完整的任务代码
         full_code = f'''"""
 动态任务: {job_id}
-创建时间: {datetime.now().isoformat()}
+创建时间: {now().isoformat()}
 """
 
 from app import create_app, db

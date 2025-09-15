@@ -19,9 +19,9 @@ class GlobalParam(db.Model):
     param_type = db.Column(db.String(50), nullable=False, comment="参数类型")
     name = db.Column(db.String(255), nullable=False, comment="参数名称")
     config = db.Column(db.JSON, nullable=True, comment="参数配置")
-    created_at = db.Column(db.DateTime, nullable=True, comment="创建时间")
-    updated_at = db.Column(db.DateTime, nullable=True, comment="更新时间")
-    deleted_at = db.Column(db.DateTime, nullable=True, comment="删除时间")
+    created_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="创建时间")
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="更新时间")
+    deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
 
     def __repr__(self) -> str:
         return f"<GlobalParam {self.param_type}:{self.name}>"

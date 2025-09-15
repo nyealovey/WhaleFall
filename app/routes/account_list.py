@@ -12,6 +12,7 @@ from app.models.instance import Instance
 from app.services.database_service import DatabaseService
 from app.utils.decorators import update_required, view_required
 from app.utils.structlog_config import log_error
+from app.utils.timezone import now
 
 # 创建蓝图
 account_list_bp = Blueprint("account_list", __name__)
@@ -273,7 +274,7 @@ def export_accounts() -> "Response":
 
     # 创建响应
     output.seek(0)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = now().strftime("%Y%m%d_%H%M%S")
     filename = f"accounts_export_{timestamp}.csv"
 
     response = Response(

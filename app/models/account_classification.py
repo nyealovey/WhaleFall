@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 
 from app import db
+from app.utils.timezone import now
 
 
 class AccountClassification(db.Model):
@@ -21,8 +22,8 @@ class AccountClassification(db.Model):
     priority = db.Column(db.Integer, default=0)  # 优先级，数字越大优先级越高
     is_system = db.Column(db.Boolean, default=False, nullable=False)  # 是否为系统分类
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
 
     # 关联关系
     rules = db.relationship(
@@ -70,8 +71,8 @@ class ClassificationRule(db.Model):
     rule_name = db.Column(db.String(100), nullable=False)  # 规则名称
     rule_expression = db.Column(db.Text, nullable=False)  # 规则表达式（JSON格式）
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
 
     def __repr__(self) -> str:
         return f"<ClassificationRule {self.rule_name} for {self.db_type}>"
@@ -115,8 +116,8 @@ class AccountClassificationAssignment(db.Model):
     notes = db.Column(db.Text, nullable=True)  # 备注
     batch_id = db.Column(db.String(36), nullable=True)  # 批次ID
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
 
     # 唯一约束：一个账户在同一个批次中只能有一个分类分配
     __table_args__ = (

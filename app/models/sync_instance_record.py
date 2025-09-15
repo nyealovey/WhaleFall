@@ -32,8 +32,8 @@ class SyncInstanceRecord(db.Model):
         nullable=False,
         default="pending",
     )
-    started_at = db.Column(db.DateTime)
-    completed_at = db.Column(db.DateTime)
+    started_at = db.Column(db.DateTime(timezone=True))
+    completed_at = db.Column(db.DateTime(timezone=True))
 
     # 账户同步统计字段
     accounts_synced = db.Column(db.Integer, default=0)
@@ -44,7 +44,7 @@ class SyncInstanceRecord(db.Model):
     # 通用字段
     error_message = db.Column(db.Text)
     sync_details = db.Column(db.JSON)
-    created_at = db.Column(db.DateTime, default=now)
+    created_at = db.Column(db.DateTime(timezone=True), default=now)
 
     def __init__(
         self,
