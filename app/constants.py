@@ -151,8 +151,8 @@ class DefaultConfig:
     """默认配置值"""
 
     # 数据库配置
-    DATABASE_URL = "sqlite:///./userdata/taifish_dev.db"
-    REDIS_URL = "redis://localhost:6379/0"
+    DATABASE_URL = "postgresql://taifish_user:Taifish2024!@localhost:5432/taifish_dev"
+    REDIS_URL = "redis://:Taifish2024!@localhost:6379/0"
 
     # 应用配置
     SECRET_KEY = None  # 从环境变量获取

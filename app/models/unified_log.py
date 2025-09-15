@@ -36,7 +36,7 @@ class UnifiedLog(db.Model):
     timestamp = Column(DateTime, nullable=False, index=True)
 
     # 日志级别
-    level = Column(SQLEnum(LogLevel), nullable=False, index=True)
+    level = Column(SQLEnum(LogLevel, name="log_level"), nullable=False, index=True)
 
     # 模块/组件名
     module = Column(String(100), nullable=False, index=True)

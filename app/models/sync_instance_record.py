@@ -22,12 +22,12 @@ class SyncInstanceRecord(db.Model):
     instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
     instance_name = db.Column(db.String(255))
     sync_category = db.Column(
-        db.Enum("account", "capacity", "config", "other"),
+        db.Enum("account", "capacity", "config", "other", name="sync_record_category_enum"),
         nullable=False,
         default="account",
     )
     status = db.Column(
-        db.Enum("pending", "running", "completed", "failed"),
+        db.Enum("pending", "running", "completed", "failed", name="sync_record_status_enum"),
         nullable=False,
         default="pending",
     )

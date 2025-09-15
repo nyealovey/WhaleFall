@@ -38,6 +38,76 @@ from app.utils.structlog_config import get_api_logger, log_error, log_info, log_
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
 
+
+def _delete_instance_related_data(instance_id: int, instance_name: str = None) -> dict:
+    """
+    删除实例的所有关联数据
+    
+    Args:
+        instance_id: 实例ID
+        instance_name: 实例名称（用于日志）
+    
+    Returns:
+        dict: 删除统计信息
+    """
+    from app.models.current_account_sync_data import CurrentAccountSyncData
+    from app.models.sync_instance_record import SyncInstanceRecord
+    from app.models.account_change_log import AccountChangeLog
+    from app.models.account_classification import AccountClassificationAssignment
+    
+    # 统计删除的数据量
+    stats = {
+        'assignment_count': 0,
+        'sync_data_count': 0,
+        'sync_record_count': 0,
+        'change_log_count': 0
+    }
+    
+    try:
+        # 第一步：删除账户分类分配 (依赖CurrentAccountSyncData)
+        sync_data_ids = [data.id for data in CurrentAccountSyncData.query.filter_by(instance_id=instance_id).all()]
+        if sync_data_ids:
+            stats['assignment_count'] = AccountClassificationAssignment.query.filter(
+                AccountClassificationAssignment.account_id.in_(sync_data_ids)
+            ).count()
+            if stats['assignment_count'] > 0:
+                AccountClassificationAssignment.query.filter(
+                    AccountClassificationAssignment.account_id.in_(sync_data_ids)
+                ).delete(synchronize_session=False)
+                log_info(f"步骤1: 删除了 {stats['assignment_count']} 个分类分配记录", 
+                        module="instances", instance_id=instance_id, instance_name=instance_name)
+
+        # 第二步：删除同步数据 (CurrentAccountSyncData)
+        stats['sync_data_count'] = CurrentAccountSyncData.query.filter_by(instance_id=instance_id).count()
+        if stats['sync_data_count'] > 0:
+            CurrentAccountSyncData.query.filter_by(instance_id=instance_id).delete()
+            log_info(f"步骤2: 删除了 {stats['sync_data_count']} 条同步数据记录", 
+                    module="instances", instance_id=instance_id, instance_name=instance_name)
+
+        # 第三步：删除同步实例记录 (SyncInstanceRecord)
+        stats['sync_record_count'] = SyncInstanceRecord.query.filter_by(instance_id=instance_id).count()
+        if stats['sync_record_count'] > 0:
+            SyncInstanceRecord.query.filter_by(instance_id=instance_id).delete()
+            log_info(f"步骤3: 删除了 {stats['sync_record_count']} 条同步实例记录", 
+                    module="instances", instance_id=instance_id, instance_name=instance_name)
+
+        # 第四步：删除账户变更日志 (AccountChangeLog)
+        stats['change_log_count'] = AccountChangeLog.query.filter_by(instance_id=instance_id).count()
+        if stats['change_log_count'] > 0:
+            AccountChangeLog.query.filter_by(instance_id=instance_id).delete()
+            log_info(f"步骤4: 删除了 {stats['change_log_count']} 条账户变更日志", 
+                    module="instances", instance_id=instance_id, instance_name=instance_name)
+
+        log_info(f"实例 {instance_name or instance_id} 的所有关联数据删除完成", 
+                module="instances", instance_id=instance_id, instance_name=instance_name)
+        
+        return stats
+        
+    except Exception as e:
+        log_error(f"删除实例 {instance_name or instance_id} 关联数据失败: {e}", 
+                 module="instances", instance_id=instance_id, instance_name=instance_name)
+        raise
+
 # 获取API日志记录器
 api_logger = get_api_logger()
 
@@ -629,24 +699,36 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
             host=instance.host,
         )
 
-        # 级联删除相关数据
-        # 1. 删除账户信息
-        accounts_count = instance.accounts.count()
-        if accounts_count > 0:
-            instance.accounts.delete()
-            log_info(f"删除了 {accounts_count} 个账户记录", module="instances")
-
-        # 2. 删除同步数据
-        from app.models.current_account_sync_data import CurrentAccountSyncData
-
-        sync_data_count = CurrentAccountSyncData.query.filter_by(instance_id=instance.id).count()
-        if sync_data_count > 0:
-            CurrentAccountSyncData.query.filter_by(instance_id=instance.id).delete()
-            log_info(f"删除了 {sync_data_count} 条同步数据记录", module="instances")
-
-        # 3. 删除实例本身
-        db.session.delete(instance)
-        db.session.commit()
+        # 第一步：删除所有关联数据
+        try:
+            stats = _delete_instance_related_data(instance.id, instance.name)
+        except Exception as e:
+            log_error(f"删除实例 {instance.name} 关联数据失败: {e}", module="instances")
+            db.session.rollback()
+            if request.is_json:
+                return jsonify({"error": f"删除关联数据失败: {str(e)}"}), 500
+            flash("删除关联数据失败，请重试", "error")
+            return redirect(url_for("instances.index"))
+        
+        # 第二步：最后删除实例本身
+        try:
+            log_info(f"步骤5: 准备删除实例 {instance.name} (ID: {instance.id})", module="instances")
+            db.session.delete(instance)
+            db.session.commit()
+            log_info(f"步骤5: 实例 {instance.name} 删除成功", module="instances")
+        except Exception as e:
+            log_error(f"删除实例 {instance.name} 失败: {e}", module="instances")
+            db.session.rollback()
+            if request.is_json:
+                return jsonify({"error": f"删除实例失败: {str(e)}"}), 500
+            flash("删除实例失败，请重试", "error")
+            return redirect(url_for("instances.index"))
+        
+        # 提取统计信息
+        assignment_count = stats['assignment_count']
+        sync_data_count = stats['sync_data_count']
+        sync_record_count = stats['sync_record_count']
+        change_log_count = stats['change_log_count']
 
         log_info(f"实例 {instance.name} 及其相关数据删除成功", module="instances")
 
@@ -654,13 +736,15 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
             return jsonify(
                 {
                     "message": "实例删除成功",
-                    "deleted_accounts": accounts_count,
+                    "deleted_assignments": assignment_count,
                     "deleted_sync_data": sync_data_count,
+                    "deleted_sync_records": sync_record_count,
+                    "deleted_change_logs": change_log_count,
                 }
             )
 
         flash(
-            f"实例删除成功！已删除 {accounts_count} 个账户和 {sync_data_count} 条同步数据",
+            f"实例删除成功！已删除 {assignment_count} 个分类分配，{sync_data_count} 条同步数据，{sync_record_count} 条同步记录，{change_log_count} 条变更日志",
             "success",
         )
         return redirect(url_for("instances.index"))
@@ -688,25 +772,41 @@ def batch_delete() -> str | Response | tuple[Response, int]:
         if not instance_ids:
             return jsonify({"success": False, "error": "请选择要删除的实例"}), 400
 
-        # 检查是否有账户关联
-        account_counts = {}
+        # 检查是否有相关数据关联
+        from app.models.current_account_sync_data import CurrentAccountSyncData
+        from app.models.sync_instance_record import SyncInstanceRecord
+        from app.models.account_change_log import AccountChangeLog
+        
+        related_data_counts = {}
         for instance_id in instance_ids:
             instance = Instance.query.get(instance_id)
             if instance:
-                count = instance.accounts.count()
-                if count > 0:
-                    account_counts[instance.name] = count
+                # 检查各种关联数据
+                sync_data_count = CurrentAccountSyncData.query.filter_by(instance_id=instance_id).count()
+                sync_record_count = SyncInstanceRecord.query.filter_by(instance_id=instance_id).count()
+                change_log_count = AccountChangeLog.query.filter_by(instance_id=instance_id).count()
+                
+                total_related = sync_data_count + sync_record_count + change_log_count
+                if total_related > 0:
+                    related_data_counts[instance.name] = {
+                        'sync_data': sync_data_count,
+                        'sync_records': sync_record_count,
+                        'change_logs': change_log_count,
+                        'total': total_related
+                    }
 
-        if account_counts:
-            error_msg = "以下实例无法删除，还有账户关联：\n"
-            for name, count in account_counts.items():
-                error_msg += f"- {name}: {count} 个账户\n"
+        if related_data_counts:
+            error_msg = "以下实例无法删除，还有相关数据关联：\n"
+            for name, counts in related_data_counts.items():
+                error_msg += f"- {name}: {counts['total']} 条相关记录\n"
             return jsonify({"success": False, "error": error_msg.strip()}), 400
 
         # 批量删除
         deleted_count = 0
-        deleted_accounts = 0
+        deleted_assignments = 0
         deleted_sync_data = 0
+        deleted_sync_records = 0
+        deleted_change_logs = 0
 
         for instance_id in instance_ids:
             instance = Instance.query.get(instance_id)
@@ -722,28 +822,31 @@ def batch_delete() -> str | Response | tuple[Response, int]:
                     host=instance.host,
                 )
 
-                # 删除相关数据
-                accounts_count = instance.accounts.count()
-                from app.models.current_account_sync_data import CurrentAccountSyncData
-
-                sync_data_count = CurrentAccountSyncData.query.filter_by(instance_id=instance.id).count()
-
-                if accounts_count > 0:
-                    instance.accounts.delete()
-                    deleted_accounts += accounts_count
-
-                if sync_data_count > 0:
-                    CurrentAccountSyncData.query.filter_by(instance_id=instance.id).delete()
-                    deleted_sync_data += sync_data_count
-
-                # 删除实例本身
-                db.session.delete(instance)
-                deleted_count += 1
+                # 第一步：删除所有关联数据
+                try:
+                    stats = _delete_instance_related_data(instance.id, instance.name)
+                except Exception as e:
+                    log_error(f"删除实例 {instance.name} 关联数据失败: {e}", module="instances")
+                    continue  # 跳过这个实例，继续处理其他实例
+                
+                # 第二步：最后删除实例本身
+                try:
+                    db.session.delete(instance)
+                    deleted_count += 1
+                    
+                    # 累计统计信息
+                    deleted_assignments += stats['assignment_count']
+                    deleted_sync_data += stats['sync_data_count']
+                    deleted_sync_records += stats['sync_record_count']
+                    deleted_change_logs += stats['change_log_count']
+                except Exception as e:
+                    log_error(f"删除实例 {instance.name} 失败: {e}", module="instances")
+                    continue  # 跳过这个实例，继续处理其他实例
 
         db.session.commit()
 
         log_info(
-            f"批量删除完成：{deleted_count} 个实例，{deleted_accounts} 个账户，{deleted_sync_data} 条同步数据",
+            f"批量删除完成：{deleted_count} 个实例，{deleted_assignments} 个分类分配，{deleted_sync_data} 条同步数据，{deleted_sync_records} 条同步记录，{deleted_change_logs} 条变更日志",
             module="instances",
         )
 
@@ -752,8 +855,10 @@ def batch_delete() -> str | Response | tuple[Response, int]:
                 "success": True,
                 "message": f"成功删除 {deleted_count} 个实例",
                 "deleted_count": deleted_count,
-                "deleted_accounts": deleted_accounts,
+                "deleted_assignments": deleted_assignments,
                 "deleted_sync_data": deleted_sync_data,
+                "deleted_sync_records": deleted_sync_records,
+                "deleted_change_logs": deleted_change_logs,
             }
         )
 

@@ -83,6 +83,30 @@ class User(UserMixin, db.Model):
         """
         return self.role == "admin"
 
+    def has_permission(self, permission: str) -> bool:
+        """
+        检查用户是否有指定权限
+
+        Args:
+            permission: 权限名称 (view, create, update, delete)
+
+        Returns:
+            bool: 是否有权限
+        """
+        # 管理员拥有所有权限
+        if self.is_admin():
+            return True
+        
+        # 根据角色判断权限
+        if self.role == "admin":
+            return True
+        elif self.role == "user":
+            # 普通用户只有查看权限
+            return permission == "view"
+        else:
+            # 其他角色默认无权限
+            return False
+
     def update_last_login(self) -> None:
         """更新最后登录时间"""
         self.last_login = now()

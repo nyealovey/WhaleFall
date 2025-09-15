@@ -352,6 +352,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.instances import instances_bp
     from app.routes.logs import logs_bp
     from app.routes.main import main_bp
+    from app.routes.system_logs import system_logs_bp
     from app.routes.unified_logs import unified_logs_bp
 
     # 注册蓝图
@@ -370,6 +371,8 @@ def register_blueprints(app: Flask) -> None:
     # app.register_blueprint(accounts_bp, url_prefix="/accounts")
 
     app.register_blueprint(logs_bp, url_prefix="/logs")
+    app.register_blueprint(system_logs_bp, url_prefix="/system-logs")
+    app.register_blueprint(unified_logs_bp)  # unified_logs_bp already has url_prefix="/unified-logs"
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
     app.register_blueprint(health_bp, url_prefix="/health")
     app.register_blueprint(admin_bp, url_prefix="/admin")

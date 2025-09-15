@@ -13,6 +13,7 @@ from app import db
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.utils.api_response import error_response, success_response
 from app.utils.structlog_config import get_logger, log_error, log_info
+from app.utils.timezone import now
 
 # 创建蓝图
 unified_logs_bp = Blueprint("unified_logs", __name__, url_prefix="/unified-logs")
@@ -399,3 +400,69 @@ def get_log_health():
     except Exception as e:
         log_error("Failed to get log health", module="unified_logs", error=str(e))
         return error_response("Failed to get log health", 500)
+
+
+@unified_logs_bp.route("/api/stats", methods=["GET"])
+@login_required
+def get_log_stats():
+    """获取日志统计信息API"""
+    try:
+        hours = int(request.args.get("hours", 24))
+        
+        # 计算时间范围
+        start_time = datetime.utcnow() - timedelta(hours=hours)
+        
+        # 总日志数
+        total_logs = UnifiedLog.query.filter(UnifiedLog.timestamp >= start_time).count()
+        
+        # 错误日志数
+        error_logs = UnifiedLog.query.filter(
+            UnifiedLog.timestamp >= start_time,
+            UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL])
+        ).count()
+        
+        # 警告日志数
+        warning_logs = UnifiedLog.query.filter(
+            UnifiedLog.timestamp >= start_time,
+            UnifiedLog.level == LogLevel.WARNING
+        ).count()
+        
+        # 活跃模块数
+        from sqlalchemy import distinct
+        modules_count = db.session.query(distinct(UnifiedLog.module)).filter(
+            UnifiedLog.timestamp >= start_time
+        ).count()
+        
+        stats = {
+            "total_logs": total_logs,
+            "error_logs": error_logs,
+            "warning_logs": warning_logs,
+            "modules_count": modules_count,
+            "time_range_hours": hours
+        }
+        
+        log_info("Log stats retrieved", module="unified_logs", **stats)
+        
+        return success_response(stats)
+        
+    except Exception as e:
+        log_error("Failed to get log stats", module="unified_logs", error=str(e))
+        return error_response("Failed to get log stats", 500)
+
+
+@unified_logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
+@login_required
+def get_log_detail(log_id):
+    """获取日志详情API"""
+    try:
+        log = UnifiedLog.query.get_or_404(log_id)
+        
+        log_info("Log detail retrieved", module="unified_logs", log_id=log_id)
+        
+        return success_response({"log": log.to_dict()})
+        
+    except Exception as e:
+        log_error("Failed to get log detail", module="unified_logs", error=str(e), log_id=log_id)
+        return error_response("Failed to get log detail", 500)
+
+

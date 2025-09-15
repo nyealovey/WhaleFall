@@ -3,6 +3,7 @@
 """
 
 import json
+import time
 
 from flask import Blueprint, Response, jsonify, render_template, request
 from flask_login import current_user, login_required
@@ -14,6 +15,7 @@ from app.models.account_classification import (
     ClassificationRule,
 )
 from app.services.account_classification_service import AccountClassificationService
+from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
 from app.services.classification_batch_service import ClassificationBatchService
 from app.utils.decorators import (
     create_required,
@@ -520,25 +522,37 @@ def assign_classification() -> "Response":
 @login_required
 @update_required
 def auto_classify() -> "Response":
-    """自动分类账户"""
+    """自动分类账户 - 使用优化后的服务"""
     try:
         data = request.get_json()
         instance_id = data.get("instance_id")
         batch_type = data.get("batch_type", "manual")  # 默认为手动操作
+        use_optimized = data.get("use_optimized", True)  # 默认使用优化版本
 
         log_info(
             "开始自动分类账户",
             module="account_classification",
             instance_id=instance_id,
             batch_type=batch_type,
+            use_optimized=use_optimized,
         )
 
-        service = AccountClassificationService()
-        result = service.auto_classify_accounts(
-            instance_id=instance_id,
-            batch_type=batch_type,
-            created_by=current_user.id if current_user.is_authenticated else None,
-        )
+        if use_optimized:
+            # 使用优化后的服务
+            service = OptimizedAccountClassificationService()
+            result = service.auto_classify_accounts_optimized(
+                instance_id=instance_id,
+                batch_type=batch_type,
+                created_by=current_user.id if current_user.is_authenticated else None,
+            )
+        else:
+            # 使用原始服务
+            service = AccountClassificationService()
+            result = service.auto_classify_accounts(
+                instance_id=instance_id,
+                batch_type=batch_type,
+                created_by=current_user.id if current_user.is_authenticated else None,
+            )
 
         if result.get("success"):
             log_info(
@@ -546,8 +560,10 @@ def auto_classify() -> "Response":
                 module="account_classification",
                 instance_id=instance_id,
                 batch_id=result.get("batch_id"),
-                classified_count=result.get("classified_count", 0),
+                classified_count=result.get("classified_accounts", 0),
+                total_classifications=result.get("total_classifications_added", 0),
                 failed_count=result.get("failed_count", 0),
+                use_optimized=use_optimized,
             )
         else:
             log_error(
@@ -556,6 +572,7 @@ def auto_classify() -> "Response":
                 instance_id=instance_id,
                 batch_id=result.get("batch_id"),
                 error=result.get("error", "未知错误"),
+                use_optimized=use_optimized,
             )
 
         # 直接返回服务层的结果
@@ -564,6 +581,168 @@ def auto_classify() -> "Response":
     except Exception as e:
         log_error(
             "自动分类异常",
+            module="account_classification",
+            instance_id=instance_id,
+            exception=e,
+        )
+        return jsonify({"success": False, "error": str(e)})
+
+
+@account_classification_bp.route("/auto-classify-optimized", methods=["POST"])
+@login_required
+@update_required
+def auto_classify_optimized() -> "Response":
+    """使用优化后的服务进行自动分类"""
+    try:
+        data = request.get_json()
+        instance_id = data.get("instance_id")
+        batch_type = data.get("batch_type", "manual")
+
+        log_info(
+            "开始优化后的自动分类",
+            module="account_classification",
+            instance_id=instance_id,
+            batch_type=batch_type,
+        )
+
+        service = OptimizedAccountClassificationService()
+        result = service.auto_classify_accounts_optimized(
+            instance_id=instance_id,
+            batch_type=batch_type,
+            created_by=current_user.id if current_user.is_authenticated else None,
+        )
+
+        if result.get("success"):
+            log_info(
+                f"优化后的自动分类完成: {result.get('message', '分类成功')}",
+                module="account_classification",
+                instance_id=instance_id,
+                batch_id=result.get("batch_id"),
+                total_accounts=result.get("total_accounts", 0),
+                total_classifications=result.get("total_classifications_added", 0),
+                total_matches=result.get("total_matches", 0),
+                failed_count=result.get("failed_count", 0),
+            )
+        else:
+            log_error(
+                "优化后的自动分类失败",
+                module="account_classification",
+                instance_id=instance_id,
+                batch_id=result.get("batch_id"),
+                error=result.get("error", "未知错误"),
+            )
+
+        return jsonify(result)
+
+    except Exception as e:
+        log_error(
+            "优化后的自动分类异常",
+            module="account_classification",
+            instance_id=instance_id,
+            exception=e,
+        )
+        return jsonify({"success": False, "error": str(e)})
+
+
+@account_classification_bp.route("/auto-classify-comparison", methods=["POST"])
+@login_required
+@update_required
+def auto_classify_comparison() -> "Response":
+    """比较原始服务和优化后服务的性能"""
+    try:
+        data = request.get_json()
+        instance_id = data.get("instance_id")
+        batch_type = data.get("batch_type", "comparison")
+
+        log_info(
+            "开始性能比较测试",
+            module="account_classification",
+            instance_id=instance_id,
+        )
+
+        results = {}
+
+        # 测试原始服务
+        try:
+            start_time = time.time()
+            original_service = AccountClassificationService()
+            original_result = original_service.auto_classify_accounts(
+                instance_id=instance_id,
+                batch_type=f"{batch_type}_original",
+                created_by=current_user.id if current_user.is_authenticated else None,
+            )
+            original_duration = time.time() - start_time
+            
+            results["original"] = {
+                "success": original_result.get("success", False),
+                "duration": original_duration,
+                "batch_id": original_result.get("batch_id"),
+                "classified_count": original_result.get("classified_count", 0),
+                "failed_count": original_result.get("failed_count", 0),
+            }
+        except Exception as e:
+            results["original"] = {
+                "success": False,
+                "error": str(e),
+                "duration": 0,
+            }
+
+        # 测试优化后的服务
+        try:
+            start_time = time.time()
+            optimized_service = OptimizedAccountClassificationService()
+            optimized_result = optimized_service.auto_classify_accounts_optimized(
+                instance_id=instance_id,
+                batch_type=f"{batch_type}_optimized",
+                created_by=current_user.id if current_user.is_authenticated else None,
+            )
+            optimized_duration = time.time() - start_time
+            
+            results["optimized"] = {
+                "success": optimized_result.get("success", False),
+                "duration": optimized_duration,
+                "batch_id": optimized_result.get("batch_id"),
+                "total_accounts": optimized_result.get("total_accounts", 0),
+                "total_classifications": optimized_result.get("total_classifications_added", 0),
+                "total_matches": optimized_result.get("total_matches", 0),
+                "failed_count": optimized_result.get("failed_count", 0),
+            }
+        except Exception as e:
+            results["optimized"] = {
+                "success": False,
+                "error": str(e),
+                "duration": 0,
+            }
+
+        # 计算性能提升
+        if results["original"]["success"] and results["optimized"]["success"]:
+            original_duration = results["original"]["duration"]
+            optimized_duration = results["optimized"]["duration"]
+            
+            if original_duration > 0:
+                improvement = ((original_duration - optimized_duration) / original_duration) * 100
+                results["performance_improvement"] = {
+                    "time_saved": original_duration - optimized_duration,
+                    "improvement_percentage": improvement,
+                    "speed_ratio": original_duration / optimized_duration if optimized_duration > 0 else 0,
+                }
+
+        log_info(
+            "性能比较测试完成",
+            module="account_classification",
+            instance_id=instance_id,
+            results=results,
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "性能比较测试完成",
+            "comparison": results,
+        })
+
+    except Exception as e:
+        log_error(
+            "性能比较测试异常",
             module="account_classification",
             instance_id=instance_id,
             exception=e,

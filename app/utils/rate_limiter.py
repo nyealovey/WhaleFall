@@ -50,7 +50,7 @@ class RateLimiter:
                 system_logger.warning(
                     "Redis速率限制检查失败，降级到内存模式",
                     module="rate_limiter",
-                    exception=e,
+                    exception=str(e),
                 )
                 # 降级到内存模式
                 return self._check_memory(identifier, endpoint, limit, window, current_time, window_start)

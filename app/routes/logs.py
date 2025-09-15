@@ -26,7 +26,39 @@ logs_bp = Blueprint("logs", __name__)
 @view_required  # type: ignore
 def index() -> str:
     """统一日志中心首页"""
-    return render_template("logs/unified_logs.html")
+    # 获取日志数据用于模板渲染
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 50))
+    level = request.args.get("level")
+    module = request.args.get("module")
+    q = request.args.get("q", "")
+    hours = int(request.args.get("hours", 24))
+
+    # 构建查询
+    query = UnifiedLog.query
+
+    # 时间过滤（使用东八区时间）
+    if hours > 0:
+        from datetime import timedelta
+        start_time = now() - timedelta(hours=hours)
+        query = query.filter(UnifiedLog.timestamp >= start_time)
+
+    # 级别过滤
+    if level:
+        query = query.filter(UnifiedLog.level == level)
+
+    # 模块过滤
+    if module:
+        query = query.filter(UnifiedLog.module == module)
+
+    # 搜索过滤
+    if q:
+        query = query.filter(UnifiedLog.message.contains(q))
+
+    # 分页查询
+    logs = query.order_by(UnifiedLog.timestamp.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template("logs/system_logs.html", logs=logs)
 
 
 # ==================== 统一日志系统 API ====================
