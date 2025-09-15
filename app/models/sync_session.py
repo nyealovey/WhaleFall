@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 
 from app import db
+from app.utils.timezone import now
 
 
 class SyncSession(db.Model):
@@ -56,7 +57,7 @@ class SyncSession(db.Model):
         self.sync_type = sync_type
         self.sync_category = sync_category
         self.status = "running"
-        self.started_at = datetime.utcnow()
+        self.started_at = now()
         self.created_by = created_by
 
     def to_dict(self):
@@ -92,8 +93,8 @@ class SyncSession(db.Model):
         else:
             self.status = "failed"  # 部分失败也算失败
 
-        self.completed_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.completed_at = now()
+        self.updated_at = now()
 
     def get_progress_percentage(self):
         """获取进度百分比"""

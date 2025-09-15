@@ -5,6 +5,7 @@
 from datetime import datetime
 
 from app import db
+from app.utils.timezone import now
 
 
 class SyncInstanceRecord(db.Model):
@@ -90,7 +91,7 @@ class SyncInstanceRecord(db.Model):
     def start_sync(self):
         """开始同步"""
         self.status = "running"
-        self.started_at = datetime.utcnow()
+        self.started_at = now()
 
     def complete_sync(
         self,
@@ -102,7 +103,7 @@ class SyncInstanceRecord(db.Model):
     ):
         """完成同步"""
         self.status = "completed"
-        self.completed_at = datetime.utcnow()
+        self.completed_at = now()
         self.accounts_synced = accounts_synced
         self.accounts_created = accounts_created
         self.accounts_updated = accounts_updated
@@ -112,7 +113,7 @@ class SyncInstanceRecord(db.Model):
     def fail_sync(self, error_message: str, sync_details: dict = None):
         """同步失败"""
         self.status = "failed"
-        self.completed_at = datetime.utcnow()
+        self.completed_at = now()
         self.error_message = error_message
         self.sync_details = sync_details
 

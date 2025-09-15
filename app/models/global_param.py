@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from app import db
+from app.utils.timezone import now
 
 
 class GlobalParam(db.Model):
@@ -61,14 +62,14 @@ class GlobalParam(db.Model):
         param = cls.get_by_name(name)
         if param:
             param.config = value
-            param.updated_at = datetime.utcnow()
+            param.updated_at = now()
         else:
             param = cls(
                 name=name,
                 param_type=param_type,
                 config=value,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=now(),
+                updated_at=now(),
             )
             db.session.add(param)
 
@@ -77,5 +78,5 @@ class GlobalParam(db.Model):
 
     def soft_delete(self) -> None:
         """软删除"""
-        self.deleted_at = datetime.utcnow()
+        self.deleted_at = now()
         db.session.commit()

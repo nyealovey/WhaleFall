@@ -9,6 +9,7 @@ from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.sql import func
 
 from app import db
+from app.utils.timezone import now
 
 
 class ClassificationBatch(db.Model):
@@ -103,7 +104,7 @@ class ClassificationBatch(db.Model):
         if self.completed_at and self.started_at:
             return (self.completed_at - self.started_at).total_seconds()
         if self.started_at:
-            return (datetime.utcnow() - self.started_at).total_seconds()
+            return (now() - self.started_at).total_seconds()
         return 0
 
     @property
