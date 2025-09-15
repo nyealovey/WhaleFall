@@ -25,8 +25,9 @@ class TaskScheduler:
 
     def _setup_scheduler(self):
         """设置调度器"""
-        # 任务存储配置
-        jobstores = {"default": SQLAlchemyJobStore(url="sqlite:///userdata/scheduler.db")}
+        # 任务存储配置 - 使用PostgreSQL
+        from app.config import Config
+        jobstores = {"default": SQLAlchemyJobStore(url=Config.SQLALCHEMY_DATABASE_URI)}
 
         # 执行器配置
         executors = {"default": ThreadPoolExecutor(max_workers=5)}
