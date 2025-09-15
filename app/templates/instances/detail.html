@@ -238,30 +238,33 @@
                                 <th style="width: 15%;">最后变更时间</th>
                                 <th style="width: 18%;">操作</th>
                                 {% elif instance.db_type == 'sqlserver' %}
-                                <th>登录名</th>
-                                <th>密码修改时间</th>
-                                <th>状态</th>
-                                <th>超级用户</th>
-                                <th>最后变更时间</th>
-                                <th>操作</th>
+                                <th style="width: 8%;">ID</th>
+                                <th style="width: 25%;">登录名</th>
+                                <th style="width: 15%;">密码修改时间</th>
+                                <th style="width: 8%;">状态</th>
+                                <th style="width: 8%;">超级用户</th>
+                                <th style="width: 15%;">最后变更时间</th>
+                                <th style="width: 21%;">操作</th>
                                 {% elif instance.db_type == 'postgresql' %}
-                                <th>角色名</th>
-                                <th>状态</th>
-                                <th>超级用户</th>
-                                <th>最后变更时间</th>
-                                <th>操作</th>
+                                <th style="width: 8%;">ID</th>
+                                <th style="width: 30%;">角色名</th>
+                                <th style="width: 10%;">状态</th>
+                                <th style="width: 10%;">超级用户</th>
+                                <th style="width: 20%;">最后变更时间</th>
+                                <th style="width: 22%;">操作</th>
                                 {% elif instance.db_type == 'oracle' %}
-                                <th>Oracle ID</th>
-                                <th>用户名</th>
-                                <th>认证类型</th>
-                                <th>状态</th>
-                                <th>锁定日期</th>
-                                <th>过期日期</th>
-                                <th>默认表空间</th>
-                                <th>创建时间</th>
-                                <th>超级用户</th>
-                                <th>最后变更时间</th>
-                                <th>操作</th>
+                                <th style="width: 6%;">ID</th>
+                                <th style="width: 8%;">Oracle ID</th>
+                                <th style="width: 15%;">用户名</th>
+                                <th style="width: 8%;">认证类型</th>
+                                <th style="width: 6%;">状态</th>
+                                <th style="width: 10%;">锁定日期</th>
+                                <th style="width: 10%;">过期日期</th>
+                                <th style="width: 10%;">默认表空间</th>
+                                <th style="width: 10%;">创建时间</th>
+                                <th style="width: 6%;">超级用户</th>
+                                <th style="width: 10%;">最后变更时间</th>
+                                <th style="width: 11%;">操作</th>
                                 {% else %}
                                 <th>名称</th>
                                 <th>用户</th>
@@ -350,6 +353,11 @@
                                 </td>
                                 {% elif instance.db_type == 'sqlserver' %}
                                 <td>
+                                    <span class="badge bg-secondary" style="font-size: 0.75em;">
+                                        {{ account.id }}
+                                    </span>
+                                </td>
+                                <td>
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-user text-primary me-2"></i>
                                         <strong>{{ account.username }}</strong>
@@ -403,6 +411,11 @@
                                 </td>
                                 {% elif instance.db_type == 'postgresql' %}
                                 <td>
+                                    <span class="badge bg-secondary" style="font-size: 0.75em;">
+                                        {{ account.id }}
+                                    </span>
+                                </td>
+                                <td>
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-user text-primary me-2"></i>
                                         <strong>{{ account.username }}</strong>
@@ -445,6 +458,11 @@
                                     </div>
                                 </td>
                                 {% elif instance.db_type == 'oracle' %}
+                                <td>
+                                    <span class="badge bg-secondary" style="font-size: 0.75em;">
+                                        {{ account.id }}
+                                    </span>
+                                </td>
                                 <td>
                                     {% if account.user_id is not none %}
                                         <span class="badge bg-info">{{ account.user_id }}</span>
