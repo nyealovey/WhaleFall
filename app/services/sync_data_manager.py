@@ -1017,6 +1017,15 @@ class SyncDataManager:
                 },
             }
 
+        # 检测type_specific字段变更
+        old_type_specific = account.type_specific or {}
+        new_type_specific = new_permissions.get("type_specific", {})
+        if old_type_specific != new_type_specific:
+            changes["type_specific"] = {
+                "old": old_type_specific,
+                "new": new_type_specific,
+            }
+
         return changes
 
     @classmethod
@@ -1083,6 +1092,15 @@ class SyncDataManager:
                 "removed": list(old_sys_perms - new_sys_perms),
             }
 
+        # 检测type_specific字段变更
+        old_type_specific = account.type_specific or {}
+        new_type_specific = new_permissions.get("type_specific", {})
+        if old_type_specific != new_type_specific:
+            changes["type_specific"] = {
+                "old": old_type_specific,
+                "new": new_type_specific,
+            }
+
         return changes
 
     @classmethod
@@ -1138,6 +1156,15 @@ class SyncDataManager:
                 },
             }
 
+        # 检测type_specific字段变更
+        old_type_specific = account.type_specific or {}
+        new_type_specific = new_permissions.get("type_specific", {})
+        if old_type_specific != new_type_specific:
+            changes["type_specific"] = {
+                "old": old_type_specific,
+                "new": new_type_specific,
+            }
+
         return changes
 
     @classmethod
@@ -1170,6 +1197,15 @@ class SyncDataManager:
             changes["tablespace_privileges"] = {
                 "added": list(new_tablespace_perms - old_tablespace_perms),
                 "removed": list(old_tablespace_perms - new_tablespace_perms),
+            }
+
+        # 检测type_specific字段变更
+        old_type_specific = account.type_specific or {}
+        new_type_specific = new_permissions.get("type_specific", {})
+        if old_type_specific != new_type_specific:
+            changes["type_specific"] = {
+                "old": old_type_specific,
+                "new": new_type_specific,
             }
 
         return changes
