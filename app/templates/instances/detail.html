@@ -239,12 +239,13 @@
                                 <th style="width: 18%;">操作</th>
                                 {% elif instance.db_type == 'sqlserver' %}
                                 <th style="width: 8%;">ID</th>
-                                <th style="width: 25%;">登录名</th>
-                                <th style="width: 15%;">密码修改时间</th>
-                                <th style="width: 8%;">状态</th>
-                                <th style="width: 8%;">超级用户</th>
+                                <th style="width: 20%;">登录名</th>
+                                <th style="width: 12%;">密码修改时间</th>
+                                <th style="width: 7%;">状态</th>
+                                <th style="width: 7%;">超级用户</th>
+                                <th style="width: 8%;">删除状态</th>
                                 <th style="width: 15%;">最后变更时间</th>
-                                <th style="width: 21%;">操作</th>
+                                <th style="width: 18%;">操作</th>
                                 {% elif instance.db_type == 'postgresql' %}
                                 <th style="width: 8%;">ID</th>
                                 <th style="width: 30%;">角色名</th>
@@ -384,6 +385,17 @@
                                         </span>
                                     {% else %}
                                         <span class="badge bg-secondary">否</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if account.is_deleted %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-trash me-1"></i>已删除
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>正常
+                                        </span>
                                     {% endif %}
                                 </td>
                                 <td>
