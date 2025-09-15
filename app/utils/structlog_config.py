@@ -175,11 +175,24 @@ class SQLAlchemyLogHandler:
         if current_user and hasattr(current_user, "id"):
             context["current_user_id"] = current_user.id
             context["current_username"] = getattr(current_user, "username", None)
+            context["current_user_role"] = getattr(current_user, "role", None)
+            context["is_admin"] = getattr(current_user, "is_admin", lambda: False)()
 
-        # 添加其他上下文信息
+        # 添加其他上下文信息（过滤掉系统字段）
+        system_fields = ["level", "module", "event", "timestamp", "exception", "logger", "logger_name"]
         for key, value in event_dict.items():
-            if key not in ["level", "module", "event", "timestamp", "exception"]:
-                context[key] = value
+            if key not in system_fields and value is not None:
+                # 处理特殊数据类型
+                if isinstance(value, datetime):
+                    context[key] = value.isoformat()
+                elif hasattr(value, 'to_dict'):
+                    # 如果是模型对象，转换为字典
+                    try:
+                        context[key] = value.to_dict()
+                    except:
+                        context[key] = str(value)
+                else:
+                    context[key] = value
 
         return context
 
