@@ -125,6 +125,13 @@ class DatabaseService:
             # 获取数据库版本信息
             version_info = self.get_database_version(instance, conn)
 
+            # 更新最后连接时间（无论连接成功还是失败都记录尝试时间）
+            from app import db
+            from app.utils.timezone import now
+            
+            instance.last_connected = now()
+            db.session.commit()
+
             # 关闭连接
             self.close_connection(instance)
 
@@ -135,6 +142,16 @@ class DatabaseService:
             }
 
         except Exception as e:
+            # 即使连接失败，也记录尝试时间
+            try:
+                from app import db
+                from app.utils.timezone import now
+                
+                instance.last_connected = now()
+                db.session.commit()
+            except Exception as update_error:
+                self.db_logger.error(f"更新最后连接时间失败: {update_error}")
+            
             self.db_logger.error(
                 "数据库连接测试失败",
                 module="database",

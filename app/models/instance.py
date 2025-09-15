@@ -87,10 +87,15 @@ class Instance(db.Model):
         try:
             from app.services.database_service import DatabaseService
             from app.utils.version_parser import DatabaseVersionParser
+            from app.utils.timezone import now
             
             # 使用DatabaseService进行连接测试
             db_service = DatabaseService()
             result = db_service.test_connection(self)
+            
+            # 无论连接成功还是失败，都更新最后连接时间
+            # (DatabaseService.test_connection已经更新了，这里确保一致性)
+            self.last_connected = now()
             
             # 如果连接成功，解析版本信息
             if result.get('success') and result.get('version'):
@@ -102,17 +107,25 @@ class Instance(db.Model):
                 self.main_version = parsed['main_version']
                 self.detailed_version = parsed['detailed_version']
                 
-                # 保存到数据库
-                db.session.commit()
-                
                 # 更新返回结果中的版本信息
                 result['version'] = DatabaseVersionParser.format_version_display(self.db_type.lower(), version_info)
                 result['main_version'] = parsed['main_version']
                 result['detailed_version'] = parsed['detailed_version']
             
+            # 保存到数据库
+            db.session.commit()
+            
             return result
             
         except Exception as e:
+            # 即使出现异常，也尝试更新最后连接时间
+            try:
+                from app.utils.timezone import now
+                self.last_connected = now()
+                db.session.commit()
+            except Exception as update_error:
+                pass  # 忽略更新时间的错误
+            
             return {"status": "error", "message": f"连接测试失败: {str(e)}"}
 
     def _test_sql_server_connection(self) -> dict:
