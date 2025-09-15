@@ -19,7 +19,9 @@ class Instance(db.Model):
     host = db.Column(db.String(255), nullable=False)
     port = db.Column(db.Integer, nullable=False)
     database_name = db.Column(db.String(255), nullable=True)
-    database_version = db.Column(db.String(100), nullable=True)
+    database_version = db.Column(db.String(100), nullable=True)  # 原始版本字符串
+    main_version = db.Column(db.String(20), nullable=True)  # 主版本号 (如 8.0, 13.4, 14.0)
+    detailed_version = db.Column(db.String(50), nullable=True)  # 详细版本号 (如 8.0.32, 13.4, 14.0.3465.1)
     environment = db.Column(
         db.String(20), default="production", nullable=False, index=True
     )  # 环境：production, development, testing
@@ -83,16 +85,33 @@ class Instance(db.Model):
             dict: 连接测试结果
         """
         try:
-            if self.db_type == "SQL Server":
-                return self._test_sql_server_connection()
-            if self.db_type == "MySQL":
-                return self._test_mysql_connection()
-            if self.db_type == "Oracle":
-                return self._test_oracle_connection()
-            return {
-                "status": "error",
-                "message": f"不支持的数据库类型: {self.db_type}",
-            }
+            from app.services.database_service import DatabaseService
+            from app.utils.version_parser import DatabaseVersionParser
+            
+            # 使用DatabaseService进行连接测试
+            db_service = DatabaseService()
+            result = db_service.test_connection(self)
+            
+            # 如果连接成功，解析版本信息
+            if result.get('success') and result.get('version'):
+                version_info = result['version']
+                parsed = DatabaseVersionParser.parse_version(self.db_type.lower(), version_info)
+                
+                # 更新实例的版本信息
+                self.database_version = parsed['original']
+                self.main_version = parsed['main_version']
+                self.detailed_version = parsed['detailed_version']
+                
+                # 保存到数据库
+                db.session.commit()
+                
+                # 更新返回结果中的版本信息
+                result['version'] = DatabaseVersionParser.format_version_display(self.db_type.lower(), version_info)
+                result['main_version'] = parsed['main_version']
+                result['detailed_version'] = parsed['detailed_version']
+            
+            return result
+            
         except Exception as e:
             return {"status": "error", "message": f"连接测试失败: {str(e)}"}
 

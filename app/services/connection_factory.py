@@ -11,6 +11,7 @@ from typing import Any
 from app.models.instance import Instance
 from app.utils.database_type_utils import DatabaseTypeUtils
 from app.utils.structlog_config import get_db_logger, log_error
+from app.utils.version_parser import DatabaseVersionParser
 
 
 class DatabaseConnection(ABC):
@@ -134,7 +135,11 @@ class MySQLConnection(DatabaseConnection):
         """获取MySQL版本"""
         try:
             result = self.execute_query("SELECT VERSION()")
-            return result[0][0] if result else None
+            if result:
+                raw_version = result[0][0]
+                parsed = DatabaseVersionParser.parse_version('mysql', raw_version)
+                return DatabaseVersionParser.format_version_display('mysql', raw_version)
+            return None
         except Exception:
             return None
 
@@ -225,7 +230,10 @@ class PostgreSQLConnection(DatabaseConnection):
         """获取PostgreSQL版本"""
         try:
             result = self.execute_query("SELECT version()")
-            return result[0][0] if result else None
+            if result:
+                raw_version = result[0][0]
+                return DatabaseVersionParser.format_version_display('postgresql', raw_version)
+            return None
         except Exception:
             return None
 
@@ -408,16 +416,22 @@ class SQLServerConnection(DatabaseConnection):
     def get_version(self) -> str | None:
         """获取SQL Server版本"""
         try:
+            raw_version = None
             if self.driver_type == "pyodbc":
                 # pyodbc使用cursor
                 cursor = self.connection.cursor()
                 cursor.execute("SELECT @@VERSION")
                 result = cursor.fetchone()
                 cursor.close()
-                return result[0] if result else None
-            # pymssql使用execute_query
-            result = self.execute_query("SELECT @@VERSION")
-            return result[0][0] if result else None
+                raw_version = result[0] if result else None
+            else:
+                # pymssql使用execute_query
+                result = self.execute_query("SELECT @@VERSION")
+                raw_version = result[0][0] if result else None
+            
+            if raw_version:
+                return DatabaseVersionParser.format_version_display('sqlserver', raw_version)
+            return None
         except Exception:
             return None
 
@@ -542,7 +556,10 @@ class OracleConnection(DatabaseConnection):
         """获取Oracle版本"""
         try:
             result = self.execute_query("SELECT * FROM v$version WHERE rownum = 1")
-            return result[0][0] if result else None
+            if result:
+                raw_version = result[0][0]
+                return DatabaseVersionParser.format_version_display('oracle', raw_version)
+            return None
         except Exception:
             return None
 

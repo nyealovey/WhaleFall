@@ -114,7 +114,7 @@
                         <th>环境</th>
                         <th>主机</th>
                         <th>端口</th>
-                        <th>数据库版本</th>
+                        <th>版本信息</th>
                         <th>状态</th>
                         <th>最后连接</th>
                         <th>操作</th>
@@ -158,8 +158,13 @@
                         <td>{{ instance.host }}</td>
                         <td>{{ instance.port }}</td>
                         <td>
-                            {% if instance.database_version %}
-                                <span class="badge bg-info">{{ instance.database_version }}</span>
+                            {% if instance.main_version %}
+                                <div class="d-flex flex-column">
+                                    <span class="badge bg-primary mb-1">{{ instance.main_version }}</span>
+                                    {% if instance.detailed_version and instance.detailed_version != instance.main_version %}
+                                        <small class="text-muted">{{ instance.detailed_version }}</small>
+                                    {% endif %}
+                                </div>
                             {% else %}
                                 <span class="text-muted">未检测</span>
                             {% endif %}
