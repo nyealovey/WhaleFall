@@ -70,12 +70,14 @@
                             <p class="form-control-plaintext">
                                 {% if instance.main_version %}
                                     <div class="d-flex flex-column">
-                                        <span class="badge bg-primary mb-2 fs-6">{{ instance.main_version }}</span>
-                                        {% if instance.detailed_version and instance.detailed_version != instance.main_version %}
-                                            <small class="text-muted">{{ instance.detailed_version }}</small>
-                                        {% endif %}
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <span class="badge bg-primary">{{ instance.main_version }}</span>
+                                            {% if instance.detailed_version and instance.detailed_version != instance.main_version %}
+                                                <small class="text-muted">{{ instance.detailed_version }}</small>
+                                            {% endif %}
+                                        </div>
                                         {% if instance.database_version %}
-                                            <details class="mt-2">
+                                            <details class="mt-1">
                                                 <summary class="text-muted small" style="cursor: pointer;">查看完整版本信息</summary>
                                                 <div class="mt-2 p-2 bg-light rounded small text-muted">
                                                     {{ instance.database_version }}
