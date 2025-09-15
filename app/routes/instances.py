@@ -915,7 +915,8 @@ def _process_csv_file(file: Any) -> dict[str, Any] | Response | tuple[Response, 
                 if value and value.strip():
                     instance_data[key.strip()] = value.strip()
                 else:
-                    instance_data[key.strip()] = None
+                    # 对于空值，不设置该字段，而不是设置为None
+                    pass
 
             instances_data.append(instance_data)
 
@@ -984,15 +985,16 @@ def _process_instances_data(
             created_count += 1
 
             # 记录操作日志
-            log_info(
-                "批量创建数据库实例",
-                module="instances",
-                user_id=current_user.id,
-                instance_name=instance.name,
-                db_type=instance.db_type,
-                host=instance.host,
-                environment=instance.environment,
-            )
+            if current_user and hasattr(current_user, 'id'):
+                log_info(
+                    "批量创建数据库实例",
+                    module="instances",
+                    user_id=current_user.id,
+                    instance_name=instance.name,
+                    db_type=instance.db_type,
+                    host=instance.host,
+                    environment=instance.environment,
+                )
 
         except Exception as e:
             errors.append(f"第 {i + 1} 个实例创建失败: {str(e)}")
