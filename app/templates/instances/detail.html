@@ -229,12 +229,13 @@
                         <thead>
                             <tr>
                                 {% if instance.db_type == 'mysql' %}
-                                <th style="width: 35%;">名称</th>
-                                <th style="width: 15%;">插件</th>
-                                <th style="width: 8%;">锁定状态</th>
-                                <th style="width: 8%;">超级用户</th>
-                                <th style="width: 20%;">最后变更时间</th>
-                                <th style="width: 14%;">操作</th>
+                                <th style="width: 30%;">名称</th>
+                                <th style="width: 12%;">插件</th>
+                                <th style="width: 7%;">锁定状态</th>
+                                <th style="width: 7%;">超级用户</th>
+                                <th style="width: 8%;">删除状态</th>
+                                <th style="width: 18%;">最后变更时间</th>
+                                <th style="width: 18%;">操作</th>
                                 {% elif instance.db_type == 'sqlserver' %}
                                 <th>登录名</th>
                                 <th>密码修改时间</th>
@@ -308,6 +309,17 @@
                                         </span>
                                     {% else %}
                                         <span class="badge bg-secondary" style="font-size: 0.75em;">否</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if account.is_deleted %}
+                                        <span class="badge bg-danger" style="font-size: 0.75em;">
+                                            <i class="fas fa-trash me-1"></i>已删除
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success" style="font-size: 0.75em;">
+                                            <i class="fas fa-check me-1"></i>正常
+                                        </span>
                                     {% endif %}
                                 </td>
                                 <td>
