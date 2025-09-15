@@ -127,14 +127,6 @@ def search_logs():
             },
         }
 
-        log_info(
-            "Logs search completed",
-            module="unified_logs",
-            total=len(logs),
-            page=page,
-            search_term=search_term,
-        )
-
         return success_response(response_data)
 
     except Exception as e:
