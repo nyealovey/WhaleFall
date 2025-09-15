@@ -879,7 +879,7 @@ class SyncDataManager:
         query = CurrentAccountSyncData.query.filter_by(instance_id=instance_id)
         if not include_deleted:
             query = query.filter_by(is_deleted=False)
-        return query.all()
+        return query.order_by(CurrentAccountSyncData.username.asc()).all()
 
     @classmethod
     def get_account_changes(cls, instance_id: int, db_type: str, username: str) -> list[AccountChangeLog]:
@@ -1562,4 +1562,4 @@ class SyncDataManager:
         query = CurrentAccountSyncData.query.filter_by(instance_id=instance_id, db_type=db_type)
         if not include_deleted:
             query = query.filter_by(is_deleted=False)
-        return query.all()
+        return query.order_by(CurrentAccountSyncData.username.asc()).all()
