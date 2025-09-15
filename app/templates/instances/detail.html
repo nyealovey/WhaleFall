@@ -229,12 +229,12 @@
                         <thead>
                             <tr>
                                 {% if instance.db_type == 'mysql' %}
-                                <th>名称</th>
-                                <th>插件</th>
-                                <th>锁定状态</th>
-                                <th>超级用户</th>
-                                <th>最后变更时间</th>
-                                <th>操作</th>
+                                <th style="width: 35%;">名称</th>
+                                <th style="width: 15%;">插件</th>
+                                <th style="width: 8%;">锁定状态</th>
+                                <th style="width: 8%;">超级用户</th>
+                                <th style="width: 20%;">最后变更时间</th>
+                                <th style="width: 14%;">操作</th>
                                 {% elif instance.db_type == 'sqlserver' %}
                                 <th>登录名</th>
                                 <th>密码修改时间</th>
@@ -289,35 +289,35 @@
                                 <td>
                                     {% set plugin = account.type_specific.get('plugin') if account.type_specific else None %}
                                     {% if plugin %}
-                                        <span class="badge bg-secondary">{{ plugin }}</span>
+                                        <span class="badge bg-secondary" style="font-size: 0.75em;">{{ plugin }}</span>
                                     {% else %}
-                                        <span class="text-muted">未知</span>
+                                        <span class="text-muted small">未知</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if account.is_locked %}
-                                        <span class="badge bg-danger">已锁定</span>
+                                        <span class="badge bg-danger" style="font-size: 0.75em;">锁定</span>
                                     {% else %}
-                                        <span class="badge bg-success">正常</span>
+                                        <span class="badge bg-success" style="font-size: 0.75em;">正常</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if account.is_superuser %}
-                                        <span class="badge bg-warning">
-                                            <i class="fas fa-crown me-1"></i>是
+                                        <span class="badge bg-warning" style="font-size: 0.75em;">
+                                            <i class="fas fa-crown"></i>
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-secondary">否</span>
+                                        <span class="badge bg-secondary" style="font-size: 0.75em;">否</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if account.last_change_time %}
-                                        <small class="text-muted">
+                                        <small class="text-muted" style="font-size: 0.7em;">
                                             <i class="fas fa-clock me-1"></i>
                                             {{ account.last_change_time | china_datetime }}
                                         </small>
                                     {% else %}
-                                        <span class="text-muted">-</span>
+                                        <span class="text-muted small">-</span>
                                     {% endif %}
                                 </td>
                                 <td>
