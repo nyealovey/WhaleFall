@@ -5,6 +5,7 @@
 from datetime import datetime
 
 from app import db
+from app.utils.time_utils import now
 
 
 class PermissionConfig(db.Model):
