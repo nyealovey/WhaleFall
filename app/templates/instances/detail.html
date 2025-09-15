@@ -68,8 +68,21 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">数据库版本</label>
                             <p class="form-control-plaintext">
-                                {% if instance.database_version %}
-                                    <span class="badge bg-info">{{ instance.database_version }}</span>
+                                {% if instance.main_version %}
+                                    <div class="d-flex flex-column">
+                                        <span class="badge bg-primary mb-2 fs-6">{{ instance.main_version }}</span>
+                                        {% if instance.detailed_version and instance.detailed_version != instance.main_version %}
+                                            <small class="text-muted">{{ instance.detailed_version }}</small>
+                                        {% endif %}
+                                        {% if instance.database_version %}
+                                            <details class="mt-2">
+                                                <summary class="text-muted small" style="cursor: pointer;">查看完整版本信息</summary>
+                                                <div class="mt-2 p-2 bg-light rounded small text-muted">
+                                                    {{ instance.database_version }}
+                                                </div>
+                                            </details>
+                                        {% endif %}
+                                    </div>
                                 {% else %}
                                     <span class="text-muted">未检测</span>
                                 {% endif %}
