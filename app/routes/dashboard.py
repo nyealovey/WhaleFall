@@ -12,7 +12,6 @@ from sqlalchemy import text
 from app import db
 from app.models.credential import Credential
 from app.models.instance import Instance
-from app.models.log import Log
 
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.task import Task

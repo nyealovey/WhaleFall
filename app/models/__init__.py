@@ -5,7 +5,6 @@
 from app import db  # noqa: F401
 
 # Account模型已废弃，使用CurrentAccountSyncData
-from .account_change import AccountChange
 from .account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -17,7 +16,6 @@ from .credential import Credential
 # 新增模型
 from .global_param import GlobalParam
 from .instance import Instance
-from .log import Log
 from .permission_config import PermissionConfig
 
 # 移除SyncData导入，使用新的优化同步模型
@@ -35,11 +33,9 @@ __all__ = [
     "Credential",
     # "Account",  # 已废弃，使用CurrentAccountSyncData
     "Task",
-    "Log",
     # 移除SyncData导出
     "SyncSession",
     "SyncInstanceRecord",
-    "AccountChange",
     "AccountClassification",
     "ClassificationRule",
     "AccountClassificationAssignment",

@@ -1265,18 +1265,7 @@ def sync_accounts(instance_id: int) -> str | Response | tuple[Response, int]:
             instance.sync_count = (instance.sync_count or 0) + 1
             db.session.commit()
 
-            # 记录操作成功日志
-            log_info(
-                "账户同步成功",
-                module="instances",
-                user_id=current_user.id,
-                instance_id=instance.id,
-                instance_name=instance.name,
-                db_type=instance.db_type,
-                host=instance.host,
-                synced_count=result.get("synced_count", 0),
-                sync_count=instance.sync_count,
-            )
+            # 移除账户同步成功的日志记录，减少日志噪音
 
             if request.is_json:
                 return jsonify({"message": "账户同步成功", "result": result})

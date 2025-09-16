@@ -93,12 +93,6 @@ def create_app(config_name: str | None = None) -> Flask:
 
     app.advanced_error_handler = advanced_error_handler
 
-    # 注册错误日志中间件
-    from app.middleware.error_logging_middleware import (
-        register_error_logging_middleware,
-    )
-
-    register_error_logging_middleware(app)
 
     # 注册高级错误处理器到Flask应用
     @app.errorhandler(Exception)
@@ -357,7 +351,6 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.instances import instances_bp
     # from app.routes.logs import logs_bp  # 已停用，使用unified_logs替代
     from app.routes.main import main_bp
-    from app.routes.system_logs import system_logs_bp
     from app.routes.unified_logs import unified_logs_bp
 
     # 注册蓝图
@@ -376,7 +369,6 @@ def register_blueprints(app: Flask) -> None:
     # app.register_blueprint(accounts_bp, url_prefix="/accounts")
 
     # app.register_blueprint(logs_bp, url_prefix="/logs")  # 已停用，使用unified_logs替代
-    app.register_blueprint(system_logs_bp, url_prefix="/system-logs")
     app.register_blueprint(unified_logs_bp)  # unified_logs_bp already has url_prefix="/unified-logs"
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
     app.register_blueprint(health_bp, url_prefix="/health")
@@ -493,7 +485,6 @@ from app.models import (  # noqa: F401; account,  # 已废弃，使用CurrentAcc
     credential,
     database_type_config,
     instance,
-    log,
     task,
     user,
 )

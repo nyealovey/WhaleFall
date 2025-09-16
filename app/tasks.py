@@ -10,7 +10,6 @@ from app.utils.timezone import now
 from app import create_app, db
 from app.models.account_change_log import AccountChangeLog
 from app.models.current_account_sync_data import CurrentAccountSyncData
-from app.models.log import Log
 from app.models.user import User
 from app.services.account_sync_service import account_sync_service
 from app.utils.structlog_config import get_sync_logger, get_task_logger

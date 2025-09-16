@@ -369,13 +369,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                         sync_details=result.get("details", {}),
                     )
 
-                    log_info(
-                        f"实例同步成功: {instance.name}",
-                        module="account_sync",
-                        session_id=session.session_id,
-                        instance_id=instance.id,
-                        synced_count=result.get("synced_count", 0),
-                    )
+                    # 移除实例同步成功的日志记录，减少日志噪音
 
                     # 同步会话记录已通过sync_session_service管理，无需额外创建记录
                 else:

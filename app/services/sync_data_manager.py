@@ -902,7 +902,7 @@ class SyncDataManager:
                 # 如果有UNLIMITED TABLESPACE权限，设置通用表空间权限
                 # 由于无法访问dba_*视图，我们设置一个通用的表空间权限标识
                 permissions["tablespace_privileges"]["ALL_TABLESPACES"] = ["UNLIMITED"]
-                self.sync_logger.debug(f"用户 {username} 具有UNLIMITED TABLESPACE权限")
+                # 移除多余的DEBUG日志记录
             
             # 2. 尝试获取具体的表空间配额信息
             try:
