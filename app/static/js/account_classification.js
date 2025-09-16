@@ -1221,8 +1221,6 @@ function displayMatchedAccounts(accounts, ruleName) {
                             <th style="font-size: 0.8rem;">实例名称</th>
                             <th style="font-size: 0.8rem;">实例IP</th>
                             <th style="font-size: 0.8rem;">环境</th>
-                            <th style="font-size: 0.8rem;">数据库类型</th>
-                            <th style="font-size: 0.8rem;">分类</th>
                             <th style="font-size: 0.8rem;">锁定状态</th>
                         </tr>
                     </thead>
@@ -1237,20 +1235,6 @@ function displayMatchedAccounts(accounts, ruleName) {
                             account.instance_environment === 'development' ? '开发' :
                             account.instance_environment === 'testing' ? '测试' : account.instance_environment;
 
-            // 数据库类型标签
-            const dbTypeClass = account.db_type === 'mysql' ? 'success' :
-                               account.db_type === 'postgresql' ? 'primary' :
-                               account.db_type === 'sqlserver' ? 'warning' :
-                               account.db_type === 'oracle' ? 'info' : 'secondary';
-
-            // 分类标签
-            const classificationBadges = account.classifications && account.classifications.length > 0
-                ? account.classifications.map(c =>
-                    `<span class="badge me-1 mb-1" style="font-size: 0.7rem; background-color: ${c.color || '#6c757d'};">
-                        ${c.name}
-                    </span>`
-                  ).join('')
-                : '<span class="text-muted" style="font-size: 0.8rem;">未分类</span>';
 
             // 锁定状态
             const lockStatus = account.is_locked
@@ -1276,14 +1260,6 @@ function displayMatchedAccounts(accounts, ruleName) {
                     </td>
                     <td>
                         <span class="badge bg-${envClass}" style="font-size: 0.7rem;">${envLabel}</span>
-                    </td>
-                    <td>
-                        <span class="badge bg-${dbTypeClass}" style="font-size: 0.7rem;">
-                            ${account.db_type ? account.db_type.toUpperCase() : '-'}
-                        </span>
-                    </td>
-                    <td>
-                        ${classificationBadges}
                     </td>
                     <td>
                         ${lockStatus}
