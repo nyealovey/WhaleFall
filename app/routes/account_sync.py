@@ -216,7 +216,9 @@ def sync_records() -> str | Response:
         
         # 添加get_record_ids方法（用于模板调用）
         def get_record_ids():
-            return [instance_record.id for instance_record in instance_records]
+            # 重新查询实例记录，确保数据是最新的
+            fresh_instance_records = record.instance_records.all()
+            return [instance_record.id for instance_record in fresh_instance_records]
         record.get_record_ids = get_record_ids
 
     # 合并聚合记录、手动记录和task记录

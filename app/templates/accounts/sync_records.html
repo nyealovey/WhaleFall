@@ -404,8 +404,18 @@ function showAlert(type, message) {
 
 // 查看批量同步详情
 function viewBatchDetails(recordIds) {
+    console.log('viewBatchDetails called with:', recordIds);
+    
+    // 检查recordIds是否有效
+    if (!recordIds || !Array.isArray(recordIds) || recordIds.length === 0) {
+        showAlert('danger', '没有提供记录ID');
+        return;
+    }
+    
     const recordIdsStr = recordIds.join(',');
     const url = `/account-sync/sync-details-batch?record_ids=${encodeURIComponent(recordIdsStr)}`;
+    
+    console.log('Fetching URL:', url);
     
     fetch(url, {
         method: 'GET',
@@ -415,6 +425,7 @@ function viewBatchDetails(recordIds) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Response data:', data);
         if (data.success) {
             showBatchDetailsModal(data.details);
         } else {
@@ -429,8 +440,18 @@ function viewBatchDetails(recordIds) {
 
 // 查看失败详情
 function viewFailedDetails(recordIds) {
+    console.log('viewFailedDetails called with:', recordIds);
+    
+    // 检查recordIds是否有效
+    if (!recordIds || !Array.isArray(recordIds) || recordIds.length === 0) {
+        showAlert('danger', '没有提供记录ID');
+        return;
+    }
+    
     const recordIdsStr = recordIds.join(',');
     const url = `/account-sync/sync-details-batch?record_ids=${encodeURIComponent(recordIdsStr)}&failed_only=true`;
+    
+    console.log('Fetching URL:', url);
     
     fetch(url, {
         method: 'GET',
@@ -440,6 +461,7 @@ function viewFailedDetails(recordIds) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Response data:', data);
         if (data.success) {
             showFailedDetailsModal(data.details);
         } else {
