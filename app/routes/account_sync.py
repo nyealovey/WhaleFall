@@ -66,9 +66,9 @@ def sync_records() -> str | Response:
     all_records = query.order_by(SyncSession.created_at.desc()).all()
 
     # 分离需要聚合的记录和单独显示的记录
-    # task类型的记录已经是聚合记录，不需要再次聚合
+    # task类型和scheduled类型的记录已经是聚合记录，不需要再次聚合
     batch_records = [r for r in all_records if r.sync_type in ["batch", "manual_batch"]]
-    task_records = [r for r in all_records if r.sync_type == "task"]
+    task_records = [r for r in all_records if r.sync_type in ["task", "scheduled"]]
     manual_records = [r for r in all_records if r.sync_type == "manual"]
 
     # 聚合batch类型的记录（task类型已经是聚合记录，不需要再次聚合）
