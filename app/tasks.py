@@ -265,6 +265,10 @@ def sync_accounts():
                         }
                     )
 
+            # 完成同步会话
+            session.update_statistics()
+            db.session.commit()
+
             # 记录操作日志
             task_logger.info(
                 "定时任务账户同步完成",
@@ -281,14 +285,13 @@ def sync_accounts():
                 results=results,
             )
 
-            # 同步会话记录已通过sync_session_service管理，无需额外创建记录
-
             sync_logger.info(
                 "定时任务账户同步完成",
                 module="scheduler",
                 session_id=session.session_id,
                 total_synced_count=total_synced_count,
                 total_instances=total_instances,
+                session_status=session.status,
             )
 
             return f"定时任务同步完成，成功 {success_count} 个实例，失败 {failed_count} 个实例，总共同步 {total_synced_count} 个账户"

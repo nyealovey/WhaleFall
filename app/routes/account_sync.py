@@ -419,7 +419,8 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                     }
                 )
 
-        # 提交所有同步记录
+        # 完成同步会话
+        session.update_statistics()
         db.session.commit()
 
         # 记录同步完成日志
@@ -431,6 +432,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
             total_instances=len(instances),
             success_count=success_count,
             failed_count=failed_count,
+            session_status=session.status,
         )
 
         # 记录操作日志
