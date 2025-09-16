@@ -486,7 +486,7 @@ function renderSQLServerPermissions(permissions) {
         </div>
         <div class="mb-3">
             <h6><i class="fas fa-database text-warning me-2"></i>数据库权限</h6>
-            ${permissions.database_privileges && typeof permissions.database_privileges === 'object' && Object.keys(permissions.database_privileges).length > 0 ? `
+            ${permissions.database_permissions && typeof permissions.database_permissions === 'object' && Object.keys(permissions.database_permissions).length > 0 ? `
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead>
@@ -496,7 +496,7 @@ function renderSQLServerPermissions(permissions) {
                             </tr>
                         </thead>
                         <tbody>
-                            ${Object.entries(permissions.database_privileges).map(([dbName, perms]) => `
+                            ${Object.entries(permissions.database_permissions).map(([dbName, perms]) => `
                                 <tr>
                                     <td>${dbName}</td>
                                     <td>
