@@ -134,14 +134,12 @@ def _log_error(error, status_code):
             system_logger.error(
                 "服务器错误",
                 module="error_handler",
-                status_code=status_code,
                 **error_details,
             )
         else:
             system_logger.warning(
                 "客户端错误",
                 module="error_handler",
-                status_code=status_code,
                 **error_details,
             )
 

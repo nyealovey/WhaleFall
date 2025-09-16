@@ -246,7 +246,7 @@ class SQLServerConnection(DatabaseConnection):
         self.driver_type = None  # 记录使用的驱动类型
 
     def connect(self) -> bool:
-        """建立SQL Server连接 - 尝试多种驱动和版本兼容性"""
+        """建立SQL Server连接 - 仅使用pymssql驱动"""
         # 获取连接信息
         password = self.instance.credential.get_plain_password() if self.instance.credential else ""
         username = self.instance.credential.username if self.instance.credential else ""
@@ -257,65 +257,17 @@ class SQLServerConnection(DatabaseConnection):
             or "master"
         )
 
-        # 尝试不同的连接方式
-        connection_methods = [
-            self._try_pyodbc_connection,
-            self._try_pymssql_connection,
-            self._try_pyodbc_legacy_connection,
-        ]
-
-        for method in connection_methods:
-            try:
-                if method(username, password, database_name):
-                    return True
-            except Exception as e:
-                self.db_logger.warning(
-                    f"SQL Server连接方法失败: {method.__name__}",
-                    module="connection",
-                    instance_id=self.instance.id,
-                    db_type="SQL Server",
-                    exception=str(e),
-                )
-                continue
-
-        # 所有方法都失败
-        self.db_logger.error(
-            "SQL Server连接失败 - 所有驱动方法都不可用",
-            module="connection",
-            instance_id=self.instance.id,
-            db_type="SQL Server",
-        )
-        return False
-
-    def _try_pyodbc_connection(self, username: str, password: str, database_name: str) -> bool:
-        """尝试使用pyodbc连接 (推荐用于现代SQL Server版本)"""
+        # 只使用pymssql连接
         try:
-            import pyodbc
-
-            # 构建连接字符串 - 支持多种版本
-            connection_strings = [
-                # SQL Server 2012+ (推荐)
-                f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={self.instance.host},{self.instance.port};DATABASE={database_name};UID={username};PWD={password};TrustServerCertificate=yes;",
-                # SQL Server 2008-2019
-                f"DRIVER={{ODBC Driver 13 for SQL Server}};SERVER={self.instance.host},{self.instance.port};DATABASE={database_name};UID={username};PWD={password};TrustServerCertificate=yes;",
-                # SQL Server 2005-2012 (传统)
-                f"DRIVER={{SQL Server}};SERVER={self.instance.host},{self.instance.port};DATABASE={database_name};UID={username};PWD={password};",
-                # 使用命名管道 (本地连接)
-                f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={self.instance.host};DATABASE={database_name};UID={username};PWD={password};Trusted_Connection=no;",
-            ]
-
-            for conn_str in connection_strings:
-                try:
-                    self.connection = pyodbc.connect(conn_str, timeout=30)
-                    self.is_connected = True
-                    self.driver_type = "pyodbc"
-                    return True
-                except Exception:
-                    continue
-
-            return False
-
-        except ImportError:
+            return self._try_pymssql_connection(username, password, database_name)
+        except Exception as e:
+            self.db_logger.error(
+                "SQL Server连接失败 - pymssql驱动不可用",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="SQL Server",
+                exception=str(e),
+            )
             return False
 
     def _try_pymssql_connection(self, username: str, password: str, database_name: str) -> bool:
@@ -340,28 +292,6 @@ class SQLServerConnection(DatabaseConnection):
         except ImportError:
             return False
 
-    def _try_pyodbc_legacy_connection(self, username: str, password: str, database_name: str) -> bool:
-        """尝试使用传统pyodbc连接 (兼容老版本)"""
-        try:
-            import pyodbc
-
-            # 传统连接字符串，兼容SQL Server 2005-2008
-            legacy_conn_str = (
-                f"DRIVER={{SQL Server}};"
-                f"SERVER={self.instance.host},{self.instance.port};"
-                f"DATABASE={database_name};"
-                f"UID={username};"
-                f"PWD={password};"
-                f"Connection Timeout=30;"
-            )
-
-            self.connection = pyodbc.connect(legacy_conn_str)
-            self.is_connected = True
-            self.driver_type = "pyodbc_legacy"
-            return True
-
-        except ImportError:
-            return False
 
     def disconnect(self) -> None:
         """断开SQL Server连接"""
@@ -416,18 +346,9 @@ class SQLServerConnection(DatabaseConnection):
     def get_version(self) -> str | None:
         """获取SQL Server版本"""
         try:
-            raw_version = None
-            if self.driver_type == "pyodbc":
-                # pyodbc使用cursor
-                cursor = self.connection.cursor()
-                cursor.execute("SELECT @@VERSION")
-                result = cursor.fetchone()
-                cursor.close()
-                raw_version = result[0] if result else None
-            else:
-                # pymssql使用execute_query
-                result = self.execute_query("SELECT @@VERSION")
-                raw_version = result[0][0] if result else None
+            # 使用pymssql的execute_query方法
+            result = self.execute_query("SELECT @@VERSION")
+            raw_version = result[0][0] if result else None
             
             if raw_version:
                 return DatabaseVersionParser.format_version_display('sqlserver', raw_version)

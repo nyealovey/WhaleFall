@@ -98,12 +98,14 @@ def api_health() -> "Response":
 
 
 def get_system_uptime() -> "str | None":
-    """获取系统运行时间"""
+    """获取应用运行时间"""
     try:
-        from datetime import datetime
-
-        uptime_seconds = psutil.boot_time()
-        uptime = get_china_time() - datetime.fromtimestamp(uptime_seconds)
+        from app import app_start_time
+        from app.utils.time_utils import now_china
+        
+        # 计算应用运行时间
+        current_time = now_china()
+        uptime = current_time - app_start_time
 
         days = uptime.days
         hours, remainder = divmod(uptime.seconds, 3600)

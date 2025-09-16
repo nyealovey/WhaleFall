@@ -106,15 +106,15 @@ class DatabaseSizeService:
                     password=instance.credential.get_plain_password(),
                 )
             if instance.db_type == "sqlserver":
-                if pyodbc is None:
-                    error_msg = "pyodbc模块未安装，无法连接SQL Server"
-                    raise ImportError(error_msg)
-                return pyodbc.connect(
-                    f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-                    f"SERVER={instance.host},{instance.port};"
-                    f"DATABASE={instance.database_name or 'master'};"
-                    f"UID={instance.credential.username};"
-                    f"PWD={instance.credential.get_plain_password()}"
+                import pymssql
+                return pymssql.connect(
+                    server=instance.host,
+                    port=instance.port,
+                    user=instance.credential.username,
+                    password=instance.credential.get_plain_password(),
+                    database=instance.database_name or 'master',
+                    timeout=30,
+                    tds_version="7.4"
                 )
             if instance.db_type == "oracle":
                 if oracledb is None:

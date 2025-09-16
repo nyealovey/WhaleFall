@@ -466,15 +466,20 @@ def get_system_status() -> dict:
 
 
 def get_system_uptime() -> "str | None":
-    """获取系统运行时间"""
+    """获取应用运行时间"""
     try:
-        uptime_seconds = psutil.boot_time()
-        uptime = get_china_time() - datetime.fromtimestamp(uptime_seconds)
+        from app import app_start_time
+        from app.utils.time_utils import now_china
+        
+        # 计算应用运行时间
+        current_time = now_china()
+        uptime = current_time - app_start_time
 
         days = uptime.days
         hours, remainder = divmod(uptime.seconds, 3600)
         minutes, _ = divmod(remainder, 60)
 
-        return f"{days}天 {hours}小时 {minutes}分钟"
-    except Exception:
+        result = f"{days}天 {hours}小时 {minutes}分钟"
+        return result
+    except Exception as e:
         return "未知"

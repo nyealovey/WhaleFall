@@ -46,6 +46,10 @@ login_manager = LoginManager()
 cors = CORS()
 csrf = CSRFProtect()
 
+# 记录应用启动时间
+from app.utils.time_utils import now_china
+app_start_time = now_china()
+
 
 def create_app(config_name: str | None = None) -> Flask:
     """

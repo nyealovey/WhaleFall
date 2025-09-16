@@ -556,9 +556,59 @@ class SyncDataManager:
             self.sync_logger.error("获取SQL Server账户失败", error=str(e))
             return []
 
+    def _get_current_user_info(self, conn) -> dict:
+        """获取当前连接用户的信息"""
+        try:
+            # 获取当前用户名
+            sql = "SELECT SUSER_NAME() as [current_user]"
+            result = conn.execute_query(sql)
+            current_user = result[0][0] if result else None
+            
+            if not current_user:
+                return None
+
+            # 获取用户详细信息
+            sql = """
+                SELECT
+                    sp.name as username,
+                    sp.is_disabled as is_disabled,
+                    sp.type_desc as login_type,
+                    sp.type as type,
+                    CASE 
+                        WHEN sp.type = 'S' THEN LOGINPROPERTY(sp.name, 'PasswordLastSetTime')
+                        ELSE NULL
+                    END as password_last_set_time,
+                    CASE 
+                        WHEN sp.type = 'S' THEN sl.is_expiration_checked
+                        ELSE NULL
+                    END as is_expiration_checked
+                FROM sys.server_principals sp
+                LEFT JOIN sys.sql_logins sl ON sp.principal_id = sl.principal_id AND sp.type = 'S'
+                WHERE sp.name = %s
+            """
+            
+            result = conn.execute_query(sql, (current_user,))
+            if not result:
+                return None
+                
+            row = result[0]
+            return {
+                'username': row[0],
+                'is_disabled': row[1],
+                'login_type': row[2],
+                'type': row[3],
+                'password_last_set_time': row[4],
+                'is_expiration_checked': row[5]
+            }
+            
+        except Exception as e:
+            self.sync_logger.error(f"获取当前用户信息失败", error=str(e))
+            return None
+
     def _get_sqlserver_server_roles(self, conn, username: str) -> list:
         """获取SQL Server服务器角色"""
         try:
+            # 使用pymssql的%s占位符
             sql = """
                 SELECT r.name
                 FROM sys.server_role_members rm
@@ -575,6 +625,7 @@ class SyncDataManager:
     def _get_sqlserver_server_permissions(self, conn, username: str) -> list:
         """获取SQL Server服务器权限"""
         try:
+            # 使用pymssql的%s占位符
             sql = """
                 SELECT permission_name
                 FROM sys.server_permissions
@@ -592,11 +643,25 @@ class SyncDataManager:
             return []
 
     def _get_sqlserver_database_permissions(self, conn, username: str) -> tuple:
-        """获取SQL Server数据库角色和权限"""
+        """
+        获取SQL Server数据库角色和权限
+        
+        使用 sys.database_principals 和 sys.database_role_members 查询：
+        - 固定数据库角色（如 db_owner, db_datareader 等）
+        - 用户定义的数据库角色
+        - 数据库级别的权限
+        """
         try:
             # 获取数据库角色
             database_roles = {}
             database_permissions = {}
+
+            # 检查是否为sysadmin用户
+            is_sysadmin = self._check_sysadmin_user(conn, username)
+            
+            if is_sysadmin:
+                # 对于sysadmin用户，使用特殊处理方式
+                return self._get_sysadmin_database_permissions(conn, username)
 
             # 获取所有数据库列表
             databases_sql = "SELECT name FROM sys.databases WHERE state = 0"  # 只获取在线数据库
@@ -605,45 +670,121 @@ class SyncDataManager:
             for db_row in databases:
                 db_name = db_row[0]
                 try:
-                    # 切换到目标数据库
-                    conn.execute_query(f"USE [{db_name}]")
-
-                    # 获取数据库角色
-                    roles_sql = """
+                    # 使用动态SQL查询特定数据库的权限，避免USE语句
+                    # 使用pymssql的%s占位符
+                    # 查询数据库角色（包括固定角色和用户定义角色）
+                    roles_sql = f"""
                         SELECT r.name
-                        FROM sys.database_role_members rm
-                        JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
-                        JOIN sys.database_principals p ON rm.member_principal_id = p.principal_id
+                        FROM [{db_name}].sys.database_role_members rm
+                        JOIN [{db_name}].sys.database_principals r ON rm.role_principal_id = r.principal_id
+                        JOIN [{db_name}].sys.database_principals p ON rm.member_principal_id = p.principal_id
                         WHERE p.name = %s
                     """
+                    # 查询数据库权限
+                    perms_sql = f"""
+                        SELECT permission_name
+                        FROM [{db_name}].sys.database_permissions
+                        WHERE grantee_principal_id = (
+                            SELECT principal_id
+                            FROM [{db_name}].sys.database_principals
+                            WHERE name = %s
+                        )
+                        AND state = 'G'
+                    """
+                    
+                    # 获取数据库角色
                     roles = conn.execute_query(roles_sql, (username,))
                     if roles:
                         database_roles[db_name] = [role[0] for role in roles]
 
                     # 获取数据库权限
-                    perms_sql = """
-                        SELECT permission_name
-                        FROM sys.database_permissions
-                        WHERE grantee_principal_id = (
-                            SELECT principal_id
-                            FROM sys.database_principals
-                            WHERE name = %s
-                        )
-                        AND state = 'G'
-                    """
                     permissions = conn.execute_query(perms_sql, (username,))
                     if permissions:
                         database_permissions[db_name] = [perm[0] for perm in permissions]
 
                 except Exception as e:
-                    # 如果无法访问某个数据库，跳过
-                    self.sync_logger.warning(f"无法访问数据库 {db_name}: {str(e)}")
+                    # 如果无法访问某个数据库，记录警告但继续处理其他数据库
+                    error_msg = str(e)
+                    if "Statement not executed" in error_msg or "execute" in error_msg.lower():
+                        self.sync_logger.warning(f"无法访问数据库 {db_name}: 权限不足或数据库不可访问")
+                    else:
+                        self.sync_logger.warning(f"无法访问数据库 {db_name}: {error_msg}")
                     continue
 
             return database_roles, database_permissions
 
         except Exception as e:
             self.sync_logger.error(f"获取SQL Server数据库权限失败: {username}", error=str(e))
+            return {}, {}
+
+    def _check_sysadmin_user(self, conn, username: str) -> bool:
+        """检查用户是否为sysadmin"""
+        try:
+            sql = """
+                SELECT IS_SRVROLEMEMBER('sysadmin', %s) as is_sysadmin
+            """
+            result = conn.execute_query(sql, (username,))
+            return bool(result[0][0]) if result else False
+        except Exception as e:
+            self.sync_logger.warning(f"检查sysadmin权限失败: {username}", error=str(e))
+            return False
+
+    def _get_sysadmin_database_permissions(self, conn, username: str) -> tuple:
+        """获取sysadmin用户的数据库权限（特殊处理）"""
+        try:
+            database_roles = {}
+            database_permissions = {}
+
+            # 获取所有数据库列表
+            databases_sql = "SELECT name FROM sys.databases WHERE state = 0"
+            databases = conn.execute_query(databases_sql)
+
+            for db_row in databases:
+                db_name = db_row[0]
+                try:
+                    # 对于sysadmin用户，查询所有数据库角色和权限
+                    # 使用动态SQL，但查询所有角色和权限，不限制特定用户
+                    
+                    # 查询数据库中的所有固定角色
+                    roles_sql = f"""
+                        SELECT r.name
+                        FROM [{db_name}].sys.database_principals r
+                        WHERE r.type = 'R' AND r.is_fixed_role = 1
+                        ORDER BY r.name
+                    """
+                    
+                    # 查询数据库中的所有权限
+                    perms_sql = f"""
+                        SELECT DISTINCT permission_name
+                        FROM [{db_name}].sys.database_permissions
+                        WHERE state = 'G'
+                        ORDER BY permission_name
+                    """
+                    
+                    # 获取数据库角色
+                    roles = conn.execute_query(roles_sql)
+                    if roles:
+                        # 对于sysadmin，显示所有固定数据库角色
+                        database_roles[db_name] = [role[0] for role in roles]
+
+                    # 获取数据库权限
+                    permissions = conn.execute_query(perms_sql)
+                    if permissions:
+                        # 对于sysadmin，显示所有数据库权限
+                        database_permissions[db_name] = [perm[0] for perm in permissions]
+
+                except Exception as e:
+                    error_msg = str(e)
+                    if "Statement not executed" in error_msg or "execute" in error_msg.lower():
+                        self.sync_logger.warning(f"无法访问数据库 {db_name}: 权限不足或数据库不可访问")
+                    else:
+                        self.sync_logger.warning(f"无法访问数据库 {db_name}: {error_msg}")
+                    continue
+
+            return database_roles, database_permissions
+
+        except Exception as e:
+            self.sync_logger.error(f"获取sysadmin数据库权限失败: {username}", error=str(e))
             return {}, {}
 
     def _get_oracle_accounts(self, conn) -> list:

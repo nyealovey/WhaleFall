@@ -401,6 +401,12 @@ function updateSystemStatus(status) {
         diskBar.style.width = `${status.system.disk.percent}%`;
         diskBar.className = `progress-bar bg-${status.system.disk.percent > 80 ? 'danger' : status.system.disk.percent > 60 ? 'warning' : 'success'}`;
     }
+    
+    // 更新系统运行时间
+    const uptimeElement = document.querySelector('.card-body .mt-3 small');
+    if (uptimeElement) {
+        uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i>系统运行时间: ${status.uptime || '未知'}`;
+    }
 }
 
 // 页面卸载时清理定时器
