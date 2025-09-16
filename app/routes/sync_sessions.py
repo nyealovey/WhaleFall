@@ -156,6 +156,54 @@ def api_cancel_session(session_id):
         )
 
 
+@sync_sessions_bp.route("/api/sessions/<session_id>/error-logs", methods=["GET"])
+@login_required
+@view_required
+def api_get_error_logs(session_id):
+    """获取同步会话错误日志 API"""
+    try:
+        # 获取会话信息
+        session = sync_session_service.get_session_by_id(session_id)
+        if not session:
+            return (
+                jsonify({"success": False, "message": "会话不存在"}),
+                404,
+            )
+
+        # 获取所有实例记录
+        records = sync_session_service.get_session_records(session_id)
+        
+        # 筛选出失败的记录
+        error_records = [record for record in records if record.status == "failed"]
+        
+        # 转换为字典格式
+        error_records_data = [record.to_dict() for record in error_records]
+        
+        # 构建响应数据
+        session_data = session.to_dict()
+        
+        return jsonify({
+            "success": True, 
+            "data": {
+                "session": session_data,
+                "error_records": error_records_data,
+                "error_count": len(error_records)
+            }
+        })
+
+    except Exception as e:
+        log_error(
+            f"获取同步会话错误日志失败: {str(e)}",
+            module="sync_sessions",
+            user_id=current_user.id,
+            session_id=session_id,
+        )
+        return (
+            jsonify({"success": False, "message": "获取错误日志失败", "error": str(e)}),
+            500,
+        )
+
+
 @sync_sessions_bp.route("/api/statistics")
 @login_required
 @view_required
@@ -163,7 +211,7 @@ def api_get_statistics():
     """获取同步统计信息 API"""
     try:
         # 获取各种类型的会话统计
-        scheduled_sessions = sync_session_service.get_sessions_by_type("scheduled", 100)
+        scheduled_sessions = sync_session_service.get_sessions_by_type("scheduled_task", 100)
         manual_sessions = sync_session_service.get_sessions_by_type("manual_batch", 100)
 
         # 计算统计信息

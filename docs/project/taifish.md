@@ -1,7 +1,7 @@
 # 泰摸鱼吧 (TaifishV4) - 项目文件清单
 
 ## 项目概述
-泰摸鱼吧是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。支持PostgreSQL、MySQL、SQL Server、Oracle等主流数据库。
+泰摸鱼吧是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。使用PostgreSQL作为主数据库，支持MySQL、SQL Server、Oracle等主流数据库实例管理。
 
 ## 核心应用文件
 

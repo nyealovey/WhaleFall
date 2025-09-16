@@ -39,7 +39,7 @@ def sync_records() -> str | Response:
     per_page = request.args.get("per_page", 20, type=int)
     sync_type = request.args.get("sync_type", "all")
     status = request.args.get("status", "all")
-    instance_id = request.args.get("instance_id", type=int)
+    date_range = request.args.get("date_range", "all")
 
     # 构建查询 - 使用新的同步会话模型
     query = SyncSession.query.filter_by(sync_category="account")
@@ -52,26 +52,42 @@ def sync_records() -> str | Response:
     if status and status != "all":
         query = query.filter(SyncSession.status == status)
 
+    # 时间范围过滤
+    if date_range and date_range != "all":
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        
+        if date_range == "today":
+            start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            query = query.filter(SyncSession.created_at >= start_date)
+        elif date_range == "week":
+            start_date = now - timedelta(days=7)
+            query = query.filter(SyncSession.created_at >= start_date)
+        elif date_range == "month":
+            start_date = now - timedelta(days=30)
+            query = query.filter(SyncSession.created_at >= start_date)
+
     # 排序
     query = query.order_by(SyncSession.created_at.desc())
 
     # 分页
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
-    # 获取实例列表用于过滤
-    instances = Instance.query.filter_by(is_active=True).all()
-
     # 聚合显示逻辑 - 当同步类型是手动批量或定时任务时，需要聚合显示
     # 获取所有记录进行聚合处理，然后手动分页
     all_records = query.order_by(SyncSession.created_at.desc()).all()
 
     # 分离需要聚合的记录和单独显示的记录
-    # task类型和scheduled类型的记录已经是聚合记录，不需要再次聚合
-    batch_records = [r for r in all_records if r.sync_type in ["batch", "manual_batch"]]
-    task_records = [r for r in all_records if r.sync_type in ["task", "scheduled"]]
-    manual_records = [r for r in all_records if r.sync_type == "manual"]
+    # 所有批量类型的记录都需要聚合处理
+    batch_records = [r for r in all_records if r.sync_type in ["manual_batch", "manual_task", "scheduled_task"]]
+    manual_records = [r for r in all_records if r.sync_type == "manual_single"]
+    
+    # 应用状态筛选到聚合记录
+    if status and status != "all":
+        batch_records = [r for r in batch_records if r.status == status]
+        manual_records = [r for r in manual_records if r.status == status]
 
-    # 聚合batch类型的记录（task类型已经是聚合记录，不需要再次聚合）
+    # 聚合所有批量类型的记录（包括manual_batch、manual_task、scheduled_task）
     grouped: dict[str, dict[str, Any]] = defaultdict(
         lambda: {
             "total_instances": 0,
@@ -89,8 +105,13 @@ def sync_records() -> str | Response:
     )
 
     for record in batch_records:
-        # 使用分钟级精度作为分组键，相同分钟的同步记录为一组
-        time_key = record.created_at.strftime("%Y-%m-%d %H:%M")
+        # 根据同步类型选择分组键
+        if record.sync_type == "manual_batch":
+            # manual_batch按session_id分组，同一个批次的所有实例记录聚合
+            time_key = record.session_id
+        else:
+            # manual_task和scheduled_task按时间分组，相同分钟的同步记录为一组
+            time_key = record.created_at.strftime("%Y-%m-%d %H:%M")
 
         # 从关联的实例记录中获取详细统计和状态
         total_accounts = 0
@@ -149,7 +170,8 @@ def sync_records() -> str | Response:
             def __init__(self, data: dict[str, Any], latest_time: Any, sync_type_display: str) -> None:
                 self.created_at = latest_time
                 self.sync_type = sync_type_display
-                self.status = "success" if data["failed_count"] == 0 else "failed"
+                # 使用原始记录的状态，而不是重新计算
+                self.status = data["sync_records"][0].status if data["sync_records"] else "unknown"
                 self.synced_count = data["total_accounts"]
                 self.added_count = data["added_count"]
                 self.removed_count = data["removed_count"]
@@ -184,45 +206,9 @@ def sync_records() -> str | Response:
     for record in manual_records:
         record.is_aggregated = False
 
-    # 处理task记录，需要计算聚合数据
-    for record in task_records:
-        record.is_aggregated = True  # 定时任务记录是聚合记录
-        
-        # 计算聚合的同步数量
-        total_accounts = 0
-        added_count = 0
-        removed_count = 0
-        modified_count = 0
-        
-        # 从关联的实例记录中获取详细统计
-        instance_records = record.instance_records.all()
-        for instance_record in instance_records:
-            total_accounts += instance_record.accounts_synced or 0
-            added_count += instance_record.accounts_created or 0
-            removed_count += instance_record.accounts_deleted or 0
-            modified_count += instance_record.accounts_updated or 0
-        
-        # 设置聚合数据
-        record.synced_count = total_accounts
-        record.added_count = added_count
-        record.removed_count = removed_count
-        record.modified_count = modified_count
-        
-        # 设置消息
-        if total_accounts > 0:
-            record.message = f"成功同步 {total_accounts} 个账户"
-        else:
-            record.message = "-"
-        
-        # 添加get_record_ids方法（用于模板调用）
-        def get_record_ids():
-            # 重新查询实例记录，确保数据是最新的
-            fresh_instance_records = record.instance_records.all()
-            return [instance_record.id for instance_record in fresh_instance_records]
-        record.get_record_ids = get_record_ids
 
-    # 合并聚合记录、手动记录和task记录
-    all_display_records = aggregated_records + manual_records + task_records
+    # 合并聚合记录和手动记录
+    all_display_records = aggregated_records + manual_records
 
     # 按时间排序
     all_display_records.sort(key=lambda x: x.created_at, reverse=True)
@@ -303,8 +289,7 @@ def sync_records() -> str | Response:
         pagination=sync_records,
         sync_type=sync_type,
         status=status,
-        instance_id=instance_id,
-        instances=instances,
+        date_range=date_range,
     )
 
 
@@ -369,7 +354,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                 )
 
                 # 使用统一的账户同步服务
-                result = account_sync_service.sync_accounts(instance, sync_type="batch", session_id=session.session_id)
+                result = account_sync_service.sync_accounts(instance, sync_type="manual_batch", session_id=session.session_id)
 
                 if result["success"]:
                     success_count += 1
@@ -601,7 +586,6 @@ def sync_details(sync_id: int) -> str | Response | tuple[Response, int]:
         return render_template(
             "accounts/sync_details.html",
             record=record,
-            instances=instances,
             instance_records=instance_records,
         )
 

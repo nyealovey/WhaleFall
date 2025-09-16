@@ -76,6 +76,15 @@ class TaskType(Enum):
     RESTORE = "restore"
 
 
+class SyncType(Enum):
+    """同步类型枚举"""
+
+    MANUAL_SINGLE = "manual_single"      # 手动单台
+    MANUAL_BATCH = "manual_batch"        # 手动批量
+    MANUAL_TASK = "manual_task"          # 手动任务
+    SCHEDULED_TASK = "scheduled_task"    # 定时任务
+
+
 # 系统常量
 class SystemConstants:
     """系统常量"""
@@ -416,6 +425,7 @@ __all__ = [
     "InstanceStatus",
     "DatabaseType",
     "TaskType",
+    "SyncType",
     "SystemConstants",
     "DefaultConfig",
     "ErrorMessages",

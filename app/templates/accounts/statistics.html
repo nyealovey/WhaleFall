@@ -150,13 +150,13 @@
                 {% if stats.classification_stats %}
                 <div class="row">
                     {% for classification, class_stats in stats.classification_stats.items() %}
-                    <div class="col-md-3 mb-3">
-                        <div class="card" style="border-left: 4px solid {{ class_stats.color or '#6c757d' }};">
-                            <div class="card-body text-center">
+                    <div class="col mb-3">
+                        <div class="card h-100" style="border-left: 4px solid {{ class_stats.color or '#6c757d' }};">
+                            <div class="card-body text-center d-flex flex-column">
                                 <i class="fas fa-tag fa-2x mb-2" style="color: {{ class_stats.color or '#6c757d' }};"></i>
                                 <h5 class="mb-1">{{ classification }}</h5>
                                 <h4 class="mb-0" style="color: {{ class_stats.color or '#6c757d' }};">{{ class_stats.account_count }}</h4>
-                                <small class="text-muted">账户数量</small>
+                                <small class="text-muted mt-auto">账户数量</small>
                             </div>
                         </div>
                     </div>

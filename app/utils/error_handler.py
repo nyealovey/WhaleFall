@@ -147,7 +147,7 @@ def _log_error(error, status_code):
 
     except Exception as e:
         system_logger = get_system_logger()
-        system_logger.error("记录错误日志失败", module="error_handler", exception=e)
+        system_logger.error("记录错误日志失败", module="error_handler", exception=str(e))
 
 
 def _get_timestamp():

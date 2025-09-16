@@ -93,25 +93,6 @@
         padding: 1rem;
         margin-bottom: 1.5rem;
     }
-    .statistics-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-    .stat-item {
-        text-align: center;
-    }
-    .stat-number {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-    }
-    .stat-label {
-        font-size: 0.9rem;
-        opacity: 0.9;
-    }
 </style>
 {% endblock %}
 
@@ -128,41 +109,6 @@
                 </div>
             </div>
 
-            <!-- 统计信息 -->
-            <div class="row" id="statistics-section">
-                <div class="col-md-3">
-                    <div class="statistics-card">
-                        <div class="stat-item">
-                            <div class="stat-number" id="total-sessions">-</div>
-                            <div class="stat-label">总会话数</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="statistics-card">
-                        <div class="stat-item">
-                            <div class="stat-number" id="running-sessions">-</div>
-                            <div class="stat-label">运行中</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="statistics-card">
-                        <div class="stat-item">
-                            <div class="stat-number" id="completed-sessions">-</div>
-                            <div class="stat-label">已完成</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="statistics-card">
-                        <div class="stat-item">
-                            <div class="stat-number" id="failed-sessions">-</div>
-                            <div class="stat-label">失败</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- 过滤器 -->
             <div class="filter-section">
@@ -171,28 +117,30 @@
                         <label for="sync-type-filter" class="form-label">同步类型</label>
                         <select class="form-select" id="sync-type-filter">
                             <option value="">全部</option>
-                            <option value="scheduled">定时任务</option>
-                            <option value="manual_batch">手动批量</option>
+                            <option value="manual_single">MANUAL_SINGLE</option>
+                            <option value="manual_batch">MANUAL_BATCH</option>
+                            <option value="manual_task">MANUAL_TASK</option>
+                            <option value="scheduled_task">SCHEDULED_TASK</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label for="sync-category-filter" class="form-label">同步分类</label>
                         <select class="form-select" id="sync-category-filter">
                             <option value="">全部</option>
-                            <option value="account">账户</option>
-                            <option value="capacity">容量</option>
-                            <option value="config">配置</option>
-                            <option value="other">其他</option>
+                            <option value="account">account</option>
+                            <option value="capacity">capacity</option>
+                            <option value="config">config</option>
+                            <option value="other">other</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label for="status-filter" class="form-label">状态</label>
                         <select class="form-select" id="status-filter">
                             <option value="">全部</option>
-                            <option value="running">运行中</option>
-                            <option value="completed">已完成</option>
-                            <option value="failed">失败</option>
-                            <option value="cancelled">已取消</option>
+                            <option value="running">running</option>
+                            <option value="completed">completed</option>
+                            <option value="failed">failed</option>
+                            <option value="cancelled">cancelled</option>
                         </select>
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
@@ -243,6 +191,28 @@
         </div>
     </div>
 </div>
+
+<!-- 错误日志模态框 -->
+<div class="modal fade" id="errorLogsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>错误
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="error-logs-content">
+                    <!-- 错误日志将在这里动态加载 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -253,7 +223,6 @@ let currentFilters = {};
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    loadStatistics();
     loadSessions();
 
     // 设置自动刷新
@@ -262,29 +231,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 30000); // 30秒刷新一次
 });
 
-// 加载统计信息
-function loadStatistics() {
-    fetch('/sync_sessions/api/statistics')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateStatistics(data.data);
-            } else {
-                console.error('加载统计信息失败:', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('加载统计信息出错:', error);
-        });
-}
-
-// 更新统计信息显示
-function updateStatistics(stats) {
-    document.getElementById('total-sessions').textContent = stats.total_sessions;
-    document.getElementById('running-sessions').textContent = stats.running_sessions;
-    document.getElementById('completed-sessions').textContent = stats.completed_sessions;
-    document.getElementById('failed-sessions').textContent = stats.failed_sessions;
-}
 
 // 加载会话列表
 function loadSessions() {
@@ -370,6 +316,11 @@ function renderSessions(sessions) {
                             <button class="btn btn-sm btn-outline-primary" onclick="viewSessionDetail('${session.session_id}')">
                                 <i class="fas fa-eye"></i> 详情
                             </button>
+                            ${failedInstances > 0 ? `
+                                <button class="btn btn-sm btn-outline-warning" onclick="viewErrorLogs('${session.session_id}')" title="查看错误">
+                                    <i class="fas fa-exclamation-triangle"></i> 错误
+                                </button>
+                            ` : ''}
                             ${session.status === 'running' ? `
                                 <button class="btn btn-sm btn-outline-danger" onclick="cancelSession('${session.session_id}')">
                                     <i class="fas fa-stop"></i> 取消
@@ -400,6 +351,62 @@ function viewSessionDetail(sessionId) {
             console.error('加载会话详情出错:', error);
             showAlert('danger', '加载会话详情出错');
         });
+}
+
+// 查看错误日志
+function viewErrorLogs(sessionId) {
+    fetch(`/sync_sessions/api/sessions/${sessionId}/error-logs`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showErrorLogs(data.data);
+            } else {
+                showAlert('danger', '加载错误信息失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('加载错误信息出错:', error);
+            showAlert('danger', '加载错误信息出错');
+        });
+}
+
+// 显示错误日志
+function showErrorLogs(data) {
+    const content = document.getElementById('error-logs-content');
+    const errorRecords = data.error_records || [];
+
+    if (errorRecords.length === 0) {
+        content.innerHTML = '<div class="text-center py-4 text-muted">没有发现错误记录</div>';
+    } else {
+        const recordsHtml = errorRecords.map(record => {
+            return `
+                <div class="card mb-3 border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ${record.instance_name} (ID: ${record.instance_id})
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        ${record.error_message ? `
+                            <div class="alert alert-danger mb-0">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-bug me-2"></i>错误信息
+                                </h6>
+                                <pre class="mb-0" style="white-space: pre-wrap; word-wrap: break-word;">${record.error_message}</pre>
+                            </div>
+                        ` : '<div class="text-muted">没有具体错误信息</div>'}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        content.innerHTML = recordsHtml;
+    }
+
+    // 显示错误日志模态框
+    const modal = new bootstrap.Modal(document.getElementById('errorLogsModal'));
+    modal.show();
 }
 
 // 显示会话详情
@@ -522,7 +529,6 @@ function applyFilters() {
 
 // 刷新数据
 function refreshData() {
-    loadStatistics();
     loadSessions();
 }
 
@@ -580,14 +586,8 @@ function getStatusClass(status) {
 }
 
 function getStatusText(status) {
-    const statusMap = {
-        'running': '运行中',
-        'completed': '已完成',
-        'failed': '失败',
-        'cancelled': '已取消',
-        'pending': '等待中'
-    };
-    return statusMap[status] || status;
+    // 直接返回原始状态值（英文）
+    return status;
 }
 
 function getStatusColor(status) {
@@ -602,21 +602,13 @@ function getStatusColor(status) {
 }
 
 function getSyncTypeText(type) {
-    const typeMap = {
-        'scheduled': '定时任务',
-        'manual_batch': '手动批量'
-    };
-    return typeMap[type] || type;
+    // 直接返回原始类型值（英文）
+    return type;
 }
 
 function getSyncCategoryText(category) {
-    const categoryMap = {
-        'account': '账户',
-        'capacity': '容量',
-        'config': '配置',
-        'other': '其他'
-    };
-    return categoryMap[category] || category;
+    // 直接返回原始分类值（英文）
+    return category;
 }
 
 // 使用统一的时间格式化函数

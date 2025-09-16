@@ -16,7 +16,7 @@ class SyncSession(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(36), unique=True, nullable=False, index=True)
-    sync_type = db.Column(db.Enum("scheduled", "manual_batch", name="sync_type_enum"), nullable=False)
+    sync_type = db.Column(db.Enum("manual_single", "manual_batch", "manual_task", "scheduled_task", name="sync_type_enum"), nullable=False)
     sync_category = db.Column(
         db.Enum("account", "capacity", "config", "other", name="sync_category_enum"),
         nullable=False,
@@ -49,7 +49,7 @@ class SyncSession(db.Model):
         初始化同步会话
 
         Args:
-            sync_type: 同步类型 ('scheduled' 或 'manual_batch')
+            sync_type: 同步类型 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
             sync_category: 同步分类 ('account', 'capacity', 'config', 'other')
             created_by: 创建用户ID
         """

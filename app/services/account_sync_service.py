@@ -40,7 +40,7 @@ class AccountSyncService:
 
         Args:
             instance: 数据库实例
-            sync_type: 同步类型 ('batch' 或 'task')
+            sync_type: 同步类型 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
             session_id: 同步会话ID（可选）
 
         Returns:

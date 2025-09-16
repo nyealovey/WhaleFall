@@ -89,13 +89,23 @@ def get_account_statistics() -> dict:
         # 基础统计
         total_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
 
-        # 按数据库类型统计
+        # 按数据库类型统计（参考仪表盘逻辑）
         db_type_stats = {}
         for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
-            total_count = CurrentAccountSyncData.query.filter_by(db_type=db_type, is_deleted=False).count()
-            # CurrentAccountSyncData模型中没有is_locked字段，所有账户都视为活跃
-            active_count = total_count
+            accounts = CurrentAccountSyncData.query.filter_by(db_type=db_type, is_deleted=False).all()
+            total_count = len(accounts)
+            active_count = 0
             locked_count = 0
+            
+            for account in accounts:
+                if account.type_specific and 'is_locked' in account.type_specific:
+                    if account.type_specific['is_locked'] == True:
+                        locked_count += 1
+                    else:
+                        active_count += 1
+                else:
+                    # 如果没有锁定信息，认为是活跃的
+                    active_count += 1
 
             db_type_stats[db_type] = {
                 "total": total_count,
@@ -103,14 +113,24 @@ def get_account_statistics() -> dict:
                 "locked": locked_count,
             }
 
-        # 按实例统计
+        # 按实例统计（参考仪表盘逻辑）
         instance_stats = []
         instances = Instance.query.filter_by(is_active=True).all()
         for instance in instances:
-            total_count = CurrentAccountSyncData.query.filter_by(instance_id=instance.id, is_deleted=False).count()
-            # CurrentAccountSyncData模型中没有is_locked字段，所有账户都视为活跃
-            active_count = total_count
+            accounts = CurrentAccountSyncData.query.filter_by(instance_id=instance.id, is_deleted=False).all()
+            total_count = len(accounts)
+            active_count = 0
             locked_count = 0
+            
+            for account in accounts:
+                if account.type_specific and 'is_locked' in account.type_specific:
+                    if account.type_specific['is_locked'] == True:
+                        locked_count += 1
+                    else:
+                        active_count += 1
+                else:
+                    # 如果没有锁定信息，认为是活跃的
+                    active_count += 1
 
             instance_stats.append(
                 {
@@ -124,25 +144,40 @@ def get_account_statistics() -> dict:
                 }
             )
 
-        # 按环境统计
+        # 按环境统计（参考仪表盘逻辑）
         environment_stats = defaultdict(lambda: {"total": 0, "active": 0, "locked": 0})
         for instance in instances:
             env = instance.environment or "unknown"
-            total_count = CurrentAccountSyncData.query.filter_by(instance_id=instance.id, is_deleted=False).count()
-            # CurrentAccountSyncData模型中没有is_locked字段，所有账户都视为活跃
-            active_count = total_count
+            accounts = CurrentAccountSyncData.query.filter_by(instance_id=instance.id, is_deleted=False).all()
+            total_count = len(accounts)
+            active_count = 0
             locked_count = 0
+            
+            for account in accounts:
+                if account.type_specific and 'is_locked' in account.type_specific:
+                    if account.type_specific['is_locked'] == True:
+                        locked_count += 1
+                    else:
+                        active_count += 1
+                else:
+                    # 如果没有锁定信息，认为是活跃的
+                    active_count += 1
 
             environment_stats[env]["total"] += total_count
             environment_stats[env]["active"] += active_count
             environment_stats[env]["locked"] += locked_count
 
-        # 按分类统计
+        # 按分类统计（参考仪表盘逻辑，去重统计）
+        from sqlalchemy import distinct
         classification_stats = {}
-        classifications = AccountClassification.query.all()
+        classifications = AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
         for classification in classifications:
+            # 使用去重统计，只统计活跃的分配
             assignment_count = AccountClassificationAssignment.query.filter_by(
-                classification_id=classification.id
+                classification_id=classification.id,
+                is_active=True
+            ).with_entities(
+                distinct(AccountClassificationAssignment.account_id)
             ).count()
             classification_stats[classification.name] = {
                 "classification_name": classification.name,
@@ -150,11 +185,22 @@ def get_account_statistics() -> dict:
                 "color": classification.color,
             }
 
-        # 按状态统计
-        # CurrentAccountSyncData模型中没有is_locked字段，所有账户都视为活跃
+        # 按状态统计（参考仪表盘逻辑）
+        # 需要检查type_specific中的is_locked字段
+        all_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).all()
+        active_accounts = 0
         locked_accounts = 0
+        for account in all_accounts:
+            if account.type_specific and 'is_locked' in account.type_specific:
+                if account.type_specific['is_locked'] == True:
+                    locked_accounts += 1
+                else:
+                    active_accounts += 1
+            else:
+                # 如果没有锁定信息，认为是活跃的
+                active_accounts += 1
+        
         superuser_accounts = CurrentAccountSyncData.query.filter_by(is_superuser=True, is_deleted=False).count()
-        active_accounts = total_accounts  # 所有账户都视为活跃
         database_instances = len(instances)  # 数据库实例数
 
         # 最近7天新增账户趋势

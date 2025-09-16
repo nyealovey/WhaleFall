@@ -352,7 +352,11 @@ def run_job(job_id: str) -> Response:
         try:
             # 对于内置任务，直接调用任务函数（它们内部有应用上下文管理）
             if job_id in ["sync_accounts", "cleanup_logs"]:
-                result = job.func(*job.args, **job.kwargs)
+                # 对于sync_accounts任务，手动执行时传递manual_run=True
+                if job_id == "sync_accounts":
+                    result = job.func(manual_run=True)
+                else:
+                    result = job.func(*job.args, **job.kwargs)
                 system_logger.info(f"任务立即执行成功: {job_id} - 结果: {result}")
                 return APIResponse.success(data={"result": str(result)}, message="任务执行成功")  # type: ignore
             # 对于自定义任务，需要手动管理应用上下文

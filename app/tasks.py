@@ -103,7 +103,7 @@ def _cleanup_temp_files():
         return 0
 
 
-def sync_accounts():
+def sync_accounts(manual_run=False):
     """账户同步任务 - 同步所有数据库实例的账户（使用新的会话管理架构）"""
     from app.models.instance import Instance
     from app.services.sync_session_service import sync_session_service
@@ -122,9 +122,12 @@ def sync_accounts():
                 sync_logger.warning("没有找到活跃的数据库实例", module="scheduler")
                 return "没有找到活跃的数据库实例"
 
+            # 根据执行方式选择同步类型
+            sync_type = "manual_task" if manual_run else "scheduled_task"
+            
             # 创建同步会话
             session = sync_session_service.create_session(
-                sync_type="scheduled",
+                sync_type=sync_type,
                 sync_category="account",
                 created_by=None,  # 定时任务没有用户
             )
@@ -167,9 +170,9 @@ def sync_accounts():
                         instance_id=instance.id,
                     )
 
-                    # 执行账户同步，使用task类型
+                    # 执行账户同步，使用scheduled_task类型
                     result = account_sync_service.sync_accounts(
-                        instance, sync_type="task", session_id=session.session_id
+                        instance, sync_type="scheduled_task", session_id=session.session_id
                     )
 
                     if result.get("success"):

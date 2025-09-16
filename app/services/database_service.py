@@ -188,12 +188,13 @@ class DatabaseService:
             )
             return "版本获取失败"
 
-    def sync_accounts(self, instance: Instance) -> dict[str, Any]:
+    def sync_accounts(self, instance: Instance, sync_type: str = "manual_single") -> dict[str, Any]:
         """
         同步账户信息 - 使用优化同步模型
 
         Args:
             instance: 数据库实例
+            sync_type: 同步类型，默认为manual_single
 
         Returns:
             Dict: 同步结果

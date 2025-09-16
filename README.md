@@ -37,7 +37,7 @@
   - 📊 任务监控 - 详细的运行统计和成功率分析
   - 🔄 实时任务执行 - 支持立即执行和定时执行
   - ⚙️ 任务配置 - 灵活的Cron表达式配置
-  - 💾 任务持久化 - SQLite数据库任务状态存储
+  - 💾 任务持久化 - PostgreSQL数据库任务状态存储
 - 📈 **实时监控仪表板** - 系统状态和统计信息
 - 📝 **操作日志记录** - 完整的审计日志
 - 🚀 **RESTful API** - 完整的API接口
@@ -48,8 +48,7 @@
 
 - Python 3.13+ (推荐使用 uv 管理)
 - Redis 5.0+
-- SQLite 3.0+ (开发环境)
-- PostgreSQL 12+ (生产环境)
+- PostgreSQL 12+ (主数据库)
 - APScheduler 3.10+ (定时任务调度)
 
 ### 安装步骤
@@ -113,11 +112,14 @@ pip install -r requirements.txt
 4. **配置环境变量**
 ```bash
 cp env.example .env
-# 编辑 .env 文件，配置数据库连接等信息
+# 编辑 .env 文件，配置PostgreSQL数据库连接等信息
 ```
 
-5. **初始化数据库**
+5. **初始化PostgreSQL数据库**
 ```bash
+# 创建PostgreSQL数据库
+createdb -U postgres taifish_dev
+
 # 创建数据库迁移
 flask db upgrade
 
@@ -259,11 +261,10 @@ docker run -p 5001:5001 taifish
 - **Chart.js 4.4.0** - 图表库
 
 ### 数据库支持
-- **PostgreSQL** - 生产环境主数据库，支持角色属性、数据库权限、表空间权限
+- **PostgreSQL** - 主数据库，支持角色属性、数据库权限、表空间权限
 - **MySQL** - 支持MySQL实例管理，支持全局权限、数据库权限
 - **SQL Server** - 支持SQL Server实例管理，支持服务器角色、服务器权限、数据库角色、数据库权限
 - **Oracle** - 支持Oracle实例管理，使用python-oracledb驱动，支持系统权限、角色、表空间权限、表空间配额
-- **SQLite** - 开发环境数据库
 
 > **Oracle驱动说明**: 项目已升级到python-oracledb 2.0.0，完全支持Apple Silicon Mac。详细安装指南请参考 [Oracle驱动指南](doc/ORACLE_DRIVER_GUIDE.md)
 
@@ -301,8 +302,6 @@ TaifishV4/
 ├── scripts/               # 脚本文件
 ├── tests/                 # 测试文件
 ├── userdata/              # 用户数据目录
-│   ├── taifish_dev.db     # 开发数据库
-│   ├── scheduler.db       # 定时任务数据库
 │   ├── logs/              # 日志文件
 │   └── exports/           # 导出文件
 ├── migrations/            # 数据库迁移
@@ -323,8 +322,7 @@ SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret
 
 # 数据库配置
-DATABASE_URL=sqlite:///instance.db  # 开发环境
-# DATABASE_URL=postgresql://user:pass@localhost/taifish  # 生产环境
+DATABASE_URL=postgresql://taifish_user:Taifish2024!@localhost:5432/taifish_dev
 
 # Redis配置
 REDIS_URL=redis://localhost:6379/0
@@ -338,11 +336,8 @@ TIMEZONE=Asia/Shanghai
 支持多种数据库配置：
 
 ```python
-# SQLite (开发环境)
-DATABASE_URL = "sqlite:///instance.db"
-
-# PostgreSQL (生产环境)
-DATABASE_URL = "postgresql://user:password@localhost:5432/taifish"
+# PostgreSQL (主数据库)
+DATABASE_URL = "postgresql://taifish_user:Taifish2024!@localhost:5432/taifish_dev"
 
 # MySQL
 DATABASE_URL = "mysql://user:password@localhost:3306/taifish"

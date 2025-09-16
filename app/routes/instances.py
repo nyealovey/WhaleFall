@@ -1585,9 +1585,6 @@ def get_instance_statistics() -> dict[str, Any]:
             for stat in version_stats
         ]
 
-        # 最近连接的实例（按最后连接时间排序）
-        recent_connections = Instance.query.order_by(Instance.last_connected.desc().nullslast()).limit(10).all()
-
         # 数据库类型数量
         db_types_count = len(db_type_stats)
 
@@ -1599,7 +1596,6 @@ def get_instance_statistics() -> dict[str, Any]:
             "db_type_stats": [{"db_type": stat.db_type, "count": stat.count} for stat in db_type_stats],
             "port_stats": [{"port": stat.port, "count": stat.count} for stat in port_stats],
             "version_stats": version_stats,
-            "recent_connections": recent_connections,
         }
 
     except Exception as e:

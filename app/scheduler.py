@@ -64,6 +64,8 @@ class TaskScheduler:
         if not self.scheduler.running:
             self.scheduler.start()
             logger.info("定时任务调度器已启动")
+        else:
+            logger.warning("定时任务调度器已经在运行，跳过启动")
 
     def stop(self):
         """停止调度器"""
@@ -114,6 +116,11 @@ def get_scheduler():
 
 def init_scheduler(app):
     """初始化调度器"""
+    # 检查是否已经初始化过
+    if hasattr(scheduler, 'app') and scheduler.app is not None:
+        logger.warning("调度器已经初始化过，跳过重复初始化")
+        return scheduler
+        
     scheduler.app = app
     scheduler.start()
 
