@@ -151,7 +151,7 @@ function renderMySQLPermissions(permissions) {
         </div>
         <div class="mb-3">
             <h6><i class="fas fa-database text-success me-2"></i>数据库权限</h6>
-            ${permissions.database_privileges && Array.isArray(permissions.database_privileges) && permissions.database_privileges.length > 0 ? `
+            ${permissions.database_permissions && Array.isArray(permissions.database_permissions) && permissions.database_permissions.length > 0 ? `
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead>
@@ -161,7 +161,7 @@ function renderMySQLPermissions(permissions) {
                             </tr>
                         </thead>
                         <tbody>
-                            ${permissions.database_privileges.map(db => `
+                            ${permissions.database_permissions.map(db => `
                                 <tr>
                                     <td>${db.database}</td>
                                     <td>
@@ -275,7 +275,7 @@ function renderPostgreSQLPermissions(permissions) {
 
     // 处理数据库权限
     let databasePrivilegesHtml = '<p class="text-muted">无数据库权限</p>';
-    const dbPrivs = permissions.database_privileges_pg || permissions.database_privileges;
+    const dbPrivs = permissions.database_privileges_pg || permissions.database_permissions;
     if (dbPrivs && typeof dbPrivs === 'object' && Object.keys(dbPrivs).length > 0) {
         databasePrivilegesHtml = `
             <div class="table-responsive">
