@@ -646,22 +646,13 @@ class SyncDataManager:
         """
         获取SQL Server数据库角色和权限
         
-        使用 sys.database_principals 和 sys.database_role_members 查询：
-        - 固定数据库角色（如 db_owner, db_datareader 等）
-        - 用户定义的数据库角色
-        - 数据库级别的权限
+        正确的逻辑：
+        1. 先查询每个数据库中有哪些账户
+        2. 然后查询这些账户在各自数据库中的权限
         """
         try:
-            # 获取数据库角色
             database_roles = {}
             database_permissions = {}
-
-            # 检查是否为sysadmin用户
-            is_sysadmin = self._check_sysadmin_user(conn, username)
-            
-            if is_sysadmin:
-                # 对于sysadmin用户，使用特殊处理方式
-                return self._get_sysadmin_database_permissions(conn, username)
 
             # 获取所有数据库列表
             databases_sql = "SELECT name FROM sys.databases WHERE state = 0"  # 只获取在线数据库
@@ -670,35 +661,44 @@ class SyncDataManager:
             for db_row in databases:
                 db_name = db_row[0]
                 try:
-                    # 使用动态SQL查询特定数据库的权限，避免USE语句
-                    # 使用pymssql的%s占位符
-                    # 查询数据库角色（包括固定角色和用户定义角色）
+                    # 第一步：查询该数据库中是否存在当前用户
+                    user_exists_sql = f"""
+                        SELECT principal_id, name, type_desc
+                        FROM [{db_name}].sys.database_principals
+                        WHERE name = %s
+                    """
+                    
+                    user_info = conn.execute_query(user_exists_sql, (username,))
+                    
+                    if not user_info:
+                        # 如果用户在该数据库中不存在，跳过
+                        continue
+                    
+                    user_principal_id = user_info[0][0]
+                    user_name = user_info[0][1]
+                    user_type = user_info[0][2]
+                    
+                    # 第二步：查询该用户在该数据库中的角色
                     roles_sql = f"""
                         SELECT r.name
                         FROM [{db_name}].sys.database_role_members rm
                         JOIN [{db_name}].sys.database_principals r ON rm.role_principal_id = r.principal_id
-                        JOIN [{db_name}].sys.database_principals p ON rm.member_principal_id = p.principal_id
-                        WHERE p.name = %s
+                        WHERE rm.member_principal_id = %s
                     """
-                    # 查询数据库权限
+                    
+                    roles = conn.execute_query(roles_sql, (user_principal_id,))
+                    if roles:
+                        database_roles[db_name] = [role[0] for role in roles]
+                    
+                    # 第三步：查询该用户在该数据库中的直接权限
                     perms_sql = f"""
                         SELECT permission_name
                         FROM [{db_name}].sys.database_permissions
-                        WHERE grantee_principal_id = (
-                            SELECT principal_id
-                            FROM [{db_name}].sys.database_principals
-                            WHERE name = %s
-                        )
+                        WHERE grantee_principal_id = %s
                         AND state = 'G'
                     """
                     
-                    # 获取数据库角色
-                    roles = conn.execute_query(roles_sql, (username,))
-                    if roles:
-                        database_roles[db_name] = [role[0] for role in roles]
-
-                    # 获取数据库权限
-                    permissions = conn.execute_query(perms_sql, (username,))
+                    permissions = conn.execute_query(perms_sql, (user_principal_id,))
                     if permissions:
                         database_permissions[db_name] = [perm[0] for perm in permissions]
 
