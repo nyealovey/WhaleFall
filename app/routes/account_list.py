@@ -52,11 +52,35 @@ def list_accounts(db_type: str | None = None) -> str:
 
     # 锁定状态过滤
     if is_locked is not None:
-        query = query.filter(CurrentAccountSyncData.is_locked == (is_locked == "true"))
+        if is_locked == "true":
+            # 查找 type_specific 中包含 is_locked: true 的记录
+            query = query.filter(CurrentAccountSyncData.type_specific.contains({"is_locked": True}))
+        elif is_locked == "false":
+            # 查找 type_specific 中不包含 is_locked: true 或 is_locked: false 的记录
+            query = query.filter(
+                db.or_(
+                    CurrentAccountSyncData.type_specific.is_(None),
+                    ~CurrentAccountSyncData.type_specific.contains({"is_locked": True})
+                )
+            )
 
     # 超级用户过滤
     if is_superuser is not None:
         query = query.filter(CurrentAccountSyncData.is_superuser == (is_superuser == "true"))
+
+    # 环境过滤
+    if environment and environment != "all":
+        # 通过实例的环境字段进行过滤
+        query = query.join(Instance).filter(Instance.environment == environment)
+
+    # 分类过滤
+    if classification and classification != "all":
+        from app.models.account_classification import AccountClassificationAssignment, AccountClassification
+        # 通过分类分配表进行过滤
+        query = query.join(AccountClassificationAssignment).join(AccountClassification).filter(
+            AccountClassification.id == classification,
+            AccountClassificationAssignment.is_active == True
+        )
 
     # 排序
     query = query.order_by(CurrentAccountSyncData.username.asc())
@@ -76,6 +100,10 @@ def list_accounts(db_type: str | None = None) -> str:
         "sqlserver": CurrentAccountSyncData.query.filter_by(db_type="sqlserver", is_deleted=False).count(),
     }
 
+    # 获取实际的分类选项
+    from app.models.account_classification import AccountClassification
+    classification_list = AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
+    
     # 构建过滤选项
     filter_options = {
         "db_types": [
@@ -86,14 +114,12 @@ def list_accounts(db_type: str | None = None) -> str:
         ],
         "environments": [
             {"value": "production", "label": "生产环境"},
-            {"value": "staging", "label": "测试环境"},
+            {"value": "testing", "label": "测试环境"},
             {"value": "development", "label": "开发环境"},
         ],
         "classifications": [
-            {"value": "admin", "label": "管理员"},
-            {"value": "user", "label": "普通用户"},
-            {"value": "readonly", "label": "只读用户"},
-        ],
+            {"value": "all", "label": "全部分类"},
+        ] + [{"value": str(c.id), "label": c.name} for c in classification_list],
     }
 
     # 获取账户分类信息
@@ -191,7 +217,17 @@ def export_accounts() -> "Response":
 
     # 锁定状态过滤
     if is_locked is not None:
-        query = query.filter(CurrentAccountSyncData.is_locked == (is_locked == "true"))
+        if is_locked == "true":
+            # 查找 type_specific 中包含 is_locked: true 的记录
+            query = query.filter(CurrentAccountSyncData.type_specific.contains({"is_locked": True}))
+        elif is_locked == "false":
+            # 查找 type_specific 中不包含 is_locked: true 或 is_locked: false 的记录
+            query = query.filter(
+                db.or_(
+                    CurrentAccountSyncData.type_specific.is_(None),
+                    ~CurrentAccountSyncData.type_specific.contains({"is_locked": True})
+                )
+            )
 
     # 超级用户过滤
     if is_superuser is not None:
@@ -242,7 +278,11 @@ def export_accounts() -> "Response":
             username_display = f"{account.username}@{account.instance.host if account.instance else '%'}"
 
         # 格式化锁定状态（与页面显示一致）
-        if account.is_locked:
+        is_locked = False
+        if account.type_specific and isinstance(account.type_specific, dict):
+            is_locked = account.type_specific.get('is_locked', False)
+        
+        if is_locked:
             if instance and instance.db_type == "sqlserver":
                 lock_status = "已禁用"
             else:

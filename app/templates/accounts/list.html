@@ -59,8 +59,8 @@
                         <label for="is_locked" class="form-label fw-semibold">锁定状态</label>
                         <select class="form-select" id="is_locked" name="is_locked">
                             <option value="">全部状态</option>
-                            <option value="locked" {% if is_locked == 'locked' %}selected{% endif %}>已锁定</option>
-                            <option value="unlocked" {% if is_locked == 'unlocked' %}selected{% endif %}>正常</option>
+                            <option value="true" {% if is_locked == 'true' %}selected{% endif %}>已锁定</option>
+                            <option value="false" {% if is_locked == 'false' %}selected{% endif %}>正常</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -78,13 +78,10 @@
                     <div class="col-md-2">
                         <label for="classification" class="form-label fw-semibold">分类</label>
                         <select class="form-select" id="classification" name="classification">
-                            <option value="">全部分类</option>
                             {% for classification_option in filter_options.classifications %}
                             <option value="{{ classification_option.value }}"
-                                    {% if classification == classification_option.value %}selected{% endif %}
-                                    {% if classification_option.type == 'special' %}class="text-primary fw-semibold"{% endif %}
-                                    {% if classification_option.get('disabled') %}disabled{% endif %}>
-                                {{ classification_option.name }}
+                                    {% if classification == classification_option.value %}selected{% endif %}>
+                                {{ classification_option.label }}
                             </option>
                             {% endfor %}
                         </select>
@@ -434,11 +431,11 @@
                 {% if accounts.has_prev %}
                 <li class="page-item">
                     {% if current_db_type %}
-                    <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=accounts.prev_num, search=search, is_locked=is_locked, plugin=plugin, instance_id=instance_id) }}">
+                    <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=accounts.prev_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                         上一页
                     </a>
                     {% else %}
-                    <a class="page-link" href="{{ url_for('account_list.list_accounts', page=accounts.prev_num, search=search, is_locked=is_locked, plugin=plugin, instance_id=instance_id) }}">
+                    <a class="page-link" href="{{ url_for('account_list.list_accounts', page=accounts.prev_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                         上一页
                     </a>
                     {% endif %}
@@ -450,11 +447,11 @@
                         {% if page_num != accounts.page %}
                         <li class="page-item">
                             {% if current_db_type %}
-                            <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=page_num, search=search, is_locked=is_locked, plugin=plugin, instance_id=instance_id) }}">
+                            <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                                 {{ page_num }}
                             </a>
                         {% else %}
-                            <a class="page-link" href="{{ url_for('account_list.list_accounts', page=page_num, search=search, is_locked=is_locked, plugin=plugin, instance_id=instance_id) }}">
+                            <a class="page-link" href="{{ url_for('account_list.list_accounts', page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                                 {{ page_num }}
                             </a>
                             {% endif %}
@@ -474,13 +471,13 @@
                 {% if accounts.has_next %}
                 <li class="page-item">
                     {% if current_db_type %}
-                        <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=accounts.next_num, search=search, is_locked=is_locked, plugin=plugin, instance_id=instance_id) }}">
+                        <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                             下一页
                         </a>
                     {% else %}
-                        <a class="page-link" href="{{ url_for('account_list.list_accounts', page=accounts.next_num, search=search, is_locked=is_locked, plugin=plugin, instance_id=instance_id) }}">
+                        <a class="page-link" href="{{ url_for('account_list.list_accounts', page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                             下一页
-                    </a>
+                        </a>
                     {% endif %}
                 </li>
                 {% endif %}
