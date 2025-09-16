@@ -14,7 +14,6 @@ from app.models.account_classification import (
     AccountClassificationAssignment,
     ClassificationRule,
 )
-from app.services.account_classification_service import AccountClassificationService
 from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
 from app.services.classification_batch_service import ClassificationBatchService
 from app.utils.decorators import (
@@ -259,7 +258,7 @@ def list_rules() -> "Response":
         rules = ClassificationRule.query.filter_by(is_active=True).order_by(ClassificationRule.created_at.desc()).all()
 
         # 获取匹配账户数量
-        service = AccountClassificationService()
+        service = OptimizedAccountClassificationService()
         result = []
         for rule in rules:
             matched_count = service.get_rule_matched_accounts_count(rule.id)
@@ -392,11 +391,7 @@ def get_matched_accounts(rule_id: int) -> "Response":
         rule = ClassificationRule.query.get_or_404(rule_id)
 
         # 获取匹配的账户
-        from app.services.account_classification_service import (
-            AccountClassificationService,
-        )
-
-        classification_service = AccountClassificationService()
+        classification_service = OptimizedAccountClassificationService()
 
         # 获取所有账户
         from app.models.current_account_sync_data import CurrentAccountSyncData
@@ -493,7 +488,7 @@ def assign_classification() -> "Response":
     try:
         data = request.get_json()
 
-        service = AccountClassificationService()
+        service = OptimizedAccountClassificationService()
         result = service.classify_account(
             data["account_id"],
             data["classification_id"],
@@ -529,22 +524,13 @@ def auto_classify() -> "Response":
             use_optimized=use_optimized,
         )
 
-        if use_optimized:
-            # 使用优化后的服务
-            service = OptimizedAccountClassificationService()
-            result = service.auto_classify_accounts_optimized(
-                instance_id=instance_id,
-                batch_type=batch_type,
-                created_by=current_user.id if current_user.is_authenticated else None,
-            )
-        else:
-            # 使用原始服务
-            service = AccountClassificationService()
-            result = service.auto_classify_accounts(
-                instance_id=instance_id,
-                batch_type=batch_type,
-                created_by=current_user.id if current_user.is_authenticated else None,
-            )
+        # 使用优化后的服务
+        service = OptimizedAccountClassificationService()
+        result = service.auto_classify_accounts_optimized(
+            instance_id=instance_id,
+            batch_type=batch_type,
+            created_by=current_user.id if current_user.is_authenticated else None,
+        )
 
         if result.get("success"):
             log_info(
@@ -654,30 +640,12 @@ def auto_classify_comparison() -> "Response":
 
         results = {}
 
-        # 测试原始服务
-        try:
-            start_time = time.time()
-            original_service = AccountClassificationService()
-            original_result = original_service.auto_classify_accounts(
-                instance_id=instance_id,
-                batch_type=f"{batch_type}_original",
-                created_by=current_user.id if current_user.is_authenticated else None,
-            )
-            original_duration = time.time() - start_time
-            
-            results["original"] = {
-                "success": original_result.get("success", False),
-                "duration": original_duration,
-                "batch_id": original_result.get("batch_id"),
-                "classified_count": original_result.get("classified_count", 0),
-                "failed_count": original_result.get("failed_count", 0),
-            }
-        except Exception as e:
-            results["original"] = {
-                "success": False,
-                "error": str(e),
-                "duration": 0,
-            }
+        # 原始服务已删除，跳过测试
+        results["original"] = {
+            "success": False,
+            "error": "原始服务已删除",
+            "duration": 0,
+        }
 
         # 测试优化后的服务
         try:

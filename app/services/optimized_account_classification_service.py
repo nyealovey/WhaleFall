@@ -528,6 +528,115 @@ class OptimizedAccountClassificationService:
             failed_count=result.get("failed_count", 0),
         )
 
+    def classify_account(
+        self,
+        account_id: int,
+        classification_id: int,
+        assignment_type: str = "manual",
+        assigned_by: int = None,
+        notes: str = None,
+        batch_id: str = None,
+        skip_log: bool = False,
+    ) -> Dict[str, Any]:
+        """为账户分配分类"""
+        try:
+            account = CurrentAccountSyncData.query.get(account_id)
+            if not account:
+                return {"success": False, "error": "账户不存在"}
+
+            classification = AccountClassification.query.get(classification_id)
+            if not classification:
+                return {"success": False, "error": "分类不存在"}
+
+            # 检查是否已有该账户和分类的组合记录（包括非活跃的）
+            existing_assignment = AccountClassificationAssignment.query.filter_by(
+                account_id=account_id, classification_id=classification_id
+            ).first()
+
+            if existing_assignment:
+                # 如果记录存在但非活跃，重新激活它
+                if not existing_assignment.is_active:
+                    existing_assignment.is_active = True
+                    existing_assignment.assigned_by = assigned_by
+                    existing_assignment.assignment_type = assignment_type
+                    existing_assignment.notes = notes
+                    existing_assignment.batch_id = batch_id
+                    existing_assignment.updated_at = time_utils.now()
+                    db.session.commit()
+                    return {"success": True, "message": "账户分类分配已重新激活"}
+                else:
+                    return {"success": False, "error": "账户已分配该分类"}
+            else:
+                # 创建新的分配记录
+                assignment = AccountClassificationAssignment(
+                    account_id=account_id,
+                    classification_id=classification_id,
+                    assigned_by=assigned_by,
+                    assignment_type=assignment_type,
+                    notes=notes,
+                    batch_id=batch_id,
+                )
+                db.session.add(assignment)
+                db.session.commit()
+
+                if not skip_log:
+                    log_info(
+                        "分配账户分类",
+                        module="account_classification",
+                        account_id=account_id,
+                        classification_id=classification_id,
+                        assignment_type=assignment_type,
+                        assigned_by=assigned_by,
+                    )
+
+                return {"success": True, "message": "账户分类分配成功"}
+
+        except Exception as e:
+            db.session.rollback()
+            log_error(f"分配账户分类失败: {str(e)}", module="account_classification")
+            return {"success": False, "error": f"分配账户分类失败: {str(e)}"}
+
+    def get_rule_matched_accounts_count(self, rule_id: int) -> int:
+        """获取规则匹配的账户数量（优化版本，避免重新评估规则）"""
+        try:
+            from app.models.account_classification import (
+                ClassificationRule,
+                AccountClassificationAssignment,
+            )
+            from app.models.current_account_sync_data import CurrentAccountSyncData
+
+            # 获取规则
+            rule = ClassificationRule.query.get(rule_id)
+            if not rule:
+                return 0
+
+            # 获取规则对应的分类
+            classification = rule.classification
+            if not classification:
+                return 0
+
+            # 使用缓存的分类分配数据来统计匹配数量，而不是重新评估规则
+            # 这样可以避免页面加载时触发自动分类
+            matched_count = (
+                AccountClassificationAssignment.query
+                .join(CurrentAccountSyncData, AccountClassificationAssignment.account_id == CurrentAccountSyncData.id)
+                .join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
+                .filter(
+                    AccountClassificationAssignment.classification_id == classification.id,
+                    Instance.is_active == True,
+                    CurrentAccountSyncData.is_deleted == False,
+                    Instance.deleted_at.is_(None),  # 排除已删除的实例
+                    AccountClassificationAssignment.is_active == True,  # 只统计活跃的分配
+                )
+                .count()
+            )
+
+            return matched_count
+
+        except Exception as e:
+            log_error(f"获取规则匹配账户数量失败: {str(e)}", module="account_classification")
+            return 0
+
 
 # 全局实例
 optimized_account_classification_service = OptimizedAccountClassificationService()
