@@ -414,15 +414,10 @@ def get_matched_accounts(rule_id: int) -> "Response":
         for account in all_accounts:
             # 检查账户是否匹配规则
             if classification_service.evaluate_rule(rule, account):
-                # 对于MySQL，显示用户名@主机名
-                if rule.db_type == "mysql" and account.instance and account.instance.host:
-                    display_name = f"{account.username}@{account.instance.host}"
-                    # 使用用户名@主机名作为唯一标识
-                    unique_key = f"{account.username}@{account.instance.host}"
-                else:
-                    display_name = account.username
-                    # 对于其他数据库类型，使用用户名作为唯一标识
-                    unique_key = account.username
+                # 统一使用用户名作为显示名称，与账户管理页面保持一致
+                display_name = account.username
+                # 使用用户名作为唯一标识
+                unique_key = account.username
 
                 # 避免重复显示
                 if unique_key not in seen_accounts:
