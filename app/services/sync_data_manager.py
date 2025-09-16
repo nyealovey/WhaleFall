@@ -651,12 +651,14 @@ class SyncDataManager:
         2. 然后查询这些账户在各自数据库中的权限
         """
         try:
+            self.sync_logger.info(f"开始获取SQL Server数据库权限: {username}")
             database_roles = {}
             database_permissions = {}
 
             # 获取所有数据库列表
             databases_sql = "SELECT name FROM sys.databases WHERE state = 0"  # 只获取在线数据库
             databases = conn.execute_query(databases_sql)
+            self.sync_logger.info(f"找到 {len(databases)} 个在线数据库")
 
             for db_row in databases:
                 db_name = db_row[0]
@@ -672,11 +674,13 @@ class SyncDataManager:
                     
                     if not user_info:
                         # 如果用户在该数据库中不存在，跳过
+                        self.sync_logger.debug(f"用户 {username} 在数据库 {db_name} 中不存在，跳过")
                         continue
                     
                     user_principal_id = user_info[0][0]
                     user_name = user_info[0][1]
                     user_type = user_info[0][2]
+                    self.sync_logger.info(f"用户 {username} 在数据库 {db_name} 中存在，principal_id: {user_principal_id}")
                     
                     # 第二步：查询该用户在该数据库中的角色
                     roles_sql = f"""
@@ -689,6 +693,7 @@ class SyncDataManager:
                     roles = conn.execute_query(roles_sql, (user_principal_id,))
                     if roles:
                         database_roles[db_name] = [role[0] for role in roles]
+                        self.sync_logger.info(f"用户 {username} 在数据库 {db_name} 中的角色: {database_roles[db_name]}")
                     
                     # 第三步：查询该用户在该数据库中的直接权限
                     perms_sql = f"""
@@ -701,6 +706,7 @@ class SyncDataManager:
                     permissions = conn.execute_query(perms_sql, (user_principal_id,))
                     if permissions:
                         database_permissions[db_name] = [perm[0] for perm in permissions]
+                        self.sync_logger.info(f"用户 {username} 在数据库 {db_name} 中的权限: {database_permissions[db_name]}")
 
                 except Exception as e:
                     # 如果无法访问某个数据库，记录警告但继续处理其他数据库
@@ -711,6 +717,7 @@ class SyncDataManager:
                         self.sync_logger.warning(f"无法访问数据库 {db_name}: {error_msg}")
                     continue
 
+            self.sync_logger.info(f"SQL Server数据库权限查询完成: {username}, 角色: {database_roles}, 权限: {database_permissions}")
             return database_roles, database_permissions
 
         except Exception as e:
