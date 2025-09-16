@@ -583,8 +583,7 @@ class AccountClassificationService:
                 # 比较当前分类和新分类
                 if current_classification_ids != new_classification_ids:
                     # 分类有变化，更新账户记录
-                    account.last_classified_at = time_utils.now()
-                    account.last_classification_batch_id = batch_id
+                    # 注意：不再记录last_classified_at和last_classification_batch_id字段
 
                     # 清除当前所有分类
                     for assignment in current_assignments:

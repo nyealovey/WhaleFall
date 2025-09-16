@@ -505,24 +505,9 @@ class OptimizedAccountClassificationService:
 
     def _update_accounts_classification_time(self, accounts: List[CurrentAccountSyncData]) -> None:
         """更新账户的最后分类时间"""
-        try:
-            account_ids = [account.id for account in accounts]
-            
-            CurrentAccountSyncData.query.filter(
-                CurrentAccountSyncData.id.in_(account_ids)
-            ).update(
-                {
-                    "last_classified_at": time_utils.now(),
-                    "last_classification_batch_id": self.batch_id,
-                },
-                synchronize_session=False,
-            )
-            
-            db.session.commit()
-
-        except Exception as e:
-            log_error(f"更新账户分类时间失败: {e}", module="account_classification")
-            db.session.rollback()
+        # 注意：不再更新last_classified_at和last_classification_batch_id字段
+        # 这些字段在数据库模型中不存在，已移除相关更新操作
+        pass
 
     def _log_performance_stats(
         self, duration: float, total_accounts: int, total_rules: int, result: Dict[str, Any]
