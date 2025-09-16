@@ -36,14 +36,6 @@ def index() -> str:
     return render_template("account_classification/management.html")
 
 
-@account_classification_bp.route("/batches")
-@login_required
-@view_required
-def batches() -> str:
-    """自动分类批次管理页面"""
-    return render_template("account_classification/batches.html")
-
-
 @account_classification_bp.route("/rules-page")
 @login_required
 @view_required
@@ -815,14 +807,6 @@ def get_permissions(db_type: str) -> "Response":
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
-
-@account_classification_bp.route("/batches")
-@login_required
-@view_required
-def batches_page() -> "Response":
-    """自动分类记录页面"""
-    return render_template("account_classification/batches.html")
 
 
 @account_classification_bp.route("/api/batches")
