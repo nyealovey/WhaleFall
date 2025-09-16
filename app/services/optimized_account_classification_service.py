@@ -601,12 +601,9 @@ class OptimizedAccountClassificationService:
             return {"success": False, "error": f"分配账户分类失败: {str(e)}"}
 
     def get_rule_matched_accounts_count(self, rule_id: int) -> int:
-        """获取规则匹配的账户数量（优化版本，避免重新评估规则）"""
+        """获取规则匹配的账户数量（重新评估规则）"""
         try:
-            from app.models.account_classification import (
-                ClassificationRule,
-                AccountClassificationAssignment,
-            )
+            from app.models.account_classification import ClassificationRule
             from app.models.current_account_sync_data import CurrentAccountSyncData
 
             # 获取规则
@@ -614,26 +611,24 @@ class OptimizedAccountClassificationService:
             if not rule:
                 return 0
 
-            # 获取规则对应的分类
-            classification = rule.classification
-            if not classification:
-                return 0
-
-            # 使用缓存的分类分配数据来统计匹配数量，而不是重新评估规则
-            # 这样可以避免页面加载时触发自动分类
-            matched_count = (
-                AccountClassificationAssignment.query
-                .join(CurrentAccountSyncData, AccountClassificationAssignment.account_id == CurrentAccountSyncData.id)
+            # 获取所有活跃的账户
+            accounts = (
+                CurrentAccountSyncData.query
                 .join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
                 .filter(
-                    AccountClassificationAssignment.classification_id == classification.id,
                     Instance.is_active == True,
                     CurrentAccountSyncData.is_deleted == False,
-                    Instance.deleted_at.is_(None),  # 排除已删除的实例
-                    AccountClassificationAssignment.is_active == True,  # 只统计活跃的分配
+                    Instance.deleted_at.is_(None),
+                    Instance.db_type == rule.db_type,  # 只匹配相同数据库类型
                 )
-                .count()
+                .all()
             )
+
+            # 重新评估规则，统计匹配的账户数量
+            matched_count = 0
+            for account in accounts:
+                if self._evaluate_rule(account, rule):
+                    matched_count += 1
 
             return matched_count
 
