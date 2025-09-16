@@ -16,7 +16,7 @@ database_types_bp = Blueprint("database_types", __name__, url_prefix="/database-
 def index() -> str:
     """数据库类型管理首页"""
     types = DatabaseTypeService.get_all_types()
-    return render_template("database_types/index.html", types=types)
+    return render_template("database_types/list.html", types=types)
 
 
 @database_types_bp.route("/create", methods=["GET", "POST"])

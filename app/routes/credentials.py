@@ -101,7 +101,7 @@ def index() -> str:
         )
 
     return render_template(
-        "credentials/index.html",
+        "credentials/list.html",
         credentials=credentials,
         search=search,
         credential_type=credential_type,

@@ -71,7 +71,7 @@ def index() -> str:
         )
 
     return render_template(
-        "dashboard/index.html",
+        "dashboard/overview.html",
         overview=overview_data,
         charts=chart_data,
         status=system_status,

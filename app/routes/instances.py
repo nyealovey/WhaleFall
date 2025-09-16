@@ -171,7 +171,7 @@ def index() -> str:
         )
 
     return render_template(
-        "instances/index.html",
+        "instances/list.html",
         instances=instances,
         credentials=credentials,
         database_types=database_types,

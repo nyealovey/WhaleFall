@@ -39,7 +39,7 @@ def chrome_devtools() -> "Response":
 @admin_required
 def admin() -> str:
     """系统管理页面"""
-    return render_template("admin/index.html")
+    return render_template("admin/management.html")
 
 
 @main_bp.route("/api/health")

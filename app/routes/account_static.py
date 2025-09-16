@@ -48,7 +48,7 @@ def index() -> str:
         )
 
     return render_template(
-        "accounts/index.html",
+        "accounts/statistics.html",
         stats=stats,
         recent_syncs=recent_syncs,
         recent_accounts=stats.get("recent_accounts", []),  # 添加recent_accounts变量

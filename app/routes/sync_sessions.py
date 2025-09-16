@@ -23,14 +23,14 @@ def index():
     """同步会话管理首页"""
     try:
         log_info("访问同步会话管理页面", module="sync_sessions", user_id=current_user.id)
-        return render_template("sync_sessions/index.html")
+        return render_template("sync_sessions/management.html")
     except Exception as e:
         log_error(
             f"访问同步会话管理页面失败: {str(e)}",
             module="sync_sessions",
             user_id=current_user.id,
         )
-        return render_template("sync_sessions/index.html", error="页面加载失败")
+        return render_template("sync_sessions/management.html", error="页面加载失败")
 
 
 @sync_sessions_bp.route("/api/sessions")

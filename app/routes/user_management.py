@@ -35,11 +35,11 @@ def index() -> str:
         # 分页查询
         users = User.query.order_by(User.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
-        return render_template("user_management/index.html", users=users)
+        return render_template("user_management/management.html", users=users)
 
     except Exception as e:
         flash(f"获取用户列表失败: {str(e)}", "error")
-        return render_template("user_management/index.html", users=None, stats={})
+        return render_template("user_management/management.html", users=None, stats={})
 
 
 @user_management_bp.route("/api/users")
