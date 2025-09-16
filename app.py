@@ -40,7 +40,8 @@ def main():
     print("=" * 50)
 
     # 启动Flask应用
-    app.run(host=host, port=port, debug=debug, threaded=True)
+    # 在debug模式下禁用reloader以避免重复启动调度器
+    app.run(host=host, port=port, debug=debug, threaded=True, use_reloader=False)
 
 
 if __name__ == "__main__":
