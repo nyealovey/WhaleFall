@@ -222,7 +222,7 @@
                                         <i class="fas fa-redo"></i>
                                     </button>
                                     {% endif %}
-                                    {% else %}
+                                    {% elif record.is_aggregated %}
                                     <!-- 聚合记录 -->
                                     <button type="button" class="btn btn-outline-info" 
                                             onclick="viewBatchDetails({{ record.get_record_ids()|tojson }})" 
@@ -236,6 +236,12 @@
                                         <i class="fas fa-exclamation-triangle"></i>
                                     </button>
                                     {% endif %}
+                                    {% else %}
+                                    <!-- 其他记录 -->
+                                    <button type="button" class="btn btn-outline-info" 
+                                            onclick="viewDetails({{ record.id }})" title="查看详情">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
                                     {% endif %}
                                 </div>
                             </td>
