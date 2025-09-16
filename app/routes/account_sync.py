@@ -186,7 +186,7 @@ def sync_records() -> str | Response:
 
     # 处理task记录，需要计算聚合数据
     for record in task_records:
-        record.is_aggregated = False
+        record.is_aggregated = True  # 定时任务记录是聚合记录
         
         # 计算聚合的同步数量
         total_accounts = 0
@@ -213,6 +213,11 @@ def sync_records() -> str | Response:
             record.message = f"成功同步 {total_accounts} 个账户"
         else:
             record.message = "-"
+        
+        # 添加get_record_ids方法（用于模板调用）
+        def get_record_ids():
+            return [instance_record.id for instance_record in instance_records]
+        record.get_record_ids = get_record_ids
 
     # 合并聚合记录、手动记录和task记录
     all_display_records = aggregated_records + manual_records + task_records
