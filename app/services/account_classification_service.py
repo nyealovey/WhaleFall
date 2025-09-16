@@ -580,49 +580,11 @@ class AccountClassificationService:
                             classified_accounts += 1
                             account_matched = True
 
-                # 比较当前分类和新分类
-                if current_classification_ids != new_classification_ids:
-                    # 分类有变化，更新账户记录
-                    # 注意：不再记录last_classified_at和last_classification_batch_id字段
-
-                    # 清除当前所有分类
-                    for assignment in current_assignments:
-                        assignment.is_active = False
-                        assignment.updated_at = time_utils.now()
-
-                    # 记录分类变化日志
-                    if new_classification_ids:
-                        classification_names = []
-                        for cid in new_classification_ids:
-                            classification = classifications.get(cid)
-                            if classification:
-                                classification_names.append(classification.name)
-
-                        log_info(
-                            f"账户 {account.username} 分类已更新: {', '.join(classification_names)}",
-                            module="account_classification",
-                            batch_id=batch_id,
-                            account_id=account.id,
-                            old_classifications=list(current_classification_ids),
-                            new_classifications=list(new_classification_ids),
-                        )
-                    else:
-                        log_info(
-                            f"账户 {account.username} 已移除所有分类",
-                            module="account_classification",
-                            batch_id=batch_id,
-                            account_id=account.id,
-                            old_classifications=list(current_classification_ids),
-                        )
-                else:
-                    # 分类没有变化，记录日志
-                    log_info(
-                        f"账户 {account.username} 分类无变化，保持现有分类",
-                        module="account_classification",
-                        batch_id=batch_id,
-                        account_id=account.id,
-                        current_classifications=list(current_classification_ids),
-                    )
+                # 简化分类处理：直接清除当前分类并分配新分类
+                # 清除当前所有分类
+                for assignment in current_assignments:
+                    assignment.is_active = False
+                    assignment.updated_at = time_utils.now()
 
                 # 创建新的批次记录（避免重复）
                 for classification_id in new_classification_ids:
@@ -710,10 +672,7 @@ class AccountClassificationService:
             # 从本地数据库获取权限信息
             permissions = self._get_account_permissions(account)
             if not permissions:
-                log_info(
-                    f"账户 {account.username} 没有权限信息",
-                    module="account_classification",
-                )
+                # 没有权限信息，不再记录详细日志
                 return False
             rule_expression = rule.rule_expression  # 直接使用字符串格式
 
@@ -723,10 +682,6 @@ class AccountClassificationService:
                     # 检查是否有sysadmin角色
                     server_roles = permissions.get("server_roles", [])
                     if isinstance(server_roles, list) and "sysadmin" in server_roles:
-                        log_info(
-                            f"账户 {account.username} 匹配SQL Server规则: {rule_expression}",
-                            module="account_classification",
-                        )
                         return True
                 elif rule_expression == "database_roles.db_owner":
                     # 检查是否有db_owner角色
@@ -734,20 +689,12 @@ class AccountClassificationService:
                     if isinstance(database_roles, dict):
                         for db_name, roles in database_roles.items():
                             if isinstance(roles, list) and "db_owner" in roles:
-                                log_info(
-                                    f"账户 {account.username} 匹配SQL Server规则: {rule_expression}",
-                                    module="account_classification",
-                                )
                                 return True
                 elif rule_expression.startswith("server_permissions."):
                     # 检查服务器权限
                     perm_name = rule_expression.split(".", 1)[1]
                     server_permissions = permissions.get("server_permissions", [])
                     if isinstance(server_permissions, list) and perm_name in server_permissions:
-                        log_info(
-                            f"账户 {account.username} 匹配SQL Server规则: {rule_expression}",
-                            module="account_classification",
-                        )
                         return True
 
             elif rule.db_type == "mysql":
@@ -755,37 +702,21 @@ class AccountClassificationService:
                     # 检查是否有SUPER权限
                     global_privileges = permissions.get("global_privileges", [])
                     if isinstance(global_privileges, list) and "SUPER" in global_privileges:
-                        log_info(
-                            f"账户 {account.username} 匹配MySQL规则: {rule_expression}",
-                            module="account_classification",
-                        )
                         return True
                 elif rule_expression == "global_privileges.DROP":
                     # 检查是否有DROP权限
                     global_privileges = permissions.get("global_privileges", [])
                     if isinstance(global_privileges, list) and "DROP" in global_privileges:
-                        log_info(
-                            f"账户 {account.username} 匹配MySQL规则: {rule_expression}",
-                            module="account_classification",
-                        )
                         return True
                 elif rule_expression == "global_privileges.SELECT":
                     # 检查是否有SELECT权限
                     global_privileges = permissions.get("global_privileges", [])
                     if isinstance(global_privileges, list) and "SELECT" in global_privileges:
-                        log_info(
-                            f"账户 {account.username} 匹配MySQL规则: {rule_expression}",
-                            module="account_classification",
-                        )
                         return True
                 elif rule_expression == "global_privileges.INSERT":
                     # 检查是否有INSERT权限
                     global_privileges = permissions.get("global_privileges", [])
                     if isinstance(global_privileges, list) and "INSERT" in global_privileges:
-                        log_info(
-                            f"账户 {account.username} 匹配MySQL规则: {rule_expression}",
-                            module="account_classification",
-                        )
                         return True
 
             elif rule.db_type == "postgresql":
@@ -793,10 +724,6 @@ class AccountClassificationService:
                     # 检查是否有CREATEROLE属性
                     role_attributes = permissions.get("role_attributes", [])
                     if isinstance(role_attributes, list) and "CREATEROLE" in role_attributes:
-                        log_info(
-                            f"账户 {account.username} 匹配PostgreSQL规则: {rule_expression}",
-                            module="account_classification",
-                        )
                         return True
 
             elif rule.db_type == "oracle":
@@ -804,16 +731,9 @@ class AccountClassificationService:
                     # 检查是否有GRANT ANY PRIVILEGE权限
                     system_privileges = permissions.get("system_privileges", [])
                     if isinstance(system_privileges, list) and "GRANT ANY PRIVILEGE" in system_privileges:
-                        log_info(
-                            f"账户 {account.username} 匹配Oracle规则: {rule_expression}",
-                            module="account_classification",
-                        )
                         return True
 
-            log_info(
-                f"账户 {account.username} 不匹配规则: {rule_expression}",
-                module="account_classification",
-            )
+            # 不匹配规则，不再记录详细日志
             return False
 
         except Exception as e:
@@ -884,11 +804,7 @@ class AccountClassificationService:
                     if not any(perm in all_db_permissions for perm in required_db):
                         return False
 
-            # 只有匹配成功时才记录日志
-            log_info(
-                f"账户 {account.username} 满足MySQL规则要求",
-                module="account_classification",
-            )
+            # 匹配成功，不再记录详细日志
             return True
 
         except Exception as e:
@@ -927,10 +843,7 @@ class AccountClassificationService:
                 match_results.append(server_perms_match)
 
                 if server_perms_match:
-                    log_info(
-                        f"账户 {account.username} 满足服务器权限要求: {required_server_perms}",
-                        module="account_classification",
-                    )
+                    pass  # 满足服务器权限要求，不再记录详细日志
 
             # 检查服务器角色
             required_server_roles = rule_expression.get("server_roles", [])
@@ -948,10 +861,7 @@ class AccountClassificationService:
                 match_results.append(server_roles_match)
 
                 if server_roles_match:
-                    log_info(
-                        f"账户 {account.username} 满足服务器角色要求: {required_server_roles}",
-                        module="account_classification",
-                    )
+                    pass  # 满足服务器角色要求，不再记录详细日志
 
             # 检查数据库角色
             required_db_roles = rule_expression.get("database_roles", [])
@@ -975,10 +885,7 @@ class AccountClassificationService:
                 match_results.append(db_roles_match)
 
                 if db_roles_match:
-                    log_info(
-                        f"账户 {account.username} 满足数据库角色要求: {required_db_roles}",
-                        module="account_classification",
-                    )
+                    pass  # 满足数据库角色要求，不再记录详细日志
 
             # 检查数据库权限
             required_db_privs = rule_expression.get("database_privileges", [])
@@ -1002,18 +909,11 @@ class AccountClassificationService:
                 match_results.append(db_privs_match)
 
                 if db_privs_match:
-                    log_info(
-                        f"账户 {account.username} 满足数据库权限要求: {required_db_privs}",
-                        module="account_classification",
-                    )
+                    pass  # 满足数据库权限要求，不再记录详细日志
 
             # 根据操作符决定匹配逻辑
             if not match_results:
-                # 如果没有任何要求，默认匹配
-                log_info(
-                    f"账户 {account.username} 匹配SQL Server规则（无特定要求）",
-                    module="account_classification",
-                )
+                # 如果没有任何要求，默认匹配，不再记录详细日志
                 return True
 
             if operator.upper() == "AND":
@@ -1025,10 +925,7 @@ class AccountClassificationService:
 
             # 只有匹配成功时才记录日志
             if result:
-                log_info(
-                    f"账户 {account.username} 满足SQL Server规则要求",
-                    module="account_classification",
-                )
+                pass  # 满足SQL Server规则要求，不再记录详细日志
 
             return result
 
@@ -1191,11 +1088,7 @@ class AccountClassificationService:
                 if required_perm not in permissions.get("tablespace_privileges", []):
                     return False
 
-            # 只有匹配成功时才记录日志
-            log_info(
-                f"账户 {account.username} 匹配PostgreSQL规则",
-                module="account_classification",
-            )
+            # 匹配成功，不再记录详细日志
             return True
 
         except Exception as e:
@@ -1251,17 +1144,10 @@ class AccountClassificationService:
                     required_tablespace_quotas,
                 ]
             ):
-                log_info(
-                    f"账户 {account.username} 匹配Oracle规则（无特定要求）",
-                    module="account_classification",
-                )
+                # 匹配Oracle规则（无特定要求），不再记录详细日志
                 return True
 
-            # 只有匹配成功时才记录日志
-            log_info(
-                f"账户 {account.username} 匹配Oracle规则",
-                module="account_classification",
-            )
+            # 匹配成功，不再记录详细日志
             return True
 
         except Exception as e:
