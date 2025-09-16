@@ -12,6 +12,21 @@ if (typeof logErrorWithContext === 'undefined') {
 let currentClassificationId = null;
 let currentDbType = null;
 
+// 获取分类图标
+function getClassificationIcon(iconName, color) {
+    const iconMap = {
+        'fa-crown': 'fas fa-crown',
+        'fa-shield-alt': 'fas fa-shield-alt',
+        'fa-exclamation-triangle': 'fas fa-exclamation-triangle',
+        'fa-user': 'fas fa-user',
+        'fa-eye': 'fas fa-eye',
+        'fa-tag': 'fas fa-tag'
+    };
+    
+    const iconClass = iconMap[iconName] || 'fas fa-tag';
+    return `<i class="${iconClass}" style="color: ${color || '#6c757d'};"></i>`;
+}
+
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
     loadClassifications();
@@ -61,6 +76,9 @@ function displayClassifications(classifications) {
                 <div class="card-body py-2">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center">
+                            <div class="me-2">
+                                ${getClassificationIcon(classification.icon_name, classification.color)}
+                            </div>
                             <span class="badge bg-${riskLevelClass} me-2" style="background-color: ${classification.color || '#6c757d'} !important;">
                                 ${classification.name}
                             </span>
@@ -102,7 +120,8 @@ function createClassification() {
         description: document.getElementById('classificationDescription').value,
         risk_level: document.getElementById('riskLevel').value,
         color: document.getElementById('classificationColor').value,
-        priority: parseInt(document.getElementById('priority').value)
+        priority: parseInt(document.getElementById('priority').value),
+        icon_name: document.querySelector('input[name="classificationIcon"]:checked').value
     };
 
     fetch('/account-classification/classifications', {
@@ -145,9 +164,44 @@ function editClassification(id) {
             document.getElementById('editClassificationRiskLevel').value = classification.risk_level;
             document.getElementById('editClassificationColor').value = classification.color || '#6c757d';
             document.getElementById('editClassificationPriority').value = classification.priority || 0;
-
+            
             // 显示编辑模态框
             const editModal = new bootstrap.Modal(document.getElementById('editClassificationModal'));
+            
+            // 在模态框显示后设置图标选择
+            const modalElement = document.getElementById('editClassificationModal');
+            const setIconSelection = () => {
+                const iconName = classification.icon_name || 'fa-tag';
+                console.log('设置编辑分类图标:', iconName);
+                
+                // 先清除所有图标选择的选中状态
+                const allIconRadios = document.querySelectorAll('input[name="editClassificationIcon"]');
+                console.log('找到的图标选择器数量:', allIconRadios.length);
+                allIconRadios.forEach(radio => {
+                    radio.checked = false;
+                });
+                
+                // 然后选中对应的图标
+                const iconRadio = document.querySelector(`input[name="editClassificationIcon"][value="${iconName}"]`);
+                if (iconRadio) {
+                    iconRadio.checked = true;
+                    console.log('成功选中图标:', iconName);
+                } else {
+                    console.log('未找到图标:', iconName, '，使用默认标签图标');
+                    // 如果找不到对应的图标，默认选中标签图标
+                    const defaultRadio = document.querySelector('input[name="editClassificationIcon"][value="fa-tag"]');
+                    if (defaultRadio) {
+                        defaultRadio.checked = true;
+                    }
+                }
+            };
+            
+            // 监听模态框显示事件
+            modalElement.addEventListener('shown.bs.modal', setIconSelection, { once: true });
+            
+            // 延迟设置作为备用方案
+            setTimeout(setIconSelection, 100);
+            
             editModal.show();
         } else {
             showAlert('danger', '获取分类信息失败: ' + data.error);
@@ -178,7 +232,8 @@ function updateClassification() {
         description: description.trim(),
         risk_level: riskLevel,
         color: color,
-        priority: priority
+        priority: priority,
+        icon_name: document.querySelector('input[name="editClassificationIcon"]:checked').value
     };
 
     fetch(`/account-classification/classifications/${id}`, {

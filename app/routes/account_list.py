@@ -103,7 +103,8 @@ def list_accounts(db_type: str | None = None) -> str:
     if pagination.items:
         account_ids = [account.id for account in pagination.items]
         assignments = AccountClassificationAssignment.query.filter(
-            AccountClassificationAssignment.account_id.in_(account_ids)
+            AccountClassificationAssignment.account_id.in_(account_ids),
+            AccountClassificationAssignment.is_active == True
         ).all()
 
         for assignment in assignments:
@@ -209,7 +210,8 @@ def export_accounts() -> "Response":
     if accounts:
         account_ids = [account.id for account in accounts]
         assignments = AccountClassificationAssignment.query.filter(
-            AccountClassificationAssignment.account_id.in_(account_ids)
+            AccountClassificationAssignment.account_id.in_(account_ids),
+            AccountClassificationAssignment.is_active == True
         ).all()
 
         for assignment in assignments:

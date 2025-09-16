@@ -21,13 +21,7 @@ from app.utils.cache_manager import (
     cached,
 )
 from app.utils.structlog_config import log_error, log_info, log_warning
-from app.utils.timezone import (
-    CHINA_TZ,
-    china_to_utc,
-    get_china_date,
-    get_china_time,
-    get_china_today,
-)
+from app.utils.time_utils import time_utils, CHINA_TZ
 
 # 创建蓝图
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -154,48 +148,125 @@ def get_system_overview() -> dict:
         # 基础统计
         total_users = User.query.count()
         total_instances = Instance.query.count()
-        total_credentials = Credential.query.count()
-        total_tasks = Task.query.count()
-        total_logs = Log.query.count()
+        from app.models.unified_log import UnifiedLog, LogLevel
+        from app.models.current_account_sync_data import CurrentAccountSyncData
+        from app.models.account_classification import AccountClassificationAssignment, AccountClassification
+        from app import db
+        from sqlalchemy import text, func
+        
+        # 从APScheduler获取任务统计
+        try:
+            result = db.session.execute(text('SELECT COUNT(*) FROM apscheduler_jobs'))
+            total_tasks = result.scalar() or 0
+            result = db.session.execute(text('SELECT COUNT(*) FROM apscheduler_jobs WHERE next_run_time IS NOT NULL'))
+            active_tasks = result.scalar() or 0
+        except Exception:
+            total_tasks = 0
+            active_tasks = 0
+        
+        total_logs = UnifiedLog.query.count()
+        total_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
+        
+        # 分类账户统计（去重）
+        from sqlalchemy import distinct
+        total_classified_accounts = AccountClassificationAssignment.query.filter_by(is_active=True).with_entities(
+            distinct(AccountClassificationAssignment.account_id)
+        ).count()
+        
+        # 获取所有活跃分类（按优先级排序）
+        all_classifications = AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
+        
+        # 按分类统计（去重后，包含数量为0的分类）
+        classification_stats = []
+        for classification in all_classifications:
+            count = AccountClassificationAssignment.query.filter_by(
+                classification_id=classification.id,
+                is_active=True
+            ).with_entities(
+                distinct(AccountClassificationAssignment.account_id)
+            ).count()
+            classification_stats.append((
+                classification.name,
+                classification.color,
+                classification.priority,
+                count
+            ))
+        
+        # 计算自动分类的账户数（去重）
+        auto_classified_accounts = AccountClassificationAssignment.query.filter_by(
+            is_active=True, 
+            assignment_type='auto'
+        ).with_entities(
+            distinct(AccountClassificationAssignment.account_id)
+        ).count()
 
         # 活跃实例数
         active_instances = Instance.query.filter_by(is_active=True).count()
-
-        # 活跃任务数
-        active_tasks = Task.query.filter_by(is_active=True).count()
+        
+        # 活跃账户数（非禁用账户）
+        # 需要检查type_specific中的is_locked字段
+        all_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).all()
+        active_accounts = 0
+        for account in all_accounts:
+            if account.type_specific and 'is_locked' in account.type_specific:
+                if account.type_specific['is_locked'] == False:
+                    active_accounts += 1
+            else:
+                # 如果没有锁定信息，认为是活跃的
+                active_accounts += 1
 
         # 今日日志数（东八区）
-        today = get_china_today().date()
-        today_logs = Log.query.filter(db.func.date(Log.created_at) == today).count()
+        china_today = time_utils.now_china().date()
+        today_start = time_utils.to_utc(datetime.combine(china_today, datetime.min.time()).replace(tzinfo=CHINA_TZ))
+        tomorrow_start = time_utils.to_utc(datetime.combine(china_today + timedelta(days=1), datetime.min.time()).replace(tzinfo=CHINA_TZ))
+        today_logs = UnifiedLog.query.filter(
+            UnifiedLog.timestamp >= today_start,
+            UnifiedLog.timestamp < tomorrow_start
+        ).count()
 
-        # 错误日志数
-        error_logs = Log.query.filter(Log.level.in_(["ERROR", "CRITICAL"])).count()
+        # 今日错误日志数
+        today_errors = UnifiedLog.query.filter(
+            UnifiedLog.timestamp >= today_start,
+            UnifiedLog.timestamp < tomorrow_start,
+            UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL])
+        ).count()
 
         # 最近同步数据（东八区） - 使用新的同步会话模型
         from app.models.sync_session import SyncSession
 
-        recent_syncs = SyncSession.query.filter(SyncSession.created_at >= get_china_today() - timedelta(days=7)).count()
+        china_today = time_utils.now_china().date()
+        week_ago = time_utils.to_utc(datetime.combine(china_today - timedelta(days=7), datetime.min.time()).replace(tzinfo=CHINA_TZ))
+        recent_syncs = SyncSession.query.filter(SyncSession.created_at >= week_ago).count()
 
         return {
             "users": {"total": total_users, "active": total_users},  # 简化处理
             "instances": {"total": total_instances, "active": active_instances},
-            "credentials": {
-                "total": total_credentials,
-                "active": total_credentials,  # 简化处理
+            "accounts": {"total": total_accounts, "active": active_accounts},
+            "classified_accounts": {
+                "total": total_classified_accounts,
+                "auto": auto_classified_accounts,
+                "classifications": [
+                    {
+                        "name": name,
+                        "color": color or "#6c757d",
+                        "priority": priority,
+                        "count": count
+                    }
+                    for name, color, priority, count in classification_stats
+                ]
             },
             "tasks": {"total": total_tasks, "active": active_tasks},
-            "logs": {"total": total_logs, "today": today_logs, "errors": error_logs},
-            "syncs": {"recent": recent_syncs},
+            "logs": {"total": total_logs, "today": today_logs, "errors": today_errors},
         }
     except Exception as e:
         log_error(f"获取系统概览失败: {e}", module="dashboard")
         return {
             "users": {"total": 0, "active": 0},
             "instances": {"total": 0, "active": 0},
-            "credentials": {"total": 0, "active": 0},
+            "accounts": {"total": 0, "active": 0},
+            "classified_accounts": {"total": 0, "auto": 0, "classifications": []},
             "tasks": {"total": 0, "active": 0},
             "logs": {"total": 0, "today": 0, "errors": 0},
-            "syncs": {"recent": 0},
         }
 
 
@@ -211,9 +282,6 @@ def get_chart_data(chart_type: str = "all") -> dict:
             # 日志级别分布
             charts["log_levels"] = get_log_level_distribution()
 
-        if chart_type in ["all", "instances"]:
-            # 实例类型分布
-            charts["instance_types"] = get_instance_type_distribution()
 
         if chart_type in ["all", "tasks"]:
             # 任务状态分布
@@ -232,8 +300,10 @@ def get_chart_data(chart_type: str = "all") -> dict:
 def get_log_trend_data() -> dict:
     """获取日志趋势数据（分别显示错误和告警日志）"""
     try:
+        from app.models.unified_log import UnifiedLog, LogLevel
+        
         # 最近7天的日志数据（东八区）
-        china_today = get_china_date()
+        china_today = time_utils.now_china().date()
         start_date = china_today - timedelta(days=6)
 
         trend_data = []
@@ -241,20 +311,20 @@ def get_log_trend_data() -> dict:
             date = start_date + timedelta(days=i)
 
             # 计算该日期的UTC时间范围（东八区转UTC）
-            start_utc = china_to_utc(datetime.combine(date, datetime.min.time()).replace(tzinfo=CHINA_TZ))
-            end_utc = china_to_utc(datetime.combine(date, datetime.max.time()).replace(tzinfo=CHINA_TZ))
+            start_utc = time_utils.to_utc(datetime.combine(date, datetime.min.time()).replace(tzinfo=CHINA_TZ))
+            end_utc = time_utils.to_utc(datetime.combine(date, datetime.max.time()).replace(tzinfo=CHINA_TZ))
 
             # 分别统计错误日志和告警日志
-            error_count = Log.query.filter(
-                Log.created_at >= start_utc,
-                Log.created_at <= end_utc,
-                Log.level.in_(["ERROR", "CRITICAL"]),
+            error_count = UnifiedLog.query.filter(
+                UnifiedLog.timestamp >= start_utc,
+                UnifiedLog.timestamp <= end_utc,
+                UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]),
             ).count()
 
-            warning_count = Log.query.filter(
-                Log.created_at >= start_utc,
-                Log.created_at <= end_utc,
-                Log.level == "WARNING",
+            warning_count = UnifiedLog.query.filter(
+                UnifiedLog.timestamp >= start_utc,
+                UnifiedLog.timestamp <= end_utc,
+                UnifiedLog.level == LogLevel.WARNING,
             ).count()
 
             trend_data.append(
@@ -274,32 +344,21 @@ def get_log_trend_data() -> dict:
 def get_log_level_distribution() -> dict:
     """获取日志级别分布（只显示错误和告警日志）"""
     try:
+        from app.models.unified_log import UnifiedLog, LogLevel
+        
         level_stats = (
-            db.session.query(Log.level, db.func.count(Log.id).label("count"))
-            .filter(Log.level.in_(["ERROR", "WARNING", "CRITICAL"]))
-            .group_by(Log.level)
+            db.session.query(UnifiedLog.level, db.func.count(UnifiedLog.id).label("count"))
+            .filter(UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.WARNING, LogLevel.CRITICAL]))
+            .group_by(UnifiedLog.level)
             .all()
         )
 
-        return [{"level": stat.level, "count": stat.count} for stat in level_stats]
+        return [{"level": stat.level.value, "count": stat.count} for stat in level_stats]
     except Exception as e:
         log_error(f"获取日志级别分布失败: {e}", module="dashboard")
         return []
 
 
-def get_instance_type_distribution() -> dict:
-    """获取实例类型分布"""
-    try:
-        type_stats = (
-            db.session.query(Instance.db_type, db.func.count(Instance.id).label("count"))
-            .group_by(Instance.db_type)
-            .all()
-        )
-
-        return [{"type": stat.db_type, "count": stat.count} for stat in type_stats]
-    except Exception as e:
-        log_error(f"获取实例类型分布失败: {e}", module="dashboard")
-        return []
 
 
 def get_task_status_distribution() -> dict:
@@ -319,7 +378,7 @@ def get_sync_trend_data() -> dict:
     """获取同步趋势数据"""
     try:
         # 最近7天的同步数据（东八区）
-        end_date = get_china_today().date()
+        end_date = time_utils.now_china().date()
         start_date = end_date - timedelta(days=6)
 
         trend_data = []

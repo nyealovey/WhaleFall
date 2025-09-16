@@ -72,6 +72,7 @@ def get_classifications() -> "Response":
                     "description": classification.description,
                     "risk_level": classification.risk_level,
                     "color": classification.color,
+                    "icon_name": classification.icon_name,
                     "priority": classification.priority,
                     "is_system": classification.is_system,
                     "rules_count": rules_count,
@@ -100,6 +101,7 @@ def create_classification() -> "Response":
             description=data.get("description", ""),
             risk_level=data.get("risk_level", "medium"),
             color=data.get("color", "#6c757d"),
+            icon_name=data.get("icon_name", "fa-tag"),
             priority=data.get("priority", 0),
             is_system=False,
         )
@@ -116,6 +118,7 @@ def create_classification() -> "Response":
                     "description": classification.description,
                     "risk_level": classification.risk_level,
                     "color": classification.color,
+                    "icon_name": classification.icon_name,
                     "priority": classification.priority,
                     "is_system": classification.is_system,
                 },
@@ -171,6 +174,7 @@ def update_classification(classification_id: int) -> "Response":
         classification.description = data.get("description", "")
         classification.risk_level = data.get("risk_level", "medium")
         classification.color = data.get("color", "#6c757d")
+        classification.icon_name = data.get("icon_name", "fa-tag")
         classification.priority = data.get("priority", 0)
 
         db.session.commit()

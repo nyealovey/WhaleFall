@@ -19,6 +19,7 @@ class AccountClassification(db.Model):
     description = db.Column(db.Text, nullable=True)  # 分类描述
     risk_level = db.Column(db.String(20), nullable=False, default="medium")  # low, medium, high, critical
     color = db.Column(db.String(20), nullable=True)  # 显示颜色
+    icon_name = db.Column(db.String(50), nullable=True, default="fa-tag")  # 图标名称
     priority = db.Column(db.Integer, default=0)  # 优先级，数字越大优先级越高
     is_system = db.Column(db.Boolean, default=False, nullable=False)  # 是否为系统分类
     is_active = db.Column(db.Boolean, default=True, nullable=False)
@@ -50,6 +51,7 @@ class AccountClassification(db.Model):
             "description": self.description,
             "risk_level": self.risk_level,
             "color": self.color,
+            "icon_name": self.icon_name,
             "priority": self.priority,
             "is_system": self.is_system,
             "is_active": self.is_active,

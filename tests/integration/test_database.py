@@ -50,7 +50,7 @@ def test_redis_connection():
     try:
         import redis
 
-        r = redis.Redis(host="localhost", port=6379, db=0)
+        r = redis.Redis(host="localhost", port=6379, db=0, password="Taifish2024!", decode_responses=True)
         r.ping()
         print("✅ Redis连接成功")
         return True

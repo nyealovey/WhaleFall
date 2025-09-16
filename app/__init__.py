@@ -7,6 +7,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 from typing import Union
+from datetime import datetime
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify
@@ -287,7 +288,7 @@ def initialize_extensions(app: Flask) -> None:
 
     # 用户加载器
     @login_manager.user_loader
-    def load_user(user_id: str) -> "User | None":
+    def load_user(user_id: str):
         from app.models.user import User
 
         return User.query.get(int(user_id))
@@ -310,11 +311,11 @@ def initialize_extensions(app: Flask) -> None:
     csrf.init_app(app)
 
     # 初始化Redis (用于缓存和速率限制)
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    redis_url = app.config.get("CACHE_REDIS_URL", "redis://localhost:6379/0")
     try:
         import redis
 
-        redis_client = redis.from_url(redis_url)
+        redis_client = redis.from_url(redis_url, decode_responses=True)
 
         # 初始化速率限制器
         from app.utils.rate_limiter import init_rate_limiter
@@ -447,22 +448,22 @@ def configure_template_filters(app: Flask) -> None:
     from app.utils.time_utils import time_utils
 
     @app.template_filter("china_time")
-    def china_time_filter(dt: Union[str, "datetime"], format_str: str = "%H:%M:%S") -> str:
+    def china_time_filter(dt: Union[str, datetime], format_str: str = "%H:%M:%S") -> str:
         """东八区时间格式化过滤器"""
         return time_utils.format_china_time(dt, format_str)
 
     @app.template_filter("china_date")
-    def china_date_filter(dt: Union[str, "datetime"]) -> str:
+    def china_date_filter(dt: Union[str, datetime]) -> str:
         """东八区日期格式化过滤器"""
         return time_utils.format_china_time(dt, "%Y-%m-%d")
 
     @app.template_filter("china_datetime")
-    def china_datetime_filter(dt: Union[str, "datetime"]) -> str:
+    def china_datetime_filter(dt: Union[str, datetime]) -> str:
         """东八区日期时间格式化过滤器"""
         return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
 
     @app.template_filter("relative_time")
-    def relative_time_filter(dt: Union[str, "datetime"]) -> str:
+    def relative_time_filter(dt: Union[str, datetime]) -> str:
         """相对时间过滤器"""
         return time_utils.get_relative_time(dt)
 

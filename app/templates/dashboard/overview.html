@@ -49,21 +49,6 @@
 <!-- 系统概览卡片 -->
 <div class="row mb-4">
     <div class="col-md-2">
-        <div class="card stat-card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ overview.users.total if overview and overview.users else 0 }}</h4>
-                        <p class="card-text">用户总数</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-users fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2">
         <div class="card stat-card bg-success text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
@@ -80,16 +65,64 @@
         </div>
     </div>
     <div class="col-md-2">
-        <div class="card stat-card bg-info text-white">
+        <div class="card stat-card bg-secondary text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h4 class="card-title">{{ overview.credentials.total if overview and overview.credentials else 0 }}</h4>
-                        <p class="card-text">凭据总数</p>
+                        <h4 class="card-title">{{ overview.accounts.total if overview and overview.accounts else 0 }}</h4>
+                        <p class="card-text">账户总数</p>
+                        <small>{{ overview.accounts.active if overview and overview.accounts else 0 }} 活跃</small>
                     </div>
                     <div class="align-self-center">
-                        <i class="fas fa-key fa-2x"></i>
+                        <i class="fas fa-user-circle fa-2x"></i>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card h-100" style="background-color: #f8f9fa; border: 1px solid #dee2e6;">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between mb-3">
+                    <div>
+                        <h4 class="card-title text-dark">{{ overview.classified_accounts.total if overview and overview.classified_accounts else 0 }}</h4>
+                        <p class="card-text text-dark">分类账户</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-tags fa-2x text-muted"></i>
+                    </div>
+                </div>
+                
+                <!-- 分类图标 - 所有分类显示在同一行 -->
+                <div class="classification-list d-flex justify-content-between align-items-center">
+                    {% if overview and overview.classified_accounts and overview.classified_accounts.classifications %}
+                        {% for classification in overview.classified_accounts.classifications %}
+                        <div class="d-flex align-items-center">
+                            <div class="me-1">
+                                {% if classification.name == '特权账户' %}
+                                    <i class="fas fa-crown" style="color: {{ classification.color or '#ffc107' }};" title="特权账户"></i>
+                                {% elif classification.name == '风险账户' %}
+                                    <i class="fas fa-exclamation-triangle" style="color: {{ classification.color or '#dc3545' }};" title="风险账户"></i>
+                                {% elif classification.name == '敏感账户' %}
+                                    <i class="fas fa-shield-alt" style="color: {{ classification.color or '#007bff' }};" title="敏感账户"></i>
+                                {% elif classification.name == '只读用户' %}
+                                    <i class="fas fa-eye" style="color: {{ classification.color or '#28a745' }};" title="只读用户"></i>
+                                {% elif classification.name == '普通账户' %}
+                                    <i class="fas fa-user" style="color: {{ classification.color or '#3c49fb' }};" title="普通账户"></i>
+                                {% else %}
+                                    <i class="fas fa-tag" style="color: {{ classification.color or '#6c757d' }};" title="{{ classification.name }}"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <span class="text-dark small">{{ classification.count }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center">
+                            <small class="text-muted">暂无分类数据</small>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -126,22 +159,6 @@
             </div>
         </div>
     </div>
-    <div class="col-md-2">
-        <div class="card stat-card bg-secondary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ overview.syncs.recent if overview and overview.syncs else 0 }}</h4>
-                        <p class="card-text">最近同步</p>
-                        <small>7天内</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-sync fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <div class="row">
@@ -161,19 +178,6 @@
             </div>
         </div>
         
-        <!-- 实例类型分布 -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-pie me-2"></i>数据库实例类型分布
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="instanceTypeChart"></canvas>
-                </div>
-            </div>
-        </div>
     </div>
     
     <!-- 侧边栏 -->
@@ -278,7 +282,6 @@
 <script>
 let autoRefreshInterval = null;
 let logTrendChart = null;
-let instanceTypeChart = null;
 
 // 页面加载完成后初始化图表
 document.addEventListener('DOMContentLoaded', function() {
@@ -289,8 +292,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function initCharts() {
     // 初始化日志趋势图
     initLogTrendChart();
-    // 初始化实例类型分布图
-    initInstanceTypeChart();
 }
 
 function initLogTrendChart() {
@@ -336,45 +337,6 @@ function initLogTrendChart() {
     });
 }
 
-function initInstanceTypeChart() {
-    const ctx = document.getElementById('instanceTypeChart').getContext('2d');
-    
-    // 获取实例类型分布数据
-    fetch('/dashboard/api/charts?type=instances')
-    .then(response => response.json())
-    .then(data => {
-        const instanceTypes = data.instance_types || [];
-        
-        instanceTypeChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: instanceTypes.map(item => item.type),
-                datasets: [{
-                    data: instanceTypes.map(item => item.count),
-                    backgroundColor: [
-                        '#FF6384',
-                        '#36A2EB',
-                        '#FFCE56',
-                        '#4BC0C0',
-                        '#9966FF'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    })
-    .catch(error => {
-        console.error('加载实例类型分布数据失败:', error);
-    });
-}
 
 function refreshDashboard() {
     // 刷新页面数据

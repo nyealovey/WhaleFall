@@ -470,7 +470,7 @@ class OptimizedAccountClassificationService:
             # 获取账户ID列表
             account_ids = [account.id for account in matched_accounts]
 
-            # 查询已存在的分类分配
+            # 查询已存在的分类分配（包括所有批次）
             existing_assignments = db.session.query(AccountClassificationAssignment.account_id).filter(
                 AccountClassificationAssignment.account_id.in_(account_ids),
                 AccountClassificationAssignment.classification_id == classification_id,
@@ -499,6 +499,14 @@ class OptimizedAccountClassificationService:
             if new_assignments:
                 db.session.bulk_insert_mappings(AccountClassificationAssignment, new_assignments)
                 db.session.commit()
+                
+                log_info(
+                    f"批量添加分类完成",
+                    module="account_classification",
+                    classification_id=classification_id,
+                    added_count=len(new_assignments),
+                    batch_id=self.batch_id,
+                )
 
             return len(new_assignments)
 
