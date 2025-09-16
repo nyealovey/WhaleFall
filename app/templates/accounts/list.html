@@ -231,7 +231,7 @@
                         <td>
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-user text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <strong style="font-size: 0.85rem;">{{ account.username }}@{{ account.instance.host or '%' }}</strong>
+                                <strong style="font-size: 0.85rem;">{{ account.username }}</strong>
                             </div>
                         </td>
                         <td>
@@ -369,11 +369,7 @@
                         <td>
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-user text-primary me-1" style="font-size: 0.8rem;"></i>
-                                {% if account.instance.db_type == 'sqlserver' or account.instance.db_type == 'oracle' or account.instance.db_type == 'postgresql' %}
                                 <strong style="font-size: 0.85rem;">{{ account.username }}</strong>
-                                {% else %}
-                                <strong style="font-size: 0.85rem;">{{ account.username }}@{{ account.instance.host or '%' }}</strong>
-                                {% endif %}
                             </div>
                         </td>
                         <td>

@@ -625,17 +625,31 @@ class AccountClassificationService:
                         current_classifications=list(current_classification_ids),
                     )
 
-                # 创建新的批次记录
+                # 创建新的批次记录（避免重复）
                 for classification_id in new_classification_ids:
-                    assignment = AccountClassificationAssignment(
+                    # 检查是否已存在相同的分配记录
+                    existing_assignment = AccountClassificationAssignment.query.filter_by(
                         account_id=account.id,
-                        classification_id=classification_id,
-                        assigned_by=None,  # 自动分类
-                        assignment_type="auto",
-                        notes=None,
-                        batch_id=batch_id,
-                    )
-                    db.session.add(assignment)
+                        classification_id=classification_id
+                    ).first()
+                    
+                    if not existing_assignment:
+                        assignment = AccountClassificationAssignment(
+                            account_id=account.id,
+                            classification_id=classification_id,
+                            assigned_by=None,  # 自动分类
+                            assignment_type="auto",
+                            notes=None,
+                            batch_id=batch_id,
+                        )
+                        db.session.add(assignment)
+                    else:
+                        # 如果记录已存在但非活跃，重新激活它
+                        if not existing_assignment.is_active:
+                            existing_assignment.is_active = True
+                            existing_assignment.assignment_type = "auto"
+                            existing_assignment.batch_id = batch_id
+                            existing_assignment.updated_at = time_utils.now()
 
             except Exception as e:
                 failed_count += 1

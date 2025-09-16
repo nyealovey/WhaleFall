@@ -543,7 +543,7 @@ class SyncDataManager:
                                 "account_type": login_type,
                                 "login_type": type,  # 添加原始type字段用于区分登录类型
                                 # 只有SQL登录(S)才存储密码相关信息
-                                **({"password_last_set_time": password_last_set_time.isoformat() if password_last_set_time else None,
+                                **({"password_last_set_time": password_last_set_time.isoformat() if password_last_set_time and hasattr(password_last_set_time, 'isoformat') else None,
                                    "is_expiration_checked": bool(is_expiration_checked) if is_expiration_checked is not None else None} if type == 'S' else {})
                             }
                         },
@@ -676,13 +676,13 @@ class SyncDataManager:
             # 构建WHERE子句
             where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
             
+            # Oracle用户信息查询 - 不采集密码相关字段
             sql = f"""
                 SELECT
                     username,
                     account_status,
                     created,
-                    expiry_date,
-                    password_date
+                    expiry_date
                 FROM dba_users
                 WHERE {where_clause}
             """
@@ -692,7 +692,7 @@ class SyncDataManager:
 
             accounts = []
             for row in users:
-                username, account_status, created, expiry_date, password_date = row
+                username, account_status, created, expiry_date = row
                 
                 # 获取用户权限信息
                 permissions = self._get_oracle_user_permissions(conn, username)
@@ -707,7 +707,6 @@ class SyncDataManager:
                 permissions["type_specific"]["account_status"] = account_status
                 permissions["type_specific"]["created"] = created.isoformat() if created else None
                 permissions["type_specific"]["expiry_date"] = expiry_date.isoformat() if expiry_date else None
-                permissions["type_specific"]["password_date"] = password_date.isoformat() if password_date else None
 
                 accounts.append(
                     {
@@ -1017,6 +1016,14 @@ class SyncDataManager:
         account = cls.get_account_latest("sqlserver", instance_id, username, include_deleted=True)
 
         if account:
+            # 重置删除状态
+            if account.is_deleted:
+                account.is_deleted = False
+                account.last_change_type = "restore"
+                account.last_change_time = time_utils.now()
+                account.last_sync_time = time_utils.now()
+                db.session.commit()
+            
             # 检查权限变更
             changes = cls._detect_sqlserver_changes(account, permissions_data)
             if changes:
@@ -1054,6 +1061,14 @@ class SyncDataManager:
         account = cls.get_account_latest("oracle", instance_id, username, include_deleted=True)
 
         if account:
+            # 重置删除状态
+            if account.is_deleted:
+                account.is_deleted = False
+                account.last_change_type = "restore"
+                account.last_change_time = time_utils.now()
+                account.last_sync_time = time_utils.now()
+                db.session.commit()
+            
             # 检查权限变更
             changes = cls._detect_oracle_changes(account, permissions_data)
             if changes:
@@ -1339,6 +1354,8 @@ class SyncDataManager:
         account.database_permissions = permissions_data.get("database_permissions", {})
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
+        account.is_deleted = False  # 重置删除状态
+        account.deleted_time = None  # 清除删除时间
         account.last_change_type = "modify_privilege"
         account.last_change_time = time_utils.now()
         account.last_sync_time = time_utils.now()
@@ -1352,6 +1369,8 @@ class SyncDataManager:
         account.tablespace_privileges_oracle = permissions_data.get("tablespace_privileges", [])
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
+        account.is_deleted = False  # 重置删除状态
+        account.deleted_time = None  # 清除删除时间
         account.last_change_type = "modify_privilege"
         account.last_change_time = time_utils.now()
         account.last_sync_time = time_utils.now()
