@@ -217,8 +217,16 @@ class DatabaseService:
             version_info = self.get_database_version(instance, conn)
             if version_info and version_info != instance.database_version:
                 from app import db
+                from app.utils.version_parser import DatabaseVersionParser
 
-                instance.database_version = version_info
+                # 解析版本信息
+                parsed = DatabaseVersionParser.parse_version(instance.db_type.lower(), version_info)
+                
+                # 更新实例的版本信息
+                instance.database_version = parsed['original']
+                instance.main_version = parsed['main_version']
+                instance.detailed_version = parsed['detailed_version']
+                
                 db.session.commit()
 
             # 使用SyncDataManager进行同步

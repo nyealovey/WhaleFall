@@ -68,6 +68,19 @@ class AccountSyncService:
                 )
                 return {"success": False, "error": error_msg}
 
+            # 获取数据库版本信息
+            version_info = self._get_database_version(instance, conn)
+            if version_info and version_info != instance.database_version:
+                from app import db
+                instance.database_version = version_info
+                db.session.commit()
+                self.sync_logger.info(
+                    f"更新数据库版本: {version_info}",
+                    module="account_sync",
+                    instance_name=instance.name,
+                    db_type=instance.db_type,
+                )
+
             # 使用SyncDataManager进行同步
             if not session_id:
                 import uuid
@@ -198,6 +211,31 @@ class AccountSyncService:
                 error=str(e),
             )
             return None
+
+    def _get_database_version(self, instance: Instance, conn: Any) -> str | None:
+        """
+        获取数据库版本信息
+
+        Args:
+            instance: 数据库实例
+            conn: 数据库连接
+
+        Returns:
+            版本信息字符串
+        """
+        try:
+            if hasattr(conn, "get_version"):
+                return conn.get_version()
+            return "未知版本"
+        except Exception as e:
+            self.sync_logger.error(
+                "获取数据库版本失败",
+                module="account_sync",
+                instance_name=instance.name,
+                db_type=instance.db_type,
+                error=str(e),
+            )
+            return "版本获取失败"
 
     def _get_account_snapshot(self, instance: Instance) -> dict[str, Any]:
         """
