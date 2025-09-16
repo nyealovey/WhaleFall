@@ -184,9 +184,35 @@ def sync_records() -> str | Response:
     for record in manual_records:
         record.is_aggregated = False
 
-    # 处理task记录，直接显示原始值（已经是聚合记录）
+    # 处理task记录，需要计算聚合数据
     for record in task_records:
         record.is_aggregated = False
+        
+        # 计算聚合的同步数量
+        total_accounts = 0
+        added_count = 0
+        removed_count = 0
+        modified_count = 0
+        
+        # 从关联的实例记录中获取详细统计
+        instance_records = record.instance_records.all()
+        for instance_record in instance_records:
+            total_accounts += instance_record.accounts_synced or 0
+            added_count += instance_record.accounts_created or 0
+            removed_count += instance_record.accounts_deleted or 0
+            modified_count += instance_record.accounts_updated or 0
+        
+        # 设置聚合数据
+        record.synced_count = total_accounts
+        record.added_count = added_count
+        record.removed_count = removed_count
+        record.modified_count = modified_count
+        
+        # 设置消息
+        if total_accounts > 0:
+            record.message = f"成功同步 {total_accounts} 个账户"
+        else:
+            record.message = "-"
 
     # 合并聚合记录、手动记录和task记录
     all_display_records = aggregated_records + manual_records + task_records
