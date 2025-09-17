@@ -103,8 +103,8 @@ class AccountSyncService:
         用于实例页面的直接同步调用
         """
         try:
-            # 获取数据库连接
-            conn = self.database_service.get_connection(instance)
+            # 获取数据库连接（强制创建新连接以确保数据库上下文正确）
+            conn = self.database_service.get_connection(instance, force_new=True)
             if not conn:
                 return {"success": False, "error": "无法获取数据库连接"}
 
@@ -225,8 +225,8 @@ class AccountSyncService:
         使用现有会话ID进行同步
         """
         try:
-            # 获取数据库连接
-            conn = self.database_service.get_connection(instance)
+            # 获取数据库连接（强制创建新连接以确保数据库上下文正确）
+            conn = self.database_service.get_connection(instance, force_new=True)
             if not conn:
                 return {"success": False, "error": "无法获取数据库连接"}
 
