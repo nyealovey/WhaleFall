@@ -63,6 +63,72 @@ class CurrentAccountSyncData(BaseSyncData):
     def __repr__(self) -> str:
         return f"<CurrentAccountSyncData {self.username}@{self.db_type}>"
 
+    @property
+    def is_active(self) -> bool:
+        """判断账户是否激活（根据数据库类型）"""
+        if self.is_deleted:
+            return False
+            
+        if self.db_type == "postgresql":
+            # PostgreSQL: 检查can_login属性
+            role_attributes = self.role_attributes or {}
+            can_login = role_attributes.get("can_login")
+            return can_login is True
+            
+        elif self.db_type == "mysql":
+            # MySQL: 检查is_locked属性
+            type_specific = self.type_specific or {}
+            is_locked = type_specific.get("is_locked")
+            return is_locked is not True
+            
+        elif self.db_type == "sqlserver":
+            # SQL Server: 检查is_disabled属性
+            type_specific = self.type_specific or {}
+            is_disabled = type_specific.get("is_disabled")
+            return is_disabled is not True
+            
+        elif self.db_type == "oracle":
+            # Oracle: 检查account_status
+            type_specific = self.type_specific or {}
+            account_status = type_specific.get("account_status", "")
+            return account_status.upper() == "OPEN"
+            
+        # 默认返回True（未知数据库类型）
+        return True
+
+    @property
+    def is_locked(self) -> bool:
+        """判断账户是否被锁定（根据数据库类型）"""
+        if self.is_deleted:
+            return True
+            
+        if self.db_type == "postgresql":
+            # PostgreSQL: 检查can_login属性
+            role_attributes = self.role_attributes or {}
+            can_login = role_attributes.get("can_login")
+            return can_login is False
+            
+        elif self.db_type == "mysql":
+            # MySQL: 检查is_locked属性
+            type_specific = self.type_specific or {}
+            is_locked = type_specific.get("is_locked")
+            return is_locked is True
+            
+        elif self.db_type == "sqlserver":
+            # SQL Server: 检查is_disabled属性
+            type_specific = self.type_specific or {}
+            is_disabled = type_specific.get("is_disabled")
+            return is_disabled is True
+            
+        elif self.db_type == "oracle":
+            # Oracle: 检查account_status
+            type_specific = self.type_specific or {}
+            account_status = type_specific.get("account_status", "")
+            return account_status.upper() in ["LOCKED", "EXPIRED", "EXPIRED(GRACE)"]
+            
+        # 默认返回False（未知数据库类型）
+        return False
+
     def to_dict(self) -> dict:
         """转换为字典"""
         base_dict = super().to_dict()
