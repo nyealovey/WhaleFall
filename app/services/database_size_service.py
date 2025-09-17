@@ -226,7 +226,7 @@ class DatabaseSizeService:
                 SELECT
                     SUM(size * 8.0 / 1024) AS size_mb
                 FROM sys.master_files
-                WHERE database_id = DB_ID(?)
+                WHERE database_id = DB_ID(%s)
             """,
                 (instance.database_name or "master",),
             )

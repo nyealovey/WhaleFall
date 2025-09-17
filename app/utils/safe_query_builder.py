@@ -86,8 +86,8 @@ class SafeQueryBuilder:
                 placeholders.append(f":{param_name}")
             return ", ".join(placeholders)
         elif self.db_type == "sqlserver":
-            # SQL Server使用?占位符
-            return ", ".join(["?"] * count)
+            # SQL Server使用%s占位符
+            return ", ".join(["%s"] * count)
         else:
             # MySQL, PostgreSQL使用%s
             return ", ".join(["%s"] * count)
