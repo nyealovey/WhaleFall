@@ -620,16 +620,16 @@ function displayPermissionsConfig(permissions, prefix = '', dbType = '') {
                 <h6 class="text-primary mb-3 mt-3"><i class="fas fa-user-shield me-2"></i>角色属性</h6>
                 <div class="permission-section">
                     ${permissions.role_attributes ? permissions.role_attributes.map(attr => {
-                        // 角色属性显示名称映射
+                        // 角色属性显示名称映射（英文字段名 + 中文说明）
                         const roleAttributeDisplayNames = {
-                            'can_super': '超级用户属性',
-                            'can_create_db': '创建数据库属性',
-                            'can_create_role': '创建角色属性',
-                            'can_inherit': '继承权限属性',
-                            'can_login': '登录属性',
-                            'can_replicate': '复制属性',
-                            'can_bypass_rls': '绕过行级安全属性',
-                            'connection_limit': '连接限制属性'
+                            'can_super': 'can_super - 超级用户属性（rolsuper）',
+                            'can_create_db': 'can_create_db - 创建数据库属性（rolcreatedb）',
+                            'can_create_role': 'can_create_role - 创建角色属性（rolcreaterole）',
+                            'can_inherit': 'can_inherit - 继承权限属性（rolinherit）',
+                            'can_login': 'can_login - 登录属性（rolcanlogin）',
+                            'can_replicate': 'can_replicate - 复制属性（rolreplication）',
+                            'can_bypass_rls': 'can_bypass_rls - 绕过行级安全属性（rolbypassrls）',
+                            'connection_limit': 'connection_limit - 连接限制属性（rolconnlimit）'
                         };
                         const displayName = roleAttributeDisplayNames[attr.name] || attr.name;
                         return `
@@ -1530,16 +1530,16 @@ function displayViewPermissions(ruleExpression, dbType) {
             `;
         }
         if (ruleExpression.role_attributes && ruleExpression.role_attributes.length > 0) {
-            // 角色属性显示名称映射
+            // 角色属性显示名称映射（英文字段名 + 中文说明）
             const roleAttributeDisplayNames = {
-                'can_super': '超级用户属性',
-                'can_create_db': '创建数据库属性',
-                'can_create_role': '创建角色属性',
-                'can_inherit': '继承权限属性',
-                'can_login': '登录属性',
-                'can_replicate': '复制属性',
-                'can_bypass_rls': '绕过行级安全属性',
-                'connection_limit': '连接限制属性'
+                'can_super': 'can_super - 超级用户属性（rolsuper）',
+                'can_create_db': 'can_create_db - 创建数据库属性（rolcreatedb）',
+                'can_create_role': 'can_create_role - 创建角色属性（rolcreaterole）',
+                'can_inherit': 'can_inherit - 继承权限属性（rolinherit）',
+                'can_login': 'can_login - 登录属性（rolcanlogin）',
+                'can_replicate': 'can_replicate - 复制属性（rolreplication）',
+                'can_bypass_rls': 'can_bypass_rls - 绕过行级安全属性（rolbypassrls）',
+                'connection_limit': 'connection_limit - 连接限制属性（rolconnlimit）'
             };
             
             html += `
