@@ -343,6 +343,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.account_sync import account_sync_bp
     from app.routes.admin import admin_bp
     from app.routes.auth import auth_bp
+    from app.routes.cache_management import cache_bp
     from app.routes.credentials import credentials_bp
     from app.routes.dashboard import dashboard_bp
     from app.routes.database_types import database_types_bp
@@ -364,6 +365,9 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(account_list_bp, url_prefix="/account-list")
     app.register_blueprint(account_sync_bp, url_prefix="/account-sync")
     app.register_blueprint(account_static_bp, url_prefix="/account-static")
+    
+    # 缓存管理蓝图
+    app.register_blueprint(cache_bp, url_prefix="/cache")
 
     # 保留旧的accounts_bp，等测试通过后删除
     # app.register_blueprint(accounts_bp, url_prefix="/accounts")
