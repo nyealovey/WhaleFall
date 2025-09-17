@@ -42,7 +42,7 @@ class DatabaseContextManager:
             yield connection
 
         except Exception as e:
-            logger.error(f"数据库连接上下文管理器错误: {e}")
+            logger.error(f"数据库连接上下文管理器错误: {str(e)}")
             yield None
         finally:
             if connection:
@@ -53,7 +53,8 @@ class DatabaseContextManager:
                         connection.close()
                     logger.debug(f"关闭数据库连接: {instance.name}")
                 except Exception as e:
-                    logger.warning(f"关闭数据库连接失败: {e}")
+                    error_str = str(e) if e else "未知错误"
+                    logger.warning(f"关闭数据库连接失败: {error_str}")
 
     @contextmanager
     def execute_query(self, instance: Instance, query: str, params: tuple = None) -> Generator[dict]:
@@ -72,7 +73,7 @@ class DatabaseContextManager:
             result = self.db_service.execute_query(instance, query, params)
             yield result
         except Exception as e:
-            logger.error(f"执行查询失败: {e}")
+            logger.error(f"执行查询失败: {str(e)}")
             yield {"success": False, "error": str(e)}
 
     @contextmanager
@@ -118,7 +119,7 @@ class DatabaseContextManager:
                 except Exception as rollback_error:
                     logger.error(f"回滚事务失败: {rollback_error}")
 
-            logger.error(f"数据库事务错误: {e}")
+            logger.error(f"数据库事务错误: {str(e)}")
             yield None
         finally:
             if connection:
@@ -131,7 +132,7 @@ class DatabaseContextManager:
                     elif hasattr(connection, "close"):
                         connection.close()
                 except Exception as e:
-                    logger.warning(f"清理数据库连接失败: {e}")
+                    logger.warning(f"清理数据库连接失败: {str(e)}")
 
 
 # 全局数据库上下文管理器

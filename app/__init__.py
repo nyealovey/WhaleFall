@@ -322,7 +322,7 @@ def initialize_extensions(app: Flask) -> None:
         redis_client.ping()
         app.logger.info("Redis连接成功")
     except Exception as e:
-        app.logger.warning(f"Redis不可用: {e}")
+        app.logger.warning(f"Redis不可用: {str(e)}")
         redis_client = None
 
     # 将redis_client添加到应用上下文
@@ -482,6 +482,7 @@ app = create_app()
 
 # 导入模型（确保模型被注册）
 from app.models import (  # noqa: F401; account,  # 已废弃，使用CurrentAccountSyncData
+    classification_batch,
     credential,
     database_type_config,
     instance,

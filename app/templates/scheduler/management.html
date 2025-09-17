@@ -118,6 +118,29 @@
                         <input type="text" class="form-control" id="editJobFunc" readonly>
                     </div>
 
+                    <!-- 清理范围说明 - 仅对清理旧日志任务显示 -->
+                    <div id="cleanupScopeInfo" class="mb-3" style="display: none;">
+                        <label class="form-label">清理范围说明</label>
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle me-2"></i>此任务将清理以下数据：
+                            </h6>
+                            <ul class="mb-0">
+                                <li><strong>统一日志表 (unified_logs)</strong>：保留最近30天</li>
+                                <li><strong>同步会话表 (sync_sessions)</strong>：保留最近30天</li>
+                                <li><strong>同步记录表 (sync_instance_records)</strong>：保留最近30天</li>
+                                <li><strong>系统临时文件</strong>：清理 userdata/logs/ 和 userdata/exports/ 目录</li>
+                            </ul>
+                            <hr>
+                            <p class="mb-0">
+                                <i class="fas fa-shield-alt me-1"></i>
+                                <strong>注意：</strong>以下表将<strong>永久保留</strong>，不进行清理，用于审计追踪：
+                                <br>• 账户变更日志表 (account_change_log)
+                                <br>• 账户同步数据表 (current_account_sync_data)
+                            </p>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">触发器类型</label>
                         <div class="form-check">
@@ -663,6 +686,13 @@ function editTrigger(jobId) {
                 $('#editJobId').val(job.id);
                 $('#editJobName').val(job.name);
                 $('#editJobFunc').val(job.func);
+
+                // 显示清理范围说明（仅对清理旧日志任务）
+                if (job.id === 'cleanup_logs') {
+                    $('#cleanupScopeInfo').show();
+                } else {
+                    $('#cleanupScopeInfo').hide();
+                }
 
                 // 解析触发器类型
                 let triggerType = 'interval';

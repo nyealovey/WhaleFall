@@ -57,7 +57,8 @@ class TaskScheduler:
 
     def _job_error(self, event):
         """任务执行错误事件"""
-        logger.error(f"任务执行失败: {event.job_id} - {event.exception}")
+        exception_str = str(event.exception) if event.exception else "未知错误"
+        logger.error(f"任务执行失败: {event.job_id} - {exception_str}")
 
     def start(self):
         """启动调度器"""
@@ -83,7 +84,8 @@ class TaskScheduler:
             self.scheduler.remove_job(job_id)
             logger.info(f"任务已删除: {job_id}")
         except Exception as e:
-            logger.error(f"删除任务失败: {job_id} - {e}")
+            error_str = str(e) if e else "未知错误"
+            logger.error(f"删除任务失败: {job_id} - {error_str}")
 
     def get_jobs(self):
         """获取所有任务"""

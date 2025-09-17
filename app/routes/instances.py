@@ -142,8 +142,8 @@ def index() -> str:
     if environment:
         query = query.filter(Instance.environment == environment)
 
-    # 分页查询
-    instances = query.paginate(page=page, per_page=per_page, error_out=False)
+    # 分页查询，按ID排序
+    instances = query.order_by(Instance.id).paginate(page=page, per_page=per_page, error_out=False)
 
     # 获取所有可用的凭据
     credentials = Credential.query.filter_by(is_active=True).all()
@@ -1325,7 +1325,7 @@ def sync_accounts(instance_id: int) -> str | Response | tuple[Response, int]:
 @view_required
 def api_list() -> Response:
     """获取实例列表API"""
-    instances = Instance.query.filter_by(is_active=True).all()
+    instances = Instance.query.filter_by(is_active=True).order_by(Instance.id).all()
     return jsonify([instance.to_dict() for instance in instances])
 
 

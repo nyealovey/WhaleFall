@@ -69,6 +69,9 @@ def get_jobs() -> Response:
             }
             jobs_data.append(job_info)
 
+        # 按ID排序任务列表
+        jobs_data.sort(key=lambda x: x["id"])
+
         return APIResponse.success(data=jobs_data, message="任务列表获取成功")  # type: ignore
 
     except Exception as e:
@@ -102,8 +105,9 @@ def get_job(job_id: str) -> Response:
         return APIResponse.success(data=job_info, message="任务详情获取成功")  # type: ignore
 
     except Exception as e:
-        system_logger.error(f"获取任务详情失败: {e}")
-        return APIResponse.error(f"获取任务详情失败: {str(e)}")  # type: ignore
+        error_str = str(e) if e else "未知错误"
+        system_logger.error(f"获取任务详情失败: {error_str}")
+        return APIResponse.error(f"获取任务详情失败: {error_str}")  # type: ignore
 
 
 @scheduler_bp.route("/api/jobs", methods=["POST"])
@@ -161,8 +165,9 @@ def create_job() -> Response:
         return APIResponse.success(data={"job_id": job.id}, message="任务创建成功")  # type: ignore
 
     except Exception as e:
-        system_logger.error(f"创建任务失败: {e}")
-        return APIResponse.error(f"创建任务失败: {str(e)}")  # type: ignore
+        error_str = str(e) if e else "未知错误"
+        system_logger.error(f"创建任务失败: {error_str}")
+        return APIResponse.error(f"创建任务失败: {error_str}")  # type: ignore
 
 
 @scheduler_bp.route("/api/jobs/<job_id>", methods=["PUT"])
@@ -226,8 +231,9 @@ def update_job(job_id: str) -> Response:
         return APIResponse.success("任务更新成功")  # type: ignore
 
     except Exception as e:
-        system_logger.error(f"更新任务失败: {e}")
-        return APIResponse.error(f"更新任务失败: {str(e)}")  # type: ignore
+        error_str = str(e) if e else "未知错误"
+        system_logger.error(f"更新任务失败: {error_str}")
+        return APIResponse.error(f"更新任务失败: {error_str}")  # type: ignore
 
 
 @scheduler_bp.route("/api/jobs/<job_id>", methods=["DELETE"])
@@ -250,8 +256,9 @@ def delete_job(job_id: str) -> Response:
         return APIResponse.success("任务删除成功")  # type: ignore
 
     except Exception as e:
-        system_logger.error(f"删除任务失败: {e}")
-        return APIResponse.error(f"删除任务失败: {str(e)}")  # type: ignore
+        error_str = str(e) if e else "未知错误"
+        system_logger.error(f"删除任务失败: {error_str}")
+        return APIResponse.error(f"删除任务失败: {error_str}")  # type: ignore
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/disable", methods=["POST"])
@@ -274,8 +281,9 @@ def disable_job(job_id: str) -> Response:
         return APIResponse.success(data={"job_id": job_id}, message="任务已禁用")  # type: ignore
 
     except Exception as e:
-        system_logger.error(f"禁用任务失败: {e}")
-        return APIResponse.error(f"禁用任务失败: {str(e)}")  # type: ignore
+        error_str = str(e) if e else "未知错误"
+        system_logger.error(f"禁用任务失败: {error_str}")
+        return APIResponse.error(f"禁用任务失败: {error_str}")  # type: ignore
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/enable", methods=["POST"])
@@ -298,8 +306,9 @@ def enable_job(job_id: str) -> Response:
         return APIResponse.success(data={"job_id": job_id}, message="任务已启用")  # type: ignore
 
     except Exception as e:
-        system_logger.error(f"启用任务失败: {e}")
-        return APIResponse.error(f"启用任务失败: {str(e)}")  # type: ignore
+        error_str = str(e) if e else "未知错误"
+        system_logger.error(f"启用任务失败: {error_str}")
+        return APIResponse.error(f"启用任务失败: {error_str}")  # type: ignore
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
@@ -313,8 +322,9 @@ def pause_job(job_id: str) -> Response:
         return APIResponse.success("任务暂停成功")  # type: ignore
 
     except Exception as e:
-        system_logger.error(f"暂停任务失败: {e}")
-        return APIResponse.error(f"暂停任务失败: {str(e)}")  # type: ignore
+        error_str = str(e) if e else "未知错误"
+        system_logger.error(f"暂停任务失败: {error_str}")
+        return APIResponse.error(f"暂停任务失败: {error_str}")  # type: ignore
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/resume", methods=["POST"])
@@ -328,8 +338,9 @@ def resume_job(job_id: str) -> Response:
         return APIResponse.success("任务恢复成功")  # type: ignore
 
     except Exception as e:
-        system_logger.error(f"恢复任务失败: {e}")
-        return APIResponse.error(f"恢复任务失败: {str(e)}")  # type: ignore
+        error_str = str(e) if e else "未知错误"
+        system_logger.error(f"恢复任务失败: {error_str}")
+        return APIResponse.error(f"恢复任务失败: {error_str}")  # type: ignore
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/run", methods=["POST"])
@@ -368,12 +379,14 @@ def run_job(job_id: str) -> Response:
                 system_logger.info(f"任务立即执行成功: {job_id} - 结果: {result}")
                 return APIResponse.success(data={"result": str(result)}, message="任务执行成功")  # type: ignore
         except Exception as func_error:
-            system_logger.error(f"任务函数执行失败: {job_id} - {func_error}")
-            return APIResponse.error(f"任务执行失败: {str(func_error)}")  # type: ignore
+            error_str = str(func_error) if func_error else "未知错误"
+            system_logger.error(f"任务函数执行失败: {job_id} - {error_str}")
+            return APIResponse.error(f"任务执行失败: {error_str}")  # type: ignore
 
     except Exception as e:
-        system_logger.error(f"执行任务失败: {e}")
-        return APIResponse.error(f"执行任务失败: {str(e)}")  # type: ignore
+        error_str = str(e) if e else "未知错误"
+        system_logger.error(f"执行任务失败: {error_str}")
+        return APIResponse.error(f"执行任务失败: {error_str}")  # type: ignore
 
 
 def _get_task_function(func_name: str) -> Callable[..., Any] | None:
@@ -446,7 +459,8 @@ def task_wrapper():
         return getattr(module, "task_wrapper", None)
 
     except Exception as e:
-        system_logger.error(f"创建动态任务函数失败: {e}")
+        error_str = str(e) if e else "未知错误"
+        system_logger.error(f"创建动态任务函数失败: {error_str}")
         return None
 
 

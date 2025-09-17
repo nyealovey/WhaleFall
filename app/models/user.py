@@ -24,7 +24,7 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     # 关系
-    # logs关系在Log模型中定义
+    # logs关系在UnifiedLog模型中定义
 
     def __init__(self, username: str, password: str, role: str = "user") -> None:
         """

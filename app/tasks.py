@@ -10,6 +10,7 @@ from app.utils.timezone import now
 from app import create_app, db
 from app.models.account_change_log import AccountChangeLog
 from app.models.current_account_sync_data import CurrentAccountSyncData
+from app.models.unified_log import UnifiedLog
 from app.models.user import User
 from app.services.account_sync_service import account_sync_service
 from app.utils.structlog_config import get_sync_logger, get_task_logger
@@ -24,18 +25,21 @@ def cleanup_old_logs():
         try:
             # 删除30天前的日志
             cutoff_date = now() - timedelta(days=30)
-            deleted_logs = Log.query.filter(Log.created_at < cutoff_date).delete()
+            deleted_logs = UnifiedLog.query.filter(UnifiedLog.timestamp < cutoff_date).delete()
 
             # 清理临时文件
             cleaned_files = _cleanup_temp_files()
 
             # 清理旧的同步记录（保留最近30天） - 使用新的同步会话模型
             from app.models.sync_session import SyncSession
+            from app.models.sync_instance_record import SyncInstanceRecord
 
-            deleted_sync = SyncSession.query.filter(SyncSession.created_at < cutoff_date).delete()
-
-            # 清理旧的账户变更日志（保留最近30天）
-            deleted_change_logs = AccountChangeLog.query.filter(AccountChangeLog.created_at < cutoff_date).delete()
+            deleted_sync_sessions = SyncSession.query.filter(SyncSession.created_at < cutoff_date).delete()
+            deleted_sync_records = SyncInstanceRecord.query.filter(SyncInstanceRecord.created_at < cutoff_date).delete()
+            
+            # 注意：不清理账户同步数据表和账户变更日志，保留所有历史记录用于审计
+            deleted_account_sync_data = 0
+            deleted_change_logs = 0
 
             db.session.commit()
 
@@ -45,27 +49,33 @@ def cleanup_old_logs():
                 module="task",
                 operation_type="TASK_CLEANUP_COMPLETE",
                 deleted_logs=deleted_logs,
-                deleted_sync_records=deleted_sync,
+                deleted_sync_sessions=deleted_sync_sessions,
+                deleted_sync_records=deleted_sync_records,
+                deleted_account_sync_data=deleted_account_sync_data,
                 deleted_change_logs=deleted_change_logs,
                 cleaned_temp_files=cleaned_files,
                 cutoff_date=cutoff_date.isoformat(),
+                note="账户变更日志已保留用于审计"
             )
 
             task_logger.info(
                 "定时任务清理完成",
                 module="scheduler",
                 deleted_logs=deleted_logs,
-                deleted_sync_records=deleted_sync,
+                deleted_sync_sessions=deleted_sync_sessions,
+                deleted_sync_records=deleted_sync_records,
+                deleted_account_sync_data=deleted_account_sync_data,
                 deleted_change_logs=deleted_change_logs,
                 cleaned_temp_files=cleaned_files,
+                note="账户变更日志已保留用于审计"
             )
 
-            return f"清理完成：{deleted_logs} 条日志，{deleted_sync} 条同步记录，{deleted_change_logs} 条变更日志，{cleaned_files} 个临时文件"
+            return f"清理完成：{deleted_logs} 条日志，{deleted_sync_sessions} 条同步会话，{deleted_sync_records} 条同步记录，{deleted_account_sync_data} 条账户同步数据，{cleaned_files} 个临时文件（账户变更日志已保留用于审计）"
 
         except Exception as e:
             task_logger.error("定时任务清理失败", module="scheduler", exception=e)
             db.session.rollback()
-            return f"清理失败: {e}"
+            return f"清理失败: {str(e)}"
 
 
 def _cleanup_temp_files():
@@ -303,7 +313,7 @@ def sync_accounts(manual_run=False):
 
             # 同步会话记录已通过sync_session_service管理，无需额外创建记录
 
-            return f"定时任务同步失败: {e}"
+            return f"定时任务同步失败: {str(e)}"
 
 
 def health_check():
@@ -319,7 +329,7 @@ def health_check():
             # 检查关键表
             user_count = User.query.count()
             account_count = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
-            log_count = Log.query.count()
+            log_count = UnifiedLog.query.count()
             sync_data_count = CurrentAccountSyncData.query.count()
             change_log_count = AccountChangeLog.query.count()
 
@@ -372,4 +382,4 @@ def cleanup_temp_files():
 
         except Exception as e:
             task_logger.error("清理临时文件失败", module="task", exception=e)
-            return f"清理临时文件失败: {e}"
+            return f"清理临时文件失败: {str(e)}"

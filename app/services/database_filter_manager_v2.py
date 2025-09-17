@@ -36,7 +36,7 @@ class DatabaseFilterManagerV2:
                 config = yaml.safe_load(f)
             return config.get('database_filters', {})
         except Exception as e:
-            logger.error(f"加载过滤规则配置文件失败: {e}")
+            logger.error(f"加载过滤规则配置文件失败: {str(e)}")
             return {}
     
     def _create_filters(self) -> Dict[str, Any]:
