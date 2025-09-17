@@ -9,11 +9,15 @@
 - 跨数据库权限查询和汇总
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 from app.models import Instance
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.services.database_filter_manager import DatabaseFilterManager
+from app.services.connection_factory import ConnectionFactory
+from app.services.cache_manager import cache_manager
 from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.time_utils import time_utils
 
@@ -26,6 +30,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
     def __init__(self):
         super().__init__()
         self.filter_manager = DatabaseFilterManager()
+        self._current_instance = None  # 当前处理的实例
 
     def _quote_identifier(self, identifier: str) -> str:
         """
@@ -46,12 +51,30 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         
         # 使用方括号转义标识符
         return f"[{identifier}]"
+    
+    def clear_user_cache(self, instance: Instance, username: str) -> bool:
+        """清除用户缓存"""
+        try:
+            return cache_manager.invalidate_user_cache(instance.id, username)
+        except Exception as e:
+            self.sync_logger.error(f"清除用户缓存失败: {username}", error=str(e))
+            return False
+    
+    def clear_instance_cache(self, instance: Instance) -> bool:
+        """清除实例缓存"""
+        try:
+            return cache_manager.invalidate_instance_cache(instance.id)
+        except Exception as e:
+            self.sync_logger.error(f"清除实例缓存失败: {instance.name}", error=str(e))
+            return False
 
     def get_database_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:
         """
         获取SQL Server数据库中的所有账户信息
         """
         try:
+            # 设置当前实例，用于并行处理
+            self._current_instance = instance
             # 构建安全的查询条件
             filter_conditions = self._build_filter_conditions()
             where_clause, params = filter_conditions
@@ -249,12 +272,11 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             self.sync_logger.warning(f"获取服务器权限失败: {username}", error=str(e), sql=sql)
             return []
 
-    def _get_regular_database_permissions(self, connection: Any, username: str) -> tuple[Dict[str, List[str]], Dict[str, List[str]]]:
-        """获取用户的实际数据库权限"""
+    def _get_regular_database_permissions(self, connection: Any, username: str) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+        """获取用户的实际数据库权限 - 并行优化+缓存版本"""
         try:
-            database_roles = {}
-            database_permissions = {}
-
+            start_time = time.time()
+            
             # 获取所有在线数据库
             databases_sql = """
                 SELECT name 
@@ -267,98 +289,184 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             databases = connection.execute_query(databases_sql)
 
             if not databases:
-                return database_roles, database_permissions
+                return {}, {}
 
             # 限制处理的数据库数量，避免超时
             max_databases = 50
-            processed_count = 0
-            failed_count = 0
+            database_list = [db[0] for db in databases[:max_databases]]
             
-            for db_row in databases:
-                if processed_count >= max_databases:
-                    self.sync_logger.warning(
-                        f"已处理{max_databases}个数据库，跳过剩余数据库: {username}",
-                        module="sqlserver_sync_adapter"
-                    )
-                    break
-                db_name = db_row[0]
-                try:
-                    # 先切换到目标数据库
-                    use_db_sql = f"USE {self._quote_identifier(db_name)}"
-                    connection.execute_query(use_db_sql)
-                    
-                    # 检查用户是否存在（不包括'dbo'）
-                    user_exists_sql = """
-                        SELECT principal_id, name, type_desc
-                        FROM sys.database_principals
-                        WHERE name = %s
-                    """
-                    user_info = connection.execute_query(user_exists_sql, (username,))
-                    
-                    if user_info:
-                        # 用户存在，使用其principal_id
-                        user_principal_id = user_info[0][0]
-                    else:
-                        # 检查是否sysadmin
-                        sysadmin_check_sql = """
-                            SELECT IS_SRVROLEMEMBER('sysadmin', %s) as is_sysadmin
-                        """
-                        sysadmin_result = connection.execute_query(sysadmin_check_sql, (username,))
-                        if sysadmin_result and sysadmin_result[0][0] == 1:
-                            user_principal_id = 1  # dbo
-                        else:
-                            continue  # 非sysadmin且不存在，跳过
-                    
-                    # 获取数据库角色
-                    roles_sql = """
-                        SELECT r.name
-                        FROM sys.database_role_members rm
-                        JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
-                        WHERE rm.member_principal_id = %s
-                        ORDER BY r.name
-                    """
-                    
-                    roles = connection.execute_query(roles_sql, (user_principal_id,))
-                    roles_list = [role[0] for role in roles] if roles else []
-                    
-                    # 对于sysadmin用户使用dbo权限时，添加db_owner角色
-                    if user_principal_id == 1:
-                        if 'db_owner' not in roles_list:
-                            roles_list.append('db_owner')
-                    
-                    if roles_list:
-                        database_roles[db_name] = roles_list
-                    
-                    # 获取数据库权限
-                    perms_sql = """
-                        SELECT permission_name
-                        FROM sys.database_permissions
-                        WHERE grantee_principal_id = %s
-                        AND state = 'G'
-                        ORDER BY permission_name
-                    """
-                    
-                    permissions = connection.execute_query(perms_sql, (user_principal_id,))
-                    if permissions:
-                        database_permissions[db_name] = [perm[0] for perm in permissions]
+            if len(databases) > max_databases:
+                self.sync_logger.warning(
+                    f"数据库数量({len(databases)})超过限制({max_databases})，只处理前{max_databases}个: {username}",
+                    module="sqlserver_sync_adapter"
+                )
 
+            # 尝试从缓存获取所有数据库权限
+            instance_id = self._current_instance.id if self._current_instance else 0
+            cached_permissions = cache_manager.get_all_database_permissions_cache(instance_id, username)
+            
+            database_roles = {}
+            database_permissions = {}
+            uncached_databases = []
+            
+            if cached_permissions:
+                # 检查哪些数据库有缓存
+                for db_name in database_list:
+                    if db_name in cached_permissions:
+                        roles, perms = cached_permissions[db_name]
+                        if roles:
+                            database_roles[db_name] = roles
+                        if perms:
+                            database_permissions[db_name] = perms
+                    else:
+                        uncached_databases.append(db_name)
+                
+                self.sync_logger.info(
+                    f"缓存命中统计: {username}",
+                    cached_count=len(database_list) - len(uncached_databases),
+                    uncached_count=len(uncached_databases),
+                    module="sqlserver_sync_adapter"
+                )
+            else:
+                # 没有缓存，处理所有数据库
+                uncached_databases = database_list
+
+            def process_database(db_name: str) -> Tuple[str, List[str], List[str]]:
+                """处理单个数据库的权限查询"""
+                try:
+                    # 创建独立连接
+                    if not self._current_instance:
+                        self.sync_logger.error("当前实例未设置，无法创建独立连接")
+                        return db_name, [], []
+                    
+                    conn = ConnectionFactory.create_connection(self._current_instance)
+                    conn.connect()
+                    
+                    # 确保连接已正确建立
+                    if not hasattr(conn, 'connection') or conn.connection is None:
+                        self.sync_logger.warning(f"连接未正确建立，跳过数据库: {db_name}")
+                        return db_name, [], []
+                    
+                    try:
+                        # 切换到目标数据库
+                        use_db_sql = f"USE {self._quote_identifier(db_name)}"
+                        conn.execute_query(use_db_sql)
+                        
+                        # 检查用户是否存在
+                        user_exists_sql = """
+                            SELECT principal_id, name, type_desc
+                            FROM sys.database_principals
+                            WHERE name = %s
+                        """
+                        user_info = conn.execute_query(user_exists_sql, (username,))
+                        
+                        if user_info:
+                            # 用户存在，使用其principal_id
+                            user_principal_id = user_info[0][0]
+                        else:
+                            # 检查是否sysadmin
+                            sysadmin_check_sql = """
+                                SELECT IS_SRVROLEMEMBER('sysadmin', %s) as is_sysadmin
+                            """
+                            sysadmin_result = conn.execute_query(sysadmin_check_sql, (username,))
+                            if sysadmin_result and sysadmin_result[0][0] == 1:
+                                user_principal_id = 1  # dbo
+                            else:
+                                return db_name, [], []  # 非sysadmin且不存在，跳过
+                        
+                        # 获取数据库角色
+                        roles_sql = """
+                            SELECT r.name
+                            FROM sys.database_role_members rm
+                            JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
+                            WHERE rm.member_principal_id = %s
+                            ORDER BY r.name
+                        """
+                        
+                        roles = conn.execute_query(roles_sql, (user_principal_id,))
+                        roles_list = [role[0] for role in roles] if roles else []
+                        
+                        # 对于sysadmin用户使用dbo权限时，添加db_owner角色
+                        if user_principal_id == 1 and 'db_owner' not in roles_list:
+                            roles_list.append('db_owner')
+                        
+                        # 获取数据库权限
+                        perms_sql = """
+                            SELECT permission_name
+                            FROM sys.database_permissions
+                            WHERE grantee_principal_id = %s
+                            AND state = 'G'
+                            ORDER BY permission_name
+                        """
+                        
+                        permissions = conn.execute_query(perms_sql, (user_principal_id,))
+                        perms_list = [perm[0] for perm in permissions] if permissions else []
+                        
+                        return db_name, roles_list, perms_list
+                        
+                    finally:
+                        conn.close()
+                        
                 except Exception as e:
-                    failed_count += 1
                     self.sync_logger.warning(
-                        f"无法处理数据库 {db_name}: {str(e)}",
+                        f"处理数据库 {db_name} 失败: {str(e)}",
                         module="sqlserver_sync_adapter",
                         username=username,
                         database=db_name,
-                        error_type=type(e).__name__,
-                        use_sql=use_db_sql,
-                        user_exists_sql=user_exists_sql,
-                        sysadmin_check_sql=sysadmin_check_sql if 'sysadmin_check_sql' in locals() else None,
-                        roles_sql=roles_sql,
-                        perms_sql=perms_sql
+                        error_type=type(e).__name__
                     )
-                    continue
+                    return db_name, [], []
+
+            # 只处理未缓存的数据库
+            if uncached_databases:
+                max_workers = min(10, len(uncached_databases))  # 限制最大并发数
+                failed_count = 0
                 
-                processed_count += 1
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    # 提交未缓存数据库的任务
+                    future_to_db = {executor.submit(process_database, db_name): db_name for db_name in uncached_databases}
+                    
+                    # 收集结果并设置缓存
+                    for future in future_to_db:
+                        try:
+                            db_name, roles_list, perms_list = future.result(timeout=30)  # 30秒超时
+                            
+                            if roles_list:
+                                database_roles[db_name] = roles_list
+                            if perms_list:
+                                database_permissions[db_name] = perms_list
+                            
+                            # 设置缓存
+                            cache_manager.set_database_permissions_cache(
+                                instance_id, username, db_name, roles_list, perms_list
+                            )
+                                
+                        except Exception as e:
+                            failed_count += 1
+                            db_name = future_to_db[future]
+                            self.sync_logger.warning(
+                                f"并行处理数据库 {db_name} 超时或失败: {str(e)}",
+                                module="sqlserver_sync_adapter"
+                            )
+            else:
+                failed_count = 0
+
+            # 记录性能统计
+            duration = time.time() - start_time
+            processed_count = len(uncached_databases) - failed_count if uncached_databases else 0
+            cached_count = len(database_list) - len(uncached_databases)
+            
+            self.sync_logger.info(
+                f"并行数据库权限查询完成: {username}",
+                duration=f"{duration:.2f}秒",
+                total_databases=len(database_list),
+                cached_count=cached_count,
+                processed_count=processed_count,
+                failed_count=failed_count,
+                cache_hit_rate=f"{(cached_count/len(database_list)*100):.1f}%" if database_list else "0%",
+                databases_per_second=f"{len(uncached_databases)/duration:.2f}" if uncached_databases and duration > 0 else "N/A",
+                module="sqlserver_sync_adapter"
+            )
 
             return database_roles, database_permissions
 

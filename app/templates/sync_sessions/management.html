@@ -285,7 +285,7 @@ function renderSessions(sessions) {
             <div class="card session-card ${statusClass} mb-3">
                 <div class="card-body">
                     <div class="row align-items-center">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <h6 class="mb-1">${session.session_id.substring(0, 8)}...</h6>
                             <small class="text-muted">${getSyncTypeText(session.sync_type)} - ${getSyncCategoryText(session.sync_category)}</small>
                         </div>
@@ -311,6 +311,9 @@ function renderSessions(sessions) {
                                 <i class="fas fa-clock"></i> ${startedAt}<br>
                                 <i class="fas fa-check-circle"></i> ${completedAt}
                             </small>
+                        </div>
+                        <div class="col-md-1">
+                            ${getDurationBadge(session.started_at, session.completed_at)}
                         </div>
                         <div class="col-md-2 text-end">
                             <button class="btn btn-sm btn-outline-primary" onclick="viewSessionDetail('${session.session_id}')">
@@ -613,6 +616,25 @@ function getSyncCategoryText(category) {
 
 // 使用统一的时间格式化函数
 // formatChinaTime 函数已由 time-utils.js 提供
+
+// 获取耗时徽章
+function getDurationBadge(startedAt, completedAt) {
+    if (!startedAt || !completedAt) {
+        return '<span class="text-muted">-</span>';
+    }
+    
+    const startTime = new Date(startedAt);
+    const endTime = new Date(completedAt);
+    const duration = (endTime - startTime) / 1000; // 转换为秒
+    
+    if (duration < 60) {
+        return `<span class="badge bg-info">${duration.toFixed(1)}秒</span>`;
+    } else if (duration < 3600) {
+        return `<span class="badge bg-info">${(duration / 60).toFixed(1)}分钟</span>`;
+    } else {
+        return `<span class="badge bg-info">${(duration / 3600).toFixed(1)}小时</span>`;
+    }
+}
 
 // 获取CSRF令牌
 function getCSRFToken() {
