@@ -598,10 +598,26 @@ function displayPermissionsConfig(permissions, prefix = '', dbType = '') {
             </div>
         `;
     } else if (dbType === 'postgresql') {
-        // PostgreSQL结构：角色属性、数据库权限、表空间权限
+        // PostgreSQL结构：预定义角色、角色属性、数据库权限、表空间权限
         html += `
             <div class="col-md-6">
-                <h6 class="text-primary mb-3"><i class="fas fa-user-shield me-2"></i>角色属性</h6>
+                <h6 class="text-warning mb-3"><i class="fas fa-users me-2"></i>预定义角色</h6>
+                <div class="permission-section">
+                    ${permissions.predefined_roles ? permissions.predefined_roles.map(role => `
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" value="${role.name}" id="${prefix}predefined_role_${role.name}">
+                            <label class="form-check-label d-flex align-items-center" for="${prefix}predefined_role_${role.name}">
+                                <i class="fas fa-users text-warning me-2"></i>
+                                <div>
+                                    <div class="fw-bold">${role.name}</div>
+                                    <small class="text-muted">${role.description || '预定义角色'}</small>
+                                </div>
+                            </label>
+                        </div>
+                    `).join('') : '<div class="text-muted">无预定义角色</div>'}
+                </div>
+
+                <h6 class="text-primary mb-3 mt-3"><i class="fas fa-user-shield me-2"></i>角色属性</h6>
                 <div class="permission-section">
                     ${permissions.role_attributes ? permissions.role_attributes.map(attr => `
                         <div class="form-check mb-2">
@@ -616,8 +632,9 @@ function displayPermissionsConfig(permissions, prefix = '', dbType = '') {
                         </div>
                     `).join('') : '<div class="text-muted">无角色属性</div>'}
                 </div>
-
-                <h6 class="text-success mb-3 mt-3"><i class="fas fa-database me-2"></i>数据库权限</h6>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-success mb-3"><i class="fas fa-database me-2"></i>数据库权限</h6>
                 <div class="permission-section">
                     ${permissions.database_privileges ? permissions.database_privileges.map(perm => `
                         <div class="form-check mb-2">
@@ -819,12 +836,15 @@ function createRule() {
         };
     } else if (dbType === 'postgresql') {
         // PostgreSQL结构
+        const selectedPredefinedRoles = [];
         const selectedRoleAttributes = [];
         const selectedDatabasePermissions = [];
         const selectedTablespacePermissions = [];
 
         checkboxes.forEach(checkbox => {
-            if (checkbox.id.startsWith('role_attr_')) {
+            if (checkbox.id.startsWith('predefined_role_')) {
+                selectedPredefinedRoles.push(checkbox.value);
+            } else if (checkbox.id.startsWith('role_attr_')) {
                 selectedRoleAttributes.push(checkbox.value);
             } else if (checkbox.id.startsWith('db_perm_')) {
                 selectedDatabasePermissions.push(checkbox.value);
@@ -835,6 +855,7 @@ function createRule() {
 
         ruleExpression = {
             type: 'postgresql_permissions',
+            predefined_roles: selectedPredefinedRoles,
             role_attributes: selectedRoleAttributes,
             database_privileges: selectedDatabasePermissions,
             tablespace_privileges: selectedTablespacePermissions,
@@ -1009,6 +1030,12 @@ function setSelectedPermissions(ruleExpression, prefix = '') {
         }
     } else if (ruleExpression.type === 'postgresql_permissions') {
         // PostgreSQL结构
+        if (ruleExpression.predefined_roles) {
+            ruleExpression.predefined_roles.forEach(role => {
+                const checkbox = document.getElementById(`${prefix}predefined_role_${role}`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }
         if (ruleExpression.role_attributes) {
             ruleExpression.role_attributes.forEach(attr => {
                 const checkbox = document.getElementById(`${prefix}role_attr_${attr}`);
@@ -1144,12 +1171,15 @@ function updateRule() {
             operator: operator
         };
     } else if (dbType === 'postgresql') {
+        const selectedPredefinedRoles = [];
         const selectedRoleAttributes = [];
         const selectedDatabasePermissions = [];
         const selectedTablespacePermissions = [];
 
         checkboxes.forEach(checkbox => {
-            if (checkbox.id.startsWith('editrole_attr_')) {
+            if (checkbox.id.startsWith('editpredefined_role_')) {
+                selectedPredefinedRoles.push(checkbox.value);
+            } else if (checkbox.id.startsWith('editrole_attr_')) {
                 selectedRoleAttributes.push(checkbox.value);
             } else if (checkbox.id.startsWith('editdb_perm_')) {
                 selectedDatabasePermissions.push(checkbox.value);
@@ -1160,6 +1190,7 @@ function updateRule() {
 
         ruleExpression = {
             type: 'postgresql_permissions',
+            predefined_roles: selectedPredefinedRoles,
             role_attributes: selectedRoleAttributes,
             database_privileges: selectedDatabasePermissions,
             tablespace_privileges: selectedTablespacePermissions,
@@ -1471,7 +1502,19 @@ function displayViewPermissions(ruleExpression, dbType) {
             `;
         }
     } else if (ruleExpression.type === 'postgresql_permissions') {
-        // PostgreSQL结构：角色属性、数据库权限、表空间权限
+        // PostgreSQL结构：预定义角色、角色属性、数据库权限、表空间权限
+        if (ruleExpression.predefined_roles && ruleExpression.predefined_roles.length > 0) {
+            html += `
+                <div class="col-md-6">
+                    <h6 class="text-warning mb-2"><i class="fas fa-users me-2"></i>预定义角色</h6>
+                    <div class="mb-3">
+                        ${ruleExpression.predefined_roles.map(role =>
+                            `<span class="badge bg-warning me-1 mb-1">${role}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+            `;
+        }
         if (ruleExpression.role_attributes && ruleExpression.role_attributes.length > 0) {
             html += `
                 <div class="col-md-6">
