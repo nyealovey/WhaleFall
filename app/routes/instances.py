@@ -22,7 +22,7 @@ from app.utils.timezone import now
 # Account模型已废弃，使用CurrentAccountSyncData
 from app.models.credential import Credential
 from app.models.instance import Instance
-from app.services.database_service import DatabaseService
+from app.services.account_sync_service import account_sync_service
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -436,11 +436,10 @@ def test_instance_connection() -> str | Response | tuple[Response, int]:
         else:
             return jsonify({"success": False, "error": "必须选择数据库凭据"}), 400
 
-        # 使用数据库服务测试连接
-        from app.services.database_service import DatabaseService
+        # 使用连接测试服务
+        from app.services.connection_test_service import connection_test_service
 
-        db_service = DatabaseService()
-        result = db_service.test_connection(temp_instance)
+        result = connection_test_service.test_connection(temp_instance)
 
         return jsonify(result)
 
@@ -1262,8 +1261,7 @@ def sync_accounts(instance_id: int) -> str | Response | tuple[Response, int]:
         )
 
         # 使用数据库服务同步账户
-        db_service = DatabaseService()
-        result = db_service.sync_accounts(instance)
+        result = account_sync_service.sync_accounts(instance, sync_type="manual_single")
 
         if result["success"]:
             # 增加同步次数计数

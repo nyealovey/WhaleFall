@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from typing import Any
 
 from app.models.instance import Instance
-from app.services.database_service import DatabaseService
+from app.services.connection_factory import ConnectionFactory
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class DatabaseContextManager:
     """数据库连接上下文管理器"""
 
     def __init__(self):
-        self.db_service = DatabaseService()
+        # 使用连接工厂创建连接
 
     @contextmanager
     def get_connection(self, instance: Instance) -> Generator[Any | None]:
@@ -32,7 +32,7 @@ class DatabaseContextManager:
         """
         connection = None
         try:
-            connection = self.db_service.get_connection(instance)
+            connection = ConnectionFactory.create_connection(instance)
             if not connection:
                 logger.error(f"无法获取数据库连接: {instance.name}")
                 yield None
@@ -47,7 +47,10 @@ class DatabaseContextManager:
         finally:
             if connection:
                 try:
-                    self.db_service.close_connection(instance)
+                    if hasattr(connection, "disconnect"):
+                        connection.disconnect()
+                    elif hasattr(connection, "close"):
+                        connection.close()
                     logger.debug(f"关闭数据库连接: {instance.name}")
                 except Exception as e:
                     logger.warning(f"关闭数据库连接失败: {e}")
@@ -85,7 +88,7 @@ class DatabaseContextManager:
         """
         connection = None
         try:
-            connection = self.db_service.get_connection(instance)
+            connection = ConnectionFactory.create_connection(instance)
             if not connection:
                 logger.error(f"无法获取数据库连接进行事务: {instance.name}")
                 yield None
@@ -123,7 +126,10 @@ class DatabaseContextManager:
                     # 恢复自动提交
                     if hasattr(connection, "autocommit"):
                         connection.autocommit = True
-                    self.db_service.close_connection(instance)
+                    if hasattr(connection, "disconnect"):
+                        connection.disconnect()
+                    elif hasattr(connection, "close"):
+                        connection.close()
                 except Exception as e:
                     logger.warning(f"清理数据库连接失败: {e}")
 

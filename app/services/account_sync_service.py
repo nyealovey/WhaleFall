@@ -10,7 +10,7 @@ from app import db
 from app.models import Instance
 from app.services.sync_data_manager import SyncDataManager
 from app.services.sync_session_service import sync_session_service
-from app.services.database_service import DatabaseService
+from app.services.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_sync_logger
 from app.utils.timezone import now
 
@@ -29,7 +29,7 @@ class AccountSyncService:
     def __init__(self) -> None:
         self.sync_logger = get_sync_logger()
         self.sync_data_manager = SyncDataManager()
-        self.database_service = DatabaseService()
+        # 使用连接工厂创建连接
 
     def sync_accounts(self, instance: Instance, sync_type: str = "manual_single", session_id: Optional[str] = None, created_by: Optional[int] = None) -> dict[str, Any]:
         """
@@ -104,8 +104,8 @@ class AccountSyncService:
         """
         try:
             # 获取数据库连接（强制创建新连接以确保数据库上下文正确）
-            conn = self.database_service.get_connection(instance, force_new=True)
-            if not conn:
+            conn = ConnectionFactory.create_connection(instance)
+            if not conn or not conn.connect():
                 return {"success": False, "error": "无法获取数据库连接"}
 
             # 更新数据库版本信息
@@ -132,7 +132,10 @@ class AccountSyncService:
                 )
 
             # 关闭连接
-            self.database_service.close_connection(instance)
+            if hasattr(conn, "disconnect"):
+                conn.disconnect()
+            elif hasattr(conn, "close"):
+                conn.close()
             
             # 更新实例最后连接时间
             instance.last_connected_at = now()
@@ -223,8 +226,8 @@ class AccountSyncService:
         """
         try:
             # 获取数据库连接（强制创建新连接以确保数据库上下文正确）
-            conn = self.database_service.get_connection(instance, force_new=True)
-            if not conn:
+            conn = ConnectionFactory.create_connection(instance)
+            if not conn or not conn.connect():
                 return {"success": False, "error": "无法获取数据库连接"}
 
             # 更新数据库版本信息
@@ -238,7 +241,10 @@ class AccountSyncService:
             )
 
             # 关闭连接
-            self.database_service.close_connection(instance)
+            if hasattr(conn, "disconnect"):
+                conn.disconnect()
+            elif hasattr(conn, "close"):
+                conn.close()
 
             # 更新实例最后连接时间
             instance.last_connected_at = now()
@@ -259,7 +265,7 @@ class AccountSyncService:
     def _update_database_version(self, instance: Instance, conn) -> None:
         """更新数据库版本信息（不独立提交，等待统一事务）"""
         try:
-            version_info = self.database_service.get_database_version(instance, conn)
+            version_info = self._get_database_version(instance, conn)
             if version_info and version_info != instance.database_version:
                 from app.utils.version_parser import DatabaseVersionParser
                 
@@ -284,6 +290,42 @@ class AccountSyncService:
                 instance_name=instance.name,
                 error=str(e)
             )
+
+    def _get_database_version(self, instance: Instance, connection: Any) -> str:
+        """
+        获取数据库版本信息
+
+        Args:
+            instance: 数据库实例
+            connection: 数据库连接
+
+        Returns:
+            版本信息字符串
+        """
+        try:
+            if instance.db_type == "mysql":
+                result = connection.execute_query("SELECT VERSION()")
+                return result[0][0] if result else "未知版本"
+            elif instance.db_type == "postgresql":
+                result = connection.execute_query("SELECT version()")
+                return result[0][0] if result else "未知版本"
+            elif instance.db_type == "sqlserver":
+                result = connection.execute_query("SELECT @@VERSION")
+                return result[0][0] if result else "未知版本"
+            elif instance.db_type == "oracle":
+                result = connection.execute_query("SELECT * FROM v$version WHERE rownum = 1")
+                return result[0][0] if result else "未知版本"
+            else:
+                return "未知数据库类型"
+        except Exception as e:
+            self.sync_logger.warning(
+                "获取数据库版本失败",
+                module="account_sync_unified",
+                instance_name=instance.name,
+                db_type=instance.db_type,
+                error=str(e)
+            )
+            return "版本获取失败"
 
 
 # 创建服务实例

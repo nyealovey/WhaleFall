@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
-from app.services.database_service import DatabaseService
+from app.services.account_sync_service import account_sync_service
 from app.utils.decorators import update_required, view_required
 from app.utils.structlog_config import log_error
 from app.utils.timezone import now
@@ -336,9 +336,8 @@ def sync_accounts(instance_id: int) -> "Response":
     try:
         instance = Instance.query.get_or_404(instance_id)
 
-        # 使用数据库服务进行同步
-        db_service = DatabaseService()
-        result = db_service.sync_accounts(instance)
+        # 使用统一的账户同步服务
+        result = account_sync_service.sync_accounts(instance, sync_type="manual_single")
 
         if result["success"]:
             # 同步会话记录已通过sync_session_service管理，无需额外创建记录
@@ -503,9 +502,8 @@ def api_sync_accounts(instance_id: int) -> "Response":
     try:
         instance = Instance.query.get_or_404(instance_id)
 
-        # 使用数据库服务进行同步
-        db_service = DatabaseService()
-        result = db_service.sync_accounts(instance)
+        # 使用统一的账户同步服务
+        result = account_sync_service.sync_accounts(instance, sync_type="manual_single")
 
         return jsonify(result)
 

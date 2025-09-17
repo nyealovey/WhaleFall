@@ -85,16 +85,13 @@ class Instance(db.Model):
             dict: 连接测试结果
         """
         try:
-            from app.services.database_service import DatabaseService
-            from app.utils.version_parser import DatabaseVersionParser
+            from app.services.connection_test_service import connection_test_service
             from app.utils.timezone import now
             
-            # 使用DatabaseService进行连接测试
-            db_service = DatabaseService()
-            result = db_service.test_connection(self)
+            # 使用连接测试服务
+            result = connection_test_service.test_connection(self)
             
             # 无论连接成功还是失败，都更新最后连接时间
-            # (DatabaseService.test_connection已经更新了，这里确保一致性)
             self.last_connected = now()
             
             # 如果连接成功，解析版本信息
