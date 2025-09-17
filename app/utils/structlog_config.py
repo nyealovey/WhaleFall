@@ -63,7 +63,7 @@ class SQLAlchemyLogHandler:
         
         # 如果级别低于INFO，则丢弃日志
         if level_priority.get(level, 20) < 20:  # INFO级别
-            return event_dict
+            raise structlog.DropEvent()
 
         # 构建日志条目
         log_entry = self._build_log_entry(event_dict)
@@ -361,6 +361,7 @@ class StructlogConfig:
         
         # 如果级别低于INFO，则丢弃日志
         if level_priority.get(level, 20) < 20:  # INFO级别
+            print(f"DEBUG: 过滤DEBUG日志: {level} - {event_dict.get('message', '')}")
             raise structlog.DropEvent()
         
         return event_dict
@@ -461,6 +462,8 @@ def set_debug_logging_enabled(enabled: bool) -> None:
         # 更新structlog配置
         structlog.configure(
             processors=[
+                # 1. 过滤日志级别（只允许INFO及以上级别）
+                structlog_config._filter_log_level,
                 structlog.stdlib.filter_by_level,
                 structlog.stdlib.add_logger_name,
                 structlog.stdlib.add_log_level,

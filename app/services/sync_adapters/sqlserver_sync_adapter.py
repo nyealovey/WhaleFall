@@ -11,7 +11,7 @@
 
 from typing import Any, Dict, List, Tuple
 import time
-from concurrent.futures import ThreadPoolExecutor
+# 移除并行处理，改为顺序处理
 
 from app.models import Instance
 from app.models.current_account_sync_data import CurrentAccountSyncData
@@ -70,16 +70,36 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
     def get_database_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:
         """
-        获取SQL Server数据库中的所有账户信息
+        获取SQL Server数据库中的所有账户信息 - 批量优化版本
         """
         try:
-            # 设置当前实例，用于并行处理
+            # 设置当前实例
             self._current_instance = instance
+            
+            # 使用批量优化方法
+            return self._get_database_accounts_batch(instance, connection)
+
+        except Exception as e:
+            self.sync_logger.error(
+                "获取SQL Server登录失败",
+                module="sqlserver_sync_adapter",
+                instance_name=instance.name,
+                error=str(e)
+            )
+            return []
+
+    def _get_database_accounts_batch(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:
+        """
+        批量获取SQL Server数据库中的所有账户信息 - 性能优化版本
+        """
+        try:
+            start_time = time.time()
+            
             # 构建安全的查询条件
             filter_conditions = self._build_filter_conditions()
             where_clause, params = filter_conditions
 
-            # 查询登录基本信息
+            # 1. 批量获取所有登录基本信息
             login_sql = f"""
                 SELECT
                     sp.name as username,
@@ -88,6 +108,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     sp.type as type,
                     sp.create_date as create_date,
                     sp.modify_date as modify_date,
+                    sp.sid as sid,
                     CASE 
                         WHEN sp.type = 'S' THEN LOGINPROPERTY(sp.name, 'PasswordLastSetTime')
                         ELSE NULL
@@ -108,13 +129,84 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
             logins = connection.execute_query(login_sql, params)
             
+            if not logins:
+                return []
+
+            # 2. 批量获取所有用户的服务器角色
+            all_server_roles_sql = """
+                SELECT p.name AS username, r.name AS role_name
+                FROM sys.server_role_members rm
+                JOIN sys.server_principals r ON rm.role_principal_id = r.principal_id
+                JOIN sys.server_principals p ON rm.member_principal_id = p.principal_id
+                WHERE p.type IN ('S', 'U', 'G')
+                ORDER BY p.name, r.name
+            """
+            all_server_roles = connection.execute_query(all_server_roles_sql)
+            server_roles_dict = {}
+            for row in all_server_roles:
+                username, role = row
+                server_roles_dict.setdefault(username, []).append(role)
+
+            # 3. 批量获取所有用户的服务器权限
+            all_server_perms_sql = """
+                SELECT sp.name AS username, perm.permission_name
+                FROM sys.server_permissions perm
+                JOIN sys.server_principals sp ON perm.grantee_principal_id = sp.principal_id
+                WHERE sp.type IN ('S', 'U', 'G') AND perm.state = 'G'
+                ORDER BY sp.name, perm.permission_name
+            """
+            all_server_perms = connection.execute_query(all_server_perms_sql)
+            server_perms_dict = {}
+            for row in all_server_perms:
+                username, perm = row
+                server_perms_dict.setdefault(username, []).append(perm)
+
+            # 4. 批量获取所有用户的type_specific信息
+            all_type_specific_sql = """
+                SELECT
+                    sp.name AS username,
+                    sp.principal_id,
+                    sp.is_disabled,
+                    sp.type_desc,
+                    sp.default_database_name,
+                    sp.default_language_name,
+                    CASE WHEN sp.type = 'S' THEN sl.is_expiration_checked ELSE NULL END as is_expiration_checked,
+                    CASE WHEN sp.type = 'S' THEN sl.is_policy_checked ELSE NULL END as is_policy_checked
+                FROM sys.server_principals sp
+                LEFT JOIN sys.sql_logins sl ON sp.principal_id = sl.principal_id AND sp.type = 'S'
+                WHERE sp.type IN ('S', 'U', 'G')
+            """
+            all_type_specific = connection.execute_query(all_type_specific_sql)
+            type_specific_dict = {}
+            for row in all_type_specific:
+                username = row[0]
+                type_specific_dict[username] = {
+                    "principal_id": row[1],
+                    "is_locked": row[2],
+                    "account_type": row[3],
+                    "default_database": row[4],
+                    "default_language": row[5],
+                    "is_expiration_checked": bool(row[6]) if row[6] is not None else None,
+                    "is_policy_checked": bool(row[7]) if row[7] is not None else None
+                }
+
+            # 5. 批量获取所有用户的数据库权限
+            all_database_permissions = self._get_all_users_database_permissions_batch(connection, [row[0] for row in logins])
+
+            # 6. 构建账户数据
             accounts = []
             for login_row in logins:
                 (username, is_disabled, login_type, type_code, create_date, modify_date,
-                 password_last_set_time, is_expiration_checked, is_policy_checked) = login_row
+                 sid, password_last_set_time, is_expiration_checked, is_policy_checked) = login_row
                 
-                # 获取登录的详细权限
-                permissions = self._get_login_permissions(connection, username)
+                # 从批量数据中获取权限信息
+                permissions = {
+                    "server_roles": server_roles_dict.get(username, []),
+                    "server_permissions": server_perms_dict.get(username, []),
+                    "database_roles": all_database_permissions.get(username, {}).get("roles", {}),
+                    "database_permissions": all_database_permissions.get(username, {}).get("permissions", {}),
+                    "type_specific": type_specific_dict.get(username, {})
+                }
                 
                 # 判断是否为超级用户
                 is_superuser = username.lower() == "sa" or "sysadmin" in permissions.get("server_roles", [])
@@ -135,24 +227,24 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 
                 accounts.append(account_data)
 
+            elapsed_time = time.time() - start_time
             self.sync_logger.info(
-                f"获取到{len(accounts)}个SQL Server登录",
+                f"批量获取SQL Server登录完成",
                 module="sqlserver_sync_adapter",
                 instance_name=instance.name,
-                account_count=len(accounts)
+                account_count=len(accounts),
+                elapsed_time=f"{elapsed_time:.2f}s"
             )
 
             return accounts
 
         except Exception as e:
             self.sync_logger.error(
-                "获取SQL Server登录失败",
+                "批量获取SQL Server登录失败",
                 module="sqlserver_sync_adapter",
                 instance_name=instance.name,
                 error=str(e),
-                login_sql=login_sql,
-                where_clause=where_clause,
-                params=params
+                error_type=type(e).__name__
             )
             return []
 
@@ -273,7 +365,12 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             return []
 
     def _get_regular_database_permissions(self, connection: Any, username: str) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
-        """获取用户的实际数据库权限 - 并行优化+缓存版本"""
+        """获取用户的实际数据库权限 - 批量优化版本"""
+        # 使用新的批量方法
+        return self._get_all_database_permissions_batch(connection, username)
+    
+    def _get_regular_database_permissions_old(self, connection: Any, username: str) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+        """获取用户的实际数据库权限 - 并行优化+缓存版本（旧版本）"""
         try:
             start_time = time.time()
             
@@ -417,37 +514,30 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     )
                     return db_name, [], []
 
-            # 只处理未缓存的数据库
+            # 顺序处理未缓存的数据库
             if uncached_databases:
-                max_workers = min(10, len(uncached_databases))  # 限制最大并发数
                 failed_count = 0
                 
-                with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    # 提交未缓存数据库的任务
-                    future_to_db = {executor.submit(process_database, db_name): db_name for db_name in uncached_databases}
-                    
-                    # 收集结果并设置缓存
-                    for future in future_to_db:
-                        try:
-                            db_name, roles_list, perms_list = future.result(timeout=30)  # 30秒超时
+                for db_name in uncached_databases:
+                    try:
+                        db_name, roles_list, perms_list = process_database(db_name)
+                        
+                        if roles_list:
+                            database_roles[db_name] = roles_list
+                        if perms_list:
+                            database_permissions[db_name] = perms_list
+                        
+                        # 设置缓存
+                        cache_manager.set_database_permissions_cache(
+                            instance_id, username, db_name, roles_list, perms_list
+                        )
                             
-                            if roles_list:
-                                database_roles[db_name] = roles_list
-                            if perms_list:
-                                database_permissions[db_name] = perms_list
-                            
-                            # 设置缓存
-                            cache_manager.set_database_permissions_cache(
-                                instance_id, username, db_name, roles_list, perms_list
-                            )
-                                
-                        except Exception as e:
-                            failed_count += 1
-                            db_name = future_to_db[future]
-                            self.sync_logger.warning(
-                                f"并行处理数据库 {db_name} 超时或失败: {str(e)}",
-                                module="sqlserver_sync_adapter"
-                            )
+                    except Exception as e:
+                        failed_count += 1
+                        self.sync_logger.warning(
+                            f"处理数据库 {db_name} 失败: {str(e)}",
+                            module="sqlserver_sync_adapter"
+                        )
             else:
                 failed_count = 0
 
@@ -736,3 +826,357 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 descriptions.append(f"移除类型特定信息: {', '.join(removed.keys())}")
         
         return descriptions
+
+    def _get_all_database_permissions_batch(self, connection: Any, username: str) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+        """批量获取用户数据库权限 - 性能优化版本"""
+        try:
+            start_time = time.time()
+            
+            # 获取数据库列表
+            databases_sql = """
+                SELECT TOP 50 name 
+                FROM sys.databases 
+                WHERE state = 0 
+                AND name NOT IN ('master', 'tempdb', 'model', 'msdb')
+                AND HAS_DBACCESS(name) = 1
+                ORDER BY name
+            """
+            databases = connection.execute_query(databases_sql)
+            
+            if not databases:
+                return {}, {}
+            
+            database_list = [db[0] for db in databases]
+            
+            # 检查用户是否为sysadmin
+            sysadmin_check_sql = """
+                SELECT IS_SRVROLEMEMBER('sysadmin', %s) as is_sysadmin
+            """
+            sysadmin_result = connection.execute_query(sysadmin_check_sql, (username,))
+            is_sysadmin = sysadmin_result and sysadmin_result[0][0] == 1
+            
+            # 构建动态SQL获取所有数据库的principals
+            principals_parts = []
+            for db in database_list:
+                quoted_db = self._quote_identifier(db)
+                principals_parts.append(f"""
+                    SELECT '{db}' AS db_name, 
+                           name COLLATE SQL_Latin1_General_CP1_CI_AS AS user_name, 
+                           principal_id, 
+                           sid 
+                    FROM {quoted_db}.sys.database_principals 
+                    WHERE type IN ('S', 'U', 'G') AND name != 'dbo'
+                """)
+            
+            principals_sql = " UNION ALL ".join(principals_parts)
+            
+            all_principals = connection.execute_query(principals_sql)
+            
+            # 构建用户映射 {db: {user_name: (principal_id, sid)}}
+            db_principals = {}
+            for row in all_principals:
+                db, user_name, pid, sid = row
+                db_principals.setdefault(db, {})[user_name] = (pid, sid)
+            
+            # 构建动态SQL获取所有数据库的角色
+            roles_parts = []
+            for db in database_list:
+                quoted_db = self._quote_identifier(db)
+                roles_parts.append(f"""
+                    SELECT '{db}' AS db_name, 
+                           r.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name, 
+                           m.member_principal_id 
+                    FROM {quoted_db}.sys.database_role_members m
+                    JOIN {quoted_db}.sys.database_principals r ON m.role_principal_id = r.principal_id
+                """)
+            
+            roles_sql = " UNION ALL ".join(roles_parts)
+            
+            all_roles = connection.execute_query(roles_sql)
+            
+            # 构建动态SQL获取所有数据库的权限
+            perms_parts = []
+            for db in database_list:
+                quoted_db = self._quote_identifier(db)
+                perms_parts.append(f"""
+                    SELECT '{db}' AS db_name, 
+                           permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name, 
+                           grantee_principal_id 
+                    FROM {quoted_db}.sys.database_permissions WHERE state = 'G'
+                """)
+            
+            perms_sql = " UNION ALL ".join(perms_parts)
+            
+            all_perms = connection.execute_query(perms_sql)
+            
+            # 获取服务器登录的SID用于映射
+            login_sid_sql = """
+                SELECT name, sid 
+                FROM sys.server_principals 
+                WHERE name = %s AND type IN ('S', 'U', 'G')
+            """
+            login_info = connection.execute_query(login_sid_sql, (username,))
+            login_sid = login_info[0][1] if login_info else None
+            
+            # 在Python中聚合数据
+            database_roles = {}
+            database_permissions = {}
+            
+            # 处理角色
+            for row in all_roles:
+                db_name, role_name, member_principal_id = row
+                
+                # 查找对应的用户名
+                user_name = None
+                for u_name, (pid, sid) in db_principals.get(db_name, {}).items():
+                    if pid == member_principal_id:
+                        user_name = u_name
+                        break
+                
+                # 如果找到用户名且匹配当前用户，或者通过SID匹配
+                if user_name == username or (login_sid and any(sid == login_sid for _, (_, sid) in db_principals.get(db_name, {}).items() if pid == member_principal_id)):
+                    if db_name not in database_roles:
+                        database_roles[db_name] = []
+                    database_roles[db_name].append(role_name)
+            
+            # 处理权限
+            for row in all_perms:
+                db_name, permission_name, grantee_principal_id = row
+                
+                # 查找对应的用户名
+                user_name = None
+                for u_name, (pid, sid) in db_principals.get(db_name, {}).items():
+                    if pid == grantee_principal_id:
+                        user_name = u_name
+                        break
+                
+                # 如果找到用户名且匹配当前用户，或者通过SID匹配
+                if user_name == username or (login_sid and any(sid == login_sid for _, (_, sid) in db_principals.get(db_name, {}).items() if pid == grantee_principal_id)):
+                    if db_name not in database_permissions:
+                        database_permissions[db_name] = []
+                    database_permissions[db_name].append(permission_name)
+            
+            # 对于sysadmin用户，添加db_owner角色到所有数据库
+            if is_sysadmin:
+                for db_name in database_list:
+                    if db_name not in database_roles:
+                        database_roles[db_name] = []
+                    if 'db_owner' not in database_roles[db_name]:
+                        database_roles[db_name].append('db_owner')
+            
+            # 排序结果
+            for db_name in database_roles:
+                database_roles[db_name].sort()
+            for db_name in database_permissions:
+                database_permissions[db_name].sort()
+            
+            elapsed_time = time.time() - start_time
+            self.sync_logger.info(
+                f"批量获取数据库权限完成: {username}",
+                module="sqlserver_sync_adapter",
+                username=username,
+                database_count=len(database_list),
+                roles_count=sum(len(roles) for roles in database_roles.values()),
+                permissions_count=sum(len(perms) for perms in database_permissions.values()),
+                elapsed_time=f"{elapsed_time:.2f}s"
+            )
+            
+            return database_roles, database_permissions
+            
+        except Exception as e:
+            self.sync_logger.error(
+                f"批量获取数据库权限失败: {username}",
+                module="sqlserver_sync_adapter",
+                username=username,
+                error=str(e),
+                error_type=type(e).__name__
+            )
+            return {}, {}
+
+    def _get_all_users_database_permissions_batch(self, connection: Any, usernames: List[str]) -> Dict[str, Dict[str, Dict[str, List[str]]]]:
+        """批量获取所有用户的数据库权限 - 性能优化版本"""
+        try:
+            start_time = time.time()
+            
+            # 获取数据库列表
+            databases_sql = """
+                SELECT TOP 50 name 
+                FROM sys.databases 
+                WHERE state = 0 
+                AND name NOT IN ('master', 'tempdb', 'model', 'msdb')
+                AND HAS_DBACCESS(name) = 1
+                ORDER BY name
+            """
+            databases = connection.execute_query(databases_sql)
+            
+            if not databases:
+                return {}
+            
+            database_list = [db[0] for db in databases]
+            
+            # 获取所有用户的SID映射
+            usernames_str = "', '".join(usernames)
+            login_sids_sql = f"""
+                SELECT name, sid 
+                FROM sys.server_principals 
+                WHERE name IN ('{usernames_str}') AND type IN ('S', 'U', 'G')
+            """
+            login_sids = connection.execute_query(login_sids_sql)
+            username_to_sid = {row[0]: row[1] for row in login_sids}
+            
+            # 批量检查所有用户的sysadmin状态
+            usernames_placeholders = ', '.join(['%s'] * len(usernames))
+            sysadmin_check_sql = f"""
+                SELECT sp.name, IS_SRVROLEMEMBER('sysadmin', sp.name) as is_sysadmin
+                FROM sys.server_principals sp
+                WHERE sp.name IN ({usernames_placeholders})
+            """
+            sysadmin_results = connection.execute_query(sysadmin_check_sql, usernames)
+            sysadmin_dict = {row[0]: bool(row[1]) for row in sysadmin_results}
+            
+            # 构建动态SQL获取所有数据库的principals
+            principals_parts = []
+            for db in database_list:
+                quoted_db = self._quote_identifier(db)
+                principals_parts.append(f"""
+                    SELECT '{db}' AS db_name, 
+                           name COLLATE SQL_Latin1_General_CP1_CI_AS AS user_name, 
+                           principal_id, 
+                           sid 
+                    FROM {quoted_db}.sys.database_principals 
+                    WHERE type IN ('S', 'U', 'G') AND name != 'dbo'
+                """)
+            
+            principals_sql = " UNION ALL ".join(principals_parts)
+            all_principals = connection.execute_query(principals_sql)
+            
+            # 构建用户映射 {db: {user_name: (principal_id, sid)}}
+            db_principals = {}
+            for row in all_principals:
+                db, user_name, pid, sid = row
+                db_principals.setdefault(db, {})[user_name] = (pid, sid)
+            
+            # 构建动态SQL获取所有数据库的角色
+            roles_parts = []
+            for db in database_list:
+                quoted_db = self._quote_identifier(db)
+                roles_parts.append(f"""
+                    SELECT '{db}' AS db_name, 
+                           r.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name, 
+                           m.member_principal_id 
+                    FROM {quoted_db}.sys.database_role_members m
+                    JOIN {quoted_db}.sys.database_principals r ON m.role_principal_id = r.principal_id
+                """)
+            
+            roles_sql = " UNION ALL ".join(roles_parts)
+            
+            all_roles = connection.execute_query(roles_sql)
+            
+            # 构建动态SQL获取所有数据库的权限
+            perms_parts = []
+            for db in database_list:
+                quoted_db = self._quote_identifier(db)
+                perms_parts.append(f"""
+                    SELECT '{db}' AS db_name, 
+                           permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name, 
+                           grantee_principal_id 
+                    FROM {quoted_db}.sys.database_permissions WHERE state = 'G'
+                """)
+            
+            perms_sql = " UNION ALL ".join(perms_parts)
+            
+            all_perms = connection.execute_query(perms_sql)
+            
+            # 在Python中聚合数据
+            result = {}
+            for username in usernames:
+                result[username] = {
+                    "roles": {},
+                    "permissions": {}
+                }
+            
+            # 处理角色
+            for row in all_roles:
+                db_name, role_name, member_principal_id = row
+                
+                # 查找对应的用户名
+                user_name = None
+                for u_name, (pid, sid) in db_principals.get(db_name, {}).items():
+                    if pid == member_principal_id:
+                        user_name = u_name
+                        break
+                
+                # 如果找到用户名，添加到结果中
+                if user_name in usernames:
+                    if db_name not in result[user_name]["roles"]:
+                        result[user_name]["roles"][db_name] = []
+                    result[user_name]["roles"][db_name].append(role_name)
+                
+                # 通过SID匹配
+                for username, sid in username_to_sid.items():
+                    if sid and any(sid == db_sid for _, (_, db_sid) in db_principals.get(db_name, {}).items() if pid == member_principal_id):
+                        if db_name not in result[username]["roles"]:
+                            result[username]["roles"][db_name] = []
+                        if role_name not in result[username]["roles"][db_name]:
+                            result[username]["roles"][db_name].append(role_name)
+            
+            # 处理权限
+            for row in all_perms:
+                db_name, permission_name, grantee_principal_id = row
+                
+                # 查找对应的用户名
+                user_name = None
+                for u_name, (pid, sid) in db_principals.get(db_name, {}).items():
+                    if pid == grantee_principal_id:
+                        user_name = u_name
+                        break
+                
+                # 如果找到用户名，添加到结果中
+                if user_name in usernames:
+                    if db_name not in result[user_name]["permissions"]:
+                        result[user_name]["permissions"][db_name] = []
+                    result[user_name]["permissions"][db_name].append(permission_name)
+                
+                # 通过SID匹配
+                for username, sid in username_to_sid.items():
+                    if sid and any(sid == db_sid for _, (_, db_sid) in db_principals.get(db_name, {}).items() if pid == grantee_principal_id):
+                        if db_name not in result[username]["permissions"]:
+                            result[username]["permissions"][db_name] = []
+                        if permission_name not in result[username]["permissions"][db_name]:
+                            result[username]["permissions"][db_name].append(permission_name)
+            
+            # 对于sysadmin用户，添加db_owner角色到所有数据库
+            for username, is_sysadmin in sysadmin_dict.items():
+                if is_sysadmin:
+                    for db_name in database_list:
+                        if db_name not in result[username]["roles"]:
+                            result[username]["roles"][db_name] = []
+                        if 'db_owner' not in result[username]["roles"][db_name]:
+                            result[username]["roles"][db_name].append('db_owner')
+            
+            # 排序结果
+            for username in result:
+                for db_name in result[username]["roles"]:
+                    result[username]["roles"][db_name].sort()
+                for db_name in result[username]["permissions"]:
+                    result[username]["permissions"][db_name].sort()
+            
+            elapsed_time = time.time() - start_time
+            self.sync_logger.info(
+                f"批量获取所有用户数据库权限完成",
+                module="sqlserver_sync_adapter",
+                user_count=len(usernames),
+                database_count=len(database_list),
+                elapsed_time=f"{elapsed_time:.2f}s"
+            )
+            
+            return result
+            
+        except Exception as e:
+            self.sync_logger.error(
+                f"批量获取所有用户数据库权限失败",
+                module="sqlserver_sync_adapter",
+                error=str(e),
+                error_type=type(e).__name__
+            )
+            return {}

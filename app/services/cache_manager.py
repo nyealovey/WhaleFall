@@ -10,9 +10,9 @@ from datetime import datetime, timedelta
 
 import redis
 from app.config import Config
-from app.models.unified_log import UnifiedLog
+from app.utils.structlog_config import get_logger
 
-logger = UnifiedLog()
+logger = get_logger("cache_manager")
 
 
 class CacheManager:
