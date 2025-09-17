@@ -209,10 +209,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if account.is_active %}
+                            {% if not account.is_locked_display %}
                                 <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
                             {% else %}
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">已禁用</span>
+                                <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
                             {% endif %}
                         </td>
                         <td>
@@ -255,10 +255,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if account.is_active %}
+                            {% if not account.is_locked_display %}
                                 <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
                             {% else %}
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">已禁用</span>
+                                <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
                             {% endif %}
                         </td>
                         <td>
@@ -301,10 +301,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if account.is_active %}
+                            {% if not account.is_locked_display %}
                                 <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
                             {% else %}
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">已禁用</span>
+                                <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
                             {% endif %}
                         </td>
                         <td>
@@ -347,10 +347,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if account.is_active %}
+                            {% if not account.is_locked_display %}
                                 <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
                             {% else %}
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">已禁用</span>
+                                <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
                             {% endif %}
                         </td>
                         <td>
@@ -398,10 +398,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if account.is_active %}
+                            {% if not account.is_locked_display %}
                                 <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
                             {% else %}
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">已禁用</span>
+                                <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
                             {% endif %}
                         </td>
                         <td>

@@ -1339,7 +1339,7 @@ function displayMatchedAccounts(accounts, ruleName) {
             // 账户状态
             const lockStatus = account.is_active
                 ? '<span class="badge bg-success" style="font-size: 0.7rem;">正常</span>'
-                : '<span class="badge bg-danger" style="font-size: 0.7rem;">已禁用</span>';
+                : '<span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>';
 
             html += `
                 <tr class="small">

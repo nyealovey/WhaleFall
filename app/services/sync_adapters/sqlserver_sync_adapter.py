@@ -211,10 +211,12 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 # 判断是否为超级用户
                 is_superuser = username.lower() == "sa" or "sysadmin" in permissions.get("server_roles", [])
                 
+                # 将锁定状态信息添加到type_specific中
+                permissions["type_specific"]["is_disabled"] = is_disabled
+                
                 account_data = {
                     "username": username,
                     "is_superuser": is_superuser,
-                    "is_active": not is_disabled,  # SQL Server: !is_disabled决定激活状态
                     "is_disabled": is_disabled,
                     "login_type": login_type,
                     "type_code": type_code,
@@ -598,12 +600,12 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 
                 return {
                     "principal_id": principal_id,
-                    "is_locked": is_disabled,  # SQL Server的is_disabled映射到is_locked
                     "account_type": type_desc,
                     "default_database": default_database,
                     "default_language": default_language,
                     "is_expiration_checked": bool(is_expiration_checked) if is_expiration_checked is not None else None,
                     "is_policy_checked": bool(is_policy_checked) if is_policy_checked is not None else None
+                    # 移除is_locked，因为已有专门的is_active字段
                 }
             return {}
         except Exception as e:
@@ -660,6 +662,14 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             changes["is_superuser"] = {
                 "old": existing_account.is_superuser,
                 "new": is_superuser
+            }
+
+        # 检测is_active状态变更（从type_specific中获取）
+        new_is_active = new_permissions.get("type_specific", {}).get("is_active", False)
+        if existing_account.is_active != new_is_active:
+            changes["is_active"] = {
+                "old": existing_account.is_active,
+                "new": new_is_active
             }
 
         # 检测服务器角色变更
@@ -734,7 +744,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         return changes
 
     def _update_account_permissions(self, account: CurrentAccountSyncData, 
-                                   permissions_data: Dict[str, Any], is_superuser: bool, is_active: bool = None) -> None:
+                                   permissions_data: Dict[str, Any], is_superuser: bool) -> None:
         """更新SQL Server账户权限信息"""
         try:
             account.server_roles = permissions_data.get("server_roles", [])
@@ -743,8 +753,8 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             account.database_permissions = permissions_data.get("database_permissions", {})
             account.type_specific = permissions_data.get("type_specific", {})
             account.is_superuser = is_superuser
-            if is_active is not None:
-                account.is_active = is_active
+            # 从type_specific中获取is_active状态
+            account.is_active = permissions_data.get("type_specific", {}).get("is_active", False)
             account.is_deleted = False  # 重置删除状态
             account.deleted_time = None  # 清除删除时间
             account.last_change_type = "modify_privilege"
@@ -756,7 +766,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
     def _create_new_account(self, instance_id: int, db_type: str, username: str,
                            permissions_data: Dict[str, Any], is_superuser: bool,
-                           session_id: str, is_active: bool = True) -> CurrentAccountSyncData:
+                           session_id: str) -> CurrentAccountSyncData:
         """创建新的SQL Server账户记录"""
         return CurrentAccountSyncData(
             instance_id=instance_id,
@@ -768,7 +778,8 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             database_permissions=permissions_data.get("database_permissions", {}),
             type_specific=permissions_data.get("type_specific", {}),
             is_superuser=is_superuser,
-            is_active=is_active,
+            # 从type_specific中获取is_active状态
+            is_active=permissions_data.get("type_specific", {}).get("is_active", False),
             last_change_type="add",
             session_id=session_id
         )

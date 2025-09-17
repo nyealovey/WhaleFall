@@ -98,13 +98,9 @@ def get_account_statistics() -> dict:
             locked_count = 0
             
             for account in accounts:
-                if account.type_specific and 'is_locked' in account.type_specific:
-                    if account.type_specific['is_locked'] == True:
-                        locked_count += 1
-                    else:
-                        active_count += 1
+                if not account.is_active:  # 使用is_active字段
+                    locked_count += 1
                 else:
-                    # 如果没有锁定信息，认为是活跃的
                     active_count += 1
 
             db_type_stats[db_type] = {
@@ -123,13 +119,9 @@ def get_account_statistics() -> dict:
             locked_count = 0
             
             for account in accounts:
-                if account.type_specific and 'is_locked' in account.type_specific:
-                    if account.type_specific['is_locked'] == True:
-                        locked_count += 1
-                    else:
-                        active_count += 1
+                if not account.is_active:  # 使用is_active字段
+                    locked_count += 1
                 else:
-                    # 如果没有锁定信息，认为是活跃的
                     active_count += 1
 
             instance_stats.append(
@@ -154,13 +146,9 @@ def get_account_statistics() -> dict:
             locked_count = 0
             
             for account in accounts:
-                if account.type_specific and 'is_locked' in account.type_specific:
-                    if account.type_specific['is_locked'] == True:
-                        locked_count += 1
-                    else:
-                        active_count += 1
+                if not account.is_active:  # 使用is_active字段
+                    locked_count += 1
                 else:
-                    # 如果没有锁定信息，认为是活跃的
                     active_count += 1
 
             environment_stats[env]["total"] += total_count
@@ -238,7 +226,7 @@ def get_account_statistics() -> dict:
                     "username": account.username,
                     "instance_name": (account.instance.name if account.instance else "Unknown"),
                     "db_type": (account.instance.db_type if account.instance else "Unknown"),
-                    "is_locked": False,  # CurrentAccountSyncData模型中没有is_locked字段
+                    "is_locked": account.is_locked_display,  # 使用计算字段
                     "created_at": (account.sync_time.isoformat() if account.sync_time else None),
                     "last_login": None,  # CurrentAccountSyncData模型中没有last_login字段
                 }

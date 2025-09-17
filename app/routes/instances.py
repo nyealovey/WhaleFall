@@ -475,7 +475,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
             "host": type_specific.get("host", "%"),
             "plugin": type_specific.get("plugin", ""),
             "account_type": sync_account.db_type,
-            "is_locked": type_specific.get("is_locked", False),
+            "is_locked": sync_account.is_locked_display,  # 使用计算字段
             "is_active": not sync_account.is_deleted,
             "account_created_at": type_specific.get("account_created_at"),
             "last_sync_time": sync_account.last_sync_time,
@@ -1362,7 +1362,7 @@ def api_get_accounts(instance_id: int) -> Response:
                 "id": account.id,
                 "username": account.username,
                 "is_superuser": account.is_superuser,
-                "is_locked": account.is_locked,
+                "is_locked": not account.is_active,  # 使用is_active字段的反向值
                 "is_deleted": account.is_deleted,
                 "last_change_time": account.last_change_time.isoformat() if account.last_change_time else None,
                 "type_specific": type_specific,

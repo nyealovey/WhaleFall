@@ -723,10 +723,11 @@ class BaseSyncAdapter(ABC):
         """确定变更类型"""
         # 检查是否只有type_specific变更
         if len(changes) == 1 and "type_specific" in changes:
-            return "modify_type"
+            return "modify_other"
         
         # 检查是否包含权限相关变更
         permission_fields = [
+            "is_superuser",  # 超级用户状态是权限相关
             "global_privileges", "database_privileges", "predefined_roles",
             "role_attributes", "server_roles", "server_permissions",
             "database_roles", "database_permissions", "roles",
@@ -735,4 +736,4 @@ class BaseSyncAdapter(ABC):
         
         has_permission_changes = any(field in changes for field in permission_fields)
         
-        return "modify_privilege" if has_permission_changes else "modify_type"
+        return "modify_privilege" if has_permission_changes else "modify_other"

@@ -301,10 +301,10 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if account.is_active %}
+                                    {% if not account.is_locked %}
                                         <span class="badge bg-success" style="font-size: 0.75em;">正常</span>
                                     {% else %}
-                                        <span class="badge bg-danger" style="font-size: 0.75em;">已禁用</span>
+                                        <span class="badge bg-danger" style="font-size: 0.75em;">已锁定</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -360,10 +360,10 @@
                                     </div>
                                 </td>
                                 <td>
-                                    {% if account.is_active %}
+                                    {% if not account.is_locked %}
                                         <span class="badge bg-success">正常</span>
                                     {% else %}
-                                        <span class="badge bg-danger">已禁用</span>
+                                        <span class="badge bg-danger">已锁定</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -419,10 +419,10 @@
                                     </div>
                                 </td>
                                 <td>
-                                    {% if account.is_active %}
+                                    {% if not account.is_locked %}
                                         <span class="badge bg-success">正常</span>
                                     {% else %}
-                                        <span class="badge bg-danger">已禁用</span>
+                                        <span class="badge bg-danger">已锁定</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -478,17 +478,13 @@
                                     </div>
                                 </td>
                                 <td>
-                                    {% if account.is_locked %}
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-lock me-1"></i>锁定
-                                        </span>
-                                    {% elif account.is_active %}
+                                    {% if not account.is_locked %}
                                         <span class="badge bg-success">
                                             <i class="fas fa-check-circle me-1"></i>正常
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-secondary">
-                                            <i class="fas fa-times-circle me-1"></i>禁用
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-lock me-1"></i>已锁定
                                         </span>
                                     {% endif %}
                                 </td>
@@ -572,10 +568,10 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if account.is_active %}
+                                    {% if not account.is_locked %}
                                         <span class="badge bg-success">正常</span>
                                     {% else %}
-                                        <span class="badge bg-danger">已禁用</span>
+                                        <span class="badge bg-danger">已锁定</span>
                                     {% endif %}
                                 </td>
                                 <td>

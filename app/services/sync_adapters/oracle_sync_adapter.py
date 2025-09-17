@@ -61,10 +61,12 @@ class OracleSyncAdapter(BaseSyncAdapter):
                 # 判断激活状态
                 is_active = account_status.upper() == 'OPEN'
                 
+                # 将锁定状态信息添加到type_specific中
+                permissions["type_specific"]["account_status"] = account_status
+                
                 account_data = {
                     "username": username,
                     "is_superuser": is_superuser,
-                    "is_active": is_active,  # Oracle: account_status='OPEN'决定激活状态
                     "account_status": account_status,
                     "created": created.isoformat() if created else None,
                     "expiry_date": expiry_date.isoformat() if expiry_date else None,
@@ -291,18 +293,14 @@ class OracleSyncAdapter(BaseSyncAdapter):
                 (user_id, account_status, default_tablespace, temporary_tablespace,
                  profile, created, expiry_date) = result[0]
                 
-                # 解析Oracle账户状态
-                is_locked = account_status in ['LOCKED', 'LOCKED(TIMED)', 'EXPIRED(GRACE)', 'EXPIRED']
-                
                 return {
                     "user_id": user_id,
-                    "is_locked": is_locked,
-                    "account_status": account_status,
                     "default_tablespace": default_tablespace,
                     "temporary_tablespace": temporary_tablespace,
                     "profile": profile,
                     "created": created.isoformat() if created else None,
                     "expiry_date": expiry_date.isoformat() if expiry_date else None
+                    # 移除is_locked和account_status，因为已有专门的is_active字段
                 }
             return {}
         except Exception as e:
@@ -331,6 +329,14 @@ class OracleSyncAdapter(BaseSyncAdapter):
             changes["is_superuser"] = {
                 "old": existing_account.is_superuser,
                 "new": is_superuser
+            }
+
+        # 检测is_active状态变更（从type_specific中获取）
+        new_is_active = new_permissions.get("type_specific", {}).get("is_active", False)
+        if existing_account.is_active != new_is_active:
+            changes["is_active"] = {
+                "old": existing_account.is_active,
+                "new": new_is_active
             }
 
         # 检测角色变更
@@ -385,15 +391,15 @@ class OracleSyncAdapter(BaseSyncAdapter):
         return changes
 
     def _update_account_permissions(self, account: CurrentAccountSyncData, 
-                                   permissions_data: Dict[str, Any], is_superuser: bool, is_active: bool = None) -> None:
+                                   permissions_data: Dict[str, Any], is_superuser: bool) -> None:
         """更新Oracle账户权限信息"""
         account.oracle_roles = permissions_data.get("roles", [])
         account.system_privileges = permissions_data.get("system_privileges", [])
         account.tablespace_privileges_oracle = permissions_data.get("tablespace_privileges", {})
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
-        if is_active is not None:
-            account.is_active = is_active
+        # 从type_specific中获取is_active状态
+        account.is_active = permissions_data.get("type_specific", {}).get("is_active", False)
         account.is_deleted = False  # 重置删除状态
         account.deleted_time = None  # 清除删除时间
         account.last_change_type = "modify_privilege"
@@ -402,7 +408,7 @@ class OracleSyncAdapter(BaseSyncAdapter):
 
     def _create_new_account(self, instance_id: int, db_type: str, username: str,
                            permissions_data: Dict[str, Any], is_superuser: bool,
-                           session_id: str, is_active: bool = True) -> CurrentAccountSyncData:
+                           session_id: str) -> CurrentAccountSyncData:
         """创建新的Oracle账户记录"""
         return CurrentAccountSyncData(
             instance_id=instance_id,
@@ -413,7 +419,8 @@ class OracleSyncAdapter(BaseSyncAdapter):
             tablespace_privileges_oracle=permissions_data.get("tablespace_privileges", {}),
             type_specific=permissions_data.get("type_specific", {}),
             is_superuser=is_superuser,
-            is_active=is_active,
+            # 从type_specific中获取is_active状态
+            is_active=permissions_data.get("type_specific", {}).get("is_active", False),
             last_change_type="add",
             session_id=session_id
         )

@@ -448,7 +448,7 @@ def get_matched_accounts(rule_id: int) -> "Response":
                             "instance_host": (account.instance.host if account.instance else "未知IP"),
                             "instance_environment": (account.instance.environment if account.instance else "unknown"),
                             "db_type": rule.db_type,
-                            "is_locked": getattr(account, "is_locked", False),
+                            "is_locked": account.is_locked_display,  # 使用计算字段
                             "classifications": account_classifications,
                         }
                     )

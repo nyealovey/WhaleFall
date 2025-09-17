@@ -50,19 +50,14 @@ def list_accounts(db_type: str | None = None) -> str:
     if search:
         query = query.filter(CurrentAccountSyncData.username.contains(search))
 
-    # 锁定状态过滤
+    # 锁定状态过滤（使用is_active字段）
     if is_locked is not None:
         if is_locked == "true":
-            # 查找 type_specific 中包含 is_locked: true 的记录
-            query = query.filter(CurrentAccountSyncData.type_specific.contains({"is_locked": True}))
+            # 查找 is_active = False 的记录（已锁定）
+            query = query.filter(CurrentAccountSyncData.is_active == False)
         elif is_locked == "false":
-            # 查找 type_specific 中不包含 is_locked: true 或 is_locked: false 的记录
-            query = query.filter(
-                db.or_(
-                    CurrentAccountSyncData.type_specific.is_(None),
-                    ~CurrentAccountSyncData.type_specific.contains({"is_locked": True})
-                )
-            )
+            # 查找 is_active = True 的记录（正常）
+            query = query.filter(CurrentAccountSyncData.is_active == True)
 
     # 超级用户过滤
     if is_superuser is not None:
@@ -215,19 +210,14 @@ def export_accounts() -> "Response":
     if search:
         query = query.filter(CurrentAccountSyncData.username.contains(search))
 
-    # 锁定状态过滤
+    # 锁定状态过滤（使用is_active字段）
     if is_locked is not None:
         if is_locked == "true":
-            # 查找 type_specific 中包含 is_locked: true 的记录
-            query = query.filter(CurrentAccountSyncData.type_specific.contains({"is_locked": True}))
+            # 查找 is_active = False 的记录（已锁定）
+            query = query.filter(CurrentAccountSyncData.is_active == False)
         elif is_locked == "false":
-            # 查找 type_specific 中不包含 is_locked: true 或 is_locked: false 的记录
-            query = query.filter(
-                db.or_(
-                    CurrentAccountSyncData.type_specific.is_(None),
-                    ~CurrentAccountSyncData.type_specific.contains({"is_locked": True})
-                )
-            )
+            # 查找 is_active = True 的记录（正常）
+            query = query.filter(CurrentAccountSyncData.is_active == True)
 
     # 超级用户过滤
     if is_superuser is not None:
@@ -280,7 +270,7 @@ def export_accounts() -> "Response":
         # 格式化锁定状态（与页面显示一致）
         is_locked = False
         if account.type_specific and isinstance(account.type_specific, dict):
-            is_locked = account.type_specific.get('is_locked', False)
+            is_locked = account.is_locked_display  # 使用计算字段
         
         if is_locked:
             if instance and instance.db_type == "sqlserver":

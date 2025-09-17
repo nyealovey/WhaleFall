@@ -207,11 +207,7 @@ def get_system_overview() -> dict:
         all_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).all()
         active_accounts = 0
         for account in all_accounts:
-            if account.type_specific and 'is_locked' in account.type_specific:
-                if account.type_specific['is_locked'] == False:
-                    active_accounts += 1
-            else:
-                # 如果没有锁定信息，认为是活跃的
+            if account.is_active:  # 使用is_active字段
                 active_accounts += 1
 
         # 今日日志数（东八区）
