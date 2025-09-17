@@ -35,11 +35,7 @@ class MySQLSyncAdapter(BaseSyncAdapter):
                 SELECT
                     User as username,
                     Host as host,
-                    Super_priv as is_superuser,
-                    Grant_priv as can_grant,
-                    account_locked as is_locked,
-                    plugin as plugin,
-                    password_last_changed as password_last_changed
+                    Super_priv as is_superuser
                 FROM mysql.user
                 WHERE User != '' AND {where_clause}
                 ORDER BY User, Host
@@ -49,12 +45,12 @@ class MySQLSyncAdapter(BaseSyncAdapter):
             
             accounts = []
             for user_row in users:
-                username, host, is_superuser, can_grant, is_locked, plugin, password_last_changed = user_row
+                username, host, is_superuser = user_row
                 
                 # 为MySQL创建包含主机名的唯一用户名
                 unique_username = f"{username}@{host}"
                 
-                # 获取用户权限
+                # 获取用户权限（包含所有type_specific信息）
                 permissions = self._get_user_permissions(connection, username, host)
                 
                 account_data = {
@@ -62,10 +58,6 @@ class MySQLSyncAdapter(BaseSyncAdapter):
                     "original_username": username,
                     "host": host,
                     "is_superuser": is_superuser == "Y",
-                    "can_grant": can_grant == "Y",
-                    "is_locked": is_locked == "Y",
-                    "plugin": plugin,
-                    "password_last_changed": password_last_changed.isoformat() if password_last_changed else None,
                     "permissions": permissions
                 }
                 
@@ -120,14 +112,39 @@ class MySQLSyncAdapter(BaseSyncAdapter):
             for grant_statement in grant_statements:
                 self._parse_grant_statement(grant_statement, global_privileges, database_privileges)
 
+            # 获取用户的额外属性信息
+            user_attrs_sql = """
+                SELECT
+                    Grant_priv as can_grant,
+                    account_locked as is_locked,
+                    plugin as plugin,
+                    password_last_changed as password_last_changed
+                FROM mysql.user
+                WHERE User = %s AND Host = %s
+            """
+            user_attrs = connection.execute_query(user_attrs_sql, (username, host))
+            
+            # 构建type_specific信息
+            type_specific = {
+                "host": host,
+                "original_username": username,
+                "grant_statements": grant_statements
+            }
+            
+            # 添加用户属性信息
+            if user_attrs:
+                attrs = user_attrs[0]
+                type_specific.update({
+                    "can_grant": attrs[0] == "Y",
+                    "is_locked": attrs[1] == "Y", 
+                    "plugin": attrs[2],
+                    "password_last_changed": attrs[3].isoformat() if attrs[3] else None
+                })
+
             return {
                 "global_privileges": global_privileges,
                 "database_privileges": database_privileges,
-                "type_specific": {
-                    "host": host,
-                    "original_username": username,
-                    "grant_statements": grant_statements
-                }
+                "type_specific": type_specific
             }
 
         except Exception as e:
