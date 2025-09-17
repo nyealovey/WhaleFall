@@ -486,6 +486,11 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
             "type_specific": sync_account.type_specific,
             "is_deleted": sync_account.is_deleted,
             "deleted_time": sync_account.deleted_time,
+            # 添加权限数据
+            "server_roles": sync_account.server_roles or [],
+            "server_permissions": sync_account.server_permissions or [],
+            "database_roles": sync_account.database_roles or {},
+            "database_permissions": sync_account.database_permissions or {},
         }
         accounts.append(account_data)
 
@@ -1362,7 +1367,12 @@ def api_get_accounts(instance_id: int) -> Response:
                 "is_locked": account.is_locked,
                 "is_deleted": account.is_deleted,
                 "last_change_time": account.last_change_time.isoformat() if account.last_change_time else None,
-                "type_specific": type_specific
+                "type_specific": type_specific,
+                # 添加权限数据
+                "server_roles": account.server_roles or [],
+                "server_permissions": account.server_permissions or [],
+                "database_roles": account.database_roles or {},
+                "database_permissions": account.database_permissions or {},
             }
             
             # 根据数据库类型添加特定字段

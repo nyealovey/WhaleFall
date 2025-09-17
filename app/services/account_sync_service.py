@@ -1,288 +1,269 @@
 """
-泰摸鱼吧 - 账户同步服务
-统一处理手动同步和定时任务的账户同步逻辑
+泰摸鱼吧 - 账户同步服务 (重构版)
+统一入口处理所有类型的账户同步逻辑
 """
 
-# 可选导入数据库驱动
-try:
-    import psycopg
-except ImportError:
-    psycopg = None
-
-try:
-    import pyodbc
-except ImportError:
-    pyodbc = None
-
-try:
-    import oracledb
-except ImportError:
-    oracledb = None
-
-from typing import Any
+from typing import Any, Optional
+from uuid import uuid4
 
 from app import db
 from app.models import Instance
 from app.services.sync_data_manager import SyncDataManager
+from app.services.sync_session_service import sync_session_service
+from app.services.database_service import DatabaseService
 from app.utils.structlog_config import get_sync_logger
 from app.utils.timezone import now
 
 
 class AccountSyncService:
-    """账户同步服务 - 统一处理所有账户同步逻辑"""
+    """
+    账户同步服务 - 统一入口
+    
+    支持四种同步类型：
+    - MANUAL_SINGLE: 手动单实例同步 (无会话)
+    - MANUAL_BATCH: 手动批量同步 (有会话)
+    - MANUAL_TASK: 手动任务同步 (有会话)
+    - SCHEDULED_TASK: 定时任务同步 (有会话)
+    """
 
     def __init__(self) -> None:
         self.sync_logger = get_sync_logger()
+        self.sync_data_manager = SyncDataManager()
+        self.database_service = DatabaseService()
 
-    def sync_accounts(self, instance: Instance, sync_type: str = "batch", session_id: str = None) -> dict[str, Any]:
+    def sync_accounts(self, instance: Instance, sync_type: str = "manual_single", session_id: Optional[str] = None, created_by: Optional[int] = None) -> dict[str, Any]:
         """
-        同步账户信息 - 统一入口
-
+        统一账户同步入口
+        
         Args:
             instance: 数据库实例
             sync_type: 同步类型 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
-            session_id: 同步会话ID（可选）
-
+            session_id: 同步会话ID（batch类型需要）
+            created_by: 创建者ID（手动同步需要）
+            
         Returns:
             Dict: 同步结果
         """
         try:
             self.sync_logger.info(
                 "开始账户同步",
-                module="account_sync",
+                module="account_sync_unified",
                 instance_name=instance.name,
                 db_type=instance.db_type,
                 sync_type=sync_type,
                 session_id=session_id,
             )
 
-            # 获取数据库连接
-            conn = self._get_connection(instance)
-            if not conn:
-                error_msg = "无法获取数据库连接"
-                self.sync_logger.error(
-                    "无法获取数据库连接",
-                    module="account_sync",
-                    instance_name=instance.name,
-                    db_type=instance.db_type,
-                )
-                return {"success": False, "error": error_msg}
-
-            # 获取数据库版本信息
-            version_info = self._get_database_version(instance, conn)
-            if version_info and version_info != instance.database_version:
-                from app import db
-                instance.database_version = version_info
-                db.session.commit()
-                self.sync_logger.info(
-                    f"更新数据库版本: {version_info}",
-                    module="account_sync",
-                    instance_name=instance.name,
-                    db_type=instance.db_type,
-                )
-
-            # 使用SyncDataManager进行同步
-            if not session_id:
-                import uuid
-
-                session_id = str(uuid.uuid4())
-
-            sync_manager = SyncDataManager()
-
-            # 根据数据库类型执行同步
-            self.sync_logger.info(
-                "开始数据库账户同步",
-                module="account_sync",
+            # 根据同步类型决定是否需要会话管理
+            needs_session = sync_type in ["manual_batch", "manual_task", "scheduled_task"]
+            
+            if needs_session and not session_id:
+                # 批量同步类型需要会话管理
+                return self._sync_with_session(instance, sync_type, created_by)
+            elif sync_type == "manual_single":
+                # 单实例同步不需要会话
+                return self._sync_single_instance(instance)
+            else:
+                # 已有会话ID的批量同步
+                return self._sync_with_existing_session(instance, session_id)
+                
+        except Exception as e:
+            self.sync_logger.error(
+                "同步过程发生异常",
+                module="account_sync_unified",
                 instance_name=instance.name,
                 db_type=instance.db_type,
+                sync_type=sync_type,
+                error=str(e)
+            )
+            return {
+                "success": False,
+                "error": f"同步失败: {str(e)}",
+                "synced_count": 0,
+                "added_count": 0,
+                "modified_count": 0,
+                "removed_count": 0,
+            }
+
+    def _sync_single_instance(self, instance: Instance) -> dict[str, Any]:
+        """
+        单实例同步 - 无会话管理
+        用于实例页面的直接同步调用
+        """
+        try:
+            # 获取数据库连接
+            conn = self.database_service.get_connection(instance)
+            if not conn:
+                return {"success": False, "error": "无法获取数据库连接"}
+
+            # 更新数据库版本信息
+            self._update_database_version(instance, conn)
+
+            # 生成临时会话ID用于日志追踪
+            temp_session_id = str(uuid4())
+
+            # 执行同步
+            result = self.sync_data_manager.sync_accounts(
+                instance=instance,
+                connection=conn,
+                session_id=temp_session_id
             )
 
-            if instance.db_type == "mysql":
-                result = sync_manager.sync_mysql_accounts(instance, conn, session_id)
-            elif instance.db_type == "postgresql":
-                self.sync_logger.info(
-                    "调用PostgreSQL账户同步函数",
-                    module="account_sync",
-                    instance_name=instance.name,
-                )
-                result = sync_manager.sync_postgresql_accounts(instance, conn, session_id)
-                self.sync_logger.info(
-                    "PostgreSQL同步完成",
-                    module="account_sync",
-                    instance_name=instance.name,
-                    synced_count=result.get("synced_count", 0),
-                )
-            elif instance.db_type == "sqlserver":
-                result = sync_manager.sync_sqlserver_accounts(instance, conn, session_id)
-            elif instance.db_type == "oracle":
-                result = sync_manager.sync_oracle_accounts(instance, conn, session_id)
-            else:
-                error_msg = f"不支持的数据库类型: {instance.db_type}"
-                self.sync_logger.warning(
-                    "不支持的数据库类型",
-                    module="account_sync",
-                    instance_name=instance.name,
-                    db_type=instance.db_type,
-                )
-                return {
-                    "success": False,
-                    "error": error_msg,
-                }
-
-            synced_count = result["synced_count"]
-            added_count = result["added_count"]
-            removed_count = result["removed_count"]
-            modified_count = result["modified_count"]
-
-            # 计算变化
-            from app.models.current_account_sync_data import CurrentAccountSyncData
-
-            after_count = CurrentAccountSyncData.query.filter_by(
-                instance_id=instance.id, db_type=instance.db_type
-            ).count()
-            net_change = after_count - (before_count := 0)  # 简化计算
-
-            # 创建同步报告记录（定时任务跳过单个实例记录，只创建聚合记录）
-            if sync_type == "batch":
-                # 移除SyncData导入，使用新的同步会话模型
-                # 同步会话记录已通过sync_session_service管理，无需额外创建记录
-                pass
-
-            # 更新实例的最后连接时间
+            # 关闭连接
+            self.database_service.close_connection(instance)
+            
+            # 更新实例最后连接时间
             instance.last_connected_at = now()
             db.session.commit()
 
             self.sync_logger.info(
-                "账户同步完成",
-                module="account_sync",
+                "单实例同步完成",
+                module="account_sync_unified",
                 instance_name=instance.name,
-                synced_count=synced_count,
-                added_count=added_count,
-                removed_count=removed_count,
-                modified_count=modified_count,
-                net_change=net_change,
+                synced_count=result.get("synced_count", 0),
+                added_count=result.get("added_count", 0),
+                modified_count=result.get("modified_count", 0),
+                removed_count=result.get("removed_count", 0),
             )
 
-            return {
-                "success": True,
-                "message": f"成功同步 {synced_count} 个账户",
-                "synced_count": synced_count,
-                "added_count": added_count,
-                "removed_count": removed_count,
-                "modified_count": modified_count,
-                "net_change": net_change,
-                "session_id": session_id,
-            }
+            return result
 
         except Exception as e:
             self.sync_logger.error(
-                "账户同步失败",
-                module="account_sync",
+                "单实例同步失败",
+                module="account_sync_unified", 
                 instance_name=instance.name,
-                db_type=instance.db_type,
-                error=str(e),
+                error=str(e)
             )
-            return {"success": False, "error": f"账户同步失败: {str(e)}"}
+            return {"success": False, "error": f"同步失败: {str(e)}"}
 
-    def _get_connection(self, instance: Instance) -> Any | None:
+    def _sync_with_session(self, instance: Instance, sync_type: str, created_by: Optional[int]) -> dict[str, Any]:
         """
-        获取数据库连接
-
-        Args:
-            instance: 数据库实例
-
-        Returns:
-            数据库连接对象或None
+        带会话管理的同步 - 用于批量同步
         """
         try:
-            from app.services.connection_factory import ConnectionFactory
+            # 创建同步会话
+            session = sync_session_service.create_session(
+                sync_type=sync_type,
+                sync_category="account", 
+                created_by=created_by
+            )
 
-            connection_obj = ConnectionFactory.create_connection(instance)
-            if connection_obj.connect():
-                return connection_obj
-            return None
+            # 添加实例记录
+            records = sync_session_service.add_instance_records(
+                session.session_id, 
+                [instance.id]
+            )
+            
+            if not records:
+                return {"success": False, "error": "创建实例记录失败"}
+
+            record = records[0]
+            
+            # 开始实例同步
+            sync_session_service.start_instance_sync(record.id)
+
+            # 执行实际同步
+            result = self._sync_with_existing_session(instance, session.session_id)
+
+            # 更新实例同步状态
+            if result["success"]:
+                sync_session_service.complete_instance_sync(
+                    record.id,
+                    accounts_synced=result.get("synced_count", 0),
+                    accounts_created=result.get("added_count", 0),
+                    accounts_updated=result.get("modified_count", 0), 
+                    accounts_deleted=result.get("removed_count", 0),
+                    sync_details=result.get("details", {})
+                )
+            else:
+                sync_session_service.fail_instance_sync(
+                    record.id,
+                    error_message=result.get("error", "同步失败"),
+                    sync_details=result.get("details", {})
+                )
+
+            return result
 
         except Exception as e:
             self.sync_logger.error(
-                "获取数据库连接失败",
-                module="account_sync",
+                "会话同步失败",
+                module="account_sync_unified",
                 instance_name=instance.name,
-                db_type=instance.db_type,
-                error=str(e),
+                sync_type=sync_type,
+                error=str(e)
             )
-            return None
+            return {"success": False, "error": f"会话同步失败: {str(e)}"}
 
-    def _get_database_version(self, instance: Instance, conn: Any) -> str | None:
+    def _sync_with_existing_session(self, instance: Instance, session_id: str) -> dict[str, Any]:
         """
-        获取数据库版本信息
-
-        Args:
-            instance: 数据库实例
-            conn: 数据库连接
-
-        Returns:
-            版本信息字符串
+        使用现有会话ID进行同步
         """
         try:
-            if hasattr(conn, "get_version"):
-                return conn.get_version()
-            return "未知版本"
+            # 获取数据库连接
+            conn = self.database_service.get_connection(instance)
+            if not conn:
+                return {"success": False, "error": "无法获取数据库连接"}
+
+            # 更新数据库版本信息
+            self._update_database_version(instance, conn)
+
+            # 执行同步
+            result = self.sync_data_manager.sync_accounts(
+                instance=instance,
+                connection=conn,
+                session_id=session_id
+            )
+
+            # 关闭连接
+            self.database_service.close_connection(instance)
+
+            # 更新实例最后连接时间
+            instance.last_connected_at = now()
+            db.session.commit()
+
+            return result
+
         except Exception as e:
             self.sync_logger.error(
-                "获取数据库版本失败",
-                module="account_sync",
+                "现有会话同步失败",
+                module="account_sync_unified",
                 instance_name=instance.name,
-                db_type=instance.db_type,
-                error=str(e),
+                session_id=session_id,
+                error=str(e)
             )
-            return "版本获取失败"
+            return {"success": False, "error": f"同步失败: {str(e)}"}
 
-    def _get_account_snapshot(self, instance: Instance) -> dict[str, Any]:
-        """
-        获取同步前的账户快照
-
-        Args:
-            instance: 数据库实例
-
-        Returns:
-            账户快照字典
-        """
+    def _update_database_version(self, instance: Instance, conn) -> None:
+        """更新数据库版本信息"""
         try:
-            from app.models.current_account_sync_data import CurrentAccountSyncData
-
-            # 获取优化同步数据表的快照
-            existing_accounts = CurrentAccountSyncData.query.filter_by(
-                instance_id=instance.id, db_type=instance.db_type, is_deleted=False
-            ).all()
-
-            snapshot = {}
-            for account in existing_accounts:
-                key = f"{account.username}"
-                snapshot[key] = {
-                    "id": account.id,
-                    "username": account.username,
-                    "is_superuser": account.is_superuser,
-                    "last_sync_time": account.last_sync_time,
-                    "last_change_time": account.last_change_time,
-                }
-
-            self.sync_logger.info(
-                "获取账户快照完成",
-                module="account_sync",
-                instance_name=instance.name,
-                snapshot_count=len(snapshot),
-            )
-
-            return snapshot
-
+            version_info = self.database_service.get_database_version(instance, conn)
+            if version_info and version_info != instance.database_version:
+                from app.utils.version_parser import DatabaseVersionParser
+                
+                # 解析版本信息
+                parsed = DatabaseVersionParser.parse_version(instance.db_type.lower(), version_info)
+                
+                # 更新实例的版本信息
+                instance.database_version = parsed['original']
+                instance.main_version = parsed['main_version']
+                instance.detailed_version = parsed['detailed_version']
+                
+                db.session.commit()
+                
+                self.sync_logger.info(
+                    "更新数据库版本",
+                    module="account_sync_unified",
+                    instance_name=instance.name,
+                    version=version_info
+                )
         except Exception as e:
-            self.sync_logger.error(
-                "获取账户快照失败",
-                module="account_sync",
+            self.sync_logger.warning(
+                "更新数据库版本失败",
+                module="account_sync_unified",
                 instance_name=instance.name,
-                error=str(e),
+                error=str(e)
             )
-            return {}
 
 
 # 创建服务实例

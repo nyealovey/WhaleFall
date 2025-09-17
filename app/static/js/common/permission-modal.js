@@ -151,7 +151,7 @@ function renderMySQLPermissions(permissions) {
         </div>
         <div class="mb-3">
             <h6><i class="fas fa-database text-success me-2"></i>数据库权限</h6>
-            ${permissions.database_permissions && Array.isArray(permissions.database_permissions) && permissions.database_permissions.length > 0 ? `
+            ${permissions.database_privileges && typeof permissions.database_privileges === 'object' && Object.keys(permissions.database_privileges).length > 0 ? `
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead>
@@ -161,11 +161,11 @@ function renderMySQLPermissions(permissions) {
                             </tr>
                         </thead>
                         <tbody>
-                            ${permissions.database_permissions.map(db => `
+                            ${Object.entries(permissions.database_privileges).map(([dbName, privileges]) => `
                                 <tr>
-                                    <td>${db.database}</td>
+                                    <td>${dbName}</td>
                                     <td>
-                                        ${Array.isArray(db.privileges) ? db.privileges.map(priv => `
+                                        ${Array.isArray(privileges) ? privileges.map(priv => `
                                             <span class="badge bg-success me-1">${priv}</span>
                                         `).join('') : '<span class="text-muted">无权限</span>'}
                                     </td>

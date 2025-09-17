@@ -1,0 +1,27 @@
+# SQL Server同步性能优化配置
+
+sqlserver_sync:
+  # 数据库处理限制
+  max_databases_per_sync: 50
+  
+  # 查询超时设置
+  connection_timeout: 30
+  query_timeout: 300
+  
+  # 批量处理设置
+  batch_size: 100
+  
+  # 错误处理设置
+  max_failures_per_instance: 10
+  continue_on_database_error: true
+  
+  # 系统数据库处理
+  exclude_system_databases: true
+  system_databases: ["master", "tempdb", "model", "msdb"]
+  
+  # 权限检查
+  check_database_access: true
+  
+  # 日志级别
+  debug_logging: false
+  detailed_stats: true
