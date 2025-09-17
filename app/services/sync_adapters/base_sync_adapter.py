@@ -409,6 +409,8 @@ class BaseSyncAdapter(ABC):
                         f"更新同步时间: {username}"
                     )
                     
+                    updated_count += 1  # 即使无变更也要计数
+                    
                     self.sync_logger.debug(
                         f"账户无变更，更新同步时间: {username}",
                         module="sync_adapter",

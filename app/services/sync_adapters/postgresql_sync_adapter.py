@@ -21,6 +21,18 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
         super().__init__()
         self.filter_manager = DatabaseFilterManager()
 
+    def _safe_format_timestamp(self, timestamp) -> str | None:
+        """安全地格式化时间戳，处理infinity值"""
+        if timestamp is None:
+            return None
+        try:
+            # 检查是否是infinity值
+            if str(timestamp).lower() in ['infinity', '-infinity']:
+                return None
+            return timestamp.isoformat()
+        except Exception:
+            return None
+
     def get_database_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:
         """
         获取PostgreSQL数据库中的所有账户信息
@@ -41,7 +53,11 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
                     rolbypassrls as can_bypass_rls,
                     rolcanlogin as can_login,
                     rolinherit as can_inherit,
-                    rolvaliduntil as valid_until
+                    CASE 
+                        WHEN rolvaliduntil = 'infinity'::timestamp THEN NULL
+                        WHEN rolvaliduntil = '-infinity'::timestamp THEN NULL
+                        ELSE rolvaliduntil
+                    END as valid_until
                 FROM pg_roles
                 WHERE {where_clause}
                 ORDER BY rolname
@@ -66,7 +82,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
                     "can_bypass_rls": can_bypass_rls,
                     "can_login": can_login,
                     "can_inherit": can_inherit,
-                    "valid_until": valid_until.isoformat() if valid_until else None,
+                    "valid_until": self._safe_format_timestamp(valid_until),
                     "permissions": permissions
                 }
                 
@@ -119,7 +135,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
                 "type_specific": {}
             }
 
-            # 如果是超级用户，直接返回超级用户权限
+            # 如果是超级用户，设置超级用户属性，但仍需查询预定义角色
             if is_superuser:
                 permissions["role_attributes"] = {
                     "can_create_role": True,
@@ -130,31 +146,54 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
                     "can_inherit": True,
                 }
                 permissions["system_privileges"] = ["SUPERUSER"]
-                return permissions
 
-            # 获取角色属性
-            role_attrs = self._get_role_attributes(connection, username)
-            permissions["role_attributes"] = role_attrs
+            # 获取角色属性（使用独立事务）
+            try:
+                role_attrs = self._get_role_attributes(connection, username)
+                permissions["role_attributes"] = role_attrs
+            except Exception as e:
+                self.sync_logger.warning(f"获取角色属性失败: {username}", error=str(e))
+                permissions["role_attributes"] = {}
 
-            # 获取预定义角色成员关系
-            predefined_roles = self._get_predefined_roles(connection, username)
-            permissions["predefined_roles"] = predefined_roles
+            # 获取预定义角色成员关系（使用独立事务）
+            try:
+                predefined_roles = self._get_predefined_roles(connection, username)
+                permissions["predefined_roles"] = predefined_roles
+            except Exception as e:
+                self.sync_logger.warning(f"获取预定义角色失败: {username}", error=str(e))
+                permissions["predefined_roles"] = []
 
-            # 获取数据库权限
-            database_privileges = self._get_database_privileges(connection, username)
-            permissions["database_privileges"] = database_privileges
+            # 获取数据库权限（使用独立事务）
+            try:
+                database_privileges = self._get_database_privileges(connection, username)
+                permissions["database_privileges"] = database_privileges
+            except Exception as e:
+                self.sync_logger.warning(f"获取数据库权限失败: {username}", error=str(e))
+                permissions["database_privileges"] = {}
 
-            # 获取表空间权限
-            tablespace_privileges = self._get_tablespace_privileges(connection, username)
-            permissions["tablespace_privileges"] = tablespace_privileges
+            # 获取表空间权限（使用独立事务）
+            try:
+                tablespace_privileges = self._get_tablespace_privileges(connection, username)
+                permissions["tablespace_privileges"] = tablespace_privileges
+            except Exception as e:
+                self.sync_logger.warning(f"获取表空间权限失败: {username}", error=str(e))
+                permissions["tablespace_privileges"] = {}
 
-            # 获取系统权限
-            system_privileges = self._get_system_privileges(connection, username)
-            permissions["system_privileges"] = system_privileges
+            # 获取系统权限（使用独立事务）
+            try:
+                system_privileges = self._get_system_privileges(connection, username)
+                permissions["system_privileges"] = system_privileges
+            except Exception as e:
+                self.sync_logger.warning(f"获取系统权限失败: {username}", error=str(e))
+                permissions["system_privileges"] = []
 
-            # 获取连接限制等特定信息
-            type_specific = self._get_type_specific_info(connection, username)
-            permissions["type_specific"] = type_specific
+            # 获取连接限制等特定信息（使用独立事务）
+            try:
+                type_specific = self._get_type_specific_info(connection, username)
+                permissions["type_specific"] = type_specific
+            except Exception as e:
+                self.sync_logger.warning(f"获取特定信息失败: {username}", error=str(e))
+                permissions["type_specific"] = {}
 
             return permissions
 
@@ -292,13 +331,17 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
     def _get_type_specific_info(self, connection: Any, username: str) -> Dict[str, Any]:
         """获取PostgreSQL特定信息"""
         try:
-            # 获取角色OID和其他信息
+            # 使用pg_roles而不是pg_authid，因为pg_roles对所有用户可见
             sql = """
                 SELECT
                     oid,
                     rolpassword IS NOT NULL as has_password,
-                    rolvaliduntil
-                FROM pg_authid
+                    CASE 
+                        WHEN rolvaliduntil = 'infinity'::timestamp THEN NULL
+                        WHEN rolvaliduntil = '-infinity'::timestamp THEN NULL
+                        ELSE rolvaliduntil
+                    END as valid_until
+                FROM pg_roles
                 WHERE rolname = %s
             """
             result = connection.execute_query(sql, (username,))
@@ -308,7 +351,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
                 return {
                     "role_oid": oid,
                     "has_password": has_password,
-                    "valid_until": valid_until.isoformat() if valid_until else None,
+                    "valid_until": self._safe_format_timestamp(valid_until),
                     "is_locked": False  # PostgreSQL通过can_login控制
                 }
             return {}

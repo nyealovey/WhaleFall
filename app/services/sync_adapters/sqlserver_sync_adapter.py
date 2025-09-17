@@ -27,6 +27,26 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         super().__init__()
         self.filter_manager = DatabaseFilterManager()
 
+    def _quote_identifier(self, identifier: str) -> str:
+        """
+        转义SQL Server标识符，处理特殊字符
+        
+        Args:
+            identifier: 需要转义的标识符
+            
+        Returns:
+            转义后的标识符
+        """
+        if not identifier:
+            return identifier
+        
+        # 如果已经包含方括号，直接返回
+        if identifier.startswith('[') and identifier.endswith(']'):
+            return identifier
+        
+        # 使用方括号转义标识符
+        return f"[{identifier}]"
+
     def get_database_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:
         """
         获取SQL Server数据库中的所有账户信息
@@ -106,7 +126,10 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 "获取SQL Server登录失败",
                 module="sqlserver_sync_adapter",
                 instance_name=instance.name,
-                error=str(e)
+                error=str(e),
+                login_sql=login_sql,
+                where_clause=where_clause,
+                params=params
             )
             return []
 
@@ -223,7 +246,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             result = connection.execute_query(sql, (username,))
             return [row[0] for row in result] if result else []
         except Exception as e:
-            self.sync_logger.warning(f"获取服务器权限失败: {username}", error=str(e))
+            self.sync_logger.warning(f"获取服务器权限失败: {username}", error=str(e), sql=sql)
             return []
 
     def _get_regular_database_permissions(self, connection: Any, username: str) -> tuple[Dict[str, List[str]], Dict[str, List[str]]]:
@@ -261,7 +284,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 db_name = db_row[0]
                 try:
                     # 先切换到目标数据库
-                    use_db_sql = f"USE [{db_name}]"
+                    use_db_sql = f"USE {self._quote_identifier(db_name)}"
                     connection.execute_query(use_db_sql)
                     
                     # 检查用户是否存在（不包括'dbo'）
@@ -326,7 +349,12 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                         module="sqlserver_sync_adapter",
                         username=username,
                         database=db_name,
-                        error_type=type(e).__name__
+                        error_type=type(e).__name__,
+                        use_sql=use_db_sql,
+                        user_exists_sql=user_exists_sql,
+                        sysadmin_check_sql=sysadmin_check_sql if 'sysadmin_check_sql' in locals() else None,
+                        roles_sql=roles_sql,
+                        perms_sql=perms_sql
                     )
                     continue
                 
@@ -335,7 +363,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             return database_roles, database_permissions
 
         except Exception as e:
-            self.sync_logger.error(f"获取数据库权限失败: {username}", error=str(e))
+            self.sync_logger.error(f"获取数据库权限失败: {username}", error=str(e), databases_sql=databases_sql)
             return {}, {}
 
 
@@ -380,7 +408,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 }
             return {}
         except Exception as e:
-            self.sync_logger.warning(f"获取特定信息失败: {username}", error=str(e))
+            self.sync_logger.warning(f"获取特定信息失败: {username}", error=str(e), sql=sql)
             return {}
 
     def extract_permissions(self, account_data: Dict[str, Any]) -> Dict[str, Any]:
