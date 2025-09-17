@@ -131,9 +131,6 @@ class AccountSyncService:
                     modified_count=result.get("modified_count", 0)
                 )
 
-            # 先提交适配器的批量操作，确保权限数据持久化
-            db.session.commit()
-            
             # 关闭连接
             self.database_service.close_connection(instance)
             
@@ -240,9 +237,6 @@ class AccountSyncService:
                 session_id=session_id
             )
 
-            # 先提交适配器的批量操作，确保权限数据持久化
-            db.session.commit()
-            
             # 关闭连接
             self.database_service.close_connection(instance)
 
