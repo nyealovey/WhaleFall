@@ -401,9 +401,13 @@
                             {% if account.is_locked %}
                                 {% if account.instance.db_type == 'sqlserver' %}
                                 <span class="badge bg-danger" style="font-size: 0.7rem;">已禁用</span>
+                                {% elif account.instance.db_type == 'postgresql' %}
+                                <span class="badge bg-danger" style="font-size: 0.7rem;">已禁用</span>
                                 {% else %}
                                 <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
                                 {% endif %}
+                            {% elif not account.is_active %}
+                                <span class="badge bg-secondary" style="font-size: 0.7rem;">禁用</span>
                             {% else %}
                                 <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
                             {% endif %}
