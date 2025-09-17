@@ -339,7 +339,12 @@ class SQLServerConnection(DatabaseConnection):
         cursor = self.connection.cursor()
         try:
             cursor.execute(query, params or ())
-            return cursor.fetchall()
+            # 检查是否有结果集
+            try:
+                return cursor.fetchall()
+            except Exception:
+                # 如果没有结果集（如USE语句），返回空列表
+                return []
         finally:
             cursor.close()
 

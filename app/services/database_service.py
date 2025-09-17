@@ -17,20 +17,25 @@ class DatabaseService:
         self.db_logger = get_db_logger()
         self.connections = {}  # 连接池
 
-    def get_connection(self, instance: Instance) -> Any | None:
+    def get_connection(self, instance: Instance, force_new: bool = False) -> Any | None:
         """
         获取数据库连接
 
         Args:
             instance: 数据库实例
+            force_new: 是否强制创建新连接
 
         Returns:
             数据库连接对象或None
         """
         try:
-            # 如果已有连接，直接返回
-            if instance.id in self.connections:
+            # 如果已有连接且不强制新建，直接返回
+            if not force_new and instance.id in self.connections:
                 return self.connections[instance.id]
+
+            # 如果强制新建或没有连接，先关闭旧连接
+            if instance.id in self.connections:
+                self.close_connection(instance)
 
             # 创建新连接
             connection_obj = ConnectionFactory.create_connection(instance)
@@ -207,8 +212,8 @@ class DatabaseService:
 
             self.db_logger.info("开始同步账户", instance_name=instance.name, db_type=instance.db_type)
 
-            # 获取数据库连接
-            conn = self.get_connection(instance)
+            # 获取数据库连接（强制创建新连接以确保数据库上下文正确）
+            conn = self.get_connection(instance, force_new=True)
             if not conn:
                 self.db_logger.error("无法获取数据库连接", instance_name=instance.name)
                 return {"success": False, "error": "无法获取数据库连接"}

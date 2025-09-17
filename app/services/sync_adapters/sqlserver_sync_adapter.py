@@ -196,13 +196,14 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 FROM sys.server_role_members rm
                 JOIN sys.server_principals r ON rm.role_principal_id = r.principal_id
                 JOIN sys.server_principals p ON rm.member_principal_id = p.principal_id
-                WHERE p.name = ?
+                WHERE p.name = %s
                 ORDER BY r.name
             """
             result = connection.execute_query(sql, (username,))
-            return [row[0] for row in result] if result else []
+            roles = [row[0] for row in result] if result else []
+            return roles
         except Exception as e:
-            self.sync_logger.warning(f"获取服务器角色失败: {username}", error=str(e))
+            self.sync_logger.error(f"获取服务器角色失败: {username}", error=str(e), sql=sql)
             return []
 
     def _get_server_permissions(self, connection: Any, username: str) -> List[str]:
@@ -259,72 +260,57 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     break
                 db_name = db_row[0]
                 try:
-                    # 检查用户在该数据库中是否存在，或者是否具有dbo权限
-                    user_exists_sql = f"""
-                        SELECT principal_id, name, type_desc
-                        FROM [{db_name}].sys.database_principals
-                        WHERE name = ? OR name = 'dbo'
-                    """
+                    # 先切换到目标数据库
+                    use_db_sql = f"USE [{db_name}]"
+                    connection.execute_query(use_db_sql)
                     
+                    # 检查用户是否存在（不包括'dbo'）
+                    user_exists_sql = """
+                        SELECT principal_id, name, type_desc
+                        FROM sys.database_principals
+                        WHERE name = %s
+                    """
                     user_info = connection.execute_query(user_exists_sql, (username,))
                     
-                    if not user_info:
-                        # 对于sysadmin用户，即使没有显式的数据库用户，也可能有dbo权限
-                        # 检查是否为sysadmin
+                    if user_info:
+                        # 用户存在，使用其principal_id
+                        user_principal_id = user_info[0][0]
+                    else:
+                        # 检查是否sysadmin
                         sysadmin_check_sql = """
-                            SELECT IS_SRVROLEMEMBER('sysadmin', ?) as is_sysadmin
+                            SELECT IS_SRVROLEMEMBER('sysadmin', %s) as is_sysadmin
                         """
                         sysadmin_result = connection.execute_query(sysadmin_check_sql, (username,))
-                        
                         if sysadmin_result and sysadmin_result[0][0] == 1:
-                            # 为sysadmin用户创建虚拟的dbo权限记录
-                            user_principal_id = 1  # dbo的principal_id通常是1
+                            user_principal_id = 1  # dbo
                         else:
-                            continue
-                    else:
-                        # 优先使用实际用户，如果没有则使用dbo
-                        matching_users = [info for info in user_info if info[1] == username]
-                        if matching_users:
-                            user_principal_id = matching_users[0][0]
-                        else:
-                            # 使用dbo权限
-                            dbo_users = [info for info in user_info if info[1] == 'dbo']
-                            if dbo_users:
-                                user_principal_id = dbo_users[0][0]
-                            else:
-                                continue
+                            continue  # 非sysadmin且不存在，跳过
                     
                     # 获取数据库角色
-                    roles_sql = f"""
+                    roles_sql = """
                         SELECT r.name
-                        FROM [{db_name}].sys.database_role_members rm
-                        JOIN [{db_name}].sys.database_principals r ON rm.role_principal_id = r.principal_id
-                        WHERE rm.member_principal_id = ?
+                        FROM sys.database_role_members rm
+                        JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
+                        WHERE rm.member_principal_id = %s
                         ORDER BY r.name
                     """
                     
                     roles = connection.execute_query(roles_sql, (user_principal_id,))
-                    if roles:
-                        database_roles[db_name] = [role[0] for role in roles]
+                    roles_list = [role[0] for role in roles] if roles else []
                     
-                    # 对于sysadmin用户，如果使用了dbo权限，添加db_owner角色标识
-                    if user_principal_id == 1:  # dbo principal_id
-                        sysadmin_check_sql = """
-                            SELECT IS_SRVROLEMEMBER('sysadmin', ?) as is_sysadmin
-                        """
-                        sysadmin_result = connection.execute_query(sysadmin_check_sql, (username,))
-                        
-                        if sysadmin_result and sysadmin_result[0][0] == 1:
-                            if db_name not in database_roles:
-                                database_roles[db_name] = []
-                            if 'db_owner' not in database_roles[db_name]:
-                                database_roles[db_name].append('db_owner')
+                    # 对于sysadmin用户使用dbo权限时，添加db_owner角色
+                    if user_principal_id == 1:
+                        if 'db_owner' not in roles_list:
+                            roles_list.append('db_owner')
+                    
+                    if roles_list:
+                        database_roles[db_name] = roles_list
                     
                     # 获取数据库权限
-                    perms_sql = f"""
+                    perms_sql = """
                         SELECT permission_name
-                        FROM [{db_name}].sys.database_permissions
-                        WHERE grantee_principal_id = ?
+                        FROM sys.database_permissions
+                        WHERE grantee_principal_id = %s
                         AND state = 'G'
                         ORDER BY permission_name
                     """
@@ -374,7 +360,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     END as is_policy_checked
                 FROM sys.server_principals sp
                 LEFT JOIN sys.sql_logins sl ON sp.principal_id = sl.principal_id AND sp.type = 'S'
-                WHERE sp.name = ?
+                WHERE sp.name = %s
             """
             
             result = connection.execute_query(sql, (username,))
@@ -483,7 +469,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 },
                 "removed": {
                     k: v for k, v in old_db_roles.items()
-                    if k not in new_db_roles or set(new_db_roles.get(k, [])) != set(v)
+                    if k not in new_db_roles or set(old_db_roles.get(k, [])) != set(new_db_roles.get(k, []))
                 }
             }
 
@@ -503,7 +489,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 },
                 "removed": {
                     k: v for k, v in old_db_perms.items()
-                    if k not in new_db_perms or set(new_db_perms.get(k, [])) != set(v)
+                    if k not in new_db_perms or set(old_db_perms.get(k, [])) != set(new_db_perms.get(k, []))
                 }
             }
 
