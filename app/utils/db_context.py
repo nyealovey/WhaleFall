@@ -18,6 +18,7 @@ class DatabaseContextManager:
 
     def __init__(self):
         # 使用连接工厂创建连接
+        pass
 
     @contextmanager
     def get_connection(self, instance: Instance) -> Generator[Any | None]:
