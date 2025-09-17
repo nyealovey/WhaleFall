@@ -68,17 +68,29 @@ class AccountSyncService:
                 return self._sync_with_existing_session(instance, session_id)
                 
         except Exception as e:
+            # 分类异常处理，提供更详细的错误信息
+            error_type = type(e).__name__
+            if "JSON" in error_type or "serialization" in str(e).lower():
+                error_msg = f"权限数据序列化失败: {str(e)}"
+            elif "Connection" in error_type or "timeout" in str(e).lower():
+                error_msg = f"数据库连接问题: {str(e)}"
+            elif "Permission" in error_type or "access" in str(e).lower():
+                error_msg = f"数据库权限不足: {str(e)}"
+            else:
+                error_msg = f"同步失败: {str(e)}"
+                
             self.sync_logger.error(
                 "同步过程发生异常",
                 module="account_sync_unified",
                 instance_name=instance.name,
                 db_type=instance.db_type,
                 sync_type=sync_type,
+                error_type=error_type,
                 error=str(e)
             )
             return {
                 "success": False,
-                "error": f"同步失败: {str(e)}",
+                "error": error_msg,
                 "synced_count": 0,
                 "added_count": 0,
                 "modified_count": 0,
@@ -109,6 +121,19 @@ class AccountSyncService:
                 session_id=temp_session_id
             )
 
+            # 调试日志：检查权限数据
+            if result.get("success"):
+                self.sync_logger.debug(
+                    "适配器同步完成，检查权限数据",
+                    module="account_sync_unified",
+                    instance_name=instance.name,
+                    synced_count=result.get("synced_count", 0),
+                    modified_count=result.get("modified_count", 0)
+                )
+
+            # 先提交适配器的批量操作，确保权限数据持久化
+            db.session.commit()
+            
             # 关闭连接
             self.database_service.close_connection(instance)
             
@@ -215,6 +240,9 @@ class AccountSyncService:
                 session_id=session_id
             )
 
+            # 先提交适配器的批量操作，确保权限数据持久化
+            db.session.commit()
+            
             # 关闭连接
             self.database_service.close_connection(instance)
 
@@ -235,7 +263,7 @@ class AccountSyncService:
             return {"success": False, "error": f"同步失败: {str(e)}"}
 
     def _update_database_version(self, instance: Instance, conn) -> None:
-        """更新数据库版本信息"""
+        """更新数据库版本信息（不独立提交，等待统一事务）"""
         try:
             version_info = self.database_service.get_database_version(instance, conn)
             if version_info and version_info != instance.database_version:
@@ -244,15 +272,13 @@ class AccountSyncService:
                 # 解析版本信息
                 parsed = DatabaseVersionParser.parse_version(instance.db_type.lower(), version_info)
                 
-                # 更新实例的版本信息
+                # 更新实例的版本信息（不立即提交）
                 instance.database_version = parsed['original']
                 instance.main_version = parsed['main_version']
                 instance.detailed_version = parsed['detailed_version']
                 
-                db.session.commit()
-                
                 self.sync_logger.info(
-                    "更新数据库版本",
+                    "准备更新数据库版本",
                     module="account_sync_unified",
                     instance_name=instance.name,
                     version=version_info
