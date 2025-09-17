@@ -51,6 +51,20 @@ class SQLAlchemyLogHandler:
         if self._shutdown:
             return event_dict
 
+        # 过滤DEBUG级别日志
+        level = event_dict.get("level", "INFO")
+        level_priority = {
+            "DEBUG": 10,
+            "INFO": 20,
+            "WARNING": 30,
+            "ERROR": 40,
+            "CRITICAL": 50
+        }
+        
+        # 如果级别低于INFO，则丢弃日志
+        if level_priority.get(level, 20) < 20:  # INFO级别
+            return event_dict
+
         # 构建日志条目
         log_entry = self._build_log_entry(event_dict)
         if log_entry:
