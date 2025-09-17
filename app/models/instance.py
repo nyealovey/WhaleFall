@@ -19,7 +19,7 @@ class Instance(db.Model):
     host = db.Column(db.String(255), nullable=False)
     port = db.Column(db.Integer, nullable=False)
     database_name = db.Column(db.String(255), nullable=True)
-    database_version = db.Column(db.String(100), nullable=True)  # 原始版本字符串
+    database_version = db.Column(db.String(1000), nullable=True)  # 原始版本字符串
     main_version = db.Column(db.String(20), nullable=True)  # 主版本号 (如 8.0, 13.4, 14.0)
     detailed_version = db.Column(db.String(50), nullable=True)  # 详细版本号 (如 8.0.32, 13.4, 14.0.3465.1)
     environment = db.Column(
