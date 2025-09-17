@@ -76,6 +76,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
                 account_data = {
                     "username": username,
                     "is_superuser": is_superuser,
+                    "is_active": can_login,  # PostgreSQL: can_login决定激活状态
                     "can_create_role": can_create_role,
                     "can_create_db": can_create_db,
                     "can_replicate": can_replicate,
@@ -458,7 +459,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
         return changes
 
     def _update_account_permissions(self, account: CurrentAccountSyncData, 
-                                   permissions_data: Dict[str, Any], is_superuser: bool) -> None:
+                                   permissions_data: Dict[str, Any], is_superuser: bool, is_active: bool = None) -> None:
         """更新PostgreSQL账户权限信息"""
         account.predefined_roles = permissions_data.get("predefined_roles", [])
         account.role_attributes = permissions_data.get("role_attributes", {})
@@ -467,13 +468,15 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
         account.system_privileges = permissions_data.get("system_privileges", [])
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
+        if is_active is not None:
+            account.is_active = is_active
         account.last_change_type = "modify_privilege"
         account.last_change_time = time_utils.now()
         account.last_sync_time = time_utils.now()
 
     def _create_new_account(self, instance_id: int, db_type: str, username: str,
                            permissions_data: Dict[str, Any], is_superuser: bool,
-                           session_id: str) -> CurrentAccountSyncData:
+                           session_id: str, is_active: bool = True) -> CurrentAccountSyncData:
         """创建新的PostgreSQL账户记录"""
         return CurrentAccountSyncData(
             instance_id=instance_id,
@@ -486,6 +489,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
             system_privileges=permissions_data.get("system_privileges", []),
             type_specific=permissions_data.get("type_specific", {}),
             is_superuser=is_superuser,
+            is_active=is_active,
             last_change_type="add",
             session_id=session_id
         )

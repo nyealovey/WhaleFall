@@ -23,6 +23,7 @@ class CurrentAccountSyncData(BaseSyncData):
 
     username = db.Column(db.String(255), nullable=False)
     is_superuser = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=True)
 
     # MySQL权限字段
     global_privileges = db.Column(db.JSON, nullable=True)  # MySQL全局权限
@@ -136,6 +137,7 @@ class CurrentAccountSyncData(BaseSyncData):
             {
                 "username": self.username,
                 "is_superuser": self.is_superuser,
+                "is_active": self.is_active,
                 "global_privileges": self.global_privileges,
                 "database_privileges": self.database_privileges,
                 "predefined_roles": self.predefined_roles,

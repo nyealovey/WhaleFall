@@ -53,11 +53,16 @@ class MySQLSyncAdapter(BaseSyncAdapter):
                 # 获取用户权限（包含所有type_specific信息）
                 permissions = self._get_user_permissions(connection, username, host)
                 
+                # 从permissions中获取is_locked状态
+                type_specific = permissions.get("type_specific", {})
+                is_locked = type_specific.get("is_locked", False)
+                
                 account_data = {
                     "username": unique_username,
                     "original_username": username,
                     "host": host,
                     "is_superuser": is_superuser == "Y",
+                    "is_active": not is_locked,  # MySQL: !is_locked决定激活状态
                     "permissions": permissions
                 }
                 
@@ -287,19 +292,21 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         return changes
 
     def _update_account_permissions(self, account: CurrentAccountSyncData, 
-                                   permissions_data: Dict[str, Any], is_superuser: bool) -> None:
+                                   permissions_data: Dict[str, Any], is_superuser: bool, is_active: bool = None) -> None:
         """更新MySQL账户权限信息"""
         account.global_privileges = permissions_data.get("global_privileges", [])
         account.database_privileges = permissions_data.get("database_privileges", {})
         account.type_specific = permissions_data.get("type_specific", {})
         account.is_superuser = is_superuser
+        if is_active is not None:
+            account.is_active = is_active
         account.last_change_type = "modify_privilege"
         account.last_change_time = time_utils.now()
         account.last_sync_time = time_utils.now()
 
     def _create_new_account(self, instance_id: int, db_type: str, username: str,
                            permissions_data: Dict[str, Any], is_superuser: bool,
-                           session_id: str) -> CurrentAccountSyncData:
+                           session_id: str, is_active: bool = True) -> CurrentAccountSyncData:
         """创建新的MySQL账户记录"""
         return CurrentAccountSyncData(
             instance_id=instance_id,
@@ -309,6 +316,7 @@ class MySQLSyncAdapter(BaseSyncAdapter):
             database_privileges=permissions_data.get("database_privileges", {}),
             type_specific=permissions_data.get("type_specific", {}),
             is_superuser=is_superuser,
+            is_active=is_active,
             last_change_type="add",
             session_id=session_id
         )
