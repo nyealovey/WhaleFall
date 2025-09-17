@@ -300,25 +300,27 @@ class StructlogConfig:
         # 配置 structlog - 按照官方文档推荐的最佳实践
         structlog.configure(
             processors=[
-                # 1. 添加时间戳
+                # 1. 过滤日志级别（只允许INFO及以上级别）
+                self._filter_log_level,
+                # 2. 添加时间戳
                 structlog.processors.TimeStamper(fmt="iso"),
-                # 2. 添加日志级别
+                # 3. 添加日志级别
                 structlog.stdlib.add_log_level,
-                # 3. 添加堆栈追踪
+                # 4. 添加堆栈追踪
                 structlog.processors.StackInfoRenderer(),
-                # 4. 添加异常信息
+                # 5. 添加异常信息
                 structlog.processors.format_exc_info,
-                # 5. 添加请求上下文
+                # 6. 添加请求上下文
                 self._add_request_context,
-                # 6. 添加用户上下文
+                # 7. 添加用户上下文
                 self._add_user_context,
-                # 7. 添加全局上下文绑定
+                # 8. 添加全局上下文绑定
                 self._add_global_context,
-                # 8. 数据库处理器（在JSON渲染之前）
+                # 9. 数据库处理器（在JSON渲染之前）
                 self._get_handler(),
-                # 9. 控制台渲染器（美化输出）
+                # 10. 控制台渲染器（美化输出）
                 self._get_console_renderer(),
-                # 10. JSON 渲染器（用于文件输出）
+                # 11. JSON 渲染器（用于文件输出）
                 structlog.processors.JSONRenderer(),
             ],
             context_class=dict,
@@ -328,6 +330,26 @@ class StructlogConfig:
         )
 
         self.configured = True
+
+    def _filter_log_level(self, logger, method_name, event_dict):
+        """过滤日志级别，只允许INFO及以上级别"""
+        # 获取日志级别
+        level = event_dict.get("level", "INFO")
+        
+        # 定义级别优先级
+        level_priority = {
+            "DEBUG": 10,
+            "INFO": 20,
+            "WARNING": 30,
+            "ERROR": 40,
+            "CRITICAL": 50
+        }
+        
+        # 如果级别低于INFO，则丢弃日志
+        if level_priority.get(level, 20) < 20:  # INFO级别
+            raise structlog.DropEvent()
+        
+        return event_dict
 
     def _add_request_context(self, logger, method_name, event_dict):
         """添加请求上下文"""
