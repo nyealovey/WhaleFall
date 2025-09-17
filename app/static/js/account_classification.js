@@ -619,18 +619,32 @@ function displayPermissionsConfig(permissions, prefix = '', dbType = '') {
 
                 <h6 class="text-primary mb-3 mt-3"><i class="fas fa-user-shield me-2"></i>角色属性</h6>
                 <div class="permission-section">
-                    ${permissions.role_attributes ? permissions.role_attributes.map(attr => `
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" value="${attr.name}" id="${prefix}role_attr_${attr.name}">
-                            <label class="form-check-label d-flex align-items-center" for="${prefix}role_attr_${attr.name}">
-                                <i class="fas fa-user-cog text-primary me-2"></i>
-                                <div>
-                                    <div class="fw-bold">${attr.name}</div>
-                                    <small class="text-muted">${attr.description || '角色属性权限'}</small>
-                                </div>
-                            </label>
-                        </div>
-                    `).join('') : '<div class="text-muted">无角色属性</div>'}
+                    ${permissions.role_attributes ? permissions.role_attributes.map(attr => {
+                        // 角色属性显示名称映射
+                        const roleAttributeDisplayNames = {
+                            'can_super': '超级用户属性',
+                            'can_create_db': '创建数据库属性',
+                            'can_create_role': '创建角色属性',
+                            'can_inherit': '继承权限属性',
+                            'can_login': '登录属性',
+                            'can_replicate': '复制属性',
+                            'can_bypass_rls': '绕过行级安全属性',
+                            'connection_limit': '连接限制属性'
+                        };
+                        const displayName = roleAttributeDisplayNames[attr.name] || attr.name;
+                        return `
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" value="${attr.name}" id="${prefix}role_attr_${attr.name}">
+                                <label class="form-check-label d-flex align-items-center" for="${prefix}role_attr_${attr.name}">
+                                    <i class="fas fa-user-cog text-primary me-2"></i>
+                                    <div>
+                                        <div class="fw-bold">${displayName}</div>
+                                        <small class="text-muted">${attr.description || '角色属性权限'}</small>
+                                    </div>
+                                </label>
+                            </div>
+                        `;
+                    }).join('') : '<div class="text-muted">无角色属性</div>'}
                 </div>
             </div>
             <div class="col-md-6">
@@ -1516,13 +1530,26 @@ function displayViewPermissions(ruleExpression, dbType) {
             `;
         }
         if (ruleExpression.role_attributes && ruleExpression.role_attributes.length > 0) {
+            // 角色属性显示名称映射
+            const roleAttributeDisplayNames = {
+                'can_super': '超级用户属性',
+                'can_create_db': '创建数据库属性',
+                'can_create_role': '创建角色属性',
+                'can_inherit': '继承权限属性',
+                'can_login': '登录属性',
+                'can_replicate': '复制属性',
+                'can_bypass_rls': '绕过行级安全属性',
+                'connection_limit': '连接限制属性'
+            };
+            
             html += `
                 <div class="col-md-6">
                     <h6 class="text-primary mb-2"><i class="fas fa-user-shield me-2"></i>角色属性</h6>
                     <div class="mb-3">
-                        ${ruleExpression.role_attributes.map(attr =>
-                            `<span class="badge bg-primary me-1 mb-1">${attr}</span>`
-                        ).join('')}
+                        ${ruleExpression.role_attributes.map(attr => {
+                            const displayName = roleAttributeDisplayNames[attr] || attr;
+                            return `<span class="badge bg-primary me-1 mb-1">${displayName}</span>`;
+                        }).join('')}
                     </div>
                 </div>
             `;

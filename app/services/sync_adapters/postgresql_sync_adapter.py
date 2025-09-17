@@ -217,6 +217,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
         try:
             sql = """
                 SELECT
+                    rolsuper,
                     rolcreaterole,
                     rolcreatedb,
                     rolcanlogin,
@@ -231,13 +232,14 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
             if result:
                 attrs = result[0]
                 return {
-                    "can_create_role": attrs[0],
-                    "can_create_db": attrs[1],
-                    "can_login": attrs[2],
-                    "can_inherit": attrs[3],
-                    "can_replicate": attrs[4],
-                    "can_bypass_rls": attrs[5],
-                    "connection_limit": attrs[6]
+                    "can_super": attrs[0],
+                    "can_create_role": attrs[1],
+                    "can_create_db": attrs[2],
+                    "can_login": attrs[3],
+                    "can_inherit": attrs[4],
+                    "can_replicate": attrs[5],
+                    "can_bypass_rls": attrs[6],
+                    "connection_limit": attrs[7]
                 }
             return {}
         except Exception as e:
