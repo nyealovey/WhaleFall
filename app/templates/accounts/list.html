@@ -34,19 +34,25 @@
 
                 <!-- 第一行：搜索框和按钮 -->
                 <div class="row g-3 mb-3">
-                    <div class="col-md-8">
-                        <label for="search" class="form-label fw-semibold">搜索</label>
-                        <input type="text" class="form-control form-control-lg" id="search" name="search"
+                    <div class="col-md-3">
+                        <label for="search" class="form-label">搜索</label>
+                        <input type="text" class="form-control" id="search" name="search"
                                placeholder="搜索用户名、实例名称、IP地址" value="{{ search }}">
                     </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <div class="d-flex gap-2 w-100">
-                            <button type="submit" class="btn btn-primary btn-lg flex-fill">
-                                <i class="fas fa-search me-2"></i>搜索
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fas fa-search me-1"></i>搜索
                             </button>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
                             <a href="{{ url_for('account_list.list_accounts', db_type=current_db_type) if current_db_type else url_for('account_list.list_accounts') }}"
-                               class="btn btn-outline-secondary btn-lg">
-                                <i class="fas fa-times me-2"></i>清除
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>清除
                             </a>
                         </div>
                     </div>
@@ -55,7 +61,7 @@
                 <!-- 第二行：筛选条件 -->
                 <div class="row g-3">
                     <div class="col-md-2">
-                        <label for="is_locked" class="form-label fw-semibold">锁定状态</label>
+                        <label for="is_locked" class="form-label">锁定状态</label>
                         <select class="form-select" id="is_locked" name="is_locked">
                             <option value="">全部状态</option>
                             <option value="true" {% if is_locked == 'true' %}selected{% endif %}>已锁定</option>
@@ -63,7 +69,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">标签筛选</label>
+                        <label class="form-label">标签筛选</label>
                         <div class="d-flex align-items-center gap-2">
                             <button type="button" class="btn btn-outline-primary" id="open-tag-filter-btn">
                                 <i class="fas fa-tags me-2"></i>选择标签
@@ -77,7 +83,7 @@
                         <input type="hidden" id="selected-tag-names" name="tags" value="{{ selected_tags|join(',') if selected_tags else '' }}">
                     </div>
                     <div class="col-md-5">
-                        <label for="db_type" class="form-label fw-semibold">数据库类型</label>
+                        <label for="db_type" class="form-label">数据库类型</label>
                         <select class="form-select" id="db_type" name="db_type">
                             <option value="">全部类型</option>
                             {% for db_type_option in filter_options.db_types %}
