@@ -256,7 +256,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         initializeTagSelector(modalElement, delayedContainerElement);
                     } else {
                         console.log('延迟检查 - 容器元素仍然未找到');
-                        console.log('模态框内容:', modalElement.innerHTML.substring(0, 200) + '...');
+                        console.log('模态框内容:', modalElement.innerHTML.substring(0, 500) + '...');
+                        console.log('查找tag-selector-container:', modalElement.querySelectorAll('[class*="tag-selector"]'));
+                        console.log('查找所有div:', modalElement.querySelectorAll('div'));
                     }
                 }, 1000);
             }
