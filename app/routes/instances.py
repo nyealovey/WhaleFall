@@ -655,21 +655,29 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
 
             # 处理标签更新
             tag_names = data.get("tag_names", [])
+            log_info(f"编辑实例标签数据: {tag_names}")
+            
             if isinstance(tag_names, str):
                 # 如果是逗号分隔的字符串，分割成列表
                 tag_names = [name.strip() for name in tag_names.split(",") if name.strip()]
+                log_info(f"解析后的标签名称: {tag_names}")
             
             # 清除现有标签 - 使用正确的方法
             # 先获取所有现有标签，然后逐个移除
             existing_tags = list(instance.tags)
+            log_info(f"现有标签数量: {len(existing_tags)}")
             for tag in existing_tags:
                 instance.tags.remove(tag)
             
             # 添加新标签
             for tag_name in tag_names:
                 tag = Tag.get_tag_by_name(tag_name)
+                log_info(f"查找标签 '{tag_name}': {tag}")
                 if tag:
                     instance.tags.append(tag)
+                    log_info(f"成功添加标签 '{tag_name}' 到实例 {instance.id}")
+                else:
+                    log_info(f"标签 '{tag_name}' 不存在，跳过")
 
             db.session.commit()
 
