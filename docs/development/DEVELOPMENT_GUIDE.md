@@ -732,7 +732,7 @@ python -m memory_profiler app.py
 ### 教程资源
 - [Flask Mega-Tutorial](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-i-hello-world)
 - [SQLAlchemy Tutorial](https://docs.sqlalchemy.org/en/14/tutorial/)
-- [Celery Tutorial](https://docs.celeryproject.org/en/stable/getting-started/first-steps-with-celery.html)
+- [APScheduler Tutorial](https://apscheduler.readthedocs.io/en/stable/userguide.html#getting-started)
 
 ### 最佳实践
 - [Flask Best Practices](https://exploreflask.com/)

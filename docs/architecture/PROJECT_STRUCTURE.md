@@ -198,7 +198,7 @@ TaifishV4/
 │   │   ├── sync.log             # 同步日志
 │   │   ├── security.log         # 安全日志
 │   │   ├── cache.log            # 缓存日志
-│   │   └── celery_beat.log      # 定时任务日志
+│   │   └── scheduler.log        # 定时任务日志
 │   ├── exports/                 # 导出文件
 │   ├── backups/                 # 备份文件
 │   ├── uploads/                 # 上传文件

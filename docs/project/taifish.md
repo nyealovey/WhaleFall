@@ -348,10 +348,10 @@
 ### 保留的核心脚本
 1. `start_app.sh` - 核心应用启动
 2. `start_uv.sh` - UV环境启动（推荐）
-3. `start_celery.sh` - Celery主启动
-4. `start_celery_worker.py` - Worker启动
-5. `start_celery_beat.py` - Beat启动
-6. `stop_celery.sh` - Celery停止
+3. `app/scheduler.py` - APScheduler调度器
+4. `app/tasks.py` - 任务定义
+5. `app/routes/scheduler.py` - 任务管理API
+6. `app/scheduler.py` - 任务监控
 7. `app/scheduler.py` - APScheduler调度器
 8. `app/tasks.py` - 任务定义
 9. `app/routes/scheduler.py` - 任务管理API

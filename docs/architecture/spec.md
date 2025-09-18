@@ -151,7 +151,7 @@ graph TB
 
     subgraph "数据层"
         J --> N[SQLAlchemy ORM]
-        N --> O[SQLite/PostgreSQL]
+        N --> O[PostgreSQL]
         J --> P[Redis缓存]
         J --> Q[文件存储]
     end
@@ -226,7 +226,7 @@ graph TB
 
     subgraph "数据层"
         J --> L[SQLAlchemy ORM]
-        L --> M[SQLite/PostgreSQL]
+        L --> M[PostgreSQL]
         J --> N[Redis缓存]
         J --> O[文件存储]
     end
@@ -817,7 +817,7 @@ CORS(app, origins=['http://localhost:5001'])
 
 ### 异步处理
 
-1. **Celery任务队列**
+1. **APScheduler任务调度**
    - 长时间运行的任务
    - 定时任务调度
    - 批量数据处理
@@ -885,7 +885,7 @@ services:
       - "5001:5001"
     environment:
       - FLASK_ENV=development
-      - DATABASE_URL=sqlite:///instance.db
+      - DATABASE_URL=postgresql://taifish_user:password@localhost:5432/taifish_dev
     volumes:
       - ./userdata:/app/userdata
 
