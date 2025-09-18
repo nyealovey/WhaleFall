@@ -101,18 +101,13 @@
                                   placeholder="请输入实例描述（可选）"></textarea>
                     </div>
                     
+                    <!-- 标签选择器 -->
                     <div class="mb-3">
-                        <label for="tags" class="form-label">标签</label>
-                        <select class="form-select" id="tags" name="tags" multiple>
-                            {% for tag in all_tags %}
-                            <option value="{{ tag.name }}">{{ tag.display_name }} ({{ tag.category }})</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">
-                            <a href="{{ url_for('tags.create') }}" class="text-decoration-none">
-                                <i class="fas fa-plus me-1"></i>添加新标签
-                            </a>
+                        <div id="tag-selector-container">
+                            <!-- 标签选择器组件将在这里加载 -->
                         </div>
+                        <!-- 隐藏的输入字段，用于表单提交 -->
+                        <input type="hidden" id="selected-tag-names" name="tag_names" value="">
                     </div>
                     
                     <div class="mb-3 form-check">
@@ -205,5 +200,33 @@ function showAlert(type, message) {
         alertDiv.remove();
     }, 5000);
 }
+</script>
+
+<!-- 标签选择器组件 -->
+{% include 'components/tag_selector.html' %}
+
+<script>
+// 标签选择器初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 等待标签选择器组件加载完成
+    setTimeout(() => {
+        if (typeof TagSelector !== 'undefined' && document.getElementById('tag-selector-container')) {
+            // 初始化标签选择器
+            tagSelector = new TagSelector('tag-selector-container', {
+                allowMultiple: true,
+                allowCreate: true,
+                allowSearch: true,
+                allowCategoryFilter: true
+            });
+            
+            // 监听标签选择变化
+            document.getElementById('tag-selector-container').addEventListener('tagSelectionChanged', function(e) {
+                const selectedTags = e.detail.selectedTags;
+                const tagNames = selectedTags.map(tag => tag.name);
+                document.getElementById('selected-tag-names').value = tagNames.join(',');
+            });
+        }
+    }, 100);
+});
 </script>
 {% endblock %}
