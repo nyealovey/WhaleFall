@@ -24,17 +24,19 @@ class OracleSyncAdapter(BaseSyncAdapter):
 
     def get_database_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
         """
-        获取Oracle数据库中的所有账户信息
+        获取Oracle数据库中的所有账户信息（优化版本）
+        使用批量查询减少N+1查询问题，从O(N)降到O(1)
         """
         try:
             # 构建安全的查询条件
             filter_conditions = self._build_filter_conditions()
             where_clause, params = filter_conditions
 
-            # 查询用户基本信息
+            # 1. 一次性查询所有用户基本信息（包含user_id用于后续查询）
             users_sql = f"""
                 SELECT
                     username,
+                    user_id,
                     account_status,
                     created,
                     expiry_date,
@@ -47,21 +49,61 @@ class OracleSyncAdapter(BaseSyncAdapter):
             """
 
             users = connection.execute_query(users_sql, params)
+            
+            # 空用户检查，早返回
+            if not users:
+                self.sync_logger.info(
+                    "未找到符合条件的Oracle用户",
+                    module="oracle_sync_adapter",
+                    instance_name=instance.name,
+                )
+                return []
 
+            # 提取所有用户名列表用于批量查询
+            usernames = [user_row[0] for user_row in users]
+            username_placeholders = ",".join([f":username_{i}" for i in range(len(usernames))])
+            username_params = {f"username_{i}": username for i, username in enumerate(usernames)}
+
+            # 2. 批量查询所有用户的角色权限
+            roles_data = self._batch_get_user_roles(connection, username_placeholders, username_params)
+            
+            # 3. 批量查询所有用户的系统权限
+            system_privs_data = self._batch_get_system_privileges(connection, username_placeholders, username_params)
+            
+            # 4. 批量查询所有用户的表空间权限
+            tablespace_data = self._batch_get_tablespace_privileges(connection, username_placeholders, username_params, system_privs_data)
+            
+            # 5. 批量查询所有用户的对象权限（可选）
+            object_perms_data = self._batch_get_object_privileges(connection, username_placeholders, username_params)
+
+            # 6. 在Python侧聚合所有权限数据
             accounts = []
             for user_row in users:
-                (username, account_status, created, expiry_date, default_tablespace, temporary_tablespace, profile) = (
-                    user_row
-                )
-
-                # 获取用户详细权限
-                permissions = self._get_user_permissions(connection, username)
+                (username, user_id, account_status, created, expiry_date, default_tablespace, temporary_tablespace, profile) = user_row
+                
+                # 从批量查询结果中获取该用户的权限
+                permissions = {
+                    "roles": roles_data.get(username, []),
+                    "system_privileges": system_privs_data.get(username, []),
+                    "tablespace_privileges": tablespace_data.get(username, {}),
+                    "type_specific": {
+                        "user_id": user_id,
+                        "account_status": account_status,
+                        "default_tablespace": default_tablespace,
+                        "temporary_tablespace": temporary_tablespace,
+                        "profile": profile,
+                        "created": created.isoformat() if created else None,
+                        "expiry_date": expiry_date.isoformat() if expiry_date else None,
+                        "is_active": account_status == "OPEN",  # 直接从account_status推导
+                    }
+                }
+                
+                # 添加对象权限（如果可用）
+                if username in object_perms_data:
+                    permissions["object_privileges"] = object_perms_data[username]
 
                 # 判断是否为超级用户
-                is_superuser = username.upper() in ["SYS", "SYSTEM"] or "DBA" in permissions.get("roles", [])
-
-                # 将锁定状态信息添加到type_specific中
-                permissions["type_specific"]["account_status"] = account_status
+                is_superuser = username.upper() in ["SYS", "SYSTEM"] or "DBA" in permissions["roles"]
 
                 account_data = {
                     "username": username,
@@ -78,7 +120,7 @@ class OracleSyncAdapter(BaseSyncAdapter):
                 accounts.append(account_data)
 
             self.sync_logger.info(
-                "获取到%d个Oracle用户",
+                "获取到%d个Oracle用户（批量查询优化）",
                 len(accounts),
                 module="oracle_sync_adapter",
                 instance_name=instance.name,
@@ -107,6 +149,132 @@ class OracleSyncAdapter(BaseSyncAdapter):
         builder.add_database_specific_condition("username", exclude_users, exclude_patterns)
 
         return builder.build_where_clause()
+
+    def _batch_get_user_roles(self, connection: Any, username_placeholders: str, username_params: dict) -> dict[str, list[str]]:  # noqa: ANN401
+        """批量获取所有用户的角色权限"""
+        try:
+            sql = f"""
+                SELECT grantee, granted_role
+                FROM dba_role_privs
+                WHERE grantee IN ({username_placeholders})
+                ORDER BY grantee, granted_role
+            """
+            result = connection.execute_query(sql, username_params)
+            
+            # 聚合结果
+            roles_data = {}
+            for grantee, role in result:
+                if grantee not in roles_data:
+                    roles_data[grantee] = []
+                roles_data[grantee].append(role)
+            
+            return roles_data
+        except Exception as e:
+            self.sync_logger.warning("批量获取用户角色失败", error=str(e))
+            return {}
+
+    def _batch_get_system_privileges(self, connection: Any, username_placeholders: str, username_params: dict) -> dict[str, list[str]]:  # noqa: ANN401
+        """批量获取所有用户的系统权限"""
+        try:
+            sql = f"""
+                SELECT grantee, privilege
+                FROM dba_sys_privs
+                WHERE grantee IN ({username_placeholders})
+                ORDER BY grantee, privilege
+            """
+            result = connection.execute_query(sql, username_params)
+            
+            # 聚合结果
+            system_privs_data = {}
+            for grantee, privilege in result:
+                if grantee not in system_privs_data:
+                    system_privs_data[grantee] = []
+                system_privs_data[grantee].append(privilege)
+            
+            return system_privs_data
+        except Exception as e:
+            self.sync_logger.warning("批量获取系统权限失败", error=str(e))
+            return {}
+
+    def _batch_get_tablespace_privileges(self, connection: Any, username_placeholders: str, username_params: dict, system_privs_data: dict) -> dict[str, dict[str, list[str]]]:  # noqa: ANN401
+        """批量获取所有用户的表空间权限"""
+        try:
+            tablespace_data = {}
+            
+            # 1. 检查UNLIMITED TABLESPACE权限（从系统权限中获取）
+            for username, privileges in system_privs_data.items():
+                if "UNLIMITED TABLESPACE" in privileges:
+                    tablespace_data[username] = {"ALL_TABLESPACES": ["UNLIMITED"]}
+            
+            # 2. 批量查询表空间配额
+            try:
+                ts_quota_sql = f"""
+                    SELECT username, tablespace_name,
+                           CASE
+                               WHEN max_bytes = -1 THEN 'UNLIMITED'
+                               ELSE 'QUOTA'
+                           END as privilege
+                    FROM dba_ts_quotas
+                    WHERE username IN ({username_placeholders})
+                    ORDER BY username, tablespace_name
+                """
+                ts_quota_result = connection.execute_query(ts_quota_sql, username_params)
+                
+                for username, ts_name, privilege in ts_quota_result:
+                    if username not in tablespace_data:
+                        tablespace_data[username] = {}
+                    if ts_name not in tablespace_data[username]:
+                        tablespace_data[username][ts_name] = []
+                    if privilege not in tablespace_data[username][ts_name]:
+                        tablespace_data[username][ts_name].append(privilege)
+            except Exception as e:
+                self.sync_logger.warning("批量获取表空间配额失败", error=str(e))
+            
+            return tablespace_data
+        except Exception as e:
+            self.sync_logger.warning("批量获取表空间权限失败", error=str(e))
+            return {}
+
+    def _batch_get_object_privileges(self, connection: Any, username_placeholders: str, username_params: dict) -> dict[str, dict[str, list[str]]]:  # noqa: ANN401
+        """批量获取所有用户的对象权限（可选）"""
+        try:
+            # 先检查dba_tables表是否存在
+            check_tables_sql = "SELECT COUNT(*) FROM dba_tables WHERE ROWNUM = 1"
+            connection.execute_query(check_tables_sql)
+            
+            # 批量查询对象权限
+            object_perms_sql = f"""
+                SELECT owner, tablespace_name, 'OWNER' as privilege
+                FROM dba_tables
+                WHERE owner IN ({username_placeholders})
+                AND tablespace_name IS NOT NULL
+                
+                UNION
+                
+                SELECT owner, tablespace_name, 'INDEX_OWNER' as privilege
+                FROM dba_indexes
+                WHERE owner IN ({username_placeholders})
+                AND tablespace_name IS NOT NULL
+                
+                ORDER BY owner, tablespace_name, privilege
+            """
+            
+            result = connection.execute_query(object_perms_sql, username_params)
+            
+            # 聚合结果
+            object_perms_data = {}
+            for owner, ts_name, privilege in result:
+                if owner not in object_perms_data:
+                    object_perms_data[owner] = {}
+                if ts_name not in object_perms_data[owner]:
+                    object_perms_data[owner][ts_name] = []
+                if privilege not in object_perms_data[owner][ts_name]:
+                    object_perms_data[owner][ts_name].append(privilege)
+            
+            return object_perms_data
+        except Exception as e:
+            self.sync_logger.warning("批量获取对象权限失败", error=str(e))
+            return {}
 
     def _get_user_permissions(self, connection: Any, username: str) -> dict[str, Any]:  # noqa: ANN401
         """
@@ -322,7 +490,7 @@ class OracleSyncAdapter(BaseSyncAdapter):
         old_roles = set(existing_account.oracle_roles or [])
         new_roles = set(new_permissions.get("roles", []))
         if old_roles != new_roles:
-            changes["roles"] = {"added": list(new_roles - old_roles), "removed": list(old_roles - new_roles)}
+            changes["oracle_roles"] = {"added": list(new_roles - old_roles), "removed": list(old_roles - new_roles)}
 
         # 检测系统权限变更
         old_system_perms = set(existing_account.system_privileges or [])
@@ -427,6 +595,13 @@ class OracleSyncAdapter(BaseSyncAdapter):
                 descriptions.append("提升为超级用户")
             else:
                 descriptions.append("取消超级用户权限")
+
+        if "is_active" in changes:
+            new_value = changes["is_active"]["new"]
+            if new_value:
+                descriptions.append("账户状态变更为活跃")
+            else:
+                descriptions.append("账户状态变更为锁定")
 
         if "oracle_roles" in changes:
             added = changes["oracle_roles"]["added"]
