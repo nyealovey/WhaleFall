@@ -747,7 +747,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const confirmBtn = document.getElementById('confirm-tag-selection');
             if (confirmBtn) {
                 console.log('找到确认按钮，绑定事件');
-                confirmBtn.addEventListener('click', confirmTagSelection);
+                confirmBtn.addEventListener('click', function() {
+                    if (tagSelector) {
+                        const selectedTags = tagSelector.getSelectedTags();
+                        updateSelectedTagsPreview(selectedTags);
+                        closeTagSelector();
+                    }
+                });
             } else {
                 console.error('找不到confirm-tag-selection按钮');
             }
@@ -784,13 +790,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function confirmTagSelection() {
-        if (tagSelector) {
-            const selectedTags = tagSelector.getSelectedTags();
-            updateSelectedTagsPreview(selectedTags);
-            closeTagSelector();
-        }
-    }
     
     function updateSelectedTagsPreview(selectedTags) {
         const preview = document.getElementById('selected-tags-preview');
