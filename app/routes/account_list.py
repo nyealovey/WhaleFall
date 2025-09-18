@@ -64,8 +64,18 @@ def list_accounts(db_type: str | None = None) -> str:
 
     # 标签过滤
     if tags:
-        # 通过实例的标签进行过滤
-        query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+        try:
+            # 通过实例的标签进行过滤
+            query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+        except Exception as e:
+            log_error(
+                "标签过滤失败",
+                module="account_list",
+                tags=tags,
+                error=str(e),
+            )
+            # 如果标签过滤失败，继续执行但不进行标签过滤
+            pass
 
     # 分类过滤
     if classification and classification != "all":
