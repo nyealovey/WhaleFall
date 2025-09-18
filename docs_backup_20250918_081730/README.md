@@ -7,6 +7,8 @@
 ### 🏗️ 项目架构 (architecture/)
 - [项目结构说明](architecture/PROJECT_STRUCTURE.md) - 项目目录结构和文件组织
 - [技术规格文档](architecture/spec.md) - 详细的技术规格和API文档
+- [功能集成报告](architecture/FUNCTION_INTEGRATION_REPORT.md) - 功能模块集成情况
+- [第二轮审计报告](architecture/SECOND_AUDIT_REPORT.md) - 项目质量审计报告
 
 ### 🗄️ 数据库相关 (database/)
 - [数据库驱动指南](database/DATABASE_DRIVERS.md) - 支持的数据库驱动和配置
@@ -29,15 +31,21 @@
 - [开发指南](development/DEVELOPMENT_GUIDE.md) - 开发规范和最佳实践
 - [数据库迁移](development/DATABASE_MIGRATION.md) - 数据库版本管理
 - [故障排除](development/TROUBLESHOOTING.md) - 常见问题和解决方案
+- [数据要求](development/data_requirements.md) - 开发数据需求
 
 ### ⚡ 功能特性 (features/)
-- 功能特性文档已整合到技术规格文档中
+- [日志管理功能](features/LOG_MANAGEMENT_FEATURES.md) - 日志系统功能说明
+- [PostgreSQL集成报告](features/POSTGRESQL_INTEGRATION_REPORT.md) - PostgreSQL集成情况
+- [性能监控移除报告](features/PERFORMANCE_MONITOR_REMOVAL_REPORT.md) - 功能移除说明
+- [账户分类管理功能修复报告](features/ACCOUNT_CLASSIFICATION_FIX_REPORT.md) - v2.1.0功能修复详情
 
 ### 📖 使用指南 (guides/)
 - [快速参考](guides/QUICK_REFERENCE.md) - 常用命令和配置速查
 - [部署指南](guides/README_DEPLOYMENT.md) - 生产环境部署说明
 - [UV使用指南](guides/UV_USAGE_GUIDE.md) - Python包管理工具使用
 - [Oracle环境配置](guides/ORACLE_SETUP.md) - Oracle环境搭建指南
+- [优化同步模型使用指南](guides/optimized_sync_models_guide.md) - 新同步模型使用说明
+- [数据库迁移指南](guides/migration_guide.md) - 从旧模型迁移到新模型
 
 ### 📝 项目文档 (project/)
 - [需求文档](project/需求.md) - 项目需求规格说明
