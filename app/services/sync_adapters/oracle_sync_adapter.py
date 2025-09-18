@@ -352,7 +352,12 @@ class OracleSyncAdapter(BaseSyncAdapter):
                 if unlimited_result:
                     tablespace_privileges["ALL_TABLESPACES"] = ["UNLIMITED"]
             except Exception as e:
-                pass
+                self.sync_logger.warning(
+                    "检查表空间UNLIMITED权限失败",
+                    module="oracle_sync_adapter",
+                    username=username,
+                    error=str(e)
+                )
 
             # 2. 获取具体的表空间配额信息
             try:
@@ -413,7 +418,12 @@ class OracleSyncAdapter(BaseSyncAdapter):
                         if privilege not in tablespace_privileges[ts_name]:
                             tablespace_privileges[ts_name].append(privilege)
             except Exception as e:
-                pass
+                self.sync_logger.warning(
+                    "获取用户对象权限失败",
+                    module="oracle_sync_adapter",
+                    username=username,
+                    error=str(e)
+                )
 
             return tablespace_privileges
 

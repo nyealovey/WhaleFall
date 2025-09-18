@@ -27,8 +27,8 @@ class CacheManager:
         """生成缓存键"""
         key_data = f"{prefix}:{instance_id}:{username}:{db_name}" if db_name else f"{prefix}:{instance_id}:{username}"
 
-        # 使用MD5哈希确保键名长度合理
-        key_hash = hashlib.md5(key_data.encode()).hexdigest()
+        # 使用SHA-256哈希确保键名长度合理且安全
+        key_hash = hashlib.sha256(key_data.encode()).hexdigest()
         return f"taifish:{key_hash}"
 
     def get_database_permissions_cache(

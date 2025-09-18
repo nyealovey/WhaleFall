@@ -205,8 +205,13 @@ class MySQLSyncAdapter(BaseSyncAdapter):
                 start = grant_statement.find("ON `") + 4
                 end = grant_statement.find("`.*", start)
                 return grant_statement[start:end]
-        except Exception:
-            pass
+        except Exception as e:
+            self.sync_logger.warning(
+                "提取数据库名失败",
+                module="mysql_sync_adapter",
+                grant_statement=grant_statement,
+                error=str(e)
+            )
         return ""
 
     def _extract_privileges_from_grant(self, grant_statement: str) -> list[str]:
