@@ -184,6 +184,7 @@ class OracleSyncAdapter(BaseSyncAdapter):
                 if unlimited_result:
                     tablespace_privileges["ALL_TABLESPACES"] = ["UNLIMITED"]
             except Exception as e:
+                pass
 
             # 2. 获取具体的表空间配额信息
             try:
@@ -208,15 +209,8 @@ class OracleSyncAdapter(BaseSyncAdapter):
             except Exception as e:
                 # 如果dba_ts_quotas不可用，尝试使用user_ts_quotas
                 with contextlib.suppress(Exception):
-                    # user_quota_sql = """
-                    #     SELECT tablespace_name,
-                    #            CASE
-                    #                WHEN max_bytes = -1 THEN 'UNLIMITED'
-                    #                ELSE 'QUOTA'
-                    #            END as privilege
-                    #     FROM user_ts_quotas
-                    # """
                     # 这里需要切换到目标用户上下文，但为了安全起见，跳过这个查询
+                    pass
 
             # 3. 获取用户在表空间中的对象权限（可选，如果表存在）
             try:
@@ -251,6 +245,7 @@ class OracleSyncAdapter(BaseSyncAdapter):
                         if privilege not in tablespace_privileges[ts_name]:
                             tablespace_privileges[ts_name].append(privilege)
             except Exception as e:
+                pass
 
             return tablespace_privileges
 

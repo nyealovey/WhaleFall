@@ -80,7 +80,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
                 ) = role_row
 
                 # 获取角色详细权限
-                permissions = self._get_role_permissions(connection, username, is_superuser)
+                permissions = self._get_role_permissions(connection, username, is_superuser=is_superuser)
 
                 # 将锁定状态信息添加到type_specific中
                 permissions["type_specific"]["can_login"] = can_login
