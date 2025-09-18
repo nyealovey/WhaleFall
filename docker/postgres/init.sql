@@ -1,4 +1,4 @@
--- 泰摸鱼吧数据库初始化脚本
+-- 鲸落数据库初始化脚本
 -- 创建时间: 2024-09-12
 -- 描述: 生产环境PostgreSQL数据库初始化
 
@@ -207,7 +207,7 @@ $$ LANGUAGE plpgsql;
 ALTER DATABASE taifish_prod SET max_connections TO 200;
 
 -- 创建连接池配置建议
-COMMENT ON DATABASE taifish_prod IS '泰摸鱼吧生产数据库 - 建议使用连接池，最大连接数200';
+COMMENT ON DATABASE taifish_prod IS '鲸落生产数据库 - 建议使用连接池，最大连接数200';
 
 -- 完成初始化
 INSERT INTO logs (level, module, message, details, source)

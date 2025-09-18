@@ -1,4 +1,4 @@
-# 泰摸鱼吧 (TaifishV4)
+# 鲸落 (TaifishV4)
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.0.3-green.svg)](https://flask.palletsprojects.com)
@@ -49,6 +49,60 @@
 - Python 3.13+ (推荐使用 uv 管理)
 - Redis 5.0+
 - PostgreSQL 12+ (主数据库)
+
+### 🐳 Docker 部署 (推荐)
+
+#### 生产环境一键部署
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/your-username/TaifishingV4.git
+cd TaifishingV4
+
+# 2. 配置环境变量
+cp env.prod .env
+nano .env  # 修改数据库密码等配置
+
+# 3. 一键部署
+./scripts/deploy.sh prod start
+
+# 4. 查看管理员密码
+./scripts/deploy.sh prod admin
+```
+
+#### 开发环境快速启动
+
+```bash
+# 启动开发环境
+./scripts/deploy.sh dev start
+
+# 查看服务状态
+./scripts/deploy.sh dev status
+```
+
+#### 常用Docker命令
+
+```bash
+# 启动服务
+./scripts/deploy.sh prod start
+
+# 停止服务
+./scripts/deploy.sh prod stop
+
+# 重启服务
+./scripts/deploy.sh prod restart
+
+# 查看日志
+./scripts/deploy.sh prod logs
+
+# 备份数据
+./scripts/deploy.sh prod backup
+
+# 构建镜像
+./scripts/build-image.sh latest
+```
+
+> 📖 **详细部署指南**: 查看 [Docker生产环境部署指南](docs/deployment/DOCKER_PRODUCTION_DEPLOYMENT.md) 和 [快速部署指南](docs/deployment/QUICK_DEPLOYMENT_GUIDE.md)
 - APScheduler 3.10+ (定时任务调度)
 
 ### 安装步骤
@@ -456,7 +510,7 @@ pytest --cov=app tests/
 
 ## 👥 开发团队
 
-- **项目负责人**: 泰摸鱼吧开发团队
+- **项目负责人**: 鲸落开发团队
 - **主要贡献者**: [@nyealovey](https://github.com/nyealovey)
 
 ## 📞 支持与反馈
@@ -497,7 +551,7 @@ pytest --cov=app tests/
 
 ---
 
-**泰摸鱼吧** - 让数据库管理更简单！ 🐟
+**鲸落** - 让数据库管理更简单！ 🐟
 
 [![Star](https://img.shields.io/github/stars/nyealovey/TaifishingV4?style=social)](https://github.com/nyealovey/TaifishingV4)
 [![Fork](https://img.shields.io/github/forks/nyealovey/TaifishingV4?style=social)](https://github.com/nyealovey/TaifishingV4/fork)

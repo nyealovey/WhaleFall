@@ -4,7 +4,7 @@ logger = get_system_logger()
 
 #!/usr/bin/env python3
 """
-泰摸鱼吧 - 代码质量检查脚本
+鲸落 - 代码质量检查脚本
 整合所有代码质量工具，提供统一的检查接口
 """
 
@@ -280,7 +280,7 @@ class QualityChecker:
 
 def main():
     """主函数"""
-    logger.info("泰摸鱼吧 - 代码质量检查工具")
+    logger.info("鲸落 - 代码质量检查工具")
     print("=" * 60)
 
     # 检查是否在项目根目录

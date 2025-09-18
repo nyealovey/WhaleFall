@@ -1,5 +1,5 @@
 -- PostgreSQL 初始化脚本 v1.0
--- 泰摸鱼吧 (TaifishV4) 数据库初始化脚本
+-- 鲸落 (TaifishV4) 数据库初始化脚本
 -- 基于现有 SQLite 数据库结构和数据生成
 -- 支持 PostgreSQL 优化特性：SERIAL/IDENTITY、索引、约束、JSONB等
 -- 确保幂等性：使用 CREATE TABLE IF NOT EXISTS 和 INSERT ... ON CONFLICT DO NOTHING
@@ -908,5 +908,5 @@ SELECT * FROM sync_stats;
 
 -- 脚本执行完成提示
 SELECT 'PostgreSQL 初始化脚本执行完成！' as message,
-       '泰摸鱼吧 (TaifishV4) 数据库已准备就绪' as description,
+       '鲸落 (TaifishV4) 数据库已准备就绪' as description,
        NOW() as completed_at;

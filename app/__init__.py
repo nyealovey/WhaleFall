@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - Flask应用初始化
+鲸落 - Flask应用初始化
 基于Flask的DBA数据库管理Web应用
 """
 
@@ -445,7 +445,7 @@ def configure_logging(app: Flask) -> None:
         app.logger.addHandler(file_handler)
 
         app.logger.setLevel(getattr(logging, app.config["LOG_LEVEL"]))
-        app.logger.info("泰摸鱼吧应用启动")
+        app.logger.info("鲸落应用启动")
 
 
 def configure_error_handlers(app: Flask) -> None:

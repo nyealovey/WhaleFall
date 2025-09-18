@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 基础同步数据模型
+鲸落 - 基础同步数据模型
 """
 
 from sqlalchemy.ext.declarative import declared_attr

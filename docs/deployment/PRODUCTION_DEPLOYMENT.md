@@ -1,8 +1,8 @@
-# 泰摸鱼吧生产环境部署指南
+# 鲸落生产环境部署指南
 
 ## 📋 概述
 
-本文档详细说明如何在Debian/Ubuntu系统上使用Docker部署泰摸鱼吧生产环境。部署方案包括：
+本文档详细说明如何在Debian/Ubuntu系统上使用Docker部署鲸落生产环境。部署方案包括：
 
 - **Flask应用**: 基于Ubuntu 22.04的Python应用
 - **PostgreSQL**: 生产级数据库
@@ -100,7 +100,7 @@ REDIS_PASSWORD=your-redis-password
 SECRET_KEY=your-secret-key
 
 # 修改应用信息
-APP_NAME=泰摸鱼吧
+APP_NAME=鲸落
 APP_VERSION=1.0.0
 ```
 
@@ -150,7 +150,7 @@ docker compose exec app python scripts/create_admin_user.py
 | `POSTGRES_PASSWORD` | PostgreSQL密码 | `Taifish2024!` | ✅ |
 | `REDIS_PASSWORD` | Redis密码 | `Taifish2024!` | ✅ |
 | `SECRET_KEY` | Flask密钥 | 随机生成 | ✅ |
-| `APP_NAME` | 应用名称 | `泰摸鱼吧` | ❌ |
+| `APP_NAME` | 应用名称 | `鲸落` | ❌ |
 | `APP_VERSION` | 应用版本 | `1.0.0` | ❌ |
 
 ### 端口配置

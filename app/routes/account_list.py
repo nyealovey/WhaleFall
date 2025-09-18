@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 账户管理路由
+鲸落 - 账户管理路由
 """
 
 from flask import Blueprint, Response, jsonify, render_template, request

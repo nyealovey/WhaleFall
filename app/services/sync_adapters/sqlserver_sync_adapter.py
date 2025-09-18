@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - SQL Server数据库同步适配器
+鲸落 - SQL Server数据库同步适配器
 处理SQL Server特定的账户同步逻辑
 
 特性：

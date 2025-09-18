@@ -4,7 +4,7 @@ logger = get_system_logger()
 
 #!/usr/bin/env python3
 """
-泰摸鱼吧 - 快速代码质量检查脚本
+鲸落 - 快速代码质量检查脚本
 只运行基本的代码检查，不运行测试，生成详细报告
 """
 
@@ -236,7 +236,7 @@ def generate_fix_suggestions(results: dict, project_root: Path) -> None:
 
 def main():
     """主函数"""
-    logger.info("🚀 泰摸鱼吧 - 快速代码质量检查")
+    logger.info("🚀 鲸落 - 快速代码质量检查")
     print("=" * 50)
 
     project_root = Path(__file__).parent.parent

@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 用户模型
+鲸落 - 用户模型
 """
 
 from flask_login import UserMixin

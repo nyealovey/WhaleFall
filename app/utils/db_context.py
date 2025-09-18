@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 数据库连接上下文管理器
+鲸落 - 数据库连接上下文管理器
 """
 
 from collections.abc import Generator

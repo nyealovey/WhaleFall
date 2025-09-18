@@ -2,7 +2,7 @@ from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
 
-# 泰摸鱼吧 - 模型测试
+# 鲸落 - 模型测试
 
 from app.models import Account, Credential, GlobalParam, Instance, Task, User
 

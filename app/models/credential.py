@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 凭据模型
+鲸落 - 凭据模型
 """
 
 from app import bcrypt, db

@@ -1,4 +1,4 @@
-# 泰摸鱼吧 - Docker Compose开发环境配置 (最新稳定版)
+# 鲸落 - Docker Compose开发环境配置 (最新稳定版)
 services:
   # Flask应用服务
   flask:

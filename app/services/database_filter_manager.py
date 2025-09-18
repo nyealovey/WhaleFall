@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 数据库过滤规则管理器
+鲸落 - 数据库过滤规则管理器
 专门用于数据库账户同步时的过滤规则管理
 """
 
@@ -293,7 +293,7 @@ class DatabaseFilterManager:
             save_data = {
                 "database_filters": self.filter_rules,
                 "version": "1.0",
-                "description": "泰摸鱼吧数据库过滤规则配置",
+                "description": "鲸落数据库过滤规则配置",
             }
 
             with open(file_path, "w", encoding="utf-8") as f:

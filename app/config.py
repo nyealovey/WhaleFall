@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 开发环境配置
+鲸落 - 开发环境配置
 简化配置管理，只保留开发环境
 """
 
@@ -78,7 +78,7 @@ class Config:
     ORACLE_PASSWORD = os.getenv("ORACLE_PASSWORD", "")
 
     # 应用配置
-    APP_NAME = os.getenv("APP_NAME", "泰摸鱼吧")
+    APP_NAME = os.getenv("APP_NAME", "鲸落")
     APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
 
     # 监控配置

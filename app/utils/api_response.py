@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - API响应工具
+鲸落 - API响应工具
 """
 
 from typing import Any

@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档提供了泰摸鱼吧系统支持的所有数据库类型的权限要求总览，包括MySQL、PostgreSQL、SQL Server和Oracle。
+本文档提供了鲸落系统支持的所有数据库类型的权限要求总览，包括MySQL、PostgreSQL、SQL Server和Oracle。
 
 ## 权限要求对比
 
@@ -159,9 +159,9 @@ sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user.sql
 sqlplus sys/password@database as sysdba @sql/setup_oracle_monitor_user.sql
 ```
 
-### 4. 配置泰摸鱼吧
+### 4. 配置鲸落
 
-在泰摸鱼吧系统中添加数据库实例：
+在鲸落系统中添加数据库实例：
 - 用户名: `monitor_user`
 - 密码: `YourStrongPassword123!`（请修改为强密码）
 - 主机: 数据库服务器IP
@@ -185,7 +185,7 @@ sqlplus sys/password@database as sysdba @sql/setup_oracle_monitor_user.sql
 
 ## 总结
 
-泰摸鱼吧系统支持四种主流数据库，每种数据库都有其特定的权限要求。通过遵循最小权限原则和使用专用监控账户，可以确保系统的安全性和稳定性。
+鲸落系统支持四种主流数据库，每种数据库都有其特定的权限要求。通过遵循最小权限原则和使用专用监控账户，可以确保系统的安全性和稳定性。
 
 **推荐做法：**
 1. 使用专用监控账户

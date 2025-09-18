@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 装饰器工具
+鲸落 - 装饰器工具
 """
 
 from functools import wraps

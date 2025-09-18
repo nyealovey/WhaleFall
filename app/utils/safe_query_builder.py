@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 安全查询构建器
+鲸落 - 安全查询构建器
 提供安全的SQL查询构建功能，防止SQL注入攻击
 支持MySQL、PostgreSQL、SQL Server、Oracle等多种数据库
 """

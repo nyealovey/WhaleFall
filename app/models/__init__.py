@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 数据模型
+鲸落 - 数据模型
 """
 
 from app import db  # noqa: F401

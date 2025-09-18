@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - PostgreSQL数据库同步适配器
+鲸落 - PostgreSQL数据库同步适配器
 处理PostgreSQL特定的账户同步逻辑
 """
 

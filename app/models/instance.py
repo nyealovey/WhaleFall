@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 实例模型
+鲸落 - 实例模型
 """
 
 from typing import TYPE_CHECKING

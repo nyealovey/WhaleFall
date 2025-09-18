@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - Structlog 配置
+鲸落 - Structlog 配置
 统一日志系统的核心配置和处理器
 """
 
@@ -383,7 +383,7 @@ class StructlogConfig:
     def _add_global_context(self, logger, method_name, event_dict):
         """添加全局上下文绑定"""
         # 添加应用信息
-        event_dict["app_name"] = "泰摸鱼吧"
+        event_dict["app_name"] = "鲸落"
         event_dict["app_version"] = "4.0.0"
 
         # 添加环境信息

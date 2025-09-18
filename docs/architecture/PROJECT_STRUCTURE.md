@@ -1,8 +1,8 @@
-# 泰摸鱼吧 (TaifishV4) - 项目结构文档
+# 鲸落 (TaifishV4) - 项目结构文档
 
 ## 项目概述
 
-泰摸鱼吧是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。支持PostgreSQL、MySQL、SQL Server、Oracle等主流数据库。
+鲸落是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。支持PostgreSQL、MySQL、SQL Server、Oracle等主流数据库。
 
 ## 技术栈
 
@@ -315,4 +315,4 @@ TaifishV4/
 ---
 
 **最后更新**: 2025年9月12日  
-**维护者**: 泰摸鱼吧开发团队
+**维护者**: 鲸落开发团队

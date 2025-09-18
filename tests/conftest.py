@@ -2,7 +2,7 @@ from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
 
-# 泰摸鱼吧 - 测试配置
+# 鲸落 - 测试配置
 
 
 import pytest

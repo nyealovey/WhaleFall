@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - PostgreSQL数据库过滤规则
+鲸落 - PostgreSQL数据库过滤规则
 """
 
 from .base_filter import BaseDatabaseFilter

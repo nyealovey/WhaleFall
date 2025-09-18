@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 系统仪表板路由
+鲸落 - 系统仪表板路由
 """
 
 from datetime import datetime, timedelta

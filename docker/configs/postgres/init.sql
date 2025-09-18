@@ -1,4 +1,4 @@
--- 泰摸鱼吧 - PostgreSQL初始化脚本
+-- 鲸落 - PostgreSQL初始化脚本
 
 -- 创建扩展
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

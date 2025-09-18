@@ -2,7 +2,7 @@
 
 ## 概述
 
-泰摸鱼吧已从 `cx_Oracle` 升级到 `python-oracledb`，提供更好的性能和兼容性，特别是对Apple Silicon Mac的支持。
+鲸落已从 `cx_Oracle` 升级到 `python-oracledb`，提供更好的性能和兼容性，特别是对Apple Silicon Mac的支持。
 
 ## 驱动信息
 

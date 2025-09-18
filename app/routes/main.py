@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 主要路由
+鲸落 - 主要路由
 """
 
 from flask import Blueprint, Response, jsonify, redirect, render_template, request, url_for

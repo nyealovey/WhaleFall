@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 同步会话管理路由
+鲸落 - 同步会话管理路由
 """
 
 from flask import Blueprint, jsonify, render_template, request

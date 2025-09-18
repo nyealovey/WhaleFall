@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 本地开发环境启动文件
+鲸落 - 本地开发环境启动文件
 """
 
 import os
@@ -41,7 +41,7 @@ def main() -> None:
             admin = User.create_admin()
     
     logger.info("=" * 50)
-    logger.info("🐟 泰摸鱼吧 - 本地开发环境")
+    logger.info("🐟 鲸落 - 本地开发环境")
     logger.info("=" * 50)
     logger.info("🌐 访问地址: http://%s:%s", host, port)
     logger.info("🔑 默认登录: admin/[随机密码]")

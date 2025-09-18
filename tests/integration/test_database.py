@@ -5,7 +5,7 @@ logger = get_system_logger()
 #!/usr/bin/env python3
 
 """
-泰摸鱼吧 - 数据库连接测试脚本
+鲸落 - 数据库连接测试脚本
 """
 
 import sys
@@ -67,7 +67,7 @@ def test_redis_connection():
 def main():
     """主函数"""
     logger.debug("=" * 50)
-    logger.debug("🐟 泰摸鱼吧 - 数据库连接测试")
+    logger.debug("🐟 鲸落 - 数据库连接测试")
     logger.debug("=" * 50)
 
     # 测试数据库

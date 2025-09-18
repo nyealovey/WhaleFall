@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 标签管理路由
+鲸落 - 标签管理路由
 """
 
 from typing import Any

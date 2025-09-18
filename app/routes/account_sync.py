@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 账户同步记录路由
+鲸落 - 账户同步记录路由
 """
 
 from collections import defaultdict

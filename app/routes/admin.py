@@ -1,5 +1,5 @@
 """
-泰摸鱼吧 - 管理API路由
+鲸落 - 管理API路由
 提供系统配置和常量管理功能
 """
 
@@ -42,11 +42,11 @@ def admin_required[T](f: T) -> T:
 def get_app_info() -> Response:
     """获取应用信息（公开接口，用于右上角显示）"""
     try:
-        return APIResponse.success(data={"app_name": "泰摸鱼吧", "app_version": "4.0.0"})  # type: ignore
+        return APIResponse.success(data={"app_name": "鲸落", "app_version": "4.0.0"})  # type: ignore
 
     except Exception as e:
         logger.error("获取应用信息失败: %s", e)
-        return APIResponse.success(data={"app_name": "泰摸鱼吧", "app_version": "4.0.0"})  # type: ignore
+        return APIResponse.success(data={"app_name": "鲸落", "app_version": "4.0.0"})  # type: ignore
 
 
 # 快速操作相关路由
