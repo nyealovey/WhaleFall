@@ -65,6 +65,8 @@ def index() -> str:
         query = query.filter_by(is_active=False, deleted_at=None)
     elif status == "deleted":
         query = query.filter(Tag.deleted_at.isnot(None))
+    else:  # status == "all" 或其他情况，默认只显示未删除的标签
+        query = query.filter(Tag.deleted_at.is_(None))
 
     # 排序
     query = query.order_by(Tag.category, Tag.sort_order, Tag.name)

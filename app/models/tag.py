@@ -75,13 +75,13 @@ class Tag(db.Model):
         """软删除标签"""
         self.deleted_at = now()
         self.is_active = False
-        db.session.commit()
+        # 不在这里提交，由调用者负责提交事务
 
     def restore(self) -> None:
         """恢复标签"""
         self.deleted_at = None
         self.is_active = True
-        db.session.commit()
+        # 不在这里提交，由调用者负责提交事务
 
     @staticmethod
     def get_active_tags() -> list:
