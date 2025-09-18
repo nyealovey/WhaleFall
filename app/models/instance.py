@@ -56,7 +56,6 @@ class Instance(db.Model):
         credential_id: int | None = None,
         description: str | None = None,
         tags: list | None = None,
-        environment: str = "production",
     ) -> None:
         """
         初始化实例
@@ -70,7 +69,6 @@ class Instance(db.Model):
             credential_id: 凭据ID
             description: 描述
             tags: 标签列表
-            environment: 环境类型（production, development, testing）
         """
         self.name = name
         self.db_type = db_type
@@ -79,7 +77,7 @@ class Instance(db.Model):
         self.database_name = database_name
         self.credential_id = credential_id
         self.description = description
-        self.environment = environment
+        # environment 字段已移除，使用标签系统替代
         # 标签将在创建后通过关系添加
 
     def test_connection(self) -> dict:
