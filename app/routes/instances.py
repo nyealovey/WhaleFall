@@ -317,6 +317,7 @@ def create() -> str | Response | tuple[Response, int]:
             # 记录操作日志
             api_logger.info(
                 "创建数据库实例",
+                module="instances",
                 user_id=current_user.id,
                 instance_id=instance.id,
                 instance_name=instance.name,

@@ -118,12 +118,19 @@ class SQLAlchemyLogHandler:
                 level = LogLevel.INFO
 
             # 获取模块名，优先从logger名称获取
-            module = event_dict.get("module", "unknown")
-            if not module or module == "unknown":
+            module = event_dict.get("module", "")
+            if not module:
                 # 尝试从logger名称提取模块
                 logger_name = event_dict.get("logger", "")
                 if logger_name:
-                    module = logger_name.split(".")[-1]
+                    # 从logger名称提取模块名
+                    if "." in logger_name:
+                        module = logger_name.split(".")[-1]
+                    else:
+                        module = logger_name
+                else:
+                    # 如果无法确定模块，使用默认值
+                    module = "app"
 
             # 获取消息内容
             message = event_dict.get("event", "")

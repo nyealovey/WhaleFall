@@ -276,7 +276,7 @@ def disable_job(job_id: str) -> Response:
 
         # 暂停任务
         scheduler.pause_job(job_id)
-        system_logger.info("任务已禁用: {job_id}")
+        system_logger.info("任务已禁用: {job_id}", module="scheduler")
         return APIResponse.success(data={"job_id": job_id}, message="任务已禁用")  # type: ignore
 
     except Exception as e:
@@ -301,7 +301,7 @@ def enable_job(job_id: str) -> Response:
 
         # 恢复任务
         scheduler.resume_job(job_id)
-        system_logger.info("任务已启用: {job_id}")
+        system_logger.info("任务已启用: {job_id}", module="scheduler")
         return APIResponse.success(data={"job_id": job_id}, message="任务已启用")  # type: ignore
 
     except Exception as e:

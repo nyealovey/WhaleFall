@@ -55,6 +55,7 @@ def login() -> "str | Response":
                 # 记录登录日志
                 auth_logger.info(
                     "用户登录成功",
+                    module="auth",
                     user_id=user.id,
                     username=user.username,
                     ip_address=request.remote_addr,
