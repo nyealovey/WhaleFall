@@ -31,7 +31,7 @@ def list_accounts(db_type: str | None = None) -> str:
     is_locked = request.args.get("is_locked")
     is_superuser = request.args.get("is_superuser")
     plugin = request.args.get("plugin", "").strip()
-    tags = request.args.getlist("tags")
+    tags = [tag for tag in request.args.getlist("tags") if tag.strip()]
     classification = request.args.get("classification", "").strip()
 
     # 构建查询
@@ -67,6 +67,7 @@ def list_accounts(db_type: str | None = None) -> str:
         try:
             # 通过实例的标签进行过滤
             query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+            log_info(f"应用标签过滤: {tags}", module="account_list")
         except Exception as e:
             log_error(
                 "标签过滤失败",
@@ -76,6 +77,8 @@ def list_accounts(db_type: str | None = None) -> str:
             )
             # 如果标签过滤失败，继续执行但不进行标签过滤
             pass
+    else:
+        log_info("未应用标签过滤", module="account_list")
 
     # 分类过滤
     if classification and classification != "all":
@@ -93,6 +96,9 @@ def list_accounts(db_type: str | None = None) -> str:
 
     # 分页
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    # 调试日志
+    log_info(f"查询结果: 总数={pagination.total}, 当前页={pagination.page}, 每页={pagination.per_page}", module="account_list")
 
     # 获取实例列表用于过滤
     instances = Instance.query.filter_by(is_active=True).all()
