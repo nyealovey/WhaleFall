@@ -298,14 +298,21 @@ def create() -> str | Response | tuple[Response, int]:
 
             # 处理标签
             tag_names = data.get("tag_names", [])
+            log_info(f"创建实例标签数据: {tag_names}")
+            
             if isinstance(tag_names, str):
                 # 如果是逗号分隔的字符串，分割成列表
                 tag_names = [name.strip() for name in tag_names.split(",") if name.strip()]
+                log_info(f"解析后的标签名称: {tag_names}")
             
             for tag_name in tag_names:
                 tag = Tag.get_tag_by_name(tag_name)
+                log_info(f"查找标签 '{tag_name}': {tag}")
                 if tag:
                     instance.add_tag(tag)
+                    log_info(f"成功添加标签 '{tag_name}' 到实例 {instance.id}")
+                else:
+                    log_info(f"标签 '{tag_name}' 不存在，跳过")
 
             # 记录操作日志
             api_logger.info(

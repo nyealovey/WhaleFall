@@ -649,6 +649,7 @@ function updateSelectedTagsPreview(selectedTags) {
         `).join('');
         
         hiddenInput.value = selectedTags.map(tag => tag.name).join(',');
+        console.log('设置隐藏字段值:', hiddenInput.value);
     } else {
         preview.style.display = 'none';
         count.textContent = '未选择标签';

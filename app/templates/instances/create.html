@@ -181,6 +181,10 @@ document.getElementById('db_type').addEventListener('change', function() {
 
 // 表单提交处理
 document.getElementById('instanceForm').addEventListener('submit', function(e) {
+    // 调试：检查隐藏字段的值
+    const tagNamesInput = document.getElementById('selected-tag-names');
+    console.log('表单提交时的标签字段值:', tagNamesInput ? tagNamesInput.value : '未找到字段');
+    
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     
