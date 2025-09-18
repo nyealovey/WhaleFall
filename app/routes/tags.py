@@ -60,13 +60,10 @@ def index() -> str:
         query = query.filter(Tag.category == category)
 
     if status == "active":
-        query = query.filter_by(is_active=True, deleted_at=None)
+        query = query.filter_by(is_active=True)
     elif status == "inactive":
-        query = query.filter_by(is_active=False, deleted_at=None)
-    elif status == "deleted":
-        query = query.filter(Tag.deleted_at.isnot(None))
-    else:  # status == "all" 或其他情况，默认只显示未删除的标签
-        query = query.filter(Tag.deleted_at.is_(None))
+        query = query.filter_by(is_active=False)
+    # 移除软删除相关逻辑，因为现在使用硬删除
 
     # 排序
     query = query.order_by(Tag.category, Tag.sort_order, Tag.name)
@@ -241,13 +238,21 @@ def delete(tag_id: int) -> Response:
             flash(f"无法删除标签 '{tag.display_name}'，还有 {instance_count} 个实例正在使用", "error")
             return redirect(url_for("tags.index"))
 
-        # 软删除标签
-        tag.soft_delete()
+        # 硬删除标签 - 先删除关联关系，再删除标签
+        # 删除实例标签关联关系
+        db.session.execute(
+            db.text("DELETE FROM instance_tags WHERE tag_id = :tag_id"),
+            {"tag_id": tag_id}
+        )
+        
+        # 删除标签
+        db.session.delete(tag)
+        db.session.commit()
 
         log_info(
             "标签删除成功",
             module="tags",
-            tag_id=tag.id,
+            tag_id=tag_id,
             name=tag.name,
             display_name=tag.display_name,
         )

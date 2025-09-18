@@ -21,7 +21,6 @@ class Tag(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=now)
     updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
-    deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     # 关系
     instances = db.relationship("Instance", secondary="instance_tags", back_populates="tags")
@@ -71,27 +70,16 @@ class Tag(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
-    def soft_delete(self) -> None:
-        """软删除标签"""
-        self.deleted_at = now()
-        self.is_active = False
-        # 不在这里提交，由调用者负责提交事务
-
-    def restore(self) -> None:
-        """恢复标签"""
-        self.deleted_at = None
-        self.is_active = True
-        # 不在这里提交，由调用者负责提交事务
 
     @staticmethod
     def get_active_tags() -> list:
         """获取所有活跃标签"""
-        return Tag.query.filter_by(deleted_at=None, is_active=True).order_by(Tag.category, Tag.sort_order, Tag.name).all()
+        return Tag.query.filter_by(is_active=True).order_by(Tag.category, Tag.sort_order, Tag.name).all()
 
     @staticmethod
     def get_tags_by_category(category: str) -> list:
         """根据分类获取标签"""
-        return Tag.query.filter_by(category=category, deleted_at=None, is_active=True).order_by(Tag.sort_order, Tag.name).all()
+        return Tag.query.filter_by(category=category, is_active=True).order_by(Tag.sort_order, Tag.name).all()
 
     @staticmethod
     def get_tag_choices() -> list:
@@ -102,7 +90,7 @@ class Tag(db.Model):
     @staticmethod
     def get_tag_by_name(name: str) -> "Tag | None":
         """根据名称获取标签"""
-        return Tag.query.filter_by(name=name, deleted_at=None).first()
+        return Tag.query.filter_by(name=name).first()
 
     @staticmethod
     def get_category_choices() -> list:
