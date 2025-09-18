@@ -66,11 +66,8 @@
 
                         <!-- 可用标签列表 -->
                         <div class="available-tags-area">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="mb-2">
                                 <h6 class="mb-0">可用标签</h6>
-                                <button class="btn btn-sm btn-outline-success" id="quick-add-tag-btn">
-                                    <i class="fas fa-plus me-1"></i>快速添加标签
-                                </button>
                             </div>
                             <div id="available-tags-list" class="available-tags-list border rounded p-3" style="max-height: 300px; overflow-y: auto;">
                                 <!-- 可用标签将在这里显示 -->
@@ -89,56 +86,6 @@
     </div>
 </div>
 
-<!-- 快速添加标签模态框 -->
-<div class="modal fade" id="quickAddTagModal" tabindex="-1" aria-labelledby="quickAddTagModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-plus-circle me-2"></i>快速添加标签
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="quick-add-tag-form">
-                    <div class="mb-3">
-                        <label for="quick-tag-name" class="form-label">标签名称 *</label>
-                        <input type="text" class="form-control" id="quick-tag-name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="quick-tag-category" class="form-label">分类</label>
-                        <select class="form-select" id="quick-tag-category">
-                            <option value="other">其他</option>
-                            <option value="department">部门</option>
-                            <option value="company">公司</option>
-                            <option value="environment">环境</option>
-                            <option value="location">地区</option>
-                            <option value="project">项目</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="quick-tag-color" class="form-label">颜色</label>
-                        <select class="form-select" id="quick-tag-color">
-                            <option value="primary">蓝色</option>
-                            <option value="success">绿色</option>
-                            <option value="warning">黄色</option>
-                            <option value="danger">红色</option>
-                            <option value="info">青色</option>
-                            <option value="secondary">灰色</option>
-                            <option value="dark">深色</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="save-quick-tag">
-                    <i class="fas fa-save me-1"></i>保存标签
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <style>
 .tag-selector-container {
@@ -367,21 +314,7 @@ class TagSelector {
             });
         });
         
-        // 快速添加标签按钮
-        const quickAddBtn = this.container.querySelector('#quick-add-tag-btn');
-        if (quickAddBtn) {
-            quickAddBtn.addEventListener('click', () => {
-                this.showQuickAddModal();
-            });
-        }
         
-        // 快速添加标签保存按钮
-        const saveQuickTagBtn = document.getElementById('save-quick-tag');
-        if (saveQuickTagBtn) {
-            saveQuickTagBtn.addEventListener('click', () => {
-                this.saveQuickTag();
-            });
-        }
     }
     
     async loadAvailableTags() {
@@ -537,62 +470,6 @@ class TagSelector {
         return categoryMap[category] || category;
     }
     
-    showQuickAddModal() {
-        const modal = new bootstrap.Modal(document.getElementById('quickAddTagModal'));
-        modal.show();
-    }
-    
-    async saveQuickTag() {
-        const name = document.getElementById('quick-tag-name').value.trim();
-        const category = document.getElementById('quick-tag-category').value;
-        const color = document.getElementById('quick-tag-color').value;
-        
-        if (!name) {
-            alert('请输入标签名称');
-            return;
-        }
-        
-        try {
-            const response = await fetch('/tags/api/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
-                },
-                body: JSON.stringify({
-                    name: name,
-                    display_name: name,
-                    category: category,
-                    color: color
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // 关闭模态框
-                const modal = bootstrap.Modal.getInstance(document.getElementById('quickAddTagModal'));
-                modal.hide();
-                
-                // 清空表单
-                document.getElementById('quick-add-tag-form').reset();
-                
-                // 重新加载标签列表
-                await this.loadAvailableTags();
-                
-                // 自动选择新创建的标签
-                const newTag = this.availableTags.find(tag => tag.name === name);
-                if (newTag) {
-                    this.toggleTag(newTag.id);
-                }
-            } else {
-                alert('创建标签失败: ' + (data.message || '未知错误'));
-            }
-        } catch (error) {
-            console.error('创建标签失败:', error);
-            alert('创建标签失败: ' + error.message);
-        }
-    }
     
     showError(message) {
         const container = this.container.querySelector('#available-tags-list');
