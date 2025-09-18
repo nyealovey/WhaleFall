@@ -67,8 +67,8 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">标签</label>
                             <p class="form-control-plaintext">
-                                {% if instance.tags %}
-                                    {% for tag in instance.tags %}
+                                {% if instance.tags.all() %}
+                                    {% for tag in instance.tags.all() %}
                                         <span class="badge" style="background-color: {{ tag.color }}; color: white; margin-right: 5px;">
                                             <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
                                         </span>
