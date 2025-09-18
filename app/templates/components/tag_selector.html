@@ -1,17 +1,27 @@
-<!-- 标签选择器组件 -->
-<div class="tag-selector-container">
-    <!-- 已选择的标签显示区域 -->
-    <div class="selected-tags-area mb-3">
-        <label class="form-label fw-bold">已选择的标签</label>
-        <div id="selected-tags-display" class="selected-tags-display p-3 border rounded bg-light" style="min-height: 60px;">
-            <div class="d-flex flex-wrap gap-2" id="selected-tags-list">
-                <!-- 已选择的标签将在这里显示 -->
+<!-- 标签选择器模态框 -->
+<div class="modal fade" id="tagSelectorModal" tabindex="-1" aria-labelledby="tagSelectorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tagSelectorModalLabel">
+                    <i class="fas fa-tags me-2"></i>选择标签
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div id="no-tags-placeholder" class="text-muted text-center py-2" style="display: none;">
-                <i class="fas fa-tag me-2"></i>暂无选择的标签
-            </div>
-        </div>
-    </div>
+            <div class="modal-body">
+                <div class="tag-selector-container">
+                    <!-- 已选择的标签显示区域 -->
+                    <div class="selected-tags-area mb-3">
+                        <label class="form-label fw-bold">已选择的标签</label>
+                        <div id="selected-tags-display" class="selected-tags-display p-3 border rounded bg-light" style="min-height: 60px;">
+                            <div class="d-flex flex-wrap gap-2" id="selected-tags-list">
+                                <!-- 已选择的标签将在这里显示 -->
+                            </div>
+                            <div id="no-tags-placeholder" class="text-muted text-center py-2" style="display: none;">
+                                <i class="fas fa-tag me-2"></i>暂无选择的标签
+                            </div>
+                        </div>
+                    </div>
 
     <!-- 标签搜索和选择区域 -->
     <div class="tag-search-area">
@@ -152,6 +162,14 @@
                         <i class="fas fa-save me-1"></i>保存并添加
                     </button>
                 </div>
+            </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirm-tag-selection">
+                    <i class="fas fa-check me-1"></i>确认选择
+                </button>
             </div>
         </div>
     </div>
@@ -576,4 +594,74 @@ class TagSelector {
 
 // 全局变量，供模板使用
 let tagSelector = null;
+let tagSelectorModal = null;
+
+// 标签选择器模态框控制函数
+function openTagSelector() {
+    if (!tagSelectorModal) {
+        tagSelectorModal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
+    }
+    tagSelectorModal.show();
+}
+
+function closeTagSelector() {
+    if (tagSelectorModal) {
+        tagSelectorModal.hide();
+    }
+}
+
+function confirmTagSelection() {
+    if (tagSelector) {
+        const selectedTags = tagSelector.getSelectedTags();
+        updateSelectedTagsPreview(selectedTags);
+        closeTagSelector();
+    }
+}
+
+function updateSelectedTagsPreview(selectedTags) {
+    const previewContainer = document.getElementById('selected-tags-preview');
+    const chipsContainer = document.getElementById('selected-tags-chips');
+    const countElement = document.getElementById('selected-tags-count');
+    const hiddenInput = document.getElementById('selected-tag-names');
+    
+    if (selectedTags.length === 0) {
+        previewContainer.style.display = 'none';
+        countElement.textContent = '未选择标签';
+        hiddenInput.value = '';
+    } else {
+        previewContainer.style.display = 'block';
+        countElement.textContent = `已选择 ${selectedTags.length} 个标签`;
+        
+        // 清空现有标签
+        chipsContainer.innerHTML = '';
+        
+        // 添加选中的标签
+        selectedTags.forEach(tag => {
+            const chip = document.createElement('span');
+            chip.className = 'badge bg-primary me-1 mb-1';
+            chip.innerHTML = `
+                <i class="fas fa-tag me-1"></i>${tag.display_name}
+                <button type="button" class="btn-close btn-close-white ms-1" 
+                        onclick="removeTagFromPreview('${tag.name}')" 
+                        style="font-size: 0.7em;"></button>
+            `;
+            chipsContainer.appendChild(chip);
+        });
+        
+        // 更新隐藏输入字段
+        const tagNames = selectedTags.map(tag => tag.name);
+        hiddenInput.value = tagNames.join(',');
+    }
+}
+
+function removeTagFromPreview(tagName) {
+    if (tagSelector) {
+        const tag = tagSelector.availableTags.find(t => t.name === tagName);
+        if (tag) {
+            tagSelector.toggleTag(tag.id);
+            const selectedTags = tagSelector.getSelectedTags();
+            updateSelectedTagsPreview(selectedTags);
+        }
+    }
+}
 </script>

@@ -104,10 +104,20 @@
                         <textarea class="form-control" id="description" name="description" rows="3">{{ instance.description or '' }}</textarea>
                     </div>
                     
-                    <!-- 标签选择器 -->
+                    <!-- 标签选择 -->
                     <div class="mb-3">
-                        <div id="tag-selector-container">
-                            <!-- 标签选择器组件将在这里加载 -->
+                        <label class="form-label fw-bold">标签</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-outline-primary" id="open-tag-selector-btn">
+                                <i class="fas fa-tags me-2"></i>选择标签
+                            </button>
+                            <span class="text-muted" id="selected-tags-count">未选择标签</span>
+                        </div>
+                        <!-- 已选择的标签显示区域 -->
+                        <div id="selected-tags-preview" class="mt-2" style="display: none;">
+                            <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
+                                <!-- 选中的标签将在这里显示 -->
+                            </div>
                         </div>
                         <!-- 隐藏的输入字段，用于表单提交 -->
                         <input type="hidden" id="selected-tag-names" name="tag_names" value="">
@@ -316,6 +326,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 allowCategoryFilter: true
             });
             
+            // 绑定打开标签选择器按钮
+            document.getElementById('open-tag-selector-btn').addEventListener('click', openTagSelector);
+            
+            // 绑定确认选择按钮
+            document.getElementById('confirm-tag-selection').addEventListener('click', confirmTagSelection);
+            
             // 设置当前选中的标签
             if (currentTagNames.length > 0) {
                 // 等待标签加载完成后再设置选中状态
@@ -325,15 +341,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         .filter(tag => currentTagNames.includes(tag.name))
                         .map(tag => tag.id);
                     tagSelector.setSelectedTags(currentTagIds);
+                    // 更新预览显示
+                    updateSelectedTagsPreview(tagSelector.getSelectedTags());
                 }, 200);
             }
-            
-            // 监听标签选择变化
-            document.getElementById('tag-selector-container').addEventListener('tagSelectionChanged', function(e) {
-                const selectedTags = e.detail.selectedTags;
-                const tagNames = selectedTags.map(tag => tag.name);
-                document.getElementById('selected-tag-names').value = tagNames.join(',');
-            });
         }
     }, 100);
 });
