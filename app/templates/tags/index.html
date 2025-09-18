@@ -6,13 +6,19 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2><i class="fas fa-tags me-2"></i>标签管理</h2>
+        {% if current_user.role == 'admin' %}
         <p class="text-muted mb-0">管理数据库实例的标签信息</p>
+        {% else %}
+        <p class="text-muted mb-0">查看数据库实例的标签信息（只读模式）</p>
+        {% endif %}
     </div>
+    {% if current_user.role == 'admin' %}
     <div>
         <a href="{{ url_for('tags.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>添加标签
         </a>
     </div>
+    {% endif %}
 </div>
 
 <!-- 搜索和筛选 -->
@@ -122,6 +128,7 @@
                             <small class="text-muted">{{ tag.created_at | china_time('%Y-%m-%d %H:%M') }}</small>
                         </td>
                         <td>
+                            {% if current_user.role == 'admin' %}
                             <div class="btn-group btn-group-sm" role="group">
                                 <a href="{{ url_for('tags.edit', tag_id=tag.id) }}"
                                    class="btn btn-outline-warning" title="编辑">
@@ -132,6 +139,9 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
+                            {% else %}
+                            <span class="text-muted">只读模式</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
