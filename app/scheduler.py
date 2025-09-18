@@ -129,10 +129,25 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
     scheduler.app = app
     scheduler.start()
 
-    # 添加默认任务
-    _add_default_jobs()
+    # 从数据库加载现有任务（不自动创建默认任务）
+    _load_existing_jobs()
 
     return scheduler
+
+
+def _load_existing_jobs() -> None:
+    """从数据库加载现有任务"""
+    try:
+        # 获取数据库中的所有任务
+        existing_jobs = scheduler.get_jobs()
+        if existing_jobs:
+            logger.info("从数据库加载了 %d 个现有任务", len(existing_jobs))
+            for job in existing_jobs:
+                logger.info("加载任务: %s (%s)", job.name, job.id)
+        else:
+            logger.info("数据库中没有找到任务")
+    except Exception as e:
+        logger.error("加载现有任务失败: %s", str(e))
 
 
 def _add_default_jobs() -> None:
@@ -175,17 +190,18 @@ def _add_default_jobs() -> None:
                 logger.warning("未知的任务函数: %s", function_name)
                 continue
 
-            # 创建任务
-            scheduler.add_job(
-                func,
-                trigger_type,
-                id=task_id,
-                name=task_name,
-                replace_existing=True,
-                **trigger_params,
-            )
-
-            logger.info("添加默认任务: %s (%s)", task_name, task_id)
+            # 创建任务（不覆盖现有任务）
+            try:
+                scheduler.add_job(
+                    func,
+                    trigger_type,
+                    id=task_id,
+                    name=task_name,
+                    **trigger_params,
+                )
+                logger.info("添加默认任务: %s (%s)", task_name, task_id)
+            except Exception as e:
+                logger.warning("任务已存在，跳过创建: %s (%s) - %s", task_name, task_id, str(e))
 
     except FileNotFoundError:
         logger.warning("配置文件不存在: %s，使用硬编码默认任务", config_file)
@@ -204,25 +220,31 @@ def _add_hardcoded_default_jobs() -> None:
     from app.tasks import cleanup_old_logs, sync_accounts
 
     # 清理旧日志 - 每天凌晨2点执行
-    scheduler.add_job(
-        cleanup_old_logs,
-        "cron",
-        hour=2,
-        minute=0,
-        id="cleanup_logs",
-        name="清理旧日志",
-        replace_existing=True,
-    )
+    try:
+        scheduler.add_job(
+            cleanup_old_logs,
+            "cron",
+            hour=2,
+            minute=0,
+            id="cleanup_logs",
+            name="清理旧日志",
+        )
+        logger.info("添加硬编码任务: 清理旧日志")
+    except Exception as e:
+        logger.warning("任务已存在，跳过创建: cleanup_logs - %s", str(e))
 
     # 账户同步 - 每30分钟执行
-    scheduler.add_job(
-        sync_accounts,
-        "interval",
-        minutes=30,
-        id="sync_accounts",
-        name="账户同步",
-        replace_existing=True,
-    )
+    try:
+        scheduler.add_job(
+            sync_accounts,
+            "interval",
+            minutes=30,
+            id="sync_accounts",
+            name="账户同步",
+        )
+        logger.info("添加硬编码任务: 账户同步")
+    except Exception as e:
+        logger.warning("任务已存在，跳过创建: sync_accounts - %s", str(e))
 
 
 # 装饰器：用于标记任务函数

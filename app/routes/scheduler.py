@@ -149,7 +149,7 @@ def create_job() -> Response:
         if not scheduler.running:
             return APIResponse.error("调度器未启动", code=500)  # type: ignore
 
-        # 直接使用函数对象
+        # 直接使用函数对象（不覆盖现有任务）
         job = scheduler.add_job(
             func=task_func,
             trigger=trigger,
@@ -157,7 +157,6 @@ def create_job() -> Response:
             name=data["name"],
             args=[],
             kwargs={},
-            replace_existing=True,
         )
 
         system_logger.info("任务创建成功: %s", job.id)
@@ -199,9 +198,6 @@ def update_job(job_id: str) -> Response:
             if is_builtin:
                 # 内置任务：只能更新触发器
                 scheduler.modify_job(job_id, trigger=trigger)
-                # 重新调度任务以立即生效
-                scheduler.reschedule_job(job_id, trigger=trigger)
-
                 system_logger.info("内置任务触发器更新成功: %s", job_id)
                 return APIResponse.success("触发器更新成功")  # type: ignore
             # 自定义任务：可以更新所有属性
@@ -212,8 +208,6 @@ def update_job(job_id: str) -> Response:
                 args=data.get("args", job.args),
                 kwargs=data.get("kwargs", job.kwargs),
             )
-            # 重新调度任务以立即生效
-            scheduler.reschedule_job(job_id, trigger=trigger)
         else:
             if is_builtin:
                 # 内置任务：不允许更新其他属性
