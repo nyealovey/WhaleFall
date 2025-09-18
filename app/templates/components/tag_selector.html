@@ -386,12 +386,26 @@ class TagSelector {
     
     async loadAvailableTags() {
         try {
-            const response = await fetch('/tags/api/tags');
+            // 获取CSRF token
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || 
+                             document.querySelector('input[name=csrf_token]')?.value || '';
+            
+            const response = await fetch('/tags/api/tags', {
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            
+            console.log('标签API响应状态:', response.status);
+            console.log('标签API响应头:', response.headers);
+            
             const data = await response.json();
+            console.log('标签API响应数据:', data);
             
             if (data.success) {
                 this.availableTags = data.tags || data;
                 this.filteredTags = [...this.availableTags];
+                console.log('加载的标签数据:', this.availableTags);
                 this.renderAvailableTags();
             } else {
                 this.showError('加载标签失败: ' + (data.message || '未知错误'));
