@@ -6,7 +6,7 @@
 ## 技术栈
 - **后端**: Flask 3.0.3, SQLAlchemy 1.4.54, APScheduler 3.10.4
 - **前端**: Bootstrap 5.3.2, jQuery 3.7.1, Chart.js 4.4.0
-- **数据库**: SQLite (开发), PostgreSQL (生产), MySQL, SQL Server, Oracle
+- **数据库**: PostgreSQL (主数据库), MySQL, SQL Server, Oracle
 - **缓存**: Redis 5.0.7
 - **任务调度**: APScheduler (替代Celery)
 - **Python版本**: 3.13+
@@ -25,29 +25,10 @@ TaifishV4/
 │   ├── static/            # 静态文件
 │   ├── scheduler.py       # 定时任务调度器
 │   └── tasks.py           # 任务定义
-├── docs/                  # 项目文档 (重新组织)
-│   ├── architecture/      # 架构文档
-│   ├── database/          # 数据库文档
-│   ├── features/          # 功能特性文档
-│   ├── guides/            # 使用指南
-│   ├── project/           # 项目文档
-│   ├── reports/           # 报告文档
-│   ├── deployment/        # 部署文档
-│   ├── development/       # 开发文档
-│   ├── adr/               # 架构决策记录
-│   └── api/               # API文档
-├── sql/                   # SQL脚本目录 (统一管理)
-│   ├── init_postgresql.sql        # PostgreSQL初始化脚本
-│   ├── setup_*_monitor_user.sql   # 监控用户设置脚本
-│   └── README.md                  # SQL目录说明
-├── docker/                # Docker配置
-├── scripts/               # 脚本文件
+├── docs/                  # 项目文档
+├── sql/                   # SQL脚本目录
 ├── tests/                 # 测试文件
 ├── userdata/              # 用户数据目录
-│   ├── taifish_dev.db     # 开发数据库
-│   ├── scheduler.db       # 定时任务数据库
-│   ├── logs/              # 日志文件
-│   └── exports/           # 导出文件
 ├── migrations/            # 数据库迁移
 ├── config/                # 配置文件
 └── requirements.txt       # Python依赖
@@ -112,7 +93,7 @@ TaifishV4/
 - 基于APScheduler的轻量级任务调度
 - 支持内置任务和自定义任务
 - 任务调度和监控
-- 任务持久化存储 (SQLite)
+- 任务持久化存储 (PostgreSQL)
 - 支持任务启用/禁用和立即执行
 
 ### 6. 日志监控
@@ -211,7 +192,7 @@ TaifishV4/
 ## 部署规范
 
 ### 开发环境
-- 使用SQLite数据库
+- 使用PostgreSQL数据库
 - 使用Redis作为缓存
 - 使用Flask开发服务器
 - 日志输出到控制台
@@ -225,7 +206,7 @@ TaifishV4/
 ## 代码审查规范
 
 ### 提交前检查
-- 代码风格检查 (flake8)
+- 代码风格检查 (ruff)
 - 类型检查 (mypy)
 - 测试用例通过
 - 文档更新
@@ -246,10 +227,7 @@ TaifishV4/
 
 ### 项目文档
 - README.md包含项目概述和快速开始
-- docs/目录包含所有项目文档，按功能分类组织
-- docs/architecture/spec.md包含技术规格和API文档
-- docs/project/todolist.md包含开发任务清单
-- docs/sql/README.md包含SQL脚本说明
+- docs/目录包含所有项目文档
 - 每个功能模块有独立的文档
 
 ## 特殊注意事项
@@ -276,7 +254,7 @@ TaifishV4/
 
 ### 定时任务管理
 - 使用APScheduler替代Celery，减少依赖复杂度
-- 任务状态持久化存储在SQLite数据库
+- 任务状态持久化存储在PostgreSQL数据库
 - 支持任务的启用/禁用和立即执行
 - 任务执行日志与系统日志集成
 - 避免创建重复的同步记录
