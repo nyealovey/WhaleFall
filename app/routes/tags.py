@@ -110,7 +110,7 @@ def create() -> str | Response:
             is_active = request.form.get("is_active") == "on"
 
             # 检查名称是否已存在
-            existing_tag = Tag.query.filter_by(name=name, deleted_at=None).first()
+            existing_tag = Tag.query.filter_by(name=name).first()
             if existing_tag:
                 flash(f"标签代码 '{name}' 已存在", "error")
                 return render_template("tags/create.html")
@@ -181,8 +181,7 @@ def edit(tag_id: int) -> str | Response:
             # 检查名称是否已存在（排除当前记录）
             existing_tag = Tag.query.filter(
                 Tag.name == name,
-                Tag.id != tag_id,
-                Tag.deleted_at.is_(None)
+                Tag.id != tag_id
             ).first()
             if existing_tag:
                 flash(f"标签代码 '{name}' 已存在", "error")
