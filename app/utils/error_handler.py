@@ -3,15 +3,16 @@
 """
 
 import traceback
+from typing import Any
 
-from flask import current_app, jsonify, render_template, request
+from flask import Response, current_app, jsonify, render_template, request
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.utils.structlog_config import get_system_logger
 from app.utils.timezone import now
 
 
-def register_error_handlers(app):
+def register_error_handlers(app: Any) -> None:  # noqa: ANN401
     """
     注册全局错误处理器
 
@@ -20,37 +21,37 @@ def register_error_handlers(app):
     """
 
     @app.errorhandler(400)
-    def bad_request(error):
+    def bad_request(error: Any) -> tuple[Response, int]:  # noqa: ANN401
         """400错误处理"""
         return _handle_error(error, 400, "请求参数错误")
 
     @app.errorhandler(401)
-    def unauthorized(error):
+    def unauthorized(error: Any) -> tuple[Response, int]:  # noqa: ANN401
         """401错误处理"""
         return _handle_error(error, 401, "未授权访问")
 
     @app.errorhandler(403)
-    def forbidden(error):
+    def forbidden(error: Any) -> tuple[Response, int]:  # noqa: ANN401
         """403错误处理"""
         return _handle_error(error, 403, "禁止访问")
 
     @app.errorhandler(404)
-    def not_found(error):
+    def not_found(error: Any) -> tuple[Response, int]:  # noqa: ANN401
         """404错误处理"""
         return _handle_error(error, 404, "页面不存在")
 
     @app.errorhandler(429)
-    def too_many_requests(error):
+    def too_many_requests(error: Any) -> tuple[Response, int]:  # noqa: ANN401
         """429错误处理"""
         return _handle_error(error, 429, "请求过于频繁")
 
     @app.errorhandler(500)
-    def internal_server_error(error):
+    def internal_server_error(error: Any) -> tuple[Response, int]:  # noqa: ANN401
         """500错误处理"""
         return _handle_error(error, 500, "服务器内部错误")
 
     @app.errorhandler(SQLAlchemyError)
-    def handle_sqlalchemy_error(error):
+    def handle_sqlalchemy_error(error: Any) -> tuple[Response, int]:  # noqa: ANN401
         """SQLAlchemy错误处理"""
         # 记录详细的数据库错误信息
         current_app.logger.error("数据库错误: {str(error)}")
@@ -75,7 +76,7 @@ def register_error_handlers(app):
         return _handle_error(error, 500, "系统错误")
 
 
-def _handle_error(error, status_code, message):
+def _handle_error(error: Any, status_code: int, message: str) -> tuple[Response, int]:  # noqa: ANN401
     """
     统一错误处理
 
@@ -108,7 +109,7 @@ def _handle_error(error, status_code, message):
     )
 
 
-def _log_error(error, status_code):
+def _log_error(error: Any, status_code: int) -> None:  # noqa: ANN401
     """
     记录错误日志
 
@@ -159,7 +160,7 @@ def _get_timestamp():
     return now().isoformat()
 
 
-def safe_error_message(error):
+def safe_error_message(error: Any) -> str:  # noqa: ANN401
     """
     获取安全的错误消息
 
@@ -177,7 +178,7 @@ def safe_error_message(error):
     return str(error)
 
 
-def validate_error_response(response_data):
+def validate_error_response(response_data: dict[str, Any]) -> bool:  # noqa: ANN401
     """
     验证错误响应数据
 

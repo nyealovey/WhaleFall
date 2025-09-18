@@ -43,6 +43,7 @@ class InputValidator:
         value: Any,
         min_length: int = 0,
         max_length: int = 255,
+        *,
         allow_empty: bool = True,
         pattern: str | None = None,
     ) -> str | None:
@@ -267,9 +268,7 @@ class InputValidator:
         allowed_attributes = {}
 
         # 使用bleach清理HTML
-        cleaned = bleach.clean(html_content, tags=allowed_tags, attributes=allowed_attributes)
-
-        return cleaned
+        return bleach.clean(html_content, tags=allowed_tags, attributes=allowed_attributes)
 
     @staticmethod
     def validate_sql_query(query: str) -> bool:
@@ -305,11 +304,7 @@ class InputValidator:
         ]
 
         query_upper = query.upper()
-        for keyword in dangerous_keywords:
-            if keyword in query_upper:
-                return False
-
-        return True
+        return all(keyword not in query_upper for keyword in dangerous_keywords)
 
     @staticmethod
     def validate_json(json_data: str | dict) -> dict | None:

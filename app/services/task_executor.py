@@ -3,7 +3,9 @@
 负责执行各种类型的同步任务
 """
 
+import logging
 from datetime import datetime
+from typing import Any
 
 from app import db
 
@@ -175,15 +177,13 @@ class TaskExecutor:
                     from app.services.account_sync_service import account_sync_service
 
                     # 执行账户同步（同步时自动清理多余账户）
-                    result = account_sync_service.sync_accounts(instance, sync_type="task")
-                    return result
+                    return account_sync_service.sync_accounts(instance, sync_type="task")
 
                 # 对于数据库大小同步任务，使用数据库大小同步服务
                 if task.task_type == "sync_size":
                     from app.services.database_size_service import database_size_service
 
-                    result = database_size_service.sync_database_size(instance, sync_type="task")
-                    return result
+                    return database_size_service.sync_database_size(instance, sync_type="task")
 
                 # 对于其他任务类型，使用原有的动态执行方式
                 # 创建执行环境
@@ -210,9 +210,7 @@ class TaskExecutor:
 
                 # 调用执行函数
                 sync_func = exec_globals[func_name]
-                result = sync_func(instance, task.config or {})
-
-                return result
+                return sync_func(instance, task.config or {})
 
             except Exception as e:
                 self.logger.error("执行任务代码时出错: {e}")

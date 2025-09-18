@@ -43,7 +43,8 @@ class BaseSyncAdapter(ABC):
         Returns:
             Dict: 格式化的权限数据
         """
-        raise NotImplementedError("子类必须实现extract_permissions方法")
+        msg = "子类必须实现extract_permissions方法"
+        raise NotImplementedError(msg)
 
     @abstractmethod
     def format_account_data(self, raw_account: dict[str, Any]) -> dict[str, Any]:
@@ -56,7 +57,8 @@ class BaseSyncAdapter(ABC):
         Returns:
             Dict: 格式化后的账户数据
         """
-        raise NotImplementedError("子类必须实现format_account_data方法")
+        msg = "子类必须实现format_account_data方法"
+        raise NotImplementedError(msg)
 
     def sync_accounts(self, instance: Instance, connection: Any, session_id: str) -> dict[str, Any]:  # noqa: ANN401
         """
@@ -587,7 +589,8 @@ class BaseSyncAdapter(ABC):
         Returns:
             Dict: 变更详情
         """
-        raise NotImplementedError("子类必须实现_detect_changes方法")
+        msg = "子类必须实现_detect_changes方法"
+        raise NotImplementedError(msg)
 
     @abstractmethod
     def _update_account_permissions(
@@ -601,7 +604,8 @@ class BaseSyncAdapter(ABC):
             permissions_data: 权限数据
             is_superuser: 是否超级用户
         """
-        raise NotImplementedError("子类必须实现_update_account_permissions方法")
+        msg = "子类必须实现_update_account_permissions方法"
+        raise NotImplementedError(msg)
 
     @abstractmethod
     def _create_new_account(
@@ -628,7 +632,8 @@ class BaseSyncAdapter(ABC):
         Returns:
             新创建的账户对象
         """
-        raise NotImplementedError("子类必须实现_create_new_account方法")
+        msg = "子类必须实现_create_new_account方法"
+        raise NotImplementedError(msg)
 
     def _log_changes(
         self, instance_id: int, db_type: str, username: str, changes: dict[str, Any], session_id: str
@@ -677,7 +682,8 @@ class BaseSyncAdapter(ABC):
         Returns:
             List[str]: 变更描述列表
         """
-        raise NotImplementedError("子类必须实现_generate_change_description方法")
+        msg = "子类必须实现_generate_change_description方法"
+        raise NotImplementedError(msg)
 
     def _determine_change_type(self, changes: dict[str, Any]) -> str:
         """确定变更类型"""

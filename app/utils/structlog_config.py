@@ -3,6 +3,7 @@
 统一日志系统的核心配置和处理器
 """
 
+import contextlib
 import logging
 import sys
 import threading
@@ -57,7 +58,7 @@ class SQLAlchemyLogHandler:
 
         # 如果级别低于INFO，则丢弃日志
         if level_priority.get(level, 20) < 20:  # INFO级别
-            raise structlog.DropEvent()
+            raise structlog.DropEvent
 
         # 构建日志条目
         log_entry = self._build_log_entry(event_dict)
@@ -279,10 +280,8 @@ class SQLAlchemyLogHandler:
             import logging
 
             logging.error("Error flushing logs to database: {e}")
-            try:
+            with contextlib.suppress(BaseException):
                 db.session.rollback()
-            except:
-                pass
             # 清空缓冲区避免重复错误
             self.batch_buffer.clear()
 
@@ -352,7 +351,7 @@ class StructlogConfig:
         # 如果级别低于INFO，则丢弃日志
         if level_priority.get(level, 20) < 20:  # INFO级别
             # 静默丢弃DEBUG日志，不打印调试信息
-            raise structlog.DropEvent()
+            raise structlog.DropEvent
 
         return event_dict
 
@@ -441,7 +440,7 @@ def configure_structlog(app):
             get_logger("app").error("Application error", module="system", exception=str(exception))
 
 
-def set_debug_logging_enabled(enabled: bool) -> None:
+def set_debug_logging_enabled(*, enabled: bool) -> None:
     """设置DEBUG日志开关"""
     global _debug_logging_enabled
     _debug_logging_enabled = enabled

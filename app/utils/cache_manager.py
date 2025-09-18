@@ -196,22 +196,22 @@ def api_cache(timeout: int = 300) -> Callable:
 
 
 # 缓存键生成函数
-def user_key_func(user_id: int, *args, **kwargs) -> str:
+def user_key_func(user_id: int, *args, **kwargs: Any) -> str:  # noqa: ANN401
     """用户缓存键生成函数"""
     return f"user:{user_id}"
 
 
-def instance_key_func(instance_id: int, *args, **kwargs) -> str:
+def instance_key_func(instance_id: int, *args, **kwargs: Any) -> str:  # noqa: ANN401
     """实例缓存键生成函数"""
     return f"instance:{instance_id}"
 
 
-def task_key_func(task_id: int, *args, **kwargs) -> str:
+def task_key_func(task_id: int, *args, **kwargs: Any) -> str:  # noqa: ANN401
     """任务缓存键生成函数"""
     return f"task:{task_id}"
 
 
-def dashboard_key_func(*args, **kwargs) -> str:
+def dashboard_key_func(*args, **kwargs: Any) -> str:  # noqa: ANN401
     """仪表板缓存键生成函数"""
     from flask_login import current_user
 

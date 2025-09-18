@@ -132,7 +132,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
         return builder.build_where_clause()
 
     def _get_role_permissions(
-        self, connection: Any, username: str, is_superuser: bool
+        self, connection: Any, username: str, *, is_superuser: bool
     ) -> dict[str, Any]:  # noqa: ANN401
         """
         获取PostgreSQL角色的详细权限信息
@@ -384,7 +384,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
         }
 
     def _detect_changes(
-        self, existing_account: CurrentAccountSyncData, new_permissions: dict[str, Any], is_superuser: bool
+        self, existing_account: CurrentAccountSyncData, new_permissions: dict[str, Any], *, is_superuser: bool
     ) -> dict[str, Any]:
         """检测PostgreSQL账户变更"""
         changes = {}
@@ -476,7 +476,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
         return changes
 
     def _update_account_permissions(
-        self, account: CurrentAccountSyncData, permissions_data: dict[str, Any], is_superuser: bool
+        self, account: CurrentAccountSyncData, permissions_data: dict[str, Any], *, is_superuser: bool
     ) -> None:
         """更新PostgreSQL账户权限信息"""
         account.predefined_roles = permissions_data.get("predefined_roles", [])
@@ -498,6 +498,7 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
         db_type: str,
         username: str,
         permissions_data: dict[str, Any],
+        *,
         is_superuser: bool,
         session_id: str,
     ) -> CurrentAccountSyncData:
@@ -524,7 +525,6 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
         descriptions = []
 
         if "is_superuser" in changes:
-            old_value = changes["is_superuser"]["old"]
             new_value = changes["is_superuser"]["new"]
             if new_value:
                 descriptions.append("提升为超级用户")

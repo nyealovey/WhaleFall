@@ -51,7 +51,7 @@ class SafeQueryBuilder:
             oracle_condition = condition
             param_dict = {}
 
-            for i, param in enumerate(params):
+            for _, param in enumerate(params):
                 param_name = f"param_{self._param_counter}"
                 self._param_counter += 1
 

@@ -115,25 +115,25 @@ def retry(
 
             for attempt in range(1, max_attempts + 1):
                 try:
-                    self.system_logger.debug("执行函数 {func.__name__}, 尝试 {attempt}/{max_attempts}")
+                    retry_manager.system_logger.debug("执行函数 {func.__name__}, 尝试 {attempt}/{max_attempts}")
                     result = func(*args, **kwargs)
-                    self.system_logger.debug("函数 {func.__name__} 执行成功")
+                    retry_manager.system_logger.debug("函数 {func.__name__} 执行成功")
                     return result
 
                 except exceptions as e:  # type: ignore[misc]
                     last_exception = e
-                    self.system_logger.warning("函数 {func.__name__} 执行失败 (尝试 {attempt}/{max_attempts}): {e}")
+                    retry_manager.system_logger.warning("函数 {func.__name__} 执行失败 (尝试 {attempt}/{max_attempts}): {e}")
 
                     if attempt < max_attempts:
                         delay = retry_manager.calculate_delay(attempt)
-                        self.system_logger.debug("等待 {delay} 秒后重试...")
+                        retry_manager.system_logger.debug("等待 {delay} 秒后重试...")
                         time.sleep(delay)
                     else:
-                        self.system_logger.error("函数 {func.__name__} 重试次数已达上限")
+                        retry_manager.system_logger.error("函数 {func.__name__} 重试次数已达上限")
 
                 except Exception:
                     # 不在重试范围内的异常，直接抛出
-                    self.system_logger.error("函数 {func.__name__} 发生不可重试的异常: {e}")
+                    retry_manager.system_logger.error("函数 {func.__name__} 发生不可重试的异常: {e}")
                     raise
 
             # 所有重试都失败了
@@ -282,7 +282,7 @@ class RetryStats:
     def __init__(self) -> None:
         self.stats: dict[str, dict[str, Any]] = {}
 
-    def record_retry(self, func_name: str, attempt: int, success: bool, error: str | None = None) -> None:
+    def record_retry(self, func_name: str, attempt: int, *, success: bool, error: str | None = None) -> None:
         """记录重试统计"""
         if func_name not in self.stats:
             self.stats[func_name] = {

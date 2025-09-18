@@ -295,7 +295,7 @@ class ContextManager:
         return context
 
     @staticmethod
-    def build_business_context(module: str, **kwargs) -> dict[str, Any]:
+    def build_business_context(module: str, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         """根据模块构建业务上下文"""
         base_context = ContextManager.build_base_context()
 

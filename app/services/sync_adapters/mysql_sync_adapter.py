@@ -239,7 +239,7 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         }
 
     def _detect_changes(
-        self, existing_account: CurrentAccountSyncData, new_permissions: dict[str, Any], is_superuser: bool
+        self, existing_account: CurrentAccountSyncData, new_permissions: dict[str, Any], *, is_superuser: bool
     ) -> dict[str, Any]:
         """检测MySQL账户变更"""
         changes = {}
@@ -299,7 +299,7 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         return changes
 
     def _update_account_permissions(
-        self, account: CurrentAccountSyncData, permissions_data: dict[str, Any], is_superuser: bool
+        self, account: CurrentAccountSyncData, permissions_data: dict[str, Any], *, is_superuser: bool
     ) -> None:
         """更新MySQL账户权限信息"""
         account.global_privileges = permissions_data.get("global_privileges", [])
@@ -318,6 +318,7 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         db_type: str,
         username: str,
         permissions_data: dict[str, Any],
+        *,
         is_superuser: bool,
         session_id: str,
     ) -> CurrentAccountSyncData:
@@ -341,7 +342,6 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         descriptions = []
 
         if "is_superuser" in changes:
-            old_value = changes["is_superuser"]["old"]
             new_value = changes["is_superuser"]["new"]
             if new_value:
                 descriptions.append("提升为超级用户")
