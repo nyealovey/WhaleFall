@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# 鲸落 - 生产环境部署脚本
-# 使用方法: ./scripts/deploy.sh [环境] [操作]
-# 示例: ./scripts/deploy.sh prod start
+# 鲸落 - 统一部署脚本
+# 使用方法: ./scripts/deploy.sh [操作]
+# 示例: ./scripts/deploy.sh start
 
 set -e
 
@@ -50,9 +50,6 @@ check_dependencies() {
 # 检查环境配置文件
 check_env_file() {
     local env_file=".env"
-    if [ "$1" = "prod" ]; then
-        env_file="env.prod"
-    fi
     
     if [ ! -f "$env_file" ]; then
         log_error "环境配置文件 $env_file 不存在"
@@ -65,125 +62,80 @@ check_env_file() {
 
 # 构建Docker镜像
 build_image() {
-    local env=$1
     log_info "构建Docker镜像..."
     
-    if [ "$env" = "prod" ]; then
-        docker build -f Dockerfile -t whalefall:latest .
-    else
-        docker build -t whalefall:latest .
-    fi
+    docker build -t whalefall:latest .
     
     log_success "Docker镜像构建完成"
 }
 
 # 启动服务
 start_services() {
-    local env=$1
     log_info "启动服务..."
     
-    if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.yml up -d
-    else
-        docker compose up -d
-    fi
+    docker compose up -d
     
     log_success "服务启动完成"
 }
 
 # 停止服务
 stop_services() {
-    local env=$1
     log_info "停止服务..."
     
-    if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.yml down
-    else
-        docker compose down
-    fi
+    docker compose down
     
     log_success "服务停止完成"
 }
 
 # 重启服务
 restart_services() {
-    local env=$1
     log_info "重启服务..."
     
-    if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.yml restart
-    else
-        docker compose restart
-    fi
+    docker compose restart
     
     log_success "服务重启完成"
 }
 
 # 查看服务状态
 status_services() {
-    local env=$1
     log_info "查看服务状态..."
     
-    if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.yml ps
-    else
-        docker compose ps
-    fi
+    docker compose ps
 }
 
 # 查看日志
 view_logs() {
-    local env=$1
-    local service=$2
+    local service=$1
     
     if [ -n "$service" ]; then
         log_info "查看 $service 服务日志..."
-        if [ "$env" = "prod" ]; then
-            docker compose -f docker-compose.yml logs -f "$service"
-        else
-            docker compose logs -f "$service"
-        fi
+        docker compose logs -f "$service"
     else
         log_info "查看所有服务日志..."
-        if [ "$env" = "prod" ]; then
-            docker compose -f docker-compose.yml logs -f
-        else
-            docker compose logs -f
-        fi
+        docker compose logs -f
     fi
 }
 
 # 数据库迁移
 migrate_database() {
-    local env=$1
     log_info "执行数据库迁移..."
     
-    if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.yml exec whalefall python -m flask db upgrade
-    else
-        docker compose exec whalefall python -m flask db upgrade
-    fi
+    docker compose exec whalefall python -m flask db upgrade
     
     log_success "数据库迁移完成"
 }
 
 # 创建管理员用户
 create_admin() {
-    local env=$1
     log_info "创建管理员用户..."
     
-    if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.yml exec whalefall python scripts/show_admin_password.py
-    else
-        docker compose exec whalefall python scripts/show_admin_password.py
-    fi
+    docker compose exec whalefall python scripts/show_admin_password.py
     
     log_success "管理员用户创建完成"
 }
 
 # 备份数据
 backup_data() {
-    local env=$1
     local backup_dir="/opt/whalefall/backups"
     local date=$(date +%Y%m%d_%H%M%S)
     
@@ -193,18 +145,10 @@ backup_data() {
     mkdir -p "$backup_dir"
     
     # 备份数据库
-    if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.yml exec postgres pg_dump -U whalefall_user whalefall_prod > "$backup_dir/database_$date.sql"
-    else
-        docker compose exec postgres pg_dump -U whalefall_user whalefall_dev > "$backup_dir/database_$date.sql"
-    fi
+    docker compose exec postgres pg_dump -U whalefall_user whalefall_prod > "$backup_dir/database_$date.sql"
     
     # 备份应用数据
-    if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.yml exec whalefall tar -czf - /app/userdata > "$backup_dir/userdata_$date.tar.gz"
-    else
-        docker compose exec whalefall tar -czf - /app/userdata > "$backup_dir/userdata_$date.tar.gz"
-    fi
+    docker compose exec whalefall tar -czf - /app/userdata > "$backup_dir/userdata_$date.tar.gz"
     
     log_success "数据备份完成: $backup_dir"
 }
@@ -233,11 +177,7 @@ show_help() {
     echo "鲸落 - 部署脚本"
     echo ""
     echo "使用方法:"
-    echo "  $0 [环境] [操作] [服务名]"
-    echo ""
-    echo "环境:"
-    echo "  dev     开发环境"
-    echo "  prod    生产环境"
+    echo "  $0 [操作] [服务名]"
     echo ""
     echo "操作:"
     echo "  start       启动服务"
@@ -253,60 +193,59 @@ show_help() {
     echo "  help        显示帮助"
     echo ""
     echo "示例:"
-    echo "  $0 prod start"
-    echo "  $0 dev logs whalefall"
-    echo "  $0 prod backup"
+    echo "  $0 start"
+    echo "  $0 logs whalefall"
+    echo "  $0 backup"
 }
 
 # 主函数
 main() {
-    local env=${1:-dev}
-    local action=${2:-help}
-    local service=$3
+    local action=${1:-help}
+    local service=$2
     
     case $action in
         start)
             check_dependencies
-            check_env_file "$env"
-            build_image "$env"
-            start_services "$env"
+            check_env_file
+            build_image
+            start_services
             sleep 10
-            migrate_database "$env"
-            create_admin "$env"
-            status_services "$env"
+            migrate_database
+            create_admin
+            status_services
             ;;
         stop)
             check_dependencies
-            stop_services "$env"
+            stop_services
             ;;
         restart)
             check_dependencies
-            restart_services "$env"
-            status_services "$env"
+            restart_services
+            status_services
             ;;
         status)
             check_dependencies
-            status_services "$env"
+            status_services
             ;;
         logs)
             check_dependencies
-            view_logs "$env" "$service"
+            view_logs "$service"
             ;;
         build)
             check_dependencies
-            build_image "$env"
+            build_image
             ;;
         migrate)
             check_dependencies
-            migrate_database "$env"
+            migrate_database
             ;;
         admin)
             check_dependencies
-            create_admin "$env"
+            create_admin
             ;;
         backup)
             check_dependencies
-            backup_data "$env"
+            backup_data
             ;;
         cleanup)
             check_dependencies

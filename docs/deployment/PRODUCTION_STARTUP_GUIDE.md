@@ -45,7 +45,7 @@ requirements-prod.txt          # 生产环境Python依赖
 
 ### 2. 生产环境配置
 ```
-Dockerfile.prod               # 生产环境Dockerfile
+Dockerfile                    # 统一Dockerfile（支持开发和生产）
 ├── 安装生产环境依赖
 ├── 配置Gunicorn
 ├── 配置Supervisor
@@ -75,8 +75,8 @@ scripts/start-prod.sh         # 生产环境启动脚本
 ### 1. 构建生产环境镜像
 
 ```bash
-# 使用新的生产环境Dockerfile
-docker build -f Dockerfile.prod -t whalefall:latest .
+# 使用统一的Dockerfile
+docker build -t whalefall:latest .
 
 # 或者使用构建脚本
 ./scripts/build-image.sh latest
@@ -86,10 +86,10 @@ docker build -f Dockerfile.prod -t whalefall:latest .
 
 ```bash
 # 使用Docker Compose（推荐）
-./scripts/deploy.sh prod start
+./scripts/deploy.sh start
 
 # 或者手动启动
-docker compose -f docker-compose.prod.yml up -d
+docker compose up -d
 ```
 
 ### 3. 验证生产环境
@@ -226,4 +226,4 @@ docker exec -it whalefall_app netstat -an | grep :5000
 6. ✅ **资源限制**: 限制内存和CPU使用
 7. ✅ **监控支持**: 完整的日志和监控
 
-**请使用新的Dockerfile.prod重新构建镜像，以获得真正的生产环境性能！**
+**请使用统一的Dockerfile重新构建镜像，以获得真正的生产环境性能！**

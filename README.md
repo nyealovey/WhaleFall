@@ -419,7 +419,7 @@ docker-compose -f docker/compose/docker-compose.yml up -d
 
 1. **使用Docker Compose**
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+docker compose up -d
 ```
 
 2. **手动部署**
