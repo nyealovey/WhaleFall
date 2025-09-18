@@ -65,8 +65,10 @@ def list_accounts(db_type: str | None = None) -> str:
     # 标签过滤
     if tags:
         try:
-            # 通过实例的标签进行过滤
-            query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+            # 通过实例的标签进行过滤，使用子查询避免JOIN问题
+            from sqlalchemy import and_
+            instance_ids_with_tags = db.session.query(Instance.id).join(Instance.tags).filter(Tag.name.in_(tags)).subquery()
+            query = query.join(Instance).filter(Instance.id.in_(instance_ids_with_tags))
         except Exception as e:
             log_error(
                 "标签过滤失败",
