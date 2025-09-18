@@ -15,15 +15,6 @@
   - 确保幂等性（可重复运行）
 - **使用**: 在PostgreSQL数据库中执行此脚本进行完整初始化
 
-#### `postgres_init.sql`
-- **用途**: PostgreSQL Docker容器初始化脚本
-- **功能**: 创建基本的数据库和用户
-- **使用**: Docker Compose环境中的PostgreSQL容器初始化
-
-#### `postgres_docker_init.sql`
-- **用途**: PostgreSQL Docker配置文件中的初始化脚本
-- **功能**: 容器启动时的数据库初始化
-- **使用**: Docker配置文件中的初始化脚本
 
 ### 🔧 监控用户设置脚本
 
@@ -51,6 +42,22 @@
   - 配置SQL Server数据库监控
 - **使用**: `sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user.sql`
 
+#### `setup_sqlserver_monitor_user_advanced.sql`
+- **用途**: SQL Server高级监控用户设置
+- **功能**: 
+  - 创建具有高级权限的监控用户
+  - 支持跨数据库查询
+  - 配置详细的监控权限
+- **使用**: `sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user_advanced.sql`
+
+#### `setup_sqlserver_monitor_user_cross_db.sql`
+- **用途**: SQL Server跨数据库监控用户设置
+- **功能**: 
+  - 创建支持跨数据库查询的监控用户
+  - 授予跨数据库权限
+  - 配置多数据库监控
+- **使用**: `sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user_cross_db.sql`
+
 #### `setup_oracle_monitor_user.sql`
 - **用途**: Oracle监控用户创建和权限设置
 - **功能**: 
@@ -72,13 +79,6 @@ psql -U postgres -d postgres
 \i sql/init_postgresql.sql
 ```
 
-#### Docker环境初始化
-```bash
-# 使用Docker Compose启动
-docker-compose up -d postgres
-
-# 脚本会自动执行postgres_init.sql
-```
 
 ### 2. 监控用户设置
 
@@ -90,8 +90,14 @@ mysql -u root -p < sql/setup_mysql_monitor_user.sql
 # PostgreSQL
 psql -U postgres -d postgres -f sql/setup_postgresql_monitor_user.sql
 
-# SQL Server
+# SQL Server (基础)
 sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user.sql
+
+# SQL Server (高级)
+sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user_advanced.sql
+
+# SQL Server (跨数据库)
+sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user_cross_db.sql
 
 # Oracle
 sqlplus sys/password@database as sysdba @sql/setup_oracle_monitor_user.sql
@@ -133,5 +139,5 @@ sqlplus monitor_user/password@database
 
 ---
 
-**最后更新**: 2025年9月12日  
+**最后更新**: 2025年9月18日  
 **维护者**: 泰摸鱼吧开发团队
