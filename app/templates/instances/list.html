@@ -132,12 +132,7 @@
                         <td>
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-database text-primary me-2"></i>
-                                <div>
-                                    <strong>{{ instance.name }}</strong>
-                                    {% if instance.description %}
-                                    <br><small class="text-muted">{{ instance.description }}</small>
-                                    {% endif %}
-                                </div>
+                                <small class="text-muted">{{ instance.name }}</small>
                             </div>
                         </td>
                         <td>
@@ -152,18 +147,13 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td>{{ instance.host }}</td>
-                        <td>{{ instance.port }}</td>
+                        <td><small class="text-muted">{{ instance.host }}</small></td>
+                        <td><small class="text-muted">{{ instance.port }}</small></td>
                         <td>
                             {% if instance.main_version %}
-                                <div class="d-flex flex-column">
-                                    <span class="badge bg-primary mb-1">{{ instance.main_version }}</span>
-                                    {% if instance.detailed_version and instance.detailed_version != instance.main_version %}
-                                        <small class="text-muted">{{ instance.detailed_version }}</small>
-                                    {% endif %}
-                                </div>
+                                <span class="badge bg-primary">{{ instance.main_version }}</span>
                             {% else %}
-                                <span class="text-muted">未检测</span>
+                                <small class="text-muted">未检测</small>
                             {% endif %}
                         </td>
                         <td>
