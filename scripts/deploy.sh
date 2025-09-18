@@ -60,6 +60,16 @@ check_env_file() {
     log_success "环境配置文件检查通过"
 }
 
+# 初始化数据目录
+init_data_directories() {
+    log_info "初始化数据目录..."
+    
+    # 运行数据目录初始化脚本
+    ./scripts/init-data-dirs.sh init
+    
+    log_success "数据目录初始化完成"
+}
+
 # 构建Docker镜像
 build_image() {
     log_info "构建Docker镜像..."
@@ -136,7 +146,7 @@ create_admin() {
 
 # 备份数据
 backup_data() {
-    local backup_dir="/opt/whalefall/backups"
+    local backup_dir="/opt/whale_fall_data/backups"
     local date=$(date +%Y%m%d_%H%M%S)
     
     log_info "备份数据..."
@@ -207,6 +217,7 @@ main() {
         start)
             check_dependencies
             check_env_file
+            init_data_directories
             build_image
             start_services
             sleep 10

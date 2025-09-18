@@ -68,6 +68,11 @@ scripts/start-prod.sh         # 生产环境启动脚本
 ├── 依赖服务等待
 ├── 数据库迁移
 └── Gunicorn启动
+
+scripts/init-data-dirs.sh     # 数据目录初始化脚本
+├── 创建统一数据目录结构
+├── 设置正确的权限
+└── 验证目录状态
 ```
 
 ## 🚀 正确的生产环境启动方式
@@ -91,6 +96,8 @@ docker build -t whalefall:latest .
 # 或者手动启动
 docker compose up -d
 ```
+
+**注意**: 首次启动时会自动创建 `/opt/whale_fall_data` 数据目录结构。
 
 ### 3. 验证生产环境
 

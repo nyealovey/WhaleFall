@@ -417,12 +417,26 @@ docker-compose -f docker/compose/docker-compose.yml up -d
 
 ### 生产环境部署
 
-1. **使用Docker Compose**
+1. **使用Docker Compose（推荐）**
 ```bash
+# 自动初始化数据目录并启动
+./scripts/deploy.sh start
+
+# 或者手动启动
 docker compose up -d
 ```
 
-2. **手动部署**
+2. **数据目录结构**
+```
+/opt/whale_fall_data/
+├── app/                    # 应用数据
+├── postgres/              # 数据库数据
+├── redis/                 # 缓存数据
+├── nginx/                 # Nginx数据
+└── backups/               # 备份数据
+```
+
+3. **手动部署**
 ```bash
 # 安装依赖
 pip install -r requirements.txt
