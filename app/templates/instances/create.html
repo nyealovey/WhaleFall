@@ -227,9 +227,14 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         console.log('开始检查组件');
         console.log('tag-selector-container元素:', document.getElementById('tag-selector-container'));
+        console.log('tagSelectorModal元素:', document.getElementById('tagSelectorModal'));
         console.log('open-tag-selector-btn元素:', document.getElementById('open-tag-selector-btn'));
         
-        if (typeof TagSelector !== 'undefined' && document.getElementById('tag-selector-container')) {
+        // 检查模态框是否存在
+        const modalElement = document.getElementById('tagSelectorModal');
+        const containerElement = document.getElementById('tag-selector-container');
+        
+        if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
             console.log('开始初始化TagSelector');
             // 初始化标签选择器
             tagSelector = new TagSelector('tag-selector-container', {
@@ -265,7 +270,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('找不到confirm-tag-selection按钮');
             }
         } else {
-            console.error('TagSelector未定义或tag-selector-container元素未找到');
+            console.error('初始化失败:');
+            console.error('- TagSelector可用:', typeof TagSelector !== 'undefined');
+            console.error('- 模态框元素:', modalElement ? '找到' : '未找到');
+            console.error('- 容器元素:', containerElement ? '找到' : '未找到');
         }
     }, 500); // 增加等待时间
 });
