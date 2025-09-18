@@ -43,6 +43,9 @@
                 <input type="radio" class="btn-check" name="category-filter" id="category-environment" value="environment">
                 <label class="btn btn-outline-secondary" for="category-environment">环境</label>
                 
+                <input type="radio" class="btn-check" name="category-filter" id="category-location" value="location">
+                <label class="btn btn-outline-secondary" for="category-location">地区</label>
+                
                 <input type="radio" class="btn-check" name="category-filter" id="category-project" value="project">
                 <label class="btn btn-outline-secondary" for="category-project">项目</label>
                 
@@ -398,6 +401,7 @@ class TagSelector {
         }
         
         this.filteredTags.forEach(tag => {
+            console.log('渲染标签:', tag);
             const isSelected = this.selectedTags.has(tag.id);
             const tagItem = document.createElement('div');
             tagItem.className = `available-tag-item ${isSelected ? 'selected' : ''}`;
@@ -423,6 +427,7 @@ class TagSelector {
                 </div>
             `;
             
+            console.log('创建的标签元素:', tagItem);
             container.appendChild(tagItem);
         });
     }
@@ -502,6 +507,7 @@ class TagSelector {
             'company': '公司',
             'environment': '环境',
             'project': '项目',
+            'location': '地区',
             'other': '其他'
         };
         return categoryMap[category] || category;
