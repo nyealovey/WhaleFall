@@ -354,9 +354,7 @@ class TagSelector {
             const response = await fetch('/tags/api/tags');
             if (response.ok) {
                 const data = await response.json();
-                console.log('API返回数据:', data);
                 this.availableTags = data.tags || data; // 支持两种格式
-                console.log('解析后的标签数据:', this.availableTags);
                 this.filteredTags = [...this.availableTags];
                 this.renderAvailableTags();
             } else {
@@ -386,8 +384,6 @@ class TagSelector {
     
     renderAvailableTags() {
         const container = document.getElementById('available-tags-list');
-        console.log('渲染可用标签，容器:', container);
-        console.log('过滤后的标签数量:', this.filteredTags.length);
         container.innerHTML = '';
         
         if (this.filteredTags.length === 0) {
@@ -401,7 +397,6 @@ class TagSelector {
         }
         
         this.filteredTags.forEach(tag => {
-            console.log('渲染标签:', tag);
             const isSelected = this.selectedTags.has(tag.id);
             const tagItem = document.createElement('div');
             tagItem.className = `available-tag-item ${isSelected ? 'selected' : ''}`;
@@ -427,7 +422,6 @@ class TagSelector {
                 </div>
             `;
             
-            console.log('创建的标签元素:', tagItem);
             container.appendChild(tagItem);
         });
     }
