@@ -86,7 +86,7 @@ TaifishV4/
 │   │   ├── test_runner.py       # 测试运行器
 │   │   ├── timezone.py          # 时区工具
 │   │   ├── validation.py        # 验证工具
-│   │   ├── advanced_error_handler.py # 高级错误处理
+│   │   ├── structlog_config.py       # 增强的错误处理和日志工具
 │   │   ├── advanced_test_framework.py # 高级测试框架
 │   │   ├── api_version.py       # API版本管理
 │   │   ├── backup_manager.py    # 备份管理

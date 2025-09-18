@@ -21,6 +21,7 @@ from app import db
 # Account模型已废弃，使用CurrentAccountSyncData
 from app.models.credential import Credential
 from app.models.instance import Instance
+from app.models.tag import Tag
 from app.services.account_sync_service import account_sync_service
 from app.utils.decorators import (
     create_required,
@@ -144,7 +145,7 @@ def index() -> str:
     per_page = request.args.get("per_page", 10, type=int)
     search = request.args.get("search", "", type=str)
     db_type = request.args.get("db_type", "", type=str)
-    environment = request.args.get("environment", "", type=str)
+    tags = request.args.getlist("tags")  # 支持多选标签
 
     # 构建查询
     query = Instance.query
@@ -161,8 +162,9 @@ def index() -> str:
     if db_type:
         query = query.filter(Instance.db_type == db_type)
 
-    if environment:
-        query = query.filter(Instance.environment == environment)
+    # 标签筛选
+    if tags:
+        query = query.join(Instance.tags).filter(Tag.name.in_(tags))
 
     # 分页查询，按ID排序
     instances = query.order_by(Instance.id).paginate(page=page, per_page=per_page, error_out=False)
@@ -192,14 +194,18 @@ def index() -> str:
             }
         )
 
+    # 获取所有标签用于筛选
+    all_tags = Tag.get_active_tags()
+    
     return render_template(
         "instances/list.html",
         instances=instances,
         credentials=credentials,
         database_types=database_types,
+        all_tags=all_tags,
+        selected_tags=tags,
         search=search,
         db_type=db_type,
-        environment=environment,
     )
 
 
@@ -218,7 +224,7 @@ def create() -> str | Response | tuple[Response, int]:
         data = sanitize_form_data(data)
 
         # 输入验证
-        required_fields = ["name", "db_type", "host", "port", "environment"]
+        required_fields = ["name", "db_type", "host", "port"]
         validation_error = validate_required_fields(data, required_fields)
         if validation_error:
             if request.is_json:
@@ -234,14 +240,6 @@ def create() -> str | Response | tuple[Response, int]:
             flash(db_type_error, "error")
             return render_template("instances/create.html", credentials=credentials)
 
-        # 验证环境类型
-        valid_environments = ["production", "development", "testing"]
-        if data.get("environment") not in valid_environments:
-            error_msg = "环境类型必须是生产环境、开发环境或测试环境"
-            if request.is_json:
-                return jsonify({"error": error_msg}), 400
-            flash(error_msg, "error")
-            return render_template("instances/create.html", credentials=credentials)
 
         # 验证端口号
         try:
@@ -290,7 +288,6 @@ def create() -> str | Response | tuple[Response, int]:
                 database_name=data.get("database_name", "").strip() or None,
                 credential_id=(int(data.get("credential_id")) if data.get("credential_id") else None),
                 description=data.get("description", "").strip(),
-                environment=data.get("environment", "production"),
             )
 
             # 设置其他属性
@@ -298,6 +295,16 @@ def create() -> str | Response | tuple[Response, int]:
 
             db.session.add(instance)
             db.session.commit()
+
+            # 处理标签
+            tag_names = data.get("tags", [])
+            if isinstance(tag_names, str):
+                tag_names = [tag_names] if tag_names else []
+            
+            for tag_name in tag_names:
+                tag = Tag.get_tag_by_name(tag_name)
+                if tag:
+                    instance.add_tag(tag)
 
             # 记录操作日志
             api_logger.info(
@@ -344,16 +351,20 @@ def create() -> str | Response | tuple[Response, int]:
     from app.services.database_type_service import DatabaseTypeService
 
     database_types = DatabaseTypeService.get_active_types()
+    
+    # 获取所有标签
+    all_tags = Tag.get_active_tags()
 
     if request.is_json:
         return jsonify(
             {
                 "credentials": [cred.to_dict() for cred in credentials],
                 "database_types": [dt.to_dict() for dt in database_types],
+                "tags": [tag.to_dict() for tag in all_tags],
             }
         )
 
-    return render_template("instances/create.html", credentials=credentials, database_types=database_types)
+    return render_template("instances/create.html", credentials=credentials, database_types=database_types, all_tags=all_tags)
 
 
 @instances_bp.route("/test-connection", methods=["POST"])
@@ -557,7 +568,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
         data = sanitize_form_data(data)
 
         # 输入验证
-        required_fields = ["name", "db_type", "host", "port", "environment"]
+        required_fields = ["name", "db_type", "host", "port"]
         validation_error = validate_required_fields(data, required_fields)
         if validation_error:
             if request.is_json:
@@ -628,7 +639,6 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
             instance.database_name = data.get("database_name", instance.database_name)
             if instance.database_name:
                 instance.database_name = instance.database_name.strip() or None
-            instance.environment = data.get("environment", instance.environment)
             instance.credential_id = int(data.get("credential_id")) if data.get("credential_id") else None
             instance.description = data.get("description", instance.description)
             if data.get("description"):
@@ -639,6 +649,23 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
                 instance.is_active = is_active_value in ["on", "true", "1", "yes"]
             else:
                 instance.is_active = bool(is_active_value)
+
+            # 处理标签更新
+            tag_names = data.get("tags", [])
+            if isinstance(tag_names, str):
+                tag_names = [tag_names] if tag_names else []
+            
+            # 清除现有标签 - 使用正确的方法
+            # 先获取所有现有标签，然后逐个移除
+            existing_tags = list(instance.tags)
+            for tag in existing_tags:
+                instance.tags.remove(tag)
+            
+            # 添加新标签
+            for tag_name in tag_names:
+                tag = Tag.get_tag_by_name(tag_name)
+                if tag:
+                    instance.tags.append(tag)
 
             db.session.commit()
 
@@ -656,7 +683,6 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
                     "db_type": data.get("db_type"),
                     "host": data.get("host"),
                     "port": data.get("port"),
-                    "environment": data.get("environment"),
                     "credential_id": data.get("credential_id"),
                     "description": data.get("description"),
                     "is_active": data.get("is_active"),
@@ -695,6 +721,9 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
     from app.services.database_type_service import DatabaseTypeService
 
     database_types = DatabaseTypeService.get_active_types()
+    
+    # 获取所有标签
+    all_tags = Tag.get_active_tags()
 
     if request.is_json:
         return jsonify(
@@ -702,12 +731,14 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
                 "instance": instance.to_dict(),
                 "credentials": [cred.to_dict() for cred in credentials],
                 "database_types": [dt.to_dict() for dt in database_types],
+                "tags": [tag.to_dict() for tag in all_tags],
             }
         )
 
     return render_template(
         "instances/edit.html",
         instance=instance,
+        all_tags=all_tags,
         credentials=credentials,
         database_types=database_types,
     )
@@ -1009,7 +1040,6 @@ def _process_instances_data(
                 host=instance_data["host"],
                 port=port,
                 database_name=instance_data.get("database_name"),
-                environment=instance_data.get("environment", "production"),
                 description=instance_data.get("description"),
                 credential_id=credential_id,
                 tags={},
@@ -1068,7 +1098,6 @@ def export_instances() -> Response:
     # 获取查询参数（与index方法保持一致）
     search = request.args.get("search", "", type=str)
     db_type = request.args.get("db_type", "", type=str)
-    environment = request.args.get("environment", "", type=str)
 
     # 构建查询（与index方法保持一致）
     query = Instance.query
@@ -1085,8 +1114,6 @@ def export_instances() -> Response:
     if db_type:
         query = query.filter(Instance.db_type == db_type)
 
-    if environment:
-        query = query.filter(Instance.environment == environment)
 
     # 获取所有实例数据
     instances = query.all()
@@ -1125,7 +1152,6 @@ def export_instances() -> Response:
                 instance.host,
                 instance.port,
                 instance.database_name or "",
-                instance.environment,
                 "启用" if instance.is_active else "禁用",
                 instance.description or "",
                 instance.credential_id or "",
@@ -1170,7 +1196,6 @@ def download_template() -> Response:
             "host",
             "port",
             "database_name",
-            "environment",
             "description",
             "credential_id",
         ]

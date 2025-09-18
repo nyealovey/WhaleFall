@@ -274,7 +274,16 @@ class SyncSessionService:
         Returns:
             List[SyncInstanceRecord]: 实例记录列表
         """
-        return SyncInstanceRecord.get_records_by_session(session_id)
+        try:
+            return SyncInstanceRecord.get_records_by_session(session_id)
+        except Exception as e:
+            self.sync_logger.error(
+                "获取会话记录失败",
+                module="sync_session",
+                session_id=session_id,
+                error=str(e),
+            )
+            return []
 
     def get_session_by_id(self, session_id: str) -> SyncSession | None:
         """
@@ -286,7 +295,16 @@ class SyncSessionService:
         Returns:
             Optional[SyncSession]: 会话对象
         """
-        return SyncSession.query.filter_by(session_id=session_id).first()
+        try:
+            return SyncSession.query.filter_by(session_id=session_id).first()
+        except Exception as e:
+            self.sync_logger.error(
+                "获取会话失败",
+                module="sync_session",
+                session_id=session_id,
+                error=str(e),
+            )
+            return None
 
     def get_sessions_by_type(self, sync_type: str, limit: int = 50) -> list[SyncSession]:
         """
@@ -299,7 +317,16 @@ class SyncSessionService:
         Returns:
             List[SyncSession]: 会话列表
         """
-        return SyncSession.get_sessions_by_type(sync_type, limit)
+        try:
+            return SyncSession.get_sessions_by_type(sync_type, limit)
+        except Exception as e:
+            self.sync_logger.error(
+                "获取类型会话列表失败",
+                module="sync_session",
+                sync_type=sync_type,
+                error=str(e),
+            )
+            return []
 
     def get_sessions_by_category(self, sync_category: str, limit: int = 50) -> list[SyncSession]:
         """
@@ -312,7 +339,16 @@ class SyncSessionService:
         Returns:
             List[SyncSession]: 会话列表
         """
-        return SyncSession.get_sessions_by_category(sync_category, limit)
+        try:
+            return SyncSession.get_sessions_by_category(sync_category, limit)
+        except Exception as e:
+            self.sync_logger.error(
+                "获取分类会话列表失败",
+                module="sync_session",
+                sync_category=sync_category,
+                error=str(e),
+            )
+            return []
 
     def get_recent_sessions(self, limit: int = 20) -> list[SyncSession]:
         """
@@ -324,7 +360,16 @@ class SyncSessionService:
         Returns:
             List[SyncSession]: 会话列表
         """
-        return SyncSession.query.order_by(SyncSession.created_at.desc()).limit(limit).all()
+        try:
+            return SyncSession.query.order_by(SyncSession.created_at.desc()).limit(limit).all()
+        except Exception as e:
+            self.sync_logger.error(
+                "获取最近会话列表失败",
+                module="sync_session",
+                limit=limit,
+                error=str(e),
+            )
+            return []
 
     def cancel_session(self, session_id: str) -> bool:
         """

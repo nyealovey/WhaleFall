@@ -37,6 +37,8 @@ class Instance(db.Model):
 
     # 关系
     credential = db.relationship("Credential", backref="instances")
+    # 标签关系
+    tags = db.relationship("Tag", secondary="instance_tags", back_populates="instances", lazy="dynamic")
     # accounts关系已移除，因为Account模型已废弃，使用CurrentAccountSyncData
     # sync_data关系已移除，因为SyncData表已删除
 
@@ -49,7 +51,7 @@ class Instance(db.Model):
         database_name: str | None = None,
         credential_id: int | None = None,
         description: str | None = None,
-        tags: str | None = None,
+        tags: list | None = None,
         environment: str = "production",
     ) -> None:
         """
@@ -63,7 +65,7 @@ class Instance(db.Model):
             database_name: 数据库名称
             credential_id: 凭据ID
             description: 描述
-            tags: 标签
+            tags: 标签列表
             environment: 环境类型（production, development, testing）
         """
         self.name = name
@@ -73,8 +75,8 @@ class Instance(db.Model):
         self.database_name = database_name
         self.credential_id = credential_id
         self.description = description
-        self.tags = tags or []
         self.environment = environment
+        # 标签将在创建后通过关系添加
 
     def test_connection(self) -> dict:
         """
@@ -226,7 +228,7 @@ class Instance(db.Model):
             "environment": self.environment,
             "credential_id": self.credential_id,
             "description": self.description,
-            "tags": self.tags,
+            "tags": [tag.to_dict() for tag in self.tags],
             "status": self.status,
             "is_active": self.is_active,
             "last_connected": (self.last_connected.isoformat() if self.last_connected else None),
@@ -314,6 +316,43 @@ class Instance(db.Model):
             ("development", "开发环境"),
             ("testing", "测试环境"),
         ]
+
+    # 标签相关方法
+    def add_tag(self, tag: "Tag") -> None:
+        """添加标签"""
+        if tag not in self.tags:
+            self.tags.append(tag)
+            db.session.commit()
+
+    def remove_tag(self, tag: "Tag") -> None:
+        """移除标签"""
+        if tag in self.tags:
+            self.tags.remove(tag)
+            db.session.commit()
+
+    def has_tag(self, tag_name: str) -> bool:
+        """检查是否有指定标签"""
+        return self.tags.filter(Tag.name == tag_name).first() is not None
+
+    def get_tags_by_category(self, category: str) -> list:
+        """获取指定分类的标签"""
+        return self.tags.filter(Tag.category == category).all()
+
+    @staticmethod
+    def get_by_tag(tag_name: str) -> list:
+        """根据标签获取实例"""
+        return Instance.query.join(Instance.tags).filter(Tag.name == tag_name, Instance.deleted_at.is_(None)).all()
+
+    @staticmethod
+    def get_by_tags(tag_names: list) -> list:
+        """根据多个标签获取实例"""
+        return Instance.query.join(Instance.tags).filter(Tag.name.in_(tag_names), Instance.deleted_at.is_(None)).all()
+
+    @staticmethod
+    def get_tag_choices() -> list:
+        """获取标签选项（从Tag模型获取）"""
+        from app.models.tag import Tag
+        return Tag.get_tag_choices()
 
     def __repr__(self) -> str:
         return f"<Instance {self.name}>"

@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from 'macros/environment_macro.html' import environment_badge %}
 
 {% block title %}{{ instance.name }} - 实例详情{% endblock %}
 
@@ -59,6 +58,25 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">端口号</label>
                             <p class="form-control-plaintext">{{ instance.port }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">标签</label>
+                            <p class="form-control-plaintext">
+                                {% if instance.tags %}
+                                    {% for tag in instance.tags %}
+                                        <span class="badge" style="background-color: {{ tag.color }}; color: white; margin-right: 5px;">
+                                            <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
+                                        </span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">暂无标签</span>
+                                {% endif %}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -677,7 +695,7 @@ function testConnection() {
     logUserAction('开始测试连接', {
         operation: 'test_connection',
         instance_id: {{ instance.id }},
-        instance_name: '{{ instance.name }}'
+        instance_name: '{{ instance.name|replace("'", "\\'") }}'
     });
 
     testBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>测试中...';
@@ -715,7 +733,7 @@ function testConnection() {
             logUserAction('测试连接成功', {
                 operation: 'test_connection',
                 instance_id: {{ instance.id }},
-                instance_name: '{{ instance.name }}',
+                instance_name: '{{ instance.name|replace("'", "\\'") }}',
                 result: 'success',
                 message: data.message || '数据库连接正常'
             });
@@ -735,7 +753,7 @@ function testConnection() {
             logError('测试连接失败', {
                 operation: 'test_connection',
                 instance_id: {{ instance.id }},
-                instance_name: '{{ instance.name }}',
+                instance_name: '{{ instance.name|replace("'", "\\'") }}',
                 result: 'failed',
                 error: data.error
             });
@@ -793,7 +811,7 @@ function testConnection() {
         logErrorWithContext(error, '测试连接异常', {
             operation: 'test_connection',
             instance_id: {{ instance.id }},
-            instance_name: '{{ instance.name }}',
+            instance_name: '{{ instance.name|replace("'", "\\'") }}',
             result: 'exception'
         });
     })
@@ -811,7 +829,7 @@ function syncAccounts() {
     logUserAction('开始同步账户', {
         operation: 'sync_accounts',
         instance_id: {{ instance.id }},
-        instance_name: '{{ instance.name }}'
+        instance_name: '{{ instance.name|replace("'", "\\'") }}'
     });
 
     syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
@@ -834,7 +852,7 @@ function syncAccounts() {
             logUserAction('同步账户成功', {
                 operation: 'sync_accounts',
                 instance_id: {{ instance.id }},
-                instance_name: '{{ instance.name }}',
+                instance_name: '{{ instance.name|replace("'", "\\'") }}',
                 result: 'success',
                 message: data.message
             });
@@ -844,7 +862,7 @@ function syncAccounts() {
             logError('同步账户失败', {
                 operation: 'sync_accounts',
                 instance_id: {{ instance.id }},
-                instance_name: '{{ instance.name }}',
+                instance_name: '{{ instance.name|replace("'", "\\'") }}',
                 result: 'failed',
                 error: data.error
             });
@@ -856,7 +874,7 @@ function syncAccounts() {
         logErrorWithContext(error, '同步账户异常', {
             operation: 'sync_accounts',
             instance_id: {{ instance.id }},
-            instance_name: '{{ instance.name }}',
+            instance_name: '{{ instance.name|replace("'", "\\'") }}',
             result: 'exception'
         });
         showAlert('danger', '同步失败');

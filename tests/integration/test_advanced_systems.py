@@ -16,32 +16,28 @@ import requests
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def test_advanced_error_handler():
-    """测试高级错误处理系统"""
-    logger.debug("=== 测试高级错误处理系统 ===")
+def test_enhanced_error_handler():
+    """测试增强的错误处理系统"""
+    logger.debug("=== 测试增强的错误处理系统 ===")
 
     try:
-        from app.utils.advanced_error_handler import ErrorContext, advanced_error_handler
+        from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 
         # 测试错误处理
-        test_error = Exception("测试错误 - 验证高级错误处理系统")
+        test_error = Exception("测试错误 - 验证增强错误处理系统")
         context = ErrorContext(test_error)
-        result = advanced_error_handler.handle_error(test_error, context)
+        result = enhanced_error_handler(test_error, context)
 
         logger.debug("✓ 错误处理结果: {result.get('error_id', 'N/A')}")
         logger.debug("✓ 错误分类: {result.get('category', 'N/A')}")
         logger.debug("✓ 严重程度: {result.get('severity', 'N/A')}")
-        logger.debug("✓ 恢复状态: {result.get('recovery', {}).get('success', False)}")
+        logger.debug("✓ 可恢复状态: {result.get('recoverable', False)}")
 
-        # 测试错误指标
-        metrics = advanced_error_handler.get_error_metrics()
-        logger.debug("✓ 错误指标: {len(metrics)} 个指标")
-
-        logger.debug("✓ 高级错误处理系统测试通过")
+        logger.debug("✓ 增强错误处理系统测试通过")
         return True
 
-    except Exception:
-        logger.debug("✗ 高级错误处理系统测试失败: {e}")
+    except Exception as e:
+        logger.debug("✗ 增强错误处理系统测试失败: {e}")
         return False
 
 
@@ -161,7 +157,7 @@ def main():
     logger.debug("开始高级系统功能测试...\n")
 
     tests = [
-        test_advanced_error_handler,
+        test_enhanced_error_handler,
         test_admin_api_endpoints,
         test_error_handling_integration,
         test_management_interfaces,

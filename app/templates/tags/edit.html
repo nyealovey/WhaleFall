@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}编辑标签 - 泰摸鱼吧{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-edit me-2"></i>编辑标签
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="tagForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">标签代码 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ tag.name }}" required>
+                        <div class="form-text">用于系统内部识别的唯一代码，建议使用英文和下划线</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="display_name" class="form-label">显示名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="display_name" name="display_name" 
+                               value="{{ tag.display_name }}" required>
+                        <div class="form-text">在界面上显示的标签名称</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category" class="form-label">分类 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="">请选择分类</option>
+                                    <option value="location" {% if tag.category == 'location' %}selected{% endif %}>地区标签</option>
+                                    <option value="company_type" {% if tag.category == 'company_type' %}selected{% endif %}>公司类型</option>
+                                    <option value="environment" {% if tag.category == 'environment' %}selected{% endif %}>环境标签</option>
+                                    <option value="department" {% if tag.category == 'department' %}selected{% endif %}>部门标签</option>
+                                    <option value="project" {% if tag.category == 'project' %}selected{% endif %}>项目标签</option>
+                                    <option value="other" {% if tag.category == 'other' %}selected{% endif %}>其他标签</option>
+                                </select>
+                                <div class="form-text">选择标签所属分类</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="color" class="form-label">颜色</label>
+                                <select class="form-select" id="color" name="color">
+                                    <option value="primary" {% if tag.color == 'primary' %}selected{% endif %}>蓝色</option>
+                                    <option value="success" {% if tag.color == 'success' %}selected{% endif %}>绿色</option>
+                                    <option value="info" {% if tag.color == 'info' %}selected{% endif %}>青色</option>
+                                    <option value="warning" {% if tag.color == 'warning' %}selected{% endif %}>黄色</option>
+                                    <option value="danger" {% if tag.color == 'danger' %}selected{% endif %}>红色</option>
+                                    <option value="secondary" {% if tag.color == 'secondary' %}selected{% endif %}>灰色</option>
+                                    <option value="dark" {% if tag.color == 'dark' %}selected{% endif %}>深色</option>
+                                    <option value="light" {% if tag.color == 'light' %}selected{% endif %}>浅色</option>
+                                </select>
+                                <div class="form-text">选择标签显示颜色</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="例如: 温州市">{{ tag.description or '' }}</textarea>
+                        <div class="form-text">标签的详细描述信息</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="sort_order" class="form-label">排序顺序</label>
+                                <input type="number" class="form-control" id="sort_order" name="sort_order" 
+                                       value="{{ tag.sort_order }}" min="0">
+                                <div class="form-text">数字越小排序越靠前</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                                           {% if tag.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">
+                                        激活状态
+                                    </label>
+                                </div>
+                                <div class="form-text">取消勾选将禁用此标签</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('tags.index') }}" class="btn btn-secondary me-md-2">取消</a>
+                        <button type="submit" class="btn btn-primary">更新标签</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

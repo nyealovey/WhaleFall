@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from 'macros/environment_macro.html' import environment_badge %}
 
 {% block title %}实例管理 - 泰摸鱼吧{% endblock %}
 
@@ -17,7 +16,7 @@
         <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-info me-2">
             <i class="fas fa-chart-bar me-2"></i>实例统计
         </a>
-        <a href="{{ url_for('instances.export_instances', search=search, db_type=db_type, environment=environment) }}" class="btn btn-outline-success me-2">
+        <a href="{{ url_for('instances.export_instances', search=search, db_type=db_type) }}" class="btn btn-outline-success me-2">
             <i class="fas fa-download me-2"></i>导出CSV
         </a>
         {% if current_user.role == 'admin' %}
@@ -49,15 +48,16 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label for="environment" class="form-label">环境</label>
-                <select class="form-select" id="environment" name="environment">
-                    <option value="">全部环境</option>
-                    <option value="production" {% if environment == 'production' %}selected{% endif %}>生产环境</option>
-                    <option value="development" {% if environment == 'development' %}selected{% endif %}>开发环境</option>
-                    <option value="testing" {% if environment == 'testing' %}selected{% endif %}>测试环境</option>
+                <label for="tags" class="form-label">标签</label>
+                <select class="form-select" id="tags" name="tags" multiple>
+                    {% for tag in all_tags %}
+                    <option value="{{ tag.name }}" {% if tag.name in selected_tags %}selected{% endif %}>
+                        {{ tag.display_name }}
+                    </option>
+                    {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <label class="form-label">&nbsp;</label>
                 <div class="d-grid">
                     <button type="submit" class="btn btn-outline-primary">
@@ -111,10 +111,10 @@
                         {% endif %}
                         <th>名称</th>
                         <th>类型</th>
-                        <th>环境</th>
                         <th>主机</th>
                         <th>端口</th>
                         <th>版本信息</th>
+                        <th>标签</th>
                         <th>状态</th>
                         <th>最后连接</th>
                         <th>操作</th>
@@ -152,9 +152,6 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td>
-                            {{ environment_badge(instance.environment) }}
-                        </td>
                         <td>{{ instance.host }}</td>
                         <td>{{ instance.port }}</td>
                         <td>
@@ -167,6 +164,17 @@
                                 </div>
                             {% else %}
                                 <span class="text-muted">未检测</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if instance.tags %}
+                                {% for tag in instance.tags %}
+                                    <span class="badge bg-{{ tag.color }} me-1 mb-1">
+                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">无标签</span>
                             {% endif %}
                         </td>
                         <td>
@@ -199,7 +207,7 @@
                                     <i class="fas fa-plug"></i>
                                 </button>
                                 <button type="button" class="btn btn-outline-danger"
-                                        onclick="deleteInstance({{ instance.id }}, '{{ instance.name }}')" title="删除">
+                                        onclick="deleteInstance({{ instance.id }}, '{{ instance.name|replace("'", "\\'") }}')" title="删除">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -353,7 +361,6 @@
                             <li><code>host*</code> - 主机地址</li>
                             <li><code>port*</code> - 端口号</li>
                             <li><code>database_name</code> - 数据库名称（可选，默认: mysql/postgres/master/orcl）</li>
-                            <li><code>environment</code> - 环境类型 (production, development, testing)</li>
                             <li><code>description</code> - 描述（可选）</li>
                             <li><code>credential_id</code> - 凭据ID（可选）</li>
                         </ul>
@@ -372,7 +379,6 @@
     "host": "192.168.1.100",
     "port": 3306,
     "database_name": "mysql",
-    "environment": "production",
     "description": "生产环境MySQL主库",
     "credential_id": 1
   }
@@ -386,12 +392,6 @@
                 <!-- 字段说明 -->
                 <div class="row">
                     <div class="col-md-6">
-                        <h6>环境类型说明：</h6>
-                        <ul class="list-unstyled">
-                            <li><span class="badge bg-danger me-2">production</span>生产环境</li>
-                            <li><span class="badge bg-warning me-2">development</span>开发环境</li>
-                            <li><span class="badge bg-info me-2">testing</span>测试环境</li>
-                        </ul>
                     </div>
                     <div class="col-md-6">
                         <h6>数据库类型：</h6>

@@ -78,7 +78,7 @@
 - `app/utils/timezone.py` - 时区处理工具
 - `app/utils/enhanced_logger.py` - 增强日志工具（合并了基础日志功能）
 - `app/utils/error_handler.py` - 错误处理工具
-- `app/utils/advanced_error_handler.py` - 高级错误处理工具
+- `app/utils/structlog_config.py` - 增强的错误处理和日志工具
 
 #### 安全和验证
 - `app/utils/security.py` - 安全工具

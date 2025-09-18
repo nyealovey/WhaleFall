@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}标签管理 - 泰摸鱼吧{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="fas fa-tags me-2"></i>标签管理</h2>
+        <p class="text-muted mb-0">管理数据库实例的标签信息</p>
+    </div>
+    <div>
+        <a href="{{ url_for('tags.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>添加标签
+        </a>
+    </div>
+</div>
+
+<!-- 搜索和筛选 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="search" class="form-label">搜索</label>
+                <input type="text" class="form-control" id="search" name="search"
+                       value="{{ search }}" placeholder="搜索标签名称或描述">
+            </div>
+            <div class="col-md-2">
+                <label for="category" class="form-label">分类</label>
+                <select class="form-select" id="category" name="category">
+                    <option value="">全部分类</option>
+                    {% for cat_value, cat_name in categories %}
+                    <option value="{{ cat_value }}" {% if category == cat_value %}selected{% endif %}>
+                        {{ cat_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="status" class="form-label">状态</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="all" {% if status == 'all' %}selected{% endif %}>全部状态</option>
+                    <option value="active" {% if status == 'active' %}selected{% endif %}>激活</option>
+                    <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>禁用</option>
+                    <option value="deleted" {% if status == 'deleted' %}selected{% endif %}>已删除</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-search me-1"></i>搜索
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <a href="{{ url_for('tags.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>清除
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 标签列表 -->
+<div class="card">
+    <div class="card-body">
+        {% if tags.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>排序</th>
+                        <th>标签代码</th>
+                        <th>显示名称</th>
+                        <th>分类</th>
+                        <th>颜色</th>
+                        <th>描述</th>
+                        <th>状态</th>
+                        <th>实例数量</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tag in tags.items %}
+                    <tr>
+                        <td>{{ tag.sort_order }}</td>
+                        <td>
+                            <code>{{ tag.name }}</code>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ tag.color }}">
+                                {{ tag.display_name }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ tag.category }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ tag.color }}">{{ tag.color }}</span>
+                        </td>
+                        <td>
+                            {% if tag.description %}
+                                <small class="text-muted">{{ tag.description }}</small>
+                            {% else %}
+                                <span class="text-muted">无</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if tag.is_active %}
+                                <span class="badge bg-success">激活</span>
+                            {% else %}
+                                <span class="badge bg-secondary">禁用</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ tag.instances|length }}</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ tag.created_at | china_time('%Y-%m-%d %H:%M') }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('tags.edit', tag_id=tag.id) }}"
+                                   class="btn btn-outline-warning" title="编辑">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger"
+                                        onclick="deleteTag({{ tag.id }}, '{{ tag.display_name|replace("'", "\\'") }}')" title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if tags.pages > 1 %}
+        <nav aria-label="标签分页">
+            <ul class="pagination justify-content-center">
+                {% if tags.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('tags.index', page=tags.prev_num, search=search, category=category, status=status) }}">
+                        上一页
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for page_num in tags.iter_pages() %}
+                {% if page_num %}
+                <li class="page-item {% if page_num == tags.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('tags.index', page=page_num, search=search, category=category, status=status) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if tags.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('tags.index', page=tags.next_num, search=search, category=category, status=status) }}">
+                        下一页
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无标签数据</h5>
+            <p class="text-muted">点击上方"添加标签"按钮创建第一个标签</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除标签 <strong id="deleteTagName"></strong> 吗？</p>
+                <p class="text-danger">此操作不可撤销！</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function deleteTag(tagId, tagName) {
+    document.getElementById('deleteTagName').textContent = tagName;
+    document.getElementById('deleteForm').action = '{{ url_for("tags.delete", tag_id=0) }}'.replace('0', tagId);
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}

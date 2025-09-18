@@ -72,6 +72,14 @@
     <!-- 同步记录列表 -->
     <div class="card">
         <div class="card-body">
+            <!-- 错误信息显示 -->
+            {% if error_message %}
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>错误:</strong> {{ error_message }}
+            </div>
+            {% endif %}
+            
             <!-- 调试信息 -->
             <div class="alert alert-info">
                 <strong>调试信息:</strong> 
@@ -363,74 +371,94 @@ function showAlert(type, message) {
 
 // 查看批量同步详情
 function viewBatchDetails(recordIds) {
-    console.log('viewBatchDetails called with:', recordIds);
-    
-    // 检查recordIds是否有效
-    if (!recordIds || !Array.isArray(recordIds) || recordIds.length === 0) {
-        showAlert('danger', '没有提供记录ID');
-        return;
+    try {
+        console.log('viewBatchDetails called with:', recordIds);
+        
+        // 检查recordIds是否有效
+        if (!recordIds || !Array.isArray(recordIds) || recordIds.length === 0) {
+            showAlert('danger', '没有提供记录ID');
+            return;
+        }
+        
+        const recordIdsStr = recordIds.join(',');
+        const url = `/account-sync/sync-details-batch?record_ids=${encodeURIComponent(recordIdsStr)}`;
+        
+        console.log('Fetching URL:', url);
+        
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                showBatchDetailsModal(data.details);
+            } else {
+                showAlert('danger', data.error || '获取详情失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', `获取详情失败: ${error.message}`);
+        });
+    } catch (error) {
+        console.error('JavaScript错误:', error);
+        showAlert('danger', `操作失败: ${error.message}`);
     }
-    
-    const recordIdsStr = recordIds.join(',');
-    const url = `/account-sync/sync-details-batch?record_ids=${encodeURIComponent(recordIdsStr)}`;
-    
-    console.log('Fetching URL:', url);
-    
-    fetch(url, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Response data:', data);
-        if (data.success) {
-            showBatchDetailsModal(data.details);
-        } else {
-            showAlert('danger', data.error || '获取详情失败');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '获取详情失败');
-    });
 }
 
 // 查看失败详情
 function viewFailedDetails(recordIds) {
-    console.log('viewFailedDetails called with:', recordIds);
-    
-    // 检查recordIds是否有效
-    if (!recordIds || !Array.isArray(recordIds) || recordIds.length === 0) {
-        showAlert('danger', '没有提供记录ID');
-        return;
+    try {
+        console.log('viewFailedDetails called with:', recordIds);
+        
+        // 检查recordIds是否有效
+        if (!recordIds || !Array.isArray(recordIds) || recordIds.length === 0) {
+            showAlert('danger', '没有提供记录ID');
+            return;
+        }
+        
+        const recordIdsStr = recordIds.join(',');
+        const url = `/account-sync/sync-details-batch?record_ids=${encodeURIComponent(recordIdsStr)}&failed_only=true`;
+        
+        console.log('Fetching URL:', url);
+        
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                showFailedDetailsModal(data.details);
+            } else {
+                showAlert('danger', data.error || '获取失败详情失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', `获取失败详情失败: ${error.message}`);
+        });
+    } catch (error) {
+        console.error('JavaScript错误:', error);
+        showAlert('danger', `操作失败: ${error.message}`);
     }
-    
-    const recordIdsStr = recordIds.join(',');
-    const url = `/account-sync/sync-details-batch?record_ids=${encodeURIComponent(recordIdsStr)}&failed_only=true`;
-    
-    console.log('Fetching URL:', url);
-    
-    fetch(url, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Response data:', data);
-        if (data.success) {
-            showFailedDetailsModal(data.details);
-        } else {
-            showAlert('danger', data.error || '获取失败详情失败');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '获取失败详情失败');
-    });
 }
 
 // 显示批量同步详情模态框

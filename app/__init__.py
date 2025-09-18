@@ -102,19 +102,19 @@ def create_app(config_name: str | None = None) -> Flask:  # noqa: ARG001
 
     register_error_handlers(app)
 
-    # 注册高级错误处理器
-    from app.utils.advanced_error_handler import advanced_error_handler
+    # 注册增强的错误处理器
+    from app.utils.structlog_config import enhanced_error_handler, ErrorContext
 
-    app.advanced_error_handler = advanced_error_handler
+    app.enhanced_error_handler = enhanced_error_handler
 
-    # 注册高级错误处理器到Flask应用
+    # 注册全局错误处理器
     @app.errorhandler(Exception)
-    def handle_advanced_exception(error: Exception) -> tuple[str, int]:
-        """全局高级错误处理"""
-        from app.utils.advanced_error_handler import ErrorContext
-
-        context = ErrorContext(error)
-        error_response = advanced_error_handler.handle_error(error, context)
+    def handle_global_exception(error: Exception) -> tuple[str, int]:
+        """全局错误处理"""
+        from flask import request
+        
+        context = ErrorContext(error, request)
+        error_response = enhanced_error_handler(error, context)
 
         # 根据错误类型返回适当的响应
         status_code = error.code if hasattr(error, "code") else 500
@@ -363,6 +363,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.health import health_bp
     from app.routes.instance_accounts import instance_accounts_bp
     from app.routes.instances import instances_bp
+    from app.routes.tags import tags_bp
 
     # from app.routes.logs import logs_bp  # 已停用，使用unified_logs替代
     from app.routes.main import main_bp
@@ -372,6 +373,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(instances_bp, url_prefix="/instances")
+    app.register_blueprint(tags_bp, url_prefix="/tags")
     app.register_blueprint(instance_accounts_bp, url_prefix="/instance_accounts")
     app.register_blueprint(credentials_bp, url_prefix="/credentials")
 

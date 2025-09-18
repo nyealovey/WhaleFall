@@ -114,6 +114,22 @@
                         <textarea class="form-control" id="description" name="description" rows="3">{{ instance.description or '' }}</textarea>
                     </div>
                     
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">标签</label>
+                        <select class="form-select" id="tags" name="tags" multiple>
+                            {% for tag in all_tags %}
+                            <option value="{{ tag.name }}" {% if tag in instance.tags %}selected{% endif %}>
+                                {{ tag.display_name }} ({{ tag.category }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            <a href="{{ url_for('tags.create') }}" class="text-decoration-none">
+                                <i class="fas fa-plus me-1"></i>添加新标签
+                            </a>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
                                {% if instance.is_active %}checked{% endif %}>

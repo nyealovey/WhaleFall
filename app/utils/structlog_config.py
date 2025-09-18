@@ -624,3 +624,231 @@ def with_log_context(**context):
         return wrapper
 
     return decorator
+
+
+# 错误处理增强功能
+class ErrorCategory:
+    """错误分类"""
+    DATABASE = "database"
+    VALIDATION = "validation"
+    AUTHENTICATION = "authentication"
+    AUTHORIZATION = "authorization"
+    SYSTEM = "system"
+    NETWORK = "network"
+    UNKNOWN = "unknown"
+
+
+class ErrorSeverity:
+    """错误严重程度"""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class ErrorContext:
+    """错误上下文信息"""
+    
+    def __init__(self, error: Exception, request=None):
+        self.error = error
+        self.error_type = type(error).__name__
+        self.error_id = f"{int(time.time() * 1000)}-{id(error)}"
+        self.timestamp = time_utils.now()
+        self.request = request
+        self.url = request.url if request else None
+        self.user_id = user_id_var.get() if user_id_var.get() else None
+        self.request_id = request_id_var.get() if request_id_var.get() else None
+
+
+def enhanced_error_handler(error: Exception, context: ErrorContext = None) -> dict[str, Any]:
+    """增强的错误处理器"""
+    if context is None:
+        context = ErrorContext(error)
+    
+    # 分类错误
+    error_info = _classify_error(error, context)
+    
+    # 记录错误日志
+    _log_enhanced_error(error, context, error_info)
+    
+    # 生成用户友好的错误响应
+    return _generate_error_response(error, context, error_info)
+
+
+def _classify_error(error: Exception, context: ErrorContext) -> dict[str, Any]:
+    """分类错误"""
+    error_type = type(error)
+    error_message = str(error)
+    
+    # 数据库错误
+    if "IntegrityError" in error_type.__name__ or "OperationalError" in error_type.__name__:
+        if "UNIQUE constraint failed" in error_message:
+            return {
+                "category": ErrorCategory.VALIDATION,
+                "severity": ErrorSeverity.MEDIUM,
+                "user_message": "数据已存在，请检查唯一性约束",
+                "technical_message": error_message,
+            }
+        elif "FOREIGN KEY constraint failed" in error_message:
+            return {
+                "category": ErrorCategory.VALIDATION,
+                "severity": ErrorSeverity.MEDIUM,
+                "user_message": "外键约束失败，请检查关联数据",
+                "technical_message": error_message,
+            }
+        else:
+            return {
+                "category": ErrorCategory.DATABASE,
+                "severity": ErrorSeverity.HIGH,
+                "user_message": "数据库操作失败",
+                "technical_message": error_message,
+            }
+    
+    # 连接错误
+    elif "connection" in error_message.lower() or "timeout" in error_message.lower():
+        return {
+            "category": ErrorCategory.NETWORK,
+            "severity": ErrorSeverity.HIGH,
+            "user_message": "网络连接问题，请稍后重试",
+            "technical_message": error_message,
+        }
+    
+    # 权限错误
+    elif "permission" in error_message.lower() or "access" in error_message.lower():
+        return {
+            "category": ErrorCategory.AUTHORIZATION,
+            "severity": ErrorSeverity.MEDIUM,
+            "user_message": "权限不足，请联系管理员",
+            "technical_message": error_message,
+        }
+    
+    # 验证错误
+    elif "validation" in error_message.lower() or "invalid" in error_message.lower():
+        return {
+            "category": ErrorCategory.VALIDATION,
+            "severity": ErrorSeverity.LOW,
+            "user_message": "输入数据验证失败",
+            "technical_message": error_message,
+        }
+    
+    # 默认错误
+    else:
+        return {
+            "category": ErrorCategory.UNKNOWN,
+            "severity": ErrorSeverity.HIGH,
+            "user_message": "系统内部错误",
+            "technical_message": error_message,
+        }
+
+
+def _log_enhanced_error(error: Exception, context: ErrorContext, error_info: dict[str, Any]) -> None:
+    """记录增强的错误日志"""
+    logger = get_logger("error_handler")
+    
+    # 根据严重程度选择日志级别
+    severity = error_info.get("severity", ErrorSeverity.HIGH)
+    if severity == ErrorSeverity.CRITICAL:
+        log_critical(
+            f"严重错误: {error_info.get('user_message', '未知错误')}",
+            module="error_handler",
+            error_id=context.error_id,
+            error_type=context.error_type,
+            category=error_info.get("category"),
+            severity=severity,
+            user_id=context.user_id,
+            request_id=context.request_id,
+            url=context.url,
+            technical_message=error_info.get("technical_message"),
+            exception=error,
+        )
+    elif severity == ErrorSeverity.HIGH:
+        log_error(
+            f"高级错误: {error_info.get('user_message', '未知错误')}",
+            module="error_handler",
+            error_id=context.error_id,
+            error_type=context.error_type,
+            category=error_info.get("category"),
+            severity=severity,
+            user_id=context.user_id,
+            request_id=context.request_id,
+            url=context.url,
+            technical_message=error_info.get("technical_message"),
+            exception=error,
+        )
+    else:
+        log_warning(
+            f"错误: {error_info.get('user_message', '未知错误')}",
+            module="error_handler",
+            error_id=context.error_id,
+            error_type=context.error_type,
+            category=error_info.get("category"),
+            severity=severity,
+            user_id=context.user_id,
+            request_id=context.request_id,
+            url=context.url,
+            technical_message=error_info.get("technical_message"),
+            exception=error,
+        )
+
+
+def _generate_error_response(error: Exception, context: ErrorContext, error_info: dict[str, Any]) -> dict[str, Any]:
+    """生成错误响应"""
+    return {
+        "error": True,
+        "error_id": context.error_id,
+        "category": error_info.get("category", ErrorCategory.UNKNOWN),
+        "severity": error_info.get("severity", ErrorSeverity.HIGH),
+        "message": error_info.get("user_message", "系统内部错误"),
+        "timestamp": context.timestamp.isoformat(),
+        "recoverable": error_info.get("severity") in [ErrorSeverity.LOW, ErrorSeverity.MEDIUM],
+        "suggestions": _get_error_suggestions(error_info.get("category")),
+    }
+
+
+def _get_error_suggestions(category: str) -> list[str]:
+    """获取错误建议"""
+    suggestions_map = {
+        ErrorCategory.DATABASE: ["检查数据库连接", "联系管理员"],
+        ErrorCategory.VALIDATION: ["检查输入数据", "查看错误详情"],
+        ErrorCategory.AUTHENTICATION: ["重新登录", "检查凭据"],
+        ErrorCategory.AUTHORIZATION: ["联系管理员", "检查权限"],
+        ErrorCategory.NETWORK: ["检查网络连接", "稍后重试"],
+        ErrorCategory.SYSTEM: ["联系管理员", "查看错误日志"],
+        ErrorCategory.UNKNOWN: ["联系管理员", "查看错误日志"],
+    }
+    return suggestions_map.get(category, ["联系管理员", "查看错误日志"])
+
+
+# 错误处理装饰器
+def error_handler(func):
+    """错误处理装饰器"""
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as error:
+            context = ErrorContext(error)
+            error_response = enhanced_error_handler(error, context)
+            
+            # 根据错误严重程度决定是否返回错误响应
+            if error_response.get("severity") in [ErrorSeverity.CRITICAL, ErrorSeverity.HIGH]:
+                # 对于严重错误，返回错误响应
+                from flask import jsonify
+                return jsonify(error_response), 500
+            else:
+                # 对于轻微错误，记录日志但继续执行
+                return func(*args, **kwargs)
+    
+    return wrapper
+
+
+def error_monitor(func):
+    """错误监控装饰器"""
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as error:
+            context = ErrorContext(error)
+            enhanced_error_handler(error, context)
+            raise  # 重新抛出异常
+    
+    return wrapper

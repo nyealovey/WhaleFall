@@ -4,6 +4,7 @@
 
 from collections import defaultdict
 from collections.abc import Generator
+from datetime import datetime, timedelta
 from typing import Any
 
 from flask import (
@@ -34,133 +35,122 @@ account_sync_bp = Blueprint("account_sync", __name__)
 @view_required
 def sync_records() -> str | Response:
     """统一的同步记录页面"""
-    # 获取查询参数
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
-    sync_type = request.args.get("sync_type", "all")
-    status = request.args.get("status", "all")
-    date_range = request.args.get("date_range", "all")
+    try:
+        # 获取查询参数
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 20, type=int)
+        sync_type = request.args.get("sync_type", "all")
+        status = request.args.get("status", "all")
+        date_range = request.args.get("date_range", "all")
 
-    # 构建查询 - 使用新的同步会话模型
-    query = SyncSession.query.filter_by(sync_category="account")
+        # 构建查询 - 使用新的同步会话模型
+        query = SyncSession.query.filter_by(sync_category="account")
 
-    # 同步类型过滤
-    if sync_type and sync_type != "all":
-        query = query.filter(SyncSession.sync_type == sync_type)
+        # 同步类型过滤
+        if sync_type and sync_type != "all":
+            query = query.filter(SyncSession.sync_type == sync_type)
 
-    # 状态过滤
-    if status and status != "all":
-        query = query.filter(SyncSession.status == status)
+        # 状态过滤
+        if status and status != "all":
+            query = query.filter(SyncSession.status == status)
 
-    # 时间范围过滤
-    if date_range and date_range != "all":
-        from datetime import datetime, timedelta
+        # 时间范围过滤
+        if date_range and date_range != "all":
+            from app.utils.timezone import now_china
 
-        from app.utils.timezone import now_china
+            now = now_china()
 
-        now = now_china()
+            if date_range == "today":
+                start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                query = query.filter(SyncSession.created_at >= start_date)
+            elif date_range == "week":
+                start_date = now - timedelta(days=7)
+                query = query.filter(SyncSession.created_at >= start_date)
+            elif date_range == "month":
+                start_date = now - timedelta(days=30)
+                query = query.filter(SyncSession.created_at >= start_date)
 
-        if date_range == "today":
-            start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            query = query.filter(SyncSession.created_at >= start_date)
-        elif date_range == "week":
-            start_date = now - timedelta(days=7)
-            query = query.filter(SyncSession.created_at >= start_date)
-        elif date_range == "month":
-            start_date = now - timedelta(days=30)
-            query = query.filter(SyncSession.created_at >= start_date)
+        # 排序
+        query = query.order_by(SyncSession.created_at.desc())
 
-    # 排序
-    query = query.order_by(SyncSession.created_at.desc())
+        # 聚合显示逻辑 - 当同步类型是手动批量或定时任务时，需要聚合显示
+        # 获取所有记录进行聚合处理，然后手动分页
+        all_records = query.order_by(SyncSession.created_at.desc()).all()
 
-    # 聚合显示逻辑 - 当同步类型是手动批量或定时任务时，需要聚合显示
-    # 获取所有记录进行聚合处理，然后手动分页
-    all_records = query.order_by(SyncSession.created_at.desc()).all()
+        # 分离需要聚合的记录和单独显示的记录
+        # 所有批量类型的记录都需要聚合处理
+        batch_records = [r for r in all_records if r.sync_type in ["manual_batch", "manual_task", "scheduled_task"]]
+        manual_records = [r for r in all_records if r.sync_type == "manual_single"]
 
-    # 分离需要聚合的记录和单独显示的记录
-    # 所有批量类型的记录都需要聚合处理
-    batch_records = [r for r in all_records if r.sync_type in ["manual_batch", "manual_task", "scheduled_task"]]
-    manual_records = [r for r in all_records if r.sync_type == "manual_single"]
+        # 应用状态筛选到聚合记录
+        if status and status != "all":
+            batch_records = [r for r in batch_records if r.status == status]
+            manual_records = [r for r in manual_records if r.status == status]
 
-    # 应用状态筛选到聚合记录
-    if status and status != "all":
-        batch_records = [r for r in batch_records if r.status == status]
-        manual_records = [r for r in manual_records if r.status == status]
+        # 聚合所有批量类型的记录（包括manual_batch、manual_task、scheduled_task）
+        grouped: dict[str, dict[str, Any]] = defaultdict(
+            lambda: {
+                "total_instances": 0,
+                "success_count": 0,
+                "failed_count": 0,
+                "total_accounts": 0,
+                "added_count": 0,
+                "removed_count": 0,
+                "modified_count": 0,
+                "created_at": None,
+                "sync_records": [],
+                "sync_types": [],
+                "sync_type_display": "",
+            }
+        )
 
-    # 聚合所有批量类型的记录（包括manual_batch、manual_task、scheduled_task）
-    grouped: dict[str, dict[str, Any]] = defaultdict(
-        lambda: {
-            "total_instances": 0,
-            "success_count": 0,
-            "failed_count": 0,
-            "total_accounts": 0,
-            "added_count": 0,
-            "removed_count": 0,
-            "modified_count": 0,
-            "created_at": None,
-            "sync_records": [],
-            "sync_types": [],
-            "sync_type_display": "",
-        }
-    )
+        for record in batch_records:
+            # 根据同步类型选择分组键
+            if record.sync_type == "manual_batch":
+                # manual_batch按session_id分组，同一个批次的所有实例记录聚合
+                time_key = record.session_id
+            else:
+                # manual_task和scheduled_task按时间分组，相同分钟的同步记录为一组
+                time_key = record.created_at.strftime("%Y-%m-%d %H:%M")
 
-    for record in batch_records:
-        # 根据同步类型选择分组键
-        if record.sync_type == "manual_batch":
-            # manual_batch按session_id分组，同一个批次的所有实例记录聚合
-            time_key = record.session_id
-        else:
-            # manual_task和scheduled_task按时间分组，相同分钟的同步记录为一组
-            time_key = record.created_at.strftime("%Y-%m-%d %H:%M")
+            # 从关联的实例记录中获取详细统计和状态
+            total_accounts = 0
+            added_count = 0
+            removed_count = 0
+            modified_count = 0
+            success_count = 0
+            failed_count = 0
 
-        # 从关联的实例记录中获取详细统计和状态
-        total_accounts = 0
-        added_count = 0
-        removed_count = 0
-        modified_count = 0
-        success_count = 0
-        failed_count = 0
+            # 从关联的实例记录中获取详细统计
+            instance_records = record.instance_records.all()  # 执行查询获取实际记录
+            for instance_record in instance_records:
+                total_accounts += instance_record.accounts_synced or 0
+                added_count += instance_record.accounts_created or 0
+                removed_count += instance_record.accounts_deleted or 0
+                modified_count += instance_record.accounts_updated or 0
 
-        # 从关联的实例记录中获取详细统计
-        instance_records = record.instance_records.all()  # 执行查询获取实际记录
-        for instance_record in instance_records:
-            total_accounts += instance_record.accounts_synced or 0
-            added_count += instance_record.accounts_created or 0
-            removed_count += instance_record.accounts_deleted or 0
-            modified_count += instance_record.accounts_updated or 0
+                # 统计成功和失败的实例数量
+                if instance_record.status == "completed":
+                    success_count += 1
+                elif instance_record.status == "failed":
+                    failed_count += 1
 
-            # 统计成功和失败的实例数量
-            if instance_record.status == "completed":
-                success_count += 1
-            elif instance_record.status == "failed":
-                failed_count += 1
+            grouped[time_key]["total_instances"] = len(instance_records)
+            grouped[time_key]["success_count"] = success_count
+            grouped[time_key]["failed_count"] = failed_count
+            grouped[time_key]["total_accounts"] = total_accounts
+            grouped[time_key]["added_count"] = added_count
+            grouped[time_key]["removed_count"] = removed_count
+            grouped[time_key]["modified_count"] = modified_count
 
-        grouped[time_key]["total_instances"] = len(instance_records)
-        grouped[time_key]["success_count"] = success_count
-        grouped[time_key]["failed_count"] = failed_count
-        grouped[time_key]["total_accounts"] = total_accounts
-        grouped[time_key]["added_count"] = added_count
-        grouped[time_key]["removed_count"] = removed_count
-        grouped[time_key]["modified_count"] = modified_count
+            if record.sync_type not in grouped[time_key]["sync_types"]:
+                grouped[time_key]["sync_types"].append(record.sync_type)
 
-        if record.sync_type not in grouped[time_key]["sync_types"]:
-            grouped[time_key]["sync_types"].append(record.sync_type)
+            if not grouped[time_key]["created_at"] or record.created_at > grouped[time_key]["created_at"]:
+                grouped[time_key]["created_at"] = record.created_at
 
-        if not grouped[time_key]["created_at"] or record.created_at > grouped[time_key]["created_at"]:
-            grouped[time_key]["created_at"] = record.created_at
-
-        # 始终添加记录到sync_records，用于详情显示
-        grouped[time_key]["sync_records"].append(record)
-
-    # 转换为聚合记录列表
-    aggregated_records = []
-    for _time_key, data in sorted(grouped.items(), key=lambda x: x[1]["created_at"], reverse=True):
-        # 使用最新记录的时间作为显示时间
-        latest_time = max(record.created_at for record in data["sync_records"])
-
-        # 确定同步类型显示文本 - 直接显示原始值
-        sync_types = data["sync_types"]
-        sync_type_display = sync_types[0] if len(sync_types) == 1 else " + ".join(sync_types)
+            # 始终添加记录到sync_records，用于详情显示
+            grouped[time_key]["sync_records"].append(record)
 
         # 创建聚合记录对象
         class AggregatedRecord:
@@ -197,99 +187,160 @@ def sync_records() -> str | Response:
                 """获取记录ID列表"""
                 return [record.id for record in self.sync_records]
 
-        aggregated_records.append(AggregatedRecord(data, latest_time, sync_type_display))
+        # 转换为聚合记录列表
+        aggregated_records = []
+        for _time_key, data in sorted(grouped.items(), key=lambda x: x[1]["created_at"], reverse=True):
+            # 使用最新记录的时间作为显示时间
+            latest_time = max(record.created_at for record in data["sync_records"])
 
-    # 处理手动记录，直接显示原始值
-    for record in manual_records:
-        record.is_aggregated = False
+            # 确定同步类型显示文本 - 直接显示原始值
+            sync_types = data["sync_types"]
+            sync_type_display = sync_types[0] if len(sync_types) == 1 else " + ".join(sync_types)
 
-    # 合并聚合记录和手动记录
-    all_display_records = aggregated_records + manual_records
+            aggregated_records.append(AggregatedRecord(data, latest_time, sync_type_display))
 
-    # 按时间排序
-    all_display_records.sort(key=lambda x: x.created_at, reverse=True)
+        # 处理手动记录，直接显示原始值
+        for record in manual_records:
+            record.is_aggregated = False
 
-    # 手动分页
-    start_idx = (page - 1) * per_page
-    end_idx = start_idx + per_page
-    paginated_records = all_display_records[start_idx:end_idx]
+        # 合并聚合记录和手动记录
+        all_display_records = aggregated_records + manual_records
 
-    # 创建分页对象
-    class Pagination:
-        def __init__(self, items: list[Any], page: int, per_page: int, total: int) -> None:
-            self.items = items
-            self.page = page
-            self.per_page = per_page
-            self.total = total
-            self.pages = (total + per_page - 1) // per_page
-            self.has_prev = page > 1
-            self.has_next = page < self.pages
-            self.prev_num = page - 1 if page > 1 else None
-            self.next_num = page + 1 if page < self.pages else None
+        # 按时间排序
+        all_display_records.sort(key=lambda x: x.created_at, reverse=True)
 
-        def iter_pages(
-            self,
-            left_edge: int = 2,
-            right_edge: int = 2,
-            left_current: int = 2,
-            right_current: int = 3,
-        ) -> Generator[int | None]:
-            """生成分页页码迭代器，与Flask-SQLAlchemy的Pagination兼容"""
-            last = self.pages
-            for num in range(1, last + 1):
-                if (
-                    num <= left_edge
-                    or (num > self.page - left_current - 1 and num < self.page + right_current)
-                    or num > last - right_edge
-                ):
-                    yield num
+        # 手动分页
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_records = all_display_records[start_idx:end_idx]
 
-    sync_records = Pagination(paginated_records, page, per_page, len(all_display_records))
+        # 创建分页对象
+        class Pagination:
+            def __init__(self, items: list[Any], page: int, per_page: int, total: int) -> None:
+                self.items = items
+                self.page = page
+                self.per_page = per_page
+                self.total = total
+                self.pages = (total + per_page - 1) // per_page
+                self.has_prev = page > 1
+                self.has_next = page < self.pages
+                self.prev_num = page - 1 if page > 1 else None
+                self.next_num = page + 1 if page < self.pages else None
 
-    # 获取所有活跃实例
-    instances = Instance.query.filter_by(is_active=True).all()
+            def iter_pages(
+                self,
+                left_edge: int = 2,
+                right_edge: int = 2,
+                left_current: int = 2,
+                right_current: int = 3,
+            ) -> Generator[int | None]:
+                """生成分页页码迭代器，与Flask-SQLAlchemy的Pagination兼容"""
+                last = self.pages
+                for num in range(1, last + 1):
+                    if (
+                        num <= left_edge
+                        or (num > self.page - left_current - 1 and num < self.page + right_current)
+                        or num > last - right_edge
+                    ):
+                        yield num
 
-    if request.is_json:
-        return jsonify(
-            {
-                "records": [
-                    (
-                        record.to_dict()
-                        if hasattr(record, "to_dict")
-                        else {
-                            "id": getattr(record, "id", f"batch_{hash(str(record.created_at))}"),
-                            "sync_time": (record.created_at.isoformat() if record.created_at else None),
-                            "sync_type": record.sync_type,
-                            "status": record.status,
-                            "message": record.message,
-                            "synced_count": record.synced_count,
-                            "instance_name": getattr(record, "instance_name", "批量同步"),
-                            "is_aggregated": getattr(record, "is_aggregated", False),
-                            "record_ids": getattr(record, "sync_records", []),
-                        }
-                    )
-                    for record in sync_records.items
-                ],
-                "pagination": {
-                    "page": sync_records.page,
-                    "pages": sync_records.pages,
-                    "per_page": sync_records.per_page,
-                    "total": sync_records.total,
-                    "has_next": sync_records.has_next,
-                    "has_prev": sync_records.has_prev,
-                },
-                "instances": [instance.to_dict() for instance in instances],
-            }
+        sync_records = Pagination(paginated_records, page, per_page, len(all_display_records))
+
+        # 获取所有活跃实例
+        instances = Instance.query.filter_by(is_active=True).all()
+
+        if request.is_json:
+            return jsonify(
+                {
+                    "records": [
+                        (
+                            record.to_dict()
+                            if hasattr(record, "to_dict")
+                            else {
+                                "id": getattr(record, "id", f"batch_{hash(str(record.created_at))}"),
+                                "sync_time": (record.created_at.isoformat() if record.created_at else None),
+                                "sync_type": record.sync_type,
+                                "status": record.status,
+                                "message": record.message,
+                                "synced_count": record.synced_count,
+                                "instance_name": getattr(record, "instance_name", "批量同步"),
+                                "is_aggregated": getattr(record, "is_aggregated", False),
+                                "record_ids": getattr(record, "sync_records", []),
+                            }
+                        )
+                        for record in sync_records.items
+                    ],
+                    "pagination": {
+                        "page": sync_records.page,
+                        "pages": sync_records.pages,
+                        "per_page": sync_records.per_page,
+                        "total": sync_records.total,
+                        "has_next": sync_records.has_next,
+                        "has_prev": sync_records.has_prev,
+                    },
+                    "instances": [instance.to_dict() for instance in instances],
+                }
+            )
+
+        return render_template(
+            "accounts/sync_records.html",
+            sync_records=sync_records,
+            pagination=sync_records,
+            sync_type=sync_type,
+            status=status,
+            date_range=date_range,
         )
 
-    return render_template(
-        "accounts/sync_records.html",
-        sync_records=sync_records,
-        pagination=sync_records,
-        sync_type=sync_type,
-        status=status,
-        date_range=date_range,
-    )
+    except Exception as e:
+        # 记录详细的错误日志
+        log_error(
+            "同步记录页面加载失败",
+            module="account_sync",
+            user_id=current_user.id if current_user else None,
+            error=str(e),
+            sync_type=sync_type,
+            status=status,
+            date_range=date_range,
+        )
+
+        # 如果是AJAX请求，返回JSON错误响应
+        if request.is_json:
+            return jsonify({
+                "success": False,
+                "error": "获取同步记录失败，请重试",
+                "details": str(e)
+            }), 500
+
+        # 对于普通请求，显示错误页面
+        flash(f"加载同步记录失败: {str(e)}", "error")
+        
+        # 创建一个空的同步记录对象以避免模板错误
+        class EmptyPagination:
+            def __init__(self):
+                self.items = []
+                self.page = 1
+                self.pages = 1
+                self.per_page = 20
+                self.total = 0
+                self.has_prev = False
+                self.has_next = False
+                self.prev_num = None
+                self.next_num = None
+            
+            def iter_pages(self, left_edge=2, right_edge=2, left_current=2, right_current=3):
+                return []
+
+        empty_sync_records = EmptyPagination()
+        
+        return render_template(
+            "accounts/sync_records.html",
+            sync_records=empty_sync_records,
+            pagination=empty_sync_records,
+            sync_type=sync_type,
+            status=status,
+            date_range=date_range,
+            error_message=f"加载同步记录失败: {str(e)}"
+        )
 
 
 @account_sync_bp.route("/sync-all", methods=["POST"])
