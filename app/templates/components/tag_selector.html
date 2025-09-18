@@ -386,7 +386,7 @@ class TagSelector {
     
     async loadAvailableTags() {
         try {
-            const response = await fetch('/tags/api/list');
+            const response = await fetch('/tags/api/tags');
             const data = await response.json();
             
             if (data.success) {
