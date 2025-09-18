@@ -276,11 +276,6 @@ class BaseSyncAdapter(ABC):
                     batch_manager.add_operation("add", new_account, f"新增账户: {account_data['username']}")
                     added_count += 1
 
-                    # 只在调试模式下记录详细日志
-                    if hasattr(self, 'sync_logger') and self.sync_logger.isEnabledFor(10):  # DEBUG level
-                        self.sync_logger.debug(
-                            "准备新增账户: %s", account_data["username"], module="sync_adapter", instance_name=instance.name
-                        )
                 except Exception as e:
                     self.sync_logger.error(
                         "创建账户对象失败: %s",
@@ -302,11 +297,6 @@ class BaseSyncAdapter(ABC):
                 batch_manager.add_operation("update", local_account, f"标记删除账户: {local_account.username}")
                 removed_count += 1
 
-                # 只在调试模式下记录详细日志
-                if hasattr(self, 'sync_logger') and self.sync_logger.isEnabledFor(10):  # DEBUG level
-                    self.sync_logger.debug(
-                        "准备标记删除账户: %s", local_account.username, module="sync_adapter", instance_name=instance.name
-                    )
 
         return {"synced_count": added_count, "added_count": added_count, "removed_count": removed_count}
 
@@ -362,15 +352,6 @@ class BaseSyncAdapter(ABC):
 
                     updated_count += 1
 
-                    # 只在调试模式下记录详细日志
-                    if hasattr(self, 'sync_logger') and self.sync_logger.isEnabledFor(10):  # DEBUG level
-                        self.sync_logger.debug(
-                            "准备更新账户权限: %s",
-                            username,
-                            module="sync_adapter",
-                            instance_name=instance.name,
-                            changes=list(changes.keys()),
-                        )
                 else:
                     # 无变更，只更新同步时间
                     from app.utils.time_utils import time_utils
@@ -381,12 +362,6 @@ class BaseSyncAdapter(ABC):
                     batch_manager.add_operation("update", local_account, f"更新同步时间: {username}")
 
                     updated_count += 1  # 即使无变更也要计数
-
-                    # 只在调试模式下记录详细日志
-                    if hasattr(self, 'sync_logger') and self.sync_logger.isEnabledFor(10):  # DEBUG level
-                        self.sync_logger.debug(
-                            "账户无变更，更新同步时间: %s", username, module="sync_adapter", instance_name=instance.name
-                        )
 
         return {"updated_count": updated_count}
 
@@ -576,11 +551,6 @@ class BaseSyncAdapter(ABC):
 
                     local_account.last_sync_time = time_utils.now()
 
-                    # 只在调试模式下记录详细日志
-                    if hasattr(self, 'sync_logger') and self.sync_logger.isEnabledFor(10):  # DEBUG level
-                        self.sync_logger.debug(
-                            "账户无变更: %s", username, module="sync_adapter", instance_name=instance.name
-                        )
 
         return {"updated_count": updated_count}
 

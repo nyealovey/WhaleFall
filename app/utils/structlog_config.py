@@ -116,6 +116,10 @@ class SQLAlchemyLogHandler:
                 level = LogLevel(level_str)
             except ValueError:
                 level = LogLevel.INFO
+            
+            # 过滤DEBUG级别日志，不记录到数据库
+            if level == LogLevel.DEBUG:
+                return None
 
             # 获取模块名，优先从logger名称获取
             module = event_dict.get("module", "")

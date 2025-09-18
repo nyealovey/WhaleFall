@@ -301,26 +301,9 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             server_permissions = self._get_server_permissions(connection, username)
             permissions["server_permissions"] = server_permissions
 
-            # 获取数据库角色和权限 - 所有用户都获取实际权限
-            self.sync_logger.debug(
-                "开始获取用户实际数据库权限: %s",
-                username,
-                module="sqlserver_sync_adapter",
-                username=username,
-                server_roles=server_roles,
-            )
 
             database_roles, database_permissions = self._get_regular_database_permissions(connection, username)
 
-            self.sync_logger.debug(
-                "用户数据库权限获取完成: %s",
-                username,
-                module="sqlserver_sync_adapter",
-                username=username,
-                database_count=len(database_roles),
-                databases_with_roles=list(database_roles.keys()),
-                databases_with_permissions=list(database_permissions.keys()),
-            )
 
             permissions["database_roles"] = database_roles
             permissions["database_permissions"] = database_permissions

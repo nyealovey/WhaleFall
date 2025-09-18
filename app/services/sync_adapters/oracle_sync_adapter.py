@@ -184,7 +184,6 @@ class OracleSyncAdapter(BaseSyncAdapter):
                 if unlimited_result:
                     tablespace_privileges["ALL_TABLESPACES"] = ["UNLIMITED"]
             except Exception as e:
-                self.sync_logger.debug("无法检查UNLIMITED TABLESPACE权限: %s", username, error=str(e))
 
             # 2. 获取具体的表空间配额信息
             try:
@@ -207,7 +206,6 @@ class OracleSyncAdapter(BaseSyncAdapter):
                         if privilege not in tablespace_privileges[ts_name]:
                             tablespace_privileges[ts_name].append(privilege)
             except Exception as e:
-                self.sync_logger.debug("无法访问dba_ts_quotas视图: %s", username, error=str(e))
                 # 如果dba_ts_quotas不可用，尝试使用user_ts_quotas
                 with contextlib.suppress(Exception):
                     # user_quota_sql = """
@@ -219,7 +217,6 @@ class OracleSyncAdapter(BaseSyncAdapter):
                     #     FROM user_ts_quotas
                     # """
                     # 这里需要切换到目标用户上下文，但为了安全起见，跳过这个查询
-                    self.sync_logger.debug("无法访问用户表空间配额视图: {username}")
 
             # 3. 获取用户在表空间中的对象权限（可选，如果表存在）
             try:
@@ -254,7 +251,6 @@ class OracleSyncAdapter(BaseSyncAdapter):
                         if privilege not in tablespace_privileges[ts_name]:
                             tablespace_privileges[ts_name].append(privilege)
             except Exception as e:
-                self.sync_logger.debug("无法获取用户对象表空间权限: %s", username, error=str(e))
 
             return tablespace_privileges
 
