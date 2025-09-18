@@ -350,9 +350,14 @@ class TagSelector {
         try {
             const response = await fetch('/tags/api/tags');
             if (response.ok) {
-                this.availableTags = await response.json();
+                const data = await response.json();
+                console.log('API返回数据:', data);
+                this.availableTags = data.tags || data; // 支持两种格式
+                console.log('解析后的标签数据:', this.availableTags);
                 this.filteredTags = [...this.availableTags];
                 this.renderAvailableTags();
+            } else {
+                console.error('API请求失败:', response.status, response.statusText);
             }
         } catch (error) {
             console.error('加载标签失败:', error);
@@ -378,6 +383,8 @@ class TagSelector {
     
     renderAvailableTags() {
         const container = document.getElementById('available-tags-list');
+        console.log('渲染可用标签，容器:', container);
+        console.log('过滤后的标签数量:', this.filteredTags.length);
         container.innerHTML = '';
         
         if (this.filteredTags.length === 0) {
@@ -569,11 +576,4 @@ class TagSelector {
 
 // 全局变量，供模板使用
 let tagSelector = null;
-
-// 初始化标签选择器
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('tag-selector-container')) {
-        tagSelector = new TagSelector('tag-selector-container');
-    }
-});
 </script>
