@@ -1143,7 +1143,7 @@ def export_instances() -> Response:
             "主机地址",
             "端口",
             "数据库名",
-            "环境",
+            "标签",
             "状态",
             "描述",
             "凭据ID",
@@ -1156,6 +1156,11 @@ def export_instances() -> Response:
 
     # 写入实例数据
     for instance in instances:
+        # 格式化标签显示
+        tags_display = ""
+        if instance.tags:
+            tags_display = ", ".join([tag.display_name for tag in instance.tags.all()])
+        
         writer.writerow(
             [
                 instance.id,
@@ -1164,6 +1169,7 @@ def export_instances() -> Response:
                 instance.host,
                 instance.port,
                 instance.database_name or "",
+                tags_display,
                 "启用" if instance.is_active else "禁用",
                 instance.description or "",
                 instance.credential_id or "",
