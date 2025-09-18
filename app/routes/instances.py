@@ -487,6 +487,9 @@ def test_instance_connection() -> str | Response | tuple[Response, int]:
 def detail(instance_id: int) -> str | Response | tuple[Response, int]:
     """实例详情"""
     instance = Instance.query.get_or_404(instance_id)
+    
+    # 确保标签关系被加载
+    instance.tags  # 触发标签关系的加载
 
     # 获取查询参数
     include_deleted = request.args.get("include_deleted", "true").lower() == "true"  # 默认包含已删除账户

@@ -2,9 +2,14 @@
 泰摸鱼吧 - 实例模型
 """
 
+from typing import TYPE_CHECKING
+
 from app import db
 from app.utils.timezone import now
 from app.utils.version_parser import DatabaseVersionParser
+
+if TYPE_CHECKING:
+    from app.models.tag import Tag
 
 
 class Instance(db.Model):
@@ -27,7 +32,6 @@ class Instance(db.Model):
     sync_count = db.Column(db.Integer, default=0, nullable=False)
     credential_id = db.Column(db.Integer, db.ForeignKey("credentials.id"), nullable=True)
     description = db.Column(db.Text, nullable=True)
-    tags = db.Column(db.JSON, nullable=True)
     status = db.Column(db.String(20), default="active", index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     last_connected = db.Column(db.DateTime(timezone=True), nullable=True)
