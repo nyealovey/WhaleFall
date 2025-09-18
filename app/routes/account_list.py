@@ -125,7 +125,7 @@ def list_accounts(db_type: str | None = None) -> str:
             {"value": "all", "label": "全部分类"},
         ]
         + [{"value": str(c.id), "label": c.name} for c in classification_list],
-        "all_tags": Tag.query.all(),
+        "all_tags": [],  # 暂时禁用以避免500错误
     }
 
     # 获取账户分类信息
