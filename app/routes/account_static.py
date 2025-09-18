@@ -89,7 +89,7 @@ def get_account_statistics() -> dict:
         # 基础统计
         total_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
 
-        # 按数据库类型统计（与按状态统计逻辑保持一致）
+        # 按数据库类型统计（根据不同数据库类型使用不同的锁定判断标准）
         db_type_stats = {}
         for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
             accounts = CurrentAccountSyncData.query.filter_by(db_type=db_type, is_deleted=False).all()
@@ -98,13 +98,28 @@ def get_account_statistics() -> dict:
             locked_count = 0
 
             for account in accounts:
-                if account.type_specific and "is_locked" in account.type_specific:
-                    if account.type_specific["is_locked"]:
-                        locked_count += 1
-                    else:
-                        active_count += 1
+                is_locked = False
+                
+                if db_type == "mysql":
+                    # MySQL使用is_locked字段
+                    if account.type_specific and "is_locked" in account.type_specific:
+                        is_locked = account.type_specific["is_locked"]
+                elif db_type == "postgresql":
+                    # PostgreSQL使用can_login字段，can_login=False表示锁定
+                    if account.type_specific and "can_login" in account.type_specific:
+                        is_locked = not account.type_specific["can_login"]
+                elif db_type == "oracle":
+                    # Oracle使用account_status字段，LOCKED表示锁定
+                    if account.type_specific and "account_status" in account.type_specific:
+                        is_locked = account.type_specific["account_status"] == "LOCKED"
+                elif db_type == "sqlserver":
+                    # SQL Server使用is_locked字段
+                    if account.type_specific and "is_locked" in account.type_specific:
+                        is_locked = account.type_specific["is_locked"]
+                
+                if is_locked:
+                    locked_count += 1
                 else:
-                    # 如果没有锁定信息，认为是活跃的
                     active_count += 1
 
             db_type_stats[db_type] = {
@@ -113,7 +128,7 @@ def get_account_statistics() -> dict:
                 "locked": locked_count,
             }
 
-        # 按实例统计（与按状态统计逻辑保持一致）
+        # 按实例统计（根据不同数据库类型使用不同的锁定判断标准）
         instance_stats = []
         instances = Instance.query.filter_by(is_active=True).all()
         for instance in instances:
@@ -123,13 +138,28 @@ def get_account_statistics() -> dict:
             locked_count = 0
 
             for account in accounts:
-                if account.type_specific and "is_locked" in account.type_specific:
-                    if account.type_specific["is_locked"]:
-                        locked_count += 1
-                    else:
-                        active_count += 1
+                is_locked = False
+                
+                if instance.db_type == "mysql":
+                    # MySQL使用is_locked字段
+                    if account.type_specific and "is_locked" in account.type_specific:
+                        is_locked = account.type_specific["is_locked"]
+                elif instance.db_type == "postgresql":
+                    # PostgreSQL使用can_login字段，can_login=False表示锁定
+                    if account.type_specific and "can_login" in account.type_specific:
+                        is_locked = not account.type_specific["can_login"]
+                elif instance.db_type == "oracle":
+                    # Oracle使用account_status字段，LOCKED表示锁定
+                    if account.type_specific and "account_status" in account.type_specific:
+                        is_locked = account.type_specific["account_status"] == "LOCKED"
+                elif instance.db_type == "sqlserver":
+                    # SQL Server使用is_locked字段
+                    if account.type_specific and "is_locked" in account.type_specific:
+                        is_locked = account.type_specific["is_locked"]
+                
+                if is_locked:
+                    locked_count += 1
                 else:
-                    # 如果没有锁定信息，认为是活跃的
                     active_count += 1
 
             instance_stats.append(
