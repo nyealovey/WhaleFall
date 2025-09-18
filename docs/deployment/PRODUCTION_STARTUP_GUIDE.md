@@ -55,7 +55,7 @@ wsgi.py                       # WSGI入口文件
 ├── 生产环境应用入口
 └── Gunicorn启动点
 
-app/config_prod.py            # 生产环境配置类
+app/config.py                 # 统一配置类（支持开发和生产环境）
 ├── 性能优化配置
 ├── 安全配置
 └── 监控配置
@@ -76,7 +76,7 @@ scripts/start-prod.sh         # 生产环境启动脚本
 
 ```bash
 # 使用新的生产环境Dockerfile
-docker build -f Dockerfile.prod -t taifish:latest .
+docker build -f Dockerfile.prod -t whalefall:latest .
 
 # 或者使用构建脚本
 ./scripts/build-image.sh latest
@@ -96,7 +96,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 ```bash
 # 检查进程
-docker exec -it taifish_app ps aux
+docker exec -it whalefall_app ps aux
 
 # 应该看到：
 # - gunicorn主进程
@@ -105,7 +105,7 @@ docker exec -it taifish_app ps aux
 # - 调度器进程
 
 # 检查日志
-docker logs taifish_app
+docker logs whalefall_app
 
 # 应该看到Gunicorn启动日志，而不是Flask开发服务器日志
 ```
@@ -123,12 +123,12 @@ worker_connections = 1000                      # 每个工作进程连接数
 ### 2. 进程管理
 ```ini
 # Supervisor配置
-[program:taifish]
+[program:whalefall]
 command=/app/.venv/bin/gunicorn --config /app/gunicorn.conf.py wsgi:application
 autostart=true
 autorestart=true
 
-[program:taifish-scheduler]
+[program:whalefall-scheduler]
 command=/app/.venv/bin/python -c "from app.scheduler import start_scheduler; start_scheduler()"
 autostart=true
 autorestart=true
@@ -164,7 +164,7 @@ deploy:
 ### 1. 检查进程状态
 ```bash
 # 进入容器
-docker exec -it taifish_app bash
+docker exec -it whalefall_app bash
 
 # 查看进程
 ps aux | grep -E "(gunicorn|supervisor|python)"
@@ -185,10 +185,10 @@ tail -f /app/userdata/logs/supervisord.log
 ### 3. 性能监控
 ```bash
 # 查看资源使用
-docker stats taifish_app
+docker stats whalefall_app
 
 # 查看连接数
-docker exec -it taifish_app netstat -an | grep :5000
+docker exec -it whalefall_app netstat -an | grep :5000
 ```
 
 ## 📈 生产环境优化建议

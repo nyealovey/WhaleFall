@@ -175,7 +175,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
         from pathlib import Path
 
         project_root = Path(__file__).parent.parent
-        db_path = project_root / "userdata" / "taifish_dev.db"
+        db_path = project_root / "userdata" / "whalefall_dev.db"
         database_url = f"sqlite:///{db_path.absolute()}"
 
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
@@ -251,7 +251,7 @@ def configure_session_security(app: Flask) -> None:
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF保护
 
     # 防止会话固定攻击
-    app.config["SESSION_COOKIE_NAME"] = "taifish_session"
+    app.config["SESSION_COOKIE_NAME"] = "whalefall_session"
 
     # 会话超时配置
     app.config["SESSION_TIMEOUT"] = SystemConstants.SESSION_LIFETIME  # 1小时

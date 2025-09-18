@@ -160,7 +160,7 @@ class DefaultConfig:
     """默认配置值"""
 
     # 数据库配置
-    DATABASE_URL = "postgresql://taifish_user:Taifish2024!@localhost:5432/taifish_dev"
+    DATABASE_URL = "postgresql://whalefall_user:Taifish2024!@localhost:5432/whalefall_dev"
     REDIS_URL = "redis://:Taifish2024!@localhost:6379/0"
 
     # 应用配置

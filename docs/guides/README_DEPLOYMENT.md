@@ -168,7 +168,7 @@ sudo ufw enable
 2. **数据库连接失败**
    ```bash
    # 检查数据库状态
-   docker compose exec postgres pg_isready -U taifish_user -d taifish_prod
+   docker compose exec postgres pg_isready -U whalefall_user -d whalefall_prod
    ```
 
 3. **内存不足**

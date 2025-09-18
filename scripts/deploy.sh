@@ -69,9 +69,9 @@ build_image() {
     log_info "构建Docker镜像..."
     
     if [ "$env" = "prod" ]; then
-        docker build -f Dockerfile.prod -t taifish:latest .
+        docker build -f Dockerfile -t whalefall:latest .
     else
-        docker build -t taifish:latest .
+        docker build -t whalefall:latest .
     fi
     
     log_success "Docker镜像构建完成"
@@ -83,7 +83,7 @@ start_services() {
     log_info "启动服务..."
     
     if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.prod.yml up -d
+        docker compose -f docker-compose.yml up -d
     else
         docker compose up -d
     fi
@@ -97,7 +97,7 @@ stop_services() {
     log_info "停止服务..."
     
     if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.prod.yml down
+        docker compose -f docker-compose.yml down
     else
         docker compose down
     fi
@@ -111,7 +111,7 @@ restart_services() {
     log_info "重启服务..."
     
     if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.prod.yml restart
+        docker compose -f docker-compose.yml restart
     else
         docker compose restart
     fi
@@ -125,7 +125,7 @@ status_services() {
     log_info "查看服务状态..."
     
     if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.prod.yml ps
+        docker compose -f docker-compose.yml ps
     else
         docker compose ps
     fi
@@ -139,14 +139,14 @@ view_logs() {
     if [ -n "$service" ]; then
         log_info "查看 $service 服务日志..."
         if [ "$env" = "prod" ]; then
-            docker compose -f docker-compose.prod.yml logs -f "$service"
+            docker compose -f docker-compose.yml logs -f "$service"
         else
             docker compose logs -f "$service"
         fi
     else
         log_info "查看所有服务日志..."
         if [ "$env" = "prod" ]; then
-            docker compose -f docker-compose.prod.yml logs -f
+            docker compose -f docker-compose.yml logs -f
         else
             docker compose logs -f
         fi
@@ -159,9 +159,9 @@ migrate_database() {
     log_info "执行数据库迁移..."
     
     if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.prod.yml exec taifish python -m flask db upgrade
+        docker compose -f docker-compose.yml exec whalefall python -m flask db upgrade
     else
-        docker compose exec taifish python -m flask db upgrade
+        docker compose exec whalefall python -m flask db upgrade
     fi
     
     log_success "数据库迁移完成"
@@ -173,9 +173,9 @@ create_admin() {
     log_info "创建管理员用户..."
     
     if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.prod.yml exec taifish python scripts/show_admin_password.py
+        docker compose -f docker-compose.yml exec whalefall python scripts/show_admin_password.py
     else
-        docker compose exec taifish python scripts/show_admin_password.py
+        docker compose exec whalefall python scripts/show_admin_password.py
     fi
     
     log_success "管理员用户创建完成"
@@ -184,7 +184,7 @@ create_admin() {
 # 备份数据
 backup_data() {
     local env=$1
-    local backup_dir="/opt/taifish/backups"
+    local backup_dir="/opt/whalefall/backups"
     local date=$(date +%Y%m%d_%H%M%S)
     
     log_info "备份数据..."
@@ -194,16 +194,16 @@ backup_data() {
     
     # 备份数据库
     if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.prod.yml exec postgres pg_dump -U taifish_user taifish_prod > "$backup_dir/database_$date.sql"
+        docker compose -f docker-compose.yml exec postgres pg_dump -U whalefall_user whalefall_prod > "$backup_dir/database_$date.sql"
     else
-        docker compose exec postgres pg_dump -U taifish_user taifish_dev > "$backup_dir/database_$date.sql"
+        docker compose exec postgres pg_dump -U whalefall_user whalefall_dev > "$backup_dir/database_$date.sql"
     fi
     
     # 备份应用数据
     if [ "$env" = "prod" ]; then
-        docker compose -f docker-compose.prod.yml exec taifish tar -czf - /app/userdata > "$backup_dir/userdata_$date.tar.gz"
+        docker compose -f docker-compose.yml exec whalefall tar -czf - /app/userdata > "$backup_dir/userdata_$date.tar.gz"
     else
-        docker compose exec taifish tar -czf - /app/userdata > "$backup_dir/userdata_$date.tar.gz"
+        docker compose exec whalefall tar -czf - /app/userdata > "$backup_dir/userdata_$date.tar.gz"
     fi
     
     log_success "数据备份完成: $backup_dir"
@@ -254,7 +254,7 @@ show_help() {
     echo ""
     echo "示例:"
     echo "  $0 prod start"
-    echo "  $0 dev logs taifish"
+    echo "  $0 dev logs whalefall"
     echo "  $0 prod backup"
 }
 

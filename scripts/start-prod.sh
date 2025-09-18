@@ -176,8 +176,8 @@ start_application() {
         --access-logfile /app/userdata/logs/gunicorn_access.log \
         --error-logfile /app/userdata/logs/gunicorn_error.log \
         --log-level info \
-        --user taifish \
-        --group taifish \
+        --user whalefall \
+        --group whalefall \
         wsgi:application
 }
 

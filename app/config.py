@@ -1,6 +1,6 @@
 """
-鲸落 - 开发环境配置
-简化配置管理，只保留开发环境
+鲸落 - 统一配置管理
+支持开发和生产环境，通过环境变量控制
 """
 
 import os
@@ -10,10 +10,10 @@ from app.constants import DefaultConfig, SystemConstants
 
 
 class Config:
-    """开发环境配置类"""
+    """统一配置类 - 支持开发和生产环境"""
 
     # 基础配置
-    DEBUG = True
+    DEBUG = os.getenv("FLASK_ENV", "development") == "development"
     TESTING = False
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-change-in-production")
@@ -38,7 +38,7 @@ class Config:
         "pool_timeout": SystemConstants.CONNECTION_TIMEOUT,
         "max_overflow": 10,
         "pool_size": SystemConstants.MAX_CONNECTIONS,
-        "echo": False,  # 开发环境设为False
+        "echo": DEBUG,  # 开发环境显示SQL，生产环境不显示
     }
 
     # Redis配置
@@ -91,8 +91,9 @@ class Config:
     BACKUP_RETENTION_DAYS = int(os.getenv("BACKUP_RETENTION_DAYS", 30))
 
 
-# 简化配置字典，只保留开发环境
+# 统一配置字典 - 支持开发和生产环境
 config = {
     "development": Config,
+    "production": Config,
     "default": Config,
 }

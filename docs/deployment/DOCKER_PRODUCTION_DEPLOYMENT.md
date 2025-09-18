@@ -60,14 +60,14 @@ docker compose version
 
 ```bash
 # 创建部署目录
-sudo mkdir -p /opt/taifish
-cd /opt/taifish
+sudo mkdir -p /opt/whalefall
+cd /opt/whalefall
 
 # 克隆项目代码
 sudo git clone https://github.com/your-username/TaifishingV4.git .
 
 # 设置权限
-sudo chown -R $USER:$USER /opt/taifish
+sudo chown -R $USER:$USER /opt/whalefall
 ```
 
 ### 3. 环境配置
@@ -88,9 +88,9 @@ FLASK_ENV=production
 SECRET_KEY=your-super-secret-key-here
 
 # 数据库配置
-DATABASE_URL=postgresql://taifish_user:your-db-password@postgres:5432/taifish_prod
-POSTGRES_DB=taifish_prod
-POSTGRES_USER=taifish_user
+DATABASE_URL=postgresql://whalefall_user:your-db-password@postgres:5432/whalefall_prod
+POSTGRES_DB=whalefall_prod
+POSTGRES_USER=whalefall_user
 POSTGRES_PASSWORD=your-super-secure-db-password
 
 # Redis配置
@@ -122,10 +122,10 @@ CACHE_REDIS_URL=redis://:your-redis-password@redis:6379/1
 
 ```bash
 # 构建Docker镜像
-docker build -t taifish:latest .
+docker build -t whalefall:latest .
 
 # 验证镜像构建
-docker images | grep taifish
+docker images | grep whalefall
 ```
 
 ### 5. 配置Nginx
@@ -135,9 +135,9 @@ docker images | grep taifish
 mkdir -p nginx/conf.d
 
 # 创建Nginx配置文件
-cat > nginx/conf.d/taifish.conf << 'EOF'
-upstream taifish_backend {
-    server taifish:5000;
+cat > nginx/conf.d/whalefall.conf << 'EOF'
+upstream whalefall_backend {
+    server whalefall:5000;
 }
 
 server {
@@ -170,7 +170,7 @@ server {
     
     # 代理配置
     location / {
-        proxy_pass http://taifish_backend;
+        proxy_pass http://whalefall_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -184,14 +184,14 @@ server {
     
     # 静态文件缓存
     location /static/ {
-        proxy_pass http://taifish_backend;
+        proxy_pass http://whalefall_backend;
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
     
     # 健康检查
     location /health {
-        proxy_pass http://taifish_backend;
+        proxy_pass http://whalefall_backend;
         access_log off;
     }
 }
@@ -201,32 +201,32 @@ EOF
 ### 6. 创建Docker Compose配置
 
 ```yaml
-# docker-compose.prod.yml
+# docker-compose.yml
 version: '3.8'
 
 services:
   # 主程序
-  taifish:
-    image: taifish:latest
-    container_name: taifish_app
+  whalefall:
+    image: whalefall:latest
+    container_name: whalefall_app
     restart: unless-stopped
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=production
-      - DATABASE_URL=postgresql://taifish_user:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://whalefall_user:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
     env_file:
       - .env
     volumes:
-      - taifish_data:/app/userdata
-      - taifish_logs:/app/userdata/logs
+      - whalefall_data:/app/userdata
+      - whalefall_logs:/app/userdata/logs
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
-      - taifish_network
+      - whalefall_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -237,7 +237,7 @@ services:
   # PostgreSQL数据库
   postgres:
     image: postgres:15-alpine
-    container_name: taifish_postgres
+    container_name: whalefall_postgres
     restart: unless-stopped
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
@@ -248,7 +248,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./sql/init_postgresql.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
-      - taifish_network
+      - whalefall_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -271,13 +271,13 @@ services:
   # Redis缓存
   redis:
     image: redis:7-alpine
-    container_name: taifish_redis
+    container_name: whalefall_redis
     restart: unless-stopped
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
     networks:
-      - taifish_network
+      - whalefall_network
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
@@ -287,7 +287,7 @@ services:
   # Nginx反向代理
   nginx:
     image: nginx:alpine
-    container_name: taifish_nginx
+    container_name: whalefall_nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -297,14 +297,14 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - nginx_logs:/var/log/nginx
     depends_on:
-      - taifish
+      - whalefall
     networks:
-      - taifish_network
+      - whalefall_network
 
 volumes:
-  taifish_data:
+  whalefall_data:
     driver: local
-  taifish_logs:
+  whalefall_logs:
     driver: local
   postgres_data:
     driver: local
@@ -314,7 +314,7 @@ volumes:
     driver: local
 
 networks:
-  taifish_network:
+  whalefall_network:
     driver: bridge
 ```
 
@@ -359,13 +359,13 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 ```bash
 # 启动所有服务
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml up -d
 
 # 查看服务状态
-docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.yml ps
 
 # 查看日志
-docker compose -f docker-compose.prod.yml logs -f
+docker compose -f docker-compose.yml logs -f
 ```
 
 ### 9. 数据库初始化
@@ -375,10 +375,10 @@ docker compose -f docker-compose.prod.yml logs -f
 sleep 30
 
 # 运行数据库迁移
-docker compose -f docker-compose.prod.yml exec taifish python -m flask db upgrade
+docker compose -f docker-compose.yml exec whalefall python -m flask db upgrade
 
 # 创建管理员用户
-docker compose -f docker-compose.prod.yml exec taifish python scripts/show_admin_password.py
+docker compose -f docker-compose.yml exec whalefall python scripts/show_admin_password.py
 ```
 
 ### 10. 验证部署
@@ -484,17 +484,17 @@ chmod +x monitor.sh
 
 ```bash
 # 查看服务状态
-docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.yml ps
 
 # 查看日志
-docker compose -f docker-compose.prod.yml logs -f taifish
+docker compose -f docker-compose.yml logs -f whalefall
 
 # 重启服务
-docker compose -f docker-compose.prod.yml restart taifish
+docker compose -f docker-compose.yml restart whalefall
 
 # 更新镜像
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
 ```
 
 ### 2. 备份操作
@@ -503,17 +503,17 @@ docker compose -f docker-compose.prod.yml up -d
 # 创建备份脚本
 cat > backup.sh << 'EOF'
 #!/bin/bash
-BACKUP_DIR="/opt/taifish/backups"
+BACKUP_DIR="/opt/whalefall/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 
 # 创建备份目录
 mkdir -p $BACKUP_DIR
 
 # 备份数据库
-docker compose -f docker-compose.prod.yml exec postgres pg_dump -U taifish_user taifish_prod > $BACKUP_DIR/database_$DATE.sql
+docker compose -f docker-compose.yml exec postgres pg_dump -U whalefall_user whalefall_prod > $BACKUP_DIR/database_$DATE.sql
 
 # 备份应用数据
-docker compose -f docker-compose.prod.yml exec taifish tar -czf - /app/userdata > $BACKUP_DIR/userdata_$DATE.tar.gz
+docker compose -f docker-compose.yml exec whalefall tar -czf - /app/userdata > $BACKUP_DIR/userdata_$DATE.tar.gz
 
 # 清理旧备份 (保留7天)
 find $BACKUP_DIR -name "*.sql" -mtime +7 -delete
@@ -526,17 +526,17 @@ chmod +x backup.sh
 
 # 设置定时备份
 crontab -e
-# 添加: 0 2 * * * /opt/taifish/backup.sh
+# 添加: 0 2 * * * /opt/whalefall/backup.sh
 ```
 
 ### 3. 日志管理
 
 ```bash
 # 查看应用日志
-docker compose -f docker-compose.prod.yml logs -f taifish
+docker compose -f docker-compose.yml logs -f whalefall
 
 # 查看Nginx日志
-docker compose -f docker-compose.prod.yml logs -f nginx
+docker compose -f docker-compose.yml logs -f nginx
 
 # 清理日志
 docker system prune -f
@@ -547,14 +547,14 @@ docker volume prune -f
 
 ```bash
 # 拉取最新代码
-cd /opt/taifish
+cd /opt/whalefall
 git pull origin main
 
 # 重新构建镜像
-docker build -t taifish:latest .
+docker build -t whalefall:latest .
 
 # 滚动更新
-docker compose -f docker-compose.prod.yml up -d --no-deps taifish
+docker compose -f docker-compose.yml up -d --no-deps whalefall
 
 # 验证更新
 curl -f https://your-domain.com/health
@@ -570,7 +570,7 @@ curl -f https://your-domain.com/health
 docker ps -a
 
 # 查看错误日志
-docker compose -f docker-compose.prod.yml logs taifish
+docker compose -f docker-compose.yml logs whalefall
 
 # 检查端口占用
 netstat -tlnp | grep :80
@@ -580,10 +580,10 @@ netstat -tlnp | grep :443
 #### 数据库连接失败
 ```bash
 # 检查数据库状态
-docker compose -f docker-compose.prod.yml exec postgres pg_isready -U taifish_user
+docker compose -f docker-compose.yml exec postgres pg_isready -U whalefall_user
 
 # 检查网络连接
-docker compose -f docker-compose.prod.yml exec taifish ping postgres
+docker compose -f docker-compose.yml exec whalefall ping postgres
 ```
 
 #### SSL证书问题
@@ -603,7 +603,7 @@ openssl s_client -connect your-domain.com:443 -servername your-domain.com
 #### 数据库优化
 ```sql
 -- 连接PostgreSQL
-docker compose -f docker-compose.prod.yml exec postgres psql -U taifish_user -d taifish_prod
+docker compose -f docker-compose.yml exec postgres psql -U whalefall_user -d whalefall_prod
 
 -- 查看慢查询
 SELECT query, mean_time, calls, total_time 
@@ -619,7 +619,7 @@ CREATE INDEX CONCURRENTLY idx_instances_name ON instances(name);
 #### Redis优化
 ```bash
 # 连接Redis
-docker compose -f docker-compose.prod.yml exec redis redis-cli
+docker compose -f docker-compose.yml exec redis redis-cli
 
 # 查看内存使用
 INFO memory

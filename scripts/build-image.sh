@@ -40,18 +40,18 @@ build_image() {
     local dockerfile="Dockerfile"
     
     # 检查是否存在生产环境Dockerfile
-    if [ -f "Dockerfile.prod" ]; then
-        dockerfile="Dockerfile.prod"
+    if [ -f "Dockerfile" ]; then
+        dockerfile="Dockerfile"
         log_info "使用生产环境Dockerfile"
     fi
     
-    log_info "构建Docker镜像: taifish:$tag"
+    log_info "构建Docker镜像: whalefall:$tag"
     
     # 构建镜像
-    docker build -f "$dockerfile" -t "taifish:$tag" .
+    docker build -f "$dockerfile" -t "whalefall:$tag" .
     
     if [ $? -eq 0 ]; then
-        log_success "镜像构建成功: taifish:$tag"
+        log_success "镜像构建成功: whalefall:$tag"
     else
         log_error "镜像构建失败"
         exit 1
@@ -65,9 +65,9 @@ push_image() {
     
     if [ "$PUSH" = "true" ]; then
         if [ -n "$registry" ]; then
-            local full_tag="$registry/taifish:$tag"
+            local full_tag="$registry/whalefall:$tag"
             log_info "标记镜像: $full_tag"
-            docker tag "taifish:$tag" "$full_tag"
+            docker tag "whalefall:$tag" "$full_tag"
             
             log_info "推送镜像到: $full_tag"
             docker push "$full_tag"
@@ -99,10 +99,10 @@ show_image_info() {
     local tag=$1
     
     log_info "镜像信息:"
-    docker images | grep "taifish" | grep "$tag"
+    docker images | grep "whalefall" | grep "$tag"
     
     log_info "镜像大小:"
-    docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep "taifish"
+    docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep "whalefall"
 }
 
 # 显示帮助信息

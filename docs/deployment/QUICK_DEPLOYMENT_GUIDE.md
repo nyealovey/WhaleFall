@@ -64,7 +64,7 @@ curl http://localhost/health
 ./scripts/deploy.sh prod logs
 
 # 查看特定服务日志
-./scripts/deploy.sh prod logs taifish
+./scripts/deploy.sh prod logs whalefall
 
 # 备份数据
 ./scripts/deploy.sh prod backup
@@ -171,7 +171,7 @@ openssl s_client -connect your-domain.com:443
 crontab -e
 
 # 添加以下行（每天凌晨2点备份）
-0 2 * * * /opt/taifish/scripts/deploy.sh prod backup
+0 2 * * * /opt/whalefall/scripts/deploy.sh prod backup
 ```
 
 ### 更新部署
@@ -212,7 +212,7 @@ df -h
 
 ```sql
 -- 连接数据库
-docker exec -it taifish_postgres psql -U taifish_user -d taifish_prod
+docker exec -it whalefall_postgres psql -U whalefall_user -d whalefall_prod
 
 -- 创建索引
 CREATE INDEX CONCURRENTLY idx_accounts_username ON accounts(username);
@@ -223,7 +223,7 @@ CREATE INDEX CONCURRENTLY idx_instances_name ON instances(name);
 
 ```bash
 # 连接Redis
-docker exec -it taifish_redis redis-cli
+docker exec -it whalefall_redis redis-cli
 
 # 查看内存使用
 INFO memory

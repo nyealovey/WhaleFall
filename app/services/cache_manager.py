@@ -29,7 +29,7 @@ class CacheManager:
 
         # 使用SHA-256哈希确保键名长度合理且安全
         key_hash = hashlib.sha256(key_data.encode()).hexdigest()
-        return f"taifish:{key_hash}"
+        return f"whalefall:{key_hash}"
 
     def get_database_permissions_cache(
         self, instance_id: int, username: str, db_name: str
@@ -81,7 +81,7 @@ class CacheManager:
     ) -> dict[str, tuple[list[str], list[str]]] | None:
         """获取用户所有数据库权限缓存"""
         try:
-            pattern = f"taifish:db_perms:*:{instance_id}:{username}:*"
+            pattern = f"whalefall:db_perms:*:{instance_id}:{username}:*"
             keys = self.redis_client.keys(pattern)
 
             if not keys:
@@ -114,7 +114,7 @@ class CacheManager:
     def invalidate_user_cache(self, instance_id: int, username: str) -> bool:
         """清除用户的所有缓存"""
         try:
-            pattern = f"taifish:*:{instance_id}:{username}:*"
+            pattern = f"whalefall:*:{instance_id}:{username}:*"
             keys = self.redis_client.keys(pattern)
 
             if keys:
@@ -131,7 +131,7 @@ class CacheManager:
     def invalidate_instance_cache(self, instance_id: int) -> bool:
         """清除实例的所有缓存"""
         try:
-            pattern = f"taifish:*:{instance_id}:*"
+            pattern = f"whalefall:*:{instance_id}:*"
             keys = self.redis_client.keys(pattern)
 
             if keys:
@@ -148,7 +148,7 @@ class CacheManager:
     def get_cache_stats(self) -> dict[str, Any]:
         """获取缓存统计信息"""
         try:
-            pattern = "taifish:*"
+            pattern = "whalefall:*"
             keys = self.redis_client.keys(pattern)
 
             stats = {"total_keys": len(keys), "memory_usage": 0, "key_types": {}}

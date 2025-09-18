@@ -41,7 +41,7 @@
 
 ### 📝 项目文档 (project/)
 - [需求文档](project/需求.md) - 项目需求规格说明
-- [项目说明](project/taifish.md) - 项目详细介绍
+- [项目说明](project/whalefall.md) - 项目详细介绍
 - [任务清单](project/todolist.md) - 开发任务跟踪
 
 ### 📊 报告文档 (reports/)

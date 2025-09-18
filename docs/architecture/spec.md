@@ -885,7 +885,7 @@ services:
       - "5001:5001"
     environment:
       - FLASK_ENV=development
-      - DATABASE_URL=postgresql://taifish_user:password@localhost:5432/taifish_dev
+      - DATABASE_URL=postgresql://whalefall_user:password@localhost:5432/whalefall_dev
     volumes:
       - ./userdata:/app/userdata
 
@@ -908,7 +908,7 @@ services:
       - "5001:5001"
     environment:
       - FLASK_ENV=production
-      - DATABASE_URL=postgresql://user:pass@postgres:5432/taifish
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/whalefall
     depends_on:
       - postgres
       - redis
@@ -916,7 +916,7 @@ services:
   postgres:
     image: postgres:16.3
     environment:
-      - POSTGRES_DB=taifish
+      - POSTGRES_DB=whalefall
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=pass
     volumes:

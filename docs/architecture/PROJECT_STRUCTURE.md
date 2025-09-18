@@ -137,7 +137,7 @@ TaifishV4/
 │   │   ├── UV_USAGE_GUIDE.md    # UV使用指南
 │   │   └── ORACLE_SETUP.md      # Oracle环境配置
 │   ├── project/                 # 项目文档
-│   │   ├── taifish.md           # 项目说明
+│   │   ├── whalefall.md           # 项目说明
 │   │   ├── todolist.md          # 任务清单
 │   │   └── 需求.md              # 需求文档
 │   ├── reports/                 # 报告文档

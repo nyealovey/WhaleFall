@@ -98,10 +98,10 @@ pytest tests/unit/test_models.py
 ### Docker操作
 ```bash
 # 构建镜像
-docker build -t taifish .
+docker build -t whalefall .
 
 # 运行容器
-docker run -p 5001:5001 taifish
+docker run -p 5001:5001 whalefall
 
 # 查看容器日志
 docker logs <container_id>
@@ -121,7 +121,7 @@ docker exec -it <container_id> /bin/bash
 
 - **用户名**: admin
 - **密码**: Admin123
-- **邮箱**: admin@taifish.com
+- **邮箱**: admin@whalefall.com
 
 ## 📊 核心功能
 
@@ -161,7 +161,7 @@ docker exec -it <container_id> /bin/bash
 ```bash
 SECRET_KEY=your-secret-key-here
 JWT_SECRET_KEY=your-jwt-secret-key-here
-DATABASE_URL=postgresql://taifish_user:password@localhost:5432/taifish_dev
+DATABASE_URL=postgresql://whalefall_user:password@localhost:5432/whalefall_dev
 REDIS_URL=redis://localhost:6379/0
 ```
 
@@ -176,17 +176,17 @@ LOG_LEVEL=INFO
 
 ### PostgreSQL (主数据库)
 ```bash
-DATABASE_URL=postgresql://taifish_user:password@localhost:5432/taifish_dev
+DATABASE_URL=postgresql://whalefall_user:password@localhost:5432/whalefall_dev
 ```
 
 ### PostgreSQL (生产环境)
 ```bash
-DATABASE_URL=postgresql://user:password@localhost:5432/taifish
+DATABASE_URL=postgresql://user:password@localhost:5432/whalefall
 ```
 
 ### MySQL
 ```bash
-DATABASE_URL=mysql://user:password@localhost:3306/taifish
+DATABASE_URL=mysql://user:password@localhost:3306/whalefall
 ```
 
 ## 🔌 API接口

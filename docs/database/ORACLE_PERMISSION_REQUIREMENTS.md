@@ -202,23 +202,23 @@ SELECT COUNT(*) FROM dba_ts_quotas WHERE ROWNUM <= 1;
 ### 创建专用查询用户
 ```sql
 -- 创建用户
-CREATE USER taifish_query IDENTIFIED BY password;
+CREATE USER whalefall_query IDENTIFIED BY password;
 
 -- 授予基本权限
-GRANT CREATE SESSION TO taifish_query;
+GRANT CREATE SESSION TO whalefall_query;
 
 -- 授予查询权限
-GRANT SELECT_CATALOG_ROLE TO taifish_query;
+GRANT SELECT_CATALOG_ROLE TO whalefall_query;
 
 -- 授予连接权限（如果需要查询其他用户的权限）
-GRANT SELECT ANY DICTIONARY TO taifish_query;
+GRANT SELECT ANY DICTIONARY TO whalefall_query;
 ```
 
 ### 在应用中配置
 ```python
 # 使用专用查询用户连接
 oracle_config = {
-    'user': 'taifish_query',
+    'user': 'whalefall_query',
     'password': 'password',
     'host': 'localhost',
     'port': 1521,

@@ -172,7 +172,7 @@ cp env.example .env
 5. **初始化PostgreSQL数据库**
 ```bash
 # 创建PostgreSQL数据库
-createdb -U postgres taifish_dev
+createdb -U postgres whalefall_dev
 
 # 创建数据库迁移
 flask db upgrade
@@ -214,8 +214,8 @@ python app.py
 docker-compose up -d
 
 # 或使用Docker
-docker build -t taifish .
-docker run -p 5001:5001 taifish
+docker build -t whalefall .
+docker run -p 5001:5001 whalefall
 ```
 
 ## 📖 功能模块
@@ -376,7 +376,7 @@ SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret
 
 # 数据库配置
-DATABASE_URL=postgresql://taifish_user:Taifish2024!@localhost:5432/taifish_dev
+DATABASE_URL=postgresql://whalefall_user:Taifish2024!@localhost:5432/whalefall_dev
 
 # Redis配置
 REDIS_URL=redis://localhost:6379/0
@@ -391,10 +391,10 @@ TIMEZONE=Asia/Shanghai
 
 ```python
 # PostgreSQL (主数据库)
-DATABASE_URL = "postgresql://taifish_user:Taifish2024!@localhost:5432/taifish_dev"
+DATABASE_URL = "postgresql://whalefall_user:Taifish2024!@localhost:5432/whalefall_dev"
 
 # MySQL
-DATABASE_URL = "mysql://user:password@localhost:3306/taifish"
+DATABASE_URL = "mysql://user:password@localhost:3306/whalefall"
 ```
 
 ## 🚀 部署指南
@@ -429,7 +429,7 @@ pip install -r requirements.txt
 
 # 配置环境变量
 export FLASK_ENV=production
-export DATABASE_URL=postgresql://user:pass@localhost/taifish
+export DATABASE_URL=postgresql://user:pass@localhost/whalefall
 
 # 初始化数据库
 flask db upgrade

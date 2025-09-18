@@ -78,12 +78,12 @@ newgrp docker
 
 ```bash
 # 创建项目目录
-sudo mkdir -p /opt/taifish
-sudo chown $USER:$USER /opt/taifish
+sudo mkdir -p /opt/whalefall
+sudo chown $USER:$USER /opt/whalefall
 
 # 复制项目文件
-cp -r . /opt/taifish/
-cd /opt/taifish
+cp -r . /opt/whalefall/
+cd /opt/whalefall
 
 # 创建环境配置
 cp env.production .env
@@ -217,26 +217,26 @@ docker compose logs -f
 docker compose exec app bash
 
 # 进入数据库容器
-docker compose exec postgres psql -U taifish_user -d taifish_prod
+docker compose exec postgres psql -U whalefall_user -d whalefall_prod
 ```
 
 ### 使用系统服务
 
 ```bash
 # 启动服务
-sudo systemctl start taifish
+sudo systemctl start whalefall
 
 # 停止服务
-sudo systemctl stop taifish
+sudo systemctl stop whalefall
 
 # 重启服务
-sudo systemctl restart taifish
+sudo systemctl restart whalefall
 
 # 查看状态
-sudo systemctl status taifish
+sudo systemctl status whalefall
 
 # 开机自启
-sudo systemctl enable taifish
+sudo systemctl enable whalefall
 ```
 
 ## 📊 监控和维护
@@ -251,7 +251,7 @@ make health
 curl http://localhost/health
 
 # 检查数据库连接
-docker compose exec postgres pg_isready -U taifish_user -d taifish_prod
+docker compose exec postgres pg_isready -U whalefall_user -d whalefall_prod
 
 # 检查Redis连接
 docker compose exec redis redis-cli ping
@@ -280,10 +280,10 @@ docker compose logs -f app
 make backup
 
 # 恢复数据库
-make restore FILE=backups/taifish_backup_20240912_120000.sql
+make restore FILE=backups/whalefall_backup_20240912_120000.sql
 
 # 自动备份脚本
-echo "0 2 * * * /opt/taifish/backup.sh" | crontab -
+echo "0 2 * * * /opt/whalefall/backup.sh" | crontab -
 ```
 
 ## 🔒 安全配置
@@ -300,8 +300,8 @@ echo "0 2 * * * /opt/taifish/backup.sh" | crontab -
 2. **配置Nginx**:
    ```bash
    # 复制证书到项目目录
-   sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem /opt/taifish/ssl/cert.pem
-   sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem /opt/taifish/ssl/key.pem
+   sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem /opt/whalefall/ssl/cert.pem
+   sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem /opt/whalefall/ssl/key.pem
    
    # 修改Nginx配置启用HTTPS
    # 编辑 docker/nginx/nginx.conf
@@ -328,8 +328,8 @@ sudo ufw enable
 
 ```bash
 # 修改默认密码
-docker compose exec postgres psql -U taifish_user -d taifish_prod -c "
-ALTER USER taifish_user PASSWORD 'new-secure-password';
+docker compose exec postgres psql -U whalefall_user -d whalefall_prod -c "
+ALTER USER whalefall_user PASSWORD 'new-secure-password';
 "
 
 # 限制连接
@@ -359,7 +359,7 @@ docker compose down && docker compose up -d
 
 ```bash
 # 检查数据库状态
-docker compose exec postgres pg_isready -U taifish_user -d taifish_prod
+docker compose exec postgres pg_isready -U whalefall_user -d whalefall_prod
 
 # 检查数据库日志
 docker compose logs postgres
@@ -393,7 +393,7 @@ df -h
 docker system prune -a --volumes
 
 # 清理日志文件
-sudo find /opt/taifish/logs -name "*.log" -mtime +7 -delete
+sudo find /opt/whalefall/logs -name "*.log" -mtime +7 -delete
 ```
 
 ### 性能优化

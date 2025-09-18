@@ -37,7 +37,7 @@ class LogConfig:
     """日志配置类"""
 
     # 基础配置
-    app_name: str = "taifish"
+    app_name: str = "whalefall"
     log_dir: str = "userdata/logs"
     level: LogLevel = LogLevel.INFO
 
@@ -122,7 +122,7 @@ class LoggingConfigManager:
     def _load_config(self) -> LogConfig:
         """从环境变量加载配置"""
         return LogConfig(
-            app_name=os.getenv("LOG_APP_NAME", "taifish"),
+            app_name=os.getenv("LOG_APP_NAME", "whalefall"),
             log_dir=os.getenv("LOG_DIR", "userdata/logs"),
             level=LogLevel(os.getenv("LOG_LEVEL", "INFO")),
             max_file_size=os.getenv("LOG_MAX_FILE_SIZE", "10 MB"),
