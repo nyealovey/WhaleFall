@@ -186,7 +186,7 @@
                         </td>
                         <td>
                             {% if account.instance and account.instance.tags %}
-                                {% for tag in account.instance.tags.all() %}
+                                {% for tag in account.instance.tags %}
                                     <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
                                         <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
                                     </span>
@@ -240,7 +240,7 @@
                         </td>
                         <td>
                             {% if account.instance and account.instance.tags %}
-                                {% for tag in account.instance.tags.all() %}
+                                {% for tag in account.instance.tags %}
                                     <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
                                         <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
                                     </span>
@@ -294,7 +294,7 @@
                         </td>
                         <td>
                             {% if account.instance and account.instance.tags %}
-                                {% for tag in account.instance.tags.all() %}
+                                {% for tag in account.instance.tags %}
                                     <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
                                         <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
                                     </span>
@@ -348,7 +348,7 @@
                         </td>
                         <td>
                             {% if account.instance and account.instance.tags %}
-                                {% for tag in account.instance.tags.all() %}
+                                {% for tag in account.instance.tags %}
                                     <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
                                         <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
                                     </span>
@@ -402,7 +402,7 @@
                         </td>
                         <td>
                             {% if account.instance and account.instance.tags %}
-                                {% for tag in account.instance.tags.all() %}
+                                {% for tag in account.instance.tags %}
                                     <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
                                         <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
                                     </span>
@@ -473,11 +473,11 @@
                         {% if page_num != accounts.page %}
                         <li class="page-item">
                             {% if current_db_type %}
-                            <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, , classification=classification, plugin=plugin, instance_id=instance_id) }}">
+                            <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                                 {{ page_num }}
                             </a>
                         {% else %}
-                            <a class="page-link" href="{{ url_for('account_list.list_accounts', page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, , classification=classification, plugin=plugin, instance_id=instance_id) }}">
+                            <a class="page-link" href="{{ url_for('account_list.list_accounts', page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                                 {{ page_num }}
                             </a>
                             {% endif %}
@@ -497,11 +497,11 @@
                 {% if accounts.has_next %}
                 <li class="page-item">
                     {% if current_db_type %}
-                        <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, , classification=classification, plugin=plugin, instance_id=instance_id) }}">
+                        <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                             下一页
                         </a>
                     {% else %}
-                        <a class="page-link" href="{{ url_for('account_list.list_accounts', page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, , classification=classification, plugin=plugin, instance_id=instance_id) }}">
+                        <a class="page-link" href="{{ url_for('account_list.list_accounts', page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                             下一页
                         </a>
                     {% endif %}
