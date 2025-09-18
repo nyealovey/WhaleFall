@@ -232,8 +232,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 检查模态框是否存在
         const modalElement = document.getElementById('tagSelectorModal');
-        const containerElement = document.getElementById('tag-selector-container');
+        let containerElement = document.getElementById('tag-selector-container');
         
+        // 如果容器元素还没找到，等待更长时间
+        if (!containerElement) {
+            console.log('容器元素未找到，等待更长时间...');
+            setTimeout(() => {
+                containerElement = document.getElementById('tag-selector-container');
+                console.log('延迟检查 - 容器元素:', containerElement);
+                initializeTagSelector(modalElement, containerElement);
+            }, 1000);
+            return;
+        }
+        
+        initializeTagSelector(modalElement, containerElement);
+    }, 500);
+    
+    function initializeTagSelector(modalElement, containerElement) {
         if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
             console.log('开始初始化TagSelector');
             // 初始化标签选择器
@@ -275,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('- 模态框元素:', modalElement ? '找到' : '未找到');
             console.error('- 容器元素:', containerElement ? '找到' : '未找到');
         }
-    }, 500); // 增加等待时间
+    }
 });
 </script>
 {% endblock %}
