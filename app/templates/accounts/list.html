@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from 'macros/environment_macro.html' import environment_badge %}
 
 {% block title %}账户管理 - 泰摸鱼吧{% endblock %}
 
@@ -14,7 +13,7 @@
             <a href="{{ url_for('account_sync.sync_records') }}" class="btn btn-outline-info me-2">
                 <i class="fas fa-chart-line me-2"></i>同步记录
             </a>
-            <a href="{{ url_for('account_list.export_accounts', db_type=current_db_type, search=search, instance_id=instance_id, is_locked=is_locked, is_superuser=is_superuser, plugin=plugin, environment=environment, classification=classification) }}" class="btn btn-outline-success me-2">
+            <a href="{{ url_for('account_list.export_accounts', db_type=current_db_type, search=search, instance_id=instance_id, is_locked=is_locked, is_superuser=is_superuser, plugin=plugin, classification=classification) }}" class="btn btn-outline-success me-2">
                 <i class="fas fa-download me-2"></i>导出CSV
             </a>
             <button type="button" class="btn btn-success" onclick="syncAllAccounts()">
@@ -63,30 +62,21 @@
                             <option value="false" {% if is_locked == 'false' %}selected{% endif %}>正常</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <label for="environment" class="form-label fw-semibold">环境</label>
-                        <select class="form-select" id="environment" name="environment">
-                            <option value="">全部环境</option>
-                            {% for env_option in filter_options.environments %}
-                            <option value="{{ env_option.value }}"
-                                    {% if environment == env_option.value %}selected{% endif %}>
-                                {{ env_option.label }}
-                            </option>
-                            {% endfor %}
-                        </select>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">标签筛选</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-outline-primary" id="open-tag-filter-btn">
+                                <i class="fas fa-tags me-2"></i>选择标签
+                            </button>
+                            <span class="text-muted" id="selected-tags-count">未选择标签</span>
+                        </div>
+                        <div id="selected-tags-preview" class="mt-2" style="display: none;">
+                            <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
+                            </div>
+                        </div>
+                        <input type="hidden" id="selected-tag-names" name="tags" value="{{ selected_tags|join(',') }}">
                     </div>
-                    <div class="col-md-2">
-                        <label for="classification" class="form-label fw-semibold">分类</label>
-                        <select class="form-select" id="classification" name="classification">
-                            {% for classification_option in filter_options.classifications %}
-                            <option value="{{ classification_option.value }}"
-                                    {% if classification == classification_option.value %}selected{% endif %}>
-                                {{ classification_option.label }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <label for="db_type" class="form-label fw-semibold">数据库类型</label>
                         <select class="form-select" id="db_type" name="db_type">
                             <option value="">全部类型</option>
@@ -135,7 +125,7 @@
                         <th style="font-size: 0.8rem;">名称</th>
                         <th style="font-size: 0.8rem;">实例名称</th>
                         <th style="font-size: 0.8rem;">IP地址</th>
-                        <th style="font-size: 0.8rem;">环境</th>
+                        <th style="font-size: 0.8rem;">标签</th>
                         <th style="font-size: 0.8rem;">分类</th>
                         <th style="font-size: 0.8rem;">锁定状态</th>
                         <th style="font-size: 0.8rem;">操作</th>
@@ -143,7 +133,7 @@
                         <th style="font-size: 0.8rem;">名称</th>
                         <th style="font-size: 0.8rem;">实例名称</th>
                         <th style="font-size: 0.8rem;">IP地址</th>
-                        <th style="font-size: 0.8rem;">环境</th>
+                        <th style="font-size: 0.8rem;">标签</th>
                         <th style="font-size: 0.8rem;">分类</th>
                         <th style="font-size: 0.8rem;">锁定状态</th>
                         <th style="font-size: 0.8rem;">操作</th>
@@ -151,7 +141,7 @@
                         <th style="font-size: 0.8rem;">名称</th>
                         <th style="font-size: 0.8rem;">实例名称</th>
                         <th style="font-size: 0.8rem;">IP地址</th>
-                        <th style="font-size: 0.8rem;">环境</th>
+                        <th style="font-size: 0.8rem;">标签</th>
                         <th style="font-size: 0.8rem;">分类</th>
                         <th style="font-size: 0.8rem;">锁定状态</th>
                         <th style="font-size: 0.8rem;">操作</th>
@@ -159,7 +149,7 @@
                         <th style="font-size: 0.8rem;">名称</th>
                         <th style="font-size: 0.8rem;">实例名称</th>
                         <th style="font-size: 0.8rem;">IP地址</th>
-                        <th style="font-size: 0.8rem;">环境</th>
+                        <th style="font-size: 0.8rem;">标签</th>
                         <th style="font-size: 0.8rem;">分类</th>
                         <th style="font-size: 0.8rem;">锁定状态</th>
                         <th style="font-size: 0.8rem;">操作</th>
@@ -167,7 +157,7 @@
                         <th style="font-size: 0.8rem;">名称</th>
                         <th style="font-size: 0.8rem;">实例名称</th>
                         <th style="font-size: 0.8rem;">IP地址</th>
-                        <th style="font-size: 0.8rem;">环境</th>
+                        <th style="font-size: 0.8rem;">标签</th>
                         <th style="font-size: 0.8rem;">数据库类型</th>
                         <th style="font-size: 0.8rem;">分类</th>
                         <th style="font-size: 0.8rem;">锁定状态</th>
@@ -195,7 +185,15 @@
                             <span class="badge bg-primary" style="font-size: 0.7rem;">{{ account.instance.host if account.instance else '未知主机' }}</span>
                         </td>
                         <td>
-                            {{ environment_badge(account.instance.environment, 'small') if account.instance else '' }}
+                            {% if account.instance and account.instance.tags %}
+                                {% for tag in account.instance.tags.all() %}
+                                    <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
+                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted" style="font-size: 0.8rem;">无标签</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if classifications.get(account.id) %}
@@ -241,7 +239,15 @@
                             <span class="badge bg-primary" style="font-size: 0.7rem;">{{ account.instance.host if account.instance else '未知主机' }}</span>
                         </td>
                         <td>
-                            {{ environment_badge(account.instance.environment, 'small') if account.instance else '' }}
+                            {% if account.instance and account.instance.tags %}
+                                {% for tag in account.instance.tags.all() %}
+                                    <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
+                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted" style="font-size: 0.8rem;">无标签</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if classifications.get(account.id) %}
@@ -287,7 +293,15 @@
                             <span class="badge bg-primary" style="font-size: 0.7rem;">{{ account.instance.host if account.instance else '未知主机' }}</span>
                         </td>
                         <td>
-                            {{ environment_badge(account.instance.environment, 'small') if account.instance else '' }}
+                            {% if account.instance and account.instance.tags %}
+                                {% for tag in account.instance.tags.all() %}
+                                    <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
+                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted" style="font-size: 0.8rem;">无标签</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if classifications.get(account.id) %}
@@ -333,7 +347,15 @@
                             <span class="badge bg-primary" style="font-size: 0.7rem;">{{ account.instance.host if account.instance else '未知主机' }}</span>
                         </td>
                         <td>
-                            {{ environment_badge(account.instance.environment, 'small') if account.instance else '' }}
+                            {% if account.instance and account.instance.tags %}
+                                {% for tag in account.instance.tags.all() %}
+                                    <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
+                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted" style="font-size: 0.8rem;">无标签</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if classifications.get(account.id) %}
@@ -379,7 +401,15 @@
                             <span class="badge bg-primary" style="font-size: 0.7rem;">{{ account.instance.host if account.instance else '未知主机' }}</span>
                         </td>
                         <td>
-                            {{ environment_badge(account.instance.environment, 'small') if account.instance else '' }}
+                            {% if account.instance and account.instance.tags %}
+                                {% for tag in account.instance.tags.all() %}
+                                    <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
+                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted" style="font-size: 0.8rem;">无标签</span>
+                            {% endif %}
                         </td>
                         <td>
                                 <span class="badge bg-{{ 'primary' if account.instance and account.instance.db_type == 'postgresql' else 'success' if account.instance and account.instance.db_type == 'mysql' else 'warning' if account.instance and account.instance.db_type == 'sqlserver' else 'info' if account.instance and account.instance.db_type == 'oracle' else 'secondary' }}" style="font-size: 0.7rem;">
@@ -427,11 +457,11 @@
                 {% if accounts.has_prev %}
                 <li class="page-item">
                     {% if current_db_type %}
-                    <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=accounts.prev_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
+                    <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=accounts.prev_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                         上一页
                     </a>
                     {% else %}
-                    <a class="page-link" href="{{ url_for('account_list.list_accounts', page=accounts.prev_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
+                    <a class="page-link" href="{{ url_for('account_list.list_accounts', page=accounts.prev_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id) }}">
                         上一页
                     </a>
                     {% endif %}
@@ -443,11 +473,11 @@
                         {% if page_num != accounts.page %}
                         <li class="page-item">
                             {% if current_db_type %}
-                            <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
+                            <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, , classification=classification, plugin=plugin, instance_id=instance_id) }}">
                                 {{ page_num }}
                             </a>
                         {% else %}
-                            <a class="page-link" href="{{ url_for('account_list.list_accounts', page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
+                            <a class="page-link" href="{{ url_for('account_list.list_accounts', page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, , classification=classification, plugin=plugin, instance_id=instance_id) }}">
                                 {{ page_num }}
                             </a>
                             {% endif %}
@@ -467,11 +497,11 @@
                 {% if accounts.has_next %}
                 <li class="page-item">
                     {% if current_db_type %}
-                        <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
+                        <a class="page-link" href="{{ url_for('account_list.list_accounts', db_type=current_db_type, page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, , classification=classification, plugin=plugin, instance_id=instance_id) }}">
                             下一页
                         </a>
                     {% else %}
-                        <a class="page-link" href="{{ url_for('account_list.list_accounts', page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, environment=environment, classification=classification, plugin=plugin, instance_id=instance_id) }}">
+                        <a class="page-link" href="{{ url_for('account_list.list_accounts', page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, , classification=classification, plugin=plugin, instance_id=instance_id) }}">
                             下一页
                         </a>
                     {% endif %}
@@ -635,4 +665,148 @@ function showAccountStatistics() {
     font-size: 0.7rem;
 }
 </style>
+
+<!-- 标签选择器组件 -->
+<div id="account-list-tag-selector">
+    {% include 'components/tag_selector.html' %}
+</div>
+
+<script>
+// 标签选择器初始化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('账户列表页面加载完成，开始初始化标签选择器');
+    
+    // 立即检查元素
+    const accountListSelector = document.getElementById('account-list-tag-selector');
+    console.log('account-list-tag-selector元素:', accountListSelector);
+    
+    if (accountListSelector) {
+        const modalElement = accountListSelector.querySelector('#tagSelectorModal');
+        console.log('模态框元素:', modalElement);
+        
+        if (modalElement) {
+            // 在模态框内部查找容器元素
+            const containerElement = modalElement.querySelector('#tag-selector-container');
+            console.log('容器元素:', containerElement);
+            
+            if (containerElement) {
+                console.log('元素都找到了，立即初始化');
+                initializeTagSelector(modalElement, containerElement);
+            } else {
+                console.log('容器元素未找到，等待更长时间...');
+                setTimeout(() => {
+                    const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
+                    if (delayedContainerElement) {
+                        console.log('延迟检查 - 元素都找到了');
+                        initializeTagSelector(modalElement, delayedContainerElement);
+                    }
+                }, 1000);
+            }
+        }
+    }
+    
+    function initializeTagSelector(modalElement, containerElement) {
+        if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
+            console.log('开始初始化TagSelector');
+            // 初始化标签选择器
+            tagSelector = new TagSelector('tag-selector-container', {
+                allowMultiple: true,
+                allowCreate: true,
+                allowSearch: true,
+                allowCategoryFilter: true
+            });
+            console.log('TagSelector初始化完成');
+            
+            // 绑定打开标签选择器按钮
+            const openBtn = document.getElementById('open-tag-filter-btn');
+            if (openBtn) {
+                console.log('找到打开按钮，绑定事件');
+                openBtn.addEventListener('click', function() {
+                    console.log('点击了选择标签按钮');
+                    if (typeof openTagSelector === 'function') {
+                        openTagSelector();
+                    } else {
+                        console.error('openTagSelector函数未定义');
+                    }
+                });
+            } else {
+                console.error('找不到open-tag-filter-btn按钮');
+            }
+            
+            // 绑定确认选择按钮
+            const confirmBtn = document.getElementById('confirm-tag-selection');
+            if (confirmBtn) {
+                console.log('找到确认按钮，绑定事件');
+                confirmBtn.addEventListener('click', confirmTagSelection);
+            } else {
+                console.error('找不到confirm-tag-selection按钮');
+            }
+            
+            // 预填充已选择的标签
+            const selectedTagNames = document.getElementById('selected-tag-names').value;
+            if (selectedTagNames) {
+                const tagNames = selectedTagNames.split(',').filter(name => name.trim());
+                console.log('预填充标签:', tagNames);
+                setTimeout(() => {
+                    const allTags = tagSelector.availableTags;
+                    const currentTagIds = allTags.filter(tag => tagNames.includes(tag.name)).map(tag => tag.id);
+                    tagSelector.setSelectedTags(currentTagIds);
+                    updateSelectedTagsPreview(tagSelector.getSelectedTags());
+                }, 500);
+            }
+        } else {
+            console.error('初始化失败:');
+            console.error('- TagSelector可用:', typeof TagSelector !== 'undefined');
+            console.error('- 模态框元素:', modalElement ? '找到' : '未找到');
+            console.error('- 容器元素:', containerElement ? '找到' : '未找到');
+        }
+    }
+    
+    function confirmTagSelection() {
+        if (tagSelector) {
+            const selectedTags = tagSelector.getSelectedTags();
+            updateSelectedTagsPreview(selectedTags);
+            closeTagSelector();
+        }
+    }
+    
+    function updateSelectedTagsPreview(selectedTags) {
+        const preview = document.getElementById('selected-tags-preview');
+        const count = document.getElementById('selected-tags-count');
+        const chips = document.getElementById('selected-tags-chips');
+        const hiddenInput = document.getElementById('selected-tag-names');
+        
+        if (selectedTags.length > 0) {
+            preview.style.display = 'block';
+            count.textContent = `已选择 ${selectedTags.length} 个标签`;
+            
+            chips.innerHTML = selectedTags.map(tag => `
+                <span class="badge bg-${tag.color} me-1 mb-1">
+                    <i class="fas fa-tag me-1"></i>${tag.display_name}
+                    <button type="button" class="btn-close btn-close-white ms-1" 
+                            onclick="removeTagFromPreview('${tag.name}')" 
+                            style="font-size: 0.6em;"></button>
+                </span>
+            `).join('');
+            
+            hiddenInput.value = selectedTags.map(tag => tag.name).join(',');
+        } else {
+            preview.style.display = 'none';
+            count.textContent = '未选择标签';
+            hiddenInput.value = '';
+        }
+    }
+    
+    function removeTagFromPreview(tagName) {
+        if (tagSelector) {
+            const tag = tagSelector.availableTags.find(t => t.name === tagName);
+            if (tag) {
+                tagSelector.toggleTag(tag.id);
+                const selectedTags = tagSelector.getSelectedTags();
+                updateSelectedTagsPreview(selectedTags);
+            }
+        }
+    }
+});
+</script>
 {% endblock %}

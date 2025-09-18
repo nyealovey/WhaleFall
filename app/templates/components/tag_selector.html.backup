@@ -1,0 +1,683 @@
+<!-- 标签选择器模态框 -->
+<div class="modal fade" id="tagSelectorModal" tabindex="-1" aria-labelledby="tagSelectorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tagSelectorModalLabel">
+                    <i class="fas fa-tags me-2"></i>选择标签
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="tag-selector-container">
+                    <!-- 已选择的标签显示区域 -->
+                    <div class="selected-tags-area mb-3">
+                        <label class="form-label fw-bold">已选择的标签</label>
+                        <div id="selected-tags-display" class="selected-tags-display p-3 border rounded bg-light" style="min-height: 60px;">
+                            <div class="d-flex flex-wrap gap-2" id="selected-tags-list">
+                                <!-- 已选择的标签将在这里显示 -->
+                            </div>
+                            <div id="no-tags-placeholder" class="text-muted text-center py-2" style="display: none;">
+                                <i class="fas fa-tag me-2"></i>暂无选择的标签
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 标签搜索和选择区域 -->
+                    <div class="tag-search-area">
+                        <label class="form-label fw-bold">选择标签</label>
+                        
+                        <!-- 搜索框 -->
+                        <div class="input-group mb-3">
+            <span class="input-group-text">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text" id="tag-search-input" class="form-control" placeholder="搜索标签名称或分类...">
+            <button class="btn btn-outline-primary" type="button" id="clear-search-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- 标签分类筛选 -->
+        <div class="tag-category-filter mb-3">
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="category-filter" id="category-all" value="all" checked>
+                <label class="btn btn-outline-secondary" for="category-all">全部</label>
+                
+                <input type="radio" class="btn-check" name="category-filter" id="category-department" value="department">
+                <label class="btn btn-outline-secondary" for="category-department">部门</label>
+                
+                <input type="radio" class="btn-check" name="category-filter" id="category-company" value="company">
+                <label class="btn btn-outline-secondary" for="category-company">公司</label>
+                
+                <input type="radio" class="btn-check" name="category-filter" id="category-environment" value="environment">
+                <label class="btn btn-outline-secondary" for="category-environment">环境</label>
+                
+                <input type="radio" class="btn-check" name="category-filter" id="category-location" value="location">
+                <label class="btn btn-outline-secondary" for="category-location">地区</label>
+                
+                <input type="radio" class="btn-check" name="category-filter" id="category-project" value="project">
+                <label class="btn btn-outline-secondary" for="category-project">项目</label>
+                
+                <input type="radio" class="btn-check" name="category-filter" id="category-other" value="other">
+                <label class="btn btn-outline-secondary" for="category-other">其他</label>
+            </div>
+        </div>
+
+        <!-- 可用标签列表 -->
+        <div class="available-tags-area">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">可用标签</h6>
+                <button class="btn btn-sm btn-outline-success" id="quick-add-tag-btn">
+                    <i class="fas fa-plus me-1"></i>快速添加标签
+                </button>
+            </div>
+            <div id="available-tags-list" class="available-tags-list border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                <!-- 可用标签将在这里显示 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速添加标签模态框 -->
+    <div class="modal fade" id="quickAddTagModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>快速添加标签
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="quick-add-tag-form">
+                        <div class="mb-3">
+                            <label for="quick-tag-name" class="form-label">标签名称 *</label>
+                            <input type="text" class="form-control" id="quick-tag-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quick-tag-display-name" class="form-label">显示名称 *</label>
+                            <input type="text" class="form-control" id="quick-tag-display-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quick-tag-category" class="form-label">分类 *</label>
+                            <select class="form-select" id="quick-tag-category" required>
+                                <option value="">请选择分类</option>
+                                <option value="department">部门</option>
+                                <option value="company">公司</option>
+                                <option value="environment">环境</option>
+                                <option value="project">项目</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quick-tag-color" class="form-label">颜色</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="quick-tag-color" id="color-primary" value="primary" checked>
+                                    <label class="form-check-label" for="color-primary">
+                                        <span class="badge bg-primary">主要</span>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="quick-tag-color" id="color-success" value="success">
+                                    <label class="form-check-label" for="color-success">
+                                        <span class="badge bg-success">成功</span>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="quick-tag-color" id="color-info" value="info">
+                                    <label class="form-check-label" for="color-info">
+                                        <span class="badge bg-info">信息</span>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="quick-tag-color" id="color-warning" value="warning">
+                                    <label class="form-check-label" for="color-warning">
+                                        <span class="badge bg-warning">警告</span>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="quick-tag-color" id="color-danger" value="danger">
+                                    <label class="form-check-label" for="color-danger">
+                                        <span class="badge bg-danger">危险</span>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="quick-tag-color" id="color-secondary" value="secondary">
+                                    <label class="form-check-label" for="color-secondary">
+                                        <span class="badge bg-secondary">次要</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quick-tag-description" class="form-label">描述</label>
+                            <textarea class="form-control" id="quick-tag-description" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="save-quick-tag-btn">
+                        <i class="fas fa-save me-1"></i>保存并添加
+                    </button>
+                </div>
+            </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirm-tag-selection">
+                    <i class="fas fa-check me-1"></i>确认选择
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.tag-selector-container {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.selected-tags-display {
+    transition: all 0.3s ease;
+}
+
+.selected-tags-display:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    margin: 0.125rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #fff;
+    text-decoration: none;
+    background-color: var(--tag-color, #6c757d);
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    user-select: none;
+}
+
+.tag-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tag-chip .tag-remove {
+    margin-left: 0.5rem;
+    opacity: 0.7;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.tag-chip:hover .tag-remove {
+    opacity: 1;
+}
+
+.available-tag-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    background-color: #fff;
+}
+
+.available-tag-item:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+    transform: translateX(2px);
+}
+
+.available-tag-item.selected {
+    border-color: #0d6efd;
+    background-color: #e7f1ff;
+}
+
+.available-tag-item .tag-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.available-tag-item .tag-badge {
+    margin-right: 0.75rem;
+}
+
+.available-tag-item .tag-details {
+    flex: 1;
+}
+
+.available-tag-item .tag-name {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.available-tag-item .tag-category {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.available-tag-item .tag-description {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.available-tag-item .tag-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tag-category-filter .btn-check:checked + .btn {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+
+.available-tags-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.available-tags-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.available-tags-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.available-tags-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+
+<script>
+class TagSelector {
+    constructor(containerId, options = {}) {
+        this.container = document.getElementById(containerId);
+        this.options = {
+            allowMultiple: true,
+            allowCreate: true,
+            allowSearch: true,
+            allowCategoryFilter: true,
+            ...options
+        };
+        
+        this.selectedTags = new Set();
+        this.availableTags = [];
+        this.filteredTags = [];
+        this.currentCategory = 'all';
+        this.searchTerm = '';
+        
+        this.init();
+    }
+    
+    init() {
+        this.bindEvents();
+        this.loadAvailableTags();
+    }
+    
+    bindEvents() {
+        // 搜索功能
+        const searchInput = document.getElementById('tag-search-input');
+        const clearSearchBtn = document.getElementById('clear-search-btn');
+        
+        searchInput.addEventListener('input', (e) => {
+            this.searchTerm = e.target.value.toLowerCase();
+            this.filterTags();
+        });
+        
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            this.searchTerm = '';
+            this.filterTags();
+        });
+        
+        // 分类筛选
+        document.querySelectorAll('input[name="category-filter"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.currentCategory = e.target.value;
+                this.filterTags();
+            });
+        });
+        
+        // 快速添加标签
+        document.getElementById('quick-add-tag-btn').addEventListener('click', () => {
+            this.showQuickAddModal();
+        });
+        
+        document.getElementById('save-quick-tag-btn').addEventListener('click', () => {
+            this.saveQuickTag();
+        });
+    }
+    
+    async loadAvailableTags() {
+        try {
+            const response = await fetch('/tags/api/tags');
+            if (response.ok) {
+                const data = await response.json();
+                this.availableTags = data.tags || data; // 支持两种格式
+                this.filteredTags = [...this.availableTags];
+                this.renderAvailableTags();
+            } else {
+                console.error('API请求失败:', response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error('加载标签失败:', error);
+            this.showAlert('加载标签失败', 'error');
+        }
+    }
+    
+    filterTags() {
+        this.filteredTags = this.availableTags.filter(tag => {
+            const matchesSearch = !this.searchTerm || 
+                tag.name.toLowerCase().includes(this.searchTerm) ||
+                tag.display_name.toLowerCase().includes(this.searchTerm) ||
+                tag.category.toLowerCase().includes(this.searchTerm);
+            
+            const matchesCategory = this.currentCategory === 'all' || 
+                tag.category === this.currentCategory;
+            
+            return matchesSearch && matchesCategory;
+        });
+        
+        this.renderAvailableTags();
+    }
+    
+    renderAvailableTags() {
+        const container = document.getElementById('available-tags-list');
+        container.innerHTML = '';
+        
+        if (this.filteredTags.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-search me-2"></i>
+                    ${this.searchTerm ? '没有找到匹配的标签' : '暂无可用标签'}
+                </div>
+            `;
+            return;
+        }
+        
+        this.filteredTags.forEach(tag => {
+            const isSelected = this.selectedTags.has(tag.id);
+            const tagItem = document.createElement('div');
+            tagItem.className = `available-tag-item ${isSelected ? 'selected' : ''}`;
+            tagItem.dataset.tagId = tag.id;
+            
+            tagItem.innerHTML = `
+                <div class="tag-info">
+                    <span class="badge bg-${tag.color} tag-badge">
+                        <i class="fas fa-tag me-1"></i>${tag.display_name}
+                    </span>
+                    <div class="tag-details">
+                        <div class="tag-name">${tag.name}</div>
+                        <div class="tag-category">${this.getCategoryDisplayName(tag.category)}</div>
+                        ${tag.description ? `<div class="tag-description">${tag.description}</div>` : ''}
+                    </div>
+                </div>
+                <div class="tag-actions">
+                    <button class="btn btn-sm ${isSelected ? 'btn-outline-danger' : 'btn-outline-primary'}" 
+                            onclick="tagSelector.toggleTag(${tag.id})">
+                        <i class="fas fa-${isSelected ? 'minus' : 'plus'}"></i>
+                        ${isSelected ? '移除' : '添加'}
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(tagItem);
+        });
+    }
+    
+    toggleTag(tagId) {
+        const tag = this.availableTags.find(t => t.id === tagId);
+        if (!tag) return;
+        
+        if (this.selectedTags.has(tagId)) {
+            this.selectedTags.delete(tagId);
+        } else {
+            if (!this.options.allowMultiple && this.selectedTags.size > 0) {
+                this.selectedTags.clear();
+            }
+            this.selectedTags.add(tagId);
+        }
+        
+        this.renderSelectedTags();
+        this.renderAvailableTags();
+        this.triggerChangeEvent();
+    }
+    
+    renderSelectedTags() {
+        const container = document.getElementById('selected-tags-list');
+        const placeholder = document.getElementById('no-tags-placeholder');
+        
+        container.innerHTML = '';
+        
+        if (this.selectedTags.size === 0) {
+            placeholder.style.display = 'block';
+            return;
+        }
+        
+        placeholder.style.display = 'none';
+        
+        this.selectedTags.forEach(tagId => {
+            const tag = this.availableTags.find(t => t.id === tagId);
+            if (!tag) return;
+            
+            const tagChip = document.createElement('div');
+            tagChip.className = 'tag-chip';
+            tagChip.style.setProperty('--tag-color', `var(--bs-${tag.color})`);
+            tagChip.innerHTML = `
+                <i class="fas fa-tag me-1"></i>
+                ${tag.display_name}
+                <span class="tag-remove" onclick="tagSelector.removeTag(${tagId})">
+                    <i class="fas fa-times"></i>
+                </span>
+            `;
+            
+            container.appendChild(tagChip);
+        });
+    }
+    
+    removeTag(tagId) {
+        this.selectedTags.delete(tagId);
+        this.renderSelectedTags();
+        this.renderAvailableTags();
+        this.triggerChangeEvent();
+    }
+    
+    getSelectedTags() {
+        return Array.from(this.selectedTags).map(tagId => 
+            this.availableTags.find(t => t.id === tagId)
+        ).filter(Boolean);
+    }
+    
+    setSelectedTags(tagIds) {
+        this.selectedTags = new Set(tagIds);
+        this.renderSelectedTags();
+        this.renderAvailableTags();
+    }
+    
+    getCategoryDisplayName(category) {
+        const categoryMap = {
+            'department': '部门',
+            'company': '公司',
+            'environment': '环境',
+            'project': '项目',
+            'location': '地区',
+            'other': '其他'
+        };
+        return categoryMap[category] || category;
+    }
+    
+    showQuickAddModal() {
+        const modal = new bootstrap.Modal(document.getElementById('quickAddTagModal'));
+        modal.show();
+    }
+    
+    async saveQuickTag() {
+        const form = document.getElementById('quick-add-tag-form');
+        const formData = new FormData(form);
+        
+        const tagData = {
+            name: document.getElementById('quick-tag-name').value,
+            display_name: document.getElementById('quick-tag-display-name').value,
+            category: document.getElementById('quick-tag-category').value,
+            color: document.querySelector('input[name="quick-tag-color"]:checked').value,
+            description: document.getElementById('quick-tag-description').value
+        };
+        
+        try {
+            const response = await fetch('/tags/api/tags', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                },
+                body: JSON.stringify(tagData)
+            });
+            
+            if (response.ok) {
+                const newTag = await response.json();
+                this.availableTags.push(newTag);
+                this.filteredTags = [...this.availableTags];
+                this.renderAvailableTags();
+                
+                // 自动选择新创建的标签
+                this.toggleTag(newTag.id);
+                
+                // 关闭模态框
+                bootstrap.Modal.getInstance(document.getElementById('quickAddTagModal')).hide();
+                form.reset();
+                
+                this.showAlert('标签创建成功', 'success');
+            } else {
+                const error = await response.json();
+                this.showAlert(error.message || '创建标签失败', 'error');
+            }
+        } catch (error) {
+            console.error('创建标签失败:', error);
+            this.showAlert('创建标签失败', 'error');
+        }
+    }
+    
+    triggerChangeEvent() {
+        const event = new CustomEvent('tagSelectionChanged', {
+            detail: {
+                selectedTags: this.getSelectedTags(),
+                selectedTagIds: Array.from(this.selectedTags)
+            }
+        });
+        this.container.dispatchEvent(event);
+    }
+    
+    showAlert(message, type = 'info') {
+        // 这里可以集成现有的alert系统
+        console.log(`${type.toUpperCase()}: ${message}`);
+    }
+}
+
+// 全局变量，供模板使用
+let tagSelector = null;
+let tagSelectorModal = null;
+
+// 标签选择器模态框控制函数
+function openTagSelector() {
+    console.log('openTagSelector函数被调用');
+    const modalElement = document.getElementById('tagSelectorModal');
+    console.log('模态框元素:', modalElement);
+    
+    if (!tagSelectorModal) {
+        if (modalElement) {
+            tagSelectorModal = new bootstrap.Modal(modalElement);
+            console.log('创建了新的模态框实例');
+        } else {
+            console.error('找不到tagSelectorModal元素');
+            return;
+        }
+    }
+    
+    if (tagSelectorModal) {
+        console.log('显示模态框');
+        tagSelectorModal.show();
+    } else {
+        console.error('模态框实例创建失败');
+    }
+}
+
+function closeTagSelector() {
+    if (tagSelectorModal) {
+        tagSelectorModal.hide();
+    }
+}
+
+function confirmTagSelection() {
+    if (tagSelector) {
+        const selectedTags = tagSelector.getSelectedTags();
+        updateSelectedTagsPreview(selectedTags);
+        closeTagSelector();
+    }
+}
+
+function updateSelectedTagsPreview(selectedTags) {
+    const previewContainer = document.getElementById('selected-tags-preview');
+    const chipsContainer = document.getElementById('selected-tags-chips');
+    const countElement = document.getElementById('selected-tags-count');
+    const hiddenInput = document.getElementById('selected-tag-names');
+    
+    if (selectedTags.length === 0) {
+        previewContainer.style.display = 'none';
+        countElement.textContent = '未选择标签';
+        hiddenInput.value = '';
+    } else {
+        previewContainer.style.display = 'block';
+        countElement.textContent = `已选择 ${selectedTags.length} 个标签`;
+        
+        // 清空现有标签
+        chipsContainer.innerHTML = '';
+        
+        // 添加选中的标签
+        selectedTags.forEach(tag => {
+            const chip = document.createElement('span');
+            chip.className = 'badge bg-primary me-1 mb-1';
+            chip.innerHTML = `
+                <i class="fas fa-tag me-1"></i>${tag.display_name}
+                <button type="button" class="btn-close btn-close-white ms-1" 
+                        onclick="removeTagFromPreview('${tag.name}')" 
+                        style="font-size: 0.7em;"></button>
+            `;
+            chipsContainer.appendChild(chip);
+        });
+        
+        // 更新隐藏输入字段
+        const tagNames = selectedTags.map(tag => tag.name);
+        hiddenInput.value = tagNames.join(',');
+    }
+}
+
+function removeTagFromPreview(tagName) {
+    if (tagSelector) {
+        const tag = tagSelector.availableTags.find(t => t.name === tagName);
+        if (tag) {
+            tagSelector.toggleTag(tag.id);
+            const selectedTags = tagSelector.getSelectedTags();
+            updateSelectedTagsPreview(selectedTags);
+        }
+    }
+}
+</script>

@@ -7,6 +7,7 @@ from flask_login import current_user, login_required
 
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
+from app.models.tag import Tag
 from app.services.account_sync_service import account_sync_service
 from app.utils.decorators import update_required, view_required
 from app.utils.structlog_config import log_error
@@ -30,7 +31,7 @@ def list_accounts(db_type: str | None = None) -> str:
     is_locked = request.args.get("is_locked")
     is_superuser = request.args.get("is_superuser")
     plugin = request.args.get("plugin", "").strip()
-    environment = request.args.get("environment", "").strip()
+    tags = request.args.getlist("tags")
     classification = request.args.get("classification", "").strip()
 
     # 构建查询
@@ -61,10 +62,10 @@ def list_accounts(db_type: str | None = None) -> str:
     if is_superuser is not None:
         query = query.filter(CurrentAccountSyncData.is_superuser == (is_superuser == "true"))
 
-    # 环境过滤
-    if environment and environment != "all":
-        # 通过实例的环境字段进行过滤
-        query = query.join(Instance).filter(Instance.environment == environment)
+    # 标签过滤
+    if tags:
+        # 通过实例的标签进行过滤
+        query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
 
     # 分类过滤
     if classification and classification != "all":
@@ -110,15 +111,11 @@ def list_accounts(db_type: str | None = None) -> str:
             {"value": "oracle", "label": "Oracle"},
             {"value": "sqlserver", "label": "SQL Server"},
         ],
-        "environments": [
-            {"value": "production", "label": "生产环境"},
-            {"value": "testing", "label": "测试环境"},
-            {"value": "development", "label": "开发环境"},
-        ],
         "classifications": [
             {"value": "all", "label": "全部分类"},
         ]
         + [{"value": str(c.id), "label": c.name} for c in classification_list],
+        "all_tags": Tag.query.all(),
     }
 
     # 获取账户分类信息
@@ -170,7 +167,7 @@ def list_accounts(db_type: str | None = None) -> str:
         is_locked=is_locked,
         is_superuser=is_superuser,
         plugin=plugin,
-        environment=environment,
+        selected_tags=tags,
         classification=classification,
         instances=instances,
         stats=stats,
@@ -196,7 +193,7 @@ def export_accounts() -> "Response":
     is_locked = request.args.get("is_locked")
     is_superuser = request.args.get("is_superuser")
     request.args.get("plugin", "").strip()
-    request.args.get("environment", "").strip()
+    request.args.getlist("tags")
     request.args.get("classification", "").strip()
 
     # 构建查询（与list_accounts方法保持一致）
@@ -254,7 +251,7 @@ def export_accounts() -> "Response":
     writer = csv.writer(output)
 
     # 写入表头（与页面显示格式一致）
-    writer.writerow(["名称", "实例名称", "IP地址", "环境", "数据库类型", "分类", "锁定状态"])
+    writer.writerow(["名称", "实例名称", "IP地址", "标签", "数据库类型", "分类", "锁定状态"])
 
     # 写入账户数据
     for account in accounts:
@@ -278,24 +275,17 @@ def export_accounts() -> "Response":
 
         lock_status = ("已禁用" if instance and instance.db_type == "sqlserver" else "已锁定") if is_locked else "正常"
 
-        # 格式化环境显示
-        environment_display = ""
-        if instance:
-            if instance.environment == "production":
-                environment_display = "生产"
-            elif instance.environment == "development":
-                environment_display = "开发"
-            elif instance.environment == "testing":
-                environment_display = "测试"
-            else:
-                environment_display = instance.environment
+        # 格式化标签显示
+        tags_display = ""
+        if instance and instance.tags:
+            tags_display = ", ".join([tag.display_name for tag in instance.tags.all()])
 
         writer.writerow(
             [
                 username_display,
                 instance.name if instance else "",
                 instance.host if instance else "",
-                environment_display,
+                tags_display,
                 instance.db_type.upper() if instance else "",
                 classification_str,
                 lock_status,
