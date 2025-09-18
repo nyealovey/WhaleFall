@@ -25,7 +25,7 @@
     <!-- 搜索和筛选 -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="GET" id="account-search-form">
+            <form method="GET" id="account-search-form" onsubmit="return validateForm()">
                 {% if current_db_type %}
                 <input type="hidden" name="db_type" value="{{ current_db_type }}">
                 {% elif db_type %}
@@ -773,6 +773,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 console.log('标签选择器初始化完成，无预选择标签');
             }
+            
+            // 标记标签选择器已初始化完成
+            window.tagSelectorInitialized = true;
         } else {
             console.error('初始化失败:');
             console.error('- TagSelector可用:', typeof TagSelector !== 'undefined');
@@ -831,29 +834,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // 表单验证函数
+    function validateForm() {
+        console.log('开始表单验证');
+        
+        // 检查标签选择器是否已初始化
+        if (!window.tagSelectorInitialized) {
+            console.log('标签选择器未初始化完成，等待...');
+            setTimeout(() => {
+                if (window.tagSelectorInitialized) {
+                    console.log('标签选择器初始化完成，重新提交表单');
+                    document.getElementById('account-search-form').submit();
+                }
+            }, 1000);
+            return false;
+        }
+        
+        // 确保标签字段有正确的值
+        const tagInput = document.getElementById('selected-tag-names');
+        if (tagInput) {
+            if (!tagInput.value) {
+                tagInput.value = '';
+            }
+            console.log('标签字段值:', tagInput.value);
+        } else {
+            console.error('找不到标签输入字段');
+        }
+        
+        // 确保所有必填字段都有值
+        const searchInput = document.getElementById('search');
+        if (searchInput && !searchInput.value) {
+            searchInput.value = '';
+        }
+        
+        console.log('表单验证完成');
+        return true;
+    }
+    
     // 表单提交时的验证
     const form = document.getElementById('account-search-form');
     if (form) {
         form.addEventListener('submit', function(e) {
-            console.log('表单提交前的标签字段值:', document.getElementById('selected-tag-names').value);
-            // 确保标签字段有正确的值
-            const tagInput = document.getElementById('selected-tag-names');
-            if (tagInput) {
-                if (!tagInput.value) {
-                    tagInput.value = '';
-                }
-                console.log('表单提交时的标签字段值:', tagInput.value);
-            } else {
-                console.error('找不到标签输入字段');
-            }
-            
-            // 确保所有必填字段都有值
-            const searchInput = document.getElementById('search');
-            if (searchInput && !searchInput.value) {
-                searchInput.value = '';
-            }
-            
-            console.log('表单提交验证完成');
+            console.log('表单提交事件触发');
+            return validateForm();
         });
     }
 });
