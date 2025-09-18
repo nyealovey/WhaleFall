@@ -1,3 +1,7 @@
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
+
 #!/usr/bin/env python3
 
 """
@@ -21,23 +25,23 @@ def test_log_trend():
     app = create_app()
 
     with app.app_context():
-        print("=== 测试日志趋势数据获取 ===")
+        logger.debug("=== 测试日志趋势数据获取 ===")
 
         # 1. 检查数据库中的日志记录
         total_logs = Log.query.count()
-        print(f"数据库总日志数: {total_logs}")
+        logger.debug("数据库总日志数: {total_logs}")
 
         # 2. 检查最近的日志记录
         recent_logs = Log.query.order_by(Log.created_at.desc()).limit(5).all()
-        print("\n最近的5条日志记录:")
+        logger.debug("\n最近的5条日志记录:")
         for log in recent_logs:
-            print(f"  - ID: {log.id}, 时间: {log.created_at}, 消息: {log.message}")
+            logger.debug("  - ID: {log.id}, 时间: {log.created_at}, 消息: {log.message}")
 
         # 3. 测试日志趋势数据获取
-        print("\n获取日志趋势数据:")
+        logger.debug("\n获取日志趋势数据:")
         trend_data = get_log_trend_data()
         for item in trend_data:
-            print(f"  - 日期: {item['date']}, 数量: {item['count']}")
+            logger.debug("  - 日期: {item['date']}, 数量: {item['count']}")
 
         # 4. 检查今天的日志数量
         from app.utils.timezone import CHINA_TZ, china_to_utc, get_china_today
@@ -48,8 +52,8 @@ def test_log_trend():
 
         today_count = Log.query.filter(Log.created_at >= start_utc, Log.created_at <= end_utc).count()
 
-        print(f"\n今天({today})的日志数量: {today_count}")
-        print(f"UTC时间范围: {start_utc} 到 {end_utc}")
+        logger.debug("\n今天({today})的日志数量: {today_count}")
+        logger.debug("UTC时间范围: {start_utc} 到 {end_utc}")
 
 
 if __name__ == "__main__":

@@ -97,8 +97,9 @@ class UnifiedLog(db.Model):
         elif timestamp.tzinfo is None:
             # 如果没有时区信息，假设为UTC时间
             from app.utils.timezone import UTC_TZ
+
             timestamp = timestamp.replace(tzinfo=UTC_TZ)
-        
+
         return cls(
             timestamp=timestamp,
             level=level,

@@ -2,8 +2,6 @@
 泰摸鱼吧 - 凭据模型
 """
 
-from datetime import datetime
-
 from app import bcrypt, db
 from app.utils.password_manager import password_manager
 from app.utils.timezone import now
@@ -127,7 +125,7 @@ class Credential(db.Model):
         # 如果都不是，可能是明文密码（不安全）
         return self.password
 
-    def to_dict(self, include_password: bool = False) -> dict:
+    def to_dict(self, *, include_password: bool = False) -> dict:
         """
         转换为字典
 
@@ -200,27 +198,6 @@ class Credential(db.Model):
     def get_by_db_type(db_type: str) -> list:
         """根据数据库类型获取凭据"""
         return Credential.query.filter_by(db_type=db_type, deleted_at=None).all()
-
-    def to_dict(self) -> dict:
-        """
-        转换为字典格式
-
-        Returns:
-            Dict: 凭据信息字典
-        """
-        return {
-            "id": self.id,
-            "name": self.name,
-            "credential_type": self.credential_type,
-            "db_type": self.db_type,
-            "username": self.username,
-            "instance_ids": self.instance_ids,
-            "category_id": self.category_id,
-            "is_active": getattr(self, "is_active", True),
-            "description": getattr(self, "description", ""),
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-        }
 
     def __repr__(self) -> str:
         return f"<Credential {self.name}>"

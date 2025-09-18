@@ -3,10 +3,7 @@
 用于管理自动分类操作的批次信息，便于日志聚合和查询
 """
 
-from datetime import datetime
-
 from sqlalchemy import Column, DateTime, Integer, String, Text
-from sqlalchemy.sql import func
 
 from app import db
 from app.utils.timezone import now
@@ -74,10 +71,10 @@ class ClassificationBatch(db.Model):
         comment="更新时间",
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<ClassificationBatch {self.batch_id}>"
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, any]:
         """转换为字典格式"""
         return {
             "id": self.id,
@@ -99,7 +96,7 @@ class ClassificationBatch(db.Model):
         }
 
     @property
-    def duration(self):
+    def duration(self) -> float:
         """计算批次执行时长（秒）"""
         if self.completed_at and self.started_at:
             return (self.completed_at - self.started_at).total_seconds()
@@ -108,7 +105,7 @@ class ClassificationBatch(db.Model):
         return 0
 
     @property
-    def success_rate(self):
+    def success_rate(self) -> float:
         """计算成功率"""
         if self.total_accounts == 0:
             return 0

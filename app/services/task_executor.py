@@ -215,7 +215,7 @@ class TaskExecutor:
                 return result
 
             except Exception as e:
-                self.logger.error(f"执行任务代码时出错: {e}")
+                self.logger.error("执行任务代码时出错: {e}")
                 return {"success": False, "error": f"执行任务代码失败: {str(e)}"}
 
     def _record_task_execution_summary(self, task: "Any", success_count: int, failed_count: int, results: list) -> None:
@@ -234,25 +234,17 @@ class TaskExecutor:
         app = create_app()
         with app.app_context():
             try:
-                # 计算汇总数据
-                total_synced = sum(r.get("synced_count", 0) for r in results if r.get("success", False))
-                total_added = sum(r.get("added_count", 0) for r in results if r.get("success", False))
-                total_removed = sum(r.get("removed_count", 0) for r in results if r.get("success", False))
-                total_modified = sum(r.get("modified_count", 0) for r in results if r.get("success", False))
-
                 # 构建汇总消息
                 if failed_count == 0:
-                    status = "success"
-                    message = f"任务执行完成，成功:{success_count}，失败:{failed_count}"
+                    self.logger.info("任务执行完成，成功:{success_count}，失败:{failed_count}")
                 else:
-                    status = "failed"
-                    message = f"任务执行完成，成功:{success_count}，失败:{failed_count}"
+                    self.logger.warning("任务执行完成，成功:{success_count}，失败:{failed_count}")
 
                 # 同步会话记录已通过sync_session_service管理，无需额外创建记录
 
-                self.logger.info(f"记录任务执行汇总: {task.name}, 成功:{success_count}, 失败:{failed_count}")
-            except Exception as e:
-                self.logger.error(f"记录任务执行汇总失败: {e}")
+                self.logger.info("记录任务执行汇总: {task.name}, 成功:{success_count}, 失败:{failed_count}")
+            except Exception:
+                self.logger.error("记录任务执行汇总失败: {e}")
 
     def _update_task_status(self, task: "Any", success_count: int, failed_count: int, results: list) -> None:
         """
@@ -265,7 +257,7 @@ class TaskExecutor:
             results: 执行结果列表
         """
         try:
-            self.logger.info(f"更新任务状态: {task.name}, 成功: {success_count}, 失败: {failed_count}")
+            self.logger.info("更新任务状态: {task.name}, 成功: {success_count}, 失败: {failed_count}")
 
             task.run_count += 1
             if failed_count == 0:
@@ -280,9 +272,9 @@ class TaskExecutor:
             task.last_run_at = now()  # 兼容字段
 
             db.session.commit()
-            self.logger.info(f"任务状态更新完成: 运行次数={task.run_count}, 成功次数={task.success_count}")
-        except Exception as e:
-            self.logger.error(f"更新任务状态失败: {e}")
+            self.logger.info("任务状态更新完成: 运行次数={task.run_count}, 成功次数={task.success_count}")
+        except Exception:
+            self.logger.error("更新任务状态失败: {e}")
             db.session.rollback()
 
     def execute_all_active_tasks(self) -> dict:
@@ -309,7 +301,7 @@ class TaskExecutor:
                 results.append({"task_name": task.name, "result": result})
                 executed_count += 1
             except Exception as e:
-                self.logger.error(f"执行任务 {task.name} 时出错: {e}")
+                self.logger.error("执行任务 {task.name} 时出错: {e}")
                 results.append(
                     {
                         "task_name": task.name,
@@ -361,8 +353,8 @@ class TaskExecutor:
                 db.session.add(task)
                 created_count += 1
 
-            except Exception as e:
-                self.logger.error(f"创建内置任务 {task_config['name']} 失败: {e}")
+            except Exception:
+                self.logger.error("创建内置任务 {task_config['name']} 失败: {e}")
 
         try:
             db.session.commit()

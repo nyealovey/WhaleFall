@@ -4,14 +4,12 @@
 """
 
 import uuid
-from datetime import datetime
 from typing import Any
-
-from app.utils.time_utils import time_utils
 
 from app import db
 from app.models.classification_batch import ClassificationBatch
 from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
 
 
 class ClassificationBatchService:

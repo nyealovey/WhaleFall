@@ -4,7 +4,7 @@
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from flask import g, has_request_context
 from flask_login import current_user
@@ -14,7 +14,7 @@ from app.utils.timezone import now
 
 class ContextManager:
     """上下文管理器 - 统一管理各模块的日志上下文"""
-    
+
     # 各模块的上下文字段定义
     MODULE_CONTEXT_FIELDS = {
         "auth": {
@@ -259,45 +259,49 @@ class ContextManager:
             "alert_message": str,
             "alert_count": int,
             "last_alert": datetime,
-        }
+        },
     }
-    
+
     @staticmethod
-    def build_base_context() -> Dict[str, Any]:
+    def build_base_context() -> dict[str, Any]:
         """构建基础上下文"""
         context = {
             "timestamp": now(),
         }
-        
+
         # 添加请求上下文
         if has_request_context():
-            context.update({
-                "request_id": getattr(g, "request_id", None),
-                "ip_address": getattr(g, "ip_address", None),
-                "user_agent": getattr(g, "user_agent", None),
-                "url": getattr(g, "url", None),
-                "method": getattr(g, "method", None),
-            })
-        
+            context.update(
+                {
+                    "request_id": getattr(g, "request_id", None),
+                    "ip_address": getattr(g, "ip_address", None),
+                    "user_agent": getattr(g, "user_agent", None),
+                    "url": getattr(g, "url", None),
+                    "method": getattr(g, "method", None),
+                }
+            )
+
         # 添加用户上下文
         if current_user and hasattr(current_user, "id"):
-            context.update({
-                "user_id": current_user.id,
-                "username": getattr(current_user, "username", None),
-                "role": getattr(current_user, "role", None),
-                "is_admin": getattr(current_user, "is_admin", lambda: False)(),
-            })
-        
+            context.update(
+                {
+                    "user_id": current_user.id,
+                    "username": getattr(current_user, "username", None),
+                    "role": getattr(current_user, "role", None),
+                    "is_admin": getattr(current_user, "is_admin", lambda: False)(),
+                }
+            )
+
         return context
-    
+
     @staticmethod
-    def build_business_context(module: str, **kwargs) -> Dict[str, Any]:
+    def build_business_context(module: str, **kwargs) -> dict[str, Any]:
         """根据模块构建业务上下文"""
         base_context = ContextManager.build_base_context()
-        
+
         # 获取模块的上下文字段定义
         module_fields = ContextManager.MODULE_CONTEXT_FIELDS.get(module, {})
-        
+
         # 过滤和验证传入的参数
         filtered_kwargs = {}
         for key, value in kwargs.items():
@@ -309,19 +313,19 @@ class ContextManager:
                         filtered_kwargs[key] = value
                 else:
                     filtered_kwargs[key] = value
-        
+
         return {**base_context, **filtered_kwargs}
-    
+
     @staticmethod
-    def extract_instance_context(instance_data: Any) -> Dict[str, Any]:
+    def extract_instance_context(instance_data: Any) -> dict[str, Any]:
         """从实例数据中提取上下文"""
-        if hasattr(instance_data, 'to_dict'):
+        if hasattr(instance_data, "to_dict"):
             data = instance_data.to_dict()
         elif isinstance(instance_data, dict):
             data = instance_data
         else:
             return {}
-        
+
         return {
             "instance_id": data.get("id"),
             "instance_name": data.get("name"),
@@ -338,17 +342,17 @@ class ContextManager:
             "tags": data.get("tags"),
             "sync_count": data.get("sync_count"),
         }
-    
+
     @staticmethod
-    def extract_credential_context(credential_data: Any) -> Dict[str, Any]:
+    def extract_credential_context(credential_data: Any) -> dict[str, Any]:
         """从凭据数据中提取上下文"""
-        if hasattr(credential_data, 'to_dict'):
+        if hasattr(credential_data, "to_dict"):
             data = credential_data.to_dict()
         elif isinstance(credential_data, dict):
             data = credential_data
         else:
             return {}
-        
+
         return {
             "credential_id": data.get("id"),
             "credential_name": data.get("name"),
@@ -360,17 +364,17 @@ class ContextManager:
             "category_id": data.get("category_id"),
             "description": data.get("description"),
         }
-    
+
     @staticmethod
-    def extract_account_context(account_data: Any) -> Dict[str, Any]:
+    def extract_account_context(account_data: Any) -> dict[str, Any]:
         """从账户数据中提取上下文"""
-        if hasattr(account_data, 'to_dict'):
+        if hasattr(account_data, "to_dict"):
             data = account_data.to_dict()
         elif isinstance(account_data, dict):
             data = account_data
         else:
             return {}
-        
+
         return {
             "account_id": data.get("id"),
             "username": data.get("username"),
@@ -390,17 +394,17 @@ class ContextManager:
             "last_change_type": data.get("last_change_type"),
             "last_change_time": data.get("last_change_time"),
         }
-    
+
     @staticmethod
-    def extract_classification_context(classification_data: Any) -> Dict[str, Any]:
+    def extract_classification_context(classification_data: Any) -> dict[str, Any]:
         """从分类数据中提取上下文"""
-        if hasattr(classification_data, 'to_dict'):
+        if hasattr(classification_data, "to_dict"):
             data = classification_data.to_dict()
         elif isinstance(classification_data, dict):
             data = classification_data
         else:
             return {}
-        
+
         return {
             "classification_id": data.get("id"),
             "classification_name": data.get("name"),
@@ -410,17 +414,17 @@ class ContextManager:
             "is_system": data.get("is_system"),
             "is_active": data.get("is_active"),
         }
-    
+
     @staticmethod
-    def extract_task_context(task_data: Any) -> Dict[str, Any]:
+    def extract_task_context(task_data: Any) -> dict[str, Any]:
         """从任务数据中提取上下文"""
-        if hasattr(task_data, 'to_dict'):
+        if hasattr(task_data, "to_dict"):
             data = task_data.to_dict()
         elif isinstance(task_data, dict):
             data = task_data
         else:
             return {}
-        
+
         return {
             "task_id": data.get("id"),
             "task_name": data.get("name"),
@@ -438,17 +442,17 @@ class ContextManager:
             "success_rate": data.get("success_rate"),
             "config": data.get("config"),
         }
-    
+
     @staticmethod
-    def extract_sync_session_context(session_data: Any) -> Dict[str, Any]:
+    def extract_sync_session_context(session_data: Any) -> dict[str, Any]:
         """从同步会话数据中提取上下文"""
-        if hasattr(session_data, 'to_dict'):
+        if hasattr(session_data, "to_dict"):
             data = session_data.to_dict()
         elif isinstance(session_data, dict):
             data = session_data
         else:
             return {}
-        
+
         return {
             "session_id": data.get("session_id"),
             "sync_type": data.get("sync_type"),

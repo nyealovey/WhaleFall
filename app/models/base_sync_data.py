@@ -2,9 +2,8 @@
 泰摸鱼吧 - 基础同步数据模型
 """
 
-from datetime import datetime
-
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import Mapped
 
 from app import db
 from app.utils.timezone import now
@@ -18,7 +17,7 @@ class BaseSyncData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     @declared_attr
-    def instance_id(cls):
+    def instance_id(cls) -> Mapped[int]:
         return db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
 
     db_type = db.Column(db.String(20), nullable=False, index=True)  # 'mysql', 'postgresql', 'sqlserver', 'oracle'

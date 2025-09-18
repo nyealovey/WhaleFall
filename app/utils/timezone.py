@@ -6,7 +6,6 @@
 
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
-from typing import Union, Optional
 
 # 使用zoneinfo替代pytz（Python 3.9+）
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
@@ -20,7 +19,7 @@ def get_china_time() -> datetime:
     return datetime.now(CHINA_TZ)
 
 
-def utc_to_china(utc_dt: Union[datetime, None]) -> Optional[datetime]:
+def utc_to_china(utc_dt: datetime | None) -> datetime | None:
     """将UTC时间转换为东八区时间"""
     if utc_dt is None:
         return None
@@ -32,7 +31,7 @@ def utc_to_china(utc_dt: Union[datetime, None]) -> Optional[datetime]:
     return utc_dt.astimezone(CHINA_TZ)
 
 
-def china_to_utc(china_dt: Union[datetime, None]) -> Optional[datetime]:
+def china_to_utc(china_dt: datetime | None) -> datetime | None:
     """将东八区时间转换为UTC时间"""
     if china_dt is None:
         return None
@@ -44,7 +43,7 @@ def china_to_utc(china_dt: Union[datetime, None]) -> Optional[datetime]:
     return china_dt.astimezone(UTC_TZ)
 
 
-def format_china_time(dt: Union[datetime, str, None], format_str: str = "%Y-%m-%d %H:%M:%S") -> Optional[str]:
+def format_china_time(dt: datetime | str | None, format_str: str = "%Y-%m-%d %H:%M:%S") -> str | None:
     """格式化东八区时间"""
     if dt is None:
         return None

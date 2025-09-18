@@ -2,8 +2,6 @@
 泰摸鱼吧 - 同步实例记录模型
 """
 
-from datetime import datetime
-
 from app import db
 from app.utils.timezone import now
 
@@ -50,9 +48,9 @@ class SyncInstanceRecord(db.Model):
         self,
         session_id: str,
         instance_id: int,
-        instance_name: str = None,
+        instance_name: str | None = None,
         sync_category: str = "account",
-    ):
+    ) -> None:
         """
         初始化同步实例记录
 
@@ -68,7 +66,7 @@ class SyncInstanceRecord(db.Model):
         self.sync_category = sync_category
         self.status = "pending"
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, any]:
         """转换为字典"""
         return {
             "id": self.id,
@@ -88,7 +86,7 @@ class SyncInstanceRecord(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
-    def start_sync(self):
+    def start_sync(self) -> None:
         """开始同步"""
         self.status = "running"
         self.started_at = now()
@@ -99,8 +97,8 @@ class SyncInstanceRecord(db.Model):
         accounts_created: int = 0,
         accounts_updated: int = 0,
         accounts_deleted: int = 0,
-        sync_details: dict = None,
-    ):
+        sync_details: dict | None = None,
+    ) -> None:
         """完成同步"""
         self.status = "completed"
         self.completed_at = now()
@@ -110,21 +108,21 @@ class SyncInstanceRecord(db.Model):
         self.accounts_deleted = accounts_deleted
         self.sync_details = sync_details
 
-    def fail_sync(self, error_message: str, sync_details: dict = None):
+    def fail_sync(self, error_message: str, sync_details: dict | None = None) -> None:
         """同步失败"""
         self.status = "failed"
         self.completed_at = now()
         self.error_message = error_message
         self.sync_details = sync_details
 
-    def get_duration_seconds(self):
+    def get_duration_seconds(self) -> float | None:
         """获取同步持续时间（秒）"""
         if not self.started_at or not self.completed_at:
             return None
         return (self.completed_at - self.started_at).total_seconds()
 
     @staticmethod
-    def get_records_by_session(session_id: str):
+    def get_records_by_session(session_id: str) -> list["SyncInstanceRecord"]:
         """根据会话ID获取所有实例记录"""
         return (
             SyncInstanceRecord.query.filter_by(session_id=session_id)
@@ -133,7 +131,7 @@ class SyncInstanceRecord(db.Model):
         )
 
     @staticmethod
-    def get_records_by_instance(instance_id: int, limit: int = 50):
+    def get_records_by_instance(instance_id: int, limit: int = 50) -> list["SyncInstanceRecord"]:
         """根据实例ID获取同步记录"""
         return (
             SyncInstanceRecord.query.filter_by(instance_id=instance_id)
@@ -142,5 +140,5 @@ class SyncInstanceRecord(db.Model):
             .all()
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<SyncInstanceRecord {self.instance_name} ({self.status})>"

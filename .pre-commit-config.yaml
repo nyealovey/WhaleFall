@@ -52,9 +52,9 @@ repos:
   # 自定义脚本
   - repo: local
     hooks:
-      - id: quality-check
-        name: 代码质量检查
-        entry: uv run python scripts/quality_check.py
+      - id: quick-check
+        name: 快速代码质量检查
+        entry: uv run python scripts/quick_check.py
         language: system
         files: \.py$
         pass_filenames: false

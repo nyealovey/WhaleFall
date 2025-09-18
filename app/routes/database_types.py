@@ -3,10 +3,13 @@
 提供数据库类型的Web界面和API接口
 """
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, jsonify, render_template
 from flask_login import login_required
 
 from app.services.database_type_service import DatabaseTypeService
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
 
 database_types_bp = Blueprint("database_types", __name__, url_prefix="/database-types")
 

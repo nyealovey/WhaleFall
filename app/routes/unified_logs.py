@@ -5,7 +5,7 @@
 
 from datetime import datetime, timedelta
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, render_template, request
 from flask_login import current_user, login_required
 from sqlalchemy import asc, desc, or_
 
@@ -24,7 +24,7 @@ logger = get_logger("api")
 
 @unified_logs_bp.route("/")
 @login_required
-def logs_dashboard():
+def logs_dashboard() -> str | tuple[dict, int]:
     """日志中心仪表板"""
     try:
         return render_template("logs/dashboard.html")
@@ -35,7 +35,7 @@ def logs_dashboard():
 
 @unified_logs_bp.route("/api/search", methods=["GET"])
 @login_required
-def search_logs():
+def search_logs() -> tuple[dict, int]:
     """搜索日志API"""
     try:
         # 获取查询参数
@@ -102,10 +102,7 @@ def search_logs():
         else:
             order_column = UnifiedLog.timestamp
 
-        if sort_order == "asc":
-            query = query.order_by(asc(order_column))
-        else:
-            query = query.order_by(desc(order_column))
+        query = query.order_by(asc(order_column)) if sort_order == "asc" else query.order_by(desc(order_column))
 
         # 分页
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -138,7 +135,7 @@ def search_logs():
 
 @unified_logs_bp.route("/api/statistics", methods=["GET"])
 @login_required
-def get_log_statistics():
+def get_log_statistics() -> tuple[dict, int]:
     """获取日志统计信息API"""
     try:
         hours = int(request.args.get("hours", 24))
@@ -161,7 +158,7 @@ def get_log_statistics():
 
 @unified_logs_bp.route("/api/errors", methods=["GET"])
 @login_required
-def get_error_logs():
+def get_error_logs() -> tuple[dict, int]:
     """获取错误日志API"""
     try:
         hours = int(request.args.get("hours", 24))
@@ -180,7 +177,7 @@ def get_error_logs():
 
 @unified_logs_bp.route("/api/modules", methods=["GET"])
 @login_required
-def get_log_modules():
+def get_log_modules() -> tuple[dict, int]:
     """获取日志模块列表API"""
     try:
         from sqlalchemy import distinct
@@ -199,7 +196,7 @@ def get_log_modules():
 
 @unified_logs_bp.route("/api/export", methods=["GET"])
 @login_required
-def export_logs():
+def export_logs() -> tuple[dict, int]:
     """导出日志API"""
     try:
         format_type = request.args.get("format", "json")
@@ -243,24 +240,12 @@ def export_logs():
             # CSV格式导出
             import csv
             import io
-            from datetime import datetime
 
             output = io.StringIO()
             writer = csv.writer(output)
 
             # 写入表头
-            writer.writerow(
-                [
-                    "ID",
-                    "时间戳",
-                    "级别",
-                    "模块",
-                    "消息",
-                    "堆栈追踪",
-                    "上下文",
-                    "创建时间"
-                ]
-            )
+            writer.writerow(["ID", "时间戳", "级别", "模块", "消息", "堆栈追踪", "上下文", "创建时间"])
 
             # 写入数据
             for log in logs:
@@ -268,12 +253,14 @@ def export_logs():
                 timestamp_str = ""
                 if log.timestamp:
                     from app.utils.timezone import utc_to_china
+
                     china_time = utc_to_china(log.timestamp)
                     timestamp_str = china_time.strftime("%Y-%m-%d %H:%M:%S")
-                
+
                 created_at_str = ""
                 if log.created_at:
                     from app.utils.timezone import utc_to_china
+
                     china_created_at = utc_to_china(log.created_at)
                     created_at_str = china_created_at.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -283,7 +270,11 @@ def export_logs():
                     # 提取有意义的上下文信息
                     context_parts = []
                     for key, value in log.context.items():
-                        if value is not None and value != "" and key not in ['request_id', 'user_id', 'url', 'method', 'ip_address', 'user_agent']:
+                        if (
+                            value is not None
+                            and value != ""
+                            and key not in ["request_id", "user_id", "url", "method", "ip_address", "user_agent"]
+                        ):
                             context_parts.append(f"{key}: {value}")
                     context_str = "; ".join(context_parts)
 
@@ -296,7 +287,7 @@ def export_logs():
                         log.message or "",
                         log.traceback or "",
                         context_str,
-                        created_at_str
+                        created_at_str,
                     ]
                 )
 
@@ -311,7 +302,7 @@ def export_logs():
                 mimetype="text/csv; charset=utf-8",
                 headers={
                     "Content-Disposition": f"attachment; filename={filename}",
-                    "Content-Type": "text/csv; charset=utf-8"
+                    "Content-Type": "text/csv; charset=utf-8",
                 },
             )
 
@@ -319,22 +310,22 @@ def export_logs():
 
     except Exception as e:
         log_error(
-            "Failed to export logs", 
-            module="unified_logs", 
+            "Failed to export logs",
+            module="unified_logs",
             format_type=format_type,
             level=level,
             module_filter=module,
             start_time=start_time,
             end_time=end_time,
             limit=limit,
-            exception=e
+            exception=e,
         )
         return error_response("Failed to export logs", 500)
 
 
 @unified_logs_bp.route("/api/cleanup", methods=["POST"])
 @login_required
-def cleanup_logs():
+def cleanup_logs() -> tuple[dict, int]:
     """清理旧日志API"""
     try:
         # 检查权限（仅管理员）
@@ -366,7 +357,7 @@ def cleanup_logs():
 
 @unified_logs_bp.route("/api/real-time", methods=["GET"])
 @login_required
-def get_recent_logs():
+def get_recent_logs() -> tuple[dict, int]:
     """获取实时日志API（用于实时监控）"""
     try:
         limit = int(request.args.get("limit", 20))
@@ -395,7 +386,7 @@ def get_recent_logs():
 
 @unified_logs_bp.route("/api/health", methods=["GET"])
 @login_required
-def get_log_health():
+def get_log_health() -> tuple[dict, int]:
     """获取日志系统健康状态API"""
     try:
         # 获取最近1小时的统计
@@ -435,45 +426,42 @@ def get_log_health():
 
 @unified_logs_bp.route("/api/stats", methods=["GET"])
 @login_required
-def get_log_stats():
+def get_log_stats() -> tuple[dict, int]:
     """获取日志统计信息API"""
     try:
         hours = int(request.args.get("hours", 24))
-        
+
         # 计算时间范围
         start_time = now() - timedelta(hours=hours)
-        
+
         # 总日志数
         total_logs = UnifiedLog.query.filter(UnifiedLog.timestamp >= start_time).count()
-        
+
         # 错误日志数
         error_logs = UnifiedLog.query.filter(
-            UnifiedLog.timestamp >= start_time,
-            UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL])
+            UnifiedLog.timestamp >= start_time, UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL])
         ).count()
-        
+
         # 警告日志数
         warning_logs = UnifiedLog.query.filter(
-            UnifiedLog.timestamp >= start_time,
-            UnifiedLog.level == LogLevel.WARNING
+            UnifiedLog.timestamp >= start_time, UnifiedLog.level == LogLevel.WARNING
         ).count()
-        
+
         # 活跃模块数
         from sqlalchemy import distinct
-        modules_count = db.session.query(distinct(UnifiedLog.module)).filter(
-            UnifiedLog.timestamp >= start_time
-        ).count()
-        
+
+        modules_count = db.session.query(distinct(UnifiedLog.module)).filter(UnifiedLog.timestamp >= start_time).count()
+
         stats = {
             "total_logs": total_logs,
             "error_logs": error_logs,
             "warning_logs": warning_logs,
             "modules_count": modules_count,
-            "time_range_hours": hours
+            "time_range_hours": hours,
         }
-        
+
         return success_response(stats)
-        
+
     except Exception as e:
         log_error("Failed to get log stats", module="unified_logs", error=str(e))
         return error_response("Failed to get log stats", 500)
@@ -481,15 +469,13 @@ def get_log_stats():
 
 @unified_logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @login_required
-def get_log_detail(log_id):
+def get_log_detail(log_id: int) -> tuple[dict, int]:
     """获取日志详情API"""
     try:
         log = UnifiedLog.query.get_or_404(log_id)
-        
+
         return success_response({"log": log.to_dict()})
-        
+
     except Exception as e:
         log_error("Failed to get log detail", module="unified_logs", error=str(e), log_id=log_id)
         return error_response("Failed to get log detail", 500)
-
-

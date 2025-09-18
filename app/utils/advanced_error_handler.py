@@ -261,13 +261,13 @@ class AdvancedErrorHandler:
         }
 
         if log_level == LogLevel.CRITICAL:
-            logger.critical(f"严重错误: {context.error_id}", extra=log_data)
+            logger.critical("严重错误: %s", context.error_id, extra=log_data)
         elif log_level == LogLevel.ERROR:
-            logger.error(f"错误: {context.error_id}", extra=log_data)
+            logger.error("错误: %s", context.error_id, extra=log_data)
         elif log_level == LogLevel.WARNING:
-            logger.warning(f"警告: {context.error_id}", extra=log_data)
+            logger.warning("警告: %s", context.error_id, extra=log_data)
         else:
-            logger.info(f"信息: {context.error_id}", extra=log_data)
+            logger.info("信息: %s", context.error_id, extra=log_data)
 
     def _get_log_level(self, context: ErrorContext) -> str:
         """根据错误类型确定日志级别"""
@@ -315,8 +315,8 @@ class AdvancedErrorHandler:
                 strategy = self.recovery_strategies[category]
                 result = strategy(error, context)
                 return {"success": True, "result": result}
-            except Exception as recovery_error:
-                logger.error(f"恢复策略执行失败: {recovery_error}")
+            except Exception:
+                logger.error("恢复策略执行失败: {recovery_error}")
                 return {"success": False, "message": "恢复策略执行失败"}
 
         return {"success": False, "message": "无可用恢复策略"}

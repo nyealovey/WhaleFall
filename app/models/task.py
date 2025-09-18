@@ -2,8 +2,6 @@
 泰摸鱼吧 - 任务模型
 """
 
-from datetime import datetime
-
 from app import db
 from app.utils.time_utils import now
 
@@ -43,6 +41,7 @@ class Task(db.Model):
         description: str | None = None,
         python_code: str | None = None,
         config: str | None = None,
+        *,
         is_active: bool = True,
         is_builtin: bool = False,
     ) -> None:

@@ -66,21 +66,21 @@ class RetryManager:
 
         for attempt in range(1, self.max_attempts + 1):
             try:
-                self.system_logger.debug(f"执行函数 {func.__name__}, 尝试 {attempt}/{self.max_attempts}")
+                self.system_logger.debug("执行函数 {func.__name__}, 尝试 {attempt}/{self.max_attempts}")
                 result = func(*args, **kwargs)
-                self.system_logger.debug(f"函数 {func.__name__} 执行成功")
+                self.system_logger.debug("函数 {func.__name__} 执行成功")
                 return result
 
             except Exception as e:
                 last_exception = e
-                self.system_logger.warning(f"函数 {func.__name__} 执行失败 (尝试 {attempt}/{self.max_attempts}): {e}")
+                self.system_logger.warning("函数 {func.__name__} 执行失败 (尝试 {attempt}/{self.max_attempts}): {e}")
 
                 if attempt < self.max_attempts:
                     delay = self.calculate_delay(attempt)
-                    self.system_logger.debug(f"等待 {delay} 秒后重试...")
+                    self.system_logger.debug("等待 {delay} 秒后重试...")
                     time.sleep(delay)
                 else:
-                    self.system_logger.error(f"函数 {func.__name__} 重试次数已达上限")
+                    self.system_logger.error("函数 {func.__name__} 重试次数已达上限")
 
         # 所有重试都失败了
         if last_exception is not None:
@@ -115,25 +115,25 @@ def retry(
 
             for attempt in range(1, max_attempts + 1):
                 try:
-                    self.system_logger.debug(f"执行函数 {func.__name__}, 尝试 {attempt}/{max_attempts}")
+                    self.system_logger.debug("执行函数 {func.__name__}, 尝试 {attempt}/{max_attempts}")
                     result = func(*args, **kwargs)
-                    self.system_logger.debug(f"函数 {func.__name__} 执行成功")
+                    self.system_logger.debug("函数 {func.__name__} 执行成功")
                     return result
 
                 except exceptions as e:  # type: ignore[misc]
                     last_exception = e
-                    self.system_logger.warning(f"函数 {func.__name__} 执行失败 (尝试 {attempt}/{max_attempts}): {e}")
+                    self.system_logger.warning("函数 {func.__name__} 执行失败 (尝试 {attempt}/{max_attempts}): {e}")
 
                     if attempt < max_attempts:
                         delay = retry_manager.calculate_delay(attempt)
-                        self.system_logger.debug(f"等待 {delay} 秒后重试...")
+                        self.system_logger.debug("等待 {delay} 秒后重试...")
                         time.sleep(delay)
                     else:
-                        self.system_logger.error(f"函数 {func.__name__} 重试次数已达上限")
+                        self.system_logger.error("函数 {func.__name__} 重试次数已达上限")
 
-                except Exception as e:
+                except Exception:
                     # 不在重试范围内的异常，直接抛出
-                    self.system_logger.error(f"函数 {func.__name__} 发生不可重试的异常: {e}")
+                    self.system_logger.error("函数 {func.__name__} 发生不可重试的异常: {e}")
                     raise
 
             # 所有重试都失败了

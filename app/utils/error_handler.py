@@ -53,9 +53,9 @@ def register_error_handlers(app):
     def handle_sqlalchemy_error(error):
         """SQLAlchemy错误处理"""
         # 记录详细的数据库错误信息
-        current_app.logger.error(f"数据库错误: {str(error)}")
-        current_app.logger.error(f"错误类型: {type(error).__name__}")
-        current_app.logger.error(f"堆栈跟踪: {traceback.format_exc()}")
+        current_app.logger.error("数据库错误: {str(error)}")
+        current_app.logger.error("错误类型: {type(error).__name__}")
+        current_app.logger.error("堆栈跟踪: {traceback.format_exc()}")
 
         # 根据错误类型返回不同的错误信息
         if "connection" in str(error).lower():

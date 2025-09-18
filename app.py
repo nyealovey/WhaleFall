@@ -15,29 +15,34 @@ os.environ.setdefault("FLASK_APP", "app")
 os.environ.setdefault("FLASK_ENV", "development")
 
 # 导入Flask应用
-from app import create_app
+from app import create_app  # noqa: E402
 
 
-def main():
+def main() -> None:
     """主函数"""
     # 创建Flask应用
     app = create_app()
 
     # 获取配置
-    host = os.environ.get("FLASK_HOST", "0.0.0.0")
+    host = os.environ.get("FLASK_HOST", "127.0.0.1")
     port = int(os.environ.get("FLASK_PORT", 5001))
     debug = os.environ.get("FLASK_DEBUG", "True").lower() == "true"
 
-    print("=" * 50)
-    print("🐟 泰摸鱼吧 - 本地开发环境")
-    print("=" * 50)
-    print(f"🌐 访问地址: http://{host}:{port}")
-    print("🔑 默认登录: admin/Admin123!")
-    print(f"📊 管理界面: http://{host}:{port}/admin")
-    print(f"🔧 调试模式: {'开启' if debug else '关闭'}")
-    print("=" * 50)
-    print("按 Ctrl+C 停止服务器")
-    print("=" * 50)
+    # 配置日志
+    from app.utils.structlog_config import get_system_logger
+
+    logger = get_system_logger()
+
+    logger.info("=" * 50)
+    logger.info("🐟 泰摸鱼吧 - 本地开发环境")
+    logger.info("=" * 50)
+    logger.info("🌐 访问地址: http://%s:%s", host, port)
+    logger.info("🔑 默认登录: admin/Admin123!")
+    logger.info("📊 管理界面: http://%s:%s/admin", host, port)
+    logger.info("🔧 调试模式: %s", "开启" if debug else "关闭")
+    logger.info("=" * 50)
+    logger.info("按 Ctrl+C 停止服务器")
+    logger.info("=" * 50)
 
     # 启动Flask应用
     # 在debug模式下禁用reloader以避免重复启动调度器

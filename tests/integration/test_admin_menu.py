@@ -1,3 +1,7 @@
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
+
 #!/usr/bin/env python3
 """
 管理菜单系统测试脚本
@@ -14,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def test_admin_menu_templates():
     """测试管理菜单模板"""
-    print("=== 测试管理菜单模板 ===")
+    logger.debug("=== 测试管理菜单模板 ===")
 
     try:
         # 检查模板文件是否存在
@@ -33,19 +37,19 @@ def test_admin_menu_templates():
                 missing_files.append(file_path)
 
         if missing_files:
-            print(f"✗ 缺少模板文件: {missing_files}")
+            logger.debug("✗ 缺少模板文件: {missing_files}")
             return False
-        print("✓ 所有管理菜单模板文件存在")
+        logger.debug("✓ 所有管理菜单模板文件存在")
         return True
 
-    except Exception as e:
-        print(f"✗ 模板文件检查失败: {e}")
+    except Exception:
+        logger.debug("✗ 模板文件检查失败: {e}")
         return False
 
 
 def test_admin_endpoints():
     """测试管理API端点"""
-    print("\n=== 测试管理API端点 ===")
+    logger.debug("\n=== 测试管理API端点 ===")
 
     base_url = "http://localhost:5001"
     endpoints = [
@@ -66,20 +70,20 @@ def test_admin_endpoints():
         try:
             response = requests.get(f"{base_url}{endpoint}", timeout=5)
             if response.status_code in [200, 302, 401, 403]:  # 302重定向到登录，401/403需要认证
-                print(f"✓ {endpoint}: {response.status_code}")
+                logger.debug("✓ {endpoint}: {response.status_code}")
                 success_count += 1
             else:
-                print(f"✗ {endpoint}: {response.status_code}")
-        except Exception as e:
-            print(f"✗ {endpoint}: 连接失败 - {e}")
+                logger.debug("✗ {endpoint}: {response.status_code}")
+        except Exception:
+            logger.debug("✗ {endpoint}: 连接失败 - {e}")
 
-    print(f"✓ 管理API端点测试: {success_count}/{len(endpoints)} 个端点可访问")
+    logger.debug("✓ 管理API端点测试: {success_count}/{len(endpoints)} 个端点可访问")
     return success_count >= len(endpoints) * 0.8  # 80% 成功率
 
 
 def test_menu_structure():
     """测试菜单结构"""
-    print("\n=== 测试菜单结构 ===")
+    logger.debug("\n=== 测试菜单结构 ===")
 
     try:
         # 读取菜单模板文件
@@ -95,9 +99,9 @@ def test_menu_structure():
                 missing_items.append(item)
 
         if missing_items:
-            print(f"✗ 缺少菜单项: {missing_items}")
+            logger.debug("✗ 缺少菜单项: {missing_items}")
             return False
-        print("✓ 所有主要菜单项都存在")
+        logger.debug("✓ 所有主要菜单项都存在")
 
         # 检查菜单链接
         menu_links = ["/admin/dashboard", "/admin/system-management", "/admin/error-management", "/admin/constants"]
@@ -108,19 +112,19 @@ def test_menu_structure():
                 missing_links.append(link)
 
         if missing_links:
-            print(f"✗ 缺少菜单链接: {missing_links}")
+            logger.debug("✗ 缺少菜单链接: {missing_links}")
             return False
-        print("✓ 所有主要菜单链接都存在")
+        logger.debug("✓ 所有主要菜单链接都存在")
         return True
 
-    except Exception as e:
-        print(f"✗ 菜单结构检查失败: {e}")
+    except Exception:
+        logger.debug("✗ 菜单结构检查失败: {e}")
         return False
 
 
 def test_layout_integration():
     """测试布局集成"""
-    print("\n=== 测试布局集成 ===")
+    logger.debug("\n=== 测试布局集成 ===")
 
     try:
         # 检查布局模板
@@ -136,9 +140,9 @@ def test_layout_integration():
                 missing_elements.append(element)
 
         if missing_elements:
-            print(f"✗ 缺少布局元素: {missing_elements}")
+            logger.debug("✗ 缺少布局元素: {missing_elements}")
             return False
-        print("✓ 所有布局元素都存在")
+        logger.debug("✓ 所有布局元素都存在")
 
         # 检查CSS样式
         css_elements = ["position: fixed", "width: 280px", "height: 100vh", "admin-content"]
@@ -149,19 +153,19 @@ def test_layout_integration():
                 missing_css.append(css)
 
         if missing_css:
-            print(f"✗ 缺少CSS样式: {missing_css}")
+            logger.debug("✗ 缺少CSS样式: {missing_css}")
             return False
-        print("✓ 所有CSS样式都存在")
+        logger.debug("✓ 所有CSS样式都存在")
         return True
 
-    except Exception as e:
-        print(f"✗ 布局集成检查失败: {e}")
+    except Exception:
+        logger.debug("✗ 布局集成检查失败: {e}")
         return False
 
 
 def test_responsive_design():
     """测试响应式设计"""
-    print("\n=== 测试响应式设计 ===")
+    logger.debug("\n=== 测试响应式设计 ===")
 
     try:
         # 检查响应式CSS
@@ -176,19 +180,19 @@ def test_responsive_design():
                 missing_responsive.append(element)
 
         if missing_responsive:
-            print(f"✗ 缺少响应式元素: {missing_responsive}")
+            logger.debug("✗ 缺少响应式元素: {missing_responsive}")
             return False
-        print("✓ 响应式设计元素完整")
+        logger.debug("✓ 响应式设计元素完整")
         return True
 
-    except Exception as e:
-        print(f"✗ 响应式设计检查失败: {e}")
+    except Exception:
+        logger.debug("✗ 响应式设计检查失败: {e}")
         return False
 
 
 def main():
     """主函数"""
-    print("开始管理菜单系统测试...\n")
+    logger.debug("开始管理菜单系统测试...\n")
 
     tests = [
         test_admin_menu_templates,
@@ -205,14 +209,14 @@ def main():
         if test():
             passed += 1
 
-    print("\n=== 测试结果 ===")
-    print(f"通过: {passed}/{total}")
-    print(f"成功率: {passed / total * 100:.1f}%")
+    logger.debug("\n=== 测试结果 ===")
+    logger.debug("通过: {passed}/{total}")
+    logger.debug("成功率: {passed / total * 100:.1f}%")
 
     if passed == total:
-        print("🎉 所有测试通过！管理菜单系统完全正常！")
+        logger.debug("🎉 所有测试通过！管理菜单系统完全正常！")
         return True
-    print("❌ 部分测试失败，需要进一步检查")
+    logger.debug("❌ 部分测试失败，需要进一步检查")
     return False
 
 

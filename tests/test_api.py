@@ -1,3 +1,7 @@
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
+
 # 泰摸鱼吧 - API测试
 
 
@@ -9,13 +13,14 @@ class TestAuthAPI:
         # 先创建测试用户
         from app.models import User, db
 
+        test_password = "testpass"  # 测试环境专用密码
         with client.application.app_context():
-            user = User(username="testuser", password="testpass", role="admin")
-            user.set_password("testpass")
+            user = User(username="testuser", password=test_password, role="admin")
+            user.set_password(test_password)
             db.session.add(user)
             db.session.commit()
 
-        response = client.post("/api/auth/login", json={"username": "testuser", "password": "testpass"})
+        response = client.post("/api/auth/login", json={"username": "testuser", "password": test_password})
 
         assert response.status_code == 200
         data = response.get_json()

@@ -5,14 +5,14 @@
 
 from .base_filter import BaseDatabaseFilter
 from .mysql_filter import MySQLDatabaseFilter
+from .oracle_filter import OracleDatabaseFilter
 from .postgresql_filter import PostgreSQLDatabaseFilter
 from .sqlserver_filter import SQLServerDatabaseFilter
-from .oracle_filter import OracleDatabaseFilter
 
 __all__ = [
-    'BaseDatabaseFilter',
-    'MySQLDatabaseFilter', 
-    'PostgreSQLDatabaseFilter',
-    'SQLServerDatabaseFilter',
-    'OracleDatabaseFilter'
+    "BaseDatabaseFilter",
+    "MySQLDatabaseFilter",
+    "PostgreSQLDatabaseFilter",
+    "SQLServerDatabaseFilter",
+    "OracleDatabaseFilter",
 ]

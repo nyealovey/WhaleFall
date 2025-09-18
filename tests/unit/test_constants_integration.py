@@ -1,3 +1,7 @@
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
+
 #!/usr/bin/env python3
 """
 常量集成测试脚本
@@ -10,65 +14,65 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.config import Config
-from app.constants import DefaultConfig, ErrorMessages, SuccessMessages, SystemConstants
+from app.constants import SystemConstants
 
 
 def test_constants_import():
     """测试常量导入"""
-    print("=== 测试常量导入 ===")
+    logger.debug("=== 测试常量导入 ===")
 
     try:
         # 测试SystemConstants
-        print(f"✓ DEFAULT_PAGE_SIZE: {SystemConstants.DEFAULT_PAGE_SIZE}")
-        print(f"✓ MAX_FILE_SIZE: {SystemConstants.MAX_FILE_SIZE}")
-        print(f"✓ MEMORY_WARNING_THRESHOLD: {SystemConstants.MEMORY_WARNING_THRESHOLD}")
-        print(f"✓ PASSWORD_HASH_ROUNDS: {SystemConstants.PASSWORD_HASH_ROUNDS}")
+        logger.debug("✓ DEFAULT_PAGE_SIZE: {SystemConstants.DEFAULT_PAGE_SIZE}")
+        logger.debug("✓ MAX_FILE_SIZE: {SystemConstants.MAX_FILE_SIZE}")
+        logger.debug("✓ MEMORY_WARNING_THRESHOLD: {SystemConstants.MEMORY_WARNING_THRESHOLD}")
+        logger.debug("✓ PASSWORD_HASH_ROUNDS: {SystemConstants.PASSWORD_HASH_ROUNDS}")
 
         # 测试DefaultConfig
-        print(f"✓ DATABASE_URL: {DefaultConfig.DATABASE_URL}")
-        print(f"✓ SECRET_KEY: {DefaultConfig.SECRET_KEY[:20]}...")
+        logger.debug("✓ DATABASE_URL: {DefaultConfig.DATABASE_URL}")
+        logger.debug("✓ SECRET_KEY: {DefaultConfig.SECRET_KEY[:20]}...")
 
         # 测试ErrorMessages
-        print(f"✓ INTERNAL_ERROR: {ErrorMessages.INTERNAL_ERROR}")
-        print(f"✓ VALIDATION_ERROR: {ErrorMessages.VALIDATION_ERROR}")
+        logger.debug("✓ INTERNAL_ERROR: {ErrorMessages.INTERNAL_ERROR}")
+        logger.debug("✓ VALIDATION_ERROR: {ErrorMessages.VALIDATION_ERROR}")
 
         # 测试SuccessMessages
-        print(f"✓ OPERATION_SUCCESS: {SuccessMessages.OPERATION_SUCCESS}")
-        print(f"✓ LOGIN_SUCCESS: {SuccessMessages.LOGIN_SUCCESS}")
+        logger.debug("✓ OPERATION_SUCCESS: {SuccessMessages.OPERATION_SUCCESS}")
+        logger.debug("✓ LOGIN_SUCCESS: {SuccessMessages.LOGIN_SUCCESS}")
 
-        print("✓ 所有常量导入成功")
+        logger.debug("✓ 所有常量导入成功")
         return True
 
-    except Exception as e:
-        print(f"✗ 常量导入失败: {e}")
+    except Exception:
+        logger.debug("✗ 常量导入失败: {e}")
         return False
 
 
 def test_config_integration():
     """测试配置集成"""
-    print("\n=== 测试配置集成 ===")
+    logger.debug("\n=== 测试配置集成 ===")
 
     try:
         config = Config()
 
         # 检查配置是否使用了常量
-        print(f"✓ SECRET_KEY默认值: {config.SECRET_KEY[:20]}...")
-        print(f"✓ JWT_ACCESS_TOKEN_EXPIRES: {config.JWT_ACCESS_TOKEN_EXPIRES}")
-        print(f"✓ MAX_CONTENT_LENGTH: {config.MAX_CONTENT_LENGTH}")
-        print(f"✓ BCRYPT_LOG_ROUNDS: {config.BCRYPT_LOG_ROUNDS}")
-        print(f"✓ CACHE_DEFAULT_TIMEOUT: {config.CACHE_DEFAULT_TIMEOUT}")
+        logger.debug("✓ SECRET_KEY默认值: {config.SECRET_KEY[:20]}...")
+        logger.debug("✓ JWT_ACCESS_TOKEN_EXPIRES: {config.JWT_ACCESS_TOKEN_EXPIRES}")
+        logger.debug("✓ MAX_CONTENT_LENGTH: {config.MAX_CONTENT_LENGTH}")
+        logger.debug("✓ BCRYPT_LOG_ROUNDS: {config.BCRYPT_LOG_ROUNDS}")
+        logger.debug("✓ CACHE_DEFAULT_TIMEOUT: {config.CACHE_DEFAULT_TIMEOUT}")
 
-        print("✓ 配置集成成功")
+        logger.debug("✓ 配置集成成功")
         return True
 
-    except Exception as e:
-        print(f"✗ 配置集成失败: {e}")
+    except Exception:
+        logger.debug("✗ 配置集成失败: {e}")
         return False
 
 
 def test_hardcoded_replacement():
     """测试硬编码值替换"""
-    print("\n=== 测试硬编码值替换 ===")
+    logger.debug("\n=== 测试硬编码值替换 ===")
 
     # 检查一些关键文件是否还有硬编码值
     files_to_check = [
@@ -87,23 +91,23 @@ def test_hardcoded_replacement():
             suspicious_values = ["= 20", "= 100", "= 300", "= 3600", "= 80", "= 12"]
             for value in suspicious_values:
                 if value in content and "SystemConstants" not in content:
-                    print(f"⚠  {file_path} 中可能还有硬编码值: {value}")
+                    logger.debug("⚠  {file_path} 中可能还有硬编码值: {value}")
                     hardcoded_found = True
 
     if not hardcoded_found:
-        print("✓ 未发现明显的硬编码值")
+        logger.debug("✓ 未发现明显的硬编码值")
         return True
-    print("⚠ 发现一些可能的硬编码值，需要进一步检查")
+    logger.debug("⚠ 发现一些可能的硬编码值，需要进一步检查")
     return False
 
 
 def test_constant_usage():
     """测试常量使用"""
-    print("\n=== 测试常量使用 ===")
+    logger.debug("\n=== 测试常量使用 ===")
 
     try:
         # 测试常量在代码中的使用
-        print("✓ 速率限制器使用常量")
+        logger.debug("✓ 速率限制器使用常量")
 
         # 测试常量值的一致性
         assert SystemConstants.DEFAULT_PAGE_SIZE == 20
@@ -111,17 +115,17 @@ def test_constant_usage():
         assert SystemConstants.MEMORY_WARNING_THRESHOLD == 80
         assert SystemConstants.PASSWORD_HASH_ROUNDS == 12
 
-        print("✓ 常量值一致性验证通过")
+        logger.debug("✓ 常量值一致性验证通过")
         return True
 
-    except Exception as e:
-        print(f"✗ 常量使用测试失败: {e}")
+    except Exception:
+        logger.debug("✗ 常量使用测试失败: {e}")
         return False
 
 
 def main():
     """主函数"""
-    print("开始常量集成测试...\n")
+    logger.debug("开始常量集成测试...\n")
 
     tests = [test_constants_import, test_config_integration, test_hardcoded_replacement, test_constant_usage]
 
@@ -132,14 +136,14 @@ def main():
         if test():
             passed += 1
 
-    print("\n=== 测试结果 ===")
-    print(f"通过: {passed}/{total}")
-    print(f"成功率: {passed / total * 100:.1f}%")
+    logger.debug("\n=== 测试结果 ===")
+    logger.debug("通过: {passed}/{total}")
+    logger.debug("成功率: {passed / total * 100:.1f}%")
 
     if passed == total:
-        print("🎉 所有测试通过！常量管理系统集成成功！")
+        logger.debug("🎉 所有测试通过！常量管理系统集成成功！")
         return True
-    print("❌ 部分测试失败，需要进一步检查")
+    logger.debug("❌ 部分测试失败，需要进一步检查")
     return False
 
 

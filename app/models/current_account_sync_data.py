@@ -2,8 +2,6 @@
 泰摸鱼吧 - 账户当前状态同步数据模型
 """
 
-from datetime import datetime
-
 from app import db
 from app.models.base_sync_data import BaseSyncData
 from app.utils.timezone import now
@@ -63,8 +61,6 @@ class CurrentAccountSyncData(BaseSyncData):
 
     def __repr__(self) -> str:
         return f"<CurrentAccountSyncData {self.username}@{self.db_type}>"
-
-
 
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -161,25 +157,25 @@ class CurrentAccountSyncData(BaseSyncData):
         """计算显示用的账户锁定状态"""
         if not self.type_specific:
             return False
-        
+
         try:
             if self.db_type == "mysql":
                 # MySQL: 检查 account_locked 字段
                 return self.type_specific.get("is_locked", False)
-            
-            elif self.db_type == "postgresql":
+
+            if self.db_type == "postgresql":
                 # PostgreSQL: 检查 can_login 属性（反向）
                 return not self.type_specific.get("can_login", True)
-            
-            elif self.db_type == "sqlserver":
+
+            if self.db_type == "sqlserver":
                 # SQL Server: 检查 is_disabled 字段
                 return self.type_specific.get("is_disabled", False)
-            
-            elif self.db_type == "oracle":
+
+            if self.db_type == "oracle":
                 # Oracle: 检查 account_status 字段
                 account_status = self.type_specific.get("account_status", "OPEN")
                 return account_status.upper() != "OPEN"
-            
+
             return False
         except (TypeError, AttributeError, KeyError):
             return False

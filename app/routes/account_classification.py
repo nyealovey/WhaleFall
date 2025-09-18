@@ -14,8 +14,8 @@ from app.models.account_classification import (
     AccountClassificationAssignment,
     ClassificationRule,
 )
-from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
 from app.services.classification_batch_service import ClassificationBatchService
+from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -405,8 +405,8 @@ def get_matched_accounts(rule_id: int) -> "Response":
             CurrentAccountSyncData.query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
             .filter(
                 Instance.db_type == rule.db_type,
-                CurrentAccountSyncData.is_deleted == False,
-                Instance.is_active == True,
+                CurrentAccountSyncData.is_deleted.is_(False),
+                Instance.is_active.is_(True),
                 Instance.deleted_at.is_(None),  # 排除已删除的实例
             )
             .all()
@@ -656,7 +656,7 @@ def auto_classify_comparison() -> "Response":
                 created_by=current_user.id if current_user.is_authenticated else None,
             )
             optimized_duration = time.time() - start_time
-            
+
             results["optimized"] = {
                 "success": optimized_result.get("success", False),
                 "duration": optimized_duration,
@@ -677,7 +677,7 @@ def auto_classify_comparison() -> "Response":
         if results["original"]["success"] and results["optimized"]["success"]:
             original_duration = results["original"]["duration"]
             optimized_duration = results["optimized"]["duration"]
-            
+
             if original_duration > 0:
                 improvement = ((original_duration - optimized_duration) / original_duration) * 100
                 results["performance_improvement"] = {
@@ -693,11 +693,13 @@ def auto_classify_comparison() -> "Response":
             results=results,
         )
 
-        return jsonify({
-            "success": True,
-            "message": "性能比较测试完成",
-            "comparison": results,
-        })
+        return jsonify(
+            {
+                "success": True,
+                "message": "性能比较测试完成",
+                "comparison": results,
+            }
+        )
 
     except Exception as e:
         log_error(
@@ -886,7 +888,7 @@ def api_get_batch_matches(batch_id: str) -> "Response":
             )
             .filter(
                 AccountClassificationAssignment.batch_id == batch_id,
-                AccountClassificationAssignment.is_active == True,  # 只显示正确匹配的记录
+                AccountClassificationAssignment.is_active.is_(True),  # 只显示正确匹配的记录
             )
             .all()
         )
@@ -1124,15 +1126,17 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                                         "category": "role_attributes",
                                     }
                                 )
-                        elif instance.db_type == "oracle":
-                            if rule_expression_str == "system_privileges.GRANT ANY PRIVILEGE":
-                                matched_permissions.append(
-                                    {
-                                        "name": "GRANT ANY PRIVILEGE",
-                                        "description": "授权任何权限",
-                                        "category": "system_privileges",
-                                    }
-                                )
+                        elif (
+                            instance.db_type == "oracle"
+                            and rule_expression_str == "system_privileges.GRANT ANY PRIVILEGE"
+                        ):
+                            matched_permissions.append(
+                                {
+                                    "name": "GRANT ANY PRIVILEGE",
+                                    "description": "授权任何权限",
+                                    "category": "system_privileges",
+                                }
+                            )
 
             matches.append(
                 {
@@ -1172,6 +1176,4 @@ def _get_db_permissions(db_type: str) -> dict:
     from app.models.permission_config import PermissionConfig
 
     # 从数据库获取权限配置
-    permissions = PermissionConfig.get_permissions_by_db_type(db_type)
-
-    return permissions
+    return PermissionConfig.get_permissions_by_db_type(db_type)

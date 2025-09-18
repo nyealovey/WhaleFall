@@ -16,6 +16,10 @@ help:
 	@echo "  type       运行 Mypy 类型检查"
 	@echo "  security   运行 Bandit 安全扫描"
 	@echo "  quality    运行快速质量检查脚本"
+	@echo "  quality-full 运行完整质量检查脚本"
+	@echo "  fix-code   自动修复代码问题"
+	@echo "  fix-priority 按优先级修复代码问题"
+	@echo "  fix-ruff   修复Ruff问题"
 	@echo "  clean      清理临时文件"
 	@echo "  test       运行测试"
 	@echo ""
@@ -66,7 +70,27 @@ security:
 # 快速质量检查
 quality:
 	@echo "⚡ 运行快速质量检查..."
-	python scripts/quality_check.py
+	uv run python scripts/quick_check.py
+
+# 完整质量检查
+quality-full:
+	@echo "🔍 运行完整质量检查..."
+	uv run python scripts/quality_check.py
+
+# 自动修复代码
+fix-code:
+	@echo "🔧 自动修复代码..."
+	uv run python scripts/fix_code.py
+
+# 优先级修复代码
+fix-priority:
+	@echo "🎯 优先级修复代码..."
+	uv run python scripts/fix_priority.py
+
+# 修复Ruff问题
+fix-ruff:
+	@echo "🔍 修复Ruff问题..."
+	uv run python scripts/fix_ruff_only.py
 
 # 清理临时文件
 clean:

@@ -17,7 +17,6 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app import db
-from app.utils.timezone import now
 
 # Account模型已废弃，使用CurrentAccountSyncData
 from app.models.credential import Credential
@@ -34,7 +33,10 @@ from app.utils.security import (
     validate_db_type,
     validate_required_fields,
 )
-from app.utils.structlog_config import get_api_logger, log_error, log_info, log_warning
+from app.utils.structlog_config import get_api_logger, get_system_logger, log_error, log_info, log_warning
+from app.utils.timezone import now
+
+logger = get_system_logger()
 
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
@@ -43,71 +45,91 @@ instances_bp = Blueprint("instances", __name__)
 def _delete_instance_related_data(instance_id: int, instance_name: str = None) -> dict:
     """
     删除实例的所有关联数据
-    
+
     Args:
         instance_id: 实例ID
         instance_name: 实例名称（用于日志）
-    
+
     Returns:
         dict: 删除统计信息
     """
-    from app.models.current_account_sync_data import CurrentAccountSyncData
-    from app.models.sync_instance_record import SyncInstanceRecord
     from app.models.account_change_log import AccountChangeLog
     from app.models.account_classification import AccountClassificationAssignment
-    
+    from app.models.current_account_sync_data import CurrentAccountSyncData
+    from app.models.sync_instance_record import SyncInstanceRecord
+
     # 统计删除的数据量
-    stats = {
-        'assignment_count': 0,
-        'sync_data_count': 0,
-        'sync_record_count': 0,
-        'change_log_count': 0
-    }
-    
+    stats = {"assignment_count": 0, "sync_data_count": 0, "sync_record_count": 0, "change_log_count": 0}
+
     try:
         # 第一步：删除账户分类分配 (依赖CurrentAccountSyncData)
         sync_data_ids = [data.id for data in CurrentAccountSyncData.query.filter_by(instance_id=instance_id).all()]
         if sync_data_ids:
-            stats['assignment_count'] = AccountClassificationAssignment.query.filter(
+            stats["assignment_count"] = AccountClassificationAssignment.query.filter(
                 AccountClassificationAssignment.account_id.in_(sync_data_ids)
             ).count()
-            if stats['assignment_count'] > 0:
+            if stats["assignment_count"] > 0:
                 AccountClassificationAssignment.query.filter(
                     AccountClassificationAssignment.account_id.in_(sync_data_ids)
                 ).delete(synchronize_session=False)
-                log_info(f"步骤1: 删除了 {stats['assignment_count']} 个分类分配记录", 
-                        module="instances", instance_id=instance_id, instance_name=instance_name)
+                log_info(
+                    f"步骤1: 删除了 {stats['assignment_count']} 个分类分配记录",
+                    module="instances",
+                    instance_id=instance_id,
+                    instance_name=instance_name,
+                )
 
         # 第二步：删除同步数据 (CurrentAccountSyncData)
-        stats['sync_data_count'] = CurrentAccountSyncData.query.filter_by(instance_id=instance_id).count()
-        if stats['sync_data_count'] > 0:
+        stats["sync_data_count"] = CurrentAccountSyncData.query.filter_by(instance_id=instance_id).count()
+        if stats["sync_data_count"] > 0:
             CurrentAccountSyncData.query.filter_by(instance_id=instance_id).delete()
-            log_info(f"步骤2: 删除了 {stats['sync_data_count']} 条同步数据记录", 
-                    module="instances", instance_id=instance_id, instance_name=instance_name)
+            log_info(
+                f"步骤2: 删除了 {stats['sync_data_count']} 条同步数据记录",
+                module="instances",
+                instance_id=instance_id,
+                instance_name=instance_name,
+            )
 
         # 第三步：删除同步实例记录 (SyncInstanceRecord)
-        stats['sync_record_count'] = SyncInstanceRecord.query.filter_by(instance_id=instance_id).count()
-        if stats['sync_record_count'] > 0:
+        stats["sync_record_count"] = SyncInstanceRecord.query.filter_by(instance_id=instance_id).count()
+        if stats["sync_record_count"] > 0:
             SyncInstanceRecord.query.filter_by(instance_id=instance_id).delete()
-            log_info(f"步骤3: 删除了 {stats['sync_record_count']} 条同步实例记录", 
-                    module="instances", instance_id=instance_id, instance_name=instance_name)
+            log_info(
+                f"步骤3: 删除了 {stats['sync_record_count']} 条同步实例记录",
+                module="instances",
+                instance_id=instance_id,
+                instance_name=instance_name,
+            )
 
         # 第四步：删除账户变更日志 (AccountChangeLog)
-        stats['change_log_count'] = AccountChangeLog.query.filter_by(instance_id=instance_id).count()
-        if stats['change_log_count'] > 0:
+        stats["change_log_count"] = AccountChangeLog.query.filter_by(instance_id=instance_id).count()
+        if stats["change_log_count"] > 0:
             AccountChangeLog.query.filter_by(instance_id=instance_id).delete()
-            log_info(f"步骤4: 删除了 {stats['change_log_count']} 条账户变更日志", 
-                    module="instances", instance_id=instance_id, instance_name=instance_name)
+            log_info(
+                f"步骤4: 删除了 {stats['change_log_count']} 条账户变更日志",
+                module="instances",
+                instance_id=instance_id,
+                instance_name=instance_name,
+            )
 
-        log_info(f"实例 {instance_name or instance_id} 的所有关联数据删除完成", 
-                module="instances", instance_id=instance_id, instance_name=instance_name)
-        
+        log_info(
+            f"实例 {instance_name or instance_id} 的所有关联数据删除完成",
+            module="instances",
+            instance_id=instance_id,
+            instance_name=instance_name,
+        )
+
         return stats
-        
+
     except Exception as e:
-        log_error(f"删除实例 {instance_name or instance_id} 关联数据失败: {e}", 
-                 module="instances", instance_id=instance_id, instance_name=instance_name)
+        log_error(
+            f"删除实例 {instance_name or instance_id} 关联数据失败: {e}",
+            module="instances",
+            instance_id=instance_id,
+            instance_name=instance_name,
+        )
         raise
+
 
 # 获取API日志记录器
 api_logger = get_api_logger()
@@ -456,7 +478,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
     instance = Instance.query.get_or_404(instance_id)
 
     # 获取查询参数
-    include_deleted = request.args.get('include_deleted', 'true').lower() == 'true'  # 默认包含已删除账户
+    include_deleted = request.args.get("include_deleted", "true").lower() == "true"  # 默认包含已删除账户
 
     # 获取账户数据 - 使用新的优化同步模型
     from app.services.sync_data_manager import SyncDataManager
@@ -720,7 +742,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
                 return jsonify({"error": f"删除关联数据失败: {str(e)}"}), 500
             flash("删除关联数据失败，请重试", "error")
             return redirect(url_for("instances.index"))
-        
+
         # 第二步：最后删除实例本身
         try:
             log_info(f"步骤5: 准备删除实例 {instance.name} (ID: {instance.id})", module="instances")
@@ -734,12 +756,12 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
                 return jsonify({"error": f"删除实例失败: {str(e)}"}), 500
             flash("删除实例失败，请重试", "error")
             return redirect(url_for("instances.index"))
-        
+
         # 提取统计信息
-        assignment_count = stats['assignment_count']
-        sync_data_count = stats['sync_data_count']
-        sync_record_count = stats['sync_record_count']
-        change_log_count = stats['change_log_count']
+        assignment_count = stats["assignment_count"]
+        sync_data_count = stats["sync_data_count"]
+        sync_record_count = stats["sync_record_count"]
+        change_log_count = stats["change_log_count"]
 
         log_info(f"实例 {instance.name} 及其相关数据删除成功", module="instances")
 
@@ -784,10 +806,10 @@ def batch_delete() -> str | Response | tuple[Response, int]:
             return jsonify({"success": False, "error": "请选择要删除的实例"}), 400
 
         # 检查是否有相关数据关联
+        from app.models.account_change_log import AccountChangeLog
         from app.models.current_account_sync_data import CurrentAccountSyncData
         from app.models.sync_instance_record import SyncInstanceRecord
-        from app.models.account_change_log import AccountChangeLog
-        
+
         related_data_counts = {}
         for instance_id in instance_ids:
             instance = Instance.query.get(instance_id)
@@ -796,20 +818,23 @@ def batch_delete() -> str | Response | tuple[Response, int]:
                 sync_data_count = CurrentAccountSyncData.query.filter_by(instance_id=instance_id).count()
                 sync_record_count = SyncInstanceRecord.query.filter_by(instance_id=instance_id).count()
                 change_log_count = AccountChangeLog.query.filter_by(instance_id=instance_id).count()
-                
+
                 total_related = sync_data_count + sync_record_count + change_log_count
                 if total_related > 0:
                     related_data_counts[instance.name] = {
-                        'sync_data': sync_data_count,
-                        'sync_records': sync_record_count,
-                        'change_logs': change_log_count,
-                        'total': total_related
+                        "sync_data": sync_data_count,
+                        "sync_records": sync_record_count,
+                        "change_logs": change_log_count,
+                        "total": total_related,
                     }
 
         # 如果有相关数据，先删除关联数据，然后删除实例
         if related_data_counts:
-            log_info(f"检测到 {len(related_data_counts)} 个实例有关联数据，将先删除关联数据", 
-                    module="instances", user_id=current_user.id)
+            log_info(
+                f"检测到 {len(related_data_counts)} 个实例有关联数据，将先删除关联数据",
+                module="instances",
+                user_id=current_user.id,
+            )
 
         # 批量删除
         deleted_count = 0
@@ -838,17 +863,17 @@ def batch_delete() -> str | Response | tuple[Response, int]:
                 except Exception as e:
                     log_error(f"删除实例 {instance.name} 关联数据失败: {e}", module="instances")
                     continue  # 跳过这个实例，继续处理其他实例
-                
+
                 # 第二步：最后删除实例本身
                 try:
                     db.session.delete(instance)
                     deleted_count += 1
-                    
+
                     # 累计统计信息
-                    deleted_assignments += stats['assignment_count']
-                    deleted_sync_data += stats['sync_data_count']
-                    deleted_sync_records += stats['sync_record_count']
-                    deleted_change_logs += stats['change_log_count']
+                    deleted_assignments += stats["assignment_count"]
+                    deleted_sync_data += stats["sync_data_count"]
+                    deleted_sync_records += stats["sync_record_count"]
+                    deleted_change_logs += stats["change_log_count"]
                 except Exception as e:
                     log_error(f"删除实例 {instance.name} 失败: {e}", module="instances")
                     continue  # 跳过这个实例，继续处理其他实例
@@ -906,7 +931,7 @@ def batch_create() -> str | Response | tuple[Response, int]:
         return jsonify({"success": False, "error": f"批量创建实例失败: {str(e)}"}), 500
 
 
-def _process_csv_file(file: Any) -> dict[str, Any] | Response | tuple[Response, int]:
+def _process_csv_file(file: Any) -> dict[str, Any] | Response | tuple[Response, int]:  # noqa: ANN401
     """处理CSV文件"""
     import csv
     import io
@@ -950,7 +975,7 @@ def _process_instances_data(
             for field in required_fields:
                 if not instance_data.get(field):
                     missing_fields.append(field)
-            
+
             if missing_fields:
                 errors.append(f"第 {i + 1} 个实例缺少必填字段: {', '.join(missing_fields)}")
                 continue
@@ -994,7 +1019,7 @@ def _process_instances_data(
             created_count += 1
 
             # 记录操作日志
-            if current_user and hasattr(current_user, 'id'):
+            if current_user and hasattr(current_user, "id"):
                 log_info(
                     "批量创建数据库实例",
                     module="instances",
@@ -1037,7 +1062,6 @@ def export_instances() -> Response:
     """导出实例数据为CSV"""
     import csv
     import io
-    from datetime import datetime
 
     from flask import Response
 
@@ -1117,13 +1141,11 @@ def export_instances() -> Response:
     timestamp = now().strftime("%Y%m%d_%H%M%S")
     filename = f"instances_export_{timestamp}.csv"
 
-    response = Response(
+    return Response(
         output.getvalue(),
         mimetype="text/csv; charset=utf-8",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
-
-    return response
 
 
 @instances_bp.route("/template/download")
@@ -1194,13 +1216,11 @@ def download_template() -> Response:
 
     # 创建响应
     output.seek(0)
-    response = Response(
+    return Response(
         output.getvalue(),
         mimetype="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=instances_template.csv"},
     )
-
-    return response
 
 
 @instances_bp.route("/<int:instance_id>/test", methods=["POST"])
@@ -1211,9 +1231,8 @@ def test_connection(instance_id: int) -> str | Response | tuple[Response, int]:
     instance = Instance.query.get_or_404(instance_id)
 
     try:
-        # 使用数据库服务测试连接
-        db_service = DatabaseService()
-        result = db_service.test_connection(instance)
+        # 使用实例模型测试连接
+        result = instance.test_connection()
 
         if result["success"]:
             # 更新最后连接时间
@@ -1344,20 +1363,21 @@ def api_detail(instance_id: int) -> Response:
 def api_get_accounts(instance_id: int) -> Response:
     """获取实例账户数据API"""
     instance = Instance.query.get_or_404(instance_id)
-    
+
     # 获取查询参数
-    include_deleted = request.args.get('include_deleted', 'false').lower() == 'true'
-    
+    include_deleted = request.args.get("include_deleted", "false").lower() == "true"
+
     try:
         # 获取账户数据
         from app.services.sync_data_manager import SyncDataManager
+
         accounts = SyncDataManager.get_accounts_by_instance(instance_id, include_deleted=include_deleted)
-        
+
         # 转换为前端需要的格式
         account_data = []
         for account in accounts:
             type_specific = account.type_specific or {}
-            
+
             account_info = {
                 "id": account.id,
                 "username": account.username,
@@ -1372,41 +1392,32 @@ def api_get_accounts(instance_id: int) -> Response:
                 "database_roles": account.database_roles or {},
                 "database_permissions": account.database_permissions or {},
             }
-            
+
             # 根据数据库类型添加特定字段
-            if instance.db_type == 'mysql':
-                account_info.update({
-                    "host": type_specific.get("host", "%"),
-                    "plugin": type_specific.get("plugin", "")
-                })
-            elif instance.db_type == 'sqlserver':
-                account_info.update({
-                    "password_change_time": type_specific.get("password_change_time")
-                })
-            elif instance.db_type == 'oracle':
-                account_info.update({
-                    "oracle_id": type_specific.get("oracle_id"),
-                    "authentication_type": type_specific.get("authentication_type"),
-                    "account_status": type_specific.get("account_status"),
-                    "lock_date": type_specific.get("lock_date"),
-                    "expiry_date": type_specific.get("expiry_date"),
-                    "default_tablespace": type_specific.get("default_tablespace"),
-                    "created": type_specific.get("created")
-                })
-            
+            if instance.db_type == "mysql":
+                account_info.update({"host": type_specific.get("host", "%"), "plugin": type_specific.get("plugin", "")})
+            elif instance.db_type == "sqlserver":
+                account_info.update({"password_change_time": type_specific.get("password_change_time")})
+            elif instance.db_type == "oracle":
+                account_info.update(
+                    {
+                        "oracle_id": type_specific.get("oracle_id"),
+                        "authentication_type": type_specific.get("authentication_type"),
+                        "account_status": type_specific.get("account_status"),
+                        "lock_date": type_specific.get("lock_date"),
+                        "expiry_date": type_specific.get("expiry_date"),
+                        "default_tablespace": type_specific.get("default_tablespace"),
+                        "created": type_specific.get("created"),
+                    }
+                )
+
             account_data.append(account_info)
-        
-        return jsonify({
-            "success": True,
-            "accounts": account_data
-        })
-        
+
+        return jsonify({"success": True, "accounts": account_data})
+
     except Exception as e:
-        logger.error(f"获取实例账户数据失败: {str(e)}")
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        logger.error("获取实例账户数据失败: %s", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @instances_bp.route("/api/instances/<int:instance_id>/test")
@@ -1417,8 +1428,7 @@ def api_test_connection(instance_id: int) -> Response | tuple[Response, int]:
     instance = Instance.query.get_or_404(instance_id)
 
     try:
-        db_service = DatabaseService()
-        result = db_service.test_connection(instance)
+        result = instance.test_connection()
         return jsonify(result)
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -1526,9 +1536,8 @@ def api_test_instance_connection() -> Response | tuple[Response, int]:
         else:
             return jsonify({"success": False, "error": "必须选择数据库凭据"}), 400
 
-        # 使用数据库服务测试连接
-        db_service = DatabaseService()
-        result = db_service.test_connection(temp_instance)
+        # 使用实例模型测试连接
+        result = temp_instance.test_connection()
 
         return jsonify(result)
 

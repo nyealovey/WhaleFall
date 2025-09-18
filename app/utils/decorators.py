@@ -3,6 +3,7 @@
 """
 
 from functools import wraps
+from typing import Any
 
 from flask import jsonify, request
 from flask_login import current_user
@@ -10,7 +11,7 @@ from flask_login import current_user
 from app.utils.structlog_config import get_system_logger
 
 
-def admin_required(f):
+def admin_required(f: Any) -> Any:  # noqa: ANN401
     """
     管理员权限装饰器
 
@@ -22,7 +23,7 @@ def admin_required(f):
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
         system_logger = get_system_logger()
 
         if not current_user.is_authenticated:
@@ -99,7 +100,7 @@ def admin_required(f):
     return decorated_function
 
 
-def scheduler_manage_required(f):
+def scheduler_manage_required(f: Any) -> Any:  # noqa: ANN401
     """
     定时任务管理权限装饰器
     只有管理员可以管理定时任务（创建、编辑、删除、启用/禁用、运行）
@@ -112,7 +113,7 @@ def scheduler_manage_required(f):
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
         system_logger = get_system_logger()
 
         if not current_user.is_authenticated:
@@ -202,7 +203,7 @@ def scheduler_view_required(f):
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
         system_logger = get_system_logger()
 
         if not current_user.is_authenticated:
@@ -261,7 +262,7 @@ def login_required(f):
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
         system_logger = get_system_logger()
 
         if not current_user.is_authenticated:
@@ -320,7 +321,7 @@ def login_required_json(f):
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
         if not current_user.is_authenticated:
             return (
                 jsonify({"success": False, "message": "请先登录", "code": "UNAUTHORIZED"}),
@@ -345,7 +346,7 @@ def rate_limit(requests_per_minute=60):
 
     def decorator(f):
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
             # 这里可以集成速率限制逻辑
             # 目前只是简单实现
             return f(*args, **kwargs)
@@ -368,7 +369,7 @@ def validate_json(required_fields=None):
 
     def decorator(f):
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
             if not request.is_json:
                 return (
                     jsonify(
@@ -428,12 +429,13 @@ def permission_required(permission):
 
     def decorator(f):
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
             system_logger = get_system_logger()
 
             if not current_user.is_authenticated:
                 system_logger.warning(
-                    f"未认证访问{permission}权限资源",
+                    "未认证访问%s权限资源",
+                    permission,
                     module="decorators",
                     user_id=None,
                     request_path=request.path,
@@ -462,7 +464,8 @@ def permission_required(permission):
             # 检查权限
             if not has_permission(current_user, permission):
                 system_logger.warning(
-                    f"权限不足访问{permission}权限资源",
+                    "权限不足访问%s权限资源",
+                    permission,
                     module="decorators",
                     user_id=current_user.id,
                     username=current_user.username,
@@ -493,7 +496,8 @@ def permission_required(permission):
             # 只在调试模式下记录成功验证
             if system_logger.isEnabledFor(10):  # DEBUG level
                 system_logger.debug(
-                    f"{permission}权限验证通过",
+                    "%s权限验证通过",
+                    permission,
                     module="decorators",
                     user_id=current_user.id,
                     username=current_user.username,

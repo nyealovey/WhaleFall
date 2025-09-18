@@ -1,16 +1,17 @@
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
+
 """
 泰摸鱼吧 - 数据库连接上下文管理器
 """
 
-import logging
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
 
 from app.models.instance import Instance
 from app.services.connection_factory import ConnectionFactory
-
-logger = logging.getLogger(__name__)
 
 
 class DatabaseContextManager:
@@ -35,15 +36,15 @@ class DatabaseContextManager:
         try:
             connection = ConnectionFactory.create_connection(instance)
             if not connection:
-                logger.error(f"无法获取数据库连接: {instance.name}")
+                logger.error("无法获取数据库连接: {instance.name}")
                 yield None
                 return
 
-            logger.debug(f"获取数据库连接成功: {instance.name}")
+            logger.debug("获取数据库连接成功: {instance.name}")
             yield connection
 
-        except Exception as e:
-            logger.error(f"数据库连接上下文管理器错误: {str(e)}")
+        except Exception:
+            logger.error("数据库连接上下文管理器错误: {str(e)}")
             yield None
         finally:
             if connection:
@@ -52,10 +53,9 @@ class DatabaseContextManager:
                         connection.disconnect()
                     elif hasattr(connection, "close"):
                         connection.close()
-                    logger.debug(f"关闭数据库连接: {instance.name}")
+                    logger.debug("关闭数据库连接: {instance.name}")
                 except Exception as e:
-                    error_str = str(e) if e else "未知错误"
-                    logger.warning(f"关闭数据库连接失败: {error_str}")
+                    logger.warning("关闭数据库连接失败: %s", str(e) if e else "未知错误")
 
     @contextmanager
     def execute_query(self, instance: Instance, query: str, params: tuple = None) -> Generator[dict]:
@@ -74,7 +74,7 @@ class DatabaseContextManager:
             result = self.db_service.execute_query(instance, query, params)
             yield result
         except Exception as e:
-            logger.error(f"执行查询失败: {str(e)}")
+            logger.error("执行查询失败: {str(e)}")
             yield {"success": False, "error": str(e)}
 
     @contextmanager
@@ -92,7 +92,7 @@ class DatabaseContextManager:
         try:
             connection = ConnectionFactory.create_connection(instance)
             if not connection:
-                logger.error(f"无法获取数据库连接进行事务: {instance.name}")
+                logger.error("无法获取数据库连接进行事务: {instance.name}")
                 yield None
                 return
 
@@ -102,25 +102,25 @@ class DatabaseContextManager:
             elif hasattr(connection, "autocommit"):
                 connection.autocommit = False
 
-            logger.debug(f"开始数据库事务: {instance.name}")
+            logger.debug("开始数据库事务: {instance.name}")
             yield connection
 
             # 提交事务
             if hasattr(connection, "commit"):
                 connection.commit()
-            logger.debug(f"提交数据库事务: {instance.name}")
+            logger.debug("提交数据库事务: {instance.name}")
 
-        except Exception as e:
+        except Exception:
             # 回滚事务
             if connection:
                 try:
                     if hasattr(connection, "rollback"):
                         connection.rollback()
-                    logger.debug(f"回滚数据库事务: {instance.name}")
-                except Exception as rollback_error:
-                    logger.error(f"回滚事务失败: {rollback_error}")
+                    logger.debug("回滚数据库事务: {instance.name}")
+                except Exception:
+                    logger.error("回滚事务失败: {rollback_error}")
 
-            logger.error(f"数据库事务错误: {str(e)}")
+            logger.error("数据库事务错误: {str(e)}")
             yield None
         finally:
             if connection:
@@ -132,8 +132,8 @@ class DatabaseContextManager:
                         connection.disconnect()
                     elif hasattr(connection, "close"):
                         connection.close()
-                except Exception as e:
-                    logger.warning(f"清理数据库连接失败: {str(e)}")
+                except Exception:
+                    logger.warning("清理数据库连接失败: {str(e)}")
 
 
 # 全局数据库上下文管理器

@@ -19,7 +19,7 @@ system_logger = get_system_logger()
 @sync_sessions_bp.route("/")
 @login_required
 @view_required
-def index():
+def index() -> str:
     """同步会话管理首页"""
     try:
         log_info("访问同步会话管理页面", module="sync_sessions", user_id=current_user.id)
@@ -36,7 +36,7 @@ def index():
 @sync_sessions_bp.route("/api/sessions")
 @login_required
 @view_required
-def api_list_sessions():
+def api_list_sessions() -> tuple[dict, int]:
     """获取同步会话列表 API"""
     try:
         # 获取查询参数
@@ -88,7 +88,7 @@ def api_list_sessions():
 @sync_sessions_bp.route("/api/sessions/<session_id>")
 @login_required
 @view_required
-def api_get_session_detail(session_id):
+def api_get_session_detail(session_id: str) -> tuple[dict, int]:
     """获取同步会话详情 API"""
     try:
         # 获取会话信息
@@ -125,7 +125,7 @@ def api_get_session_detail(session_id):
 @sync_sessions_bp.route("/api/sessions/<session_id>/cancel", methods=["POST"])
 @login_required
 @view_required
-def api_cancel_session(session_id):
+def api_cancel_session(session_id: str) -> tuple[dict, int]:
     """取消同步会话 API"""
     try:
         success = sync_session_service.cancel_session(session_id)
@@ -159,7 +159,7 @@ def api_cancel_session(session_id):
 @sync_sessions_bp.route("/api/sessions/<session_id>/error-logs", methods=["GET"])
 @login_required
 @view_required
-def api_get_error_logs(session_id):
+def api_get_error_logs(session_id: str) -> tuple[dict, int]:
     """获取同步会话错误日志 API"""
     try:
         # 获取会话信息
@@ -172,24 +172,26 @@ def api_get_error_logs(session_id):
 
         # 获取所有实例记录
         records = sync_session_service.get_session_records(session_id)
-        
+
         # 筛选出失败的记录
         error_records = [record for record in records if record.status == "failed"]
-        
+
         # 转换为字典格式
         error_records_data = [record.to_dict() for record in error_records]
-        
+
         # 构建响应数据
         session_data = session.to_dict()
-        
-        return jsonify({
-            "success": True, 
-            "data": {
-                "session": session_data,
-                "error_records": error_records_data,
-                "error_count": len(error_records)
+
+        return jsonify(
+            {
+                "success": True,
+                "data": {
+                    "session": session_data,
+                    "error_records": error_records_data,
+                    "error_count": len(error_records),
+                },
             }
-        })
+        )
 
     except Exception as e:
         log_error(
@@ -207,7 +209,7 @@ def api_get_error_logs(session_id):
 @sync_sessions_bp.route("/api/statistics")
 @login_required
 @view_required
-def api_get_statistics():
+def api_get_statistics() -> tuple[dict, int]:
     """获取同步统计信息 API"""
     try:
         # 获取各种类型的会话统计

@@ -3,7 +3,6 @@
 专门用于数据库账户同步时的过滤规则管理
 """
 
-import logging
 import os
 import re
 from typing import Any
@@ -11,8 +10,9 @@ from typing import Any
 import yaml
 
 from app.utils.safe_query_builder import build_safe_filter_conditions
+from app.utils.structlog_config import get_system_logger
 
-logger = logging.getLogger(__name__)
+logger = get_system_logger()
 
 
 class DatabaseFilterManager:
@@ -134,8 +134,8 @@ class DatabaseFilterManager:
                         logger.info("已加载数据库过滤规则配置文件")
                     else:
                         logger.warning("配置文件格式错误，使用默认规则")
-            except Exception as e:
-                logger.error(f"加载过滤规则配置文件失败: {e}，使用默认规则")
+            except Exception:
+                logger.error("加载过滤规则配置文件失败: {e}，使用默认规则")
         else:
             logger.info("未找到过滤规则配置文件，使用默认规则")
 
@@ -201,18 +201,18 @@ class DatabaseFilterManager:
 
         # 特殊处理：PostgreSQL的postgres用户应该被包含
         if db_type == "postgresql" and username == "postgres":
-            logger.debug(f"账户 {username} 是PostgreSQL的默认超级用户，强制包含")
+            logger.debug("账户 {username} 是PostgreSQL的默认超级用户，强制包含")
             return True
 
         # 检查排除用户列表
         if username in rules.get("exclude_users", []):
-            logger.debug(f"账户 {username} 在排除用户列表中")
+            logger.debug("账户 {username} 在排除用户列表中")
             return False
 
         # 检查排除模式
         for pattern in rules.get("exclude_patterns", []):
             if self._match_pattern(username, pattern):
-                logger.debug(f"账户 {username} 匹配排除模式 {pattern}")
+                logger.debug("账户 {username} 匹配排除模式 {pattern}")
                 return False
 
         return True
@@ -235,8 +235,8 @@ class DatabaseFilterManager:
             # 添加行首和行尾锚点
             regex_pattern = f"^{regex_pattern}$"
             return bool(re.match(regex_pattern, text, re.IGNORECASE))
-        except Exception as e:
-            logger.error(f"模式匹配失败: {pattern} -> {text}, 错误: {e}")
+        except Exception:
+            logger.error("模式匹配失败: {pattern} -> {text}, 错误: {e}")
             return False
 
     def get_filter_rules(self, db_type: str = None) -> dict[str, Any]:
@@ -267,12 +267,12 @@ class DatabaseFilterManager:
         try:
             if db_type in self.filter_rules:
                 self.filter_rules[db_type].update(rules)
-                logger.info(f"已更新 {db_type} 数据库过滤规则")
+                logger.info("已更新 {db_type} 数据库过滤规则")
                 return True
-            logger.error(f"不支持的数据库类型: {db_type}")
+            logger.error("不支持的数据库类型: {db_type}")
             return False
-        except Exception as e:
-            logger.error(f"更新过滤规则失败: {e}")
+        except Exception:
+            logger.error("更新过滤规则失败: {e}")
             return False
 
     def save_filter_rules_to_file(self, file_path: str = "config/database_filters.yaml") -> bool:
@@ -299,10 +299,10 @@ class DatabaseFilterManager:
             with open(file_path, "w", encoding="utf-8") as f:
                 yaml.dump(save_data, f, default_flow_style=False, allow_unicode=True, indent=2)
 
-            logger.info(f"过滤规则已保存到 {file_path}")
+            logger.info("过滤规则已保存到 {file_path}")
             return True
-        except Exception as e:
-            logger.error(f"保存过滤规则失败: {e}")
+        except Exception:
+            logger.error("保存过滤规则失败: {e}")
             return False
 
     def get_filter_statistics(self, db_type: str = None) -> dict[str, Any]:

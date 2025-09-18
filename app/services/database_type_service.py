@@ -9,7 +9,9 @@ from sqlalchemy.exc import IntegrityError
 
 from app import db
 from app.models.database_type_config import DatabaseTypeConfig
-from app.utils.structlog_config import log_error, log_info
+from app.utils.structlog_config import get_api_logger, log_error, log_info
+
+api_logger = get_api_logger()
 
 
 class DatabaseTypeService:

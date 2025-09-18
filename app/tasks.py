@@ -5,8 +5,6 @@
 import os
 from datetime import datetime, timedelta
 
-from app.utils.timezone import now
-
 from app import create_app, db
 from app.models.account_change_log import AccountChangeLog
 from app.models.current_account_sync_data import CurrentAccountSyncData
@@ -14,6 +12,7 @@ from app.models.unified_log import UnifiedLog
 from app.models.user import User
 from app.services.account_sync_service import account_sync_service
 from app.utils.structlog_config import get_sync_logger, get_task_logger
+from app.utils.timezone import now
 
 
 def cleanup_old_logs():
@@ -31,12 +30,12 @@ def cleanup_old_logs():
             cleaned_files = _cleanup_temp_files()
 
             # 清理旧的同步记录（保留最近30天） - 使用新的同步会话模型
-            from app.models.sync_session import SyncSession
             from app.models.sync_instance_record import SyncInstanceRecord
+            from app.models.sync_session import SyncSession
 
             deleted_sync_sessions = SyncSession.query.filter(SyncSession.created_at < cutoff_date).delete()
             deleted_sync_records = SyncInstanceRecord.query.filter(SyncInstanceRecord.created_at < cutoff_date).delete()
-            
+
             # 注意：不清理账户同步数据表和账户变更日志，保留所有历史记录用于审计
             deleted_account_sync_data = 0
             deleted_change_logs = 0
@@ -55,7 +54,7 @@ def cleanup_old_logs():
                 deleted_change_logs=deleted_change_logs,
                 cleaned_temp_files=cleaned_files,
                 cutoff_date=cutoff_date.isoformat(),
-                note="账户变更日志已保留用于审计"
+                note="账户变更日志已保留用于审计",
             )
 
             task_logger.info(
@@ -67,7 +66,7 @@ def cleanup_old_logs():
                 deleted_account_sync_data=deleted_account_sync_data,
                 deleted_change_logs=deleted_change_logs,
                 cleaned_temp_files=cleaned_files,
-                note="账户变更日志已保留用于审计"
+                note="账户变更日志已保留用于审计",
             )
 
             return f"清理完成：{deleted_logs} 条日志，{deleted_sync_sessions} 条同步会话，{deleted_sync_records} 条同步记录，{deleted_account_sync_data} 条账户同步数据，{cleaned_files} 个临时文件（账户变更日志已保留用于审计）"
@@ -112,7 +111,7 @@ def _cleanup_temp_files():
         return 0
 
 
-def sync_accounts(manual_run=False):
+def sync_accounts(manual_run: bool = False) -> None:
     """账户同步任务 - 同步所有数据库实例的账户（使用新的会话管理架构）"""
     from app.models.instance import Instance
     from app.services.sync_session_service import sync_session_service
@@ -133,7 +132,7 @@ def sync_accounts(manual_run=False):
 
             # 根据执行方式选择同步类型
             sync_type = "manual_task" if manual_run else "scheduled_task"
-            
+
             # 创建同步会话
             session = sync_session_service.create_session(
                 sync_type=sync_type,

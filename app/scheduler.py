@@ -3,30 +3,33 @@
 使用APScheduler实现轻量级定时任务
 """
 
-import logging
 import os
+from typing import Any
 
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
+
+
 # 配置日志
-logger = logging.getLogger(__name__)
-
-
 class TaskScheduler:
     """定时任务调度器"""
 
-    def __init__(self, app=None):
+    def __init__(self, app: Any = None) -> None:  # noqa: ANN401
         self.app = app
         self.scheduler = None
         self._setup_scheduler()
 
-    def _setup_scheduler(self):
+    def _setup_scheduler(self) -> None:
         """设置调度器"""
         # 任务存储配置 - 使用PostgreSQL
         from app.config import Config
+
         jobstores = {"default": SQLAlchemyJobStore(url=Config.SQLALCHEMY_DATABASE_URI)}
 
         # 执行器配置
@@ -51,16 +54,16 @@ class TaskScheduler:
         self.scheduler.add_listener(self._job_executed, EVENT_JOB_EXECUTED)
         self.scheduler.add_listener(self._job_error, EVENT_JOB_ERROR)
 
-    def _job_executed(self, event):
+    def _job_executed(self, event: Any) -> None:  # noqa: ANN401
         """任务执行成功事件"""
-        logger.info(f"任务执行成功: {event.job_id} - {event.retval}")
+        logger.info("任务执行成功: %s - %s", event.job_id, event.retval)
 
-    def _job_error(self, event):
+    def _job_error(self, event: Any) -> None:  # noqa: ANN401
         """任务执行错误事件"""
         exception_str = str(event.exception) if event.exception else "未知错误"
-        logger.error(f"任务执行失败: {event.job_id} - {exception_str}")
+        logger.error("任务执行失败: %s - %s", event.job_id, exception_str)
 
-    def start(self):
+    def start(self) -> None:
         """启动调度器"""
         if not self.scheduler.running:
             self.scheduler.start()
@@ -68,42 +71,42 @@ class TaskScheduler:
         else:
             logger.warning("定时任务调度器已经在运行，跳过启动")
 
-    def stop(self):
+    def stop(self) -> None:
         """停止调度器"""
         if self.scheduler.running:
             self.scheduler.shutdown()
             logger.info("定时任务调度器已停止")
 
-    def add_job(self, func, trigger, **kwargs):
+    def add_job(self, func: Any, trigger: Any, **kwargs: Any) -> None:  # noqa: ANN401
         """添加任务"""
         return self.scheduler.add_job(func, trigger, **kwargs)
 
-    def remove_job(self, job_id):
+    def remove_job(self, job_id: str) -> None:
         """删除任务"""
         try:
             self.scheduler.remove_job(job_id)
-            logger.info(f"任务已删除: {job_id}")
+            logger.info("任务已删除: %s", job_id)
         except Exception as e:
             error_str = str(e) if e else "未知错误"
-            logger.error(f"删除任务失败: {job_id} - {error_str}")
+            logger.error("删除任务失败: %s - %s", job_id, error_str)
 
-    def get_jobs(self):
+    def get_jobs(self) -> list:
         """获取所有任务"""
         return self.scheduler.get_jobs()
 
-    def get_job(self, job_id):
+    def get_job(self, job_id: str) -> Any:  # noqa: ANN401
         """获取指定任务"""
         return self.scheduler.get_job(job_id)
 
-    def pause_job(self, job_id):
+    def pause_job(self, job_id: str) -> None:
         """暂停任务"""
         self.scheduler.pause_job(job_id)
-        logger.info(f"任务已暂停: {job_id}")
+        logger.info("任务已暂停: %s", job_id)
 
-    def resume_job(self, job_id):
+    def resume_job(self, job_id: str) -> None:
         """恢复任务"""
         self.scheduler.resume_job(job_id)
-        logger.info(f"任务已恢复: {job_id}")
+        logger.info("任务已恢复: %s", job_id)
 
 
 # 全局调度器实例
@@ -111,18 +114,18 @@ scheduler = TaskScheduler()
 
 
 # 确保scheduler实例可以被正确访问
-def get_scheduler():
+def get_scheduler() -> Any:  # noqa: ANN401
     """获取调度器实例"""
     return scheduler.scheduler
 
 
-def init_scheduler(app):
+def init_scheduler(app: Any) -> None:  # noqa: ANN401
     """初始化调度器"""
     # 检查是否已经初始化过
-    if hasattr(scheduler, 'app') and scheduler.app is not None:
+    if hasattr(scheduler, "app") and scheduler.app is not None:
         logger.warning("调度器已经初始化过，跳过重复初始化")
         return scheduler
-        
+
     scheduler.app = app
     scheduler.start()
 
@@ -132,7 +135,7 @@ def init_scheduler(app):
     return scheduler
 
 
-def _add_default_jobs():
+def _add_default_jobs() -> None:
     """添加默认任务（仅当数据库中没有任务时）"""
     import yaml
 
@@ -141,7 +144,7 @@ def _add_default_jobs():
     # 检查是否已有任务
     existing_jobs = scheduler.get_jobs()
     if existing_jobs:
-        logger.info(f"发现 {len(existing_jobs)} 个现有任务，跳过创建默认任务")
+        logger.info("发现 %d 个现有任务，跳过创建默认任务", len(existing_jobs))
         return
 
     # 从配置文件读取默认任务
@@ -169,7 +172,7 @@ def _add_default_jobs():
             elif function_name == "cleanup_old_logs":
                 func = cleanup_old_logs
             else:
-                logger.warning(f"未知的任务函数: {function_name}")
+                logger.warning("未知的任务函数: %s", function_name)
                 continue
 
             # 创建任务
@@ -182,21 +185,21 @@ def _add_default_jobs():
                 **trigger_params,
             )
 
-            logger.info(f"添加默认任务: {task_name} ({task_id})")
+            logger.info("添加默认任务: %s (%s)", task_name, task_id)
 
     except FileNotFoundError:
-        logger.warning(f"配置文件不存在: {config_file}，使用硬编码默认任务")
+        logger.warning("配置文件不存在: %s，使用硬编码默认任务", config_file)
         # 回退到硬编码方式
         _add_hardcoded_default_jobs()
     except Exception as e:
-        logger.error(f"读取配置文件失败: {e}，使用硬编码默认任务")
+        logger.error("读取配置文件失败: %s，使用硬编码默认任务", str(e))
         # 回退到硬编码方式
         _add_hardcoded_default_jobs()
 
     logger.info("默认定时任务已添加")
 
 
-def _add_hardcoded_default_jobs():
+def _add_hardcoded_default_jobs() -> None:
     """添加硬编码的默认任务（备用方案）"""
     from app.tasks import cleanup_old_logs, sync_accounts
 
@@ -223,13 +226,13 @@ def _add_hardcoded_default_jobs():
 
 
 # 装饰器：用于标记任务函数
-def scheduled_task(job_id=None, name=None):
+def scheduled_task(job_id: str | None = None, name: str | None = None) -> Any:  # noqa: ANN401
     """定时任务装饰器"""
 
-    def decorator(func):
-        func._is_scheduled_task = True
-        func._job_id = job_id or func.__name__
-        func._job_name = name or func.__name__
+    def decorator(func: Any) -> Any:  # noqa: ANN401
+        func._is_scheduled_task = True  # noqa: SLF001
+        func._job_id = job_id or func.__name__  # noqa: SLF001
+        func._job_name = name or func.__name__  # noqa: SLF001
         return func
 
     return decorator

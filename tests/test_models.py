@@ -1,3 +1,7 @@
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
+
 # 泰摸鱼吧 - 模型测试
 
 from app.models import Account, Credential, GlobalParam, Instance, Task, User
@@ -8,26 +12,28 @@ class TestUser:
 
     def test_user_creation(self, app):
         """测试用户创建"""
+        test_password = "testpass"  # 测试环境专用密码
         with app.app_context():
-            user = User(username="testuser", password="testpass", role="admin")
-            user.set_password("testpass")
+            user = User(username="testuser", password=test_password, role="admin")
+            user.set_password(test_password)
             db.session.add(user)
             db.session.commit()
 
             assert user.id is not None
             assert user.username == "testuser"
             assert user.role == "admin"
-            assert user.check_password("testpass")
+            assert user.check_password(test_password)
             assert not user.check_password("wrongpass")
 
     def test_user_password_hashing(self, app):
         """测试密码哈希"""
+        test_password = "testpass"  # 测试环境专用密码
         with app.app_context():
-            user = User(username="testuser", password="testpass")
-            user.set_password("testpass")
+            user = User(username="testuser", password=test_password)
+            user.set_password(test_password)
 
-            assert user.password != "testpass"
-            assert user.check_password("testpass")
+            assert user.password != test_password
+            assert user.check_password(test_password)
             assert not user.check_password("wrongpass")
 
     def test_user_last_login_update(self, app):

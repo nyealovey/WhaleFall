@@ -2,16 +2,15 @@
 泰摸鱼吧 - PostgreSQL数据库过滤规则
 """
 
-from typing import Tuple, List, Any
 from .base_filter import BaseDatabaseFilter
 
 
 class PostgreSQLDatabaseFilter(BaseDatabaseFilter):
     """PostgreSQL数据库过滤规则"""
-    
+
     def get_database_type(self) -> str:
         return "postgresql"
-    
+
     def should_include_user(self, username: str) -> bool:
         """
         重写用户包含判断，特殊处理postgres用户
@@ -19,25 +18,24 @@ class PostgreSQLDatabaseFilter(BaseDatabaseFilter):
         # postgres用户是PostgreSQL的默认超级用户，应该被包含
         if username == "postgres":
             return True
-        
+
         # 调用父类方法进行常规检查
         return super().should_include_user(username)
-    
-    def build_where_clause(self, username_field: str):
+
+    def build_where_clause(self, username_field: str) -> str:
         """
         重写WHERE子句构建，特殊处理postgres用户
         """
-        from typing import Tuple, List, Any
-        
+
         conditions = []
         params = []
-        
+
         # 处理排除用户
         if self.exclude_users:
             placeholders = ", ".join(["%s"] * len(self.exclude_users))
             conditions.append(f"{username_field} NOT IN ({placeholders})")
             params.extend(self.exclude_users)
-        
+
         # 处理排除模式，特殊处理pg_%模式
         for pattern in self.exclude_patterns:
             if pattern == "pg_%":
@@ -47,10 +45,7 @@ class PostgreSQLDatabaseFilter(BaseDatabaseFilter):
             else:
                 conditions.append(f"{username_field} NOT LIKE %s")
                 params.append(pattern)
-        
-        if conditions:
-            where_clause = " AND ".join(conditions)
-        else:
-            where_clause = "1=1"
-        
+
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+
         return where_clause, params

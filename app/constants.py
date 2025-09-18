@@ -79,10 +79,10 @@ class TaskType(Enum):
 class SyncType(Enum):
     """同步类型枚举"""
 
-    MANUAL_SINGLE = "manual_single"      # 手动单台
-    MANUAL_BATCH = "manual_batch"        # 手动批量
-    MANUAL_TASK = "manual_task"          # 手动任务
-    SCHEDULED_TASK = "scheduled_task"    # 定时任务
+    MANUAL_SINGLE = "manual_single"  # 手动单台
+    MANUAL_BATCH = "manual_batch"  # 手动批量
+    MANUAL_TASK = "manual_task"  # 手动任务
+    SCHEDULED_TASK = "scheduled_task"  # 定时任务
 
 
 # 系统常量
@@ -334,7 +334,6 @@ class FieldLengths:
 
     # 凭据相关
     CREDENTIAL_NAME_MAX_LENGTH = 255
-    USERNAME_MAX_LENGTH = 255
     PASSWORD_MAX_LENGTH = 255
 
     # 日志相关

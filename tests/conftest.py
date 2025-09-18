@@ -1,3 +1,7 @@
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
+
 # 泰摸鱼吧 - 测试配置
 
 
@@ -42,13 +46,14 @@ def runner(app):
 def auth_headers(client):
     """创建认证头"""
     # 创建测试用户
-    user = User(username="testuser", password="testpass", role="admin")
-    user.set_password("testpass")
+    test_password = "testpass"  # 测试环境专用密码
+    user = User(username="testuser", password=test_password, role="admin")
+    user.set_password(test_password)
     db.session.add(user)
     db.session.commit()
 
     # 登录获取token
-    response = client.post("/api/auth/login", json={"username": "testuser", "password": "testpass"})
+    response = client.post("/api/auth/login", json={"username": "testuser", "password": test_password})
 
     token = response.json.get("access_token")
     return {"Authorization": f"Bearer {token}"}
@@ -65,8 +70,9 @@ def sample_instance():
 @pytest.fixture
 def sample_credential():
     """创建示例凭据"""
+    test_password = "testpass"  # 测试环境专用密码
     return Credential(
-        name="测试凭据", credential_type="database", db_type="postgresql", username="testuser", password="testpass"
+        name="测试凭据", credential_type="database", db_type="postgresql", username="testuser", password=test_password
     )
 
 

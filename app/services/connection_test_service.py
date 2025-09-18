@@ -1,6 +1,7 @@
 """
 泰摸鱼吧 - 数据库连接测试服务
 """
+
 from typing import Any
 
 from app.models import Instance
@@ -11,7 +12,7 @@ from app.utils.structlog_config import get_sync_logger
 class ConnectionTestService:
     """数据库连接测试服务"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.test_logger = get_sync_logger()
 
     def test_connection(self, instance: Instance) -> dict[str, Any]:
@@ -36,7 +37,7 @@ class ConnectionTestService:
             # 更新最后连接时间
             from app import db
             from app.utils.timezone import now
-            
+
             instance.last_connected = now()
             db.session.commit()
 
@@ -57,12 +58,12 @@ class ConnectionTestService:
             try:
                 from app import db
                 from app.utils.timezone import now
-                
+
                 instance.last_connected = now()
                 db.session.commit()
-            except Exception as update_error:
-                self.test_logger.error(f"更新最后连接时间失败: {update_error}")
-            
+            except Exception:
+                self.test_logger.error("更新最后连接时间失败: {update_error}")
+
             self.test_logger.error(
                 "数据库连接测试失败",
                 module="connection_test",
@@ -70,12 +71,12 @@ class ConnectionTestService:
                 instance_name=instance.name,
                 db_type=instance.db_type,
                 host=instance.host,
-                error=str(e)
+                error=str(e),
             )
-            
+
             return {"success": False, "error": f"连接失败: {str(e)}"}
 
-    def _get_database_version(self, instance: Instance, connection: Any) -> str:
+    def _get_database_version(self, instance: Instance, connection: Any) -> str:  # noqa: ANN401
         """
         获取数据库版本信息
 
@@ -90,17 +91,16 @@ class ConnectionTestService:
             if instance.db_type == "mysql":
                 result = connection.execute_query("SELECT VERSION()")
                 return result[0][0] if result else "未知版本"
-            elif instance.db_type == "postgresql":
+            if instance.db_type == "postgresql":
                 result = connection.execute_query("SELECT version()")
                 return result[0][0] if result else "未知版本"
-            elif instance.db_type == "sqlserver":
+            if instance.db_type == "sqlserver":
                 result = connection.execute_query("SELECT @@VERSION")
                 return result[0][0] if result else "未知版本"
-            elif instance.db_type == "oracle":
+            if instance.db_type == "oracle":
                 result = connection.execute_query("SELECT * FROM v$version WHERE rownum = 1")
                 return result[0][0] if result else "未知版本"
-            else:
-                return "未知数据库类型"
+            return "未知数据库类型"
         except Exception as e:
             self.test_logger.warning(
                 "获取数据库版本失败",
@@ -108,7 +108,7 @@ class ConnectionTestService:
                 instance_id=instance.id,
                 instance_name=instance.name,
                 db_type=instance.db_type,
-                error=str(e)
+                error=str(e),
             )
             return "版本获取失败"
 

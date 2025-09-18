@@ -53,14 +53,8 @@ class SQLAlchemyLogHandler:
 
         # 过滤DEBUG级别日志
         level = event_dict.get("level", "INFO")
-        level_priority = {
-            "DEBUG": 10,
-            "INFO": 20,
-            "WARNING": 30,
-            "ERROR": 40,
-            "CRITICAL": 50
-        }
-        
+        level_priority = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
+
         # 如果级别低于INFO，则丢弃日志
         if level_priority.get(level, 20) < 20:  # INFO级别
             raise structlog.DropEvent()
@@ -91,11 +85,11 @@ class SQLAlchemyLogHandler:
                 else:
                     # 如果没有应用上下文，跳过数据库写入
                     pass
-            except Exception as e:
+            except Exception:
                 # 使用标准logging避免循环依赖
                 import logging
 
-                logging.error(f"Error writing log to database: {e}")
+                logging.error("Error writing log to database: {e}")
 
         return event_dict
 
@@ -143,10 +137,11 @@ class SQLAlchemyLogHandler:
                     timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
                 except ValueError:
                     timestamp = time_utils.now()
-            
+
             # 确保时间戳带时区信息
             if timestamp.tzinfo is None:
                 from app.utils.timezone import UTC_TZ
+
                 timestamp = timestamp.replace(tzinfo=UTC_TZ)
 
             # 提取堆栈追踪
@@ -165,12 +160,12 @@ class SQLAlchemyLogHandler:
                 "traceback": traceback,
                 "context": context,
             }
-        except Exception as e:
+        except Exception:
             # 避免日志处理本身出错
             # 使用标准logging避免循环依赖
             import logging
 
-            logging.error(f"Error building log entry: {e}")
+            logging.error("Error building log entry: {e}")
             return None
 
     def _build_context(self, event_dict: dict[str, Any]) -> dict[str, Any]:
@@ -204,7 +199,7 @@ class SQLAlchemyLogHandler:
                 # 处理特殊数据类型
                 if isinstance(value, datetime):
                     context[key] = value.isoformat()
-                elif hasattr(value, 'to_dict'):
+                elif hasattr(value, "to_dict"):
                     # 如果是模型对象，转换为字典
                     try:
                         context[key] = value.to_dict()
@@ -235,11 +230,11 @@ class SQLAlchemyLogHandler:
                 if should_flush:
                     self._flush_logs()
 
-            except Exception as e:
+            except Exception:
                 # 使用标准logging避免循环依赖
                 import logging
 
-                logging.error(f"Error processing logs: {e}")
+                logging.error("Error processing logs: {e}")
                 time.sleep(1)
 
     def _flush_logs(self):
@@ -263,10 +258,11 @@ class SQLAlchemyLogHandler:
                             log_data["timestamp"] = datetime.fromisoformat(log_data["timestamp"].replace("Z", "+00:00"))
                         except ValueError:
                             log_data["timestamp"] = time_utils.now()
-                        
+
                         # 确保时间戳带时区信息
                         if log_data["timestamp"].tzinfo is None:
                             from app.utils.timezone import UTC_TZ
+
                             log_data["timestamp"] = log_data["timestamp"].replace(tzinfo=UTC_TZ)
 
                     log_entry = UnifiedLog.create_log_entry(**log_data)
@@ -278,11 +274,11 @@ class SQLAlchemyLogHandler:
                 self.batch_buffer.clear()
                 self.last_flush = time.time()
 
-        except Exception as e:
+        except Exception:
             # 使用标准logging避免循环依赖
             import logging
 
-            logging.error(f"Error flushing logs to database: {e}")
+            logging.error("Error flushing logs to database: {e}")
             try:
                 db.session.rollback()
             except:
@@ -349,21 +345,15 @@ class StructlogConfig:
         """过滤日志级别，只允许INFO及以上级别"""
         # 获取日志级别
         level = event_dict.get("level", "INFO")
-        
+
         # 定义级别优先级
-        level_priority = {
-            "DEBUG": 10,
-            "INFO": 20,
-            "WARNING": 30,
-            "ERROR": 40,
-            "CRITICAL": 50
-        }
-        
+        level_priority = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
+
         # 如果级别低于INFO，则丢弃日志
         if level_priority.get(level, 20) < 20:  # INFO级别
             # 静默丢弃DEBUG日志，不打印调试信息
             raise structlog.DropEvent()
-        
+
         return event_dict
 
     def _add_request_context(self, logger, method_name, event_dict):

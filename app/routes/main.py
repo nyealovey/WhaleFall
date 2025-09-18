@@ -2,8 +2,7 @@
 泰摸鱼吧 - 主要路由
 """
 
-import psutil
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, jsonify, redirect, render_template, request, url_for
 from flask_login import login_required
 
 from app.utils.decorators import admin_required
@@ -102,7 +101,7 @@ def get_system_uptime() -> "str | None":
     try:
         from app import app_start_time
         from app.utils.time_utils import now_china
-        
+
         # 计算应用运行时间
         current_time = now_china()
         uptime = current_time - app_start_time

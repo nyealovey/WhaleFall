@@ -3,7 +3,6 @@
 """
 
 import uuid
-from datetime import datetime
 
 from app import db
 from app.utils.timezone import now
@@ -16,7 +15,9 @@ class SyncSession(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(36), unique=True, nullable=False, index=True)
-    sync_type = db.Column(db.Enum("manual_single", "manual_batch", "manual_task", "scheduled_task", name="sync_type_enum"), nullable=False)
+    sync_type = db.Column(
+        db.Enum("manual_single", "manual_batch", "manual_task", "scheduled_task", name="sync_type_enum"), nullable=False
+    )
     sync_category = db.Column(
         db.Enum("account", "capacity", "config", "other", name="sync_category_enum"),
         nullable=False,
@@ -44,7 +45,7 @@ class SyncSession(db.Model):
         cascade="all, delete-orphan",
     )
 
-    def __init__(self, sync_type: str, sync_category: str = "account", created_by: int = None):
+    def __init__(self, sync_type: str, sync_category: str = "account", created_by: int | None = None) -> None:
         """
         初始化同步会话
 
@@ -60,7 +61,7 @@ class SyncSession(db.Model):
         self.started_at = now()
         self.created_by = created_by
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, any]:
         """转换为字典"""
         return {
             "id": self.id,
@@ -78,7 +79,7 @@ class SyncSession(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
-    def update_statistics(self):
+    def update_statistics(self) -> None:
         """更新统计信息"""
         records = self.instance_records.all()
         self.total_instances = len(records)
@@ -96,7 +97,7 @@ class SyncSession(db.Model):
         self.completed_at = now()
         self.updated_at = now()
 
-    def get_progress_percentage(self):
+    def get_progress_percentage(self) -> float:
         """获取进度百分比"""
         if self.total_instances == 0:
             return 0
@@ -104,14 +105,14 @@ class SyncSession(db.Model):
         return round((completed / self.total_instances) * 100, 2)
 
     @staticmethod
-    def get_sessions_by_type(sync_type: str, limit: int = 50):
+    def get_sessions_by_type(sync_type: str, limit: int = 50) -> list["SyncSession"]:
         """根据类型获取会话列表"""
         return (
             SyncSession.query.filter_by(sync_type=sync_type).order_by(SyncSession.created_at.desc()).limit(limit).all()
         )
 
     @staticmethod
-    def get_sessions_by_category(sync_category: str, limit: int = 50):
+    def get_sessions_by_category(sync_category: str, limit: int = 50) -> list["SyncSession"]:
         """根据分类获取会话列表"""
         return (
             SyncSession.query.filter_by(sync_category=sync_category)
@@ -120,5 +121,5 @@ class SyncSession(db.Model):
             .all()
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<SyncSession {self.session_id} ({self.sync_type}-{self.sync_category})>"

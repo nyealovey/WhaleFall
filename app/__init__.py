@@ -5,9 +5,12 @@
 
 import logging
 import os
-from logging.handlers import RotatingFileHandler
-from typing import Union
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
+from typing import TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify
@@ -21,6 +24,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
 from app.constants import SystemConstants
+from app.utils.time_utils import now_china
 
 # 加载环境变量
 load_dotenv()
@@ -34,7 +38,7 @@ if oracle_instant_client_path and os.path.exists(oracle_instant_client_path):
     current_dyld_path = os.environ.get("DYLD_LIBRARY_PATH", "")
     if oracle_instant_client_path not in current_dyld_path:
         os.environ["DYLD_LIBRARY_PATH"] = f"{oracle_instant_client_path}:{current_dyld_path}"
-        logger.info(f"🔧 已设置Oracle Instant Client环境变量: {oracle_instant_client_path}")
+        logger.info("🔧 已设置Oracle Instant Client环境变量: %s", oracle_instant_client_path)
 
 # 初始化扩展
 db = SQLAlchemy()
@@ -47,11 +51,10 @@ cors = CORS()
 csrf = CSRFProtect()
 
 # 记录应用启动时间
-from app.utils.time_utils import now_china
 app_start_time = now_china()
 
 
-def create_app(config_name: str | None = None) -> Flask:
+def create_app(config_name: str | None = None) -> Flask:  # noqa: ARG001
     """
     创建Flask应用实例
 
@@ -82,14 +85,15 @@ def create_app(config_name: str | None = None) -> Flask:
     from app.utils.structlog_config import configure_structlog
 
     configure_structlog(app)
-    
+
     # 设置全局日志级别为INFO，过滤DEBUG日志
     import logging
+
     from app.utils.debug_log_filter import configure_debug_filter
-    
+
     # 配置DEBUG日志过滤器
     configure_debug_filter()
-    
+
     # 设置全局日志级别
     logging.getLogger().setLevel(logging.INFO)
 
@@ -102,7 +106,6 @@ def create_app(config_name: str | None = None) -> Flask:
     from app.utils.advanced_error_handler import advanced_error_handler
 
     app.advanced_error_handler = advanced_error_handler
-
 
     # 注册高级错误处理器到Flask应用
     @app.errorhandler(Exception)
@@ -126,7 +129,7 @@ def create_app(config_name: str | None = None) -> Flask:
     return app
 
 
-def configure_app(app: Flask, config_name: str | None = None) -> None:
+def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: ARG001
     """
     配置Flask应用
 
@@ -270,6 +273,7 @@ def initialize_extensions(app: Flask) -> None:
 
     # 初始化缓存管理器
     from app.utils.cache_manager import init_cache_manager
+
     init_cache_manager(cache)
 
     # 初始化CSRF保护
@@ -295,7 +299,7 @@ def initialize_extensions(app: Flask) -> None:
 
     # 用户加载器
     @login_manager.user_loader
-    def load_user(user_id: str):
+    def load_user(user_id: str) -> "User | None":
         from app.models.user import User
 
         return User.query.get(int(user_id))
@@ -331,7 +335,7 @@ def initialize_extensions(app: Flask) -> None:
         redis_client.ping()
         app.logger.info("Redis连接成功")
     except Exception as e:
-        app.logger.warning(f"Redis不可用: {str(e)}")
+        app.logger.warning("Redis不可用: %s", str(e))
         redis_client = None
 
     # 将redis_client添加到应用上下文
@@ -359,6 +363,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.health import health_bp
     from app.routes.instance_accounts import instance_accounts_bp
     from app.routes.instances import instances_bp
+
     # from app.routes.logs import logs_bp  # 已停用，使用unified_logs替代
     from app.routes.main import main_bp
     from app.routes.unified_logs import unified_logs_bp
@@ -374,7 +379,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(account_list_bp, url_prefix="/account-list")
     app.register_blueprint(account_sync_bp, url_prefix="/account-sync")
     app.register_blueprint(account_static_bp, url_prefix="/account-static")
-    
+
     # 缓存管理蓝图
     app.register_blueprint(cache_bp, url_prefix="/cache")
 
@@ -457,22 +462,22 @@ def configure_template_filters(app: Flask) -> None:
     from app.utils.time_utils import time_utils
 
     @app.template_filter("china_time")
-    def china_time_filter(dt: Union[str, datetime], format_str: str = "%H:%M:%S") -> str:
+    def china_time_filter(dt: str | datetime, format_str: str = "%H:%M:%S") -> str:
         """东八区时间格式化过滤器"""
         return time_utils.format_china_time(dt, format_str)
 
     @app.template_filter("china_date")
-    def china_date_filter(dt: Union[str, datetime]) -> str:
+    def china_date_filter(dt: str | datetime) -> str:
         """东八区日期格式化过滤器"""
         return time_utils.format_china_time(dt, "%Y-%m-%d")
 
     @app.template_filter("china_datetime")
-    def china_datetime_filter(dt: Union[str, datetime]) -> str:
+    def china_datetime_filter(dt: str | datetime) -> str:
         """东八区日期时间格式化过滤器"""
         return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
 
     @app.template_filter("relative_time")
-    def relative_time_filter(dt: Union[str, datetime]) -> str:
+    def relative_time_filter(dt: str | datetime) -> str:
         """相对时间过滤器"""
         return time_utils.get_relative_time(dt)
 
@@ -486,15 +491,14 @@ def configure_template_filters(app: Flask) -> None:
         """智能时间显示过滤器"""
         if time_utils.is_today(dt):
             return time_utils.format_china_time(dt, "%H:%M:%S")
-        else:
-            return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
+        return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
 
 
 # 创建应用实例
 app = create_app()
 
 # 导入模型（确保模型被注册）
-from app.models import (  # noqa: F401; account,  # 已废弃，使用CurrentAccountSyncData
+from app.models import (  # noqa: F401, E402
     classification_batch,
     credential,
     database_type_config,

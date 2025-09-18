@@ -36,7 +36,7 @@ class DatabaseConnection(ABC):
         """测试数据库连接"""
 
     @abstractmethod
-    def execute_query(self, query: str, params: tuple | None = None) -> Any:
+    def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
         """执行查询"""
 
     @abstractmethod
@@ -117,12 +117,11 @@ class MySQLConnection(DatabaseConnection):
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | None = None) -> Any:
+    def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
         """执行MySQL查询"""
-        if not self.is_connected:
-            if not self.connect():
-                error_msg = "无法建立数据库连接"
-                raise Exception(error_msg)
+        if not self.is_connected and not self.connect():
+            error_msg = "无法建立数据库连接"
+            raise Exception(error_msg)
 
         cursor = self.connection.cursor()
         try:
@@ -137,8 +136,7 @@ class MySQLConnection(DatabaseConnection):
             result = self.execute_query("SELECT VERSION()")
             if result:
                 raw_version = result[0][0]
-                parsed = DatabaseVersionParser.parse_version('mysql', raw_version)
-                return DatabaseVersionParser.format_version_display('mysql', raw_version)
+                return DatabaseVersionParser.format_version_display("mysql", raw_version)
             return None
         except Exception:
             return None
@@ -212,12 +210,11 @@ class PostgreSQLConnection(DatabaseConnection):
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | None = None) -> Any:
+    def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
         """执行PostgreSQL查询"""
-        if not self.is_connected:
-            if not self.connect():
-                error_msg = "无法建立数据库连接"
-                raise Exception(error_msg)
+        if not self.is_connected and not self.connect():
+            error_msg = "无法建立数据库连接"
+            raise Exception(error_msg)
 
         cursor = self.connection.cursor()
         try:
@@ -232,7 +229,7 @@ class PostgreSQLConnection(DatabaseConnection):
             result = self.execute_query("SELECT version()")
             if result:
                 raw_version = result[0][0]
-                return DatabaseVersionParser.format_version_display('postgresql', raw_version)
+                return DatabaseVersionParser.format_version_display("postgresql", raw_version)
             return None
         except Exception:
             return None
@@ -241,7 +238,7 @@ class PostgreSQLConnection(DatabaseConnection):
 class SQLServerConnection(DatabaseConnection):
     """SQL Server数据库连接 - 支持2005-2022版本"""
 
-    def __init__(self, instance):
+    def __init__(self, instance: Any) -> None:  # noqa: ANN401
         super().__init__(instance)
         self.driver_type = None  # 记录使用的驱动类型
 
@@ -292,7 +289,6 @@ class SQLServerConnection(DatabaseConnection):
         except ImportError:
             return False
 
-
     def disconnect(self) -> None:
         """断开SQL Server连接"""
         if self.connection:
@@ -329,12 +325,11 @@ class SQLServerConnection(DatabaseConnection):
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | None = None) -> Any:
+    def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
         """执行SQL Server查询"""
-        if not self.is_connected:
-            if not self.connect():
-                error_msg = "无法建立数据库连接"
-                raise Exception(error_msg)
+        if not self.is_connected and not self.connect():
+            error_msg = "无法建立数据库连接"
+            raise Exception(error_msg)
 
         cursor = self.connection.cursor()
         try:
@@ -354,9 +349,9 @@ class SQLServerConnection(DatabaseConnection):
             # 使用pymssql的execute_query方法
             result = self.execute_query("SELECT @@VERSION")
             raw_version = result[0][0] if result else None
-            
+
             if raw_version:
-                return DatabaseVersionParser.format_version_display('sqlserver', raw_version)
+                return DatabaseVersionParser.format_version_display("sqlserver", raw_version)
             return None
         except Exception:
             return None
@@ -413,7 +408,7 @@ class OracleConnection(DatabaseConnection):
                         )
                     except Exception:
                         # 如果SID格式也失败，抛出原始错误
-                        raise e
+                        raise e from None
                 else:
                     raise e
 
@@ -464,12 +459,11 @@ class OracleConnection(DatabaseConnection):
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:
+    def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:  # noqa: ANN401
         """执行Oracle查询"""
-        if not self.is_connected:
-            if not self.connect():
-                error_msg = "无法建立数据库连接"
-                raise Exception(error_msg)
+        if not self.is_connected and not self.connect():
+            error_msg = "无法建立数据库连接"
+            raise Exception(error_msg)
 
         cursor = self.connection.cursor()
         try:
@@ -484,7 +478,7 @@ class OracleConnection(DatabaseConnection):
             result = self.execute_query("SELECT * FROM v$version WHERE rownum = 1")
             if result:
                 raw_version = result[0][0]
-                return DatabaseVersionParser.format_version_display('oracle', raw_version)
+                return DatabaseVersionParser.format_version_display("oracle", raw_version)
             return None
         except Exception:
             return None

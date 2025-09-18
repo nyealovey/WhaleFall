@@ -2,8 +2,6 @@
 泰摸鱼吧 - 权限配置数据模型
 """
 
-from datetime import datetime
-
 from app import db
 from app.utils.time_utils import now
 

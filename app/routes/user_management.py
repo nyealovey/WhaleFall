@@ -4,7 +4,7 @@
 
 import re
 
-from flask import Blueprint, flash, render_template, request
+from flask import Blueprint, Response, flash, render_template, request
 from flask_login import current_user, login_required
 
 from app import db
@@ -97,8 +97,8 @@ def api_get_users() -> "Response":
             }
         )
 
-    except Exception as e:
-        return APIResponse.error(f"获取用户列表失败: {str(e)}")
+    except Exception:
+        return APIResponse.error("获取用户列表失败: {str(e)}")
 
 
 @user_management_bp.route("/api/users", methods=["POST"])
@@ -113,7 +113,7 @@ def api_create_user() -> "Response":
         required_fields = ["username", "password", "role"]
         for field in required_fields:
             if not data.get(field):
-                return APIResponse.error(f"缺少必填字段: {field}")
+                return APIResponse.error("缺少必填字段: {field}")
 
         username = data["username"].strip()
         password = data["password"]
@@ -158,7 +158,7 @@ def api_create_user() -> "Response":
             user_id=current_user.id,
             error=str(e),
         )
-        return APIResponse.error(f"密码不符合要求: {str(e)}")
+        return APIResponse.error("密码不符合要求: {str(e)}")
     except Exception as e:
         db.session.rollback()
         log_error(
@@ -167,7 +167,7 @@ def api_create_user() -> "Response":
             user_id=current_user.id,
             error=str(e),
         )
-        return APIResponse.error(f"创建用户失败: {str(e)}")
+        return APIResponse.error("创建用户失败: {str(e)}")
 
 
 @user_management_bp.route("/api/users/<int:user_id>", methods=["PUT"])
@@ -229,7 +229,7 @@ def api_update_user(user_id: int) -> "Response":
             target_user_id=user_id,
             error=str(e),
         )
-        return APIResponse.error(f"密码不符合要求: {str(e)}")
+        return APIResponse.error("密码不符合要求: {str(e)}")
     except Exception as e:
         db.session.rollback()
         log_error(
@@ -239,7 +239,7 @@ def api_update_user(user_id: int) -> "Response":
             target_user_id=user_id,
             error=str(e),
         )
-        return APIResponse.error(f"更新用户失败: {str(e)}")
+        return APIResponse.error("更新用户失败: {str(e)}")
 
 
 @user_management_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
@@ -300,7 +300,7 @@ def api_delete_user(user_id: int) -> "Response":
             target_user_id=user_id,
             error=str(e),
         )
-        return APIResponse.error(f"删除用户失败: {str(e)}")
+        return APIResponse.error("删除用户失败: {str(e)}")
 
 
 @user_management_bp.route("/api/users/<int:user_id>/toggle-status", methods=["POST"])
@@ -365,7 +365,7 @@ def api_toggle_user_status(user_id: int) -> "Response":
             target_user_id=user_id,
             error=str(e),
         )
-        return APIResponse.error(f"切换用户状态失败: {str(e)}")
+        return APIResponse.error("切换用户状态失败: {str(e)}")
 
 
 @user_management_bp.route("/api/users/stats")
@@ -389,5 +389,5 @@ def api_get_stats() -> "Response":
             }
         )
 
-    except Exception as e:
-        return APIResponse.error(f"获取统计信息失败: {str(e)}")
+    except Exception:
+        return APIResponse.error("获取统计信息失败: {str(e)}")

@@ -2,9 +2,7 @@
 泰摸鱼吧 - 账户管理路由
 """
 
-from datetime import datetime
-
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, Response, jsonify, render_template, request
 from flask_login import current_user, login_required
 
 from app.models.current_account_sync_data import CurrentAccountSyncData
@@ -54,10 +52,10 @@ def list_accounts(db_type: str | None = None) -> str:
     if is_locked is not None:
         if is_locked == "true":
             # 查找 is_active = False 的记录（已锁定）
-            query = query.filter(CurrentAccountSyncData.is_active == False)
+            query = query.filter(CurrentAccountSyncData.is_active.is_(False))
         elif is_locked == "false":
             # 查找 is_active = True 的记录（正常）
-            query = query.filter(CurrentAccountSyncData.is_active == True)
+            query = query.filter(CurrentAccountSyncData.is_active.is_(True))
 
     # 超级用户过滤
     if is_superuser is not None:
@@ -70,11 +68,13 @@ def list_accounts(db_type: str | None = None) -> str:
 
     # 分类过滤
     if classification and classification != "all":
-        from app.models.account_classification import AccountClassificationAssignment, AccountClassification
+        from app.models.account_classification import AccountClassification, AccountClassificationAssignment
+
         # 通过分类分配表进行过滤
-        query = query.join(AccountClassificationAssignment).join(AccountClassification).filter(
-            AccountClassification.id == classification,
-            AccountClassificationAssignment.is_active == True
+        query = (
+            query.join(AccountClassificationAssignment)
+            .join(AccountClassification)
+            .filter(AccountClassification.id == classification, AccountClassificationAssignment.is_active.is_(True))
         )
 
     # 排序
@@ -97,8 +97,11 @@ def list_accounts(db_type: str | None = None) -> str:
 
     # 获取实际的分类选项
     from app.models.account_classification import AccountClassification
-    classification_list = AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
-    
+
+    classification_list = (
+        AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
+    )
+
     # 构建过滤选项
     filter_options = {
         "db_types": [
@@ -114,7 +117,8 @@ def list_accounts(db_type: str | None = None) -> str:
         ],
         "classifications": [
             {"value": "all", "label": "全部分类"},
-        ] + [{"value": str(c.id), "label": c.name} for c in classification_list],
+        ]
+        + [{"value": str(c.id), "label": c.name} for c in classification_list],
     }
 
     # 获取账户分类信息
@@ -125,7 +129,7 @@ def list_accounts(db_type: str | None = None) -> str:
         account_ids = [account.id for account in pagination.items]
         assignments = AccountClassificationAssignment.query.filter(
             AccountClassificationAssignment.account_id.in_(account_ids),
-            AccountClassificationAssignment.is_active == True
+            AccountClassificationAssignment.is_active.is_(True),
         ).all()
 
         for assignment in assignments:
@@ -214,10 +218,10 @@ def export_accounts() -> "Response":
     if is_locked is not None:
         if is_locked == "true":
             # 查找 is_active = False 的记录（已锁定）
-            query = query.filter(CurrentAccountSyncData.is_active == False)
+            query = query.filter(CurrentAccountSyncData.is_active.is_(False))
         elif is_locked == "false":
             # 查找 is_active = True 的记录（正常）
-            query = query.filter(CurrentAccountSyncData.is_active == True)
+            query = query.filter(CurrentAccountSyncData.is_active.is_(True))
 
     # 超级用户过滤
     if is_superuser is not None:
@@ -237,7 +241,7 @@ def export_accounts() -> "Response":
         account_ids = [account.id for account in accounts]
         assignments = AccountClassificationAssignment.query.filter(
             AccountClassificationAssignment.account_id.in_(account_ids),
-            AccountClassificationAssignment.is_active == True
+            AccountClassificationAssignment.is_active.is_(True),
         ).all()
 
         for assignment in assignments:
@@ -271,14 +275,8 @@ def export_accounts() -> "Response":
         is_locked = False
         if account.type_specific and isinstance(account.type_specific, dict):
             is_locked = account.is_locked_display  # 使用计算字段
-        
-        if is_locked:
-            if instance and instance.db_type == "sqlserver":
-                lock_status = "已禁用"
-            else:
-                lock_status = "已锁定"
-        else:
-            lock_status = "正常"
+
+        lock_status = ("已禁用" if instance and instance.db_type == "sqlserver" else "已锁定") if is_locked else "正常"
 
         # 格式化环境显示
         environment_display = ""
@@ -309,13 +307,11 @@ def export_accounts() -> "Response":
     timestamp = now().strftime("%Y%m%d_%H%M%S")
     filename = f"accounts_export_{timestamp}.csv"
 
-    response = Response(
+    return Response(
         output.getvalue(),
         mimetype="text/csv; charset=utf-8",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
-
-    return response
 
 
 @account_list_bp.route("/sync/<int:instance_id>", methods=["POST"])

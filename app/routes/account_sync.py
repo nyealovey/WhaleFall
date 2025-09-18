@@ -55,8 +55,11 @@ def sync_records() -> str | Response:
     # 时间范围过滤
     if date_range and date_range != "all":
         from datetime import datetime, timedelta
-        now = datetime.now()
-        
+
+        from app.utils.timezone import now_china
+
+        now = now_china()
+
         if date_range == "today":
             start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
             query = query.filter(SyncSession.created_at >= start_date)
@@ -70,9 +73,6 @@ def sync_records() -> str | Response:
     # 排序
     query = query.order_by(SyncSession.created_at.desc())
 
-    # 分页
-    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-
     # 聚合显示逻辑 - 当同步类型是手动批量或定时任务时，需要聚合显示
     # 获取所有记录进行聚合处理，然后手动分页
     all_records = query.order_by(SyncSession.created_at.desc()).all()
@@ -81,7 +81,7 @@ def sync_records() -> str | Response:
     # 所有批量类型的记录都需要聚合处理
     batch_records = [r for r in all_records if r.sync_type in ["manual_batch", "manual_task", "scheduled_task"]]
     manual_records = [r for r in all_records if r.sync_type == "manual_single"]
-    
+
     # 应用状态筛选到聚合记录
     if status and status != "all":
         batch_records = [r for r in batch_records if r.status == status]
@@ -120,7 +120,7 @@ def sync_records() -> str | Response:
         modified_count = 0
         success_count = 0
         failed_count = 0
-        
+
         # 从关联的实例记录中获取详细统计
         instance_records = record.instance_records.all()  # 执行查询获取实际记录
         for instance_record in instance_records:
@@ -128,7 +128,7 @@ def sync_records() -> str | Response:
             added_count += instance_record.accounts_created or 0
             removed_count += instance_record.accounts_deleted or 0
             modified_count += instance_record.accounts_updated or 0
-            
+
             # 统计成功和失败的实例数量
             if instance_record.status == "completed":
                 success_count += 1
@@ -154,20 +154,17 @@ def sync_records() -> str | Response:
 
     # 转换为聚合记录列表
     aggregated_records = []
-    for time_key, data in sorted(grouped.items(), key=lambda x: x[1]["created_at"], reverse=True):
+    for _time_key, data in sorted(grouped.items(), key=lambda x: x[1]["created_at"], reverse=True):
         # 使用最新记录的时间作为显示时间
         latest_time = max(record.created_at for record in data["sync_records"])
 
         # 确定同步类型显示文本 - 直接显示原始值
         sync_types = data["sync_types"]
-        if len(sync_types) == 1:
-            sync_type_display = sync_types[0]  # 直接显示原始值
-        else:
-            sync_type_display = " + ".join(sync_types)  # 多个类型用+连接
+        sync_type_display = sync_types[0] if len(sync_types) == 1 else " + ".join(sync_types)
 
         # 创建聚合记录对象
         class AggregatedRecord:
-            def __init__(self, data: dict[str, Any], latest_time: Any, sync_type_display: str) -> None:
+            def __init__(self, data: dict[str, Any], latest_time: datetime, sync_type_display: str) -> None:
                 self.created_at = latest_time
                 self.sync_type = sync_type_display
                 # 使用原始记录的状态，而不是重新计算
@@ -184,7 +181,7 @@ def sync_records() -> str | Response:
                 self.instance = None  # 聚合记录没有单一实例
                 self.sync_records = data["sync_records"]  # 保存原始记录用于详情查看
                 self.is_aggregated = True
-                
+
                 # 计算开始时间、结束时间和耗时
                 if data["sync_records"]:
                     # 开始时间：所有记录中最早的started_at
@@ -205,7 +202,6 @@ def sync_records() -> str | Response:
     # 处理手动记录，直接显示原始值
     for record in manual_records:
         record.is_aggregated = False
-
 
     # 合并聚合记录和手动记录
     all_display_records = aggregated_records + manual_records
@@ -249,6 +245,9 @@ def sync_records() -> str | Response:
                     yield num
 
     sync_records = Pagination(paginated_records, page, per_page, len(all_display_records))
+
+    # 获取所有活跃实例
+    instances = Instance.query.filter_by(is_active=True).all()
 
     if request.is_json:
         return jsonify(
@@ -354,7 +353,9 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                 )
 
                 # 使用统一的账户同步服务
-                result = account_sync_service.sync_accounts(instance, sync_type="manual_batch", session_id=session.session_id)
+                result = account_sync_service.sync_accounts(
+                    instance, sync_type="manual_batch", session_id=session.session_id
+                )
 
                 if result["success"]:
                     success_count += 1

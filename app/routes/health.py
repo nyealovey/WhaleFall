@@ -5,7 +5,7 @@
 import time
 
 import psutil
-from flask import Blueprint
+from flask import Blueprint, Response
 
 from app import cache, db
 from app.utils.api_response import APIResponse

@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, Response, jsonify, render_template, request
 from flask_login import login_required
 
 from app.models.account_classification import (
@@ -96,7 +96,7 @@ def get_account_statistics() -> dict:
             total_count = len(accounts)
             active_count = 0
             locked_count = 0
-            
+
             for account in accounts:
                 if not account.is_active:  # 使用is_active字段
                     locked_count += 1
@@ -117,7 +117,7 @@ def get_account_statistics() -> dict:
             total_count = len(accounts)
             active_count = 0
             locked_count = 0
-            
+
             for account in accounts:
                 if not account.is_active:  # 使用is_active字段
                     locked_count += 1
@@ -144,7 +144,7 @@ def get_account_statistics() -> dict:
             total_count = len(accounts)
             active_count = 0
             locked_count = 0
-            
+
             for account in accounts:
                 if not account.is_active:  # 使用is_active字段
                     locked_count += 1
@@ -157,16 +157,18 @@ def get_account_statistics() -> dict:
 
         # 按分类统计（参考仪表盘逻辑，去重统计）
         from sqlalchemy import distinct
+
         classification_stats = {}
-        classifications = AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
+        classifications = (
+            AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
+        )
         for classification in classifications:
             # 使用去重统计，只统计活跃的分配
-            assignment_count = AccountClassificationAssignment.query.filter_by(
-                classification_id=classification.id,
-                is_active=True
-            ).with_entities(
-                distinct(AccountClassificationAssignment.account_id)
-            ).count()
+            assignment_count = (
+                AccountClassificationAssignment.query.filter_by(classification_id=classification.id, is_active=True)
+                .with_entities(distinct(AccountClassificationAssignment.account_id))
+                .count()
+            )
             classification_stats[classification.name] = {
                 "classification_name": classification.name,
                 "account_count": assignment_count,
@@ -179,15 +181,15 @@ def get_account_statistics() -> dict:
         active_accounts = 0
         locked_accounts = 0
         for account in all_accounts:
-            if account.type_specific and 'is_locked' in account.type_specific:
-                if account.type_specific['is_locked'] == True:
+            if account.type_specific and "is_locked" in account.type_specific:
+                if account.type_specific["is_locked"]:
                     locked_accounts += 1
                 else:
                     active_accounts += 1
             else:
                 # 如果没有锁定信息，认为是活跃的
                 active_accounts += 1
-        
+
         superuser_accounts = CurrentAccountSyncData.query.filter_by(is_superuser=True, is_deleted=False).count()
         database_instances = len(instances)  # 数据库实例数
 
@@ -203,7 +205,7 @@ def get_account_statistics() -> dict:
             count = CurrentAccountSyncData.query.filter(
                 CurrentAccountSyncData.sync_time >= date,
                 CurrentAccountSyncData.sync_time < next_date,
-                CurrentAccountSyncData.is_deleted == False,
+                CurrentAccountSyncData.is_deleted.is_(False),
             ).count()
 
             trend_data.append({"date": date.strftime("%Y-%m-%d"), "count": count})
@@ -211,7 +213,7 @@ def get_account_statistics() -> dict:
         # 最近账户活动 - 获取最近同步的10个账户
         recent_accounts_query = (
             CurrentAccountSyncData.query.join(Instance)
-            .filter(CurrentAccountSyncData.is_deleted == False)
+            .filter(CurrentAccountSyncData.is_deleted.is_(False))
             .order_by(CurrentAccountSyncData.sync_time.desc())
             .limit(10)
             .all()
@@ -237,7 +239,7 @@ def get_account_statistics() -> dict:
 
         # 从CurrentAccountSyncData获取权限统计
         sync_data_with_permissions = CurrentAccountSyncData.query.filter(
-            CurrentAccountSyncData.is_deleted == False
+            CurrentAccountSyncData.is_deleted.is_(False)
         ).all()
 
         for sync_data in sync_data_with_permissions:
@@ -288,7 +290,7 @@ def get_account_statistics() -> dict:
         }
 
     except Exception as e:
-        logging.error(f"获取账户统计信息失败: {e}")
+        logging.error("获取账户统计信息失败: %s", e)
         return {
             "total_accounts": 0,
             "active_accounts": 0,

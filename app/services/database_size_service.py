@@ -3,7 +3,6 @@
 统一处理手动同步和定时任务的数据库大小同步逻辑
 """
 
-import logging
 from typing import Any
 
 import pymysql
@@ -26,16 +25,19 @@ except ImportError:
 
 from app import db
 from app.models import Instance
+from app.utils.structlog_config import get_system_logger
 from app.utils.timezone import now
+
+logger = get_system_logger()
 
 
 class DatabaseSizeService:
     """数据库大小同步服务"""
 
     def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
+        pass
 
-    def sync_database_size(self, instance: Instance, sync_type: str = "batch") -> dict[str, Any]:
+    def sync_database_size(self, instance: Instance, _sync_type: str = "batch") -> dict[str, Any]:
         """
         同步数据库大小信息 - 统一入口
 
@@ -76,14 +78,14 @@ class DatabaseSizeService:
             return result
 
         except Exception as e:
-            self.logger.error(f"数据库大小同步失败: {str(e)}")
+            self.logger.error("数据库大小同步失败: {str(e)}")
             return {
                 "success": False,
                 "error": f"{instance.db_type.upper()}数据库大小同步失败: {str(e)}",
                 "database_size": 0,
             }
 
-    def _get_connection(self, instance: Instance) -> "Any | None":
+    def _get_connection(self, instance: Instance) -> Any | None:  # noqa: ANN401
         """获取数据库连接"""
         try:
             if instance.db_type == "mysql":
@@ -107,14 +109,15 @@ class DatabaseSizeService:
                 )
             if instance.db_type == "sqlserver":
                 import pymssql
+
                 return pymssql.connect(
                     server=instance.host,
                     port=instance.port,
                     user=instance.credential.username,
                     password=instance.credential.get_plain_password(),
-                    database=instance.database_name or 'master',
+                    database=instance.database_name or "master",
                     timeout=30,
-                    tds_version="7.4"
+                    tds_version="7.4",
                 )
             if instance.db_type == "oracle":
                 if oracledb is None:
@@ -142,16 +145,16 @@ class DatabaseSizeService:
                             )
                         except oracledb.DatabaseError:
                             # 如果Thin模式也失败，抛出原始错误
-                            raise e
+                            raise e from None
                     else:
                         raise
             else:
                 return None
-        except Exception as e:
-            self.logger.error(f"数据库连接失败: {str(e)}")
+        except Exception:
+            self.logger.error("数据库连接失败: {str(e)}")
             return None
 
-    def _get_mysql_size(self, instance: Instance, conn: "Any") -> dict[str, Any]:
+    def _get_mysql_size(self, instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
         """获取MySQL数据库大小"""
         cursor = conn.cursor()
 
@@ -184,7 +187,7 @@ class DatabaseSizeService:
             conn.close()
             raise e
 
-    def _get_postgresql_size(self, instance: Instance, conn: "Any") -> dict[str, Any]:
+    def _get_postgresql_size(self, _instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
         """获取PostgreSQL数据库大小"""
         cursor = conn.cursor()
 
@@ -215,7 +218,7 @@ class DatabaseSizeService:
             conn.close()
             raise e
 
-    def _get_sqlserver_size(self, instance: Instance, conn: "Any") -> dict[str, Any]:
+    def _get_sqlserver_size(self, _instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
         """获取SQL Server数据库大小"""
         cursor = conn.cursor()
 
@@ -228,7 +231,7 @@ class DatabaseSizeService:
                 FROM sys.master_files
                 WHERE database_id = DB_ID(%s)
             """,
-                (instance.database_name or "master",),
+                (_instance.database_name or "master",),
             )
 
             result = cursor.fetchone()
@@ -248,7 +251,7 @@ class DatabaseSizeService:
             conn.close()
             raise e
 
-    def _get_oracle_size(self, instance: Instance, conn: "Any") -> dict[str, Any]:
+    def _get_oracle_size(self, _instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
         """获取Oracle数据库大小"""
         cursor = conn.cursor()
 

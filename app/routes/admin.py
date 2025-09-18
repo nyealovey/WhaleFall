@@ -22,11 +22,11 @@ logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
-def admin_required(f: F) -> F:
+def admin_required[T](f: T) -> T:
     """管理员权限装饰器"""
 
     @wraps(f)
-    def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         if not current_user.is_authenticated:
             return APIResponse.error("请先登录", code=401)  # type: ignore
 
@@ -45,7 +45,7 @@ def get_app_info() -> Response:
         return APIResponse.success(data={"app_name": "泰摸鱼吧", "app_version": "4.0.0"})  # type: ignore
 
     except Exception as e:
-        logger.error(f"获取应用信息失败: {e}")
+        logger.error("获取应用信息失败: %s", e)
         return APIResponse.success(data={"app_name": "泰摸鱼吧", "app_version": "4.0.0"})  # type: ignore
 
 
@@ -60,7 +60,7 @@ def refresh_system_data() -> Response:
         logger.info("系统数据刷新请求")
         return APIResponse.success(message="系统数据已刷新")  # type: ignore
     except Exception as e:
-        logger.error(f"刷新系统数据失败: {e}")
+        logger.error("刷新系统数据失败: %s", e)
         return APIResponse.server_error("刷新系统数据失败")  # type: ignore
 
 
@@ -74,7 +74,7 @@ def clear_cache() -> Response:
         logger.info("清除缓存请求")
         return APIResponse.success(message="缓存已清除")  # type: ignore
     except Exception as e:
-        logger.error(f"清除缓存失败: {e}")
+        logger.error("清除缓存失败: %s", e)
         return APIResponse.server_error("清除缓存失败")  # type: ignore
 
 
@@ -93,5 +93,5 @@ def run_health_check() -> Response:
 
         return APIResponse.success(data=health_status, message="健康检查完成")  # type: ignore
     except Exception as e:
-        logger.error(f"健康检查失败: {e}")
+        logger.error("健康检查失败: %s", e)
         return APIResponse.server_error("健康检查失败")  # type: ignore

@@ -2,6 +2,8 @@
 泰摸鱼吧 - API响应工具
 """
 
+from typing import Any
+
 from flask import jsonify
 
 
@@ -45,11 +47,11 @@ class APIResponse:
 
 
 # 便捷函数
-def success_response(data=None, message="操作成功"):
+def success_response(data: Any = None, message: str = "操作成功") -> APIResponse:  # noqa: ANN401
     """成功响应便捷函数"""
     return APIResponse.success(data, message)
 
 
-def error_response(message="操作失败", code=400, data=None):
+def error_response(message: str = "操作失败", code: int = 400, data: Any = None) -> APIResponse:  # noqa: ANN401
     """错误响应便捷函数"""
     return APIResponse.error(message, code, data)

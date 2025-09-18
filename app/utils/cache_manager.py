@@ -22,7 +22,7 @@ class CacheManager:
         self.default_timeout = 300  # 5分钟默认超时
         self.system_logger = get_system_logger()
 
-    def _generate_key(self, prefix: str, *args, **kwargs) -> str:
+    def _generate_key(self, prefix: str, *args, **kwargs: Any) -> str:  # noqa: ANN401
         """生成缓存键"""
         # 将参数序列化为字符串
         key_data = {"args": args, "kwargs": sorted(kwargs.items())}
@@ -56,8 +56,8 @@ class CacheManager:
         try:
             self.cache.delete(key)
             return True
-        except Exception as e:
-            self.system_logger.warning(f"删除缓存失败: {key}, 错误: {e}")
+        except Exception:
+            self.system_logger.warning("删除缓存失败: {key}, 错误: {e}")
             return False
 
     def clear(self) -> bool:
@@ -65,11 +65,11 @@ class CacheManager:
         try:
             self.cache.clear()
             return True
-        except Exception as e:
-            self.system_logger.warning(f"清空缓存失败: {e}")
+        except Exception:
+            self.system_logger.warning("清空缓存失败: {e}")
             return False
 
-    def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs) -> Any:
+    def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs: Any) -> Any:  # noqa: ANN401
         """获取缓存值，如果不存在则设置"""
         value = self.get(key)
         if value is None:
@@ -86,8 +86,8 @@ class CacheManager:
                 return self.cache.cache.delete_pattern(pattern)
             self.system_logger.warning("当前缓存后端不支持模式删除")
             return 0
-        except Exception as e:
-            self.system_logger.warning(f"模式删除缓存失败: {pattern}, 错误: {e}")
+        except Exception:
+            self.system_logger.warning("模式删除缓存失败: {pattern}, 错误: {e}")
             return 0
 
 

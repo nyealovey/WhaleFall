@@ -2,8 +2,6 @@
 泰摸鱼吧 - 用户模型
 """
 
-from datetime import datetime
-
 from flask_login import UserMixin
 
 from app import bcrypt, db
@@ -96,16 +94,15 @@ class User(UserMixin, db.Model):
         # 管理员拥有所有权限
         if self.is_admin():
             return True
-        
+
         # 根据角色判断权限
         if self.role == "admin":
             return True
-        elif self.role == "user":
+        if self.role == "user":
             # 普通用户只有查看权限
             return permission == "view"
-        else:
-            # 其他角色默认无权限
-            return False
+        # 其他角色默认无权限
+        return False
 
     def update_last_login(self) -> None:
         """更新最后登录时间"""

@@ -1,3 +1,7 @@
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
+
 #!/usr/bin/env python3
 
 """
@@ -20,7 +24,7 @@ from app import create_app, db
 
 
 def main():
-    print("🔧 测试数据库连接...")
+    logger.debug("🔧 测试数据库连接...")
 
     # 创建Flask应用
     app = create_app()
@@ -29,18 +33,18 @@ def main():
         try:
             # 创建数据库文件
             db.create_all()
-            print("✅ 数据库创建成功")
+            logger.debug("✅ 数据库创建成功")
 
             # 检查数据库文件
             db_path = project_root / "userdata" / "taifish_dev.db"
             if db_path.exists():
-                print(f"✅ 数据库文件存在: {db_path}")
-                print(f"📊 文件大小: {db_path.stat().st_size} bytes")
+                logger.debug("✅ 数据库文件存在: {db_path}")
+                logger.debug("📊 文件大小: {db_path.stat().st_size} bytes")
             else:
-                print("❌ 数据库文件不存在")
+                logger.debug("❌ 数据库文件不存在")
 
-        except Exception as e:
-            print(f"❌ 数据库创建失败: {e}")
+        except Exception:
+            logger.debug("❌ 数据库创建失败: {e}")
             return False
 
     return True

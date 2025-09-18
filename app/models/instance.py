@@ -2,10 +2,9 @@
 泰摸鱼吧 - 实例模型
 """
 
-from datetime import datetime
-
 from app import db
 from app.utils.timezone import now
+from app.utils.version_parser import DatabaseVersionParser
 
 
 class Instance(db.Model):
@@ -87,42 +86,46 @@ class Instance(db.Model):
         try:
             from app.services.connection_test_service import connection_test_service
             from app.utils.timezone import now
-            
+
             # 使用连接测试服务
             result = connection_test_service.test_connection(self)
-            
+
             # 无论连接成功还是失败，都更新最后连接时间
             self.last_connected = now()
-            
+
             # 如果连接成功，解析版本信息
-            if result.get('success') and result.get('version'):
-                version_info = result['version']
+            if result.get("success") and result.get("version"):
+                version_info = result["version"]
                 parsed = DatabaseVersionParser.parse_version(self.db_type.lower(), version_info)
-                
+
                 # 更新实例的版本信息
-                self.database_version = parsed['original']
-                self.main_version = parsed['main_version']
-                self.detailed_version = parsed['detailed_version']
-                
+                self.database_version = parsed["original"]
+                self.main_version = parsed["main_version"]
+                self.detailed_version = parsed["detailed_version"]
+
                 # 更新返回结果中的版本信息
-                result['version'] = DatabaseVersionParser.format_version_display(self.db_type.lower(), version_info)
-                result['main_version'] = parsed['main_version']
-                result['detailed_version'] = parsed['detailed_version']
-            
+                result["version"] = DatabaseVersionParser.format_version_display(self.db_type.lower(), version_info)
+                result["main_version"] = parsed["main_version"]
+                result["detailed_version"] = parsed["detailed_version"]
+
             # 保存到数据库
             db.session.commit()
-            
+
             return result
-            
+
         except Exception as e:
             # 即使出现异常，也尝试更新最后连接时间
             try:
                 from app.utils.timezone import now
+
                 self.last_connected = now()
                 db.session.commit()
             except Exception as update_error:
-                pass  # 忽略更新时间的错误
-            
+                # 记录更新时间错误，但不影响连接测试结果
+                from app.utils.structlog_config import get_system_logger
+
+                get_system_logger().warning("更新时间失败: %s", update_error)
+
             return {"status": "error", "message": f"连接测试失败: {str(e)}"}
 
     def _test_sql_server_connection(self) -> dict:
@@ -194,13 +197,13 @@ class Instance(db.Model):
                         }
                     except oracledb.DatabaseError:
                         # 如果Thin模式也失败，抛出原始错误
-                        raise e
+                        raise e from None
                 else:
                     raise
         except Exception as e:
             return {"status": "error", "message": f"Oracle连接失败: {str(e)}"}
 
-    def to_dict(self, include_password: bool = False) -> dict:
+    def to_dict(self, *, include_password: bool = False) -> dict:
         """
         转换为字典格式
 

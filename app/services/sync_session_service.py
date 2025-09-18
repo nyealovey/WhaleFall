@@ -3,16 +3,14 @@
 管理同步会话和实例记录的业务逻辑
 """
 
-from datetime import datetime
 from typing import Any
-
-from app.utils.time_utils import time_utils
 
 from app import db
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.utils.structlog_config import get_sync_logger, get_system_logger
+from app.utils.time_utils import time_utils
 
 
 class SyncSessionService:
