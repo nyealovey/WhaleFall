@@ -33,13 +33,23 @@ def main() -> None:
 
     logger = get_system_logger()
 
+    # 检查并创建管理员用户
+    with app.app_context():
+        from app.models.user import User
+        admin = User.query.filter_by(username="admin").first()
+        if not admin:
+            admin = User.create_admin()
+    
     logger.info("=" * 50)
     logger.info("🐟 泰摸鱼吧 - 本地开发环境")
     logger.info("=" * 50)
     logger.info("🌐 访问地址: http://%s:%s", host, port)
-    logger.info("🔑 默认登录: admin/Admin123!")
+    logger.info("🔑 默认登录: admin/[随机密码]")
     logger.info("📊 管理界面: http://%s:%s/admin", host, port)
     logger.info("🔧 调试模式: %s", "开启" if debug else "关闭")
+    logger.info("=" * 50)
+    logger.info("💡 查看管理员密码: python scripts/show_admin_password.py")
+    logger.info("💡 重置管理员密码: python scripts/reset_admin_password.py")
     logger.info("=" * 50)
     logger.info("按 Ctrl+C 停止服务器")
     logger.info("=" * 50)
