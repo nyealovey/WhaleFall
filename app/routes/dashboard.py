@@ -186,15 +186,31 @@ def get_system_overview() -> dict:
         # 活跃实例数
         active_instances = Instance.query.filter_by(is_active=True).count()
 
-        # 活跃账户数（与账户统计页面保持一致）
+        # 活跃账户数（根据不同数据库类型使用不同的锁定判断标准）
         all_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).all()
         active_accounts = 0
+        
         for account in all_accounts:
-            if account.type_specific and "is_locked" in account.type_specific:
-                if not account.type_specific["is_locked"]:
-                    active_accounts += 1
-            else:
-                # 如果没有锁定信息，认为是活跃的
+            is_locked = False
+            
+            if account.db_type == "mysql":
+                # MySQL使用is_locked字段
+                if account.type_specific and "is_locked" in account.type_specific:
+                    is_locked = account.type_specific["is_locked"]
+            elif account.db_type == "postgresql":
+                # PostgreSQL使用can_login字段，can_login=False表示锁定
+                if account.type_specific and "can_login" in account.type_specific:
+                    is_locked = not account.type_specific["can_login"]
+            elif account.db_type == "oracle":
+                # Oracle使用account_status字段，LOCKED表示锁定
+                if account.type_specific and "account_status" in account.type_specific:
+                    is_locked = account.type_specific["account_status"] == "LOCKED"
+            elif account.db_type == "sqlserver":
+                # SQL Server使用is_locked字段
+                if account.type_specific and "is_locked" in account.type_specific:
+                    is_locked = account.type_specific["is_locked"]
+            
+            if not is_locked:
                 active_accounts += 1
 
         # 今日日志数（东八区）

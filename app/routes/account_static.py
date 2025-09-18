@@ -195,19 +195,34 @@ def get_account_statistics() -> dict:
                 "color": classification.color,
             }
 
-        # 按状态统计（参考仪表盘逻辑）
-        # 需要检查type_specific中的is_locked字段
+        # 按状态统计（根据不同数据库类型使用不同的锁定判断标准）
         all_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).all()
         active_accounts = 0
         locked_accounts = 0
+        
         for account in all_accounts:
-            if account.type_specific and "is_locked" in account.type_specific:
-                if account.type_specific["is_locked"]:
-                    locked_accounts += 1
-                else:
-                    active_accounts += 1
+            is_locked = False
+            
+            if account.db_type == "mysql":
+                # MySQL使用is_locked字段
+                if account.type_specific and "is_locked" in account.type_specific:
+                    is_locked = account.type_specific["is_locked"]
+            elif account.db_type == "postgresql":
+                # PostgreSQL使用can_login字段，can_login=False表示锁定
+                if account.type_specific and "can_login" in account.type_specific:
+                    is_locked = not account.type_specific["can_login"]
+            elif account.db_type == "oracle":
+                # Oracle使用account_status字段，LOCKED表示锁定
+                if account.type_specific and "account_status" in account.type_specific:
+                    is_locked = account.type_specific["account_status"] == "LOCKED"
+            elif account.db_type == "sqlserver":
+                # SQL Server使用is_locked字段
+                if account.type_specific and "is_locked" in account.type_specific:
+                    is_locked = account.type_specific["is_locked"]
+            
+            if is_locked:
+                locked_accounts += 1
             else:
-                # 如果没有锁定信息，认为是活跃的
                 active_accounts += 1
 
         superuser_accounts = CurrentAccountSyncData.query.filter_by(is_superuser=True, is_deleted=False).count()
