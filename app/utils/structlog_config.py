@@ -361,7 +361,7 @@ class StructlogConfig:
         
         # 如果级别低于INFO，则丢弃日志
         if level_priority.get(level, 20) < 20:  # INFO级别
-            print(f"DEBUG: 过滤DEBUG日志: {level} - {event_dict.get('message', '')}")
+            # 静默丢弃DEBUG日志，不打印调试信息
             raise structlog.DropEvent()
         
         return event_dict

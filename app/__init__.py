@@ -82,6 +82,16 @@ def create_app(config_name: str | None = None) -> Flask:
     from app.utils.structlog_config import configure_structlog
 
     configure_structlog(app)
+    
+    # 设置全局日志级别为INFO，过滤DEBUG日志
+    import logging
+    from app.utils.debug_log_filter import configure_debug_filter
+    
+    # 配置DEBUG日志过滤器
+    configure_debug_filter()
+    
+    # 设置全局日志级别
+    logging.getLogger().setLevel(logging.INFO)
 
     # 注册全局错误处理器
     from app.utils.error_handler import register_error_handlers
