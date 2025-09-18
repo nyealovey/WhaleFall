@@ -505,7 +505,6 @@ from app.models import (  # noqa: F401, E402
     credential,
     database_type_config,
     instance,
-    task,
     user,
 )
 

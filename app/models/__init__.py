@@ -21,7 +21,6 @@ from .permission_config import PermissionConfig
 # 移除SyncData导入，使用新的优化同步模型
 from .sync_instance_record import SyncInstanceRecord
 from .sync_session import SyncSession
-from .task import Task
 
 # 导入所有模型
 from .user import User
@@ -32,7 +31,7 @@ __all__ = [
     "Instance",
     "Credential",
     # "Account",  # 已废弃，使用CurrentAccountSyncData
-    "Task",
+    # 移除Task导出，只使用APScheduler管理任务
     # 移除SyncData导出
     "SyncSession",
     "SyncInstanceRecord",

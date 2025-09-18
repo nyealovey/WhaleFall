@@ -13,7 +13,6 @@ from app import db
 from app.models.instance import Instance
 
 # 移除SyncData导入，使用新的同步会话模型
-from app.models.task import Task
 from app.models.user import User
 from app.utils.cache_manager import (
     cached,
@@ -341,13 +340,20 @@ def get_log_level_distribution() -> dict:
 
 
 def get_task_status_distribution() -> dict:
-    """获取任务状态分布"""
+    """获取任务状态分布（使用APScheduler）"""
     try:
-        status_stats = (
-            db.session.query(Task.last_status, db.func.count(Task.id).label("count")).group_by(Task.last_status).all()
-        )
-
-        return [{"status": stat.last_status or "unknown", "count": stat.count} for stat in status_stats]
+        from app.scheduler import get_scheduler
+        
+        scheduler = get_scheduler()
+        jobs = scheduler.get_jobs()
+        
+        # 统计任务状态
+        status_count = {}
+        for job in jobs:
+            status = "active" if job.next_run_time else "inactive"
+            status_count[status] = status_count.get(status, 0) + 1
+        
+        return [{"status": status, "count": count} for status, count in status_count.items()]
     except Exception as e:
         log_error(f"获取任务状态分布失败: {e}", module="dashboard")
         return []

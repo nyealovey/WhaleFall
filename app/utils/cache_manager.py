@@ -278,7 +278,6 @@ def warm_up_cache() -> "bool | None":
     """缓存预热"""
     try:
         from app.models.instance import Instance
-        from app.models.task import Task
         from app.models.user import User
 
         # 预热用户缓存
@@ -291,10 +290,16 @@ def warm_up_cache() -> "bool | None":
         for instance in instances:
             cache_manager.set(f"instance:{instance.id}", instance.to_dict(), 300)
 
-        # 预热任务缓存
-        tasks = Task.query.limit(10).all()
-        for task in tasks:
-            cache_manager.set(f"task:{task.id}", task.to_dict(), 180)
+        # 预热任务缓存（使用APScheduler）
+        from app.scheduler import get_scheduler
+        scheduler = get_scheduler()
+        jobs = scheduler.get_jobs()
+        for job in jobs:
+            cache_manager.set(f"job:{job.id}", {
+                "id": job.id,
+                "name": job.name,
+                "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None
+            }, 180)
 
         system_logger = get_system_logger()
         system_logger.info("缓存预热完成", module="cache")
