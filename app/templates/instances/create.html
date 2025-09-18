@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from 'macros/environment_macro.html' import environment_options %}
 
 {% block title %}添加实例 - 泰摸鱼吧{% endblock %}
 
@@ -39,15 +38,6 @@
                                     {% endfor %}
                                 </select>
                                 <div class="form-text">从配置的数据库类型中选择</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="environment" class="form-label">环境 <span class="text-danger">*</span></label>
-                                <select class="form-select" id="environment" name="environment" required>
-                                    {{ environment_options() }}
-                                </select>
-                                <div class="form-text">选择此实例的部署环境</div>
                             </div>
                         </div>
                     </div>

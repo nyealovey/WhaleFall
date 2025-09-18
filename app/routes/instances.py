@@ -584,14 +584,6 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
             flash(db_type_error, "error")
             return render_template("instances/edit.html", instance=instance)
 
-        # 验证环境类型
-        valid_environments = ["production", "development", "testing"]
-        if data.get("environment") not in valid_environments:
-            error_msg = "环境类型必须是生产环境、开发环境或测试环境"
-            if request.is_json:
-                return jsonify({"error": error_msg}), 400
-            flash(error_msg, "error")
-            return render_template("instances/edit.html", instance=instance)
 
         # 验证端口号
         try:
@@ -1057,7 +1049,6 @@ def _process_instances_data(
                     instance_name=instance.name,
                     db_type=instance.db_type,
                     host=instance.host,
-                    environment=instance.environment,
                 )
 
         except Exception as e:
