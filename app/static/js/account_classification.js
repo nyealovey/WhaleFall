@@ -1320,7 +1320,6 @@ function displayMatchedAccounts(accounts, ruleName) {
                             <th style="font-size: 0.8rem;">账户名称</th>
                             <th style="font-size: 0.8rem;">实例名称</th>
                             <th style="font-size: 0.8rem;">实例IP</th>
-                            <th style="font-size: 0.8rem;">环境</th>
                             <th style="font-size: 0.8rem;">锁定状态</th>
                         </tr>
                     </thead>
@@ -1328,14 +1327,6 @@ function displayMatchedAccounts(accounts, ruleName) {
         `;
 
         accounts.forEach(account => {
-            // 环境标签
-            const envClass = account.instance_environment === 'production' ? 'danger' :
-                            account.instance_environment === 'development' ? 'warning' : 'info';
-            const envLabel = account.instance_environment === 'production' ? '生产' :
-                            account.instance_environment === 'development' ? '开发' :
-                            account.instance_environment === 'testing' ? '测试' : account.instance_environment;
-
-
             // 账户状态
             const lockStatus = !account.is_locked
                 ? '<span class="badge bg-success" style="font-size: 0.7rem;">正常</span>'
@@ -1357,9 +1348,6 @@ function displayMatchedAccounts(accounts, ruleName) {
                     </td>
                     <td>
                         <span class="badge bg-primary" style="font-size: 0.7rem;">${account.instance_host || '-'}</span>
-                    </td>
-                    <td>
-                        <span class="badge bg-${envClass}" style="font-size: 0.7rem;">${envLabel}</span>
                     </td>
                     <td>
                         ${lockStatus}
