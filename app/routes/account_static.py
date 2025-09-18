@@ -136,24 +136,7 @@ def get_account_statistics() -> dict:
                 }
             )
 
-        # 按环境统计（参考仪表盘逻辑）
-        environment_stats = defaultdict(lambda: {"total": 0, "active": 0, "locked": 0})
-        for instance in instances:
-            env = instance.environment or "unknown"
-            accounts = CurrentAccountSyncData.query.filter_by(instance_id=instance.id, is_deleted=False).all()
-            total_count = len(accounts)
-            active_count = 0
-            locked_count = 0
-
-            for account in accounts:
-                if not account.is_active:  # 使用is_active字段
-                    locked_count += 1
-                else:
-                    active_count += 1
-
-            environment_stats[env]["total"] += total_count
-            environment_stats[env]["active"] += active_count
-            environment_stats[env]["locked"] += locked_count
+        # 移除按环境统计（已废弃环境字段）
 
         # 按分类统计（参考仪表盘逻辑，去重统计）
         from sqlalchemy import distinct
@@ -280,7 +263,6 @@ def get_account_statistics() -> dict:
             "total_instances": database_instances,  # 添加别名以兼容模板
             "db_type_stats": db_type_stats,
             "instance_stats": instance_stats,
-            "environment_stats": dict(environment_stats),
             "classification_stats": classification_stats,
             "superuser_accounts": superuser_accounts,
             "trend_data": trend_data,
@@ -299,7 +281,6 @@ def get_account_statistics() -> dict:
             "total_instances": 0,  # 添加别名以兼容模板
             "db_type_stats": {},
             "instance_stats": [],
-            "environment_stats": {},
             "classification_stats": {},
             "superuser_accounts": 0,
             "trend_data": [],
