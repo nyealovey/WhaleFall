@@ -761,6 +761,11 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 // 确保没有标签时也正确初始化
                 updateSelectedTagsPreview([]);
+                // 确保隐藏字段有正确的值
+                const tagInput = document.getElementById('selected-tag-names');
+                if (tagInput && !tagInput.value) {
+                    tagInput.value = '';
+                }
             }
         } else {
             console.error('初始化失败:');
@@ -784,7 +789,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const chips = document.getElementById('selected-tags-chips');
         const hiddenInput = document.getElementById('selected-tag-names');
         
-        if (selectedTags.length > 0) {
+        console.log('更新标签预览:', selectedTags);
+        
+        if (selectedTags && selectedTags.length > 0) {
             preview.style.display = 'block';
             count.textContent = `已选择 ${selectedTags.length} 个标签`;
             
@@ -803,6 +810,8 @@ document.addEventListener('DOMContentLoaded', function() {
             count.textContent = '未选择标签';
             hiddenInput.value = '';
         }
+        
+        console.log('标签预览更新完成，隐藏字段值:', hiddenInput.value);
     }
     
     function removeTagFromPreview(tagName) {
@@ -823,8 +832,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('表单提交前的标签字段值:', document.getElementById('selected-tag-names').value);
             // 确保标签字段有正确的值
             const tagInput = document.getElementById('selected-tag-names');
-            if (!tagInput.value) {
-                tagInput.value = '';
+            if (tagInput) {
+                if (!tagInput.value) {
+                    tagInput.value = '';
+                }
+                console.log('表单提交时的标签字段值:', tagInput.value);
+            } else {
+                console.error('找不到标签输入字段');
             }
         });
     }
