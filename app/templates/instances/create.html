@@ -218,6 +218,10 @@ function showAlert(type, message) {
 <script>
 // 标签选择器初始化
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('页面加载完成，开始初始化标签选择器');
+    console.log('Bootstrap是否可用:', typeof bootstrap !== 'undefined');
+    console.log('TagSelector是否可用:', typeof TagSelector !== 'undefined');
+    
     // 等待标签选择器组件加载完成
     setTimeout(() => {
         if (typeof TagSelector !== 'undefined' && document.getElementById('tag-selector-container')) {
@@ -230,7 +234,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // 绑定打开标签选择器按钮
-            document.getElementById('open-tag-selector-btn').addEventListener('click', openTagSelector);
+            const openBtn = document.getElementById('open-tag-selector-btn');
+            if (openBtn) {
+                openBtn.addEventListener('click', function() {
+                    console.log('点击了选择标签按钮');
+                    openTagSelector();
+                });
+            } else {
+                console.error('找不到open-tag-selector-btn按钮');
+            }
             
             // 绑定确认选择按钮
             document.getElementById('confirm-tag-selection').addEventListener('click', confirmTagSelection);

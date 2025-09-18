@@ -598,10 +598,26 @@ let tagSelectorModal = null;
 
 // 标签选择器模态框控制函数
 function openTagSelector() {
+    console.log('openTagSelector函数被调用');
+    const modalElement = document.getElementById('tagSelectorModal');
+    console.log('模态框元素:', modalElement);
+    
     if (!tagSelectorModal) {
-        tagSelectorModal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
+        if (modalElement) {
+            tagSelectorModal = new bootstrap.Modal(modalElement);
+            console.log('创建了新的模态框实例');
+        } else {
+            console.error('找不到tagSelectorModal元素');
+            return;
+        }
     }
-    tagSelectorModal.show();
+    
+    if (tagSelectorModal) {
+        console.log('显示模态框');
+        tagSelectorModal.show();
+    } else {
+        console.error('模态框实例创建失败');
+    }
 }
 
 function closeTagSelector() {
