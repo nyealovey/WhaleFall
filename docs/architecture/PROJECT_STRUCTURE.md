@@ -190,7 +190,6 @@ TaifishV4/
 │   ├── integration/             # 集成测试
 │   └── ui/                      # UI测试
 ├── userdata/                    # 用户数据目录
-│   ├── scheduler.db             # 定时任务数据库 (SQLite)
 │   ├── logs/                    # 日志文件
 │   │   ├── app.log              # 应用日志
 │   │   ├── api.log              # API日志
@@ -276,8 +275,7 @@ TaifishV4/
 - **account_changes**: 账户变更记录表
 
 ### 数据库支持
-- **主数据库**: PostgreSQL
-- **任务调度**: SQLite (userdata/scheduler.db)
+- **主数据库**: PostgreSQL (包含APScheduler任务调度)
 - **缓存**: Redis
 
 ## 部署架构
