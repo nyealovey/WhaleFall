@@ -190,15 +190,18 @@ class OracleSyncAdapter(BaseSyncAdapter):
             tablespace_privileges = {}
             
             # 1. 检查是否有UNLIMITED TABLESPACE系统权限
-            system_privs_sql = """
-                SELECT privilege 
-                FROM dba_sys_privs 
-                WHERE grantee = :username AND privilege = 'UNLIMITED TABLESPACE'
-            """
-            unlimited_result = connection.execute_query(system_privs_sql, {"username": username})
-            
-            if unlimited_result:
-                tablespace_privileges["ALL_TABLESPACES"] = ["UNLIMITED"]
+            try:
+                system_privs_sql = """
+                    SELECT privilege 
+                    FROM dba_sys_privs 
+                    WHERE grantee = :username AND privilege = 'UNLIMITED TABLESPACE'
+                """
+                unlimited_result = connection.execute_query(system_privs_sql, {"username": username})
+                
+                if unlimited_result:
+                    tablespace_privileges["ALL_TABLESPACES"] = ["UNLIMITED"]
+            except Exception as e:
+                self.sync_logger.debug(f"无法检查UNLIMITED TABLESPACE权限: {username}", error=str(e))
             
             # 2. 获取具体的表空间配额信息
             try:
@@ -221,6 +224,7 @@ class OracleSyncAdapter(BaseSyncAdapter):
                         if privilege not in tablespace_privileges[ts_name]:
                             tablespace_privileges[ts_name].append(privilege)
             except Exception as e:
+                self.sync_logger.debug(f"无法访问dba_ts_quotas视图: {username}", error=str(e))
                 # 如果dba_ts_quotas不可用，尝试使用user_ts_quotas
                 try:
                     user_quota_sql = """
@@ -236,8 +240,15 @@ class OracleSyncAdapter(BaseSyncAdapter):
                 except Exception:
                     pass
             
-            # 3. 获取用户在表空间中的对象权限
+            # 3. 获取用户在表空间中的对象权限（可选，如果表存在）
             try:
+                # 先检查dba_tables表是否存在
+                check_tables_sql = """
+                    SELECT COUNT(*) FROM dba_tables WHERE ROWNUM = 1
+                """
+                connection.execute_query(check_tables_sql)
+                
+                # 如果dba_tables存在，则查询对象权限
                 user_objects_sql = """
                     SELECT DISTINCT tablespace_name, 'OWNER' as privilege
                     FROM dba_tables 

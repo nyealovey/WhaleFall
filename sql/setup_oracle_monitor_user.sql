@@ -28,12 +28,21 @@ GRANT SELECT ON DBA_TAB_PRIVS TO monitor_user;
 GRANT SELECT ON DBA_COL_PRIVS TO monitor_user;
 GRANT SELECT ON DBA_PROXY_USERS TO monitor_user;
 
+-- 7. 授予表空间相关权限
+GRANT SELECT ON DBA_TS_QUOTAS TO monitor_user;
+GRANT SELECT ON USER_TS_QUOTAS TO monitor_user;
+
+-- 8. 授予对象相关权限
+GRANT SELECT ON DBA_TABLES TO monitor_user;
+GRANT SELECT ON DBA_INDEXES TO monitor_user;
+GRANT SELECT ON DBA_OBJECTS TO monitor_user;
+
 -- 7. 授予V$视图查询权限（可选，用于性能监控）
 GRANT SELECT ON V$SESSION TO monitor_user;
 GRANT SELECT ON V$INSTANCE TO monitor_user;
 GRANT SELECT ON V$DATABASE TO monitor_user;
 
--- 8. 创建同义词（可选，简化查询）
+-- 9. 创建同义词（可选，简化查询）
 CREATE SYNONYM monitor_user.dba_users FOR SYS.DBA_USERS;
 CREATE SYNONYM monitor_user.dba_roles FOR SYS.DBA_ROLES;
 CREATE SYNONYM monitor_user.dba_role_privs FOR SYS.DBA_ROLE_PRIVS;
@@ -41,8 +50,13 @@ CREATE SYNONYM monitor_user.dba_sys_privs FOR SYS.DBA_SYS_PRIVS;
 CREATE SYNONYM monitor_user.dba_tab_privs FOR SYS.DBA_TAB_PRIVS;
 CREATE SYNONYM monitor_user.dba_col_privs FOR SYS.DBA_COL_PRIVS;
 CREATE SYNONYM monitor_user.dba_proxy_users FOR SYS.DBA_PROXY_USERS;
+CREATE SYNONYM monitor_user.dba_ts_quotas FOR SYS.DBA_TS_QUOTAS;
+CREATE SYNONYM monitor_user.user_ts_quotas FOR SYS.USER_TS_QUOTAS;
+CREATE SYNONYM monitor_user.dba_tables FOR SYS.DBA_TABLES;
+CREATE SYNONYM monitor_user.dba_indexes FOR SYS.DBA_INDEXES;
+CREATE SYNONYM monitor_user.dba_objects FOR SYS.DBA_OBJECTS;
 
--- 9. 验证权限设置
+-- 10. 验证权限设置
 SELECT 'Oracle 监控用户权限设置完成' AS 状态 FROM DUAL;
 
 -- 显示当前用户权限
@@ -86,6 +100,36 @@ SELECT
     'DBA_PROXY_USERS' AS 视图名,
     'SELECT' AS 权限,
     '代理用户查询' AS 用途
+FROM DUAL
+UNION ALL
+SELECT 
+    'DBA_TS_QUOTAS' AS 视图名,
+    'SELECT' AS 权限,
+    '表空间配额查询' AS 用途
+FROM DUAL
+UNION ALL
+SELECT 
+    'USER_TS_QUOTAS' AS 视图名,
+    'SELECT' AS 权限,
+    '用户表空间配额查询' AS 用途
+FROM DUAL
+UNION ALL
+SELECT 
+    'DBA_TABLES' AS 视图名,
+    'SELECT' AS 权限,
+    '表信息查询' AS 用途
+FROM DUAL
+UNION ALL
+SELECT 
+    'DBA_INDEXES' AS 视图名,
+    'SELECT' AS 权限,
+    '索引信息查询' AS 用途
+FROM DUAL
+UNION ALL
+SELECT 
+    'DBA_OBJECTS' AS 视图名,
+    'SELECT' AS 权限,
+    '对象信息查询' AS 用途
 FROM DUAL;
 
 -- 测试权限
@@ -97,6 +141,11 @@ SELECT 'DBA_SYS_PRIVS表测试' AS 测试项目, COUNT(*) AS 可访问的系统�
 SELECT 'DBA_TAB_PRIVS表测试' AS 测试项目, COUNT(*) AS 可访问的表权限数量 FROM dba_tab_privs;
 SELECT 'DBA_COL_PRIVS表测试' AS 测试项目, COUNT(*) AS 可访问的列权限数量 FROM dba_col_privs;
 SELECT 'DBA_PROXY_USERS表测试' AS 测试项目, COUNT(*) AS 可访问的代理用户数量 FROM dba_proxy_users;
+SELECT 'DBA_TS_QUOTAS表测试' AS 测试项目, COUNT(*) AS 可访问的表空间配额数量 FROM dba_ts_quotas;
+SELECT 'USER_TS_QUOTAS表测试' AS 测试项目, COUNT(*) AS 可访问的用户表空间配额数量 FROM user_ts_quotas;
+SELECT 'DBA_TABLES表测试' AS 测试项目, COUNT(*) AS 可访问的表数量 FROM dba_tables;
+SELECT 'DBA_INDEXES表测试' AS 测试项目, COUNT(*) AS 可访问的索引数量 FROM dba_indexes;
+SELECT 'DBA_OBJECTS表测试' AS 测试项目, COUNT(*) AS 可访问的对象数量 FROM dba_objects;
 
 -- 显示V$视图权限（如果已授予）
 SELECT 'V$SESSION表测试' AS 测试项目, COUNT(*) AS 可访问的会话数量 FROM v$session;
