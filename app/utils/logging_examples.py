@@ -369,20 +369,3 @@ class LoggingExamples:
         )
 
 
-# 使用示例
-if __name__ == "__main__":
-    examples = LoggingExamples()
-    
-    # 运行所有示例
-    examples.example_auth_logging()
-    examples.example_instance_logging()
-    examples.example_credential_logging()
-    examples.example_account_logging()
-    examples.example_sync_logging()
-    examples.example_classification_logging()
-    examples.example_task_logging()
-    examples.example_sync_session_logging()
-    examples.example_admin_logging()
-    examples.example_health_logging()
-    
-    print("所有日志示例已执行完成！")

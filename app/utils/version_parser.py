@@ -147,30 +147,3 @@ class DatabaseVersionParser:
         return f"{main_version} ({detailed_version})"
 
 
-# 测试函数
-def test_version_parser():
-    """测试版本解析器"""
-    test_cases = [
-        ('mysql', '8.0.32', '8.0', '8.0.32'),
-        ('postgresql', 'PostgreSQL 13.4 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 4.8.5 20150623 (Red Hat 4.8.5-44), 64-bit', '13.4', '13.4'),
-        ('sqlserver', 'Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5029376) - 14.0.3465.1 (X64) Jul 30 2023 15:31:58 Copyright (C) 2017 Microsoft Corporation', '14.0', '14.0.3465.1'),
-        ('oracle', 'Oracle Database 11g Release 11.2.0.1.0 - 64bit Production', '11.2', '11.2.0.1.0'),
-    ]
-    
-    print("数据库版本解析测试:")
-    print("=" * 80)
-    
-    for db_type, version_string, expected_main, expected_detailed in test_cases:
-        result = DatabaseVersionParser.parse_version(db_type, version_string)
-        display = DatabaseVersionParser.format_version_display(db_type, version_string)
-        
-        print(f"数据库类型: {db_type}")
-        print(f"原始版本: {version_string[:60]}...")
-        print(f"主版本: {result['main_version']} (期望: {expected_main})")
-        print(f"详细版本: {result['detailed_version']} (期望: {expected_detailed})")
-        print(f"显示格式: {display}")
-        print("-" * 80)
-
-
-if __name__ == "__main__":
-    test_version_parser()
