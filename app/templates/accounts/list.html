@@ -25,7 +25,7 @@
     <!-- 搜索和筛选 -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="GET">
+            <form method="GET" id="account-search-form">
                 {% if current_db_type %}
                 <input type="hidden" name="db_type" value="{{ current_db_type }}">
                 {% elif db_type %}
@@ -74,7 +74,7 @@
                             <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
                             </div>
                         </div>
-                        <input type="hidden" id="selected-tag-names" name="tags" value="{{ selected_tags|join(',') }}">
+                        <input type="hidden" id="selected-tag-names" name="tags" value="{{ selected_tags|join(',') if selected_tags else '' }}">
                     </div>
                     <div class="col-md-5">
                         <label for="db_type" class="form-label fw-semibold">数据库类型</label>
@@ -708,14 +708,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializeTagSelector(modalElement, containerElement) {
         if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
             console.log('开始初始化TagSelector');
-            // 初始化标签选择器
-            tagSelector = new TagSelector('tag-selector-container', {
-                allowMultiple: true,
-                allowCreate: true,
-                allowSearch: true,
-                allowCategoryFilter: true
-            });
-            console.log('TagSelector初始化完成');
+            try {
+                // 初始化标签选择器
+                tagSelector = new TagSelector('tag-selector-container', {
+                    allowMultiple: true,
+                    allowCreate: true,
+                    allowSearch: true,
+                    allowCategoryFilter: true
+                });
+                console.log('TagSelector初始化完成');
+            } catch (error) {
+                console.error('TagSelector初始化失败:', error);
+                return;
+            }
             
             // 绑定打开标签选择器按钮
             const openBtn = document.getElementById('open-tag-filter-btn');
@@ -753,6 +758,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     tagSelector.setSelectedTags(currentTagIds);
                     updateSelectedTagsPreview(tagSelector.getSelectedTags());
                 }, 500);
+            } else {
+                // 确保没有标签时也正确初始化
+                updateSelectedTagsPreview([]);
             }
         } else {
             console.error('初始化失败:');
@@ -806,6 +814,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateSelectedTagsPreview(selectedTags);
             }
         }
+    }
+    
+    // 表单提交时的验证
+    const form = document.getElementById('account-search-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('表单提交前的标签字段值:', document.getElementById('selected-tag-names').value);
+            // 确保标签字段有正确的值
+            const tagInput = document.getElementById('selected-tag-names');
+            if (!tagInput.value) {
+                tagInput.value = '';
+            }
+        });
     }
 });
 </script>
