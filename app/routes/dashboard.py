@@ -16,9 +16,7 @@ from app.models.instance import Instance
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.task import Task
 from app.models.user import User
-from app.utils.cache_manager import (
-    cached,
-)
+# 缓存功能已迁移到services/cache_manager.py
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils, CHINA_TZ
 
