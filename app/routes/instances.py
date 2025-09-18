@@ -297,9 +297,10 @@ def create() -> str | Response | tuple[Response, int]:
             db.session.commit()
 
             # 处理标签
-            tag_names = data.get("tags", [])
+            tag_names = data.get("tag_names", [])
             if isinstance(tag_names, str):
-                tag_names = [tag_names] if tag_names else []
+                # 如果是逗号分隔的字符串，分割成列表
+                tag_names = [name.strip() for name in tag_names.split(",") if name.strip()]
             
             for tag_name in tag_names:
                 tag = Tag.get_tag_by_name(tag_name)
@@ -646,9 +647,10 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
                 instance.is_active = bool(is_active_value)
 
             # 处理标签更新
-            tag_names = data.get("tags", [])
+            tag_names = data.get("tag_names", [])
             if isinstance(tag_names, str):
-                tag_names = [tag_names] if tag_names else []
+                # 如果是逗号分隔的字符串，分割成列表
+                tag_names = [name.strip() for name in tag_names.split(",") if name.strip()]
             
             # 清除现有标签 - 使用正确的方法
             # 先获取所有现有标签，然后逐个移除
