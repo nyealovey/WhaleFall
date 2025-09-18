@@ -89,7 +89,7 @@ def get_account_statistics() -> dict:
         # 基础统计
         total_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
 
-        # 按数据库类型统计（参考仪表盘逻辑）
+        # 按数据库类型统计（与按状态统计逻辑保持一致）
         db_type_stats = {}
         for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
             accounts = CurrentAccountSyncData.query.filter_by(db_type=db_type, is_deleted=False).all()
@@ -98,9 +98,13 @@ def get_account_statistics() -> dict:
             locked_count = 0
 
             for account in accounts:
-                if not account.is_active:  # 使用is_active字段
-                    locked_count += 1
+                if account.type_specific and "is_locked" in account.type_specific:
+                    if account.type_specific["is_locked"]:
+                        locked_count += 1
+                    else:
+                        active_count += 1
                 else:
+                    # 如果没有锁定信息，认为是活跃的
                     active_count += 1
 
             db_type_stats[db_type] = {
@@ -109,7 +113,7 @@ def get_account_statistics() -> dict:
                 "locked": locked_count,
             }
 
-        # 按实例统计（参考仪表盘逻辑）
+        # 按实例统计（与按状态统计逻辑保持一致）
         instance_stats = []
         instances = Instance.query.filter_by(is_active=True).all()
         for instance in instances:
@@ -119,16 +123,19 @@ def get_account_statistics() -> dict:
             locked_count = 0
 
             for account in accounts:
-                if not account.is_active:  # 使用is_active字段
-                    locked_count += 1
+                if account.type_specific and "is_locked" in account.type_specific:
+                    if account.type_specific["is_locked"]:
+                        locked_count += 1
+                    else:
+                        active_count += 1
                 else:
+                    # 如果没有锁定信息，认为是活跃的
                     active_count += 1
 
             instance_stats.append(
                 {
                     "name": instance.name,
                     "db_type": instance.db_type,
-                    "environment": instance.environment or "unknown",
                     "total_accounts": total_count,
                     "active_accounts": active_count,
                     "locked_accounts": locked_count,
