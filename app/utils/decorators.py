@@ -190,7 +190,7 @@ def scheduler_manage_required(f: Any) -> Any:  # noqa: ANN401
     return decorated_function
 
 
-def scheduler_view_required(f):
+def scheduler_view_required(f: Any) -> Any:  # noqa: ANN401
     """
     定时任务查看权限装饰器
     普通用户可以查看定时任务状态，但不能操作
@@ -250,7 +250,7 @@ def scheduler_view_required(f):
     return decorated_function
 
 
-def login_required(f):
+def login_required(f: Any) -> Any:  # noqa: ANN401
     """
     登录权限装饰器
 
@@ -309,7 +309,7 @@ def login_required(f):
     return decorated_function
 
 
-def login_required_json(f):
+def login_required_json(f: Any) -> Any:  # noqa: ANN401
     """
     JSON API登录装饰器
 
@@ -333,7 +333,7 @@ def login_required_json(f):
     return decorated_function
 
 
-def rate_limit(requests_per_minute=60):
+def rate_limit(requests_per_minute: int = 60) -> Any:  # noqa: ANN401
     """
     速率限制装饰器
 
@@ -344,7 +344,7 @@ def rate_limit(requests_per_minute=60):
         装饰器函数
     """
 
-    def decorator(f):
+    def decorator(f: Any) -> Any:  # noqa: ANN401
         @wraps(f)
         def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
             # 这里可以集成速率限制逻辑
@@ -356,7 +356,7 @@ def rate_limit(requests_per_minute=60):
     return decorator
 
 
-def validate_json(required_fields=None):
+def validate_json(required_fields: list[str] | None = None) -> Any:  # noqa: ANN401
     """
     JSON数据验证装饰器
 
@@ -367,7 +367,7 @@ def validate_json(required_fields=None):
         装饰器函数
     """
 
-    def decorator(f):
+    def decorator(f: Any) -> Any:  # noqa: ANN401
         @wraps(f)
         def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
             if not request.is_json:
@@ -416,7 +416,7 @@ def validate_json(required_fields=None):
     return decorator
 
 
-def permission_required(permission):
+def permission_required(permission: str) -> Any:  # noqa: ANN401
     """
     权限验证装饰器
 
@@ -427,7 +427,7 @@ def permission_required(permission):
         装饰器函数
     """
 
-    def decorator(f):
+    def decorator(f: Any) -> Any:  # noqa: ANN401
         @wraps(f)
         def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
             system_logger = get_system_logger()
@@ -512,7 +512,7 @@ def permission_required(permission):
     return decorator
 
 
-def has_permission(user, permission):
+def has_permission(user: Any, permission: str) -> bool:  # noqa: ANN401
     """
     检查用户是否有指定权限
 
@@ -543,21 +543,21 @@ def has_permission(user, permission):
     return permission in user_permissions
 
 
-def view_required(f):
+def view_required(f: Any) -> Any:  # noqa: ANN401
     """查看权限装饰器"""
     return permission_required("view")(f)
 
 
-def create_required(f):
+def create_required(f: Any) -> Any:  # noqa: ANN401
     """创建权限装饰器"""
     return permission_required("create")(f)
 
 
-def update_required(f):
+def update_required(f: Any) -> Any:  # noqa: ANN401
     """更新权限装饰器"""
     return permission_required("update")(f)
 
 
-def delete_required(f):
+def delete_required(f: Any) -> Any:  # noqa: ANN401
     """删除权限装饰器"""
     return permission_required("delete")(f)

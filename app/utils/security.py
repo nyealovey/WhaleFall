@@ -151,7 +151,7 @@ def sanitize_form_data(data: dict[str, Any]) -> dict[str, Any]:
     for key, value in data.items():
         if isinstance(value, str):
             sanitized[key] = sanitize_input(value)
-        elif isinstance(value, bool) or isinstance(value, (int, float)):
+        elif isinstance(value, (bool, int, float)):
             sanitized[key] = value
         else:
             sanitized[key] = sanitize_input(str(value))
@@ -184,11 +184,7 @@ def check_sql_injection(query: str) -> bool:
     ]
 
     query_lower = query.lower()
-    for pattern in dangerous_patterns:
-        if re.search(pattern, query_lower):
-            return True
-
-    return False
+    return any(re.search(pattern, query_lower) for pattern in dangerous_patterns)
 
 
 def generate_csrf_token() -> str:

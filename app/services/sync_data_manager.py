@@ -152,7 +152,7 @@ class SyncDataManager:
     # 静态方法保持兼容性
     @staticmethod
     def get_account_latest(
-        db_type: str, instance_id: int, username: str | None = None, include_deleted: bool = False
+        db_type: str, instance_id: int, username: str | None = None, *, include_deleted: bool = False
     ) -> Any:
         """获取账户最新状态 - 兼容性方法"""
         from app.models.current_account_sync_data import CurrentAccountSyncData
@@ -165,7 +165,7 @@ class SyncDataManager:
         return query.order_by(CurrentAccountSyncData.sync_time.desc()).first()
 
     @staticmethod
-    def get_accounts_by_instance(instance_id: int, include_deleted: bool = False) -> list[Any]:  # noqa: ANN401
+    def get_accounts_by_instance(instance_id: int, *, include_deleted: bool = False) -> list[Any]:  # noqa: ANN401
         """获取实例的所有账户 - 兼容性方法"""
         from app.models.current_account_sync_data import CurrentAccountSyncData
 

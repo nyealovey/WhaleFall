@@ -15,7 +15,7 @@ from app.utils.structlog_config import get_sync_logger, get_task_logger
 from app.utils.timezone import now
 
 
-def cleanup_old_logs():
+def cleanup_old_logs() -> None:
     """清理旧日志任务 - 清理30天前的日志和临时文件"""
     task_logger = get_task_logger()
 
@@ -111,7 +111,7 @@ def _cleanup_temp_files():
         return 0
 
 
-def sync_accounts(manual_run: bool = False) -> None:
+def sync_accounts(*, manual_run: bool = False) -> None:
     """账户同步任务 - 同步所有数据库实例的账户（使用新的会话管理架构）"""
     from app.models.instance import Instance
     from app.services.sync_session_service import sync_session_service
@@ -315,7 +315,7 @@ def sync_accounts(manual_run: bool = False) -> None:
             return f"定时任务同步失败: {str(e)}"
 
 
-def health_check():
+def health_check() -> None:
     """健康检查任务"""
     task_logger = get_task_logger()
 
@@ -355,7 +355,7 @@ def health_check():
             }
 
 
-def cleanup_temp_files():
+def cleanup_temp_files() -> None:
     """清理临时文件任务"""
     task_logger = get_task_logger()
 

@@ -4,7 +4,7 @@
 
 from typing import Any
 
-from flask import jsonify
+from flask import Response, jsonify
 
 
 class APIResponse:

@@ -355,8 +355,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 ORDER BY r.name
             """
             result = connection.execute_query(sql, (username,))
-            roles = [row[0] for row in result] if result else []
-            return roles
+            return [row[0] for row in result] if result else []
         except Exception as e:
             self.sync_logger.error("获取服务器角色失败: %s", username, error=str(e), sql=sql)
             return []
@@ -684,7 +683,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         return formatted_data
 
     def _detect_changes(
-        self, existing_account: CurrentAccountSyncData, new_permissions: dict[str, Any], is_superuser: bool
+        self, existing_account: CurrentAccountSyncData, new_permissions: dict[str, Any], *, is_superuser: bool
     ) -> dict[str, Any]:
         """检测SQL Server账户变更"""
         changes = {}
@@ -777,7 +776,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         return changes
 
     def _update_account_permissions(
-        self, account: CurrentAccountSyncData, permissions_data: dict[str, Any], is_superuser: bool
+        self, account: CurrentAccountSyncData, permissions_data: dict[str, Any], *, is_superuser: bool
     ) -> None:
         """更新SQL Server账户权限信息"""
         try:
@@ -804,6 +803,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         db_type: str,
         username: str,
         permissions_data: dict[str, Any],
+        *,
         is_superuser: bool,
         session_id: str,
     ) -> CurrentAccountSyncData:
@@ -829,7 +829,6 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         descriptions = []
 
         if "is_superuser" in changes:
-            old_value = changes["is_superuser"]["old"]
             new_value = changes["is_superuser"]["new"]
             if new_value:
                 descriptions.append("提升为超级用户")
@@ -991,7 +990,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
                 # 查找对应的用户名
                 user_name = None
-                for u_name, (pid, sid) in db_principals.get(db_name, {}).items():
+                for u_name, (pid, _) in db_principals.get(db_name, {}).items():
                     if pid == member_principal_id:
                         user_name = u_name
                         break
@@ -1015,7 +1014,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
                 # 查找对应的用户名
                 user_name = None
-                for u_name, (pid, sid) in db_principals.get(db_name, {}).items():
+                for u_name, (pid, _) in db_principals.get(db_name, {}).items():
                     if pid == grantee_principal_id:
                         user_name = u_name
                         break
@@ -1185,7 +1184,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
                 # 查找对应的用户名
                 user_name = None
-                for u_name, (pid, sid) in db_principals.get(db_name, {}).items():
+                for u_name, (pid, _) in db_principals.get(db_name, {}).items():
                     if pid == member_principal_id:
                         user_name = u_name
                         break
@@ -1214,7 +1213,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
                 # 查找对应的用户名
                 user_name = None
-                for u_name, (pid, sid) in db_principals.get(db_name, {}).items():
+                for u_name, (pid, _) in db_principals.get(db_name, {}).items():
                     if pid == grantee_principal_id:
                         user_name = u_name
                         break

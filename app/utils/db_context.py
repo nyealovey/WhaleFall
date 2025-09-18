@@ -1,7 +1,3 @@
-from app.utils.structlog_config import get_system_logger
-
-logger = get_system_logger()
-
 """
 泰摸鱼吧 - 数据库连接上下文管理器
 """
@@ -12,6 +8,9 @@ from typing import Any
 
 from app.models.instance import Instance
 from app.services.connection_factory import ConnectionFactory
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
 
 
 class DatabaseContextManager:

@@ -3,6 +3,7 @@
 处理Oracle特定的账户同步逻辑
 """
 
+import contextlib
 from typing import Any
 
 from app.models import Instance
@@ -208,19 +209,17 @@ class OracleSyncAdapter(BaseSyncAdapter):
             except Exception as e:
                 self.sync_logger.debug("无法访问dba_ts_quotas视图: %s", username, error=str(e))
                 # 如果dba_ts_quotas不可用，尝试使用user_ts_quotas
-                try:
-                    user_quota_sql = """
-                        SELECT tablespace_name,
-                               CASE
-                                   WHEN max_bytes = -1 THEN 'UNLIMITED'
-                                   ELSE 'QUOTA'
-                               END as privilege
-                        FROM user_ts_quotas
-                    """
+                with contextlib.suppress(Exception):
+                    # user_quota_sql = """
+                    #     SELECT tablespace_name,
+                    #            CASE
+                    #                WHEN max_bytes = -1 THEN 'UNLIMITED'
+                    #                ELSE 'QUOTA'
+                    #            END as privilege
+                    #     FROM user_ts_quotas
+                    # """
                     # 这里需要切换到目标用户上下文，但为了安全起见，跳过这个查询
                     self.sync_logger.debug("无法访问用户表空间配额视图: {username}")
-                except Exception:
-                    pass
 
             # 3. 获取用户在表空间中的对象权限（可选，如果表存在）
             try:
@@ -314,7 +313,7 @@ class OracleSyncAdapter(BaseSyncAdapter):
         }
 
     def _detect_changes(
-        self, existing_account: CurrentAccountSyncData, new_permissions: dict[str, Any], is_superuser: bool
+        self, existing_account: CurrentAccountSyncData, new_permissions: dict[str, Any], *, is_superuser: bool
     ) -> dict[str, Any]:
         """检测Oracle账户变更"""
         changes = {}
@@ -385,7 +384,7 @@ class OracleSyncAdapter(BaseSyncAdapter):
         return changes
 
     def _update_account_permissions(
-        self, account: CurrentAccountSyncData, permissions_data: dict[str, Any], is_superuser: bool
+        self, account: CurrentAccountSyncData, permissions_data: dict[str, Any], *, is_superuser: bool
     ) -> None:
         """更新Oracle账户权限信息"""
         account.oracle_roles = permissions_data.get("roles", [])
@@ -407,6 +406,7 @@ class OracleSyncAdapter(BaseSyncAdapter):
         db_type: str,
         username: str,
         permissions_data: dict[str, Any],
+        *,
         is_superuser: bool,
         session_id: str,
     ) -> CurrentAccountSyncData:
@@ -431,7 +431,6 @@ class OracleSyncAdapter(BaseSyncAdapter):
         descriptions = []
 
         if "is_superuser" in changes:
-            old_value = changes["is_superuser"]["old"]
             new_value = changes["is_superuser"]["new"]
             if new_value:
                 descriptions.append("提升为超级用户")
