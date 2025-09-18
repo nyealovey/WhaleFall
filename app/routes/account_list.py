@@ -62,20 +62,20 @@ def list_accounts(db_type: str | None = None) -> str:
     if is_superuser is not None:
         query = query.filter(CurrentAccountSyncData.is_superuser == (is_superuser == "true"))
 
-    # 标签过滤 - 暂时禁用以避免500错误
-    # if tags:
-    #     try:
-    #         # 通过实例的标签进行过滤，使用更简单的方式
-    #         query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
-    #     except Exception as e:
-    #         log_error(
-    #             "标签过滤失败",
-    #             module="account_list",
-    #             tags=tags,
-    #             error=str(e),
-    #         )
-    #         # 如果标签过滤失败，继续执行但不进行标签过滤
-    #         pass
+    # 标签过滤
+    if tags:
+        try:
+            # 通过实例的标签进行过滤
+            query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+        except Exception as e:
+            log_error(
+                "标签过滤失败",
+                module="account_list",
+                tags=tags,
+                error=str(e),
+            )
+            # 如果标签过滤失败，继续执行但不进行标签过滤
+            pass
 
     # 分类过滤
     if classification and classification != "all":
@@ -125,7 +125,7 @@ def list_accounts(db_type: str | None = None) -> str:
             {"value": "all", "label": "全部分类"},
         ]
         + [{"value": str(c.id), "label": c.name} for c in classification_list],
-        "all_tags": [],  # 暂时禁用以避免500错误
+        "all_tags": Tag.query.all(),
     }
 
     # 获取账户分类信息
