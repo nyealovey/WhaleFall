@@ -6,6 +6,8 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
 
+from app.utils.decorators import admin_required
+
 from app.models import Instance
 from app.services.cache_manager import cache_manager
 from app.services.sync_adapters.sqlserver_sync_adapter import SQLServerSyncAdapter
@@ -40,6 +42,7 @@ def check_cache_health() -> tuple[dict, int]:
 
 @cache_bp.route("/cache/clear/user", methods=["POST"])
 @login_required
+@admin_required
 def clear_user_cache() -> tuple[dict, int]:
     """清除用户缓存"""
     try:
@@ -70,6 +73,7 @@ def clear_user_cache() -> tuple[dict, int]:
 
 @cache_bp.route("/cache/clear/instance", methods=["POST"])
 @login_required
+@admin_required
 def clear_instance_cache() -> tuple[dict, int]:
     """清除实例缓存"""
     try:
@@ -99,6 +103,7 @@ def clear_instance_cache() -> tuple[dict, int]:
 
 @cache_bp.route("/cache/clear/all", methods=["POST"])
 @login_required
+@admin_required
 def clear_all_cache() -> tuple[dict, int]:
     """清除所有缓存"""
     try:

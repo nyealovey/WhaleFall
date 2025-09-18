@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, request
 from flask_login import current_user, login_required
+
+from app.utils.decorators import admin_required
 from sqlalchemy import asc, desc, or_
 
 from app import db
@@ -325,6 +327,7 @@ def export_logs() -> tuple[dict, int]:
 
 @unified_logs_bp.route("/api/cleanup", methods=["POST"])
 @login_required
+@admin_required
 def cleanup_logs() -> tuple[dict, int]:
     """清理旧日志API"""
     try:

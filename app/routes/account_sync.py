@@ -23,7 +23,7 @@ from app import db
 from app.models.instance import Instance
 from app.models.sync_session import SyncSession
 from app.services.account_sync_service import account_sync_service
-from app.utils.decorators import view_required
+from app.utils.decorators import update_required, view_required
 from app.utils.structlog_config import get_api_logger, log_error, log_info, log_warning
 
 # 创建蓝图
@@ -345,6 +345,7 @@ def sync_records() -> str | Response:
 
 @account_sync_bp.route("/sync-all", methods=["POST"])
 @login_required
+@update_required
 def sync_all_accounts() -> str | Response | tuple[Response, int]:
     """同步所有实例的账户（使用新的会话管理架构）"""
     from app.services.sync_session_service import sync_session_service
