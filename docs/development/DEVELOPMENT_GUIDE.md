@@ -658,7 +658,7 @@ chmod -R 755 userdata/uploads/
 - Python Docstring Generator
 - GitLens
 - Thunder Client
-- SQLite Viewer
+- PostgreSQL管理工具
 - Docker
 
 #### PyCharm插件
@@ -706,7 +706,7 @@ from flask_profiler import Profiler
 app.config["flask_profiler"] = {
     "enabled": True,
     "storage": {
-        "engine": "sqlite",
+        "engine": "postgresql",
         "db_file": "profiler.db"
     }
 }
@@ -726,7 +726,7 @@ python -m memory_profiler app.py
 ### 官方文档
 - [Flask官方文档](https://flask.palletsprojects.com/)
 - [SQLAlchemy官方文档](https://docs.sqlalchemy.org/)
-- [Celery官方文档](https://docs.celeryproject.org/)
+- [APScheduler官方文档](https://apscheduler.readthedocs.io/)
 - [Redis官方文档](https://redis.io/documentation)
 
 ### 教程资源

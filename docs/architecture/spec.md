@@ -36,14 +36,14 @@
 | **后端框架** | Flask | 3.0.3 | Web应用框架 |
 | **模板引擎** | Jinja2 | 3.1.4 | 模板渲染 |
 | **WSGI服务器** | Werkzeug | 3.0.3 | WSGI工具包 |
-| **数据库ORM** | SQLAlchemy | 2.0.30 | 数据库ORM |
+| **数据库ORM** | SQLAlchemy | 1.4.54 | 数据库ORM |
 | **数据库迁移** | Flask-Migrate | 4.0.7 | 数据库版本管理 |
 | **用户认证** | Flask-Login | 0.6.3 | 用户会话管理 |
 | **密码加密** | Flask-Bcrypt | 1.0.1 | 密码哈希 |
 | **JWT认证** | Flask-JWT-Extended | 4.6.0 | JWT令牌管理 |
 | **缓存系统** | Flask-Caching | 2.1.0 | 缓存管理 |
 | **任务调度** | APScheduler | 3.10.4 | 定时任务调度 |
-| **消息代理** | Redis | 8.2.1 | 缓存和消息队列 |
+| **消息代理** | Redis | 5.0.7 | 缓存和消息队列 |
 | **前端框架** | Bootstrap | 5.3.2 | UI组件库 |
 | **图标库** | Font Awesome | 6.4.0 | 图标库 |
 | **时区处理** | pytz | 2023.3 | 时区转换 |

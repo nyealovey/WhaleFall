@@ -28,7 +28,7 @@ chmod +x deploy.sh
 | **Flask** | Ubuntu 22.04 | 5000 | Web应用服务 |
 | **PostgreSQL** | 15 | 5432 | 主数据库 |
 | **Redis** | 7 | 6379 | 缓存和消息队列 |
-| **Celery** | - | - | 异步任务处理 |
+| **APScheduler** | - | - | 定时任务调度 |
 
 ## 🚀 部署方式
 
@@ -194,8 +194,8 @@ docker compose ps >> system_info.txt
 # 扩展应用实例
 docker compose up -d --scale app=3
 
-# 扩展Celery Worker
-docker compose up -d --scale celery_worker=3
+# 扩展APScheduler任务处理
+# APScheduler已集成在Flask应用中，无需单独扩展
 ```
 
 ### 版本升级

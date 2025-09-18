@@ -169,7 +169,7 @@ TaifishV4/
 ├── migrate.sh                # 迁移管理脚本
 ├── start_dev.sh              # 本地开发启动脚本
 └── userdata/                 # 用户数据目录
-    ├── taifish_dev.db        # SQLite数据库文件
+    ├── taifish_dev.db        # PostgreSQL数据库文件
     └── backups/              # 数据库备份目录
 ```
 

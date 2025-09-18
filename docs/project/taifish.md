@@ -307,44 +307,38 @@
   - 用途：推荐的新开发方式
 
 
-### Celery相关脚本（需要整理）
-- `start_celery.sh` - **Celery主启动脚本**
-  - 功能：启动Celery Beat和Worker进程
-  - 状态：✅ 保留（核心功能）
-  - 用途：生产环境定时任务
+### APScheduler相关脚本（已集成）
+- `app/scheduler.py` - **APScheduler调度器**
+  - 功能：定时任务调度管理
+  - 状态：✅ 已实现并集成
+  - 用途：替代Celery的轻量级任务调度
 
-- `start_celery_worker.py` - **Celery Worker启动**
-  - 功能：仅启动Worker进程
-  - 状态：✅ 保留（灵活控制）
-  - 用途：单独启动Worker
+- `app/tasks.py` - **任务定义**
+  - 功能：定义各种定时任务
+  - 状态：✅ 已实现
+  - 用途：账户同步、日志清理等任务
 
-- `start_celery_beat.py` - **Celery Beat启动**
-  - 功能：仅启动Beat调度器
-  - 状态：✅ 保留（灵活控制）
-  - 用途：单独启动调度器
+- `app/routes/scheduler.py` - **任务管理API**
+  - 功能：任务管理Web界面和API
+  - 状态：✅ 已实现
+  - 用途：任务创建、编辑、执行管理
 
-
-- `stop_celery.sh` - **Celery停止脚本**
-  - 功能：停止所有Celery进程
-  - 状态：✅ 保留（管理功能）
-  - 用途：停止定时任务服务
-
-- `manage_celery.sh` - **Celery管理脚本**
-  - 功能：Celery进程管理
-  - 状态：✅ 保留（管理功能）
-  - 用途：管理Celery服务
+- `app/routes/scheduler.py` - **任务管理界面**
+  - 功能：任务管理Web界面
+  - 状态：✅ 已实现
+  - 用途：任务创建、编辑、监控
 
 
 ### 监控和检查脚本
-- `celery_monitor.py` - **Celery监控脚本**
-  - 功能：监控Celery进程状态
-  - 状态：✅ 保留（监控功能）
-  - 用途：监控定时任务状态
+- `app/scheduler.py` - **任务监控**
+  - 功能：监控任务执行状态
+  - 状态：✅ 已实现
+  - 用途：任务执行监控
 
-- `check_celery.sh` - **Celery检查脚本**
-  - 功能：检查Celery进程状态
-  - 状态：✅ 保留（检查功能）
-  - 用途：检查服务状态
+- `app/routes/scheduler.py` - **任务健康检查**
+  - 功能：检查任务调度器状态
+  - 状态：✅ 已实现
+  - 用途：任务调度器健康检查
 
 ## 启动脚本清理建议
 
@@ -358,9 +352,9 @@
 4. `start_celery_worker.py` - Worker启动
 5. `start_celery_beat.py` - Beat启动
 6. `stop_celery.sh` - Celery停止
-7. `manage_celery.sh` - Celery管理
-8. `celery_monitor.py` - Celery监控
-9. `check_celery.sh` - Celery检查
+7. `app/scheduler.py` - APScheduler调度器
+8. `app/tasks.py` - 任务定义
+9. `app/routes/scheduler.py` - 任务管理API
 
 ### 当前启动脚本结构
 ```
@@ -368,15 +362,13 @@
 ├── 应用启动/
 │   ├── start_app.sh          # 传统方式启动
 │   └── start_uv.sh           # UV方式启动（推荐）
-├── Celery服务/
-│   ├── start_celery.sh       # 启动所有Celery服务
-│   ├── start_celery_worker.py # 仅启动Worker
-│   ├── start_celery_beat.py  # 仅启动Beat
-│   ├── stop_celery.sh        # 停止所有Celery服务
-│   └── manage_celery.sh      # Celery管理
+├── APScheduler服务/
+│   ├── app/scheduler.py      # APScheduler调度器
+│   ├── app/tasks.py          # 任务定义
+│   └── app/routes/scheduler.py # 任务管理API
 └── 监控检查/
-    ├── celery_monitor.py     # Celery监控
-    └── check_celery.sh       # 状态检查
+    ├── app/scheduler.py      # 任务监控
+    └── app/routes/scheduler.py # 健康检查
 ```
 
 ## 测试和调试文件
@@ -413,8 +405,8 @@
 ### 缓存和临时文件
 - `appendonlydir/` - Redis AOF文件目录
 - `dump.rdb` - Redis RDB文件
-- `celerybeat-schedule*` - Celery Beat调度文件
-- `celerybeat.pid` - Celery Beat进程ID文件
+- `apscheduler_jobs` - APScheduler任务表（PostgreSQL）
+- `scheduler.db` - APScheduler任务数据库（已迁移到PostgreSQL）
 - `cookies.txt` - Cookie文件（可删除）
 
 ### 其他数据文件
