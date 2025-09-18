@@ -341,7 +341,7 @@ class BaseSyncAdapter(ABC):
                 if changes:
                     # 有变更才更新
                     self._update_account_permissions(
-                        local_account, account_data["permissions"], account_data.get("is_superuser", False)
+                        local_account, account_data["permissions"], is_superuser=account_data.get("is_superuser", False)
                     )
 
                     # 使用批量管理器添加更新操作
@@ -530,7 +530,7 @@ class BaseSyncAdapter(ABC):
                 if changes:
                     # 有变更才更新
                     self._update_account_permissions(
-                        local_account, account_data["permissions"], account_data.get("is_superuser", False)
+                        local_account, account_data["permissions"], is_superuser=account_data.get("is_superuser", False)
                     )
 
                     # 记录变更日志

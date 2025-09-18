@@ -543,7 +543,7 @@ class OracleSyncAdapter(BaseSyncAdapter):
         return changes
 
     def _update_account_permissions(
-        self, account: CurrentAccountSyncData, permissions_data: dict[str, Any], *, is_superuser: bool
+        self, account: CurrentAccountSyncData, permissions_data: dict[str, Any], is_superuser: bool
     ) -> None:
         """更新Oracle账户权限信息"""
         account.oracle_roles = permissions_data.get("roles", [])
