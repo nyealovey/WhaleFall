@@ -341,7 +341,7 @@ class BaseSyncAdapter(ABC):
             if local_account:
                 # 检测权限变更
                 changes = self._detect_changes(
-                    local_account, account_data["permissions"], account_data.get("is_superuser", False)
+                    local_account, account_data["permissions"], is_superuser=account_data.get("is_superuser", False)
                 )
 
                 if changes:
@@ -541,7 +541,7 @@ class BaseSyncAdapter(ABC):
             if local_account:
                 # 检测权限变更
                 changes = self._detect_changes(
-                    local_account, account_data["permissions"], account_data.get("is_superuser", False)
+                    local_account, account_data["permissions"], is_superuser=account_data.get("is_superuser", False)
                 )
 
                 if changes:
