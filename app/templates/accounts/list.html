@@ -32,34 +32,13 @@
                 <input type="hidden" name="db_type" value="{{ db_type }}">
                 {% endif %}
 
-                <!-- 第一行：搜索框和按钮 -->
-                <div class="row g-3 mb-3">
-                    <div class="col-md-3">
+                <!-- 搜索和筛选条件 - 一行显示 -->
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
                         <label for="search" class="form-label">搜索</label>
                         <input type="text" class="form-control" id="search" name="search"
                                placeholder="搜索用户名、实例名称、IP地址" value="{{ search }}">
                     </div>
-                    <div class="col-md-1">
-                        <label class="form-label">&nbsp;</label>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-outline-primary">
-                                <i class="fas fa-search me-1"></i>搜索
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
-                        <div class="d-grid">
-                            <a href="{{ url_for('account_list.list_accounts', db_type=current_db_type) if current_db_type else url_for('account_list.list_accounts') }}"
-                               class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i>清除
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 第二行：筛选条件 -->
-                <div class="row g-3">
                     <div class="col-md-2">
                         <label for="is_locked" class="form-label">锁定状态</label>
                         <select class="form-select" id="is_locked" name="is_locked">
@@ -76,13 +55,13 @@
                             </button>
                             <span class="text-muted" id="selected-tags-count">未选择标签</span>
                         </div>
-                        <div id="selected-tags-preview" class="mt-2" style="display: none;">
+                        <div id="selected-tags-preview" class="mt-1" style="display: none;">
                             <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
                             </div>
                         </div>
                         <input type="hidden" id="selected-tag-names" name="tags" value="{{ selected_tags|join(',') if selected_tags else '' }}">
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-3">
                         <label for="db_type" class="form-label">数据库类型</label>
                         <select class="form-select" id="db_type" name="db_type">
                             <option value="">全部类型</option>
@@ -93,6 +72,21 @@
                             </option>
                             {% endfor %}
                         </select>
+                    </div>
+                    <div class="col-md-1">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fas fa-search me-1"></i>搜索
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <div class="d-grid">
+                            <a href="{{ url_for('account_list.list_accounts', db_type=current_db_type) if current_db_type else url_for('account_list.list_accounts') }}"
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>清除
+                            </a>
+                        </div>
                     </div>
                 </div>
             </form>
