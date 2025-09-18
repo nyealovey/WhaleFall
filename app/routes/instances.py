@@ -387,7 +387,7 @@ def test_instance_connection() -> str | Response | tuple[Response, int]:
             f"收到测试连接请求，Content-Type: {request.content_type}",
             module="instances",
         )
-        log_info(f"请求数据: {request.get_data()}", module="instances")
+        # 处理请求数据
 
         # 检查Content-Type
         if not request.is_json:
@@ -408,7 +408,7 @@ def test_instance_connection() -> str | Response | tuple[Response, int]:
         data = request.get_json()
 
         # 添加调试日志
-        log_info(f"解析后的JSON数据: {data}", module="instances")
+        # 解析JSON数据
 
         # 验证必需参数
         if not data:
@@ -789,10 +789,10 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 
         # 第二步：最后删除实例本身
         try:
-            log_info(f"步骤5: 准备删除实例 {instance.name} (ID: {instance.id})", module="instances")
+            # 准备删除实例
             db.session.delete(instance)
             db.session.commit()
-            log_info(f"步骤5: 实例 {instance.name} 删除成功", module="instances")
+            # 实例删除成功
         except Exception as e:
             log_error(f"删除实例 {instance.name} 失败: {e}", module="instances")
             db.session.rollback()
@@ -807,7 +807,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
         sync_record_count = stats["sync_record_count"]
         change_log_count = stats["change_log_count"]
 
-        log_info(f"实例 {instance.name} 及其相关数据删除成功", module="instances")
+        # 实例及其相关数据删除成功
 
         if request.is_json:
             return jsonify(
@@ -1484,7 +1484,7 @@ def api_test_instance_connection() -> Response | tuple[Response, int]:
             f"收到API测试连接请求，Content-Type: {request.content_type}",
             module="instances",
         )
-        log_info(f"请求数据: {request.get_data()}", module="instances")
+        # 处理请求数据
 
         # 检查Content-Type
         if not request.is_json:
@@ -1503,7 +1503,7 @@ def api_test_instance_connection() -> Response | tuple[Response, int]:
             )
 
         # 添加调试日志
-        log_info(f"解析后的JSON数据: {data}", module="instances")
+        # 解析JSON数据
 
         # 验证必需参数
         if not data:

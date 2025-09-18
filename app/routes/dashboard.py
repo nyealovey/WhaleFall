@@ -41,16 +41,7 @@ def index() -> str:
     # 获取系统状态
     system_status = get_system_status()
 
-    # 记录操作日志
-    duration = (time.time() - start_time) * 1000
-    log_info(
-        "访问仪表板",
-        module="dashboard",
-        user_id=current_user.id,
-        ip_address=request.remote_addr,
-        user_agent=request.headers.get("User-Agent"),
-        duration_ms=duration,
-    )
+    # 记录操作日志（仅记录重要操作）
 
     if request.is_json:
         return jsonify(

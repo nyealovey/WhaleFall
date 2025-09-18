@@ -22,7 +22,6 @@ system_logger = get_system_logger()
 def index() -> str:
     """同步会话管理首页"""
     try:
-        log_info("访问同步会话管理页面", module="sync_sessions", user_id=current_user.id)
         return render_template("sync_sessions/management.html")
     except Exception as e:
         log_error(
