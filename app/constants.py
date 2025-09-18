@@ -212,8 +212,8 @@ class ErrorMessages:
 
     # 认证错误
     INVALID_CREDENTIALS = "用户名或密码错误"
-    TOKEN_EXPIRED = "令牌已过期"  # noqa: S105
-    TOKEN_INVALID = "无效的令牌"  # noqa: S105
+    TOKEN_EXPIRED = "令牌已过期"  # noqa: S105 - 这是错误消息，不是密码
+    TOKEN_INVALID = "无效的令牌"  # noqa: S105 - 这是错误消息，不是密码
     ACCOUNT_DISABLED = "账户已被禁用"
     ACCOUNT_LOCKED = "账户已被锁定"
 
@@ -249,7 +249,7 @@ class SuccessMessages:
     # 认证成功
     LOGIN_SUCCESS = "登录成功"
     LOGOUT_SUCCESS = "登出成功"
-    PASSWORD_CHANGED = "密码修改成功"  # noqa: S105
+    PASSWORD_CHANGED = "密码修改成功"  # noqa: S105 - 这是成功消息，不是密码
     PROFILE_UPDATED = "资料更新成功"
 
     # 业务成功
@@ -272,7 +272,7 @@ class RegexPatterns:
     EMAIL_PATTERN = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
     # 密码模式（至少8位，包含大小写字母和数字）
-    PASSWORD_PATTERN = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$"  # noqa: S105
+    PASSWORD_PATTERN = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$"  # noqa: S105 - 这是正则表达式模式，不是密码
 
     # IP地址模式
     IP_PATTERN = r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"

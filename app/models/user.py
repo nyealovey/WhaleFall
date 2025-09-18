@@ -130,13 +130,29 @@ class User(UserMixin, db.Model):
         """创建默认管理员用户"""
         admin = User.query.filter_by(username="admin").first()
         if not admin:
-            admin = User(username="admin", password="Admin123", role="admin")  # noqa: S106
+            # 使用环境变量或生成随机密码，避免硬编码
+            import os
+            import secrets
+            import string
+            
+            default_password = os.getenv('DEFAULT_ADMIN_PASSWORD')
+            if not default_password:
+                # 生成随机密码：12位，包含大小写字母、数字和特殊字符
+                alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+                default_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+            
+            admin = User(username="admin", password=default_password, role="admin")
             db.session.add(admin)
             db.session.commit()
             from app.utils.structlog_config import get_system_logger
 
             system_logger = get_system_logger()
-            system_logger.info("默认管理员用户已创建", module="user_model", username="admin")
+            system_logger.info(
+                "默认管理员用户已创建", 
+                module="user_model", 
+                username="admin",
+                password_length=len(default_password)
+            )
         return admin
 
     def __repr__(self) -> str:
