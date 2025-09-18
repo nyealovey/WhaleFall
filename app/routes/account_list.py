@@ -10,7 +10,7 @@ from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.account_sync_service import account_sync_service
 from app.utils.decorators import update_required, view_required
-from app.utils.structlog_config import log_error
+from app.utils.structlog_config import log_error, log_info
 from app.utils.timezone import now
 
 # 创建蓝图
