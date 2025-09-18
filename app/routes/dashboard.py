@@ -195,23 +195,15 @@ def get_system_overview() -> dict:
         # 活跃实例数
         active_instances = Instance.query.filter_by(is_active=True).count()
 
-        # 活跃账户数（可以登录且未被锁定的账户）
+        # 活跃账户数（与账户统计页面保持一致）
         all_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).all()
         active_accounts = 0
         for account in all_accounts:
-            # 检查账户是否活跃：is_active=True 且未被锁定
-            is_account_active = account.is_active
-            is_locked = False
-            
-            # 检查type_specific中的锁定状态
-            if account.type_specific:
-                is_locked = account.type_specific.get('is_locked', False)
-                # 对于PostgreSQL，还要检查can_login
-                if account.db_type == 'postgresql':
-                    can_login = account.type_specific.get('can_login', True)
-                    is_account_active = is_account_active and can_login
-            
-            if is_account_active and not is_locked:
+            if account.type_specific and "is_locked" in account.type_specific:
+                if not account.type_specific["is_locked"]:
+                    active_accounts += 1
+            else:
+                # 如果没有锁定信息，认为是活跃的
                 active_accounts += 1
 
         # 今日日志数（东八区）
