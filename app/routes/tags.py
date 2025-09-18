@@ -234,7 +234,7 @@ def delete(tag_id: int) -> Response:
         tag = Tag.query.get_or_404(tag_id)
 
         # 检查是否有实例使用此标签
-        instance_count = tag.instances.count()
+        instance_count = len(tag.instances)
         if instance_count > 0:
             flash(f"无法删除标签 '{tag.display_name}'，还有 {instance_count} 个实例正在使用", "error")
             return redirect(url_for("tags.index"))
