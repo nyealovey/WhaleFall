@@ -96,25 +96,26 @@ xcode-select --install
 
 ### 3. 数据库问题
 
-#### SQLite连接失败
+#### PostgreSQL连接失败
 
-**问题**: 无法打开数据库文件
+**问题**: 无法连接到PostgreSQL数据库
 ```
-sqlite3.OperationalError: unable to open database file
+psycopg2.OperationalError: could not connect to server
 ```
 
 **解决方案**:
 ```bash
-# 检查数据库文件权限
-ls -la userdata/taifish_dev.db
+# 检查PostgreSQL服务状态
+sudo systemctl status postgresql
 
-# 修复权限
-chmod 666 userdata/taifish_dev.db
-chmod 755 userdata/
+# 启动PostgreSQL服务
+sudo systemctl start postgresql
 
-# 重新创建数据库
-rm userdata/taifish_dev.db
-python test_database.py
+# 检查数据库连接
+psql -h localhost -U taifish_user -d taifish_db
+
+# 检查数据库配置
+grep DATABASE_URL .env
 ```
 
 #### 数据库迁移问题
@@ -224,14 +225,14 @@ redis-server --port 6380
 
 **问题**: 权限被拒绝
 ```
-Permission denied: 'userdata/taifish_dev.db'
+Permission denied: 'userdata/logs/'
 ```
 
 **解决方案**:
 ```bash
 # 修复用户数据目录权限
 chmod -R 755 userdata/
-chmod 666 userdata/taifish_dev.db
+chmod -R 755 userdata/logs/
 
 # 检查目录所有权
 ls -la userdata/
@@ -350,8 +351,8 @@ python -c "from app import create_app; app = create_app(); print(app.template_fo
 # 检查数据库连接
 python test_database.py
 
-# 使用内存数据库（开发环境）
-export SQLALCHEMY_DATABASE_URI="sqlite:///:memory:"
+# 使用PostgreSQL数据库（开发环境）
+export DATABASE_URL="postgresql://taifish_user:password@localhost:5432/taifish_dev"
 python app.py
 ```
 
@@ -413,7 +414,7 @@ pytest tests/test_models.py::test_user_creation -v
 pytest tests/test_models.py::test_user_creation -v -s
 
 # 重新创建测试数据库
-rm userdata/taifish_dev.db
+python scripts/init_database.py
 python test_database.py
 ```
 
@@ -486,7 +487,7 @@ pip install --upgrade -r requirements-local.txt
 
 ```bash
 # 备份数据库
-cp userdata/taifish_dev.db userdata/backups/backup_$(date +%Y%m%d_%H%M%S).db
+pg_dump -h localhost -U taifish_user -d taifish_db > userdata/backups/backup_$(date +%Y%m%d_%H%M%S).sql
 
 # 备份Redis数据
 redis-cli BGSAVE

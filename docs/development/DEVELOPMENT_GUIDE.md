@@ -71,7 +71,7 @@ SECRET_KEY=your-secret-key-here
 JWT_SECRET_KEY=your-jwt-secret-key-here
 
 # 数据库配置
-DATABASE_URL=sqlite:///instance.db
+DATABASE_URL=postgresql://taifish_user:password@localhost:5432/taifish_dev
 
 # Redis配置
 REDIS_URL=redis://localhost:6379/0
@@ -295,7 +295,7 @@ def execute_task(self, task_id):
 ```python
 # 普通变量 - 使用小写字母和下划线
 user_name = "admin"
-database_url = "sqlite:///instance.db"
+database_url = "postgresql://taifish_user:password@localhost:5432/taifish_dev"
 is_active = True
 
 # 常量 - 使用大写字母和下划线

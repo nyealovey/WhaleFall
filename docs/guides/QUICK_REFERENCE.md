@@ -161,7 +161,7 @@ docker exec -it <container_id> /bin/bash
 ```bash
 SECRET_KEY=your-secret-key-here
 JWT_SECRET_KEY=your-jwt-secret-key-here
-DATABASE_URL=sqlite:///instance.db
+DATABASE_URL=postgresql://taifish_user:password@localhost:5432/taifish_dev
 REDIS_URL=redis://localhost:6379/0
 ```
 
@@ -174,9 +174,9 @@ LOG_LEVEL=INFO
 
 ## 🗄️ 数据库配置
 
-### SQLite (开发环境)
+### PostgreSQL (主数据库)
 ```bash
-DATABASE_URL=sqlite:///instance.db
+DATABASE_URL=postgresql://taifish_user:password@localhost:5432/taifish_dev
 ```
 
 ### PostgreSQL (生产环境)

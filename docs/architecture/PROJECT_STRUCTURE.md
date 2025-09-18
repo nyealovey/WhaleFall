@@ -8,7 +8,7 @@
 
 - **后端**: Flask 3.0.3, SQLAlchemy 1.4.54, APScheduler 3.10.4
 - **前端**: Bootstrap 5.3.2, jQuery 3.7.1, Chart.js 4.4.0
-- **数据库**: SQLite (开发), PostgreSQL (生产), MySQL, SQL Server, Oracle
+- **数据库**: PostgreSQL (主数据库), MySQL, SQL Server, Oracle
 - **缓存**: Redis 5.0.7
 - **任务调度**: APScheduler (替代Celery)
 - **Python版本**: 3.13+
@@ -190,7 +190,6 @@ TaifishV4/
 │   ├── integration/             # 集成测试
 │   └── ui/                      # UI测试
 ├── userdata/                    # 用户数据目录
-│   ├── taifish_dev.db          # 开发数据库 (SQLite)
 │   ├── scheduler.db             # 定时任务数据库 (SQLite)
 │   ├── logs/                    # 日志文件
 │   │   ├── app.log              # 应用日志
@@ -277,8 +276,7 @@ TaifishV4/
 - **account_changes**: 账户变更记录表
 
 ### 数据库支持
-- **开发环境**: SQLite (userdata/taifish_dev.db)
-- **生产环境**: PostgreSQL
+- **主数据库**: PostgreSQL
 - **任务调度**: SQLite (userdata/scheduler.db)
 - **缓存**: Redis
 
@@ -286,7 +284,7 @@ TaifishV4/
 
 ### 开发环境
 - Flask开发服务器
-- SQLite数据库
+- PostgreSQL数据库
 - Redis缓存
 - 本地文件存储
 

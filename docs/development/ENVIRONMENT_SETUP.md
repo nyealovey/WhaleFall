@@ -154,9 +154,9 @@ FLASK_ENV=development
 FLASK_DEBUG=True
 SECRET_KEY=your-secret-key-here
 
-# 数据库配置（使用默认SQLite）
-# DATABASE_URL=sqlite:///./userdata/taifish_dev.db
-# SQLALCHEMY_DATABASE_URI=sqlite:///./userdata/taifish_dev.db
+# 数据库配置（使用PostgreSQL）
+DATABASE_URL=postgresql://taifish_user:password@localhost:5432/taifish_dev
+SQLALCHEMY_DATABASE_URI=postgresql://taifish_user:password@localhost:5432/taifish_dev
 
 # Redis配置
 CACHE_TYPE=redis
@@ -303,13 +303,11 @@ lsof -i :6379
 #### 4. 数据库连接失败
 ```bash
 # 检查数据库文件权限
-ls -la userdata/taifish_dev.db
+# 检查PostgreSQL连接
+psql -h localhost -U taifish_user -d taifish_dev
 
-# 修复权限
-chmod 666 userdata/taifish_dev.db
-
-# 重新创建数据库
-rm userdata/taifish_dev.db
+# 检查数据库配置
+grep DATABASE_URL .env
 python test_database.py
 ```
 
@@ -391,7 +389,7 @@ black app/
 
 ```bash
 # 使用内存数据库（仅开发）
-export SQLALCHEMY_DATABASE_URI="sqlite:///:memory:"
+export DATABASE_URL="postgresql://taifish_user:password@localhost:5432/taifish_dev"
 
 # 禁用调试模式（性能测试）
 export FLASK_DEBUG=False
@@ -456,7 +454,7 @@ sudo apt upgrade redis-server  # Ubuntu
 
 ```bash
 # 备份数据库
-cp userdata/taifish_dev.db userdata/backups/backup_$(date +%Y%m%d_%H%M%S).db
+pg_dump -h localhost -U taifish_user -d taifish_dev > userdata/backups/backup_$(date +%Y%m%d_%H%M%S).sql
 
 # 备份Redis数据
 redis-cli BGSAVE
