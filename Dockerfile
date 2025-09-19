@@ -134,7 +134,8 @@ limit_request_fields = 100
 limit_request_field_size = 8190
 EOF
 
-# 创建Supervisor配置文件
+# 切换到root用户创建Supervisor配置文件
+USER root
 RUN cat > /etc/supervisor/conf.d/whalefall.conf << 'EOF'
 [supervisord]
 nodaemon=true
