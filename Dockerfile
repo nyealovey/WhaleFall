@@ -152,7 +152,7 @@ stderr_logfile_maxbytes=50MB
 stderr_logfile_backups=10
 
 [program:whalefall-scheduler]
-command=/app/.venv/bin/python -c "from app.scheduler import start_scheduler; start_scheduler()"
+command=/usr/bin/python3 -c "from app.scheduler import start_scheduler; start_scheduler()"
 directory=/app
 user=root
 autostart=true
