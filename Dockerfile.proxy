@@ -56,10 +56,15 @@ ENV ORACLE_HOME=/opt/oracle/instantclient_${ORACLE_CLIENT_VERSION//./_}
 
 # 下载并安装Oracle Instant Client for Linux
 RUN mkdir -p $ORACLE_HOME && \
-    wget -q --proxy=on --proxy-user= --proxy-password= https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
-    wget -q --proxy=on --proxy-user= --proxy-password= https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip && \
-    unzip -q /tmp/instantclient-basic.zip -d /opt/oracle && \
-    unzip -q /tmp/instantclient-sdk.zip -d /opt/oracle && \
+    if [ -n "$HTTP_PROXY" ]; then \
+        wget -q --proxy=on --proxy="$HTTP_PROXY" https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
+        wget -q --proxy=on --proxy="$HTTP_PROXY" https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip; \
+    else \
+        wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
+        wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip; \
+    fi && \
+    unzip -o /tmp/instantclient-basic.zip -d /opt/oracle && \
+    unzip -o /tmp/instantclient-sdk.zip -d /opt/oracle && \
     rm /tmp/instantclient-basic.zip /tmp/instantclient-sdk.zip && \
     echo "$ORACLE_HOME" > /etc/ld.so.conf.d/oracle-instantclient.conf && \
     ldconfig
@@ -69,7 +74,11 @@ ENV LD_LIBRARY_PATH=$ORACLE_HOME:$LD_LIBRARY_PATH
 ENV PATH=$ORACLE_HOME:$PATH
 
 # 安装uv（在root用户下安装）
-RUN curl -LsSf --proxy $HTTP_PROXY https://astral.sh/uv/install.sh | sh
+RUN if [ -n "$HTTP_PROXY" ]; then \
+        curl -LsSf --proxy "$HTTP_PROXY" https://astral.sh/uv/install.sh | sh; \
+    else \
+        curl -LsSf https://astral.sh/uv/install.sh | sh; \
+    fi
 ENV PATH="/root/.cargo/bin:$PATH"
 
 # 创建非root用户
@@ -91,7 +100,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 RUN if [ -n "$HTTP_PROXY" ]; then \
         uv config set global.index-url https://pypi.org/simple/ && \
         uv config set global.extra-index-url https://pypi.org/simple/ && \
-        uv config set global.proxy $HTTP_PROXY; \
+        uv config set global.proxy "$HTTP_PROXY"; \
     fi
 
 # 复制项目配置文件
