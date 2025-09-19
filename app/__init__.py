@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_bcrypt import Bcrypt
 from flask_caching import Cache
 from flask_cors import CORS
@@ -209,9 +209,30 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     # 安全配置
     app.config["BCRYPT_LOG_ROUNDS"] = int(os.getenv("BCRYPT_LOG_ROUNDS", 12))
     
-    # URL 配置 - 支持 HTTPS 代理
-    app.config["PREFERRED_URL_SCHEME"] = "https" if not app.debug else "http"
+    # URL 配置 - 动态检测协议
     app.config["APPLICATION_ROOT"] = "/"
+    
+    # 设置默认 URL 方案
+    force_https = os.getenv("FORCE_HTTPS", "false").lower() == "true"
+    if force_https:
+        app.config["PREFERRED_URL_SCHEME"] = "https"
+    else:
+        app.config["PREFERRED_URL_SCHEME"] = "http"
+    
+    # 动态设置 URL 方案（基于请求头）
+    @app.before_request
+    def detect_protocol():
+        """动态检测请求协议"""
+        # 优先检查 X-Forwarded-Proto 头（Nginx 代理设置）
+        if request.headers.get('X-Forwarded-Proto') == 'https':
+            app.config["PREFERRED_URL_SCHEME"] = "https"
+        # 检查 Flask 的 is_secure 属性
+        elif request.is_secure:
+            app.config["PREFERRED_URL_SCHEME"] = "https"
+        # 检查 X-Forwarded-Ssl 头
+        elif request.headers.get('X-Forwarded-Ssl') == 'on':
+            app.config["PREFERRED_URL_SCHEME"] = "https"
+        # 其他情况保持默认值
 
     # 文件上传配置
     app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "userdata/uploads")
