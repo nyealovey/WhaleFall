@@ -83,7 +83,6 @@ RUN mkdir -p /app/userdata/logs /app/userdata/exports /app/userdata/backups /app
 
 # 创建supervisor配置目录
 RUN mkdir -p /etc/supervisor/conf.d
-RUN chmod 755 /etc/supervisor/conf.d
 
 # 设置权限
 RUN chmod -R 755 /app/userdata
