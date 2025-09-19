@@ -55,13 +55,13 @@ ENV PATH=$ORACLE_HOME:$PATH
 
 # 安装uv（在root用户下安装）
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
+ENV PATH="/root/.local/bin:$PATH"
 
 # 创建非root用户
 RUN useradd -m -s /bin/bash whalefall && \
     chown -R whalefall:whalefall /app
 
-# 复制uv到whalefall用户目录
+# 复制uv到系统目录
 RUN cp /root/.local/bin/uv /usr/local/bin/uv && \
     chmod +x /usr/local/bin/uv
 
