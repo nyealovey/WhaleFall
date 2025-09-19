@@ -75,9 +75,7 @@ services:
 
   # Nginx反向代理
   nginx:
-    build:
-      context: .
-      dockerfile: Dockerfile.nginx
+    image: nginx:alpine
     container_name: whalefall_nginx_prod
     restart: unless-stopped
     ports:
@@ -88,8 +86,6 @@ services:
       - whalefall_nginx_ssl:/etc/nginx/ssl
     networks:
       - whalefall_prod_network
-    environment:
-      - NGINX_ENV=prod
     # depends_on: whalefall  # 注释掉，因为whalefall在profiles中
     deploy:
       resources:

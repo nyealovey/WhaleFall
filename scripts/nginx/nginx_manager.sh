@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 # 配置变量
 NGINX_CONTAINER_DEV="whalefall_nginx_dev"
 NGINX_CONTAINER_PROD="whalefall_nginx_prod"
-NGINX_CONFIG_PATH="/etc/nginx/conf.d/default.conf"
+NGINX_CONFIG_PATH="/etc/nginx/conf.d/whalefall.conf"
 NGINX_SSL_PATH="/etc/nginx/ssl"
 
 # 日志函数
@@ -47,7 +47,7 @@ show_usage() {
     echo "  restart [dev|prod]       重启Nginx服务"
     echo "  logs [dev|prod]          查看Nginx日志"
     echo "  config [dev|prod]        查看当前配置"
-    echo "  reinit-config [dev|prod] 重新初始化配置文件"
+    echo "  upload-config [dev|prod] 上传配置文件"
     echo "  upload-ssl [dev|prod]    上传SSL证书"
     echo "  generate-ssl [dev|prod]  生成自签名SSL证书"
     echo "  test-config [dev|prod]   测试配置文件"
@@ -63,8 +63,8 @@ show_usage() {
     echo ""
     echo "示例:"
     echo "  $0 status dev"
-    echo "  $0 reinit-config dev"
-    echo "  $0 reinit-config prod"
+    echo "  $0 upload-config dev"
+    echo "  $0 upload-config prod"
     echo "  $0 upload-ssl prod --cert-file cert.pem --key-file key.pem"
     echo "  $0 generate-ssl dev --domain localhost"
 }
@@ -174,30 +174,45 @@ show_config() {
     docker exec "$container_name" cat "$NGINX_CONFIG_PATH"
 }
 
-# 重新初始化配置（通过环境变量）
-reinit_config() {
+# 上传配置文件
+upload_config() {
     local env=$1
+    local config_file=${CONFIG_FILE:-"nginx/conf.d/whalefall-${env}.conf"}
     local container_name=$(get_container_name "$env")
-
-    log_info "重新初始化Nginx配置 ($env)..."
+    
+    if [ ! -f "$config_file" ]; then
+        log_error "配置文件不存在: $config_file"
+        exit 1
+    fi
+    
+    log_info "上传Nginx配置 ($env)..."
     check_container "$container_name"
-
-    # 备份当前配置
-    docker exec "$container_name" cp "$NGINX_CONFIG_PATH" "${NGINX_CONFIG_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
-
-    # 设置环境变量并重新运行初始化脚本
-    docker exec -e NGINX_ENV="$env" "$container_name" /docker-entrypoint.d/10-nginx-init.sh
-
+    
+    # 检查配置文件是否存在，如果存在则备份
+    if docker exec "$container_name" test -f "$NGINX_CONFIG_PATH"; then
+        log_info "备份当前配置..."
+        docker exec "$container_name" cp "$NGINX_CONFIG_PATH" "${NGINX_CONFIG_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
+    
+    # 上传新配置到临时文件
+    docker cp "$config_file" "$container_name:/tmp/nginx_config.conf"
+    
+    # 在容器内创建或覆盖配置文件
+    docker exec "$container_name" sh -c "cat /tmp/nginx_config.conf > $NGINX_CONFIG_PATH"
+    
+    # 删除默认的default.conf以避免冲突
+    docker exec "$container_name" rm -f /etc/nginx/conf.d/default.conf
+    
     # 测试配置
     if docker exec "$container_name" nginx -t; then
-        log_success "配置重新初始化成功"
+        log_success "配置文件上传成功"
         if [ "$FORCE" = "true" ]; then
             reload_nginx "$env"
         else
             log_info "请手动重载配置: $0 reload $env"
         fi
     else
-        log_error "配置语法错误，已恢复备份"
+        log_error "配置文件语法错误，已恢复备份"
         docker exec "$container_name" cp "${NGINX_CONFIG_PATH}.backup.$(date +%Y%m%d_%H%M%S)" "$NGINX_CONFIG_PATH"
         exit 1
     fi
@@ -355,8 +370,8 @@ main() {
         config)
             show_config "$env"
             ;;
-        reinit-config)
-            reinit_config "$env"
+        upload-config)
+            upload_config "$env"
             ;;
         upload-ssl)
             upload_ssl "$env"

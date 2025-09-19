@@ -32,7 +32,7 @@ help:
 	@echo "  nginx-restart       - 重启Nginx服务"
 	@echo "  nginx-logs          - 查看Nginx日志"
 	@echo "  nginx-config        - 查看Nginx配置"
-	@echo "  nginx-reinit-config - 重新初始化Nginx配置"
+	@echo "  nginx-upload-config - 上传Nginx配置"
 	@echo "  nginx-shell         - 进入Nginx容器"
 	@echo ""
 	@echo "SSL证书管理:"
@@ -202,9 +202,9 @@ nginx-config:
 	@echo "⚙️  查看Nginx配置..."
 	@./scripts/nginx/nginx_manager.sh config dev
 
-nginx-reinit-config:
-	@echo "🔄 重新初始化Nginx配置..."
-	@./scripts/nginx/nginx_manager.sh reinit-config dev
+nginx-upload-config:
+	@echo "📤 上传Nginx配置..."
+	@./scripts/nginx/nginx_manager.sh upload-config dev
 
 nginx-shell:
 	@echo "🐚 进入Nginx容器..."

@@ -70,6 +70,10 @@ make prod nginx-logs
 make dev nginx-config
 make prod nginx-config
 
+# 上传配置文件（会自动创建whalefall.conf）
+make dev nginx-upload-config
+make prod nginx-upload-config
+
 # 进入容器
 make dev nginx-shell
 make prod nginx-shell
