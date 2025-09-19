@@ -233,5 +233,8 @@ CMD ["python", "app.py"]
 # 生产环境阶段
 FROM base as production
 
+# 切换到root用户运行supervisor
+USER root
+
 # 启动命令 - 使用Supervisor管理多个进程
 CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]
