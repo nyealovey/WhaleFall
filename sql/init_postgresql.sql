@@ -607,7 +607,7 @@ ON CONFLICT (name) DO NOTHING;
 -- 插入全局参数数据
 INSERT INTO global_params (key, value, description, param_type, created_at, updated_at) VALUES
 ('system_name', '鲸落数据库管理系统', '系统名称', 'string', NOW(), NOW()),
-('system_version', 'v4.0.0', '系统版本', 'string', NOW(), NOW()),
+('system_version', 'v1.0.0', '系统版本', 'string', NOW(), NOW()),
 ('default_timezone', 'Asia/Shanghai', '默认时区', 'string', NOW(), NOW()),
 ('max_login_attempts', '5', '最大登录尝试次数', 'integer', NOW(), NOW()),
 ('session_timeout', '3600', '会话超时时间（秒）', 'integer', NOW(), NOW()),

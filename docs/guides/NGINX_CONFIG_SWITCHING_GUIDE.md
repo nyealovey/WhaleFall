@@ -245,5 +245,5 @@ docker exec whalefall_nginx ping whalefall_app
 ---
 
 **更新时间**：2025-09-19  
-**适用版本**：鲸落 v4.0.0+  
+**适用版本**：鲸落 v1.0.0+  
 **维护人员**：AI Assistant

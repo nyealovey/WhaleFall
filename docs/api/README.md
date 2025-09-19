@@ -47,7 +47,7 @@ GET /health/detailed
     "database": "connected",
     "redis": "connected",
     "timestamp": "2025-09-18T08:30:00Z",
-    "version": "4.0.0"
+    "version": "1.0.0"
   }
 }
 ```
@@ -601,4 +601,4 @@ console.log(instances);
 4. **数据格式**: 所有请求和响应都使用JSON格式
 5. **时区**: 所有时间字段使用UTC时区
 6. **错误处理**: 请妥善处理API返回的错误信息
-7. **版本控制**: 当前API版本为v4.0.0
+7. **版本控制**: 当前API版本为v1.0.0

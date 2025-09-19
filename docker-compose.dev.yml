@@ -114,7 +114,7 @@ services:
       - BCRYPT_LOG_ROUNDS=${BCRYPT_LOG_ROUNDS:-12}
       - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
       - APP_NAME=${APP_NAME:-鲸落}
-      - APP_VERSION=${APP_VERSION:-4.0.0-dev}
+      - APP_VERSION=${APP_VERSION:-1.0.0-dev}
       - PERMANENT_SESSION_LIFETIME=${PERMANENT_SESSION_LIFETIME:-3600}
     env_file:
       - .env
