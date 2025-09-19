@@ -135,10 +135,10 @@ EOF
 RUN cat > /app/supervisord.conf << 'EOF'
 [supervisord]
 nodaemon=true
-user=whalefall
-logfile=/app/userdata/logs/supervisord.log
-pidfile=/app/userdata/logs/supervisord.pid
-childlogdir=/app/userdata/logs/
+user=root
+logfile=/var/log/supervisord.log
+pidfile=/var/run/supervisord.pid
+childlogdir=/var/log/
 
 [program:whalefall]
 command=/app/.venv/bin/gunicorn --config /app/gunicorn.conf.py app:app
