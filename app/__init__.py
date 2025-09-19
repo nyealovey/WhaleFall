@@ -276,8 +276,10 @@ def initialize_extensions(app: Flask) -> None:
 
     # 初始化缓存管理器
     from app.utils.cache_manager import init_cache_manager
+    from app.services.cache_manager import init_cache_manager as init_legacy_cache_manager
 
     init_cache_manager(cache)
+    init_legacy_cache_manager(cache)
 
     # 初始化CSRF保护
     csrf.init_app(app)
