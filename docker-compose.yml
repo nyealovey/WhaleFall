@@ -107,8 +107,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - /opt/whale_fall_data/nginx/logs:/var/log/nginx
-      - /opt/whale_fall_data/nginx/ssl:/etc/nginx/ssl:ro
+      - ./userdata/nginx/logs:/var/log/nginx
+      - ./userdata/nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - whalefall
     networks:
