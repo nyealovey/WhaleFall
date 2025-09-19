@@ -153,8 +153,8 @@ access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
 proc_name = "whalefall"
 
 # 用户和组
-user = "whalefall"
-group = "whalefall"
+user = "root"
+group = "root"
 
 # 环境变量
 raw_env = [
@@ -180,7 +180,7 @@ childlogdir=/var/log/
 [program:whalefall]
 command=/app/.venv/bin/gunicorn --config /app/gunicorn.conf.py app:app
 directory=/app
-user=whalefall
+user=root
 autostart=true
 autorestart=true
 redirect_stderr=true
@@ -194,7 +194,7 @@ stderr_logfile_backups=10
 [program:whalefall-scheduler]
 command=/app/.venv/bin/python -c "from app.scheduler import start_scheduler; start_scheduler()"
 directory=/app
-user=whalefall
+user=root
 autostart=true
 autorestart=true
 redirect_stderr=true
