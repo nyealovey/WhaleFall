@@ -100,6 +100,9 @@ COPY README.md /app/
 # 安装Python依赖（使用代理）
 RUN uv sync --frozen --no-dev
 
+# 验证虚拟环境创建
+RUN ls -la /app/.venv/bin/python && /app/.venv/bin/python --version
+
 # 复制应用代码
 COPY . /app/
 
@@ -184,7 +187,7 @@ stderr_logfile_maxbytes=50MB
 stderr_logfile_backups=10
 
 [program:whalefall-scheduler]
-command=/usr/bin/python3 -c "from app.scheduler import start_scheduler; start_scheduler()"
+command=/app/.venv/bin/python -c "from app.scheduler import start_scheduler; start_scheduler()"
 directory=/app
 user=root
 autostart=true
