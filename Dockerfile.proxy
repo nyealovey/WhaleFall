@@ -102,6 +102,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 # 复制项目配置文件
 COPY --chown=whalefall:whalefall pyproject.toml uv.lock /app/
 
+# 复制README.md文件（pyproject.toml需要）
+COPY --chown=whalefall:whalefall README.md /app/
+
 # 安装Python依赖（使用代理）
 RUN uv sync --frozen --no-dev
 
