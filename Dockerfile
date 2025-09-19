@@ -67,7 +67,7 @@ import multiprocessing
 import os
 
 # 服务器套接字
-bind = "0.0.0.0:5000"
+bind = "0.0.0.0:5001"
 backlog = 2048
 
 # 工作进程
@@ -146,11 +146,11 @@ stderr_logfile_backups=10
 EOF
 
 # 暴露端口
-EXPOSE 5000
+EXPOSE 5001
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
+    CMD curl -f http://localhost:5001/health || exit 1
 
 # 启动命令 - 使用Supervisor管理多个进程
 CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]

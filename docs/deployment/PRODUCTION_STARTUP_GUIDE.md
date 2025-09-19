@@ -195,7 +195,7 @@ tail -f /app/userdata/logs/supervisord.log
 docker stats whalefall_app
 
 # 查看连接数
-docker exec -it whalefall_app netstat -an | grep :5000
+docker exec -it whalefall_app netstat -an | grep :5001
 ```
 
 ## 📈 生产环境优化建议

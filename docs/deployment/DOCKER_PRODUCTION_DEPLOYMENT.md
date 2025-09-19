@@ -10,7 +10,7 @@
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Nginx         │    │   Taifish App   │    │   PostgreSQL    │
 │   (反向代理)     │◄──►│   (主程序)      │◄──►│   (数据库)      │
-│   Port: 80/443  │    │   Port: 5000    │    │   Port: 5432    │
+│   Port: 80/443  │    │   Port: 5001    │    │   Port: 5432    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          │                       │                       │
@@ -137,7 +137,7 @@ mkdir -p nginx/conf.d
 # 创建Nginx配置文件
 cat > nginx/conf.d/whalefall.conf << 'EOF'
 upstream whalefall_backend {
-    server whalefall:5000;
+    server whalefall:5001;
 }
 
 server {
@@ -228,7 +228,7 @@ services:
     networks:
       - whalefall_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
       interval: 30s
       timeout: 10s
       retries: 3

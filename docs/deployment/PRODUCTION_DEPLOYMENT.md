@@ -15,7 +15,7 @@
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │     Nginx       │    │   Flask App     │    │   PostgreSQL    │
-│   (Port 80/443) │────│   (Port 5000)   │────│   (Port 5432)   │
+│   (Port 80/443) │────│   (Port 5001)   │────│   (Port 5432)   │
 │   Load Balancer │    │   Web Server    │    │   Database      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                 │
@@ -159,7 +159,7 @@ docker compose exec app python scripts/create_admin_user.py
 |------|----------|----------|------|
 | Nginx | 80 | 80 | HTTP |
 | Nginx | 443 | 443 | HTTPS |
-| Flask | 5000 | - | 应用服务 |
+| Flask | 5001 | - | 应用服务 |
 | PostgreSQL | 5432 | 5432 | 数据库 |
 | Redis | 6379 | 6379 | 缓存 |
 

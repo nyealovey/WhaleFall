@@ -23,4 +23,4 @@ application = app = create_app()
 
 if __name__ == "__main__":
     # 开发环境直接运行
-    application.run(host="0.0.0.0", port=5000, debug=False)
+    application.run(host="0.0.0.0", port=5001, debug=False)
