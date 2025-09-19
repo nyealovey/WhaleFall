@@ -18,6 +18,11 @@ ENV HTTP_PROXY=${HTTP_PROXY}
 ENV HTTPS_PROXY=${HTTPS_PROXY}
 ENV NO_PROXY=${NO_PROXY}
 
+# 设置小写代理环境变量（apt-get需要）
+ENV http_proxy=${HTTP_PROXY}
+ENV https_proxy=${HTTPS_PROXY}
+ENV no_proxy=${NO_PROXY}
+
 # 设置工作目录
 WORKDIR /app
 
@@ -51,8 +56,8 @@ ENV ORACLE_HOME=/opt/oracle/instantclient_${ORACLE_CLIENT_VERSION//./_}
 
 # 下载并安装Oracle Instant Client for Linux
 RUN mkdir -p $ORACLE_HOME && \
-    wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
-    wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip && \
+    wget -q --proxy=on --proxy-user= --proxy-password= https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
+    wget -q --proxy=on --proxy-user= --proxy-password= https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip && \
     unzip -q /tmp/instantclient-basic.zip -d /opt/oracle && \
     unzip -q /tmp/instantclient-sdk.zip -d /opt/oracle && \
     rm /tmp/instantclient-basic.zip /tmp/instantclient-sdk.zip && \
@@ -64,7 +69,7 @@ ENV LD_LIBRARY_PATH=$ORACLE_HOME:$LD_LIBRARY_PATH
 ENV PATH=$ORACLE_HOME:$PATH
 
 # 安装uv（在root用户下安装）
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN curl -LsSf --proxy $HTTP_PROXY https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.cargo/bin:$PATH"
 
 # 创建非root用户
@@ -85,7 +90,8 @@ ENV PATH="/app/.venv/bin:$PATH"
 # 配置uv代理（如果设置了代理）
 RUN if [ -n "$HTTP_PROXY" ]; then \
         uv config set global.index-url https://pypi.org/simple/ && \
-        uv config set global.extra-index-url https://pypi.org/simple/; \
+        uv config set global.extra-index-url https://pypi.org/simple/ && \
+        uv config set global.proxy $HTTP_PROXY; \
     fi
 
 # 复制项目配置文件
@@ -197,6 +203,14 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # 开发环境阶段
 FROM base as development
+
+# 重新设置代理环境变量（继承自base阶段）
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV NO_PROXY=${NO_PROXY}
+ENV http_proxy=${HTTP_PROXY}
+ENV https_proxy=${HTTPS_PROXY}
+ENV no_proxy=${NO_PROXY}
 
 # 安装开发依赖
 RUN apt-get update && apt-get install -y \
