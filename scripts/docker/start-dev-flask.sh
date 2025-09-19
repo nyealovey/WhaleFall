@@ -45,7 +45,7 @@ check_base_environment() {
     fi
     
     # 检查Nginx
-    if ! curl -f http://localhost > /dev/null 2>&1; then
+    if ! curl -s http://localhost > /dev/null 2>&1; then
         log_error "Nginx未运行，请先运行 ./scripts/docker/start-dev-base.sh"
         exit 1
     fi

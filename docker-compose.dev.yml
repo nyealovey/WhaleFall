@@ -72,13 +72,14 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/conf.d/whalefall-docker.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/conf.d/whalefall.conf:/etc/nginx/conf.d/default.conf:ro
       - ./userdata/nginx/logs:/var/log/nginx
       - ./userdata/nginx/ssl:/etc/nginx/ssl:ro
     networks:
       - whalefall_dev_network
-    depends_on:
-      - whalefall
+    # 基础环境中不依赖whalefall服务
+    # depends_on:
+    #   - whalefall
     deploy:
       resources:
         limits:
@@ -103,8 +104,11 @@ services:
       - FLASK_APP=app.py
       - FLASK_ENV=development
       - FLASK_DEBUG=1
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-whalefall_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-whalefall_dev}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5001
+      - DATABASE_URL=${DATABASE_URL}
+      - CACHE_TYPE=${CACHE_TYPE}
+      - CACHE_REDIS_URL=${CACHE_REDIS_URL}
       - SECRET_KEY=${SECRET_KEY}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - BCRYPT_LOG_ROUNDS=${BCRYPT_LOG_ROUNDS:-12}

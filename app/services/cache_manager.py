@@ -1,6 +1,6 @@
 """
 鲸落 - 缓存管理器
-提供统一的缓存接口，支持Redis缓存操作
+提供统一的缓存接口，支持Flask-Caching缓存操作
 """
 
 import hashlib
@@ -8,9 +8,8 @@ import json
 from datetime import datetime
 from typing import Any
 
-import redis
+from flask_caching import Cache
 
-from app.config import Config
 from app.utils.structlog_config import get_logger
 
 logger = get_logger("cache_manager")
@@ -19,8 +18,8 @@ logger = get_logger("cache_manager")
 class CacheManager:
     """缓存管理器"""
 
-    def __init__(self) -> None:
-        self.redis_client = redis.from_url(Config.CACHE_REDIS_URL)
+    def __init__(self, cache: Cache = None) -> None:
+        self.cache = cache
         self.default_ttl = 7 * 24 * 3600  # 7天，按用户要求
 
     def _generate_cache_key(self, prefix: str, instance_id: int, username: str, db_name: str = None) -> str:
@@ -36,11 +35,14 @@ class CacheManager:
     ) -> tuple[list[str], list[str]] | None:
         """获取数据库权限缓存"""
         try:
+            if not self.cache:
+                return None
+                
             cache_key = self._generate_cache_key("db_perms", instance_id, username, db_name)
-            cached_data = self.redis_client.get(cache_key)
+            cached_data = self.cache.get(cache_key)
 
             if cached_data:
-                data = json.loads(cached_data)
+                data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
                 roles = data.get("roles", [])
                 permissions = data.get("permissions", [])
                 logger.debug("缓存命中: %s@%s", username, db_name, cache_key=cache_key)
@@ -57,6 +59,9 @@ class CacheManager:
     ) -> bool:
         """设置数据库权限缓存"""
         try:
+            if not self.cache:
+                return False
+                
             cache_key = self._generate_cache_key("db_perms", instance_id, username, db_name)
             cache_data = {
                 "roles": roles,
@@ -68,7 +73,7 @@ class CacheManager:
             }
 
             ttl = ttl or self.default_ttl
-            self.redis_client.setex(cache_key, ttl, json.dumps(cache_data, ensure_ascii=False))
+            self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug("缓存已设置: %s@%s", username, db_name, cache_key=cache_key, ttl=ttl)
             return True
 

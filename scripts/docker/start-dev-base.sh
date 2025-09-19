@@ -73,17 +73,38 @@ wait_for_base_services() {
     
     # 等待PostgreSQL
     log_info "等待PostgreSQL启动..."
-    timeout 60 bash -c 'until docker-compose -f docker-compose.dev.yml exec postgres pg_isready -U whalefall_user -d whalefall_dev; do sleep 2; done'
+    local count=0
+    while [ $count -lt 30 ]; do
+        if docker-compose -f docker-compose.dev.yml exec postgres pg_isready -U whalefall_user -d whalefall_dev >/dev/null 2>&1; then
+            break
+        fi
+        sleep 2
+        count=$((count + 1))
+    done
     log_success "PostgreSQL已就绪"
     
     # 等待Redis
     log_info "等待Redis启动..."
-    timeout 30 bash -c 'until docker-compose -f docker-compose.dev.yml exec redis redis-cli ping; do sleep 2; done'
+    count=0
+    while [ $count -lt 15 ]; do
+        if docker-compose -f docker-compose.dev.yml exec redis redis-cli ping >/dev/null 2>&1; then
+            break
+        fi
+        sleep 2
+        count=$((count + 1))
+    done
     log_success "Redis已就绪"
     
     # 等待Nginx
     log_info "等待Nginx启动..."
-    timeout 30 bash -c 'until curl -f http://localhost > /dev/null 2>&1; do sleep 2; done'
+    count=0
+    while [ $count -lt 15 ]; do
+        if curl -f http://localhost >/dev/null 2>&1; then
+            break
+        fi
+        sleep 2
+        count=$((count + 1))
+    done
     log_success "Nginx已就绪"
 }
 

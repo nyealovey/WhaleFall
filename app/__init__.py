@@ -326,25 +326,13 @@ def initialize_extensions(app: Flask) -> None:
     # 初始化CSRF保护
     csrf.init_app(app)
 
-    # 初始化Redis (用于缓存和速率限制)
-    redis_url = app.config.get("CACHE_REDIS_URL", "redis://localhost:6379/0")
-    try:
-        import redis
-
-        redis_client = redis.from_url(redis_url, decode_responses=True)
-
-        # 初始化速率限制器
-        from app.utils.rate_limiter import init_rate_limiter
-
-        init_rate_limiter(redis_client)
-        redis_client.ping()
-        app.logger.info("Redis连接成功")
-    except Exception as e:
-        app.logger.warning("Redis不可用: %s", str(e))
-        redis_client = None
-
-    # 将redis_client添加到应用上下文
-    app.redis_client = redis_client
+    # 初始化速率限制器（使用Flask-Caching）
+    from app.utils.rate_limiter import init_rate_limiter
+    init_rate_limiter(cache)
+    
+    # 初始化简化缓存管理器
+    from app.services.cache_manager_simple import init_simple_cache_manager
+    init_simple_cache_manager(cache)
 
 
 def register_blueprints(app: Flask) -> None:

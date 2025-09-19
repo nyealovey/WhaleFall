@@ -58,14 +58,13 @@ def api_health() -> "Response":
     except Exception:
         db_status = "error"
 
-    # 检查Redis状态
+    # 检查Redis状态（通过缓存检查）
     redis_status = "connected"
     try:
-        from flask import current_app
+        from app.services.cache_manager_simple import simple_cache_manager
 
-        redis_client = getattr(current_app, "redis_client", None)
-        if redis_client:
-            redis_client.ping()
+        if simple_cache_manager and simple_cache_manager.health_check():
+            redis_status = "connected"
         else:
             redis_status = "error"
     except Exception:

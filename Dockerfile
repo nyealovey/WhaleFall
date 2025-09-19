@@ -17,9 +17,9 @@ RUN apt-get update && apt-get install -y \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update && apt-get install -y \
     python3.11 \
-    python3.11-pip \
     python3.11-venv \
     python3.11-dev \
+    python3.11-distutils \
     build-essential \
     libpq-dev \
     pkg-config \
@@ -43,8 +43,8 @@ ENV ORACLE_HOME=/opt/oracle/instantclient_${ORACLE_CLIENT_VERSION//./_}
 RUN mkdir -p $ORACLE_HOME && \
     wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
     wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip && \
-    unzip -q /tmp/instantclient-basic.zip -d /opt/oracle && \
-    unzip -q /tmp/instantclient-sdk.zip -d /opt/oracle && \
+    unzip -o /tmp/instantclient-basic.zip -d /opt/oracle && \
+    unzip -o /tmp/instantclient-sdk.zip -d /opt/oracle && \
     rm /tmp/instantclient-basic.zip /tmp/instantclient-sdk.zip && \
     echo "$ORACLE_HOME" > /etc/ld.so.conf.d/oracle-instantclient.conf && \
     ldconfig
@@ -62,7 +62,7 @@ RUN useradd -m -s /bin/bash whalefall && \
     chown -R whalefall:whalefall /app
 
 # 复制uv到whalefall用户目录
-RUN cp /root/.cargo/bin/uv /usr/local/bin/uv && \
+RUN cp /root/.local/bin/uv /usr/local/bin/uv && \
     chmod +x /usr/local/bin/uv
 
 # 切换到非root用户
@@ -72,14 +72,11 @@ USER whalefall
 RUN uv venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-# 复制项目配置文件
-COPY --chown=whalefall:whalefall pyproject.toml uv.lock /app/
+# 复制应用代码
+COPY --chown=whalefall:whalefall . /app/
 
 # 安装Python依赖
 RUN uv sync --frozen --no-dev
-
-# 复制应用代码
-COPY --chown=whalefall:whalefall . /app/
 
 # 创建必要的目录
 RUN mkdir -p /app/userdata/logs /app/userdata/exports /app/userdata/backups /app/userdata/uploads
@@ -182,12 +179,18 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # 开发环境阶段
 FROM base as development
 
+# 切换到root用户安装开发依赖
+USER root
+
 # 安装开发依赖
 RUN apt-get update && apt-get install -y \
     vim \
     htop \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# 切换回whalefall用户
+USER whalefall
 
 # 开发环境启动命令
 CMD ["python", "app.py"]

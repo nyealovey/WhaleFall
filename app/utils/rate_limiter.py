@@ -7,6 +7,7 @@ from collections.abc import Callable
 from functools import wraps
 
 from flask import jsonify, request
+from flask_caching import Cache
 
 from app.utils.structlog_config import get_system_logger
 
@@ -14,12 +15,12 @@ from app.utils.structlog_config import get_system_logger
 class RateLimiter:
     """速率限制器"""
 
-    def __init__(self, redis_client=None):
-        self.redis_client = redis_client
-        self.memory_store = {}  # 内存存储，用于无Redis环境
+    def __init__(self, cache: Cache = None):
+        self.cache = cache
+        self.memory_store = {}  # 内存存储，用于无缓存环境
 
     def _get_key(self, identifier: str, endpoint: str) -> str:
-        """生成Redis键"""
+        """生成缓存键"""
         return f"rate_limit:{endpoint}:{identifier}"
 
     def _get_memory_key(self, identifier: str, endpoint: str) -> str:
@@ -42,13 +43,13 @@ class RateLimiter:
         current_time = int(time.time())
         window_start = current_time - window
 
-        if self.redis_client:
+        if self.cache:
             try:
-                return self._check_redis(identifier, endpoint, limit, window, current_time, window_start)
+                return self._check_cache(identifier, endpoint, limit, window, current_time, window_start)
             except Exception as e:
                 system_logger = get_system_logger()
                 system_logger.warning(
-                    "Redis速率限制检查失败，降级到内存模式",
+                    "缓存速率限制检查失败，降级到内存模式",
                     module="rate_limiter",
                     exception=str(e),
                 )
@@ -57,7 +58,7 @@ class RateLimiter:
         else:
             return self._check_memory(identifier, endpoint, limit, window, current_time, window_start)
 
-    def _check_redis(
+    def _check_cache(
         self,
         identifier: str,
         endpoint: str,
@@ -66,26 +67,17 @@ class RateLimiter:
         current_time: int,
         window_start: int,
     ) -> dict[str, any]:
-        """使用Redis检查速率限制"""
+        """使用缓存检查速率限制"""
         key = self._get_key(identifier, endpoint)
-        pipe = self.redis_client.pipeline()
-
+        
+        # 获取当前窗口内的请求记录
+        requests = self.cache.get(key) or []
+        
         # 移除过期的记录
-        pipe.zremrangebyscore(key, 0, window_start)
-
-        # 获取当前窗口内的请求数
-        pipe.zcard(key)
-
-        # 添加当前请求
-        pipe.zadd(key, {str(current_time): current_time})
-
-        # 设置过期时间
-        pipe.expire(key, window)
-
-        results = pipe.execute()
-        current_count = results[1]
-
-        if current_count >= limit:
+        requests = [req_time for req_time in requests if req_time > window_start]
+        
+        # 检查是否超过限制
+        if len(requests) >= limit:
             return {
                 "allowed": False,
                 "remaining": 0,
@@ -93,9 +85,15 @@ class RateLimiter:
                 "retry_after": window,
             }
 
+        # 添加当前请求
+        requests.append(current_time)
+        
+        # 保存更新后的请求记录
+        self.cache.set(key, requests, timeout=window)
+        
         return {
             "allowed": True,
-            "remaining": limit - current_count - 1,
+            "remaining": limit - len(requests),
             "reset_time": current_time + window,
             "retry_after": 0,
         }
@@ -150,13 +148,13 @@ class RateLimiter:
 
     def reset(self, identifier: str, endpoint: str):
         """重置速率限制"""
-        if self.redis_client:
+        if self.cache:
             try:
                 key = self._get_key(identifier, endpoint)
-                self.redis_client.delete(key)
+                self.cache.delete(key)
             except Exception as e:
                 system_logger = get_system_logger()
-                system_logger.warning("Redis重置速率限制失败", module="rate_limiter", exception=e)
+                system_logger.warning("缓存重置速率限制失败", module="rate_limiter", exception=e)
                 # 降级到内存模式
                 key = self._get_memory_key(identifier, endpoint)
                 if key in self.memory_store:
@@ -292,10 +290,10 @@ def task_execution_rate_limit(func=None, *, limit: int = 10, window: int = 60):
 
 
 # 初始化速率限制器
-def init_rate_limiter(redis_client=None):
+def init_rate_limiter(cache: Cache = None):
     """初始化速率限制器"""
     global rate_limiter
-    rate_limiter = RateLimiter(redis_client)
+    rate_limiter = RateLimiter(cache)
     system_logger = get_system_logger()
     system_logger.info("速率限制器初始化完成", module="rate_limiter")
 
@@ -309,8 +307,8 @@ def get_rate_limit_status(identifier: str, endpoint: str, limit: int, window: in
 # 清理过期的速率限制记录
 def cleanup_rate_limits():
     """清理过期的速率限制记录"""
-    if rate_limiter.redis_client:
-        # Redis会自动清理过期键
+    if rate_limiter.cache:
+        # 缓存会自动清理过期键
         pass
     else:
         # 清理内存中的过期记录

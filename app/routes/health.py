@@ -15,7 +15,7 @@ from app.utils.structlog_config import get_system_logger
 health_bp = Blueprint("health", __name__)
 
 
-@health_bp.route("/health")
+@health_bp.route("/")
 def health_check() -> "Response":
     """基础健康检查"""
     try:
@@ -29,7 +29,7 @@ def health_check() -> "Response":
         return APIResponse.server_error("健康检查失败")
 
 
-@health_bp.route("/health/detailed")
+@health_bp.route("/detailed")
 def detailed_health_check() -> "Response":
     """详细健康检查"""
     try:
@@ -79,7 +79,8 @@ def check_database_health() -> dict:
     """检查数据库健康状态"""
     try:
         start_time = time.time()
-        db.session.execute("SELECT 1")
+        from sqlalchemy import text
+        db.session.execute(text("SELECT 1"))
         response_time = (time.time() - start_time) * 1000  # 毫秒
 
         return {
