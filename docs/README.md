@@ -23,11 +23,29 @@
 - [Docker架构](deployment/DOCKER_ARCHITECTURE.md) - Docker容器化架构
 - [环境配置](deployment/ENVIRONMENT_SETUP.md) - 环境变量和配置
 - [生产部署](deployment/PRODUCTION_DEPLOYMENT.md) - 生产环境部署流程
+- [部署总结](deployment/DEPLOYMENT_SUMMARY.md) - 部署方案总结
+- [两部分部署](deployment/PRODUCTION_TWO_PART_DEPLOYMENT.md) - 基础环境+Flask应用部署
+- [基础环境部署成功](deployment/BASE_ENVIRONMENT_DEPLOYMENT_SUCCESS.md) - 基础环境部署记录
+- [部署清理总结](deployment/DEPLOYMENT_CLEANUP_SUMMARY.md) - 部署文档清理记录
+- [生产部署完成](deployment/PRODUCTION_DEPLOYMENT_COMPLETE.md) - 生产环境部署完成报告
 
 ### 🛠️ 开发指南 (development/)
 - [开发环境搭建](development/ENVIRONMENT_SETUP.md) - 本地开发环境配置
 - [开发指南](development/DEVELOPMENT_GUIDE.md) - 开发规范和最佳实践
 - [数据库迁移](development/DATABASE_MIGRATION.md) - 数据库版本管理
+
+### 🔧 问题修复 (fixes/)
+- [数据库字段修复](fixes/DATABASE_FIELDS_FIX_SUMMARY.md) - 数据库表字段缺失问题修复
+- [Nginx 502错误修复](fixes/NGINX_502_FIX_SUMMARY.md) - Nginx代理配置问题修复
+- [会话超时修复](fixes/SESSION_TIMEOUT_FIX_SUMMARY.md) - 会话管理配置修复
+
+### 📖 使用指南 (guides/)
+- [Nginx配置切换](guides/NGINX_CONFIG_SWITCHING_GUIDE.md) - 主机/容器Flask模式切换
+- [资源管理](guides/VENDOR_RESOURCES_MANAGEMENT.md) - 前端资源本地化管理
+- [Logo更新指南](guides/LOGO_UPDATE_INSTRUCTIONS.md) - 应用Logo更新说明
+
+### 📊 项目报告 (reports/)
+- [脚本清理总结](reports/SCRIPTS_CLEANUP_SUMMARY.md) - 项目脚本整理和清理报告
 - [故障排除](development/TROUBLESHOOTING.md) - 常见问题和解决方案
 
 ### ⚡ 功能特性 (features/)
