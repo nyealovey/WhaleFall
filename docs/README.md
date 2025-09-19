@@ -30,6 +30,7 @@
 - [生产部署完成](deployment/PRODUCTION_DEPLOYMENT_COMPLETE.md) - 生产环境部署完成报告
 - [Docker代理配置](deployment/DOCKER_PROXY_CONFIGURATION.md) - Docker代理和镜像源配置指南
 - [Nginx简化配置](deployment/NGINX_SIMPLIFIED_CONFIG.md) - Nginx配置简化和优化说明
+- [Flask应用管理](deployment/FLASK_APPLICATION_MANAGEMENT.md) - Flask应用启动、停止、调试和监控指南
 
 ### 🛠️ 开发指南 (development/)
 - [开发环境搭建](development/ENVIRONMENT_SETUP.md) - 本地开发环境配置
