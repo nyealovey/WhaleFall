@@ -25,18 +25,18 @@
 
 ```bash
 # 备份原logo文件
-cp /Users/apple/Taifish/TaifishingV4/app/static/img/logo.png /Users/apple/Taifish/TaifishingV4/app/static/img/logo_backup.png
+cp /Users/apple/Taifish/TaifishingV4/app/static/img/logo.webp /Users/apple/Taifish/TaifishingV4/app/static/img/logo_backup.webp
 
 # 将新的鲸鱼logo文件复制到以下位置
-# 文件名必须是: logo.png
-# 位置: /Users/apple/Taifish/TaifishingV4/app/static/img/logo.png
+# 文件名必须是: logo.webp
+# 位置: /Users/apple/Taifish/TaifishingV4/app/static/img/logo.webp
 ```
 
 ### 建议的logo规格
-- **格式**: PNG（支持透明背景）
+- **格式**: WebP（支持透明背景，文件更小）
 - **尺寸**: 建议 1024x1024px 或更高分辨率（当前文件已经是1024x1024）
-- **背景**: 透明（PNG格式支持，RGBA通道）
-- **文件名**: logo.png
+- **背景**: 透明（WebP格式支持，RGBA通道）
+- **文件名**: logo.webp
 - **优化**: 已添加CSS样式确保透明背景正确显示
 
 ## 更新后的效果
@@ -67,13 +67,13 @@ cp /Users/apple/Taifish/TaifishingV4/app/static/img/logo.png /Users/apple/Taifis
 
 ```
 app/static/img/
-├── logo.png          # 新的鲸鱼logo（需要您替换）
+├── logo.webp         # 新的鲸鱼logo（需要您替换）
 ├── logo_backup.png   # 原logo备份
 └── ...
 ```
 
 ## 注意事项
 
-- 确保新logo文件名为 `logo.png`
-- 建议使用PNG格式以支持透明背景
+- 确保新logo文件名为 `logo.webp`
+- 建议使用WebP格式以支持透明背景和更小的文件大小
 - 如果logo尺寸不合适，可以调整模板中的height属性

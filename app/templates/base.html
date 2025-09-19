@@ -7,8 +7,8 @@
     <title id="page-title">{% block title %}鲸落 - 数据同步管理平台{% endblock %}</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
-    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+    <link rel="icon" type="image/webp" href="{{ url_for('static', filename='img/logo.webp') }}">
+    <link rel="shortcut icon" type="image/webp" href="{{ url_for('static', filename='img/logo.webp') }}">
 
     <!-- Bootstrap CSS -->
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
@@ -198,10 +198,10 @@
     <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="鲸落" height="40" class="me-2" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
-                <span id="app-name">鲸落</span>
-            </a>
+        <a class="navbar-brand" href="{{ url_for('main.index') }}">
+            <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+            <span id="app-name">鲸落</span>
+        </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
