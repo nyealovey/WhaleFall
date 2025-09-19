@@ -142,7 +142,7 @@ docker-compose -f docker-compose.base.yml exec postgres pg_isready -U whalefall_
 docker-compose -f docker-compose.base.yml exec redis redis-cli ping
 
 # 检查Nginx
-curl http://localhost/health
+curl http://localhost
 ```
 
 ### 2. Flask应用部署
@@ -182,7 +182,7 @@ docker-compose -f docker-compose.flask.yml ps
 curl http://localhost:5001/health
 
 # 检查Nginx代理
-curl http://localhost/health
+curl http://localhost
 
 # 访问管理界面
 curl http://localhost/admin
@@ -283,7 +283,7 @@ docker-compose -f docker-compose.base.yml logs -f postgres
 
 ```bash
 # 检查所有服务健康状态
-curl http://localhost/health
+curl http://localhost
 
 # 检查Flask应用健康
 curl http://localhost:5001/health
