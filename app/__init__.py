@@ -244,8 +244,11 @@ def configure_session_security(app: Flask) -> None:
     Args:
         app: Flask应用实例
     """
+    # 从环境变量读取会话超时时间，默认为1小时
+    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", SystemConstants.SESSION_LIFETIME))
+    
     # 会话配置
-    app.config["PERMANENT_SESSION_LIFETIME"] = SystemConstants.SESSION_LIFETIME  # 会话1小时过期
+    app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime  # 会话超时时间
     app.config["SESSION_COOKIE_SECURE"] = not app.debug  # 生产环境使用HTTPS
     app.config["SESSION_COOKIE_HTTPONLY"] = True  # 防止XSS攻击
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF保护
@@ -254,7 +257,7 @@ def configure_session_security(app: Flask) -> None:
     app.config["SESSION_COOKIE_NAME"] = "whalefall_session"
 
     # 会话超时配置
-    app.config["SESSION_TIMEOUT"] = SystemConstants.SESSION_LIFETIME  # 1小时
+    app.config["SESSION_TIMEOUT"] = session_lifetime  # 会话超时时间
 
 
 def initialize_extensions(app: Flask) -> None:
@@ -293,7 +296,9 @@ def initialize_extensions(app: Flask) -> None:
 
     # 会话安全配置
     login_manager.session_protection = "basic"  # 基础会话保护
-    login_manager.remember_cookie_duration = SystemConstants.SESSION_LIFETIME  # 记住我功能1小时过期
+    # 从环境变量读取会话超时时间，默认为1小时
+    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", SystemConstants.SESSION_LIFETIME))
+    login_manager.remember_cookie_duration = session_lifetime  # 记住我功能过期时间
     login_manager.remember_cookie_secure = not app.debug  # 生产环境使用HTTPS
     login_manager.remember_cookie_httponly = True  # 防止XSS攻击
 

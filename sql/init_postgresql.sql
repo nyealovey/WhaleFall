@@ -185,6 +185,14 @@ CREATE TABLE IF NOT EXISTS current_account_sync_data (
     
     -- 通用扩展字段
     type_specific JSONB,
+    
+    -- 时间戳和状态字段
+    last_sync_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_change_type VARCHAR(20) DEFAULT 'add',
+    last_change_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_time TIMESTAMP WITH TIME ZONE,
+    
+    -- 分类相关字段
     last_classified_at TIMESTAMP WITH TIME ZONE,
     last_classification_batch_id VARCHAR(36)
 );
@@ -195,6 +203,9 @@ CREATE INDEX IF NOT EXISTS idx_instance_dbtype ON current_account_sync_data(inst
 CREATE INDEX IF NOT EXISTS idx_deleted ON current_account_sync_data(is_deleted);
 CREATE INDEX IF NOT EXISTS idx_username ON current_account_sync_data(username);
 CREATE INDEX IF NOT EXISTS idx_session_id ON current_account_sync_data(session_id);
+CREATE INDEX IF NOT EXISTS idx_last_sync_time ON current_account_sync_data(last_sync_time);
+CREATE INDEX IF NOT EXISTS idx_last_change_time ON current_account_sync_data(last_change_time);
+CREATE INDEX IF NOT EXISTS idx_deleted_time ON current_account_sync_data(deleted_time);
 
 -- ============================================================================
 -- 7. 账户分类管理模块

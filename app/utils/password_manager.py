@@ -22,16 +22,22 @@ class PasswordManager:
         if not key:
             # 如果没有设置密钥，生成一个新的
             key = Fernet.generate_key()
-            from app.utils.structlog_config import get_system_logger
-
-            system_logger = get_system_logger()
-            system_logger.warning("没有设置PASSWORD_ENCRYPTION_KEY环境变量", module="password_manager")
-            system_logger.info("生成的临时密钥", module="password_manager", key=key.decode())
-            system_logger.info(
-                "请设置环境变量",
-                module="password_manager",
-                env_var=f"export PASSWORD_ENCRYPTION_KEY='{key.decode()}'",
-            )
+            # 延迟导入避免循环导入
+            try:
+                from app.utils.structlog_config import get_system_logger
+                system_logger = get_system_logger()
+                system_logger.warning("没有设置PASSWORD_ENCRYPTION_KEY环境变量", module="password_manager")
+                system_logger.info("生成的临时密钥", module="password_manager", key=key.decode())
+                system_logger.info(
+                    "请设置环境变量",
+                    module="password_manager",
+                    env_var=f"export PASSWORD_ENCRYPTION_KEY='{key.decode()}'",
+                )
+            except ImportError:
+                # 如果无法导入logger，使用print输出
+                print("WARNING: 没有设置PASSWORD_ENCRYPTION_KEY环境变量")
+                print(f"INFO: 生成的临时密钥: {key.decode()}")
+                print(f"INFO: 请设置环境变量: export PASSWORD_ENCRYPTION_KEY='{key.decode()}'")
         else:
             key = key.encode()
 
@@ -102,5 +108,15 @@ class PasswordManager:
             return False
 
 
-# 全局密码管理器实例
-password_manager = PasswordManager()
+# 全局密码管理器实例（延迟初始化）
+_password_manager = None
+
+def get_password_manager():
+    """获取密码管理器实例（延迟初始化）"""
+    global _password_manager
+    if _password_manager is None:
+        _password_manager = PasswordManager()
+    return _password_manager
+
+# 为了向后兼容，保留password_manager变量
+password_manager = None

@@ -7,6 +7,9 @@
 - `permission_configs.sql` - 权限配置数据脚本（从现有数据库导出）
 - `init_scheduler_tasks.sql` - 定时任务配置说明脚本
 
+### 数据库迁移脚本
+- `migrate_add_missing_fields.sql` - 添加缺失字段的迁移脚本（修复 current_account_sync_data 表）
+
 ### 数据库类型特定脚本
 - `setup_mysql_monitor_user.sql` - MySQL监控用户设置
 - `setup_postgresql_monitor_user.sql` - PostgreSQL监控用户设置
@@ -27,7 +30,17 @@ psql -h localhost -U postgres -d taifish -f permission_configs.sql
 psql -h localhost -U postgres -d taifish -f init_scheduler_tasks.sql
 ```
 
-### 2. 设置监控用户
+### 2. 数据库迁移（如果使用旧版本）
+如果您使用的是旧版本的数据库，需要执行迁移脚本来添加缺失的字段：
+
+```bash
+# 执行字段修复迁移脚本
+psql -h localhost -U postgres -d taifish -f migrate_add_missing_fields.sql
+```
+
+**注意**：迁移脚本是幂等的，可以安全地多次执行，不会重复添加字段。
+
+### 3. 设置监控用户
 根据您的数据库类型，执行相应的监控用户设置脚本：
 
 ```bash

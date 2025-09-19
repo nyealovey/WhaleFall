@@ -52,7 +52,68 @@
 
 ### 🐳 Docker 部署 (推荐)
 
-#### 生产环境一键部署
+#### 两部分生产环境部署
+
+生产环境采用两部分部署架构，支持独立部署和版本更新：
+
+1. **基础环境部署**：PostgreSQL、Redis、Nginx + 数据库初始化
+2. **Flask应用部署**：Flask应用打包部署 + 版本更新能力
+
+```bash
+# 克隆项目
+git clone https://github.com/nyealovey/TaifishingV4.git
+cd TaifishingV4
+
+# 配置环境
+cp env.production .env
+# 编辑 .env 文件，设置必要的环境变量
+
+# 一键启动所有服务
+make all
+
+# 或分步部署
+make base    # 部署基础环境
+make flask   # 部署Flask应用
+```
+
+#### 服务管理
+
+```bash
+# 查看所有命令
+make help
+
+# 启动所有服务
+make start
+
+# 停止所有服务
+make stop
+
+# 查看服务状态
+make status
+
+# 查看日志
+make logs
+
+# 健康检查
+make health
+```
+
+#### 版本更新
+
+```bash
+# 更新到最新版本
+make update
+
+# 回滚到上一个版本
+make rollback
+
+# 备份数据
+make backup
+```
+
+> 📖 **详细部署指南**: 查看 [两部分生产环境部署指南](docs/deployment/PRODUCTION_TWO_PART_DEPLOYMENT.md)
+
+#### 传统生产环境一键部署
 
 ```bash
 # 1. 克隆项目

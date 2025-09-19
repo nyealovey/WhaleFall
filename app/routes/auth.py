@@ -29,6 +29,16 @@ auth_logger = get_auth_logger()
 def login() -> "str | Response":
     """用户登录页面"""
     if request.method == "POST":
+        # 添加调试日志
+        auth_logger.info(
+            "收到登录请求",
+            method=request.method,
+            content_type=request.content_type,
+            form_data=dict(request.form),
+            is_json=request.is_json,
+            ip_address=request.remote_addr,
+        )
+        
         data = request.get_json() if request.is_json else request.form
         username = data.get("username")
         password = data.get("password")

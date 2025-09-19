@@ -3,7 +3,7 @@
 """
 
 from app import bcrypt, db
-from app.utils.password_manager import password_manager
+from app.utils.password_manager import get_password_manager
 from app.utils.timezone import now
 
 
@@ -67,7 +67,7 @@ class Credential(db.Model):
             password: 原始密码
         """
         # 使用新的加密方式存储密码
-        self.password = password_manager.encrypt_password(password)
+        self.password = get_password_manager().encrypt_password(password)
 
     def check_password(self, password: str) -> bool:
         """
@@ -84,8 +84,8 @@ class Credential(db.Model):
             return bcrypt.check_password_hash(self.password, password)
 
         # 如果是我们的加密格式，解密后比较
-        if password_manager.is_encrypted(self.password):
-            decrypted_password = password_manager.decrypt_password(self.password)
+        if get_password_manager().is_encrypted(self.password):
+            decrypted_password = get_password_manager().decrypt_password(self.password)
             return decrypted_password == password
 
         # 如果是明文密码（不安全），直接比较
@@ -119,8 +119,8 @@ class Credential(db.Model):
             return ""
 
         # 如果是我们的加密格式，尝试解密
-        if password_manager.is_encrypted(self.password):
-            return password_manager.decrypt_password(self.password)
+        if get_password_manager().is_encrypted(self.password):
+            return get_password_manager().decrypt_password(self.password)
 
         # 如果都不是，可能是明文密码（不安全）
         return self.password
