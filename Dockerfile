@@ -132,7 +132,7 @@ limit_request_field_size = 8190
 EOF
 
 # 创建Supervisor配置文件
-RUN cat > /app/supervisord.conf << 'EOF'
+RUN cat > /etc/supervisor/conf.d/whalefall.conf << 'EOF'
 [supervisord]
 nodaemon=true
 user=root
@@ -202,4 +202,4 @@ FROM base as production
 USER root
 
 # 启动命令 - 使用Supervisor管理多个进程
-CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
