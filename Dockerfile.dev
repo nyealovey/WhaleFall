@@ -76,7 +76,7 @@ RUN /app/.venv/bin/python --version
 # 复制应用代码
 COPY . /app/
 
-# 创建必要的目录
+# 创建必要的目录（临时存储）
 RUN mkdir -p /app/userdata/logs /app/userdata/exports /app/userdata/backups /app/userdata/uploads
 
 # 创建supervisor配置目录

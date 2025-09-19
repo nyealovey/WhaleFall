@@ -11,8 +11,8 @@ volumes:
     driver: local
   whalefall_nginx_ssl:
     driver: local
-  whalefall_app_data:
-    driver: local
+  # whalefall_app_data:  # 移除Flask应用持久化卷
+  #   driver: local
 
 services:
   # PostgreSQL数据库
@@ -132,8 +132,9 @@ services:
       - NO_PROXY=${NO_PROXY}
     env_file:
       - .env
-    volumes:
-      - whalefall_app_data:/app/userdata
+    # 移除持久化卷，使用容器内临时存储
+    # volumes:
+    #   - whalefall_app_data:/app/userdata
     networks:
       - whalefall_prod_network
     depends_on:

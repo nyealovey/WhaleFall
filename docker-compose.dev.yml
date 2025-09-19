@@ -11,8 +11,8 @@ volumes:
     driver: local
   whalefall_nginx_ssl:
     driver: local
-  whalefall_app_data:
-    driver: local
+  # whalefall_app_data:  # 移除Flask应用持久化卷
+  #   driver: local
 
 services:
   # PostgreSQL数据库
@@ -125,11 +125,12 @@ services:
       - APP_NAME=${APP_NAME}
       - APP_VERSION=${APP_VERSION}
       - PERMANENT_SESSION_LIFETIME=${PERMANENT_SESSION_LIFETIME}
-    volumes:
-      - whalefall_app_data:/app/userdata
-      - ./app:/app/app:ro
-      - ./migrations:/app/migrations:ro
-      - ./sql:/app/sql:ro
+    # 移除持久化卷，使用容器内临时存储
+    # volumes:
+    #   - whalefall_app_data:/app/userdata
+    #   - ./app:/app/app:ro
+    #   - ./migrations:/app/migrations:ro
+    #   - ./sql:/app/sql:ro
     ports:
       - "5001:5001"
     networks:
