@@ -81,16 +81,9 @@ RUN if [ -n "$HTTP_PROXY" ]; then \
     fi
 ENV PATH="/root/.local/bin:$PATH"
 
-# 创建非root用户
-RUN useradd -m -s /bin/bash whalefall && \
-    chown -R whalefall:whalefall /app
-
 # 复制uv到系统目录
 RUN cp /root/.local/bin/uv /usr/local/bin/uv && \
     chmod +x /usr/local/bin/uv
-
-# 切换到非root用户
-USER whalefall
 
 # 创建虚拟环境
 RUN uv venv /app/.venv
@@ -100,16 +93,16 @@ ENV PATH="/app/.venv/bin:$PATH"
 # uv使用环境变量进行代理配置，不需要config命令
 
 # 复制项目配置文件
-COPY --chown=whalefall:whalefall pyproject.toml uv.lock /app/
+COPY pyproject.toml uv.lock /app/
 
 # 复制README.md文件（pyproject.toml需要）
-COPY --chown=whalefall:whalefall README.md /app/
+COPY README.md /app/
 
 # 安装Python依赖（使用代理）
 RUN uv sync --frozen --no-dev
 
 # 复制应用代码
-COPY --chown=whalefall:whalefall . /app/
+COPY . /app/
 
 # 创建必要的目录
 RUN mkdir -p /app/userdata/logs /app/userdata/exports /app/userdata/backups /app/userdata/uploads

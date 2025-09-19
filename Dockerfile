@@ -57,23 +57,16 @@ ENV PATH=$ORACLE_HOME:$PATH
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-# 创建非root用户
-RUN useradd -m -s /bin/bash whalefall && \
-    chown -R whalefall:whalefall /app
-
 # 复制uv到系统目录
 RUN cp /root/.local/bin/uv /usr/local/bin/uv && \
     chmod +x /usr/local/bin/uv
-
-# 切换到非root用户
-USER whalefall
 
 # 创建虚拟环境
 RUN uv venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # 复制应用代码
-COPY --chown=whalefall:whalefall . /app/
+COPY . /app/
 
 # 安装Python依赖
 RUN uv sync --frozen --no-dev
@@ -193,8 +186,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 切换回whalefall用户
-USER whalefall
+# 保持root用户
 
 # 开发环境启动命令
 CMD ["python", "app.py"]
