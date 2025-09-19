@@ -6,8 +6,8 @@
 
 ### 1.1. 主要域名
 - `localhost` - 本地开发访问
-- `dbinfo.whalefall.local` - 生产环境主域名
-- `*.whalefall.local` - 通配符域名支持
+- `domain.com` - 生产环境主域名
+- `*.domain.com` - 通配符域名支持
 
 ### 1.2. 协议支持
 - **localhost**: 支持 HTTP 和 HTTPS 双协议
@@ -20,7 +20,7 @@
 # HTTP 重定向到 HTTPS (仅对域名)
 server {
     listen 80;
-    server_name dbinfo.whalefall.local *.whalefall.local;
+    server_name domain.com *.domain.com;
     
     # 重定向所有 HTTP 请求到 HTTPS
     return 301 https://$server_name$request_uri;
@@ -40,7 +40,7 @@ server {
 server {
     listen 443 ssl;
     http2 on;
-    server_name localhost dbinfo.whalefall.local *.whalefall.local;
+    server_name localhost domain.com *.domain.com;
     
     # SSL 证书配置
     ssl_certificate /etc/nginx/ssl/whale.pem;
@@ -77,7 +77,7 @@ docker start whalefall_nginx_prod
 - **通用错误日志**: `/var/log/nginx/error.log`
 - **HTTPS 访问日志**: `/var/log/nginx/ssl_access.log`
 - **HTTPS 错误日志**: `/var/log/nginx/ssl_error.log`
-- **域名特定日志**: `/var/log/nginx/dbinfo_access.log`
+- **域名特定日志**: `/var/log/nginx/domain_access.log`
 
 ### 4.2. 日志轮转配置
 ```bash
@@ -122,10 +122,10 @@ curl -I -k https://localhost/health
 ### 6.2. 域名访问测试
 ```bash
 # 测试 HTTP 重定向
-curl -I http://dbinfo.whalefall.local/health
+curl -I http://domain.com/health
 
 # 测试 HTTPS 访问
-curl -I https://dbinfo.whalefall.local/health
+curl -I https://domain.com/health
 ```
 
 ## 7. 故障排查
@@ -159,7 +159,7 @@ docker exec whalefall_nginx_prod tail -f /var/log/nginx/error.log
 docker exec whalefall_nginx_prod netstat -tlnp
 
 # 测试 SSL 证书
-openssl s_client -connect dbinfo.whalefall.local:443 -servername dbinfo.whalefall.local
+openssl s_client -connect domain.com:443 -servername domain.com
 ```
 
 ## 8. 安全配置
