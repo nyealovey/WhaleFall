@@ -12,12 +12,6 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 配置变量
-DB_NAME=${DB_NAME:-whalefall_dev}
-DB_USER=${DB_USER:-whalefall_user}
-DB_PASSWORD=${DB_PASSWORD}
-CONTAINER_NAME=${CONTAINER_NAME:-whalefall_postgres_dev}
-
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -39,6 +33,40 @@ log_warning() {
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
+
+# 加载.env文件
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    source "$PROJECT_DIR/.env"
+    set +a
+    log_info "已加载 .env 文件"
+else
+    log_error ".env 文件不存在"
+    log_error "请先复制 env.template 为 .env 并配置相应的环境变量"
+    log_error "示例: cp env.template .env"
+    exit 1
+fi
+
+# 从.env文件获取配置变量
+DB_NAME=${POSTGRES_DB}
+DB_USER=${POSTGRES_USER}
+DB_PASSWORD=${POSTGRES_PASSWORD}
+CONTAINER_NAME=${CONTAINER_NAME:-whalefall_postgres_dev}
+
+# 验证必需的环境变量
+if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ]; then
+    log_error "缺少必需的环境变量"
+    log_error "请在 .env 文件中设置以下变量:"
+    log_error "  POSTGRES_DB=数据库名"
+    log_error "  POSTGRES_USER=数据库用户名"
+    log_error "  POSTGRES_PASSWORD=数据库密码"
+    exit 1
+fi
+
+log_info "数据库配置:"
+log_info "  数据库名: $DB_NAME"
+log_info "  用户名: $DB_USER"
+log_info "  容器名: $CONTAINER_NAME"
 
 # 检查依赖
 check_dependencies() {

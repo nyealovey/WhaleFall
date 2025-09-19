@@ -5,23 +5,44 @@
 
 set -e
 
-# 配置变量
-DB_NAME=${DB_NAME:-whalefall_dev}
-DB_USER=${DB_USER:-whalefall_user}
-DB_PASSWORD=${DB_PASSWORD}
-CONTAINER_NAME=${CONTAINER_NAME:-whalefall_postgres_dev}
-
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 SQL_DIR="$PROJECT_DIR/sql"
 
-# 检查密码
-if [ -z "$DB_PASSWORD" ]; then
-    echo "错误: 请设置环境变量 DB_PASSWORD"
-    echo "示例: DB_PASSWORD=mypassword $0"
+# 加载.env文件
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    source "$PROJECT_DIR/.env"
+    set +a
+    echo "✅ 已加载 .env 文件"
+else
+    echo "❌ 错误: .env 文件不存在"
+    echo "请先复制 env.template 为 .env 并配置相应的环境变量"
+    echo "示例: cp env.template .env"
     exit 1
 fi
+
+# 从.env文件获取配置变量
+DB_NAME=${POSTGRES_DB}
+DB_USER=${POSTGRES_USER}
+DB_PASSWORD=${POSTGRES_PASSWORD}
+CONTAINER_NAME=${CONTAINER_NAME:-whalefall_postgres_dev}
+
+# 验证必需的环境变量
+if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ]; then
+    echo "❌ 错误: 缺少必需的环境变量"
+    echo "请在 .env 文件中设置以下变量:"
+    echo "  POSTGRES_DB=数据库名"
+    echo "  POSTGRES_USER=数据库用户名"
+    echo "  POSTGRES_PASSWORD=数据库密码"
+    exit 1
+fi
+
+echo "📋 数据库配置:"
+echo "  数据库名: $DB_NAME"
+echo "  用户名: $DB_USER"
+echo "  容器名: $CONTAINER_NAME"
 
 # 检查Docker容器是否运行
 if ! docker ps | grep -q "$CONTAINER_NAME"; then

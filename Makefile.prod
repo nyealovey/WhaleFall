@@ -80,6 +80,9 @@ config:
 # 部署生产环境
 deploy:
 	@echo "🚀 部署生产环境..."
+	@echo "🔍 验证环境变量..."
+	@./scripts/validate_env.sh
+	@echo "🐳 构建并启动Docker容器..."
 	@docker-compose -f docker-compose.prod.yml up -d --build
 	@echo "✅ 生产环境部署完成"
 	@echo "🌐 应用地址: http://localhost"
@@ -88,6 +91,9 @@ deploy:
 # 启动生产环境
 start:
 	@echo "▶️  启动生产环境..."
+	@echo "🔍 验证环境变量..."
+	@./scripts/validate_env.sh
+	@echo "🐳 启动Docker容器..."
 	@docker-compose -f docker-compose.prod.yml up -d
 	@echo "✅ 生产环境启动完成"
 

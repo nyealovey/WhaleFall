@@ -24,7 +24,7 @@ def main() -> None:
     app = create_app()
 
     # 获取配置
-    host = os.environ.get("FLASK_HOST", "127.0.0.1")
+    host = os.environ.get("FLASK_HOST", "0.0.0.0")  # 容器内必须使用0.0.0.0
     port = int(os.environ.get("FLASK_PORT", 5001))
     debug = os.environ.get("FLASK_DEBUG", "True").lower() == "true"
 

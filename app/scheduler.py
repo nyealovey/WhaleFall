@@ -31,11 +31,8 @@ class TaskScheduler:
         import os
         database_url = os.getenv("DATABASE_URL") or os.getenv("SQLALCHEMY_DATABASE_URI")
         if not database_url:
-            # 默认使用SQLite
-            from pathlib import Path
-            project_root = Path(__file__).parent.parent
-            db_path = project_root / "userdata" / "whalefall_dev.db"
-            database_url = f"sqlite:///{db_path.absolute()}"
+            # 在容器环境中，如果DATABASE_URL未设置，使用默认的PostgreSQL连接
+            database_url = "postgresql://whalefall_user:xAfbY3VRSlPmHY8ell3iUYmXZqcCt9iz@postgres:5432/whalefall_dev"
 
         jobstores = {"default": SQLAlchemyJobStore(url=database_url)}
 

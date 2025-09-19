@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
-def admin_required[T](f: T) -> T:
+def admin_required(f):
     """管理员权限装饰器"""
 
     @wraps(f)

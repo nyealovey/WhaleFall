@@ -48,6 +48,44 @@
 
 - Python 3.13+ (推荐使用 uv 管理)
 - Redis 5.0+
+- Docker & Docker Compose (推荐)
+
+### 环境配置
+
+1. **复制环境变量模板**
+   ```bash
+   cp env.template .env
+   ```
+
+2. **编辑环境变量**
+   ```bash
+   # 编辑 .env 文件，设置必要的配置
+   vim .env
+   ```
+
+3. **验证环境变量**
+   ```bash
+   # 验证所有必需的环境变量是否配置正确
+   ./scripts/validate_env.sh
+   ```
+
+### 环境变量说明
+
+| 变量名 | 必需 | 说明 | 示例 |
+|--------|------|------|------|
+| `POSTGRES_DB` | ✅ | 数据库名称 | `whalefall_dev` |
+| `POSTGRES_USER` | ✅ | 数据库用户名 | `whalefall_user` |
+| `POSTGRES_PASSWORD` | ✅ | 数据库密码 | `your_secure_password` |
+| `REDIS_PASSWORD` | ✅ | Redis密码 | `your_redis_password` |
+| `SECRET_KEY` | ✅ | Flask密钥 | `your_secret_key` |
+| `JWT_SECRET_KEY` | ✅ | JWT密钥 | `your_jwt_secret_key` |
+| `DATABASE_URL_DOCKER` | ✅ | Docker容器内数据库URL | `postgresql://user:pass@postgres:5432/db` |
+| `DATABASE_URL_PROD` | ✅ | 生产环境数据库URL | `postgresql://user:pass@postgres:5432/db` |
+| `CACHE_REDIS_URL` | ✅ | Redis连接URL | `redis://:pass@redis:6379/0` |
+| `FLASK_HOST` | ❌ | Flask监听地址 | `0.0.0.0` |
+| `FLASK_PORT` | ❌ | Flask监听端口 | `5001` |
+| `HTTP_PROXY` | ❌ | HTTP代理 | `http://proxy:8080` |
+| `HTTPS_PROXY` | ❌ | HTTPS代理 | `http://proxy:8080` |
 - PostgreSQL 12+ (主数据库)
 
 ### 环境配置

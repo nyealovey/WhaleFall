@@ -111,22 +111,20 @@ services:
     restart: unless-stopped
     environment:
       - FLASK_APP=app.py
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
-      - FLASK_HOST=0.0.0.0
-      - FLASK_PORT=5001
-      - DATABASE_URL=${DATABASE_URL}
+      - FLASK_ENV=${FLASK_ENV:-development}
+      - FLASK_DEBUG=${FLASK_DEBUG:-1}
+      - FLASK_HOST=${FLASK_HOST:-0.0.0.0}
+      - FLASK_PORT=${FLASK_PORT:-5001}
+      - DATABASE_URL=${DATABASE_URL_DOCKER}
       - CACHE_TYPE=${CACHE_TYPE}
       - CACHE_REDIS_URL=${CACHE_REDIS_URL}
       - SECRET_KEY=${SECRET_KEY}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - BCRYPT_LOG_ROUNDS=${BCRYPT_LOG_ROUNDS:-12}
-      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
-      - APP_NAME=${APP_NAME:-鲸落}
-      - APP_VERSION=${APP_VERSION:-1.0.0-dev}
-      - PERMANENT_SESSION_LIFETIME=${PERMANENT_SESSION_LIFETIME:-3600}
-    env_file:
-      - .env
+      - BCRYPT_LOG_ROUNDS=${BCRYPT_LOG_ROUNDS}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - APP_NAME=${APP_NAME}
+      - APP_VERSION=${APP_VERSION}
+      - PERMANENT_SESSION_LIFETIME=${PERMANENT_SESSION_LIFETIME}
     volumes:
       - whalefall_app_data:/app/userdata
       - ./app:/app/app:ro

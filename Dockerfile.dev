@@ -13,13 +13,6 @@ WORKDIR /app
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
-    software-properties-common \
-    && add-apt-repository ppa:deadsnakes/ppa \
-    && apt-get update && apt-get install -y \
-    python3.11 \
-    python3.11-venv \
-    python3.11-dev \
-    python3.11-distutils \
     build-essential \
     libpq-dev \
     pkg-config \
@@ -28,12 +21,25 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     git \
-    supervisor \
     unzip \
     libaio1 \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -sf /usr/bin/python3.11 /usr/bin/python3 \
-    && ln -sf /usr/bin/python3.11 /usr/bin/python
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+# 复制uv到系统目录
+RUN cp /root/.local/bin/uv /usr/local/bin/uv && \
+    chmod +x /usr/local/bin/uv
+
+# 使用uv安装Python 3.11
+RUN uv python install 3.11
+
+# 创建虚拟环境，使用系统Python
+RUN uv venv /app/.venv --python python3.11
+ENV PATH="/app/.venv/bin:$PATH"
 
 # 安装Oracle Instant Client
 ENV ORACLE_CLIENT_VERSION=21.18.0.0.0
@@ -53,26 +59,22 @@ RUN mkdir -p $ORACLE_HOME && \
 ENV LD_LIBRARY_PATH=$ORACLE_HOME:$LD_LIBRARY_PATH
 ENV PATH=$ORACLE_HOME:$PATH
 
-# 安装uv（在root用户下安装）
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:$PATH"
+# 复制项目配置文件
+COPY pyproject.toml uv.lock /app/
 
-# 复制uv到系统目录
-RUN cp /root/.local/bin/uv /usr/local/bin/uv && \
-    chmod +x /usr/local/bin/uv
-
-# 创建虚拟环境
-RUN uv venv /app/.venv
-ENV PATH="/app/.venv/bin:$PATH"
-
-# 复制应用代码
-COPY . /app/
+# 复制README.md文件（pyproject.toml需要）
+COPY README.md /app/
 
 # 安装Python依赖
 RUN uv sync --frozen --no-dev
 
 # 验证虚拟环境创建
-RUN ls -la /app/.venv/bin/python && /app/.venv/bin/python --version
+RUN /app/.venv/bin/python --version
+
+# supervisor已通过apt安装，无需额外安装
+
+# 复制应用代码
+COPY . /app/
 
 # 创建必要的目录
 RUN mkdir -p /app/userdata/logs /app/userdata/exports /app/userdata/backups /app/userdata/uploads
@@ -154,19 +156,7 @@ stderr_logfile=/app/userdata/logs/whalefall_error.log
 stderr_logfile_maxbytes=50MB
 stderr_logfile_backups=10
 
-[program:whalefall-scheduler]
-command=/app/.venv/bin/python -c "from app.scheduler import start_scheduler; start_scheduler()"
-directory=/app
-user=root
-autostart=true
-autorestart=true
-redirect_stderr=true
-stdout_logfile=/app/userdata/logs/scheduler.log
-stdout_logfile_maxbytes=50MB
-stdout_logfile_backups=10
-stderr_logfile=/app/userdata/logs/scheduler_error.log
-stderr_logfile_maxbytes=50MB
-stderr_logfile_backups=10
+# 调度器已集成在Flask应用中，不需要单独启动
 EOF
 
 # 暴露端口
@@ -182,17 +172,16 @@ FROM base as development
 # 切换到root用户安装开发依赖
 USER root
 
-# 安装开发依赖
+# 安装开发依赖（简化，避免网络问题）
 RUN apt-get update && apt-get install -y \
     vim \
-    htop \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* || true
 
 # 保持root用户
 
-# 开发环境启动命令
-CMD ["python", "app.py"]
+# 开发环境启动命令 - 使用Supervisor管理
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
 # 生产环境阶段
 FROM base as production

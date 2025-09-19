@@ -61,10 +61,23 @@ install:
 # 启动开发环境
 start:
 	@echo "🚀 启动开发环境..."
+	@echo "🔍 验证环境变量..."
+	@./scripts/validate_env.sh
+	@echo "🐳 启动Docker容器..."
 	@docker-compose -f docker-compose.dev.yml up -d
 	@echo "✅ 开发环境启动完成"
 	@echo "🌐 应用地址: http://localhost:5001"
 	@echo "📊 数据库管理: http://localhost:5050 (pgAdmin)"
+
+# 启动Flask应用
+start-flask:
+	@echo "🚀 启动Flask应用..."
+	@echo "🔍 验证环境变量..."
+	@./scripts/validate_env.sh
+	@echo "🐳 启动Flask容器..."
+	@docker-compose -f docker-compose.dev.yml --profile flask up -d whalefall
+	@echo "✅ Flask应用启动完成"
+	@echo "🌐 应用地址: http://localhost:5001"
 
 # 停止开发环境
 stop:
