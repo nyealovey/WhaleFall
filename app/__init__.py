@@ -208,6 +208,10 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
     # 安全配置
     app.config["BCRYPT_LOG_ROUNDS"] = int(os.getenv("BCRYPT_LOG_ROUNDS", 12))
+    
+    # URL 配置 - 支持 HTTPS 代理
+    app.config["PREFERRED_URL_SCHEME"] = "https" if not app.debug else "http"
+    app.config["APPLICATION_ROOT"] = "/"
 
     # 文件上传配置
     app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "userdata/uploads")
