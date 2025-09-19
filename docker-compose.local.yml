@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.9'
 
 services:
   # 本地Nginx反向代理 - 代理到本地Flask应用
