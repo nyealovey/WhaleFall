@@ -47,12 +47,12 @@ git clone https://github.com/nyealovey/TaifishingV4.git
 cd TaifishingV4
 
 # 配置环境
-cp env.prod .env
+cp env.production .env
 # 编辑 .env 文件，设置必要的环境变量
 
 # 一键启动所有服务
-chmod +x scripts/*.sh
-./scripts/start-all.sh
+chmod +x scripts/deployment/*.sh
+./scripts/deployment/start-all.sh
 ```
 
 ### 分步部署
@@ -61,14 +61,14 @@ chmod +x scripts/*.sh
 
 ```bash
 # 部署基础环境（PostgreSQL、Redis、Nginx）
-./scripts/deploy-base.sh
+./scripts/deployment/deploy-base.sh
 ```
 
 #### 第二步：部署Flask应用
 
 ```bash
 # 部署Flask应用
-./scripts/deploy-flask.sh
+./scripts/deployment/deploy-flask.sh
 ```
 
 ## 🔧 详细部署步骤
@@ -87,7 +87,7 @@ chmod +x scripts/*.sh
 
 ```bash
 # 创建环境配置文件
-cp env.prod .env
+cp env.production .env
 
 # 编辑配置文件
 nano .env
@@ -119,7 +119,7 @@ APP_VERSION=4.0.0
 
 ```bash
 # 运行基础环境部署脚本
-./scripts/deploy-base.sh
+./scripts/deployment/deploy-base.sh
 ```
 
 部署过程包括：
@@ -161,7 +161,7 @@ docker build -t whalefall:4.0.0 .
 
 ```bash
 # 运行Flask应用部署脚本
-./scripts/deploy-flask.sh
+./scripts/deployment/deploy-flask.sh
 ```
 
 部署过程包括：
@@ -194,26 +194,26 @@ curl http://localhost/admin
 
 ```bash
 # 更新到指定版本
-./scripts/update-version.sh 4.1.0
+./scripts/deployment/update-version.sh 4.1.0
 
 # 备份后更新
-./scripts/update-version.sh -b 4.1.0
+./scripts/deployment/update-version.sh -b 4.1.0
 
 # 强制更新（跳过确认）
-./scripts/update-version.sh -f 4.1.0
+./scripts/deployment/update-version.sh -f 4.1.0
 ```
 
 ### 版本管理
 
 ```bash
 # 检查当前版本
-./scripts/update-version.sh -s
+./scripts/deployment/update-version.sh -s
 
 # 检查更新可用性
-./scripts/update-version.sh -c
+./scripts/deployment/update-version.sh -c
 
 # 回滚到上一个版本
-./scripts/update-version.sh -r
+./scripts/deployment/update-version.sh -r
 ```
 
 ### 更新流程
@@ -230,7 +230,7 @@ curl http://localhost/admin
 
 ```bash
 # 启动所有服务
-./scripts/start-all.sh
+./scripts/deployment/start-all.sh
 
 # 仅启动基础环境
 docker-compose -f docker-compose.base.yml up -d
@@ -243,7 +243,7 @@ docker-compose -f docker-compose.flask.yml up -d
 
 ```bash
 # 停止所有服务
-./scripts/stop-all.sh
+./scripts/deployment/stop-all.sh
 
 # 仅停止Flask应用
 docker-compose -f docker-compose.flask.yml down
@@ -262,7 +262,7 @@ docker-compose -f docker-compose.flask.yml restart
 docker-compose -f docker-compose.base.yml restart
 
 # 重启所有服务
-./scripts/stop-all.sh && ./scripts/start-all.sh
+./scripts/deployment/stop-all.sh && ./scripts/deployment/start-all.sh
 ```
 
 ### 查看日志
@@ -315,11 +315,11 @@ free -h
 
 ```bash
 # 查看应用日志
-tail -f /opt/whale_fall_data/logs/whalefall.log
+tail -f ./userdata/logs/whalefall.log
 
 # 查看Nginx日志
-tail -f /opt/whale_fall_data/nginx/logs/access.log
-tail -f /opt/whale_fall_data/nginx/logs/error.log
+tail -f ./userdata/nginx/logs/access.log
+tail -f ./userdata/nginx/logs/error.log
 
 # 查看数据库日志
 docker-compose -f docker-compose.base.yml logs postgres
@@ -331,13 +331,13 @@ docker-compose -f docker-compose.base.yml logs postgres
 
 ```bash
 # 生成自签名证书（开发环境）
-./scripts/generate-ssl-cert.sh
+./scripts/ssl/generate-ssl-cert.sh
 
 # 更新外部证书
-./scripts/update-external-ssl.sh -c whalefall.local.pem -k whalefall.local.key
+./scripts/ssl/update-external-ssl.sh -c whalefall.local.pem -k whalefall.local.key
 
 # 管理SSL证书
-./scripts/ssl-manager.sh help
+./scripts/ssl/ssl-manager.sh help
 ```
 
 ### 防火墙配置
@@ -374,6 +374,19 @@ docker-compose -f docker-compose.flask.yml up -d --scale whalefall=3
 
 # 配置Nginx负载均衡
 # 编辑 nginx/conf.d/whalefall.conf
+```
+
+### Nginx配置切换
+
+```bash
+# 切换到主机Flask模式（Flask在主机运行）
+./scripts/switch-nginx-config.sh host
+
+# 切换到Docker Flask模式（Flask在容器运行）
+./scripts/switch-nginx-config.sh docker
+
+# 查看当前配置状态
+./scripts/switch-nginx-config.sh status
 ```
 
 ### 性能优化
@@ -456,10 +469,10 @@ docker-compose -f docker-compose.base.yml up -d
 
 ```bash
 # 检查备份
-ls -la /opt/whale_fall_data/backups/
+ls -la ./userdata/backups/
 
 # 回滚到上一个版本
-./scripts/update-version.sh -r
+./scripts/deployment/update-version.sh -r
 
 # 手动回滚
 docker-compose -f docker-compose.flask.yml down
@@ -490,7 +503,7 @@ docker system prune -a
 df -h
 
 # 清理日志文件
-sudo find /opt/whale_fall_data/logs -name "*.log" -mtime +7 -delete
+sudo find ./userdata/logs -name "*.log" -mtime +7 -delete
 
 # 清理Docker数据
 docker system prune -a --volumes
@@ -522,6 +535,12 @@ docker-compose -f docker-compose.base.yml logs > base_logs.txt
 - **文档更新**: 定期更新部署文档
 
 ## 📝 更新日志
+
+### v4.0.1 (2024-09-19)
+- 更新文档路径引用，使用 `./userdata` 替代 `/opt/whale_fall_data`
+- 更新脚本路径，反映新的脚本目录结构
+- 添加Nginx配置切换功能说明
+- 同步文档整理后的新结构
 
 ### v4.0.0 (2024-12-19)
 - 实现两部分部署架构
