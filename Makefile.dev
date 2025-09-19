@@ -1,0 +1,264 @@
+# 鲸落开发环境 Makefile
+# 提供开发环境的构建和管理命令
+
+.PHONY: help install start stop restart status logs clean shell init-db init-db-quick health
+
+# 默认目标
+help:
+	@echo "🐟 鲸落开发环境命令"
+	@echo "=================================="
+	@echo "环境管理:"
+	@echo "  install     - 安装开发依赖"
+	@echo "  start       - 启动开发环境"
+	@echo "  stop        - 停止开发环境"
+	@echo "  restart     - 重启开发环境"
+	@echo "  status      - 查看服务状态"
+	@echo ""
+	@echo "数据库管理:"
+	@echo "  init-db     - 手动初始化数据库"
+	@echo "  init-db-quick - 快速初始化数据库"
+	@echo ""
+	@echo "开发工具:"
+	@echo "  logs        - 查看所有日志"
+	@echo "  logs-db     - 查看数据库日志"
+	@echo "  logs-redis  - 查看Redis日志"
+	@echo "  logs-app    - 查看应用日志"
+	@echo "  shell       - 进入应用容器"
+	@echo "  health      - 健康检查"
+	@echo ""
+	@echo "Nginx管理:"
+	@echo "  nginx-status        - 查看Nginx状态"
+	@echo "  nginx-reload        - 重载Nginx配置"
+	@echo "  nginx-restart       - 重启Nginx服务"
+	@echo "  nginx-logs          - 查看Nginx日志"
+	@echo "  nginx-config        - 查看Nginx配置"
+	@echo "  nginx-upload-config - 上传Nginx配置"
+	@echo "  nginx-shell         - 进入Nginx容器"
+	@echo ""
+	@echo "SSL证书管理:"
+	@echo "  ssl-generate        - 生成SSL证书"
+	@echo "  ssl-upload          - 上传SSL证书"
+	@echo "  ssl-list            - 列出SSL证书"
+	@echo "  ssl-verify          - 验证SSL证书"
+	@echo ""
+	@echo "维护命令:"
+	@echo "  clean       - 清理Docker资源"
+	@echo "  clean-data  - 清理数据卷"
+	@echo "=================================="
+
+# 安装开发依赖
+install:
+	@echo "📦 安装开发依赖..."
+	@if command -v uv >/dev/null 2>&1; then \
+		echo "使用 uv 安装依赖..."; \
+		uv sync; \
+	else \
+		echo "使用 pip 安装依赖..."; \
+		pip install -r requirements.txt; \
+	fi
+	@echo "✅ 开发依赖安装完成"
+
+# 启动开发环境
+start:
+	@echo "🚀 启动开发环境..."
+	@docker-compose -f docker-compose.dev.yml up -d
+	@echo "✅ 开发环境启动完成"
+	@echo "🌐 应用地址: http://localhost:5001"
+	@echo "📊 数据库管理: http://localhost:5050 (pgAdmin)"
+
+# 停止开发环境
+stop:
+	@echo "⏹️  停止开发环境..."
+	@docker-compose -f docker-compose.dev.yml down
+	@echo "✅ 开发环境已停止"
+
+# 重启开发环境
+restart: stop start
+
+# 查看服务状态
+status:
+	@echo "📊 开发环境服务状态："
+	@echo "=================================="
+	@docker-compose -f docker-compose.dev.yml ps
+	@echo "=================================="
+
+# 查看所有日志
+logs:
+	@echo "📋 查看所有日志..."
+	@docker-compose -f docker-compose.dev.yml logs -f
+
+# 查看数据库日志
+logs-db:
+	@echo "📋 查看数据库日志..."
+	@docker-compose -f docker-compose.dev.yml logs -f postgres
+
+# 查看Redis日志
+logs-redis:
+	@echo "📋 查看Redis日志..."
+	@docker-compose -f docker-compose.dev.yml logs -f redis
+
+# 查看应用日志
+logs-app:
+	@echo "📋 查看应用日志..."
+	@docker-compose -f docker-compose.dev.yml logs -f whalefall
+
+# 进入应用容器
+shell:
+	@echo "🐚 进入应用容器..."
+	@docker-compose -f docker-compose.dev.yml exec whalefall bash
+
+# 健康检查
+health:
+	@echo "🏥 健康检查..."
+	@echo "检查应用健康状态..."
+	@curl -s http://localhost:5001/health || echo "❌ 应用健康检查失败"
+	@echo "检查PostgreSQL连接..."
+	@docker-compose -f docker-compose.dev.yml exec postgres pg_isready -U whalefall_user -d whalefall_dev || echo "❌ PostgreSQL连接失败"
+	@echo "检查Redis连接..."
+	@docker-compose -f docker-compose.dev.yml exec redis redis-cli ping || echo "❌ Redis连接失败"
+
+# 数据库初始化
+init-db:
+	@echo "🗄️ 初始化数据库..."
+	@if [ -z "$$DB_PASSWORD" ]; then \
+		echo "❌ 错误: 请设置环境变量 DB_PASSWORD"; \
+		echo "示例: DB_PASSWORD=mypassword make init-db"; \
+		exit 1; \
+	fi
+	@./scripts/database/init_database.sh
+
+# 快速数据库初始化
+init-db-quick:
+	@echo "⚡ 快速初始化数据库..."
+	@if [ -z "$$DB_PASSWORD" ]; then \
+		echo "❌ 错误: 请设置环境变量 DB_PASSWORD"; \
+		echo "示例: DB_PASSWORD=mypassword make init-db-quick"; \
+		exit 1; \
+	fi
+	@./scripts/database/quick_init.sh
+
+# 清理Docker资源
+clean:
+	@echo "🧹 清理Docker资源..."
+	@docker-compose -f docker-compose.dev.yml down -v
+	@docker system prune -f
+	@echo "✅ Docker资源清理完成"
+
+# 清理数据卷
+clean-data:
+	@echo "🗑️  清理数据卷..."
+	@docker-compose -f docker-compose.dev.yml down -v
+	@docker volume prune -f
+	@echo "✅ 数据卷清理完成"
+
+# 卷管理
+volumes:
+	@echo "📦 卷管理..."
+	@./scripts/docker/volume_manager.sh list
+
+# 创建卷
+create-volumes:
+	@echo "📦 创建开发环境卷..."
+	@./scripts/docker/volume_manager.sh create dev
+
+# 备份卷
+backup-volumes:
+	@echo "💾 备份开发环境卷..."
+	@./scripts/docker/volume_manager.sh backup dev
+
+# 恢复卷
+restore-volumes:
+	@echo "🔄 恢复开发环境卷..."
+	@./scripts/docker/volume_manager.sh restore dev
+
+# 迁移数据到卷
+migrate-volumes:
+	@echo "🔄 迁移数据到卷..."
+	@./scripts/docker/volume_manager.sh migrate dev
+
+# 查看卷大小
+volume-size:
+	@echo "📊 查看卷大小..."
+	@./scripts/docker/volume_manager.sh size dev
+
+# Nginx管理
+nginx-status:
+	@echo "🌐 查看Nginx状态..."
+	@./scripts/nginx/nginx_manager.sh status dev
+
+nginx-reload:
+	@echo "🔄 重载Nginx配置..."
+	@./scripts/nginx/nginx_manager.sh reload dev
+
+nginx-restart:
+	@echo "🔄 重启Nginx服务..."
+	@./scripts/nginx/nginx_manager.sh restart dev
+
+nginx-logs:
+	@echo "📋 查看Nginx日志..."
+	@./scripts/nginx/nginx_manager.sh logs dev
+
+nginx-config:
+	@echo "⚙️  查看Nginx配置..."
+	@./scripts/nginx/nginx_manager.sh config dev
+
+nginx-upload-config:
+	@echo "📤 上传Nginx配置..."
+	@./scripts/nginx/nginx_manager.sh upload-config dev
+
+nginx-shell:
+	@echo "🐚 进入Nginx容器..."
+	@./scripts/nginx/nginx_manager.sh shell dev
+
+# SSL证书管理
+ssl-generate:
+	@echo "🔐 生成SSL证书..."
+	@./scripts/nginx/ssl_manager.sh generate dev
+
+ssl-upload:
+	@echo "📤 上传SSL证书..."
+	@./scripts/nginx/ssl_manager.sh upload dev
+
+ssl-list:
+	@echo "📋 列出SSL证书..."
+	@./scripts/nginx/ssl_manager.sh list dev
+
+ssl-verify:
+	@echo "✅ 验证SSL证书..."
+	@./scripts/nginx/ssl_manager.sh verify dev
+
+# 构建开发镜像
+build:
+	@echo "🔨 构建开发镜像..."
+	@docker-compose -f docker-compose.dev.yml build
+
+# 运行测试
+test:
+	@echo "🧪 运行测试..."
+	@if command -v uv >/dev/null 2>&1; then \
+		uv run pytest tests/; \
+	else \
+		python -m pytest tests/; \
+	fi
+
+# 代码质量检查
+quality:
+	@echo "🔍 代码质量检查..."
+	@if command -v uv >/dev/null 2>&1; then \
+		uv run ruff check .; \
+		uv run mypy .; \
+	else \
+		ruff check .; \
+		mypy .; \
+	fi
+
+# 格式化代码
+format:
+	@echo "🎨 格式化代码..."
+	@if command -v uv >/dev/null 2>&1; then \
+		uv run black .; \
+		uv run isort .; \
+	else \
+		black .; \
+		isort .; \
+	fi

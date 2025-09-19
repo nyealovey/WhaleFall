@@ -1,155 +1,64 @@
-# 鲸落生产环境部署 Makefile
-# 提供简化的部署和管理命令
+# 鲸落项目 Makefile
+# 环境选择器和通用命令
 
-.PHONY: help install base flask all stop clean status logs backup restore update rollback
+.PHONY: help dev prod install clean
 
 # 默认目标
 help:
-	@echo "🐟 鲸落生产环境部署命令"
+	@echo "🐟 鲸落项目管理命令"
 	@echo "=================================="
-	@echo "安装和配置:"
-	@echo "  install     - 安装系统依赖"
-	@echo "  config      - 配置环境文件"
+	@echo "环境选择:"
+	@echo "  dev         - 切换到开发环境"
+	@echo "  prod        - 切换到生产环境"
 	@echo ""
-	@echo "部署命令:"
-	@echo "  base        - 部署基础环境（PostgreSQL、Redis、Nginx）"
-	@echo "  flask       - 部署Flask应用"
-	@echo "  all         - 部署所有服务"
+	@echo "开发环境命令:"
+	@echo "  make dev help    - 查看开发环境命令"
+	@echo "  make dev start   - 启动开发环境"
+	@echo "  make dev stop    - 停止开发环境"
+	@echo "  make dev logs    - 查看开发环境日志"
 	@echo ""
-	@echo "服务管理:"
-	@echo "  start       - 启动所有服务"
-	@echo "  stop        - 停止所有服务"
-	@echo "  restart     - 重启所有服务"
-	@echo "  status      - 查看服务状态"
+	@echo "生产环境命令:"
+	@echo "  make prod help   - 查看生产环境命令"
+	@echo "  make prod deploy - 部署生产环境"
+	@echo "  make prod start  - 启动生产环境"
+	@echo "  make prod stop   - 停止生产环境"
+	@echo "  make prod logs   - 查看生产环境日志"
 	@echo ""
-	@echo "日志和监控:"
-	@echo "  logs        - 查看所有日志"
-	@echo "  logs-base   - 查看基础环境日志"
-	@echo "  logs-flask  - 查看Flask应用日志"
-	@echo ""
-	@echo "备份和恢复:"
-	@echo "  backup      - 备份数据"
-	@echo "  restore     - 恢复数据"
-	@echo ""
-	@echo "版本管理:"
-	@echo "  update      - 更新到最新版本"
-	@echo "  rollback    - 回滚到上一个版本"
-	@echo ""
-	@echo "维护命令:"
+	@echo "通用命令:"
+	@echo "  install     - 安装项目依赖"
 	@echo "  clean       - 清理Docker资源"
-	@echo "  health      - 健康检查"
-	@echo "  shell       - 进入Flask容器"
+	@echo "  version     - 查看版本信息"
 	@echo "=================================="
 
-# 安装系统依赖
-install:
-	@echo "📦 安装系统依赖..."
-	@sudo apt update
-	@sudo apt install -y curl wget git docker.io docker-compose-plugin
-	@sudo usermod -aG docker $$USER
-	@echo "✅ 系统依赖安装完成"
-	@echo "⚠️  请重新登录以使Docker组权限生效"
-
-# 配置环境文件
-config:
-	@echo "⚙️  配置环境文件..."
-	@if [ ! -f ".env" ]; then \
-		cp env.production .env; \
-		echo "✅ 环境文件已创建: .env"; \
-		echo "⚠️  请编辑 .env 文件设置必要的配置"; \
+# 开发环境命令
+dev:
+	@if [ -z "$(filter-out dev,$(MAKECMDGOALS))" ]; then \
+		echo "请指定开发环境命令，例如: make dev help"; \
+		echo "可用命令: help, start, stop, restart, status, logs, logs-db, logs-redis, logs-app, shell, health, init-db, init-db-quick, clean, clean-data, build, test, quality, format"; \
 	else \
-		echo "✅ 环境文件已存在: .env"; \
+		$(MAKE) -f Makefile.dev $(filter-out dev,$(MAKECMDGOALS)); \
 	fi
 
-# 部署基础环境
-base:
-	@echo "🏗️  部署基础环境..."
-	@chmod +x scripts/deployment/deploy-base.sh
-	@./scripts/deployment/deploy-base.sh
-
-# 部署Flask应用
-flask:
-	@echo "🐍 部署Flask应用..."
-	@chmod +x scripts/deployment/deploy-flask.sh
-	@./scripts/deployment/deploy-flask.sh
-
-# 部署所有服务
-all:
-	@echo "🚀 部署所有服务..."
-	@chmod +x scripts/deployment/start-all.sh
-	@./scripts/deployment/start-all.sh
-
-# 启动所有服务
-start:
-	@echo "▶️  启动所有服务..."
-	@chmod +x scripts/deployment/start-all.sh
-	@./scripts/deployment/start-all.sh
-
-# 停止所有服务
-stop:
-	@echo "⏹️  停止所有服务..."
-	@chmod +x scripts/deployment/stop-all.sh
-	@./scripts/deployment/stop-all.sh
-
-# 重启所有服务
-restart: stop start
-
-# 查看服务状态
-status:
-	@echo "📊 服务状态："
-	@echo "=================================="
-	@echo "基础环境服务："
-	@docker-compose -f docker-compose.base.yml ps
-	@echo ""
-	@echo "Flask应用服务："
-	@docker-compose -f docker-compose.flask.yml ps
-	@echo "=================================="
-
-# 查看所有日志
-logs:
-	@echo "📋 查看所有日志..."
-	@docker-compose -f docker-compose.base.yml logs -f &
-	@docker-compose -f docker-compose.flask.yml logs -f
-
-# 查看基础环境日志
-logs-base:
-	@echo "📋 查看基础环境日志..."
-	@docker-compose -f docker-compose.base.yml logs -f
-
-# 查看Flask应用日志
-logs-flask:
-	@echo "📋 查看Flask应用日志..."
-	@docker-compose -f docker-compose.flask.yml logs -f
-
-# 备份数据
-backup:
-	@echo "💾 备份数据..."
-	@mkdir -p /opt/whale_fall_data/backups
-	@docker-compose -f docker-compose.base.yml exec postgres pg_dump -U $$(grep POSTGRES_USER .env | cut -d'=' -f2) -d $$(grep POSTGRES_DB .env | cut -d'=' -f2) > /opt/whale_fall_data/backups/backup_$$(date +%Y%m%d_%H%M%S).sql
-	@echo "✅ 数据备份完成"
-
-# 恢复数据
-restore:
-	@echo "🔄 恢复数据..."
-	@echo "请指定备份文件: make restore FILE=backup_file.sql"
-	@if [ -z "$(FILE)" ]; then \
-		echo "❌ 请指定备份文件"; \
-		exit 1; \
+# 生产环境命令
+prod:
+	@if [ -z "$(filter-out prod,$(MAKECMDGOALS))" ]; then \
+		echo "请指定生产环境命令，例如: make prod help"; \
+		echo "可用命令: help, install, config, deploy, start, stop, restart, status, logs, logs-db, logs-redis, logs-app, shell, health, init-db, init-db-quick, backup, restore, update, rollback, clean, build, version"; \
+	else \
+		$(MAKE) -f Makefile.prod $(filter-out prod,$(MAKECMDGOALS)); \
 	fi
-	@docker-compose -f docker-compose.base.yml exec -T postgres psql -U $$(grep POSTGRES_USER .env | cut -d'=' -f2) -d $$(grep POSTGRES_DB .env | cut -d'=' -f2) < $(FILE)
-	@echo "✅ 数据恢复完成"
 
-# 更新到最新版本
-update:
-	@echo "🔄 更新到最新版本..."
-	@chmod +x scripts/deployment/update-version.sh
-	@./scripts/deployment/update-version.sh latest
-
-# 回滚到上一个版本
-rollback:
-	@echo "⏪ 回滚到上一个版本..."
-	@chmod +x scripts/deployment/update-version.sh
-	@./scripts/deployment/update-version.sh -r
+# 安装项目依赖
+install:
+	@echo "📦 安装项目依赖..."
+	@if command -v uv >/dev/null 2>&1; then \
+		echo "使用 uv 安装依赖..."; \
+		uv sync; \
+	else \
+		echo "使用 pip 安装依赖..."; \
+		pip install -r requirements.txt; \
+	fi
+	@echo "✅ 项目依赖安装完成"
 
 # 清理Docker资源
 clean:
@@ -158,32 +67,106 @@ clean:
 	@docker image prune -a -f
 	@echo "✅ Docker资源清理完成"
 
-# 健康检查
-health:
-	@echo "🏥 健康检查..."
-	@echo "检查Flask应用健康状态..."
-	@curl -s http://localhost:5001/health || echo "❌ Flask应用健康检查失败"
-	@echo "检查Nginx代理状态..."
-	@curl -s http://localhost/health || echo "❌ Nginx代理健康检查失败"
-	@echo "检查PostgreSQL连接..."
-	@docker-compose -f docker-compose.base.yml exec postgres pg_isready -U $$(grep POSTGRES_USER .env | cut -d'=' -f2) -d $$(grep POSTGRES_DB .env | cut -d'=' -f2) || echo "❌ PostgreSQL连接失败"
-	@echo "检查Redis连接..."
-	@docker-compose -f docker-compose.base.yml exec redis redis-cli ping || echo "❌ Redis连接失败"
-
-# 进入Flask容器
-shell:
-	@echo "🐚 进入Flask容器..."
-	@docker-compose -f docker-compose.flask.yml exec whalefall bash
-
-# 构建Flask镜像
-build:
-	@echo "🔨 构建Flask镜像..."
-	@docker build -t whalefall:latest .
-
 # 查看版本信息
 version:
 	@echo "📋 版本信息："
-	@echo "应用版本: $$(grep APP_VERSION .env | cut -d'=' -f2)"
-	@echo "部署版本: $$(grep DEPLOYMENT_VERSION .env | cut -d'=' -f2)"
+	@echo "项目版本: $$(grep APP_VERSION .env 2>/dev/null | cut -d'=' -f2 || echo '未设置')"
 	@echo "Docker版本: $$(docker --version)"
 	@echo "Docker Compose版本: $$(docker-compose --version)"
+	@if command -v uv >/dev/null 2>&1; then \
+		echo "UV版本: $$(uv --version)"; \
+	fi
+
+# 快速启动开发环境
+dev-start:
+	@echo "🚀 快速启动开发环境..."
+	@$(MAKE) -f Makefile.dev start
+
+# 快速启动生产环境
+prod-start:
+	@echo "🚀 快速启动生产环境..."
+	@$(MAKE) -f Makefile.prod start
+
+# 快速停止开发环境
+dev-stop:
+	@echo "⏹️  快速停止开发环境..."
+	@$(MAKE) -f Makefile.dev stop
+
+# 快速停止生产环境
+prod-stop:
+	@echo "⏹️  快速停止生产环境..."
+	@$(MAKE) -f Makefile.prod stop
+
+# 快速查看开发环境状态
+dev-status:
+	@echo "📊 开发环境状态..."
+	@$(MAKE) -f Makefile.dev status
+
+# 快速查看生产环境状态
+prod-status:
+	@echo "📊 生产环境状态..."
+	@$(MAKE) -f Makefile.prod status
+
+# 快速查看开发环境日志
+dev-logs:
+	@echo "📋 开发环境日志..."
+	@$(MAKE) -f Makefile.dev logs
+
+# 快速查看生产环境日志
+prod-logs:
+	@echo "📋 生产环境日志..."
+	@$(MAKE) -f Makefile.prod logs
+
+# 健康检查
+health:
+	@echo "🏥 健康检查..."
+	@echo "检查开发环境..."
+	@$(MAKE) -f Makefile.dev health 2>/dev/null || echo "❌ 开发环境未运行"
+	@echo ""
+	@echo "检查生产环境..."
+	@$(MAKE) -f Makefile.prod health 2>/dev/null || echo "❌ 生产环境未运行"
+
+# 数据库初始化（开发环境）
+init-db:
+	@echo "🗄️ 初始化数据库（开发环境）..."
+	@$(MAKE) -f Makefile.dev init-db
+
+# 快速数据库初始化（开发环境）
+init-db-quick:
+	@echo "⚡ 快速初始化数据库（开发环境）..."
+	@$(MAKE) -f Makefile.dev init-db-quick
+
+# 代码质量检查
+quality:
+	@echo "🔍 代码质量检查..."
+	@if command -v uv >/dev/null 2>&1; then \
+		uv run ruff check .; \
+		uv run mypy .; \
+	else \
+		ruff check .; \
+		mypy .; \
+	fi
+
+# 格式化代码
+format:
+	@echo "🎨 格式化代码..."
+	@if command -v uv >/dev/null 2>&1; then \
+		uv run black .; \
+		uv run isort .; \
+	else \
+		black .; \
+		isort .; \
+	fi
+
+# 运行测试
+test:
+	@echo "🧪 运行测试..."
+	@if command -v uv >/dev/null 2>&1; then \
+		uv run pytest tests/; \
+	else \
+		python -m pytest tests/; \
+	fi
+
+# 防止目标被当作文件
+%:
+	@:

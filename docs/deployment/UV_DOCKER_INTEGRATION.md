@@ -17,8 +17,8 @@
 TaifishV4/
 ├── pyproject.toml          # 项目配置和依赖定义
 ├── uv.lock                 # 锁定的依赖版本（自动生成）
-├── Dockerfile              # 开发环境Dockerfile（使用uv）
-├── Dockerfile.proxy        # 生产环境Dockerfile（使用uv，支持代理）
+├── Dockerfile.dev          # 开发环境Dockerfile（使用uv）
+├── Dockerfile.prod         # 生产环境Dockerfile（使用uv，支持代理）
 └── scripts/docker/
     └── build-with-uv.sh    # uv构建脚本
 ```
@@ -109,7 +109,7 @@ docker-compose -f docker-compose.prod.yml build
 
 ## Dockerfile 配置说明
 
-### 开发环境 (Dockerfile)
+### 开发环境 (Dockerfile.dev)
 
 ```dockerfile
 # 安装uv
@@ -127,7 +127,7 @@ COPY --chown=whalefall:whalefall pyproject.toml uv.lock /app/
 RUN uv sync --frozen --no-dev
 ```
 
-### 生产环境 (Dockerfile.proxy)
+### 生产环境 (Dockerfile.prod)
 
 ```dockerfile
 # 安装uv
@@ -182,7 +182,7 @@ docker build \
   --build-arg HTTP_PROXY=http://proxy.company.com:8080 \
   --build-arg HTTPS_PROXY=http://proxy.company.com:8080 \
   --build-arg NO_PROXY=localhost,127.0.0.1,::1 \
-  -f Dockerfile.proxy \
+  -f Dockerfile.prod \
   --target production .
 ```
 
@@ -256,7 +256,7 @@ uv sync --frozen
 
 ```bash
 # 检查Dockerfile语法
-docker build --no-cache -f Dockerfile .
+docker build --no-cache -f Dockerfile.dev .
 
 # 检查代理设置
 echo $HTTP_PROXY
@@ -268,7 +268,7 @@ echo $HTTPS_PROXY
 1. **定期更新依赖**: 定期运行 `uv sync --upgrade` 更新依赖
 2. **锁定版本**: 始终使用 `uv.lock` 文件确保版本一致性
 3. **分离环境**: 开发和生产环境使用不同的Dockerfile
-4. **代理配置**: 生产环境使用 `Dockerfile.proxy` 支持代理
+4. **代理配置**: 生产环境使用 `Dockerfile.prod` 支持代理
 5. **缓存优化**: 利用Docker层缓存，先复制配置文件再复制代码
 
 ## 迁移指南

@@ -208,15 +208,22 @@ TaifishV4/
 │   ├── env.py                   # 迁移环境
 │   ├── script.py.mako           # 迁移脚本模板
 │   └── versions/                # 迁移版本
-├── config/                      # 配置文件
+├── app/config/                  # 配置文件
 │   ├── database_filters.yaml    # 数据库过滤器配置
 │   └── scheduler_tasks.yaml     # 定时任务配置
+├── scripts/                     # 脚本目录
+│   └── database/                # 数据库管理脚本
+│       ├── init_database.sh     # 完整数据库初始化脚本
+│       ├── quick_init.sh        # 快速数据库初始化脚本
+│       ├── reset_admin_password.py  # 重置管理员密码
+│       └── show_admin_password.py   # 显示管理员密码
 ├── app.py                       # 应用入口
 ├── requirements.txt             # Python依赖
 ├── pyproject.toml               # 项目配置
 ├── uv.lock                      # UV锁定文件
 ├── docker-compose.yml           # Docker Compose配置
-├── Dockerfile                   # Docker镜像配置
+├── Dockerfile.dev               # 开发环境Docker镜像配置
+├── Dockerfile.prod              # 生产环境Docker镜像配置
 ├── Makefile                     # Make配置
 ├── README.md                    # 项目说明
 └── .cursorrules                 # Cursor AI编程规则

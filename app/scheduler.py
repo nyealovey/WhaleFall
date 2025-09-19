@@ -192,7 +192,7 @@ def _add_default_jobs() -> None:
         return
 
     # 从配置文件读取默认任务
-    config_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "scheduler_tasks.yaml")
+    config_file = os.path.join(os.path.dirname(__file__), "config", "scheduler_tasks.yaml")
 
     try:
         with open(config_file, encoding="utf-8") as f:

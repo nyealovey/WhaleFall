@@ -1,5 +1,18 @@
 # 服务器正式环境配置（x86，有代理）
 # 包含：PostgreSQL、Redis、Nginx、Flask应用
+# 使用命名卷进行数据持久化
+
+volumes:
+  whalefall_postgres_data:
+    driver: local
+  whalefall_redis_data:
+    driver: local
+  whalefall_nginx_logs:
+    driver: local
+  whalefall_nginx_ssl:
+    driver: local
+  whalefall_app_data:
+    driver: local
 
 services:
   # PostgreSQL数据库
@@ -15,8 +28,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./userdata/postgres:/var/lib/postgresql/data
-      - ./sql:/docker-entrypoint-initdb.d:ro
+      - whalefall_postgres_data:/var/lib/postgresql/data
     networks:
       - whalefall_prod_network
     healthcheck:
@@ -43,7 +55,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - ./userdata/redis:/data
+      - whalefall_redis_data:/data
     networks:
       - whalefall_prod_network
     healthcheck:
@@ -70,10 +82,9 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/conf.d/whalefall-docker.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./userdata/nginx/logs:/var/log/nginx
-      - ./userdata/nginx/ssl:/etc/nginx/ssl:ro
-      - ./nginx/error_pages:/etc/nginx/error_pages:ro
+      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
+      - whalefall_nginx_logs:/var/log/nginx
+      - whalefall_nginx_ssl:/etc/nginx/ssl
     networks:
       - whalefall_prod_network
     # depends_on: whalefall  # 注释掉，因为whalefall在profiles中
@@ -90,7 +101,7 @@ services:
   whalefall:
     build:
       context: .
-      dockerfile: Dockerfile.proxy
+      dockerfile: Dockerfile.prod
       target: production
       args:
         HTTP_PROXY: ${HTTP_PROXY:-}
@@ -123,7 +134,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./userdata:/app/userdata
+      - whalefall_app_data:/app/userdata
     networks:
       - whalefall_prod_network
     depends_on:

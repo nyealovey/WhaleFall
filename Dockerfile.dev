@@ -1,5 +1,6 @@
-# 支持代理的Dockerfile
+# 使用Ubuntu 22.04作为基础镜像
 FROM ubuntu:22.04 as base
+
 # 设置环境变量
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
@@ -7,33 +8,18 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
 
-# 代理配置 - 构建时参数
-ARG HTTP_PROXY
-ARG HTTPS_PROXY
-ARG NO_PROXY
-
-# 设置代理环境变量
-ENV HTTP_PROXY=${HTTP_PROXY}
-ENV HTTPS_PROXY=${HTTPS_PROXY}
-ENV NO_PROXY=${NO_PROXY}
-
-# 设置小写代理环境变量（apt-get需要）
-ENV http_proxy=${HTTP_PROXY}
-ENV https_proxy=${HTTPS_PROXY}
-ENV no_proxy=${NO_PROXY}
-
 # 设置工作目录
 WORKDIR /app
 
-# 安装系统依赖（使用代理）
+# 安装系统依赖
 RUN apt-get update && apt-get install -y \
     software-properties-common \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update && apt-get install -y \
     python3.11 \
-    python3.11-distutils \
     python3.11-venv \
     python3.11-dev \
+    python3.11-distutils \
     build-essential \
     libpq-dev \
     pkg-config \
@@ -55,13 +41,8 @@ ENV ORACLE_HOME=/opt/oracle/instantclient_${ORACLE_CLIENT_VERSION//./_}
 
 # 下载并安装Oracle Instant Client for Linux
 RUN mkdir -p $ORACLE_HOME && \
-    if [ -n "$HTTP_PROXY" ]; then \
-        wget -q -e use_proxy=yes -e http_proxy="$HTTP_PROXY" https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
-        wget -q -e use_proxy=yes -e http_proxy="$HTTP_PROXY" https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip; \
-    else \
-        wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
-        wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip; \
-    fi && \
+    wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
+    wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip && \
     unzip -o /tmp/instantclient-basic.zip -d /opt/oracle && \
     unzip -o /tmp/instantclient-sdk.zip -d /opt/oracle && \
     rm /tmp/instantclient-basic.zip /tmp/instantclient-sdk.zip && \
@@ -73,11 +54,7 @@ ENV LD_LIBRARY_PATH=$ORACLE_HOME:$LD_LIBRARY_PATH
 ENV PATH=$ORACLE_HOME:$PATH
 
 # 安装uv（在root用户下安装）
-RUN if [ -n "$HTTP_PROXY" ]; then \
-        curl -LsSf --proxy "$HTTP_PROXY" https://astral.sh/uv/install.sh | sh; \
-    else \
-        curl -LsSf https://astral.sh/uv/install.sh | sh; \
-    fi
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
 # 复制uv到系统目录
@@ -88,23 +65,14 @@ RUN cp /root/.local/bin/uv /usr/local/bin/uv && \
 RUN uv venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-# 配置uv代理（如果设置了代理）
-# uv使用环境变量进行代理配置，不需要config命令
+# 复制应用代码
+COPY . /app/
 
-# 复制项目配置文件
-COPY pyproject.toml uv.lock /app/
-
-# 复制README.md文件（pyproject.toml需要）
-COPY README.md /app/
-
-# 安装Python依赖（使用代理）
+# 安装Python依赖
 RUN uv sync --frozen --no-dev
 
 # 验证虚拟环境创建
 RUN ls -la /app/.venv/bin/python && /app/.venv/bin/python --version
-
-# 复制应用代码
-COPY . /app/
 
 # 创建必要的目录
 RUN mkdir -p /app/userdata/logs /app/userdata/exports /app/userdata/backups /app/userdata/uploads
@@ -211,13 +179,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # 开发环境阶段
 FROM base as development
 
-# 重新设置代理环境变量（继承自base阶段）
-ENV HTTP_PROXY=${HTTP_PROXY}
-ENV HTTPS_PROXY=${HTTPS_PROXY}
-ENV NO_PROXY=${NO_PROXY}
-ENV http_proxy=${HTTP_PROXY}
-ENV https_proxy=${HTTPS_PROXY}
-ENV no_proxy=${NO_PROXY}
+# 切换到root用户安装开发依赖
+USER root
 
 # 安装开发依赖
 RUN apt-get update && apt-get install -y \
@@ -225,6 +188,8 @@ RUN apt-get update && apt-get install -y \
     htop \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# 保持root用户
 
 # 开发环境启动命令
 CMD ["python", "app.py"]

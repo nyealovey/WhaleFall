@@ -172,7 +172,7 @@ services:
   whalefall:
     build:
       context: .
-      dockerfile: Dockerfile.proxy
+      dockerfile: Dockerfile.prod
       target: production
       args:
         HTTP_PROXY: ${HTTP_PROXY:-}

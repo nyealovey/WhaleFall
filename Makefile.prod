@@ -1,0 +1,291 @@
+# 鲸落生产环境 Makefile
+# 提供生产环境的部署和管理命令
+
+.PHONY: help install config deploy start stop restart status logs backup restore update rollback clean health shell
+
+# 默认目标
+help:
+	@echo "🐟 鲸落生产环境命令"
+	@echo "=================================="
+	@echo "安装和配置:"
+	@echo "  install     - 安装系统依赖"
+	@echo "  config      - 配置环境文件"
+	@echo ""
+	@echo "部署命令:"
+	@echo "  deploy      - 部署生产环境"
+	@echo "  start       - 启动生产环境"
+	@echo "  stop        - 停止生产环境"
+	@echo "  restart     - 重启生产环境"
+	@echo "  status      - 查看服务状态"
+	@echo ""
+	@echo "数据库管理:"
+	@echo "  init-db     - 手动初始化数据库"
+	@echo "  init-db-quick - 快速初始化数据库"
+	@echo ""
+	@echo "日志和监控:"
+	@echo "  logs        - 查看所有日志"
+	@echo "  logs-db     - 查看数据库日志"
+	@echo "  logs-redis  - 查看Redis日志"
+	@echo "  logs-app    - 查看应用日志"
+	@echo "  health      - 健康检查"
+	@echo ""
+	@echo "Nginx管理:"
+	@echo "  nginx-status        - 查看Nginx状态"
+	@echo "  nginx-reload        - 重载Nginx配置"
+	@echo "  nginx-restart       - 重启Nginx服务"
+	@echo "  nginx-logs          - 查看Nginx日志"
+	@echo "  nginx-config        - 查看Nginx配置"
+	@echo "  nginx-upload-config - 上传Nginx配置"
+	@echo "  nginx-shell         - 进入Nginx容器"
+	@echo ""
+	@echo "SSL证书管理:"
+	@echo "  ssl-generate        - 生成SSL证书"
+	@echo "  ssl-upload          - 上传SSL证书"
+	@echo "  ssl-list            - 列出SSL证书"
+	@echo "  ssl-verify          - 验证SSL证书"
+	@echo ""
+	@echo "备份和恢复:"
+	@echo "  backup      - 备份数据"
+	@echo "  restore     - 恢复数据"
+	@echo ""
+	@echo "版本管理:"
+	@echo "  update      - 更新到最新版本"
+	@echo "  rollback    - 回滚到上一个版本"
+	@echo ""
+	@echo "维护命令:"
+	@echo "  clean       - 清理Docker资源"
+	@echo "  shell       - 进入应用容器"
+	@echo "=================================="
+
+# 安装系统依赖
+install:
+	@echo "📦 安装系统依赖..."
+	@sudo apt update
+	@sudo apt install -y curl wget git docker.io docker-compose-plugin
+	@sudo usermod -aG docker $$USER
+	@echo "✅ 系统依赖安装完成"
+	@echo "⚠️  请重新登录以使Docker组权限生效"
+
+# 配置环境文件
+config:
+	@echo "⚙️  配置环境文件..."
+	@if [ ! -f ".env" ]; then \
+		cp env.production .env; \
+		echo "✅ 环境文件已创建: .env"; \
+		echo "⚠️  请编辑 .env 文件设置必要的配置"; \
+	else \
+		echo "✅ 环境文件已存在: .env"; \
+	fi
+
+# 部署生产环境
+deploy:
+	@echo "🚀 部署生产环境..."
+	@docker-compose -f docker-compose.prod.yml up -d --build
+	@echo "✅ 生产环境部署完成"
+	@echo "🌐 应用地址: http://localhost"
+	@echo "📊 数据库管理: http://localhost:5050 (pgAdmin)"
+
+# 启动生产环境
+start:
+	@echo "▶️  启动生产环境..."
+	@docker-compose -f docker-compose.prod.yml up -d
+	@echo "✅ 生产环境启动完成"
+
+# 停止生产环境
+stop:
+	@echo "⏹️  停止生产环境..."
+	@docker-compose -f docker-compose.prod.yml down
+	@echo "✅ 生产环境已停止"
+
+# 重启生产环境
+restart: stop start
+
+# 查看服务状态
+status:
+	@echo "📊 生产环境服务状态："
+	@echo "=================================="
+	@docker-compose -f docker-compose.prod.yml ps
+	@echo "=================================="
+
+# 查看所有日志
+logs:
+	@echo "📋 查看所有日志..."
+	@docker-compose -f docker-compose.prod.yml logs -f
+
+# 查看数据库日志
+logs-db:
+	@echo "📋 查看数据库日志..."
+	@docker-compose -f docker-compose.prod.yml logs -f postgres
+
+# 查看Redis日志
+logs-redis:
+	@echo "📋 查看Redis日志..."
+	@docker-compose -f docker-compose.prod.yml logs -f redis
+
+# 查看应用日志
+logs-app:
+	@echo "📋 查看应用日志..."
+	@docker-compose -f docker-compose.prod.yml logs -f whalefall
+
+# 进入应用容器
+shell:
+	@echo "🐚 进入应用容器..."
+	@docker-compose -f docker-compose.prod.yml exec whalefall bash
+
+# 健康检查
+health:
+	@echo "🏥 健康检查..."
+	@echo "检查应用健康状态..."
+	@curl -s http://localhost/health || echo "❌ 应用健康检查失败"
+	@echo "检查PostgreSQL连接..."
+	@docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U $$(grep POSTGRES_USER .env | cut -d'=' -f2) -d $$(grep POSTGRES_DB .env | cut -d'=' -f2) || echo "❌ PostgreSQL连接失败"
+	@echo "检查Redis连接..."
+	@docker-compose -f docker-compose.prod.yml exec redis redis-cli ping || echo "❌ Redis连接失败"
+
+# 数据库初始化
+init-db:
+	@echo "🗄️ 初始化数据库..."
+	@if [ -z "$$DB_PASSWORD" ]; then \
+		echo "❌ 错误: 请设置环境变量 DB_PASSWORD"; \
+		echo "示例: DB_PASSWORD=mypassword make init-db"; \
+		exit 1; \
+	fi
+	@./scripts/database/init_database.sh
+
+# 快速数据库初始化
+init-db-quick:
+	@echo "⚡ 快速初始化数据库..."
+	@if [ -z "$$DB_PASSWORD" ]; then \
+		echo "❌ 错误: 请设置环境变量 DB_PASSWORD"; \
+		echo "示例: DB_PASSWORD=mypassword make init-db-quick"; \
+		exit 1; \
+	fi
+	@./scripts/database/quick_init.sh
+
+# 备份数据
+backup:
+	@echo "💾 备份数据..."
+	@mkdir -p /opt/whale_fall_data/backups
+	@docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U $$(grep POSTGRES_USER .env | cut -d'=' -f2) -d $$(grep POSTGRES_DB .env | cut -d'=' -f2) > /opt/whale_fall_data/backups/backup_$$(date +%Y%m%d_%H%M%S).sql
+	@echo "✅ 数据备份完成"
+
+# 恢复数据
+restore:
+	@echo "🔄 恢复数据..."
+	@echo "请指定备份文件: make restore FILE=backup_file.sql"
+	@if [ -z "$(FILE)" ]; then \
+		echo "❌ 请指定备份文件"; \
+		exit 1; \
+	fi
+	@docker-compose -f docker-compose.prod.yml exec -T postgres psql -U $$(grep POSTGRES_USER .env | cut -d'=' -f2) -d $$(grep POSTGRES_DB .env | cut -d'=' -f2) < $(FILE)
+	@echo "✅ 数据恢复完成"
+
+# 更新到最新版本
+update:
+	@echo "🔄 更新到最新版本..."
+	@git pull origin main
+	@docker-compose -f docker-compose.prod.yml down
+	@docker-compose -f docker-compose.prod.yml up -d --build
+	@echo "✅ 更新完成"
+
+# 回滚到上一个版本
+rollback:
+	@echo "⏪ 回滚到上一个版本..."
+	@git log --oneline -n 2
+	@echo "请手动执行: git reset --hard HEAD~1"
+	@echo "然后执行: make restart"
+
+# 清理Docker资源
+clean:
+	@echo "🧹 清理Docker资源..."
+	@docker system prune -f
+	@docker image prune -a -f
+	@echo "✅ Docker资源清理完成"
+
+# 卷管理
+volumes:
+	@echo "📦 卷管理..."
+	@./scripts/docker/volume_manager.sh list
+
+# 创建卷
+create-volumes:
+	@echo "📦 创建生产环境卷..."
+	@./scripts/docker/volume_manager.sh create prod
+
+# 备份卷
+backup-volumes:
+	@echo "💾 备份生产环境卷..."
+	@./scripts/docker/volume_manager.sh backup prod
+
+# 恢复卷
+restore-volumes:
+	@echo "🔄 恢复生产环境卷..."
+	@./scripts/docker/volume_manager.sh restore prod
+
+# 迁移数据到卷
+migrate-volumes:
+	@echo "🔄 迁移数据到卷..."
+	@./scripts/docker/volume_manager.sh migrate prod
+
+# 查看卷大小
+volume-size:
+	@echo "📊 查看卷大小..."
+	@./scripts/docker/volume_manager.sh size prod
+
+# Nginx管理
+nginx-status:
+	@echo "🌐 查看Nginx状态..."
+	@./scripts/nginx/nginx_manager.sh status prod
+
+nginx-reload:
+	@echo "🔄 重载Nginx配置..."
+	@./scripts/nginx/nginx_manager.sh reload prod
+
+nginx-restart:
+	@echo "🔄 重启Nginx服务..."
+	@./scripts/nginx/nginx_manager.sh restart prod
+
+nginx-logs:
+	@echo "📋 查看Nginx日志..."
+	@./scripts/nginx/nginx_manager.sh logs prod
+
+nginx-config:
+	@echo "⚙️  查看Nginx配置..."
+	@./scripts/nginx/nginx_manager.sh config prod
+
+nginx-upload-config:
+	@echo "📤 上传Nginx配置..."
+	@./scripts/nginx/nginx_manager.sh upload-config prod
+
+nginx-shell:
+	@echo "🐚 进入Nginx容器..."
+	@./scripts/nginx/nginx_manager.sh shell prod
+
+# SSL证书管理
+ssl-generate:
+	@echo "🔐 生成SSL证书..."
+	@./scripts/nginx/ssl_manager.sh generate prod
+
+ssl-upload:
+	@echo "📤 上传SSL证书..."
+	@./scripts/nginx/ssl_manager.sh upload prod
+
+ssl-list:
+	@echo "📋 列出SSL证书..."
+	@./scripts/nginx/ssl_manager.sh list prod
+
+ssl-verify:
+	@echo "✅ 验证SSL证书..."
+	@./scripts/nginx/ssl_manager.sh verify prod
+
+# 构建生产镜像
+build:
+	@echo "🔨 构建生产镜像..."
+	@docker-compose -f docker-compose.prod.yml build
+
+# 查看版本信息
+version:
+	@echo "📋 版本信息："
+	@echo "应用版本: $$(grep APP_VERSION .env | cut -d'=' -f2)"
+	@echo "Docker版本: $$(docker --version)"
+	@echo "Docker Compose版本: $$(docker-compose --version)"

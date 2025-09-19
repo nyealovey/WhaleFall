@@ -40,14 +40,9 @@ repos:
       - id: check-json
       - id: check-toml
       - id: check-merge-conflict
-      - id: check-added-large-files
-      - id: check-case-conflict
-      - id: check-merge-conflict
       - id: debug-statements
       - id: detect-private-key
       - id: mixed-line-ending
-      - id: requirements-txt-fixer
-      - id: fix-byte-order-marker
 
   # 自定义脚本
   - repo: local

@@ -50,6 +50,28 @@
 - Redis 5.0+
 - PostgreSQL 12+ (主数据库)
 
+### 环境配置
+
+项目提供了三种环境配置文件：
+
+- `env.development` - 开发环境配置模板
+- `env.production` - 生产环境配置模板  
+- `env.example` - 通用配置模板
+
+**首次使用**：
+```bash
+# 开发环境
+cp env.development .env
+
+# 生产环境
+cp env.production .env
+
+# 或使用通用模板
+cp env.example .env
+```
+
+**重要**：`.env` 文件包含敏感信息，已被 `.gitignore` 忽略，不会提交到版本控制。
+
 ### 🐳 Docker 部署 (推荐)
 
 #### 两部分生产环境部署
@@ -65,7 +87,9 @@ git clone https://github.com/nyealovey/TaifishingV4.git
 cd TaifishingV4
 
 # 配置环境
-cp env.production .env
+cp env.development .env  # 开发环境
+# 或
+cp env.production .env   # 生产环境
 # 编辑 .env 文件，设置必要的环境变量
 
 # 一键启动所有服务
@@ -96,7 +120,41 @@ make logs
 
 # 健康检查
 make health
+
+# 手动初始化数据库
+make init-db
 ```
+
+#### 数据库初始化
+
+**重要**: 数据库容器启动后不会自动导入数据，需要手动初始化：
+
+```bash
+# 1. 启动数据库服务
+docker-compose -f docker-compose.dev.yml up -d postgres redis
+
+# 2. 初始化数据库（选择其中一种方法）
+
+# 方法1: 使用快速初始化脚本（推荐）
+DB_PASSWORD=your_password ./scripts/database/quick_init.sh
+
+# 方法2: 使用完整初始化脚本
+DB_PASSWORD=your_password ./scripts/database/init_database.sh
+
+# 方法3: 使用Make命令
+make init-db
+
+# 方法4: 直接使用Docker命令
+docker exec -i whalefall_postgres_dev psql -U whalefall_user -d whalefall_dev < sql/init_postgresql.sql
+docker exec -i whalefall_postgres_dev psql -U whalefall_user -d whalefall_dev < sql/permission_configs.sql
+docker exec -i whalefall_postgres_dev psql -U whalefall_user -d whalefall_dev < sql/init_scheduler_tasks.sql
+```
+
+**环境变量说明**:
+- `DB_NAME`: 数据库名称 (默认: whalefall_dev)
+- `DB_USER`: 数据库用户 (默认: whalefall_user)
+- `DB_PASSWORD`: 数据库密码 (必需)
+- `CONTAINER_NAME`: PostgreSQL容器名称 (默认: whalefall_postgres_dev)
 
 #### 版本更新
 
@@ -420,7 +478,7 @@ TaifishV4/
 │   ├── logs/              # 日志文件
 │   └── exports/           # 导出文件
 ├── migrations/            # 数据库迁移
-├── config/                # 配置文件
+├── app/config/            # 配置文件
 ├── requirements.txt       # Python依赖
 ├── app.py                 # 应用入口
 └── README.md             # 项目说明

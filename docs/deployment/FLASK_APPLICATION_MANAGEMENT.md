@@ -54,7 +54,7 @@ docker compose -f docker-compose.prod.yml --profile flask up -d whalefall
 #### 方法3：手动启动
 ```bash
 # 构建Flask镜像
-docker build -f Dockerfile.proxy --target production -t whalefall:prod .
+docker build -f Dockerfile.prod --target production -t whalefall:prod .
 
 # 启动Flask容器
 docker run -d \
@@ -207,7 +207,7 @@ docker rm whalefall_app_prod
 ```bash
 # 1. 修改pyproject.toml
 # 2. 重新构建镜像
-docker build -f Dockerfile.proxy --target production -t whalefall:prod .
+docker build -f Dockerfile.prod --target production -t whalefall:prod .
 
 # 3. 重启Flask应用
 docker restart whalefall_app_prod
@@ -335,7 +335,7 @@ docker exec whalefall_app_prod ping redis
 
 ### Docker配置
 - `docker-compose.prod.yml` - 生产环境Docker Compose配置
-- `Dockerfile.proxy` - 支持代理的Dockerfile
+- `Dockerfile.prod` - 支持代理的Dockerfile
 - `nginx/conf.d/whalefall-docker.conf` - Nginx配置
 
 ### 应用配置

@@ -13,9 +13,15 @@
 - `requirements.txt` - Python依赖文件
 - `uv.lock` - uv锁定文件
 - `env.example` - 环境变量示例文件
-- `config/` - 配置文件目录
+- `app/config/` - 配置文件目录
   - `database_filters.yaml` - 数据库过滤器配置
   - `scheduler_tasks.yaml` - 定时任务配置
+- `scripts/` - 脚本目录
+  - `database/` - 数据库管理脚本
+    - `init_database.sh` - 完整数据库初始化脚本
+    - `quick_init.sh` - 快速数据库初始化脚本
+    - `reset_admin_password.py` - 重置管理员密码
+    - `show_admin_password.py` - 显示管理员密码
 
 ## 应用核心目录 (app/)
 

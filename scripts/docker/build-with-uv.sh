@@ -63,11 +63,11 @@ log_info "开始构建 $ENVIRONMENT 环境镜像..."
 # 设置镜像标签
 if [ "$ENVIRONMENT" = "dev" ]; then
     IMAGE_TAG="dev"
-    DOCKERFILE="Dockerfile"
+    DOCKERFILE="Dockerfile.dev"
     TARGET="development"
 else
     IMAGE_TAG="prod"
-    DOCKERFILE="Dockerfile.proxy"
+    DOCKERFILE="Dockerfile.prod"
     TARGET="production"
 fi
 
