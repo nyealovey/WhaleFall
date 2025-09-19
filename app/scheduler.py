@@ -28,9 +28,16 @@ class TaskScheduler:
     def _setup_scheduler(self) -> None:
         """设置调度器"""
         # 任务存储配置 - 使用PostgreSQL
-        from app.config import Config
+        import os
+        database_url = os.getenv("DATABASE_URL") or os.getenv("SQLALCHEMY_DATABASE_URI")
+        if not database_url:
+            # 默认使用SQLite
+            from pathlib import Path
+            project_root = Path(__file__).parent.parent
+            db_path = project_root / "userdata" / "whalefall_dev.db"
+            database_url = f"sqlite:///{db_path.absolute()}"
 
-        jobstores = {"default": SQLAlchemyJobStore(url=Config.SQLALCHEMY_DATABASE_URI)}
+        jobstores = {"default": SQLAlchemyJobStore(url=database_url)}
 
         # 执行器配置
         executors = {"default": ThreadPoolExecutor(max_workers=5)}
@@ -136,6 +143,25 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
     _add_default_jobs()
 
     return scheduler
+
+
+def start_scheduler() -> None:
+    """启动调度器（用于supervisor）"""
+    from app import create_app
+    
+    app = create_app()
+    with app.app_context():
+        init_scheduler(app)
+        logger.info("调度器已启动，等待任务执行...")
+        
+        # 保持进程运行
+        import time
+        try:
+            while True:
+                time.sleep(60)  # 每分钟检查一次
+        except KeyboardInterrupt:
+            logger.info("调度器收到停止信号")
+            scheduler.stop()
 
 
 def _load_existing_jobs() -> None:
