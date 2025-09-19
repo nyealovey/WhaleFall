@@ -57,8 +57,8 @@ ENV ORACLE_HOME=/opt/oracle/instantclient_${ORACLE_CLIENT_VERSION//./_}
 # 下载并安装Oracle Instant Client for Linux
 RUN mkdir -p $ORACLE_HOME && \
     if [ -n "$HTTP_PROXY" ]; then \
-        wget -q --proxy=on --proxy="$HTTP_PROXY" https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
-        wget -q --proxy=on --proxy="$HTTP_PROXY" https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip; \
+        wget -q -e use_proxy=yes -e http_proxy="$HTTP_PROXY" https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
+        wget -q -e use_proxy=yes -e http_proxy="$HTTP_PROXY" https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip; \
     else \
         wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
         wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip; \
