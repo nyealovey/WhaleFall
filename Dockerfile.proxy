@@ -1,5 +1,5 @@
 # 支持代理的Dockerfile
-FROM ubuntu:22.04 as base
+FROM registry.cn-hangzhou.aliyuncs.com/library/ubuntu:22.04 as base
 
 # 设置环境变量
 ENV DEBIAN_FRONTEND=noninteractive
