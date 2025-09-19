@@ -101,6 +101,9 @@ class Tag(db.Model):
             ("environment", "环境标签"),
             ("department", "部门标签"),
             ("project", "项目标签"),
+            ("virtualization", "虚拟化类型"),
+            ("deployment", "部署方式"),
+            ("architecture", "架构类型"),
             ("other", "其他标签"),
         ]
 

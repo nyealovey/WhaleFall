@@ -565,6 +565,26 @@ INSERT INTO tags (name, display_name, category, color, description, sort_order, 
 ('web_portal', 'Web门户', 'project', 'danger', 'Web门户项目', 5, TRUE, NOW(), NOW()),
 ('api_service', 'API服务', 'project', 'secondary', 'API服务项目', 6, TRUE, NOW(), NOW()),
 
+-- 虚拟化类型标签
+('virtual_machine', '虚拟机', 'virtualization', 'primary', '运行在虚拟机上的数据库', 1, TRUE, NOW(), NOW()),
+('physical_machine', '物理机', 'virtualization', 'success', '运行在物理机上的数据库', 2, TRUE, NOW(), NOW()),
+('container', '容器', 'virtualization', 'info', '运行在容器中的数据库', 3, TRUE, NOW(), NOW()),
+('serverless', '无服务器', 'virtualization', 'warning', '无服务器架构的数据库', 4, TRUE, NOW(), NOW()),
+
+-- 部署方式标签
+('cloud_platform', '云平台', 'deployment', 'primary', '部署在云平台上的数据库', 1, TRUE, NOW(), NOW()),
+('self_hosted', '自建', 'deployment', 'success', '自建机房部署的数据库', 2, TRUE, NOW(), NOW()),
+('hybrid', '混合云', 'deployment', 'info', '混合云部署的数据库', 3, TRUE, NOW(), NOW()),
+('edge', '边缘计算', 'deployment', 'warning', '边缘计算节点部署的数据库', 4, TRUE, NOW(), NOW()),
+
+-- 架构类型标签
+('cluster', '群集', 'architecture', 'primary', '群集架构的数据库', 1, TRUE, NOW(), NOW()),
+('standalone', '单机', 'architecture', 'success', '单机架构的数据库', 2, TRUE, NOW(), NOW()),
+('master_slave', '主从', 'architecture', 'info', '主从架构的数据库', 3, TRUE, NOW(), NOW()),
+('master_master', '主主', 'architecture', 'warning', '主主架构的数据库', 4, TRUE, NOW(), NOW()),
+('sharding', '分片', 'architecture', 'danger', '分片架构的数据库', 5, TRUE, NOW(), NOW()),
+('replica_set', '副本集', 'architecture', 'secondary', '副本集架构的数据库', 6, TRUE, NOW(), NOW()),
+
 -- 其他标签
 ('high_priority', '高优先级', 'other', 'danger', '高优先级数据库', 1, TRUE, NOW(), NOW()),
 ('backup_required', '需要备份', 'other', 'warning', '需要定期备份的数据库', 2, TRUE, NOW(), NOW()),

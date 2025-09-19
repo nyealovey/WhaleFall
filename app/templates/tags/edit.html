@@ -40,6 +40,9 @@
                                     <option value="environment" {% if tag.category == 'environment' %}selected{% endif %}>环境标签</option>
                                     <option value="department" {% if tag.category == 'department' %}selected{% endif %}>部门标签</option>
                                     <option value="project" {% if tag.category == 'project' %}selected{% endif %}>项目标签</option>
+                                    <option value="virtualization" {% if tag.category == 'virtualization' %}selected{% endif %}>虚拟化类型</option>
+                                    <option value="deployment" {% if tag.category == 'deployment' %}selected{% endif %}>部署方式</option>
+                                    <option value="architecture" {% if tag.category == 'architecture' %}selected{% endif %}>架构类型</option>
                                     <option value="other" {% if tag.category == 'other' %}selected{% endif %}>其他标签</option>
                                 </select>
                                 <div class="form-text">选择标签所属分类</div>

@@ -59,6 +59,15 @@
                                 <input type="radio" class="btn-check" name="category-filter" id="category-project" value="project">
                                 <label class="btn btn-outline-secondary" for="category-project">项目</label>
                                 
+                                <input type="radio" class="btn-check" name="category-filter" id="category-virtualization" value="virtualization">
+                                <label class="btn btn-outline-secondary" for="category-virtualization">虚拟化</label>
+                                
+                                <input type="radio" class="btn-check" name="category-filter" id="category-deployment" value="deployment">
+                                <label class="btn btn-outline-secondary" for="category-deployment">部署</label>
+                                
+                                <input type="radio" class="btn-check" name="category-filter" id="category-architecture" value="architecture">
+                                <label class="btn btn-outline-secondary" for="category-architecture">架构</label>
+                                
                                 <input type="radio" class="btn-check" name="category-filter" id="category-other" value="other">
                                 <label class="btn btn-outline-secondary" for="category-other">其他</label>
                             </div>
@@ -465,6 +474,9 @@ class TagSelector {
             'environment': '环境',
             'location': '地区',
             'project': '项目',
+            'virtualization': '虚拟化',
+            'deployment': '部署',
+            'architecture': '架构',
             'other': '其他'
         };
         return categoryMap[category] || category;
