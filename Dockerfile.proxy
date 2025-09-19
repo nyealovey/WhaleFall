@@ -97,11 +97,7 @@ RUN uv venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # 配置uv代理（如果设置了代理）
-RUN if [ -n "$HTTP_PROXY" ]; then \
-        uv config set global.index-url https://pypi.org/simple/ && \
-        uv config set global.extra-index-url https://pypi.org/simple/ && \
-        uv config set global.proxy "$HTTP_PROXY"; \
-    fi
+# uv使用环境变量进行代理配置，不需要config命令
 
 # 复制项目配置文件
 COPY --chown=whalefall:whalefall pyproject.toml uv.lock /app/
