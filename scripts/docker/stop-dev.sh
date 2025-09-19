@@ -31,14 +31,14 @@ log_error() {
 # 停止Flask应用
 stop_flask() {
     log_info "停止Flask应用..."
-    docker-compose -f docker-compose.dev.yml stop whalefall 2>/dev/null || true
+    docker compose -f docker-compose.dev.yml stop whalefall 2>/dev/null || true
     log_success "Flask应用已停止"
 }
 
 # 停止基础环境
 stop_base() {
     log_info "停止基础环境..."
-    docker-compose -f docker-compose.dev.yml stop postgres redis nginx 2>/dev/null || true
+    docker compose -f docker-compose.dev.yml stop postgres redis nginx 2>/dev/null || true
     log_success "基础环境已停止"
 }
 

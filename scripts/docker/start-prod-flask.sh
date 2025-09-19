@@ -33,13 +33,13 @@ check_base_environment() {
     log_info "检查基础环境状态..."
     
     # 检查PostgreSQL
-    if ! docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod > /dev/null 2>&1; then
+    if ! docker compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod > /dev/null 2>&1; then
         log_error "PostgreSQL未运行，请先运行 ./scripts/docker/start-prod-base.sh"
         exit 1
     fi
     
     # 检查Redis
-    if ! docker-compose -f docker-compose.prod.yml exec redis redis-cli ping > /dev/null 2>&1; then
+    if ! docker compose -f docker-compose.prod.yml exec redis redis-cli ping > /dev/null 2>&1; then
         log_error "Redis未运行，请先运行 ./scripts/docker/start-prod-base.sh"
         exit 1
     fi
@@ -94,10 +94,10 @@ start_flask_application() {
     log_info "启动Flask应用..."
     
     # 停止可能存在的Flask容器（不删除）
-    docker-compose -f docker-compose.prod.yml stop whalefall 2>/dev/null || true
+    docker compose -f docker-compose.prod.yml stop whalefall 2>/dev/null || true
     
     # 启动Flask应用
-    docker-compose -f docker-compose.prod.yml up -d whalefall
+    docker compose -f docker-compose.prod.yml up -d whalefall
     
     log_success "Flask应用启动完成"
 }
@@ -114,7 +114,7 @@ wait_for_flask() {
 # 显示完整环境状态
 show_complete_status() {
     log_info "完整环境状态:"
-    docker-compose -f docker-compose.prod.yml ps
+    docker compose -f docker-compose.prod.yml ps
     
     echo ""
     log_info "访问地址:"
@@ -123,9 +123,9 @@ show_complete_status() {
     
     echo ""
     log_info "管理命令:"
-    echo "  - 查看日志: docker-compose -f docker-compose.prod.yml logs -f"
-    echo "  - 停止Flask: docker-compose -f docker-compose.prod.yml stop whalefall"
-    echo "  - 重启Flask: docker-compose -f docker-compose.prod.yml restart whalefall"
+    echo "  - 查看日志: docker compose -f docker-compose.prod.yml logs -f"
+    echo "  - 停止Flask: docker compose -f docker-compose.prod.yml stop whalefall"
+    echo "  - 重启Flask: docker compose -f docker-compose.prod.yml restart whalefall"
     echo "  - 停止所有: ./scripts/docker/stop-prod.sh"
 }
 

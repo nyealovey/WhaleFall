@@ -59,10 +59,10 @@ start_base_environment() {
     log_info "启动基础环境（PostgreSQL + Redis + Nginx）..."
     
     # 停止可能存在的容器（不删除）
-    docker-compose -f docker-compose.dev.yml stop postgres redis nginx 2>/dev/null || true
+    docker compose -f docker-compose.dev.yml stop postgres redis nginx 2>/dev/null || true
     
     # 启动基础服务
-    docker-compose -f docker-compose.dev.yml up -d postgres redis nginx
+    docker compose -f docker-compose.dev.yml up -d postgres redis nginx
     
     log_success "基础环境启动完成"
 }
@@ -75,7 +75,7 @@ wait_for_base_services() {
     log_info "等待PostgreSQL启动..."
     local count=0
     while [ $count -lt 30 ]; do
-        if docker-compose -f docker-compose.dev.yml exec postgres pg_isready -U whalefall_user -d whalefall_dev >/dev/null 2>&1; then
+        if docker compose -f docker-compose.dev.yml exec postgres pg_isready -U whalefall_user -d whalefall_dev >/dev/null 2>&1; then
             break
         fi
         sleep 2
@@ -87,7 +87,7 @@ wait_for_base_services() {
     log_info "等待Redis启动..."
     count=0
     while [ $count -lt 15 ]; do
-        if docker-compose -f docker-compose.dev.yml exec redis redis-cli ping >/dev/null 2>&1; then
+        if docker compose -f docker-compose.dev.yml exec redis redis-cli ping >/dev/null 2>&1; then
             break
         fi
         sleep 2
@@ -111,7 +111,7 @@ wait_for_base_services() {
 # 显示基础环境状态
 show_base_status() {
     log_info "基础环境状态:"
-    docker-compose -f docker-compose.dev.yml ps postgres redis nginx
+    docker compose -f docker-compose.dev.yml ps postgres redis nginx
     
     echo ""
     log_info "服务信息:"

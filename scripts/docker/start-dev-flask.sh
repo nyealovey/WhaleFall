@@ -33,13 +33,13 @@ check_base_environment() {
     log_info "检查基础环境状态..."
     
     # 检查PostgreSQL
-    if ! docker-compose -f docker-compose.dev.yml exec postgres pg_isready -U whalefall_user -d whalefall_dev > /dev/null 2>&1; then
+    if ! docker compose -f docker-compose.dev.yml exec postgres pg_isready -U whalefall_user -d whalefall_dev > /dev/null 2>&1; then
         log_error "PostgreSQL未运行，请先运行 ./scripts/docker/start-dev-base.sh"
         exit 1
     fi
     
     # 检查Redis
-    if ! docker-compose -f docker-compose.dev.yml exec redis redis-cli ping > /dev/null 2>&1; then
+    if ! docker compose -f docker-compose.dev.yml exec redis redis-cli ping > /dev/null 2>&1; then
         log_error "Redis未运行，请先运行 ./scripts/docker/start-dev-base.sh"
         exit 1
     fi
@@ -57,7 +57,7 @@ check_base_environment() {
 build_dev_image() {
     log_info "构建开发环境Flask镜像..."
     
-    docker-compose -f docker-compose.dev.yml build whalefall
+    docker compose -f docker-compose.dev.yml build whalefall
     
     log_success "开发环境Flask镜像构建完成"
 }
@@ -67,10 +67,10 @@ start_flask_application() {
     log_info "启动Flask应用..."
     
     # 停止可能存在的Flask容器（不删除）
-    docker-compose -f docker-compose.dev.yml stop whalefall 2>/dev/null || true
+    docker compose -f docker-compose.dev.yml stop whalefall 2>/dev/null || true
     
     # 启动Flask应用
-    docker-compose -f docker-compose.dev.yml up -d whalefall
+    docker compose -f docker-compose.dev.yml up -d whalefall
     
     log_success "Flask应用启动完成"
 }
@@ -87,7 +87,7 @@ wait_for_flask() {
 # 显示完整环境状态
 show_complete_status() {
     log_info "完整环境状态:"
-    docker-compose -f docker-compose.dev.yml ps
+    docker compose -f docker-compose.dev.yml ps
     
     echo ""
     log_info "访问地址:"
@@ -97,9 +97,9 @@ show_complete_status() {
     
     echo ""
     log_info "管理命令:"
-    echo "  - 查看日志: docker-compose -f docker-compose.dev.yml logs -f"
-    echo "  - 停止Flask: docker-compose -f docker-compose.dev.yml stop whalefall"
-    echo "  - 重启Flask: docker-compose -f docker-compose.dev.yml restart whalefall"
+    echo "  - 查看日志: docker compose -f docker-compose.dev.yml logs -f"
+    echo "  - 停止Flask: docker compose -f docker-compose.dev.yml stop whalefall"
+    echo "  - 重启Flask: docker compose -f docker-compose.dev.yml restart whalefall"
     echo "  - 停止所有: ./scripts/docker/stop-dev.sh"
 }
 

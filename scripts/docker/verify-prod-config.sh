@@ -69,19 +69,19 @@ verify_docker_compose() {
     log_info "验证Docker Compose文件..."
     
     # 检查必要文件
-    if [ ! -f "docker-compose.dev.yml" ]; then
-        log_error "缺少 docker-compose.dev.yml 文件"
+    if [ ! -f "docker compose.dev.yml" ]; then
+        log_error "缺少 docker compose.dev.yml 文件"
         return 1
     fi
     
-    if [ ! -f "docker-compose.prod.yml" ]; then
-        log_error "缺少 docker-compose.prod.yml 文件"
+    if [ ! -f "docker compose.prod.yml" ]; then
+        log_error "缺少 docker compose.prod.yml 文件"
         return 1
     fi
     
     # 检查关键环境变量
-    local dev_env_vars=$(grep -A 20 "environment:" docker-compose.dev.yml | grep -E "CACHE_TYPE|CACHE_REDIS_URL|DATABASE_URL|FLASK_HOST|FLASK_PORT" | wc -l)
-    local prod_env_vars=$(grep -A 20 "environment:" docker-compose.prod.yml | grep -E "CACHE_TYPE|CACHE_REDIS_URL|DATABASE_URL|FLASK_HOST|FLASK_PORT" | wc -l)
+    local dev_env_vars=$(grep -A 20 "environment:" docker compose.dev.yml | grep -E "CACHE_TYPE|CACHE_REDIS_URL|DATABASE_URL|FLASK_HOST|FLASK_PORT" | wc -l)
+    local prod_env_vars=$(grep -A 20 "environment:" docker compose.prod.yml | grep -E "CACHE_TYPE|CACHE_REDIS_URL|DATABASE_URL|FLASK_HOST|FLASK_PORT" | wc -l)
     
     if [ "$dev_env_vars" != "$prod_env_vars" ]; then
         log_error "Docker Compose 环境变量数量不一致: dev=$dev_env_vars, prod=$prod_env_vars"
@@ -89,16 +89,16 @@ verify_docker_compose() {
     fi
     
     # 检查FLASK_HOST和FLASK_PORT
-    local dev_flask_host=$(grep "FLASK_HOST=" docker-compose.dev.yml | cut -d'=' -f2)
-    local prod_flask_host=$(grep "FLASK_HOST=" docker-compose.prod.yml | cut -d'=' -f2)
+    local dev_flask_host=$(grep "FLASK_HOST=" docker compose.dev.yml | cut -d'=' -f2)
+    local prod_flask_host=$(grep "FLASK_HOST=" docker compose.prod.yml | cut -d'=' -f2)
     
     if [ "$dev_flask_host" != "$prod_flask_host" ]; then
         log_error "FLASK_HOST 配置不一致: dev=$dev_flask_host, prod=$prod_flask_host"
         return 1
     fi
     
-    local dev_flask_port=$(grep "FLASK_PORT=" docker-compose.dev.yml | cut -d'=' -f2)
-    local prod_flask_port=$(grep "FLASK_PORT=" docker-compose.prod.yml | cut -d'=' -f2)
+    local dev_flask_port=$(grep "FLASK_PORT=" docker compose.dev.yml | cut -d'=' -f2)
+    local prod_flask_port=$(grep "FLASK_PORT=" docker compose.prod.yml | cut -d'=' -f2)
     
     if [ "$dev_flask_port" != "$prod_flask_port" ]; then
         log_error "FLASK_PORT 配置不一致: dev=$dev_flask_port, prod=$prod_flask_port"
@@ -149,9 +149,9 @@ show_config_comparison() {
     echo ""
     echo "Docker Compose 环境变量:"
     echo "  测试环境:"
-    grep -A 10 "environment:" docker-compose.dev.yml | grep -E "CACHE_TYPE|CACHE_REDIS_URL|DATABASE_URL|FLASK_HOST|FLASK_PORT" | sed 's/^/    /'
+    grep -A 10 "environment:" docker compose.dev.yml | grep -E "CACHE_TYPE|CACHE_REDIS_URL|DATABASE_URL|FLASK_HOST|FLASK_PORT" | sed 's/^/    /'
     echo "  生产环境:"
-    grep -A 10 "environment:" docker-compose.prod.yml | grep -E "CACHE_TYPE|CACHE_REDIS_URL|DATABASE_URL|FLASK_HOST|FLASK_PORT" | sed 's/^/    /'
+    grep -A 10 "environment:" docker compose.prod.yml | grep -E "CACHE_TYPE|CACHE_REDIS_URL|DATABASE_URL|FLASK_HOST|FLASK_PORT" | sed 's/^/    /'
 }
 
 # 主函数
