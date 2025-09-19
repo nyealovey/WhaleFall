@@ -78,11 +78,11 @@ build_prod_image() {
             -f Dockerfile.proxy \
             --target production .
     else
-        # 直连构建
+        # 直连构建（仍然使用Dockerfile.proxy）
         log_info "使用直连构建镜像..."
         docker build \
             -t whalefall:prod \
-            -f Dockerfile \
+            -f Dockerfile.proxy \
             --target production .
     fi
     
