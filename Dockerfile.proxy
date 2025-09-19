@@ -1,5 +1,5 @@
 # 支持代理的Dockerfile
-FROM ubuntu:22.04
+FROM ubuntu:22.04 as base
 
 # 设置环境变量
 ENV DEBIAN_FRONTEND=noninteractive
@@ -39,30 +39,60 @@ RUN apt-get update && apt-get install -y \
     wget \
     git \
     supervisor \
+    unzip \
+    libaio1 \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/bin/python3.11 /usr/bin/python3 \
     && ln -sf /usr/bin/python3.11 /usr/bin/python
+
+# 安装Oracle Instant Client
+ENV ORACLE_CLIENT_VERSION=21.18.0.0.0
+ENV ORACLE_HOME=/opt/oracle/instantclient_${ORACLE_CLIENT_VERSION//./_}
+
+# 下载并安装Oracle Instant Client for Linux
+RUN mkdir -p $ORACLE_HOME && \
+    wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
+    wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip && \
+    unzip -q /tmp/instantclient-basic.zip -d /opt/oracle && \
+    unzip -q /tmp/instantclient-sdk.zip -d /opt/oracle && \
+    rm /tmp/instantclient-basic.zip /tmp/instantclient-sdk.zip && \
+    echo "$ORACLE_HOME" > /etc/ld.so.conf.d/oracle-instantclient.conf && \
+    ldconfig
+
+# 设置Oracle环境变量
+ENV LD_LIBRARY_PATH=$ORACLE_HOME:$LD_LIBRARY_PATH
+ENV PATH=$ORACLE_HOME:$PATH
+
+# 安装uv（在root用户下安装）
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
 
 # 创建非root用户
 RUN useradd -m -s /bin/bash whalefall && \
     chown -R whalefall:whalefall /app
 
+# 复制uv到whalefall用户目录
+RUN cp /root/.cargo/bin/uv /usr/local/bin/uv && \
+    chmod +x /usr/local/bin/uv
+
 # 切换到非root用户
 USER whalefall
 
 # 创建虚拟环境
-RUN python3 -m venv /app/.venv
+RUN uv venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-# 配置pip代理（如果设置了代理）
-RUN if [ -n "$HTTP_PROXY" ]; then pip config set global.proxy $HTTP_PROXY; fi
+# 配置uv代理（如果设置了代理）
+RUN if [ -n "$HTTP_PROXY" ]; then \
+        uv config set global.index-url https://pypi.org/simple/ && \
+        uv config set global.extra-index-url https://pypi.org/simple/; \
+    fi
 
-# 复制requirements文件
-COPY --chown=whalefall:whalefall requirements-prod.txt /app/requirements.txt
+# 复制项目配置文件
+COPY --chown=whalefall:whalefall pyproject.toml uv.lock /app/
 
 # 安装Python依赖（使用代理）
-RUN python3.11 -m pip install --no-cache-dir --upgrade pip && \
-    python3.11 -m pip install --no-cache-dir -r requirements.txt
+RUN uv sync --frozen --no-dev
 
 # 复制应用代码
 COPY --chown=whalefall:whalefall . /app/
@@ -165,5 +195,21 @@ EXPOSE 5001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5001/health || exit 1
 
-# 启动命令
+# 开发环境阶段
+FROM base as development
+
+# 安装开发依赖
+RUN apt-get update && apt-get install -y \
+    vim \
+    htop \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 开发环境启动命令
+CMD ["python", "app.py"]
+
+# 生产环境阶段
+FROM base as production
+
+# 启动命令 - 使用Supervisor管理多个进程
 CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]
