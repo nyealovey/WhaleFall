@@ -58,17 +58,18 @@ def api_list_sessions() -> tuple[dict, int]:
         # 转换为字典
         sessions_data = [session.to_dict() for session in sessions]
 
-        log_info(
-            "获取同步会话列表",
-            module="sync_sessions",
-            user_id=current_user.id,
-            session_count=len(sessions_data),
-            filters={
-                "sync_type": sync_type,
-                "sync_category": sync_category,
-                "status": status,
-            },
-        )
+        # 注释掉频繁的日志记录，减少日志噪音
+        # log_info(
+        #     "获取同步会话列表",
+        #     module="sync_sessions",
+        #     user_id=current_user.id,
+        #     session_count=len(sessions_data),
+        #     filters={
+        #         "sync_type": sync_type,
+        #         "sync_category": sync_category,
+        #         "status": status,
+        #     },
+        # )
 
         return jsonify({"success": True, "data": sessions_data, "total": len(sessions_data)})
 

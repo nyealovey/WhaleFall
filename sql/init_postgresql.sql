@@ -409,7 +409,21 @@ CREATE INDEX IF NOT EXISTS idx_change_type_time ON account_change_log(change_typ
 CREATE INDEX IF NOT EXISTS idx_username_time ON account_change_log(username, change_time);
 
 -- ============================================================================
--- 13. 全局参数模块
+-- 13. 定时任务调度模块 (APScheduler)
+-- ============================================================================
+
+-- APScheduler任务表
+CREATE TABLE IF NOT EXISTS apscheduler_jobs (
+    id VARCHAR(191) PRIMARY KEY,
+    next_run_time DOUBLE PRECISION,
+    job_state BYTEA NOT NULL
+);
+
+-- APScheduler任务表索引
+CREATE INDEX IF NOT EXISTS ix_apscheduler_jobs_next_run_time ON apscheduler_jobs(next_run_time);
+
+-- ============================================================================
+-- 14. 全局参数模块
 -- ============================================================================
 
 -- 全局参数表
@@ -424,7 +438,7 @@ CREATE TABLE IF NOT EXISTS global_params (
 );
 
 -- ============================================================================
--- 14. 创建触发器函数
+-- 15. 创建触发器函数
 -- ============================================================================
 
 -- 创建updated_at字段自动更新触发器函数
@@ -449,7 +463,7 @@ CREATE TRIGGER update_sync_sessions_updated_at BEFORE UPDATE ON sync_sessions FO
 CREATE TRIGGER update_classification_batches_updated_at BEFORE UPDATE ON classification_batches FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
--- 15. 插入初始数据
+-- 16. 插入初始数据
 -- ============================================================================
 
 -- 插入用户数据
@@ -499,14 +513,103 @@ ON CONFLICT (id) DO NOTHING;
 -- 重置序列
 SELECT setval('classification_rules_id_seq', (SELECT MAX(id) FROM classification_rules));
 
+-- 权限配置数据请参考单独的权限配置文件
+-- 文件位置: sql/permission_configs.sql
+-- 该文件包含从现有数据库导出的完整权限配置数据
+
+-- 注意：权限配置数据已移至单独文件，请执行以下命令加载：
+-- \i sql/permission_configs.sql
+
+-- 插入标签管理数据
+INSERT INTO tags (name, display_name, category, color, description, sort_order, is_active, created_at, updated_at) VALUES
+-- 地区标签
+('beijing', '北京', 'location', 'primary', '北京地区', 1, TRUE, NOW(), NOW()),
+('shanghai', '上海', 'location', 'success', '上海地区', 2, TRUE, NOW(), NOW()),
+('guangzhou', '广州', 'location', 'info', '广州地区', 3, TRUE, NOW(), NOW()),
+('shenzhen', '深圳', 'location', 'warning', '深圳地区', 4, TRUE, NOW(), NOW()),
+('hangzhou', '杭州', 'location', 'danger', '杭州地区', 5, TRUE, NOW(), NOW()),
+('nanjing', '南京', 'location', 'secondary', '南京地区', 6, TRUE, NOW(), NOW()),
+('wuhan', '武汉', 'location', 'dark', '武汉地区', 7, TRUE, NOW(), NOW()),
+('chengdu', '成都', 'location', 'light', '成都地区', 8, TRUE, NOW(), NOW()),
+
+-- 公司类型标签
+('tech_company', '科技公司', 'company_type', 'primary', '科技类公司', 1, TRUE, NOW(), NOW()),
+('financial', '金融机构', 'company_type', 'success', '银行、证券、保险等金融机构', 2, TRUE, NOW(), NOW()),
+('manufacturing', '制造业', 'company_type', 'info', '制造业企业', 3, TRUE, NOW(), NOW()),
+('retail', '零售业', 'company_type', 'warning', '零售行业', 4, TRUE, NOW(), NOW()),
+('healthcare', '医疗健康', 'company_type', 'danger', '医疗健康行业', 5, TRUE, NOW(), NOW()),
+('education', '教育培训', 'company_type', 'secondary', '教育培训机构', 6, TRUE, NOW(), NOW()),
+('government', '政府机构', 'company_type', 'dark', '政府机关', 7, TRUE, NOW(), NOW()),
+('nonprofit', '非营利组织', 'company_type', 'light', '非营利性组织', 8, TRUE, NOW(), NOW()),
+
+-- 环境标签
+('production', '生产环境', 'environment', 'danger', '生产环境数据库', 1, TRUE, NOW(), NOW()),
+('staging', '预发布环境', 'environment', 'warning', '预发布环境数据库', 2, TRUE, NOW(), NOW()),
+('testing', '测试环境', 'environment', 'info', '测试环境数据库', 3, TRUE, NOW(), NOW()),
+('development', '开发环境', 'environment', 'success', '开发环境数据库', 4, TRUE, NOW(), NOW()),
+('demo', '演示环境', 'environment', 'secondary', '演示环境数据库', 5, TRUE, NOW(), NOW()),
+
+-- 部门标签
+('it_department', 'IT部门', 'department', 'primary', '信息技术部门', 1, TRUE, NOW(), NOW()),
+('finance_department', '财务部门', 'department', 'success', '财务部门', 2, TRUE, NOW(), NOW()),
+('hr_department', '人力资源', 'department', 'info', '人力资源部门', 3, TRUE, NOW(), NOW()),
+('marketing_department', '市场部门', 'department', 'warning', '市场营销部门', 4, TRUE, NOW(), NOW()),
+('sales_department', '销售部门', 'department', 'danger', '销售部门', 5, TRUE, NOW(), NOW()),
+('operations_department', '运营部门', 'department', 'secondary', '运营部门', 6, TRUE, NOW(), NOW()),
+
+-- 项目标签
+('core_system', '核心系统', 'project', 'primary', '核心业务系统', 1, TRUE, NOW(), NOW()),
+('data_warehouse', '数据仓库', 'project', 'success', '数据仓库项目', 2, TRUE, NOW(), NOW()),
+('analytics', '数据分析', 'project', 'info', '数据分析项目', 3, TRUE, NOW(), NOW()),
+('mobile_app', '移动应用', 'project', 'warning', '移动应用项目', 4, TRUE, NOW(), NOW()),
+('web_portal', 'Web门户', 'project', 'danger', 'Web门户项目', 5, TRUE, NOW(), NOW()),
+('api_service', 'API服务', 'project', 'secondary', 'API服务项目', 6, TRUE, NOW(), NOW()),
+
+-- 其他标签
+('high_priority', '高优先级', 'other', 'danger', '高优先级数据库', 1, TRUE, NOW(), NOW()),
+('backup_required', '需要备份', 'other', 'warning', '需要定期备份的数据库', 2, TRUE, NOW(), NOW()),
+('monitoring', '监控中', 'other', 'info', '正在监控的数据库', 3, TRUE, NOW(), NOW()),
+('maintenance', '维护中', 'other', 'secondary', '正在维护的数据库', 4, TRUE, NOW(), NOW()),
+('deprecated', '已废弃', 'other', 'dark', '已废弃的数据库', 5, TRUE, NOW(), NOW())
+ON CONFLICT (name) DO NOTHING;
+
+-- 插入全局参数数据
+INSERT INTO global_params (key, value, description, param_type, created_at, updated_at) VALUES
+('system_name', '鲸落数据库管理系统', '系统名称', 'string', NOW(), NOW()),
+('system_version', 'v4.0.0', '系统版本', 'string', NOW(), NOW()),
+('default_timezone', 'Asia/Shanghai', '默认时区', 'string', NOW(), NOW()),
+('max_login_attempts', '5', '最大登录尝试次数', 'integer', NOW(), NOW()),
+('session_timeout', '3600', '会话超时时间（秒）', 'integer', NOW(), NOW()),
+('password_min_length', '8', '密码最小长度', 'integer', NOW(), NOW()),
+('password_require_special', 'true', '密码是否需要特殊字符', 'boolean', NOW(), NOW()),
+('account_sync_interval', '1800', '账户同步间隔（秒）', 'integer', NOW(), NOW()),
+('log_retention_days', '30', '日志保留天数', 'integer', NOW(), NOW()),
+('backup_retention_days', '7', '备份保留天数', 'integer', NOW(), NOW()),
+('max_concurrent_syncs', '5', '最大并发同步数', 'integer', NOW(), NOW()),
+('enable_auto_classification', 'true', '是否启用自动分类', 'boolean', NOW(), NOW()),
+('classification_confidence_threshold', '0.8', '分类置信度阈值', 'float', NOW(), NOW()),
+('enable_email_notifications', 'false', '是否启用邮件通知', 'boolean', NOW(), NOW()),
+('smtp_server', '', 'SMTP服务器地址', 'string', NOW(), NOW()),
+('smtp_port', '587', 'SMTP端口', 'integer', NOW(), NOW()),
+('smtp_username', '', 'SMTP用户名', 'string', NOW(), NOW()),
+('smtp_password', '', 'SMTP密码', 'string', NOW(), NOW()),
+('notification_email', '', '通知邮箱', 'string', NOW(), NOW()),
+('enable_audit_log', 'true', '是否启用审计日志', 'boolean', NOW(), NOW()),
+('audit_log_retention_days', '90', '审计日志保留天数', 'integer', NOW(), NOW()),
+('enable_performance_monitoring', 'true', '是否启用性能监控', 'boolean', NOW(), NOW()),
+('performance_monitoring_interval', '300', '性能监控间隔（秒）', 'integer', NOW(), NOW()),
+('enable_security_scan', 'true', '是否启用安全扫描', 'boolean', NOW(), NOW()),
+('security_scan_interval', '86400', '安全扫描间隔（秒）', 'integer', NOW(), NOW())
+ON CONFLICT (key) DO NOTHING;
+
 -- ============================================================================
--- 16. 提交事务
+-- 17. 提交事务
 -- ============================================================================
 
 COMMIT;
 
 -- ============================================================================
--- 17. 验证数据
+-- 18. 验证数据
 -- ============================================================================
 
 -- 显示表统计信息
@@ -544,6 +647,8 @@ UNION ALL
 SELECT 'Unified Logs', COUNT(*) FROM unified_logs
 UNION ALL
 SELECT 'Account Change Log', COUNT(*) FROM account_change_log
+UNION ALL
+SELECT 'APScheduler Jobs', COUNT(*) FROM apscheduler_jobs
 UNION ALL
 SELECT 'Global Params', COUNT(*) FROM global_params;
 

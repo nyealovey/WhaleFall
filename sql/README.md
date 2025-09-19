@@ -1,143 +1,91 @@
-# SQL 脚本目录
+# SQL 脚本说明
 
-本目录包含鲸落项目相关的所有SQL脚本文件。
+## 文件结构
 
-## 📁 文件说明
+### 主要初始化脚本
+- `init_postgresql.sql` - PostgreSQL数据库主初始化脚本
+- `permission_configs.sql` - 权限配置数据脚本（从现有数据库导出）
+- `init_scheduler_tasks.sql` - 定时任务配置说明脚本
 
-### 🗄️ 数据库初始化脚本
+### 数据库类型特定脚本
+- `setup_mysql_monitor_user.sql` - MySQL监控用户设置
+- `setup_postgresql_monitor_user.sql` - PostgreSQL监控用户设置
+- `setup_sqlserver_monitor_user.sql` - SQL Server监控用户设置
+- `setup_oracle_monitor_user.sql` - Oracle监控用户设置
 
-#### `init_postgresql.sql`
-- **用途**: PostgreSQL数据库完整初始化脚本
-- **功能**: 
-  - 创建所有表结构（用户、实例、凭据、账户、分类、权限、任务等）
-  - 插入初始数据和权限配置
-  - 支持PostgreSQL优化特性（SERIAL、JSONB、索引等）
-  - 确保幂等性（可重复运行）
-- **使用**: 在PostgreSQL数据库中执行此脚本进行完整初始化
+## 使用说明
 
-
-### 🔧 监控用户设置脚本
-
-#### `setup_mysql_monitor_user.sql`
-- **用途**: MySQL监控用户创建和权限设置
-- **功能**: 
-  - 创建`monitor_user`用户
-  - 授予必要的监控权限
-  - 配置MySQL数据库监控
-- **使用**: `mysql -u root -p < sql/setup_mysql_monitor_user.sql`
-
-#### `setup_postgresql_monitor_user.sql`
-- **用途**: PostgreSQL监控用户创建和权限设置
-- **功能**: 
-  - 创建`monitor_user`用户
-  - 授予数据库连接和查询权限
-  - 配置PostgreSQL数据库监控
-- **使用**: `psql -U postgres -d postgres -f sql/setup_postgresql_monitor_user.sql`
-
-#### `setup_sqlserver_monitor_user.sql`
-- **用途**: SQL Server监控用户创建和权限设置
-- **功能**: 
-  - 创建`monitor_user`登录和用户
-  - 授予服务器和数据库权限
-  - 配置SQL Server数据库监控
-- **使用**: `sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user.sql`
-
-#### `setup_sqlserver_monitor_user_advanced.sql`
-- **用途**: SQL Server高级监控用户设置
-- **功能**: 
-  - 创建具有高级权限的监控用户
-  - 支持跨数据库查询
-  - 配置详细的监控权限
-- **使用**: `sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user_advanced.sql`
-
-#### `setup_sqlserver_monitor_user_cross_db.sql`
-- **用途**: SQL Server跨数据库监控用户设置
-- **功能**: 
-  - 创建支持跨数据库查询的监控用户
-  - 授予跨数据库权限
-  - 配置多数据库监控
-- **使用**: `sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user_cross_db.sql`
-
-#### `setup_oracle_monitor_user.sql`
-- **用途**: Oracle监控用户创建和权限设置
-- **功能**: 
-  - 创建`monitor_user`用户
-  - 授予系统权限和对象权限
-  - 配置Oracle数据库监控
-- **使用**: `sqlplus sys/password@database as sysdba @sql/setup_oracle_monitor_user.sql`
-
-## 🚀 使用指南
-
-### 1. 数据库初始化
-
-#### PostgreSQL完整初始化
+### 1. 初始化数据库
 ```bash
-# 连接到PostgreSQL数据库
-psql -U postgres -d postgres
+# 执行主初始化脚本
+psql -h localhost -U postgres -d taifish -f init_postgresql.sql
 
-# 执行初始化脚本
-\i sql/init_postgresql.sql
+# 执行权限配置数据
+psql -h localhost -U postgres -d taifish -f permission_configs.sql
+
+# 查看定时任务配置说明（可选）
+psql -h localhost -U postgres -d taifish -f init_scheduler_tasks.sql
 ```
 
+### 2. 设置监控用户
+根据您的数据库类型，执行相应的监控用户设置脚本：
 
-### 2. 监控用户设置
-
-#### 设置所有数据库的监控用户
 ```bash
 # MySQL
-mysql -u root -p < sql/setup_mysql_monitor_user.sql
+mysql -h localhost -u root -p < setup_mysql_monitor_user.sql
 
 # PostgreSQL
-psql -U postgres -d postgres -f sql/setup_postgresql_monitor_user.sql
+psql -h localhost -U postgres -d taifish -f setup_postgresql_monitor_user.sql
 
-# SQL Server (基础)
-sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user.sql
-
-# SQL Server (高级)
-sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user_advanced.sql
-
-# SQL Server (跨数据库)
-sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user_cross_db.sql
+# SQL Server
+sqlcmd -S localhost -U sa -P <password> -i setup_sqlserver_monitor_user.sql
 
 # Oracle
-sqlplus sys/password@database as sysdba @sql/setup_oracle_monitor_user.sql
+sqlplus sys/<password>@localhost:1521/orcl @setup_oracle_monitor_user.sql
 ```
 
-### 3. 验证设置
+## 权限配置数据
 
-执行相应的监控用户设置脚本后，可以通过以下方式验证：
+`permission_configs.sql` 文件包含了从现有数据库导出的完整权限配置数据，包括：
 
-```bash
-# 测试MySQL连接
-mysql -u monitor_user -p -e "SHOW DATABASES;"
+- **MySQL权限**: 全局权限和数据库权限
+- **PostgreSQL权限**: 角色属性、预定义角色、数据库权限、表空间权限
+- **SQL Server权限**: 服务器角色、服务器权限、数据库角色、数据库权限
+- **Oracle权限**: 系统权限、角色、表空间权限、表空间配额
 
-# 测试PostgreSQL连接
-psql -U monitor_user -d postgres -c "\l"
+这些权限配置数据支持鲸落系统的智能账户分类功能。
 
-# 测试SQL Server连接
-sqlcmd -S server -U monitor_user -P password -Q "SELECT name FROM sys.databases"
+## 定时任务管理
 
-# 测试Oracle连接
-sqlplus monitor_user/password@database
+### APScheduler任务表
+- `apscheduler_jobs` - 定时任务存储表
+- 任务配置从 `config/scheduler_tasks.yaml` 加载
+- 支持通过Web界面管理任务
+
+### 默认任务
+1. **账户同步任务** (`sync_accounts`)
+   - 执行频率：每30分钟
+   - 功能：同步所有数据库实例的账户信息
+
+2. **清理旧日志任务** (`cleanup_logs`)
+   - 执行频率：每天凌晨2点
+   - 功能：清理30天前的日志和临时文件
+
+### 任务管理命令
+```sql
+-- 查看当前任务
+SELECT id, next_run_time FROM apscheduler_jobs;
+
+-- 查看任务详情（需要解码job_state字段）
+SELECT id, next_run_time, 
+       pg_size_pretty(pg_column_size(job_state)) as job_size
+FROM apscheduler_jobs;
 ```
 
-## ⚠️ 注意事项
+## 注意事项
 
-1. **权限要求**: 执行监控用户设置脚本需要数据库管理员权限
-2. **密码安全**: 请修改脚本中的默认密码
-3. **网络访问**: 确保鲸落服务器能够访问目标数据库
-4. **防火墙**: 检查数据库端口是否开放
-5. **SSL配置**: 生产环境建议启用SSL连接
-
-## 📚 相关文档
-
-- [数据库权限总览](../docs/database/DATABASE_PERMISSIONS_OVERVIEW.md)
-- [MySQL权限管理](../docs/database/MYSQL_PERMISSIONS.md)
-- [PostgreSQL权限管理](../docs/database/POSTGRESQL_PERMISSIONS.md)
-- [SQL Server权限管理](../docs/database/SQL_SERVER_PERMISSIONS.md)
-- [Oracle权限管理](../docs/database/ORACLE_PERMISSIONS.md)
-
----
-
-**最后更新**: 2025年9月18日  
-**维护者**: 鲸落开发团队
+1. 执行脚本前请确保数据库用户有足够的权限
+2. 权限配置数据使用 `ON CONFLICT DO NOTHING` 确保幂等性
+3. 所有脚本都支持重复执行而不会产生错误
+4. 建议在生产环境执行前先在测试环境验证
+5. 定时任务会在应用启动时自动加载，无需手动插入

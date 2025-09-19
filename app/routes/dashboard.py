@@ -70,15 +70,15 @@ def api_overview() -> "Response":
 
     overview = get_system_overview()
 
-    # 记录API调用
-    duration = (time.time() - start_time) * 1000
-    log_info(
-        "获取仪表板概览数据",
-        module="dashboard",
-        user_id=current_user.id,
-        ip_address=request.remote_addr,
-        duration_ms=duration,
-    )
+    # 注释掉频繁的日志记录，减少日志噪音
+    # duration = (time.time() - start_time) * 1000
+    # log_info(
+    #     "获取仪表板概览数据",
+    #     module="dashboard",
+    #     user_id=current_user.id,
+    #     ip_address=request.remote_addr,
+    #     duration_ms=duration,
+    # )
 
     return jsonify(overview)
 
@@ -94,15 +94,15 @@ def api_charts() -> "Response":
     chart_type = request.args.get("type", "all", type=str)
     charts = get_chart_data(chart_type)
 
-    # 记录API调用
-    duration = (time.time() - start_time) * 1000
-    log_info(
-        "获取仪表板图表数据",
-        module="dashboard",
-        user_id=current_user.id,
-        ip_address=request.remote_addr,
-        duration_ms=duration,
-    )
+    # 注释掉频繁的日志记录，减少日志噪音
+    # duration = (time.time() - start_time) * 1000
+    # log_info(
+    #     "获取仪表板图表数据",
+    #     module="dashboard",
+    #     user_id=current_user.id,
+    #     ip_address=request.remote_addr,
+    #     duration_ms=duration,
+    # )
 
     return jsonify(charts)
 

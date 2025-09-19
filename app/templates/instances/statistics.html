@@ -248,7 +248,7 @@
 
 {% block extra_js %}
 <!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
 <script>
 // 页面加载完成后创建版本分布图
 document.addEventListener('DOMContentLoaded', function() {

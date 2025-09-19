@@ -129,8 +129,11 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
     scheduler.app = app
     scheduler.start()
 
-    # 从数据库加载现有任务（不自动创建默认任务）
+    # 从数据库加载现有任务
     _load_existing_jobs()
+    
+    # 如果没有现有任务，则添加默认任务
+    _add_default_jobs()
 
     return scheduler
 
