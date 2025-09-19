@@ -28,6 +28,7 @@
 - [基础环境部署成功](deployment/BASE_ENVIRONMENT_DEPLOYMENT_SUCCESS.md) - 基础环境部署记录
 - [部署清理总结](deployment/DEPLOYMENT_CLEANUP_SUMMARY.md) - 部署文档清理记录
 - [生产部署完成](deployment/PRODUCTION_DEPLOYMENT_COMPLETE.md) - 生产环境部署完成报告
+- [Docker代理配置](deployment/DOCKER_PROXY_CONFIGURATION.md) - Docker代理和镜像源配置指南
 - [Nginx简化配置](deployment/NGINX_SIMPLIFIED_CONFIG.md) - Nginx配置简化和优化说明
 
 ### 🛠️ 开发指南 (development/)
