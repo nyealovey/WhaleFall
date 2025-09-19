@@ -3,6 +3,14 @@
 # 服务器正式环境 - Flask应用启动脚本（x86，有代理）
 # 启动：Flask应用（依赖基础环境）
 
+# 加载环境变量
+if [ -f ".env" ]; then
+    source .env
+    echo "已加载.env文件"
+else
+    echo "未找到.env文件"
+fi
+
 set -e
 
 # 颜色定义
@@ -55,6 +63,11 @@ check_base_environment() {
 
 # 检查代理配置
 check_proxy() {
+    log_info "环境变量检查:"
+    log_info "  HTTP_PROXY: $HTTP_PROXY"
+    log_info "  HTTPS_PROXY: $HTTPS_PROXY"
+    log_info "  NO_PROXY: $NO_PROXY"
+    
     if [ -n "$HTTP_PROXY" ]; then
         log_info "检测到代理配置: $HTTP_PROXY"
         log_info "将使用代理构建Flask镜像"
