@@ -1,3 +1,4 @@
+
 """
 鲸落 - 凭据管理路由
 """
@@ -25,6 +26,7 @@ from app.utils.security import (
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
+credentials_bp = Blueprint("credentials", __name__)
 
 
 @credentials_bp.route("/")

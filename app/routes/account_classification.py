@@ -1,3 +1,4 @@
+
 """
 鲸落 - 账户分类管理路由
 """
@@ -24,6 +25,8 @@ from app.utils.decorators import (
 )
 from app.utils.structlog_config import log_error, log_info
 
+# 创建蓝图
+account_classification_bp = Blueprint("account_classification", __name__)
 
 
 @account_classification_bp.route("/")
