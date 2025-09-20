@@ -138,11 +138,19 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
             return scheduler
 
         scheduler.app = app
+        
+        # 确保SQLite数据库文件存在
+        sqlite_path = Path("userdata/scheduler.db")
+        if not sqlite_path.exists():
+            logger.info("创建SQLite调度器数据库文件")
+            sqlite_path.parent.mkdir(exist_ok=True)
+            sqlite_path.touch()
+        
         scheduler.start()
 
         # 等待调度器完全启动
         import time
-        time.sleep(1)
+        time.sleep(2)
         
         # 从数据库加载现有任务
         _load_existing_jobs()
@@ -190,14 +198,20 @@ def _load_existing_jobs() -> None:
             logger.warning("调度器未完全就绪，跳过加载现有任务")
             return
             
+        # 检查SQLite数据库文件是否存在
+        sqlite_path = Path("userdata/scheduler.db")
+        if not sqlite_path.exists():
+            logger.warning("SQLite数据库文件不存在，跳过加载现有任务")
+            return
+            
         # 获取数据库中的所有任务
         existing_jobs = scheduler.get_jobs()
         if existing_jobs:
-            logger.info("从数据库加载了 %d 个现有任务", len(existing_jobs))
+            logger.info("从SQLite数据库加载了 %d 个现有任务", len(existing_jobs))
             for job in existing_jobs:
                 logger.info("加载任务: %s (%s)", job.name, job.id)
         else:
-            logger.info("数据库中没有找到任务")
+            logger.info("SQLite数据库中没有找到任务")
     except Exception as e:
         logger.error("加载现有任务失败: %s", str(e))
         # 不抛出异常，让应用继续启动
