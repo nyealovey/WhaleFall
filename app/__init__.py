@@ -430,7 +430,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(database_types_bp, url_prefix='/database-types')
     app.register_blueprint(user_management_bp, url_prefix='/users')
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
-    app.register_blueprint(sync_sessions_bp, url_prefix='/sync-sessions')
+    app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')
 
     # 初始化定时任务调度器
     from app.scheduler import init_scheduler
