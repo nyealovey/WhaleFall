@@ -1,3 +1,4 @@
+
 """
 鲸落 - 健康检查路由
 """
@@ -12,6 +13,7 @@ from app.utils.api_response import APIResponse
 from app.utils.structlog_config import get_system_logger
 
 # 创建蓝图
+health_bp = Blueprint("health", __name__)
 
 
 @health_bp.route("/")

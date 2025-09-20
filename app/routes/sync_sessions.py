@@ -1,3 +1,4 @@
+
 """
 鲸落 - 同步会话管理路由
 """
@@ -9,10 +10,11 @@ from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import view_required
 from app.utils.structlog_config import get_system_logger, log_error, log_info
 
-# 创建蓝图
-
 # 获取日志记录器
 system_logger = get_system_logger()
+
+# 创建蓝图
+sync_sessions_bp = Blueprint("sync_sessions", __name__)
 
 
 @sync_sessions_bp.route("/")

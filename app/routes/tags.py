@@ -1,3 +1,4 @@
+
 """
 鲸落 - 标签管理路由
 """
@@ -30,6 +31,7 @@ from app.utils.structlog_config import get_api_logger, get_system_logger, log_er
 logger = get_system_logger()
 
 # 创建蓝图
+tags_bp = Blueprint("tags", __name__)
 
 
 @tags_bp.route("/")

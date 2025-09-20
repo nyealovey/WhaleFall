@@ -1,3 +1,4 @@
+
 """
 鲸落 - 管理API路由
 提供系统配置和常量管理功能
@@ -19,6 +20,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 logger = logging.getLogger(__name__)
 
 # 创建管理蓝图
+admin_bp = Blueprint("admin", __name__)
 
 
 def admin_required(f):

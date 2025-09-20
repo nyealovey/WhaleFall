@@ -1,3 +1,4 @@
+
 """
 鲸落 - 用户管理路由
 """
@@ -19,6 +20,7 @@ from app.utils.decorators import (
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
+user_management_bp = Blueprint("user_management", __name__)
 
 
 @user_management_bp.route("/")

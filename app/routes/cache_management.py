@@ -1,3 +1,4 @@
+
 """
 鲸落 - 缓存管理路由
 提供缓存管理相关的API接口
@@ -15,6 +16,8 @@ from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
 
+# 创建蓝图
+cache_bp = Blueprint("cache", __name__)
 
 
 @cache_bp.route("/cache/stats", methods=["GET"])

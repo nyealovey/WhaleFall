@@ -1,3 +1,4 @@
+
 """
 鲸落 - 数据库类型管理路由
 提供数据库类型的Web界面和API接口
@@ -11,6 +12,8 @@ from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
 
+# 创建蓝图
+database_types_bp = Blueprint("database_types", __name__)
 
 
 @database_types_bp.route("/")

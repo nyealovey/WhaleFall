@@ -1,3 +1,4 @@
+
 """
 鲸落 - 统一日志系统API路由
 提供日志查询、展示和管理的RESTful API
@@ -17,10 +18,11 @@ from app.utils.api_response import error_response, success_response
 from app.utils.structlog_config import get_logger, log_error, log_info
 from app.utils.timezone import now
 
-# 创建蓝图
-
 # 获取日志记录器
 logger = get_logger("api")
+
+# 创建蓝图
+unified_logs_bp = Blueprint("unified_logs", __name__)
 
 
 @unified_logs_bp.route("/")
