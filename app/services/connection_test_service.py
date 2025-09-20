@@ -25,6 +25,7 @@ class ConnectionTestService:
         Returns:
             测试结果
         """
+        connection_obj = None
         try:
             # 创建连接
             connection_obj = ConnectionFactory.create_connection(instance)
@@ -40,12 +41,6 @@ class ConnectionTestService:
 
             instance.last_connected = now()
             db.session.commit()
-
-            # 关闭连接
-            if hasattr(connection_obj, "disconnect"):
-                connection_obj.disconnect()
-            elif hasattr(connection_obj, "close"):
-                connection_obj.close()
 
             return {
                 "success": True,
@@ -101,6 +96,21 @@ class ConnectionTestService:
                 )
 
             return {"success": False, "error": f"连接失败: {error_message}"}
+        finally:
+            # 确保连接被正确关闭，防止资源泄漏
+            if connection_obj is not None:
+                try:
+                    if hasattr(connection_obj, "disconnect"):
+                        connection_obj.disconnect()
+                    elif hasattr(connection_obj, "close"):
+                        connection_obj.close()
+                except Exception as close_error:
+                    self.test_logger.warning(
+                        "关闭数据库连接时发生错误",
+                        module="connection_test",
+                        instance_id=instance.id,
+                        error=str(close_error)
+                    )
 
     def _get_database_version(self, instance: Instance, connection: Any) -> str:  # noqa: ANN401
         """

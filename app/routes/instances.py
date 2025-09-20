@@ -29,6 +29,7 @@ from app.utils.decorators import (
     update_required,
     view_required,
 )
+from app.utils.data_validator import DataValidator
 from app.utils.security import (
     sanitize_form_data,
     validate_db_type,
@@ -220,47 +221,27 @@ def create() -> str | Response | tuple[Response, int]:
         data = request.get_json() if request.is_json else request.form
 
         # 清理输入数据
-        data = sanitize_form_data(data)
+        data = DataValidator.sanitize_input(data)
 
-        # 输入验证
-        required_fields = ["name", "db_type", "host", "port"]
-        validation_error = validate_required_fields(data, required_fields)
-        if validation_error:
+        # 使用新的数据验证器进行严格验证
+        is_valid, validation_error = DataValidator.validate_instance_data(data)
+        if not is_valid:
             if request.is_json:
                 return jsonify({"error": validation_error}), 400
             flash(validation_error, "error")
             return render_template("instances/create.html", credentials=credentials)
 
-        # 验证数据库类型
-        db_type_error = validate_db_type(data.get("db_type"))
-        if db_type_error:
-            if request.is_json:
-                return jsonify({"error": db_type_error}), 400
-            flash(db_type_error, "error")
-            return render_template("instances/create.html", credentials=credentials)
-
-
-        # 验证端口号
-        try:
-            port = int(data.get("port"))
-            if port < 1 or port > 65535:
-                error_msg = "端口号必须在1-65535之间"
-                raise ValueError(error_msg)
-        except (ValueError, TypeError):
-            error_msg = "端口号必须是1-65535之间的整数"
-            if request.is_json:
-                return jsonify({"error": error_msg}), 400
-            flash(error_msg, "error")
-            return render_template("instances/create.html", credentials=credentials)
-
-        # 验证凭据ID
+        # 验证凭据ID（如果提供）
         if data.get("credential_id"):
             try:
                 credential_id = int(data.get("credential_id"))
                 credential = Credential.query.get(credential_id)
                 if not credential:
                     error_msg = "凭据不存在"
-                    raise ValueError(error_msg)
+                    if request.is_json:
+                        return jsonify({"error": error_msg}), 400
+                    flash(error_msg, "error")
+                    return render_template("instances/create.html", credentials=credentials)
             except (ValueError, TypeError):
                 error_msg = "无效的凭据ID"
                 if request.is_json:
@@ -1010,18 +991,14 @@ def _process_instances_data(
     created_count = 0
     errors = []
 
-    for i, instance_data in enumerate(instances_data):
-        try:
-            # 验证必填字段
-            required_fields = ["name", "db_type", "host", "port"]
-            missing_fields = []
-            for field in required_fields:
-                if not instance_data.get(field):
-                    missing_fields.append(field)
+    # 使用新的数据验证器进行批量验证
+    valid_data, validation_errors = DataValidator.validate_batch_data(instances_data)
+    
+    # 添加验证错误到错误列表
+    errors.extend(validation_errors)
 
-            if missing_fields:
-                errors.append(f"第 {i + 1} 个实例缺少必填字段: {', '.join(missing_fields)}")
-                continue
+    for i, instance_data in enumerate(valid_data):
+        try:
 
             # 检查实例名称是否已存在
             existing_instance = Instance.query.filter_by(name=instance_data["name"]).first()
