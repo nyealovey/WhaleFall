@@ -219,6 +219,77 @@ wait_for_services() {
     log_success "Flask应用已就绪"
 }
 
+# 初始化数据库
+initialize_database() {
+    log_step "初始化PostgreSQL数据库..."
+    
+    # 检查数据库是否已初始化
+    local table_count
+    table_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    
+    if [ "$table_count" -gt 0 ]; then
+        log_warning "数据库已包含 $table_count 个表，跳过初始化"
+        return 0
+    fi
+    
+    log_info "开始初始化数据库结构..."
+    
+    # 执行PostgreSQL初始化脚本
+    if [ -f "sql/init_postgresql.sql" ]; then
+        log_info "执行PostgreSQL初始化脚本..."
+        docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/init_postgresql.sql
+        
+        if [ $? -eq 0 ]; then
+            log_success "PostgreSQL初始化脚本执行成功"
+        else
+            log_error "PostgreSQL初始化脚本执行失败"
+            exit 1
+        fi
+    else
+        log_warning "未找到sql/init_postgresql.sql文件，跳过数据库初始化"
+    fi
+    
+    # 执行权限配置脚本
+    if [ -f "sql/permission_configs.sql" ]; then
+        log_info "导入权限配置数据..."
+        docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/permission_configs.sql
+        
+        if [ $? -eq 0 ]; then
+            log_success "权限配置数据导入成功"
+        else
+            log_warning "权限配置数据导入失败，但不影响系统运行"
+        fi
+    else
+        log_warning "未找到sql/permission_configs.sql文件，跳过权限配置导入"
+    fi
+    
+    # 执行调度器任务初始化脚本
+    if [ -f "sql/init_scheduler_tasks.sql" ]; then
+        log_info "初始化调度器任务..."
+        docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/init_scheduler_tasks.sql
+        
+        if [ $? -eq 0 ]; then
+            log_success "调度器任务初始化成功"
+        else
+            log_warning "调度器任务初始化失败，但不影响系统运行"
+        fi
+    else
+        log_warning "未找到sql/init_scheduler_tasks.sql文件，跳过调度器任务初始化"
+    fi
+    
+    # 验证数据库初始化结果
+    log_info "验证数据库初始化结果..."
+    local final_table_count
+    final_table_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    
+    if [ "$final_table_count" -gt 0 ]; then
+        log_success "数据库初始化完成，共创建 $final_table_count 个表"
+    else
+        log_error "数据库初始化失败，未创建任何表"
+        exit 1
+    fi
+}
+
 # 验证部署
 verify_deployment() {
     log_step "验证部署状态..."
@@ -260,6 +331,8 @@ show_deployment_info() {
     echo "  - 应用版本: 1.0.1"
     echo "  - 部署时间: $(date)"
     echo "  - 部署用户: $(whoami)"
+    echo "  - 数据库: PostgreSQL (已初始化)"
+    echo "  - 缓存: Redis"
     echo ""
     echo -e "${BLUE}🌐 访问地址：${NC}"
     echo "  - 应用首页: http://localhost"
@@ -297,6 +370,7 @@ main() {
     build_production_image
     start_production_environment
     wait_for_services
+    initialize_database
     verify_deployment
     show_deployment_info
     
