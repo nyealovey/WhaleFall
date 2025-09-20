@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 服务器正式环境 - Flask应用启动脚本（x86，有代理）
-# 启动：Flask应用（包含Nginx，依赖基础环境）
+# 服务器正式环境 - Flask应用启动脚本（简化版）
+# 启动：Flask应用（包含Nginx）
 
 # 加载环境变量
 if [ -f ".env" ]; then
@@ -34,25 +34,6 @@ log_warning() {
 
 log_error() {
     echo -e "${RED}❌ $1${NC}"
-}
-
-# 检查基础环境是否运行
-check_base_environment() {
-    log_info "检查基础环境状态..."
-    
-    # 检查PostgreSQL
-    if ! docker compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod > /dev/null 2>&1; then
-        log_error "PostgreSQL未运行，请先运行 ./scripts/docker/start-prod-base.sh"
-        exit 1
-    fi
-    
-    # 检查Redis
-    if ! docker compose -f docker-compose.prod.yml exec redis redis-cli ping > /dev/null 2>&1; then
-        log_error "Redis未运行，请先运行 ./scripts/docker/start-prod-base.sh"
-        exit 1
-    fi
-    
-    log_success "基础环境检查通过"
 }
 
 # 检查代理配置
@@ -157,7 +138,6 @@ show_complete_status() {
 main() {
     log_info "开始启动生产环境Flask应用（包含Nginx）..."
     
-    check_base_environment
     check_proxy
     build_prod_image
     start_flask_application
