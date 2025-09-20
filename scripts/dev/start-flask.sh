@@ -116,6 +116,10 @@ start_flask_app() {
     export FLASK_ENV=development
     export FLASK_DEBUG=1
     
+    # 修改数据库连接为本地连接
+    export DATABASE_URL="postgresql+psycopg://whalefall_user:Dev2024!@localhost:5432/whalefall_dev"
+    export CACHE_REDIS_URL="redis://:RedisDev2024!@localhost:6379/0"
+    
     log_info "Flask应用配置："
     log_info "  - 应用文件: app.py"
     log_info "  - 环境: development"

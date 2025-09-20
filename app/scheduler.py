@@ -140,6 +140,10 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
         scheduler.app = app
         scheduler.start()
 
+        # 等待调度器完全启动
+        import time
+        time.sleep(1)
+        
         # 从数据库加载现有任务
         _load_existing_jobs()
         
@@ -179,6 +183,11 @@ def _load_existing_jobs() -> None:
         # 检查调度器是否已启动
         if not scheduler.scheduler or not scheduler.scheduler.running:
             logger.warning("调度器未启动，跳过加载现有任务")
+            return
+            
+        # 检查调度器是否完全就绪
+        if not hasattr(scheduler.scheduler, '_jobstores_lock'):
+            logger.warning("调度器未完全就绪，跳过加载现有任务")
             return
             
         # 获取数据库中的所有任务
