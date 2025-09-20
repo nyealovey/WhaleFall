@@ -41,6 +41,7 @@ show_banner() {
     echo "║                    鲸落项目生产环境部署                      ║"
     echo "║                       版本: 1.0.1                          ║"
     echo "║                    TaifishV4 Production                    ║"
+    echo "║                   (完全重建模式)                            ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -120,9 +121,32 @@ cleanup_old_environment() {
         docker compose -f docker-compose.prod.yml down
     fi
     
+    # 删除持久化卷
+    log_info "删除持久化卷..."
+    if docker volume ls -q | grep -q whalefall; then
+        log_warning "⚠️  即将删除所有whalefall持久化卷！"
+        log_warning "⚠️  这将删除所有数据库数据和Redis缓存！"
+        echo ""
+        read -p "确认删除所有持久化数据？输入 'DELETE ALL DATA' 确认: " confirm
+        if [ "$confirm" = "DELETE ALL DATA" ]; then
+            log_info "删除whalefall相关卷..."
+            docker volume ls -q | grep whalefall | xargs -r docker volume rm
+            log_success "持久化卷删除完成"
+        else
+            log_error "用户取消操作，退出部署"
+            exit 1
+        fi
+    else
+        log_info "未找到whalefall相关卷"
+    fi
+    
     # 清理未使用的镜像
     log_info "清理未使用的Docker镜像..."
     docker image prune -f
+    
+    # 清理未使用的网络
+    log_info "清理未使用的Docker网络..."
+    docker network prune -f
     
     log_success "旧环境清理完成"
 }
@@ -156,15 +180,8 @@ build_production_image() {
 start_production_environment() {
     log_step "启动生产环境服务..."
     
-    # 启动所有服务（传递代理环境变量）
-    if [ -n "$HTTP_PROXY" ] && [ "$HTTP_PROXY" != "" ]; then
-        log_info "使用代理配置启动服务..."
-        HTTP_PROXY="$HTTP_PROXY" HTTPS_PROXY="$HTTPS_PROXY" NO_PROXY="$NO_PROXY" \
-        docker compose -f docker-compose.prod.yml up -d
-    else
-        log_info "使用直连模式启动服务..."
-        docker compose -f docker-compose.prod.yml up -d
-    fi
+    # 启动所有服务
+    docker compose -f docker-compose.prod.yml up -d
     
     log_success "生产环境服务启动完成"
 }
@@ -338,8 +355,9 @@ show_deployment_info() {
     echo "  - 应用版本: 1.0.1"
     echo "  - 部署时间: $(date)"
     echo "  - 部署用户: $(whoami)"
-    echo "  - 数据库: PostgreSQL (已初始化)"
-    echo "  - 缓存: Redis"
+    echo "  - 部署模式: 完全重建 (所有数据已重置)"
+    echo "  - 数据库: PostgreSQL (已重新初始化)"
+    echo "  - 缓存: Redis (已清空)"
     echo ""
     echo -e "${BLUE}🌐 访问地址：${NC}"
     echo "  - 应用首页: http://localhost"
@@ -359,6 +377,8 @@ show_deployment_info() {
     echo "  - 日志文件: /var/log/nginx/whalefall_*.log"
     echo ""
     echo -e "${YELLOW}⚠️  注意事项：${NC}"
+    echo "  - 本次部署为完全重建模式，所有历史数据已删除"
+    echo "  - 请重新配置管理员账户和系统设置"
     echo "  - 请定期备份数据库数据"
     echo "  - 监控系统资源使用情况"
     echo "  - 定期更新安全补丁"
