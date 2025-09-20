@@ -104,6 +104,7 @@ services:
     #   - ./sql:/app/sql:ro
     ports:
       - "80:80"
+      - "5001:5001"
     networks:
       - whalefall_dev_network
     depends_on:

@@ -178,7 +178,7 @@ upload_ssl() {
     # 上传证书文件
     log_info "上传证书文件..."
     docker cp "$cert_file" "$container_name:$NGINX_SSL_PATH/cert.pem"
-    docker cp "$key_file" "$container_name:$container_name:$NGINX_SSL_PATH/key.pem"
+    docker cp "$key_file" "$container_name:$NGINX_SSL_PATH/key.pem"
     
     # 设置权限
     docker exec "$container_name" chmod 644 "$NGINX_SSL_PATH/cert.pem"

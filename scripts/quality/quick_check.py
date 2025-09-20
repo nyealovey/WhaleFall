@@ -1,7 +1,3 @@
-from app.utils.structlog_config import get_system_logger
-
-logger = get_system_logger()
-
 #!/usr/bin/env python3
 """
 鲸落 - 快速代码质量检查脚本
@@ -14,12 +10,20 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# 添加项目根目录到Python路径
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
+
 
 def run_command(cmd: list, cwd: Path = None) -> tuple[int, str, str]:
     """运行命令并返回结果"""
     try:
         result = subprocess.run(
-            cmd, cwd=cwd or Path(__file__).parent.parent, capture_output=True, text=True, timeout=60
+            cmd, cwd=cwd or Path(__file__).parent.parent.parent, capture_output=True, text=True, timeout=60
         )
         return result.returncode, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
@@ -50,8 +54,8 @@ def check_ruff_detailed(project_root: Path) -> dict:
     if stats_returncode == 0:
         logger.info("✅ Ruff检查通过")
     else:
-        logger.info("❌ Ruff检查发现 {len(issues)} 个问题")
-        logger.info("统计信息: {stats_stdout.strip()}")
+        logger.info(f"❌ Ruff检查发现 {len(issues)} 个问题")
+        logger.info(f"统计信息: {stats_stdout.strip()}")
 
     return {
         "tool": "ruff",
@@ -82,11 +86,11 @@ def check_black_detailed(project_root: Path) -> dict:
                 file_path = line.replace("would reformat ", "").strip()
                 files_to_format.append(file_path)
 
-        logger.info("需要格式化的文件: {len(files_to_format)} 个")
+        logger.info(f"需要格式化的文件: {len(files_to_format)} 个")
         for file_path in files_to_format[:10]:  # 只显示前10个
-            logger.info("  - {file_path}")
+            logger.info(f"  - {file_path}")
         if len(files_to_format) > 10:
-            logger.info("  ... 还有 {len(files_to_format) - 10} 个文件")
+            logger.info(f"  ... 还有 {len(files_to_format) - 10} 个文件")
 
     return {
         "tool": "black",
@@ -116,11 +120,11 @@ def check_isort_detailed(project_root: Path) -> dict:
                 file_path = line.split("ERROR: ")[1].split(" Imports are incorrectly sorted")[0].strip()
                 files_to_sort.append(file_path)
 
-        logger.info("需要排序的文件: {len(files_to_sort)} 个")
+        logger.info(f"需要排序的文件: {len(files_to_sort)} 个")
         for file_path in files_to_sort[:10]:  # 只显示前10个
-            logger.info("  - {file_path}")
+            logger.info(f"  - {file_path}")
         if len(files_to_sort) > 10:
-            logger.info("  ... 还有 {len(files_to_sort) - 10} 个文件")
+            logger.info(f"  ... 还有 {len(files_to_sort) - 10} 个文件")
 
     return {
         "tool": "isort",
@@ -147,7 +151,7 @@ def generate_report(results: dict, project_root: Path) -> None:
     with open(report_file, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
-    logger.info("\n📄 详细报告已保存到: {report_file}")
+    logger.info(f"\n📄 详细报告已保存到: {report_file}")
 
     # 生成修复建议文件
     generate_fix_suggestions(results, project_root)
@@ -231,7 +235,7 @@ def generate_fix_suggestions(results: dict, project_root: Path) -> None:
         f.write(f"- 通过: {summary.get('passed_checks', 0)} ✅\n")
         f.write(f"- 失败: {summary.get('failed_checks', 0)} ❌\n")
 
-    logger.info("📋 修复建议已保存到: {suggestions_file}")
+    logger.info(f"📋 修复建议已保存到: {suggestions_file}")
 
 
 def main():
@@ -239,7 +243,7 @@ def main():
     logger.info("🚀 鲸落 - 快速代码质量检查")
     print("=" * 50)
 
-    project_root = Path(__file__).parent.parent
+    project_root = Path(__file__).parent.parent.parent
 
     # 检查是否在项目根目录
     if not (project_root / "pyproject.toml").exists():
@@ -267,7 +271,7 @@ def main():
     # 打印摘要
     print("\n" + "=" * 50)
     summary = results.get("summary", {})
-    logger.info("📊 检查结果: {summary.get('passed_checks', 0)}/{summary.get('total_checks', 0)} 通过")
+    logger.info(f"📊 检查结果: {summary.get('passed_checks', 0)}/{summary.get('total_checks', 0)} 通过")
 
     if summary.get("failed_checks", 0) == 0:
         logger.info("🎉 所有检查通过！")

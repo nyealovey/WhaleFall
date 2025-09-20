@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y \
     git \
     unzip \
     libaio1 \
+    nginx \
+    supervisor \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装uv (带重试机制)
@@ -80,15 +82,43 @@ COPY . /app/
 # 创建必要的目录
 RUN mkdir -p /app/userdata/logs /app/userdata/exports /app/userdata/backups /app/userdata/uploads /app/userdata
 
+# 复制Nginx配置文件
+COPY nginx/conf.d/whalefall-dev.conf /etc/nginx/conf.d/whalefall.conf
+COPY nginx/sites-available/whalefall-dev /etc/nginx/sites-available/whalefall
+
+# 复制错误页面
+COPY nginx/error_pages/404.html /usr/share/nginx/html/404.html
+COPY nginx/error_pages/50x.html /usr/share/nginx/html/50x.html
+
+# 启用Nginx站点
+RUN ln -sf /etc/nginx/sites-available/whalefall /etc/nginx/sites-enabled/ && \
+    rm -f /etc/nginx/sites-enabled/default
+
+# 创建必要的日志目录
+RUN mkdir -p /var/log/nginx /app/userdata/logs
+
+# 复制Gunicorn配置文件
+COPY nginx/gunicorn/gunicorn-dev.conf.py /app/gunicorn.conf.py
+
+# 复制Supervisor配置文件
+COPY nginx/supervisor/whalefall-dev.conf /etc/supervisor/conf.d/whalefall.conf
+
+# 复制启动脚本
+COPY scripts/docker/start-dev-services.sh /usr/local/bin/start-dev-services.sh
+RUN chmod +x /usr/local/bin/start-dev-services.sh
+
+# 启动Nginx服务（使用系统服务）
+RUN systemctl enable nginx
+
 # 设置权限
 RUN chmod -R 755 /app/userdata
 
 # 暴露端口
-EXPOSE 5001
+EXPOSE 80
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5001/health/ || exit 1
+    CMD curl -f http://localhost/health || exit 1
 
 # 开发环境启动命令
-CMD ["/app/.venv/bin/python", "app.py"]
+CMD ["/usr/local/bin/start-dev-services.sh"]
