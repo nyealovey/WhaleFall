@@ -5,10 +5,16 @@
 
 set -e
 
+# 加载.env文件
+if [ -f ".env" ]; then
+    source .env
+    echo "已加载.env文件"
+fi
+
 # 配置变量
-DB_NAME=${DB_NAME:-whalefall_dev}
-DB_USER=${DB_USER:-whalefall_user}
-DB_PASSWORD=${DB_PASSWORD}
+DB_NAME=${POSTGRES_DB:-${DB_NAME:-whalefall_dev}}
+DB_USER=${POSTGRES_USER:-${DB_USER:-whalefall_user}}
+DB_PASSWORD=${POSTGRES_PASSWORD:-${DB_PASSWORD}}
 CONTAINER_NAME=${CONTAINER_NAME:-whalefall_postgres_dev}
 
 # 脚本目录

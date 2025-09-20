@@ -24,10 +24,14 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libaio1 \
     supervisor \
+    nginx \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# 安装uv (带重试机制)
+RUN for i in 1 2 3; do \
+        curl -LsSf https://astral.sh/uv/install.sh | sh && break || \
+        (echo "安装失败，重试 $i/3..." && sleep 5); \
+    done
 ENV PATH="/root/.local/bin:$PATH"
 
 # 复制uv到系统目录
@@ -37,8 +41,8 @@ RUN cp /root/.local/bin/uv /usr/local/bin/uv && \
 # 使用uv安装Python 3.11
 RUN uv python install 3.11
 
-# 创建虚拟环境，使用系统Python
-RUN uv venv /app/.venv --python python3.11
+# 创建虚拟环境，使用uv安装的Python
+RUN uv venv /app/.venv --python $(uv python find 3.11)
 ENV PATH="/app/.venv/bin:$PATH"
 
 # 安装Oracle Instant Client
@@ -71,8 +75,6 @@ RUN uv sync --frozen --no-dev
 # 验证虚拟环境创建
 RUN /app/.venv/bin/python --version
 
-# supervisor已通过apt安装，无需额外安装
-
 # 复制应用代码
 COPY . /app/
 
@@ -95,10 +97,9 @@ import os
 bind = "0.0.0.0:5001"
 backlog = 2048
 
-# 工作进程
-workers = multiprocessing.cpu_count() * 2 + 1
-worker_class = "gevent"
-worker_connections = 1000
+# 工作进程 - 简化配置
+workers = 2  # 固定2个进程，避免复杂配置
+worker_class = "sync"  # 使用同步工作器，更稳定
 timeout = 30
 keepalive = 2
 
@@ -107,10 +108,10 @@ max_requests = 1000
 max_requests_jitter = 50
 preload_app = True
 
-# 日志
+# 日志配置
 accesslog = "/app/userdata/logs/gunicorn_access.log"
 errorlog = "/app/userdata/logs/gunicorn_error.log"
-loglevel = "info"
+loglevel = "info"  # 改为info级别，减少日志量
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
 
 # 进程名称
@@ -123,17 +124,202 @@ group = "root"
 # 环境变量
 raw_env = [
     "FLASK_APP=app.py",
-    "FLASK_ENV=production",
+    "FLASK_ENV=development",
 ]
 
 # 安全
 limit_request_line = 4094
 limit_request_fields = 100
 limit_request_field_size = 8190
+
+# 调试配置
+capture_output = True
+enable_stdio_inheritance = True
 EOF
 
-# 切换到root用户创建Supervisor配置文件
-USER root
+# 创建Nginx主配置文件
+RUN cat > /etc/nginx/nginx.conf << 'EOF'
+user www-data;
+worker_processes auto;
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections 1024;
+    use epoll;
+    multi_accept on;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
+    # 日志格式
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+    
+    access_log /var/log/nginx/access.log main;
+    
+    # 基本设置
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    client_max_body_size 20M;
+    
+    # Gzip压缩
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/json
+        application/javascript
+        application/xml+rss
+        application/atom+xml
+        image/svg+xml;
+    
+    # 包含站点配置
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}
+EOF
+
+# 创建默认站点配置
+RUN cat > /etc/nginx/sites-available/whalefall << 'EOF'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    
+    # 日志配置
+    access_log /var/log/nginx/whalefall_access.log main;
+    error_log /var/log/nginx/whalefall_error.log warn;
+    
+    # 根目录
+    root /app/app/static;
+    index index.html index.htm;
+    
+    # 静态文件服务
+    location /static/ {
+        alias /app/app/static/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+    
+    # 健康检查
+    location /health {
+        proxy_pass http://127.0.0.1:5001/health/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # 健康检查特殊设置
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 5s;
+        proxy_read_timeout 5s;
+    }
+    
+    # 代理到Flask应用
+    location / {
+        proxy_pass http://127.0.0.1:5001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # 超时设置
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+        
+        # 缓冲设置
+        proxy_buffering on;
+        proxy_buffer_size 4k;
+        proxy_buffers 8 4k;
+        
+        # 错误处理
+        proxy_intercept_errors on;
+        error_page 502 503 504 /50x.html;
+    }
+    
+    # 错误页面
+    error_page 404 /404.html;
+    error_page 500 502 503 504 /50x.html;
+    
+    location = /404.html {
+        root /usr/share/nginx/html;
+        internal;
+    }
+    
+    location = /50x.html {
+        root /usr/share/nginx/html;
+        internal;
+    }
+}
+EOF
+
+# 创建自定义错误页面
+RUN mkdir -p /usr/share/nginx/html && \
+    cat > /usr/share/nginx/html/404.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>404 - 页面未找到</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .error { color: #e74c3c; font-size: 72px; margin-bottom: 20px; }
+        .message { color: #7f8c8d; font-size: 18px; margin-bottom: 30px; }
+        .back { color: #3498db; text-decoration: none; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="error">404</div>
+    <div class="message">抱歉，您访问的页面不存在</div>
+    <a href="/" class="back">返回首页</a>
+</body>
+</html>
+EOF
+
+RUN cat > /usr/share/nginx/html/50x.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>服务器错误</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .error { color: #e74c3c; font-size: 72px; margin-bottom: 20px; }
+        .message { color: #7f8c8d; font-size: 18px; margin-bottom: 30px; }
+        .back { color: #3498db; text-decoration: none; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="error">500</div>
+    <div class="message">服务器内部错误，请稍后重试</div>
+    <a href="/" class="back">返回首页</a>
+</body>
+</html>
+EOF
+
+# 启用Nginx站点
+RUN ln -sf /etc/nginx/sites-available/whalefall /etc/nginx/sites-enabled/ && \
+    rm -f /etc/nginx/sites-enabled/default
+
+# 创建必要的日志目录
+RUN mkdir -p /var/log/nginx /app/userdata/logs
+
+# 创建Supervisor配置文件
 RUN cat > /etc/supervisor/conf.d/whalefall.conf << 'EOF'
 [supervisord]
 nodaemon=true
@@ -142,13 +328,24 @@ logfile=/var/log/supervisord.log
 pidfile=/var/run/supervisord.pid
 childlogdir=/var/log/
 
+[program:nginx]
+command=/usr/sbin/nginx -g "daemon off;"
+directory=/etc/nginx
+user=root
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/nginx/nginx.log
+stdout_logfile_maxbytes=50MB
+stdout_logfile_backups=10
+
 [program:whalefall]
 command=/app/.venv/bin/gunicorn --config /app/gunicorn.conf.py app:app
 directory=/app
 user=root
 autostart=true
 autorestart=true
-redirect_stderr=true
+redirect_stderr=false
 stdout_logfile=/app/userdata/logs/whalefall.log
 stdout_logfile_maxbytes=50MB
 stdout_logfile_backups=10
@@ -160,11 +357,11 @@ stderr_logfile_backups=10
 EOF
 
 # 暴露端口
-EXPOSE 5001
+EXPOSE 80
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5001/health || exit 1
+    CMD curl -f http://localhost/health || exit 1
 
 # 开发环境阶段
 FROM base as development

@@ -43,7 +43,7 @@ class Config:
 
     # Redis配置
     CACHE_TYPE = "redis"
-    CACHE_REDIS_URL = os.getenv("REDIS_URL", DefaultConfig.REDIS_URL)
+    CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", DefaultConfig.REDIS_URL)
     CACHE_DEFAULT_TIMEOUT = int(os.getenv("CACHE_DEFAULT_TIMEOUT", SystemConstants.DEFAULT_CACHE_TIMEOUT))
 
     # 安全配置

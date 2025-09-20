@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 服务器正式环境 - Flask应用启动脚本（x86，有代理）
-# 启动：Flask应用（依赖基础环境）
+# 启动：Flask应用（包含Nginx，依赖基础环境）
 
 # 加载环境变量
 if [ -f ".env" ]; then
@@ -52,12 +52,6 @@ check_base_environment() {
         exit 1
     fi
     
-    # 检查Nginx
-    if ! curl -f http://localhost > /dev/null 2>&1; then
-        log_error "Nginx未运行，请先运行 ./scripts/docker/start-prod-base.sh"
-        exit 1
-    fi
-    
     log_success "基础环境检查通过"
 }
 
@@ -78,7 +72,7 @@ check_proxy() {
 
 # 构建生产镜像
 build_prod_image() {
-    log_info "构建生产环境Flask镜像..."
+    log_info "构建生产环境Flask镜像（包含Nginx）..."
     
     if [ -n "$HTTP_PROXY" ]; then
         # 使用代理构建
@@ -88,14 +82,14 @@ build_prod_image() {
             --build-arg HTTPS_PROXY="$HTTPS_PROXY" \
             --build-arg NO_PROXY="$NO_PROXY" \
             -t whalefall:prod \
-            -f Dockerfile.proxy \
+            -f Dockerfile.prod \
             --target production .
     else
-        # 直连构建（仍然使用Dockerfile.proxy）
+        # 直连构建
         log_info "使用直连构建镜像..."
         docker build \
             -t whalefall:prod \
-            -f Dockerfile.proxy \
+            -f Dockerfile.prod \
             --target production .
     fi
     
@@ -104,7 +98,7 @@ build_prod_image() {
 
 # 启动Flask应用
 start_flask_application() {
-    log_info "启动Flask应用..."
+    log_info "启动Flask应用（包含Nginx）..."
     
     # 停止可能存在的Flask容器（不删除）
     docker compose -f docker-compose.prod.yml stop whalefall 2>/dev/null || true
@@ -119,8 +113,22 @@ start_flask_application() {
 wait_for_flask() {
     log_info "等待Flask应用启动..."
     
-    # 等待Flask应用
-    timeout 120 bash -c 'until curl -f http://localhost/health > /dev/null 2>&1; do sleep 5; done'
+    # 等待Flask应用（通过Nginx代理）
+    local count=0
+    while [ $count -lt 30 ]; do
+        if curl -f http://localhost/health > /dev/null 2>&1; then
+            break
+        fi
+        sleep 5
+        count=$((count + 1))
+    done
+    
+    if [ $count -eq 30 ]; then
+        log_warning "Flask应用启动超时，请检查日志"
+        docker compose -f docker-compose.prod.yml logs whalefall
+        exit 1
+    fi
+    
     log_success "Flask应用已就绪"
 }
 
@@ -133,18 +141,21 @@ show_complete_status() {
     log_info "访问地址:"
     echo "  - 应用首页: http://localhost"
     echo "  - 健康检查: http://localhost/health"
+    echo "  - 静态文件: http://localhost/static/"
     
     echo ""
     log_info "管理命令:"
     echo "  - 查看日志: docker compose -f docker-compose.prod.yml logs -f"
+    echo "  - 查看Flask日志: docker compose -f docker-compose.prod.yml logs -f whalefall"
     echo "  - 停止Flask: docker compose -f docker-compose.prod.yml stop whalefall"
     echo "  - 重启Flask: docker compose -f docker-compose.prod.yml restart whalefall"
     echo "  - 停止所有: ./scripts/docker/stop-prod.sh"
+    echo "  - 进入容器: docker compose -f docker-compose.prod.yml exec whalefall bash"
 }
 
 # 主函数
 main() {
-    log_info "开始启动生产环境Flask应用..."
+    log_info "开始启动生产环境Flask应用（包含Nginx）..."
     
     check_base_environment
     check_proxy

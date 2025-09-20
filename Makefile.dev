@@ -26,21 +26,6 @@ help:
 	@echo "  shell       - 进入应用容器"
 	@echo "  health      - 健康检查"
 	@echo ""
-	@echo "Nginx管理:"
-	@echo "  nginx-status        - 查看Nginx状态"
-	@echo "  nginx-reload        - 重载Nginx配置"
-	@echo "  nginx-restart       - 重启Nginx服务"
-	@echo "  nginx-logs          - 查看Nginx日志"
-	@echo "  nginx-config        - 查看Nginx配置"
-	@echo "  nginx-upload-config - 上传Nginx配置"
-	@echo "  nginx-shell         - 进入Nginx容器"
-	@echo ""
-	@echo "SSL证书管理:"
-	@echo "  ssl-generate        - 生成SSL证书"
-	@echo "  ssl-upload          - 上传SSL证书"
-	@echo "  ssl-list            - 列出SSL证书"
-	@echo "  ssl-verify          - 验证SSL证书"
-	@echo ""
 	@echo "维护命令:"
 	@echo "  clean       - 清理Docker资源"
 	@echo "  clean-data  - 清理数据卷"
@@ -66,8 +51,7 @@ start:
 	@echo "🐳 启动Docker容器..."
 	@docker-compose -f docker-compose.dev.yml up -d
 	@echo "✅ 开发环境启动完成"
-	@echo "🌐 应用地址: http://localhost:5001"
-	@echo "📊 数据库管理: http://localhost:5050 (pgAdmin)"
+	@echo "🌐 应用地址: http://localhost"
 
 # 启动Flask应用
 start-flask:
@@ -77,7 +61,7 @@ start-flask:
 	@echo "🐳 启动Flask容器..."
 	@docker-compose -f docker-compose.dev.yml --profile flask up -d whalefall
 	@echo "✅ Flask应用启动完成"
-	@echo "🌐 应用地址: http://localhost:5001"
+	@echo "🌐 应用地址: http://localhost"
 
 # 停止开发环境
 stop:
@@ -124,7 +108,7 @@ shell:
 health:
 	@echo "🏥 健康检查..."
 	@echo "检查应用健康状态..."
-	@curl -s http://localhost:5001/health || echo "❌ 应用健康检查失败"
+	@curl -s http://localhost/health || echo "❌ 应用健康检查失败"
 	@echo "检查PostgreSQL连接..."
 	@docker-compose -f docker-compose.dev.yml exec postgres pg_isready -U whalefall_user -d whalefall_dev || echo "❌ PostgreSQL连接失败"
 	@echo "检查Redis连接..."
@@ -193,52 +177,6 @@ migrate-volumes:
 volume-size:
 	@echo "📊 查看卷大小..."
 	@./scripts/docker/volume_manager.sh size dev
-
-# Nginx管理
-nginx-status:
-	@echo "🌐 查看Nginx状态..."
-	@./scripts/nginx/nginx_manager.sh status dev
-
-nginx-reload:
-	@echo "🔄 重载Nginx配置..."
-	@./scripts/nginx/nginx_manager.sh reload dev
-
-nginx-restart:
-	@echo "🔄 重启Nginx服务..."
-	@./scripts/nginx/nginx_manager.sh restart dev
-
-nginx-logs:
-	@echo "📋 查看Nginx日志..."
-	@./scripts/nginx/nginx_manager.sh logs dev
-
-nginx-config:
-	@echo "⚙️  查看Nginx配置..."
-	@./scripts/nginx/nginx_manager.sh config dev
-
-nginx-upload-config:
-	@echo "📤 上传Nginx配置..."
-	@./scripts/nginx/nginx_manager.sh upload-config dev
-
-nginx-shell:
-	@echo "🐚 进入Nginx容器..."
-	@./scripts/nginx/nginx_manager.sh shell dev
-
-# SSL证书管理
-ssl-generate:
-	@echo "🔐 生成SSL证书..."
-	@./scripts/nginx/ssl_manager.sh generate dev
-
-ssl-upload:
-	@echo "📤 上传SSL证书..."
-	@./scripts/nginx/ssl_manager.sh upload dev
-
-ssl-list:
-	@echo "📋 列出SSL证书..."
-	@./scripts/nginx/ssl_manager.sh list dev
-
-ssl-verify:
-	@echo "✅ 验证SSL证书..."
-	@./scripts/nginx/ssl_manager.sh verify dev
 
 # 构建开发镜像
 build:

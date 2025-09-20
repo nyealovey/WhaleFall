@@ -29,21 +29,6 @@ help:
 	@echo "  logs-app    - 查看应用日志"
 	@echo "  health      - 健康检查"
 	@echo ""
-	@echo "Nginx管理:"
-	@echo "  nginx-status        - 查看Nginx状态"
-	@echo "  nginx-reload        - 重载Nginx配置"
-	@echo "  nginx-restart       - 重启Nginx服务"
-	@echo "  nginx-logs          - 查看Nginx日志"
-	@echo "  nginx-config        - 查看Nginx配置"
-	@echo "  nginx-upload-config - 上传Nginx配置"
-	@echo "  nginx-shell         - 进入Nginx容器"
-	@echo ""
-	@echo "SSL证书管理:"
-	@echo "  ssl-generate        - 生成SSL证书"
-	@echo "  ssl-upload          - 上传SSL证书"
-	@echo "  ssl-list            - 列出SSL证书"
-	@echo "  ssl-verify          - 验证SSL证书"
-	@echo ""
 	@echo "备份和恢复:"
 	@echo "  backup      - 备份数据"
 	@echo "  restore     - 恢复数据"
@@ -86,7 +71,6 @@ deploy:
 	@docker-compose -f docker-compose.prod.yml up -d --build
 	@echo "✅ 生产环境部署完成"
 	@echo "🌐 应用地址: http://localhost"
-	@echo "📊 数据库管理: http://localhost:5050 (pgAdmin)"
 
 # 启动生产环境
 start:
@@ -237,52 +221,6 @@ migrate-volumes:
 volume-size:
 	@echo "📊 查看卷大小..."
 	@./scripts/docker/volume_manager.sh size prod
-
-# Nginx管理
-nginx-status:
-	@echo "🌐 查看Nginx状态..."
-	@./scripts/nginx/nginx_manager.sh status prod
-
-nginx-reload:
-	@echo "🔄 重载Nginx配置..."
-	@./scripts/nginx/nginx_manager.sh reload prod
-
-nginx-restart:
-	@echo "🔄 重启Nginx服务..."
-	@./scripts/nginx/nginx_manager.sh restart prod
-
-nginx-logs:
-	@echo "📋 查看Nginx日志..."
-	@./scripts/nginx/nginx_manager.sh logs prod
-
-nginx-config:
-	@echo "⚙️  查看Nginx配置..."
-	@./scripts/nginx/nginx_manager.sh config prod
-
-nginx-upload-config:
-	@echo "📤 上传Nginx配置..."
-	@./scripts/nginx/nginx_manager.sh upload-config prod
-
-nginx-shell:
-	@echo "🐚 进入Nginx容器..."
-	@./scripts/nginx/nginx_manager.sh shell prod
-
-# SSL证书管理
-ssl-generate:
-	@echo "🔐 生成SSL证书..."
-	@./scripts/nginx/ssl_manager.sh generate prod
-
-ssl-upload:
-	@echo "📤 上传SSL证书..."
-	@./scripts/nginx/ssl_manager.sh upload prod
-
-ssl-list:
-	@echo "📋 列出SSL证书..."
-	@./scripts/nginx/ssl_manager.sh list prod
-
-ssl-verify:
-	@echo "✅ 验证SSL证书..."
-	@./scripts/nginx/ssl_manager.sh verify prod
 
 # 构建生产镜像
 build:

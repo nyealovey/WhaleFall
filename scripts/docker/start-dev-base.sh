@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 本地开发环境 - 基础环境启动脚本（macOS，无代理）
-# 启动：PostgreSQL + Redis + Nginx
+# 启动：PostgreSQL + Redis（Nginx已集成到Flask容器中）
 
 set -e
 
@@ -40,9 +40,14 @@ check_docker() {
 # 检查环境配置文件
 check_env() {
     if [ ! -f ".env" ]; then
-        log_warning "未找到.env文件，从env.development创建"
-        cp env.development .env
-        log_info "请根据需要修改.env文件中的配置"
+        log_warning "未找到.env文件，从env.template创建"
+        if [ -f "env.template" ]; then
+            cp env.template .env
+            log_info "请根据需要修改.env文件中的配置"
+        else
+            log_error "未找到env.template文件，请先创建环境配置文件"
+            exit 1
+        fi
     fi
     log_success "环境配置文件检查通过"
 }
@@ -50,19 +55,19 @@ check_env() {
 # 创建必要的目录
 create_directories() {
     log_info "创建必要的目录..."
-    mkdir -p userdata/{postgres,redis,nginx/{logs,ssl},logs,exports,backups,uploads}
+    mkdir -p userdata/{postgres,redis,logs,exports,backups,uploads}
     log_success "目录创建完成"
 }
 
 # 启动基础环境
 start_base_environment() {
-    log_info "启动基础环境（PostgreSQL + Redis + Nginx）..."
+    log_info "启动基础环境（PostgreSQL + Redis）..."
     
     # 停止可能存在的容器（不删除）
-    docker compose -f docker-compose.dev.yml stop postgres redis nginx 2>/dev/null || true
+    docker compose -f docker-compose.dev.yml stop postgres redis 2>/dev/null || true
     
     # 启动基础服务
-    docker compose -f docker-compose.dev.yml up -d postgres redis nginx
+    docker compose -f docker-compose.dev.yml up -d postgres redis
     
     log_success "基础环境启动完成"
 }
@@ -94,34 +99,22 @@ wait_for_base_services() {
         count=$((count + 1))
     done
     log_success "Redis已就绪"
-    
-    # 等待Nginx
-    log_info "等待Nginx启动..."
-    count=0
-    while [ $count -lt 15 ]; do
-        if curl -f http://localhost >/dev/null 2>&1; then
-            break
-        fi
-        sleep 2
-        count=$((count + 1))
-    done
-    log_success "Nginx已就绪"
 }
 
 # 显示基础环境状态
 show_base_status() {
     log_info "基础环境状态:"
-    docker compose -f docker-compose.dev.yml ps postgres redis nginx
+    docker compose -f docker-compose.dev.yml ps postgres redis
     
     echo ""
     log_info "服务信息:"
     echo "  - PostgreSQL: localhost:5432"
     echo "  - Redis: localhost:6379"
-    echo "  - Nginx: http://localhost"
     
     echo ""
     log_info "下一步:"
-    echo "  运行 ./scripts/docker/start-dev-flask.sh 启动Flask应用"
+    echo "  运行 ./scripts/docker/start-dev-flask.sh 启动Flask应用（包含Nginx）"
+    echo "  或者运行 make dev start-flask 启动完整应用"
 }
 
 # 主函数

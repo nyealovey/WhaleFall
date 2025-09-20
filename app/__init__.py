@@ -202,7 +202,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     app.config["CACHE_TYPE"] = cache_type
 
     if cache_type == "redis":
-        app.config["CACHE_REDIS_URL"] = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        app.config["CACHE_REDIS_URL"] = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/0")
 
     app.config["CACHE_DEFAULT_TIMEOUT"] = int(os.getenv("CACHE_DEFAULT_TIMEOUT", 300))
 
