@@ -80,7 +80,7 @@ cleanup_all_prod_data() {
     read -p "确认删除所有数据？输入 'DELETE ALL' 确认: " -r
     if [[ $REPLY = "DELETE ALL" ]]; then
         log_info "停止所有服务..."
-        ./scripts/docker/stop-prod.sh
+        docker compose -f docker-compose.prod.yml down
         
         log_info "清理所有Docker资源..."
         docker system prune -a -f --volumes
