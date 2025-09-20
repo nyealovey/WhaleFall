@@ -27,13 +27,18 @@ class TaskScheduler:
 
     def _setup_scheduler(self) -> None:
         """设置调度器"""
-        # 任务存储配置 - 使用PostgreSQL
+        # 任务存储配置 - 使用本地SQLite
         import os
-        database_url = os.getenv("DATABASE_URL") or os.getenv("SQLALCHEMY_DATABASE_URI")
-        if not database_url:
-            # 在容器环境中，如果DATABASE_URL未设置，使用默认的PostgreSQL连接
-            database_url = "postgresql://whalefall_user:xAfbY3VRSlPmHY8ell3iUYmXZqcCt9iz@postgres:5432/whalefall_dev"
-
+        from pathlib import Path
+        
+        # 创建userdata目录
+        userdata_dir = Path("userdata")
+        userdata_dir.mkdir(exist_ok=True)
+        
+        # 使用本地SQLite数据库
+        sqlite_path = userdata_dir / "scheduler.db"
+        database_url = f"sqlite:///{sqlite_path.absolute()}"
+        
         jobstores = {"default": SQLAlchemyJobStore(url=database_url)}
 
         # 执行器配置
@@ -125,21 +130,28 @@ def get_scheduler() -> Any:  # noqa: ANN401
 
 def init_scheduler(app: Any) -> None:  # noqa: ANN401
     """初始化调度器"""
-    # 检查是否已经初始化过
-    if hasattr(scheduler, "app") and scheduler.app is not None:
-        logger.warning("调度器已经初始化过，跳过重复初始化")
+    global scheduler
+    try:
+        # 检查是否已经初始化过
+        if hasattr(scheduler, "app") and scheduler.app is not None:
+            logger.warning("调度器已经初始化过，跳过重复初始化")
+            return scheduler
+
+        scheduler.app = app
+        scheduler.start()
+
+        # 从数据库加载现有任务
+        _load_existing_jobs()
+        
+        # 如果没有现有任务，则添加默认任务
+        _add_default_jobs()
+
+        logger.info("调度器初始化完成")
         return scheduler
-
-    scheduler.app = app
-    scheduler.start()
-
-    # 从数据库加载现有任务
-    _load_existing_jobs()
-    
-    # 如果没有现有任务，则添加默认任务
-    _add_default_jobs()
-
-    return scheduler
+    except Exception as e:
+        logger.error("调度器初始化失败: %s", str(e))
+        # 不抛出异常，让应用继续启动
+        return None
 
 
 def start_scheduler() -> None:
@@ -164,6 +176,11 @@ def start_scheduler() -> None:
 def _load_existing_jobs() -> None:
     """从数据库加载现有任务"""
     try:
+        # 检查调度器是否已启动
+        if not scheduler.scheduler or not scheduler.scheduler.running:
+            logger.warning("调度器未启动，跳过加载现有任务")
+            return
+            
         # 获取数据库中的所有任务
         existing_jobs = scheduler.get_jobs()
         if existing_jobs:
@@ -174,6 +191,7 @@ def _load_existing_jobs() -> None:
             logger.info("数据库中没有找到任务")
     except Exception as e:
         logger.error("加载现有任务失败: %s", str(e))
+        # 不抛出异常，让应用继续启动
 
 
 def _add_default_jobs() -> None:

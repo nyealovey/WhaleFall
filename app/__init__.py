@@ -436,7 +436,13 @@ def register_blueprints(app: Flask) -> None:
     # 初始化定时任务调度器
     from app.scheduler import init_scheduler
 
-    init_scheduler(app)
+    try:
+        init_scheduler(app)
+    except Exception as e:
+        # 调度器初始化失败不影响应用启动
+        from app.utils.structlog_config import get_system_logger
+        logger = get_system_logger()
+        logger.error("调度器初始化失败，应用将继续启动: %s", str(e))
 
 
 def configure_logging(app: Flask) -> None:
