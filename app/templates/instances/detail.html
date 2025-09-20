@@ -933,12 +933,12 @@ function viewAccountChangeHistory(accountId) {
 
             modal.show();
         } else {
-            alert('获取变更历史失败: ' + data.error);
+            console.error('获取变更历史失败:', data.error);
         }
     })
     .catch(error => {
         console.error('获取变更历史失败:', error);
-        alert('获取变更历史失败: ' + error.message);
+        console.error('获取变更历史失败:', error.message);
     });
 }
 

@@ -2,7 +2,7 @@
 
 // 引入console工具函数
 if (typeof logErrorWithContext === 'undefined') {
-    console.warn('console-utils.js not loaded, using fallback logging');
+    // console-utils.js not loaded, using fallback logging
     window.logErrorWithContext = function(error, context, additionalContext) {
         console.error(`错误处理: ${context}`, error, additionalContext);
     };
@@ -172,11 +172,9 @@ function editClassification(id) {
             const modalElement = document.getElementById('editClassificationModal');
             const setIconSelection = () => {
                 const iconName = classification.icon_name || 'fa-tag';
-                console.log('设置编辑分类图标:', iconName);
                 
                 // 先清除所有图标选择的选中状态
                 const allIconRadios = document.querySelectorAll('input[name="editClassificationIcon"]');
-                console.log('找到的图标选择器数量:', allIconRadios.length);
                 allIconRadios.forEach(radio => {
                     radio.checked = false;
                 });
@@ -185,9 +183,7 @@ function editClassification(id) {
                 const iconRadio = document.querySelector(`input[name="editClassificationIcon"][value="${iconName}"]`);
                 if (iconRadio) {
                     iconRadio.checked = true;
-                    console.log('成功选中图标:', iconName);
                 } else {
-                    console.log('未找到图标:', iconName, '，使用默认标签图标');
                     // 如果找不到对应的图标，默认选中标签图标
                     const defaultRadio = document.querySelector('input[name="editClassificationIcon"][value="fa-tag"]');
                     if (defaultRadio) {
@@ -481,10 +477,6 @@ function displayPermissionsConfig(permissions, prefix = '', dbType = '') {
     const container = document.getElementById(prefix ? `${prefix}PermissionsConfig` : 'permissionsConfig');
 
     // 调试信息
-    console.log('displayPermissionsConfig - permissions:', permissions);
-    console.log('displayPermissionsConfig - dbType:', dbType);
-    console.log('displayPermissionsConfig - server_roles:', permissions.server_roles);
-    console.log('displayPermissionsConfig - database_roles:', permissions.database_roles);
 
     let html = '<div class="row">';
 
