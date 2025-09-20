@@ -134,8 +134,7 @@ COPY nginx/supervisor/whalefall-prod.conf /etc/supervisor/conf.d/whalefall.conf
 COPY scripts/docker/start-prod-services.sh /usr/local/bin/start-prod-services.sh
 RUN chmod +x /usr/local/bin/start-prod-services.sh
 
-# 启动Nginx服务（使用系统服务）
-RUN systemctl enable nginx
+# Nginx将通过Supervisor管理，不需要systemctl
 
 # 暴露端口
 EXPOSE 80

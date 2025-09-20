@@ -103,12 +103,14 @@ COPY nginx/gunicorn/gunicorn-dev.conf.py /app/gunicorn.conf.py
 # 复制Supervisor配置文件
 COPY nginx/supervisor/whalefall-dev.conf /etc/supervisor/conf.d/whalefall.conf
 
+# 开发环境阶段
+FROM base as development
+
 # 复制启动脚本
 COPY scripts/docker/start-dev-services.sh /usr/local/bin/start-dev-services.sh
 RUN chmod +x /usr/local/bin/start-dev-services.sh
 
-# 启动Nginx服务（使用系统服务）
-RUN systemctl enable nginx
+# Nginx将通过Supervisor管理，不需要systemctl
 
 # 设置权限
 RUN chmod -R 755 /app/userdata
@@ -119,9 +121,6 @@ EXPOSE 80
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost/health || exit 1
-
-# 开发环境阶段
-FROM base as development
 
 # 开发环境启动命令
 CMD ["/usr/local/bin/start-dev-services.sh"]
