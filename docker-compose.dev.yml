@@ -1,5 +1,6 @@
 # 本地开发环境配置（macOS，无代理）
-# 包含：PostgreSQL、Redis、Flask应用（内置Nginx）
+# 包含：PostgreSQL、Redis（仅数据库服务）
+# Flask应用采用手动启动方式，不通过Docker
 # 使用命名卷进行数据持久化
 
 volumes:
@@ -69,65 +70,9 @@ services:
           memory: 256M
           cpus: '0.25'
 
-  # Flask应用（开发环境，内置Nginx）
-  whalefall:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-      target: development
-      args:
-        BUILDKIT_INLINE_CACHE: 1
-    image: whalefall:dev
-    container_name: whalefall_app_dev
-    restart: unless-stopped
-    environment:
-      - FLASK_APP=app.py
-      - FLASK_ENV=${FLASK_ENV:-development}
-      - FLASK_DEBUG=${FLASK_DEBUG:-1}
-      - FLASK_HOST=${FLASK_HOST:-0.0.0.0}
-      - FLASK_PORT=${FLASK_PORT:-5001}
-      - DATABASE_URL=${DATABASE_URL}
-      - CACHE_TYPE=${CACHE_TYPE}
-      - CACHE_REDIS_URL=${CACHE_REDIS_URL}
-      - SECRET_KEY=${SECRET_KEY}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - BCRYPT_LOG_ROUNDS=${BCRYPT_LOG_ROUNDS}
-      - LOG_LEVEL=${LOG_LEVEL}
-      - APP_NAME=${APP_NAME}
-      - APP_VERSION=${APP_VERSION}
-      - PERMANENT_SESSION_LIFETIME=${PERMANENT_SESSION_LIFETIME}
-    # 移除持久化卷，使用容器内临时存储
-    # volumes:
-    #   - whalefall_app_data:/app/userdata
-    #   - ./app:/app/app:ro
-    #   - ./migrations:/app/migrations:ro
-    #   - ./sql:/app/sql:ro
-    ports:
-      - "80:80"
-      - "5001:5001"
-    networks:
-      - whalefall_dev_network
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '2.0'
-        reservations:
-          memory: 1G
-          cpus: '1.0'
-    profiles:
-      - flask
+# Flask应用已移除，采用手动启动方式
+# 启动命令：python app.py
+# 访问地址：http://localhost:5001
 
 networks:
   whalefall_dev_network:

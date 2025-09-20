@@ -1,7 +1,7 @@
 # 鲸落开发环境 Makefile
 # 提供开发环境的构建和管理命令
 
-.PHONY: help install start stop restart status logs clean shell init-db init-db-quick health
+.PHONY: help install start start-db start-flask stop restart status logs clean shell init-db init-db-quick health
 
 # 默认目标
 help:
@@ -9,7 +9,9 @@ help:
 	@echo "=================================="
 	@echo "环境管理:"
 	@echo "  install     - 安装开发依赖"
-	@echo "  start       - 启动开发环境"
+	@echo "  start-db    - 启动数据库服务 (PostgreSQL + Redis)"
+	@echo "  start-flask - 启动Flask应用 (手动模式)"
+	@echo "  start       - 启动完整开发环境"
 	@echo "  stop        - 停止开发环境"
 	@echo "  restart     - 重启开发环境"
 	@echo "  status      - 查看服务状态"
@@ -43,18 +45,28 @@ install:
 	fi
 	@echo "✅ 开发依赖安装完成"
 
-# 启动开发环境
-start:
-	@echo "🚀 启动开发环境..."
-	@echo "🔍 验证环境变量..."
-	@./scripts/validate_env.sh
-	@echo "🐳 启动Docker容器..."
-	@docker-compose -f docker-compose.dev.yml up -d
-	@echo "✅ 开发环境启动完成"
-	@echo "🌐 应用地址: http://localhost"
+# 启动数据库服务
+start-db:
+	@echo "🚀 启动数据库服务..."
+	./scripts/dev/start-dev-db.sh
 
 # 启动Flask应用
 start-flask:
+	@echo "🚀 启动Flask应用..."
+	./scripts/dev/start-flask.sh
+
+# 启动完整开发环境
+start:
+	@echo "🚀 启动完整开发环境..."
+	@echo "1. 启动数据库服务..."
+	./scripts/dev/start-dev-db.sh
+	@echo ""
+	@echo "2. 启动Flask应用..."
+	@echo "请在新终端中运行: make start-flask"
+	@echo "或直接运行: ./scripts/dev/start-flask.sh"
+
+# 启动Flask应用 (旧版本，已废弃)
+start-flask-old:
 	@echo "🚀 启动Flask应用..."
 	@echo "🔍 验证环境变量..."
 	@./scripts/validate_env.sh
@@ -66,8 +78,9 @@ start-flask:
 # 停止开发环境
 stop:
 	@echo "⏹️  停止开发环境..."
-	@docker-compose -f docker-compose.dev.yml down
+	@docker compose -f docker-compose.dev.yml down
 	@echo "✅ 开发环境已停止"
+	@echo "💡 Flask应用需要手动停止 (Ctrl+C)"
 
 # 重启开发环境
 restart: stop start
