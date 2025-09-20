@@ -739,13 +739,28 @@ function testConnection() {
             statusBadge.textContent = '正常';
             statusBadge.className = 'badge bg-success';
 
-            contentDiv.innerHTML = `
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle me-2"></i>
-                    <strong>连接成功！</strong><br>
-                    ${data.message || '数据库连接正常'}
-                </div>
-            `;
+            // 安全地创建HTML内容，避免XSS攻击
+            const successDiv = document.createElement('div');
+            successDiv.className = 'alert alert-success';
+            
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-check-circle me-2';
+            
+            const strong = document.createElement('strong');
+            strong.textContent = '连接成功！';
+            
+            const br = document.createElement('br');
+            
+            const message = document.createElement('span');
+            message.textContent = data.message || '数据库连接正常';
+            
+            successDiv.appendChild(icon);
+            successDiv.appendChild(strong);
+            successDiv.appendChild(br);
+            successDiv.appendChild(message);
+            
+            contentDiv.innerHTML = '';
+            contentDiv.appendChild(successDiv);
         } else if (data.error) {
             // 记录失败日志
             logError('测试连接失败', {
@@ -794,14 +809,41 @@ function testConnection() {
         statusBadge.textContent = '错误';
         statusBadge.className = 'badge bg-danger';
 
-        document.getElementById('testResultContent').innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>测试失败！</strong><br>
-                <strong>错误信息：</strong>${error.message}<br>
-                <small class="text-muted">请检查网络连接或重新登录</small>
-            </div>
-        `;
+        // 安全地创建错误HTML内容，避免XSS攻击
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'alert alert-danger';
+        
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-exclamation-triangle me-2';
+        
+        const strong1 = document.createElement('strong');
+        strong1.textContent = '测试失败！';
+        
+        const br1 = document.createElement('br');
+        
+        const strong2 = document.createElement('strong');
+        strong2.textContent = '错误信息：';
+        
+        const message = document.createElement('span');
+        message.textContent = error.message || '未知错误';
+        
+        const br2 = document.createElement('br');
+        
+        const small = document.createElement('small');
+        small.className = 'text-muted';
+        small.textContent = '请检查网络连接或重新登录';
+        
+        errorDiv.appendChild(icon);
+        errorDiv.appendChild(strong1);
+        errorDiv.appendChild(br1);
+        errorDiv.appendChild(strong2);
+        errorDiv.appendChild(message);
+        errorDiv.appendChild(br2);
+        errorDiv.appendChild(small);
+        
+        const contentDiv = document.getElementById('testResultContent');
+        contentDiv.innerHTML = '';
+        contentDiv.appendChild(errorDiv);
         document.getElementById('testResult').style.display = 'block';
     })
     .catch(error => {
@@ -926,9 +968,20 @@ function viewAccountChangeHistory(accountId) {
                     `;
                 });
                 html += '</div>';
-                historyContent.innerHTML = html;
+                // 安全地设置HTML内容，避免XSS攻击
+                historyContent.innerHTML = '';
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                while (tempDiv.firstChild) {
+                    historyContent.appendChild(tempDiv.firstChild);
+                }
             } else {
-                historyContent.innerHTML = '<p class="text-muted">暂无变更记录</p>';
+                // 安全地设置HTML内容，避免XSS攻击
+                const p = document.createElement('p');
+                p.className = 'text-muted';
+                p.textContent = '暂无变更记录';
+                historyContent.innerHTML = '';
+                historyContent.appendChild(p);
             }
 
             modal.show();
@@ -987,11 +1040,22 @@ document.addEventListener('DOMContentLoaded', function() {
 function showAlert(type, message) {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
+    
+    // 安全地创建HTML内容，避免XSS攻击
+    const icon = document.createElement('i');
+    icon.className = `fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2`;
+    
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = message;
+    
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'btn-close';
+    closeButton.setAttribute('data-bs-dismiss', 'alert');
+    
+    alertDiv.appendChild(icon);
+    alertDiv.appendChild(messageSpan);
+    alertDiv.appendChild(closeButton);
 
     document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
 

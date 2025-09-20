@@ -10,6 +10,8 @@ from flask_jwt_extended import (
     jwt_required,
 )
 from flask_login import current_user, login_required, login_user, logout_user
+from flask_wtf.csrf import CSRFProtect, validate_csrf
+from wtforms import ValidationError
 
 from app import db
 from app.models.user import User
@@ -170,6 +172,33 @@ def profile() -> "str | Response":
 def change_password() -> "str | Response":
     """修改密码页面"""
     if request.method == "POST":
+        # 验证CSRF令牌
+        try:
+            if not request.is_json:
+                # 对于表单请求，验证CSRF令牌
+                validate_csrf(request.form.get('csrf_token'))
+            else:
+                # 对于JSON请求，验证CSRF令牌
+                csrf_token = request.headers.get('X-CSRFToken')
+                if not csrf_token:
+                    if request.is_json:
+                        return jsonify({"error": "缺少CSRF令牌"}), 400
+                    flash("缺少CSRF令牌", "error")
+                    return render_template("auth/change_password.html")
+                validate_csrf(csrf_token)
+        except ValidationError as e:
+            auth_logger.warning(
+                "CSRF令牌验证失败",
+                user_id=current_user.id,
+                username=current_user.username,
+                ip_address=request.remote_addr,
+                error=str(e)
+            )
+            if request.is_json:
+                return jsonify({"error": "CSRF令牌验证失败"}), 400
+            flash("CSRF令牌验证失败", "error")
+            return render_template("auth/change_password.html")
+        
         data = request.get_json() if request.is_json else request.form
         old_password = data.get("old_password")
         new_password = data.get("new_password")
@@ -220,6 +249,13 @@ def change_password() -> "str | Response":
 
 
 # API路由
+@auth_bp.route("/api/csrf-token", methods=["GET"])
+def get_csrf_token() -> "Response":
+    """获取CSRF令牌"""
+    from flask_wtf.csrf import generate_csrf
+    return jsonify({"csrf_token": generate_csrf()})
+
+
 @auth_bp.route("/api/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh() -> "Response":
