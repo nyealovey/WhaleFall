@@ -210,7 +210,6 @@ class QualityChecker:
     def run_all_checks(self) -> None:
         """运行所有检查"""
         logger.info("🚀 开始代码质量检查...")
-        print("=" * 60)
 
         checks = [
             ("ruff", self.check_ruff),
@@ -240,16 +239,13 @@ class QualityChecker:
                 self.results["summary"]["total_checks"] += 1
                 self.results["summary"]["failed_checks"] += 1
 
-            print()
 
         self.print_summary()
         self.save_report()
 
     def print_summary(self) -> None:
         """打印检查摘要"""
-        print("=" * 60)
         logger.info("📋 检查摘要")
-        print("=" * 60)
 
         summary = self.results["summary"]
         logger.info(f"总检查项: {summary['total_checks']}")
@@ -262,7 +258,6 @@ class QualityChecker:
                 if result.get("returncode", 0) != 0:
                     logger.info(f"  - {check_name}: {result.get('error', '检查失败')}")
 
-        print("\n" + "=" * 60)
 
         if summary["failed_checks"] == 0:
             logger.info("🎉 所有检查通过！代码质量良好！")
@@ -285,7 +280,6 @@ class QualityChecker:
 def main():
     """主函数"""
     logger.info("鲸落 - 代码质量检查工具")
-    print("=" * 60)
 
     # 检查是否在项目根目录
     if not (Path.cwd() / "pyproject.toml").exists():

@@ -18,7 +18,6 @@ from app.utils.structlog_config import get_logger, log_error, log_info
 from app.utils.timezone import now
 
 # 创建蓝图
-unified_logs_bp = Blueprint("unified_logs", __name__, url_prefix="/unified-logs")
 
 # 获取日志记录器
 logger = get_logger("api")

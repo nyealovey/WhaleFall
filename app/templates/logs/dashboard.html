@@ -485,8 +485,6 @@ function displayLogs(logs) {
 function displayPagination(pagination) {
     const container = document.getElementById('pagination');
     
-    // 调试信息
-    console.log('分页数据:', pagination);
     
     if (!pagination || pagination.pages <= 1) {
         container.innerHTML = '';
@@ -584,7 +582,7 @@ function viewLogDetail(logId) {
         })
         .catch(error => {
             console.error('Error loading log detail:', error);
-            alert('加载日志详情失败: ' + error.message);
+            console.error('加载日志详情失败:', error.message);
         });
 }
 
@@ -652,7 +650,7 @@ function viewLogContext(logId) {
         })
         .catch(error => {
             console.error('Error loading log context:', error);
-            alert('加载日志上下文失败: ' + error.message);
+            console.error('加载日志上下文失败:', error.message);
         });
 }
 
@@ -698,7 +696,7 @@ function viewLogDebug(logId) {
         })
         .catch(error => {
             console.error('Error loading log debug info:', error);
-            alert('加载调试信息失败: ' + error.message);
+            console.error('加载调试信息失败:', error.message);
         });
 }
 

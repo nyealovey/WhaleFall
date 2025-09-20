@@ -15,7 +15,6 @@ from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
 
-cache_bp = Blueprint("cache", __name__)
 
 
 @cache_bp.route("/cache/stats", methods=["GET"])

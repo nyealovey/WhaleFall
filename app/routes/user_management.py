@@ -19,7 +19,6 @@ from app.utils.decorators import (
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
-user_management_bp = Blueprint("user_management", __name__, url_prefix="/user-management")
 
 
 @user_management_bp.route("/")

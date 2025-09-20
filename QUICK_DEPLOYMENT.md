@@ -7,7 +7,7 @@
 ## 🎯 版本信息
 
 - **当前版本**: v1.0.1
-- **发布日期**: 2024-09-20
+- **发布日期**: 2025-01-16
 - **主要更新**: 简化部署流程、优化生产环境配置、完善文档
 
 ## 🚀 快速开始
@@ -16,7 +16,7 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-org/TaifishingV4.git
+git clone https://github.com/nyealovey/TaifishingV4.git
 cd TaifishingV4
 
 # 检查Docker环境
@@ -196,18 +196,17 @@ docker compose -f docker-compose.prod.yml logs -f   # 日志
 
 ## 📚 详细文档
 
-- [生产环境部署指南](docs/deployment/PRODUCTION_DEPLOYMENT_GUIDE.md)
-- [开发vs生产环境对比](docs/deployment/DEV_VS_PROD_COMPARISON.md)
-- [配置验证报告](docs/deployment/PRODUCTION_CONFIG_VALIDATION.md)
-- [部署文档中心](docs/deployment/README.md)
+- [部署文档中心](docs/deployment/README.md) - 完整的部署指南
+- [数据库权限配置](docs/database/DATABASE_PERMISSIONS_OVERVIEW.md) - 数据库权限管理
+- [安全配置指南](docs/security/SECURITY_CONFIGURATION.md) - 安全配置说明
 
 ## 🆘 技术支持
 
 如果遇到问题，请：
 
-1. 查看[故障排除指南](docs/deployment/PRODUCTION_DEPLOYMENT_GUIDE.md#故障排除)
-2. 检查[配置验证报告](docs/deployment/PRODUCTION_CONFIG_VALIDATION.md)
-3. 查看项目[Issues](https://github.com/your-org/TaifishingV4/issues)
+1. 查看[部署文档](docs/deployment/README.md#故障排除)
+2. 检查[安全配置](docs/security/SECURITY_CONFIGURATION.md)
+3. 查看项目[Issues](https://github.com/nyealovey/TaifishingV4/issues)
 4. 提交新的Issue描述问题
 
 ## 🎉 部署成功
@@ -224,5 +223,5 @@ docker compose -f docker-compose.prod.yml logs -f   # 日志
 ---
 
 **版本**: v1.0.1  
-**更新时间**: 2024-09-20  
+**更新时间**: 2025-01-16  
 **状态**: 生产就绪 ✅

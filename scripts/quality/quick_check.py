@@ -241,7 +241,6 @@ def generate_fix_suggestions(results: dict, project_root: Path) -> None:
 def main():
     """主函数"""
     logger.info("🚀 鲸落 - 快速代码质量检查")
-    print("=" * 50)
 
     project_root = Path(__file__).parent.parent.parent
 
@@ -269,7 +268,6 @@ def main():
     generate_report(results, project_root)
 
     # 打印摘要
-    print("\n" + "=" * 50)
     summary = results.get("summary", {})
     logger.info(f"📊 检查结果: {summary.get('passed_checks', 0)}/{summary.get('total_checks', 0)} 通过")
 

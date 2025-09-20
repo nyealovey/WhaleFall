@@ -19,7 +19,6 @@ F = TypeVar("F", bound=Callable[..., Any])
 logger = logging.getLogger(__name__)
 
 # 创建管理蓝图
-admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
 def admin_required(f):

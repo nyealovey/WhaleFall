@@ -21,7 +21,6 @@ from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import CHINA_TZ, time_utils
 
 # 创建蓝图
-dashboard_bp = Blueprint("dashboard", __name__)
 
 
 @dashboard_bp.route("/")

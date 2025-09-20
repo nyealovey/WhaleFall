@@ -19,7 +19,6 @@ from app.utils.structlog_config import get_system_logger
 from app.utils.timezone import now
 
 # 创建蓝图
-scheduler_bp = Blueprint("scheduler", __name__, url_prefix="/scheduler")
 
 # 初始化日志记录器
 system_logger = get_system_logger()

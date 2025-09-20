@@ -10,7 +10,6 @@ from app.utils.decorators import view_required
 from app.utils.structlog_config import get_api_logger, log_error
 
 # 创建蓝图
-instance_accounts_bp = Blueprint("instance_accounts", __name__)
 
 # 获取API日志记录器
 api_logger = get_api_logger()

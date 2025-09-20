@@ -24,7 +24,6 @@ from app.utils.decorators import (
 )
 from app.utils.structlog_config import log_error, log_info
 
-account_classification_bp = Blueprint("account_classification", __name__, url_prefix="/account-classification")
 
 
 @account_classification_bp.route("/")

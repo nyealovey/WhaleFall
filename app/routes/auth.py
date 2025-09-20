@@ -19,7 +19,6 @@ from app.utils.rate_limiter import (
 from app.utils.structlog_config import get_auth_logger
 
 # 创建蓝图
-auth_bp = Blueprint("auth", __name__)
 
 # 获取认证日志记录器
 auth_logger = get_auth_logger()

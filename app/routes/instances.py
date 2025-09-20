@@ -40,7 +40,6 @@ from app.utils.timezone import now
 logger = get_system_logger()
 
 # 创建蓝图
-instances_bp = Blueprint("instances", __name__)
 
 
 def _delete_instance_related_data(instance_id: int, instance_name: str = None) -> dict:

@@ -26,7 +26,7 @@ def check_hardcoded_credentials():
         hardcoded_patterns = [
             'postgresql://',
             'redis://:',
-            'Taifish2024!',
+            'test_password',
             'localhost:5432',
             'localhost:6379'
         ]

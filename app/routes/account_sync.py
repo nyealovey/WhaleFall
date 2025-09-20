@@ -27,7 +27,6 @@ from app.utils.decorators import update_required, view_required
 from app.utils.structlog_config import get_api_logger, log_error, log_info, log_warning
 
 # 创建蓝图
-account_sync_bp = Blueprint("account_sync", __name__)
 
 
 @account_sync_bp.route("/")

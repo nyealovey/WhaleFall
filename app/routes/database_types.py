@@ -11,7 +11,6 @@ from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
 
-database_types_bp = Blueprint("database_types", __name__, url_prefix="/database-types")
 
 
 @database_types_bp.route("/")

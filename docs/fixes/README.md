@@ -6,9 +6,7 @@
 
 ## 文档列表
 
-- [数据库字段修复](DATABASE_FIELDS_FIX_SUMMARY.md) - 数据库表字段缺失问题修复
-- [Nginx 502错误修复](NGINX_502_FIX_SUMMARY.md) - Nginx代理配置问题修复
-- [会话超时修复](SESSION_TIMEOUT_FIX_SUMMARY.md) - 会话管理配置修复
+> **注意**: 修复文档正在整理中，具体修复记录将在后续版本中提供。
 
 ## 修复记录
 

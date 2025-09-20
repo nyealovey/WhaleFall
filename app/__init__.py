@@ -390,48 +390,27 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.unified_logs import unified_logs_bp
 
     # 注册蓝图
-    app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp, url_prefix="/auth")
-    app.register_blueprint(instances_bp, url_prefix="/instances")
-    app.register_blueprint(tags_bp, url_prefix="/tags")
-    app.register_blueprint(instance_accounts_bp, url_prefix="/instance_accounts")
-    app.register_blueprint(credentials_bp, url_prefix="/credentials")
 
     # 新的账户相关蓝图
-    app.register_blueprint(account_list_bp, url_prefix="/account-list")
-    app.register_blueprint(account_sync_bp, url_prefix="/account-sync")
-    app.register_blueprint(account_static_bp, url_prefix="/account-static")
 
     # 缓存管理蓝图
-    app.register_blueprint(cache_bp, url_prefix="/cache")
 
     # 保留旧的accounts_bp，等测试通过后删除
-    # app.register_blueprint(accounts_bp, url_prefix="/accounts")
 
-    # app.register_blueprint(logs_bp, url_prefix="/logs")  # 已停用，使用unified_logs替代
-    app.register_blueprint(unified_logs_bp)  # unified_logs_bp already has url_prefix="/unified-logs"
-    app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
-    app.register_blueprint(health_bp, url_prefix="/health")
-    app.register_blueprint(admin_bp, url_prefix="/admin")
-    app.register_blueprint(account_classification_bp, url_prefix="/account-classification")
 
     # 注册数据库类型管理蓝图
-    app.register_blueprint(database_types_bp)
 
     # 注册用户管理蓝图
     from app.routes.user_management import user_management_bp
 
-    app.register_blueprint(user_management_bp)
 
     # 注册定时任务管理蓝图
     from app.routes.scheduler import scheduler_bp
 
-    app.register_blueprint(scheduler_bp)
 
     # 注册同步会话管理蓝图
     from app.routes.sync_sessions import sync_sessions_bp
 
-    app.register_blueprint(sync_sessions_bp)
 
     # 初始化定时任务调度器
     from app.scheduler import init_scheduler

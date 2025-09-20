@@ -20,7 +20,6 @@ from app.models.instance import Instance
 from app.utils.timezone import now
 
 # 创建蓝图
-account_static_bp = Blueprint("account_static", __name__)
 
 
 @account_static_bp.route("/")

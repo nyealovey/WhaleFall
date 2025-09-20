@@ -10,7 +10,6 @@ from app.utils.structlog_config import log_info
 from app.utils.timezone import get_china_time
 
 # 创建蓝图
-main_bp = Blueprint("main", __name__)
 
 
 @main_bp.route("/")

@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV FLASK_APP=app.py
 ENV FLASK_ENV=development
-ENV DATABASE_URL=postgresql://whalefall_user:xAfbY3VRSlPmHY8ell3iUYmXZqcCt9iz@postgres:5432/whalefall_dev
+ENV DATABASE_URL=postgresql://whalefall_user:your_secure_password@postgres:5432/whalefall_dev
 
 # 设置工作目录
 WORKDIR /app

@@ -10,7 +10,6 @@ from app.utils.decorators import view_required
 from app.utils.structlog_config import get_system_logger, log_error, log_info
 
 # 创建蓝图
-sync_sessions_bp = Blueprint("sync_sessions", __name__, url_prefix="/sync_sessions")
 
 # 获取日志记录器
 system_logger = get_system_logger()

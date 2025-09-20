@@ -532,7 +532,7 @@ SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret
 
 # 数据库配置
-DATABASE_URL=postgresql://whalefall_user:Taifish2024!@localhost:5432/whalefall_dev
+DATABASE_URL=postgresql://whalefall_user:your_secure_password@localhost:5432/whalefall_dev
 
 # Redis配置
 REDIS_URL=redis://localhost:6379/0
@@ -547,7 +547,7 @@ TIMEZONE=Asia/Shanghai
 
 ```python
 # PostgreSQL (主数据库)
-DATABASE_URL = "postgresql://whalefall_user:Taifish2024!@localhost:5432/whalefall_dev"
+DATABASE_URL = "postgresql://whalefall_user:your_secure_password@localhost:5432/whalefall_dev"
 
 # MySQL
 DATABASE_URL = "mysql://user:password@localhost:3306/whalefall"

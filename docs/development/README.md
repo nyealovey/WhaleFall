@@ -6,18 +6,15 @@
 
 ## 文档列表
 
-- [开发环境搭建](ENVIRONMENT_SETUP.md) - 本地开发环境配置
-- [开发指南](DEVELOPMENT_GUIDE.md) - 开发规范和最佳实践
-- [数据库迁移](DATABASE_MIGRATION.md) - 数据库版本管理
-- [故障排除](TROUBLESHOOTING.md) - 常见问题和解决方案
+> **注意**: 开发相关文档正在完善中，请参考 [快速参考](../guides/QUICK_REFERENCE.md) 获取当前可用的开发信息。
 
 ## 快速开始
 
-1. 阅读 [开发环境搭建](ENVIRONMENT_SETUP.md) 配置本地环境
-2. 查看 [开发指南](DEVELOPMENT_GUIDE.md) 了解开发规范
-3. 参考 [数据库迁移](DATABASE_MIGRATION.md) 进行数据库管理
-4. 遇到问题时查看 [故障排除](TROUBLESHOOTING.md)
+1. 查看 [快速参考](../guides/QUICK_REFERENCE.md) 了解基本操作
+2. 参考 [部署指南](../deployment/README.md) 配置开发环境
+3. 查看 [API文档](../api/README.md) 了解接口设计
+4. 遇到问题时查看 [故障排除](../deployment/README.md#故障排除)
 
 ---
 
-**注意**: 这些文档正在开发中，部分内容可能不完整。
+**注意**: 开发文档正在完善中，当前请参考其他相关文档获取信息。

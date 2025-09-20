@@ -35,9 +35,6 @@ class PasswordManager:
                 )
             except ImportError:
                 # 如果无法导入logger，使用print输出
-                print("WARNING: 没有设置PASSWORD_ENCRYPTION_KEY环境变量")
-                print(f"INFO: 生成的临时密钥: {key.decode()}")
-                print(f"INFO: 请设置环境变量: export PASSWORD_ENCRYPTION_KEY='{key.decode()}'")
         else:
             key = key.encode()
 

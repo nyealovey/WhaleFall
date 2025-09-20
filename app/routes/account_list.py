@@ -14,7 +14,6 @@ from app.utils.structlog_config import log_error, log_info
 from app.utils.timezone import now
 
 # 创建蓝图
-account_list_bp = Blueprint("account_list", __name__)
 
 
 @account_list_bp.route("/")
