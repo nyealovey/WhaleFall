@@ -90,7 +90,7 @@ check_environment() {
     source .env
     
     # 检查关键环境变量
-    local required_vars=("POSTGRES_PASSWORD" "REDIS_PASSWORD" "SECRET_KEY" "JWT_SECRET_KEY")
+    local required_vars=("POSTGRES_PASSWORD" "REDIS_PASSWORD" "SECRET_KEY" "JWT_SECRET_KEY" "POSTGRES_DB" "POSTGRES_USER")
     local missing_vars=()
     
     for var in "${required_vars[@]}"; do
@@ -106,6 +106,25 @@ check_environment() {
         done
         log_error "请在.env文件中设置这些变量"
         exit 1
+    fi
+    
+    # 验证数据库配置
+    log_info "验证数据库配置..."
+    log_info "数据库名称: ${POSTGRES_DB}"
+    log_info "数据库用户: ${POSTGRES_USER}"
+    log_info "数据库密码: ${POSTGRES_PASSWORD:0:8}***"
+    
+    # 检查DATABASE_URL配置
+    if [ -n "$DATABASE_URL" ]; then
+        log_info "DATABASE_URL: $DATABASE_URL"
+        # 验证DATABASE_URL格式
+        if echo "$DATABASE_URL" | grep -q "postgresql"; then
+            log_success "DATABASE_URL格式正确"
+        else
+            log_warning "DATABASE_URL格式可能不正确，建议使用postgresql+psycopg://"
+        fi
+    else
+        log_warning "DATABASE_URL未设置，将使用默认配置"
     fi
     
     log_success "环境变量检查通过"
@@ -186,15 +205,15 @@ start_production_environment() {
     log_success "生产环境服务启动完成"
 }
 
-# 等待服务就绪
-wait_for_services() {
-    log_step "等待服务就绪..."
+# 验证数据库连接
+verify_database_connection() {
+    log_step "验证数据库连接..."
     
-    # 等待PostgreSQL
-    log_info "等待PostgreSQL启动..."
+    # 等待PostgreSQL完全启动
+    log_info "等待PostgreSQL完全启动..."
     local count=0
     while [ $count -lt 30 ]; do
-        if docker compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod > /dev/null 2>&1; then
+        if docker compose -f docker-compose.prod.yml exec postgres pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} > /dev/null 2>&1; then
             break
         fi
         sleep 5
@@ -207,9 +226,42 @@ wait_for_services() {
     fi
     log_success "PostgreSQL已就绪"
     
+    # 验证数据库连接和认证
+    log_info "验证数据库连接和认证..."
+    if docker compose -f docker-compose.prod.yml exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c "SELECT 1;" > /dev/null 2>&1; then
+        log_success "数据库连接和认证成功"
+    else
+        log_error "数据库连接或认证失败"
+        log_error "请检查以下配置："
+        log_error "  - 数据库名称: ${POSTGRES_DB}"
+        log_error "  - 数据库用户: ${POSTGRES_USER}"
+        log_error "  - 数据库密码: ${POSTGRES_PASSWORD:0:8}***"
+        exit 1
+    fi
+    
+    # 验证数据库权限
+    log_info "验证数据库权限..."
+    local table_count
+    table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    
+    if [ "$table_count" -ge 0 ]; then
+        log_success "数据库权限验证成功，当前表数量: $table_count"
+    else
+        log_error "数据库权限验证失败"
+        exit 1
+    fi
+}
+
+# 等待服务就绪
+wait_for_services() {
+    log_step "等待服务就绪..."
+    
+    # 验证数据库连接
+    verify_database_connection
+    
     # 等待Redis
     log_info "等待Redis启动..."
-    count=0
+    local count=0
     while [ $count -lt 30 ]; do
         if docker compose -f docker-compose.prod.yml exec redis redis-cli ping > /dev/null 2>&1; then
             break
@@ -249,7 +301,7 @@ initialize_database() {
     
     # 检查数据库是否已初始化
     local table_count
-    table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$table_count" -gt 0 ]; then
         log_warning "数据库已包含 $table_count 个表，跳过初始化"
@@ -257,11 +309,13 @@ initialize_database() {
     fi
     
     log_info "开始初始化数据库结构..."
+    log_info "使用数据库: ${POSTGRES_DB}"
+    log_info "使用用户: ${POSTGRES_USER}"
     
     # 执行PostgreSQL初始化脚本
     if [ -f "sql/init_postgresql.sql" ]; then
         log_info "执行PostgreSQL初始化脚本..."
-        docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/init_postgresql.sql
+        docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_postgresql.sql
         
         if [ $? -eq 0 ]; then
             log_success "PostgreSQL初始化脚本执行成功"
@@ -276,7 +330,7 @@ initialize_database() {
     # 执行权限配置脚本
     if [ -f "sql/permission_configs.sql" ]; then
         log_info "导入权限配置数据..."
-        docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/permission_configs.sql
+        docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/permission_configs.sql
         
         if [ $? -eq 0 ]; then
             log_success "权限配置数据导入成功"
@@ -290,7 +344,7 @@ initialize_database() {
     # 执行调度器任务初始化脚本
     if [ -f "sql/init_scheduler_tasks.sql" ]; then
         log_info "初始化调度器任务..."
-        docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/init_scheduler_tasks.sql
+        docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_scheduler_tasks.sql
         
         if [ $? -eq 0 ]; then
             log_success "调度器任务初始化成功"
@@ -304,7 +358,7 @@ initialize_database() {
     # 验证数据库初始化结果
     log_info "验证数据库初始化结果..."
     local final_table_count
-    final_table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    final_table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$final_table_count" -gt 0 ]; then
         log_success "数据库初始化完成，共创建 $final_table_count 个表"
@@ -314,6 +368,42 @@ initialize_database() {
     fi
 }
 
+# 验证Flask应用数据库连接
+verify_flask_database_connection() {
+    log_step "验证Flask应用数据库连接..."
+    
+    # 等待Flask应用完全启动
+    log_info "等待Flask应用完全启动..."
+    local count=0
+    while [ $count -lt 30 ]; do
+        if docker compose -f docker-compose.prod.yml exec whalefall python -c "
+import os
+os.environ['DATABASE_URL'] = '${DATABASE_URL}'
+from app import create_app
+app = create_app()
+with app.app_context():
+    from app.models import db
+    db.engine.execute('SELECT 1')
+print('Database connection successful')
+" > /dev/null 2>&1; then
+            break
+        fi
+        sleep 5
+        count=$((count + 1))
+    done
+    
+    if [ $count -eq 30 ]; then
+        log_error "Flask应用数据库连接验证超时"
+        log_error "请检查以下配置："
+        log_error "  - DATABASE_URL: ${DATABASE_URL}"
+        log_error "  - 数据库服务是否正常运行"
+        log_error "  - 网络连接是否正常"
+        exit 1
+    fi
+    
+    log_success "Flask应用数据库连接验证成功"
+}
+
 # 验证部署
 verify_deployment() {
     log_step "验证部署状态..."
@@ -321,6 +411,9 @@ verify_deployment() {
     # 检查容器状态
     log_info "检查容器状态..."
     docker compose -f docker-compose.prod.yml ps
+    
+    # 验证Flask应用数据库连接
+    verify_flask_database_connection
     
     # 健康检查
     log_info "执行健康检查..."
