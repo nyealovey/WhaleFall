@@ -21,7 +21,7 @@ cd TaifishingV4
 
 # 检查Docker环境
 docker --version
-docker-compose --version
+docker compose version
 ```
 
 ### 2. 开发环境部署
@@ -99,10 +99,10 @@ NO_PROXY=localhost,127.0.0.1,::1,internal.company.com
 curl http://localhost/health
 
 # 检查容器状态
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 
 # 查看日志
-docker-compose -f docker-compose.prod.yml logs -f
+docker compose -f docker-compose.prod.yml logs -f
 ```
 
 ### 访问地址
@@ -137,11 +137,11 @@ make prod logs      # 查看日志
 make prod health    # 健康检查
 
 # 使用Docker Compose
-docker-compose -f docker-compose.prod.yml up -d     # 启动
-docker-compose -f docker-compose.prod.yml down      # 停止
-docker-compose -f docker-compose.prod.yml restart   # 重启
-docker-compose -f docker-compose.prod.yml ps        # 状态
-docker-compose -f docker-compose.prod.yml logs -f   # 日志
+docker compose -f docker-compose.prod.yml up -d     # 启动
+docker compose -f docker-compose.prod.yml down      # 停止
+docker compose -f docker-compose.prod.yml restart   # 重启
+docker compose -f docker-compose.prod.yml ps        # 状态
+docker compose -f docker-compose.prod.yml logs -f   # 日志
 ```
 
 ## 🔍 故障排除
@@ -151,7 +151,7 @@ docker-compose -f docker-compose.prod.yml logs -f   # 日志
 1. **容器启动失败**
    ```bash
    # 检查容器日志
-   docker-compose -f docker-compose.prod.yml logs whalefall
+   docker compose -f docker-compose.prod.yml logs whalefall
    
    # 检查Nginx配置
    docker exec whalefall_app_prod nginx -t
@@ -160,7 +160,7 @@ docker-compose -f docker-compose.prod.yml logs -f   # 日志
 2. **数据库连接失败**
    ```bash
    # 检查数据库状态
-   docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod
+   docker compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod
    
    # 检查环境变量
    docker exec whalefall_app_prod env | grep DATABASE

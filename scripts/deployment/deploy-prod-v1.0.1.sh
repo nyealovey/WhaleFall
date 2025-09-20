@@ -56,7 +56,7 @@ check_system_requirements() {
     fi
     
     # 检查Docker Compose
-    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    if ! docker compose version &> /dev/null; then
         log_error "Docker Compose未安装，请先安装Docker Compose"
         exit 1
     fi
@@ -115,9 +115,9 @@ cleanup_old_environment() {
     log_step "清理旧环境..."
     
     # 停止现有容器
-    if docker-compose -f docker-compose.prod.yml ps -q | grep -q .; then
+    if docker compose -f docker-compose.prod.yml ps -q | grep -q .; then
         log_info "停止现有容器..."
-        docker-compose -f docker-compose.prod.yml down
+        docker compose -f docker-compose.prod.yml down
     fi
     
     # 清理未使用的镜像
@@ -157,7 +157,7 @@ start_production_environment() {
     log_step "启动生产环境服务..."
     
     # 启动所有服务
-    docker-compose -f docker-compose.prod.yml up -d
+    docker compose -f docker-compose.prod.yml up -d
     
     log_success "生产环境服务启动完成"
 }
@@ -170,7 +170,7 @@ wait_for_services() {
     log_info "等待PostgreSQL启动..."
     local count=0
     while [ $count -lt 30 ]; do
-        if docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod > /dev/null 2>&1; then
+        if docker compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod > /dev/null 2>&1; then
             break
         fi
         sleep 5
@@ -187,7 +187,7 @@ wait_for_services() {
     log_info "等待Redis启动..."
     count=0
     while [ $count -lt 30 ]; do
-        if docker-compose -f docker-compose.prod.yml exec redis redis-cli ping > /dev/null 2>&1; then
+        if docker compose -f docker-compose.prod.yml exec redis redis-cli ping > /dev/null 2>&1; then
             break
         fi
         sleep 5
@@ -213,7 +213,7 @@ wait_for_services() {
     
     if [ $count -eq 60 ]; then
         log_error "Flask应用启动超时"
-        docker-compose -f docker-compose.prod.yml logs whalefall
+        docker compose -f docker-compose.prod.yml logs whalefall
         exit 1
     fi
     log_success "Flask应用已就绪"
@@ -225,7 +225,7 @@ initialize_database() {
     
     # 检查数据库是否已初始化
     local table_count
-    table_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$table_count" -gt 0 ]; then
         log_warning "数据库已包含 $table_count 个表，跳过初始化"
@@ -237,7 +237,7 @@ initialize_database() {
     # 执行PostgreSQL初始化脚本
     if [ -f "sql/init_postgresql.sql" ]; then
         log_info "执行PostgreSQL初始化脚本..."
-        docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/init_postgresql.sql
+        docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/init_postgresql.sql
         
         if [ $? -eq 0 ]; then
             log_success "PostgreSQL初始化脚本执行成功"
@@ -252,7 +252,7 @@ initialize_database() {
     # 执行权限配置脚本
     if [ -f "sql/permission_configs.sql" ]; then
         log_info "导入权限配置数据..."
-        docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/permission_configs.sql
+        docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/permission_configs.sql
         
         if [ $? -eq 0 ]; then
             log_success "权限配置数据导入成功"
@@ -266,7 +266,7 @@ initialize_database() {
     # 执行调度器任务初始化脚本
     if [ -f "sql/init_scheduler_tasks.sql" ]; then
         log_info "初始化调度器任务..."
-        docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/init_scheduler_tasks.sql
+        docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod < sql/init_scheduler_tasks.sql
         
         if [ $? -eq 0 ]; then
             log_success "调度器任务初始化成功"
@@ -280,7 +280,7 @@ initialize_database() {
     # 验证数据库初始化结果
     log_info "验证数据库初始化结果..."
     local final_table_count
-    final_table_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    final_table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$final_table_count" -gt 0 ]; then
         log_success "数据库初始化完成，共创建 $final_table_count 个表"
@@ -296,7 +296,7 @@ verify_deployment() {
     
     # 检查容器状态
     log_info "检查容器状态..."
-    docker-compose -f docker-compose.prod.yml ps
+    docker compose -f docker-compose.prod.yml ps
     
     # 健康检查
     log_info "执行健康检查..."
@@ -340,11 +340,11 @@ show_deployment_info() {
     echo "  - 静态文件: http://localhost/static/"
     echo ""
     echo -e "${BLUE}🔧 管理命令：${NC}"
-    echo "  - 查看状态: docker-compose -f docker-compose.prod.yml ps"
-    echo "  - 查看日志: docker-compose -f docker-compose.prod.yml logs -f"
-    echo "  - 停止服务: docker-compose -f docker-compose.prod.yml down"
-    echo "  - 重启服务: docker-compose -f docker-compose.prod.yml restart"
-    echo "  - 进入容器: docker-compose -f docker-compose.prod.yml exec whalefall bash"
+    echo "  - 查看状态: docker compose -f docker-compose.prod.yml ps"
+    echo "  - 查看日志: docker compose -f docker-compose.prod.yml logs -f"
+    echo "  - 停止服务: docker compose -f docker-compose.prod.yml down"
+    echo "  - 重启服务: docker compose -f docker-compose.prod.yml restart"
+    echo "  - 进入容器: docker compose -f docker-compose.prod.yml exec whalefall bash"
     echo ""
     echo -e "${BLUE}📊 监控信息：${NC}"
     echo "  - 容器资源: docker stats"

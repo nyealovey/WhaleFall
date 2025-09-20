@@ -32,7 +32,7 @@ log_error() {
 check_database_connection() {
     log_info "检查数据库连接..."
     
-    if docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod > /dev/null 2>&1; then
+    if docker compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod > /dev/null 2>&1; then
         log_success "数据库连接正常"
         return 0
     else
@@ -46,7 +46,7 @@ check_table_structure() {
     log_info "检查数据库表结构..."
     
     local table_count
-    table_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$table_count" -gt 0 ]; then
         log_success "数据库包含 $table_count 个表"
@@ -60,7 +60,7 @@ check_table_structure() {
     
     for table in "${key_tables[@]}"; do
         local exists
-        exists=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '$table';" 2>/dev/null | tr -d ' \n' || echo "0")
+        exists=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '$table';" 2>/dev/null | tr -d ' \n' || echo "0")
         
         if [ "$exists" = "1" ]; then
             log_success "表 $table 存在"
@@ -77,7 +77,7 @@ check_initial_data() {
     
     # 检查用户数据
     local user_count
-    user_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' \n' || echo "0")
+    user_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$user_count" -gt 0 ]; then
         log_success "用户数据: $user_count 条记录"
@@ -87,7 +87,7 @@ check_initial_data() {
     
     # 检查数据库类型配置
     local db_type_count
-    db_type_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM database_type_configs;" 2>/dev/null | tr -d ' \n' || echo "0")
+    db_type_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM database_type_configs;" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$db_type_count" -gt 0 ]; then
         log_success "数据库类型配置: $db_type_count 条记录"
@@ -97,7 +97,7 @@ check_initial_data() {
     
     # 检查账户分类数据
     local classification_count
-    classification_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM account_classifications;" 2>/dev/null | tr -d ' \n' || echo "0")
+    classification_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM account_classifications;" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$classification_count" -gt 0 ]; then
         log_success "账户分类数据: $classification_count 条记录"
@@ -107,7 +107,7 @@ check_initial_data() {
     
     # 检查权限配置数据
     local permission_count
-    permission_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM permission_configs;" 2>/dev/null | tr -d ' \n' || echo "0")
+    permission_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM permission_configs;" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$permission_count" -gt 0 ]; then
         log_success "权限配置数据: $permission_count 条记录"
@@ -121,7 +121,7 @@ check_indexes() {
     log_info "检查数据库索引..."
     
     local index_count
-    index_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    index_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$index_count" -gt 0 ]; then
         log_success "数据库索引: $index_count 个"
@@ -135,7 +135,7 @@ check_triggers() {
     log_info "检查数据库触发器..."
     
     local trigger_count
-    trigger_count=$(docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    trigger_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -t -c "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
     
     if [ "$trigger_count" -gt 0 ]; then
         log_success "数据库触发器: $trigger_count 个"
@@ -150,7 +150,7 @@ show_database_stats() {
     
     echo ""
     echo "表统计:"
-    docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -c "
+    docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -c "
     SELECT 
         schemaname,
         tablename,
@@ -165,7 +165,7 @@ show_database_stats() {
     
     echo ""
     echo "索引统计:"
-    docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -c "
+    docker compose -f docker-compose.prod.yml exec -T postgres psql -U whalefall_user -d whalefall_prod -c "
     SELECT 
         schemaname,
         tablename,
