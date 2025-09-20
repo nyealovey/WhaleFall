@@ -40,21 +40,30 @@ check_docker() {
 # 检查环境配置文件
 check_env() {
     if [ ! -f ".env" ]; then
-        log_warning "未找到.env文件，从env.template创建"
-        if [ -f "env.template" ]; then
-            cp env.template .env
+        log_warning "未找到.env文件，从env.production创建"
+        if [ -f "env.production" ]; then
+            cp env.production .env
             log_info "请根据需要修改.env文件中的配置，特别是代理设置"
         else
-            log_error "未找到env.template文件，请先创建环境配置文件"
+            log_error "未找到env.production文件，请先创建环境配置文件"
             exit 1
         fi
     fi
+    
+    # 加载环境变量
+    source .env
+    
     log_success "环境配置文件检查通过"
 }
 
 # 检查代理配置
 check_proxy() {
-    if [ -n "$HTTP_PROXY" ]; then
+    log_info "检查代理配置..."
+    log_info "  HTTP_PROXY: ${HTTP_PROXY:-未设置}"
+    log_info "  HTTPS_PROXY: ${HTTPS_PROXY:-未设置}"
+    log_info "  NO_PROXY: ${NO_PROXY:-未设置}"
+    
+    if [ -n "$HTTP_PROXY" ] && [ "$HTTP_PROXY" != "" ]; then
         log_info "检测到代理配置: $HTTP_PROXY"
         log_info "基础环境服务将使用代理配置"
     else
@@ -76,8 +85,15 @@ start_base_environment() {
     # 停止可能存在的容器（不删除）
     docker compose -f docker-compose.prod.yml stop postgres redis 2>/dev/null || true
     
-    # 启动基础服务
-    docker compose -f docker-compose.prod.yml up -d postgres redis
+    # 启动基础服务（传递代理环境变量）
+    if [ -n "$HTTP_PROXY" ] && [ "$HTTP_PROXY" != "" ]; then
+        log_info "使用代理配置启动服务..."
+        HTTP_PROXY="$HTTP_PROXY" HTTPS_PROXY="$HTTPS_PROXY" NO_PROXY="$NO_PROXY" \
+        docker compose -f docker-compose.prod.yml up -d postgres redis
+    else
+        log_info "使用直连模式启动服务..."
+        docker compose -f docker-compose.prod.yml up -d postgres redis
+    fi
     
     log_success "基础环境启动完成"
 }
