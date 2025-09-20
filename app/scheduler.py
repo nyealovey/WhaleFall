@@ -4,6 +4,7 @@
 """
 
 import os
+from pathlib import Path
 from typing import Any
 
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
@@ -28,8 +29,6 @@ class TaskScheduler:
     def _setup_scheduler(self) -> None:
         """设置调度器"""
         # 任务存储配置 - 使用本地SQLite
-        import os
-        from pathlib import Path
         
         # 创建userdata目录
         userdata_dir = Path("userdata")
@@ -204,14 +203,21 @@ def _load_existing_jobs() -> None:
             logger.warning("SQLite数据库文件不存在，跳过加载现有任务")
             return
             
-        # 获取数据库中的所有任务
-        existing_jobs = scheduler.get_jobs()
-        if existing_jobs:
-            logger.info("从SQLite数据库加载了 %d 个现有任务", len(existing_jobs))
-            for job in existing_jobs:
-                logger.info("加载任务: %s (%s)", job.name, job.id)
-        else:
-            logger.info("SQLite数据库中没有找到任务")
+        # 使用try-except包装get_jobs调用，避免KeyboardInterrupt
+        try:
+            existing_jobs = scheduler.get_jobs()
+            if existing_jobs:
+                logger.info("从SQLite数据库加载了 %d 个现有任务", len(existing_jobs))
+                for job in existing_jobs:
+                    logger.info("加载任务: %s (%s)", job.name, job.id)
+            else:
+                logger.info("SQLite数据库中没有找到任务")
+        except KeyboardInterrupt:
+            logger.warning("加载任务时被中断，跳过加载现有任务")
+            return
+        except Exception as e:
+            logger.error("获取任务列表失败: %s", str(e))
+            return
     except Exception as e:
         logger.error("加载现有任务失败: %s", str(e))
         # 不抛出异常，让应用继续启动
@@ -224,9 +230,16 @@ def _add_default_jobs() -> None:
     from app.tasks import cleanup_old_logs, sync_accounts
 
     # 检查是否已有任务
-    existing_jobs = scheduler.get_jobs()
-    if existing_jobs:
-        logger.info("发现 %d 个现有任务，跳过创建默认任务", len(existing_jobs))
+    try:
+        existing_jobs = scheduler.get_jobs()
+        if existing_jobs:
+            logger.info("发现 %d 个现有任务，跳过创建默认任务", len(existing_jobs))
+            return
+    except KeyboardInterrupt:
+        logger.warning("检查现有任务时被中断，跳过创建默认任务")
+        return
+    except Exception as e:
+        logger.error("检查现有任务失败: %s", str(e))
         return
 
     # 从配置文件读取默认任务

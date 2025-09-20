@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 加载模块列表
 function loadModules() {
-    fetch('/unified-logs/api/modules')
+    fetch('/logs/api/modules')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -348,7 +348,7 @@ function loadModules() {
 
 // 加载统计信息
 function loadStats() {
-    fetch('/unified-logs/api/stats')
+    fetch('/logs/api/stats')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -388,7 +388,7 @@ function searchLogs(page = 1) {
         '<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i>搜索中...</div>';
 
     // 发送请求
-    fetch(`/unified-logs/api/search?${params}`)
+    fetch(`/logs/api/search?${params}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -539,7 +539,7 @@ function displayPagination(pagination) {
 
 // 查看日志详情
 function viewLogDetail(logId) {
-    fetch(`/unified-logs/api/detail/${logId}`)
+    fetch(`/logs/api/detail/${logId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -616,12 +616,12 @@ function exportLogs(format) {
     const params = new URLSearchParams(currentFilters);
     params.append('format', format);
     
-    window.open(`/unified-logs/api/export?${params}`, '_blank');
+    window.open(`/logs/api/export?${params}`, '_blank');
 }
 
 // 查看日志上下文
 function viewLogContext(logId) {
-    fetch(`/unified-logs/api/detail/${logId}`)
+    fetch(`/logs/api/detail/${logId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -656,7 +656,7 @@ function viewLogContext(logId) {
 
 // 查看调试信息
 function viewLogDebug(logId) {
-    fetch(`/unified-logs/api/detail/${logId}`)
+    fetch(`/logs/api/detail/${logId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {

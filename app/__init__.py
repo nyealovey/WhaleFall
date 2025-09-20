@@ -411,6 +411,26 @@ def register_blueprints(app: Flask) -> None:
     # 注册同步会话管理蓝图
     from app.routes.sync_sessions import sync_sessions_bp
 
+    # 注册所有蓝图到Flask应用
+    app.register_blueprint(main_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(instances_bp, url_prefix='/instances')
+    app.register_blueprint(credentials_bp, url_prefix='/credentials')
+    app.register_blueprint(account_classification_bp, url_prefix='/account-classification')
+    app.register_blueprint(account_list_bp, url_prefix='/accounts')
+    app.register_blueprint(account_static_bp, url_prefix='/account-static')
+    app.register_blueprint(account_sync_bp, url_prefix='/account-sync')
+    app.register_blueprint(instance_accounts_bp, url_prefix='/instance-accounts')
+    app.register_blueprint(tags_bp, url_prefix='/tags')
+    app.register_blueprint(unified_logs_bp, url_prefix='/logs')
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(health_bp, url_prefix='/health')
+    app.register_blueprint(cache_bp, url_prefix='/cache')
+    app.register_blueprint(database_types_bp, url_prefix='/database-types')
+    app.register_blueprint(user_management_bp, url_prefix='/users')
+    app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
+    app.register_blueprint(sync_sessions_bp, url_prefix='/sync-sessions')
 
     # 初始化定时任务调度器
     from app.scheduler import init_scheduler
