@@ -85,15 +85,8 @@ start_base_environment() {
     # 停止可能存在的容器（不删除）
     docker compose -f docker-compose.prod.yml stop postgres redis 2>/dev/null || true
     
-    # 启动基础服务（传递代理环境变量）
-    if [ -n "$HTTP_PROXY" ] && [ "$HTTP_PROXY" != "" ]; then
-        log_info "使用代理配置启动服务..."
-        HTTP_PROXY="$HTTP_PROXY" HTTPS_PROXY="$HTTPS_PROXY" NO_PROXY="$NO_PROXY" \
-        docker compose -f docker-compose.prod.yml up -d postgres redis
-    else
-        log_info "使用直连模式启动服务..."
-        docker compose -f docker-compose.prod.yml up -d postgres redis
-    fi
+    # 启动基础服务
+    docker compose -f docker-compose.prod.yml up -d postgres redis
     
     log_success "基础环境启动完成"
 }

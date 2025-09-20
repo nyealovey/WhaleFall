@@ -156,8 +156,15 @@ build_production_image() {
 start_production_environment() {
     log_step "启动生产环境服务..."
     
-    # 启动所有服务
-    docker compose -f docker-compose.prod.yml up -d
+    # 启动所有服务（传递代理环境变量）
+    if [ -n "$HTTP_PROXY" ] && [ "$HTTP_PROXY" != "" ]; then
+        log_info "使用代理配置启动服务..."
+        HTTP_PROXY="$HTTP_PROXY" HTTPS_PROXY="$HTTPS_PROXY" NO_PROXY="$NO_PROXY" \
+        docker compose -f docker-compose.prod.yml up -d
+    else
+        log_info "使用直连模式启动服务..."
+        docker compose -f docker-compose.prod.yml up -d
+    fi
     
     log_success "生产环境服务启动完成"
 }
