@@ -30,12 +30,7 @@ BEGIN
     PRINT '已授予查看服务器级定义权限';
 END
 
--- 查看服务器状态权限（可选，用于性能监控）
-IF NOT EXISTS (SELECT * FROM sys.server_permissions WHERE grantee_principal_id = USER_ID('monitor_user') AND permission_name = 'VIEW SERVER STATE')
-BEGIN
-    GRANT VIEW SERVER STATE TO [monitor_user];
-    PRINT '已授予查看服务器状态权限';
-END
+-- 注意：移除了VIEW SERVER STATE权限，因为代码中未使用
 
 -- 3. 创建数据库触发器，自动为新数据库设置权限
 -- 这个触发器会在新数据库创建时自动执行
@@ -170,9 +165,10 @@ PRINT '';
 PRINT '核心特性：';
 PRINT '1. ✅ 支持跨数据库查询，使用三部分命名法';
 PRINT '2. ✅ 自动为新创建的数据库设置权限（通过触发器）';
-PRINT '3. ✅ 遵循最小权限原则，安全性更高';
+PRINT '3. ✅ 遵循最小权限原则，仅授予必要的权限';
 PRINT '4. ✅ 支持实时查询所有数据库的用户和权限信息';
 PRINT '5. ✅ 无需手动为每个新数据库设置权限';
+PRINT '6. ✅ 移除了不必要的VIEW SERVER STATE权限';
 PRINT '';
 PRINT '使用方法：';
 PRINT '在鲸落系统中使用以下凭据：';
