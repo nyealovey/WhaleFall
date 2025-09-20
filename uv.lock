@@ -1549,6 +1549,7 @@ dependencies = [
     { name = "requests" },
     { name = "sqlalchemy" },
     { name = "structlog" },
+    { name = "tzdata" },
 ]
 
 [package.optional-dependencies]
@@ -1613,6 +1614,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.13.0" },
     { name = "sqlalchemy", specifier = ">=2.0.43" },
     { name = "structlog", specifier = ">=25.4.0" },
+    { name = "tzdata", specifier = ">=2025.2" },
 ]
 provides-extras = ["dev"]
 
