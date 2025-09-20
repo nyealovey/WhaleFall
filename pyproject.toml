@@ -1,6 +1,6 @@
 [project]
 name = "whalefallingv4"
-version = "1.0.1"
+version = "1.0.2"
 description = "鲸落 - DBA数据库管理Web应用"
 authors = [
     {name = "TaifishingV4 Team", email = "team@whalefalling.com"}

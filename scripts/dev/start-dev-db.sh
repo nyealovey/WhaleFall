@@ -110,6 +110,71 @@ wait_for_services() {
     log_success "Redis已就绪"
 }
 
+# 初始化数据库
+initialize_database() {
+    log_info "初始化数据库..."
+    
+    # 检查数据库是否已初始化
+    local table_count=$(docker compose -f docker-compose.dev.yml exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    
+    if [ "$table_count" -gt 0 ]; then
+        log_warning "数据库已包含 $table_count 个表，跳过初始化"
+        return 0
+    fi
+    
+    log_info "执行数据库初始化脚本..."
+    
+    # 执行主初始化脚本
+    if [ -f "sql/init_postgresql.sql" ]; then
+        log_info "执行 init_postgresql.sql..."
+        docker compose -f docker-compose.dev.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_postgresql.sql
+        if [ $? -eq 0 ]; then
+            log_success "init_postgresql.sql 执行成功"
+        else
+            log_error "init_postgresql.sql 执行失败"
+            return 1
+        fi
+    else
+        log_warning "未找到 sql/init_postgresql.sql 文件"
+    fi
+    
+    # 执行权限配置脚本
+    if [ -f "sql/permission_configs.sql" ]; then
+        log_info "执行 permission_configs.sql..."
+        docker compose -f docker-compose.dev.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/permission_configs.sql
+        if [ $? -eq 0 ]; then
+            log_success "permission_configs.sql 执行成功"
+        else
+            log_warning "permission_configs.sql 执行失败，但继续执行"
+        fi
+    else
+        log_warning "未找到 sql/permission_configs.sql 文件"
+    fi
+    
+    # 执行调度器任务初始化脚本
+    if [ -f "sql/init_scheduler_tasks.sql" ]; then
+        log_info "执行 init_scheduler_tasks.sql..."
+        docker compose -f docker-compose.dev.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_scheduler_tasks.sql
+        if [ $? -eq 0 ]; then
+            log_success "init_scheduler_tasks.sql 执行成功"
+        else
+            log_warning "init_scheduler_tasks.sql 执行失败，但继续执行"
+        fi
+    else
+        log_warning "未找到 sql/init_scheduler_tasks.sql 文件"
+    fi
+    
+    # 验证初始化结果
+    local final_table_count=$(docker compose -f docker-compose.dev.yml exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
+    
+    if [ "$final_table_count" -gt 0 ]; then
+        log_success "数据库初始化完成，共创建 $final_table_count 个表"
+    else
+        log_error "数据库初始化失败，未创建任何表"
+        return 1
+    fi
+}
+
 # 显示服务信息
 show_service_info() {
     log_info "服务信息"
@@ -122,6 +187,7 @@ show_service_info() {
     echo "  - Redis: localhost:6379"
     echo "  - 数据库名: ${POSTGRES_DB}"
     echo "  - 数据库用户: ${POSTGRES_USER}"
+    echo "  - 数据库状态: 已初始化"
     echo ""
     echo -e "${BLUE}🚀 启动Flask应用：${NC}"
     echo "  - 命令: python app.py"
@@ -147,6 +213,7 @@ main() {
     check_environment
     start_database_services
     wait_for_services
+    initialize_database
     show_service_info
     
     log_success "开发环境数据库服务启动完成！"
