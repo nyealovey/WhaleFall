@@ -157,7 +157,10 @@ class User(UserMixin, db.Model):
             # 在控制台显示生成的密码（仅开发环境）
             import os
             if os.getenv('FLASK_ENV') == 'development':
-        return admin
+                print(f"管理员用户已创建: {admin.username}")
+                print(f"密码: {password}")
+            
+            return admin
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"
