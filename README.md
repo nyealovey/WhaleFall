@@ -1,7 +1,7 @@
 # 鲸落 (TaifishV4)
 
-[![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
-[![Flask](https://img.shields.io/badge/Flask-3.0.3-green.svg)](https://flask.palletsprojects.com)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-v1.0.1-blue.svg)]()
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
@@ -46,7 +46,7 @@
 
 ### 环境要求
 
-- Python 3.13+ (推荐使用 uv 管理)
+- Python 3.11+ (推荐使用 uv 管理)
 - Redis 5.0+
 - Docker & Docker Compose (推荐)
 
@@ -79,8 +79,7 @@
 | `REDIS_PASSWORD` | ✅ | Redis密码 | `your_redis_password` |
 | `SECRET_KEY` | ✅ | Flask密钥 | `your_secret_key` |
 | `JWT_SECRET_KEY` | ✅ | JWT密钥 | `your_jwt_secret_key` |
-| `DATABASE_URL_DOCKER` | ✅ | Docker容器内数据库URL | `postgresql://user:pass@postgres:5432/db` |
-| `DATABASE_URL_PROD` | ✅ | 生产环境数据库URL | `postgresql://user:pass@postgres:5432/db` |
+| `DATABASE_URL` | ✅ | 数据库连接URL | `postgresql://user:pass@host:port/db` |
 | `CACHE_REDIS_URL` | ✅ | Redis连接URL | `redis://:pass@redis:6379/0` |
 | `FLASK_HOST` | ❌ | Flask监听地址 | `0.0.0.0` |
 | `FLASK_PORT` | ❌ | Flask监听端口 | `5001` |
@@ -457,13 +456,13 @@ docker run -p 5001:5001 whalefall
 ## 🛠️ 技术栈
 
 ### 后端技术
-- **Flask 3.0.3** - Web应用框架
-- **SQLAlchemy 2.0.30** - 数据库ORM
-- **Flask-Migrate 4.0.7** - 数据库迁移
+- **Flask 3.1.2** - Web应用框架
+- **SQLAlchemy 2.0.43** - 数据库ORM
+- **Flask-Migrate 4.1.0** - 数据库迁移
 - **Flask-Login 0.6.3** - 用户认证
-- **Flask-JWT-Extended 4.6.0** - JWT认证
-- **Celery 5.3.6** - 异步任务队列
-- **Redis 8.2.1** - 缓存和消息队列
+- **Flask-JWT-Extended 4.7.1** - JWT认证
+- **APScheduler 3.11.0** - 定时任务调度
+- **Redis 7.4.0** - 缓存和消息队列
 
 ### 前端技术
 - **Bootstrap 5.3.2** - UI组件库
@@ -477,7 +476,7 @@ docker run -p 5001:5001 whalefall
 - **SQL Server** - 支持SQL Server实例管理，支持服务器角色、服务器权限、数据库角色、数据库权限
 - **Oracle** - 支持Oracle实例管理，使用python-oracledb驱动，支持系统权限、角色、表空间权限、表空间配额
 
-> **Oracle驱动说明**: 项目已升级到python-oracledb 2.0.0，完全支持Apple Silicon Mac。详细安装指南请参考 [Oracle驱动指南](doc/ORACLE_DRIVER_GUIDE.md)
+> **Oracle驱动说明**: 项目已升级到python-oracledb 3.3.0，完全支持Apple Silicon Mac。详细安装指南请参考 [Oracle驱动指南](docs/database/ORACLE_DRIVER_GUIDE.md)
 
 ## 📁 项目结构
 
@@ -629,10 +628,10 @@ gunicorn -w 4 -b 0.0.0.0:5001 app:app
 - `POST /tasks/create-builtin` - 创建内置任务
 - `POST /tasks/execute-all` - 批量执行任务
 
-更多API文档请参考 [API文档](doc/api/README.md)
+更多API文档请参考 [API文档](docs/api/README.md)
 
 ### 日志管理功能
-详细的日志管理功能说明请参考 [日志管理功能文档](doc/LOG_MANAGEMENT_FEATURES.md)
+详细的日志管理功能说明请参考 [日志管理功能文档](docs/LOG_MANAGEMENT_FEATURES.md)
 
 ## 🧪 测试
 
@@ -691,7 +690,7 @@ pytest --cov=app tests/
 - **文档**: [项目文档](docs/)
   - [技术规格文档](docs/architecture/spec.md)
   - [开发指南](docs/development/DEVELOPMENT_GUIDE.md)
-  - [部署指南](docs/guides/README_DEPLOYMENT.md)
+  - [部署指南](docs/deployment/README.md)
   - [更新日志](CHANGELOG.md)
 
 ## 🗺️ 路线图
@@ -714,7 +713,7 @@ pytest --cov=app tests/
 - [ ] 自动化运维
 - [ ] 监控告警
 
-### v1.0.0 (当前版本)
+### v1.0.1 (当前版本)
 - [ ] 微服务架构
 - [ ] 云原生部署
 - [ ] 大数据分析

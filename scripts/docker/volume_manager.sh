@@ -33,16 +33,16 @@ log_error() {
 DEV_VOLUMES=(
     "whalefall_postgres_data"
     "whalefall_redis_data"
-    "whalefall_nginx_logs"
-    "whalefall_nginx_ssl"
+    "whalefall_app_logs"
+    "whalefall_app_ssl"
     "whalefall_app_data"
 )
 
 PROD_VOLUMES=(
     "whalefall_postgres_data"
     "whalefall_redis_data"
-    "whalefall_nginx_logs"
-    "whalefall_nginx_ssl"
+    "whalefall_app_logs"
+    "whalefall_app_ssl"
     "whalefall_app_data"
 )
 
@@ -263,14 +263,14 @@ migrate_volumes() {
     # 迁移Nginx日志
     if [ -d "./userdata/nginx/logs" ]; then
         log_info "迁移Nginx日志..."
-        docker run --rm -v whalefall_nginx_logs:/target -v "$(pwd)/userdata/nginx/logs":/source alpine sh -c "cp -r /source/* /target/"
+        docker run --rm -v whalefall_app_logs:/target -v "$(pwd)/userdata/nginx/logs":/source alpine sh -c "cp -r /source/* /target/"
         log_success "Nginx日志迁移完成"
     fi
     
     # 迁移Nginx SSL
     if [ -d "./userdata/nginx/ssl" ]; then
         log_info "迁移Nginx SSL证书..."
-        docker run --rm -v whalefall_nginx_ssl:/target -v "$(pwd)/userdata/nginx/ssl":/source alpine sh -c "cp -r /source/* /target/"
+        docker run --rm -v whalefall_app_ssl:/target -v "$(pwd)/userdata/nginx/ssl":/source alpine sh -c "cp -r /source/* /target/"
         log_success "Nginx SSL证书迁移完成"
     fi
     

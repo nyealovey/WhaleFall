@@ -1,5 +1,7 @@
 # 鲸落 - 快速参考
 
+> **注意**: 详细的UV使用指南请参考 [UV使用指南](UV_USAGE_GUIDE.md)
+
 ## 🚀 快速启动
 
 ### 开发环境
@@ -8,26 +10,21 @@
 git clone https://github.com/nyealovey/TaifishingV4.git
 cd TaifishingV4
 
-# 2. 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # macOS/Linux
-# venv\Scripts\activate  # Windows
-
-# 3. 安装依赖 (使用uv)
+# 2. 使用UV安装依赖
 uv sync
 
-# 4. 配置环境
-cp env.example .env
+# 3. 配置环境
+cp env.development .env
 # 编辑 .env 文件
 
-# 5. 初始化数据库
+# 4. 初始化数据库
 flask db upgrade
 python scripts/create_admin_user.py
 
-# 6. 启动Redis
+# 5. 启动Redis
 redis-server  # 或使用Docker: docker run -d -p 6379:6379 redis:7.2.5
 
-# 7. 启动应用
+# 6. 启动应用
 uv run python app.py
 ```
 

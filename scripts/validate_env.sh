@@ -31,7 +31,7 @@ log_error() {
 # 检查.env文件是否存在
 if [ ! -f ".env" ]; then
     log_error ".env文件不存在！"
-    log_error "请复制env.example为.env并配置相应的环境变量"
+    log_error "请复制env.development或env.production为.env并配置相应的环境变量"
     exit 1
 fi
 
@@ -58,8 +58,7 @@ REQUIRED_VARS=(
     "LOG_LEVEL"
     "CACHE_TYPE"
     "CACHE_REDIS_URL"
-    "DATABASE_URL_DOCKER"
-    "DATABASE_URL_PROD"
+    "DATABASE_URL"
     "PERMANENT_SESSION_LIFETIME"
 )
 
@@ -102,19 +101,11 @@ done
 # 验证数据库URL格式
 log_info "验证数据库URL格式..."
 
-# 验证Docker数据库URL
-if [[ ! "$DATABASE_URL_DOCKER" =~ ^postgresql://.*@postgres:5432/.*$ ]]; then
-    log_error "DATABASE_URL_DOCKER格式错误！"
-    log_error "应该是: postgresql://用户名:密码@postgres:5432/数据库名"
-    log_error "当前值: $DATABASE_URL_DOCKER"
-    exit 1
-fi
-
-# 验证生产数据库URL
-if [[ ! "$DATABASE_URL_PROD" =~ ^postgresql://.*@postgres:5432/.*$ ]]; then
-    log_error "DATABASE_URL_PROD格式错误！"
-    log_error "应该是: postgresql://用户名:密码@postgres:5432/数据库名"
-    log_error "当前值: $DATABASE_URL_PROD"
+# 验证数据库URL
+if [[ ! "$DATABASE_URL" =~ ^postgresql://.*@.*:.*/.*$ ]]; then
+    log_error "DATABASE_URL格式错误！"
+    log_error "应该是: postgresql://用户名:密码@主机:端口/数据库名"
+    log_error "当前值: $DATABASE_URL"
     exit 1
 fi
 

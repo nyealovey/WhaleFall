@@ -29,8 +29,11 @@ class Config:
         )
     )
 
-    # 数据库配置
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", DefaultConfig.DATABASE_URL)
+    # 数据库配置 - 必须从环境变量获取，不允许硬编码
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL environment variable must be set")
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
@@ -41,9 +44,11 @@ class Config:
         "echo": DEBUG,  # 开发环境显示SQL，生产环境不显示
     }
 
-    # Redis配置
+    # Redis配置 - 必须从环境变量获取，不允许硬编码
     CACHE_TYPE = "redis"
-    CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", DefaultConfig.REDIS_URL)
+    CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL")
+    if not CACHE_REDIS_URL:
+        raise ValueError("CACHE_REDIS_URL environment variable must be set")
     CACHE_DEFAULT_TIMEOUT = int(os.getenv("CACHE_DEFAULT_TIMEOUT", SystemConstants.DEFAULT_CACHE_TIMEOUT))
 
     # 安全配置

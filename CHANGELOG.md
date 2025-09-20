@@ -55,8 +55,8 @@
 - 系统监控和日志管理
 
 ### 技术栈
-- 后端: Flask 3.0.3 + SQLAlchemy 1.4.54 + APScheduler 3.10.4
+- 后端: Flask 3.1.2 + SQLAlchemy 2.0.43 + APScheduler 3.11.0
 - 前端: Bootstrap 5.3.2 + jQuery 3.7.1 + Chart.js 4.4.0
-- 数据库: PostgreSQL 15 + Redis 7
+- 数据库: PostgreSQL 15 + Redis 7.4.0
 - 容器化: Docker + Docker Compose + Nginx + Supervisor
 - Python环境: Python 3.11 + uv包管理器

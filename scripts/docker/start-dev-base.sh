@@ -40,12 +40,12 @@ check_docker() {
 # 检查环境配置文件
 check_env() {
     if [ ! -f ".env" ]; then
-        log_warning "未找到.env文件，从env.template创建"
-        if [ -f "env.template" ]; then
-            cp env.template .env
+        log_warning "未找到.env文件，从env.development创建"
+        if [ -f "env.development" ]; then
+            cp env.development .env
             log_info "请根据需要修改.env文件中的配置"
         else
-            log_error "未找到env.template文件，请先创建环境配置文件"
+            log_error "未找到env.development文件，请先创建环境配置文件"
             exit 1
         fi
     fi

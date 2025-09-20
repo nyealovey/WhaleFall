@@ -40,8 +40,8 @@ check_env() {
     source .env
     
     # 检查关键环境变量
-    if [ -z "$DATABASE_URL_DOCKER" ]; then
-        log_error "DATABASE_URL_DOCKER未设置"
+    if [ -z "$DATABASE_URL" ]; then
+        log_error "DATABASE_URL未设置"
         exit 1
     fi
     

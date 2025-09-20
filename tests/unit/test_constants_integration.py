@@ -29,8 +29,8 @@ def test_constants_import():
         logger.debug("✓ PASSWORD_HASH_ROUNDS: {SystemConstants.PASSWORD_HASH_ROUNDS}")
 
         # 测试DefaultConfig
-        logger.debug("✓ DATABASE_URL: {DefaultConfig.DATABASE_URL}")
-        logger.debug("✓ SECRET_KEY: {DefaultConfig.SECRET_KEY[:20]}...")
+        logger.debug("✓ DATABASE_URL: {DefaultConfig.DATABASE_URL} (从环境变量获取)")
+        logger.debug("✓ SECRET_KEY: {DefaultConfig.SECRET_KEY[:20] if DefaultConfig.SECRET_KEY else 'None'}...")
 
         # 测试ErrorMessages
         logger.debug("✓ INTERNAL_ERROR: {ErrorMessages.INTERNAL_ERROR}")

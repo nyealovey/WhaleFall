@@ -44,21 +44,21 @@ fi
 log_info "开始更新 Nginx 错误页面..."
 
 # 检查 Nginx 容器是否运行
-if ! docker ps | grep -q "whalefall_nginx_prod"; then
+if ! docker ps | grep -q "whalefall_app_prod"; then
     log_warning "Nginx 容器未运行，将启动基础环境"
     ./scripts/docker/start-prod-base.sh
 fi
 
 # 重启 Nginx 容器以应用新的错误页面
 log_info "重启 Nginx 容器以应用错误页面..."
-docker restart whalefall_nginx_prod
+docker restart whalefall_app_prod
 
 # 等待 Nginx 启动
 log_info "等待 Nginx 启动..."
 sleep 5
 
 # 检查 Nginx 状态
-if docker ps | grep -q "whalefall_nginx_prod.*Up"; then
+if docker ps | grep -q "whalefall_app_prod.*Up"; then
     log_success "Nginx 容器重启成功"
 else
     log_error "Nginx 容器启动失败"

@@ -13,8 +13,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 配置变量
-NGINX_CONTAINER_DEV="whalefall_nginx_dev"
-NGINX_CONTAINER_PROD="whalefall_nginx_prod"
+NGINX_CONTAINER_DEV="whalefall_app_dev"
+NGINX_CONTAINER_PROD="whalefall_app_prod"
 NGINX_CONFIG_PATH="/etc/nginx/conf.d/whalefall.conf"
 NGINX_SSL_PATH="/etc/nginx/ssl"
 
