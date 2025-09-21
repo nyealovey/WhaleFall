@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # 鲸落项目Flask快速更新脚本
-# 功能：极速更新Flask应用，适用于生产环境
-# 特点：销毁重建容器、最小化停机时间、自动验证
+# 功能：智能更新Flask应用，适用于生产环境
+# 特点：支持创建新容器或重建现有容器、最小化停机时间、自动验证
 
 set -e
 
@@ -41,8 +41,8 @@ show_banner() {
     echo "╔══════════════════════════════════════════════════════════════╗"
     echo "║                    鲸落项目快速更新                         ║"
     echo "║                    TaifishV4 Quick Update                   ║"
-    echo "║                   (容器重建模式)                            ║"
-    echo "║                (销毁重建Flask容器)                           ║"
+    echo "║                   (智能容器模式)                            ║"
+    echo "║                (支持创建新容器或重建)                        ║"
     echo "║                (无回滚机制，失败需手动处理)                   ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -88,10 +88,12 @@ check_requirements() {
 check_current_status() {
     log_step "检查当前服务状态..."
     
-    # 检查是否有运行中的容器
-    if ! docker compose -f docker-compose.prod.yml ps -q | grep -q .; then
-        log_error "没有运行中的服务，请先运行完整部署脚本"
-        exit 1
+    # 检查是否有运行中的容器（允许没有容器的情况）
+    local has_containers
+    has_containers=$(docker compose -f docker-compose.prod.yml ps -q | grep -c . || echo "0")
+    
+    if [ "$has_containers" -eq 0 ]; then
+        log_warning "没有运行中的服务，将创建新容器"
     fi
     
     # 检查Flask容器状态
@@ -100,9 +102,11 @@ check_current_status() {
     
     if echo "$flask_status" | grep -q "Up"; then
         log_success "Flask容器正在运行: $flask_status"
+        export CREATE_NEW_CONTAINER=false
     else
-        log_error "Flask容器未运行: $flask_status"
-        exit 1
+        log_warning "Flask容器未运行: $flask_status"
+        log_info "将创建新的Flask容器"
+        export CREATE_NEW_CONTAINER=true
     fi
     
     # 检查数据库和Redis状态
@@ -112,8 +116,9 @@ check_current_status() {
     if echo "$postgres_status" | grep -q "Up"; then
         log_success "PostgreSQL正在运行: $postgres_status"
     else
-        log_error "PostgreSQL未运行: $postgres_status"
-        exit 1
+        log_info "启动PostgreSQL服务..."
+        docker compose -f docker-compose.prod.yml up -d postgres
+        log_success "PostgreSQL已启动"
     fi
     
     local redis_status
@@ -122,8 +127,9 @@ check_current_status() {
     if echo "$redis_status" | grep -q "Up"; then
         log_success "Redis正在运行: $redis_status"
     else
-        log_error "Redis未运行: $redis_status"
-        exit 1
+        log_info "启动Redis服务..."
+        docker compose -f docker-compose.prod.yml up -d redis
+        log_success "Redis已启动"
     fi
     
     log_success "当前服务状态检查通过"
@@ -189,6 +195,15 @@ build_new_image() {
 stop_flask_service() {
     log_step "停止Flask服务..."
     
+    # 检查Flask容器是否存在
+    local flask_container_id
+    flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
+    
+    if [ -z "$flask_container_id" ]; then
+        log_info "Flask容器不存在，跳过停止操作"
+        return 0
+    fi
+    
     # 优雅停止Flask容器
     log_info "优雅停止Flask容器..."
     docker compose -f docker-compose.prod.yml stop whalefall
@@ -215,9 +230,17 @@ stop_flask_service() {
 destroy_flask_container() {
     log_step "销毁Flask容器..."
     
-    # 删除Flask容器
-    log_info "删除Flask容器..."
-    docker compose -f docker-compose.prod.yml rm -f whalefall
+    # 检查Flask容器是否存在
+    local flask_container_id
+    flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
+    
+    if [ -z "$flask_container_id" ]; then
+        log_info "Flask容器不存在，跳过销毁操作"
+    else
+        # 删除Flask容器
+        log_info "删除Flask容器..."
+        docker compose -f docker-compose.prod.yml rm -f whalefall
+    fi
     
     # 清理悬空镜像
     log_info "清理悬空镜像..."
@@ -359,7 +382,8 @@ show_update_result() {
     echo "  - 健康状态: curl http://localhost:5001/health"
     echo ""
     echo -e "${YELLOW}⚠️  注意事项：${NC}"
-    echo "  - 本次更新为容器重建模式，数据已保留"
+    echo "  - 本次更新为智能容器模式，数据已保留"
+    echo "  - 支持创建新容器或重建现有容器"
     echo "  - 如有问题，请手动检查服务状态和日志"
     echo "  - 建议定期备份重要数据"
     echo "  - 监控应用运行状态"
@@ -376,8 +400,15 @@ main() {
     check_current_status
     pull_latest_code
     build_new_image
-    stop_flask_service
-    destroy_flask_container
+    
+    # 根据容器状态决定是否停止和销毁
+    if [ "$CREATE_NEW_CONTAINER" = "true" ]; then
+        log_info "创建新容器模式，跳过停止和销毁操作"
+    else
+        stop_flask_service
+        destroy_flask_container
+    fi
+    
     start_new_flask_service
     wait_for_service_ready
     
