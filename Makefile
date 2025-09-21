@@ -34,7 +34,12 @@ help:
 	@echo "  install     - 安装项目依赖"
 	@echo "  clean       - 清理Docker资源"
 	@echo "  version     - 查看版本信息"
-	@echo "=================================="
+	@echo ""
+	@echo "常量管理命令:"
+	@echo "  constants-doc      - 生成常量文档"
+	@echo "  constants-monitor  - 监控常量使用"
+	@echo "  constants-analysis - 运行完整分析"
+·	@echo "=================================="
 
 # 开发环境命令
 dev:
@@ -181,6 +186,22 @@ test:
 	else \
 		python -m pytest tests/; \
 	fi
+
+# 常量管理命令
+constants-doc:
+	@echo "📝 生成常量文档..."
+	@python3 scripts/constants_standalone.py generate-doc --verbose
+	@echo "✅ 常量文档生成完成"
+
+constants-monitor:
+	@echo "📊 监控常量使用..."
+	@python3 scripts/constants_standalone.py monitor --verbose
+	@echo "✅ 常量监控完成"
+
+constants-analysis:
+	@echo "🚀 运行完整分析..."
+	@python3 scripts/constants_standalone.py full-analysis --verbose
+	@echo "✅ 常量分析完成"
 
 # 防止目标被当作文件
 %:
