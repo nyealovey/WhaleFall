@@ -106,11 +106,16 @@ class OptimizedAccountClassificationService:
         try:
             # 尝试从缓存获取规则
             if cache_manager:
-                cached_rules = cache_manager.get_classification_rules_cache()
-                if cached_rules:
+                cached_data = cache_manager.get_classification_rules_cache()
+                if cached_data and isinstance(cached_data, dict) and "rules" in cached_data:
+                    cached_rules = cached_data["rules"]
                     log_info("从缓存获取分类规则", module="account_classification", count=len(cached_rules))
                     # 将缓存的字典数据转换回ClassificationRule对象
                     return self._rules_from_cache_data(cached_rules)
+                elif cached_data and isinstance(cached_data, list):
+                    # 兼容旧格式缓存数据
+                    log_info("从缓存获取分类规则（旧格式）", module="account_classification", count=len(cached_data))
+                    return self._rules_from_cache_data(cached_data)
 
             # 缓存未命中，从数据库查询
             rules = (
@@ -206,6 +211,7 @@ class OptimizedAccountClassificationService:
                         # 将规则对象转换为可缓存的字典格式
                         rules_data = self._rules_to_cache_data(db_rules)
                         cache_manager.set_classification_rules_by_db_type_cache(db_type, rules_data)
+                        log_info(f"数据库类型 {db_type} 规则已缓存", module="account_classification", count=len(rules_data))
                     except Exception as e:
                         log_error(f"缓存数据库类型规则失败: {db_type}", module="account_classification", error=str(e))
             
