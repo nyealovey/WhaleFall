@@ -523,7 +523,10 @@ except Exception as e:
 import redis
 import os
 try:
-    password = os.environ.get('REDIS_PASSWORD', 'Redis2024!')
+    password = os.environ.get('REDIS_PASSWORD')
+    if not password:
+        print('Redis连接失败: REDIS_PASSWORD环境变量未设置')
+        exit(1)
     r = redis.Redis(host='redis', port=6379, password=password, decode_responses=True)
     result = r.ping()
     print(f'Redis连接成功: {result}')
