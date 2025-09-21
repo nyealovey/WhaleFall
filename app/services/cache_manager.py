@@ -5,7 +5,7 @@
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from flask_caching import Cache
@@ -66,7 +66,7 @@ class CacheManager:
             cache_data = {
                 "roles": roles,
                 "permissions": permissions,
-                "cached_at": datetime.now(tz=datetime.UTC).isoformat(),
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
                 "instance_id": instance_id,
                 "username": username,
                 "db_name": db_name,
@@ -145,7 +145,7 @@ class CacheManager:
             cache_key = self._generate_cache_key("account_perms", account_id, "", "")
             cache_data = {
                 "permissions": permissions,
-                "cached_at": datetime.now(tz=datetime.UTC).isoformat(),
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
                 "account_id": account_id,
             }
 
@@ -187,7 +187,7 @@ class CacheManager:
             cache_key = self._generate_cache_key("rule_eval", rule_id, account_id, "")
             cache_data = {
                 "result": result,
-                "cached_at": datetime.now(tz=datetime.UTC).isoformat(),
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
                 "rule_id": rule_id,
                 "account_id": account_id,
             }
@@ -230,7 +230,7 @@ class CacheManager:
             cache_key = "classification_rules:all"
             cache_data = {
                 "rules": rules,
-                "cached_at": datetime.now(tz=datetime.UTC).isoformat(),
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
                 "count": len(rules),
             }
 
@@ -316,7 +316,7 @@ class CacheManager:
             cache_key = f"classification_rules:{db_type}"
             cache_data = {
                 "rules": rules,
-                "cached_at": datetime.now(tz=datetime.UTC).isoformat(),
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
                 "count": len(rules),
                 "db_type": db_type,
             }
@@ -367,7 +367,7 @@ class CacheManager:
             cache_key = f"accounts_by_db_type:{db_type}"
             cache_data = {
                 "accounts": accounts,
-                "cached_at": datetime.now(tz=datetime.UTC).isoformat(),
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
                 "count": len(accounts),
                 "db_type": db_type,
             }
@@ -446,7 +446,7 @@ class CacheManager:
             debug_info = {
                 "cache_enabled": self.cache is not None,
                 "cache_type": str(type(self.cache)),
-                "timestamp": datetime.now(tz=datetime.UTC).isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "cache_keys": {},
                 "health_check": self.health_check()
             }
