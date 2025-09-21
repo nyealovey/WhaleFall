@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# 鲸落项目生产环境部署脚本 v1.0.2
+# 鲸落项目生产环境部署脚本 v1.0.3
 # 功能：一键部署生产环境，包含环境检查、配置验证、服务启动等
-# 新增：PostgreSQL连接配置自动修复、容器间连接测试
+# 新增：PostgreSQL连接配置自动修复、容器间连接测试、Flask应用功能测试、Nginx代理测试
 
 set -e
 
@@ -40,7 +40,7 @@ show_banner() {
     echo -e "${PURPLE}"
     echo "╔══════════════════════════════════════════════════════════════╗"
     echo "║                    鲸落项目生产环境部署                      ║"
-    echo "║                       版本: 1.0.2                          ║"
+    echo "║                       版本: 1.0.3                          ║"
     echo "║                    TaifishV4 Production                    ║"
     echo "║                   (完全重建模式)                            ║"
     echo "║                (自动修复PostgreSQL连接)                     ║"
@@ -477,12 +477,120 @@ except Exception as e:
     fi
 }
 
+# 测试Flask应用功能
+test_flask_application() {
+    log_step "测试Flask应用功能..."
+    
+    # 测试Flask应用直接访问
+    log_info "测试Flask应用直接访问..."
+    local flask_response
+    flask_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall curl -s http://localhost:5001/health 2>/dev/null)
+    
+    if echo "$flask_response" | grep -q -E "(healthy|success)"; then
+        log_success "Flask应用直接访问测试成功"
+        log_info "Flask响应: $flask_response"
+    else
+        log_error "Flask应用直接访问测试失败"
+        log_error "Flask响应: $flask_response"
+        exit 1
+    fi
+    
+    # 测试数据库连接
+    log_info "测试Flask应用数据库连接..."
+    local db_test_response
+    db_test_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall python3 -c "
+import psycopg
+try:
+    conn = psycopg.connect('postgresql://whalefall_user:WhaleFall2024!@postgres:5432/whalefall_prod')
+    print('PostgreSQL连接成功!')
+    conn.close()
+except Exception as e:
+    print(f'PostgreSQL连接失败: {e}')
+" 2>/dev/null)
+    
+    if echo "$db_test_response" | grep -q "PostgreSQL连接成功"; then
+        log_success "Flask应用数据库连接测试成功"
+    else
+        log_error "Flask应用数据库连接测试失败"
+        log_error "数据库响应: $db_test_response"
+        exit 1
+    fi
+    
+    # 测试Redis连接
+    log_info "测试Flask应用Redis连接..."
+    local redis_test_response
+    redis_test_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall python3 -c "
+import redis
+try:
+    r = redis.Redis(host='redis', port=6379, password='Redis2024!', decode_responses=True)
+    result = r.ping()
+    print(f'Redis连接成功: {result}')
+except Exception as e:
+    print(f'Redis连接失败: {e}')
+" 2>/dev/null)
+    
+    if echo "$redis_test_response" | grep -q "Redis连接成功"; then
+        log_success "Flask应用Redis连接测试成功"
+    else
+        log_error "Flask应用Redis连接测试失败"
+        log_error "Redis响应: $redis_test_response"
+        exit 1
+    fi
+}
+
+# 测试Nginx代理功能
+test_nginx_proxy() {
+    log_step "测试Nginx代理功能..."
+    
+    # 测试Nginx代理健康检查
+    log_info "测试Nginx代理健康检查..."
+    local nginx_health_response
+    nginx_health_response=$(curl -s http://localhost/health 2>/dev/null)
+    
+    if echo "$nginx_health_response" | grep -q -E "(healthy|success)"; then
+        log_success "Nginx代理健康检查测试成功"
+        log_info "Nginx健康检查响应: $nginx_health_response"
+    else
+        log_error "Nginx代理健康检查测试失败"
+        log_error "Nginx健康检查响应: $nginx_health_response"
+        exit 1
+    fi
+    
+    # 测试Nginx代理首页
+    log_info "测试Nginx代理首页..."
+    local nginx_home_response
+    nginx_home_response=$(curl -s -I http://localhost/ 2>/dev/null | head -1)
+    
+    if echo "$nginx_home_response" | grep -q "200 OK"; then
+        log_success "Nginx代理首页测试成功"
+    else
+        log_warning "Nginx代理首页测试失败，响应: $nginx_home_response"
+    fi
+    
+    # 测试Nginx代理静态文件
+    log_info "测试Nginx代理静态文件..."
+    local nginx_static_response
+    nginx_static_response=$(curl -s -I http://localhost/static/ 2>/dev/null | head -1)
+    
+    if echo "$nginx_static_response" | grep -q -E "(200 OK|404 Not Found)"; then
+        log_success "Nginx代理静态文件测试成功"
+    else
+        log_warning "Nginx代理静态文件测试失败，响应: $nginx_static_response"
+    fi
+}
+
 # 验证Flask应用数据库连接
 verify_flask_database_connection() {
     log_step "验证Flask应用数据库连接..."
     
     # 测试容器间连接
     test_container_connectivity
+    
+    # 测试Flask应用功能
+    test_flask_application
+    
+    # 测试Nginx代理功能
+    test_nginx_proxy
     
     # 等待Flask应用完全启动
     log_info "等待Flask应用完全启动..."
@@ -594,7 +702,7 @@ show_deployment_info() {
     echo -e "${GREEN}🎉 生产环境部署完成！${NC}"
     echo ""
     echo -e "${BLUE}📋 服务信息：${NC}"
-    echo "  - 应用版本: 1.0.2"
+    echo "  - 应用版本: 1.0.3"
     echo "  - 部署时间: $(date)"
     echo "  - 部署用户: $(whoami)"
     echo "  - 部署模式: 完全重建 (所有数据已重置)"
@@ -631,7 +739,7 @@ show_deployment_info() {
 main() {
     show_banner
     
-    log_info "开始部署鲸落项目生产环境 v1.0.2..."
+    log_info "开始部署鲸落项目生产环境 v1.0.3..."
     
     check_system_requirements
     check_environment
