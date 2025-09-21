@@ -74,8 +74,8 @@ class OptimizedAccountClassificationService:
                 instance_id=instance_id,
             )
 
-            # 4. 全量重新分类
-            result = self._full_reclassify_accounts(accounts, rules)
+            # 4. 按数据库类型优化分类
+            result = self._classify_accounts_by_db_type_optimized(accounts, rules)
 
             # 5. 完成批次
             ClassificationBatchService.complete_batch(
@@ -149,6 +149,277 @@ class OptimizedAccountClassificationService:
             return query.all()
         except Exception as e:
             log_error(f"获取账户失败: {e}", module="account_classification")
+            return []
+
+    def _group_accounts_by_db_type(self, accounts: list[CurrentAccountSyncData]) -> dict[str, list[CurrentAccountSyncData]]:
+        """按数据库类型分组账户（优化性能，带缓存）"""
+        try:
+            grouped = {}
+            
+            # 按数据库类型分组
+            for account in accounts:
+                db_type = account.instance.db_type.lower()
+                if db_type not in grouped:
+                    grouped[db_type] = []
+                grouped[db_type].append(account)
+            
+            # 缓存分组结果（用于后续优化）
+            if cache_manager:
+                for db_type, db_accounts in grouped.items():
+                    try:
+                        # 将账户对象转换为可缓存的字典格式
+                        accounts_data = self._accounts_to_cache_data(db_accounts)
+                        cache_manager.set_accounts_by_db_type_cache(db_type, accounts_data)
+                    except Exception as e:
+                        log_error(f"缓存数据库类型账户失败: {db_type}", module="account_classification", error=str(e))
+            
+            log_info(
+                f"账户按数据库类型分组完成",
+                module="account_classification",
+                batch_id=self.batch_id,
+                db_types=list(grouped.keys()),
+                total_groups=len(grouped),
+                accounts_per_group={db_type: len(accs) for db_type, accs in grouped.items()}
+            )
+            
+            return grouped
+        except Exception as e:
+            log_error(f"按数据库类型分组账户失败: {e}", module="account_classification")
+            return {}
+
+    def _group_rules_by_db_type(self, rules: list[ClassificationRule]) -> dict[str, list[ClassificationRule]]:
+        """按数据库类型分组规则（优化性能，带缓存）"""
+        try:
+            grouped = {}
+            
+            # 按数据库类型分组
+            for rule in rules:
+                db_type = rule.db_type.lower()
+                if db_type not in grouped:
+                    grouped[db_type] = []
+                grouped[db_type].append(rule)
+            
+            # 缓存分组结果（用于后续优化）
+            if cache_manager:
+                for db_type, db_rules in grouped.items():
+                    try:
+                        # 将规则对象转换为可缓存的字典格式
+                        rules_data = self._rules_to_cache_data(db_rules)
+                        cache_manager.set_classification_rules_by_db_type_cache(db_type, rules_data)
+                    except Exception as e:
+                        log_error(f"缓存数据库类型规则失败: {db_type}", module="account_classification", error=str(e))
+            
+            log_info(
+                f"规则按数据库类型分组完成",
+                module="account_classification",
+                batch_id=self.batch_id,
+                db_types=list(grouped.keys()),
+                total_groups=len(grouped),
+                rules_per_group={db_type: len(rules) for db_type, rules in grouped.items()}
+            )
+            
+            return grouped
+        except Exception as e:
+            log_error(f"按数据库类型分组规则失败: {e}", module="account_classification")
+            return {}
+
+    def _classify_accounts_by_db_type_optimized(
+        self, accounts: list[CurrentAccountSyncData], rules: list[ClassificationRule]
+    ) -> dict[str, Any]:
+        """按数据库类型优化分类（阶段1优化）"""
+        try:
+            # 1. 按数据库类型预分组
+            accounts_by_db_type = self._group_accounts_by_db_type(accounts)
+            rules_by_db_type = self._group_rules_by_db_type(rules)
+            
+            if not accounts_by_db_type:
+                return {
+                    "total_accounts": 0,
+                    "total_rules": 0,
+                    "classified_accounts": 0,
+                    "total_classifications_added": 0,
+                    "total_matches": 0,
+                    "failed_count": 0,
+                    "errors": [],
+                    "db_type_results": {}
+                }
+            
+            # 2. 清除所有现有分类分配
+            self._clear_all_classifications(accounts)
+            
+            # 3. 按数据库类型并行处理（当前为串行，后续可优化为并行）
+            total_classifications_added = 0
+            total_matches = 0
+            failed_count = 0
+            all_errors = []
+            db_type_results = {}
+            
+            for db_type, db_accounts in accounts_by_db_type.items():
+                try:
+                    # 获取该数据库类型的规则
+                    db_rules = rules_by_db_type.get(db_type, [])
+                    
+                    if not db_rules:
+                        log_info(
+                            f"数据库类型 {db_type} 没有可用规则，跳过",
+                            module="account_classification",
+                            batch_id=self.batch_id,
+                            account_count=len(db_accounts)
+                        )
+                        db_type_results[db_type] = {
+                            "accounts": len(db_accounts),
+                            "rules": 0,
+                            "classifications_added": 0,
+                            "matches": 0,
+                            "errors": []
+                        }
+                        continue
+                    
+                    # 处理该数据库类型的分类
+                    result = self._classify_single_db_type(db_accounts, db_rules, db_type)
+                    
+                    # 累计结果
+                    total_classifications_added += result["total_classifications_added"]
+                    total_matches += result["total_matches"]
+                    failed_count += result["failed_count"]
+                    all_errors.extend(result["errors"])
+                    db_type_results[db_type] = result
+                    
+                    log_info(
+                        f"数据库类型 {db_type} 分类完成",
+                        module="account_classification",
+                        batch_id=self.batch_id,
+                        accounts=result["total_accounts"],
+                        rules=result["total_rules"],
+                        classifications_added=result["total_classifications_added"],
+                        matches=result["total_matches"],
+                        errors=len(result["errors"])
+                    )
+                    
+                except Exception as e:
+                    error_msg = f"数据库类型 {db_type} 分类失败: {str(e)}"
+                    log_error(error_msg, module="account_classification", batch_id=self.batch_id)
+                    all_errors.append(error_msg)
+                    failed_count += len(db_accounts)
+                    db_type_results[db_type] = {
+                        "accounts": len(db_accounts),
+                        "rules": len(rules_by_db_type.get(db_type, [])),
+                        "classifications_added": 0,
+                        "matches": 0,
+                        "errors": [error_msg]
+                    }
+            
+            # 4. 更新账户的最后分类时间
+            self._update_accounts_classification_time(accounts)
+            
+            return {
+                "total_accounts": len(accounts),
+                "total_rules": len(rules),
+                "classified_accounts": len({acc.id for acc in accounts}),
+                "total_classifications_added": total_classifications_added,
+                "total_matches": total_matches,
+                "failed_count": failed_count,
+                "errors": all_errors,
+                "db_type_results": db_type_results
+            }
+            
+        except Exception as e:
+            log_error(f"按数据库类型优化分类失败: {e}", module="account_classification")
+            raise
+
+    def _classify_single_db_type(
+        self, accounts: list[CurrentAccountSyncData], rules: list[ClassificationRule], db_type: str
+    ) -> dict[str, Any]:
+        """处理单个数据库类型的分类"""
+        try:
+            total_classifications_added = 0
+            total_matches = 0
+            failed_count = 0
+            errors = []
+            
+            # 按优先级处理规则
+            for rule in rules:
+                try:
+                    # 只处理匹配数据库类型的账户
+                    matched_accounts = self._find_accounts_matching_rule_optimized(rule, accounts, db_type)
+                    
+                    if matched_accounts:
+                        # 批量添加分类
+                        added_count = self._add_classification_to_accounts_batch(
+                            matched_accounts, rule.classification_id
+                        )
+                        
+                        total_classifications_added += added_count
+                        total_matches += len(matched_accounts)
+                        
+                        log_info(
+                            f"规则 {rule.rule_name} 处理完成",
+                            module="account_classification",
+                            rule_id=rule.id,
+                            db_type=db_type,
+                            matched_accounts=len(matched_accounts),
+                            added_classifications=added_count,
+                            batch_id=self.batch_id
+                        )
+                    else:
+                        log_info(
+                            f"规则 {rule.rule_name} 无匹配账户",
+                            module="account_classification",
+                            rule_id=rule.id,
+                            db_type=db_type,
+                            batch_id=self.batch_id
+                        )
+                        
+                except Exception as e:
+                    error_msg = f"规则 {rule.rule_name} 处理失败: {str(e)}"
+                    log_error(error_msg, module="account_classification", rule_id=rule.id, db_type=db_type)
+                    errors.append(error_msg)
+                    failed_count += len(accounts)
+            
+            return {
+                "total_accounts": len(accounts),
+                "total_rules": len(rules),
+                "total_classifications_added": total_classifications_added,
+                "total_matches": total_matches,
+                "failed_count": failed_count,
+                "errors": errors
+            }
+            
+        except Exception as e:
+            log_error(f"处理数据库类型 {db_type} 分类失败: {e}", module="account_classification")
+            raise
+
+    def _find_accounts_matching_rule_optimized(
+        self, rule: ClassificationRule, accounts: list[CurrentAccountSyncData], db_type: str
+    ) -> list[CurrentAccountSyncData]:
+        """优化的规则匹配方法（按数据库类型过滤）"""
+        try:
+            # 预过滤：只处理匹配数据库类型的账户
+            filtered_accounts = [acc for acc in accounts if acc.instance.db_type.lower() == db_type]
+            
+            if not filtered_accounts:
+                return []
+            
+            # 使用现有的规则评估逻辑
+            matched_accounts = []
+            for account in filtered_accounts:
+                try:
+                    if self._evaluate_rule(account, rule):
+                        matched_accounts.append(account)
+                except Exception as e:
+                    log_error(
+                        f"评估账户规则失败",
+                        module="account_classification",
+                        account_id=account.id,
+                        rule_id=rule.id,
+                        error=str(e)
+                    )
+                    continue
+            
+            return matched_accounts
+            
+        except Exception as e:
+            log_error(f"查找匹配规则账户失败: {e}", module="account_classification")
             return []
 
     def _full_reclassify_accounts(
@@ -693,16 +964,87 @@ class OptimizedAccountClassificationService:
             log_error(f"从缓存数据创建规则失败: {e}", module="account_classification")
             return []
 
+    def _accounts_to_cache_data(self, accounts: list[CurrentAccountSyncData]) -> list[dict[str, Any]]:
+        """将账户对象转换为缓存数据"""
+        try:
+            accounts_data = []
+            for account in accounts:
+                account_data = {
+                    "id": account.id,
+                    "username": account.username,
+                    "display_name": account.display_name,
+                    "is_locked": account.is_locked,
+                    "instance_id": account.instance_id,
+                    "instance_name": account.instance.name if account.instance else None,
+                    "instance_host": account.instance.host if account.instance else None,
+                    "db_type": account.instance.db_type if account.instance else None,
+                    "permissions": account.permissions,
+                    "roles": account.roles,
+                    "created_at": account.created_at.isoformat() if account.created_at else None,
+                    "updated_at": account.updated_at.isoformat() if account.updated_at else None,
+                }
+                accounts_data.append(account_data)
+            return accounts_data
+        except Exception as e:
+            log_error(f"转换账户数据失败: {e}", module="account_classification")
+            return []
+
+    def _accounts_from_cache_data(self, accounts_data: list[dict[str, Any]]) -> list[CurrentAccountSyncData]:
+        """将缓存数据转换为账户对象（简化版本）"""
+        try:
+            accounts = []
+            for account_data in accounts_data:
+                # 创建简化的账户对象（仅用于缓存恢复）
+                account = CurrentAccountSyncData()
+                account.id = account_data.get("id")
+                account.username = account_data.get("username")
+                account.display_name = account_data.get("display_name")
+                account.is_locked = account_data.get("is_locked", False)
+                account.instance_id = account_data.get("instance_id")
+                account.permissions = account_data.get("permissions", {})
+                account.roles = account_data.get("roles", [])
+                
+                # 创建简化的实例对象
+                if account_data.get("instance_name") and account_data.get("instance_host"):
+                    from app.models.instance import Instance
+                    instance = Instance()
+                    instance.id = account_data.get("instance_id")
+                    instance.name = account_data.get("instance_name")
+                    instance.host = account_data.get("instance_host")
+                    instance.db_type = account_data.get("db_type")
+                    account.instance = instance
+                
+                accounts.append(account)
+            return accounts
+        except Exception as e:
+            log_error(f"从缓存数据创建账户失败: {e}", module="account_classification")
+            return []
+
     def invalidate_cache(self) -> bool:
         """清除分类相关缓存"""
         try:
             if cache_manager:
+                # 清除所有分类缓存
                 cache_manager.invalidate_classification_cache()
+                # 清除按数据库类型分组的缓存
+                cache_manager.invalidate_all_db_type_cache()
                 log_info("分类缓存已清除", module="account_classification")
                 return True
             return False
         except Exception as e:
             log_error(f"清除分类缓存失败: {e}", module="account_classification")
+            return False
+
+    def invalidate_db_type_cache(self, db_type: str) -> bool:
+        """清除特定数据库类型的缓存"""
+        try:
+            if cache_manager:
+                cache_manager.invalidate_db_type_cache(db_type)
+                log_info(f"数据库类型 {db_type} 缓存已清除", module="account_classification")
+                return True
+            return False
+        except Exception as e:
+            log_error(f"清除数据库类型 {db_type} 缓存失败: {e}", module="account_classification")
             return False
 
     def get_rule_matched_accounts_count(self, rule_id: int) -> int:
