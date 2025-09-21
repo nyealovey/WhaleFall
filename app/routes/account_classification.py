@@ -1211,6 +1211,50 @@ def api_get_batch_matches(batch_id: str) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
+@account_classification_bp.route("/cache/clear", methods=["POST"])
+@login_required
+@update_required
+def clear_classification_cache() -> "Response":
+    """清除分类相关缓存"""
+    try:
+        service = OptimizedAccountClassificationService()
+        result = service.invalidate_cache()
+        
+        if result:
+            log_info("分类缓存清除成功", module="account_classification", user_id=current_user.id)
+            return jsonify({"success": True, "message": "分类缓存已清除"})
+        else:
+            return jsonify({"success": False, "error": "缓存清除失败"})
+            
+    except Exception as e:
+        log_error(f"清除分类缓存失败: {e}", module="account_classification")
+        return jsonify({"success": False, "error": str(e)})
+
+
+@account_classification_bp.route("/cache/stats", methods=["GET"])
+@login_required
+@view_required
+def get_cache_stats() -> "Response":
+    """获取缓存统计信息"""
+    try:
+        from app.services.cache_manager import cache_manager
+        
+        if not cache_manager:
+            return jsonify({"success": False, "error": "缓存管理器未初始化"})
+            
+        stats = cache_manager.get_cache_stats()
+        
+        return jsonify({
+            "success": True, 
+            "cache_stats": stats,
+            "cache_enabled": cache_manager is not None
+        })
+        
+    except Exception as e:
+        log_error(f"获取缓存统计失败: {e}", module="account_classification")
+        return jsonify({"success": False, "error": str(e)})
+
+
 def _get_db_permissions(db_type: str) -> dict:
     """获取数据库权限列表"""
     from app.models.permission_config import PermissionConfig
