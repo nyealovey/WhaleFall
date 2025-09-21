@@ -20,6 +20,12 @@ def index() -> str:
     return redirect(url_for("auth.login"))
 
 
+@main_bp.route("/about")
+def about() -> str:
+    """关于页面"""
+    return render_template("about.html")
+
+
 @main_bp.route("/favicon.ico")
 def favicon() -> "Response":
     """提供favicon.ico文件"""
