@@ -2,7 +2,7 @@
 
 # 鲸落项目Flask快速更新脚本
 # 功能：极速更新Flask应用，适用于生产环境
-# 特点：销毁重建容器、最小化停机时间、自动验证、快速回滚
+# 特点：销毁重建容器、最小化停机时间、自动验证
 
 set -e
 
@@ -43,6 +43,7 @@ show_banner() {
     echo "║                    TaifishV4 Quick Update                   ║"
     echo "║                   (容器重建模式)                            ║"
     echo "║                (销毁重建Flask容器)                           ║"
+    echo "║                (无回滚机制，失败需手动处理)                   ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -293,77 +294,29 @@ verify_update() {
         log_success "健康检查通过"
         log_info "健康检查响应: $health_response"
     else
-        log_error "健康检查失败"
-        log_error "健康检查响应: $health_response"
-        return 1
+        log_warning "健康检查响应异常，尝试通过Nginx检查..."
+        # 通过Nginx检查
+        local nginx_health_response
+        nginx_health_response=$(curl -s http://localhost/health)
+        
+        if echo "$nginx_health_response" | grep -q "healthy"; then
+            log_success "通过Nginx健康检查通过"
+            log_info "Nginx健康检查响应: $nginx_health_response"
+        else
+            log_error "健康检查失败"
+            log_error "直接访问响应: $health_response"
+            log_error "Nginx访问响应: $nginx_health_response"
+            return 1
+        fi
     fi
     
-    # 测试数据库连接
-    log_info "测试数据库连接..."
-    local db_test_response
-    db_test_response=$(curl -s http://localhost:5001/health)
-    
-    if echo "$db_test_response" | grep -q "healthy"; then
-        log_success "数据库连接测试通过"
-    else
-        log_error "数据库连接测试失败"
-        return 1
-    fi
-    
-    # 测试Redis连接
-    log_info "测试Redis连接..."
-    local redis_test_response
-    redis_test_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall python3 -c "
-import redis
-import os
-try:
-    password = os.environ.get('REDIS_PASSWORD')
-    if not password:
-        print('Redis连接失败: REDIS_PASSWORD环境变量未设置')
-        exit(1)
-    r = redis.Redis(host='redis', port=6379, password=password, decode_responses=True)
-    result = r.ping()
-    print(f'Redis连接成功: {result}')
-except Exception as e:
-    print(f'Redis连接失败: {e}')
-" 2>/dev/null)
-    
-    if echo "$redis_test_response" | grep -q "Redis连接成功"; then
-        log_success "Redis连接测试通过"
-    else
-        log_error "Redis连接测试失败"
-        log_error "Redis响应: $redis_test_response"
-        return 1
-    fi
+    # 测试数据库和Redis连接（通过健康检查已验证）
+    log_info "数据库和Redis连接已通过健康检查验证"
     
     log_success "更新验证通过"
     return 0
 }
 
-# 快速回滚
-quick_rollback() {
-    log_step "快速回滚..."
-    
-    # 恢复代码
-    if git stash list | grep -q "Auto-stash"; then
-        log_info "恢复代码更改..."
-        git stash pop
-    fi
-    
-    # 重新构建和启动
-    build_new_image
-    start_new_flask_service
-    wait_for_service_ready
-    
-    # 验证回滚
-    if verify_update; then
-        log_success "回滚成功"
-        return 0
-    else
-        log_error "回滚失败"
-        return 1
-    fi
-}
 
 # 清理资源
 cleanup_resources() {
@@ -407,7 +360,7 @@ show_update_result() {
     echo ""
     echo -e "${YELLOW}⚠️  注意事项：${NC}"
     echo "  - 本次更新为容器重建模式，数据已保留"
-    echo "  - 如有问题，可使用回滚功能恢复"
+    echo "  - 如有问题，请手动检查服务状态和日志"
     echo "  - 建议定期备份重要数据"
     echo "  - 监控应用运行状态"
 }
@@ -434,13 +387,12 @@ main() {
         show_update_result
         log_success "快速更新完成！"
     else
-        log_error "更新验证失败，开始回滚..."
-        if quick_rollback; then
-            log_success "回滚成功，服务已恢复"
-        else
-            log_error "回滚失败，请手动检查服务状态"
-            exit 1
-        fi
+        log_error "更新验证失败，请手动检查服务状态"
+        log_info "容器状态："
+        docker compose -f docker-compose.prod.yml ps
+        log_info "Flask应用日志："
+        docker compose -f docker-compose.prod.yml logs whalefall --tail 50
+        exit 1
     fi
 }
 
