@@ -4,44 +4,111 @@
 
 {% block extra_css %}
 <style>
-    .artistic-title {
-        font-size: 4.5rem;
-        font-weight: 900;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        letter-spacing: 0.1em;
-        position: relative;
-        display: inline-block;
-        animation: titleGlow 3s ease-in-out infinite alternate;
-    }
-    
-    .artistic-title::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        filter: blur(2px);
-        z-index: -1;
-        opacity: 0.7;
-    }
-    
-    @keyframes titleGlow {
-        0% {
-            text-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(102, 126, 234, 0.3);
-        }
-        100% {
-            text-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 30px rgba(118, 75, 162, 0.5);
-        }
-    }
+       .artistic-title {
+           font-family: 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+           font-size: 5rem;
+           font-weight: 800;
+           background: linear-gradient(45deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #7209b7 100%);
+           -webkit-background-clip: text;
+           -webkit-text-fill-color: transparent;
+           background-clip: text;
+           text-shadow: 
+               0 0 10px rgba(26, 26, 46, 0.5),
+               0 0 20px rgba(83, 52, 131, 0.3),
+               0 0 30px rgba(114, 9, 183, 0.2);
+           letter-spacing: 0.15em;
+           position: relative;
+           display: inline-block;
+           animation: calligraphyFlow 4s ease-in-out infinite;
+           transform-style: preserve-3d;
+       }
+       
+       .artistic-title::before {
+           content: '鲸落';
+           position: absolute;
+           top: 0;
+           left: 0;
+           right: 0;
+           bottom: 0;
+           background: linear-gradient(45deg, #ff6b6b 0%, #4ecdc4 25%, #45b7d1 50%, #96ceb4 75%, #feca57 100%);
+           -webkit-background-clip: text;
+           -webkit-text-fill-color: transparent;
+           background-clip: text;
+           filter: blur(1px);
+           z-index: -1;
+           opacity: 0.6;
+           animation: calligraphyShadow 4s ease-in-out infinite reverse;
+       }
+       
+       .artistic-title::after {
+           content: '';
+           position: absolute;
+           top: -5px;
+           left: -5px;
+           right: -5px;
+           bottom: -5px;
+           background: linear-gradient(45deg, transparent 30%, rgba(255, 107, 107, 0.1) 50%, transparent 70%);
+           border-radius: 15px;
+           z-index: -2;
+           animation: calligraphyGlow 4s ease-in-out infinite;
+       }
+       
+       @keyframes calligraphyFlow {
+           0%, 100% {
+               transform: translateY(0px) rotateX(0deg) rotateY(0deg);
+               filter: drop-shadow(0 5px 15px rgba(26, 26, 46, 0.4));
+           }
+           25% {
+               transform: translateY(-2px) rotateX(2deg) rotateY(1deg);
+               filter: drop-shadow(0 8px 20px rgba(83, 52, 131, 0.3));
+           }
+           50% {
+               transform: translateY(0px) rotateX(0deg) rotateY(0deg);
+               filter: drop-shadow(0 5px 15px rgba(114, 9, 183, 0.4));
+           }
+           75% {
+               transform: translateY(-1px) rotateX(-1deg) rotateY(-1deg);
+               filter: drop-shadow(0 6px 18px rgba(26, 26, 46, 0.3));
+           }
+       }
+       
+       @keyframes calligraphyShadow {
+           0%, 100% {
+               transform: translate(0px, 0px) scale(1);
+               opacity: 0.6;
+           }
+           25% {
+               transform: translate(2px, 1px) scale(1.02);
+               opacity: 0.4;
+           }
+           50% {
+               transform: translate(0px, 0px) scale(1);
+               opacity: 0.6;
+           }
+           75% {
+               transform: translate(-1px, -1px) scale(0.98);
+               opacity: 0.5;
+           }
+       }
+       
+       @keyframes calligraphyGlow {
+           0%, 100% {
+               opacity: 0.1;
+               transform: scale(1);
+           }
+           25% {
+               opacity: 0.2;
+               transform: scale(1.05);
+           }
+           50% {
+               opacity: 0.15;
+               transform: scale(1);
+           }
+           75% {
+               opacity: 0.18;
+               transform: scale(1.02);
+           }
+       }
 </style>
 {% endblock %}
 
