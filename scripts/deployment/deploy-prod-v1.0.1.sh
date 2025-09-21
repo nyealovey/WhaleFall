@@ -408,7 +408,7 @@ verify_flask_database_connection() {
         # 尝试直接访问Flask应用端口
         log_info "尝试直接访问Flask应用端口5001..."
         local flask_response
-        flask_response=$(curl -s http://localhost:5001/health 2>/dev/null)
+        flask_response=$(curl -s http://localhost:5001/health/ 2>/dev/null)
         if echo "$flask_response" | grep -q -E "(healthy|success)"; then
             log_success "Flask应用直接访问成功"
             log_info "Flask响应: $flask_response"
