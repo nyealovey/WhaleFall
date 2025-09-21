@@ -241,8 +241,16 @@ fix_postgresql_connection() {
     if docker compose -f docker-compose.prod.yml exec postgres psql -U postgres -c "SELECT pg_reload_conf();" > /dev/null 2>&1; then
         log_success "PostgreSQL配置重新加载成功"
     else
-        log_error "PostgreSQL配置重新加载失败"
-        exit 1
+        log_warning "PostgreSQL配置重新加载失败，尝试重启服务..."
+        # 尝试重启PostgreSQL服务
+        if docker compose -f docker-compose.prod.yml restart postgres > /dev/null 2>&1; then
+            log_success "PostgreSQL服务重启成功"
+            # 等待PostgreSQL重新启动
+            sleep 10
+        else
+            log_error "PostgreSQL服务重启失败"
+            exit 1
+        fi
     fi
     
     # 验证配置是否生效
