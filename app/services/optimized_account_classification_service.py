@@ -927,7 +927,7 @@ class OptimizedAccountClassificationService:
                 rule_data = {
                     "id": rule.id,
                     "rule_name": rule.rule_name,
-                    "rule_description": rule.rule_description,
+                    "rule_description": rule.rule_name,
                     "db_type": rule.db_type,
                     "rule_expression": rule.rule_expression,
                     "is_active": rule.is_active,
@@ -950,7 +950,8 @@ class OptimizedAccountClassificationService:
                 rule = ClassificationRule()
                 rule.id = rule_data.get("id")
                 rule.rule_name = rule_data.get("rule_name")
-                rule.rule_description = rule_data.get("rule_description")
+                # rule_description 字段不存在，使用 rule_name 替代
+                # rule.rule_description = rule_data.get("rule_description")
                 rule.db_type = rule_data.get("db_type")
                 rule.rule_expression = rule_data.get("rule_expression")
                 rule.is_active = rule_data.get("is_active", True)

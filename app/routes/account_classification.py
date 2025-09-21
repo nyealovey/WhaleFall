@@ -1191,7 +1191,7 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                     "classification_name": classification.name,
                     "rule_id": rule.id if rule else None,
                     "rule_name": rule.rule_name if rule else "无规则",
-                    "rule_description": (rule.rule_expression if rule else "无规则表达式"),
+                    "rule_description": (rule.rule_name if rule else "无规则名称"),
                     "matched_at": (batch.started_at.isoformat() if batch.started_at else None),
                     "confidence": getattr(assignment, "confidence_score", None),
                     "account_permissions": account_permissions,
