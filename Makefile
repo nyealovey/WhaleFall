@@ -24,6 +24,12 @@ help:
 	@echo "  make prod stop   - 停止生产环境"
 	@echo "  make prod logs   - 查看生产环境日志"
 	@echo ""
+	@echo "Flask单独部署命令:"
+	@echo "  make flask help   - 查看Flask单独部署命令"
+	@echo "  make flask start  - 启动Flask应用（连接localhost服务）"
+	@echo "  make flask stop   - 停止Flask应用"
+	@echo "  make flask logs   - 查看Flask应用日志"
+	@echo ""
 	@echo "通用命令:"
 	@echo "  install     - 安装项目依赖"
 	@echo "  clean       - 清理Docker资源"
@@ -46,6 +52,15 @@ prod:
 		echo "可用命令: help, install, config, deploy, start, stop, restart, status, logs, logs-db, logs-redis, logs-app, shell, health, init-db, init-db-quick, backup, restore, update, rollback, clean, build, version"; \
 	else \
 		$(MAKE) -f Makefile.prod $(filter-out prod,$(MAKECMDGOALS)); \
+	fi
+
+# Flask单独部署命令
+flask:
+	@if [ -z "$(filter-out flask,$(MAKECMDGOALS))" ]; then \
+		echo "请指定Flask部署命令，例如: make flask help"; \
+		echo "可用命令: help, start, stop, restart, status, logs, logs-app, shell, health, build, clean"; \
+	else \
+		$(MAKE) -f Makefile.flask $(filter-out flask,$(MAKECMDGOALS)); \
 	fi
 
 # 安装项目依赖
