@@ -16,7 +16,7 @@ from app.utils.structlog_config import get_system_logger
 health_bp = Blueprint("health", __name__)
 
 
-@health_bp.route("/", strict_slashes=False)
+@health_bp.route("/")
 def health_check() -> "Response":
     """基础健康检查"""
     try:
@@ -30,7 +30,21 @@ def health_check() -> "Response":
         return APIResponse.server_error("健康检查失败")
 
 
-@health_bp.route("/detailed", strict_slashes=False)
+@health_bp.route("")
+def health_check_root() -> "Response":
+    """健康检查根路由 - 兼容Nginx配置"""
+    try:
+        return APIResponse.success(
+            data={"status": "healthy", "timestamp": time.time(), "version": "1.0.1"},
+            message="服务运行正常",
+        )
+    except Exception as e:
+        system_logger = get_system_logger()
+        system_logger.error("健康检查失败", module="health", exception=e)
+        return APIResponse.server_error("健康检查失败")
+
+
+@health_bp.route("/detailed")
 def detailed_health_check() -> "Response":
     """详细健康检查"""
     try:
@@ -150,7 +164,7 @@ def check_system_health() -> dict:
         return {"healthy": False, "error": str(e), "status": "error"}
 
 
-@health_bp.route("/readiness", strict_slashes=False)
+@health_bp.route("/health/readiness")
 def readiness_check() -> "Response":
     """就绪检查 - 用于Kubernetes等容器编排"""
     try:
@@ -167,7 +181,7 @@ def readiness_check() -> "Response":
         return APIResponse.server_error("就绪检查失败")
 
 
-@health_bp.route("/liveness", strict_slashes=False)
+@health_bp.route("/health/liveness")
 def liveness_check() -> "Response":
     """存活检查 - 用于Kubernetes等容器编排"""
     try:

@@ -394,6 +394,27 @@ verify_flask_database_connection() {
     
     # 验证Flask应用数据库连接
     log_info "验证Flask应用数据库连接..."
+    
+    # 等待Flask容器健康检查通过
+    log_info "等待Flask容器健康检查通过..."
+    local count=0
+    while [ $count -lt 60 ]; do
+        if docker compose -f docker-compose.prod.yml ps whalefall | grep -q "(healthy)"; then
+            break
+        fi
+        sleep 5
+        count=$((count + 1))
+    done
+    
+    if [ $count -eq 60 ]; then
+        log_error "Flask容器健康检查超时"
+        docker compose -f docker-compose.prod.yml logs whalefall
+        exit 1
+    fi
+    log_success "Flask容器健康检查通过"
+    
+    # 验证Flask应用数据库连接
+    log_info "验证Flask应用数据库连接..."
     local db_test_response
     db_test_response=$(curl -s http://localhost/health 2>/dev/null)
     
@@ -408,7 +429,7 @@ verify_flask_database_connection() {
         # 尝试直接访问Flask应用端口
         log_info "尝试直接访问Flask应用端口5001..."
         local flask_response
-        flask_response=$(curl -s http://localhost:5001/health/ 2>/dev/null)
+        flask_response=$(curl -s http://localhost:5001/health 2>/dev/null)
         if echo "$flask_response" | grep -q -E "(healthy|success)"; then
             log_success "Flask应用直接访问成功"
             log_info "Flask响应: $flask_response"
