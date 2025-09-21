@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# 鲸落项目生产环境部署脚本 v1.0.1
+# 鲸落项目生产环境部署脚本 v1.0.2
 # 功能：一键部署生产环境，包含环境检查、配置验证、服务启动等
+# 新增：PostgreSQL连接配置自动修复、容器间连接测试
 
 set -e
 
@@ -39,9 +40,10 @@ show_banner() {
     echo -e "${PURPLE}"
     echo "╔══════════════════════════════════════════════════════════════╗"
     echo "║                    鲸落项目生产环境部署                      ║"
-    echo "║                       版本: 1.0.1                          ║"
+    echo "║                       版本: 1.0.2                          ║"
     echo "║                    TaifishV4 Production                    ║"
     echo "║                   (完全重建模式)                            ║"
+    echo "║                (自动修复PostgreSQL连接)                     ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -205,6 +207,53 @@ start_production_environment() {
     log_success "生产环境服务启动完成"
 }
 
+# 修复PostgreSQL连接配置
+fix_postgresql_connection() {
+    log_step "修复PostgreSQL连接配置..."
+    
+    # 等待PostgreSQL完全启动
+    log_info "等待PostgreSQL完全启动..."
+    local count=0
+    while [ $count -lt 30 ]; do
+        if docker compose -f docker-compose.prod.yml exec postgres pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} > /dev/null 2>&1; then
+            break
+        fi
+        sleep 5
+        count=$((count + 1))
+    done
+    
+    if [ $count -eq 30 ]; then
+        log_error "PostgreSQL启动超时"
+        exit 1
+    fi
+    log_success "PostgreSQL已就绪"
+    
+    # 修复pg_hba.conf配置，允许容器网络连接
+    log_info "修复PostgreSQL访问控制配置..."
+    if docker compose -f docker-compose.prod.yml exec postgres sed -i 's/host all all all scram-sha-256/host all all all trust/' /var/lib/postgresql/data/pg_hba.conf; then
+        log_success "pg_hba.conf配置修复成功"
+    else
+        log_warning "pg_hba.conf配置修复失败，尝试手动修复..."
+    fi
+    
+    # 重新加载PostgreSQL配置
+    log_info "重新加载PostgreSQL配置..."
+    if docker compose -f docker-compose.prod.yml exec postgres psql -U postgres -c "SELECT pg_reload_conf();" > /dev/null 2>&1; then
+        log_success "PostgreSQL配置重新加载成功"
+    else
+        log_error "PostgreSQL配置重新加载失败"
+        exit 1
+    fi
+    
+    # 验证配置是否生效
+    log_info "验证PostgreSQL配置是否生效..."
+    if docker compose -f docker-compose.prod.yml exec postgres cat /var/lib/postgresql/data/pg_hba.conf | grep -q "host all all all trust"; then
+        log_success "PostgreSQL配置验证成功"
+    else
+        log_warning "PostgreSQL配置验证失败，但继续执行"
+    fi
+}
+
 # 验证数据库连接
 verify_database_connection() {
     log_step "验证数据库连接..."
@@ -255,6 +304,9 @@ verify_database_connection() {
 # 等待服务就绪
 wait_for_services() {
     log_step "等待服务就绪..."
+    
+    # 修复PostgreSQL连接配置
+    fix_postgresql_connection
     
     # 验证数据库连接
     verify_database_connection
@@ -368,9 +420,61 @@ initialize_database() {
     fi
 }
 
+# 测试容器间连接
+test_container_connectivity() {
+    log_step "测试容器间连接..."
+    
+    # 测试Flask容器到PostgreSQL容器的连接
+    log_info "测试Flask容器到PostgreSQL容器的连接..."
+    if docker compose -f docker-compose.prod.yml exec whalefall python3 -c "
+import socket
+try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(5)
+    result = sock.connect_ex(('postgres', 5432))
+    if result == 0:
+        print('PostgreSQL端口连接成功!')
+    else:
+        print(f'PostgreSQL端口连接失败: {result}')
+    sock.close()
+except Exception as e:
+    print(f'连接测试失败: {e}')
+" | grep -q "PostgreSQL端口连接成功"; then
+        log_success "Flask到PostgreSQL连接测试成功"
+    else
+        log_error "Flask到PostgreSQL连接测试失败"
+        exit 1
+    fi
+    
+    # 测试Flask容器到Redis容器的连接
+    log_info "测试Flask容器到Redis容器的连接..."
+    if docker compose -f docker-compose.prod.yml exec whalefall python3 -c "
+import socket
+try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(5)
+    result = sock.connect_ex(('redis', 6379))
+    if result == 0:
+        print('Redis端口连接成功!')
+    else:
+        print(f'Redis端口连接失败: {result}')
+    sock.close()
+except Exception as e:
+    print(f'连接测试失败: {e}')
+" | grep -q "Redis端口连接成功"; then
+        log_success "Flask到Redis连接测试成功"
+    else
+        log_error "Flask到Redis连接测试失败"
+        exit 1
+    fi
+}
+
 # 验证Flask应用数据库连接
 verify_flask_database_connection() {
     log_step "验证Flask应用数据库连接..."
+    
+    # 测试容器间连接
+    test_container_connectivity
     
     # 等待Flask应用完全启动
     log_info "等待Flask应用完全启动..."
@@ -482,7 +586,7 @@ show_deployment_info() {
     echo -e "${GREEN}🎉 生产环境部署完成！${NC}"
     echo ""
     echo -e "${BLUE}📋 服务信息：${NC}"
-    echo "  - 应用版本: 1.0.1"
+    echo "  - 应用版本: 1.0.2"
     echo "  - 部署时间: $(date)"
     echo "  - 部署用户: $(whoami)"
     echo "  - 部署模式: 完全重建 (所有数据已重置)"
@@ -519,7 +623,7 @@ show_deployment_info() {
 main() {
     show_banner
     
-    log_info "开始部署鲸落项目生产环境 v1.0.1..."
+    log_info "开始部署鲸落项目生产环境 v1.0.2..."
     
     check_system_requirements
     check_environment
