@@ -3,6 +3,7 @@
 # 鲸落项目Flask快速更新脚本
 # 功能：智能更新Flask应用，适用于生产环境
 # 特点：支持创建新容器或重建现有容器、最小化停机时间、自动验证
+# 注意：仅检查依赖服务状态，不启动PostgreSQL和Redis
 
 set -e
 
@@ -43,6 +44,7 @@ show_banner() {
     echo "║                    TaifishV4 Quick Update                   ║"
     echo "║                   (智能容器模式)                            ║"
     echo "║                (支持创建新容器或重建)                        ║"
+    echo "║                (仅检查依赖服务，不启动)                      ║"
     echo "║                (无回滚机制，失败需手动处理)                   ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -116,9 +118,9 @@ check_current_status() {
     if echo "$postgres_status" | grep -q "Up"; then
         log_success "PostgreSQL正在运行: $postgres_status"
     else
-        log_info "启动PostgreSQL服务..."
-        docker compose -f docker-compose.prod.yml up -d postgres
-        log_success "PostgreSQL已启动"
+        log_error "PostgreSQL未运行: $postgres_status"
+        log_error "请先运行完整部署脚本启动依赖服务"
+        exit 1
     fi
     
     local redis_status
@@ -127,9 +129,9 @@ check_current_status() {
     if echo "$redis_status" | grep -q "Up"; then
         log_success "Redis正在运行: $redis_status"
     else
-        log_info "启动Redis服务..."
-        docker compose -f docker-compose.prod.yml up -d redis
-        log_success "Redis已启动"
+        log_error "Redis未运行: $redis_status"
+        log_error "请先运行完整部署脚本启动依赖服务"
+        exit 1
     fi
     
     log_success "当前服务状态检查通过"
@@ -384,6 +386,7 @@ show_update_result() {
     echo -e "${YELLOW}⚠️  注意事项：${NC}"
     echo "  - 本次更新为智能容器模式，数据已保留"
     echo "  - 支持创建新容器或重建现有容器"
+    echo "  - 仅检查依赖服务状态，不启动PostgreSQL和Redis"
     echo "  - 如有问题，请手动检查服务状态和日志"
     echo "  - 建议定期备份重要数据"
     echo "  - 监控应用运行状态"
