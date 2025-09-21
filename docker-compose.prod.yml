@@ -91,9 +91,10 @@ services:
       - FLASK_DEBUG=${FLASK_DEBUG:-0}
       - FLASK_HOST=${FLASK_HOST:-0.0.0.0}
       - FLASK_PORT=${FLASK_PORT:-5001}
+      # 使用容器网络连接，通过服务名访问
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - CACHE_TYPE=${CACHE_TYPE}
-      - CACHE_REDIS_URL=${CACHE_REDIS_URL}
+      - CACHE_REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - BCRYPT_LOG_ROUNDS=${BCRYPT_LOG_ROUNDS}
@@ -111,8 +112,10 @@ services:
       - "80:80"
       - "443:443"
       - "5001:5001"
+    # 使用容器网络，与其他服务通信
     networks:
       - whalefall_prod_network
+    # 添加依赖关系，确保数据库和Redis先启动
     depends_on:
       postgres:
         condition: service_healthy
@@ -132,8 +135,6 @@ services:
         reservations:
           memory: 2G
           cpus: '2.0'
-    profiles:
-      - flask
 
 networks:
   whalefall_prod_network:
