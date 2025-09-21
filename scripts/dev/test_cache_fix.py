@@ -27,7 +27,6 @@ def test_cache_format_compatibility():
         {
             "id": 1,
             "rule_name": "测试规则1",
-            "rule_description": "MySQL测试规则",
             "db_type": "mysql",
             "rule_expression": '{"type": "permission", "permissions": ["SELECT"]}',
             "is_active": True,
@@ -38,7 +37,6 @@ def test_cache_format_compatibility():
         {
             "id": 2,
             "rule_name": "测试规则2", 
-            "rule_description": "PostgreSQL测试规则",
             "db_type": "postgresql",
             "rule_expression": '{"type": "permission", "permissions": ["SELECT"]}',
             "is_active": True,
