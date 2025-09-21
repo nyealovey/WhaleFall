@@ -274,7 +274,7 @@ def configure_session_security(app: Flask) -> None:
     
     # 会话配置
     app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime  # 会话超时时间
-    app.config["SESSION_COOKIE_SECURE"] = not app.debug  # 生产环境使用HTTPS
+    app.config["SESSION_COOKIE_SECURE"] = False  # 暂时禁用HTTPS要求，使用HTTP
     app.config["SESSION_COOKIE_HTTPONLY"] = True  # 防止XSS攻击
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF保护
 
