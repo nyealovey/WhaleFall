@@ -376,16 +376,7 @@ verify_flask_database_connection() {
     log_info "等待Flask应用完全启动..."
     local count=0
     while [ $count -lt 30 ]; do
-        if docker compose -f docker-compose.prod.yml exec whalefall python -c "
-import os
-os.environ['DATABASE_URL'] = '${DATABASE_URL}'
-from app import create_app
-app = create_app()
-with app.app_context():
-    from app.models import db
-    db.engine.execute('SELECT 1')
-print('Database connection successful')
-" > /dev/null 2>&1; then
+        if curl -f http://localhost/health > /dev/null 2>&1; then
             break
         fi
         sleep 5
@@ -393,7 +384,7 @@ print('Database connection successful')
     done
     
     if [ $count -eq 30 ]; then
-        log_error "Flask应用数据库连接验证超时"
+        log_error "Flask应用启动超时"
         log_error "请检查以下配置："
         log_error "  - DATABASE_URL: ${DATABASE_URL}"
         log_error "  - 数据库服务是否正常运行"
@@ -401,7 +392,18 @@ print('Database connection successful')
         exit 1
     fi
     
-    log_success "Flask应用数据库连接验证成功"
+    # 验证Flask应用数据库连接
+    log_info "验证Flask应用数据库连接..."
+    local db_test_response
+    db_test_response=$(curl -s http://localhost/health 2>/dev/null)
+    
+    if echo "$db_test_response" | grep -q "healthy"; then
+        log_success "Flask应用数据库连接验证成功"
+    else
+        log_error "Flask应用数据库连接验证失败"
+        log_error "健康检查响应: $db_test_response"
+        exit 1
+    fi
 }
 
 # 验证部署
