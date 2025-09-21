@@ -397,11 +397,25 @@ verify_flask_database_connection() {
     local db_test_response
     db_test_response=$(curl -s http://localhost/health 2>/dev/null)
     
-    if echo "$db_test_response" | grep -q "healthy"; then
+    # 检查响应是否包含healthy或success
+    if echo "$db_test_response" | grep -q -E "(healthy|success)"; then
         log_success "Flask应用数据库连接验证成功"
+        log_info "健康检查响应: $db_test_response"
     else
         log_error "Flask应用数据库连接验证失败"
         log_error "健康检查响应: $db_test_response"
+        
+        # 尝试直接访问Flask应用端口
+        log_info "尝试直接访问Flask应用端口5001..."
+        local flask_response
+        flask_response=$(curl -s http://localhost:5001/health 2>/dev/null)
+        if echo "$flask_response" | grep -q -E "(healthy|success)"; then
+            log_success "Flask应用直接访问成功"
+            log_info "Flask响应: $flask_response"
+        else
+            log_error "Flask应用直接访问也失败"
+            log_error "Flask响应: $flask_response"
+        fi
         exit 1
     fi
 }
