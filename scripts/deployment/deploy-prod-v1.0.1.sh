@@ -521,8 +521,10 @@ except Exception as e:
     local redis_test_response
     redis_test_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall python3 -c "
 import redis
+import os
 try:
-    r = redis.Redis(host='redis', port=6379, password='Redis2024!', decode_responses=True)
+    password = os.environ.get('REDIS_PASSWORD', 'Redis2024!')
+    r = redis.Redis(host='redis', port=6379, password=password, decode_responses=True)
     result = r.ping()
     print(f'Redis连接成功: {result}')
 except Exception as e:
