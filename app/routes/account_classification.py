@@ -392,9 +392,17 @@ def update_rule(rule_id: int) -> "Response":
 @login_required
 @view_required
 def get_matched_accounts(rule_id: int) -> "Response":
-    """获取规则匹配的账户"""
+    """获取规则匹配的账户（支持分页）"""
     try:
         rule = ClassificationRule.query.get_or_404(rule_id)
+
+        # 获取分页参数
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        search = request.args.get('search', '', type=str)
+        
+        # 限制每页最大数量
+        per_page = min(per_page, 100)
 
         # 获取匹配的账户
         classification_service = OptimizedAccountClassificationService()
@@ -455,7 +463,37 @@ def get_matched_accounts(rule_id: int) -> "Response":
                         }
                     )
 
-        return jsonify({"success": True, "accounts": matched_accounts, "rule_name": rule.rule_name})
+        # 应用搜索过滤
+        if search:
+            search_lower = search.lower()
+            matched_accounts = [
+                account for account in matched_accounts
+                if (search_lower in account['username'].lower() or 
+                    search_lower in account['display_name'].lower() or
+                    search_lower in account['instance_name'].lower() or
+                    search_lower in account['instance_host'].lower())
+            ]
+
+        # 计算分页
+        total = len(matched_accounts)
+        total_pages = (total + per_page - 1) // per_page
+        start_index = (page - 1) * per_page
+        end_index = start_index + per_page
+        paginated_accounts = matched_accounts[start_index:end_index]
+
+        return jsonify({
+            "success": True, 
+            "accounts": paginated_accounts, 
+            "rule_name": rule.rule_name,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        })
 
     except Exception as e:
         log_error(f"获取匹配账户失败: {e}", module="account_classification")
