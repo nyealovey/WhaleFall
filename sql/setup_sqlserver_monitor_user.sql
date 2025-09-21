@@ -30,6 +30,13 @@ BEGIN
     PRINT '已授予查看服务器级定义权限';
 END
 
+-- 查看所有数据库权限 - 关键权限，支持跨数据库查询
+IF NOT EXISTS (SELECT * FROM sys.server_permissions WHERE grantee_principal_id = USER_ID('monitor_user') AND permission_name = 'VIEW ANY DATABASE')
+BEGIN
+    GRANT VIEW ANY DATABASE TO [monitor_user];
+    PRINT '已授予查看所有数据库权限';
+END
+
 -- 注意：移除了VIEW SERVER STATE权限，因为代码中未使用
 
 -- 3. 创建数据库触发器，自动为新数据库设置权限
@@ -169,6 +176,7 @@ PRINT '3. ✅ 遵循最小权限原则，仅授予必要的权限';
 PRINT '4. ✅ 支持实时查询所有数据库的用户和权限信息';
 PRINT '5. ✅ 无需手动为每个新数据库设置权限';
 PRINT '6. ✅ 移除了不必要的VIEW SERVER STATE权限';
+PRINT '7. ✅ 授予VIEW ANY DATABASE权限，支持跨数据库系统表查询';
 PRINT '';
 PRINT '使用方法：';
 PRINT '在鲸落系统中使用以下凭据：';
