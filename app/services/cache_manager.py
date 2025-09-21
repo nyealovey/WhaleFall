@@ -290,8 +290,16 @@ class CacheManager:
 
             if cached_data:
                 data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
-                logger.debug("数据库类型规则缓存命中: %s", db_type, cache_key=cache_key)
-                return data
+                # 处理不同的缓存数据格式
+                if isinstance(data, dict) and "rules" in data:
+                    logger.debug("数据库类型规则缓存命中: %s", db_type, cache_key=cache_key, count=len(data["rules"]))
+                    return data["rules"]
+                elif isinstance(data, list):
+                    logger.debug("数据库类型规则缓存命中（旧格式）: %s", db_type, cache_key=cache_key, count=len(data))
+                    return data
+                else:
+                    logger.warning("数据库类型规则缓存格式错误: %s", db_type, cache_key=cache_key)
+                    return None
 
             return None
 
@@ -333,8 +341,16 @@ class CacheManager:
 
             if cached_data:
                 data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
-                logger.debug("数据库类型账户缓存命中: %s", db_type, cache_key=cache_key)
-                return data
+                # 处理不同的缓存数据格式
+                if isinstance(data, dict) and "accounts" in data:
+                    logger.debug("数据库类型账户缓存命中: %s", db_type, cache_key=cache_key, count=len(data["accounts"]))
+                    return data["accounts"]
+                elif isinstance(data, list):
+                    logger.debug("数据库类型账户缓存命中（旧格式）: %s", db_type, cache_key=cache_key, count=len(data))
+                    return data
+                else:
+                    logger.warning("数据库类型账户缓存格式错误: %s", db_type, cache_key=cache_key)
+                    return None
 
             return None
 
@@ -420,6 +436,71 @@ class CacheManager:
         except Exception as e:
             logger.warning("缓存健康检查失败", error=str(e))
             return False
+
+    def debug_cache_status(self) -> dict[str, Any]:
+        """调试缓存状态"""
+        try:
+            if not self.cache:
+                return {"error": "缓存管理器未初始化"}
+            
+            debug_info = {
+                "cache_enabled": self.cache is not None,
+                "cache_type": str(type(self.cache)),
+                "timestamp": datetime.now(tz=datetime.UTC).isoformat(),
+                "cache_keys": {},
+                "health_check": self.health_check()
+            }
+            
+            # 检查各种缓存键
+            cache_keys_to_check = [
+                "classification_rules:all",
+                "classification_rules:mysql",
+                "classification_rules:postgresql", 
+                "classification_rules:sqlserver",
+                "classification_rules:oracle",
+                "accounts_by_db_type:mysql",
+                "accounts_by_db_type:postgresql",
+                "accounts_by_db_type:sqlserver", 
+                "accounts_by_db_type:oracle"
+            ]
+            
+            for key in cache_keys_to_check:
+                try:
+                    cached_data = self.cache.get(key)
+                    if cached_data:
+                        if isinstance(cached_data, str):
+                            data = json.loads(cached_data)
+                        else:
+                            data = cached_data
+                        
+                        if isinstance(data, dict):
+                            debug_info["cache_keys"][key] = {
+                                "exists": True,
+                                "type": "dict",
+                                "keys": list(data.keys()),
+                                "count": data.get("count", 0)
+                            }
+                        elif isinstance(data, list):
+                            debug_info["cache_keys"][key] = {
+                                "exists": True,
+                                "type": "list",
+                                "count": len(data)
+                            }
+                        else:
+                            debug_info["cache_keys"][key] = {
+                                "exists": True,
+                                "type": str(type(data)),
+                                "value": str(data)[:100]
+                            }
+                    else:
+                        debug_info["cache_keys"][key] = {"exists": False}
+                except Exception as e:
+                    debug_info["cache_keys"][key] = {"error": str(e)}
+            
+            return debug_info
+            
+        except Exception as e:
+            return {"error": f"调试缓存状态失败: {str(e)}"}
 
 
 # 全局缓存管理器实例

@@ -1308,6 +1308,29 @@ def get_cache_stats() -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
+@account_classification_bp.route("/cache/debug", methods=["GET"])
+@login_required
+@view_required
+def debug_cache_status() -> "Response":
+    """调试缓存状态"""
+    try:
+        from app.services.cache_manager import cache_manager
+        
+        if not cache_manager:
+            return jsonify({"success": False, "error": "缓存管理器未初始化"})
+            
+        debug_info = cache_manager.debug_cache_status()
+        
+        return jsonify({
+            "success": True,
+            "debug_info": debug_info
+        })
+        
+    except Exception as e:
+        log_error(f"调试缓存状态失败: {e}", module="account_classification")
+        return jsonify({"success": False, "error": str(e)})
+
+
 def _get_db_permissions(db_type: str) -> dict:
     """获取数据库权限列表"""
     from app.models.permission_config import PermissionConfig
