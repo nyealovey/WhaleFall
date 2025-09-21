@@ -15,6 +15,7 @@ from app.models.account_classification import (
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
 from app.services.classification_batch_service import ClassificationBatchService
+from app.services.cache_manager import cache_manager
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
@@ -101,9 +102,18 @@ class OptimizedAccountClassificationService:
             return {"success": False, "error": f"自动分类失败: {str(e)}"}
 
     def _get_rules_sorted_by_priority(self) -> list[ClassificationRule]:
-        """获取按优先级排序的规则"""
+        """获取按优先级排序的规则（带缓存）"""
         try:
-            return (
+            # 尝试从缓存获取规则
+            if cache_manager:
+                cached_rules = cache_manager.get_classification_rules_cache()
+                if cached_rules:
+                    log_info("从缓存获取分类规则", module="account_classification", count=len(cached_rules))
+                    # 将缓存的字典数据转换回ClassificationRule对象
+                    return self._rules_from_cache_data(cached_rules)
+
+            # 缓存未命中，从数据库查询
+            rules = (
                 ClassificationRule.query.filter_by(is_active=True)
                 .join(AccountClassification)
                 .order_by(
@@ -112,6 +122,14 @@ class OptimizedAccountClassificationService:
                 )
                 .all()
             )
+
+            # 将规则存入缓存
+            if cache_manager and rules:
+                rules_data = self._rules_to_cache_data(rules)
+                cache_manager.set_classification_rules_cache(rules_data)
+                log_info("分类规则已缓存", module="account_classification", count=len(rules))
+
+            return rules
         except Exception as e:
             log_error(f"获取规则失败: {e}", module="account_classification")
             return []
@@ -250,23 +268,46 @@ class OptimizedAccountClassificationService:
         return self._evaluate_rule(account, rule)
 
     def _evaluate_rule(self, account: CurrentAccountSyncData, rule: ClassificationRule) -> bool:
-        """评估规则是否匹配账户"""
+        """评估规则是否匹配账户（带缓存）"""
         try:
+            # 尝试从缓存获取规则评估结果
+            if cache_manager:
+                cached_result = cache_manager.get_rule_evaluation_cache(rule.id, account.id)
+                if cached_result is not None:
+                    log_info("从缓存获取规则评估结果", 
+                           module="account_classification", 
+                           rule_id=rule.id, 
+                           account_id=account.id, 
+                           result=cached_result)
+                    return cached_result
+
+            # 缓存未命中，执行规则评估
             rule_expression = rule.get_rule_expression()
             if not rule_expression:
-                return self._evaluate_legacy_rule(account, rule)
+                result = self._evaluate_legacy_rule(account, rule)
+            else:
+                # 根据规则类型进行不同的匹配逻辑
+                if rule_expression.get("type") == "mysql_permissions":
+                    result = self._evaluate_mysql_rule(account, rule_expression)
+                elif rule_expression.get("type") == "sqlserver_permissions":
+                    result = self._evaluate_sqlserver_rule(account, rule_expression)
+                elif rule_expression.get("type") == "postgresql_permissions":
+                    result = self._evaluate_postgresql_rule(account, rule_expression)
+                elif rule_expression.get("type") == "oracle_permissions":
+                    result = self._evaluate_oracle_rule(account, rule_expression)
+                else:
+                    result = False
 
-            # 根据规则类型进行不同的匹配逻辑
-            if rule_expression.get("type") == "mysql_permissions":
-                return self._evaluate_mysql_rule(account, rule_expression)
-            if rule_expression.get("type") == "sqlserver_permissions":
-                return self._evaluate_sqlserver_rule(account, rule_expression)
-            if rule_expression.get("type") == "postgresql_permissions":
-                return self._evaluate_postgresql_rule(account, rule_expression)
-            if rule_expression.get("type") == "oracle_permissions":
-                return self._evaluate_oracle_rule(account, rule_expression)
+            # 将评估结果存入缓存
+            if cache_manager:
+                cache_manager.set_rule_evaluation_cache(rule.id, account.id, result)
+                log_info("规则评估结果已缓存", 
+                       module="account_classification", 
+                       rule_id=rule.id, 
+                       account_id=account.id, 
+                       result=result)
 
-            return False
+            return result
 
         except Exception as e:
             log_error(f"评估规则失败: {e}", module="account_classification")
@@ -600,6 +641,69 @@ class OptimizedAccountClassificationService:
             db.session.rollback()
             log_error(f"分配账户分类失败: {str(e)}", module="account_classification")
             return {"success": False, "error": f"分配账户分类失败: {str(e)}"}
+
+    def _rules_to_cache_data(self, rules: list[ClassificationRule]) -> list[dict[str, Any]]:
+        """将规则对象转换为缓存数据"""
+        try:
+            rules_data = []
+            for rule in rules:
+                rule_data = {
+                    "id": rule.id,
+                    "rule_name": rule.rule_name,
+                    "rule_description": rule.rule_description,
+                    "db_type": rule.db_type,
+                    "rule_expression": rule.rule_expression,
+                    "is_active": rule.is_active,
+                    "classification_id": rule.classification_id,
+                    "created_at": rule.created_at.isoformat() if rule.created_at else None,
+                    "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
+                }
+                rules_data.append(rule_data)
+            return rules_data
+        except Exception as e:
+            log_error(f"转换规则数据失败: {e}", module="account_classification")
+            return []
+
+    def _rules_from_cache_data(self, rules_data: list[dict[str, Any]]) -> list[ClassificationRule]:
+        """将缓存数据转换为规则对象"""
+        try:
+            rules = []
+            for rule_data in rules_data:
+                # 创建规则对象（简化版本，只包含必要字段）
+                rule = ClassificationRule()
+                rule.id = rule_data.get("id")
+                rule.rule_name = rule_data.get("rule_name")
+                rule.rule_description = rule_data.get("rule_description")
+                rule.db_type = rule_data.get("db_type")
+                rule.rule_expression = rule_data.get("rule_expression")
+                rule.is_active = rule_data.get("is_active", True)
+                rule.classification_id = rule_data.get("classification_id")
+                
+                # 解析时间字段
+                if rule_data.get("created_at"):
+                    from datetime import datetime
+                    rule.created_at = datetime.fromisoformat(rule_data["created_at"])
+                if rule_data.get("updated_at"):
+                    from datetime import datetime
+                    rule.updated_at = datetime.fromisoformat(rule_data["updated_at"])
+                
+                rules.append(rule)
+            return rules
+        except Exception as e:
+            log_error(f"从缓存数据创建规则失败: {e}", module="account_classification")
+            return []
+
+    def invalidate_cache(self) -> bool:
+        """清除分类相关缓存"""
+        try:
+            if cache_manager:
+                cache_manager.invalidate_classification_cache()
+                log_info("分类缓存已清除", module="account_classification")
+                return True
+            return False
+        except Exception as e:
+            log_error(f"清除分类缓存失败: {e}", module="account_classification")
+            return False
 
     def get_rule_matched_accounts_count(self, rule_id: int) -> int:
         """获取规则匹配的账户数量（重新评估规则）"""
