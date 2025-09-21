@@ -6,12 +6,12 @@
 
 ## 权限要求对比
 
-| 数据库 | 最低权限 | 连接权限 | 系统表权限 | 信息模式权限 |
-|--------|----------|----------|------------|--------------|
-| **MySQL** | `USAGE` | `CONNECT` | `SELECT ON mysql.*` | `SELECT ON INFORMATION_SCHEMA.*` |
-| **PostgreSQL** | `CONNECT` | `CONNECT` | `SELECT ON pg_*` | `SELECT ON information_schema.*` |
-| **SQL Server** | `CONNECT SQL` | `CONNECT SQL` | `VIEW ANY DEFINITION` | `VIEW DEFINITION` |
-| **Oracle** | `CREATE SESSION` | `CREATE SESSION` | `SELECT ON DBA_*` | - |
+| 数据库 | 最低权限 | 连接权限 | 系统表权限 | 信息模式权限 | 跨数据库权限 |
+|--------|----------|----------|------------|--------------|--------------|
+| **MySQL** | `USAGE` | `CONNECT` | `SELECT ON mysql.*` | `SELECT ON INFORMATION_SCHEMA.*` | - |
+| **PostgreSQL** | `CONNECT` | `CONNECT` | `SELECT ON pg_*` | `SELECT ON information_schema.*` | - |
+| **SQL Server** | `CONNECT SQL` | `CONNECT SQL` | `VIEW ANY DEFINITION` | `VIEW DEFINITION` | `VIEW ANY DATABASE` |
+| **Oracle** | `CREATE SESSION` | `CREATE SESSION` | `SELECT ON DBA_*` | - | - |
 
 ## 快速配置
 
@@ -34,6 +34,7 @@ GRANT SELECT ON ALL TABLES IN SCHEMA information_schema TO monitor_user;
 ```sql
 GRANT CONNECT SQL TO monitor_user;
 GRANT VIEW ANY DEFINITION TO monitor_user;
+GRANT VIEW ANY DATABASE TO monitor_user;  -- 支持跨数据库查询
 GRANT VIEW DEFINITION TO monitor_user;
 ```
 
