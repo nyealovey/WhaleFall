@@ -284,7 +284,8 @@ class SQLServerConnection(DatabaseConnection):
                 user=username,
                 password=password,
                 database=database_name,
-                timeout=5,  # 连接超时5秒
+                timeout=5,  # 查询超时5秒
+                login_timeout=10,  # 连接/登录超时10秒，避免网络不可达时长时间挂起
                 # 支持SQL Server 2008+
                 tds_version="7.2",  # 支持SQL Server 2008+
             )
