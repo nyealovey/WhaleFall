@@ -3,6 +3,7 @@
 处理MySQL特定的账户同步逻辑
 """
 
+import re
 from typing import Any
 
 from app.models import Instance
@@ -168,69 +169,71 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         self, grant_statement: str, global_privileges: list[str], database_privileges: dict[str, list[str]]
     ) -> None:
         """
-        解析GRANT语句
+        使用正则表达式解析GRANT语句，以提高准确性和健壮性
         """
         try:
-            grant_upper = grant_statement.upper()
+            # 移除GRANT关键字和WITH GRANT OPTION后缀，简化匹配
+            simple_grant = grant_statement.upper().replace("GRANT ", "").replace(" WITH GRANT OPTION", "")
 
-            if "GRANT ALL PRIVILEGES" in grant_upper:
-                if "ON *.*" in grant_upper:
-                    global_privileges.append("ALL PRIVILEGES")
-                elif "ON `" in grant_upper and "`.*" in grant_upper:
-                    # 数据库级别的ALL PRIVILEGES
-                    db_name = self._extract_database_name(grant_statement)
-                    if db_name:
-                        if db_name not in database_privileges:
-                            database_privileges[db_name] = []
-                        database_privileges[db_name].append("ALL PRIVILEGES")
-            elif "ON *.*" in grant_upper:
-                # 全局权限
-                privileges = self._extract_privileges_from_grant(grant_statement)
-                global_privileges.extend(privileges)
-            elif "ON `" in grant_upper and "`.*" in grant_upper:
-                # 数据库权限
-                db_name = self._extract_database_name(grant_statement)
-                privileges = self._extract_privileges_from_grant(grant_statement)
-                if db_name and privileges:
-                    if db_name not in database_privileges:
-                        database_privileges[db_name] = []
-                    database_privileges[db_name].extend(privileges)
+            # 匹配全局权限: ON *.*
+            global_match = re.match(r"(.+?) ON \*\.\*", simple_grant)
+            if global_match:
+                privs = self._extract_privileges_from_string(global_match.group(1))
+                global_privileges.extend(privs)
+                return
+
+            # 匹配数据库级权限: ON `db_name`.*
+            db_match = re.match(r"(.+?) ON `(.+?)`\.\*", simple_grant)
+            if db_match:
+                privs_str = db_match.group(1)
+                db_name = db_match.group(2).replace("``", "`")  # 处理转义的反引号
+                privs = self._extract_privileges_from_string(privs_str)
+                if db_name not in database_privileges:
+                    database_privileges[db_name] = []
+                database_privileges[db_name].extend(privs)
+                return
+
+            # 匹配特定对象权限（表、函数、过程），作为数据库级权限的补充
+            obj_match = re.match(r"(.+?) ON `(.+?)`\.`(.+?)`", simple_grant)
+            if obj_match:
+                db_name = obj_match.group(2).replace("``", "`")
+                # 将对象级权限简化记录到数据库级别
+                privs = self._extract_privileges_from_string(obj_match.group(1))
+                priv_summary = f"{obj_match.group(1).strip()} ON {obj_match.group(3).strip()}"
+                if db_name not in database_privileges:
+                    database_privileges[db_name] = []
+                # 为避免过于复杂，这里只记录一个概要
+                if priv_summary not in database_privileges[db_name]:
+                    database_privileges[db_name].append(priv_summary)
 
         except Exception as e:
             self.sync_logger.warning(
                 "解析GRANT语句失败: %s", grant_statement, module="mysql_sync_adapter", error=str(e)
             )
 
+    def _extract_privileges_from_string(self, privileges_str: str) -> list[str]:
+        """从权限字符串中提取权限列表"""
+        # ALL PRIVILEGES 是一个单独的权限，需要特殊处理
+        if "ALL PRIVILEGES" in privileges_str:
+            return ["ALL PRIVILEGES"]
+        # 分割权限并清理
+        privileges = [p.strip() for p in privileges_str.split(",") if p.strip()]
+        return privileges
+
     def _extract_database_name(self, grant_statement: str) -> str:
-        """从GRANT语句中提取数据库名"""
-        try:
-            if "ON `" in grant_statement and "`.*" in grant_statement:
-                start = grant_statement.find("ON `") + 4
-                end = grant_statement.find("`.*", start)
-                return grant_statement[start:end]
-        except Exception as e:
-            self.sync_logger.warning(
-                "提取数据库名失败",
-                module="mysql_sync_adapter",
-                grant_statement=grant_statement,
-                error=str(e)
-            )
+        """从GRANT语句中提取数据库名（已由新的解析逻辑取代）"""
+        # 此方法保留以防万一，但新的解析逻辑不再直接调用它
+        match = re.search(r"ON `(.+?)`\.", grant_statement, re.IGNORECASE)
+        if match:
+            return match.group(1).replace("``", "`")
         return ""
 
     def _extract_privileges_from_grant(self, grant_statement: str) -> list[str]:
-        """从GRANT语句中提取权限列表"""
+        """从GRANT语句中提取权限列表（已由新的解析逻辑取代）"""
+        # 此方法保留以防万一，但新的解析逻辑不再直接调用它
         try:
-            # 提取GRANT和ON之间的权限部分
-            grant_part = grant_statement.split("ON")[0].replace("GRANT ", "").strip()
-
-            # 分割权限并清理
-            privileges = []
-            for priv in grant_part.split(","):
-                priv = priv.strip()
-                if priv and priv not in privileges:
-                    privileges.append(priv)
-
-            return privileges
+            grant_part = grant_statement.upper().split(" ON ")[0].replace("GRANT ", "").strip()
+            return self._extract_privileges_from_string(grant_part)
         except Exception:
             return []
 
