@@ -16,15 +16,15 @@ class SyncSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(36), unique=True, nullable=False, index=True)
     sync_type = db.Column(
-        db.Enum("manual_single", "manual_batch", "manual_task", "scheduled_task", name="sync_type_enum"), nullable=False
+        db.String(20), nullable=False
     )
     sync_category = db.Column(
-        db.Enum("account", "capacity", "config", "other", name="sync_category_enum"),
+        db.String(20),
         nullable=False,
         default="account",
     )
     status = db.Column(
-        db.Enum("running", "completed", "failed", "cancelled", name="sync_status_enum"),
+        db.String(20),
         nullable=False,
         default="running",
     )
