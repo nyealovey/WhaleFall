@@ -258,12 +258,18 @@ class SQLServerConnection(DatabaseConnection):
         try:
             return self._try_pymssql_connection(username, password, database_name)
         except Exception as e:
+            # 记录真实的连接错误，而不是误导性的"驱动不可用"
             self.db_logger.error(
-                "SQL Server连接失败 - pymssql驱动不可用",
+                "SQL Server连接失败",
                 module="connection",
                 instance_id=self.instance.id,
                 db_type="SQL Server",
-                exception=str(e),
+                host=self.instance.host,
+                port=self.instance.port,
+                database=database_name,
+                username=username,
+                error=str(e),
+                error_type=type(e).__name__
             )
             return False
 
@@ -296,6 +302,14 @@ class SQLServerConnection(DatabaseConnection):
             return False
         except Exception as e:
             # 捕获所有其他连接异常，防止中断批量同步
+            error_message = str(e)
+            
+            # 使用诊断工具分析错误
+            from app.utils.sqlserver_connection_diagnostics import sqlserver_diagnostics
+            diagnosis = sqlserver_diagnostics.diagnose_connection_error(
+                error_message, self.instance.host, self.instance.port
+            )
+            
             self.db_logger.error(
                 "SQL Server连接失败",
                 module="connection",
@@ -305,8 +319,9 @@ class SQLServerConnection(DatabaseConnection):
                 port=self.instance.port,
                 database=database_name,
                 username=username,
-                error=str(e),
-                error_type=type(e).__name__
+                error=error_message,
+                error_type=type(e).__name__,
+                diagnosis=diagnosis
             )
             return False
 
