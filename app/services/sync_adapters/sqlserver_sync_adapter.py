@@ -1001,7 +1001,9 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 ):
                     if db_name not in database_roles:
                         database_roles[db_name] = []
-                    database_roles[db_name].append(role_name)
+                    # 避免重复添加相同的角色
+                    if role_name not in database_roles[db_name]:
+                        database_roles[db_name].append(role_name)
 
             # 处理权限 - 按权限作用范围分类存储
             for row in all_perms:
@@ -1032,17 +1034,20 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     
                     # 根据权限作用范围分类存储
                     if scope == "DATABASE":
-                        database_permissions[db_name]["database"].append(permission_name)
+                        if permission_name not in database_permissions[db_name]["database"]:
+                            database_permissions[db_name]["database"].append(permission_name)
                     elif scope == "SCHEMA":
                         schema_name = object_name
                         if schema_name not in database_permissions[db_name]["schema"]:
                             database_permissions[db_name]["schema"][schema_name] = []
-                        database_permissions[db_name]["schema"][schema_name].append(permission_name)
+                        if permission_name not in database_permissions[db_name]["schema"][schema_name]:
+                            database_permissions[db_name]["schema"][schema_name].append(permission_name)
                     elif scope == "OBJECT":
                         table_name = object_name
                         if table_name not in database_permissions[db_name]["table"]:
                             database_permissions[db_name]["table"][table_name] = []
-                        database_permissions[db_name]["table"][table_name].append(permission_name)
+                        if permission_name not in database_permissions[db_name]["table"][table_name]:
+                            database_permissions[db_name]["table"][table_name].append(permission_name)
 
             # 对于sysadmin用户，添加db_owner角色到所有数据库
             if is_sysadmin:
@@ -1222,7 +1227,9 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 if user_name in usernames:
                     if db_name not in result[user_name]["roles"]:
                         result[user_name]["roles"][db_name] = []
-                    result[user_name]["roles"][db_name].append(role_name)
+                    # 避免重复添加相同的角色
+                    if role_name not in result[user_name]["roles"][db_name]:
+                        result[user_name]["roles"][db_name].append(role_name)
 
                 # 通过SID匹配
                 for username, sid in username_to_sid.items():
@@ -1233,6 +1240,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     ):
                         if db_name not in result[username]["roles"]:
                             result[username]["roles"][db_name] = []
+                        # 避免重复添加相同的角色
                         if role_name not in result[username]["roles"][db_name]:
                             result[username]["roles"][db_name].append(role_name)
 
@@ -1258,17 +1266,20 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     
                     # 根据权限作用范围分类存储
                     if scope == "DATABASE":
-                        result[user_name]["permissions"][db_name]["database"].append(permission_name)
+                        if permission_name not in result[user_name]["permissions"][db_name]["database"]:
+                            result[user_name]["permissions"][db_name]["database"].append(permission_name)
                     elif scope == "SCHEMA":
                         schema_name = object_name
                         if schema_name not in result[user_name]["permissions"][db_name]["schema"]:
                             result[user_name]["permissions"][db_name]["schema"][schema_name] = []
-                        result[user_name]["permissions"][db_name]["schema"][schema_name].append(permission_name)
+                        if permission_name not in result[user_name]["permissions"][db_name]["schema"][schema_name]:
+                            result[user_name]["permissions"][db_name]["schema"][schema_name].append(permission_name)
                     elif scope == "OBJECT":
                         table_name = object_name
                         if table_name not in result[user_name]["permissions"][db_name]["table"]:
                             result[user_name]["permissions"][db_name]["table"][table_name] = []
-                        result[user_name]["permissions"][db_name]["table"][table_name].append(permission_name)
+                        if permission_name not in result[user_name]["permissions"][db_name]["table"][table_name]:
+                            result[user_name]["permissions"][db_name]["table"][table_name].append(permission_name)
 
                 # 通过SID匹配
                 for username, sid in username_to_sid.items():
