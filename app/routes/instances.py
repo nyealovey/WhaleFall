@@ -1205,7 +1205,6 @@ def download_template() -> Response:
             "192.168.1.100",
             "3306",
             "mysql",
-            "production",
             "生产环境MySQL主库",
             "1",
         ]
@@ -1217,7 +1216,6 @@ def download_template() -> Response:
             "192.168.1.101",
             "3306",
             "mysql",
-            "development",
             "开发环境MySQL",
             "2",
         ]
@@ -1229,7 +1227,6 @@ def download_template() -> Response:
             "192.168.1.102",
             "5432",
             "postgres",
-            "testing",
             "测试环境PostgreSQL",
             "3",
         ]
