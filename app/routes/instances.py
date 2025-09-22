@@ -147,7 +147,8 @@ def index() -> str:
     per_page = request.args.get("per_page", 10, type=int)
     search = request.args.get("search", "", type=str)
     db_type = request.args.get("db_type", "", type=str)
-    tags = request.args.getlist("tags")  # 支持多选标签
+    tags_str = request.args.get("tags", "")
+    tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
 
     # 构建查询
     query = Instance.query
