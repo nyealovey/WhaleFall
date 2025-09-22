@@ -177,12 +177,16 @@ copy_code_to_container() {
     
     # 拷贝应用代码到临时目录
     log_info "准备应用代码..."
-    cp -r app "$temp_dir/"
-    cp -r migrations "$temp_dir/"
-    cp -r sql "$temp_dir/"
-    cp -r docs "$temp_dir/"
-    cp -r tests "$temp_dir/"
-    cp -r scripts "$temp_dir/"
+    
+    # 拷贝目录（检查是否存在）
+    [ -d "app" ] && cp -r app "$temp_dir/" || log_warning "app目录不存在，跳过"
+    [ -d "migrations" ] && cp -r migrations "$temp_dir/" || log_warning "migrations目录不存在，跳过"
+    [ -d "sql" ] && cp -r sql "$temp_dir/" || log_warning "sql目录不存在，跳过"
+    [ -d "docs" ] && cp -r docs "$temp_dir/" || log_warning "docs目录不存在，跳过"
+    [ -d "tests" ] && cp -r tests "$temp_dir/" || log_warning "tests目录不存在，跳过"
+    [ -d "scripts" ] && cp -r scripts "$temp_dir/" || log_warning "scripts目录不存在，跳过"
+    
+    # 拷贝根目录文件（静默处理不存在的文件）
     cp *.py "$temp_dir/" 2>/dev/null || true
     cp *.md "$temp_dir/" 2>/dev/null || true
     cp *.txt "$temp_dir/" 2>/dev/null || true
@@ -193,17 +197,43 @@ copy_code_to_container() {
     cp *.ini "$temp_dir/" 2>/dev/null || true
     cp *.lock "$temp_dir/" 2>/dev/null || true
     
+    # 检查是否有文件被拷贝
+    local file_count
+    file_count=$(find "$temp_dir" -type f | wc -l)
+    
+    if [ "$file_count" -eq 0 ]; then
+        log_error "没有找到任何文件需要拷贝"
+        rm -rf "$temp_dir"
+        exit 1
+    fi
+    
+    log_info "找到 $file_count 个文件，开始拷贝到容器..."
+    
     # 拷贝代码到容器
-    log_info "拷贝代码到容器内部..."
-    docker cp "$temp_dir/." "$flask_container_id:/app/"
+    if docker cp "$temp_dir/." "$flask_container_id:/app/"; then
+        log_success "代码拷贝成功"
+    else
+        log_error "代码拷贝失败"
+        rm -rf "$temp_dir"
+        exit 1
+    fi
     
     # 清理临时目录
     rm -rf "$temp_dir"
     
     # 设置正确的权限
     log_info "设置文件权限..."
-    docker exec "$flask_container_id" chown -R app:app /app
-    docker exec "$flask_container_id" chmod -R 755 /app
+    if docker exec "$flask_container_id" chown -R app:app /app; then
+        log_success "文件所有者设置成功"
+    else
+        log_warning "文件所有者设置失败，但继续执行"
+    fi
+    
+    if docker exec "$flask_container_id" chmod -R 755 /app; then
+        log_success "文件权限设置成功"
+    else
+        log_warning "文件权限设置失败，但继续执行"
+    fi
     
     log_success "代码拷贝完成"
 }
