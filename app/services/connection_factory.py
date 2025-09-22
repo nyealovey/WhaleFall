@@ -287,6 +287,27 @@ class SQLServerConnection(DatabaseConnection):
             return True
 
         except ImportError:
+            self.db_logger.error(
+                "pymssql模块未安装",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="SQL Server"
+            )
+            return False
+        except Exception as e:
+            # 捕获所有其他连接异常，防止中断批量同步
+            self.db_logger.error(
+                "SQL Server连接失败",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="SQL Server",
+                host=self.instance.host,
+                port=self.instance.port,
+                database=database_name,
+                username=username,
+                error=str(e),
+                error_type=type(e).__name__
+            )
             return False
 
     def disconnect(self) -> None:
