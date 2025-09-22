@@ -10,6 +10,7 @@
 - 通过实际查询获取真实权限，避免硬编码假设
 """
 
+import signal
 import time
 from typing import Any
 
@@ -33,6 +34,58 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         super().__init__()
         self.filter_manager = DatabaseFilterManager()
         self._current_instance = None  # 当前处理的实例
+        self.query_timeout = 5  # 查询超时5秒
+
+    def _execute_query_with_timeout(self, connection: Any, sql: str, params: tuple = None) -> list:
+        """
+        执行带超时控制的查询
+        
+        Args:
+            connection: 数据库连接对象
+            sql: SQL查询语句
+            params: 查询参数
+            
+        Returns:
+            查询结果列表
+        """
+        def timeout_handler(signum, frame):
+            raise TimeoutError(f"查询超时 ({self.query_timeout}秒): {sql[:100]}...")
+        
+        try:
+            # 设置超时信号
+            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(self.query_timeout)
+            
+            # 执行查询
+            if params:
+                result = self._execute_query_with_timeout(connection,sql, params)
+            else:
+                result = self._execute_query_with_timeout(connection,sql)
+            
+            # 取消超时信号
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
+            
+            return result
+            
+        except TimeoutError as e:
+            self.sync_logger.warning(
+                "SQL Server查询超时",
+                module="sqlserver_sync_adapter",
+                instance_id=self._current_instance.id if self._current_instance else None,
+                sql=sql[:100],
+                timeout=self.query_timeout,
+                error=str(e)
+            )
+            # 取消超时信号
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
+            return []
+        except Exception as e:
+            # 取消超时信号
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
+            raise e
 
     def _quote_identifier(self, identifier: str) -> str:
         """
@@ -126,7 +179,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 ORDER BY sp.name
             """
 
-            logins = connection.execute_query(login_sql, params)
+            logins = self._execute_query_with_timeout(connection,login_sql, params)
 
             if not logins:
                 return []
@@ -140,7 +193,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 WHERE p.type IN ('S', 'U', 'G')
                 ORDER BY p.name, r.name
             """
-            all_server_roles = connection.execute_query(all_server_roles_sql)
+            all_server_roles = self._execute_query_with_timeout(connection,all_server_roles_sql)
             server_roles_dict = {}
             for row in all_server_roles:
                 username, role = row
@@ -154,7 +207,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 WHERE sp.type IN ('S', 'U', 'G') AND perm.state = 'G'
                 ORDER BY sp.name, perm.permission_name
             """
-            all_server_perms = connection.execute_query(all_server_perms_sql)
+            all_server_perms = self._execute_query_with_timeout(connection,all_server_perms_sql)
             server_perms_dict = {}
             for row in all_server_perms:
                 username, perm = row
@@ -175,7 +228,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 LEFT JOIN sys.sql_logins sl ON sp.principal_id = sl.principal_id AND sp.type = 'S'
                 WHERE sp.type IN ('S', 'U', 'G')
             """
-            all_type_specific = connection.execute_query(all_type_specific_sql)
+            all_type_specific = self._execute_query_with_timeout(connection,all_type_specific_sql)
             type_specific_dict = {}
             for row in all_type_specific:
                 username = row[0]
@@ -338,7 +391,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 WHERE p.name = %s
                 ORDER BY r.name
             """
-            result = connection.execute_query(sql, (username,))
+            result = self._execute_query_with_timeout(connection,sql, (username,))
             return [row[0] for row in result] if result else []
         except Exception as e:
             self.sync_logger.error("获取服务器角色失败: %s", username, error=str(e), sql=sql)
@@ -358,7 +411,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 AND state = 'G'
                 ORDER BY permission_name
             """
-            result = connection.execute_query(sql, (username,))
+            result = self._execute_query_with_timeout(connection,sql, (username,))
             return [row[0] for row in result] if result else []
         except Exception as e:
             self.sync_logger.warning("获取服务器权限失败: %s", username, error=str(e), sql=sql)
@@ -386,7 +439,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 AND HAS_DBACCESS(name) = 1
                 ORDER BY name
             """
-            databases = connection.execute_query(databases_sql)
+            databases = self._execute_query_with_timeout(connection, databases_sql)
 
             if not databases:
                 return {}, {}
@@ -600,7 +653,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 WHERE sp.name = %s
             """
 
-            result = connection.execute_query(sql, (username,))
+            result = self._execute_query_with_timeout(connection,sql, (username,))
 
             if result:
                 (
@@ -878,7 +931,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 AND HAS_DBACCESS(name) = 1
                 ORDER BY name
             """
-            databases = connection.execute_query(databases_sql)
+            databases = self._execute_query_with_timeout(connection,databases_sql)
 
             if not databases:
                 return {}, {}
@@ -889,7 +942,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             sysadmin_check_sql = """
                 SELECT IS_SRVROLEMEMBER('sysadmin', %s) as is_sysadmin
             """
-            sysadmin_result = connection.execute_query(sysadmin_check_sql, (username,))
+            sysadmin_result = self._execute_query_with_timeout(connection,sysadmin_check_sql, (username,))
             is_sysadmin = sysadmin_result and sysadmin_result[0][0] == 1
 
             # 构建动态SQL获取所有数据库的principals
@@ -909,7 +962,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
             principals_sql = " UNION ALL ".join(principals_parts)
 
-            all_principals = connection.execute_query(principals_sql)
+            all_principals = self._execute_query_with_timeout(connection,principals_sql)
 
             # 构建用户映射 {db: {user_name: (principal_id, sid)}}
             db_principals = {}
@@ -933,7 +986,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
             roles_sql = " UNION ALL ".join(roles_parts)
 
-            all_roles = connection.execute_query(roles_sql)
+            all_roles = self._execute_query_with_timeout(connection,roles_sql)
 
             # 构建动态SQL获取所有数据库的权限
             perms_parts = []
@@ -964,7 +1017,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
             perms_sql = " UNION ALL ".join(perms_parts)
 
-            all_perms = connection.execute_query(perms_sql)
+            all_perms = self._execute_query_with_timeout(connection,perms_sql)
 
             # 获取服务器登录的SID用于映射
             login_sid_sql = """
@@ -972,7 +1025,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 FROM sys.server_principals
                 WHERE name = %s AND type IN ('S', 'U', 'G')
             """
-            login_info = connection.execute_query(login_sid_sql, (username,))
+            login_info = self._execute_query_with_timeout(connection,login_sid_sql, (username,))
             login_sid = login_info[0][1] if login_info else None
 
             # 在Python中聚合数据
@@ -1115,7 +1168,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 AND HAS_DBACCESS(name) = 1
                 ORDER BY name
             """
-            databases = connection.execute_query(databases_sql)
+            databases = self._execute_query_with_timeout(connection,databases_sql)
 
             if not databases:
                 return {}
@@ -1129,7 +1182,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 FROM sys.server_principals
                 WHERE name IN ('{usernames_str}') AND type IN ('S', 'U', 'G')
             """
-            login_sids = connection.execute_query(login_sids_sql)
+            login_sids = self._execute_query_with_timeout(connection,login_sids_sql)
             username_to_sid = {row[0]: row[1] for row in login_sids}
 
             # 移除sysadmin状态检查，不再需要特殊处理
@@ -1150,7 +1203,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 )
 
             principals_sql = " UNION ALL ".join(principals_parts)
-            all_principals = connection.execute_query(principals_sql)
+            all_principals = self._execute_query_with_timeout(connection,principals_sql)
 
             # 构建用户映射 {db: {user_name: (principal_id, sid)}}
             db_principals = {}
@@ -1174,7 +1227,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
             roles_sql = " UNION ALL ".join(roles_parts)
 
-            all_roles = connection.execute_query(roles_sql)
+            all_roles = self._execute_query_with_timeout(connection,roles_sql)
 
             # 构建动态SQL获取所有数据库的权限
             perms_parts = []
@@ -1205,7 +1258,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
 
             perms_sql = " UNION ALL ".join(perms_parts)
 
-            all_perms = connection.execute_query(perms_sql)
+            all_perms = self._execute_query_with_timeout(connection,perms_sql)
 
             # 在Python中聚合数据
             result = {}
