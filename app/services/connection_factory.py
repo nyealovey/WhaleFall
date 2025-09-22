@@ -236,7 +236,7 @@ class PostgreSQLConnection(DatabaseConnection):
 
 
 class SQLServerConnection(DatabaseConnection):
-    """SQL Server数据库连接 - 支持2005-2022版本"""
+    """SQL Server数据库连接 - 支持2008-2022版本"""
 
     def __init__(self, instance: Any) -> None:  # noqa: ANN401
         super().__init__(instance)
@@ -285,8 +285,8 @@ class SQLServerConnection(DatabaseConnection):
                 password=password,
                 database=database_name,
                 timeout=5,  # 连接超时5秒
-                # 添加版本兼容性参数
-                tds_version="7.4",  # 支持SQL Server 2005+
+                # 支持SQL Server 2008+
+                tds_version="7.2",  # 支持SQL Server 2008+
             )
             self.is_connected = True
             self.driver_type = "pymssql"
