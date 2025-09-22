@@ -423,45 +423,38 @@ def get_matched_accounts(rule_id: int) -> "Response":
         )
 
         matched_accounts = []
-        seen_accounts = set()  # 用于去重
 
         for account in all_accounts:
             # 检查账户是否匹配规则
             if classification_service.evaluate_rule(rule, account):
                 # 统一使用用户名作为显示名称，与账户管理页面保持一致
                 display_name = account.username
-                # 使用用户名作为唯一标识
-                unique_key = account.username
 
-                # 避免重复显示
-                if unique_key not in seen_accounts:
-                    seen_accounts.add(unique_key)
+                # 获取账户的分类信息
+                account_classifications = []
+                if hasattr(account, "classifications") and account.classifications:
+                    for classification in account.classifications:
+                        account_classifications.append(
+                            {
+                                "id": classification.id,
+                                "name": classification.name,
+                                "color": classification.color,
+                            }
+                        )
 
-                    # 获取账户的分类信息
-                    account_classifications = []
-                    if hasattr(account, "classifications") and account.classifications:
-                        for classification in account.classifications:
-                            account_classifications.append(
-                                {
-                                    "id": classification.id,
-                                    "name": classification.name,
-                                    "color": classification.color,
-                                }
-                            )
-
-                    matched_accounts.append(
-                        {
-                            "id": account.id,
-                            "username": account.username,  # 使用原始用户名
-                            "display_name": display_name,  # 显示名称
-                            "instance_name": (account.instance.name if account.instance else "未知实例"),
-                            "instance_host": (account.instance.host if account.instance else "未知IP"),
-                            "instance_environment": (account.instance.environment if account.instance else "unknown"),
-                            "db_type": rule.db_type,
-                            "is_locked": account.is_locked_display,  # 使用计算字段
-                            "classifications": account_classifications,
-                        }
-                    )
+                matched_accounts.append(
+                    {
+                        "id": account.id,
+                        "username": account.username,  # 使用原始用户名
+                        "display_name": display_name,  # 显示名称
+                        "instance_name": (account.instance.name if account.instance else "未知实例"),
+                        "instance_host": (account.instance.host if account.instance else "未知IP"),
+                        "instance_environment": (account.instance.environment if account.instance else "unknown"),
+                        "db_type": rule.db_type,
+                        "is_locked": account.is_locked_display,  # 使用计算字段
+                        "classifications": account_classifications,
+                    }
+                )
 
         # 应用搜索过滤
         if search:
