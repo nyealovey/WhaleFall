@@ -8,6 +8,11 @@
 SET timezone = 'Asia/Shanghai';
 SET client_encoding = 'UTF8';
 
+-- 注意：此脚本在 PostgreSQL 容器启动时自动执行
+-- 数据库名称由 POSTGRES_DB 环境变量决定
+-- 开发环境：whalefall_dev
+-- 生产环境：whalefall_prod
+
 -- 开始事务
 BEGIN;
 
