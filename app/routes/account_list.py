@@ -93,12 +93,25 @@ def list_accounts(db_type: str | None = None) -> str:
     if classification and classification != "all":
         from app.models.account_classification import AccountClassification, AccountClassificationAssignment
 
-        # 通过分类分配表进行过滤
-        query = (
-            query.join(AccountClassificationAssignment)
-            .join(AccountClassification)
-            .filter(AccountClassification.id == classification, AccountClassificationAssignment.is_active.is_(True))
-        )
+        try:
+            # 将字符串转换为整数
+            classification_id = int(classification)
+            
+            # 通过分类分配表进行过滤
+            query = (
+                query.join(AccountClassificationAssignment)
+                .join(AccountClassification)
+                .filter(AccountClassification.id == classification_id, AccountClassificationAssignment.is_active.is_(True))
+            )
+        except (ValueError, TypeError) as e:
+            log_error(
+                "分类ID转换失败",
+                module="account_list",
+                classification=classification,
+                error=str(e),
+            )
+            # 如果转换失败，忽略分类过滤
+            pass
 
     # 排序
     query = query.order_by(CurrentAccountSyncData.username.asc())
