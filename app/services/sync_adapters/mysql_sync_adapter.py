@@ -102,21 +102,188 @@ class MySQLSyncAdapter(BaseSyncAdapter):
 
         return builder.build_where_clause()
 
+    def _get_global_privileges_from_user_table(self, connection: Any, username: str, host: str) -> list[str]:  # noqa: ANN401
+        """
+        直接从mysql.user表获取全局权限，避免SHOW GRANTS的截断问题
+        """
+        try:
+            # 查询mysql.user表中的所有权限列
+            user_sql = """
+                SELECT
+                    Select_priv, Insert_priv, Update_priv, Delete_priv, Create_priv, Drop_priv,
+                    Reload_priv, Shutdown_priv, Process_priv, File_priv, Grant_priv, References_priv,
+                    Index_priv, Alter_priv, Show_db_priv, Super_priv, Create_tmp_table_priv,
+                    Lock_tables_priv, Execute_priv, Repl_slave_priv, Repl_client_priv,
+                    Create_view_priv, Show_view_priv, Create_routine_priv, Alter_routine_priv,
+                    Create_user_priv, Event_priv, Trigger_priv, Create_tablespace_priv,
+                    Create_role_priv, Drop_role_priv, Application_password_admin_priv,
+                    Audit_admin_priv, Binlog_admin_priv, Binlog_replication_priv,
+                    Connection_admin_priv, Encryption_key_admin_priv, Firewall_admin_priv,
+                    Group_replication_admin_priv, Group_replication_stream_priv,
+                    Ndb_stored_user_priv, Passwordless_user_admin_priv,
+                    Replication_applier_admin_priv, Replication_slave_admin_priv,
+                    Resource_group_admin_priv, Resource_group_user_priv, Service_connection_admin_priv,
+                    Session_variables_admin_priv, Set_user_id_priv, Show_routine_priv,
+                    System_user_priv, Table_encryption_admin_priv, Xa_recover_admin_priv
+                FROM mysql.user
+                WHERE User = %s AND Host = %s
+            """
+            
+            result = connection.execute_query(user_sql, (username, host))
+            if not result:
+                return []
+            
+            # 权限列名映射
+            privilege_columns = [
+                ('Select_priv', 'SELECT'),
+                ('Insert_priv', 'INSERT'),
+                ('Update_priv', 'UPDATE'),
+                ('Delete_priv', 'DELETE'),
+                ('Create_priv', 'CREATE'),
+                ('Drop_priv', 'DROP'),
+                ('Reload_priv', 'RELOAD'),
+                ('Shutdown_priv', 'SHUTDOWN'),
+                ('Process_priv', 'PROCESS'),
+                ('File_priv', 'FILE'),
+                ('References_priv', 'REFERENCES'),
+                ('Index_priv', 'INDEX'),
+                ('Alter_priv', 'ALTER'),
+                ('Show_db_priv', 'SHOW DATABASES'),
+                ('Super_priv', 'SUPER'),
+                ('Create_tmp_table_priv', 'CREATE TEMPORARY TABLES'),
+                ('Lock_tables_priv', 'LOCK TABLES'),
+                ('Execute_priv', 'EXECUTE'),
+                ('Repl_slave_priv', 'REPLICATION SLAVE'),
+                ('Repl_client_priv', 'REPLICATION CLIENT'),
+                ('Create_view_priv', 'CREATE VIEW'),
+                ('Show_view_priv', 'SHOW VIEW'),
+                ('Create_routine_priv', 'CREATE ROUTINE'),
+                ('Alter_routine_priv', 'ALTER ROUTINE'),
+                ('Create_user_priv', 'CREATE USER'),
+                ('Event_priv', 'EVENT'),
+                ('Trigger_priv', 'TRIGGER'),
+                ('Create_tablespace_priv', 'CREATE TABLESPACE'),
+                ('Create_role_priv', 'CREATE ROLE'),
+                ('Drop_role_priv', 'DROP ROLE'),
+                ('Application_password_admin_priv', 'APPLICATION_PASSWORD_ADMIN'),
+                ('Audit_admin_priv', 'AUDIT_ADMIN'),
+                ('Binlog_admin_priv', 'BINLOG_ADMIN'),
+                ('Binlog_replication_priv', 'BINLOG_REPLICATION'),
+                ('Connection_admin_priv', 'CONNECTION_ADMIN'),
+                ('Encryption_key_admin_priv', 'ENCRYPTION_KEY_ADMIN'),
+                ('Firewall_admin_priv', 'FIREWALL_ADMIN'),
+                ('Group_replication_admin_priv', 'GROUP_REPLICATION_ADMIN'),
+                ('Group_replication_stream_priv', 'GROUP_REPLICATION_STREAM'),
+                ('Ndb_stored_user_priv', 'NDB_STORED_USER'),
+                ('Passwordless_user_admin_priv', 'PASSWORDLESS_USER_ADMIN'),
+                ('Replication_applier_admin_priv', 'REPLICATION_APPLIER_ADMIN'),
+                ('Replication_slave_admin_priv', 'REPLICATION_SLAVE_ADMIN'),
+                ('Resource_group_admin_priv', 'RESOURCE_GROUP_ADMIN'),
+                ('Resource_group_user_priv', 'RESOURCE_GROUP_USER'),
+                ('Service_connection_admin_priv', 'SERVICE_CONNECTION_ADMIN'),
+                ('Session_variables_admin_priv', 'SESSION_VARIABLES_ADMIN'),
+                ('Set_user_id_priv', 'SET_USER_ID'),
+                ('Show_routine_priv', 'SHOW_ROUTINE'),
+                ('System_user_priv', 'SYSTEM_USER'),
+                ('Table_encryption_admin_priv', 'TABLE_ENCRYPTION_ADMIN'),
+                ('Xa_recover_admin_priv', 'XA_RECOVER_ADMIN')
+            ]
+            
+            privileges = []
+            row = result[0]
+            
+            for i, (column_name, privilege_name) in enumerate(privilege_columns):
+                if i < len(row) and row[i] == 'Y':
+                    privileges.append(privilege_name)
+            
+            return privileges
+            
+        except Exception as e:
+            self.sync_logger.error(
+                "从mysql.user表获取全局权限失败: %s@%s", username, host, module="mysql_sync_adapter", error=str(e)
+            )
+            return []
+
+    def _get_database_privileges(self, connection: Any, username: str, host: str) -> dict[str, list[str]]:  # noqa: ANN401
+        """
+        获取数据库级别的权限
+        """
+        try:
+            # 查询mysql.db表获取数据库权限
+            db_sql = """
+                SELECT Db, Select_priv, Insert_priv, Update_priv, Delete_priv, Create_priv,
+                       Drop_priv, Grant_priv, References_priv, Index_priv, Alter_priv,
+                       Create_tmp_table_priv, Lock_tables_priv, Create_view_priv,
+                       Show_view_priv, Create_routine_priv, Alter_routine_priv,
+                       Execute_priv, Event_priv, Trigger_priv
+                FROM mysql.db
+                WHERE User = %s AND Host = %s
+            """
+            
+            result = connection.execute_query(db_sql, (username, host))
+            database_privileges = {}
+            
+            # 数据库权限列名映射
+            db_privilege_columns = [
+                ('Select_priv', 'SELECT'),
+                ('Insert_priv', 'INSERT'),
+                ('Update_priv', 'UPDATE'),
+                ('Delete_priv', 'DELETE'),
+                ('Create_priv', 'CREATE'),
+                ('Drop_priv', 'DROP'),
+                ('References_priv', 'REFERENCES'),
+                ('Index_priv', 'INDEX'),
+                ('Alter_priv', 'ALTER'),
+                ('Create_tmp_table_priv', 'CREATE TEMPORARY TABLES'),
+                ('Lock_tables_priv', 'LOCK TABLES'),
+                ('Create_view_priv', 'CREATE VIEW'),
+                ('Show_view_priv', 'SHOW VIEW'),
+                ('Create_routine_priv', 'CREATE ROUTINE'),
+                ('Alter_routine_priv', 'ALTER ROUTINE'),
+                ('Execute_priv', 'EXECUTE'),
+                ('Event_priv', 'EVENT'),
+                ('Trigger_priv', 'TRIGGER')
+            ]
+            
+            for row in result:
+                db_name = row[0]
+                privileges = []
+                
+                for i, (column_name, privilege_name) in enumerate(db_privilege_columns):
+                    if i + 1 < len(row) and row[i + 1] == 'Y':
+                        privileges.append(privilege_name)
+                
+                if privileges:
+                    database_privileges[db_name] = privileges
+            
+            return database_privileges
+            
+        except Exception as e:
+            self.sync_logger.error(
+                "获取数据库权限失败: %s@%s", username, host, module="mysql_sync_adapter", error=str(e)
+            )
+            return {}
+
     def _get_user_permissions(self, connection: Any, username: str, host: str) -> dict[str, Any]:  # noqa: ANN401
         """
         获取MySQL用户的详细权限信息
         """
         try:
-            # 获取用户权限语句
-            grants = connection.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
-            grant_statements = [row[0] for row in grants]
-
-            # 解析权限
-            global_privileges = []
-            database_privileges = {}
-
-            for grant_statement in grant_statements:
-                self._parse_grant_statement(grant_statement, global_privileges, database_privileges)
+            # 直接从mysql.user表获取全局权限，避免SHOW GRANTS的截断问题
+            global_privileges = self._get_global_privileges_from_user_table(connection, username, host)
+            
+            # 获取数据库权限
+            database_privileges = self._get_database_privileges(connection, username, host)
+            
+            # 仍然尝试获取GRANT语句作为备用（用于调试）
+            try:
+                grants = connection.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
+                grant_statements = [row[0] for row in grants]
+            except Exception as e:
+                self.sync_logger.warning(
+                    "获取GRANT语句失败，使用直接查询方式: %s", str(e), module="mysql_sync_adapter"
+                )
+                grant_statements = []
 
             # 获取用户的额外属性信息
             user_attrs_sql = """
