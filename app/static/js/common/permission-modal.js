@@ -127,8 +127,8 @@ function renderMySQLPermissions(permissions) {
             globalPrivilegesHtml = `
                 <div class="row">
                     ${allPrivileges.map(perm => `
-                        <div class="col-md-6 mb-2">
-                            <span class="badge bg-primary me-2">
+                        <div class="col-md-4 col-lg-3 mb-2">
+                            <span class="badge bg-primary me-2" style="white-space: nowrap;">
                                 <i class="fas fa-shield-alt me-1"></i>${perm}
                             </span>
                         </div>
@@ -219,8 +219,8 @@ function renderPostgreSQLPermissions(permissions) {
         predefinedRolesHtml = `
             <div class="row">
                 ${permissions.predefined_roles.map(role => `
-                    <div class="col-md-6 mb-2">
-                        <span class="badge bg-warning me-2">
+                    <div class="col-md-4 col-lg-3 mb-2">
+                        <span class="badge bg-warning me-2" style="white-space: nowrap;">
                             <i class="fas fa-user-tag me-1"></i>${role}
                         </span>
                     </div>
@@ -237,8 +237,8 @@ function renderPostgreSQLPermissions(permissions) {
             roleAttributesHtml = `
                 <div class="row">
                     ${permissions.role_attributes.map(attr => `
-                        <div class="col-md-6 mb-2">
-                            <span class="badge bg-primary me-2">
+                        <div class="col-md-4 col-lg-3 mb-2">
+                            <span class="badge bg-primary me-2" style="white-space: nowrap;">
                                 <i class="fas fa-user-cog me-1"></i>${attr}
                             </span>
                         </div>
@@ -253,8 +253,8 @@ function renderPostgreSQLPermissions(permissions) {
                 roleAttributesHtml = `
                     <div class="row">
                         ${attributes.map(([key, value]) => `
-                            <div class="col-md-6 mb-2">
-                                <span class="badge bg-primary me-2">
+                            <div class="col-md-4 col-lg-3 mb-2">
+                                <span class="badge bg-primary me-2" style="white-space: nowrap;">
                                     <i class="fas fa-user-cog me-1"></i>${key}
                                 </span>
                             </div>
@@ -303,8 +303,8 @@ function renderPostgreSQLPermissions(permissions) {
         tablespacePrivilegesHtml = `
             <div class="row">
                 ${permissions.tablespace_privileges.map(priv => `
-                    <div class="col-md-6 mb-2">
-                        <span class="badge bg-info me-2">
+                    <div class="col-md-4 col-lg-3 mb-2">
+                        <span class="badge bg-info me-2" style="white-space: nowrap;">
                             <i class="fas fa-hdd me-1"></i>${priv}
                         </span>
                     </div>
@@ -350,8 +350,8 @@ function renderOraclePermissions(permissions) {
             ${permissions.oracle_roles && Array.isArray(permissions.oracle_roles) && permissions.oracle_roles.length > 0 ? `
                 <div class="row">
                     ${permissions.oracle_roles.map(role => `
-                        <div class="col-md-6 mb-2">
-                            <span class="badge bg-primary me-2">
+                        <div class="col-md-4 col-lg-3 mb-2">
+                            <span class="badge bg-primary me-2" style="white-space: nowrap;">
                                 <i class="fas fa-crown me-1"></i>${role}
                             </span>
                         </div>
@@ -364,8 +364,8 @@ function renderOraclePermissions(permissions) {
             ${permissions.system_privileges && Array.isArray(permissions.system_privileges) && permissions.system_privileges.length > 0 ? `
                 <div class="row">
                     ${permissions.system_privileges.map(priv => `
-                        <div class="col-md-6 mb-2">
-                            <span class="badge bg-success me-2">
+                        <div class="col-md-4 col-lg-3 mb-2">
+                            <span class="badge bg-success me-2" style="white-space: nowrap;">
                                 <i class="fas fa-shield-alt me-1"></i>${priv}
                             </span>
                         </div>
@@ -380,7 +380,7 @@ function renderOraclePermissions(permissions) {
                     ${Object.entries(permissions.tablespace_privileges_oracle).map(([tsName, privileges]) => `
                         <div class="col-md-12 mb-2">
                             <div class="d-flex align-items-center">
-                                <span class="badge bg-info me-2">
+                                <span class="badge bg-info me-2" style="white-space: nowrap;">
                                     <i class="fas fa-hdd me-1"></i>${tsName}
                                 </span>
                                 <div class="ms-2">
@@ -399,8 +399,8 @@ function renderOraclePermissions(permissions) {
             ${permissions.tablespace_quotas && Array.isArray(permissions.tablespace_quotas) && permissions.tablespace_quotas.length > 0 ? `
                 <div class="row">
                     ${permissions.tablespace_quotas.map(quota => `
-                        <div class="col-md-6 mb-2">
-                            <span class="badge bg-warning me-2">
+                        <div class="col-md-4 col-lg-3 mb-2">
+                            <span class="badge bg-warning me-2" style="white-space: nowrap;">
                                 <i class="fas fa-chart-pie me-1"></i>${quota}
                             </span>
                         </div>
@@ -428,8 +428,8 @@ function renderSQLServerPermissions(permissions) {
             ${permissions.server_roles && Array.isArray(permissions.server_roles) && permissions.server_roles.length > 0 ? `
                 <div class="row">
                     ${permissions.server_roles.map(role => `
-                        <div class="col-md-6 mb-2">
-                            <span class="badge bg-primary me-2">
+                        <div class="col-md-4 col-lg-3 mb-2">
+                            <span class="badge bg-primary me-2" style="white-space: nowrap;">
                                 <i class="fas fa-crown me-1"></i>${role}
                             </span>
                         </div>
@@ -469,8 +469,8 @@ function renderSQLServerPermissions(permissions) {
             ${permissions.server_permissions && Array.isArray(permissions.server_permissions) && permissions.server_permissions.length > 0 ? `
                 <div class="row">
                     ${permissions.server_permissions.map(perm => `
-                        <div class="col-md-6 mb-2">
-                            <span class="badge bg-success me-2">
+                        <div class="col-md-4 col-lg-3 mb-2">
+                            <span class="badge bg-success me-2" style="white-space: nowrap;">
                                 <i class="fas fa-shield-alt me-1"></i>${perm}
                             </span>
                         </div>
