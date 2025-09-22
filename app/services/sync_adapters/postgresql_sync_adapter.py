@@ -498,7 +498,6 @@ class PostgreSQLSyncAdapter(BaseSyncAdapter):
         db_type: str,
         username: str,
         permissions_data: dict[str, Any],
-        *,
         is_superuser: bool,
         session_id: str,
     ) -> CurrentAccountSyncData:
