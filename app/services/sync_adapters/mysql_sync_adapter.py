@@ -107,33 +107,58 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         直接从mysql.user表获取全局权限，避免SHOW GRANTS的截断问题
         """
         try:
-            # 查询mysql.user表中的所有权限列
-            user_sql = """
-                SELECT
-                    Select_priv, Insert_priv, Update_priv, Delete_priv, Create_priv, Drop_priv,
-                    Reload_priv, Shutdown_priv, Process_priv, File_priv, Grant_priv, References_priv,
-                    Index_priv, Alter_priv, Show_db_priv, Super_priv, Create_tmp_table_priv,
-                    Lock_tables_priv, Execute_priv, Repl_slave_priv, Repl_client_priv,
-                    Create_view_priv, Show_view_priv, Create_routine_priv, Alter_routine_priv,
-                    Create_user_priv, Event_priv, Trigger_priv, Create_tablespace_priv,
-                    Create_role_priv, Drop_role_priv, Application_password_admin_priv,
-                    Audit_admin_priv, Binlog_admin_priv, Binlog_replication_priv,
-                    Connection_admin_priv, Encryption_key_admin_priv, Firewall_admin_priv,
-                    Group_replication_admin_priv, Group_replication_stream_priv,
-                    Ndb_stored_user_priv, Passwordless_user_admin_priv,
-                    Replication_applier_admin_priv, Replication_slave_admin_priv,
-                    Resource_group_admin_priv, Resource_group_user_priv, Service_connection_admin_priv,
-                    Session_variables_admin_priv, Set_user_id_priv, Show_routine_priv,
-                    System_user_priv, Table_encryption_admin_priv, Xa_recover_admin_priv
-                FROM mysql.user
-                WHERE User = %s AND Host = %s
-            """
+            # 首先检查MySQL版本，确定可用的权限列
+            version_sql = "SELECT VERSION()"
+            version_result = connection.execute_query(version_sql)
+            mysql_version = version_result[0][0] if version_result else "5.7.0"
+            
+            # 解析版本号
+            version_parts = mysql_version.split('.')
+            major_version = int(version_parts[0]) if len(version_parts) > 0 else 5
+            minor_version = int(version_parts[1]) if len(version_parts) > 1 else 7
+            
+            # 根据版本构建查询SQL
+            if major_version >= 8:
+                # MySQL 8.0+ 包含所有权限列
+                user_sql = """
+                    SELECT
+                        Select_priv, Insert_priv, Update_priv, Delete_priv, Create_priv, Drop_priv,
+                        Reload_priv, Shutdown_priv, Process_priv, File_priv, Grant_priv, References_priv,
+                        Index_priv, Alter_priv, Show_db_priv, Super_priv, Create_tmp_table_priv,
+                        Lock_tables_priv, Execute_priv, Repl_slave_priv, Repl_client_priv,
+                        Create_view_priv, Show_view_priv, Create_routine_priv, Alter_routine_priv,
+                        Create_user_priv, Event_priv, Trigger_priv, Create_tablespace_priv,
+                        Create_role_priv, Drop_role_priv, Application_password_admin_priv,
+                        Audit_admin_priv, Binlog_admin_priv, Binlog_replication_priv,
+                        Connection_admin_priv, Encryption_key_admin_priv, Firewall_admin_priv,
+                        Group_replication_admin_priv, Group_replication_stream_priv,
+                        Ndb_stored_user_priv, Passwordless_user_admin_priv,
+                        Replication_applier_admin_priv, Replication_slave_admin_priv,
+                        Resource_group_admin_priv, Resource_group_user_priv, Service_connection_admin_priv,
+                        Session_variables_admin_priv, Set_user_id_priv, Show_routine_priv,
+                        System_user_priv, Table_encryption_admin_priv, Xa_recover_admin_priv
+                    FROM mysql.user
+                    WHERE User = %s AND Host = %s
+                """
+            else:
+                # MySQL 5.7 及以下版本，不包含新权限列
+                user_sql = """
+                    SELECT
+                        Select_priv, Insert_priv, Update_priv, Delete_priv, Create_priv, Drop_priv,
+                        Reload_priv, Shutdown_priv, Process_priv, File_priv, Grant_priv, References_priv,
+                        Index_priv, Alter_priv, Show_db_priv, Super_priv, Create_tmp_table_priv,
+                        Lock_tables_priv, Execute_priv, Repl_slave_priv, Repl_client_priv,
+                        Create_view_priv, Show_view_priv, Create_routine_priv, Alter_routine_priv,
+                        Create_user_priv, Event_priv, Trigger_priv, Create_tablespace_priv
+                    FROM mysql.user
+                    WHERE User = %s AND Host = %s
+                """
             
             result = connection.execute_query(user_sql, (username, host))
             if not result:
                 return []
             
-            # 权限列名映射
+            # 根据MySQL版本构建权限列名映射
             privilege_columns = [
                 ('Select_priv', 'SELECT'),
                 ('Insert_priv', 'INSERT'),
@@ -162,32 +187,37 @@ class MySQLSyncAdapter(BaseSyncAdapter):
                 ('Create_user_priv', 'CREATE USER'),
                 ('Event_priv', 'EVENT'),
                 ('Trigger_priv', 'TRIGGER'),
-                ('Create_tablespace_priv', 'CREATE TABLESPACE'),
-                ('Create_role_priv', 'CREATE ROLE'),
-                ('Drop_role_priv', 'DROP ROLE'),
-                ('Application_password_admin_priv', 'APPLICATION_PASSWORD_ADMIN'),
-                ('Audit_admin_priv', 'AUDIT_ADMIN'),
-                ('Binlog_admin_priv', 'BINLOG_ADMIN'),
-                ('Binlog_replication_priv', 'BINLOG_REPLICATION'),
-                ('Connection_admin_priv', 'CONNECTION_ADMIN'),
-                ('Encryption_key_admin_priv', 'ENCRYPTION_KEY_ADMIN'),
-                ('Firewall_admin_priv', 'FIREWALL_ADMIN'),
-                ('Group_replication_admin_priv', 'GROUP_REPLICATION_ADMIN'),
-                ('Group_replication_stream_priv', 'GROUP_REPLICATION_STREAM'),
-                ('Ndb_stored_user_priv', 'NDB_STORED_USER'),
-                ('Passwordless_user_admin_priv', 'PASSWORDLESS_USER_ADMIN'),
-                ('Replication_applier_admin_priv', 'REPLICATION_APPLIER_ADMIN'),
-                ('Replication_slave_admin_priv', 'REPLICATION_SLAVE_ADMIN'),
-                ('Resource_group_admin_priv', 'RESOURCE_GROUP_ADMIN'),
-                ('Resource_group_user_priv', 'RESOURCE_GROUP_USER'),
-                ('Service_connection_admin_priv', 'SERVICE_CONNECTION_ADMIN'),
-                ('Session_variables_admin_priv', 'SESSION_VARIABLES_ADMIN'),
-                ('Set_user_id_priv', 'SET_USER_ID'),
-                ('Show_routine_priv', 'SHOW_ROUTINE'),
-                ('System_user_priv', 'SYSTEM_USER'),
-                ('Table_encryption_admin_priv', 'TABLE_ENCRYPTION_ADMIN'),
-                ('Xa_recover_admin_priv', 'XA_RECOVER_ADMIN')
+                ('Create_tablespace_priv', 'CREATE TABLESPACE')
             ]
+            
+            # MySQL 8.0+ 才有的权限
+            if major_version >= 8:
+                privilege_columns.extend([
+                    ('Create_role_priv', 'CREATE ROLE'),
+                    ('Drop_role_priv', 'DROP ROLE'),
+                    ('Application_password_admin_priv', 'APPLICATION_PASSWORD_ADMIN'),
+                    ('Audit_admin_priv', 'AUDIT_ADMIN'),
+                    ('Binlog_admin_priv', 'BINLOG_ADMIN'),
+                    ('Binlog_replication_priv', 'BINLOG_REPLICATION'),
+                    ('Connection_admin_priv', 'CONNECTION_ADMIN'),
+                    ('Encryption_key_admin_priv', 'ENCRYPTION_KEY_ADMIN'),
+                    ('Firewall_admin_priv', 'FIREWALL_ADMIN'),
+                    ('Group_replication_admin_priv', 'GROUP_REPLICATION_ADMIN'),
+                    ('Group_replication_stream_priv', 'GROUP_REPLICATION_STREAM'),
+                    ('Ndb_stored_user_priv', 'NDB_STORED_USER'),
+                    ('Passwordless_user_admin_priv', 'PASSWORDLESS_USER_ADMIN'),
+                    ('Replication_applier_admin_priv', 'REPLICATION_APPLIER_ADMIN'),
+                    ('Replication_slave_admin_priv', 'REPLICATION_SLAVE_ADMIN'),
+                    ('Resource_group_admin_priv', 'RESOURCE_GROUP_ADMIN'),
+                    ('Resource_group_user_priv', 'RESOURCE_GROUP_USER'),
+                    ('Service_connection_admin_priv', 'SERVICE_CONNECTION_ADMIN'),
+                    ('Session_variables_admin_priv', 'SESSION_VARIABLES_ADMIN'),
+                    ('Set_user_id_priv', 'SET_USER_ID'),
+                    ('Show_routine_priv', 'SHOW_ROUTINE'),
+                    ('System_user_priv', 'SYSTEM_USER'),
+                    ('Table_encryption_admin_priv', 'TABLE_ENCRYPTION_ADMIN'),
+                    ('Xa_recover_admin_priv', 'XA_RECOVER_ADMIN')
+                ])
             
             privileges = []
             row = result[0]
