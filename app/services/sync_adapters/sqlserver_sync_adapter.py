@@ -923,7 +923,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 quoted_db = self._quote_identifier(db)
                 roles_parts.append(
                     f"""
-                    SELECT '{db}' AS db_name,
+                    SELECT DISTINCT '{db}' AS db_name,
                            r.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name,
                            m.member_principal_id
                     FROM {quoted_db}.sys.database_role_members m
@@ -941,7 +941,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 quoted_db = self._quote_identifier(db)
                 perms_parts.append(
                     f"""
-                    SELECT '{db}' AS db_name,
+                    SELECT DISTINCT '{db}' AS db_name,
                            permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
                            grantee_principal_id,
                            major_id,
@@ -1164,7 +1164,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 quoted_db = self._quote_identifier(db)
                 roles_parts.append(
                     f"""
-                    SELECT '{db}' AS db_name,
+                    SELECT DISTINCT '{db}' AS db_name,
                            r.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name,
                            m.member_principal_id
                     FROM {quoted_db}.sys.database_role_members m
@@ -1182,7 +1182,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 quoted_db = self._quote_identifier(db)
                 perms_parts.append(
                     f"""
-                    SELECT '{db}' AS db_name,
+                    SELECT DISTINCT '{db}' AS db_name,
                            permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
                            grantee_principal_id,
                            major_id,
@@ -1223,26 +1223,36 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                         user_name = u_name
                         break
 
-                # 如果找到用户名，添加到结果中
+                # 确定匹配的用户名（优先用户名匹配，然后SID匹配）
+                matched_username = None
                 if user_name in usernames:
-                    if db_name not in result[user_name]["roles"]:
-                        result[user_name]["roles"][db_name] = []
-                    # 避免重复添加相同的角色
-                    if role_name not in result[user_name]["roles"][db_name]:
-                        result[user_name]["roles"][db_name].append(role_name)
+                    matched_username = user_name
+                else:
+                    # 通过SID匹配
+                    for username, sid in username_to_sid.items():
+                        if sid and any(
+                            sid == db_sid
+                            for _, (_, db_sid) in db_principals.get(db_name, {}).items()
+                            if pid == member_principal_id
+                        ):
+                            matched_username = username
+                            break
 
-                # 通过SID匹配
-                for username, sid in username_to_sid.items():
-                    if sid and any(
-                        sid == db_sid
-                        for _, (_, db_sid) in db_principals.get(db_name, {}).items()
-                        if pid == member_principal_id
-                    ):
-                        if db_name not in result[username]["roles"]:
-                            result[username]["roles"][db_name] = []
-                        # 避免重复添加相同的角色
-                        if role_name not in result[username]["roles"][db_name]:
-                            result[username]["roles"][db_name].append(role_name)
+                # 只添加一次，避免重复
+                if matched_username:
+                    if db_name not in result[matched_username]["roles"]:
+                        result[matched_username]["roles"][db_name] = []
+                    # 避免重复添加相同的角色
+                    if role_name not in result[matched_username]["roles"][db_name]:
+                        result[matched_username]["roles"][db_name].append(role_name)
+                        # 调试日志
+                        self.sync_logger.debug(
+                            "添加角色: %s -> %s.%s",
+                            matched_username,
+                            db_name,
+                            role_name,
+                            module="sqlserver_sync_adapter"
+                        )
 
             # 处理权限 - 按权限作用范围分类存储
             for row in all_perms:
@@ -1255,10 +1265,25 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                         user_name = u_name
                         break
 
-                # 如果找到用户名，按权限作用范围分类存储
+                # 确定匹配的用户名（优先用户名匹配，然后SID匹配）
+                matched_username = None
                 if user_name in usernames:
-                    if db_name not in result[user_name]["permissions"]:
-                        result[user_name]["permissions"][db_name] = {
+                    matched_username = user_name
+                else:
+                    # 通过SID匹配
+                    for username, sid in username_to_sid.items():
+                        if sid and any(
+                            sid == db_sid
+                            for _, (_, db_sid) in db_principals.get(db_name, {}).items()
+                            if pid == grantee_principal_id
+                        ):
+                            matched_username = username
+                            break
+
+                # 只添加一次，避免重复
+                if matched_username:
+                    if db_name not in result[matched_username]["permissions"]:
+                        result[matched_username]["permissions"][db_name] = {
                             "database": [],
                             "schema": {},
                             "table": {}
@@ -1266,51 +1291,20 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     
                     # 根据权限作用范围分类存储
                     if scope == "DATABASE":
-                        if permission_name not in result[user_name]["permissions"][db_name]["database"]:
-                            result[user_name]["permissions"][db_name]["database"].append(permission_name)
+                        if permission_name not in result[matched_username]["permissions"][db_name]["database"]:
+                            result[matched_username]["permissions"][db_name]["database"].append(permission_name)
                     elif scope == "SCHEMA":
                         schema_name = object_name
-                        if schema_name not in result[user_name]["permissions"][db_name]["schema"]:
-                            result[user_name]["permissions"][db_name]["schema"][schema_name] = []
-                        if permission_name not in result[user_name]["permissions"][db_name]["schema"][schema_name]:
-                            result[user_name]["permissions"][db_name]["schema"][schema_name].append(permission_name)
+                        if schema_name not in result[matched_username]["permissions"][db_name]["schema"]:
+                            result[matched_username]["permissions"][db_name]["schema"][schema_name] = []
+                        if permission_name not in result[matched_username]["permissions"][db_name]["schema"][schema_name]:
+                            result[matched_username]["permissions"][db_name]["schema"][schema_name].append(permission_name)
                     elif scope == "OBJECT":
                         table_name = object_name
-                        if table_name not in result[user_name]["permissions"][db_name]["table"]:
-                            result[user_name]["permissions"][db_name]["table"][table_name] = []
-                        if permission_name not in result[user_name]["permissions"][db_name]["table"][table_name]:
-                            result[user_name]["permissions"][db_name]["table"][table_name].append(permission_name)
-
-                # 通过SID匹配
-                for username, sid in username_to_sid.items():
-                    if sid and any(
-                        sid == db_sid
-                        for _, (_, db_sid) in db_principals.get(db_name, {}).items()
-                        if pid == grantee_principal_id
-                    ):
-                        if db_name not in result[username]["permissions"]:
-                            result[username]["permissions"][db_name] = {
-                                "database": [],
-                                "schema": {},
-                                "table": {}
-                            }
-                        
-                        # 根据权限作用范围分类存储
-                        if scope == "DATABASE":
-                            if permission_name not in result[username]["permissions"][db_name]["database"]:
-                                result[username]["permissions"][db_name]["database"].append(permission_name)
-                        elif scope == "SCHEMA":
-                            schema_name = object_name
-                            if schema_name not in result[username]["permissions"][db_name]["schema"]:
-                                result[username]["permissions"][db_name]["schema"][schema_name] = []
-                            if permission_name not in result[username]["permissions"][db_name]["schema"][schema_name]:
-                                result[username]["permissions"][db_name]["schema"][schema_name].append(permission_name)
-                        elif scope == "OBJECT":
-                            table_name = object_name
-                            if table_name not in result[username]["permissions"][db_name]["table"]:
-                                result[username]["permissions"][db_name]["table"][table_name] = []
-                            if permission_name not in result[username]["permissions"][db_name]["table"][table_name]:
-                                result[username]["permissions"][db_name]["table"][table_name].append(permission_name)
+                        if table_name not in result[matched_username]["permissions"][db_name]["table"]:
+                            result[matched_username]["permissions"][db_name]["table"][table_name] = []
+                        if permission_name not in result[matched_username]["permissions"][db_name]["table"][table_name]:
+                            result[matched_username]["permissions"][db_name]["table"][table_name].append(permission_name)
 
             # 移除sysadmin特殊处理，让系统通过实际查询获取真实权限
             # 这样可以获取更准确的权限信息，而不是硬编码添加db_owner角色
