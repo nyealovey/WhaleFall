@@ -21,7 +21,7 @@ def health_check() -> "Response":
     """基础健康检查"""
     try:
         return APIResponse.success(
-            data={"status": "healthy", "timestamp": time.time(), "version": "1.0.1"},
+            data={"status": "healthy", "timestamp": time.time(), "version": "1.0.6"},
             message="服务运行正常",
         )
     except Exception as e:
@@ -35,7 +35,7 @@ def health_check_root() -> "Response":
     """健康检查根路由 - 兼容Nginx配置"""
     try:
         return APIResponse.success(
-            data={"status": "healthy", "timestamp": time.time(), "version": "1.0.1"},
+            data={"status": "healthy", "timestamp": time.time(), "version": "1.0.6"},
             message="服务运行正常",
         )
     except Exception as e:
@@ -74,7 +74,7 @@ def detailed_health_check() -> "Response":
             data={
                 "status": overall_status,
                 "timestamp": time.time(),
-                "version": "1.0.1",
+                "version": "1.0.6",
                 "components": {
                     "database": db_status,
                     "cache": cache_status,
