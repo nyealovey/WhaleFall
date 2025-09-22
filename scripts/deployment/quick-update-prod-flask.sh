@@ -229,15 +229,27 @@ copy_code_to_container() {
     container_user=$(docker exec "$flask_container_id" whoami 2>/dev/null || echo "root")
     log_info "容器内当前用户: $container_user"
     
-    # 尝试设置文件所有者（如果用户存在）
-    if docker exec "$flask_container_id" id app >/dev/null 2>&1; then
-        if docker exec "$flask_container_id" chown -R app:app /app; then
-            log_success "文件所有者设置为app:app成功"
+    # 根据容器内用户类型设置权限
+    if [ "$container_user" = "root" ]; then
+        log_info "检测到root用户环境，设置root权限..."
+        
+        # 设置root用户权限
+        if docker exec "$flask_container_id" chown -R root:root /app; then
+            log_success "文件所有者设置为root:root成功"
         else
             log_warning "文件所有者设置失败，但继续执行"
         fi
     else
-        log_info "容器内没有app用户，跳过所有者设置"
+        # 尝试设置app用户权限（如果存在）
+        if docker exec "$flask_container_id" id app >/dev/null 2>&1; then
+            if docker exec "$flask_container_id" chown -R app:app /app; then
+                log_success "文件所有者设置为app:app成功"
+            else
+                log_warning "文件所有者设置失败，但继续执行"
+            fi
+        else
+            log_info "容器内没有app用户，跳过所有者设置"
+        fi
     fi
     
     # 设置文件权限
