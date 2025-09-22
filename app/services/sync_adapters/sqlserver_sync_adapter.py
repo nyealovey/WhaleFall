@@ -58,9 +58,9 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             
             # 执行查询
             if params:
-                result = self._execute_query_with_timeout(connection,sql, params)
+                result = connection.execute_query(sql, params)
             else:
-                result = self._execute_query_with_timeout(connection,sql)
+                result = connection.execute_query(sql)
             
             # 取消超时信号
             signal.alarm(0)
