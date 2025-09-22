@@ -132,7 +132,7 @@ class OptimizedAccountClassificationService:
             if cache_manager and rules:
                 rules_data = self._rules_to_cache_data(rules)
                 cache_manager.set_classification_rules_cache(rules_data)
-                log_info("分类规则已缓存", module="account_classification", count=len(rules))
+                # 移除详细的缓存日志，减少日志噪音
 
             return rules
         except Exception as e:
@@ -211,7 +211,7 @@ class OptimizedAccountClassificationService:
                         # 将规则对象转换为可缓存的字典格式
                         rules_data = self._rules_to_cache_data(db_rules)
                         cache_manager.set_classification_rules_by_db_type_cache(db_type, rules_data)
-                        log_info(f"数据库类型 {db_type} 规则已缓存", module="account_classification", count=len(rules_data))
+                        # 移除详细的缓存日志，减少日志噪音
                     except Exception as e:
                         log_error(f"缓存数据库类型规则失败: {db_type}", module="account_classification", error=str(e))
             
@@ -367,14 +367,7 @@ class OptimizedAccountClassificationService:
                             added_classifications=added_count,
                             batch_id=self.batch_id
                         )
-                    else:
-                        log_info(
-                            f"规则 {rule.rule_name} 无匹配账户",
-                            module="account_classification",
-                            rule_id=rule.id,
-                            db_type=db_type,
-                            batch_id=self.batch_id
-                        )
+                    # 移除"无匹配账户"的日志，减少日志噪音
                         
                 except Exception as e:
                     error_msg = f"规则 {rule.rule_name} 处理失败: {str(e)}"
@@ -512,11 +505,7 @@ class OptimizedAccountClassificationService:
 
             db.session.commit()
 
-            log_info(
-                f"已清除 {len(account_ids)} 个账户的现有分类",
-                module="account_classification",
-                batch_id=self.batch_id,
-            )
+            # 移除清除分类的详细日志，减少日志噪音
 
         except Exception as e:
             log_error(f"清除分类失败: {e}", module="account_classification")
@@ -551,11 +540,7 @@ class OptimizedAccountClassificationService:
             if cache_manager:
                 cached_result = cache_manager.get_rule_evaluation_cache(rule.id, account.id)
                 if cached_result is not None:
-                    log_info("从缓存获取规则评估结果", 
-                           module="account_classification", 
-                           rule_id=rule.id, 
-                           account_id=account.id, 
-                           result=cached_result)
+                    # 移除详细的缓存日志，减少日志噪音
                     return cached_result
 
             # 缓存未命中，执行规则评估
@@ -578,11 +563,7 @@ class OptimizedAccountClassificationService:
             # 将评估结果存入缓存
             if cache_manager:
                 cache_manager.set_rule_evaluation_cache(rule.id, account.id, result)
-                log_info("规则评估结果已缓存", 
-                       module="account_classification", 
-                       rule_id=rule.id, 
-                       account_id=account.id, 
-                       result=result)
+                # 移除详细的缓存日志，减少日志噪音
 
             return result
 
@@ -813,13 +794,7 @@ class OptimizedAccountClassificationService:
                 db.session.bulk_insert_mappings(AccountClassificationAssignment, new_assignments)
                 db.session.commit()
 
-                log_info(
-                    "批量添加分类完成",
-                    module="account_classification",
-                    classification_id=classification_id,
-                    added_count=len(new_assignments),
-                    batch_id=self.batch_id,
-                )
+                # 移除批量添加分类的详细日志，减少日志噪音
 
             return len(new_assignments)
 
