@@ -959,8 +959,9 @@ class OptimizedAccountClassificationService:
                     "db_type": account.instance.db_type if account.instance else None,
                     "permissions": account.get_permissions_by_db_type(),
                     "roles": [],  # CurrentAccountSyncData没有roles字段
-                    "created_at": account.created_at.isoformat() if account.created_at else None,
-                    "updated_at": account.updated_at.isoformat() if account.updated_at else None,
+                    "sync_time": account.sync_time.isoformat() if account.sync_time else None,
+                    "last_sync_time": account.last_sync_time.isoformat() if account.last_sync_time else None,
+                    "last_change_time": account.last_change_time.isoformat() if account.last_change_time else None,
                 }
                 accounts_data.append(account_data)
             return accounts_data
@@ -977,11 +978,19 @@ class OptimizedAccountClassificationService:
                 account = CurrentAccountSyncData()
                 account.id = account_data.get("id")
                 account.username = account_data.get("username")
-                # display_name不是模型字段，使用username
                 account.instance_id = account_data.get("instance_id")
-                # is_locked不是模型字段，使用is_locked_display属性
-                # permissions不是模型字段，使用get_permissions_by_db_type()方法
-                # roles不是模型字段
+                account.db_type = account_data.get("db_type")
+                
+                # 设置时间字段（如果存在）
+                if account_data.get("sync_time"):
+                    from datetime import datetime
+                    account.sync_time = datetime.fromisoformat(account_data["sync_time"])
+                if account_data.get("last_sync_time"):
+                    from datetime import datetime
+                    account.last_sync_time = datetime.fromisoformat(account_data["last_sync_time"])
+                if account_data.get("last_change_time"):
+                    from datetime import datetime
+                    account.last_change_time = datetime.fromisoformat(account_data["last_change_time"])
                 
                 # 创建简化的实例对象
                 if account_data.get("instance_name") and account_data.get("instance_host"):
