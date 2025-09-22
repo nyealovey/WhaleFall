@@ -871,6 +871,43 @@ document.addEventListener('DOMContentLoaded', function() {
             return validateForm();
         });
     }
+    
+    // 权限按钮调试
+    console.log('账户列表页面已加载');
+    console.log('权限调试工具已就绪');
+    console.log('使用方法: debugPermissionFunctions() 检查函数加载状态');
 });
 </script>
+
+<!-- 权限查看模态框 -->
+<div class="modal fade" id="permissionsModal" tabindex="-1" aria-labelledby="permissionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="permissionsModalLabel">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    <span id="permissionsModalTitle">账户权限详情</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="permissionsModalBody">
+                <!-- 权限内容将动态渲染 -->
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                    <p class="mt-2">正在加载权限信息...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>关闭
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 权限调试脚本 -->
+<script src="{{ url_for('static', filename='js/debug/permission-debug.js') }}"></script>
 {% endblock %}
