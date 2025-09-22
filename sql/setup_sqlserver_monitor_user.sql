@@ -5,14 +5,20 @@
 
 -- 1. 创建监控用户登录账户
 -- 注意：请将 'YourStrongPassword123!' 替换为强密码
+-- 禁用密码策略：CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF
 IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'monitor_user')
 BEGIN
-    CREATE LOGIN [monitor_user] WITH PASSWORD = 'YourStrongPassword123!';
-    PRINT '监控用户登录账户创建成功';
+    CREATE LOGIN [monitor_user] WITH PASSWORD = 'YourStrongPassword123!', 
+        CHECK_POLICY = OFF, 
+        CHECK_EXPIRATION = OFF;
+    PRINT '监控用户登录账户创建成功（已禁用密码策略）';
 END
 ELSE
 BEGIN
     PRINT '监控用户登录账户已存在';
+    -- 如果账户已存在，更新密码策略设置
+    ALTER LOGIN [monitor_user] WITH CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
+    PRINT '已更新密码策略设置（禁用强制密码策略）';
 END
 
 -- 2. 授予服务器级权限
