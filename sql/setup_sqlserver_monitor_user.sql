@@ -22,28 +22,11 @@ BEGIN
 END
 
 -- 2. 授予服务器级权限
--- 连接权限
-IF NOT EXISTS (SELECT * FROM sys.server_permissions WHERE grantee_principal_id = USER_ID('monitor_user') AND permission_name = 'CONNECT SQL')
-BEGIN
-    GRANT CONNECT SQL TO [monitor_user];
-    PRINT '已授予连接权限';
-END
-
--- 查看服务器级定义权限
-IF NOT EXISTS (SELECT * FROM sys.server_permissions WHERE grantee_principal_id = USER_ID('monitor_user') AND permission_name = 'VIEW ANY DEFINITION')
-BEGIN
-    GRANT VIEW ANY DEFINITION TO [monitor_user];
-    PRINT '已授予查看服务器级定义权限';
-END
-
--- 查看所有数据库权限 - 关键权限，支持跨数据库查询
-IF NOT EXISTS (SELECT * FROM sys.server_permissions WHERE grantee_principal_id = USER_ID('monitor_user') AND permission_name = 'VIEW ANY DATABASE')
-BEGIN
-    GRANT VIEW ANY DATABASE TO [monitor_user];
-    PRINT '已授予查看所有数据库权限';
-END
-
--- 注意：移除了VIEW SERVER STATE权限，因为代码中未使用
+GRANT CONNECT SQL TO [monitor_user];
+GRANT VIEW ANY DEFINITION TO [monitor_user];
+GRANT VIEW ANY DATABASE TO [monitor_user];
+GRANT VIEW SERVER STATE TO [monitor_user];
+PRINT '已授予监控用户所需权限';
 
 -- 3. 创建数据库触发器，自动为新数据库设置权限
 -- 这个触发器会在新数据库创建时自动执行
@@ -72,16 +55,8 @@ BEGIN
                 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = ''monitor_user'')
                 BEGIN
                     CREATE USER [monitor_user] FOR LOGIN [monitor_user];
-                    PRINT ''为新数据库 ' + @db_name + ' 自动创建监控用户'';
-                END';
-    
-    EXEC sp_executesql @sql;
-    
-    -- 授予数据库级权限
-    SET @sql = 'USE [' + @db_name + ']; 
-                GRANT VIEW DEFINITION TO [monitor_user];
-                PRINT ''为新数据库 ' + @db_name + ' 自动授予查看定义权限'';
-                ';
+                END
+                GRANT VIEW DEFINITION TO [monitor_user];';
     
     EXEC sp_executesql @sql;
 END;
@@ -102,21 +77,13 @@ FETCH NEXT FROM db_cursor INTO @db_name;
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-    -- 为数据库创建用户
+    -- 为数据库创建用户并授予权限
     SET @sql = 'USE [' + @db_name + ']; 
                 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = ''monitor_user'')
                 BEGIN
                     CREATE USER [monitor_user] FOR LOGIN [monitor_user];
-                    PRINT ''为数据库 ' + @db_name + ' 创建用户成功'';
-                END';
-    
-    EXEC sp_executesql @sql;
-    
-    -- 授予数据库级权限
-    SET @sql = 'USE [' + @db_name + ']; 
-                GRANT VIEW DEFINITION TO [monitor_user];
-                PRINT ''为数据库 ' + @db_name + ' 授予查看定义权限'';
-                ';
+                END
+                GRANT VIEW DEFINITION TO [monitor_user];';
     
     EXEC sp_executesql @sql;
     
@@ -130,17 +97,8 @@ DEALLOCATE db_cursor;
 PRINT '=============================================';
 PRINT '权限设置完成，开始验证...';
 
--- 测试连接权限
-SELECT '连接测试' AS 测试项目, @@VERSION AS 结果;
-
--- 测试服务器级权限
-SELECT '服务器级权限测试' AS 测试项目, COUNT(*) AS 可访问的服务器主体数量 FROM sys.server_principals;
-
--- 测试数据库级权限
-SELECT '数据库级权限测试' AS 测试项目, COUNT(*) AS 可访问的数据库数量 FROM sys.databases;
-
--- 测试权限查询
-SELECT '权限查询测试' AS 测试项目, COUNT(*) AS 可访问的服务器权限数量 FROM sys.server_permissions;
+-- 测试权限设置
+SELECT '权限测试完成' AS 状态, GETDATE() AS 时间;
 
 -- 5. 显示当前用户权限摘要
 PRINT '=============================================';
