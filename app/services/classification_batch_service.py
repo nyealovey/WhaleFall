@@ -153,9 +153,7 @@ class ClassificationBatchService:
             batch.error_message = error_message
 
             if batch_details:
-                import json
-
-                batch.batch_details = json.dumps(batch_details, ensure_ascii=False)
+                batch.batch_details = batch_details
 
             db.session.commit()
 

@@ -3,7 +3,7 @@
 用于管理自动分类操作的批次信息，便于日志聚合和查询
 """
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import Column, DateTime, Integer, String, Text, JSON
 
 from app import db
 from app.utils.timezone import now
@@ -54,7 +54,7 @@ class ClassificationBatch(db.Model):
     error_message = Column(Text, nullable=True, comment="错误信息")
 
     # 批次详情 (JSON格式存储详细信息)
-    batch_details = Column(Text, nullable=True, comment="批次详细信息(JSON)")
+    batch_details = Column(JSON, nullable=True, comment="批次详细信息(JSON)")
 
     # 创建者 (对于手动操作)
     created_by = Column(Integer, nullable=True, comment="创建者用户ID")
