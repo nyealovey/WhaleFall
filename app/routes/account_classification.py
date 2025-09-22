@@ -1,3 +1,4 @@
+
 """
 鲸落 - 账户分类管理路由
 """
@@ -24,7 +25,8 @@ from app.utils.decorators import (
 )
 from app.utils.structlog_config import log_error, log_info
 
-account_classification_bp = Blueprint("account_classification", __name__, url_prefix="/account-classification")
+# 创建蓝图
+account_classification_bp = Blueprint("account_classification", __name__)
 
 
 @account_classification_bp.route("/")
@@ -390,9 +392,17 @@ def update_rule(rule_id: int) -> "Response":
 @login_required
 @view_required
 def get_matched_accounts(rule_id: int) -> "Response":
-    """获取规则匹配的账户"""
+    """获取规则匹配的账户（支持分页）"""
     try:
         rule = ClassificationRule.query.get_or_404(rule_id)
+
+        # 获取分页参数
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        search = request.args.get('search', '', type=str)
+        
+        # 限制每页最大数量
+        per_page = min(per_page, 100)
 
         # 获取匹配的账户
         classification_service = OptimizedAccountClassificationService()
@@ -453,7 +463,37 @@ def get_matched_accounts(rule_id: int) -> "Response":
                         }
                     )
 
-        return jsonify({"success": True, "accounts": matched_accounts, "rule_name": rule.rule_name})
+        # 应用搜索过滤
+        if search:
+            search_lower = search.lower()
+            matched_accounts = [
+                account for account in matched_accounts
+                if (search_lower in account['username'].lower() or 
+                    search_lower in account['display_name'].lower() or
+                    search_lower in account['instance_name'].lower() or
+                    search_lower in account['instance_host'].lower())
+            ]
+
+        # 计算分页
+        total = len(matched_accounts)
+        total_pages = (total + per_page - 1) // per_page
+        start_index = (page - 1) * per_page
+        end_index = start_index + per_page
+        paginated_accounts = matched_accounts[start_index:end_index]
+
+        return jsonify({
+            "success": True, 
+            "accounts": paginated_accounts, 
+            "rule_name": rule.rule_name,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        })
 
     except Exception as e:
         log_error(f"获取匹配账户失败: {e}", module="account_classification")
@@ -1151,7 +1191,6 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                     "classification_name": classification.name,
                     "rule_id": rule.id if rule else None,
                     "rule_name": rule.rule_name if rule else "无规则",
-                    "rule_description": (rule.rule_expression if rule else "无规则表达式"),
                     "matched_at": (batch.started_at.isoformat() if batch.started_at else None),
                     "confidence": getattr(assignment, "confidence_score", None),
                     "account_permissions": account_permissions,
@@ -1168,6 +1207,126 @@ def api_get_batch_matches(batch_id: str) -> "Response":
             batch_id=batch_id,
             error=str(e),
         )
+        return jsonify({"success": False, "error": str(e)})
+
+
+@account_classification_bp.route("/cache/clear", methods=["POST"])
+@login_required
+@update_required
+def clear_classification_cache() -> "Response":
+    """清除分类相关缓存"""
+    try:
+        service = OptimizedAccountClassificationService()
+        result = service.invalidate_cache()
+        
+        if result:
+            log_info("分类缓存清除成功", module="account_classification", user_id=current_user.id)
+            return jsonify({"success": True, "message": "分类缓存已清除"})
+        else:
+            return jsonify({"success": False, "error": "缓存清除失败"})
+            
+    except Exception as e:
+        log_error(f"清除分类缓存失败: {e}", module="account_classification")
+        return jsonify({"success": False, "error": str(e)})
+
+
+@account_classification_bp.route("/cache/clear/<db_type>", methods=["POST"])
+@login_required
+@update_required
+def clear_db_type_cache(db_type: str) -> "Response":
+    """清除特定数据库类型的缓存"""
+    try:
+        # 验证数据库类型
+        valid_db_types = ["mysql", "postgresql", "sqlserver", "oracle"]
+        if db_type.lower() not in valid_db_types:
+            return jsonify({"success": False, "error": f"不支持的数据库类型: {db_type}"})
+        
+        service = OptimizedAccountClassificationService()
+        result = service.invalidate_db_type_cache(db_type.lower())
+        
+        if result:
+            log_info(f"数据库类型 {db_type} 缓存清除成功", module="account_classification", user_id=current_user.id)
+            return jsonify({"success": True, "message": f"数据库类型 {db_type} 缓存已清除"})
+        else:
+            return jsonify({"success": False, "error": f"数据库类型 {db_type} 缓存清除失败"})
+            
+    except Exception as e:
+        log_error(f"清除数据库类型 {db_type} 缓存失败: {e}", module="account_classification")
+        return jsonify({"success": False, "error": str(e)})
+
+
+@account_classification_bp.route("/cache/stats", methods=["GET"])
+@login_required
+@view_required
+def get_cache_stats() -> "Response":
+    """获取缓存统计信息"""
+    try:
+        from app.services.cache_manager import cache_manager
+        
+        if not cache_manager:
+            return jsonify({"success": False, "error": "缓存管理器未初始化"})
+            
+        stats = cache_manager.get_cache_stats()
+        
+        # 获取按数据库类型的缓存统计
+        db_type_stats = {}
+        db_types = ["mysql", "postgresql", "sqlserver", "oracle"]
+        
+        for db_type in db_types:
+            try:
+                # 检查规则缓存
+                rules_cache = cache_manager.get_classification_rules_by_db_type_cache(db_type)
+                # 检查账户缓存
+                accounts_cache = cache_manager.get_accounts_by_db_type_cache(db_type)
+                
+                db_type_stats[db_type] = {
+                    "rules_cached": rules_cache is not None,
+                    "rules_count": len(rules_cache) if rules_cache else 0,
+                    "accounts_cached": accounts_cache is not None,
+                    "accounts_count": len(accounts_cache) if accounts_cache else 0
+                }
+            except Exception as e:
+                log_error(f"获取数据库类型 {db_type} 缓存统计失败: {e}", module="account_classification")
+                db_type_stats[db_type] = {
+                    "rules_cached": False,
+                    "rules_count": 0,
+                    "accounts_cached": False,
+                    "accounts_count": 0,
+                    "error": str(e)
+                }
+        
+        return jsonify({
+            "success": True, 
+            "cache_stats": stats,
+            "db_type_stats": db_type_stats,
+            "cache_enabled": cache_manager is not None
+        })
+        
+    except Exception as e:
+        log_error(f"获取缓存统计失败: {e}", module="account_classification")
+        return jsonify({"success": False, "error": str(e)})
+
+
+@account_classification_bp.route("/cache/debug", methods=["GET"])
+@login_required
+@view_required
+def debug_cache_status() -> "Response":
+    """调试缓存状态"""
+    try:
+        from app.services.cache_manager import cache_manager
+        
+        if not cache_manager:
+            return jsonify({"success": False, "error": "缓存管理器未初始化"})
+            
+        debug_info = cache_manager.debug_cache_status()
+        
+        return jsonify({
+            "success": True,
+            "debug_info": debug_info
+        })
+        
+    except Exception as e:
+        log_error(f"调试缓存状态失败: {e}", module="account_classification")
         return jsonify({"success": False, "error": str(e)})
 
 

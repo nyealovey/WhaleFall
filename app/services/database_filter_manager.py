@@ -121,7 +121,7 @@ class DatabaseFilterManager:
         }
 
         # 尝试从配置文件加载
-        config_file = "config/database_filters.yaml"
+        config_file = "app/config/database_filters.yaml"
         if os.path.exists(config_file):
             try:
                 with open(config_file, encoding="utf-8") as f:
@@ -275,7 +275,7 @@ class DatabaseFilterManager:
             logger.error("更新过滤规则失败: {e}")
             return False
 
-    def save_filter_rules_to_file(self, file_path: str = "config/database_filters.yaml") -> bool:
+    def save_filter_rules_to_file(self, file_path: str = "app/config/database_filters.yaml") -> bool:
         """
         保存过滤规则到配置文件
 

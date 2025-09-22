@@ -248,12 +248,12 @@ function loadSessions() {
                 document.getElementById('sessions-loading').style.display = 'none';
                 document.getElementById('sessions-container').style.display = 'block';
             } else {
-                showAlert('danger', '加载会话列表失败: ' + data.message);
+                showAlert('error', '加载会话列表失败: ' + data.message);
             }
         })
         .catch(error => {
             console.error('加载会话列表出错:', error);
-            showAlert('danger', '加载会话列表出错');
+            showAlert('error', '加载会话列表出错');
         });
 }
 
@@ -347,12 +347,12 @@ function viewSessionDetail(sessionId) {
             if (data.success) {
                 showSessionDetail(data.data);
             } else {
-                showAlert('danger', '加载会话详情失败: ' + data.message);
+                showAlert('error', '加载会话详情失败: ' + data.message);
             }
         })
         .catch(error => {
             console.error('加载会话详情出错:', error);
-            showAlert('danger', '加载会话详情出错');
+            showAlert('error', '加载会话详情出错');
         });
 }
 
@@ -364,12 +364,12 @@ function viewErrorLogs(sessionId) {
             if (data.success) {
                 showErrorLogs(data.data);
             } else {
-                showAlert('danger', '加载错误信息失败: ' + data.message);
+                showAlert('error', '加载错误信息失败: ' + data.message);
             }
         })
         .catch(error => {
             console.error('加载错误信息出错:', error);
-            showAlert('danger', '加载错误信息出错');
+            showAlert('error', '加载错误信息出错');
         });
 }
 
@@ -510,12 +510,12 @@ function cancelSession(sessionId) {
                 showAlert('success', '会话已取消');
                 loadSessions();
             } else {
-                showAlert('danger', '取消会话失败: ' + data.message);
+                showAlert('error', '取消会话失败: ' + data.message);
             }
         })
         .catch(error => {
             console.error('取消会话出错:', error);
-            showAlert('danger', '取消会话出错');
+            showAlert('error', '取消会话出错');
         });
     }
 }

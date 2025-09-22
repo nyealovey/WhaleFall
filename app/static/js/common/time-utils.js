@@ -285,4 +285,3 @@ window.formatTimestamp = window.formatDateTime;
 window.formatChinaTime = window.formatDateTime;
 
 // 初始化完成提示
-console.log('时间工具库已加载 - 基于zoneinfo和Intl API');

@@ -1,7 +1,7 @@
 -- =============================================
 -- 定时任务初始化脚本
 -- 鲸落 - 数据同步管理平台
--- 基于 config/scheduler_tasks.yaml 配置生成
+-- 基于 app/config/scheduler_tasks.yaml 配置生成
 -- =============================================
 
 -- 注意：APScheduler任务表会在应用启动时自动创建
@@ -20,7 +20,7 @@
 -- - enabled: 是否启用
 -- - description: 任务描述
 
--- 这些任务会在应用启动时自动从 config/scheduler_tasks.yaml 加载
+-- 这些任务会在应用启动时自动从 app/config/scheduler_tasks.yaml 加载
 -- 用户可以通过Web界面修改任务参数，修改后的配置会保存到数据库
 
 -- 任务状态说明：

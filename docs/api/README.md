@@ -9,6 +9,7 @@
 - **认证方式**: JWT Token + Flask-Login Session
 - **数据格式**: JSON
 - **字符编码**: UTF-8
+- **API版本**: v1.0.1
 - **当前状态**: 所有核心API已实现并投入使用
 
 ## 已实现的API
@@ -27,7 +28,7 @@ GET /api/health
   "data": {
     "status": "healthy",
     "timestamp": 1694123456.789,
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "message": "服务运行正常"
 }
@@ -47,7 +48,7 @@ GET /health/detailed
     "database": "connected",
     "redis": "connected",
     "timestamp": "2025-09-18T08:30:00Z",
-    "version": "1.0.0"
+    "version": "1.0.1"
   }
 }
 ```
@@ -601,4 +602,4 @@ console.log(instances);
 4. **数据格式**: 所有请求和响应都使用JSON格式
 5. **时区**: 所有时间字段使用UTC时区
 6. **错误处理**: 请妥善处理API返回的错误信息
-7. **版本控制**: 当前API版本为v1.0.0
+7. **版本控制**: 当前API版本为v1.0.1

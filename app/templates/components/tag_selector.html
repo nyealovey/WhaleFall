@@ -338,16 +338,12 @@ class TagSelector {
                 }
             });
             
-            console.log('标签API响应状态:', response.status);
-            console.log('标签API响应头:', response.headers);
             
             const data = await response.json();
-            console.log('标签API响应数据:', data);
             
             if (data.success) {
                 this.availableTags = data.tags || data;
                 this.filteredTags = [...this.availableTags];
-                console.log('加载的标签数据:', this.availableTags);
                 this.renderAvailableTags();
             } else {
                 this.showError('加载标签失败: ' + (data.message || '未知错误'));
@@ -497,14 +493,11 @@ let tagSelectorModal = null;
 
 // 全局函数
 function openTagSelector() {
-    console.log('openTagSelector函数被调用');
     const modalElement = document.getElementById('tagSelectorModal');
-    console.log('模态框元素:', modalElement);
     
     if (!tagSelectorModal) {
         if (modalElement) {
             tagSelectorModal = new bootstrap.Modal(modalElement);
-            console.log('创建了新的模态框实例');
         } else {
             console.error('找不到tagSelectorModal元素');
             return;
@@ -512,7 +505,6 @@ function openTagSelector() {
     }
     
     if (tagSelectorModal) {
-        console.log('显示模态框');
         tagSelectorModal.show();
     } else {
         console.error('模态框实例创建失败');
@@ -553,7 +545,6 @@ function updateSelectedTagsPreview(selectedTags) {
         `).join('');
         
         hiddenInput.value = selectedTags.map(tag => tag.name).join(',');
-        console.log('设置隐藏字段值:', hiddenInput.value);
     } else {
         preview.style.display = 'none';
         count.textContent = '未选择标签';

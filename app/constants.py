@@ -157,11 +157,18 @@ class SystemConstants:
 
 # 配置默认值
 class DefaultConfig:
-    """默认配置值"""
+    """
+    默认配置值
+    
+    安全警告：
+    - DATABASE_URL 和 REDIS_URL 必须从环境变量获取，不允许硬编码密码
+    - 所有敏感信息（密码、密钥）必须通过环境变量配置
+    - 生产环境必须设置所有必需的环境变量
+    """
 
-    # 数据库配置
-    DATABASE_URL = "postgresql://whalefall_user:Taifish2024!@localhost:5432/whalefall_dev"
-    REDIS_URL = "redis://:Taifish2024!@localhost:6379/0"
+    # 数据库配置 - 使用环境变量，避免硬编码密码
+    DATABASE_URL = None  # 必须从环境变量获取
+    REDIS_URL = None  # 必须从环境变量获取
 
     # 应用配置
     SECRET_KEY = None  # 从环境变量获取

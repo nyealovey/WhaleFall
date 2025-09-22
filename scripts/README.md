@@ -112,6 +112,8 @@ make quality-full
 - `export_permission_configs.py` - 导出权限配置数据
 - `reset_admin_password.py` - 重置管理员密码
 - `show_admin_password.py` - 显示管理员密码
+- `init_database.sh` - 完整数据库初始化脚本（使用Docker）
+- `quick_init.sh` - 快速数据库初始化脚本（使用Docker）
 
 ### 使用方法
 ```bash
@@ -123,6 +125,15 @@ uv run python scripts/database/reset_admin_password.py
 
 # 显示管理员密码
 uv run python scripts/database/show_admin_password.py
+
+# 快速初始化数据库（推荐）
+DB_PASSWORD=your_password ./scripts/database/quick_init.sh
+
+# 完整初始化数据库
+DB_PASSWORD=your_password ./scripts/database/init_database.sh
+
+# 使用Docker直接导入
+docker exec -i whalefall_postgres_dev psql -U whalefall_user -d whalefall_dev < sql/init_postgresql.sql
 ```
 
 ## 🛠️ 快速使用指南

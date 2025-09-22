@@ -264,7 +264,7 @@ setInterval(() => {
         updateStatistics(data);
     })
     .catch(error => {
-        console.log('刷新统计数据失败:', error);
+        console.error('刷新统计数据失败:', error);
     });
 }, 60000);
 

@@ -1,103 +1,58 @@
-# 鲸落 - 数据库驱动兼容性指南
+# 数据库驱动配置指南
 
-## 📋 当前状态
+## 支持的数据库
 
-### ✅ 已支持的数据库
-- **MySQL**: PyMySQL - 完全支持
-- **PostgreSQL**: psycopg2-binary - 完全支持
+### ✅ 完全支持
+- **MySQL**: PyMySQL 1.0.2
+- **PostgreSQL**: psycopg2-binary 2.9.3
 
-### ⚠️ 需要额外配置的数据库
-- **SQL Server**: 需要安装系统依赖
+### ⚠️ 需要额外配置
+- **SQL Server**: 需要系统依赖
 - **Oracle**: 需要Oracle Instant Client
-- **ODBC**: 需要系统ODBC驱动
 
-## 🔧 解决方案
+## 快速安装
 
-### 1. 当前可用功能
-- ✅ 用户认证系统
-- ✅ 实例管理 (MySQL, PostgreSQL)
-- ✅ 凭据管理
-- ✅ 账户同步 (MySQL, PostgreSQL)
-- ✅ 前端界面
-- ✅ API接口
-
-### 2. 数据库驱动安装指南
-
-#### MySQL (已安装)
+### MySQL & PostgreSQL
 ```bash
-pip install PyMySQL==1.0.2
+pip install PyMySQL==1.0.2 psycopg2-binary==2.9.3
 ```
 
-#### PostgreSQL (已安装)
+### SQL Server
 ```bash
-pip install psycopg2-binary==2.9.3
-```
-
-#### SQL Server (需要额外步骤)
-
-**选项1: 使用pymssql (推荐)**
-```bash
-# 在macOS上可能需要先安装依赖
+# macOS
 brew install freetds
 pip install pymssql==2.2.5
-```
 
-**选项2: 使用pyodbc**
-```bash
-# 在macOS上安装ODBC驱动
-brew install unixodbc
-pip install pyodbc==4.0.32
-```
-
-**选项3: 使用Docker (推荐)**
-```bash
-# 使用预编译的Docker镜像
+# 或使用Docker
 docker pull mcr.microsoft.com/mssql/server:2019-latest
 ```
 
-#### Oracle (需要额外步骤)
-
-**在macOS上:**
+### Oracle
 ```bash
-# 1. 下载Oracle Instant Client (ARM64版本)
-# 从Oracle官网下载: https://www.oracle.com/database/technologies/instant-client/macos-intel-x86-downloads.html
+# 安装驱动
+pip install python-oracledb==3.3.0
 
-# 2. 安装客户端
-pip install cx_Oracle==8.3.0
+# macOS - 安装客户端
+brew install instantclient-basic instantclient-sdk
+
+# 设置环境变量
+export ORACLE_HOME=/opt/homebrew/lib/instantclient_21_8
+export LD_LIBRARY_PATH=$ORACLE_HOME:$LD_LIBRARY_PATH
+export PATH=$ORACLE_HOME:$PATH
 ```
 
-**在Docker中:**
-```bash
-# 使用预安装Oracle客户端的镜像
-FROM python:3.9-slim
-# 添加Oracle客户端安装步骤
+## Docker环境
+
+Docker镜像已预装所有数据库驱动，包括Oracle Instant Client，无需额外配置。
+
+## 测试连接
+
+```python
+# 测试Oracle连接
+import oracledb
+with oracledb.connect(user="system", password="oracle", dsn="localhost:1521/XE") as conn:
+    print("Oracle连接成功")
 ```
-
-## 🚀 渐进式开发策略
-
-### 阶段1: 核心功能 (当前)
-- 使用MySQL和PostgreSQL进行开发
-- 实现所有业务逻辑
-- 完成前端界面
-
-### 阶段2: 扩展支持
-- 根据实际需要安装SQL Server驱动
-- 根据实际需要安装Oracle驱动
-- 添加相应的连接测试
-
-### 阶段3: 生产优化
-- 使用Docker镜像预装所有驱动
-- 配置生产环境的数据库连接
-- 性能优化和监控
-
-## 📊 影响评估
-
-### 对当前开发的影响: **无影响**
-- 核心功能完全可用
-- 可以正常进行开发
-- 所有业务逻辑都能实现
-
-### 对生产部署的影响: **需要配置**
 - 需要根据实际使用的数据库安装相应驱动
 - 可以使用Docker简化部署
 - 可以分阶段添加数据库支持

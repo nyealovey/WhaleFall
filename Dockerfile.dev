@@ -1,0 +1,126 @@
+# 使用Ubuntu 22.04作为基础镜像
+FROM ubuntu:22.04 as base
+
+# 设置环境变量
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=development
+ENV DATABASE_URL=postgresql://whalefall_user:your_secure_password@postgres:5432/whalefall_dev
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    pkg-config \
+    libssl-dev \
+    libffi-dev \
+    curl \
+    wget \
+    git \
+    unzip \
+    libaio1 \
+    nginx \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装uv (带重试机制)
+RUN for i in 1 2 3; do \
+        curl -LsSf https://astral.sh/uv/install.sh | sh && break || \
+        (echo "安装失败，重试 $i/3..." && sleep 5); \
+    done
+ENV PATH="/root/.local/bin:$PATH"
+
+# 复制uv到系统目录
+RUN cp /root/.local/bin/uv /usr/local/bin/uv && \
+    chmod +x /usr/local/bin/uv
+
+# 使用uv安装Python 3.11
+RUN uv python install 3.11
+
+# 创建虚拟环境，使用uv安装的Python 3.11
+RUN uv venv /app/.venv --python $(uv python find 3.11)
+ENV PATH="/app/.venv/bin:$PATH"
+
+# 安装Oracle Instant Client
+ENV ORACLE_CLIENT_VERSION=21.18.0.0.0
+ENV ORACLE_HOME=/opt/oracle/instantclient_${ORACLE_CLIENT_VERSION//./_}
+
+# 下载并安装Oracle Instant Client for Linux
+RUN mkdir -p $ORACLE_HOME && \
+    wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
+    wget -q https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip && \
+    unzip -o /tmp/instantclient-basic.zip -d /opt/oracle && \
+    unzip -o /tmp/instantclient-sdk.zip -d /opt/oracle && \
+    rm /tmp/instantclient-basic.zip /tmp/instantclient-sdk.zip && \
+    echo "$ORACLE_HOME" > /etc/ld.so.conf.d/oracle-instantclient.conf && \
+    ldconfig
+
+# 设置Oracle环境变量
+ENV LD_LIBRARY_PATH=$ORACLE_HOME:$LD_LIBRARY_PATH
+ENV PATH=$ORACLE_HOME:$PATH
+
+# 复制项目配置文件
+COPY pyproject.toml uv.lock /app/
+
+# 复制README.md文件（pyproject.toml需要）
+COPY README.md /app/
+
+# 安装Python依赖
+RUN uv sync --frozen --no-dev
+
+# 验证虚拟环境创建
+RUN /app/.venv/bin/python --version
+
+# 复制应用代码
+COPY . /app/
+
+# 创建必要的目录
+RUN mkdir -p /app/userdata/logs /app/userdata/exports /app/userdata/backups /app/userdata/uploads /app/userdata
+
+# 复制Nginx配置文件
+COPY nginx/conf.d/whalefall-dev.conf /etc/nginx/conf.d/whalefall.conf
+COPY nginx/sites-available/whalefall-dev /etc/nginx/sites-available/whalefall
+
+# 复制错误页面
+COPY nginx/error_pages/404.html /usr/share/nginx/html/404.html
+COPY nginx/error_pages/50x.html /usr/share/nginx/html/50x.html
+
+# 启用Nginx站点
+RUN ln -sf /etc/nginx/sites-available/whalefall /etc/nginx/sites-enabled/ && \
+    rm -f /etc/nginx/sites-enabled/default
+
+# 创建必要的日志目录
+RUN mkdir -p /var/log/nginx /app/userdata/logs
+
+# 复制Gunicorn配置文件
+COPY nginx/gunicorn/gunicorn-dev.conf.py /app/gunicorn.conf.py
+
+# 复制Supervisor配置文件
+COPY nginx/supervisor/whalefall-dev.conf /etc/supervisor/conf.d/whalefall.conf
+
+# 开发环境阶段
+FROM base as development
+
+# 复制启动脚本
+COPY scripts/docker/start-dev-services.sh /usr/local/bin/start-dev-services.sh
+RUN chmod +x /usr/local/bin/start-dev-services.sh
+
+# Nginx将通过Supervisor管理，不需要systemctl
+
+# 设置权限
+RUN chmod -R 755 /app/userdata
+
+# 暴露端口
+EXPOSE 80
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
+# 开发环境启动命令
+CMD ["/usr/local/bin/start-dev-services.sh"]

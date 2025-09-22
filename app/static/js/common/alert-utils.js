@@ -13,7 +13,10 @@
 function sendLogToBackend(level, message, context = {}) {
     // 暂时禁用前端日志发送，避免404错误
     // 前端日志只在控制台显示
-    console.log(`[${level}] ${message}`, context);
+    // 生产环境不输出调试日志
+    if (level !== 'debug') {
+        console.log(`[${level}] ${message}`, context);
+    }
 }
 
 /**

@@ -5,7 +5,7 @@
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from flask_caching import Cache
@@ -66,7 +66,7 @@ class CacheManager:
             cache_data = {
                 "roles": roles,
                 "permissions": permissions,
-                "cached_at": datetime.now(tz=datetime.UTC).isoformat(),
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
                 "instance_id": instance_id,
                 "username": username,
                 "db_name": db_name,
@@ -116,6 +116,310 @@ class CacheManager:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
+    def get_account_permissions_cache(self, account_id: int) -> dict[str, Any] | None:
+        """获取账户权限缓存"""
+        try:
+            if not self.cache:
+                return None
+                
+            cache_key = self._generate_cache_key("account_perms", account_id, "", "")
+            cached_data = self.cache.get(cache_key)
+
+            if cached_data:
+                data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
+                logger.debug("账户权限缓存命中: account_id=%s", account_id, cache_key=cache_key)
+                return data
+
+            return None
+
+        except Exception as e:
+            logger.warning("获取账户权限缓存失败: account_id=%s", account_id, error=str(e))
+            return None
+
+    def set_account_permissions_cache(self, account_id: int, permissions: dict[str, Any], ttl: int = None) -> bool:
+        """设置账户权限缓存"""
+        try:
+            if not self.cache:
+                return False
+                
+            cache_key = self._generate_cache_key("account_perms", account_id, "", "")
+            cache_data = {
+                "permissions": permissions,
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
+                "account_id": account_id,
+            }
+
+            ttl = ttl or self.default_ttl
+            self.cache.set(cache_key, cache_data, timeout=ttl)
+            logger.debug("账户权限缓存已设置: account_id=%s", account_id, cache_key=cache_key, ttl=ttl)
+            return True
+
+        except Exception as e:
+            logger.warning("设置账户权限缓存失败: account_id=%s", account_id, error=str(e))
+            return False
+
+    def get_rule_evaluation_cache(self, rule_id: int, account_id: int) -> bool | None:
+        """获取规则评估缓存"""
+        try:
+            if not self.cache:
+                return None
+                
+            cache_key = self._generate_cache_key("rule_eval", rule_id, account_id, "")
+            cached_data = self.cache.get(cache_key)
+
+            if cached_data:
+                data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
+                logger.debug("规则评估缓存命中: rule_id=%s, account_id=%s", rule_id, account_id, cache_key=cache_key)
+                return data.get("result")
+
+            return None
+
+        except Exception as e:
+            logger.warning("获取规则评估缓存失败: rule_id=%s, account_id=%s", rule_id, account_id, error=str(e))
+            return None
+
+    def set_rule_evaluation_cache(self, rule_id: int, account_id: int, result: bool, ttl: int = None) -> bool:
+        """设置规则评估缓存"""
+        try:
+            if not self.cache:
+                return False
+                
+            cache_key = self._generate_cache_key("rule_eval", rule_id, account_id, "")
+            cache_data = {
+                "result": result,
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
+                "rule_id": rule_id,
+                "account_id": account_id,
+            }
+
+            ttl = ttl or (24 * 3600)  # 规则评估缓存1天
+            self.cache.set(cache_key, cache_data, timeout=ttl)
+            logger.debug("规则评估缓存已设置: rule_id=%s, account_id=%s", rule_id, account_id, cache_key=cache_key, ttl=ttl)
+            return True
+
+        except Exception as e:
+            logger.warning("设置规则评估缓存失败: rule_id=%s, account_id=%s", rule_id, account_id, error=str(e))
+            return False
+
+    def get_classification_rules_cache(self) -> list[dict[str, Any]] | None:
+        """获取分类规则缓存"""
+        try:
+            if not self.cache:
+                return None
+                
+            cache_key = "classification_rules:all"
+            cached_data = self.cache.get(cache_key)
+
+            if cached_data:
+                data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
+                logger.debug("分类规则缓存命中", cache_key=cache_key)
+                return data
+
+            return None
+
+        except Exception as e:
+            logger.warning("获取分类规则缓存失败", error=str(e))
+            return None
+
+    def set_classification_rules_cache(self, rules: list[dict[str, Any]], ttl: int = None) -> bool:
+        """设置分类规则缓存"""
+        try:
+            if not self.cache:
+                return False
+                
+            cache_key = "classification_rules:all"
+            cache_data = {
+                "rules": rules,
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
+                "count": len(rules),
+            }
+
+            ttl = ttl or (2 * 3600)  # 规则缓存2小时
+            self.cache.set(cache_key, cache_data, timeout=ttl)
+            logger.debug("分类规则缓存已设置", cache_key=cache_key, ttl=ttl, count=len(rules))
+            return True
+
+        except Exception as e:
+            logger.warning("设置分类规则缓存失败", error=str(e))
+            return False
+
+    def invalidate_account_cache(self, account_id: int) -> bool:
+        """清除账户相关缓存"""
+        try:
+            if not self.cache:
+                return True
+                
+            # 清除账户权限缓存
+            account_perms_key = self._generate_cache_key("account_perms", account_id, "", "")
+            self.cache.delete(account_perms_key)
+            
+            # 清除该账户的所有规则评估缓存
+            # 注意：这里简化处理，实际应该遍历所有规则ID
+            logger.info("清除账户缓存: account_id=%s", account_id)
+            return True
+
+        except Exception as e:
+            logger.warning("清除账户缓存失败: account_id=%s", account_id, error=str(e))
+            return False
+
+    def invalidate_classification_cache(self) -> bool:
+        """清除分类相关缓存"""
+        try:
+            if not self.cache:
+                return True
+                
+            # 清除规则缓存
+            rules_key = "classification_rules:all"
+            self.cache.delete(rules_key)
+            
+            logger.info("清除分类缓存")
+            return True
+
+        except Exception as e:
+            logger.warning("清除分类缓存失败", error=str(e))
+            return False
+
+    def get_classification_rules_by_db_type_cache(self, db_type: str) -> list[dict[str, Any]] | None:
+        """获取按数据库类型分类的规则缓存"""
+        try:
+            if not self.cache:
+                return None
+                
+            cache_key = f"classification_rules:{db_type}"
+            cached_data = self.cache.get(cache_key)
+
+            if cached_data:
+                data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
+                # 处理不同的缓存数据格式
+                if isinstance(data, dict) and "rules" in data:
+                    logger.debug("数据库类型规则缓存命中: %s", db_type, cache_key=cache_key, count=len(data["rules"]))
+                    return data["rules"]
+                elif isinstance(data, list):
+                    logger.debug("数据库类型规则缓存命中（旧格式）: %s", db_type, cache_key=cache_key, count=len(data))
+                    return data
+                else:
+                    logger.warning("数据库类型规则缓存格式错误: %s", db_type, cache_key=cache_key)
+                    return None
+
+            return None
+
+        except Exception as e:
+            logger.warning("获取数据库类型规则缓存失败: %s", db_type, error=str(e))
+            return None
+
+    def set_classification_rules_by_db_type_cache(self, db_type: str, rules: list[dict[str, Any]], ttl: int = None) -> bool:
+        """设置按数据库类型分类的规则缓存"""
+        try:
+            if not self.cache:
+                return False
+                
+            cache_key = f"classification_rules:{db_type}"
+            cache_data = {
+                "rules": rules,
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
+                "count": len(rules),
+                "db_type": db_type,
+            }
+
+            ttl = ttl or (2 * 3600)  # 规则缓存2小时
+            self.cache.set(cache_key, cache_data, timeout=ttl)
+            logger.debug("数据库类型规则缓存已设置: %s", db_type, cache_key=cache_key, ttl=ttl, count=len(rules))
+            return True
+
+        except Exception as e:
+            logger.warning("设置数据库类型规则缓存失败: %s", db_type, error=str(e))
+            return False
+
+    def get_accounts_by_db_type_cache(self, db_type: str) -> list[dict[str, Any]] | None:
+        """获取按数据库类型分组的账户缓存"""
+        try:
+            if not self.cache:
+                return None
+                
+            cache_key = f"accounts_by_db_type:{db_type}"
+            cached_data = self.cache.get(cache_key)
+
+            if cached_data:
+                data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
+                # 处理不同的缓存数据格式
+                if isinstance(data, dict) and "accounts" in data:
+                    logger.debug("数据库类型账户缓存命中: %s", db_type, cache_key=cache_key, count=len(data["accounts"]))
+                    return data["accounts"]
+                elif isinstance(data, list):
+                    logger.debug("数据库类型账户缓存命中（旧格式）: %s", db_type, cache_key=cache_key, count=len(data))
+                    return data
+                else:
+                    logger.warning("数据库类型账户缓存格式错误: %s", db_type, cache_key=cache_key)
+                    return None
+
+            return None
+
+        except Exception as e:
+            logger.warning("获取数据库类型账户缓存失败: %s", db_type, error=str(e))
+            return None
+
+    def set_accounts_by_db_type_cache(self, db_type: str, accounts: list[dict[str, Any]], ttl: int = None) -> bool:
+        """设置按数据库类型分组的账户缓存"""
+        try:
+            if not self.cache:
+                return False
+                
+            cache_key = f"accounts_by_db_type:{db_type}"
+            cache_data = {
+                "accounts": accounts,
+                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
+                "count": len(accounts),
+                "db_type": db_type,
+            }
+
+            ttl = ttl or (1 * 3600)  # 账户缓存1小时
+            self.cache.set(cache_key, cache_data, timeout=ttl)
+            logger.debug("数据库类型账户缓存已设置: %s", db_type, cache_key=cache_key, ttl=ttl, count=len(accounts))
+            return True
+
+        except Exception as e:
+            logger.warning("设置数据库类型账户缓存失败: %s", db_type, error=str(e))
+            return False
+
+    def invalidate_db_type_cache(self, db_type: str) -> bool:
+        """清除特定数据库类型的缓存"""
+        try:
+            if not self.cache:
+                return True
+                
+            # 清除该数据库类型的规则缓存
+            rules_key = f"classification_rules:{db_type}"
+            self.cache.delete(rules_key)
+            
+            # 清除该数据库类型的账户缓存
+            accounts_key = f"accounts_by_db_type:{db_type}"
+            self.cache.delete(accounts_key)
+            
+            logger.info("清除数据库类型缓存: %s", db_type)
+            return True
+
+        except Exception as e:
+            logger.warning("清除数据库类型缓存失败: %s", db_type, error=str(e))
+            return False
+
+    def invalidate_all_db_type_cache(self) -> bool:
+        """清除所有数据库类型的缓存"""
+        try:
+            if not self.cache:
+                return True
+                
+            # 清除所有数据库类型的规则缓存
+            db_types = ["mysql", "postgresql", "sqlserver", "oracle"]
+            for db_type in db_types:
+                self.invalidate_db_type_cache(db_type)
+            
+            logger.info("清除所有数据库类型缓存")
+            return True
+
+        except Exception as e:
+            logger.warning("清除所有数据库类型缓存失败", error=str(e))
+            return False
+
     def health_check(self) -> bool:
         """缓存健康检查"""
         try:
@@ -132,6 +436,71 @@ class CacheManager:
         except Exception as e:
             logger.warning("缓存健康检查失败", error=str(e))
             return False
+
+    def debug_cache_status(self) -> dict[str, Any]:
+        """调试缓存状态"""
+        try:
+            if not self.cache:
+                return {"error": "缓存管理器未初始化"}
+            
+            debug_info = {
+                "cache_enabled": self.cache is not None,
+                "cache_type": str(type(self.cache)),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                "cache_keys": {},
+                "health_check": self.health_check()
+            }
+            
+            # 检查各种缓存键
+            cache_keys_to_check = [
+                "classification_rules:all",
+                "classification_rules:mysql",
+                "classification_rules:postgresql", 
+                "classification_rules:sqlserver",
+                "classification_rules:oracle",
+                "accounts_by_db_type:mysql",
+                "accounts_by_db_type:postgresql",
+                "accounts_by_db_type:sqlserver", 
+                "accounts_by_db_type:oracle"
+            ]
+            
+            for key in cache_keys_to_check:
+                try:
+                    cached_data = self.cache.get(key)
+                    if cached_data:
+                        if isinstance(cached_data, str):
+                            data = json.loads(cached_data)
+                        else:
+                            data = cached_data
+                        
+                        if isinstance(data, dict):
+                            debug_info["cache_keys"][key] = {
+                                "exists": True,
+                                "type": "dict",
+                                "keys": list(data.keys()),
+                                "count": data.get("count", 0)
+                            }
+                        elif isinstance(data, list):
+                            debug_info["cache_keys"][key] = {
+                                "exists": True,
+                                "type": "list",
+                                "count": len(data)
+                            }
+                        else:
+                            debug_info["cache_keys"][key] = {
+                                "exists": True,
+                                "type": str(type(data)),
+                                "value": str(data)[:100]
+                            }
+                    else:
+                        debug_info["cache_keys"][key] = {"exists": False}
+                except Exception as e:
+                    debug_info["cache_keys"][key] = {"error": str(e)}
+            
+            return debug_info
+            
+        except Exception as e:
+            return {"error": f"调试缓存状态失败: {str(e)}"}
 
 
 # 全局缓存管理器实例

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 本地开发环境 - Flask应用启动脚本（macOS，无代理）
-# 启动：Flask应用（依赖基础环境）
+# 启动：Flask应用（包含Nginx，依赖基础环境）
 
 set -e
 
@@ -44,18 +44,12 @@ check_base_environment() {
         exit 1
     fi
     
-    # 检查Nginx
-    if ! curl -s http://localhost > /dev/null 2>&1; then
-        log_error "Nginx未运行，请先运行 ./scripts/docker/start-dev-base.sh"
-        exit 1
-    fi
-    
     log_success "基础环境检查通过"
 }
 
 # 构建开发镜像
 build_dev_image() {
-    log_info "构建开发环境Flask镜像..."
+    log_info "构建开发环境Flask镜像（包含Nginx）..."
     
     docker compose -f docker-compose.dev.yml build whalefall
     
@@ -64,7 +58,7 @@ build_dev_image() {
 
 # 启动Flask应用
 start_flask_application() {
-    log_info "启动Flask应用..."
+    log_info "启动Flask应用（包含Nginx）..."
     
     # 停止可能存在的Flask容器（不删除）
     docker compose -f docker-compose.dev.yml stop whalefall 2>/dev/null || true
@@ -79,8 +73,22 @@ start_flask_application() {
 wait_for_flask() {
     log_info "等待Flask应用启动..."
     
-    # 等待Flask应用
-    timeout 120 bash -c 'until curl -f http://localhost:5001/health > /dev/null 2>&1; do sleep 5; done'
+    # 等待Flask应用（通过Nginx代理）
+    local count=0
+    while [ $count -lt 30 ]; do
+        if curl -f http://localhost/health > /dev/null 2>&1; then
+            break
+        fi
+        sleep 5
+        count=$((count + 1))
+    done
+    
+    if [ $count -eq 30 ]; then
+        log_warning "Flask应用启动超时，请检查日志"
+        docker compose -f docker-compose.dev.yml logs whalefall
+        exit 1
+    fi
+    
     log_success "Flask应用已就绪"
 }
 
@@ -92,20 +100,22 @@ show_complete_status() {
     echo ""
     log_info "访问地址:"
     echo "  - 应用首页: http://localhost"
-    echo "  - 直接访问Flask: http://localhost:5001"
-    echo "  - 健康检查: http://localhost:5001/health"
+    echo "  - 健康检查: http://localhost/health"
+    echo "  - 静态文件: http://localhost/static/"
     
     echo ""
     log_info "管理命令:"
     echo "  - 查看日志: docker compose -f docker-compose.dev.yml logs -f"
+    echo "  - 查看Flask日志: docker compose -f docker-compose.dev.yml logs -f whalefall"
     echo "  - 停止Flask: docker compose -f docker-compose.dev.yml stop whalefall"
     echo "  - 重启Flask: docker compose -f docker-compose.dev.yml restart whalefall"
     echo "  - 停止所有: ./scripts/docker/stop-dev.sh"
+    echo "  - 进入容器: docker compose -f docker-compose.dev.yml exec whalefall bash"
 }
 
 # 主函数
 main() {
-    log_info "开始启动本地开发Flask应用..."
+    log_info "开始启动本地开发Flask应用（包含Nginx）..."
     
     check_base_environment
     build_dev_image

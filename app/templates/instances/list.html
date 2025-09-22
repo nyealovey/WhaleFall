@@ -798,30 +798,23 @@ function submitJsonInput() {
 <script>
 // 标签选择器初始化
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('列表页面加载完成，开始初始化标签选择器');
     
     // 立即检查元素
     const listPageSelector = document.getElementById('list-page-tag-selector');
-    console.log('list-page-tag-selector元素:', listPageSelector);
     
     if (listPageSelector) {
         const modalElement = listPageSelector.querySelector('#tagSelectorModal');
-        console.log('模态框元素:', modalElement);
         
         if (modalElement) {
             // 在模态框内部查找容器元素
             const containerElement = modalElement.querySelector('#tag-selector-container');
-            console.log('容器元素:', containerElement);
             
             if (containerElement) {
-                console.log('元素都找到了，立即初始化');
                 initializeTagSelector(modalElement, containerElement);
             } else {
-                console.log('容器元素未找到，等待更长时间...');
                 setTimeout(() => {
                     const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
                     if (delayedContainerElement) {
-                        console.log('延迟检查 - 元素都找到了');
                         initializeTagSelector(modalElement, delayedContainerElement);
                     }
                 }, 1000);
@@ -831,7 +824,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function initializeTagSelector(modalElement, containerElement) {
         if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
-            console.log('开始初始化TagSelector');
             // 初始化标签选择器
             tagSelector = new TagSelector('tag-selector-container', {
                 allowMultiple: true,
@@ -839,14 +831,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 allowSearch: true,
                 allowCategoryFilter: true
             });
-            console.log('TagSelector初始化完成');
             
             // 绑定打开标签选择器按钮
             const openBtn = document.getElementById('open-tag-filter-btn');
             if (openBtn) {
-                console.log('找到打开按钮，绑定事件');
                 openBtn.addEventListener('click', function() {
-                    console.log('点击了选择标签按钮');
                     if (typeof openTagSelector === 'function') {
                         openTagSelector();
                     } else {
@@ -860,7 +849,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // 绑定确认选择按钮
             const confirmBtn = document.getElementById('confirm-tag-selection');
             if (confirmBtn) {
-                console.log('找到确认按钮，绑定事件');
                 confirmBtn.addEventListener('click', confirmTagSelection);
             } else {
                 console.error('找不到confirm-tag-selection按钮');
@@ -870,7 +858,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedTagNames = document.getElementById('selected-tag-names').value;
             if (selectedTagNames) {
                 const tagNames = selectedTagNames.split(',').filter(name => name.trim());
-                console.log('预填充标签:', tagNames);
                 setTimeout(() => {
                     const allTags = tagSelector.availableTags;
                     const currentTagIds = allTags.filter(tag => tagNames.includes(tag.name)).map(tag => tag.id);

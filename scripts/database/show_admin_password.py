@@ -27,37 +27,14 @@ def show_admin_password():
         admin = User.query.filter_by(username="admin").first()
         
         if not admin:
-            print("❌ 未找到管理员用户")
             return
         
-        print(f"\n{'='*60}")
-        print(f"🔐 管理员账户信息")
-        print(f"{'='*60}")
-        print(f"用户名: {admin.username}")
-        print(f"角色: {admin.role}")
-        print(f"创建时间: {admin.created_at}")
-        print(f"最后登录: {admin.last_login or '从未登录'}")
-        print(f"账户状态: {'活跃' if admin.is_active else '禁用'}")
-        print(f"{'='*60}")
         
         # 检查是否使用环境变量密码
         env_password = os.getenv('DEFAULT_ADMIN_PASSWORD')
         if env_password:
-            print(f"🔑 当前使用环境变量密码")
-            print(f"密码长度: {len(env_password)} 位")
-            print(f"密码: {env_password}")
         else:
-            print(f"🔑 当前使用随机生成密码")
-            print(f"密码长度: 12 位")
-            print(f"⚠️  密码已加密存储，无法直接显示")
-            print(f"💡 如需重置密码，请设置环境变量 DEFAULT_ADMIN_PASSWORD")
         
-        print(f"{'='*60}")
-        print(f"💡 提示:")
-        print(f"   - 生产环境请立即修改默认密码")
-        print(f"   - 可通过环境变量 DEFAULT_ADMIN_PASSWORD 设置密码")
-        print(f"   - 或通过Web界面修改密码")
-        print(f"{'='*60}\n")
 
 if __name__ == "__main__":
     show_admin_password()

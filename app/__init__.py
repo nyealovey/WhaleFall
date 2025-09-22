@@ -202,7 +202,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     app.config["CACHE_TYPE"] = cache_type
 
     if cache_type == "redis":
-        app.config["CACHE_REDIS_URL"] = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        app.config["CACHE_REDIS_URL"] = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/0")
 
     app.config["CACHE_DEFAULT_TIMEOUT"] = int(os.getenv("CACHE_DEFAULT_TIMEOUT", 300))
 
@@ -274,7 +274,7 @@ def configure_session_security(app: Flask) -> None:
     
     # 会话配置
     app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime  # 会话超时时间
-    app.config["SESSION_COOKIE_SECURE"] = not app.debug  # 生产环境使用HTTPS
+    app.config["SESSION_COOKIE_SECURE"] = False  # 暂时禁用HTTPS要求，使用HTTP
     app.config["SESSION_COOKIE_HTTPONLY"] = True  # 防止XSS攻击
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF保护
 
@@ -390,53 +390,58 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.unified_logs import unified_logs_bp
 
     # 注册蓝图
-    app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp, url_prefix="/auth")
-    app.register_blueprint(instances_bp, url_prefix="/instances")
-    app.register_blueprint(tags_bp, url_prefix="/tags")
-    app.register_blueprint(instance_accounts_bp, url_prefix="/instance_accounts")
-    app.register_blueprint(credentials_bp, url_prefix="/credentials")
 
     # 新的账户相关蓝图
-    app.register_blueprint(account_list_bp, url_prefix="/account-list")
-    app.register_blueprint(account_sync_bp, url_prefix="/account-sync")
-    app.register_blueprint(account_static_bp, url_prefix="/account-static")
 
     # 缓存管理蓝图
-    app.register_blueprint(cache_bp, url_prefix="/cache")
 
     # 保留旧的accounts_bp，等测试通过后删除
-    # app.register_blueprint(accounts_bp, url_prefix="/accounts")
 
-    # app.register_blueprint(logs_bp, url_prefix="/logs")  # 已停用，使用unified_logs替代
-    app.register_blueprint(unified_logs_bp)  # unified_logs_bp already has url_prefix="/unified-logs"
-    app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
-    app.register_blueprint(health_bp, url_prefix="/health")
-    app.register_blueprint(admin_bp, url_prefix="/admin")
-    app.register_blueprint(account_classification_bp, url_prefix="/account-classification")
 
     # 注册数据库类型管理蓝图
-    app.register_blueprint(database_types_bp)
 
     # 注册用户管理蓝图
     from app.routes.user_management import user_management_bp
 
-    app.register_blueprint(user_management_bp)
 
     # 注册定时任务管理蓝图
     from app.routes.scheduler import scheduler_bp
 
-    app.register_blueprint(scheduler_bp)
 
     # 注册同步会话管理蓝图
     from app.routes.sync_sessions import sync_sessions_bp
 
-    app.register_blueprint(sync_sessions_bp)
+    # 注册所有蓝图到Flask应用
+    app.register_blueprint(main_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(instances_bp, url_prefix='/instances')
+    app.register_blueprint(credentials_bp, url_prefix='/credentials')
+    app.register_blueprint(account_classification_bp, url_prefix='/account-classification')
+    app.register_blueprint(account_list_bp, url_prefix='/accounts')
+    app.register_blueprint(account_static_bp, url_prefix='/account-static')
+    app.register_blueprint(account_sync_bp, url_prefix='/account-sync')
+    app.register_blueprint(instance_accounts_bp, url_prefix='/instance-accounts')
+    app.register_blueprint(tags_bp, url_prefix='/tags')
+    app.register_blueprint(unified_logs_bp, url_prefix='/logs')
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(health_bp, url_prefix='/health')
+    app.register_blueprint(cache_bp, url_prefix='/cache')
+    app.register_blueprint(database_types_bp, url_prefix='/database-types')
+    app.register_blueprint(user_management_bp, url_prefix='/users')
+    app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
+    app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')
 
     # 初始化定时任务调度器
     from app.scheduler import init_scheduler
 
-    init_scheduler(app)
+    try:
+        init_scheduler(app)
+    except Exception as e:
+        # 调度器初始化失败不影响应用启动
+        from app.utils.structlog_config import get_system_logger
+        logger = get_system_logger()
+        logger.error("调度器初始化失败，应用将继续启动: %s", str(e))
 
 
 def configure_logging(app: Flask) -> None:

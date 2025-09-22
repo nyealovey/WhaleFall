@@ -1,7 +1,3 @@
-from app.utils.structlog_config import get_system_logger
-
-logger = get_system_logger()
-
 #!/usr/bin/env python3
 """
 鲸落 - 代码质量检查脚本
@@ -14,6 +10,14 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+# 添加项目根目录到Python路径
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from app.utils.structlog_config import get_system_logger
+
+logger = get_system_logger()
 
 
 class QualityChecker:
@@ -57,7 +61,7 @@ class QualityChecker:
                 issues = json.loads(stdout) if stdout else []
             except json.JSONDecodeError:
                 issues = [{"message": stderr or "Ruff检查失败"}]
-            logger.info("❌ Ruff检查发现 {len(issues)} 个问题")
+            logger.info(f"❌ Ruff检查发现 {len(issues)} 个问题")
 
         return {"tool": "ruff", "returncode": returncode, "issues": issues, "output": stdout, "error": stderr}
 
@@ -115,7 +119,7 @@ class QualityChecker:
                 issues = result.get("results", [])
             except json.JSONDecodeError:
                 issues = [{"issue": {"text": stderr or "Bandit扫描失败"}}]
-            logger.info("❌ Bandit安全扫描发现 {len(issues)} 个安全问题")
+            logger.info(f"❌ Bandit安全扫描发现 {len(issues)} 个安全问题")
 
         return {"tool": "bandit", "returncode": returncode, "issues": issues, "output": stdout, "error": stderr}
 
@@ -167,7 +171,7 @@ class QualityChecker:
         if not unused_imports:
             logger.info("✅ 没有发现未使用的导入")
         else:
-            logger.info("❌ 发现 {len(unused_imports)} 个未使用的导入")
+            logger.info(f"❌ 发现 {len(unused_imports)} 个未使用的导入")
 
         return {
             "tool": "unused_imports",
@@ -193,7 +197,7 @@ class QualityChecker:
         if not complexity_issues:
             logger.info("✅ 代码复杂度检查通过")
         else:
-            logger.info("❌ 发现 {len(complexity_issues)} 个复杂度问题")
+            logger.info(f"❌ 发现 {len(complexity_issues)} 个复杂度问题")
 
         return {
             "tool": "complexity",
@@ -206,7 +210,6 @@ class QualityChecker:
     def run_all_checks(self) -> None:
         """运行所有检查"""
         logger.info("🚀 开始代码质量检查...")
-        print("=" * 60)
 
         checks = [
             ("ruff", self.check_ruff),
@@ -231,34 +234,30 @@ class QualityChecker:
                     self.results["summary"]["failed_checks"] += 1
 
             except Exception as e:
-                logger.info("❌ {check_name} 检查出错: {e}")
+                logger.info(f"❌ {check_name} 检查出错: {e}")
                 self.results["checks"][check_name] = {"tool": check_name, "returncode": -1, "error": str(e)}
                 self.results["summary"]["total_checks"] += 1
                 self.results["summary"]["failed_checks"] += 1
 
-            print()
 
         self.print_summary()
         self.save_report()
 
     def print_summary(self) -> None:
         """打印检查摘要"""
-        print("=" * 60)
         logger.info("📋 检查摘要")
-        print("=" * 60)
 
         summary = self.results["summary"]
-        logger.info("总检查项: {summary['total_checks']}")
-        logger.info("通过: {summary['passed_checks']} ✅")
-        logger.info("失败: {summary['failed_checks']} ❌")
+        logger.info(f"总检查项: {summary['total_checks']}")
+        logger.info(f"通过: {summary['passed_checks']} ✅")
+        logger.info(f"失败: {summary['failed_checks']} ❌")
 
         if summary["failed_checks"] > 0:
             logger.info("\n❌ 失败的检查:")
             for check_name, result in self.results["checks"].items():
                 if result.get("returncode", 0) != 0:
-                    logger.info("  - {check_name}: {result.get('error', '检查失败')}")
+                    logger.info(f"  - {check_name}: {result.get('error', '检查失败')}")
 
-        print("\n" + "=" * 60)
 
         if summary["failed_checks"] == 0:
             logger.info("🎉 所有检查通过！代码质量良好！")
@@ -275,13 +274,12 @@ class QualityChecker:
         with open(report_file, "w", encoding="utf-8") as f:
             json.dump(self.results, f, indent=2, ensure_ascii=False)
 
-        logger.info("📄 详细报告已保存到: {report_file}")
+        logger.info(f"📄 详细报告已保存到: {report_file}")
 
 
 def main():
     """主函数"""
     logger.info("鲸落 - 代码质量检查工具")
-    print("=" * 60)
 
     # 检查是否在项目根目录
     if not (Path.cwd() / "pyproject.toml").exists():
