@@ -4,9 +4,10 @@
 
 特性：
 - 取消sysadmin特殊处理，所有账户获取实际权限
+- 包含系统数据库权限查询，获取完整权限信息
 - 支持服务器角色和数据库角色的精确检测
-- 智能处理sysadmin用户的dbo权限映射
 - 跨数据库权限查询和汇总
+- 通过实际查询获取真实权限，避免硬编码假设
 """
 
 import time
@@ -377,12 +378,11 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         try:
             start_time = time.time()
 
-            # 获取所有在线数据库
+            # 获取所有在线数据库 - 包含系统数据库，获取更完整的权限信息
             databases_sql = """
                 SELECT name
                 FROM sys.databases
                 WHERE state = 0
-                AND name NOT IN ('master', 'tempdb', 'model', 'msdb')
                 AND HAS_DBACCESS(name) = 1
                 ORDER BY name
             """
@@ -870,12 +870,11 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         try:
             start_time = time.time()
 
-            # 获取数据库列表
+            # 获取数据库列表 - 包含系统数据库，获取更完整的权限信息
             databases_sql = """
                 SELECT TOP 50 name
                 FROM sys.databases
                 WHERE state = 0
-                AND name NOT IN ('master', 'tempdb', 'model', 'msdb')
                 AND HAS_DBACCESS(name) = 1
                 ORDER BY name
             """
@@ -944,7 +943,21 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     f"""
                     SELECT '{db}' AS db_name,
                            permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
-                           grantee_principal_id
+                           grantee_principal_id,
+                           major_id,
+                           minor_id,
+                           CASE 
+                               WHEN major_id = 0 THEN 'DATABASE'
+                               WHEN major_id > 0 AND minor_id = 0 THEN 'SCHEMA'
+                               WHEN major_id > 0 AND minor_id > 0 THEN 'OBJECT'
+                           END AS permission_scope,
+                           CASE 
+                               WHEN major_id = 0 THEN 'DATABASE'
+                               WHEN major_id > 0 AND minor_id = 0 THEN 
+                                   (SELECT name FROM {quoted_db}.sys.schemas WHERE schema_id = major_id)
+                               WHEN major_id > 0 AND minor_id > 0 THEN 
+                                   (SELECT name FROM {quoted_db}.sys.objects WHERE object_id = major_id)
+                           END AS object_name
                     FROM {quoted_db}.sys.database_permissions WHERE state = 'G'
                 """
                 )
@@ -990,9 +1003,9 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                         database_roles[db_name] = []
                     database_roles[db_name].append(role_name)
 
-            # 处理权限
+            # 处理权限 - 按权限作用范围分类存储
             for row in all_perms:
-                db_name, permission_name, grantee_principal_id = row
+                db_name, permission_name, grantee_principal_id, major_id, minor_id, scope, object_name = row
 
                 # 查找对应的用户名
                 user_name = None
@@ -1011,8 +1024,25 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     )
                 ):
                     if db_name not in database_permissions:
-                        database_permissions[db_name] = []
-                    database_permissions[db_name].append(permission_name)
+                        database_permissions[db_name] = {
+                            "database": [],
+                            "schema": {},
+                            "table": {}
+                        }
+                    
+                    # 根据权限作用范围分类存储
+                    if scope == "DATABASE":
+                        database_permissions[db_name]["database"].append(permission_name)
+                    elif scope == "SCHEMA":
+                        schema_name = object_name
+                        if schema_name not in database_permissions[db_name]["schema"]:
+                            database_permissions[db_name]["schema"][schema_name] = []
+                        database_permissions[db_name]["schema"][schema_name].append(permission_name)
+                    elif scope == "OBJECT":
+                        table_name = object_name
+                        if table_name not in database_permissions[db_name]["table"]:
+                            database_permissions[db_name]["table"][table_name] = []
+                        database_permissions[db_name]["table"][table_name].append(permission_name)
 
             # 对于sysadmin用户，添加db_owner角色到所有数据库
             if is_sysadmin:
@@ -1026,7 +1056,14 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             for db_name in database_roles:
                 database_roles[db_name].sort()
             for db_name in database_permissions:
-                database_permissions[db_name].sort()
+                # 排序数据库级别权限
+                database_permissions[db_name]["database"].sort()
+                # 排序架构级别权限
+                for schema_name in database_permissions[db_name]["schema"]:
+                    database_permissions[db_name]["schema"][schema_name].sort()
+                # 排序表级别权限
+                for table_name in database_permissions[db_name]["table"]:
+                    database_permissions[db_name]["table"][table_name].sort()
 
             elapsed_time = time.time() - start_time
             self.sync_logger.info(
@@ -1036,7 +1073,12 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                 username=username,
                 database_count=len(database_list),
                 roles_count=sum(len(roles) for roles in database_roles.values()),
-                permissions_count=sum(len(perms) for perms in database_permissions.values()),
+                permissions_count=sum(
+                    len(perms["database"]) + 
+                    sum(len(schema_perms) for schema_perms in perms["schema"].values()) +
+                    sum(len(table_perms) for table_perms in perms["table"].values())
+                    for perms in database_permissions.values()
+                ),
                 elapsed_time=f"{elapsed_time:.2f}s",
             )
 
@@ -1060,12 +1102,11 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         try:
             start_time = time.time()
 
-            # 获取数据库列表
+            # 获取数据库列表 - 包含系统数据库，获取更完整的权限信息
             databases_sql = """
                 SELECT TOP 50 name
                 FROM sys.databases
                 WHERE state = 0
-                AND name NOT IN ('master', 'tempdb', 'model', 'msdb')
                 AND HAS_DBACCESS(name) = 1
                 ORDER BY name
             """
@@ -1086,15 +1127,7 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             login_sids = connection.execute_query(login_sids_sql)
             username_to_sid = {row[0]: row[1] for row in login_sids}
 
-            # 批量检查所有用户的sysadmin状态
-            usernames_placeholders = ", ".join(["%s"] * len(usernames))
-            sysadmin_check_sql = f"""
-                SELECT sp.name, IS_SRVROLEMEMBER('sysadmin', sp.name) as is_sysadmin
-                FROM sys.server_principals sp
-                WHERE sp.name IN ({usernames_placeholders})
-            """
-            sysadmin_results = connection.execute_query(sysadmin_check_sql, usernames)
-            sysadmin_dict = {row[0]: bool(row[1]) for row in sysadmin_results}
+            # 移除sysadmin状态检查，不再需要特殊处理
 
             # 构建动态SQL获取所有数据库的principals
             principals_parts = []
@@ -1146,7 +1179,21 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                     f"""
                     SELECT '{db}' AS db_name,
                            permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
-                           grantee_principal_id
+                           grantee_principal_id,
+                           major_id,
+                           minor_id,
+                           CASE 
+                               WHEN major_id = 0 THEN 'DATABASE'
+                               WHEN major_id > 0 AND minor_id = 0 THEN 'SCHEMA'
+                               WHEN major_id > 0 AND minor_id > 0 THEN 'OBJECT'
+                           END AS permission_scope,
+                           CASE 
+                               WHEN major_id = 0 THEN 'DATABASE'
+                               WHEN major_id > 0 AND minor_id = 0 THEN 
+                                   (SELECT name FROM {quoted_db}.sys.schemas WHERE schema_id = major_id)
+                               WHEN major_id > 0 AND minor_id > 0 THEN 
+                                   (SELECT name FROM {quoted_db}.sys.objects WHERE object_id = major_id)
+                           END AS object_name
                     FROM {quoted_db}.sys.database_permissions WHERE state = 'G'
                 """
                 )
@@ -1189,9 +1236,9 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                         if role_name not in result[username]["roles"][db_name]:
                             result[username]["roles"][db_name].append(role_name)
 
-            # 处理权限
+            # 处理权限 - 按权限作用范围分类存储
             for row in all_perms:
-                db_name, permission_name, grantee_principal_id = row
+                db_name, permission_name, grantee_principal_id, major_id, minor_id, scope, object_name = row
 
                 # 查找对应的用户名
                 user_name = None
@@ -1200,11 +1247,28 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                         user_name = u_name
                         break
 
-                # 如果找到用户名，添加到结果中
+                # 如果找到用户名，按权限作用范围分类存储
                 if user_name in usernames:
                     if db_name not in result[user_name]["permissions"]:
-                        result[user_name]["permissions"][db_name] = []
-                    result[user_name]["permissions"][db_name].append(permission_name)
+                        result[user_name]["permissions"][db_name] = {
+                            "database": [],
+                            "schema": {},
+                            "table": {}
+                        }
+                    
+                    # 根据权限作用范围分类存储
+                    if scope == "DATABASE":
+                        result[user_name]["permissions"][db_name]["database"].append(permission_name)
+                    elif scope == "SCHEMA":
+                        schema_name = object_name
+                        if schema_name not in result[user_name]["permissions"][db_name]["schema"]:
+                            result[user_name]["permissions"][db_name]["schema"][schema_name] = []
+                        result[user_name]["permissions"][db_name]["schema"][schema_name].append(permission_name)
+                    elif scope == "OBJECT":
+                        table_name = object_name
+                        if table_name not in result[user_name]["permissions"][db_name]["table"]:
+                            result[user_name]["permissions"][db_name]["table"][table_name] = []
+                        result[user_name]["permissions"][db_name]["table"][table_name].append(permission_name)
 
                 # 通过SID匹配
                 for username, sid in username_to_sid.items():
@@ -1214,25 +1278,45 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                         if pid == grantee_principal_id
                     ):
                         if db_name not in result[username]["permissions"]:
-                            result[username]["permissions"][db_name] = []
-                        if permission_name not in result[username]["permissions"][db_name]:
-                            result[username]["permissions"][db_name].append(permission_name)
+                            result[username]["permissions"][db_name] = {
+                                "database": [],
+                                "schema": {},
+                                "table": {}
+                            }
+                        
+                        # 根据权限作用范围分类存储
+                        if scope == "DATABASE":
+                            if permission_name not in result[username]["permissions"][db_name]["database"]:
+                                result[username]["permissions"][db_name]["database"].append(permission_name)
+                        elif scope == "SCHEMA":
+                            schema_name = object_name
+                            if schema_name not in result[username]["permissions"][db_name]["schema"]:
+                                result[username]["permissions"][db_name]["schema"][schema_name] = []
+                            if permission_name not in result[username]["permissions"][db_name]["schema"][schema_name]:
+                                result[username]["permissions"][db_name]["schema"][schema_name].append(permission_name)
+                        elif scope == "OBJECT":
+                            table_name = object_name
+                            if table_name not in result[username]["permissions"][db_name]["table"]:
+                                result[username]["permissions"][db_name]["table"][table_name] = []
+                            if permission_name not in result[username]["permissions"][db_name]["table"][table_name]:
+                                result[username]["permissions"][db_name]["table"][table_name].append(permission_name)
 
-            # 对于sysadmin用户，添加db_owner角色到所有数据库
-            for username, is_sysadmin in sysadmin_dict.items():
-                if is_sysadmin:
-                    for db_name in database_list:
-                        if db_name not in result[username]["roles"]:
-                            result[username]["roles"][db_name] = []
-                        if "db_owner" not in result[username]["roles"][db_name]:
-                            result[username]["roles"][db_name].append("db_owner")
+            # 移除sysadmin特殊处理，让系统通过实际查询获取真实权限
+            # 这样可以获取更准确的权限信息，而不是硬编码添加db_owner角色
 
             # 排序结果
             for username in result:
                 for db_name in result[username]["roles"]:
                     result[username]["roles"][db_name].sort()
                 for db_name in result[username]["permissions"]:
-                    result[username]["permissions"][db_name].sort()
+                    # 排序数据库级别权限
+                    result[username]["permissions"][db_name]["database"].sort()
+                    # 排序架构级别权限
+                    for schema_name in result[username]["permissions"][db_name]["schema"]:
+                        result[username]["permissions"][db_name]["schema"][schema_name].sort()
+                    # 排序表级别权限
+                    for table_name in result[username]["permissions"][db_name]["table"]:
+                        result[username]["permissions"][db_name]["table"][table_name].sort()
 
             elapsed_time = time.time() - start_time
             self.sync_logger.info(
