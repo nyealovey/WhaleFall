@@ -950,14 +950,14 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                                WHEN major_id = 0 THEN 'DATABASE'
                                WHEN major_id > 0 AND minor_id = 0 THEN 'SCHEMA'
                                WHEN major_id > 0 AND minor_id > 0 THEN 'OBJECT'
-                           END AS permission_scope,
+                           END COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_scope,
                            CASE 
                                WHEN major_id = 0 THEN 'DATABASE'
                                WHEN major_id > 0 AND minor_id = 0 THEN 
                                    (SELECT name FROM {quoted_db}.sys.schemas WHERE schema_id = major_id)
                                WHEN major_id > 0 AND minor_id > 0 THEN 
                                    (SELECT name FROM {quoted_db}.sys.objects WHERE object_id = major_id)
-                           END AS object_name
+                           END COLLATE SQL_Latin1_General_CP1_CI_AS AS object_name
                     FROM {quoted_db}.sys.database_permissions WHERE state = 'G'
                 """
                 )
@@ -1186,14 +1186,14 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
                                WHEN major_id = 0 THEN 'DATABASE'
                                WHEN major_id > 0 AND minor_id = 0 THEN 'SCHEMA'
                                WHEN major_id > 0 AND minor_id > 0 THEN 'OBJECT'
-                           END AS permission_scope,
+                           END COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_scope,
                            CASE 
                                WHEN major_id = 0 THEN 'DATABASE'
                                WHEN major_id > 0 AND minor_id = 0 THEN 
                                    (SELECT name FROM {quoted_db}.sys.schemas WHERE schema_id = major_id)
                                WHEN major_id > 0 AND minor_id > 0 THEN 
                                    (SELECT name FROM {quoted_db}.sys.objects WHERE object_id = major_id)
-                           END AS object_name
+                           END COLLATE SQL_Latin1_General_CP1_CI_AS AS object_name
                     FROM {quoted_db}.sys.database_permissions WHERE state = 'G'
                 """
                 )
