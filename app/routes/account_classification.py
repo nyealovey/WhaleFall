@@ -426,7 +426,7 @@ def get_matched_accounts(rule_id: int) -> "Response":
 
         for account in all_accounts:
             # 检查账户是否匹配规则
-            if classification_service.evaluate_rule(rule, account):
+            if classification_service._evaluate_rule(account, rule):
                 # 统一使用用户名作为显示名称，与账户管理页面保持一致
                 display_name = account.username
 
