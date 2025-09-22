@@ -1036,7 +1036,7 @@ class OptimizedAccountClassificationService:
             return False
 
     def get_rule_matched_accounts_count(self, rule_id: int) -> int:
-        """获取规则匹配的账户数量（重新评估规则，使用去重逻辑）"""
+        """获取规则匹配的账户数量（重新评估规则）"""
         try:
             from app.models.account_classification import ClassificationRule
             from app.models.current_account_sync_data import CurrentAccountSyncData
@@ -1058,14 +1058,13 @@ class OptimizedAccountClassificationService:
                 .all()
             )
 
-            # 重新评估规则，统计匹配的账户数量（使用去重逻辑）
-            matched_accounts = set()  # 使用set去重
+            # 重新评估规则，统计匹配的账户数量
+            matched_count = 0
             for account in accounts:
                 if self._evaluate_rule(account, rule):
-                    # 使用用户名作为唯一标识，与get_matched_accounts保持一致
-                    matched_accounts.add(account.username)
+                    matched_count += 1
 
-            return len(matched_accounts)
+            return matched_count
 
         except Exception as e:
             log_error(f"获取规则匹配账户数量失败: {str(e)}", module="account_classification")
