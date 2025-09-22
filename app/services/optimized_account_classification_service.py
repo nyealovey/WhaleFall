@@ -976,14 +976,14 @@ class OptimizedAccountClassificationService:
                 account_data = {
                     "id": account.id,
                     "username": account.username,
-                    "display_name": account.display_name,
-                    "is_locked": account.is_locked,
+                    "display_name": account.username,  # 使用username作为display_name
+                    "is_locked": account.is_locked_display,  # 使用计算属性
                     "instance_id": account.instance_id,
                     "instance_name": account.instance.name if account.instance else None,
                     "instance_host": account.instance.host if account.instance else None,
                     "db_type": account.instance.db_type if account.instance else None,
-                    "permissions": account.permissions,
-                    "roles": account.roles,
+                    "permissions": account.get_permissions_by_db_type(),
+                    "roles": [],  # CurrentAccountSyncData没有roles字段
                     "created_at": account.created_at.isoformat() if account.created_at else None,
                     "updated_at": account.updated_at.isoformat() if account.updated_at else None,
                 }
@@ -1002,11 +1002,11 @@ class OptimizedAccountClassificationService:
                 account = CurrentAccountSyncData()
                 account.id = account_data.get("id")
                 account.username = account_data.get("username")
-                account.display_name = account_data.get("display_name")
-                account.is_locked = account_data.get("is_locked", False)
+                # display_name不是模型字段，使用username
                 account.instance_id = account_data.get("instance_id")
-                account.permissions = account_data.get("permissions", {})
-                account.roles = account_data.get("roles", [])
+                # is_locked不是模型字段，使用is_locked_display属性
+                # permissions不是模型字段，使用get_permissions_by_db_type()方法
+                # roles不是模型字段
                 
                 # 创建简化的实例对象
                 if account_data.get("instance_name") and account_data.get("instance_host"):
