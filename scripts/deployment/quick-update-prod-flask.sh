@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # 鲸落项目Flask快速更新脚本
-# 功能：智能更新Flask应用，适用于生产环境
-# 特点：支持创建新容器或重建现有容器、最小化停机时间、自动验证
-# 注意：仅检查依赖服务状态，不启动PostgreSQL和Redis
+# 功能：热更新Flask应用，适用于生产环境
+# 特点：拷贝代码到运行中容器、最小化停机时间、自动验证、保留数据库
+# 注意：仅更新Flask应用代码，不重建容器，保留所有数据
 
 set -e
 
@@ -40,12 +40,12 @@ log_step() {
 show_banner() {
     echo -e "${PURPLE}"
     echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║                    鲸落项目快速更新                         ║"
-    echo "║                    TaifishV4 Quick Update                   ║"
-    echo "║                   (智能容器模式)                            ║"
-    echo "║                (支持创建新容器或重建)                        ║"
-    echo "║                (仅检查依赖服务，不启动)                      ║"
-    echo "║                (无回滚机制，失败需手动处理)                   ║"
+    echo "║                    鲸落项目热更新                           ║"
+    echo "║                    TaifishV4 Hot Update                     ║"
+    echo "║                   (代码热更新模式)                          ║"
+    echo "║                (拷贝代码到运行中容器)                        ║"
+    echo "║                (保留数据库和Redis)                          ║"
+    echo "║                (最小化停机时间)                              ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -90,25 +90,17 @@ check_requirements() {
 check_current_status() {
     log_step "检查当前服务状态..."
     
-    # 检查是否有运行中的容器（允许没有容器的情况）
-    local has_containers
-    has_containers=$(docker compose -f docker-compose.prod.yml ps -q | grep -c . || echo "0")
-    
-    if [ "$has_containers" -eq 0 ]; then
-        log_warning "没有运行中的服务，将创建新容器"
-    fi
-    
     # 检查Flask容器状态
     local flask_status
     flask_status=$(docker compose -f docker-compose.prod.yml ps whalefall --format "table {{.Status}}" | tail -n +2)
     
     if echo "$flask_status" | grep -q "Up"; then
         log_success "Flask容器正在运行: $flask_status"
-        export CREATE_NEW_CONTAINER=false
+        export FLASK_CONTAINER_RUNNING=true
     else
-        log_warning "Flask容器未运行: $flask_status"
-        log_info "将创建新的Flask容器"
-        export CREATE_NEW_CONTAINER=true
+        log_error "Flask容器未运行: $flask_status"
+        log_error "请先运行完整部署脚本启动Flask容器"
+        exit 1
     fi
     
     # 检查数据库和Redis状态
@@ -163,103 +155,77 @@ pull_latest_code() {
     fi
 }
 
-# 构建新镜像
-build_new_image() {
-    log_step "构建新的Flask镜像..."
+# 拷贝代码到容器
+copy_code_to_container() {
+    log_step "拷贝最新代码到Flask容器..."
     
-    # 检查代理配置
-    if [ -n "$HTTP_PROXY" ]; then
-        log_info "使用代理构建镜像: $HTTP_PROXY"
-        docker build \
-            --build-arg HTTP_PROXY="$HTTP_PROXY" \
-            --build-arg HTTPS_PROXY="$HTTPS_PROXY" \
-            --build-arg NO_PROXY="$NO_PROXY" \
-            -t whalefall:prod \
-            -f Dockerfile.prod \
-            --target production .
-    else
-        log_info "使用直连模式构建镜像..."
-        docker build \
-            -t whalefall:prod \
-            -f Dockerfile.prod \
-            --target production .
-    fi
+    # 获取Flask容器ID
+    local flask_container_id
+    flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
     
-    if [ $? -eq 0 ]; then
-        log_success "Flask镜像构建成功"
-    else
-        log_error "Flask镜像构建失败"
+    if [ -z "$flask_container_id" ]; then
+        log_error "未找到Flask容器"
         exit 1
     fi
+    
+    log_info "Flask容器ID: $flask_container_id"
+    
+    # 创建临时目录用于拷贝
+    local temp_dir
+    temp_dir="/tmp/whalefall_update_$(date +%s)"
+    mkdir -p "$temp_dir"
+    
+    # 拷贝应用代码到临时目录
+    log_info "准备应用代码..."
+    cp -r app "$temp_dir/"
+    cp -r migrations "$temp_dir/"
+    cp -r sql "$temp_dir/"
+    cp -r docs "$temp_dir/"
+    cp -r tests "$temp_dir/"
+    cp -r scripts "$temp_dir/"
+    cp *.py "$temp_dir/" 2>/dev/null || true
+    cp *.md "$temp_dir/" 2>/dev/null || true
+    cp *.txt "$temp_dir/" 2>/dev/null || true
+    cp *.toml "$temp_dir/" 2>/dev/null || true
+    cp *.yml "$temp_dir/" 2>/dev/null || true
+    cp *.yaml "$temp_dir/" 2>/dev/null || true
+    cp *.sh "$temp_dir/" 2>/dev/null || true
+    cp *.ini "$temp_dir/" 2>/dev/null || true
+    cp *.lock "$temp_dir/" 2>/dev/null || true
+    
+    # 拷贝代码到容器
+    log_info "拷贝代码到容器内部..."
+    docker cp "$temp_dir/." "$flask_container_id:/app/"
+    
+    # 清理临时目录
+    rm -rf "$temp_dir"
+    
+    # 设置正确的权限
+    log_info "设置文件权限..."
+    docker exec "$flask_container_id" chown -R app:app /app
+    docker exec "$flask_container_id" chmod -R 755 /app
+    
+    log_success "代码拷贝完成"
 }
 
-# 停止Flask服务
-stop_flask_service() {
-    log_step "停止Flask服务..."
+# 重启Flask服务
+restart_flask_service() {
+    log_step "重启Flask服务..."
     
-    # 检查Flask容器是否存在
+    # 获取Flask容器ID
     local flask_container_id
     flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
     
     if [ -z "$flask_container_id" ]; then
-        log_info "Flask容器不存在，跳过停止操作"
-        return 0
+        log_error "未找到Flask容器"
+        exit 1
     fi
     
-    # 优雅停止Flask容器
-    log_info "优雅停止Flask容器..."
-    docker compose -f docker-compose.prod.yml stop whalefall
+    # 重启Flask容器
+    log_info "重启Flask容器..."
+    docker compose -f docker-compose.prod.yml restart whalefall
     
-    # 等待容器完全停止
-    local count=0
-    while [ $count -lt 30 ]; do
-        if ! docker compose -f docker-compose.prod.yml ps whalefall | grep -q "Up"; then
-            break
-        fi
-        sleep 2
-        count=$((count + 1))
-    done
-    
-    if [ $count -eq 30 ]; then
-        log_warning "Flask容器未在预期时间内停止，强制停止..."
-        docker compose -f docker-compose.prod.yml kill whalefall
-    fi
-    
-    log_success "Flask服务已停止"
-}
-
-# 销毁Flask容器
-destroy_flask_container() {
-    log_step "销毁Flask容器..."
-    
-    # 检查Flask容器是否存在
-    local flask_container_id
-    flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
-    
-    if [ -z "$flask_container_id" ]; then
-        log_info "Flask容器不存在，跳过销毁操作"
-    else
-        # 删除Flask容器
-        log_info "删除Flask容器..."
-        docker compose -f docker-compose.prod.yml rm -f whalefall
-    fi
-    
-    # 清理悬空镜像
-    log_info "清理悬空镜像..."
-    docker image prune -f
-    
-    log_success "Flask容器已销毁"
-}
-
-# 启动新Flask服务
-start_new_flask_service() {
-    log_step "启动新Flask服务..."
-    
-    # 启动Flask容器
-    log_info "启动新Flask容器..."
-    docker compose -f docker-compose.prod.yml up -d whalefall
-    
-    # 等待容器启动
+    # 等待容器重启
     local count=0
     while [ $count -lt 30 ]; do
         if docker compose -f docker-compose.prod.yml ps whalefall | grep -q "Up"; then
@@ -270,12 +236,12 @@ start_new_flask_service() {
     done
     
     if [ $count -eq 30 ]; then
-        log_error "Flask容器启动超时"
+        log_error "Flask容器重启超时"
         docker compose -f docker-compose.prod.yml logs whalefall
         exit 1
     fi
     
-    log_success "新Flask服务已启动"
+    log_success "Flask服务已重启"
 }
 
 # 等待服务就绪
@@ -359,13 +325,14 @@ cleanup_resources() {
 # 显示更新结果
 show_update_result() {
     echo ""
-    echo -e "${GREEN}🎉 快速更新完成！${NC}"
+    echo -e "${GREEN}🎉 热更新完成！${NC}"
     echo ""
     echo -e "${BLUE}📋 更新信息：${NC}"
     echo "  - 更新版本: $(git rev-parse --short HEAD)"
     echo "  - 更新时间: $(date)"
-    echo "  - 更新模式: 容器重建更新"
-    echo "  - 停机时间: 约2-3分钟"
+    echo "  - 更新模式: 代码热更新"
+    echo "  - 停机时间: 约30-60秒"
+    echo "  - 数据保留: 完全保留"
     echo ""
     echo -e "${BLUE}🌐 访问地址：${NC}"
     echo "  - 应用首页: http://localhost"
@@ -384,9 +351,9 @@ show_update_result() {
     echo "  - 健康状态: curl http://localhost:5001/health"
     echo ""
     echo -e "${YELLOW}⚠️  注意事项：${NC}"
-    echo "  - 本次更新为智能容器模式，数据已保留"
-    echo "  - 支持创建新容器或重建现有容器"
-    echo "  - 仅检查依赖服务状态，不启动PostgreSQL和Redis"
+    echo "  - 本次更新为代码热更新模式，数据完全保留"
+    echo "  - 仅更新Flask应用代码，不重建容器"
+    echo "  - 数据库和Redis服务保持不变"
     echo "  - 如有问题，请手动检查服务状态和日志"
     echo "  - 建议定期备份重要数据"
     echo "  - 监控应用运行状态"
@@ -396,30 +363,21 @@ show_update_result() {
 main() {
     show_banner
     
-    log_info "开始快速更新Flask应用（容器重建模式）..."
+    log_info "开始热更新Flask应用（代码拷贝模式）..."
     
     # 执行更新流程
     check_requirements
     check_current_status
     pull_latest_code
-    build_new_image
-    
-    # 根据容器状态决定是否停止和销毁
-    if [ "$CREATE_NEW_CONTAINER" = "true" ]; then
-        log_info "创建新容器模式，跳过停止和销毁操作"
-    else
-        stop_flask_service
-        destroy_flask_container
-    fi
-    
-    start_new_flask_service
+    copy_code_to_container
+    restart_flask_service
     wait_for_service_ready
     
     # 验证更新
     if verify_update; then
         cleanup_resources
         show_update_result
-        log_success "快速更新完成！"
+        log_success "热更新完成！"
     else
         log_error "更新验证失败，请手动检查服务状态"
         log_info "容器状态："
