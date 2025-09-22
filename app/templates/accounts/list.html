@@ -913,7 +913,18 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- 权限查看核心脚本 -->
-<script src="{{ url_for('static', filename='js/common/permission-viewer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/permission-viewer.js') }}?v=1.0.6"></script>
 <!-- 权限调试脚本 -->
-<script src="{{ url_for('static', filename='js/debug/permission-debug.js') }}"></script>
+<script src="{{ url_for('static', filename='js/debug/permission-debug.js') }}?v=1.0.6"></script>
+
+<!-- 调试脚本：确认函数来源 -->
+<script>
+console.log('=== 权限函数调试 ===');
+console.log('viewAccountPermissions 函数类型:', typeof viewAccountPermissions);
+if (typeof viewAccountPermissions === 'function') {
+    console.log('viewAccountPermissions 函数来源:', viewAccountPermissions.toString().substring(0, 200));
+} else {
+    console.error('viewAccountPermissions 函数未定义！');
+}
+</script>
 {% endblock %}
