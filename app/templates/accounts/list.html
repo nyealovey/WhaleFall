@@ -13,7 +13,7 @@
             <a href="{{ url_for('account_sync.sync_records') }}" class="btn btn-outline-info me-2">
                 <i class="fas fa-chart-line me-2"></i>同步记录
             </a>
-            <a href="{{ url_for('account_list.export_accounts', db_type=current_db_type, search=search, instance_id=instance_id, is_locked=is_locked, is_superuser=is_superuser, plugin=plugin, classification=classification) }}" class="btn btn-outline-success me-2">
+            <a href="{{ url_for('account_list.export_accounts', db_type=current_db_type, search=search, instance_id=instance_id, is_superuser=is_superuser, plugin=plugin, classification=classification) }}" class="btn btn-outline-success me-2">
                 <i class="fas fa-download me-2"></i>导出CSV
             </a>
             <button type="button" class="btn btn-success" onclick="syncAllAccounts()">
@@ -40,11 +40,15 @@
                                placeholder="搜索用户名、实例名称、IP地址" value="{{ search }}">
                     </div>
                     <div class="col-md-2">
-                        <label for="is_locked" class="form-label">锁定状态</label>
-                        <select class="form-select" id="is_locked" name="is_locked">
-                            <option value="">全部状态</option>
-                            <option value="true" {% if is_locked == 'true' %}selected{% endif %}>已锁定</option>
-                            <option value="false" {% if is_locked == 'false' %}selected{% endif %}>正常</option>
+                        <label for="classification" class="form-label">分类筛选</label>
+                        <select class="form-select" id="classification" name="classification">
+                            <option value="">全部分类</option>
+                            {% for classification_item in classifications_list %}
+                            <option value="{{ classification_item.id }}" 
+                                    {% if classification == classification_item.id|string %}selected{% endif %}>
+                                {{ classification_item.name }}
+                            </option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-3">

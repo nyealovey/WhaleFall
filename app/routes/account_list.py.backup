@@ -46,18 +46,9 @@ def list_accounts(db_type: str | None = None) -> str:
     if instance_id:
         query = query.filter(CurrentAccountSyncData.instance_id == instance_id)
 
-    # 搜索过滤 - 支持用户名、实例名称、IP地址搜索
+    # 搜索过滤
     if search:
-        from app import db
-        # 通过JOIN实例表来搜索实例名称和IP地址
-        query = query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
-        query = query.filter(
-            db.or_(
-                CurrentAccountSyncData.username.contains(search),
-                Instance.name.contains(search),
-                Instance.host.contains(search)
-            )
-        )
+        query = query.filter(CurrentAccountSyncData.username.contains(search))
 
     # 锁定状态过滤（使用is_active字段）
     if is_locked is not None:
@@ -108,10 +99,6 @@ def list_accounts(db_type: str | None = None) -> str:
 
     # 获取实例列表用于过滤
     instances = Instance.query.filter_by(is_active=True).all()
-    
-    # 获取分类列表用于筛选
-    from app.models.account_classification import AccountClassification
-    classifications_list = AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc(), AccountClassification.name.asc()).all()
 
     # 获取统计信息
     stats = {
@@ -199,7 +186,6 @@ def list_accounts(db_type: str | None = None) -> str:
         stats=stats,
         filter_options=filter_options,
         classifications=classifications,
-        classifications_list=classifications_list,
     )
 
 
@@ -234,18 +220,9 @@ def export_accounts() -> "Response":
     if instance_id:
         query = query.filter(CurrentAccountSyncData.instance_id == instance_id)
 
-    # 搜索过滤 - 支持用户名、实例名称、IP地址搜索
+    # 搜索过滤
     if search:
-        from app import db
-        # 通过JOIN实例表来搜索实例名称和IP地址
-        query = query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
-        query = query.filter(
-            db.or_(
-                CurrentAccountSyncData.username.contains(search),
-                Instance.name.contains(search),
-                Instance.host.contains(search)
-            )
-        )
+        query = query.filter(CurrentAccountSyncData.username.contains(search))
 
     # 锁定状态过滤（使用is_active字段）
     if is_locked is not None:
