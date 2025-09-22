@@ -80,7 +80,7 @@ function debugAPICall(accountId) {
     console.log('=== API 调用调试 ===');
     
     const csrfToken = debugCSRFToken();
-    const apiUrl = `/account-list/${accountId}/permissions`;
+    const apiUrl = `/accounts/${accountId}/permissions`;
     
     console.log(`API URL: ${apiUrl}`);
     console.log(`CSRF Token: ${csrfToken ? '已获取' : '未获取'}`);

@@ -21,7 +21,7 @@ function createPermissionButton(accountId, options = {}) {
         icon = 'fas fa-eye',
         text = '权限',
         title = '查看权限',
-        apiUrl = `/account-list/${accountId}/permissions`,
+        apiUrl = `/accounts/${accountId}/permissions`,
         attributes = {}
     } = options;
     
