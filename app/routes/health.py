@@ -1,3 +1,4 @@
+
 """
 鲸落 - 健康检查路由
 """
@@ -20,7 +21,21 @@ def health_check() -> "Response":
     """基础健康检查"""
     try:
         return APIResponse.success(
-            data={"status": "healthy", "timestamp": time.time(), "version": "1.0.0"},
+            data={"status": "healthy", "timestamp": time.time(), "version": "1.0.1"},
+            message="服务运行正常",
+        )
+    except Exception as e:
+        system_logger = get_system_logger()
+        system_logger.error("健康检查失败", module="health", exception=e)
+        return APIResponse.server_error("健康检查失败")
+
+
+@health_bp.route("")
+def health_check_root() -> "Response":
+    """健康检查根路由 - 兼容Nginx配置"""
+    try:
+        return APIResponse.success(
+            data={"status": "healthy", "timestamp": time.time(), "version": "1.0.1"},
             message="服务运行正常",
         )
     except Exception as e:
@@ -59,7 +74,7 @@ def detailed_health_check() -> "Response":
             data={
                 "status": overall_status,
                 "timestamp": time.time(),
-                "version": "1.0.0",
+                "version": "1.0.1",
                 "components": {
                     "database": db_status,
                     "cache": cache_status,

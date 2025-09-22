@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}关于鲸落{% endblock %}
+
+{% block extra_css %}
+<style>
+       .artistic-title {
+           font-size: 3.5rem;
+           font-weight: 600;
+           color: #ffffff;
+           text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+           letter-spacing: 0.1em;
+           margin-top: 1.5rem;
+       }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <div class="row">
+        <!-- 左侧：Logo和项目介绍 -->
+        <div class="col-lg-6">
+            <div class="text-center mb-5">
+                <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="200" class="mb-4" style="filter: drop-shadow(0 12px 24px rgba(0,0,0,0.3));">
+                <h1 class="artistic-title text-white mb-4">鲸落</h1>
+            </div>
+
+            <!-- 项目介绍 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>项目介绍</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        鲸落是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。
+                        支持PostgreSQL、MySQL、SQL Server、Oracle等主流数据库，为数据库管理员提供统一的管理平台。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 核心功能 -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>核心功能</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-database text-primary me-2"></i>数据库管理</h6>
+                            <ul class="list-unstyled small">
+                                <li>• 多数据库实例管理</li>
+                                <li>• 连接状态测试</li>
+                                <li>• 实例标签分类</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-users text-info me-2"></i>账户管理</h6>
+                            <ul class="list-unstyled small">
+                                <li>• 账户权限扫描</li>
+                                <li>• 智能分类管理</li>
+                                <li>• 权限规则配置</li>
+                                <li>• 账户状态监控</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-clock text-warning me-2"></i>任务调度</h6>
+                            <ul class="list-unstyled small">
+                                <li>• 定时数据同步</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-chart-line text-danger me-2"></i>监控日志</h6>
+                            <ul class="list-unstyled small">
+                                <li>• 统一日志管理</li>
+                                <li>• 操作审计记录</li>
+                                <li>• 日志搜索和过滤</li>
+                                <li>• 日志导出功能</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 技术栈 -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-code me-2"></i>技术栈</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>后端技术</h6>
+                            <ul class="list-unstyled small">
+                                <li>• Python 3.11+</li>
+                                <li>• Flask 3.1.2+</li>
+                                <li>• SQLAlchemy 2.0.43+</li>
+                                <li>• APScheduler 3.11.0+</li>
+                                <li>• Redis 6.4.0+</li>
+                                <li>• Gunicorn 23.0.0+</li>
+                                <li>• Gevent 25.9.1+</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>前端技术</h6>
+                            <ul class="list-unstyled small">
+                                <li>• Bootstrap 5.3.2</li>
+                                <li>• jQuery 3.7.1</li>
+                                <li>• Chart.js 4.4.0</li>
+                                <li>• Font Awesome 6.4.0</li>
+                                <li>• Jinja2 模板引擎</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 支持的数据库 -->
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-server me-2"></i>支持的数据库</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-3">
+                            <i class="fas fa-database text-primary fa-2x mb-2"></i>
+                            <div class="small">PostgreSQL</div>
+                        </div>
+                        <div class="col-3">
+                            <i class="fas fa-database text-warning fa-2x mb-2"></i>
+                            <div class="small">MySQL</div>
+                        </div>
+                        <div class="col-3">
+                            <i class="fas fa-database text-info fa-2x mb-2"></i>
+                            <div class="small">SQL Server</div>
+                        </div>
+                        <div class="col-3">
+                            <i class="fas fa-database text-danger fa-2x mb-2"></i>
+                            <div class="small">Oracle</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：更新日志 -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>更新日志</h5>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    <!-- 版本 1.0.5 -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-tag me-2"></i>版本 1.0.5
+                            <small class="text-muted">(2025-09-21)</small>
+                        </h6>
+                        <p class="small text-muted mb-0">
+                            账户分类分页功能、SQL Server权限修复、生产环境优化、关于页面
+                        </p>
+                    </div>
+
+                    <!-- 版本 1.0.2 -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-tag me-2"></i>版本 1.0.2
+                            <small class="text-muted">(2025-09-20)</small>
+                        </h6>
+                        <p class="small text-muted mb-0">
+                            版本升级、生产环境部署、页脚版本号显示
+                        </p>
+                    </div>
+
+                    <!-- 版本 1.0.0 -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-tag me-2"></i>版本 1.0.0
+                            <small class="text-muted">(2025-09-19)</small>
+                        </h6>
+                        <p class="small text-muted mb-0">
+                            正式版本发布、统一版本号、依赖升级
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.text-white-50 {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.text-white-75 {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.card-header {
+    border-bottom: none;
+    font-weight: 600;
+}
+
+.list-unstyled li {
+    padding: 2px 0;
+}
+
+.fa-2x {
+    font-size: 1.5em;
+}
+
+/* 滚动条样式 */
+.card-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.card-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.card-body::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.card-body::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+{% endblock %}
+

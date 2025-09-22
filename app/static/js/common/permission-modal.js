@@ -9,17 +9,12 @@
  * @param {Object} account - 账户数据
  */
 function showPermissionsModal(permissions, account) {
-    console.log('showPermissionsModal 被调用');
-    console.log('权限数据:', permissions);
-    console.log('账户数据:', account);
 
     try {
         // 获取数据库类型
         const dbType = account.db_type;
-        console.log('数据库类型:', dbType);
 
         // 检查权限对象的所有属性
-        console.log('权限对象检查 - 所有属性:', Object.keys(permissions));
 
         // 创建或获取模态框
         let modal = document.getElementById('permissionsModal');
@@ -43,7 +38,6 @@ function showPermissionsModal(permissions, account) {
         // 显示模态框
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
-        console.log('模态框显示完成');
     } catch (error) {
         console.error('showPermissionsModal 函数执行出错:', error);
         console.error('错误堆栈:', error.stack);

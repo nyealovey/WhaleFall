@@ -2,7 +2,7 @@
 
 // 引入console工具函数
 if (typeof logErrorWithContext === 'undefined') {
-    console.warn('console-utils.js not loaded, using fallback logging');
+    // console-utils.js not loaded, using fallback logging
     window.logErrorWithContext = function(error, context, additionalContext) {
         console.error(`错误处理: ${context}`, error, additionalContext);
     };
@@ -172,11 +172,9 @@ function editClassification(id) {
             const modalElement = document.getElementById('editClassificationModal');
             const setIconSelection = () => {
                 const iconName = classification.icon_name || 'fa-tag';
-                console.log('设置编辑分类图标:', iconName);
                 
                 // 先清除所有图标选择的选中状态
                 const allIconRadios = document.querySelectorAll('input[name="editClassificationIcon"]');
-                console.log('找到的图标选择器数量:', allIconRadios.length);
                 allIconRadios.forEach(radio => {
                     radio.checked = false;
                 });
@@ -185,9 +183,7 @@ function editClassification(id) {
                 const iconRadio = document.querySelector(`input[name="editClassificationIcon"][value="${iconName}"]`);
                 if (iconRadio) {
                     iconRadio.checked = true;
-                    console.log('成功选中图标:', iconName);
                 } else {
-                    console.log('未找到图标:', iconName, '，使用默认标签图标');
                     // 如果找不到对应的图标，默认选中标签图标
                     const defaultRadio = document.querySelector('input[name="editClassificationIcon"][value="fa-tag"]');
                     if (defaultRadio) {
@@ -481,10 +477,6 @@ function displayPermissionsConfig(permissions, prefix = '', dbType = '') {
     const container = document.getElementById(prefix ? `${prefix}PermissionsConfig` : 'permissionsConfig');
 
     // 调试信息
-    console.log('displayPermissionsConfig - permissions:', permissions);
-    console.log('displayPermissionsConfig - dbType:', dbType);
-    console.log('displayPermissionsConfig - server_roles:', permissions.server_roles);
-    console.log('displayPermissionsConfig - database_roles:', permissions.database_roles);
 
     let html = '<div class="row">';
 
@@ -1277,12 +1269,18 @@ function updateRule() {
 // ==================== 其他功能函数 ====================
 
 // 查看匹配的账户
-function viewMatchedAccounts(ruleId) {
-    fetch(`/account-classification/rules/${ruleId}/matched-accounts`)
+function viewMatchedAccounts(ruleId, page = 1, search = '') {
+    const params = new URLSearchParams({
+        page: page,
+        per_page: 20,
+        search: search
+    });
+    
+    fetch(`/account-classification/rules/${ruleId}/matched-accounts?${params}`)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            displayMatchedAccounts(data.accounts, data.rule_name);
+            displayMatchedAccounts(data.accounts, data.rule_name, data.pagination, ruleId, search);
         } else {
             showAlert('danger', '获取匹配账户失败: ' + data.error);
         }
@@ -1294,14 +1292,14 @@ function viewMatchedAccounts(ruleId) {
 }
 
 // 显示匹配的账户
-function displayMatchedAccounts(accounts, ruleName) {
+function displayMatchedAccounts(accounts, ruleName, pagination, ruleId, search = '') {
     const container = document.getElementById('matchedAccountsList');
 
     if (!accounts || accounts.length === 0) {
         container.innerHTML = `
             <div class="text-center text-muted py-5">
                 <i class="fas fa-users fa-3x mb-3 text-muted"></i>
-                <p class="mb-0">没有匹配的账户</p>
+                <p class="mb-0">${search ? '没有找到匹配的账户' : '没有匹配的账户'}</p>
             </div>
         `;
     } else {
@@ -1309,10 +1307,27 @@ function displayMatchedAccounts(accounts, ruleName) {
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 text-muted">
-                        <i class="fas fa-info-circle me-2"></i>共找到 ${accounts.length} 个匹配的账户
+                        <i class="fas fa-info-circle me-2"></i>共找到 ${pagination.total} 个匹配的账户
+                        ${search ? `（搜索: "${search}"）` : ''}
                     </h6>
                 </div>
             </div>
+            
+            <!-- 搜索框 -->
+            <div class="mb-3">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="accountSearchInput" placeholder="搜索账户名称、实例名称或IP..." value="${search}">
+                    <button class="btn btn-outline-primary" type="button" onclick="searchMatchedAccounts(${ruleId})">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    ${search ? `
+                        <button class="btn btn-outline-secondary" type="button" onclick="clearSearch(${ruleId})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+            
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
@@ -1362,16 +1377,140 @@ function displayMatchedAccounts(accounts, ruleName) {
             </div>
         `;
 
+        // 添加分页控件
+        if (pagination.pages > 1) {
+            html += generatePagination(pagination, ruleId, search);
+        }
+
         container.innerHTML = html;
     }
 
-    // 更新模态框标题
+    // 更新模态框标题和ruleId
     document.getElementById('matchedAccountsModalLabel').textContent = `规则 "${ruleName}" 匹配的账户`;
+    document.getElementById('matchedAccountsModal').dataset.ruleId = ruleId;
 
     // 显示模态框
     const modal = new bootstrap.Modal(document.getElementById('matchedAccountsModal'));
     modal.show();
 }
+
+// 生成分页控件
+function generatePagination(pagination, ruleId, search) {
+    const { page, pages, has_prev, has_next } = pagination;
+    
+    let html = `
+        <nav aria-label="匹配账户分页" class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center">
+    `;
+    
+    // 上一页按钮
+    if (has_prev) {
+        html += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="viewMatchedAccounts(${ruleId}, ${page - 1}, '${search}'); return false;">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `;
+    } else {
+        html += `
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+            </li>
+        `;
+    }
+    
+    // 页码按钮
+    const startPage = Math.max(1, page - 2);
+    const endPage = Math.min(pages, page + 2);
+    
+    if (startPage > 1) {
+        html += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="viewMatchedAccounts(${ruleId}, 1, '${search}'); return false;">1</a>
+            </li>
+        `;
+        if (startPage > 2) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === page) {
+            html += `
+                <li class="page-item active">
+                    <span class="page-link">${i}</span>
+                </li>
+            `;
+        } else {
+            html += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="viewMatchedAccounts(${ruleId}, ${i}, '${search}'); return false;">${i}</a>
+                </li>
+            `;
+        }
+    }
+    
+    if (endPage < pages) {
+        if (endPage < pages - 1) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+        html += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="viewMatchedAccounts(${ruleId}, ${pages}, '${search}'); return false;">${pages}</a>
+            </li>
+        `;
+    }
+    
+    // 下一页按钮
+    if (has_next) {
+        html += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="viewMatchedAccounts(${ruleId}, ${page + 1}, '${search}'); return false;">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+    } else {
+        html += `
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+            </li>
+        `;
+    }
+    
+    html += `
+            </ul>
+        </nav>
+    `;
+    
+    return html;
+}
+
+// 搜索匹配账户
+function searchMatchedAccounts(ruleId) {
+    const searchInput = document.getElementById('accountSearchInput');
+    const searchTerm = searchInput.value.trim();
+    viewMatchedAccounts(ruleId, 1, searchTerm);
+}
+
+// 清除搜索
+function clearSearch(ruleId) {
+    viewMatchedAccounts(ruleId, 1, '');
+}
+
+// 处理搜索框回车事件
+document.addEventListener('DOMContentLoaded', function() {
+    // 为搜索框添加回车事件监听
+    document.addEventListener('keypress', function(e) {
+        if (e.target.id === 'accountSearchInput' && e.key === 'Enter') {
+            const ruleId = e.target.closest('.modal').dataset.ruleId;
+            if (ruleId) {
+                searchMatchedAccounts(parseInt(ruleId));
+            }
+        }
+    });
+});
 
 // 查看规则
 function viewRule(id) {

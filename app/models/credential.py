@@ -111,11 +111,19 @@ class Credential(db.Model):
         """
         # 如果密码是bcrypt哈希，说明是旧格式，需要特殊处理
         if self.password.startswith("$2b$"):
-            # 对于旧格式，我们需要从环境变量或其他地方获取密码
-            # 这里使用硬编码的密码作为临时解决方案
-            # TODO: 实现更安全的密码管理机制
-            if self.db_type == "mysql" or self.db_type == "sqlserver":
-                return "MComnyistqolr#@2222"
+            # 对于旧格式，从环境变量获取密码，避免硬编码
+            import os
+            default_password = os.getenv(f"DEFAULT_{self.db_type.upper()}_PASSWORD")
+            if default_password:
+                return default_password
+            # 如果没有设置环境变量，返回空字符串并记录警告
+            from app.utils.structlog_config import get_system_logger
+            system_logger = get_system_logger()
+            system_logger.warning(
+                f"未设置环境变量 DEFAULT_{self.db_type.upper()}_PASSWORD，无法获取密码",
+                module="credential_model",
+                db_type=self.db_type
+            )
             return ""
 
         # 如果是我们的加密格式，尝试解密

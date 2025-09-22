@@ -183,7 +183,6 @@ document.getElementById('db_type').addEventListener('change', function() {
 document.getElementById('instanceForm').addEventListener('submit', function(e) {
     // 调试：检查隐藏字段的值
     const tagNamesInput = document.getElementById('selected-tag-names');
-    console.log('表单提交时的标签字段值:', tagNamesInput ? tagNamesInput.value : '未找到字段');
     
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
@@ -224,58 +223,37 @@ function showAlert(type, message) {
 <script>
 // 标签选择器初始化
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('页面加载完成，开始初始化标签选择器');
-    console.log('Bootstrap是否可用:', typeof bootstrap !== 'undefined');
-    console.log('TagSelector是否可用:', typeof TagSelector !== 'undefined');
-    console.log('openTagSelector函数是否可用:', typeof openTagSelector !== 'undefined');
     
     // 立即检查元素
-    console.log('立即检查元素:');
     const createPageSelector = document.getElementById('create-page-tag-selector');
-    console.log('create-page-tag-selector元素:', createPageSelector);
     
     if (createPageSelector) {
         const modalElement = createPageSelector.querySelector('#tagSelectorModal');
-        console.log('模态框元素:', modalElement);
-        console.log('open-tag-selector-btn元素:', document.getElementById('open-tag-selector-btn'));
         
         if (modalElement) {
             // 在模态框内部查找容器元素
             const containerElement = modalElement.querySelector('#tag-selector-container');
-            console.log('容器元素:', containerElement);
             
             if (containerElement) {
-                console.log('元素都找到了，立即初始化');
                 initializeTagSelector(modalElement, containerElement);
             } else {
-                console.log('容器元素未找到，等待更长时间...');
                 // 等待标签选择器组件加载完成
                 setTimeout(() => {
-                    console.log('延迟检查元素:');
                     const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
-                    console.log('延迟检查 - 容器元素:', delayedContainerElement);
                     
                     if (delayedContainerElement) {
-                        console.log('延迟检查 - 元素都找到了');
                         initializeTagSelector(modalElement, delayedContainerElement);
                     } else {
-                        console.log('延迟检查 - 容器元素仍然未找到');
-                        console.log('模态框内容:', modalElement.innerHTML.substring(0, 500) + '...');
-                        console.log('查找tag-selector-container:', modalElement.querySelectorAll('[class*="tag-selector"]'));
-                        console.log('查找所有div:', modalElement.querySelectorAll('div'));
                     }
                 }, 1000);
             }
         } else {
-            console.log('模态框元素未找到');
         }
     } else {
-        console.log('create-page-tag-selector元素未找到');
     }
     
     function initializeTagSelector(modalElement, containerElement) {
         if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
-            console.log('开始初始化TagSelector');
             // 初始化标签选择器
             tagSelector = new TagSelector('tag-selector-container', {
                 allowMultiple: true,
@@ -283,14 +261,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 allowSearch: true,
                 allowCategoryFilter: true
             });
-            console.log('TagSelector初始化完成');
             
             // 绑定打开标签选择器按钮
             const openBtn = document.getElementById('open-tag-selector-btn');
             if (openBtn) {
-                console.log('找到打开按钮，绑定事件');
                 openBtn.addEventListener('click', function() {
-                    console.log('点击了选择标签按钮');
                     if (typeof openTagSelector === 'function') {
                         openTagSelector();
                     } else {
@@ -304,7 +279,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // 绑定确认选择按钮
             const confirmBtn = document.getElementById('confirm-tag-selection');
             if (confirmBtn) {
-                console.log('找到确认按钮，绑定事件');
                 confirmBtn.addEventListener('click', confirmTagSelection);
             } else {
                 console.error('找不到confirm-tag-selection按钮');

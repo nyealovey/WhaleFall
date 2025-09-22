@@ -1,3 +1,4 @@
+
 """
 鲸落 - 主要路由
 """
@@ -17,6 +18,12 @@ main_bp = Blueprint("main", __name__)
 def index() -> str:
     """首页 - 重定向到登录页面"""
     return redirect(url_for("auth.login"))
+
+
+@main_bp.route("/about")
+def about() -> str:
+    """关于页面"""
+    return render_template("about.html")
 
 
 @main_bp.route("/favicon.ico")

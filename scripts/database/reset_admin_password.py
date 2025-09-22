@@ -34,7 +34,6 @@ def reset_admin_password(new_password=None):
         admin = User.query.filter_by(username="admin").first()
         
         if not admin:
-            print("❌ 未找到管理员用户")
             return
         
         # 生成新密码
@@ -48,16 +47,6 @@ def reset_admin_password(new_password=None):
             from app import db
             db.session.commit()
             
-            print(f"\n{'='*60}")
-            print(f"✅ 管理员密码重置成功")
-            print(f"{'='*60}")
-            print(f"用户名: {admin.username}")
-            print(f"新密码: {new_password}")
-            print(f"密码长度: {len(new_password)} 位")
-            print(f"重置时间: {admin.updated_at if hasattr(admin, 'updated_at') else '刚刚'}")
-            print(f"{'='*60}")
-            print(f"💡 请妥善保存新密码！")
-            print(f"{'='*60}\n")
             
             system_logger.info(
                 "管理员密码已重置",
@@ -67,7 +56,6 @@ def reset_admin_password(new_password=None):
             )
             
         except Exception as e:
-            print(f"❌ 密码重置失败: {e}")
             system_logger.error(
                 "管理员密码重置失败",
                 module="reset_admin_password",

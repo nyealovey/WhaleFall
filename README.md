@@ -1,9 +1,9 @@
 # 鲸落 (TaifishV4)
 
-[![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
-[![Flask](https://img.shields.io/badge/Flask-3.0.3-green.svg)](https://flask.palletsprojects.com)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v2.1.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-v1.0.1-blue.svg)]()
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 
 > 一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。
@@ -46,9 +46,68 @@
 
 ### 环境要求
 
-- Python 3.13+ (推荐使用 uv 管理)
+- Python 3.11+ (推荐使用 uv 管理)
 - Redis 5.0+
+- Docker & Docker Compose (推荐)
+
+### 环境配置
+
+1. **复制环境变量模板**
+   ```bash
+   cp env.template .env
+   ```
+
+2. **编辑环境变量**
+   ```bash
+   # 编辑 .env 文件，设置必要的配置
+   vim .env
+   ```
+
+3. **验证环境变量**
+   ```bash
+   # 验证所有必需的环境变量是否配置正确
+   ./scripts/validate_env.sh
+   ```
+
+### 环境变量说明
+
+| 变量名 | 必需 | 说明 | 示例 |
+|--------|------|------|------|
+| `POSTGRES_DB` | ✅ | 数据库名称 | `whalefall_dev` |
+| `POSTGRES_USER` | ✅ | 数据库用户名 | `whalefall_user` |
+| `POSTGRES_PASSWORD` | ✅ | 数据库密码 | `your_secure_password` |
+| `REDIS_PASSWORD` | ✅ | Redis密码 | `your_redis_password` |
+| `SECRET_KEY` | ✅ | Flask密钥 | `your_secret_key` |
+| `JWT_SECRET_KEY` | ✅ | JWT密钥 | `your_jwt_secret_key` |
+| `DATABASE_URL` | ✅ | 数据库连接URL | `postgresql://user:pass@host:port/db` |
+| `CACHE_REDIS_URL` | ✅ | Redis连接URL | `redis://:pass@redis:6379/0` |
+| `FLASK_HOST` | ❌ | Flask监听地址 | `0.0.0.0` |
+| `FLASK_PORT` | ❌ | Flask监听端口 | `5001` |
+| `HTTP_PROXY` | ❌ | HTTP代理 | `http://proxy:8080` |
+| `HTTPS_PROXY` | ❌ | HTTPS代理 | `http://proxy:8080` |
 - PostgreSQL 12+ (主数据库)
+
+### 环境配置
+
+项目提供了三种环境配置文件：
+
+- `env.development` - 开发环境配置模板
+- `env.production` - 生产环境配置模板  
+- `env.example` - 通用配置模板
+
+**首次使用**：
+```bash
+# 开发环境
+cp env.development .env
+
+# 生产环境
+cp env.production .env
+
+# 或使用通用模板
+cp env.example .env
+```
+
+**重要**：`.env` 文件包含敏感信息，已被 `.gitignore` 忽略，不会提交到版本控制。
 
 ### 🐳 Docker 部署 (推荐)
 
@@ -65,7 +124,9 @@ git clone https://github.com/nyealovey/TaifishingV4.git
 cd TaifishingV4
 
 # 配置环境
-cp env.production .env
+cp env.development .env  # 开发环境
+# 或
+cp env.production .env   # 生产环境
 # 编辑 .env 文件，设置必要的环境变量
 
 # 一键启动所有服务
@@ -96,7 +157,41 @@ make logs
 
 # 健康检查
 make health
+
+# 手动初始化数据库
+make init-db
 ```
+
+#### 数据库初始化
+
+**重要**: 数据库容器启动后不会自动导入数据，需要手动初始化：
+
+```bash
+# 1. 启动数据库服务
+docker-compose -f docker-compose.dev.yml up -d postgres redis
+
+# 2. 初始化数据库（选择其中一种方法）
+
+# 方法1: 使用快速初始化脚本（推荐）
+DB_PASSWORD=your_password ./scripts/database/quick_init.sh
+
+# 方法2: 使用完整初始化脚本
+DB_PASSWORD=your_password ./scripts/database/init_database.sh
+
+# 方法3: 使用Make命令
+make init-db
+
+# 方法4: 直接使用Docker命令
+docker exec -i whalefall_postgres_dev psql -U whalefall_user -d whalefall_dev < sql/init_postgresql.sql
+docker exec -i whalefall_postgres_dev psql -U whalefall_user -d whalefall_dev < sql/permission_configs.sql
+docker exec -i whalefall_postgres_dev psql -U whalefall_user -d whalefall_dev < sql/init_scheduler_tasks.sql
+```
+
+**环境变量说明**:
+- `DB_NAME`: 数据库名称 (默认: whalefall_dev)
+- `DB_USER`: 数据库用户 (默认: whalefall_user)
+- `DB_PASSWORD`: 数据库密码 (必需)
+- `CONTAINER_NAME`: PostgreSQL容器名称 (默认: whalefall_postgres_dev)
 
 #### 版本更新
 
@@ -361,13 +456,13 @@ docker run -p 5001:5001 whalefall
 ## 🛠️ 技术栈
 
 ### 后端技术
-- **Flask 3.0.3** - Web应用框架
-- **SQLAlchemy 2.0.30** - 数据库ORM
-- **Flask-Migrate 4.0.7** - 数据库迁移
+- **Flask 3.1.2** - Web应用框架
+- **SQLAlchemy 2.0.43** - 数据库ORM
+- **Flask-Migrate 4.1.0** - 数据库迁移
 - **Flask-Login 0.6.3** - 用户认证
-- **Flask-JWT-Extended 4.6.0** - JWT认证
-- **Celery 5.3.6** - 异步任务队列
-- **Redis 8.2.1** - 缓存和消息队列
+- **Flask-JWT-Extended 4.7.1** - JWT认证
+- **APScheduler 3.11.0** - 定时任务调度
+- **Redis 7.4.0** - 缓存和消息队列
 
 ### 前端技术
 - **Bootstrap 5.3.2** - UI组件库
@@ -381,7 +476,7 @@ docker run -p 5001:5001 whalefall
 - **SQL Server** - 支持SQL Server实例管理，支持服务器角色、服务器权限、数据库角色、数据库权限
 - **Oracle** - 支持Oracle实例管理，使用python-oracledb驱动，支持系统权限、角色、表空间权限、表空间配额
 
-> **Oracle驱动说明**: 项目已升级到python-oracledb 2.0.0，完全支持Apple Silicon Mac。详细安装指南请参考 [Oracle驱动指南](doc/ORACLE_DRIVER_GUIDE.md)
+> **Oracle驱动说明**: 项目已升级到python-oracledb 3.3.0，完全支持Apple Silicon Mac。详细安装指南请参考 [Oracle驱动指南](docs/database/ORACLE_DRIVER_GUIDE.md)
 
 ## 📁 项目结构
 
@@ -420,7 +515,7 @@ TaifishV4/
 │   ├── logs/              # 日志文件
 │   └── exports/           # 导出文件
 ├── migrations/            # 数据库迁移
-├── config/                # 配置文件
+├── app/config/            # 配置文件
 ├── requirements.txt       # Python依赖
 ├── app.py                 # 应用入口
 └── README.md             # 项目说明
@@ -437,7 +532,7 @@ SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret
 
 # 数据库配置
-DATABASE_URL=postgresql://whalefall_user:Taifish2024!@localhost:5432/whalefall_dev
+DATABASE_URL=postgresql://whalefall_user:your_secure_password@localhost:5432/whalefall_dev
 
 # Redis配置
 REDIS_URL=redis://localhost:6379/0
@@ -452,7 +547,7 @@ TIMEZONE=Asia/Shanghai
 
 ```python
 # PostgreSQL (主数据库)
-DATABASE_URL = "postgresql://whalefall_user:Taifish2024!@localhost:5432/whalefall_dev"
+DATABASE_URL = "postgresql://whalefall_user:your_secure_password@localhost:5432/whalefall_dev"
 
 # MySQL
 DATABASE_URL = "mysql://user:password@localhost:3306/whalefall"
@@ -533,10 +628,10 @@ gunicorn -w 4 -b 0.0.0.0:5001 app:app
 - `POST /tasks/create-builtin` - 创建内置任务
 - `POST /tasks/execute-all` - 批量执行任务
 
-更多API文档请参考 [API文档](doc/api/README.md)
+更多API文档请参考 [API文档](docs/api/README.md)
 
 ### 日志管理功能
-详细的日志管理功能说明请参考 [日志管理功能文档](doc/LOG_MANAGEMENT_FEATURES.md)
+详细的日志管理功能说明请参考 [日志管理功能文档](docs/LOG_MANAGEMENT_FEATURES.md)
 
 ## 🧪 测试
 
@@ -595,7 +690,7 @@ pytest --cov=app tests/
 - **文档**: [项目文档](docs/)
   - [技术规格文档](docs/architecture/spec.md)
   - [开发指南](docs/development/DEVELOPMENT_GUIDE.md)
-  - [部署指南](docs/guides/README_DEPLOYMENT.md)
+  - [部署指南](docs/deployment/README.md)
   - [更新日志](CHANGELOG.md)
 
 ## 🗺️ 路线图
@@ -618,7 +713,7 @@ pytest --cov=app tests/
 - [ ] 自动化运维
 - [ ] 监控告警
 
-### v1.0.0 (当前版本)
+### v1.0.1 (当前版本)
 - [ ] 微服务架构
 - [ ] 云原生部署
 - [ ] 大数据分析

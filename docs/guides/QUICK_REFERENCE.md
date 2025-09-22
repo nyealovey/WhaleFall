@@ -1,5 +1,7 @@
 # 鲸落 - 快速参考
 
+> **注意**: 详细的UV使用指南请参考 [UV使用指南](UV_USAGE_GUIDE.md)
+
 ## 🚀 快速启动
 
 ### 开发环境
@@ -8,26 +10,21 @@
 git clone https://github.com/nyealovey/TaifishingV4.git
 cd TaifishingV4
 
-# 2. 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # macOS/Linux
-# venv\Scripts\activate  # Windows
-
-# 3. 安装依赖 (使用uv)
+# 2. 使用UV安装依赖
 uv sync
 
-# 4. 配置环境
-cp env.example .env
+# 3. 配置环境
+cp env.development .env
 # 编辑 .env 文件
 
-# 5. 初始化数据库
+# 4. 初始化数据库
 flask db upgrade
 python scripts/create_admin_user.py
 
-# 6. 启动Redis
+# 5. 启动Redis
 redis-server  # 或使用Docker: docker run -d -p 6379:6379 redis:7.2.5
 
-# 7. 启动应用
+# 6. 启动应用
 uv run python app.py
 ```
 
@@ -50,7 +47,7 @@ TaifishV4/
 │   ├── services/          # 业务服务
 │   ├── utils/             # 工具类
 │   └── templates/         # 模板文件
-├── doc/                   # 项目文档
+├── docs/                  # 项目文档
 ├── scripts/               # 脚本文件
 ├── tests/                 # 测试文件
 ├── userdata/              # 用户数据
@@ -309,18 +306,18 @@ python scripts/create_test_task.py
 
 ## 📚 文档链接
 
-- [技术规格文档](doc/spec.md)
-- [任务清单](doc/todolist.md)
-- [开发指南](doc/development/DEVELOPMENT_GUIDE.md)
-- [API文档](doc/api/README.md)
-- [部署文档](doc/deployment/)
+- [项目结构说明](../architecture/PROJECT_STRUCTURE.md)
+- [任务清单](../project/todolist.md)
+- [开发指南](../development/README.md)
+- [API文档](../api/README.md)
+- [部署文档](../deployment/README.md)
 
 ## 🆘 获取帮助
 
 1. **查看日志**: `userdata/logs/`
 2. **检查配置**: `.env` 文件
 3. **运行测试**: `pytest`
-4. **查看文档**: `doc/` 目录
+4. **查看文档**: `docs/` 目录
 5. **提交问题**: [GitHub Issues](https://github.com/nyealovey/TaifishingV4/issues)
 
 ---

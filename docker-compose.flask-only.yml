@@ -1,0 +1,54 @@
+# Flask应用单独部署配置（使用host网络，连接localhost的PostgreSQL和Redis）
+# 适用于PostgreSQL和Redis已经在宿主机上运行的情况
+
+services:
+  # Flask应用（生产环境，内置Nginx）
+  whalefall:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      target: production
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        HTTP_PROXY: ${HTTP_PROXY}
+        HTTPS_PROXY: ${HTTPS_PROXY}
+        NO_PROXY: ${NO_PROXY}
+    image: whalefall:prod
+    container_name: whalefall_app_prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - FLASK_DEBUG=${FLASK_DEBUG:-0}
+      - FLASK_HOST=${FLASK_HOST:-0.0.0.0}
+      - FLASK_PORT=${FLASK_PORT:-5001}
+      # 使用localhost连接，不通过容器网络
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
+      - CACHE_TYPE=${CACHE_TYPE}
+      - CACHE_REDIS_URL=redis://:${REDIS_PASSWORD}@localhost:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - BCRYPT_LOG_ROUNDS=${BCRYPT_LOG_ROUNDS}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - APP_NAME=${APP_NAME}
+      - APP_VERSION=${APP_VERSION}
+      - PERMANENT_SESSION_LIFETIME=${PERMANENT_SESSION_LIFETIME}
+    # 使用host网络模式，直接访问宿主机服务
+    network_mode: "host"
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4.0'
+        reservations:
+          memory: 2G
+          cpus: '2.0'

@@ -1,3 +1,4 @@
+
 """
 鲸落 - 管理API路由
 提供系统配置和常量管理功能
@@ -19,10 +20,10 @@ F = TypeVar("F", bound=Callable[..., Any])
 logger = logging.getLogger(__name__)
 
 # 创建管理蓝图
-admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+admin_bp = Blueprint("admin", __name__)
 
 
-def admin_required[T](f: T) -> T:
+def admin_required(f):
     """管理员权限装饰器"""
 
     @wraps(f)
@@ -39,14 +40,14 @@ def admin_required[T](f: T) -> T:
 
 
 @admin_bp.route("/app-info", methods=["GET"])
-def get_app_info() -> Response:
+def app_info() -> Response:
     """获取应用信息（公开接口，用于右上角显示）"""
     try:
-        return APIResponse.success(data={"app_name": "鲸落", "app_version": "1.0.0"})  # type: ignore
+        return APIResponse.success(data={"app_name": "鲸落", "app_version": "1.0.1"})  # type: ignore
 
     except Exception as e:
         logger.error("获取应用信息失败: %s", e)
-        return APIResponse.success(data={"app_name": "鲸落", "app_version": "1.0.0"})  # type: ignore
+        return APIResponse.success(data={"app_name": "鲸落", "app_version": "1.0.1"})  # type: ignore
 
 
 # 快速操作相关路由

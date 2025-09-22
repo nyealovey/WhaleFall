@@ -1,0 +1,127 @@
+# Flask单独部署 Makefile
+# 用于部署Flask应用，连接localhost的PostgreSQL和Redis
+
+.PHONY: help start stop restart status logs logs-app shell health build clean
+
+# 默认目标
+help:
+	@echo "🐟 Flask单独部署命令"
+	@echo "=================================="
+	@echo "部署命令:"
+	@echo "  start       - 启动Flask应用"
+	@echo "  stop        - 停止Flask应用"
+	@echo "  restart     - 重启Flask应用"
+	@echo "  status      - 查看应用状态"
+	@echo ""
+	@echo "日志命令:"
+	@echo "  logs        - 查看所有日志"
+	@echo "  logs-app    - 查看Flask应用日志"
+	@echo ""
+	@echo "管理命令:"
+	@echo "  shell       - 进入Flask容器shell"
+	@echo "  health      - 健康检查"
+	@echo "  build       - 构建Flask镜像"
+	@echo "  clean       - 清理Flask容器和镜像"
+	@echo ""
+	@echo "注意: 此部署方式使用host网络，连接localhost的PostgreSQL和Redis"
+	@echo "=================================="
+
+# 启动Flask应用
+start:
+	@echo "🚀 启动Flask应用（连接localhost服务）..."
+	@docker-compose -f docker-compose.flask-only.yml up -d
+	@echo "✅ Flask应用启动完成"
+	@echo "🌐 访问地址: http://localhost"
+	@echo "📊 管理界面: http://localhost/admin"
+
+# 停止Flask应用
+stop:
+	@echo "⏹️  停止Flask应用..."
+	@docker-compose -f docker-compose.flask-only.yml down
+	@echo "✅ Flask应用已停止"
+
+# 重启Flask应用
+restart: stop start
+	@echo "🔄 Flask应用重启完成"
+
+# 查看应用状态
+status:
+	@echo "📊 Flask应用状态:"
+	@docker-compose -f docker-compose.flask-only.yml ps
+	@echo ""
+	@echo "🔍 容器详细信息:"
+	@docker ps --filter "name=whalefall_app_prod" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# 查看所有日志
+logs:
+	@echo "📋 查看Flask应用日志..."
+	@docker-compose -f docker-compose.flask-only.yml logs -f
+
+# 查看Flask应用日志
+logs-app:
+	@echo "📋 查看Flask应用日志..."
+	@docker-compose -f docker-compose.flask-only.yml logs -f whalefall
+
+# 进入Flask容器shell
+shell:
+	@echo "🐚 进入Flask容器shell..."
+	@docker-compose -f docker-compose.flask-only.yml exec whalefall /bin/bash
+
+# 健康检查
+health:
+	@echo "🏥 Flask应用健康检查..."
+	@if curl -f http://localhost/health >/dev/null 2>&1; then \
+		echo "✅ Flask应用运行正常"; \
+		echo "🌐 访问地址: http://localhost"; \
+		echo "📊 管理界面: http://localhost/admin"; \
+	else \
+		echo "❌ Flask应用健康检查失败"; \
+		echo "请检查应用是否正在运行: make status"; \
+	fi
+
+# 构建Flask镜像
+build:
+	@echo "🔨 构建Flask应用镜像..."
+	@docker-compose -f docker-compose.flask-only.yml build --no-cache
+	@echo "✅ Flask应用镜像构建完成"
+
+# 清理Flask容器和镜像
+clean:
+	@echo "🧹 清理Flask容器和镜像..."
+	@docker-compose -f docker-compose.flask-only.yml down --rmi all --volumes --remove-orphans
+	@docker image prune -f
+	@echo "✅ Flask容器和镜像清理完成"
+
+# 查看版本信息
+version:
+	@echo "📋 Flask应用版本信息："
+	@echo "项目版本: $$(grep APP_VERSION .env 2>/dev/null | cut -d'=' -f2 || echo '未设置')"
+	@echo "Docker版本: $$(docker --version)"
+	@echo "Docker Compose版本: $$(docker-compose --version)"
+	@echo "Flask容器状态: $$(docker ps --filter 'name=whalefall_app_prod' --format '{{.Status}}' 2>/dev/null || echo '未运行')"
+
+# 快速启动（后台运行）
+start-bg:
+	@echo "🚀 后台启动Flask应用..."
+	@docker-compose -f docker-compose.flask-only.yml up -d
+	@echo "✅ Flask应用已在后台启动"
+	@echo "🌐 访问地址: http://localhost"
+
+# 快速停止
+stop-quick:
+	@echo "⏹️  快速停止Flask应用..."
+	@docker-compose -f docker-compose.flask-only.yml down
+	@echo "✅ Flask应用已停止"
+
+# 查看实时日志
+logs-follow:
+	@echo "📋 实时查看Flask应用日志..."
+	@docker-compose -f docker-compose.flask-only.yml logs -f --tail=100
+
+# 重新构建并启动
+rebuild: clean build start
+	@echo "🔄 Flask应用重新构建并启动完成"
+
+# 防止目标被当作文件
+%:
+	@:

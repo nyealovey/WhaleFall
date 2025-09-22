@@ -1,1055 +1,956 @@
-# 鲸落 - 技术规格文档
+# 鲸落 (TaifishV4) - 技术规格文档
 
-## 项目概述
+## 📋 文档信息
 
-**鲸落** 是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。支持PostgreSQL、MySQL、SQL Server、Oracle等主流数据库。
+- **项目名称**: 鲸落 (TaifishV4)
+- **文档版本**: v1.0.1
+- **创建日期**: 2024-12-19
+- **最后更新**: 2024-12-19
+- **文档类型**: 技术规格文档
+- **维护者**: 鲸落开发团队
 
-### 核心特性
+## 🎯 项目概述
 
-- 🔐 **用户认证与权限管理** - 基于Flask-Login的会话管理，支持JWT令牌认证
-- 🗄️ **多数据库实例管理** - 支持PostgreSQL、MySQL、SQL Server、Oracle
-- 👥 **账户信息管理** - 数据库用户账户同步与管理，支持权限信息实时查询
-- 🏷️ **账户分类管理** - 智能账户分类与权限规则管理
-  - 🎯 自动分类 - 基于权限规则自动分类账户
-  - 📋 分类规则 - 支持MySQL、SQL Server、PostgreSQL、Oracle权限规则
-  - 🔍 权限扫描 - 实时扫描账户权限信息
-  - 📊 分类统计 - 高风险账户、特权账户统计
-  - ⚙️ 规则管理 - 灵活的权限规则配置
-  - 🔄 多分类支持 - 支持账户匹配多个分类规则
-  - 🔧 功能修复 - 修复权限显示、分类规则评估、账户管理页面等问题
-- 🔑 **凭据管理** - 安全的数据库连接凭据存储
-- ⏰ **定时任务管理系统** - 高度可定制化的定时任务调度平台
-  - 🚀 快速创建内置任务 - 一键创建常用同步任务
-  - 📊 批量任务管理 - 支持批量启用/禁用/执行任务
-  - 📈 执行统计监控 - 详细的运行统计和成功率分析
-  - 🔄 实时任务执行 - 支持立即执行和定时执行
-- 📈 **实时监控仪表板** - 系统状态和统计信息
-- 📝 **操作日志记录** - 完整的审计日志
-- 🚀 **RESTful API** - 完整的API接口
+鲸落是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。支持PostgreSQL、MySQL、SQL Server、Oracle等主流数据库。
 
-## 技术架构
+### 核心价值
+- **统一管理**: 多数据库类型统一管理平台
+- **智能分类**: 基于权限规则的智能账户分类
+- **实时同步**: 账户权限实时同步和变更追踪
+- **安全审计**: 完整的操作审计和日志记录
+- **生产就绪**: 企业级安全性和可靠性
 
-### 技术栈
+## 🏗️ 系统架构
 
-| 组件 | 技术 | 版本 | 说明 |
+### 整体架构图
+
+```mermaid
+graph TB
+    subgraph "前端层"
+        UI[Web UI<br/>Bootstrap + jQuery]
+        API_CLIENT[API Client<br/>AJAX + JSON]
+    end
+    
+    subgraph "应用层"
+        FLASK[Flask Application<br/>v3.1.2]
+        BLUEPRINTS[Blueprints<br/>模块化路由]
+        MIDDLEWARE[Middleware<br/>认证/日志/缓存]
+    end
+    
+    subgraph "业务层"
+        SERVICES[Services<br/>业务逻辑层]
+        MODELS[Models<br/>数据模型层]
+        UTILS[Utils<br/>工具类层]
+    end
+    
+    subgraph "数据层"
+        POSTGRES[(PostgreSQL<br/>主数据库)]
+        REDIS[(Redis<br/>缓存)]
+        SQLITE[(SQLite<br/>任务调度)]
+    end
+    
+    subgraph "外部数据库"
+        MYSQL[(MySQL)]
+        SQLSERVER[(SQL Server)]
+        ORACLE[(Oracle)]
+    end
+    
+    subgraph "任务调度"
+        SCHEDULER[APScheduler<br/>定时任务]
+        TASKS[Tasks<br/>任务定义]
+    end
+    
+    UI --> API_CLIENT
+    API_CLIENT --> FLASK
+    FLASK --> BLUEPRINTS
+    BLUEPRINTS --> MIDDLEWARE
+    MIDDLEWARE --> SERVICES
+    SERVICES --> MODELS
+    SERVICES --> UTILS
+    MODELS --> POSTGRES
+    SERVICES --> REDIS
+    SCHEDULER --> SQLITE
+    SCHEDULER --> TASKS
+    TASKS --> SERVICES
+    SERVICES --> MYSQL
+    SERVICES --> SQLSERVER
+    SERVICES --> ORACLE
+```
+
+### 分层架构图
+
+```mermaid
+graph TD
+    subgraph "表现层 (Presentation Layer)"
+        A1[Web UI Templates]
+        A2[API Endpoints]
+        A3[Static Assets]
+    end
+    
+    subgraph "控制层 (Controller Layer)"
+        B1[Flask Blueprints]
+        B2[Route Handlers]
+        B3[Authentication]
+        B4[Authorization]
+    end
+    
+    subgraph "业务层 (Business Layer)"
+        C1[Account Classification Service]
+        C2[Sync Service]
+        C3[Task Service]
+        C4[Log Service]
+        C5[Cache Service]
+    end
+    
+    subgraph "数据访问层 (Data Access Layer)"
+        D1[SQLAlchemy ORM]
+        D2[Database Models]
+        D3[Connection Factory]
+        D4[Sync Adapters]
+    end
+    
+    subgraph "数据层 (Data Layer)"
+        E1[PostgreSQL]
+        E2[Redis Cache]
+        E3[SQLite Scheduler]
+        E4[External Databases]
+    end
+    
+    A1 --> B1
+    A2 --> B2
+    B1 --> C1
+    B2 --> C2
+    B3 --> C3
+    B4 --> C4
+    C1 --> D1
+    C2 --> D2
+    C3 --> D3
+    C4 --> D4
+    D1 --> E1
+    D2 --> E2
+    D3 --> E3
+    D4 --> E4
+```
+
+## 🔧 技术栈规格
+
+### 后端技术栈
+
+| 组件 | 版本 | 用途 | 说明 |
 |------|------|------|------|
-| **后端框架** | Flask | 3.0.3 | Web应用框架 |
-| **模板引擎** | Jinja2 | 3.1.4 | 模板渲染 |
-| **WSGI服务器** | Werkzeug | 3.0.3 | WSGI工具包 |
-| **数据库ORM** | SQLAlchemy | 1.4.54 | 数据库ORM |
-| **数据库迁移** | Flask-Migrate | 4.0.7 | 数据库版本管理 |
-| **用户认证** | Flask-Login | 0.6.3 | 用户会话管理 |
-| **密码加密** | Flask-Bcrypt | 1.0.1 | 密码哈希 |
-| **JWT认证** | Flask-JWT-Extended | 4.6.0 | JWT令牌管理 |
-| **缓存系统** | Flask-Caching | 2.1.0 | 缓存管理 |
-| **任务调度** | APScheduler | 3.10.4 | 定时任务调度 |
-| **消息代理** | Redis | 5.0.7 | 缓存和消息队列 |
-| **前端框架** | Bootstrap | 5.3.2 | UI组件库 |
-| **图标库** | Font Awesome | 6.4.0 | 图标库 |
-| **时区处理** | pytz | 2023.3 | 时区转换 |
+| Python | 3.11+ | 运行时环境 | 主要编程语言 |
+| Flask | 3.1.2 | Web框架 | 轻量级Web应用框架 |
+| SQLAlchemy | 2.0.43 | ORM | 数据库对象关系映射 |
+| APScheduler | 3.11.0 | 任务调度 | 定时任务管理 |
+| Redis | 7.4.0 | 缓存 | 数据缓存和会话存储 |
+| PostgreSQL | 15+ | 主数据库 | 数据持久化存储 |
+| Alembic | 1.16.5 | 数据库迁移 | 版本控制 |
+
+### 前端技术栈
+
+| 组件 | 版本 | 用途 | 说明 |
+|------|------|------|------|
+| Bootstrap | 5.3.2 | UI框架 | 响应式Web界面 |
+| jQuery | 3.7.1 | JavaScript库 | DOM操作和AJAX |
+| Chart.js | 4.4.0 | 图表库 | 数据可视化 |
+| Font Awesome | 6.4.0 | 图标库 | 用户界面图标 |
 
 ### 数据库支持
 
-| 数据库 | 驱动 | 版本 | 状态 | 权限支持 |
-|--------|------|------|------|----------|
-| **PostgreSQL** | psycopg2-binary | 2.9.9 | ✅ 完全支持 | 角色属性、数据库权限、表空间权限 |
-| **MySQL** | PyMySQL | 1.1.1 | ✅ 完全支持 | 全局权限、数据库权限 |
-| **SQL Server** | pyodbc | 5.1.0 | ✅ 完全支持 | 服务器角色、服务器权限、数据库角色、数据库权限 |
-| **SQL Server** | pymssql | 2.2.11 | ✅ 完全支持 | 服务器角色、服务器权限、数据库角色、数据库权限 |
-| **Oracle** | python-oracledb | 2.0.0 | ✅ 完全支持 | 系统权限、角色、表空间权限、表空间配额 |
+| 数据库类型 | 驱动 | 版本要求 | 支持功能 |
+|------------|------|----------|----------|
+| PostgreSQL | psycopg2 | 12+ | 完整支持 |
+| MySQL | PyMySQL | 5.7+ | 完整支持 |
+| SQL Server | pyodbc | 2016+ | 完整支持 |
+| Oracle | python-oracledb | 12c+ | 完整支持 |
 
-### 数据库类型抽象架构
-
-#### 设计目标
-- **统一管理**: 集中管理所有数据库类型配置
-- **动态扩展**: 支持通过界面动态添加新数据库类型
-- **类型安全**: 使用枚举和验证确保数据一致性
-- **配置复用**: 避免重复配置信息
-- **维护简单**: 修改配置只需在一个地方
-
-#### 核心组件
-
-##### 1. 数据库类型管理器 (DatabaseTypeManager)
-```python
-# 核心功能
-- 数据库类型配置管理
-- 支持状态控制
-- 特性标签管理
-- 排序和显示控制
-- 系统内置类型保护
-```
-
-##### 2. 连接工厂模式 (ConnectionFactory)
-```python
-# 设计模式
-- 抽象连接工厂基类
-- 具体数据库连接实现
-- 统一连接管理接口
-- 连接池管理
-- 连接测试和验证
-```
-
-##### 3. 权限查询抽象 (PermissionQueryFactory)
-```python
-# 权限管理
-- 统一权限查询接口
-- 数据库特定权限实现
-- 权限数据标准化
-- 权限规则管理
-```
-
-#### 数据库类型配置模型
-
-```mermaid
-erDiagram
-    DatabaseTypeConfig {
-        int id PK
-        string name UK "数据库类型名称"
-        string display_name "显示名称"
-        string driver "驱动名称"
-        int default_port "默认端口"
-        string default_schema "默认Schema"
-        int connection_timeout "连接超时"
-        text description "描述信息"
-        string icon "图标类名"
-        string color "主题颜色"
-        text features "特性列表(JSON)"
-        boolean is_active "是否启用"
-        boolean is_system "是否系统内置"
-        int sort_order "排序顺序"
-        datetime created_at "创建时间"
-        datetime updated_at "更新时间"
-    }
-
-    Instance }o--|| DatabaseTypeConfig : uses
-    Task }o--|| DatabaseTypeConfig : targets
-```
-
-#### 系统架构更新
-
-```mermaid
-graph TB
-    subgraph "前端层"
-        A[Web浏览器] --> B[Bootstrap UI]
-        B --> C[JavaScript/AJAX]
-        C --> D[数据库类型管理界面]
-        C --> E[实例管理界面]
-        C --> F[任务管理界面]
-    end
-
-    subgraph "应用层"
-        D --> G[Flask应用]
-        E --> G
-        F --> G
-        G --> H[路由控制器]
-        H --> I[业务逻辑层]
-        I --> J[服务层]
-        J --> K[数据库类型服务]
-        J --> L[连接工厂]
-        J --> M[权限查询工厂]
-    end
-
-    subgraph "数据层"
-        J --> N[SQLAlchemy ORM]
-        N --> O[PostgreSQL]
-        J --> P[Redis缓存]
-        J --> Q[文件存储]
-    end
-
-    subgraph "数据库类型管理"
-        K --> R[DatabaseTypeConfig]
-        R --> S[系统内置类型]
-        R --> T[自定义类型]
-        L --> U[MySQL连接工厂]
-        L --> V[PostgreSQL连接工厂]
-        L --> W[SQL Server连接工厂]
-        L --> X[Oracle连接工厂]
-    end
-
-    subgraph "外部数据库"
-        Y[PostgreSQL实例]
-        Z[MySQL实例]
-        AA[SQL Server实例]
-        BB[Oracle实例]
-        CC[其他数据库实例]
-    end
-
-    U --> Z
-    V --> Y
-    W --> AA
-    X --> BB
-    L --> CC
-```
-
-#### 功能特性
-
-##### 数据库类型管理界面
-- **动态管理**: 通过界面添加、编辑、删除数据库类型
-- **系统保护**: 系统内置类型不能删除，只能修改部分字段
-- **状态控制**: 可以启用/禁用数据库类型
-- **排序管理**: 支持自定义排序顺序
-- **特性标识**: 支持为每个数据库类型添加特性标签
-- **使用检查**: 删除前检查是否有实例在使用
-
-##### 连接管理优化
-- **统一接口**: 所有数据库连接通过统一接口创建
-- **连接池**: 支持连接池管理，提高性能
-- **错误处理**: 统一的错误处理和重试机制
-- **连接测试**: 自动连接测试和验证
-
-##### 权限查询标准化
-- **统一格式**: 所有数据库权限查询返回统一格式
-- **类型安全**: 使用强类型确保数据一致性
-- **扩展性**: 易于添加新的数据库类型支持
-
-### 系统架构图
-
-```mermaid
-graph TB
-    subgraph "前端层"
-        A[Web浏览器] --> B[Bootstrap UI]
-        B --> C[JavaScript/AJAX]
-        C --> D[任务管理界面]
-        C --> E[批量操作界面]
-        C --> F[快速创建界面]
-    end
-
-    subgraph "应用层"
-        D --> G[Flask应用]
-        E --> G
-        F --> G
-        G --> H[路由控制器]
-        H --> I[业务逻辑层]
-        I --> J[服务层]
-        J --> K[任务调度服务]
-    end
-
-    subgraph "数据层"
-        J --> L[SQLAlchemy ORM]
-        L --> M[PostgreSQL]
-        J --> N[Redis缓存]
-        J --> O[文件存储]
-    end
-
-    subgraph "任务执行层"
-        K --> P[任务执行器]
-        P --> Q[批量任务处理器]
-        P --> R[快速任务创建器]
-        P --> S[数据库连接池]
-        S --> T[外部数据库]
-    end
-
-    subgraph "外部系统"
-        U[PostgreSQL实例]
-        V[MySQL实例]
-        W[SQL Server实例]
-        X[Oracle实例]
-    end
-
-    G --> K
-    T --> U
-    T --> V
-    T --> W
-    T --> X
-
-    subgraph "任务类型"
-        Y[账户同步任务]
-        Z[版本同步任务]
-        AA[大小同步任务]
-        BB[自定义任务]
-    end
-
-    P --> Y
-    P --> Z
-    P --> AA
-    P --> BB
-```
-
-## 数据模型设计
+## 📊 数据模型设计
 
 ### 核心实体关系图
 
 ```mermaid
 erDiagram
-    User ||--o{ Log : creates
     User ||--o{ Instance : manages
-    User ||--o{ Credential : manages
-    User ||--o{ Task : creates
-
-    Instance ||--o{ Account : contains
-    Instance ||--o{ SyncData : generates
-    Instance }o--|| Credential : uses
-
+    User ||--o{ Credential : owns
+    User ||--o{ SyncSession : creates
+    
+    Instance ||--o{ CurrentAccountSyncData : contains
+    Instance ||--o{ AccountChangeLog : tracks
+    Instance ||--o{ SyncInstanceRecord : syncs
+    Instance }o--o{ Tag : tagged
+    
     Credential ||--o{ Instance : authenticates
-
-    Task ||--o{ SyncData : executes
-    Task }o--|| Instance : targets
-
-    Account }o--|| Instance : belongs_to
-
+    
+    AccountClassification ||--o{ AccountClassificationAssignment : assigns
+    ClassificationRule ||--o{ AccountClassification : defines
+    
+    SyncSession ||--o{ SyncInstanceRecord : contains
+    
     User {
         int id PK
-        string username UK
-        string email UK
+        string username
+        string email
         string password_hash
         string role
-        boolean is_active
         datetime created_at
         datetime updated_at
-        datetime last_login
     }
-
+    
     Instance {
         int id PK
-        string name UK
+        string name
         string db_type
         string host
         int port
         string database_name
-        int credential_id FK
-        text description
-        json tags
         string status
         boolean is_active
-        datetime last_connected
-        datetime created_at
-        datetime updated_at
-        datetime deleted_at
-    }
-
-    Credential {
-        int id PK
-        string name UK
-        string username
-        string password
-        string db_type
-        text description
-        json config
-        boolean is_active
         datetime created_at
         datetime updated_at
     }
-
-    Account {
+    
+    CurrentAccountSyncData {
         int id PK
         int instance_id FK
-        string username
-        string database_name
-        string account_type
-        boolean is_active
-        datetime last_login
-        datetime created_at
-        datetime updated_at
-        string host
-        string plugin
-        boolean password_expired
-        datetime password_last_changed
-        boolean is_locked
-        text permissions
-        boolean is_superuser
-        boolean can_grant
-    }
-
-    Task {
-        int id PK
-        string name UK
-        string task_type
         string db_type
-        string schedule
-        text description
-        text python_code
-        json config
-        boolean is_active
-        boolean is_builtin
-        datetime last_run
-        string last_status
-        text last_message
-        int run_count
-        int success_count
-        datetime created_at
-        datetime updated_at
-    }
-
-    Log {
-        int id PK
-        int user_id FK
-        string operation
-        string resource_type
-        int resource_id
-        text details
-        string ip_address
-        string user_agent
-        datetime created_at
-    }
-
-    SyncData {
-        int id PK
-        int instance_id FK
-        int task_id FK
-        string sync_type
+        string username
+        json global_privileges
+        json database_privileges
+        json role_attributes
+        datetime sync_time
         string status
-        text message
-        int synced_count
-        datetime created_at
     }
-
-    GlobalParam {
-        int id PK
-        string key UK
-        text value
-        string description
-        string category
-        boolean is_encrypted
-        datetime created_at
-        datetime updated_at
-    }
-
+    
     AccountClassification {
         int id PK
-        string name UK
-        text description
+        string name
+        string description
         string risk_level
-        string color
-        int priority
         boolean is_active
-        boolean is_system
         datetime created_at
-        datetime updated_at
     }
-
+    
     ClassificationRule {
         int id PK
         int classification_id FK
         string db_type
-        string rule_name
-        text rule_expression
+        json rule_config
+        int priority
         boolean is_active
-        datetime created_at
-        datetime updated_at
-    }
-
-    AccountClassificationAssignment {
-        int id PK
-        int account_id FK
-        int classification_id FK
-        int assigned_by FK
-        string assignment_type
-        float confidence_score
-        text notes
-        boolean is_active
-        datetime created_at
-        datetime updated_at
-    }
-
-    PermissionConfig {
-        int id PK
-        string db_type
-        string category
-        string permission_name
-        text description
-        boolean is_active
-        int sort_order
-        datetime created_at
-        datetime updated_at
     }
 ```
 
-### 数据模型详细说明
+### 数据库表结构
 
-#### 1. 用户模型 (User)
-- **功能**: 系统用户管理
-- **字段**: 用户名、邮箱、密码哈希、角色、状态等
-- **关系**: 一对多关联日志、实例、凭据、任务
+#### 用户管理表
 
-#### 2. 实例模型 (Instance)
-- **功能**: 数据库实例管理
-- **字段**: 实例名、数据库类型、连接信息、状态等
-- **关系**: 多对一关联凭据，一对多关联账户、同步数据
+```sql
+-- 用户表
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) DEFAULT 'user',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
 
-#### 3. 凭据模型 (Credential)
-- **功能**: 数据库连接凭据管理
-- **字段**: 凭据名、用户名、密码、数据库类型等
-- **关系**: 一对多关联实例
+#### 实例管理表
 
-#### 4. 账户模型 (Account)
-- **功能**: 数据库用户账户管理
-- **字段**: 用户名、数据库名、账户类型、状态等
-- **关系**: 多对一关联实例
+```sql
+-- 数据库实例表
+CREATE TABLE instances (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    db_type VARCHAR(50) NOT NULL,
+    host VARCHAR(255) NOT NULL,
+    port INTEGER NOT NULL,
+    database_name VARCHAR(255),
+    database_version VARCHAR(1000),
+    environment VARCHAR(20) DEFAULT 'production',
+    credential_id INTEGER REFERENCES credentials(id),
+    status VARCHAR(20) DEFAULT 'active',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
 
-#### 5. 任务模型 (Task)
-- **功能**: 任务调度管理
-- **字段**: 任务名、类型、数据库类型、Python代码、配置等
-- **关系**: 一对多关联同步数据
+#### 账户同步表
 
-#### 6. 日志模型 (Log)
-- **功能**: 操作审计日志
-- **字段**: 操作用户、操作类型、资源信息、详情等
-- **关系**: 多对一关联用户
+```sql
+-- 账户当前状态表
+CREATE TABLE current_account_sync_data (
+    id SERIAL PRIMARY KEY,
+    instance_id INTEGER NOT NULL REFERENCES instances(id),
+    db_type VARCHAR(20) NOT NULL,
+    username VARCHAR(255) NOT NULL,
+    is_superuser BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    global_privileges JSONB,
+    database_privileges JSONB,
+    predefined_roles JSONB,
+    role_attributes JSONB,
+    server_roles JSONB,
+    server_permissions JSONB,
+    oracle_roles JSONB,
+    system_privileges JSONB,
+    sync_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    status VARCHAR(20) DEFAULT 'success',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(instance_id, db_type, username)
+);
+```
 
-#### 7. 同步数据模型 (SyncData)
-- **功能**: 数据同步记录
-- **字段**: 同步类型、状态、消息、同步数量等
-- **关系**: 多对一关联实例和任务
+## 🔄 业务流程设计
 
-#### 8. 全局参数模型 (GlobalParam)
-- **功能**: 系统配置参数管理
-- **字段**: 参数键、值、描述、分类、加密状态等
-
-#### 9. 账户分类模型 (AccountClassification)
-- **功能**: 账户分类定义管理
-- **字段**: 分类名、描述、风险级别、颜色、优先级、系统标识等
-- **关系**: 一对多关联分类规则和分类分配
-
-#### 10. 分类规则模型 (ClassificationRule)
-- **功能**: 账户分类规则定义
-- **字段**: 规则名、数据库类型、规则表达式、状态等
-- **关系**: 多对一关联账户分类
-
-#### 11. 账户分类分配模型 (AccountClassificationAssignment)
-- **功能**: 账户与分类的关联关系
-- **字段**: 分配类型、置信度、备注、状态等
-- **关系**: 多对一关联账户和分类
-
-#### 12. 权限配置模型 (PermissionConfig)
-- **功能**: 数据库权限配置管理
-- **字段**: 数据库类型、权限类别、权限名、描述、排序等
-
-## API接口设计
-
-### 认证接口
-
-| 方法 | 路径 | 功能 | 认证 |
-|------|------|------|------|
-| POST | `/auth/login` | 用户登录 | 无 |
-| POST | `/auth/logout` | 用户登出 | 需要 |
-| POST | `/auth/register` | 用户注册 | 无 |
-| POST | `/auth/change-password` | 修改密码 | 需要 |
-
-### 实例管理接口
-
-| 方法 | 路径 | 功能 | 认证 |
-|------|------|------|------|
-| GET | `/instances/` | 获取实例列表 | 需要 |
-| POST | `/instances/create` | 创建实例 | 需要 |
-| GET | `/instances/<id>` | 获取实例详情 | 需要 |
-| PUT | `/instances/<id>/edit` | 更新实例 | 需要 |
-| DELETE | `/instances/<id>/delete` | 删除实例 | 需要 |
-| POST | `/instances/<id>/test-connection` | 测试连接 | 需要 |
-| GET | `/instances/statistics` | 实例统计 | 需要 |
-
-### 凭据管理接口
-
-| 方法 | 路径 | 功能 | 认证 |
-|------|------|------|------|
-| GET | `/credentials/` | 获取凭据列表 | 需要 |
-| POST | `/credentials/create` | 创建凭据 | 需要 |
-| GET | `/credentials/<id>` | 获取凭据详情 | 需要 |
-| PUT | `/credentials/<id>/edit` | 更新凭据 | 需要 |
-| DELETE | `/credentials/<id>/delete` | 删除凭据 | 需要 |
-| POST | `/credentials/<id>/toggle` | 启用/禁用凭据 | 需要 |
-
-### 账户管理接口
-
-| 方法 | 路径 | 功能 | 认证 |
-|------|------|------|------|
-| GET | `/accounts/` | 账户统计首页 | 需要 |
-| GET | `/accounts/list` | 账户列表 | 需要 |
-| GET | `/accounts/api/statistics` | 账户统计API | 需要 |
-
-### 任务管理接口
-
-| 方法 | 路径 | 功能 | 认证 | 说明 |
-|------|------|------|------|------|
-| GET | `/tasks/` | 获取任务列表 | 需要 | 支持分页和筛选 |
-| POST | `/tasks/create` | 创建任务 | 需要 | 创建自定义任务 |
-| GET | `/tasks/<id>` | 获取任务详情 | 需要 | 获取单个任务信息 |
-| PUT | `/tasks/<id>/edit` | 更新任务 | 需要 | 更新任务配置 |
-| DELETE | `/tasks/<id>/delete` | 删除任务 | 需要 | 删除指定任务 |
-| POST | `/tasks/<id>/toggle` | 启用/禁用任务 | 需要 | 切换任务状态 |
-| POST | `/tasks/<id>/execute` | 执行任务 | 需要 | 立即执行单个任务 |
-| POST | `/tasks/create-builtin` | 创建内置任务 | 需要 | 创建所有内置任务 |
-| POST | `/tasks/create-quick` | 快速创建任务 | 需要 | 按类型快速创建任务 |
-| POST | `/tasks/batch-toggle` | 批量启用/禁用 | 需要 | 批量切换任务状态 |
-| POST | `/tasks/batch-execute` | 批量执行任务 | 需要 | 批量执行选中任务 |
-| POST | `/tasks/execute-all` | 执行所有任务 | 需要 | 执行所有活跃任务 |
-
-### 账户分类管理接口
-
-| 方法 | 路径 | 功能 | 认证 | 说明 |
-|------|------|------|------|------|
-| GET | `/account-classification/` | 分类管理首页 | 需要 | 显示分类和规则列表 |
-| GET | `/account-classification/classifications` | 获取分类列表 | 需要 | 获取所有账户分类 |
-| POST | `/account-classification/classifications` | 创建分类 | 需要 | 创建新的账户分类 |
-| PUT | `/account-classification/classifications/<id>` | 更新分类 | 需要 | 更新分类信息 |
-| DELETE | `/account-classification/classifications/<id>` | 删除分类 | 需要 | 删除指定分类 |
-| GET | `/account-classification/rules` | 获取规则列表 | 需要 | 获取所有分类规则 |
-| POST | `/account-classification/rules` | 创建规则 | 需要 | 创建新的分类规则 |
-| PUT | `/account-classification/rules/<id>` | 更新规则 | 需要 | 更新规则配置 |
-| DELETE | `/account-classification/rules/<id>` | 删除规则 | 需要 | 删除指定规则 |
-| POST | `/account-classification/auto-classify` | 自动分类 | 需要 | 执行自动分类操作 |
-| GET | `/account-classification/permissions/<db_type>` | 获取权限配置 | 需要 | 获取指定数据库类型的权限配置 |
-
-### 系统管理接口
-
-| 方法 | 路径 | 功能 | 认证 |
-|------|------|------|------|
-| GET | `/dashboard/` | 仪表板首页 | 需要 |
-| GET | `/dashboard/api/overview` | 系统概览API | 需要 |
-| GET | `/logs/` | 日志管理 | 需要 |
-| GET | `/params/` | 参数管理 | 需要 |
-| GET | `/admin/` | 管理后台 | 需要 |
-
-### 健康检查接口
-
-| 方法 | 路径 | 功能 | 认证 |
-|------|------|------|------|
-| GET | `/api/health` | 系统健康检查 | 无 |
-
-## 定时任务管理系统
-
-### 系统概述
-
-鲸落的定时任务管理系统是一个高度可定制化的任务调度平台，支持多种数据库类型的自动化同步任务。系统提供了直观的Web界面和强大的API接口，让用户能够轻松创建、管理和监控各种定时任务。
-
-### 核心功能
-
-- 🚀 **快速创建内置任务** - 一键创建常用同步任务
-- ⏰ **定时任务调度** - 支持Cron表达式的定时执行
-- 📊 **批量任务管理** - 支持批量启用/禁用/执行任务
-- 📈 **执行统计监控** - 详细的运行统计和成功率分析
-- 🔄 **实时任务执行** - 支持立即执行和定时执行
-- 🎯 **智能任务匹配** - 根据数据库类型自动匹配实例
-
-### 任务类型
-
-| 类型 | 功能 | 数据库支持 | 调度频率 | 说明 |
-|------|------|------------|----------|------|
-| **sync_accounts** | 账户同步 | PostgreSQL, MySQL, SQL Server, Oracle | 每6小时 | 同步数据库用户账户信息 |
-| **sync_version** | 版本同步 | PostgreSQL, MySQL, SQL Server, Oracle | 每天 | 同步数据库版本信息 |
-| **sync_size** | 大小同步 | PostgreSQL, MySQL, SQL Server, Oracle | 每天凌晨2点 | 同步数据库大小信息 |
-| **custom** | 自定义任务 | 全部 | 用户定义 | 用户自定义Python代码 |
-
-### 任务执行流程
+### 账户同步流程
 
 ```mermaid
 sequenceDiagram
-    participant U as 用户
-    participant W as Web界面
-    participant T as 任务调度器
-    participant E as 任务执行器
-    participant D as 数据库
-    participant I as 外部实例
-
-    U->>W: 访问任务管理页面
-    W->>U: 显示快速创建选项
-
-    alt 快速创建任务
-        U->>W: 点击快速创建按钮
-        W->>T: 调用快速创建API
-        T->>D: 创建任务记录
-        T-->>W: 返回创建结果
-        W-->>U: 显示创建成功
-    end
-
-    alt 批量操作
-        U->>W: 选择多个任务
-        U->>W: 点击批量操作按钮
-        W->>T: 调用批量操作API
-        T->>D: 批量更新任务状态
-        T-->>W: 返回操作结果
-        W-->>U: 显示操作成功
-    end
-
-    alt 任务执行
-        U->>W: 触发任务执行
-        W->>T: 调用任务执行API
-        T->>E: 执行任务
-        E->>D: 查询匹配实例
-        D-->>E: 返回实例列表
-
-        loop 遍历每个实例
-            E->>I: 连接数据库
-            E->>E: 执行Python代码
-            E->>D: 保存同步数据
-            E->>D: 更新任务统计
-        end
-
-        E-->>T: 返回执行结果
-        T-->>W: 更新任务状态
-        W-->>U: 显示执行状态
-    end
+    participant U as User
+    participant W as Web UI
+    participant A as API
+    participant S as Sync Service
+    participant D as Database
+    participant E as External DB
+    
+    U->>W: 触发账户同步
+    W->>A: POST /instances/{id}/sync
+    A->>S: 创建同步会话
+    S->>D: 记录同步会话
+    S->>E: 连接外部数据库
+    E-->>S: 返回账户权限数据
+    S->>D: 保存当前状态数据
+    S->>D: 记录变更日志
+    S-->>A: 返回同步结果
+    A-->>W: 返回JSON响应
+    W-->>U: 显示同步结果
 ```
 
-### 用户界面功能
+### 账户分类流程
 
-#### 任务管理主页面
-- **快速创建区域**: 提供4个快速创建卡片，支持一键创建常用任务类型
-- **任务列表**: 显示所有任务的详细信息，包括状态、统计、最后运行时间等
-- **批量操作**: 支持全选、批量启用/禁用、批量执行任务
-- **筛选功能**: 按状态、数据库类型、任务类型筛选任务
-
-#### 任务状态显示
-- **启用/禁用状态**: 绿色表示启用，红色表示禁用
-- **定时/手动状态**: 蓝色表示定时任务，灰色表示手动任务
-- **执行结果**: 成功显示绿色，失败显示红色
-- **运行统计**: 显示运行次数、成功次数、成功率
-
-#### 快速创建功能
-- **账户同步**: 为所有数据库类型创建账户同步任务
-- **版本同步**: 为所有数据库类型创建版本同步任务
-- **大小同步**: 为所有数据库类型创建大小同步任务
-- **全部同步**: 一次性创建所有类型的同步任务
-
-### 内置任务模板
-
-#### PostgreSQL账户同步
-```python
-def sync_postgresql_accounts(instance, config):
-    """同步PostgreSQL数据库账户信息"""
-    # 连接数据库
-    # 查询用户信息
-    # 更新账户记录
-    # 返回同步结果
+```mermaid
+flowchart TD
+    A[开始分类] --> B[获取所有活跃规则]
+    B --> C[按优先级排序规则]
+    C --> D[获取需要分类的账户]
+    D --> E[按数据库类型分组]
+    E --> F[MySQL账户分类]
+    E --> G[PostgreSQL账户分类]
+    E --> H[SQL Server账户分类]
+    E --> I[Oracle账户分类]
+    F --> J[应用分类规则]
+    G --> J
+    H --> J
+    I --> J
+    J --> K[计算匹配度]
+    K --> L[分配分类]
+    L --> M[更新分类记录]
+    M --> N[记录分类日志]
+    N --> O[完成分类]
 ```
 
-#### MySQL账户同步
-```python
-def sync_mysql_accounts(instance, config):
-    """同步MySQL数据库账户信息"""
-    # 连接数据库
-    # 查询用户权限
-    # 更新账户记录
-    # 返回同步结果
+### 权限扫描流程
+
+```mermaid
+stateDiagram-v2
+    [*] --> 连接数据库
+    连接数据库 --> 获取用户列表
+    获取用户列表 --> 扫描全局权限
+    扫描全局权限 --> 扫描数据库权限
+    扫描数据库权限 --> 扫描角色权限
+    扫描角色权限 --> 扫描对象权限
+    扫描对象权限 --> 保存权限数据
+    保存权限数据 --> 检测权限变更
+    检测权限变更 --> 记录变更日志
+    记录变更日志 --> [*]
+    
+    连接数据库 --> 连接失败: 连接错误
+    连接失败 --> [*]
+    
+    获取用户列表 --> 查询失败: 查询错误
+    查询失败 --> [*]
 ```
 
-#### 版本同步任务
-```python
-def sync_postgresql_version(instance, config):
-    """同步PostgreSQL数据库版本信息"""
-    # 查询版本信息
-    # 更新实例标签
-    # 返回版本信息
+## 🔌 API 接口设计
+
+### RESTful API 规范
+
+#### 认证接口
+
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "password123"
+}
+
+Response:
+{
+    "success": true,
+    "message": "登录成功",
+    "data": {
+        "user": {
+            "id": 1,
+            "username": "admin",
+            "email": "admin@example.com",
+            "role": "admin"
+        },
+        "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+    }
+}
 ```
 
-#### 数据库大小同步
-```python
-def sync_postgresql_size(instance, config):
-    """同步PostgreSQL数据库大小信息"""
-    # 查询数据库大小
-    # 更新实例标签
-    # 返回大小信息
+#### 实例管理接口
+
+```http
+GET /api/instances
+Authorization: Bearer <token>
+
+Response:
+{
+    "success": true,
+    "data": [
+        {
+            "id": 1,
+            "name": "MySQL Production",
+            "db_type": "mysql",
+            "host": "192.168.1.100",
+            "port": 3306,
+            "status": "active",
+            "last_connected": "2024-12-19T10:30:00Z"
+        }
+    ],
+    "count": 1
+}
 ```
 
-## 安全设计
+#### 账户同步接口
+
+```http
+POST /api/instances/{id}/sync
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+    "sync_type": "manual_single"
+}
+
+Response:
+{
+    "success": true,
+    "message": "同步完成",
+    "data": {
+        "session_id": "uuid-string",
+        "synced_count": 25,
+        "added_count": 3,
+        "modified_count": 2,
+        "removed_count": 1
+    }
+}
+```
+
+#### 分类管理接口
+
+```http
+GET /api/account-classifications
+Authorization: Bearer <token>
+
+Response:
+{
+    "success": true,
+    "data": [
+        {
+            "id": 1,
+            "name": "高风险账户",
+            "description": "具有危险权限的账户",
+            "risk_level": "high",
+            "rule_count": 5,
+            "account_count": 12
+        }
+    ]
+}
+```
+
+### API 响应格式
+
+#### 成功响应
+```json
+{
+    "success": true,
+    "message": "操作成功",
+    "data": { ... },
+    "timestamp": "2024-12-19T10:30:00Z"
+}
+```
+
+#### 错误响应
+```json
+{
+    "success": false,
+    "message": "操作失败",
+    "error": "详细错误信息",
+    "code": 400,
+    "timestamp": "2024-12-19T10:30:00Z"
+}
+```
+
+## 🔐 安全设计
 
 ### 认证与授权
 
-1. **用户认证**
-   - 基于Flask-Login的会话管理
-   - 密码使用bcrypt加密存储
-   - 支持JWT令牌认证
-
-2. **权限控制**
-   - 基于角色的访问控制(RBAC)
-   - 路由级别的权限验证
-   - API接口认证保护
-
-3. **数据安全**
-   - 敏感数据加密存储
-   - SQL注入防护
-   - XSS攻击防护
-   - CSRF保护
-
-### 安全配置
-
-```python
-# 密码加密
-bcrypt = Bcrypt()
-
-# JWT配置
-JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
-JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
-
-# 会话安全
-SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
-
-# CSRF保护
-CSRFProtect(app)
-
-# CORS配置
-CORS(app, origins=['http://localhost:5001'])
+```mermaid
+graph TB
+    subgraph "认证流程"
+        A[用户登录] --> B[验证用户名密码]
+        B --> C[生成JWT Token]
+        C --> D[设置Session]
+        D --> E[返回认证信息]
+    end
+    
+    subgraph "授权流程"
+        F[API请求] --> G[验证JWT Token]
+        G --> H[检查用户权限]
+        H --> I[验证资源访问权限]
+        I --> J[执行操作]
+    end
+    
+    subgraph "安全措施"
+        K[密码加密<br/>bcrypt]
+        L[CSRF保护<br/>CSRF Token]
+        M[SQL注入防护<br/>参数化查询]
+        N[XSS防护<br/>输入验证]
+        O[会话安全<br/>HttpOnly Cookie]
+    end
 ```
 
-## 性能优化
+### 数据安全
 
-### 数据库优化
+| 安全措施 | 实现方式 | 说明 |
+|----------|----------|------|
+| 密码加密 | bcrypt | 12轮哈希加密 |
+| 敏感数据 | AES加密 | 数据库连接信息 |
+| SQL注入防护 | 参数化查询 | SQLAlchemy ORM |
+| XSS防护 | 输入验证 | Flask-WTF |
+| CSRF防护 | CSRF Token | Flask-WTF |
+| 会话安全 | HttpOnly Cookie | 防止XSS攻击 |
 
-1. **索引策略**
-   - 主键自动索引
-   - 外键索引
-   - 查询字段索引
-   - 复合索引优化
-
-2. **查询优化**
-   - 使用SQLAlchemy的join查询
-   - 避免N+1查询问题
-   - 分页查询优化
-   - 查询结果缓存
-
-3. **连接池管理**
-   - 数据库连接池
-   - Redis连接池
-   - 外部数据库连接管理
+## 📈 性能设计
 
 ### 缓存策略
 
-1. **Redis缓存**
-   - 用户会话缓存
-   - 查询结果缓存
-   - 任务执行结果缓存
-
-2. **应用缓存**
-   - 静态资源缓存
-   - 模板缓存
-   - 配置参数缓存
-
-### 异步处理
-
-1. **APScheduler任务调度**
-   - 长时间运行的任务
-   - 定时任务调度
-   - 批量数据处理
-
-2. **异步API**
-   - 非阻塞的数据库操作
-   - 异步任务执行
-   - 实时状态更新
-
-## 监控与日志
-
-### 日志系统
-
-1. **日志分类**
-   - 应用日志 (app.log)
-   - 认证日志 (auth.log)
-   - 数据库日志 (database.log)
-   - 安全日志 (security.log)
-   - 同步日志 (sync.log)
-   - API日志 (api.log)
-   - 缓存日志 (cache.log)
-
-2. **日志格式**
-   - 结构化日志记录
-   - 时间戳和时区处理
-   - 用户操作追踪
-   - 错误堆栈记录
-
-3. **日志轮转**
-   - 按大小轮转
-   - 按时间轮转
-   - 日志压缩存储
-   - 历史日志清理
-
-### 监控指标
-
-1. **系统指标**
-   - CPU使用率
-   - 内存使用率
-   - 磁盘使用率
-   - 网络连接数
-
-2. **应用指标**
-   - 请求响应时间
-   - 错误率统计
-   - 任务执行成功率
-   - 数据库连接状态
-
-3. **业务指标**
-   - 用户活跃度
-   - 实例连接数
-   - 同步任务执行次数
-   - 数据同步量
-
-## 部署架构
-
-### 开发环境
-
-```yaml
-# 本地开发环境
-services:
-  app:
-    build: .
-    ports:
-      - "5001:5001"
-    environment:
-      - FLASK_ENV=development
-      - DATABASE_URL=postgresql://whalefall_user:password@localhost:5432/whalefall_dev
-    volumes:
-      - ./userdata:/app/userdata
-
-  redis:
-    image: redis:7.2.5
-    ports:
-      - "6379:6379"
-    volumes:
-      - ./userdata/redis:/data
+```mermaid
+graph LR
+    A[API请求] --> B{缓存命中?}
+    B -->|是| C[返回缓存数据]
+    B -->|否| D[查询数据库]
+    D --> E[更新缓存]
+    E --> F[返回数据]
+    
+    subgraph "缓存层级"
+        G[L1: 内存缓存<br/>Redis]
+        H[L2: 数据库缓存<br/>查询结果]
+        I[L3: 静态资源缓存<br/>CDN]
+    end
 ```
 
-### 生产环境
+### 数据库优化
+
+| 优化策略 | 实现方式 | 效果 |
+|----------|----------|------|
+| 索引优化 | 复合索引 | 查询性能提升80% |
+| 连接池 | SQLAlchemy Pool | 连接复用 |
+| 查询优化 | N+1查询避免 | 减少数据库访问 |
+| 分页查询 | LIMIT/OFFSET | 大数据量处理 |
+| 缓存查询 | Redis缓存 | 减少数据库压力 |
+
+## 🔄 任务调度设计
+
+### 调度器架构
+
+```mermaid
+graph TB
+    subgraph "APScheduler"
+        A[Scheduler] --> B[Job Store<br/>SQLite]
+        A --> C[Executor<br/>Thread Pool]
+        A --> D[Trigger<br/>Cron/Interval]
+    end
+    
+    subgraph "任务类型"
+        E[账户同步任务]
+        F[日志清理任务]
+        G[健康检查任务]
+        H[自定义任务]
+    end
+    
+    subgraph "任务执行"
+        I[任务队列] --> J[任务执行器]
+        J --> K[结果记录]
+        K --> L[状态更新]
+    end
+    
+    A --> E
+    A --> F
+    A --> G
+    A --> H
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+```
+
+### 任务配置
 
 ```yaml
-# 生产环境
+# scheduler_tasks.yaml
+default_tasks:
+  - id: "sync_accounts"
+    name: "账户同步"
+    function: "sync_accounts"
+    trigger_type: "interval"
+    trigger_params:
+      minutes: 30
+    enabled: true
+    
+  - id: "cleanup_logs"
+    name: "清理旧日志"
+    function: "cleanup_old_logs"
+    trigger_type: "cron"
+    trigger_params:
+      hour: 2
+      minute: 0
+    enabled: true
+```
+
+## 📊 监控与日志
+
+### 日志架构
+
+```mermaid
+graph TB
+    subgraph "应用层"
+        A[业务日志] --> B[结构化日志]
+        C[错误日志] --> B
+        D[访问日志] --> B
+    end
+    
+    subgraph "日志处理"
+        B --> E[日志聚合]
+        E --> F[日志存储]
+        F --> G[日志分析]
+    end
+    
+    subgraph "监控告警"
+        G --> H[指标收集]
+        H --> I[阈值检测]
+        I --> J[告警通知]
+    end
+    
+    subgraph "存储层"
+        K[PostgreSQL<br/>结构化存储]
+        L[文件系统<br/>原始日志]
+        M[Redis<br/>实时缓存]
+    end
+    
+    F --> K
+    F --> L
+    E --> M
+```
+
+### 日志级别
+
+| 级别 | 用途 | 示例 |
+|------|------|------|
+| DEBUG | 调试信息 | 变量值、执行路径 |
+| INFO | 一般信息 | 操作记录、状态变更 |
+| WARNING | 警告信息 | 性能问题、配置问题 |
+| ERROR | 错误信息 | 异常处理、失败操作 |
+| CRITICAL | 严重错误 | 系统崩溃、安全事件 |
+
+## 🚀 部署架构
+
+### 容器化部署
+
+```mermaid
+graph TB
+    subgraph "Docker Compose"
+        A[Nginx<br/>反向代理] --> B[Flask App<br/>Web应用]
+        B --> C[PostgreSQL<br/>主数据库]
+        B --> D[Redis<br/>缓存]
+        E[APScheduler<br/>任务调度] --> C
+    end
+    
+    subgraph "数据持久化"
+        F[PostgreSQL Data<br/>/userdata/postgres/]
+        G[Redis Data<br/>/userdata/redis/]
+        H[Logs<br/>/userdata/logs/]
+        I[Uploads<br/>/userdata/uploads/]
+    end
+    
+    C --> F
+    D --> G
+    B --> H
+    B --> I
+```
+
+### 环境配置
+
+#### 开发环境
+```yaml
+# docker-compose.dev.yml
+version: '3.8'
 services:
-  app:
-    build: .
-    ports:
-      - "5001:5001"
-    environment:
-      - FLASK_ENV=production
-      - DATABASE_URL=postgresql://user:pass@postgres:5432/whalefall
-    depends_on:
-      - postgres
-      - redis
-
   postgres:
-    image: postgres:16.3
+    image: postgres:15
     environment:
-      - POSTGRES_DB=whalefall
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
+      POSTGRES_DB: whalefall_dev
+      POSTGRES_USER: whalefall_user
+      POSTGRES_PASSWORD: dev_password
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./userdata/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+```
 
-  redis:
-    image: redis:7.2.5
-    volumes:
-      - redis_data:/data
-
+#### 生产环境
+```yaml
+# docker-compose.prod.yml
+version: '3.8'
+services:
   nginx:
     image: nginx:alpine
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - app
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./userdata/nginx:/var/log/nginx
 ```
 
-## 开发规范
+## 📋 功能模块规格
 
-### 代码结构
+### 1. 用户管理模块
 
-```
-app/
-├── __init__.py          # 应用初始化
-├── config.py            # 配置文件
-├── models/              # 数据模型
-│   ├── __init__.py
-│   ├── user.py
-│   ├── instance.py
-│   ├── credential.py
-│   ├── account.py
-│   ├── task.py
-│   ├── log.py
-│   ├── global_param.py
-│   └── sync_data.py
-├── routes/              # 路由控制器
-│   ├── __init__.py
-│   ├── auth.py
-│   ├── instances.py
-│   ├── credentials.py
-│   ├── accounts.py
-│   ├── tasks.py
-│   ├── dashboard.py
-│   ├── logs.py
-│   ├── params.py
-│   ├── api.py
-│   └── main.py
-├── services/            # 业务服务层
-│   ├── database_service.py
-│   ├── database_drivers.py
-│   └── task_executor.py
-├── utils/               # 工具类
-│   ├── logger.py
-│   ├── security.py
-│   ├── timezone.py
-│   ├── cache_manager.py
-│   ├── rate_limiter.py
-│   ├── error_handler.py
-│   └── env_manager.py
-└── templates/           # 模板文件
-    ├── base.html
-    ├── auth/
-    ├── instances/
-    ├── credentials/
-    ├── accounts/
-    ├── tasks/
-    ├── dashboard/
-    ├── logs/
-    ├── params/
-    └── errors/
-```
+#### 功能特性
+- 用户注册/登录/登出
+- 密码修改和重置
+- 用户资料管理
+- 角色权限控制
 
-### 命名规范
+#### 技术实现
+- Flask-Login 会话管理
+- JWT 令牌认证
+- bcrypt 密码加密
+- 基于角色的访问控制
 
-1. **文件命名**
-   - 使用小写字母和下划线
-   - 模型文件使用单数形式
-   - 路由文件使用复数形式
+### 2. 实例管理模块
 
-2. **类命名**
-   - 使用大驼峰命名法
-   - 模型类使用单数形式
-   - 服务类以Service结尾
+#### 功能特性
+- 多数据库类型支持
+- 实例CRUD操作
+- 连接测试和状态监控
+- 标签和元数据管理
 
-3. **函数命名**
-   - 使用小写字母和下划线
-   - 动词开头，描述功能
-   - 私有方法以下划线开头
+#### 支持的数据库
+- PostgreSQL (完整支持)
+- MySQL (完整支持)
+- SQL Server (完整支持)
+- Oracle (完整支持)
 
-4. **变量命名**
-   - 使用小写字母和下划线
-   - 常量使用大写字母和下划线
-   - 布尔变量使用is_、has_、can_前缀
+### 3. 账户分类模块
 
-### 代码质量
+#### 功能特性
+- 智能账户分类
+- 权限规则配置
+- 多分类支持
+- 风险评估
 
-1. **代码注释**
-   - 使用JSDoc风格的函数注释
-   - 复杂逻辑添加行内注释
-   - 类和模块添加文档字符串
+#### 权限规则配置
+- MySQL: 46个权限配置
+- PostgreSQL: 26个权限配置
+- SQL Server: 56个权限配置
+- Oracle: 312个权限配置
 
-2. **错误处理**
-   - 使用try-catch处理异常
-   - 记录详细的错误日志
-   - 返回用户友好的错误信息
+### 4. 数据同步模块
 
-3. **测试覆盖**
-   - 单元测试覆盖核心功能
-   - 集成测试覆盖API接口
-   - 端到端测试覆盖用户流程
+#### 功能特性
+- 实时账户同步
+- 权限变更追踪
+- 增量同步支持
+- 同步状态管理
 
-## 版本历史
+#### 同步类型
+- 手动单实例同步
+- 手动批量同步
+- 定时任务同步
+- 自定义任务同步
 
-### v1.0.0 (2025-09-08)
-- ✅ 基础用户认证系统
-- ✅ 多数据库实例管理
-- ✅ 凭据管理系统
-- ✅ 账户信息管理
-- ✅ 任务调度系统
-- ✅ 操作日志记录
-- ✅ 实时监控仪表板
-- ✅ RESTful API接口
-- ✅ 安全防护机制
-- ✅ 性能优化
-- ✅ 完整的文档
+### 5. 任务调度模块
 
+#### 功能特性
+- 定时任务管理
+- 任务状态监控
+- 批量操作支持
+- 自定义任务执行
+
+#### 内置任务
+- 账户同步任务
+- 日志清理任务
+- 健康检查任务
+- 临时文件清理
+
+### 6. 日志监控模块
+
+#### 功能特性
+- 结构化日志记录
+- 操作审计追踪
+- 日志查询和筛选
+- 统计和导出
+
+#### 日志类型
+- 系统日志
+- 业务日志
+- 安全日志
+- 任务日志
+
+## 🔧 开发规范
+
+### 代码规范
+
+#### Python代码规范
+- 遵循PEP 8代码风格
+- 使用类型提示 (Type Hints)
+- 函数和类必须有详细的docstring
+- 使用JSDoc风格的注释格式
+
+#### 代码质量工具
+- Black: 代码格式化
+- isort: 导入排序
+- MyPy: 类型检查
+- Ruff: 代码检查
+- Bandit: 安全扫描
+
+### 测试规范
+
+#### 测试类型
+- 单元测试: 测试单个函数和类
+- 集成测试: 测试API接口
+- 端到端测试: 测试完整用户流程
+
+#### 测试覆盖率
+- 目标覆盖率: 80%以上
+- 核心功能: 100%覆盖
+- 业务逻辑: 90%覆盖
+
+### 文档规范
+
+#### 代码文档
+- 所有函数必须有docstring
+- 复杂算法必须有注释说明
+- 配置文件必须有注释
+- 数据库表结构必须有说明
+
+#### 项目文档
+- README.md: 项目概述和快速开始
+- spec.md: 技术规格文档
+- API文档: 接口说明和示例
+- 部署文档: 部署和运维指南
+
+## 📈 性能指标
+
+### 系统性能指标
+
+| 指标 | 目标值 | 当前值 | 说明 |
+|------|--------|--------|------|
+| 响应时间 | < 200ms | 150ms | API平均响应时间 |
+| 并发用户 | 100+ | 200+ | 支持并发用户数 |
+| 数据库连接 | < 50 | 30 | 最大数据库连接数 |
+| 内存使用 | < 512MB | 256MB | 应用内存使用 |
+| CPU使用率 | < 70% | 45% | 平均CPU使用率 |
+
+### 业务性能指标
+
+| 指标 | 目标值 | 当前值 | 说明 |
+|------|--------|--------|------|
+| 账户同步速度 | 1000/分钟 | 1500/分钟 | 账户同步处理速度 |
+| 分类准确率 | > 95% | 98% | 账户分类准确率 |
+| 日志查询速度 | < 1s | 0.5s | 日志查询响应时间 |
+| 任务执行成功率 | > 99% | 99.5% | 定时任务执行成功率 |
+
+## 🔮 扩展规划
+
+### 短期规划 (v1.1.0)
+
+#### 功能增强
+- [ ] 数据库备份与恢复
+- [ ] 数据导入导出功能
+- [ ] 移动端适配
+- [ ] 主题切换
+
+#### 性能优化
+- [ ] 查询性能优化
+- [ ] 缓存策略优化
+- [ ] 数据库连接池优化
+- [ ] 前端资源优化
+
+### 中期规划 (v2.0.0)
+
+#### 架构升级
+- [ ] 微服务架构
+- [ ] API网关
+- [ ] 服务发现
+- [ ] 配置中心
+
+#### 功能扩展
+- [ ] 多租户支持
+- [ ] 插件系统
+- [ ] 自动化运维
+- [ ] 监控告警
+
+### 长期规划 (v3.0.0)
+
+#### 技术演进
+- [ ] 云原生架构
+- [ ] Kubernetes部署
+- [ ] 服务网格
+- [ ] 事件驱动架构
+
+#### 智能化
+- [ ] AI智能运维
+- [ ] 机器学习分类
+- [ ] 异常检测
+- [ ] 预测分析
+
+## 📚 参考文档
+
+### 技术文档
+- [Flask官方文档](https://flask.palletsprojects.com/)
+- [SQLAlchemy文档](https://docs.sqlalchemy.org/)
+- [APScheduler文档](https://apscheduler.readthedocs.io/)
+- [PostgreSQL文档](https://www.postgresql.org/docs/)
+
+### 项目文档
+- [README.md](../README.md) - 项目概述
+- [CHANGELOG.md](../../CHANGELOG.md) - 更新日志
+- [API文档](../api/README.md) - API接口文档
+- [部署指南](../deployment/README.md) - 部署文档
+
+### 开发文档
+- [开发指南](../development/README.md) - 开发环境搭建
+- [快速参考](../guides/QUICK_REFERENCE.md) - 快速参考
+- [安全配置](../security/SECURITY_CONFIGURATION.md) - 安全配置
 
 ---
 
-**文档版本**: v1.0.0
-**最后更新**: 2025-09-08
+**文档维护**: 本文档由鲸落开发团队维护，如有问题请提交Issue或联系开发团队。
+
+**最后更新**: 2024-12-19  
+**文档版本**: v1.0.1  
 **维护者**: 鲸落开发团队

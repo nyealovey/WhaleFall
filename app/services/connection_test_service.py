@@ -25,6 +25,7 @@ class ConnectionTestService:
         Returns:
             测试结果
         """
+        connection_obj = None
         try:
             # 创建连接
             connection_obj = ConnectionFactory.create_connection(instance)
@@ -41,12 +42,6 @@ class ConnectionTestService:
             instance.last_connected = now()
             db.session.commit()
 
-            # 关闭连接
-            if hasattr(connection_obj, "disconnect"):
-                connection_obj.disconnect()
-            elif hasattr(connection_obj, "close"):
-                connection_obj.close()
-
             return {
                 "success": True,
                 "message": f"连接成功，数据库版本: {version_info}",
@@ -61,20 +56,61 @@ class ConnectionTestService:
 
                 instance.last_connected = now()
                 db.session.commit()
-            except Exception:
-                self.test_logger.error("更新最后连接时间失败: {update_error}")
+            except Exception as update_error:
+                self.test_logger.error(f"更新最后连接时间失败: {update_error}")
 
-            self.test_logger.error(
-                "数据库连接测试失败",
-                module="connection_test",
-                instance_id=instance.id,
-                instance_name=instance.name,
-                db_type=instance.db_type,
-                host=instance.host,
-                error=str(e),
-            )
+            # 记录具体的错误类型用于安全分析
+            error_type = type(e).__name__
+            error_message = str(e)
+            
+            # 检查是否可能是SQL注入攻击
+            suspicious_patterns = [
+                "union", "select", "insert", "update", "delete", "drop", "create",
+                "alter", "exec", "execute", "script", "javascript", "vbscript"
+            ]
+            
+            is_suspicious = any(pattern in error_message.lower() for pattern in suspicious_patterns)
+            
+            if is_suspicious:
+                self.test_logger.warning(
+                    "检测到可疑的数据库错误，可能存在安全威胁",
+                    module="connection_test",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    db_type=instance.db_type,
+                    host=instance.host,
+                    error_type=error_type,
+                    error_message=error_message,
+                    security_alert=True
+                )
+            else:
+                self.test_logger.error(
+                    "数据库连接测试失败",
+                    module="connection_test",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    db_type=instance.db_type,
+                    host=instance.host,
+                    error_type=error_type,
+                    error_message=error_message,
+                )
 
-            return {"success": False, "error": f"连接失败: {str(e)}"}
+            return {"success": False, "error": f"连接失败: {error_message}"}
+        finally:
+            # 确保连接被正确关闭，防止资源泄漏
+            if connection_obj is not None:
+                try:
+                    if hasattr(connection_obj, "disconnect"):
+                        connection_obj.disconnect()
+                    elif hasattr(connection_obj, "close"):
+                        connection_obj.close()
+                except Exception as close_error:
+                    self.test_logger.warning(
+                        "关闭数据库连接时发生错误",
+                        module="connection_test",
+                        instance_id=instance.id,
+                        error=str(close_error)
+                    )
 
     def _get_database_version(self, instance: Instance, connection: Any) -> str:  # noqa: ANN401
         """
@@ -102,14 +138,39 @@ class ConnectionTestService:
                 return result[0][0] if result else "未知版本"
             return "未知数据库类型"
         except Exception as e:
-            self.test_logger.warning(
-                "获取数据库版本失败",
-                module="connection_test",
-                instance_id=instance.id,
-                instance_name=instance.name,
-                db_type=instance.db_type,
-                error=str(e),
-            )
+            # 记录具体的错误类型
+            error_type = type(e).__name__
+            error_message = str(e)
+            
+            # 检查是否可能是SQL注入攻击
+            suspicious_patterns = [
+                "union", "select", "insert", "update", "delete", "drop", "create",
+                "alter", "exec", "execute", "script", "javascript", "vbscript"
+            ]
+            
+            is_suspicious = any(pattern in error_message.lower() for pattern in suspicious_patterns)
+            
+            if is_suspicious:
+                self.test_logger.warning(
+                    "检测到可疑的版本查询错误，可能存在安全威胁",
+                    module="connection_test",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    db_type=instance.db_type,
+                    error_type=error_type,
+                    error_message=error_message,
+                    security_alert=True
+                )
+            else:
+                self.test_logger.warning(
+                    "获取数据库版本失败",
+                    module="connection_test",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    db_type=instance.db_type,
+                    error_type=error_type,
+                    error_message=error_message,
+                )
             return "版本获取失败"
 
 
