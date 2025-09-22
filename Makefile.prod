@@ -40,6 +40,8 @@ help:
 	@echo "维护命令:"
 	@echo "  clean       - 清理Docker资源"
 	@echo "  shell       - 进入应用容器"
+	@echo "  check-permissions - 检查权限状态"
+	@echo "  fix-permissions  - 修复权限问题"
 	@echo "=================================="
 
 # 安装系统依赖
@@ -47,9 +49,13 @@ install:
 	@echo "📦 安装系统依赖..."
 	@sudo apt update
 	@sudo apt install -y curl wget git docker.io docker-compose-plugin
-	@sudo usermod -aG docker $$USER
+	@if [ "$$(id -u)" -eq 0 ]; then \
+		echo "⚠️  检测到root用户，跳过Docker组权限设置"; \
+	else \
+		sudo usermod -aG docker $$USER; \
+		echo "⚠️  请重新登录以使Docker组权限生效"; \
+	fi
 	@echo "✅ 系统依赖安装完成"
-	@echo "⚠️  请重新登录以使Docker组权限生效"
 
 # 配置环境文件
 config:
@@ -156,7 +162,9 @@ init-db-quick:
 backup:
 	@echo "💾 备份数据..."
 	@mkdir -p /opt/whale_fall_data/backups
+	@chmod 755 /opt/whale_fall_data/backups
 	@docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U $$(grep POSTGRES_USER .env | cut -d'=' -f2) -d $$(grep POSTGRES_DB .env | cut -d'=' -f2) > /opt/whale_fall_data/backups/backup_$$(date +%Y%m%d_%H%M%S).sql
+	@chmod 644 /opt/whale_fall_data/backups/backup_$$(date +%Y%m%d_%H%M%S).sql
 	@echo "✅ 数据备份完成"
 
 # 恢复数据
@@ -233,3 +241,39 @@ version:
 	@echo "应用版本: $$(grep APP_VERSION .env | cut -d'=' -f2)"
 	@echo "Docker版本: $$(docker --version)"
 	@echo "Docker Compose版本: $$(docker-compose --version)"
+
+# 检查权限
+check-permissions:
+	@echo "🔍 检查权限..."
+	@echo "当前用户: $$(whoami)"
+	@echo "用户ID: $$(id -u)"
+	@echo "Docker权限: $$(docker info >/dev/null 2>&1 && echo "✅ 有Docker权限" || echo "❌ 无Docker权限")"
+	@echo "脚本权限:"
+	@for script in scripts/validate_env.sh scripts/database/init_database.sh scripts/database/quick_init.sh; do \
+		if [ -f "$$script" ]; then \
+			if [ -x "$$script" ]; then \
+				echo "  ✅ $$script - 可执行"; \
+			else \
+				echo "  ❌ $$script - 不可执行"; \
+			fi; \
+		else \
+			echo "  ⚠️  $$script - 不存在"; \
+		fi; \
+	done
+	@echo "目录权限:"
+	@for dir in /opt/whale_fall_data /opt/whale_fall_data/backups; do \
+		if [ -d "$$dir" ]; then \
+			echo "  ✅ $$dir - 存在 ($$(stat -c %a $$dir))"; \
+		else \
+			echo "  ⚠️  $$dir - 不存在"; \
+		fi; \
+	done
+
+# 修复权限
+fix-permissions:
+	@echo "🔧 修复权限..."
+	@chmod +x scripts/*.sh 2>/dev/null || true
+	@chmod +x scripts/*/*.sh 2>/dev/null || true
+	@mkdir -p /opt/whale_fall_data/backups
+	@chmod 755 /opt/whale_fall_data/backups
+	@echo "✅ 权限修复完成"
