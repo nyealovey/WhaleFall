@@ -14,7 +14,7 @@
  */
 function viewAccountPermissions(accountId, options = {}) {
     const {
-        apiUrl = `/account-list/${accountId}/permissions`,
+        apiUrl = `/accounts/${accountId}/permissions`,
         onSuccess,
         onError,
         onFinally
@@ -105,7 +105,7 @@ function viewAccountPermissions(accountId, options = {}) {
  * @param {string} apiUrl - API URL
  * @returns {Promise} 权限数据Promise
  */
-function fetchAccountPermissions(accountId, apiUrl = `/account-list/${accountId}/permissions`) {
+function fetchAccountPermissions(accountId, apiUrl = `/accounts/${accountId}/permissions`) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
                      document.querySelector('input[name="csrf_token"]')?.value;
     
