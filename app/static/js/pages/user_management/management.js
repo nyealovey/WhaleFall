@@ -284,11 +284,11 @@ function sortTable(column, direction) {
 
 // 编辑用户
 function editUser(userId) {
-    fetch(`/user_management/api/get_users?user_id=${userId}`)
+    fetch(`/user_management/api/users/${userId}`)
     .then(response => response.json())
     .then(data => {
-        if (data.success && data.data.users.length > 0) {
-            const user = data.data.users[0];
+        if (data.success && data.data.user) {
+            const user = data.data.user;
             document.getElementById('editUserId').value = user.id;
             document.getElementById('editUsername').value = user.username;
             document.getElementById('editRole').value = user.role;
