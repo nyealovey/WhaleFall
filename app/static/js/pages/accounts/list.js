@@ -16,26 +16,26 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('TagSelector类未加载，等待500ms后重试...');
         setTimeout(() => {
             console.log('延迟初始化，TagSelector 类可用性:', typeof TagSelector !== 'undefined');
-            console.log('准备调用 initializeTagSelector()...');
-            initializeTagSelector();
+            console.log('准备调用 initializeAccountListTagSelector()...');
+            initializeAccountListTagSelector();
         }, 500);
     } else {
-        console.log('TagSelector类已加载，立即调用 initializeTagSelector()...');
-        console.log('准备调用 initializeTagSelector 函数...');
+        console.log('TagSelector类已加载，立即调用 initializeAccountListTagSelector()...');
+        console.log('准备调用 initializeAccountListTagSelector 函数...');
         try {
-            console.log('正在调用 initializeTagSelector()...');
-            console.log('initializeTagSelector 函数类型:', typeof initializeTagSelector);
-            console.log('initializeTagSelector 函数存在:', initializeTagSelector !== undefined);
+            console.log('正在调用 initializeAccountListTagSelector()...');
+            console.log('initializeAccountListTagSelector 函数类型:', typeof initializeAccountListTagSelector);
+            console.log('initializeAccountListTagSelector 函数存在:', initializeAccountListTagSelector !== undefined);
             
-            if (typeof initializeTagSelector === 'function') {
-                console.log('调用 initializeTagSelector 函数...');
-                initializeTagSelector();
-                console.log('initializeTagSelector() 调用完成');
+            if (typeof initializeAccountListTagSelector === 'function') {
+                console.log('调用 initializeAccountListTagSelector 函数...');
+                initializeAccountListTagSelector();
+                console.log('initializeAccountListTagSelector() 调用完成');
             } else {
-                console.error('initializeTagSelector 不是一个函数:', typeof initializeTagSelector);
+                console.error('initializeAccountListTagSelector 不是一个函数:', typeof initializeAccountListTagSelector);
             }
         } catch (error) {
-            console.error('initializeTagSelector 调用失败:', error);
+            console.error('initializeAccountListTagSelector 调用失败:', error);
             console.error('错误堆栈:', error.stack);
         }
     }
@@ -53,10 +53,10 @@ if (document.readyState === 'loading') {
         console.log('TagSelector类未加载，等待1000ms后重试...');
         setTimeout(() => {
             console.log('延迟初始化，TagSelector 类可用性:', typeof TagSelector !== 'undefined');
-            initializeTagSelector();
+            initializeAccountListTagSelector();
         }, 1000);
     } else {
-        initializeTagSelector();
+        initializeAccountListTagSelector();
     }
 }
 
@@ -194,7 +194,7 @@ function closeTagSelector() {
 }
 
 // 初始化标签选择器
-function initializeTagSelector() {
+function initializeAccountListTagSelector() {
     console.log('=== initializeTagSelector 函数被调用 ===');
     console.log('函数开始执行...');
     console.log('当前时间:', new Date().toISOString());
