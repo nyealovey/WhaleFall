@@ -50,22 +50,52 @@ def get_jobs() -> Response:
         for job in jobs:
             # 检查任务状态
             is_paused = job.next_run_time is None
-            is_builtin = job.id in ["sync_accounts", "cleanup_logs"]
+            is_builtin = job.id in ["sync_all_accounts", "sync_all_instances", "cleanup_logs"]
+
+            trigger_type = "unknown"
+            trigger_args: dict[str, Any] = {}
+            if isinstance(job.trigger, CronTrigger):
+                trigger_type = "cron"
+                # CronTrigger的字段顺序: year, month, day, week, day_of_week, hour, minute, second
+                trigger_args = {
+                    "minute": str(job.trigger.fields[6]),
+                    "hour": str(job.trigger.fields[5]),
+                    "day": str(job.trigger.fields[2]),
+                    "month": str(job.trigger.fields[1]),
+                    "day_of_week": str(job.trigger.fields[4]),
+                }
+            elif isinstance(job.trigger, IntervalTrigger):
+                trigger_type = "interval"
+                delta = job.trigger.interval
+                trigger_args = {
+                    "weeks": delta.days // 7,
+                    "days": delta.days % 7,
+                    "hours": delta.seconds // 3600,
+                    "minutes": (delta.seconds % 3600) // 60,
+                    "seconds": delta.seconds % 60,
+                }
+            elif isinstance(job.trigger, DateTrigger):
+                trigger_type = "date"
+                trigger_args = {"run_date": job.trigger.run_date.isoformat()}
+
+            # 模拟任务状态
+            state = "STATE_PAUSED"
+            if scheduler.running and not is_paused:
+                state = "STATE_RUNNING"
 
             job_info = {
                 "id": job.id,
                 "name": job.name,
-                "next_run_time": (job.next_run_time.isoformat() if job.next_run_time else None),
-                "trigger": str(job.trigger),
-                "func": (job.func.__name__ if hasattr(job.func, "__name__") else str(job.func)),
+                "description": job.name,
+                "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None,
+                "last_run_time": None,
+                "trigger_type": trigger_type,
+                "trigger_args": trigger_args,
+                "state": state,
+                "is_builtin": is_builtin,
+                "func": job.func.__name__ if hasattr(job.func, "__name__") else str(job.func),
                 "args": job.args,
                 "kwargs": job.kwargs,
-                "misfire_grace_time": job.misfire_grace_time,
-                "max_instances": job.max_instances,
-                "coalesce": job.coalesce,
-                "is_paused": is_paused,
-                "is_builtin": is_builtin,
-                "status": "paused" if is_paused else "active",
             }
             jobs_data.append(job_info)
 
