@@ -2,6 +2,10 @@
 
 {% block title %}标签管理 - 鲸落{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tags/index.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -219,11 +223,7 @@
     </div>
 </div>
 
-<script>
-function deleteTag(tagId, tagName) {
-    document.getElementById('deleteTagName').textContent = tagName;
-    document.getElementById('deleteForm').action = '{{ url_for("tags.delete", tag_id=0) }}'.replace('0', tagId);
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-}
-</script>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/tags/index.js') }}"></script>
+{% endblock %}
 {% endblock %}
