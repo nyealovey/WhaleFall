@@ -5,6 +5,8 @@
 
 from typing import Any
 
+from sqlalchemy import func
+
 from app import db
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
