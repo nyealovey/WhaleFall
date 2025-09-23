@@ -1,0 +1,4046 @@
+# CSS 和 HTML 分析报告
+
+## 未使用的CSS文件
+
+- `app/static/css/pages/logs-dashboard.css`
+- `app/static/css/pages/sync_sessions-management.css`
+
+## 未使用的CSS选择器
+
+### `app/static/css/account_classification.css`
+
+- `.badge`
+- `.btn-group-sm`
+- `.btn-outline-danger`
+- `.btn-outline-info`
+- `.btn-outline-primary`
+- `.card-text`
+- `.card-title`
+- `.classification-item`
+- `.col-md-3`
+- `.custom-scrollbar`
+- `.db-type-badge`
+- `.empty-state`
+- `.gap-1`
+- `.loading-spinner`
+- `.loading-state`
+- `.matched-accounts-btn`
+- `.normal`
+- `.permission-section`
+- `.privileged`
+- `.readonly`
+- `.risk`
+- `.rule-actions`
+- `.rule-card`
+- `.rule-classification-badge`
+- `.rule-group-card`
+- `.rule-item`
+- `.rule-list`
+- `.sensitive`
+- `.table-hover`
+- `.table-responsive`
+
+### `app/static/css/components/tag_selector.css`
+
+- `.add`
+- `.category-company_type`
+- `.category-custom`
+- `.category-department`
+- `.category-environment`
+- `.category-filter-btn`
+- `.category-filter-group`
+- `.clear-search-btn`
+- `.empty-state`
+- `.fade-in`
+- `.loading-spinner`
+- `.loading-state`
+- `.no-tags-placeholder`
+- `.remove`
+- `.remove-tag`
+- `.removing`
+- `.search-highlight`
+- `.selected`
+- `.selected-tag`
+- `.selected-tag-badge`
+- `.selected-tags-list`
+- `.slide-in-right`
+- `.tag-action-btn`
+- `.tag-actions`
+- `.tag-category`
+- `.tag-category-badge`
+- `.tag-description`
+- `.tag-details`
+- `.tag-display-badge`
+- `.tag-icon`
+- `.tag-info`
+- `.tag-item`
+- `.tag-meta`
+- `.tag-name`
+- `.tag-search-input`
+- `.tag-status`
+
+### `app/static/css/pages/sync_sessions-management.css`
+
+- `.bg-danger`
+- `.bg-secondary`
+- `.bg-success`
+- `.bg-warning`
+- `.cancelled`
+- `.completed`
+- `.failed`
+- `.filter-section`
+- `.progress`
+- `.progress-bar`
+- `.running`
+- `.session-card`
+- `.status-badge`
+- `.text-danger`
+- `.text-success`
+- `.text-warning`
+
+### `app/static/css/pages/logs-dashboard.css`
+
+- `.btn`
+- `.export-buttons`
+- `.filter-section`
+- `.loading`
+- `.log-context`
+- `.log-entry`
+- `.log-level-CRITICAL`
+- `.log-level-DEBUG`
+- `.log-level-ERROR`
+- `.log-level-INFO`
+- `.log-level-WARNING`
+- `.log-message`
+- `.log-module`
+- `.log-timestamp`
+- `.log-traceback`
+- `.no-logs`
+- `.pagination`
+- `.stat-card`
+- `.stat-label`
+- `.stat-number`
+- `.stats-cards`
+
+### `app/static/css/pages/about.css`
+
+- `.about-card`
+- `.about-card-body`
+- `.about-card-header`
+- `.about-container`
+- `.about-footer`
+- `.about-logo`
+- `.about-page`
+- `.border-gradient`
+- `.btn-glow`
+- `.contact-icon`
+- `.contact-info`
+- `.contact-item`
+- `.fade-in`
+- `.feature-icon`
+- `.feature-list`
+- `.footer-link`
+- `.footer-links`
+- `.glass-effect`
+- `.gradient-border`
+- `.gradient-text`
+- `.loading-animation`
+- `.pattern-dots`
+- `.pattern-grid`
+- `.pulse`
+- `.shadow-medium`
+- `.shadow-soft`
+- `.shadow-strong`
+- `.slide-in-left`
+- `.slide-in-right`
+- `.stat-item`
+- `.stat-label`
+- `.stat-number`
+- `.stats-grid`
+- `.tech-stack-tag`
+- `.text-shadow`
+- `.text-shadow-strong`
+- `.version-date`
+- `.version-info`
+- `.version-number`
+
+### `app/static/css/pages/auth/login.css`
+
+- `.alert`
+- `.alert-danger`
+- `.alert-success`
+- `.alert-warning`
+- `.error-state`
+- `.fair`
+- `.good`
+- `.invalid-feedback`
+- `.is-invalid`
+- `.is-valid`
+- `.loading-overlay`
+- `.loading-spinner`
+- `.login-btn`
+- `.login-card`
+- `.login-container`
+- `.login-footer`
+- `.login-form`
+- `.login-header`
+- `.login-logo`
+- `.login-subtitle`
+- `.login-title`
+- `.page-title`
+- `.password-hint`
+- `.password-strength`
+- `.password-strength-bar`
+- `.password-toggle`
+- `.strong`
+- `.success-state`
+- `.valid-feedback`
+- `.weak`
+
+### `app/static/css/pages/auth/change_password.css`
+
+- `.alert`
+- `.alert-danger`
+- `.alert-success`
+- `.alert-warning`
+- `.btn-group`
+- `.change-password-btn`
+- `.change-password-card`
+- `.change-password-container`
+- `.change-password-form`
+- `.change-password-header`
+- `.change-password-icon`
+- `.change-password-subtitle`
+- `.change-password-title`
+- `.error-state`
+- `.fair`
+- `.form-group`
+- `.good`
+- `.invalid-feedback`
+- `.is-invalid`
+- `.is-valid`
+- `.loading-overlay`
+- `.loading-spinner`
+- `.match`
+- `.no-match`
+- `.page-title`
+- `.password-input-group`
+- `.password-match-indicator`
+- `.password-requirements`
+- `.password-strength-bar`
+- `.password-strength-container`
+- `.password-strength-fill`
+- `.password-strength-text`
+- `.password-toggle`
+- `.requirement-met`
+- `.requirement-not-met`
+- `.spinner-border`
+- `.strong`
+- `.success-state`
+- `.valid-feedback`
+- `.very-strong`
+- `.weak`
+
+### `app/static/css/pages/admin/management.css`
+
+- `.btn-group`
+- `.data-updated`
+- `.error-message`
+- `.fade-in`
+- `.info-item`
+- `.info-label`
+- `.info-value`
+- `.loading-overlay`
+- `.page-title`
+- `.refresh-btn`
+- `.spinner-border`
+- `.stat-label`
+- `.stat-number`
+- `.stats-grid`
+- `.status-error`
+- `.status-grid`
+- `.status-healthy`
+- `.status-item`
+- `.status-label`
+- `.status-monitor-card`
+- `.status-value`
+- `.status-warning`
+- `.success-message`
+- `.system-info-card`
+- `.system-overview-card`
+- `.time-display`
+- `.warning-message`
+
+### `app/static/css/pages/scheduler/management.css`
+
+- `.active`
+- `.alert`
+- `.alert-danger`
+- `.alert-info`
+- `.alert-success`
+- `.alert-warning`
+- `.btn-danger`
+- `.btn-group-vertical`
+- `.btn-info`
+- `.btn-success`
+- `.btn-warning`
+- `.error`
+- `.execution-history`
+- `.execution-item`
+- `.execution-status`
+- `.execution-time`
+- `.fade-in`
+- `.field-description`
+- `.form-control-plaintext`
+- `.job-actions`
+- `.job-card`
+- `.job-config-panel`
+- `.job-config-title`
+- `.job-description`
+- `.job-info`
+- `.job-logs`
+- `.job-meta`
+- `.job-meta-item`
+- `.job-progress`
+- `.job-progress-bar`
+- `.job-stats-chart`
+- `.job-status`
+- `.job-timeline`
+- `.job-timeline-description`
+- `.job-timeline-item`
+- `.job-timeline-time`
+- `.job-title`
+- `.page-header`
+- `.paused`
+- `.required-field`
+- `.running`
+- `.slide-in-right`
+- `.spinner-border`
+- `.stats-number`
+- `.status-active`
+- `.status-error`
+- `.status-paused`
+- `.success`
+- `.trigger-info`
+
+### `app/static/css/pages/tags/index.css`
+
+- `.active`
+- `.alert`
+- `.alert-danger`
+- `.alert-info`
+- `.alert-success`
+- `.alert-warning`
+- `.btn-info`
+- `.btn-success`
+- `.btn-warning`
+- `.categories`
+- `.category-business`
+- `.category-custom`
+- `.category-environment`
+- `.category-technical`
+- `.empty-state`
+- `.fade-in`
+- `.field-description`
+- `.form-group`
+- `.inactive`
+- `.loading-spinner`
+- `.loading-state`
+- `.page-header`
+- `.required-field`
+- `.search-filter-card`
+- `.search-highlight`
+- `.slide-in-right`
+- `.spinner-border`
+- `.stats-card`
+- `.stats-label`
+- `.stats-number`
+- `.tag-actions`
+- `.tag-card`
+- `.tag-card-body`
+- `.tag-card-footer`
+- `.tag-card-header`
+- `.tag-category`
+- `.tag-color-preview`
+- `.tag-description`
+- `.tag-details`
+- `.tag-icon`
+- `.tag-info`
+- `.tag-meta`
+- `.tag-meta-item`
+- `.tag-name`
+- `.tag-stat-item`
+- `.tag-stat-label`
+- `.tag-stat-number`
+- `.tag-stats`
+- `.tag-status`
+- `.tag-usage`
+- `.tag-usage-item`
+- `.tag-usage-list`
+- `.tag-usage-title`
+- `.total`
+
+### `app/static/css/pages/dashboard/overview.css`
+
+- `.active`
+- `.auto-refresh-btn`
+- `.auto-refresh-indicator`
+- `.bg-info`
+- `.bg-primary`
+- `.btn-group`
+- `.chart-legend`
+- `.chart-legend-color`
+- `.chart-legend-item`
+- `.chart-loading`
+- `.chart-title`
+- `.data-updated`
+- `.empty-data`
+- `.error-message`
+- `.fade-in`
+- `.high`
+- `.inactive`
+- `.loading-overlay`
+- `.low`
+- `.medium`
+- `.overview-card`
+- `.page-title`
+- `.refresh-btn`
+- `.resource-badge`
+- `.resource-card`
+- `.resource-item`
+- `.resource-label`
+- `.resource-name`
+- `.resource-value`
+- `.spinner-border`
+- `.stat-icon`
+- `.stat-label`
+- `.stat-number`
+- `.stats-grid`
+- `.status-card`
+- `.status-error`
+- `.status-grid`
+- `.status-healthy`
+- `.status-item`
+- `.status-label`
+- `.status-value`
+- `.status-warning`
+- `.success-message`
+- `.time-display`
+- `.uptime-display`
+- `.warning-message`
+
+### `app/static/css/pages/logs/dashboard.css`
+
+- `.CRITICAL`
+- `.DEBUG`
+- `.ERROR`
+- `.INFO`
+- `.WARNING`
+- `.active`
+- `.fade-in`
+- `.json-context`
+- `.log-context`
+- `.log-detail-table`
+- `.log-entry`
+- `.log-header`
+- `.log-id-display`
+- `.log-level`
+- `.log-level-CRITICAL`
+- `.log-level-DEBUG`
+- `.log-level-ERROR`
+- `.log-level-INFO`
+- `.log-level-WARNING`
+- `.log-level-badge`
+- `.log-message`
+- `.log-module`
+- `.log-right-info`
+- `.log-timestamp`
+- `.log-traceback`
+- `.module-badge`
+- `.no-logs`
+- `.page-item`
+- `.page-link`
+- `.pagination`
+- `.search-highlight`
+- `.stats-grid`
+- `.stats-icon`
+- `.stats-label`
+- `.stats-number`
+- `.timestamp-display`
+- `.traceback-content`
+
+### `app/static/css/pages/accounts/sync_records.css`
+
+- `.action-buttons`
+- `.batch-btn`
+- `.batch-details-table`
+- `.bg-danger`
+- `.cancelled`
+- `.chart-container`
+- `.completed`
+- `.details-btn`
+- `.details-content`
+- `.empty-data`
+- `.error-message`
+- `.fade-in`
+- `.failed`
+- `.filter-form`
+- `.form-control`
+- `.loading-overlay`
+- `.manual_batch`
+- `.manual_single`
+- `.manual_task`
+- `.modal-lg`
+- `.page-header`
+- `.retry-btn`
+- `.running`
+- `.scheduled_task`
+- `.search-filter-card`
+- `.stats-card`
+- `.stats-grid`
+- `.stats-icon`
+- `.stats-label`
+- `.stats-number`
+- `.status-badge`
+- `.success-message`
+- `.sync-records-table`
+- `.sync-type-badge`
+- `.time-display`
+- `.time-label`
+- `.warning-message`
+
+### `app/static/css/pages/accounts/list.css`
+
+- `#tagSelectorModal`
+- `.account-status-badge`
+- `.accounts-table`
+- `.action-buttons`
+- `.btn-check`
+- `.db-type-badge`
+- `.empty-data`
+- `.fade-in`
+- `.filter-tag`
+- `.filter-tags`
+- `.inactive`
+- `.loading-overlay`
+- `.locked`
+- `.mysql`
+- `.oracle`
+- `.permission-buttons`
+- `.postgresql`
+- `.remove-tag`
+- `.search-filter-card`
+- `.sqlserver`
+- `.stats-info`
+- `.stats-text`
+- `.sync-btn`
+- `.tag-category-filter`
+- `.view-permissions-btn`
+
+### `app/static/css/pages/instances/create.css`
+
+- `.col-md-6`
+- `.db-type-icon`
+- `.db-type-option`
+- `.db-type-selector`
+- `.empty`
+- `.error-message`
+- `.fade-in`
+- `.field-group`
+- `.field-group-title`
+- `.form-group`
+- `.help-text`
+- `.instance-form`
+- `.invalid-feedback`
+- `.is-invalid`
+- `.is-valid`
+- `.loading-overlay`
+- `.oracle-sid-row`
+- `.port-database-row`
+- `.preview-area`
+- `.slide-in`
+- `.submit-btn`
+- `.success-message`
+- `.tag-chip`
+- `.tag-preview`
+- `.tag-selector-area`
+- `.tag-selector-btn`
+- `.valid-feedback`
+
+### `app/static/css/pages/instances/list.css`
+
+- `.action-buttons`
+- `.dragover`
+- `.error-message`
+- `.file-upload-area`
+- `.instance-card`
+- `.json-input-area`
+- `.loading-overlay`
+- `.offline`
+- `.online`
+- `.search-filter-section`
+- `.status-indicator`
+- `.success-message`
+- `.unknown`
+
+### `app/static/css/pages/instances/edit.css`
+
+- `.btn-group-actions`
+- `.col-md-6`
+- `.current-tag-item`
+- `.current-tags`
+- `.current-tags-list`
+- `.current-tags-title`
+- `.db-type-icon`
+- `.db-type-option`
+- `.db-type-selector`
+- `.empty`
+- `.error-message`
+- `.fade-in`
+- `.field-group`
+- `.field-group-title`
+- `.form-group`
+- `.help-text`
+- `.instance-form`
+- `.invalid-feedback`
+- `.is-invalid`
+- `.is-valid`
+- `.loading-overlay`
+- `.oracle-sid-row`
+- `.port-database-row`
+- `.preview-area`
+- `.save-btn`
+- `.slide-in`
+- `.success-message`
+- `.tag-chip`
+- `.tag-preview`
+- `.tag-selector-area`
+- `.tag-selector-btn`
+- `.test-connection-btn`
+- `.test-result-card`
+- `.test-result-error`
+- `.test-result-success`
+- `.test-result-warning`
+- `.valid-feedback`
+- `.warning-message`
+
+### `app/static/css/pages/instances/detail.css`
+
+- `.account-filter`
+- `.action-buttons`
+- `.db-type-badge`
+- `.deleted`
+- `.error`
+- `.error-message`
+- `.history-timeline`
+- `.instance-info-card`
+- `.loading-overlay`
+- `.offline`
+- `.online`
+- `.permission-detail-modal`
+- `.permission-item`
+- `.permission-viewer`
+- `.stats-card`
+- `.stats-label`
+- `.stats-number`
+- `.status-indicator`
+- `.success`
+- `.success-message`
+- `.test-result`
+- `.timeline`
+- `.timeline-content`
+- `.timeline-item`
+- `.timeline-marker`
+- `.unknown`
+
+### `app/static/css/pages/instances/statistics.css`
+
+- `.active`
+- `.chart-container`
+- `.chart-legend`
+- `.chart-legend-color`
+- `.chart-legend-item`
+- `.data-updated`
+- `.db-type-badge`
+- `.empty-data`
+- `.fade-in`
+- `.highlight-stat`
+- `.inactive`
+- `.loading-overlay`
+- `.mysql`
+- `.oracle`
+- `.postgresql`
+- `.refresh-btn`
+- `.spinner-border`
+- `.sqlserver`
+- `.stats-card`
+- `.stats-icon`
+- `.stats-label`
+- `.stats-number`
+- `.stats-table`
+- `.status-indicator`
+
+### `app/static/css/pages/sync_sessions/management.css`
+
+- `.bg-secondary`
+- `.bg-success`
+- `.bg-warning`
+- `.cancelled`
+- `.completed`
+- `.failed`
+- `.progress`
+- `.progress-bar`
+- `.running`
+- `.session-card`
+- `.status-badge`
+- `.text-danger`
+- `.text-success`
+- `.text-warning`
+
+### `app/static/css/pages/user_management/management.css`
+
+- `.active`
+- `.alert`
+- `.alert-danger`
+- `.alert-success`
+- `.alert-warning`
+- `.btn-danger`
+- `.btn-success`
+- `.btn-warning`
+- `.disabled`
+- `.fade-in`
+- `.field-description`
+- `.form-group`
+- `.invalid-feedback`
+- `.is-invalid`
+- `.is-valid`
+- `.loading-spinner`
+- `.loading-state`
+- `.page-item`
+- `.page-link`
+- `.pagination`
+- `.permission-indicator`
+- `.required-field`
+- `.role-admin`
+- `.role-user`
+- `.slide-in-right`
+- `.spinner-border`
+- `.status-active`
+- `.status-inactive`
+- `.user-activity-description`
+- `.user-activity-item`
+- `.user-activity-time`
+- `.user-activity-timeline`
+- `.user-stats-chart`
+- `.valid-feedback`
+
+### `app/static/css/pages/credentials/create.css`
+
+- `.alert`
+- `.alert-danger`
+- `.alert-success`
+- `.alert-warning`
+- `.btn-group`
+- `.conditional-field`
+- `.credential-form`
+- `.credential-form-container`
+- `.credential-type-icon`
+- `.db-type-field`
+- `.error-state`
+- `.fair`
+- `.field-description`
+- `.form-fade-in`
+- `.form-group`
+- `.good`
+- `.hidden`
+- `.invalid-feedback`
+- `.is-invalid`
+- `.is-valid`
+- `.loading-overlay`
+- `.loading-spinner`
+- `.page-title`
+- `.password-strength-bar`
+- `.password-strength-container`
+- `.password-strength-fill`
+- `.password-strength-text`
+- `.password-toggle`
+- `.required-field`
+- `.spinner-border`
+- `.strong`
+- `.submit-btn`
+- `.success-state`
+- `.valid-feedback`
+- `.visible`
+- `.weak`
+
+### `app/static/css/pages/credentials/list.css`
+
+- `.action-buttons`
+- `.alert`
+- `.alert-danger`
+- `.alert-success`
+- `.alert-warning`
+- `.btn-sm`
+- `.btn-success`
+- `.btn-warning`
+- `.credential-type-badge`
+- `.credentials-header`
+- `.credentials-table`
+- `.empty-state`
+- `.fade-in`
+- `.loading-spinner`
+- `.loading-state`
+- `.search-filter-card`
+- `.slide-in-right`
+- `.spinner-border`
+- `.status-active`
+- `.status-badge`
+- `.status-inactive`
+- `.type-api`
+- `.type-database`
+- `.type-ssh`
+
+### `app/static/css/pages/credentials/edit.css`
+
+- `.alert`
+- `.alert-danger`
+- `.alert-success`
+- `.alert-warning`
+- `.btn-group`
+- `.conditional-field`
+- `.credential-edit-container`
+- `.credential-edit-form`
+- `.credential-type-icon`
+- `.db-type-field`
+- `.edit-indicator`
+- `.error-state`
+- `.field-description`
+- `.form-fade-in`
+- `.form-group`
+- `.hidden`
+- `.invalid-feedback`
+- `.is-invalid`
+- `.is-valid`
+- `.loading-overlay`
+- `.loading-spinner`
+- `.page-title`
+- `.password-toggle`
+- `.required-field`
+- `.spinner-border`
+- `.submit-btn`
+- `.success-state`
+- `.valid-feedback`
+- `.visible`
+
+## CSS文件和选择器使用情况
+
+### `app/static/css/account_classification.css`
+
+- `#rulesList`: 1 次使用
+- `.badge`: 0 次使用
+- `.btn`: 13 次使用
+- `.btn-group-sm`: 0 次使用
+- `.btn-outline-danger`: 0 次使用
+- `.btn-outline-info`: 0 次使用
+- `.btn-outline-primary`: 0 次使用
+- `.card-body`: 2 次使用
+- `.card-header`: 2 次使用
+- `.card-text`: 0 次使用
+- `.card-title`: 0 次使用
+- `.classification-item`: 0 次使用
+- `.col-md-3`: 0 次使用
+- `.custom-scrollbar`: 0 次使用
+- `.db-type-badge`: 0 次使用
+- `.empty-state`: 0 次使用
+- `.form-check-label`: 12 次使用
+- `.gap-1`: 0 次使用
+- `.loading-spinner`: 0 次使用
+- `.loading-state`: 0 次使用
+- `.matched-accounts-btn`: 0 次使用
+- `.modal-body`: 6 次使用
+- `.normal`: 0 次使用
+- `.permission-section`: 0 次使用
+- `.privileged`: 0 次使用
+- `.readonly`: 0 次使用
+- `.risk`: 0 次使用
+- `.row`: 12 次使用
+- `.rule-actions`: 0 次使用
+- `.rule-card`: 0 次使用
+- `.rule-classification-badge`: 0 次使用
+- `.rule-group-card`: 0 次使用
+- `.rule-item`: 0 次使用
+- `.rule-list`: 0 次使用
+- `.sensitive`: 0 次使用
+- `.table-hover`: 0 次使用
+- `.table-responsive`: 0 次使用
+
+### `app/static/css/components/tag_selector.css`
+
+- `#tagSelectorModal`: 1 次使用
+- `.active`: 2 次使用
+- `.add`: 0 次使用
+- `.category-company_type`: 0 次使用
+- `.category-custom`: 0 次使用
+- `.category-department`: 0 次使用
+- `.category-environment`: 0 次使用
+- `.category-filter-btn`: 0 次使用
+- `.category-filter-group`: 0 次使用
+- `.clear-search-btn`: 0 次使用
+- `.disabled`: 3 次使用
+- `.empty-state`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.loading-spinner`: 0 次使用
+- `.loading-state`: 0 次使用
+- `.modal-body`: 4 次使用
+- `.no-tags-placeholder`: 0 次使用
+- `.remove`: 0 次使用
+- `.remove-tag`: 0 次使用
+- `.removing`: 0 次使用
+- `.search-highlight`: 0 次使用
+- `.selected`: 0 次使用
+- `.selected-tag`: 0 次使用
+- `.selected-tag-badge`: 0 次使用
+- `.selected-tags-area`: 1 次使用
+- `.selected-tags-display`: 1 次使用
+- `.selected-tags-list`: 0 次使用
+- `.slide-in-right`: 0 次使用
+- `.tag-action-btn`: 0 次使用
+- `.tag-actions`: 0 次使用
+- `.tag-category`: 0 次使用
+- `.tag-category-badge`: 0 次使用
+- `.tag-category-filter`: 1 次使用
+- `.tag-description`: 0 次使用
+- `.tag-details`: 0 次使用
+- `.tag-display-badge`: 0 次使用
+- `.tag-icon`: 0 次使用
+- `.tag-info`: 0 次使用
+- `.tag-item`: 0 次使用
+- `.tag-list-area`: 1 次使用
+- `.tag-meta`: 0 次使用
+- `.tag-name`: 0 次使用
+- `.tag-search-area`: 1 次使用
+- `.tag-search-input`: 0 次使用
+- `.tag-selector-container`: 1 次使用
+- `.tag-stat-item`: 4 次使用
+- `.tag-stat-label`: 4 次使用
+- `.tag-stat-number`: 4 次使用
+- `.tag-stats`: 1 次使用
+- `.tag-status`: 0 次使用
+
+### `app/static/css/pages/sync_sessions-management.css`
+
+- `.bg-danger`: 0 次使用
+- `.bg-secondary`: 0 次使用
+- `.bg-success`: 0 次使用
+- `.bg-warning`: 0 次使用
+- `.cancelled`: 0 次使用
+- `.completed`: 0 次使用
+- `.failed`: 0 次使用
+- `.filter-section`: 0 次使用
+- `.progress`: 0 次使用
+- `.progress-bar`: 0 次使用
+- `.running`: 0 次使用
+- `.session-card`: 0 次使用
+- `.status-badge`: 0 次使用
+- `.text-danger`: 0 次使用
+- `.text-success`: 0 次使用
+- `.text-warning`: 0 次使用
+
+### `app/static/css/pages/logs-dashboard.css`
+
+- `.btn`: 0 次使用
+- `.export-buttons`: 0 次使用
+- `.filter-section`: 0 次使用
+- `.loading`: 0 次使用
+- `.log-context`: 0 次使用
+- `.log-entry`: 0 次使用
+- `.log-level-CRITICAL`: 0 次使用
+- `.log-level-DEBUG`: 0 次使用
+- `.log-level-ERROR`: 0 次使用
+- `.log-level-INFO`: 0 次使用
+- `.log-level-WARNING`: 0 次使用
+- `.log-message`: 0 次使用
+- `.log-module`: 0 次使用
+- `.log-timestamp`: 0 次使用
+- `.log-traceback`: 0 次使用
+- `.no-logs`: 0 次使用
+- `.pagination`: 0 次使用
+- `.stat-card`: 0 次使用
+- `.stat-label`: 0 次使用
+- `.stat-number`: 0 次使用
+- `.stats-cards`: 0 次使用
+
+### `app/static/css/pages/about.css`
+
+- `.about-card`: 0 次使用
+- `.about-card-body`: 0 次使用
+- `.about-card-header`: 0 次使用
+- `.about-container`: 0 次使用
+- `.about-footer`: 0 次使用
+- `.about-logo`: 0 次使用
+- `.about-page`: 0 次使用
+- `.artistic-title`: 1 次使用
+- `.border-gradient`: 0 次使用
+- `.btn-glow`: 0 次使用
+- `.contact-icon`: 0 次使用
+- `.contact-info`: 0 次使用
+- `.contact-item`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.feature-icon`: 0 次使用
+- `.feature-list`: 0 次使用
+- `.footer-link`: 0 次使用
+- `.footer-links`: 0 次使用
+- `.glass-effect`: 0 次使用
+- `.gradient-border`: 0 次使用
+- `.gradient-text`: 0 次使用
+- `.loading-animation`: 0 次使用
+- `.pattern-dots`: 0 次使用
+- `.pattern-grid`: 0 次使用
+- `.pulse`: 0 次使用
+- `.shadow-medium`: 0 次使用
+- `.shadow-soft`: 0 次使用
+- `.shadow-strong`: 0 次使用
+- `.slide-in-left`: 0 次使用
+- `.slide-in-right`: 0 次使用
+- `.stat-item`: 0 次使用
+- `.stat-label`: 0 次使用
+- `.stat-number`: 0 次使用
+- `.stats-grid`: 0 次使用
+- `.tech-stack-tag`: 0 次使用
+- `.text-shadow`: 0 次使用
+- `.text-shadow-strong`: 0 次使用
+- `.version-date`: 0 次使用
+- `.version-info`: 0 次使用
+- `.version-number`: 0 次使用
+
+### `app/static/css/pages/auth/login.css`
+
+- `.alert`: 0 次使用
+- `.alert-danger`: 0 次使用
+- `.alert-success`: 0 次使用
+- `.alert-warning`: 0 次使用
+- `.card-body`: 1 次使用
+- `.error-state`: 0 次使用
+- `.fair`: 0 次使用
+- `.form-check`: 1 次使用
+- `.form-check-input`: 1 次使用
+- `.form-check-label`: 1 次使用
+- `.form-control`: 2 次使用
+- `.form-label`: 2 次使用
+- `.good`: 0 次使用
+- `.input-group`: 1 次使用
+- `.invalid-feedback`: 0 次使用
+- `.is-invalid`: 0 次使用
+- `.is-valid`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.loading-spinner`: 0 次使用
+- `.login-btn`: 0 次使用
+- `.login-card`: 0 次使用
+- `.login-container`: 0 次使用
+- `.login-footer`: 0 次使用
+- `.login-form`: 0 次使用
+- `.login-header`: 0 次使用
+- `.login-logo`: 0 次使用
+- `.login-subtitle`: 0 次使用
+- `.login-title`: 0 次使用
+- `.page-title`: 0 次使用
+- `.password-hint`: 0 次使用
+- `.password-strength`: 0 次使用
+- `.password-strength-bar`: 0 次使用
+- `.password-toggle`: 0 次使用
+- `.strong`: 0 次使用
+- `.success-state`: 0 次使用
+- `.valid-feedback`: 0 次使用
+- `.weak`: 0 次使用
+
+### `app/static/css/pages/auth/change_password.css`
+
+- `.alert`: 0 次使用
+- `.alert-danger`: 0 次使用
+- `.alert-success`: 0 次使用
+- `.alert-warning`: 0 次使用
+- `.btn`: 5 次使用
+- `.btn-group`: 0 次使用
+- `.card-body`: 2 次使用
+- `.change-password-btn`: 0 次使用
+- `.change-password-card`: 0 次使用
+- `.change-password-container`: 0 次使用
+- `.change-password-form`: 0 次使用
+- `.change-password-header`: 0 次使用
+- `.change-password-icon`: 0 次使用
+- `.change-password-subtitle`: 0 次使用
+- `.change-password-title`: 0 次使用
+- `.error-state`: 0 次使用
+- `.fair`: 0 次使用
+- `.form-control`: 3 次使用
+- `.form-group`: 0 次使用
+- `.form-label`: 4 次使用
+- `.form-text`: 1 次使用
+- `.good`: 0 次使用
+- `.input-group`: 3 次使用
+- `.invalid-feedback`: 0 次使用
+- `.is-invalid`: 0 次使用
+- `.is-valid`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.loading-spinner`: 0 次使用
+- `.match`: 0 次使用
+- `.no-match`: 0 次使用
+- `.page-title`: 0 次使用
+- `.password-input-group`: 0 次使用
+- `.password-match-indicator`: 0 次使用
+- `.password-requirements`: 0 次使用
+- `.password-strength-bar`: 0 次使用
+- `.password-strength-container`: 0 次使用
+- `.password-strength-fill`: 0 次使用
+- `.password-strength-text`: 0 次使用
+- `.password-toggle`: 0 次使用
+- `.requirement-met`: 0 次使用
+- `.requirement-not-met`: 0 次使用
+- `.spinner-border`: 0 次使用
+- `.strong`: 0 次使用
+- `.success-state`: 0 次使用
+- `.valid-feedback`: 0 次使用
+- `.very-strong`: 0 次使用
+- `.weak`: 0 次使用
+
+### `app/static/css/pages/admin/management.css`
+
+- `.btn`: 4 次使用
+- `.btn-group`: 0 次使用
+- `.card-body`: 4 次使用
+- `.card-header`: 4 次使用
+- `.card-title`: 4 次使用
+- `.data-updated`: 0 次使用
+- `.error-message`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.info-item`: 0 次使用
+- `.info-label`: 0 次使用
+- `.info-value`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.page-title`: 0 次使用
+- `.refresh-btn`: 0 次使用
+- `.spinner-border`: 0 次使用
+- `.stat-label`: 0 次使用
+- `.stat-number`: 0 次使用
+- `.stats-grid`: 0 次使用
+- `.status-error`: 0 次使用
+- `.status-grid`: 0 次使用
+- `.status-healthy`: 0 次使用
+- `.status-indicator`: 3 次使用
+- `.status-item`: 0 次使用
+- `.status-label`: 0 次使用
+- `.status-monitor-card`: 0 次使用
+- `.status-value`: 0 次使用
+- `.status-warning`: 0 次使用
+- `.success-message`: 0 次使用
+- `.system-info-card`: 0 次使用
+- `.system-overview-card`: 0 次使用
+- `.text-info`: 1 次使用
+- `.text-primary`: 1 次使用
+- `.text-success`: 1 次使用
+- `.text-warning`: 1 次使用
+- `.time-display`: 0 次使用
+- `.warning-message`: 0 次使用
+
+### `app/static/css/pages/scheduler/management.css`
+
+- `.active`: 0 次使用
+- `.alert`: 0 次使用
+- `.alert-danger`: 0 次使用
+- `.alert-info`: 0 次使用
+- `.alert-success`: 0 次使用
+- `.alert-warning`: 0 次使用
+- `.btn`: 5 次使用
+- `.btn-close`: 2 次使用
+- `.btn-danger`: 0 次使用
+- `.btn-group-vertical`: 0 次使用
+- `.btn-info`: 0 次使用
+- `.btn-primary`: 3 次使用
+- `.btn-secondary`: 2 次使用
+- `.btn-success`: 0 次使用
+- `.btn-warning`: 0 次使用
+- `.empty-state`: 1 次使用
+- `.error`: 0 次使用
+- `.execution-history`: 0 次使用
+- `.execution-item`: 0 次使用
+- `.execution-status`: 0 次使用
+- `.execution-time`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.field-description`: 0 次使用
+- `.form-control`: 19 次使用
+- `.form-control-plaintext`: 0 次使用
+- `.form-group`: 25 次使用
+- `.form-label`: 23 次使用
+- `.form-select`: 2 次使用
+- `.job-actions`: 0 次使用
+- `.job-card`: 0 次使用
+- `.job-config-panel`: 0 次使用
+- `.job-config-title`: 0 次使用
+- `.job-description`: 0 次使用
+- `.job-info`: 0 次使用
+- `.job-logs`: 0 次使用
+- `.job-meta`: 0 次使用
+- `.job-meta-item`: 0 次使用
+- `.job-progress`: 0 次使用
+- `.job-progress-bar`: 0 次使用
+- `.job-stats-chart`: 0 次使用
+- `.job-status`: 0 次使用
+- `.job-timeline`: 0 次使用
+- `.job-timeline-description`: 0 次使用
+- `.job-timeline-item`: 0 次使用
+- `.job-timeline-time`: 0 次使用
+- `.job-title`: 0 次使用
+- `.loading-spinner`: 1 次使用
+- `.loading-state`: 1 次使用
+- `.modal-body`: 2 次使用
+- `.modal-content`: 2 次使用
+- `.modal-footer`: 2 次使用
+- `.modal-header`: 2 次使用
+- `.page-header`: 0 次使用
+- `.paused`: 0 次使用
+- `.required-field`: 0 次使用
+- `.running`: 0 次使用
+- `.show`: 1 次使用
+- `.slide-in-right`: 0 次使用
+- `.spinner-border`: 0 次使用
+- `.stats-number`: 0 次使用
+- `.status-active`: 0 次使用
+- `.status-error`: 0 次使用
+- `.status-paused`: 0 次使用
+- `.success`: 0 次使用
+- `.trigger-config`: 1 次使用
+- `.trigger-info`: 0 次使用
+
+### `app/static/css/pages/tags/index.css`
+
+- `.active`: 0 次使用
+- `.alert`: 0 次使用
+- `.alert-danger`: 0 次使用
+- `.alert-info`: 0 次使用
+- `.alert-success`: 0 次使用
+- `.alert-warning`: 0 次使用
+- `.btn`: 7 次使用
+- `.btn-close`: 1 次使用
+- `.btn-danger`: 1 次使用
+- `.btn-info`: 0 次使用
+- `.btn-outline-primary`: 1 次使用
+- `.btn-primary`: 1 次使用
+- `.btn-secondary`: 1 次使用
+- `.btn-success`: 0 次使用
+- `.btn-warning`: 0 次使用
+- `.card-body`: 2 次使用
+- `.categories`: 0 次使用
+- `.category-business`: 0 次使用
+- `.category-custom`: 0 次使用
+- `.category-environment`: 0 次使用
+- `.category-technical`: 0 次使用
+- `.disabled`: 1 次使用
+- `.empty-state`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.field-description`: 0 次使用
+- `.form-control`: 1 次使用
+- `.form-group`: 0 次使用
+- `.form-label`: 5 次使用
+- `.form-select`: 2 次使用
+- `.inactive`: 0 次使用
+- `.loading-spinner`: 0 次使用
+- `.loading-state`: 0 次使用
+- `.modal-body`: 1 次使用
+- `.modal-content`: 1 次使用
+- `.modal-footer`: 1 次使用
+- `.modal-header`: 1 次使用
+- `.page-header`: 0 次使用
+- `.page-item`: 4 次使用
+- `.page-link`: 4 次使用
+- `.pagination`: 1 次使用
+- `.required-field`: 0 次使用
+- `.search-filter-card`: 0 次使用
+- `.search-highlight`: 0 次使用
+- `.slide-in-right`: 0 次使用
+- `.spinner-border`: 0 次使用
+- `.stats-card`: 0 次使用
+- `.stats-label`: 0 次使用
+- `.stats-number`: 0 次使用
+- `.tag-actions`: 0 次使用
+- `.tag-card`: 0 次使用
+- `.tag-card-body`: 0 次使用
+- `.tag-card-footer`: 0 次使用
+- `.tag-card-header`: 0 次使用
+- `.tag-category`: 0 次使用
+- `.tag-color-preview`: 0 次使用
+- `.tag-description`: 0 次使用
+- `.tag-details`: 0 次使用
+- `.tag-icon`: 0 次使用
+- `.tag-info`: 0 次使用
+- `.tag-meta`: 0 次使用
+- `.tag-meta-item`: 0 次使用
+- `.tag-name`: 0 次使用
+- `.tag-stat-item`: 0 次使用
+- `.tag-stat-label`: 0 次使用
+- `.tag-stat-number`: 0 次使用
+- `.tag-stats`: 0 次使用
+- `.tag-status`: 0 次使用
+- `.tag-usage`: 0 次使用
+- `.tag-usage-item`: 0 次使用
+- `.tag-usage-list`: 0 次使用
+- `.tag-usage-title`: 0 次使用
+- `.total`: 0 次使用
+
+### `app/static/css/pages/dashboard/overview.css`
+
+- `.active`: 0 次使用
+- `.auto-refresh-btn`: 0 次使用
+- `.auto-refresh-indicator`: 0 次使用
+- `.bg-info`: 0 次使用
+- `.bg-primary`: 0 次使用
+- `.bg-success`: 1 次使用
+- `.bg-warning`: 1 次使用
+- `.btn`: 2 次使用
+- `.btn-group`: 0 次使用
+- `.card-body`: 7 次使用
+- `.card-header`: 2 次使用
+- `.card-title`: 7 次使用
+- `.chart-container`: 1 次使用
+- `.chart-legend`: 0 次使用
+- `.chart-legend-color`: 0 次使用
+- `.chart-legend-item`: 0 次使用
+- `.chart-loading`: 0 次使用
+- `.chart-title`: 0 次使用
+- `.data-updated`: 0 次使用
+- `.empty-data`: 0 次使用
+- `.error-message`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.high`: 0 次使用
+- `.inactive`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.low`: 0 次使用
+- `.medium`: 0 次使用
+- `.overview-card`: 0 次使用
+- `.page-title`: 0 次使用
+- `.progress`: 3 次使用
+- `.progress-bar`: 3 次使用
+- `.refresh-btn`: 0 次使用
+- `.resource-badge`: 0 次使用
+- `.resource-card`: 0 次使用
+- `.resource-item`: 0 次使用
+- `.resource-label`: 0 次使用
+- `.resource-name`: 0 次使用
+- `.resource-value`: 0 次使用
+- `.spinner-border`: 0 次使用
+- `.stat-card`: 5 次使用
+- `.stat-icon`: 0 次使用
+- `.stat-label`: 0 次使用
+- `.stat-number`: 0 次使用
+- `.stats-grid`: 0 次使用
+- `.status-card`: 0 次使用
+- `.status-error`: 0 次使用
+- `.status-grid`: 0 次使用
+- `.status-healthy`: 0 次使用
+- `.status-indicator`: 3 次使用
+- `.status-item`: 0 次使用
+- `.status-label`: 0 次使用
+- `.status-value`: 0 次使用
+- `.status-warning`: 0 次使用
+- `.success-message`: 0 次使用
+- `.time-display`: 0 次使用
+- `.uptime-display`: 0 次使用
+- `.warning-message`: 0 次使用
+
+### `app/static/css/pages/logs/dashboard.css`
+
+- `.CRITICAL`: 0 次使用
+- `.DEBUG`: 0 次使用
+- `.ERROR`: 0 次使用
+- `.INFO`: 0 次使用
+- `.WARNING`: 0 次使用
+- `.active`: 0 次使用
+- `.bg-danger`: 1 次使用
+- `.bg-info`: 1 次使用
+- `.bg-primary`: 1 次使用
+- `.bg-warning`: 1 次使用
+- `.card-body`: 6 次使用
+- `.fade-in`: 0 次使用
+- `.filter-form`: 1 次使用
+- `.form-control`: 1 次使用
+- `.form-label`: 5 次使用
+- `.form-select`: 3 次使用
+- `.json-context`: 0 次使用
+- `.loading`: 1 次使用
+- `.log-context`: 0 次使用
+- `.log-detail-modal`: 1 次使用
+- `.log-detail-table`: 0 次使用
+- `.log-entry`: 0 次使用
+- `.log-header`: 0 次使用
+- `.log-id-display`: 0 次使用
+- `.log-level`: 0 次使用
+- `.log-level-CRITICAL`: 0 次使用
+- `.log-level-DEBUG`: 0 次使用
+- `.log-level-ERROR`: 0 次使用
+- `.log-level-INFO`: 0 次使用
+- `.log-level-WARNING`: 0 次使用
+- `.log-level-badge`: 0 次使用
+- `.log-message`: 0 次使用
+- `.log-module`: 0 次使用
+- `.log-right-info`: 0 次使用
+- `.log-timestamp`: 0 次使用
+- `.log-traceback`: 0 次使用
+- `.logs-container`: 1 次使用
+- `.modal-body`: 1 次使用
+- `.modal-dialog`: 1 次使用
+- `.module-badge`: 0 次使用
+- `.no-logs`: 0 次使用
+- `.page-item`: 0 次使用
+- `.page-link`: 0 次使用
+- `.pagination`: 0 次使用
+- `.reset-btn`: 1 次使用
+- `.search-btn`: 1 次使用
+- `.search-filter-card`: 1 次使用
+- `.search-highlight`: 0 次使用
+- `.stats-card`: 4 次使用
+- `.stats-grid`: 0 次使用
+- `.stats-icon`: 0 次使用
+- `.stats-label`: 0 次使用
+- `.stats-number`: 0 次使用
+- `.timestamp-display`: 0 次使用
+- `.traceback-content`: 0 次使用
+
+### `app/static/css/pages/accounts/sync_records.css`
+
+- `.action-buttons`: 0 次使用
+- `.active`: 1 次使用
+- `.batch-btn`: 0 次使用
+- `.batch-details-table`: 0 次使用
+- `.bg-danger`: 0 次使用
+- `.bg-info`: 5 次使用
+- `.bg-success`: 3 次使用
+- `.bg-warning`: 2 次使用
+- `.btn`: 9 次使用
+- `.btn-group`: 1 次使用
+- `.cancelled`: 0 次使用
+- `.card-body`: 2 次使用
+- `.chart-container`: 0 次使用
+- `.completed`: 0 次使用
+- `.details-btn`: 0 次使用
+- `.details-content`: 0 次使用
+- `.empty-data`: 0 次使用
+- `.error-message`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.failed`: 0 次使用
+- `.filter-form`: 0 次使用
+- `.form-control`: 0 次使用
+- `.form-label`: 5 次使用
+- `.form-select`: 3 次使用
+- `.loading-overlay`: 0 次使用
+- `.manual_batch`: 0 次使用
+- `.manual_single`: 0 次使用
+- `.manual_task`: 0 次使用
+- `.modal-lg`: 0 次使用
+- `.modal-xl`: 1 次使用
+- `.page-header`: 0 次使用
+- `.page-item`: 5 次使用
+- `.page-link`: 5 次使用
+- `.pagination`: 1 次使用
+- `.retry-btn`: 0 次使用
+- `.running`: 0 次使用
+- `.scheduled_task`: 0 次使用
+- `.search-filter-card`: 0 次使用
+- `.stats-card`: 0 次使用
+- `.stats-grid`: 0 次使用
+- `.stats-icon`: 0 次使用
+- `.stats-label`: 0 次使用
+- `.stats-number`: 0 次使用
+- `.status-badge`: 0 次使用
+- `.success-message`: 0 次使用
+- `.sync-records-table`: 0 次使用
+- `.sync-type-badge`: 0 次使用
+- `.table`: 1 次使用
+- `.time-display`: 0 次使用
+- `.time-label`: 0 次使用
+- `.warning-message`: 0 次使用
+
+### `app/static/css/pages/accounts/list.css`
+
+- `#tagSelectorModal`: 0 次使用
+- `.account-status-badge`: 0 次使用
+- `.accounts-table`: 0 次使用
+- `.action-buttons`: 0 次使用
+- `.active`: 1 次使用
+- `.btn`: 16 次使用
+- `.btn-check`: 0 次使用
+- `.btn-group`: 1 次使用
+- `.btn-outline-primary`: 8 次使用
+- `.btn-primary`: 1 次使用
+- `.btn-sm`: 5 次使用
+- `.card-body`: 2 次使用
+- `.db-type-badge`: 0 次使用
+- `.empty-data`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.filter-tag`: 0 次使用
+- `.filter-tags`: 0 次使用
+- `.inactive`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.locked`: 0 次使用
+- `.mysql`: 0 次使用
+- `.oracle`: 0 次使用
+- `.page-item`: 5 次使用
+- `.page-link`: 8 次使用
+- `.pagination`: 1 次使用
+- `.permission-buttons`: 0 次使用
+- `.postgresql`: 0 次使用
+- `.remove-tag`: 0 次使用
+- `.search-filter-card`: 0 次使用
+- `.spinner-border`: 1 次使用
+- `.sqlserver`: 0 次使用
+- `.stats-info`: 0 次使用
+- `.stats-text`: 0 次使用
+- `.sync-btn`: 0 次使用
+- `.table`: 1 次使用
+- `.tag-category-filter`: 0 次使用
+- `.view-permissions-btn`: 0 次使用
+
+### `app/static/css/pages/instances/create.css`
+
+- `.card-header`: 1 次使用
+- `.card-title`: 1 次使用
+- `.col-md-6`: 0 次使用
+- `.db-type-icon`: 0 次使用
+- `.db-type-option`: 0 次使用
+- `.db-type-selector`: 0 次使用
+- `.empty`: 0 次使用
+- `.error-message`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.field-group`: 0 次使用
+- `.field-group-title`: 0 次使用
+- `.form-control`: 5 次使用
+- `.form-group`: 0 次使用
+- `.form-label`: 8 次使用
+- `.form-select`: 2 次使用
+- `.form-text`: 4 次使用
+- `.help-text`: 0 次使用
+- `.instance-form`: 0 次使用
+- `.invalid-feedback`: 0 次使用
+- `.is-invalid`: 0 次使用
+- `.is-valid`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.oracle-sid-row`: 0 次使用
+- `.port-database-row`: 0 次使用
+- `.preview-area`: 0 次使用
+- `.row`: 5 次使用
+- `.slide-in`: 0 次使用
+- `.submit-btn`: 0 次使用
+- `.success-message`: 0 次使用
+- `.tag-chip`: 0 次使用
+- `.tag-preview`: 0 次使用
+- `.tag-selector-area`: 0 次使用
+- `.tag-selector-btn`: 0 次使用
+- `.text-danger`: 5 次使用
+- `.valid-feedback`: 0 次使用
+
+### `app/static/css/pages/instances/list.css`
+
+- `.action-buttons`: 0 次使用
+- `.btn`: 22 次使用
+- `.dragover`: 0 次使用
+- `.error-message`: 0 次使用
+- `.file-upload-area`: 0 次使用
+- `.instance-card`: 0 次使用
+- `.json-input-area`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.modal-xl`: 1 次使用
+- `.offline`: 0 次使用
+- `.online`: 0 次使用
+- `.search-filter-section`: 0 次使用
+- `.status-indicator`: 0 次使用
+- `.success-message`: 0 次使用
+- `.table-hover`: 1 次使用
+- `.unknown`: 0 次使用
+
+### `app/static/css/pages/instances/edit.css`
+
+- `.btn`: 4 次使用
+- `.btn-group-actions`: 0 次使用
+- `.card-header`: 1 次使用
+- `.card-title`: 2 次使用
+- `.col-md-6`: 0 次使用
+- `.current-tag-item`: 0 次使用
+- `.current-tags`: 0 次使用
+- `.current-tags-list`: 0 次使用
+- `.current-tags-title`: 0 次使用
+- `.db-type-icon`: 0 次使用
+- `.db-type-option`: 0 次使用
+- `.db-type-selector`: 0 次使用
+- `.empty`: 0 次使用
+- `.error-message`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.field-group`: 0 次使用
+- `.field-group-title`: 0 次使用
+- `.form-control`: 5 次使用
+- `.form-group`: 0 次使用
+- `.form-label`: 8 次使用
+- `.form-select`: 2 次使用
+- `.form-text`: 4 次使用
+- `.help-text`: 0 次使用
+- `.instance-form`: 0 次使用
+- `.invalid-feedback`: 0 次使用
+- `.is-invalid`: 0 次使用
+- `.is-valid`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.oracle-sid-row`: 0 次使用
+- `.port-database-row`: 0 次使用
+- `.preview-area`: 0 次使用
+- `.row`: 5 次使用
+- `.save-btn`: 0 次使用
+- `.slide-in`: 0 次使用
+- `.success-message`: 0 次使用
+- `.tag-chip`: 0 次使用
+- `.tag-preview`: 0 次使用
+- `.tag-selector-area`: 0 次使用
+- `.tag-selector-btn`: 0 次使用
+- `.test-connection-btn`: 0 次使用
+- `.test-result-card`: 0 次使用
+- `.test-result-error`: 0 次使用
+- `.test-result-success`: 0 次使用
+- `.test-result-warning`: 0 次使用
+- `.text-danger`: 5 次使用
+- `.valid-feedback`: 0 次使用
+- `.warning-message`: 0 次使用
+
+### `app/static/css/pages/instances/detail.css`
+
+- `.account-filter`: 0 次使用
+- `.account-row`: 1 次使用
+- `.action-buttons`: 0 次使用
+- `.btn`: 14 次使用
+- `.card-body`: 5 次使用
+- `.db-type-badge`: 0 次使用
+- `.deleted`: 0 次使用
+- `.error`: 0 次使用
+- `.error-message`: 0 次使用
+- `.history-timeline`: 0 次使用
+- `.instance-info-card`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.modal-body`: 2 次使用
+- `.modal-dialog`: 2 次使用
+- `.offline`: 0 次使用
+- `.online`: 0 次使用
+- `.permission-detail-modal`: 0 次使用
+- `.permission-item`: 0 次使用
+- `.permission-viewer`: 0 次使用
+- `.stats-card`: 0 次使用
+- `.stats-label`: 0 次使用
+- `.stats-number`: 0 次使用
+- `.status-indicator`: 0 次使用
+- `.success`: 0 次使用
+- `.success-message`: 0 次使用
+- `.test-result`: 0 次使用
+- `.timeline`: 0 次使用
+- `.timeline-content`: 0 次使用
+- `.timeline-item`: 0 次使用
+- `.timeline-marker`: 0 次使用
+- `.unknown`: 0 次使用
+
+### `app/static/css/pages/instances/statistics.css`
+
+- `.active`: 0 次使用
+- `.card-body`: 8 次使用
+- `.chart-container`: 0 次使用
+- `.chart-legend`: 0 次使用
+- `.chart-legend-color`: 0 次使用
+- `.chart-legend-item`: 0 次使用
+- `.data-updated`: 0 次使用
+- `.db-type-badge`: 0 次使用
+- `.empty-data`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.highlight-stat`: 0 次使用
+- `.inactive`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.mysql`: 0 次使用
+- `.oracle`: 0 次使用
+- `.postgresql`: 0 次使用
+- `.refresh-btn`: 0 次使用
+- `.spinner-border`: 0 次使用
+- `.sqlserver`: 0 次使用
+- `.stats-card`: 0 次使用
+- `.stats-icon`: 0 次使用
+- `.stats-label`: 0 次使用
+- `.stats-number`: 0 次使用
+- `.stats-table`: 0 次使用
+- `.status-indicator`: 0 次使用
+- `.table`: 3 次使用
+
+### `app/static/css/pages/sync_sessions/management.css`
+
+- `.bg-danger`: 1 次使用
+- `.bg-secondary`: 0 次使用
+- `.bg-success`: 0 次使用
+- `.bg-warning`: 0 次使用
+- `.cancelled`: 0 次使用
+- `.completed`: 0 次使用
+- `.failed`: 0 次使用
+- `.filter-section`: 1 次使用
+- `.progress`: 0 次使用
+- `.progress-bar`: 0 次使用
+- `.running`: 0 次使用
+- `.session-card`: 0 次使用
+- `.status-badge`: 0 次使用
+- `.text-danger`: 0 次使用
+- `.text-success`: 0 次使用
+- `.text-warning`: 0 次使用
+
+### `app/static/css/pages/user_management/management.css`
+
+- `.action-buttons`: 1 次使用
+- `.active`: 0 次使用
+- `.alert`: 0 次使用
+- `.alert-danger`: 0 次使用
+- `.alert-success`: 0 次使用
+- `.alert-warning`: 0 次使用
+- `.btn`: 6 次使用
+- `.btn-close`: 2 次使用
+- `.btn-danger`: 0 次使用
+- `.btn-primary`: 2 次使用
+- `.btn-sm`: 2 次使用
+- `.btn-success`: 0 次使用
+- `.btn-warning`: 0 次使用
+- `.disabled`: 0 次使用
+- `.empty-state`: 1 次使用
+- `.fade-in`: 0 次使用
+- `.field-description`: 0 次使用
+- `.form-control`: 3 次使用
+- `.form-group`: 0 次使用
+- `.form-label`: 5 次使用
+- `.form-select`: 2 次使用
+- `.invalid-feedback`: 0 次使用
+- `.is-invalid`: 0 次使用
+- `.is-valid`: 0 次使用
+- `.loading-spinner`: 0 次使用
+- `.loading-state`: 0 次使用
+- `.modal-body`: 2 次使用
+- `.modal-content`: 2 次使用
+- `.modal-footer`: 2 次使用
+- `.modal-header`: 2 次使用
+- `.page-header`: 1 次使用
+- `.page-item`: 0 次使用
+- `.page-link`: 0 次使用
+- `.pagination`: 0 次使用
+- `.permission-indicator`: 0 次使用
+- `.required-field`: 0 次使用
+- `.role-admin`: 0 次使用
+- `.role-badge`: 1 次使用
+- `.role-user`: 0 次使用
+- `.slide-in-right`: 0 次使用
+- `.spinner-border`: 0 次使用
+- `.status-active`: 0 次使用
+- `.status-badge`: 1 次使用
+- `.status-inactive`: 0 次使用
+- `.table`: 1 次使用
+- `.user-activity-description`: 0 次使用
+- `.user-activity-item`: 0 次使用
+- `.user-activity-time`: 0 次使用
+- `.user-activity-timeline`: 0 次使用
+- `.user-avatar`: 1 次使用
+- `.user-details`: 1 次使用
+- `.user-email`: 1 次使用
+- `.user-info`: 1 次使用
+- `.user-name`: 1 次使用
+- `.user-stats-chart`: 0 次使用
+- `.user-status-slider`: 1 次使用
+- `.user-status-toggle`: 1 次使用
+- `.user-table`: 1 次使用
+- `.valid-feedback`: 0 次使用
+
+### `app/static/css/pages/credentials/create.css`
+
+- `.alert`: 0 次使用
+- `.alert-danger`: 0 次使用
+- `.alert-success`: 0 次使用
+- `.alert-warning`: 0 次使用
+- `.btn`: 3 次使用
+- `.btn-group`: 0 次使用
+- `.card-header`: 1 次使用
+- `.card-title`: 1 次使用
+- `.conditional-field`: 0 次使用
+- `.credential-form`: 0 次使用
+- `.credential-form-container`: 0 次使用
+- `.credential-type-icon`: 0 次使用
+- `.db-type-field`: 0 次使用
+- `.error-state`: 0 次使用
+- `.fair`: 0 次使用
+- `.field-description`: 0 次使用
+- `.form-control`: 4 次使用
+- `.form-fade-in`: 0 次使用
+- `.form-group`: 0 次使用
+- `.form-label`: 6 次使用
+- `.form-select`: 2 次使用
+- `.form-text`: 3 次使用
+- `.good`: 0 次使用
+- `.hidden`: 0 次使用
+- `.input-group`: 1 次使用
+- `.invalid-feedback`: 0 次使用
+- `.is-invalid`: 0 次使用
+- `.is-valid`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.loading-spinner`: 0 次使用
+- `.page-title`: 0 次使用
+- `.password-strength-bar`: 0 次使用
+- `.password-strength-container`: 0 次使用
+- `.password-strength-fill`: 0 次使用
+- `.password-strength-text`: 0 次使用
+- `.password-toggle`: 0 次使用
+- `.required-field`: 0 次使用
+- `.spinner-border`: 0 次使用
+- `.strong`: 0 次使用
+- `.submit-btn`: 0 次使用
+- `.success-state`: 0 次使用
+- `.text-danger`: 4 次使用
+- `.valid-feedback`: 0 次使用
+- `.visible`: 0 次使用
+- `.weak`: 0 次使用
+
+### `app/static/css/pages/credentials/list.css`
+
+- `.action-buttons`: 0 次使用
+- `.active`: 1 次使用
+- `.alert`: 0 次使用
+- `.alert-danger`: 0 次使用
+- `.alert-success`: 0 次使用
+- `.alert-warning`: 0 次使用
+- `.btn`: 13 次使用
+- `.btn-close`: 1 次使用
+- `.btn-danger`: 1 次使用
+- `.btn-outline-primary`: 3 次使用
+- `.btn-primary`: 2 次使用
+- `.btn-sm`: 0 次使用
+- `.btn-success`: 0 次使用
+- `.btn-warning`: 0 次使用
+- `.card-body`: 2 次使用
+- `.credential-type-badge`: 0 次使用
+- `.credentials-header`: 0 次使用
+- `.credentials-table`: 0 次使用
+- `.disabled`: 2 次使用
+- `.empty-state`: 0 次使用
+- `.fade-in`: 0 次使用
+- `.form-control`: 1 次使用
+- `.form-label`: 4 次使用
+- `.form-select`: 1 次使用
+- `.loading-spinner`: 0 次使用
+- `.loading-state`: 0 次使用
+- `.modal-body`: 1 次使用
+- `.modal-content`: 1 次使用
+- `.modal-footer`: 1 次使用
+- `.modal-header`: 1 次使用
+- `.page-item`: 5 次使用
+- `.page-link`: 5 次使用
+- `.pagination`: 1 次使用
+- `.search-filter-card`: 0 次使用
+- `.slide-in-right`: 0 次使用
+- `.spinner-border`: 0 次使用
+- `.status-active`: 0 次使用
+- `.status-badge`: 0 次使用
+- `.status-inactive`: 0 次使用
+- `.table`: 1 次使用
+- `.type-api`: 0 次使用
+- `.type-database`: 0 次使用
+- `.type-ssh`: 0 次使用
+
+### `app/static/css/pages/credentials/edit.css`
+
+- `.alert`: 0 次使用
+- `.alert-danger`: 0 次使用
+- `.alert-success`: 0 次使用
+- `.alert-warning`: 0 次使用
+- `.btn`: 4 次使用
+- `.btn-group`: 0 次使用
+- `.card-header`: 1 次使用
+- `.card-title`: 1 次使用
+- `.conditional-field`: 0 次使用
+- `.credential-edit-container`: 0 次使用
+- `.credential-edit-form`: 0 次使用
+- `.credential-type-icon`: 0 次使用
+- `.db-type-field`: 0 次使用
+- `.edit-indicator`: 0 次使用
+- `.error-state`: 0 次使用
+- `.field-description`: 0 次使用
+- `.form-control`: 5 次使用
+- `.form-fade-in`: 0 次使用
+- `.form-group`: 0 次使用
+- `.form-label`: 7 次使用
+- `.form-select`: 2 次使用
+- `.form-text`: 1 次使用
+- `.hidden`: 0 次使用
+- `.input-group`: 1 次使用
+- `.invalid-feedback`: 0 次使用
+- `.is-invalid`: 0 次使用
+- `.is-valid`: 0 次使用
+- `.loading-overlay`: 0 次使用
+- `.loading-spinner`: 0 次使用
+- `.page-title`: 0 次使用
+- `.password-toggle`: 0 次使用
+- `.required-field`: 0 次使用
+- `.spinner-border`: 0 次使用
+- `.submit-btn`: 0 次使用
+- `.success-state`: 0 次使用
+- `.text-danger`: 4 次使用
+- `.valid-feedback`: 0 次使用
+- `.visible`: 0 次使用
+
+## HTML文件和引用的样式
+
+### `app/templates/about.html`
+
+- `.artistic-title`
+- `.bg-dark`
+- `.bg-info`
+- `.bg-primary`
+- `.bg-secondary`
+- `.bg-success`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-text`
+- `.col-3`
+- `.col-lg-6`
+- `.col-md-6`
+- `.container-fluid`
+- `.fa-2x`
+- `.fa-chart-line`
+- `.fa-clock`
+- `.fa-code`
+- `.fa-cogs`
+- `.fa-database`
+- `.fa-history`
+- `.fa-info-circle`
+- `.fa-server`
+- `.fa-tag`
+- `.fa-users`
+- `.fas`
+- `.h-100`
+- `.list-unstyled`
+- `.mb-0`
+- `.mb-2`
+- `.mb-4`
+- `.mb-5`
+- `.me-2`
+- `.py-5`
+- `.row`
+- `.small`
+- `.text-center`
+- `.text-danger`
+- `.text-info`
+- `.text-muted`
+- `.text-primary`
+- `.text-warning`
+- `.text-white`
+
+### `app/templates/base.html`
+
+- `#adminDropdown`
+- `#app-name`
+- `#databaseDropdown`
+- `#footer-app-name`
+- `#navbarDropdown`
+- `#navbarNav`
+- `#page-title`
+- `.alert`
+- `.alert-{{`
+- `.btn-close`
+- `.collapse`
+- `.container`
+- `.dropdown`
+- `.dropdown-divider`
+- `.dropdown-item`
+- `.dropdown-menu`
+- `.dropdown-toggle`
+- `.fa-chart-line`
+- `.fa-clock`
+- `.fa-cogs`
+- `.fa-database`
+- `.fa-key`
+- `.fa-server`
+- `.fa-sign-in-alt`
+- `.fa-sign-out-alt`
+- `.fa-tachometer-alt`
+- `.fa-tag`
+- `.fa-tags`
+- `.fa-tasks`
+- `.fa-user`
+- `.fa-user-circle`
+- `.fa-users`
+- `.fa-{{`
+- `.fas`
+- `.footer`
+- `.justify-content-center`
+- `.main-content`
+- `.mb-0`
+- `.me-1`
+- `.me-2`
+- `.ms-auto`
+- `.nav-item`
+- `.nav-link`
+- `.navbar`
+- `.navbar-brand`
+- `.navbar-collapse`
+- `.navbar-expand-lg`
+- `.navbar-light`
+- `.navbar-nav`
+- `.navbar-toggler`
+- `.navbar-toggler-icon`
+- `.text-decoration-none`
+- `.text-white`
+
+### `app/templates/account_classification/management.html`
+
+- `#classificationColor`
+- `#classificationDescription`
+- `#classificationName`
+- `#classificationsList`
+- `#createClassificationForm`
+- `#createClassificationModal`
+- `#createClassificationModalLabel`
+- `#createRuleForm`
+- `#createRuleModal`
+- `#createRuleModalLabel`
+- `#editClassificationColor`
+- `#editClassificationDescription`
+- `#editClassificationForm`
+- `#editClassificationId`
+- `#editClassificationModal`
+- `#editClassificationModalLabel`
+- `#editClassificationName`
+- `#editClassificationPriority`
+- `#editClassificationRiskLevel`
+- `#editIconCrown`
+- `#editIconEye`
+- `#editIconShield`
+- `#editIconTag`
+- `#editIconUser`
+- `#editIconWarning`
+- `#editPermissionsConfig`
+- `#editRuleClassification`
+- `#editRuleDbType`
+- `#editRuleDbTypeHidden`
+- `#editRuleForm`
+- `#editRuleId`
+- `#editRuleModal`
+- `#editRuleModalLabel`
+- `#editRuleName`
+- `#editRuleOperator`
+- `#iconCrown`
+- `#iconEye`
+- `#iconShield`
+- `#iconTag`
+- `#iconUser`
+- `#iconWarning`
+- `#matchedAccountsList`
+- `#matchedAccountsModal`
+- `#matchedAccountsModalLabel`
+- `#permissionsConfig`
+- `#priority`
+- `#riskLevel`
+- `#ruleClassification`
+- `#ruleDbType`
+- `#ruleName`
+- `#ruleOperator`
+- `#rulesList`
+- `#viewPermissionsConfig`
+- `#viewRuleClassification`
+- `#viewRuleCreatedAt`
+- `#viewRuleDbType`
+- `#viewRuleModal`
+- `#viewRuleModalLabel`
+- `#viewRuleName`
+- `#viewRuleOperator`
+- `#viewRuleStatus`
+- `#viewRuleUpdatedAt`
+- `.align-items-center`
+- `.bg-light`
+- `.border`
+- `.btn`
+- `.btn-close`
+- `.btn-primary`
+- `.btn-secondary`
+- `.btn-sm`
+- `.btn-success`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.col-md-2`
+- `.col-md-4`
+- `.col-md-6`
+- `.col-md-8`
+- `.container-fluid`
+- `.d-flex`
+- `.fa-2x`
+- `.fa-cogs`
+- `.fa-crown`
+- `.fa-edit`
+- `.fa-exclamation-triangle`
+- `.fa-eye`
+- `.fa-info-circle`
+- `.fa-list`
+- `.fa-magic`
+- `.fa-plus`
+- `.fa-shield-alt`
+- `.fa-spin`
+- `.fa-spinner`
+- `.fa-tag`
+- `.fa-tags`
+- `.fa-user`
+- `.fa-users`
+- `.fade`
+- `.fas`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-control-color`
+- `.form-control-plaintext`
+- `.form-label`
+- `.form-select`
+- `.form-text`
+- `.fw-bold`
+- `.justify-content-between`
+- `.mb-0`
+- `.mb-2`
+- `.mb-3`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-lg`
+- `.modal-title`
+- `.p-3`
+- `.py-3`
+- `.py-4`
+- `.rounded`
+- `.row`
+- `.text-center`
+- `.text-danger`
+- `.text-info`
+- `.text-muted`
+- `.text-primary`
+- `.text-secondary`
+- `.text-success`
+- `.text-warning`
+
+### `app/templates/auth/profile.html`
+
+- `.badge`
+- `.bg-{{`
+- `.btn`
+- `.btn-outline-info`
+- `.btn-outline-primary`
+- `.btn-outline-success`
+- `.btn-primary`
+- `.btn-sm`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-md-4`
+- `.col-md-6`
+- `.col-md-8`
+- `.d-grid`
+- `.fa-chart-line`
+- `.fa-cog`
+- `.fa-database`
+- `.fa-key`
+- `.fa-user-circle`
+- `.fas`
+- `.form-control-plaintext`
+- `.form-label`
+- `.fw-bold`
+- `.gap-2`
+- `.mb-0`
+- `.mb-3`
+- `.me-2`
+- `.mt-4`
+- `.row`
+
+### `app/templates/auth/login.html`
+
+- `#loginForm`
+- `#password`
+- `#remember`
+- `#togglePassword`
+- `#username`
+- `.btn`
+- `.btn-lg`
+- `.btn-outline-secondary`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.card-title`
+- `.col-lg-4`
+- `.col-md-6`
+- `.d-grid`
+- `.fa-eye`
+- `.fa-lock`
+- `.fa-sign-in-alt`
+- `.fa-user`
+- `.fas`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-label`
+- `.input-group`
+- `.justify-content-center`
+- `.mb-3`
+- `.mb-4`
+- `.me-2`
+- `.p-5`
+- `.row`
+- `.text-center`
+- `.text-muted`
+
+### `app/templates/auth/change_password.html`
+
+- `#changePasswordForm`
+- `#confirm_password`
+- `#new_password`
+- `#old_password`
+- `#passwordStrength`
+- `#passwordStrengthText`
+- `#toggleConfirmPassword`
+- `#toggleNewPassword`
+- `#toggleOldPassword`
+- `.btn`
+- `.btn-lg`
+- `.btn-outline-secondary`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.card-title`
+- `.col-lg-5`
+- `.col-md-6`
+- `.d-grid`
+- `.fa-3x`
+- `.fa-arrow-left`
+- `.fa-check`
+- `.fa-eye`
+- `.fa-key`
+- `.fa-lock`
+- `.fa-save`
+- `.fa-shield-alt`
+- `.fas`
+- `.form-control`
+- `.form-label`
+- `.form-text`
+- `.gap-2`
+- `.input-group`
+- `.justify-content-center`
+- `.list-unstyled`
+- `.mb-0`
+- `.mb-3`
+- `.mb-4`
+- `.me-2`
+- `.mt-3`
+- `.p-5`
+- `.progress`
+- `.progress-bar`
+- `.row`
+- `.small`
+- `.text-center`
+- `.text-muted`
+- `.text-primary`
+- `.text-success`
+
+### `app/templates/admin/management.html`
+
+- `#app-indicator`
+- `#app-status`
+- `#db-indicator`
+- `#db-status`
+- `#last-update`
+- `#redis-indicator`
+- `#redis-status`
+- `#total-instances`
+- `#total-logs`
+- `#total-tasks`
+- `#total-users`
+- `#uptime`
+- `.align-items-center`
+- `.btn`
+- `.btn-outline-info`
+- `.btn-outline-primary`
+- `.btn-outline-success`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-lg-4`
+- `.col-lg-8`
+- `.col-md-3`
+- `.col-md-4`
+- `.d-flex`
+- `.d-grid`
+- `.fa-bolt`
+- `.fa-cogs`
+- `.fa-info-circle`
+- `.fa-key`
+- `.fa-plus`
+- `.fa-server`
+- `.fa-sync-alt`
+- `.fa-tachometer-alt`
+- `.fa-tasks`
+- `.fas`
+- `.gap-2`
+- `.justify-content-between`
+- `.mb-0`
+- `.mb-2`
+- `.mb-3`
+- `.mb-4`
+- `.me-2`
+- `.ms-3`
+- `.row`
+- `.status-indicator`
+- `.text-center`
+- `.text-info`
+- `.text-muted`
+- `.text-primary`
+- `.text-success`
+- `.text-warning`
+
+### `app/templates/scheduler/management.html`
+
+- `#addJobForm`
+- `#addJobModal`
+- `#cronConfig`
+- `#cronDay`
+- `#cronHour`
+- `#cronMinute`
+- `#cronMonth`
+- `#cronPreview`
+- `#cronTrigger`
+- `#cronWeekday`
+- `#editCronConfig`
+- `#editCronDay`
+- `#editCronHour`
+- `#editCronMinute`
+- `#editCronMonth`
+- `#editCronPreview`
+- `#editCronTrigger`
+- `#editCronWeekday`
+- `#editDateConfig`
+- `#editIntervalConfig`
+- `#editIntervalMinutes`
+- `#editIntervalSeconds`
+- `#editJobDescription`
+- `#editJobForm`
+- `#editJobFunction`
+- `#editJobId`
+- `#editJobModal`
+- `#editJobName`
+- `#editRunDate`
+- `#emptyRow`
+- `#jobDescription`
+- `#jobFunction`
+- `#jobName`
+- `#jobsContainer`
+- `#loadingRow`
+- `.align-items-center`
+- `.btn`
+- `.btn-close`
+- `.btn-primary`
+- `.btn-secondary`
+- `.col-12`
+- `.col-md-2`
+- `.col-md-6`
+- `.container-fluid`
+- `.d-flex`
+- `.edit-trigger-config`
+- `.empty-state`
+- `.fa-edit`
+- `.fa-plus`
+- `.fa-tasks`
+- `.fade`
+- `.fas`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-group`
+- `.form-label`
+- `.form-select`
+- `.form-text`
+- `.justify-content-between`
+- `.loading-spinner`
+- `.loading-state`
+- `.mb-0`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-lg`
+- `.modal-title`
+- `.mt-2`
+- `.mt-4`
+- `.row`
+- `.show`
+- `.text-danger`
+- `.text-muted`
+- `.trigger-config`
+
+### `app/templates/tags/index.html`
+
+- `#category`
+- `#deleteForm`
+- `#deleteModal`
+- `#deleteTagName`
+- `#search`
+- `#status`
+- `.%}`
+- `.%}active{%`
+- `.==`
+- `.align-items-center`
+- `.badge`
+- `.bg-info`
+- `.bg-secondary`
+- `.bg-success`
+- `.bg-{{`
+- `.btn`
+- `.btn-close`
+- `.btn-danger`
+- `.btn-group`
+- `.btn-group-sm`
+- `.btn-outline-danger`
+- `.btn-outline-primary`
+- `.btn-outline-secondary`
+- `.btn-outline-warning`
+- `.btn-primary`
+- `.btn-secondary`
+- `.card`
+- `.card-body`
+- `.col-md-2`
+- `.col-md-3`
+- `.d-flex`
+- `.d-grid`
+- `.disabled`
+- `.endif`
+- `.fa-3x`
+- `.fa-edit`
+- `.fa-plus`
+- `.fa-search`
+- `.fa-tags`
+- `.fa-times`
+- `.fa-trash`
+- `.fade`
+- `.fas`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.g-3`
+- `.if`
+- `.justify-content-between`
+- `.justify-content-center`
+- `.mb-0`
+- `.mb-3`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-title`
+- `.page-item`
+- `.page-link`
+- `.page_num`
+- `.pagination`
+- `.py-5`
+- `.row`
+- `.table`
+- `.table-hover`
+- `.table-responsive`
+- `.tag.color`
+- `.tags.page`
+- `.text-center`
+- `.text-danger`
+- `.text-muted`
+- `.{%`
+- `.}}`
+
+### `app/templates/tags/create.html`
+
+- `#category`
+- `#color`
+- `#description`
+- `#display_name`
+- `#is_active`
+- `#name`
+- `#sort_order`
+- `#tagForm`
+- `.btn`
+- `.btn-primary`
+- `.btn-secondary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-lg-6`
+- `.col-md-6`
+- `.d-grid`
+- `.d-md-flex`
+- `.fa-plus`
+- `.fas`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.form-text`
+- `.gap-2`
+- `.justify-content-center`
+- `.justify-content-md-end`
+- `.mb-0`
+- `.mb-3`
+- `.me-2`
+- `.me-md-2`
+- `.row`
+- `.text-danger`
+
+### `app/templates/tags/edit.html`
+
+- `#category`
+- `#color`
+- `#description`
+- `#display_name`
+- `#is_active`
+- `#name`
+- `#sort_order`
+- `#tagForm`
+- `.btn`
+- `.btn-primary`
+- `.btn-secondary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-lg-6`
+- `.col-md-6`
+- `.d-grid`
+- `.d-md-flex`
+- `.fa-edit`
+- `.fas`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.form-text`
+- `.gap-2`
+- `.justify-content-center`
+- `.justify-content-md-end`
+- `.mb-0`
+- `.mb-3`
+- `.me-2`
+- `.me-md-2`
+- `.row`
+- `.text-danger`
+
+### `app/templates/dashboard/overview.html`
+
+- `#logTrendChart`
+- `.align-items-center`
+- `.align-self-center`
+- `.and`
+- `.badge`
+- `.bg-danger`
+- `.bg-secondary`
+- `.bg-success`
+- `.bg-warning`
+- `.bg-{{`
+- `.btn`
+- `.btn-outline-info`
+- `.btn-outline-primary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-text`
+- `.card-title`
+- `.chart-container`
+- `.classification-list`
+- `.col-lg-4`
+- `.col-lg-8`
+- `.col-md-2`
+- `.col-md-4`
+- `.cpu_badge_class`
+- `.cpu_class`
+- `.d-flex`
+- `.danger`
+- `.disk_badge_class`
+- `.disk_class`
+- `.else`
+- `.fa-2x`
+- `.fa-chart-line`
+- `.fa-clock`
+- `.fa-crown`
+- `.fa-database`
+- `.fa-exclamation-triangle`
+- `.fa-eye`
+- `.fa-list-alt`
+- `.fa-server`
+- `.fa-shield-alt`
+- `.fa-sync-alt`
+- `.fa-tachometer-alt`
+- `.fa-tag`
+- `.fa-tags`
+- `.fa-tasks`
+- `.fa-user`
+- `.fa-user-circle`
+- `.fas`
+- `.flex-column`
+- `.h-100`
+- `.if`
+- `.justify-content-between`
+- `.mb-0`
+- `.mb-2`
+- `.mb-3`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.memory_badge_class`
+- `.memory_class`
+- `.mt-3`
+- `.progress`
+- `.progress-bar`
+- `.row`
+- `.small`
+- `.stat-card`
+- `.status`
+- `.status-indicator`
+- `.status-{{`
+- `.status.services`
+- `.status.services.application`
+- `.status.services.database`
+- `.status.services.redis`
+- `.text-center`
+- `.text-dark`
+- `.text-muted`
+- `.text-white`
+- `.text-{{`
+- `.}}`
+
+### `app/templates/macros/environment_macro.html`
+
+- `.badge`
+- `.bg-{{`
+- `.config.class`
+- `.style=`
+- `.}}`
+
+### `app/templates/database_types/list.html`
+
+- `#databaseTypesTable`
+- `#{{ config.id }}`
+- `.badge`
+- `.bg-info`
+- `.bg-light`
+- `.bg-secondary`
+- `.bg-{{`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-12`
+- `.config.color`
+- `.config.icon`
+- `.container-fluid`
+- `.fa-database`
+- `.fas`
+- `.me-1`
+- `.me-2`
+- `.row`
+- `.table`
+- `.table-hover`
+- `.table-responsive`
+- `.text-dark`
+- `.text-{{`
+- `.{{`
+- `.}}`
+
+### `app/templates/components/tag_selector.html`
+
+- `#active-tags`
+- `#cancel-selection-btn`
+- `#clear-search-btn`
+- `#confirm-selection-btn`
+- `#filtered-tags`
+- `#no-tags-placeholder`
+- `#selected-tags`
+- `#selected-tags-display`
+- `#selected-tags-list`
+- `#tag-category-filter-container`
+- `#tag-list-container`
+- `#tag-search-input`
+- `#tag-selector-container`
+- `#tag-stats`
+- `#tagSelectorModal`
+- `#tagSelectorModalLabel`
+- `#total-tags`
+- `.bg-light`
+- `.border`
+- `.btn`
+- `.btn-close`
+- `.btn-group`
+- `.btn-group-sm`
+- `.btn-outline-primary`
+- `.btn-primary`
+- `.btn-secondary`
+- `.d-flex`
+- `.fa-check`
+- `.fa-search`
+- `.fa-tag`
+- `.fa-tags`
+- `.fa-times`
+- `.fade`
+- `.fas`
+- `.flex-wrap`
+- `.form-control`
+- `.form-label`
+- `.fw-bold`
+- `.gap-2`
+- `.input-group`
+- `.input-group-text`
+- `.justify-content-center`
+- `.mb-3`
+- `.me-1`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-lg`
+- `.modal-title`
+- `.ms-2`
+- `.p-3`
+- `.py-2`
+- `.rounded`
+- `.selected-tags-area`
+- `.selected-tags-display`
+- `.spinner-border`
+- `.spinner-border-sm`
+- `.tag-category-filter`
+- `.tag-list-area`
+- `.tag-search-area`
+- `.tag-selector-container`
+- `.tag-stat-item`
+- `.tag-stat-label`
+- `.tag-stat-number`
+- `.tag-stats`
+- `.text-center`
+- `.text-muted`
+- `.visually-hidden`
+
+### `app/templates/components/permission_modal.html`
+
+- `#permissionsModal`
+- `#permissionsModalBody`
+- `#permissionsModalLabel`
+- `#permissionsModalTitle`
+- `.btn`
+- `.btn-close`
+- `.btn-secondary`
+- `.fa-shield-alt`
+- `.fa-times`
+- `.fade`
+- `.fas`
+- `.me-1`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-title`
+- `.modal-xl`
+- `.mt-2`
+- `.spinner-border`
+- `.text-center`
+- `.text-primary`
+- `.visually-hidden`
+
+### `app/templates/logs/dashboard.html`
+
+- `#errorLogs`
+- `#levelFilter`
+- `#logDetailContent`
+- `#logDetailModal`
+- `#logDetailModalLabel`
+- `#logsContainer`
+- `#moduleFilter`
+- `#modulesCount`
+- `#paginationContainer`
+- `#searchTerm`
+- `#timeRange`
+- `#totalLogs`
+- `#warningLogs`
+- `.align-items-center`
+- `.bg-danger`
+- `.bg-info`
+- `.bg-primary`
+- `.bg-warning`
+- `.btn`
+- `.btn-close`
+- `.btn-secondary`
+- `.card`
+- `.card-body`
+- `.col-12`
+- `.col-md-2`
+- `.col-md-3`
+- `.container-fluid`
+- `.d-flex`
+- `.fa-chart-line`
+- `.fa-info-circle`
+- `.fa-search`
+- `.fa-spin`
+- `.fa-spinner`
+- `.fa-undo`
+- `.fade`
+- `.fas`
+- `.filter-form`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.g-3`
+- `.gap-2`
+- `.justify-content-between`
+- `.loading`
+- `.log-detail-modal`
+- `.logs-container`
+- `.mb-0`
+- `.mb-4`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-title`
+- `.reset-btn`
+- `.row`
+- `.search-btn`
+- `.search-filter-card`
+- `.stats-card`
+- `.text-center`
+- `.text-white`
+
+### `app/templates/logs/statistics.html`
+
+- `.alert`
+- `.alert-warning`
+- `.align-items-center`
+- `.align-self-center`
+- `.bg-danger`
+- `.bg-info`
+- `.bg-primary`
+- `.bg-success`
+- `.bg-warning`
+- `.btn`
+- `.btn-outline-secondary`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-12`
+- `.col-md-3`
+- `.col-md-6`
+- `.container-fluid`
+- `.d-flex`
+- `.fa-2x`
+- `.fa-arrow-left`
+- `.fa-chart-bar`
+- `.fa-exclamation-triangle`
+- `.fa-file-alt`
+- `.fa-info-circle`
+- `.fa-sync-alt`
+- `.fa-times-circle`
+- `.fas`
+- `.justify-content-between`
+- `.mb-0`
+- `.mb-1`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.mt-4`
+- `.progress`
+- `.progress-bar`
+- `.row`
+- `.table`
+- `.table-responsive`
+- `.table-striped`
+- `.text-muted`
+- `.text-white`
+
+### `app/templates/logs/detail.html`
+
+- `.==`
+- `.alert`
+- `.alert-warning`
+- `.align-items-center`
+- `.badge`
+- `.bg-{%`
+- `.btn`
+- `.btn-outline-secondary`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-12`
+- `.col-md-6`
+- `.container-fluid`
+- `.d-flex`
+- `.fa-arrow-left`
+- `.fa-exclamation-triangle`
+- `.fa-file-alt`
+- `.fa-sync-alt`
+- `.fas`
+- `.if`
+- `.justify-content-between`
+- `.log.level`
+- `.mb-0`
+- `.mb-1`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.mt-3`
+- `.row`
+- `.table`
+- `.table-borderless`
+- `.text-muted`
+
+### `app/templates/accounts/sync_details.html`
+
+- `.==`
+- `.alert`
+- `.alert-danger`
+- `.alert-warning`
+- `.align-items-center`
+- `.badge`
+- `.bg-danger`
+- `.bg-primary`
+- `.bg-success`
+- `.bg-warning`
+- `.bg-{%`
+- `.btn`
+- `.btn-outline-secondary`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-12`
+- `.col-md-6`
+- `.container-fluid`
+- `.d-flex`
+- `.fa-arrow-left`
+- `.fa-database`
+- `.fa-exclamation-triangle`
+- `.fa-info-circle`
+- `.fa-list`
+- `.fa-sync-alt`
+- `.fas`
+- `.if`
+- `.ir.status`
+- `.justify-content-between`
+- `.mb-0`
+- `.mb-1`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.mt-3`
+- `.mt-4`
+- `.record.status`
+- `.record.sync_type`
+- `.row`
+- `.table`
+- `.table-borderless`
+- `.table-hover`
+- `.table-light`
+- `.table-responsive`
+- `.table-sm`
+- `.text-danger`
+- `.text-muted`
+- `.text-primary`
+- `.{%`
+
+### `app/templates/accounts/list.html`
+
+- `#account-search-form`
+- `#classification`
+- `#db_type`
+- `#list-page-tag-selector`
+- `#open-tag-filter-btn`
+- `#permissionsModal`
+- `#permissionsModalBody`
+- `#permissionsModalLabel`
+- `#permissionsModalTitle`
+- `#search`
+- `#selected-tag-names`
+- `#selected-tags-chips`
+- `#selected-tags-count`
+- `#selected-tags-preview`
+- `.%}`
+- `.%}btn-outline-primary`
+- `.%}btn-primary{%`
+- `.==`
+- `.active`
+- `.align-items-center`
+- `.align-items-end`
+- `.badge`
+- `.bg-danger`
+- `.bg-success`
+- `.bg-{{`
+- `.border-2`
+- `.btn`
+- `.btn-close`
+- `.btn-group`
+- `.btn-outline-info`
+- `.btn-outline-primary`
+- `.btn-outline-secondary`
+- `.btn-outline-success`
+- `.btn-primary`
+- `.btn-secondary`
+- `.btn-sm`
+- `.btn-success`
+- `.card`
+- `.card-body`
+- `.col-12`
+- `.col-md-1`
+- `.col-md-2`
+- `.col-md-3`
+- `.container-fluid`
+- `.current_db_type`
+- `.d-flex`
+- `.d-grid`
+- `.db_type.value`
+- `.disabled`
+- `.else`
+- `.endif`
+- `.fa-3x`
+- `.fa-chart-bar`
+- `.fa-chart-line`
+- `.fa-database`
+- `.fa-download`
+- `.fa-eye`
+- `.fa-search`
+- `.fa-server`
+- `.fa-shield-alt`
+- `.fa-sync`
+- `.fa-tag`
+- `.fa-tags`
+- `.fa-times`
+- `.fa-user`
+- `.fa-users`
+- `.fa-{{`
+- `.fade`
+- `.fas`
+- `.flex-wrap`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.fw-bold{%`
+- `.g-3`
+- `.gap-1`
+- `.gap-2`
+- `.if`
+- `.justify-content-between`
+- `.justify-content-center`
+- `.mb-0`
+- `.mb-1`
+- `.mb-3`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-title`
+- `.modal-xl`
+- `.mt-1`
+- `.mt-2`
+- `.not`
+- `.p-2`
+- `.page-item`
+- `.page-link`
+- `.pagination`
+- `.py-5`
+- `.row`
+- `.small`
+- `.spinner-border`
+- `.table`
+- `.table-hover`
+- `.table-responsive`
+- `.table-sm`
+- `.tag.color`
+- `.text-center`
+- `.text-info`
+- `.text-muted`
+- `.text-primary`
+- `.visually-hidden`
+- `.{%`
+- `.}}`
+
+### `app/templates/accounts/sync_records.html`
+
+- `#date_range`
+- `#detailsContent`
+- `#detailsModal`
+- `#detailsModalLabel`
+- `#status`
+- `#sync_type`
+- `.active`
+- `.alert`
+- `.alert-danger`
+- `.alert-info`
+- `.align-items-center`
+- `.badge`
+- `.bg-info`
+- `.bg-primary`
+- `.bg-secondary`
+- `.bg-success`
+- `.bg-warning`
+- `.bg-{{`
+- `.btn`
+- `.btn-close`
+- `.btn-group`
+- `.btn-group-sm`
+- `.btn-outline-info`
+- `.btn-outline-primary`
+- `.btn-outline-secondary`
+- `.btn-outline-warning`
+- `.btn-primary`
+- `.btn-secondary`
+- `.card`
+- `.card-body`
+- `.col-md-1`
+- `.col-md-2`
+- `.col-md-3`
+- `.container-fluid`
+- `.d-flex`
+- `.d-grid`
+- `.disabled`
+- `.fa-3x`
+- `.fa-chart-bar`
+- `.fa-clock`
+- `.fa-exclamation-triangle`
+- `.fa-eye`
+- `.fa-hand-pointer`
+- `.fa-history`
+- `.fa-layer-group`
+- `.fa-list`
+- `.fa-play`
+- `.fa-search`
+- `.fa-sync`
+- `.fa-tasks`
+- `.fa-times`
+- `.fa-{{`
+- `.fade`
+- `.fas`
+- `.form-label`
+- `.form-select`
+- `.g-3`
+- `.justify-content-between`
+- `.justify-content-center`
+- `.mb-3`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-title`
+- `.modal-xl`
+- `.page-item`
+- `.page-link`
+- `.pagination`
+- `.py-5`
+- `.row`
+- `.table`
+- `.table-hover`
+- `.table-responsive`
+- `.text-center`
+- `.text-muted`
+
+### `app/templates/accounts/statistics.html`
+
+- `.align-items-center`
+- `.align-self-center`
+- `.bg-danger`
+- `.bg-info`
+- `.bg-primary`
+- `.bg-success`
+- `.border-{{`
+- `.btn`
+- `.btn-outline-info`
+- `.btn-outline-primary`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-text`
+- `.card-title`
+- `.col`
+- `.col-12`
+- `.col-md-3`
+- `.d-flex`
+- `.fa-2x`
+- `.fa-3x`
+- `.fa-chart-bar`
+- `.fa-cog`
+- `.fa-database`
+- `.fa-history`
+- `.fa-list`
+- `.fa-server`
+- `.fa-tag`
+- `.fa-tags`
+- `.fa-user-check`
+- `.fa-user-lock`
+- `.fa-users`
+- `.fas`
+- `.flex-column`
+- `.h-100`
+- `.justify-content-between`
+- `.mb-0`
+- `.mb-1`
+- `.mb-2`
+- `.mb-3`
+- `.mb-4`
+- `.me-2`
+- `.mt-auto`
+- `.py-4`
+- `.row`
+- `.text-center`
+- `.text-muted`
+- `.text-white`
+- `.text-{{`
+
+### `app/templates/instances/list.html`
+
+- `#batchCreateModal`
+- `#batchCreateModalLabel`
+- `#batchDeleteBtn`
+- `#batchInstancesData`
+- `#confirmDelete`
+- `#csvFile`
+- `#db_type`
+- `#deleteInstanceName`
+- `#deleteModal`
+- `#deleteModalLabel`
+- `#fileUpload`
+- `#fileUploadArea`
+- `#jsonInput`
+- `#jsonInputArea`
+- `#list-page-tag-selector`
+- `#open-tag-filter-btn`
+- `#search`
+- `#selectAll`
+- `#selected-tag-names`
+- `#selected-tags-chips`
+- `#selected-tags-count`
+- `#selected-tags-preview`
+- `.active`
+- `.alert`
+- `.alert-info`
+- `.align-items-center`
+- `.badge`
+- `.bg-danger`
+- `.bg-info`
+- `.bg-primary`
+- `.bg-secondary`
+- `.bg-success`
+- `.bg-warning`
+- `.bg-{{`
+- `.btn`
+- `.btn-check`
+- `.btn-close`
+- `.btn-danger`
+- `.btn-group`
+- `.btn-group-sm`
+- `.btn-outline-danger`
+- `.btn-outline-info`
+- `.btn-outline-primary`
+- `.btn-outline-secondary`
+- `.btn-outline-success`
+- `.btn-outline-warning`
+- `.btn-primary`
+- `.btn-secondary`
+- `.btn-sm`
+- `.card`
+- `.card-body`
+- `.col-md-1`
+- `.col-md-2`
+- `.col-md-3`
+- `.col-md-6`
+- `.d-flex`
+- `.d-grid`
+- `.db_type_config.color`
+- `.db_type_config.icon`
+- `.disabled`
+- `.fa-3x`
+- `.fa-chart-bar`
+- `.fa-code`
+- `.fa-database`
+- `.fa-download`
+- `.fa-edit`
+- `.fa-eye`
+- `.fa-info-circle`
+- `.fa-lock`
+- `.fa-plug`
+- `.fa-plus`
+- `.fa-search`
+- `.fa-tag`
+- `.fa-tags`
+- `.fa-times`
+- `.fa-trash`
+- `.fa-upload`
+- `.fade`
+- `.fas`
+- `.flex-wrap`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.form-text`
+- `.g-3`
+- `.gap-1`
+- `.gap-2`
+- `.instance-checkbox`
+- `.justify-content-between`
+- `.justify-content-center`
+- `.list-unstyled`
+- `.mb-0`
+- `.mb-1`
+- `.mb-2`
+- `.mb-3`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.me-3`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-title`
+- `.modal-xl`
+- `.mt-2`
+- `.page-item`
+- `.page-link`
+- `.pagination`
+- `.py-5`
+- `.row`
+- `.table`
+- `.table-hover`
+- `.table-responsive`
+- `.tag.color`
+- `.text-center`
+- `.text-danger`
+- `.text-decoration-none`
+- `.text-muted`
+- `.text-primary`
+- `.upload-method`
+- `.w-100`
+- `.{{`
+- `.}}`
+
+### `app/templates/instances/create.html`
+
+- `#create-page-tag-selector`
+- `#credential_id`
+- `#database-name-row`
+- `#database_name`
+- `#db_type`
+- `#description`
+- `#host`
+- `#instanceForm`
+- `#is_active`
+- `#name`
+- `#open-tag-selector-btn`
+- `#port`
+- `#selected-tag-names`
+- `#selected-tags-chips`
+- `#selected-tags-count`
+- `#selected-tags-preview`
+- `.align-items-center`
+- `.btn`
+- `.btn-outline-primary`
+- `.btn-outline-secondary`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-lg-8`
+- `.col-md-12`
+- `.col-md-4`
+- `.col-md-8`
+- `.d-flex`
+- `.d-grid`
+- `.d-md-flex`
+- `.fa-arrow-left`
+- `.fa-plus`
+- `.fa-save`
+- `.fa-tags`
+- `.fas`
+- `.flex-wrap`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.form-text`
+- `.fw-bold`
+- `.gap-1`
+- `.gap-2`
+- `.justify-content-center`
+- `.justify-content-md-end`
+- `.mb-0`
+- `.mb-3`
+- `.me-1`
+- `.me-2`
+- `.mt-2`
+- `.row`
+- `.text-danger`
+- `.text-decoration-none`
+- `.text-muted`
+
+### `app/templates/instances/statistics.html`
+
+- `#versionChart`
+- `.align-items-center`
+- `.align-self-center`
+- `.badge`
+- `.bg-info`
+- `.bg-primary`
+- `.bg-success`
+- `.bg-warning`
+- `.bg-{{`
+- `.btn`
+- `.btn-outline-secondary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-text`
+- `.card-title`
+- `.col-md-3`
+- `.col-md-6`
+- `.d-flex`
+- `.fa-2x`
+- `.fa-3x`
+- `.fa-arrow-left`
+- `.fa-chart-bar`
+- `.fa-chart-pie`
+- `.fa-check-circle`
+- `.fa-code-branch`
+- `.fa-database`
+- `.fa-layer-group`
+- `.fa-network-wired`
+- `.fa-pause-circle`
+- `.fa-tag`
+- `.fas`
+- `.justify-content-between`
+- `.mb-0`
+- `.mb-3`
+- `.mb-4`
+- `.me-2`
+- `.progress`
+- `.progress-bar`
+- `.py-4`
+- `.row`
+- `.table`
+- `.table-hover`
+- `.table-responsive`
+- `.table-sm`
+- `.text-center`
+- `.text-muted`
+- `.text-primary`
+- `.text-white`
+
+### `app/templates/instances/edit.html`
+
+- `#credential_id`
+- `#database-name-row`
+- `#database_name`
+- `#db_type`
+- `#description`
+- `#edit-page-tag-selector`
+- `#host`
+- `#instanceForm`
+- `#is_active`
+- `#name`
+- `#open-tag-selector-btn`
+- `#port`
+- `#selected-tag-names`
+- `#selected-tags-chips`
+- `#selected-tags-count`
+- `#selected-tags-preview`
+- `#testResult`
+- `#testResultContent`
+- `.align-items-center`
+- `.btn`
+- `.btn-outline-primary`
+- `.btn-outline-secondary`
+- `.btn-outline-warning`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-lg-8`
+- `.col-md-12`
+- `.col-md-4`
+- `.col-md-8`
+- `.d-flex`
+- `.d-grid`
+- `.d-md-flex`
+- `.fa-arrow-left`
+- `.fa-edit`
+- `.fa-plug`
+- `.fa-plus`
+- `.fa-save`
+- `.fa-tags`
+- `.fas`
+- `.flex-wrap`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.form-text`
+- `.fw-bold`
+- `.gap-1`
+- `.gap-2`
+- `.justify-content-center`
+- `.justify-content-md-end`
+- `.mb-0`
+- `.mb-3`
+- `.me-1`
+- `.me-2`
+- `.mt-2`
+- `.mt-3`
+- `.row`
+- `.text-danger`
+- `.text-decoration-none`
+- `.text-muted`
+
+### `app/templates/instances/detail.html`
+
+- `#accountCount`
+- `#connectionStatus`
+- `#historyContent`
+- `#historyModal`
+- `#permissionsContent`
+- `#permissionsModal`
+- `#permissionsModalBody`
+- `#permissionsModalTitle`
+- `#showDeletedAccounts`
+- `#testResult`
+- `#testResultContent`
+- `#{{ account.id }}`
+- `.account-row`
+- `.align-items-center`
+- `.badge`
+- `.bg-danger`
+- `.bg-info`
+- `.bg-light`
+- `.bg-primary`
+- `.bg-secondary`
+- `.bg-success`
+- `.bg-warning`
+- `.bg-{{`
+- `.btn`
+- `.btn-close`
+- `.btn-group`
+- `.btn-outline-info`
+- `.btn-outline-primary`
+- `.btn-outline-secondary`
+- `.btn-outline-success`
+- `.btn-outline-warning`
+- `.btn-sm`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-12`
+- `.col-lg-4`
+- `.col-lg-8`
+- `.col-md-6`
+- `.d-flex`
+- `.d-grid`
+- `.fa-3x`
+- `.fa-arrow-left`
+- `.fa-bolt`
+- `.fa-check`
+- `.fa-check-circle`
+- `.fa-clock`
+- `.fa-crown`
+- `.fa-database`
+- `.fa-edit`
+- `.fa-eye`
+- `.fa-eye-slash`
+- `.fa-history`
+- `.fa-info-circle`
+- `.fa-lock`
+- `.fa-plug`
+- `.fa-server`
+- `.fa-sync`
+- `.fa-tag`
+- `.fa-trash`
+- `.fa-user`
+- `.fa-users`
+- `.fade`
+- `.fas`
+- `.flex-column`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control-plaintext`
+- `.form-label`
+- `.fw-bold`
+- `.gap-2`
+- `.mb-0`
+- `.mb-1`
+- `.mb-2`
+- `.mb-3`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-header`
+- `.modal-lg`
+- `.modal-title`
+- `.ms-2`
+- `.mt-1`
+- `.mt-2`
+- `.p-2`
+- `.py-4`
+- `.rounded`
+- `.row`
+- `.small`
+- `.table`
+- `.table-hover`
+- `.table-responsive`
+- `.tag.color`
+- `.text-center`
+- `.text-end`
+- `.text-muted`
+- `.text-primary`
+- `.}}`
+
+### `app/templates/sync_sessions/management.html`
+
+- `#error-logs-content`
+- `#errorLogsModal`
+- `#session-detail-content`
+- `#sessionDetailModal`
+- `#sessions-container`
+- `#sessions-loading`
+- `#status-filter`
+- `#sync-category-filter`
+- `#sync-type-filter`
+- `.align-items-center`
+- `.align-items-end`
+- `.bg-danger`
+- `.btn`
+- `.btn-close`
+- `.btn-close-white`
+- `.btn-outline-primary`
+- `.btn-primary`
+- `.btn-secondary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.col-12`
+- `.col-md-3`
+- `.container-fluid`
+- `.d-flex`
+- `.fa-exclamation-triangle`
+- `.fa-filter`
+- `.fa-list`
+- `.fa-sync`
+- `.fa-sync-alt`
+- `.fade`
+- `.fas`
+- `.filter-section`
+- `.form-label`
+- `.form-select`
+- `.justify-content-between`
+- `.mb-0`
+- `.mb-4`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-title`
+- `.modal-xl`
+- `.mt-2`
+- `.py-4`
+- `.row`
+- `.spinner-border`
+- `.text-center`
+- `.text-primary`
+- `.text-white`
+- `.visually-hidden`
+- `.w-100`
+
+### `app/templates/user_management/management.html`
+
+- `#addUserForm`
+- `#addUserModal`
+- `#editIsActive`
+- `#editRole`
+- `#editUserForm`
+- `#editUserId`
+- `#editUserModal`
+- `#editUsername`
+- `#is_active`
+- `#password`
+- `#role`
+- `#username`
+- `#{{ user.id }}`
+- `.action-buttons`
+- `.btn`
+- `.btn-close`
+- `.btn-outline-danger`
+- `.btn-outline-primary`
+- `.btn-primary`
+- `.btn-secondary`
+- `.btn-sm`
+- `.col-12`
+- `.container`
+- `.container-fluid`
+- `.empty-state`
+- `.fa-edit`
+- `.fa-trash`
+- `.fa-user-edit`
+- `.fa-user-plus`
+- `.fa-users`
+- `.fade`
+- `.fas`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.mb-0`
+- `.mb-3`
+- `.mb-4`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-title`
+- `.mt-4`
+- `.page-header`
+- `.py-4`
+- `.role-badge`
+- `.role-{{`
+- `.row`
+- `.status-badge`
+- `.status-{{`
+- `.table`
+- `.table-hover`
+- `.table-responsive`
+- `.text-center`
+- `.text-danger`
+- `.text-muted`
+- `.user-avatar`
+- `.user-details`
+- `.user-email`
+- `.user-info`
+- `.user-name`
+- `.user-status-slider`
+- `.user-status-toggle`
+- `.user-table`
+- `.user.role`
+- `.}}`
+
+### `app/templates/errors/error.html`
+
+- `.btn`
+- `.btn-outline-secondary`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.col-md-6`
+- `.container`
+- `.display-4`
+- `.fa-5x`
+- `.fa-arrow-left`
+- `.fa-ban`
+- `.fa-exclamation-circle`
+- `.fa-exclamation-triangle`
+- `.fa-lock`
+- `.fa-search`
+- `.fa-server`
+- `.fa-sign-in-alt`
+- `.fas`
+- `.justify-content-center`
+- `.lead`
+- `.mb-4`
+- `.me-2`
+- `.mt-4`
+- `.mt-5`
+- `.row`
+- `.text-center`
+- `.text-danger`
+- `.text-info`
+- `.text-muted`
+- `.text-secondary`
+- `.text-warning`
+- `.text-{{`
+
+### `app/templates/credentials/list.html`
+
+- `#confirmDelete`
+- `#credential_type`
+- `#deleteCredentialName`
+- `#deleteModal`
+- `#search`
+- `.active`
+- `.align-items-center`
+- `.badge`
+- `.bg-info`
+- `.bg-secondary`
+- `.bg-success`
+- `.bg-{{`
+- `.btn`
+- `.btn-close`
+- `.btn-danger`
+- `.btn-group`
+- `.btn-group-sm`
+- `.btn-outline-danger`
+- `.btn-outline-primary`
+- `.btn-outline-secondary`
+- `.btn-outline-success`
+- `.btn-outline-warning`
+- `.btn-primary`
+- `.btn-secondary`
+- `.card`
+- `.card-body`
+- `.col-md-2`
+- `.col-md-3`
+- `.col-md-4`
+- `.d-flex`
+- `.d-grid`
+- `.disabled`
+- `.fa-3x`
+- `.fa-database`
+- `.fa-edit`
+- `.fa-eye`
+- `.fa-key`
+- `.fa-lock`
+- `.fa-pause`
+- `.fa-play`
+- `.fa-plus`
+- `.fa-search`
+- `.fa-times`
+- `.fa-trash`
+- `.fade`
+- `.fas`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.g-3`
+- `.justify-content-between`
+- `.justify-content-center`
+- `.mb-0`
+- `.mb-3`
+- `.mb-4`
+- `.me-1`
+- `.me-2`
+- `.modal`
+- `.modal-body`
+- `.modal-content`
+- `.modal-dialog`
+- `.modal-footer`
+- `.modal-header`
+- `.modal-title`
+- `.page-item`
+- `.page-link`
+- `.pagination`
+- `.py-5`
+- `.row`
+- `.table`
+- `.table-hover`
+- `.table-responsive`
+- `.text-center`
+- `.text-danger`
+- `.text-muted`
+- `.text-primary`
+
+### `app/templates/credentials/create.html`
+
+- `#credentialForm`
+- `#credential_type`
+- `#db_type`
+- `#description`
+- `#is_active`
+- `#name`
+- `#password`
+- `#togglePassword`
+- `#username`
+- `.btn`
+- `.btn-outline-secondary`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-lg-8`
+- `.col-md-6`
+- `.d-grid`
+- `.d-md-flex`
+- `.fa-arrow-left`
+- `.fa-eye`
+- `.fa-plus`
+- `.fa-save`
+- `.fas`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.form-text`
+- `.gap-2`
+- `.input-group`
+- `.justify-content-center`
+- `.justify-content-md-end`
+- `.mb-0`
+- `.mb-3`
+- `.me-2`
+- `.row`
+- `.text-danger`
+
+### `app/templates/credentials/edit.html`
+
+- `#category_id`
+- `#credentialForm`
+- `#credential_type`
+- `#db_type`
+- `#description`
+- `#is_active`
+- `#name`
+- `#password`
+- `#toggleIcon`
+- `#username`
+- `.btn`
+- `.btn-outline-info`
+- `.btn-outline-secondary`
+- `.btn-primary`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-lg-8`
+- `.col-md-6`
+- `.d-grid`
+- `.d-md-flex`
+- `.fa-arrow-left`
+- `.fa-edit`
+- `.fa-eye`
+- `.fa-save`
+- `.fas`
+- `.form-check`
+- `.form-check-input`
+- `.form-check-label`
+- `.form-control`
+- `.form-label`
+- `.form-select`
+- `.form-text`
+- `.gap-2`
+- `.input-group`
+- `.justify-content-center`
+- `.justify-content-md-end`
+- `.mb-0`
+- `.mb-3`
+- `.me-2`
+- `.row`
+- `.text-danger`
+
+### `app/templates/credentials/detail.html`
+
+- `.align-items-center`
+- `.badge`
+- `.bg-danger`
+- `.bg-info`
+- `.bg-primary`
+- `.bg-secondary`
+- `.bg-success`
+- `.btn`
+- `.btn-outline-secondary`
+- `.btn-outline-warning`
+- `.btn-warning`
+- `.card`
+- `.card-body`
+- `.card-header`
+- `.card-title`
+- `.col-lg-4`
+- `.col-lg-8`
+- `.col-md-4`
+- `.col-md-6`
+- `.d-flex`
+- `.d-grid`
+- `.fa-arrow-left`
+- `.fa-cog`
+- `.fa-edit`
+- `.fa-info-circle`
+- `.fa-key`
+- `.fa-list`
+- `.fas`
+- `.form-control-plaintext`
+- `.form-label`
+- `.fs-6`
+- `.fw-bold`
+- `.gap-2`
+- `.justify-content-between`
+- `.mb-0`
+- `.mb-3`
+- `.mb-4`
+- `.me-2`
+- `.row`
+- `.text-muted`
+
