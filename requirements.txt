@@ -676,3 +676,5 @@ wtforms==3.2.1 \
     --hash=sha256:583bad77ba1dd7286463f21e11aa3043ca4869d03575921d1a1698d0715e0fd4 \
     --hash=sha256:df3e6b70f3192e92623128123ec8dca3067df9cfadd43d59681e210cfb8d4682
     # via flask-wtf
+beautifulsoup4==4.12.3
+lxml==5.2.2
