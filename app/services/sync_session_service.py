@@ -249,20 +249,28 @@ class SyncSessionService:
             )
             return False
 
-    def _update_session_statistics(self, session_id: str):
+    def _update_session_statistics(self, session_id: str) -> None:
         """更新会话统计信息"""
-        try:
-            session = SyncSession.query.filter_by(session_id=session_id).first()
-            if session:
-                session.update_statistics()
-                db.session.commit()
-        except Exception as e:
-            self.sync_logger.error(
-                "更新会话统计失败",
-                module="sync_session",
-                session_id=session_id,
-                error=str(e),
+        with db.session.begin_nested():
+            session = db.session.query(SyncSession).filter_by(session_id=session_id).with_for_update().one()
+            
+            succeeded_instances = (
+                db.session.query(func.count(SyncInstanceRecord.id))
+                .filter_by(session_id=session_id, status="completed")
+                .scalar()
             )
+            
+            failed_instances = (
+                db.session.query(func.count(SyncInstanceRecord.id))
+                .filter_by(session_id=session_id, status="failed")
+                .scalar()
+            )
+
+            session.update_statistics(
+                succeeded_instances=succeeded_instances,
+                failed_instances=failed_instances,
+            )
+        log_info(f"Updated statistics for session {session_id}")
 
     def get_session_records(self, session_id: str) -> list[SyncInstanceRecord]:
         """
