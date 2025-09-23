@@ -384,6 +384,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
         # 添加实例记录
         instance_ids = [inst.id for inst in instances]
         records = sync_session_service.add_instance_records(session.session_id, instance_ids)
+        session.total_instances = len(instances)
 
         success_count = 0
         failed_count = 0
