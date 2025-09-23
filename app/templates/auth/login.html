@@ -2,6 +2,10 @@
 
 {% block title %}登录 - 鲸落{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth/login.css') }}">
+{% endblock %}
+
 {% block content %}
 <script src="{{ url_for('static', filename='js/common/alert-utils.js') }}"></script>
 <div class="row justify-content-center">
@@ -59,45 +63,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 密码显示/隐藏切换
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('password');
-
-    togglePassword.addEventListener('click', function() {
-        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        passwordInput.setAttribute('type', type);
-
-        const icon = this.querySelector('i');
-        icon.classList.toggle('fa-eye');
-        icon.classList.toggle('fa-eye-slash');
-    });
-
-    // 表单提交处理
-    const loginForm = document.getElementById('loginForm');
-    loginForm.addEventListener('submit', function(e) {
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
-
-        if (!username || !password) {
-            e.preventDefault();
-            showWarningAlert('请输入用户名和密码');
-            return;
-        }
-
-        // 显示加载状态
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>登录中...';
-        submitBtn.disabled = true;
-
-        // 如果登录失败，恢复按钮状态
-        setTimeout(() => {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        }, 3000);
-    });
-});
-</script>
+<script src="{{ url_for('static', filename='js/pages/auth/login.js') }}"></script>
 {% endblock %}
