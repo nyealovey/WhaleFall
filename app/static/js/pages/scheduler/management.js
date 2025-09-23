@@ -489,20 +489,7 @@ function updateJob() {
             if (response.success) {
                 showAlert('任务更新成功', 'success');
                 $('#editJobModal').modal('hide');
-
-                // 更新 currentJobs 数组中的任务
-                const updatedJob = response.data;
-                const jobIndex = currentJobs.findIndex(j => j.id === updatedJob.id);
-                if (jobIndex > -1) {
-                    currentJobs[jobIndex] = updatedJob;
-                } else {
-                    // 如果任务不存在，则添加到列表（不太可能发生）
-                    currentJobs.push(updatedJob);
-                }
-
-                // 重新渲染任务列表
-                displayJobs(currentJobs);
-
+                loadJobs();
             } else {
                 showAlert('更新失败: ' + response.message, 'danger');
             }

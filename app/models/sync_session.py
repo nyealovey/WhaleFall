@@ -87,11 +87,11 @@ class SyncSession(db.Model):
             succeeded_instances: 成功实例数
             failed_instances: 失败实例数
         """
-        self.successful_instances = succeeded_instances
+        self.succeeded_instances = succeeded_instances
         self.failed_instances = failed_instances
 
         # 只有当所有实例都完成后才更新最终状态
-        if self.successful_instances + self.failed_instances == self.total_instances:
+        if self.succeeded_instances + self.failed_instances == self.total_instances:
             if self.failed_instances > 0:
                 self.status = "failed"
             else:
