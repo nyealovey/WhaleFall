@@ -43,21 +43,14 @@
 
                         <!-- 标签分类筛选 -->
                         <div class="tag-category-filter mb-3">
-                            <div class="btn-group btn-group-sm" role="group">
-                                <input type="radio" class="btn-check" name="category-filter" id="category-all" value="all" checked>
-                                <label class="btn btn-outline-secondary" for="category-all">全部</label>
-                                
-                                <input type="radio" class="btn-check" name="category-filter" id="category-department" value="department">
-                                <label class="btn btn-outline-secondary" for="category-department">部门</label>
-                                
-                                <input type="radio" class="btn-check" name="category-filter" id="category-company" value="company_type">
-                                <label class="btn btn-outline-secondary" for="category-company">公司类型</label>
-                                
-                                <input type="radio" class="btn-check" name="category-filter" id="category-environment" value="environment">
-                                <label class="btn btn-outline-secondary" for="category-environment">环境</label>
-                                
-                                <input type="radio" class="btn-check" name="category-filter" id="category-custom" value="custom">
-                                <label class="btn btn-outline-secondary" for="category-custom">自定义</label>
+                            <div id="tag-category-filter-container" class="btn-group btn-group-sm" role="group">
+                                <!-- 分类按钮将在这里动态生成 -->
+                                <div class="d-flex justify-content-center">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">加载中...</span>
+                                    </div>
+                                    <span class="ms-2">正在加载分类...</span>
+                                </div>
                             </div>
                         </div>
 

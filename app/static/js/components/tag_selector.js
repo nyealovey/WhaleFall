@@ -205,17 +205,18 @@ class TagSelector {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to load categories');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
             if (data.success) {
                 this.renderCategories(data.categories);
             } else {
-                throw new Error(data.message || 'Failed to load categories');
+                throw new Error(data.error || 'Failed to load categories');
             }
         } catch (error) {
             console.error('Error loading categories:', error);
+            this.renderCategoriesError(error.message);
         }
     }
 
@@ -244,6 +245,24 @@ class TagSelector {
                 this.handleCategoryFilter(e.target.value);
             });
         });
+    }
+
+    // 渲染分类加载错误
+    renderCategoriesError(errorMessage) {
+        const container = this.container.querySelector('#tag-category-filter-container');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <div>
+                    <strong>分类加载失败:</strong> ${errorMessage}
+                    <button class="btn btn-sm btn-outline-warning ms-2" onclick="location.reload()">
+                        <i class="fas fa-refresh me-1"></i>重试
+                    </button>
+                </div>
+            </div>
+        `;
     }
     
     // 加载标签数据
