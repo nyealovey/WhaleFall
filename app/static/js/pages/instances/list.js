@@ -5,7 +5,7 @@
 
 // 全局变量
 let deleteInstanceId = null;
-let tagSelector = null;
+let listPageTagSelector = null;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -43,7 +43,7 @@ function initializeTagSelector() {
 function initializeTagSelectorComponent(modalElement, containerElement) {
     if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
         // 初始化标签选择器
-        tagSelector = new TagSelector('tag-selector-container', {
+        listPageTagSelector = new TagSelector('tag-selector-container', {
             allowMultiple: true,
             allowCreate: true,
             allowSearch: true,
@@ -507,8 +507,8 @@ function submitJsonInput() {
 
 // 标签选择器相关功能
 function confirmTagSelection() {
-    if (tagSelector) {
-        const selectedTags = tagSelector.getSelectedTags();
+    if (listPageTagSelector) {
+        const selectedTags = listPageTagSelector.getSelectedTags();
         updateSelectedTagsPreview(selectedTags);
         closeTagSelector();
     }
@@ -546,11 +546,11 @@ function updateSelectedTagsPreview(selectedTags) {
 }
 
 function removeTagFromPreview(tagName) {
-    if (tagSelector) {
-        const tag = tagSelector.availableTags.find(t => t.name === tagName);
+    if (listPageTagSelector) {
+        const tag = listPageTagSelector.availableTags.find(t => t.name === tagName);
         if (tag) {
-            tagSelector.toggleTag(tag.id);
-            const selectedTags = tagSelector.getSelectedTags();
+            listPageTagSelector.toggleTag(tag.id);
+            const selectedTags = listPageTagSelector.getSelectedTags();
             updateSelectedTagsPreview(selectedTags);
         }
     }

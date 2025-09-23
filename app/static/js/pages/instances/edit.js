@@ -4,7 +4,7 @@
  */
 
 // 全局变量
-let tagSelector = null;
+let editPageTagSelector = null;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -175,7 +175,7 @@ function initializeTagSelector() {
             const currentTagNames = getCurrentTagNames();
             
             // 初始化标签选择器
-            tagSelector = new TagSelector('tag-selector-container', {
+            editPageTagSelector = new TagSelector('tag-selector-container', {
                 allowMultiple: true,
                 allowCreate: true,
                 allowSearch: true,
@@ -198,13 +198,13 @@ function initializeTagSelector() {
             if (currentTagNames.length > 0) {
                 // 等待标签加载完成后再设置选中状态
                 setTimeout(() => {
-                    const allTags = tagSelector.availableTags;
+                    const allTags = editPageTagSelector.availableTags;
                     const currentTagIds = allTags
                         .filter(tag => currentTagNames.includes(tag.name))
                         .map(tag => tag.id);
-                    tagSelector.setSelectedTags(currentTagIds);
+                    editPageTagSelector.setSelectedTags(currentTagIds);
                     // 更新预览显示
-                    updateSelectedTagsPreview(tagSelector.getSelectedTags());
+                    updateSelectedTagsPreview(editPageTagSelector.getSelectedTags());
                 }, 200);
             }
         }
@@ -234,8 +234,8 @@ function getCurrentTagNames() {
 
 // 确认标签选择
 function confirmTagSelection() {
-    if (tagSelector) {
-        const selectedTags = tagSelector.getSelectedTags();
+    if (editPageTagSelector) {
+        const selectedTags = editPageTagSelector.getSelectedTags();
         updateSelectedTagsPreview(selectedTags);
         closeTagSelector();
     }
@@ -275,11 +275,11 @@ function updateSelectedTagsPreview(selectedTags) {
 
 // 从预览中移除标签
 function removeTagFromPreview(tagName) {
-    if (tagSelector) {
-        const tag = tagSelector.availableTags.find(t => t.name === tagName);
+    if (editPageTagSelector) {
+        const tag = editPageTagSelector.availableTags.find(t => t.name === tagName);
         if (tag) {
-            tagSelector.toggleTag(tag.id);
-            const selectedTags = tagSelector.getSelectedTags();
+            editPageTagSelector.toggleTag(tag.id);
+            const selectedTags = editPageTagSelector.getSelectedTags();
             updateSelectedTagsPreview(selectedTags);
         }
     }
