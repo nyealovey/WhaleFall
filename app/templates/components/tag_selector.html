@@ -1,7 +1,7 @@
 <!-- 标签选择器模态框 -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
 <div class="modal fade" id="tagSelectorModal" tabindex="-1" aria-labelledby="tagSelectorModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" style="max-height: 90vh;">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="tagSelectorModalLabel">
@@ -9,7 +9,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <div class="modal-body">
                 <div id="tag-selector-container" class="tag-selector-container">
                     <!-- 已选择的标签显示区域 -->
                     <div class="selected-tags-area mb-3">
@@ -41,8 +41,21 @@
 
                         <!-- 标签分类筛选 -->
                         <div class="tag-category-filter mb-3">
-                            <div class="btn-group btn-group-sm" role="group" id="tag-category-filter-container">
-                                <!-- 分类按钮将在这里动态生成 -->
+                            <div class="btn-group btn-group-sm" role="group">
+                                <input type="radio" class="btn-check" name="category-filter" id="category-all" value="all" checked>
+                                <label class="btn btn-outline-secondary" for="category-all">全部</label>
+                                
+                                <input type="radio" class="btn-check" name="category-filter" id="category-department" value="department">
+                                <label class="btn btn-outline-secondary" for="category-department">部门</label>
+                                
+                                <input type="radio" class="btn-check" name="category-filter" id="category-company" value="company_type">
+                                <label class="btn btn-outline-secondary" for="category-company">公司类型</label>
+                                
+                                <input type="radio" class="btn-check" name="category-filter" id="category-environment" value="environment">
+                                <label class="btn btn-outline-secondary" for="category-environment">环境</label>
+                                
+                                <input type="radio" class="btn-check" name="category-filter" id="category-custom" value="custom">
+                                <label class="btn btn-outline-secondary" for="category-custom">自定义</label>
                             </div>
                         </div>
 
@@ -67,7 +80,7 @@
                         </div>
 
                         <!-- 标签列表区域 -->
-                        <div class="tag-list-area" id="tag-list-container" style="max-height: 180px;">
+                        <div class="tag-list-area" id="tag-list-container">
                             <!-- 标签列表将在这里动态生成 -->
                         </div>
                     </div>

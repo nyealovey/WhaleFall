@@ -80,9 +80,28 @@ function handleFormSubmit(e) {
     }, 5000);
 }
 
-// 打开标签选择器
+/**
+ * 打开标签选择器模态框
+ * @function openTagSelector
+ */
 function openTagSelector() {
-    const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
+    const modalElement = document.getElementById('tagSelectorModal');
+    if (!modalElement) {
+        console.error('Tag selector modal not found');
+        return;
+    }
+
+    const modal = new bootstrap.Modal(modalElement);
+
+    // 确保在模态框显示后再初始化，避免DOM查找问题
+    modalElement.addEventListener('shown.bs.modal', function () {
+        if (!getTagSelector()) {
+            const selector = initializeTagSelector({
+                onSelectionChange: updateSelectedTagsUI
+            });
+        }
+    }, { once: true });
+
     modal.show();
 }
 

@@ -35,33 +35,6 @@
 }
 
 /* 批量操作按钮 */
-.batch-actions {
-    background-color: #f8f9fa;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid #dee2e6;
-}
-
-.batch-actions.hidden {
-    display: none;
-}
-
-/* 标签预览 */
-.tag-preview {
-    max-height: 100px;
-    overflow-y: auto;
-}
-
-.tag-chip {
-    display: inline-block;
-    margin: 2px;
-    padding: 4px 8px;
-    background-color: #e9ecef;
-    border-radius: 12px;
-    font-size: 0.8em;
-}
-
 /* 模态框样式 */
 .modal-xl {
     max-width: 90%;
