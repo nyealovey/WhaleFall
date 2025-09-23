@@ -4,8 +4,8 @@
  */
 
 // 全局变量
-let currentTags = [];
-let currentFilters = {};
+window.currentTags = window.currentTags || [];
+window.currentFilters = window.currentFilters || {};
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -204,13 +204,13 @@ function toggleAllTags(checked) {
 // 更新标签选择
 function updateTagSelection(tagId, selected) {
     if (selected) {
-        if (!currentTags.includes(tagId)) {
-            currentTags.push(tagId);
+        if (!window.currentTags.includes(tagId)) {
+            window.currentTags.push(tagId);
         }
     } else {
-        const index = currentTags.indexOf(tagId);
+        const index = window.currentTags.indexOf(tagId);
         if (index > -1) {
-            currentTags.splice(index, 1);
+            window.currentTags.splice(index, 1);
         }
     }
     
@@ -222,12 +222,12 @@ function updateBatchActions() {
     const batchActions = document.querySelector('.batch-actions');
     const selectionCounter = document.querySelector('.selection-counter');
     
-    if (currentTags.length > 0) {
+    if (window.currentTags.length > 0) {
         if (batchActions) {
             batchActions.classList.add('show');
         }
         if (selectionCounter) {
-            selectionCounter.textContent = `已选择 ${currentTags.length} 个标签`;
+            selectionCounter.textContent = `已选择 ${window.currentTags.length} 个标签`;
         }
     } else {
         if (batchActions) {
@@ -238,7 +238,7 @@ function updateBatchActions() {
 
 // 执行批量操作
 function performBatchAction(action) {
-    if (currentTags.length === 0) {
+    if (window.currentTags.length === 0) {
         showAlert('warning', '请选择要操作的标签');
         return;
     }
@@ -249,8 +249,8 @@ function performBatchAction(action) {
         'deactivate': '停用'
     };
     
-    if (confirm(`确定要${actionNames[action]}选中的 ${currentTags.length} 个标签吗？`)) {
-        const tagIds = currentTags.slice();
+    if (confirm(`确定要${actionNames[action]}选中的 ${window.currentTags.length} 个标签吗？`)) {
+        const tagIds = window.currentTags.slice();
         
         fetch('/tags/api/batch_action', {
             method: 'POST',
