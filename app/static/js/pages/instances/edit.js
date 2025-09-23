@@ -92,6 +92,10 @@ function testConnection() {
     const csrfToken = getCSRFToken();
     const instanceId = getInstanceId();
     
+    console.log('测试连接 - 实例ID:', instanceId);
+    console.log('测试连接 - CSRF Token:', csrfToken);
+    console.log('测试连接 - API URL:', `/instances/api/instances/${instanceId}/test`);
+    
     fetch(`/instances/api/instances/${instanceId}/test`, {
         method: 'GET',
         headers: {
@@ -305,7 +309,16 @@ function showAlert(type, message) {
 function getInstanceId() {
     // 从页面URL中获取实例ID
     const urlParts = window.location.pathname.split('/');
-    return urlParts[urlParts.length - 1];
+    let instanceId = urlParts[urlParts.length - 1];
+    
+    // 如果最后一部分是'edit'，则取倒数第二部分
+    if (instanceId === 'edit') {
+        instanceId = urlParts[urlParts.length - 2];
+    }
+    
+    console.log('当前URL:', window.location.pathname);
+    console.log('解析的实例ID:', instanceId);
+    return instanceId;
 }
 
 function getCSRFToken() {
