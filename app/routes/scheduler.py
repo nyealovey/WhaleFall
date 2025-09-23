@@ -229,6 +229,10 @@ def update_job(job_id: str) -> Response:
             if is_builtin:
                 # 内置任务：只能更新触发器
                 scheduler.modify_job(job_id, trigger=trigger)
+                # 手动触发调度器重新计算下次执行时间
+                updated_job = scheduler.get_job(job_id)
+                if updated_job and hasattr(updated_job, 'next_run_time'):
+                    system_logger.info("任务触发器更新后的下次执行时间: %s - %s", job_id, updated_job.next_run_time)
                 system_logger.info("内置任务触发器更新成功: %s", job_id)
                 return APIResponse.success("触发器更新成功")  # type: ignore
             # 自定义任务：可以更新所有属性
