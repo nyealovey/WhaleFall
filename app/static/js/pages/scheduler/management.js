@@ -140,6 +140,7 @@ function loadJobs() {
         success: function(response) {
             $('#loadingRow').hide();
             if (response.success === true) {
+                console.log('Received jobs:', response.data); // 在这里添加日志
                 currentJobs = response.data;
                 displayJobs(response.data);
                 updateStats(response.data);
