@@ -23,6 +23,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// 备用初始化方法 - 在脚本加载时立即尝试
+console.log('list.js 脚本加载完成，TagSelector 类可用性:', typeof TagSelector !== 'undefined');
+
+// 如果DOM已经加载完成，立即初始化
+if (document.readyState === 'loading') {
+    console.log('DOM 仍在加载中，等待 DOMContentLoaded 事件...');
+} else {
+    console.log('DOM 已加载完成，立即初始化标签选择器...');
+    if (typeof TagSelector === 'undefined') {
+        console.log('TagSelector类未加载，等待1000ms后重试...');
+        setTimeout(() => {
+            console.log('延迟初始化，TagSelector 类可用性:', typeof TagSelector !== 'undefined');
+            initializeTagSelector();
+        }, 1000);
+    } else {
+        initializeTagSelector();
+    }
+}
+
 // 同步所有账户
 function syncAllAccounts() {
     const btn = event.target;
