@@ -277,13 +277,15 @@ function renderSessions(sessions) {
         const successfulInstances = session.successful_instances || 0;
         const failedInstances = session.failed_instances || 0;
         
-        // 对于 running 状态，进度应该是（成功+失败）/ 总数
+        // 计算进度百分比
         let progressPercentage = 0;
         if (totalInstances > 0) {
-            if (session.status === 'running') {
-                progressPercentage = Math.round(((successfulInstances + failedInstances) / totalInstances) * 100);
-            } else {
+            if (session.status === 'completed') {
+                // 对于已完成的会话，进度基于成功实例
                 progressPercentage = Math.round((successfulInstances / totalInstances) * 100);
+            } else {
+                // 对于运行中、失败或取消的会话，进度基于已处理的实例（成功 + 失败）
+                progressPercentage = Math.round(((successfulInstances + failedInstances) / totalInstances) * 100);
             }
         }
         
