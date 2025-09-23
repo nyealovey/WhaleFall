@@ -277,7 +277,7 @@ def sync_accounts(*, manual_run: bool = False) -> None:
                     )
 
             # 完成同步会话
-            session.update_statistics()
+            session.update_statistics(success_count, failed_count)
             db.session.commit()
 
             # 记录操作日志
