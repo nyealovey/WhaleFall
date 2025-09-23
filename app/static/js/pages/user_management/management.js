@@ -1,10 +1,9 @@
 /**
  * 用户管理页面JavaScript
- * 处理用户增删改查、状态切换、批量操作等功能
+ * 处理用户增删改查、状态切换等功能
  */
 
 // 全局变量
-let selectedUsers = new Set();
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -17,7 +16,6 @@ function initializeUserManagementPage() {
     initializeEditUserForm();
     initializeDeleteUserHandlers();
     initializeUserStatusToggles();
-    initializeBatchOperations();
     initializeUserTable();
     console.log('用户管理页面已加载');
 }
@@ -245,126 +243,8 @@ function toggleUserStatus(userId, isActive) {
 }
 
 
-// 初始化批量操作
-function initializeBatchOperations() {
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const userCheckboxes = document.querySelectorAll('input[name="user_ids"]');
-    const batchActions = document.querySelector('.batch-actions');
-    
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            toggleAllUsers(this.checked);
-        });
-    }
-    
-    userCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            updateUserSelection(this.value, this.checked);
-        });
-    });
-    
-    // 批量操作按钮
-    const batchDeleteBtn = document.getElementById('batchDelete');
-    const batchActivateBtn = document.getElementById('batchActivate');
-    const batchDeactivateBtn = document.getElementById('batchDeactivate');
-    
-    if (batchDeleteBtn) {
-        batchDeleteBtn.addEventListener('click', function() {
-            performBatchAction('delete');
-        });
-    }
-    
-    if (batchActivateBtn) {
-        batchActivateBtn.addEventListener('click', function() {
-            performBatchAction('activate');
-        });
-    }
-    
-    if (batchDeactivateBtn) {
-        batchDeactivateBtn.addEventListener('click', function() {
-            performBatchAction('deactivate');
-        });
-    }
-}
 
-// 切换所有用户选择
-function toggleAllUsers(checked) {
-    const userCheckboxes = document.querySelectorAll('input[name="user_ids"]');
-    
-    userCheckboxes.forEach(checkbox => {
-        checkbox.checked = checked;
-        updateUserSelection(checkbox.value, checked);
-    });
-}
 
-// 更新用户选择
-function updateUserSelection(userId, selected) {
-    if (selected) {
-        selectedUsers.add(userId);
-    } else {
-        selectedUsers.delete(userId);
-    }
-    
-    updateBatchActions();
-}
-
-// 更新批量操作显示
-function updateBatchActions() {
-    const batchActions = document.querySelector('.batch-actions');
-    const selectionCounter = document.querySelector('.selection-counter');
-    
-    if (selectedUsers.size > 0) {
-        batchActions.classList.add('show');
-        if (selectionCounter) {
-            selectionCounter.textContent = `已选择 ${selectedUsers.size} 个用户`;
-        }
-    } else {
-        batchActions.classList.remove('show');
-    }
-}
-
-// 执行批量操作
-function performBatchAction(action) {
-    if (selectedUsers.size === 0) {
-        showAlert('warning', '请选择要操作的用户');
-        return;
-    }
-    
-    const actionNames = {
-        'delete': '删除',
-        'activate': '激活',
-        'deactivate': '停用'
-    };
-    
-    if (confirm(`确定要${actionNames[action]}选中的 ${selectedUsers.size} 个用户吗？`)) {
-        const userIds = Array.from(selectedUsers);
-        
-        fetch('/user_management/api/batch_action', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({
-                action: action,
-                user_ids: userIds
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAlert('success', data.message);
-                location.reload();
-            } else {
-                showAlert('error', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showAlert('error', '批量操作失败');
-        });
-    }
-}
 
 // 初始化用户表格
 function initializeUserTable() {
@@ -511,19 +391,6 @@ function showErrorAlert(message) {
     showAlert('error', message);
 }
 
-// 键盘快捷键
-function initializeKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+A 全选
-        if (e.ctrlKey && e.key === 'a' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-            e.preventDefault();
-            toggleAllUsers(true);
-        }
-    });
-}
-
-// 初始化键盘快捷键
-initializeKeyboardShortcuts();
 
 // 导出用户数据
 function exportUsers(format = 'csv') {
@@ -536,7 +403,6 @@ window.editUser = editUser;
 window.deleteUser = deleteUser;
 window.confirmDeleteUser = confirmDeleteUser;
 window.toggleUserStatus = toggleUserStatus;
-window.performBatchAction = performBatchAction;
 window.exportUsers = exportUsers;
 window.showAlert = showAlert;
 window.showSuccessAlert = showSuccessAlert;
