@@ -142,154 +142,15 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/create.css') }}">
+{% endblock %}
+
 {% block extra_js %}
-<script>
-// 根据数据库类型设置默认端口、数据库名称和显示相关字段
-document.getElementById('db_type').addEventListener('change', function() {
-    const portInput = document.getElementById('port');
-    const databaseNameInput = document.getElementById('database_name');
-    const oracleSidRow = document.getElementById('oracle-sid-row');
-    const selectedOption = this.options[this.selectedIndex];
-    const dbType = this.value;
-    
-    // 使用动态的默认端口
-    if (selectedOption && selectedOption.dataset.port) {
-        portInput.value = selectedOption.dataset.port;
-    }
-    
-    // 设置默认数据库名称
-    if (!databaseNameInput.value) {
-        const defaultDatabaseNames = {
-            'mysql': 'mysql',
-            'postgresql': 'postgres',
-            'sqlserver': 'master',
-            'oracle': 'orcl'
-        };
-        
-        if (defaultDatabaseNames[dbType]) {
-            databaseNameInput.value = defaultDatabaseNames[dbType];
-        }
-    }
-    
-    // 控制Oracle SID字段的显示
-    if (dbType === 'oracle') {
-        oracleSidRow.style.display = 'block';
-    } else {
-        oracleSidRow.style.display = 'none';
-    }
-});
-
-// 表单提交处理
-document.getElementById('instanceForm').addEventListener('submit', function(e) {
-    // 调试：检查隐藏字段的值
-    const tagNamesInput = document.getElementById('selected-tag-names');
-    
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>创建中...';
-    submitBtn.disabled = true;
-    
-    // 如果创建失败，恢复按钮状态
-    setTimeout(() => {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }, 5000);
-});
-
-
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
-    
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 5000);
-}
-</script>
+<script src="{{ url_for('static', filename='js/pages/instances/create.js') }}"></script>
 
 <!-- 标签选择器组件 -->
 <div id="create-page-tag-selector">
     {% include 'components/tag_selector.html' %}
 </div>
-
-<script>
-// 标签选择器初始化
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // 立即检查元素
-    const createPageSelector = document.getElementById('create-page-tag-selector');
-    
-    if (createPageSelector) {
-        const modalElement = createPageSelector.querySelector('#tagSelectorModal');
-        
-        if (modalElement) {
-            // 在模态框内部查找容器元素
-            const containerElement = modalElement.querySelector('#tag-selector-container');
-            
-            if (containerElement) {
-                initializeTagSelector(modalElement, containerElement);
-            } else {
-                // 等待标签选择器组件加载完成
-                setTimeout(() => {
-                    const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
-                    
-                    if (delayedContainerElement) {
-                        initializeTagSelector(modalElement, delayedContainerElement);
-                    } else {
-                    }
-                }, 1000);
-            }
-        } else {
-        }
-    } else {
-    }
-    
-    function initializeTagSelector(modalElement, containerElement) {
-        if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
-            // 初始化标签选择器
-            tagSelector = new TagSelector('tag-selector-container', {
-                allowMultiple: true,
-                allowCreate: true,
-                allowSearch: true,
-                allowCategoryFilter: true
-            });
-            
-            // 绑定打开标签选择器按钮
-            const openBtn = document.getElementById('open-tag-selector-btn');
-            if (openBtn) {
-                openBtn.addEventListener('click', function() {
-                    if (typeof openTagSelector === 'function') {
-                        openTagSelector();
-                    } else {
-                        console.error('openTagSelector函数未定义');
-                    }
-                });
-            } else {
-                console.error('找不到open-tag-selector-btn按钮');
-            }
-            
-            // 绑定确认选择按钮
-            const confirmBtn = document.getElementById('confirm-tag-selection');
-            if (confirmBtn) {
-                confirmBtn.addEventListener('click', confirmTagSelection);
-            } else {
-                console.error('找不到confirm-tag-selection按钮');
-            }
-        } else {
-            console.error('初始化失败:');
-            console.error('- TagSelector可用:', typeof TagSelector !== 'undefined');
-            console.error('- 模态框元素:', modalElement ? '找到' : '未找到');
-            console.error('- 容器元素:', containerElement ? '找到' : '未找到');
-        }
-    }
-});
-</script>
 {% endblock %}
