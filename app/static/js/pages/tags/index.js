@@ -183,7 +183,9 @@ function deleteTag(tagId, tagName) {
     }
     
     if (deleteFormElement) {
-        deleteFormElement.action = deleteFormElement.action.replace('0', tagId);
+        // 使用正确的URL构建方式，避免字符串替换导致的IP地址错误
+        const baseUrl = window.location.origin;
+        deleteFormElement.action = `${baseUrl}/tags/delete/${tagId}`;
     }
     
     // 显示删除确认模态框
