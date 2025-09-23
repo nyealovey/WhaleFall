@@ -88,7 +88,7 @@ class TagSelector {
         try {
             this.showLoading();
             
-            const response = await fetch('/tags/api/get_tags', {
+            const response = await fetch('/tags/api/tags', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ class TagSelector {
             
             const data = await response.json();
             if (data.success) {
-                this.allTags = data.data.tags || [];
+                this.allTags = data.tags || [];
                 this.filteredTags = [...this.allTags];
                 this.renderTags();
                 this.updateStats();
