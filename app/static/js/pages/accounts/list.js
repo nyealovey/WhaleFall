@@ -106,8 +106,34 @@ function validateForm() {
 
 // 打开标签选择器
 function openTagSelector() {
-    const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
-    modal.show();
+    try {
+        console.log('打开标签选择器...');
+        const modalElement = document.getElementById('tagSelectorModal');
+        
+        if (!modalElement) {
+            console.error('模态框元素未找到');
+            showAlert('danger', '标签选择器模态框未找到，请刷新页面重试');
+            return;
+        }
+        
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        console.log('模态框已显示');
+        
+        // 模态框显示后重新绑定按钮
+        setTimeout(() => {
+            if (accountListTagSelector) {
+                console.log('重新绑定模态框按钮');
+                accountListTagSelector.rebindModalButtons();
+            } else {
+                console.warn('accountListTagSelector未初始化，无法重新绑定按钮');
+            }
+        }, 100);
+        
+    } catch (error) {
+        console.error('打开标签选择器时出错:', error);
+        showAlert('danger', '打开标签选择器失败: ' + error.message);
+    }
 }
 
 // 关闭标签选择器
@@ -120,66 +146,134 @@ function closeTagSelector() {
 
 // 初始化标签选择器
 function initializeTagSelector() {
-    // 立即检查元素
-    const accountListSelector = document.getElementById('account-list-tag-selector');
+    console.log('开始初始化标签选择器...');
     
-    if (accountListSelector) {
-        const modalElement = accountListSelector.querySelector('#tagSelectorModal');
+    // 查找容器元素
+    const listPageSelector = document.getElementById('list-page-tag-selector');
+    console.log('容器元素:', listPageSelector ? '找到' : '未找到');
+    
+    if (listPageSelector) {
+        const modalElement = listPageSelector.querySelector('#tagSelectorModal');
+        console.log('模态框元素:', modalElement ? '找到' : '未找到');
         
         if (modalElement) {
             // 在模态框内部查找容器元素
             const containerElement = modalElement.querySelector('#tag-selector-container');
+            console.log('容器元素:', containerElement ? '找到' : '未找到');
             
             if (containerElement) {
                 initializeTagSelectorComponent(modalElement, containerElement);
             } else {
                 // 等待标签选择器组件加载完成
+                console.log('等待标签选择器组件加载...');
                 setTimeout(() => {
                     const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
                     
                     if (delayedContainerElement) {
+                        console.log('延迟加载成功，初始化组件');
                         initializeTagSelectorComponent(modalElement, delayedContainerElement);
+                    } else {
+                        console.error('延迟加载失败，容器元素仍未找到');
                     }
                 }, 1000);
             }
+        } else {
+            console.error('模态框元素未找到');
         }
+    } else {
+        console.error('容器元素 list-page-tag-selector 未找到');
     }
 }
 
 // 初始化标签选择器组件
 function initializeTagSelectorComponent(modalElement, containerElement) {
+    console.log('开始初始化标签选择器组件...');
+    console.log('TagSelector可用:', typeof TagSelector !== 'undefined');
+    console.log('模态框元素:', modalElement ? '找到' : '未找到');
+    console.log('容器元素:', containerElement ? '找到' : '未找到');
+    
     if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
-        // 初始化标签选择器
-        accountListTagSelector = new TagSelector('tag-selector-container', {
-            allowMultiple: true,
-            allowCreate: true,
-            allowSearch: true,
-            allowCategoryFilter: true
-        });
-        
-        // 绑定打开标签选择器按钮
-        const openBtn = document.getElementById('open-tag-filter-btn');
-        if (openBtn) {
-            openBtn.addEventListener('click', function() {
-                if (typeof openTagSelector === 'function') {
-                    openTagSelector();
-                } else {
-                    console.error('openTagSelector函数未定义');
-                }
+        try {
+            // 初始化标签选择器
+            console.log('创建TagSelector实例...');
+            accountListTagSelector = new TagSelector('tag-selector-container', {
+                allowMultiple: true,
+                allowCreate: true,
+                allowSearch: true,
+                allowCategoryFilter: true
+            });
+            console.log('TagSelector实例创建成功');
+            
+            // 绑定打开标签选择器按钮
+            const openBtn = document.getElementById('open-tag-filter-btn');
+            console.log('打开按钮:', openBtn ? '找到' : '未找到');
+            
+            if (openBtn) {
+                // 移除之前的事件监听器（如果有）
+                openBtn.removeEventListener('click', openTagSelector);
                 
-                // 模态框显示后重新绑定按钮
+                // 添加新的事件监听器
+                openBtn.addEventListener('click', function(e) {
+                    console.log('打开标签选择器按钮被点击');
+                    e.preventDefault();
+                    
+                    try {
+                        if (typeof openTagSelector === 'function') {
+                            openTagSelector();
+                        } else {
+                            console.error('openTagSelector函数未定义');
+                            // 直接显示模态框作为备用方案
+                            const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
+                            modal.show();
+                        }
+                        
+                        // 模态框显示后重新绑定按钮
+                        setTimeout(() => {
+                            if (accountListTagSelector) {
+                                console.log('重新绑定模态框按钮');
+                                accountListTagSelector.rebindModalButtons();
+                            } else {
+                                console.warn('accountListTagSelector未初始化，无法重新绑定按钮');
+                            }
+                        }, 100);
+                    } catch (error) {
+                        console.error('打开标签选择器时出错:', error);
+                        showAlert('danger', '打开标签选择器失败: ' + error.message);
+                    }
+                });
+                console.log('打开按钮事件绑定成功');
+            } else {
+                console.error('未找到打开标签选择器按钮 (id: open-tag-filter-btn)');
+            }
+            
+            // 绑定确认选择按钮
+            const confirmBtn = document.getElementById('confirm-selection-btn');
+            console.log('确认按钮:', confirmBtn ? '找到' : '未找到');
+            
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', confirmTagSelection);
+                console.log('确认按钮事件绑定成功');
+            } else {
+                console.error('未找到确认选择按钮 (id: confirm-selection-btn)');
+            }
+            
+            // 预填充已选择的标签
+            const selectedTagNames = document.getElementById('selected-tag-names');
+            if (selectedTagNames && selectedTagNames.value) {
+                console.log('预填充已选择的标签:', selectedTagNames.value);
                 setTimeout(() => {
                     if (accountListTagSelector) {
-                        accountListTagSelector.rebindModalButtons();
+                        const tagNames = selectedTagNames.value.split(',').filter(name => name.trim());
+                        // 这里需要根据标签名称找到对应的ID，暂时跳过
+                        console.log('预填充标签名称:', tagNames);
                     }
-                }, 100);
-            });
-        }
-        
-        // 绑定确认选择按钮
-        const confirmBtn = document.getElementById('confirm-selection-btn');
-        if (confirmBtn) {
-            confirmBtn.addEventListener('click', confirmTagSelection);
+                }, 500);
+            }
+            
+            console.log('标签选择器组件初始化完成');
+        } catch (error) {
+            console.error('初始化标签选择器组件时出错:', error);
+            showAlert('danger', '标签选择器初始化失败: ' + error.message);
         }
     } else {
         console.error('初始化失败:');
@@ -191,14 +285,25 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
 
 // 确认标签选择
 function confirmTagSelection() {
-    if (accountListTagSelector) {
-        // 直接调用标签选择器的确认方法
-        accountListTagSelector.confirmSelection();
+    try {
+        console.log('确认标签选择...');
         
-        // 获取选中的标签并更新预览
-        const selectedTags = accountListTagSelector.getSelectedTags();
-        updateSelectedTagsPreview(selectedTags);
-        closeTagSelector();
+        if (accountListTagSelector) {
+            // 直接调用标签选择器的确认方法
+            accountListTagSelector.confirmSelection();
+            
+            // 获取选中的标签并更新预览
+            const selectedTags = accountListTagSelector.getSelectedTags();
+            console.log('选中的标签:', selectedTags);
+            updateSelectedTagsPreview(selectedTags);
+            closeTagSelector();
+        } else {
+            console.error('accountListTagSelector未初始化');
+            showAlert('warning', '标签选择器未初始化，请刷新页面重试');
+        }
+    } catch (error) {
+        console.error('确认标签选择时出错:', error);
+        showAlert('danger', '确认标签选择失败: ' + error.message);
     }
 }
 
@@ -275,3 +380,6 @@ window.showAccountStatistics = showAccountStatistics;
 window.showAlert = showAlert;
 window.validateForm = validateForm;
 window.debugPermissionFunctions = debugPermissionFunctions;
+window.openTagSelector = openTagSelector;
+window.closeTagSelector = closeTagSelector;
+window.confirmTagSelection = confirmTagSelection;
