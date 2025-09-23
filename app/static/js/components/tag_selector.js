@@ -69,23 +69,44 @@ class TagSelector {
     // 设置模态框按钮事件
     setupModalButtons() {
         console.log('TagSelector: setupModalButtons() called.');
+        
         // 立即尝试绑定
         this.bindModalButtons();
         
-        // 如果立即绑定失败，使用延迟绑定
+        // 如果立即绑定失败，使用延迟绑定（最多重试3次）
         if (!this.areButtonsBound()) {
-            console.log('TagSelector: Modal buttons not bound immediately, will try again after delay.');
-            setTimeout(() => {
-                console.log('TagSelector: Retrying to bind modal buttons (500ms).');
-                this.bindModalButtons();
-            }, 500);
-            
-            // 再次延迟绑定（备用方案）
-            setTimeout(() => {
-                console.log('TagSelector: Retrying to bind modal buttons (1000ms).');
-                this.bindModalButtons();
-            }, 1000);
+            console.log('TagSelector: Modal buttons not bound immediately, will retry...');
+            this.retryButtonBinding(0);
         }
+        
+        // 监听模态框显示事件，确保在模态框完全显示后绑定按钮
+        const modalElement = this.container.closest('.modal');
+        if (modalElement) {
+            modalElement.addEventListener('shown.bs.modal', () => {
+                console.log('TagSelector: Modal shown, rebinding buttons...');
+                this.bindModalButtons();
+            });
+        }
+    }
+    
+    // 重试按钮绑定（最多3次）
+    retryButtonBinding(attempt) {
+        const maxAttempts = 3;
+        const delays = [500, 1000, 2000]; // 递增延迟
+        
+        if (attempt >= maxAttempts) {
+            console.error('TagSelector: Failed to bind modal buttons after', maxAttempts, 'attempts');
+            return;
+        }
+        
+        setTimeout(() => {
+            console.log(`TagSelector: Retrying to bind modal buttons (attempt ${attempt + 1}/${maxAttempts})`);
+            this.bindModalButtons();
+            
+            if (!this.areButtonsBound() && attempt < maxAttempts - 1) {
+                this.retryButtonBinding(attempt + 1);
+            }
+        }, delays[attempt] || 2000);
     }
     
     // 检查按钮是否已绑定

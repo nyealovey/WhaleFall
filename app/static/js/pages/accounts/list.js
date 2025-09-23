@@ -260,84 +260,15 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
             });
             console.log('TagSelector实例创建成功');
             
-            // 绑定打开标签选择器按钮
-            const openBtn = document.getElementById('open-tag-filter-btn');
-            console.log('打开按钮:', openBtn ? '找到' : '未找到');
-            
-            if (openBtn) {
-                // 移除之前的事件监听器（如果有）
-                openBtn.removeEventListener('click', openTagSelector);
-                
-                // 添加新的事件监听器
-                openBtn.addEventListener('click', function(e) {
-                    console.log('打开标签选择器按钮被点击');
-                    e.preventDefault();
-                    
-                    try {
-                        if (typeof openTagSelector === 'function') {
-                            openTagSelector();
-                        } else {
-                            console.error('openTagSelector函数未定义');
-                            // 直接显示模态框作为备用方案
-                            const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
-                            modal.show();
-                        }
-                        
-                        // 模态框显示后重新绑定按钮
-                        setTimeout(() => {
-                            if (accountListTagSelector) {
-                                console.log('重新绑定模态框按钮');
-                                accountListTagSelector.rebindModalButtons();
-                            } else {
-                                console.warn('accountListTagSelector未初始化，无法重新绑定按钮');
-                            }
-                        }, 100);
-                    } catch (error) {
-                        console.error('打开标签选择器时出错:', error);
-                        showAlert('danger', '打开标签选择器失败: ' + error.message);
-                    }
-                });
-                console.log('打开按钮事件绑定成功');
-            } else {
-                console.error('未找到打开标签选择器按钮 (id: open-tag-filter-btn)');
-            }
-            
-            // 绑定确认选择按钮 - 使用TagSelector的事件系统
-            const confirmBtn = document.getElementById('confirm-selection-btn');
-            console.log('确认按钮:', confirmBtn ? '找到' : '未找到');
-            
-            if (confirmBtn) {
-                // 监听TagSelector的确认事件
-                accountListTagSelector.container.addEventListener('tagSelectionConfirmed', function(event) {
-                    console.log('收到标签选择确认事件:', event.detail);
-                    const selectedTags = event.detail.selectedTags;
-                    updateSelectedTagsPreview(selectedTags);
-                    closeTagSelector();
-                });
-                
-                // 监听TagSelector的取消事件
-                accountListTagSelector.container.addEventListener('tagSelectionCancelled', function(event) {
-                    console.log('收到标签选择取消事件');
-                    closeTagSelector();
-                });
-                
-                console.log('确认按钮事件监听器设置成功');
-            } else {
-                console.error('未找到确认选择按钮 (id: confirm-selection-btn)');
-            }
-            
-            // 预填充已选择的标签
-            const selectedTagNames = document.getElementById('selected-tag-names');
-            if (selectedTagNames && selectedTagNames.value) {
-                console.log('预填充已选择的标签:', selectedTagNames.value);
-                setTimeout(() => {
-                    if (accountListTagSelector) {
-                        const tagNames = selectedTagNames.value.split(',').filter(name => name.trim());
-                        // 这里需要根据标签名称找到对应的ID，暂时跳过
-                        console.log('预填充标签名称:', tagNames);
-                    }
-                }, 500);
-            }
+            // 等待TagSelector完全初始化
+            setTimeout(() => {
+                if (accountListTagSelector && accountListTagSelector.container) {
+                    console.log('TagSelector完全初始化完成');
+                    setupTagSelectorEvents();
+                } else {
+                    console.error('TagSelector初始化失败');
+                }
+            }, 100);
             
             console.log('标签选择器组件初始化完成');
         } catch (error) {
@@ -350,6 +281,91 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
         console.error('- 模态框元素:', modalElement ? '找到' : '未找到');
         console.error('- 容器元素:', containerElement ? '找到' : '未找到');
     }
+}
+
+// 设置标签选择器事件
+function setupTagSelectorEvents() {
+    console.log('设置标签选择器事件...');
+    
+    if (!accountListTagSelector) {
+        console.error('accountListTagSelector未初始化，无法设置事件');
+        return;
+    }
+    
+    // 绑定打开标签选择器按钮
+    const openBtn = document.getElementById('open-tag-filter-btn');
+    console.log('打开按钮:', openBtn ? '找到' : '未找到');
+    
+    if (openBtn) {
+        // 移除之前的事件监听器（如果有）
+        openBtn.removeEventListener('click', openTagSelector);
+        
+        // 添加新的事件监听器
+        openBtn.addEventListener('click', function(e) {
+            console.log('打开标签选择器按钮被点击');
+            e.preventDefault();
+            
+            try {
+                if (typeof openTagSelector === 'function') {
+                    openTagSelector();
+                } else {
+                    console.error('openTagSelector函数未定义');
+                    // 直接显示模态框作为备用方案
+                    const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
+                    modal.show();
+                }
+                
+                // 模态框显示后重新绑定按钮
+                setTimeout(() => {
+                    if (accountListTagSelector) {
+                        console.log('重新绑定模态框按钮');
+                        accountListTagSelector.rebindModalButtons();
+                    } else {
+                        console.warn('accountListTagSelector未初始化，无法重新绑定按钮');
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('打开标签选择器时出错:', error);
+                showAlert('danger', '打开标签选择器失败: ' + error.message);
+            }
+        });
+        console.log('打开按钮事件绑定成功');
+    } else {
+        console.error('未找到打开标签选择器按钮 (id: open-tag-filter-btn)');
+    }
+    
+    // 监听TagSelector的确认事件
+    if (accountListTagSelector.container) {
+        accountListTagSelector.container.addEventListener('tagSelectionConfirmed', function(event) {
+            console.log('收到标签选择确认事件:', event.detail);
+            const selectedTags = event.detail.selectedTags;
+            updateSelectedTagsPreview(selectedTags);
+            closeTagSelector();
+        });
+        
+        // 监听TagSelector的取消事件
+        accountListTagSelector.container.addEventListener('tagSelectionCancelled', function(event) {
+            console.log('收到标签选择取消事件');
+            closeTagSelector();
+        });
+        
+        console.log('标签选择器事件监听器设置成功');
+    }
+    
+    // 预填充已选择的标签
+    const selectedTagNames = document.getElementById('selected-tag-names');
+    if (selectedTagNames && selectedTagNames.value) {
+        console.log('预填充已选择的标签:', selectedTagNames.value);
+        setTimeout(() => {
+            if (accountListTagSelector) {
+                const tagNames = selectedTagNames.value.split(',').filter(name => name.trim());
+                // 这里需要根据标签名称找到对应的ID，暂时跳过
+                console.log('预填充标签名称:', tagNames);
+            }
+        }, 500);
+    }
+    
+    console.log('标签选择器事件设置完成');
 }
 
 // 确认标签选择 - 已改为使用事件系统，此函数保留用于向后兼容
