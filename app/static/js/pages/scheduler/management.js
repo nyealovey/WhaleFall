@@ -512,38 +512,55 @@ function editJob(jobId) {
 function updateJob() {
     const formData = new FormData($('#editJobForm')[0]);
     const jobId = formData.get('job_id');
-    
-    // 检查是否为内置任务，如果是则保护执行函数
-    const functionValue = formData.get('func');
-    const isBuiltInJob = ['sync_all_accounts', 'sync_all_instances', 'cleanup_logs'].includes(functionValue);
-    
-    // 如果是cron触发器，生成cron表达式
-    const triggerType = formData.get('trigger_type');
-    if (triggerType === 'cron') {
-        const minute = formData.get('cron_minute') || '0';
-        const hour = formData.get('cron_hour') || '0';
-        const day = formData.get('cron_day') || '*';
-        const month = formData.get('cron_month') || '*';
-        const weekday = formData.get('cron_weekday') || '*';
-        const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
-        formData.set('cron_expression', cronExpression);
+    const originalJob = currentJobs.find(j => j.id === jobId);
+
+    if (!originalJob) {
+        showAlert('任务不存在', 'danger');
+        return;
     }
-    
-    // 如果是内置任务，确保执行函数不被修改
+
+    const isBuiltInJob = ['sync_all_accounts', 'sync_all_instances', 'cleanup_logs'].includes(originalJob.id);
+
+    const data = Object.fromEntries(formData.entries());
+    const triggerType = data.editTriggerType;
+    delete data.editTriggerType;
+    data.trigger_type = triggerType;
+
+    if (data.trigger_type === 'cron') {
+        const minute = data.cron_minute || '0';
+        const hour = data.cron_hour || '0';
+        const day = data.cron_day || '*';
+        const month = data.cron_month || '*';
+        const weekday = data.cron_weekday || '*';
+        data.cron_expression = `${minute} ${hour} ${day} ${month} ${weekday}`;
+    }
+
+    let payload;
     if (isBuiltInJob) {
-        // 从原始任务数据中获取正确的执行函数
-        const originalJob = currentJobs.find(j => j.id === jobId);
-        if (originalJob && originalJob.func) {
-            formData.set('func', originalJob.func);
+        payload = {
+            trigger_type: data.trigger_type
+        };
+        if (data.trigger_type === 'cron') {
+            payload.cron_expression = data.cron_expression;
+        } else if (data.trigger_type === 'interval') {
+            payload.seconds = data.interval_seconds;
+            payload.minutes = data.interval_minutes;
+        } else if (data.trigger_type === 'date') {
+            payload.run_date = data.run_date;
+        }
+    } else {
+        payload = data;
+        if (!$('#editJobFunction').is(':disabled')) {
+            payload.func = $('#editJobFunction').val();
         }
     }
-    
+
     showLoadingState($('#editJobForm button[type="submit"]'), '保存中...');
-    
+
     $.ajax({
         url: `/scheduler/api/jobs/${jobId}`,
         method: 'PUT',
-        data: JSON.stringify(Object.fromEntries(formData)),
+        data: JSON.stringify(payload),
         contentType: 'application/json',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
