@@ -8,7 +8,19 @@ let accountListTagSelector = null;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    initializeTagSelector();
+    console.log('DOMContentLoaded 事件触发，开始初始化标签选择器...');
+    console.log('TagSelector 类可用性:', typeof TagSelector !== 'undefined');
+    
+    // 如果TagSelector类还没有加载，等待一下
+    if (typeof TagSelector === 'undefined') {
+        console.log('TagSelector类未加载，等待500ms后重试...');
+        setTimeout(() => {
+            console.log('延迟初始化，TagSelector 类可用性:', typeof TagSelector !== 'undefined');
+            initializeTagSelector();
+        }, 500);
+    } else {
+        initializeTagSelector();
+    }
 });
 
 // 同步所有账户
@@ -147,6 +159,7 @@ function closeTagSelector() {
 // 初始化标签选择器
 function initializeTagSelector() {
     console.log('开始初始化标签选择器...');
+    console.log('TagSelector 类可用性:', typeof TagSelector !== 'undefined');
     
     // 查找容器元素
     const listPageSelector = document.getElementById('list-page-tag-selector');
@@ -187,6 +200,11 @@ function initializeTagSelector() {
     
     // 添加额外的调试信息
     console.log('initializeTagSelector 完成，accountListTagSelector:', accountListTagSelector ? '已创建' : '未创建');
+    
+    // 如果初始化失败，提供强制初始化的建议
+    if (!accountListTagSelector) {
+        console.warn('正常初始化失败，可以尝试运行 forceInitializeTagSelector() 进行强制初始化');
+    }
 }
 
 // 初始化标签选择器组件
