@@ -264,7 +264,7 @@ def sync_accounts(*, manual_run: bool = False) -> None:
                         session_id=session.session_id,
                         instance_name=instance.name,
                         instance_id=instance.id,
-                        exception=str(e),
+                        exception=e,
                     )
 
                     results.append(
