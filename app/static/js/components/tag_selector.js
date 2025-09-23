@@ -132,8 +132,11 @@ class TagSelector {
     
     // 检查按钮是否已绑定
     areButtonsBound() {
-        const confirmBtn = this.container.querySelector('#confirm-selection-btn');
-        const cancelBtn = this.container.querySelector('#cancel-selection-btn');
+        const modalElement = this.container.closest('.modal');
+        if (!modalElement) return false;
+        
+        const confirmBtn = modalElement.querySelector('#confirm-selection-btn');
+        const cancelBtn = modalElement.querySelector('#cancel-selection-btn');
         return confirmBtn && confirmBtn.hasAttribute('data-bound') && 
                cancelBtn && cancelBtn.hasAttribute('data-bound');
     }
@@ -142,8 +145,17 @@ class TagSelector {
     bindModalButtons() {
         console.log('TagSelector: bindModalButtons() 开始执行');
         
+        // 查找模态框元素（按钮在模态框的footer中，不在container中）
+        const modalElement = this.container.closest('.modal');
+        console.log('TagSelector: 查找模态框元素结果:', modalElement ? '找到' : '未找到');
+        
+        if (!modalElement) {
+            console.error('TagSelector: 模态框元素未找到，无法绑定按钮');
+            return;
+        }
+        
         // 确认按钮
-        const confirmBtn = this.container.querySelector('#confirm-selection-btn');
+        const confirmBtn = modalElement.querySelector('#confirm-selection-btn');
         console.log('TagSelector: 查找确认按钮结果:', confirmBtn ? '找到' : '未找到');
         
         if (confirmBtn && !confirmBtn.hasAttribute('data-bound')) {
@@ -161,7 +173,7 @@ class TagSelector {
         }
         
         // 取消按钮
-        const cancelBtn = this.container.querySelector('#cancel-selection-btn');
+        const cancelBtn = modalElement.querySelector('#cancel-selection-btn');
         console.log('TagSelector: 查找取消按钮结果:', cancelBtn ? '找到' : '未找到');
         
         if (cancelBtn && !cancelBtn.hasAttribute('data-bound')) {
