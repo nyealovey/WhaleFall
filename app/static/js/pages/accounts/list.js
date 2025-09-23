@@ -187,6 +187,7 @@ function closeTagSelector() {
 // 初始化标签选择器
 function initializeTagSelector() {
     console.log('=== initializeTagSelector 函数被调用 ===');
+    console.log('函数开始执行...');
     try {
         console.log('开始初始化标签选择器...');
         console.log('TagSelector 类可用性:', typeof TagSelector !== 'undefined');
@@ -238,6 +239,8 @@ function initializeTagSelector() {
     } catch (error) {
         console.error('initializeTagSelector 函数执行出错:', error);
         console.error('错误堆栈:', error.stack);
+        console.error('错误类型:', typeof error);
+        console.error('错误消息:', error.message);
     }
 }
 
