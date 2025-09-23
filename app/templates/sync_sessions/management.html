@@ -313,7 +313,7 @@ function renderSessions(sessions) {
                             </div>
                             <small class="text-muted">
                                 <span class="${progressInfo.textClass}">
-                                    <i class="${progressInfo.icon}"></i> ${progressPercentage}% (${successfulInstances + failedInstances}/${totalInstances})
+                                    <i class="${progressInfo.icon}"></i> ${progressPercentage}% (${successfulInstances}/${totalInstances})
                                 </span>
                             </small>
                         </div>
@@ -559,8 +559,8 @@ function getProgressInfo(status, progressPercentage, totalInstances, successfulI
 
     if (status === 'running') {
         return {
-            barClass: 'bg-primary progress-bar-striped progress-bar-animated',
-            textClass: 'text-primary',
+            barClass: 'bg-success progress-bar-striped progress-bar-animated',
+            textClass: 'text-success',
             icon: 'fas fa-sync-alt fa-spin',
             tooltip: `运行中... (${successfulInstances + failedInstances}/${totalInstances})`
         };
