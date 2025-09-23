@@ -38,6 +38,7 @@ class TagSelector {
         
         this.setupEventListeners();
         this.loadTags();
+        this.loadCategories();
     }
     
     // 设置事件监听器
@@ -58,14 +59,6 @@ class TagSelector {
             });
         }
         
-        // 分类筛选
-        const categoryFilters = this.container.querySelectorAll('input[name="category-filter"]');
-        categoryFilters.forEach(filter => {
-            filter.addEventListener('change', (e) => {
-                this.handleCategoryFilter(e.target.value);
-            });
-        });
-        
         // 确认按钮
         const confirmBtn = this.container.querySelector('#confirm-selection-btn');
         if (confirmBtn) {
@@ -81,6 +74,59 @@ class TagSelector {
                 this.cancelSelection();
             });
         }
+    }
+
+    // 加载分类数据
+    async loadCategories() {
+        try {
+            const response = await fetch('/tags/api/categories', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load categories');
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                this.renderCategories(data.categories);
+            } else {
+                throw new Error(data.message || 'Failed to load categories');
+            }
+        } catch (error) {
+            console.error('Error loading categories:', error);
+        }
+    }
+
+    // 渲染分类筛选器
+    renderCategories(categories) {
+        const container = this.container.querySelector('#tag-category-filter-container');
+        if (!container) return;
+
+        let html = `
+            <input type="radio" class="btn-check" name="category-filter" id="category-all" value="all" checked>
+            <label class="btn btn-outline-secondary" for="category-all">全部</label>
+        `;
+
+        categories.forEach(([value, displayName]) => {
+            html += `
+                <input type="radio" class="btn-check" name="category-filter" id="category-${value}" value="${value}">
+                <label class="btn btn-outline-secondary" for="category-${value}">${displayName}</label>
+            `;
+        });
+
+        container.innerHTML = html;
+
+        const categoryFilters = container.querySelectorAll('input[name="category-filter"]');
+        categoryFilters.forEach(filter => {
+            filter.addEventListener('change', (e) => {
+                this.handleCategoryFilter(e.target.value);
+            });
+        });
     }
     
     // 加载标签数据
@@ -145,6 +191,7 @@ class TagSelector {
             // 搜索筛选
             const matchesSearch = !this.searchQuery || 
                 tag.name.toLowerCase().includes(this.searchQuery) ||
+                tag.display_name.toLowerCase().includes(this.searchQuery) ||
                 tag.description.toLowerCase().includes(this.searchQuery) ||
                 tag.category.toLowerCase().includes(this.searchQuery);
             
@@ -156,6 +203,7 @@ class TagSelector {
         });
         
         this.renderTags();
+        this.updateStats();
     }
     
     // 渲染标签列表
@@ -185,13 +233,13 @@ class TagSelector {
                  data-tag-id="${tag.id}">
                 <div class="tag-info">
                     <div class="tag-icon category-${tag.category}">
-                        ${tag.name.charAt(0).toUpperCase()}
+                        ${tag.display_name.charAt(0).toUpperCase()}
                     </div>
                     <div class="tag-details">
-                        <div class="tag-name">${this.highlightSearch(tag.name)}</div>
-                        <div class="tag-description">${tag.description || '无描述'}</div>
+                        <div class="tag-name">${this.highlightSearch(tag.display_name)}</div>
+                        <div class="tag-description">${this.highlightSearch(tag.name)} - ${tag.description || '无描述'}</div>
                         <div class="tag-meta">
-                            <span class="tag-category">${this.getCategoryName(tag.category)}</span>
+                            <span class="tag-category">${tag.category}</span>
                             <span class="tag-status ${tag.is_active ? 'active' : 'inactive'}">
                                 ${tag.is_active ? '激活' : '停用'}
                             </span>
@@ -331,7 +379,7 @@ class TagSelector {
     getSelectedTagHTML(tag) {
         return `
             <div class="selected-tag" data-tag-id="${tag.id}">
-                <span class="tag-name">${tag.name}</span>
+                <span class="tag-name">${tag.display_name}</span>
                 <button class="remove-tag" data-tag-id="${tag.id}" title="移除标签">
                     <i class="fas fa-times"></i>
                 </button>

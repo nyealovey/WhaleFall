@@ -303,6 +303,29 @@ def api_tags() -> Response:
         }), 500
 
 
+@tags_bp.route("/api/categories")
+@login_required
+@view_required
+def api_categories() -> Response:
+    """获取标签分类列表API"""
+    try:
+        categories = Tag.get_category_choices()
+        return jsonify({
+            "success": True,
+            "categories": categories,
+        })
+    except Exception as e:
+        log_error(
+            "获取标签分类列表失败",
+            module="tags",
+            error=str(e),
+        )
+        return jsonify({
+            "success": False,
+            "error": str(e),
+        }), 500
+
+
 @tags_bp.route("/api/tags/<tag_name>")
 @login_required
 @view_required
