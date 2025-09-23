@@ -101,14 +101,6 @@
                             <input class="form-check-input" type="radio" name="triggerType" id="cronTrigger" value="cron" checked>
                             <label class="form-check-label" for="cronTrigger">Cron表达式</label>
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="triggerType" id="intervalTrigger" value="interval">
-                            <label class="form-check-label" for="intervalTrigger">间隔执行</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="triggerType" id="dateTrigger" value="date">
-                            <label class="form-check-label" for="dateTrigger">指定时间</label>
-                        </div>
                     </div>
 
                     <!-- Cron触发器配置 -->
@@ -165,31 +157,7 @@
                         </div>
                     </div>
                     
-                    <!-- 间隔触发器配置 -->
-                    <div id="intervalConfig" class="trigger-config">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="intervalSeconds" class="form-label">间隔秒数</label>
-                                    <input type="number" class="form-control" id="intervalSeconds" name="interval_seconds" min="1">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="intervalMinutes" class="form-label">间隔分钟</label>
-                                    <input type="number" class="form-control" id="intervalMinutes" name="interval_minutes" min="1">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     
-                    <!-- 日期触发器配置 -->
-                    <div id="dateConfig" class="trigger-config">
-                        <div class="form-group">
-                            <label for="runDate" class="form-label">执行时间 <span class="text-danger">*</span></label>
-                            <input type="datetime-local" class="form-control" id="runDate" name="run_date">
-                        </div>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
@@ -242,14 +210,6 @@
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="editTriggerType" id="editCronTrigger" value="cron">
                             <label class="form-check-label" for="editCronTrigger">Cron表达式</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="editTriggerType" id="editIntervalTrigger" value="interval">
-                            <label class="form-check-label" for="editIntervalTrigger">间隔执行</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="editTriggerType" id="editDateTrigger" value="date">
-                            <label class="form-check-label" for="editDateTrigger">指定时间</label>
                         </div>
                     </div>
                     
