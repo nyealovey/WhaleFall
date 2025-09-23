@@ -164,6 +164,7 @@ def sync_records() -> str | Response:
                 self.added_count = data["added_count"]
                 self.removed_count = data["removed_count"]
                 self.modified_count = data["modified_count"]
+                self.total_instances = data["total_instances"] # 添加 total_instances
                 self.message = (
                     f"成功同步 {data['total_accounts']} 个账户"
                     if data["failed_count"] == 0
