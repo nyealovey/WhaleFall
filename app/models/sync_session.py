@@ -57,7 +57,7 @@ class SyncSession(db.Model):
         self.session_id = str(uuid.uuid4())
         self.sync_type = sync_type
         self.sync_category = sync_category
-        self.total_instances = total_instances
+        self.total_instances = 0
         self.status = "running"
         self.started_at = now()
 
