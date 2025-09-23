@@ -24,25 +24,25 @@
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="stats-card">
-                <div class="stats-number">{{ users|length }}</div>
+                <div class="stats-number">{{ users|length if users else 0 }}</div>
                 <div class="stats-label">总用户数</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stats-card">
-                <div class="stats-number">{{ users|selectattr('is_active', 'equalto', true)|list|length }}</div>
+                <div class="stats-number">{{ users|selectattr('is_active', 'equalto', true)|list|length if users else 0 }}</div>
                 <div class="stats-label">活跃用户</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stats-card">
-                <div class="stats-number">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</div>
+                <div class="stats-number">{{ users|selectattr('role', 'equalto', 'admin')|list|length if users else 0 }}</div>
                 <div class="stats-label">管理员</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stats-card">
-                <div class="stats-number">{{ users|selectattr('role', 'equalto', 'user')|list|length }}</div>
+                <div class="stats-number">{{ users|selectattr('role', 'equalto', 'user')|list|length if users else 0 }}</div>
                 <div class="stats-label">普通用户</div>
             </div>
         </div>
@@ -124,7 +124,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for user in users %}
+                            {% for user in users or [] %}
                             <tr>
                                 <td>
                                     <input type="checkbox" name="user_ids" value="{{ user.id }}" class="form-check-input">
