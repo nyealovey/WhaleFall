@@ -44,7 +44,6 @@ def get_jobs() -> Response:
         if not scheduler.running:
             return APIResponse.error("调度器未启动", code=500)  # type: ignore
         jobs = scheduler.get_jobs()
-        system_logger.info("获取任务列表", module="scheduler", job_count=len(jobs))
         jobs_data: list[dict[str, Any]] = []
 
         for job in jobs:
