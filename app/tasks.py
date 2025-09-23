@@ -13,7 +13,6 @@ from app.models.user import User
 from app.models.instance import Instance
 from app.services.account_sync_service import account_sync_service
 from app.services.sync_session_service import sync_session_service
-from app.utils.celery_utils import celery
 from app.utils.structlog_config import get_sync_logger, get_task_logger
 from app.utils.time_utils import time_utils
 
@@ -114,75 +113,76 @@ def _cleanup_temp_files():
         return 0
 
 
-@celery.task(name="app.tasks.sync_accounts")
 def sync_accounts(**kwargs):
     """
-    Celery 定时任务 - 同步所有活跃实例的账户
+    APScheduler 定时任务 - 同步所有活跃实例的账户
     """
-    task_logger = get_sync_logger()
-    task_logger.info("开始执行定时账户同步任务...")
-    session = None
-    try:
-        # 1. 获取所有活跃实例
-        instances = Instance.query.filter_by(is_active=True, is_deleted=False).all()
-        total_instances = len(instances)
+    app = create_app()
+    with app.app_context():
+        task_logger = get_sync_logger()
+        task_logger.info("开始执行定时账户同步任务...")
+        session = None
+        try:
+            # 1. 获取所有活跃实例
+            instances = Instance.query.filter_by(is_active=True, is_deleted=False).all()
+            total_instances = len(instances)
 
-        # 2. 创建同步会话并立即设置总实例数
-        session = sync_session_service.create_session(
-            sync_type="scheduled_task", sync_category="account"
-        )
-        session.total_instances = total_instances
-        
-        # 如果没有实例，直接将会话标记为完成
-        if total_instances == 0:
-            task_logger.info("没有找到需要同步的活跃实例，任务结束。")
-            session.status = "completed"
-            session.completed_at = time_utils.now()
+            # 2. 创建同步会话并立即设置总实例数
+            session = sync_session_service.create_session(
+                sync_type="scheduled_task", sync_category="account"
+            )
+            session.total_instances = total_instances
+            
+            # 如果没有实例，直接将会话标记为完成
+            if total_instances == 0:
+                task_logger.info("没有找到需要同步的活跃实例，任务结束。")
+                session.status = "completed"
+                session.completed_at = time_utils.now()
+                db.session.commit()
+                return
+
             db.session.commit()
-            return
+            
+            # 3. 添加实例记录
+            records = sync_session_service.add_instance_records(
+                session.session_id, [instance.id for instance in instances]
+            )
+            if not records:
+                task_logger.error("为所有实例创建同步记录失败。")
+                session.status = "failed"
+                session.completed_at = time_utils.now()
+                db.session.commit()
+                return
 
-        db.session.commit()
-        
-        # 3. 添加实例记录
-        records = sync_session_service.add_instance_records(
-            session.session_id, [instance.id for instance in instances]
-        )
-        if not records:
-            task_logger.error("为所有实例创建同步记录失败。")
-            session.status = "failed"
-            session.completed_at = time_utils.now()
-            db.session.commit()
-            return
+            # 4. 遍历实例并触发同步
+            task_logger.info(f"共找到 {total_instances} 个活跃实例，开始逐个同步。")
 
-        # 4. 遍历实例并触发同步
-        task_logger.info(f"共找到 {total_instances} 个活跃实例，开始逐个同步。")
+            for instance in instances:
+                task_logger.info(f"开始同步实例: {instance.name} (ID: {instance.id})")
+                try:
+                    # 使用带有会话的同步服务，它将处理每个实例的状态更新
+                    account_sync_service.sync_instance_with_session(
+                        instance_id=instance.id, session_id=session.session_id
+                    )
+                except Exception as e:
+                    task_logger.error(f"触发实例同步时发生意外错误: {instance.name}", error=str(e))
+                    # 尝试将此实例标记为失败
+                    record = sync_session_service.get_record_by_instance_and_session(instance.id, session.session_id)
+                    if record:
+                        sync_session_service.fail_instance_sync(record.id, str(e))
 
-        for instance in instances:
-            task_logger.info(f"开始同步实例: {instance.name} (ID: {instance.id})")
-            try:
-                # 使用带有会话的同步服务，它将处理每个实例的状态更新
-                account_sync_service.sync_instance_with_session(
-                    instance_id=instance.id, session_id=session.session_id
-                )
-            except Exception as e:
-                task_logger.error(f"触发实例同步时发生意外错误: {instance.name}", error=str(e))
-                # 尝试将此实例标记为失败
-                record = sync_session_service.get_record_by_instance_and_session(instance.id, session.session_id)
-                if record:
-                    sync_session_service.fail_instance_sync(record.id, str(e))
+            # 5. 任务结束
+            # 会话的最终状态将由最后一个完成的实例同步操作在 `sync_session_service` 中更新
+            task_logger.info(
+                "所有实例同步任务已触发。请在同步会话页面查看最终结果。"
+            )
 
-        # 5. 任务结束
-        # 会话的最终状态将由最后一个完成的实例同步操作在 `sync_session_service` 中更新
-        task_logger.info(
-            "所有实例同步任务已触发。请在同步会话页面查看最终结果。"
-        )
-
-    except Exception as e:
-        task_logger.error(f"执行定时账户同步任务时发生严重错误: {str(e)}")
-        if session:
-            session.status = "failed"
-            session.completed_at = time_utils.now()
-            db.session.commit()
+        except Exception as e:
+            task_logger.error(f"执行定时账户同步任务时发生严重错误: {str(e)}")
+            if session:
+                session.status = "failed"
+                session.completed_at = time_utils.now()
+                db.session.commit()
 
 
 def health_check() -> None:
