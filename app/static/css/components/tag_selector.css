@@ -1,3 +1,9 @@
+/* Modal overflow fix */
+#tagSelectorModal .modal-body {
+    overflow-y: auto;
+    max-height: 75vh;
+}
+
 /* 标签选择器组件样式 */
 
 .tag-selector-container {

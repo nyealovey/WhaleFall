@@ -94,39 +94,18 @@ class Tag(db.Model):
 
     @staticmethod
     def get_category_choices() -> list:
-        """
-        获取所有唯一的标签分类选项.
-        它会从数据库中动态获取所有分类，并为已知分类提供中文显示名称。
-        """
-        # 已知分类的显示名称映射
-        category_display_names = {
-            "location": "地区标签",
-            "company_type": "公司类型",
-            "environment": "环境标签",
-            "department": "部门标签",
-            "project": "项目标签",
-            "virtualization": "虚拟化类型",
-            "deployment": "部署方式",
-            "architecture": "架构类型",
-            "other": "其他标签",
-        }
-
-        try:
-            # 从数据库中查询所有唯一的分类名称
-            result = db.session.query(Tag.category).distinct().order_by(Tag.category).all()
-            # 将查询结果 (元组列表) 转换为字符串列表
-            all_categories = [item[0] for item in result]
-        except Exception:
-            # 如果数据库查询失败（例如，在初始迁移期间），则回退到使用已知分类
-            all_categories = sorted(list(category_display_names.keys()))
-
-        # 生成选项列表，如果分类有已知的显示名称，则使用它，否则直接使用分类名
-        choices = [
-            (category, category_display_names.get(category, category))
-            for category in all_categories
+        """获取标签分类选项"""
+        return [
+            ("location", "地区标签"),
+            ("company_type", "公司类型"),
+            ("environment", "环境标签"),
+            ("department", "部门标签"),
+            ("project", "项目标签"),
+            ("virtualization", "虚拟化类型"),
+            ("deployment", "部署方式"),
+            ("architecture", "架构类型"),
+            ("other", "其他标签"),
         ]
-        
-        return choices
 
     @staticmethod
     def get_color_choices() -> list:
