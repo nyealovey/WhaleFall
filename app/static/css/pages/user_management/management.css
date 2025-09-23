@@ -279,45 +279,6 @@
     margin: 0;
 }
 
-/* 统计卡片 */
-.stats-card {
-    background: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    padding: 1.5rem;
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.stats-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.stats-number {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #667eea;
-    margin-bottom: 0.5rem;
-}
-
-.stats-label {
-    color: #6c757d;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-/* 搜索和筛选 */
-.search-filter-card {
-    background: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin-bottom: 2rem;
-}
-
-.search-filter-card .card-body {
-    padding: 1.5rem;
-}
 
 /* 空状态 */
 .empty-state {
@@ -407,9 +368,6 @@
         font-size: 1.5rem;
     }
     
-    .search-filter-card .card-body {
-        padding: 1rem;
-    }
     
     .user-table .table th,
     .user-table .table td {
@@ -427,9 +385,6 @@
         text-align: center;
     }
     
-    .stats-number {
-        font-size: 2rem;
-    }
 }
 
 @media (max-width: 576px) {
@@ -442,9 +397,6 @@
         font-size: 1.25rem;
     }
     
-    .search-filter-card .card-body {
-        padding: 0.75rem;
-    }
     
     .user-table .table th,
     .user-table .table td {
@@ -457,9 +409,6 @@
         font-size: 0.75rem;
     }
     
-    .stats-number {
-        font-size: 1.5rem;
-    }
 }
 
 /* 表格响应式 */
@@ -553,22 +502,13 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* 搜索框聚焦效果 */
-.form-control:focus {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-}
 
 /* 卡片悬停效果 */
-.search-filter-card,
-.user-table,
-.stats-card {
+.user-table {
     transition: all 0.3s ease;
 }
 
-.search-filter-card:hover,
-.user-table:hover,
-.stats-card:hover {
+.user-table:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
