@@ -70,33 +70,21 @@ function initializeEventHandlers() {
     updateCronPreview();
 
     // 任务操作按钮事件
-    $(document).on('click', '.btn-start-job', function() {
+    $(document).on('click', '.btn-enable-job', function() {
         const jobId = $(this).data('job-id');
-        startJob(jobId);
+        enableJob(jobId);
     });
-    $(document).on('click', '.btn-pause-job', function() {
+    $(document).on('click', '.btn-disable-job', function() {
         const jobId = $(this).data('job-id');
-        pauseJob(jobId);
+        disableJob(jobId);
     });
-    $(document).on('click', '.btn-resume-job', function() {
+    $(document).on('click', '.btn-run-job', function() {
         const jobId = $(this).data('job-id');
-        resumeJob(jobId);
-    });
-    $(document).on('click', '.btn-stop-job', function() {
-        const jobId = $(this).data('job-id');
-        stopJob(jobId);
+        runJobNow(jobId);
     });
     $(document).on('click', '.btn-edit-job', function() {
         const jobId = $(this).data('job-id');
         editJob(jobId);
-    });
-    $(document).on('click', '.btn-delete-job', function() {
-        const jobId = $(this).data('job-id');
-        deleteJob(jobId);
-    });
-    $(document).on('click', '.btn-view-logs', function() {
-        const jobId = $(this).data('job-id');
-        viewJobLogs(jobId);
     });
 
     // 表单提交事件
@@ -294,65 +282,9 @@ function getActionButtons(job) {
 
 
 
-// 启动任务
-function startJob(jobId) {
-    showLoadingState($(`[data-job-id="${jobId}"].btn-start-job`), '启动中...');
-    
-    $.ajax({
-        url: `/scheduler/api/jobs/${jobId}/enable`,
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function(response) {
-            if (response.success) {
-                showAlert('任务启动成功', 'success');
-                loadJobs();
-            } else {
-                showAlert('启动失败: ' + response.message, 'danger');
-            }
-        },
-        error: function(xhr) {
-            const error = xhr.responseJSON;
-            showAlert('启动失败: ' + (error ? error.message : '未知错误'), 'danger');
-        },
-        complete: function() {
-            hideLoadingState($(`[data-job-id="${jobId}"].btn-start-job`), '启动');
-        }
-    });
-}
-
-// 暂停任务
-function pauseJob(jobId) {
-    showLoadingState($(`[data-job-id="${jobId}"].btn-pause-job`), '暂停中...');
-    
-    $.ajax({
-        url: `/scheduler/api/jobs/${jobId}/pause`,
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function(response) {
-            if (response.success) {
-                showAlert('任务已暂停', 'success');
-                loadJobs();
-            } else {
-                showAlert('暂停失败: ' + response.message, 'danger');
-            }
-        },
-        error: function(xhr) {
-            const error = xhr.responseJSON;
-            showAlert('暂停失败: ' + (error ? error.message : '未知错误'), 'danger');
-        },
-        complete: function() {
-            hideLoadingState($(`[data-job-id="${jobId}"].btn-pause-job`), '暂停');
-        }
-    });
-}
-
-// 恢复任务
-function resumeJob(jobId) {
-    showLoadingState($(`[data-job-id="${jobId}"].btn-resume-job`), '恢复中...');
+// 启用任务
+function enableJob(jobId) {
+    showLoadingState($(`[data-job-id="${jobId}"].btn-enable-job`), '启用中...');
     
     $.ajax({
         url: `/scheduler/api/jobs/${jobId}/resume`,
@@ -362,50 +294,78 @@ function resumeJob(jobId) {
         },
         success: function(response) {
             if (response.success) {
-                showAlert('任务已恢复', 'success');
+                showAlert('任务已启用', 'success');
                 loadJobs();
             } else {
-                showAlert('恢复失败: ' + response.message, 'danger');
+                showAlert('启用失败: ' + response.message, 'danger');
             }
         },
         error: function(xhr) {
             const error = xhr.responseJSON;
-            showAlert('恢复失败: ' + (error ? error.message : '未知错误'), 'danger');
+            showAlert('启用失败: ' + (error ? error.message : '未知错误'), 'danger');
         },
         complete: function() {
-            hideLoadingState($(`[data-job-id="${jobId}"].btn-resume-job`), '恢复');
+            hideLoadingState($(`[data-job-id="${jobId}"].btn-enable-job`), '启用');
         }
     });
 }
 
-// 停止任务
-function stopJob(jobId) {
-    if (!confirm('确定要停止这个任务吗？')) {
-        return;
-    }
-    
-    showLoadingState($(`[data-job-id="${jobId}"].btn-stop-job`), '停止中...');
+// 禁用任务
+function disableJob(jobId) {
+    showLoadingState($(`[data-job-id="${jobId}"].btn-disable-job`), '禁用中...');
     
     $.ajax({
-        url: `/scheduler/api/jobs/${jobId}/disable`,
+        url: `/scheduler/api/jobs/${jobId}/pause`,
         method: 'POST',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
         success: function(response) {
             if (response.success) {
-                showAlert('任务已停止', 'success');
+                showAlert('任务已禁用', 'success');
                 loadJobs();
             } else {
-                showAlert('停止失败: ' + response.message, 'danger');
+                showAlert('禁用失败: ' + response.message, 'danger');
             }
         },
         error: function(xhr) {
             const error = xhr.responseJSON;
-            showAlert('停止失败: ' + (error ? error.message : '未知错误'), 'danger');
+            showAlert('禁用失败: ' + (error ? error.message : '未知错误'), 'danger');
         },
         complete: function() {
-            hideLoadingState($(`[data-job-id="${jobId}"].btn-stop-job`), '停止');
+            hideLoadingState($(`[data-job-id="${jobId}"].btn-disable-job`), '禁用');
+        }
+    });
+}
+
+// 立即执行任务
+function runJobNow(jobId) {
+    if (!confirm('确定要立即执行这个任务吗？')) {
+        return;
+    }
+    
+    showLoadingState($(`[data-job-id="${jobId}"].btn-run-job`), '执行中...');
+    
+    $.ajax({
+        url: `/scheduler/api/jobs/${jobId}/run`,
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                showAlert('任务已开始执行', 'success');
+                loadJobs();
+            } else {
+                showAlert('执行失败: ' + response.message, 'danger');
+            }
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON;
+            showAlert('执行失败: ' + (error ? error.message : '未知错误'), 'danger');
+        },
+        complete: function() {
+            hideLoadingState($(`[data-job-id="${jobId}"].btn-run-job`), '执行');
         }
     });
 }
@@ -427,15 +387,8 @@ function editJob(jobId) {
     const functionValue = job.func || job.name;
     $('#editJobFunction').val(functionValue);
     
-    // 如果是内置任务，禁用执行函数选择
-    const isBuiltInJob = ['sync_all_accounts', 'sync_all_instances', 'cleanup_logs'].includes(functionValue);
-    if (isBuiltInJob) {
-        $('#editJobFunction').prop('disabled', true);
-        $('#editJobFunction').addClass('form-control-plaintext');
-    } else {
-        $('#editJobFunction').prop('disabled', false);
-        $('#editJobFunction').removeClass('form-control-plaintext');
-    }
+    // 将执行函数字段设为只读
+    $('#editJobFunction').prop('disabled', true).addClass('form-control-plaintext');
     
     // 设置触发器类型
     const triggerType = job.trigger_type || 'cron';
@@ -732,14 +685,12 @@ function formatTime(timeString) {
 
 // 导出函数供全局使用
 window.loadJobs = loadJobs;
-window.startJob = startJob;
-window.pauseJob = pauseJob;
-window.resumeJob = resumeJob;
-window.stopJob = stopJob;
+window.enableJob = enableJob;
+window.disableJob = disableJob;
+window.runJobNow = runJobNow;
 window.editJob = editJob;
 window.deleteJob = deleteJob;
 window.viewJobLogs = viewJobLogs;
 window.addJob = addJob;
-// 已移除: window.runJobNow = runJobNow;
 window.showAlert = showAlert;
 window.formatTime = formatTime;
