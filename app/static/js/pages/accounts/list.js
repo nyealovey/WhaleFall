@@ -246,13 +246,26 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
                 console.error('未找到打开标签选择器按钮 (id: open-tag-filter-btn)');
             }
             
-            // 绑定确认选择按钮
+            // 绑定确认选择按钮 - 使用TagSelector的事件系统
             const confirmBtn = document.getElementById('confirm-selection-btn');
             console.log('确认按钮:', confirmBtn ? '找到' : '未找到');
             
             if (confirmBtn) {
-                confirmBtn.addEventListener('click', confirmTagSelection);
-                console.log('确认按钮事件绑定成功');
+                // 监听TagSelector的确认事件
+                accountListTagSelector.container.addEventListener('tagSelectionConfirmed', function(event) {
+                    console.log('收到标签选择确认事件:', event.detail);
+                    const selectedTags = event.detail.selectedTags;
+                    updateSelectedTagsPreview(selectedTags);
+                    closeTagSelector();
+                });
+                
+                // 监听TagSelector的取消事件
+                accountListTagSelector.container.addEventListener('tagSelectionCancelled', function(event) {
+                    console.log('收到标签选择取消事件');
+                    closeTagSelector();
+                });
+                
+                console.log('确认按钮事件监听器设置成功');
             } else {
                 console.error('未找到确认选择按钮 (id: confirm-selection-btn)');
             }
@@ -283,28 +296,10 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
     }
 }
 
-// 确认标签选择
+// 确认标签选择 - 已改为使用事件系统，此函数保留用于向后兼容
 function confirmTagSelection() {
-    try {
-        console.log('确认标签选择...');
-        
-        if (accountListTagSelector) {
-            // 直接调用标签选择器的确认方法
-            accountListTagSelector.confirmSelection();
-            
-            // 获取选中的标签并更新预览
-            const selectedTags = accountListTagSelector.getSelectedTags();
-            console.log('选中的标签:', selectedTags);
-            updateSelectedTagsPreview(selectedTags);
-            closeTagSelector();
-        } else {
-            console.error('accountListTagSelector未初始化');
-            showAlert('warning', '标签选择器未初始化，请刷新页面重试');
-        }
-    } catch (error) {
-        console.error('确认标签选择时出错:', error);
-        showAlert('danger', '确认标签选择失败: ' + error.message);
-    }
+    console.log('confirmTagSelection被调用，但已改为使用事件系统');
+    // 这个函数现在由TagSelector的事件系统处理
 }
 
 // 更新选中标签预览
@@ -367,6 +362,26 @@ function debugPermissionFunctions() {
     console.log('========================');
 }
 
+// 标签选择器调试功能
+function debugTagSelector() {
+    console.log('=== 标签选择器调试信息 ===');
+    console.log('TagSelector 类:', typeof TagSelector);
+    console.log('accountListTagSelector 实例:', accountListTagSelector ? '已创建' : '未创建');
+    console.log('list-page-tag-selector 容器:', document.getElementById('list-page-tag-selector') ? '找到' : '未找到');
+    console.log('tagSelectorModal 模态框:', document.getElementById('tagSelectorModal') ? '找到' : '未找到');
+    console.log('tag-selector-container 容器:', document.getElementById('tag-selector-container') ? '找到' : '未找到');
+    console.log('open-tag-filter-btn 按钮:', document.getElementById('open-tag-filter-btn') ? '找到' : '未找到');
+    console.log('confirm-selection-btn 按钮:', document.getElementById('confirm-selection-btn') ? '找到' : '未找到');
+    console.log('cancel-selection-btn 按钮:', document.getElementById('cancel-selection-btn') ? '找到' : '未找到');
+    
+    if (accountListTagSelector) {
+        console.log('TagSelector 容器:', accountListTagSelector.container ? '找到' : '未找到');
+        console.log('TagSelector 选项:', accountListTagSelector.options);
+        console.log('TagSelector 已选择标签:', accountListTagSelector.getSelectedTags ? accountListTagSelector.getSelectedTags() : '方法不存在');
+    }
+    console.log('========================');
+}
+
 // 页面卸载时清理
 window.addEventListener('beforeunload', function() {
     // 清理资源
@@ -380,6 +395,7 @@ window.showAccountStatistics = showAccountStatistics;
 window.showAlert = showAlert;
 window.validateForm = validateForm;
 window.debugPermissionFunctions = debugPermissionFunctions;
+window.debugTagSelector = debugTagSelector;
 window.openTagSelector = openTagSelector;
 window.closeTagSelector = closeTagSelector;
 window.confirmTagSelection = confirmTagSelection;
