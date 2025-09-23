@@ -414,11 +414,9 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pages/instances/list.js') }}"></script>
-<script src="{{ url_for('static', filename='js/components/tag_selector.js') }}"></script>
 
 <!-- 标签选择器组件 -->
 <div id="list-page-tag-selector">
     {% include 'components/tag_selector.html' %}
 </div>
-
 {% endblock %}
