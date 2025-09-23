@@ -21,21 +21,6 @@
     </div>
 
 
-    <!-- 批量操作 -->
-    <div class="batch-actions">
-        <div class="d-flex align-items-center">
-            <span class="selection-counter"></span>
-            <button type="button" class="btn btn-danger btn-sm" id="batchDelete">
-                <i class="fas fa-trash me-1"></i>批量删除
-            </button>
-            <button type="button" class="btn btn-success btn-sm" id="batchActivate">
-                <i class="fas fa-check me-1"></i>批量激活
-            </button>
-            <button type="button" class="btn btn-warning btn-sm" id="batchDeactivate">
-                <i class="fas fa-times me-1"></i>批量停用
-            </button>
-        </div>
-    </div>
 
     <!-- 用户表格 -->
     <div class="row">
@@ -45,13 +30,10 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>
-                                    <input type="checkbox" id="selectAll" class="form-check-input">
-                                </th>
-                                <th data-sort="2">用户</th>
-                                <th data-sort="3">角色</th>
-                                <th data-sort="4">状态</th>
-                                <th data-sort="5">创建时间</th>
+                                <th>用户</th>
+                                <th>角色</th>
+                                <th>状态</th>
+                                <th>创建时间</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -59,9 +41,6 @@
                             {% if users and users.items %}
                                 {% for user in users.items %}
                             <tr>
-                                <td>
-                                    <input type="checkbox" name="user_ids" value="{{ user.id }}" class="form-check-input">
-                                </td>
                                 <td>
                                     <div class="user-info">
                                         <div class="user-avatar">
@@ -105,7 +84,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" class="text-center">
+                                <td colspan="5" class="text-center">
                                     <div class="empty-state">
                                         <i class="fas fa-users"></i>
                                         <h4>暂无用户</h4>
@@ -116,7 +95,7 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">
+                                    <td colspan="5" class="text-center text-muted py-4">
                                         <i class="fas fa-users me-2"></i>暂无用户数据
                                     </td>
                                 </tr>
