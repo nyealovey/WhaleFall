@@ -1,5 +1,20 @@
 /* 定时任务管理页面样式 */
 
+/* 内置任务执行函数样式 */
+.form-control-plaintext {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+.form-control-plaintext:focus {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    box-shadow: none;
+    color: #6c757d;
+}
+
 /* 任务卡片 */
 .job-card {
     border-left: 4px solid;

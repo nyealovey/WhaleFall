@@ -455,7 +455,20 @@ function editJob(jobId) {
     $('#editJobId').val(job.id);
     $('#editJobName').val(job.name);
     $('#editJobDescription').val(job.description || '');
-    $('#editJobFunction').val(job.func);
+    
+    // 设置执行函数，确保与下拉框选项匹配
+    const functionValue = job.func || job.name;
+    $('#editJobFunction').val(functionValue);
+    
+    // 如果是内置任务，禁用执行函数选择
+    const isBuiltInJob = ['sync_all_accounts', 'sync_all_instances', 'cleanup_logs'].includes(functionValue);
+    if (isBuiltInJob) {
+        $('#editJobFunction').prop('disabled', true);
+        $('#editJobFunction').addClass('form-control-plaintext');
+    } else {
+        $('#editJobFunction').prop('disabled', false);
+        $('#editJobFunction').removeClass('form-control-plaintext');
+    }
     
     // 设置触发器类型
     const triggerType = job.trigger_type || 'cron';
@@ -500,6 +513,10 @@ function updateJob() {
     const formData = new FormData($('#editJobForm')[0]);
     const jobId = formData.get('job_id');
     
+    // 检查是否为内置任务，如果是则保护执行函数
+    const functionValue = formData.get('func');
+    const isBuiltInJob = ['sync_all_accounts', 'sync_all_instances', 'cleanup_logs'].includes(functionValue);
+    
     // 如果是cron触发器，生成cron表达式
     const triggerType = formData.get('trigger_type');
     if (triggerType === 'cron') {
@@ -510,6 +527,15 @@ function updateJob() {
         const weekday = formData.get('cron_weekday') || '*';
         const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
         formData.set('cron_expression', cronExpression);
+    }
+    
+    // 如果是内置任务，确保执行函数不被修改
+    if (isBuiltInJob) {
+        // 从原始任务数据中获取正确的执行函数
+        const originalJob = currentJobs.find(j => j.id === jobId);
+        if (originalJob && originalJob.func) {
+            formData.set('func', originalJob.func);
+        }
     }
     
     showLoadingState($('#editJobForm button[type="submit"]'), '保存中...');
