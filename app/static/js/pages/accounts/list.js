@@ -162,6 +162,7 @@ function initializeTagSelector() {
             console.log('容器元素:', containerElement ? '找到' : '未找到');
             
             if (containerElement) {
+                console.log('立即初始化TagSelector组件...');
                 initializeTagSelectorComponent(modalElement, containerElement);
             } else {
                 // 等待标签选择器组件加载完成
@@ -183,6 +184,9 @@ function initializeTagSelector() {
     } else {
         console.error('容器元素 list-page-tag-selector 未找到');
     }
+    
+    // 添加额外的调试信息
+    console.log('initializeTagSelector 完成，accountListTagSelector:', accountListTagSelector ? '已创建' : '未创建');
 }
 
 // 初始化标签选择器组件
@@ -382,6 +386,52 @@ function debugTagSelector() {
     console.log('========================');
 }
 
+// 强制初始化标签选择器（用于调试）
+function forceInitializeTagSelector() {
+    console.log('强制初始化标签选择器...');
+    
+    const listPageSelector = document.getElementById('list-page-tag-selector');
+    const modalElement = listPageSelector ? listPageSelector.querySelector('#tagSelectorModal') : null;
+    const containerElement = modalElement ? modalElement.querySelector('#tag-selector-container') : null;
+    
+    console.log('强制初始化 - 容器元素:', listPageSelector ? '找到' : '未找到');
+    console.log('强制初始化 - 模态框元素:', modalElement ? '找到' : '未找到');
+    console.log('强制初始化 - 容器元素:', containerElement ? '找到' : '未找到');
+    console.log('强制初始化 - TagSelector可用:', typeof TagSelector !== 'undefined');
+    
+    if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
+        try {
+            console.log('强制创建TagSelector实例...');
+            accountListTagSelector = new TagSelector('tag-selector-container', {
+                allowMultiple: true,
+                allowCreate: true,
+                allowSearch: true,
+                allowCategoryFilter: true
+            });
+            console.log('强制创建成功，accountListTagSelector:', accountListTagSelector ? '已创建' : '未创建');
+            
+            // 绑定按钮事件
+            const openBtn = document.getElementById('open-tag-filter-btn');
+            if (openBtn) {
+                openBtn.addEventListener('click', function(e) {
+                    console.log('强制绑定的按钮被点击');
+                    e.preventDefault();
+                    openTagSelector();
+                });
+                console.log('强制绑定打开按钮成功');
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('强制创建失败:', error);
+            return false;
+        }
+    } else {
+        console.error('强制初始化失败：缺少必需元素');
+        return false;
+    }
+}
+
 // 页面卸载时清理
 window.addEventListener('beforeunload', function() {
     // 清理资源
@@ -396,6 +446,7 @@ window.showAlert = showAlert;
 window.validateForm = validateForm;
 window.debugPermissionFunctions = debugPermissionFunctions;
 window.debugTagSelector = debugTagSelector;
+window.forceInitializeTagSelector = forceInitializeTagSelector;
 window.openTagSelector = openTagSelector;
 window.closeTagSelector = closeTagSelector;
 window.confirmTagSelection = confirmTagSelection;
