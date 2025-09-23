@@ -50,7 +50,7 @@ function handleAddUser(event, form) {
     
     showLoadingState(form.querySelector('button[type="submit"]'), '添加中...');
     
-    fetch('/user_management/api/create_user', {
+    fetch('/users/api/users', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -108,8 +108,8 @@ function handleEditUser(event, form) {
     
     showLoadingState(form.querySelector('button[type="submit"]'), '保存中...');
     
-    fetch('/user_management/api/update_user', {
-        method: 'POST',
+    fetch(`/users/api/users/${data.user_id}`, {
+        method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCSRFToken()
@@ -164,8 +164,8 @@ function confirmDeleteUser(userId, username) {
 function deleteUser(userId) {
     showLoadingState(document.querySelector(`[data-user-id="${userId}"]`), '删除中...');
     
-    fetch(`/user_management/api/delete_user/${userId}`, {
-        method: 'POST',
+    fetch(`/users/api/users/${userId}`, {
+        method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCSRFToken()
@@ -207,7 +207,7 @@ function initializeUserStatusToggles() {
 
 // 切换用户状态
 function toggleUserStatus(userId, isActive) {
-    fetch('/user_management/api/toggle_user_status', {
+    fetch(`/users/api/users/${userId}/toggle-status`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -284,7 +284,7 @@ function sortTable(column, direction) {
 
 // 编辑用户
 function editUser(userId) {
-    fetch(`/user_management/api/users/${userId}`)
+    fetch(`/users/api/users/${userId}`)
     .then(response => response.json())
     .then(data => {
         if (data.success && data.data.user) {
