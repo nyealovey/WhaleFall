@@ -189,7 +189,7 @@ function initializeTagSelector() {
             }
             
             // 绑定确认选择按钮
-            const confirmBtn = document.getElementById('confirm-tag-selection');
+            const confirmBtn = document.getElementById('confirm-selection-btn');
             if (confirmBtn) {
                 confirmBtn.addEventListener('click', confirmTagSelection);
             }
@@ -235,6 +235,10 @@ function getCurrentTagNames() {
 // 确认标签选择
 function confirmTagSelection() {
     if (editPageTagSelector) {
+        // 直接调用标签选择器的确认方法
+        editPageTagSelector.confirmSelection();
+        
+        // 获取选中的标签并更新预览
         const selectedTags = editPageTagSelector.getSelectedTags();
         updateSelectedTagsPreview(selectedTags);
         closeTagSelector();
