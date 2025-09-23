@@ -277,11 +277,22 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
             
             // 等待TagSelector完全初始化
             setTimeout(() => {
+                console.log('检查TagSelector初始化状态...');
+                console.log('accountListTagSelector存在:', !!accountListTagSelector);
+                console.log('accountListTagSelector.container存在:', !!(accountListTagSelector && accountListTagSelector.container));
+                console.log('accountListTagSelector类型:', typeof accountListTagSelector);
+                
                 if (accountListTagSelector && accountListTagSelector.container) {
                     console.log('TagSelector完全初始化完成');
+                    console.log('TagSelector容器ID:', accountListTagSelector.containerId);
+                    console.log('TagSelector选项:', accountListTagSelector.options);
                     setupTagSelectorEvents();
                 } else {
                     console.error('TagSelector初始化失败');
+                    console.error('accountListTagSelector:', accountListTagSelector);
+                    if (accountListTagSelector) {
+                        console.error('container:', accountListTagSelector.container);
+                    }
                 }
             }, 100);
             
@@ -302,10 +313,22 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
 function setupTagSelectorEvents() {
     console.log('设置标签选择器事件...');
     
+    // 检查依赖
+    console.log('检查依赖环境:');
+    console.log('- jQuery可用:', typeof $ !== 'undefined');
+    console.log('- Bootstrap可用:', typeof bootstrap !== 'undefined');
+    console.log('- TagSelector可用:', typeof TagSelector !== 'undefined');
+    
     if (!accountListTagSelector) {
         console.error('accountListTagSelector未初始化，无法设置事件');
         return;
     }
+    
+    console.log('accountListTagSelector状态:');
+    console.log('- 实例存在:', !!accountListTagSelector);
+    console.log('- 容器存在:', !!accountListTagSelector.container);
+    console.log('- 容器ID:', accountListTagSelector.containerId);
+    console.log('- 选项:', accountListTagSelector.options);
     
     // 绑定打开标签选择器按钮
     const openBtn = document.getElementById('open-tag-filter-btn');

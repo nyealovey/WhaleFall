@@ -96,15 +96,36 @@ class TagSelector {
         
         if (attempt >= maxAttempts) {
             console.error('TagSelector: Failed to bind modal buttons after', maxAttempts, 'attempts');
+            console.error('TagSelector: 最终状态检查:');
+            console.error('- 确认按钮:', this.container.querySelector('#confirm-selection-btn') ? '存在' : '不存在');
+            console.error('- 取消按钮:', this.container.querySelector('#cancel-selection-btn') ? '存在' : '不存在');
+            console.error('- 模态框:', this.container.closest('.modal') ? '存在' : '不存在');
             return;
         }
         
         setTimeout(() => {
             console.log(`TagSelector: Retrying to bind modal buttons (attempt ${attempt + 1}/${maxAttempts})`);
+            console.log(`TagSelector: 延迟时间: ${delays[attempt] || 2000}ms`);
+            
+            // 检查DOM状态
+            const confirmBtn = this.container.querySelector('#confirm-selection-btn');
+            const cancelBtn = this.container.querySelector('#cancel-selection-btn');
+            const modal = this.container.closest('.modal');
+            
+            console.log('TagSelector: 重试时DOM状态:');
+            console.log('- 确认按钮:', confirmBtn ? '存在' : '不存在');
+            console.log('- 取消按钮:', cancelBtn ? '存在' : '不存在');
+            console.log('- 模态框:', modal ? '存在' : '不存在');
+            console.log('- 模态框显示状态:', modal ? modal.style.display : 'N/A');
+            console.log('- 模态框aria-hidden:', modal ? modal.getAttribute('aria-hidden') : 'N/A');
+            
             this.bindModalButtons();
             
             if (!this.areButtonsBound() && attempt < maxAttempts - 1) {
+                console.log(`TagSelector: 按钮绑定失败，准备第 ${attempt + 2} 次重试`);
                 this.retryButtonBinding(attempt + 1);
+            } else if (this.areButtonsBound()) {
+                console.log('TagSelector: 按钮绑定成功！');
             }
         }, delays[attempt] || 2000);
     }
@@ -119,25 +140,45 @@ class TagSelector {
     
     // 绑定模态框按钮
     bindModalButtons() {
+        console.log('TagSelector: bindModalButtons() 开始执行');
+        
         // 确认按钮
         const confirmBtn = this.container.querySelector('#confirm-selection-btn');
+        console.log('TagSelector: 查找确认按钮结果:', confirmBtn ? '找到' : '未找到');
+        
         if (confirmBtn && !confirmBtn.hasAttribute('data-bound')) {
-            console.log('找到确认按钮，绑定点击事件');
+            console.log('TagSelector: 找到确认按钮，绑定点击事件');
             confirmBtn.addEventListener('click', () => {
-                console.log('确认按钮被点击');
+                console.log('TagSelector: 确认按钮被点击');
                 this.confirmSelection();
             });
             confirmBtn.setAttribute('data-bound', 'true');
+            console.log('TagSelector: 确认按钮绑定成功');
+        } else if (confirmBtn) {
+            console.log('TagSelector: 确认按钮已绑定，跳过');
+        } else {
+            console.warn('TagSelector: 确认按钮未找到，可能DOM未完全加载');
         }
         
         // 取消按钮
         const cancelBtn = this.container.querySelector('#cancel-selection-btn');
+        console.log('TagSelector: 查找取消按钮结果:', cancelBtn ? '找到' : '未找到');
+        
         if (cancelBtn && !cancelBtn.hasAttribute('data-bound')) {
+            console.log('TagSelector: 找到取消按钮，绑定点击事件');
             cancelBtn.addEventListener('click', () => {
+                console.log('TagSelector: 取消按钮被点击');
                 this.cancelSelection();
             });
             cancelBtn.setAttribute('data-bound', 'true');
+            console.log('TagSelector: 取消按钮绑定成功');
+        } else if (cancelBtn) {
+            console.log('TagSelector: 取消按钮已绑定，跳过');
+        } else {
+            console.warn('TagSelector: 取消按钮未找到，可能DOM未完全加载');
         }
+        
+        console.log('TagSelector: bindModalButtons() 执行完成');
     }
 
     // 加载分类数据
