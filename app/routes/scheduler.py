@@ -260,31 +260,6 @@ def update_job(job_id: str) -> Response:
         return APIResponse.error("更新任务失败: {error_str}")  # type: ignore
 
 
-@scheduler_bp.route("/api/jobs/<job_id>", methods=["DELETE"])
-@login_required  # type: ignore
-@scheduler_manage_required  # type: ignore
-def delete_job(job_id: str) -> Response:
-    """删除定时任务"""
-    try:
-        # 检查是否为内置任务
-        builtin_tasks = ["sync_accounts", "cleanup_logs"]
-        if job_id in builtin_tasks:
-            return APIResponse.error("内置任务无法删除", code=403)  # type: ignore
-
-        scheduler = get_scheduler()  # type: ignore
-        if not scheduler.running:
-            return APIResponse.error("调度器未启动", code=500)  # type: ignore
-
-        scheduler.remove_job(job_id)
-        system_logger.info("任务删除成功: {job_id}")
-        return APIResponse.success("任务删除成功")  # type: ignore
-
-    except Exception as e:
-        error_str = str(e) if e else "未知错误"
-        system_logger.error("删除任务失败: %s", error_str)
-        return APIResponse.error(f"删除任务失败: {error_str}")  # type: ignore
-
-
 @scheduler_bp.route("/api/jobs/<job_id>/disable", methods=["POST"])
 @login_required  # type: ignore
 @scheduler_manage_required  # type: ignore

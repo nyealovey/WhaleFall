@@ -259,48 +259,36 @@ function formatTriggerInfo(triggerArgs) {
 // 获取操作按钮
 function getActionButtons(job) {
     let buttons = '';
-    
+
     switch (job.state) {
         case 'STATE_RUNNING':
         case 'STATE_EXECUTING':
-            buttons += `<button class="btn btn-warning btn-sm btn-pause-job" data-job-id="${job.id}">
-                <i class="fas fa-pause"></i> 暂停
-            </button>`;
-            buttons += `<button class="btn btn-danger btn-sm btn-stop-job" data-job-id="${job.id}">
-                <i class="fas fa-stop"></i> 停止
+            buttons += `<button class="btn btn-warning btn-sm btn-disable-job" data-job-id="${job.id}">
+                <i class="fas fa-pause"></i> 禁用
             </button>`;
             break;
         case 'STATE_PAUSED':
-            buttons += `<button class="btn btn-success btn-sm btn-resume-job" data-job-id="${job.id}">
-                <i class="fas fa-play"></i> 恢复
-            </button>`;
-            buttons += `<button class="btn btn-danger btn-sm btn-stop-job" data-job-id="${job.id}">
-                <i class="fas fa-stop"></i> 停止
+            buttons += `<button class="btn btn-success btn-sm btn-enable-job" data-job-id="${job.id}">
+                <i class="fas fa-play"></i> 启用
             </button>`;
             break;
         case 'STATE_ERROR':
-            buttons += `<button class="btn btn-success btn-sm btn-start-job" data-job-id="${job.id}">
-                <i class="fas fa-play"></i> 启动
+        default:
+            buttons += `<button class="btn btn-success btn-sm btn-enable-job" data-job-id="${job.id}">
+                <i class="fas fa-play"></i> 启用
             </button>`;
             break;
-        default:
-            buttons += `<button class="btn btn-success btn-sm btn-start-job" data-job-id="${job.id}">
-                <i class="fas fa-play"></i> 启动
-            </button>`;
     }
-    
+
+    // 总是显示“执行”按钮
+    buttons += `<button class="btn btn-info btn-sm btn-run-job" data-job-id="${job.id}">
+        <i class="fas fa-play-circle"></i> 执行
+    </button>`;
+
     buttons += `<button class="btn btn-primary btn-sm btn-edit-job" data-job-id="${job.id}">
         <i class="fas fa-edit"></i> 编辑
     </button>`;
-    
-    buttons += `<button class="btn btn-info btn-sm btn-view-logs" data-job-id="${job.id}">
-        <i class="fas fa-file-alt"></i> 日志
-    </button>`;
-    
-    buttons += `<button class="btn btn-danger btn-sm btn-delete-job" data-job-id="${job.id}">
-        <i class="fas fa-trash"></i> 删除
-    </button>`;
-    
+
     return buttons;
 }
 
