@@ -31,7 +31,10 @@ function initializeEventHandlers() {
     // 编辑模态框触发器类型切换
     $('input[name="editTriggerType"]').change(function() {
         $('.edit-trigger-config').hide();
-        $('#edit' + $(this).val().charAt(0).toUpperCase() + $(this).val().slice(1) + 'Config').show();
+        const triggerType = $(this).val();
+        if (triggerType && typeof triggerType === 'string') {
+            $('#edit' + triggerType.charAt(0).toUpperCase() + triggerType.slice(1) + 'Config').show();
+        }
     });
 
     // 设置默认日期时间
@@ -425,16 +428,21 @@ function editJob(jobId) {
     $('#editJobFunction').val(job.func);
     
     // 设置触发器类型
-    $(`input[name="editTriggerType"][value="${job.trigger_type}"]`).prop('checked', true);
+    const triggerType = job.trigger_type || 'cron';
+    $(`input[name="editTriggerType"][value="${triggerType}"]`).prop('checked', true);
     $('.edit-trigger-config').hide();
-    $('#edit' + job.trigger_type.charAt(0).toUpperCase() + job.trigger_type.slice(1) + 'Config').show();
+    $('#edit' + triggerType.charAt(0).toUpperCase() + triggerType.slice(1) + 'Config').show();
     
     // 填充触发器参数
     try {
-        const triggerArgs = typeof job.trigger_args === 'string' ? JSON.parse(job.trigger_args) : job.trigger_args;
-        Object.entries(triggerArgs).forEach(([key, value]) => {
-            $(`#edit${key.charAt(0).toUpperCase() + key.slice(1)}`).val(value);
-        });
+        const triggerArgs = typeof job.trigger_args === 'string' ? JSON.parse(job.trigger_args) : (job.trigger_args || {});
+        if (triggerArgs && typeof triggerArgs === 'object') {
+            Object.entries(triggerArgs).forEach(([key, value]) => {
+                if (key && typeof key === 'string') {
+                    $(`#edit${key.charAt(0).toUpperCase() + key.slice(1)}`).val(value || '');
+                }
+            });
+        }
     } catch (e) {
         console.error('解析触发器参数失败:', e);
     }
