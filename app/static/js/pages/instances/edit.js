@@ -166,6 +166,20 @@ function testConnection() {
     });
 }
 
+// 打开标签选择器
+function openTagSelector() {
+    const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
+    modal.show();
+}
+
+// 关闭标签选择器
+function closeTagSelector() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('tagSelectorModal'));
+    if (modal) {
+        modal.hide();
+    }
+}
+
 // 初始化标签选择器
 function initializeTagSelector() {
     // 等待标签选择器组件加载完成
