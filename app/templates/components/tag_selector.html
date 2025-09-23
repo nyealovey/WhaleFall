@@ -1,4 +1,5 @@
 <!-- 标签选择器模态框 -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
 <div class="modal fade" id="tagSelectorModal" tabindex="-1" aria-labelledby="tagSelectorModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -48,46 +49,48 @@
                                 <label class="btn btn-outline-secondary" for="category-department">部门</label>
                                 
                                 <input type="radio" class="btn-check" name="category-filter" id="category-company" value="company_type">
-                                <label class="btn btn-outline-secondary" for="category-company">公司</label>
+                                <label class="btn btn-outline-secondary" for="category-company">公司类型</label>
                                 
                                 <input type="radio" class="btn-check" name="category-filter" id="category-environment" value="environment">
                                 <label class="btn btn-outline-secondary" for="category-environment">环境</label>
                                 
-                                <input type="radio" class="btn-check" name="category-filter" id="category-location" value="location">
-                                <label class="btn btn-outline-secondary" for="category-location">地区</label>
-                                
-                                <input type="radio" class="btn-check" name="category-filter" id="category-project" value="project">
-                                <label class="btn btn-outline-secondary" for="category-project">项目</label>
-                                
-                                <input type="radio" class="btn-check" name="category-filter" id="category-virtualization" value="virtualization">
-                                <label class="btn btn-outline-secondary" for="category-virtualization">虚拟化</label>
-                                
-                                <input type="radio" class="btn-check" name="category-filter" id="category-deployment" value="deployment">
-                                <label class="btn btn-outline-secondary" for="category-deployment">部署</label>
-                                
-                                <input type="radio" class="btn-check" name="category-filter" id="category-architecture" value="architecture">
-                                <label class="btn btn-outline-secondary" for="category-architecture">架构</label>
-                                
-                                <input type="radio" class="btn-check" name="category-filter" id="category-other" value="other">
-                                <label class="btn btn-outline-secondary" for="category-other">其他</label>
+                                <input type="radio" class="btn-check" name="category-filter" id="category-custom" value="custom">
+                                <label class="btn btn-outline-secondary" for="category-custom">自定义</label>
                             </div>
                         </div>
 
-                        <!-- 可用标签列表 -->
-                        <div class="available-tags-area">
-                            <div class="mb-2">
-                                <h6 class="mb-0">可用标签</h6>
+                        <!-- 统计信息 -->
+                        <div class="tag-stats" id="tag-stats" style="display: none;">
+                            <div class="tag-stat-item">
+                                <div class="tag-stat-number" id="total-tags">0</div>
+                                <div class="tag-stat-label">总标签</div>
                             </div>
-                            <div id="available-tags-list" class="available-tags-list border rounded p-3" style="max-height: 300px; overflow-y: auto;">
-                                <!-- 可用标签将在这里显示 -->
+                            <div class="tag-stat-item">
+                                <div class="tag-stat-number" id="selected-tags">0</div>
+                                <div class="tag-stat-label">已选择</div>
                             </div>
+                            <div class="tag-stat-item">
+                                <div class="tag-stat-number" id="active-tags">0</div>
+                                <div class="tag-stat-label">激活</div>
+                            </div>
+                            <div class="tag-stat-item">
+                                <div class="tag-stat-number" id="filtered-tags">0</div>
+                                <div class="tag-stat-label">筛选后</div>
+                            </div>
+                        </div>
+
+                        <!-- 标签列表区域 -->
+                        <div class="tag-list-area" id="tag-list-container">
+                            <!-- 标签列表将在这里动态生成 -->
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="confirm-tag-selection">
+                <button type="button" class="btn btn-secondary" id="cancel-selection-btn">
+                    <i class="fas fa-times me-1"></i>取消
+                </button>
+                <button type="button" class="btn btn-primary" id="confirm-selection-btn">
                     <i class="fas fa-check me-1"></i>确认选择
                 </button>
             </div>
@@ -95,471 +98,4 @@
     </div>
 </div>
 
-
-<style>
-.tag-selector-container {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.selected-tags-display {
-    min-height: 60px;
-    border: 2px dashed #dee2e6;
-    transition: border-color 0.3s ease;
-}
-
-.selected-tags-display.has-tags {
-    border-color: #28a745;
-    border-style: solid;
-}
-
-.tag-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.5rem;
-    margin: 0.125rem;
-    background-color: #e9ecef;
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    color: #495057;
-    transition: all 0.2s ease;
-}
-
-.tag-chip:hover {
-    background-color: #f8f9fa;
-    border-color: #adb5bd;
-}
-
-.tag-chip .remove-btn {
-    margin-left: 0.5rem;
-    color: #6c757d;
-    cursor: pointer;
-    border: none;
-    background: none;
-    padding: 0;
-    font-size: 0.75rem;
-}
-
-.tag-chip .remove-btn:hover {
-    color: #dc3545;
-}
-
-.available-tags-list {
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    padding: 1rem;
-}
-
-.tag-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem;
-    margin: 0.25rem 0;
-    border: 1px solid #e9ecef;
-    border-radius: 0.25rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.tag-item:hover {
-    background-color: #f8f9fa;
-    border-color: #adb5bd;
-}
-
-.tag-item.selected {
-    background-color: #e7f3ff;
-    border-color: #0d6efd;
-}
-
-.tag-item .tag-info {
-    display: flex;
-    align-items: center;
-    flex: 1;
-}
-
-.tag-item .tag-badge {
-    margin-right: 0.5rem;
-    font-size: 0.75rem;
-}
-
-.tag-item .tag-name {
-    font-weight: 500;
-    margin-right: 0.5rem;
-}
-
-.tag-item .tag-category {
-    font-size: 0.75rem;
-    color: #6c757d;
-    background-color: #f8f9fa;
-    padding: 0.125rem 0.375rem;
-    border-radius: 0.25rem;
-}
-
-.tag-item .tag-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.tag-item .tag-actions .btn {
-    padding: 0.125rem 0.375rem;
-    font-size: 0.75rem;
-}
-
-.no-tags-message {
-    text-align: center;
-    color: #6c757d;
-    padding: 2rem;
-    font-style: italic;
-}
-
-.loading-spinner {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 2rem;
-}
-
-.loading-spinner .spinner-border {
-    width: 2rem;
-    height: 2rem;
-}
-
-.error-message {
-    color: #dc3545;
-    text-align: center;
-    padding: 1rem;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 0.375rem;
-    margin: 1rem 0;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-    .tag-selector-container {
-        padding: 0.5rem;
-    }
-    
-    .available-tags-list {
-        max-height: 200px;
-    }
-    
-    .tag-item {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .tag-item .tag-actions {
-        margin-top: 0.5rem;
-        width: 100%;
-        justify-content: flex-end;
-    }
-}
-</style>
-
-<script>
-// 标签选择器类
-class TagSelector {
-    constructor(containerId, options = {}) {
-        this.containerId = containerId;
-        this.container = document.getElementById(containerId);
-        this.options = {
-            allowMultiple: true,
-            allowCreate: true,
-            allowSearch: true,
-            allowCategoryFilter: true,
-            ...options
-        };
-        
-        this.availableTags = [];
-        this.selectedTags = [];
-        this.filteredTags = [];
-        this.searchTerm = '';
-        this.selectedCategory = 'all';
-        
-        this.init();
-    }
-    
-    init() {
-        if (!this.container) {
-            console.error('TagSelector: 容器元素未找到');
-            return;
-        }
-        
-        this.bindEvents();
-        this.loadAvailableTags();
-    }
-    
-    bindEvents() {
-        // 搜索框事件
-        const searchInput = this.container.querySelector('#tag-search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.searchTerm = e.target.value.toLowerCase();
-                this.filterTags();
-            });
-        }
-        
-        // 清除搜索按钮
-        const clearBtn = this.container.querySelector('#clear-search-btn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                searchInput.value = '';
-                this.searchTerm = '';
-                this.filterTags();
-            });
-        }
-        
-        // 分类筛选
-        const categoryFilters = this.container.querySelectorAll('input[name="category-filter"]');
-        categoryFilters.forEach(filter => {
-            filter.addEventListener('change', (e) => {
-                this.selectedCategory = e.target.value;
-                this.filterTags();
-            });
-        });
-        
-        
-    }
-    
-    async loadAvailableTags() {
-        try {
-            // 获取CSRF token
-            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || 
-                             document.querySelector('input[name=csrf_token]')?.value || '';
-            
-            const response = await fetch('/tags/api/tags', {
-                headers: {
-                    'X-CSRFToken': csrfToken
-                }
-            });
-            
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                this.availableTags = data.tags || data;
-                this.filteredTags = [...this.availableTags];
-                this.renderAvailableTags();
-            } else {
-                this.showError('加载标签失败: ' + (data.message || '未知错误'));
-            }
-        } catch (error) {
-            console.error('加载标签失败:', error);
-            this.showError('加载标签失败: ' + error.message);
-        }
-    }
-    
-    filterTags() {
-        this.filteredTags = this.availableTags.filter(tag => {
-            const matchesSearch = !this.searchTerm || 
-                tag.name.toLowerCase().includes(this.searchTerm) ||
-                tag.display_name.toLowerCase().includes(this.searchTerm) ||
-                tag.category.toLowerCase().includes(this.searchTerm);
-            
-            const matchesCategory = this.selectedCategory === 'all' || 
-                tag.category === this.selectedCategory;
-            
-            return matchesSearch && matchesCategory;
-        });
-        
-        this.renderAvailableTags();
-    }
-    
-    renderAvailableTags() {
-        const container = this.container.querySelector('#available-tags-list');
-        if (!container) return;
-        
-        if (this.filteredTags.length === 0) {
-            container.innerHTML = `
-                <div class="no-tags-message">
-                    <i class="fas fa-search me-2"></i>
-                    ${this.searchTerm ? '没有找到匹配的标签' : '暂无可用标签'}
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = this.filteredTags.map(tag => `
-            <div class="tag-item ${this.isSelected(tag.id) ? 'selected' : ''}" data-tag-id="${tag.id}">
-                <div class="tag-info">
-                    <span class="badge bg-${tag.color} tag-badge">${tag.display_name}</span>
-                    <span class="tag-name">${tag.name}</span>
-                    <span class="tag-category">${this.getCategoryDisplayName(tag.category)}</span>
-                </div>
-                <div class="tag-actions">
-                    <button class="btn btn-sm ${this.isSelected(tag.id) ? 'btn-outline-danger' : 'btn-outline-primary'}" 
-                            onclick="tagSelector.toggleTag(${tag.id})">
-                        <i class="fas fa-${this.isSelected(tag.id) ? 'times' : 'plus'}"></i>
-                        ${this.isSelected(tag.id) ? '移除' : '添加'}
-                    </button>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    toggleTag(tagId) {
-        const tag = this.availableTags.find(t => t.id === tagId);
-        if (!tag) return;
-        
-        if (this.isSelected(tagId)) {
-            this.selectedTags = this.selectedTags.filter(t => t.id !== tagId);
-        } else {
-            if (!this.options.allowMultiple) {
-                this.selectedTags = [tag];
-            } else {
-                this.selectedTags.push(tag);
-            }
-        }
-        
-        this.renderAvailableTags();
-        this.renderSelectedTags();
-    }
-    
-    isSelected(tagId) {
-        return this.selectedTags.some(tag => tag.id === tagId);
-    }
-    
-    renderSelectedTags() {
-        const container = this.container.querySelector('#selected-tags-list');
-        const placeholder = this.container.querySelector('#no-tags-placeholder');
-        
-        if (!container || !placeholder) return;
-        
-        if (this.selectedTags.length === 0) {
-            container.innerHTML = '';
-            placeholder.style.display = 'block';
-        } else {
-            container.innerHTML = this.selectedTags.map(tag => `
-                <div class="tag-chip">
-                    <span class="badge bg-${tag.color} me-1">${tag.display_name}</span>
-                    <button class="remove-btn" onclick="tagSelector.removeTag(${tag.id})">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `).join('');
-            placeholder.style.display = 'none';
-        }
-    }
-    
-    removeTag(tagId) {
-        this.selectedTags = this.selectedTags.filter(t => t.id !== tagId);
-        this.renderAvailableTags();
-        this.renderSelectedTags();
-    }
-    
-    getSelectedTags() {
-        return this.selectedTags;
-    }
-    
-    setSelectedTags(tagIds) {
-        this.selectedTags = this.availableTags.filter(tag => tagIds.includes(tag.id));
-        this.renderAvailableTags();
-        this.renderSelectedTags();
-    }
-    
-    getCategoryDisplayName(category) {
-        const categoryMap = {
-            'department': '部门',
-            'company': '公司',
-            'company_type': '公司',
-            'environment': '环境',
-            'location': '地区',
-            'project': '项目',
-            'virtualization': '虚拟化',
-            'deployment': '部署',
-            'architecture': '架构',
-            'other': '其他'
-        };
-        return categoryMap[category] || category;
-    }
-    
-    
-    showError(message) {
-        const container = this.container.querySelector('#available-tags-list');
-        if (container) {
-            container.innerHTML = `<div class="error-message">${message}</div>`;
-        }
-    }
-}
-
-// 全局变量
-let tagSelector = null;
-let tagSelectorModal = null;
-
-// 全局函数
-function openTagSelector() {
-    const modalElement = document.getElementById('tagSelectorModal');
-    
-    if (!tagSelectorModal) {
-        if (modalElement) {
-            tagSelectorModal = new bootstrap.Modal(modalElement);
-        } else {
-            console.error('找不到tagSelectorModal元素');
-            return;
-        }
-    }
-    
-    if (tagSelectorModal) {
-        tagSelectorModal.show();
-    } else {
-        console.error('模态框实例创建失败');
-    }
-}
-
-function closeTagSelector() {
-    if (tagSelectorModal) {
-        tagSelectorModal.hide();
-    }
-}
-
-function confirmTagSelection() {
-    if (tagSelector) {
-        const selectedTags = tagSelector.getSelectedTags();
-        updateSelectedTagsPreview(selectedTags);
-        closeTagSelector();
-    }
-}
-
-function updateSelectedTagsPreview(selectedTags) {
-    const preview = document.getElementById('selected-tags-preview');
-    const count = document.getElementById('selected-tags-count');
-    const chips = document.getElementById('selected-tags-chips');
-    const hiddenInput = document.getElementById('selected-tag-names');
-    
-    if (selectedTags.length > 0) {
-        preview.style.display = 'block';
-        count.textContent = `已选择 ${selectedTags.length} 个标签`;
-        
-        chips.innerHTML = selectedTags.map(tag => `
-            <span class="badge bg-${tag.color} me-1 mb-1">
-                <i class="fas fa-tag me-1"></i>${tag.display_name}
-                <button type="button" class="btn-close btn-close-white ms-1" 
-                        onclick="removeTagFromPreview('${tag.name}')" 
-                        style="font-size: 0.6em;"></button>
-            </span>
-        `).join('');
-        
-        hiddenInput.value = selectedTags.map(tag => tag.name).join(',');
-    } else {
-        preview.style.display = 'none';
-        count.textContent = '未选择标签';
-        hiddenInput.value = '';
-    }
-}
-
-function removeTagFromPreview(tagName) {
-    if (tagSelector) {
-        const tag = tagSelector.availableTags.find(t => t.name === tagName);
-        if (tag) {
-            tagSelector.toggleTag(tag.id);
-            const selectedTags = tagSelector.getSelectedTags();
-            updateSelectedTagsPreview(selectedTags);
-        }
-    }
-}
-</script>
+<script src="{{ url_for('static', filename='js/components/tag_selector.js') }}"></script>
