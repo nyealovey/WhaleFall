@@ -185,7 +185,16 @@ function initializeTagSelector() {
             // 绑定打开标签选择器按钮
             const openBtn = document.getElementById('open-tag-selector-btn');
             if (openBtn) {
-                openBtn.addEventListener('click', openTagSelector);
+                openBtn.addEventListener('click', function() {
+                    openTagSelector();
+                    
+                    // 模态框显示后重新绑定按钮
+                    setTimeout(() => {
+                        if (editPageTagSelector) {
+                            editPageTagSelector.rebindModalButtons();
+                        }
+                    }, 100);
+                });
             }
             
             // 绑定确认选择按钮

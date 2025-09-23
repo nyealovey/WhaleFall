@@ -59,24 +59,56 @@ class TagSelector {
             });
         }
         
+        // 延迟绑定模态框按钮事件
+        this.setupModalButtons();
+    }
+    
+    // 设置模态框按钮事件
+    setupModalButtons() {
+        // 立即尝试绑定
+        this.bindModalButtons();
+        
+        // 如果立即绑定失败，使用延迟绑定
+        if (!this.areButtonsBound()) {
+            setTimeout(() => {
+                this.bindModalButtons();
+            }, 500);
+            
+            // 再次延迟绑定（备用方案）
+            setTimeout(() => {
+                this.bindModalButtons();
+            }, 1000);
+        }
+    }
+    
+    // 检查按钮是否已绑定
+    areButtonsBound() {
+        const confirmBtn = this.container.querySelector('#confirm-selection-btn');
+        const cancelBtn = this.container.querySelector('#cancel-selection-btn');
+        return confirmBtn && confirmBtn.hasAttribute('data-bound') && 
+               cancelBtn && cancelBtn.hasAttribute('data-bound');
+    }
+    
+    // 绑定模态框按钮
+    bindModalButtons() {
         // 确认按钮
         const confirmBtn = this.container.querySelector('#confirm-selection-btn');
-        if (confirmBtn) {
+        if (confirmBtn && !confirmBtn.hasAttribute('data-bound')) {
             console.log('找到确认按钮，绑定点击事件');
             confirmBtn.addEventListener('click', () => {
                 console.log('确认按钮被点击');
                 this.confirmSelection();
             });
-        } else {
-            console.error('找不到确认按钮 #confirm-selection-btn');
+            confirmBtn.setAttribute('data-bound', 'true');
         }
         
         // 取消按钮
         const cancelBtn = this.container.querySelector('#cancel-selection-btn');
-        if (cancelBtn) {
+        if (cancelBtn && !cancelBtn.hasAttribute('data-bound')) {
             cancelBtn.addEventListener('click', () => {
                 this.cancelSelection();
             });
+            cancelBtn.setAttribute('data-bound', 'true');
         }
     }
 
@@ -626,6 +658,11 @@ class TagSelector {
                 </button>
             </div>
         `;
+    }
+    
+    // 重新绑定模态框按钮（供外部调用）
+    rebindModalButtons() {
+        this.bindModalButtons();
     }
     
     // 获取CSRF令牌

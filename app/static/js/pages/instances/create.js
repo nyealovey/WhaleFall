@@ -128,6 +128,13 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
                 } else {
                     console.error('openTagSelector函数未定义');
                 }
+                
+                // 模态框显示后重新绑定按钮
+                setTimeout(() => {
+                    if (createPageTagSelector) {
+                        createPageTagSelector.rebindModalButtons();
+                    }
+                }, 100);
             });
         } else {
             console.error('找不到open-tag-selector-btn按钮');
