@@ -117,40 +117,7 @@
     margin: 0;
 }
 
-/* 统计卡片 */
-.stats-card {
-    background: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    padding: 1.5rem;
-    text-align: center;
-    transition: all 0.3s ease;
-    border: 1px solid #e9ecef;
-}
-
-.stats-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.stats-number {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
-
-.stats-number.active { color: #28a745; }
-.stats-number.paused { color: #ffc107; }
-.stats-number.error { color: #dc3545; }
-.stats-number.total { color: #667eea; }
-
-.stats-label {
-    color: #6c757d;
-    font-size: 0.9rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
+/* 移除统计卡片相关样式（保留占位注释） */
 
 /* 任务信息 */
 .job-info {
@@ -525,9 +492,7 @@
         text-align: center;
     }
     
-    .stats-number {
-        font-size: 2rem;
-    }
+    
 }
 
 @media (max-width: 576px) {
@@ -623,15 +588,7 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* 统计卡片悬停效果 */
-.stats-card {
-    transition: all 0.3s ease;
-}
-
-.stats-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
+/* 统计卡片悬停效果 (已移除) */
 
 /* 表单组间距 */
 .form-group {
