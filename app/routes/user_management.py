@@ -102,6 +102,22 @@ def api_get_users() -> "Response":
         return APIResponse.error("获取用户列表失败: {str(e)}")
 
 
+@user_management_bp.route("/api/users/<int:user_id>")
+@login_required
+@view_required
+def api_get_user(user_id: int) -> "Response":
+    """获取单个用户信息API"""
+    try:
+        user = User.query.get_or_404(user_id)
+        
+        return APIResponse.success("获取用户信息成功", {
+            "user": user.to_dict()
+        })
+        
+    except Exception as e:
+        return APIResponse.error(f"获取用户信息失败: {str(e)}")
+
+
 @user_management_bp.route("/api/users", methods=["POST"])
 @login_required
 @create_required
