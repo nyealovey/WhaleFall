@@ -26,9 +26,9 @@ class SyncSession(db.Model):
     status = db.Column(
         db.String(20),
         nullable=False,
-        default="running",
+        default="pending",  # pending, running, completed, failed
     )
-    started_at = db.Column(db.DateTime(timezone=True), nullable=False, default=now)
+    started_at = db.Column(db.DateTime(timezone=True))
     completed_at = db.Column(db.DateTime(timezone=True))
     total_instances = db.Column(db.Integer, default=0)
     successful_instances = db.Column(db.Integer, default=0)
@@ -57,9 +57,9 @@ class SyncSession(db.Model):
         self.session_id = str(uuid.uuid4())
         self.sync_type = sync_type
         self.sync_category = sync_category
+        self.total_instances = total_instances
         self.status = "running"
         self.started_at = now()
-        self.created_by = created_by
 
     def to_dict(self) -> dict[str, any]:
         """转换为字典"""
@@ -79,26 +79,27 @@ class SyncSession(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
-    def update_statistics(self) -> None:
-        """更新统计信息"""
-        records = self.instance_records.all()
-        self.total_instances = len(records)
-        self.successful_instances = len([r for r in records if r.status == "completed"])
-        self.failed_instances = len([r for r in records if r.status == "failed"])
+    def update_statistics(self, succeeded_instances: int, failed_instances: int) -> None:
+        """
+        更新会话统计信息并根据情况更新状态
 
-        # 更新状态
-        if self.failed_instances == 0:
-            self.status = "completed"
-        elif self.successful_instances == 0:
-            self.status = "failed"
-        else:
-            self.status = "failed"  # 部分失败也算失败
+        Args:
+            succeeded_instances: 成功实例数
+            failed_instances: 失败实例数
+        """
+        self.succeeded_instances = succeeded_instances
+        self.failed_instances = failed_instances
 
-        self.completed_at = now()
-        self.updated_at = now()
+        # 只有当所有实例都完成后才更新最终状态
+        if self.succeeded_instances + self.failed_instances == self.total_instances:
+            if self.failed_instances > 0:
+                self.status = "failed"
+            else:
+                self.status = "completed"
+            self.completed_at = now()
 
-    def get_progress_percentage(self) -> float:
-        """获取进度百分比"""
+    def get_progress_percentage(self) -> int:
+        """获取同步进度百分比"""
         if self.total_instances == 0:
             return 0
         completed = self.successful_instances + self.failed_instances

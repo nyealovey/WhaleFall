@@ -276,10 +276,19 @@ function renderSessions(sessions) {
         const totalInstances = session.total_instances || 0;
         const successfulInstances = session.successful_instances || 0;
         const failedInstances = session.failed_instances || 0;
-        const successRate = totalInstances > 0 ? Math.round((successfulInstances / totalInstances) * 100) : 0;
+        
+        // 对于 running 状态，进度应该是（成功+失败）/ 总数
+        let progressPercentage = 0;
+        if (totalInstances > 0) {
+            if (session.status === 'running') {
+                progressPercentage = Math.round(((successfulInstances + failedInstances) / totalInstances) * 100);
+            } else {
+                progressPercentage = Math.round((successfulInstances / totalInstances) * 100);
+            }
+        }
         
         // 根据成功率确定进度条颜色和样式
-        const progressInfo = getProgressInfo(successRate, totalInstances, successfulInstances, failedInstances);
+        const progressInfo = getProgressInfo(session.status, progressPercentage, totalInstances, successfulInstances, failedInstances);
 
         return `
             <div class="card session-card ${statusClass} mb-3">
@@ -296,13 +305,13 @@ function renderSessions(sessions) {
                             <div class="progress" style="height: 12px;">
                                 <div class="progress-bar ${progressInfo.barClass}" 
                                      role="progressbar" 
-                                     style="width: ${successRate}%"
+                                     style="width: ${progressPercentage}%"
                                      title="${progressInfo.tooltip}">
                                 </div>
                             </div>
                             <small class="text-muted">
                                 <span class="${progressInfo.textClass}">
-                                    <i class="${progressInfo.icon}"></i> ${successRate}% (${successfulInstances}/${totalInstances})
+                                    <i class="${progressInfo.icon}"></i> ${progressPercentage}% (${successfulInstances + failedInstances}/${totalInstances})
                                 </span>
                             </small>
                         </div>
@@ -536,7 +545,7 @@ function refreshData() {
 }
 
 // 获取进度条信息
-function getProgressInfo(successRate, totalInstances, successfulInstances, failedInstances) {
+function getProgressInfo(status, progressPercentage, totalInstances, successfulInstances, failedInstances) {
     if (totalInstances === 0) {
         return {
             barClass: 'bg-secondary',
@@ -545,22 +554,31 @@ function getProgressInfo(successRate, totalInstances, successfulInstances, faile
             tooltip: '无实例数据'
         };
     }
+
+    if (status === 'running') {
+        return {
+            barClass: 'bg-primary progress-bar-striped progress-bar-animated',
+            textClass: 'text-primary',
+            icon: 'fas fa-sync-alt fa-spin',
+            tooltip: `运行中... (${successfulInstances + failedInstances}/${totalInstances})`
+        };
+    }
     
-    if (successRate === 100) {
+    if (progressPercentage === 100) {
         return {
             barClass: 'bg-success',
             textClass: 'text-success',
             icon: 'fas fa-check-circle',
             tooltip: '全部成功'
         };
-    } else if (successRate === 0) {
+    } else if (failedInstances > 0 && successfulInstances === 0) {
         return {
             barClass: 'bg-danger',
             textClass: 'text-danger',
             icon: 'fas fa-times-circle',
             tooltip: '全部失败'
         };
-    } else if (successRate >= 70) {
+    } else if (failedInstances > 0) {
         return {
             barClass: 'bg-warning',
             textClass: 'text-warning',
@@ -572,7 +590,7 @@ function getProgressInfo(successRate, totalInstances, successfulInstances, faile
             barClass: 'bg-danger',
             textClass: 'text-danger',
             icon: 'fas fa-exclamation-triangle',
-            tooltip: `大部分失败 (${successfulInstances}成功, ${failedInstances}失败)`
+            tooltip: `存在失败 (${successfulInstances}成功, ${failedInstances}失败)`
         };
     }
 }
