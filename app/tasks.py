@@ -10,9 +10,12 @@ from app.models.account_change_log import AccountChangeLog
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.unified_log import UnifiedLog
 from app.models.user import User
+from app.models.instance import Instance
 from app.services.account_sync_service import account_sync_service
+from app.services.sync_session_service import sync_session_service
+from app.utils.celery_utils import celery
 from app.utils.structlog_config import get_sync_logger, get_task_logger
-from app.utils.timezone import now
+from app.utils.time_utils import time_utils
 
 
 def cleanup_old_logs() -> None:
@@ -23,7 +26,7 @@ def cleanup_old_logs() -> None:
     with app.app_context():
         try:
             # 删除30天前的日志
-            cutoff_date = now() - timedelta(days=30)
+            cutoff_date = time_utils.now() - timedelta(days=30)
             deleted_logs = UnifiedLog.query.filter(UnifiedLog.timestamp < cutoff_date).delete()
 
             # 清理临时文件
@@ -111,208 +114,75 @@ def _cleanup_temp_files():
         return 0
 
 
-def sync_accounts(*, manual_run: bool = False) -> None:
-    """账户同步任务 - 同步所有数据库实例的账户（使用新的会话管理架构）"""
-    from app.models.instance import Instance
-    from app.services.sync_session_service import sync_session_service
+@celery.task(name="app.tasks.sync_accounts")
+def sync_accounts(**kwargs):
+    """
+    Celery 定时任务 - 同步所有活跃实例的账户
+    """
+    task_logger = get_sync_logger()
+    task_logger.info("开始执行定时账户同步任务...")
+    session = None
+    try:
+        # 1. 获取所有活跃实例
+        instances = Instance.query.filter_by(is_active=True, is_deleted=False).all()
+        total_instances = len(instances)
 
-    sync_logger = get_sync_logger()
-    task_logger = get_task_logger()
-
-    app = create_app()
-    with app.app_context():
-        try:
-            # 获取所有活跃的数据库实例
-            instances = Instance.query.filter_by(is_active=True).all()
-            total_instances = len(instances)
-
-            if not instances:
-                sync_logger.warning("没有找到活跃的数据库实例", module="scheduler")
-                return "没有找到活跃的数据库实例"
-
-            # 根据执行方式选择同步类型
-            sync_type = "manual_task" if manual_run else "scheduled_task"
-
-            # 创建同步会话
-            session = sync_session_service.create_session(
-                sync_type=sync_type,
-                sync_category="account",
-                created_by=None,  # 定时任务没有用户
-            )
-
-            sync_logger.info(
-                "定时任务开始同步所有账户",
-                module="scheduler",
-                session_id=session.session_id,
-                total_instances=total_instances,
-            )
-
-            # 添加实例记录
-            instance_ids = [inst.id for inst in instances]
-            records = sync_session_service.add_instance_records(session.session_id, instance_ids)
-
-            success_count = 0
-            failed_count = 0
-            total_synced_count = 0
-            total_added_count = 0
-            total_removed_count = 0
-            total_modified_count = 0
-            results = []
-
-            for instance in instances:
-                # 找到对应的记录
-                record = next((r for r in records if r.instance_id == instance.id), None)
-                if not record:
-                    continue
-
-                try:
-                    # 开始实例同步
-                    sync_session_service.start_instance_sync(record.id)
-
-                    sync_logger.info(
-                        "开始同步实例",
-                        module="scheduler",
-                        session_id=session.session_id,
-                        instance_name=instance.name,
-                        db_type=instance.db_type,
-                        instance_id=instance.id,
-                    )
-
-                    # 执行账户同步，使用scheduled_task类型
-                    result = account_sync_service.sync_accounts(
-                        instance, sync_type="scheduled_task", session_id=session.session_id
-                    )
-
-                    if result.get("success"):
-                        success_count += 1
-                        instance_sync_count = result.get("synced_count", 0)
-                        total_synced_count += instance_sync_count
-                        total_added_count += result.get("added_count", 0)
-                        total_removed_count += result.get("removed_count", 0)
-                        total_modified_count += result.get("modified_count", 0)
-
-                        # 完成实例同步
-                        sync_session_service.complete_instance_sync(
-                            record.id,
-                            accounts_synced=instance_sync_count,
-                            accounts_created=result.get("added_count", 0),
-                            accounts_updated=result.get("modified_count", 0),
-                            accounts_deleted=result.get("removed_count", 0),
-                            sync_details=result.get("details", {}),
-                        )
-
-                        sync_logger.info(
-                            "实例同步完成",
-                            module="scheduler",
-                            session_id=session.session_id,
-                            instance_name=instance.name,
-                            instance_id=instance.id,
-                            synced_count=instance_sync_count,
-                        )
-
-                        results.append(
-                            {
-                                "instance_name": instance.name,
-                                "success": True,
-                                "message": result.get("message", "同步成功"),
-                                "synced_count": instance_sync_count,
-                            }
-                        )
-                    else:
-                        failed_count += 1
-                        error_msg = result.get("message", result.get("error", "未知错误"))
-
-                        # 标记实例同步失败
-                        sync_session_service.fail_instance_sync(
-                            record.id,
-                            error_message=error_msg,
-                            sync_details=result.get("details", {}),
-                        )
-
-                        sync_logger.warning(
-                            "实例同步失败",
-                            module="scheduler",
-                            session_id=session.session_id,
-                            instance_name=instance.name,
-                            instance_id=instance.id,
-                            error_msg=error_msg,
-                        )
-
-                        results.append(
-                            {
-                                "instance_name": instance.name,
-                                "success": False,
-                                "message": error_msg,
-                                "synced_count": 0,
-                            }
-                        )
-
-                except Exception as e:
-                    failed_count += 1
-
-                    # 标记实例同步失败
-                    if record:
-                        sync_session_service.fail_instance_sync(
-                            record.id,
-                            error_message=str(e),
-                            sync_details={"exception": str(e)},
-                        )
-
-                    sync_logger.error(
-                        "实例同步异常",
-                        module="scheduler",
-                        session_id=session.session_id,
-                        instance_name=instance.name,
-                        instance_id=instance.id,
-                        exception=e,
-                    )
-
-                    results.append(
-                        {
-                            "instance_name": instance.name,
-                            "success": False,
-                            "message": f"同步异常: {str(e)}",
-                            "synced_count": 0,
-                        }
-                    )
-
-            # 完成同步会话
-            session.update_statistics(success_count, failed_count)
+        # 2. 创建同步会话并立即设置总实例数
+        session = sync_session_service.create_session(
+            sync_type="scheduled_task", sync_category="account"
+        )
+        session.total_instances = total_instances
+        
+        # 如果没有实例，直接将会话标记为完成
+        if total_instances == 0:
+            task_logger.info("没有找到需要同步的活跃实例，任务结束。")
+            session.status = "completed"
+            session.completed_at = time_utils.now()
             db.session.commit()
+            return
 
-            # 记录操作日志
-            task_logger.info(
-                "定时任务账户同步完成",
-                module="task",
-                operation_type="TASK_SYNC_ACCOUNTS_COMPLETE",
-                session_id=session.session_id,
-                total_instances=total_instances,
-                success_count=success_count,
-                failed_count=failed_count,
-                total_synced_count=total_synced_count,
-                total_added_count=total_added_count,
-                total_removed_count=total_removed_count,
-                total_modified_count=total_modified_count,
-                results=results,
-            )
+        db.session.commit()
+        
+        # 3. 添加实例记录
+        records = sync_session_service.add_instance_records(
+            session.session_id, [instance.id for instance in instances]
+        )
+        if not records:
+            task_logger.error("为所有实例创建同步记录失败。")
+            session.status = "failed"
+            session.completed_at = time_utils.now()
+            db.session.commit()
+            return
 
-            sync_logger.info(
-                "定时任务账户同步完成",
-                module="scheduler",
-                session_id=session.session_id,
-                total_synced_count=total_synced_count,
-                total_instances=total_instances,
-                session_status=session.status,
-            )
+        # 4. 遍历实例并触发同步
+        task_logger.info(f"共找到 {total_instances} 个活跃实例，开始逐个同步。")
 
-            return f"定时任务同步完成，成功 {success_count} 个实例，失败 {failed_count} 个实例，总共同步 {total_synced_count} 个账户"
+        for instance in instances:
+            task_logger.info(f"开始同步实例: {instance.name} (ID: {instance.id})")
+            try:
+                # 使用带有会话的同步服务，它将处理每个实例的状态更新
+                account_sync_service.sync_instance_with_session(
+                    instance_id=instance.id, session_id=session.session_id
+                )
+            except Exception as e:
+                task_logger.error(f"触发实例同步时发生意外错误: {instance.name}", error=str(e))
+                # 尝试将此实例标记为失败
+                record = sync_session_service.get_record_by_instance_and_session(instance.id, session.session_id)
+                if record:
+                    sync_session_service.fail_instance_sync(record.id, str(e))
 
-        except Exception as e:
-            sync_logger.error("定时任务账户同步失败", module="scheduler", exception=e)
+        # 5. 任务结束
+        # 会话的最终状态将由最后一个完成的实例同步操作在 `sync_session_service` 中更新
+        task_logger.info(
+            "所有实例同步任务已触发。请在同步会话页面查看最终结果。"
+        )
 
-            # 同步会话记录已通过sync_session_service管理，无需额外创建记录
-
-            return f"定时任务同步失败: {str(e)}"
+    except Exception as e:
+        task_logger.error(f"执行定时账户同步任务时发生严重错误: {str(e)}")
+        if session:
+            session.status = "failed"
+            session.completed_at = time_utils.now()
+            db.session.commit()
 
 
 def health_check() -> None:
