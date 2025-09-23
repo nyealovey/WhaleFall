@@ -1,0 +1,400 @@
+/* 编辑实例页面样式 */
+
+/* 表单样式 */
+.instance-form {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.instance-form .card-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.instance-form .card-title {
+    font-weight: 600;
+    margin: 0;
+}
+
+/* 表单字段样式 */
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.form-control, .form-select {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.form-text {
+    font-size: 0.875em;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+/* 必填字段标识 */
+.text-danger {
+    color: #dc3545 !important;
+}
+
+/* 数据库类型选择器样式 */
+.db-type-selector {
+    position: relative;
+}
+
+.db-type-option {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+}
+
+.db-type-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+/* Oracle SID字段 */
+.oracle-sid-row {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 标签选择器区域 */
+.tag-selector-area {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px solid #dee2e6;
+}
+
+.tag-preview {
+    max-height: 100px;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+}
+
+.tag-chip {
+    display: inline-block;
+    margin: 2px;
+    padding: 4px 8px;
+    background-color: #e9ecef;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+/* 测试连接按钮样式 */
+.test-connection-btn {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.test-connection-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+    color: white;
+}
+
+.test-connection-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 保存按钮样式 */
+.save-btn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+    color: white;
+}
+
+.save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 连接测试结果卡片 */
+.test-result-card {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    margin-top: 1rem;
+    animation: slideIn 0.3s ease-out;
+}
+
+.test-result-success {
+    border-left: 4px solid #28a745;
+}
+
+.test-result-error {
+    border-left: 4px solid #dc3545;
+}
+
+.test-result-warning {
+    border-left: 4px solid #ffc107;
+}
+
+/* 加载状态 */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* 错误提示 */
+.error-message {
+    color: #dc3545;
+    font-size: 0.875em;
+    margin-top: 0.25rem;
+}
+
+/* 成功提示 */
+.success-message {
+    color: #28a745;
+    font-size: 0.875em;
+    margin-top: 0.25rem;
+}
+
+/* 警告提示 */
+.warning-message {
+    color: #ffc107;
+    font-size: 0.875em;
+    margin-top: 0.25rem;
+}
+
+/* 表单验证样式 */
+.is-invalid {
+    border-color: #dc3545;
+}
+
+.is-valid {
+    border-color: #28a745;
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+
+.valid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #28a745;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .instance-form .card-body {
+        padding: 1rem;
+    }
+    
+    .test-connection-btn,
+    .save-btn {
+        width: 100%;
+        margin-top: 1rem;
+    }
+}
+
+/* 动画效果 */
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 表单组样式 */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group.row {
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+}
+
+.form-group.row > [class*="col-"] {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+/* 帮助文本样式 */
+.help-text {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 0.25rem;
+    line-height: 1.4;
+}
+
+/* 字段组样式 */
+.field-group {
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e9ecef;
+}
+
+.field-group-title {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.75rem;
+    font-size: 1.1em;
+}
+
+/* 端口和数据库名称行 */
+.port-database-row {
+    display: flex;
+    gap: 1rem;
+    align-items: end;
+}
+
+.port-database-row .col-md-6 {
+    flex: 1;
+}
+
+/* 标签选择器按钮 */
+.tag-selector-btn {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+.tag-selector-btn:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+/* 预览区域 */
+.preview-area {
+    background-color: #f8f9fa;
+    border: 1px dashed #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-top: 1rem;
+    min-height: 100px;
+}
+
+.preview-area.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* 当前标签显示 */
+.current-tags {
+    background-color: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.current-tags-title {
+    font-weight: 600;
+    color: #0066cc;
+    margin-bottom: 0.5rem;
+    font-size: 0.9em;
+}
+
+.current-tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.current-tag-item {
+    background-color: #0066cc;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8em;
+}
+
+/* 按钮组样式 */
+.btn-group-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-group-actions .btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+@media (max-width: 576px) {
+    .btn-group-actions {
+        flex-direction: column;
+    }
+    
+    .btn-group-actions .btn {
+        flex: none;
+        width: 100%;
+    }
+}

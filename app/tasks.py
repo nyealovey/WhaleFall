@@ -123,8 +123,8 @@ def sync_accounts(**kwargs):
         task_logger.info("开始执行定时账户同步任务...")
         session = None
         try:
-            # 1. 获取所有活跃实例
-            instances = Instance.query.filter_by(is_active=True, is_deleted=False).all()
+            # 1. 获取所有活跃实例（使用Instance.get_active_instances()方法）
+            instances = Instance.get_active_instances()
             total_instances = len(instances)
 
             # 2. 创建同步会话并立即设置总实例数
