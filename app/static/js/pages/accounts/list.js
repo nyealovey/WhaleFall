@@ -190,40 +190,40 @@ function initializeTagSelector() {
         // 查找容器元素
         const listPageSelector = document.getElementById('list-page-tag-selector');
         console.log('容器元素:', listPageSelector ? '找到' : '未找到');
-    
-    if (listPageSelector) {
-        const modalElement = listPageSelector.querySelector('#tagSelectorModal');
-        console.log('模态框元素:', modalElement ? '找到' : '未找到');
         
-        if (modalElement) {
-            // 在模态框内部查找容器元素
-            const containerElement = modalElement.querySelector('#tag-selector-container');
-            console.log('容器元素:', containerElement ? '找到' : '未找到');
+        if (listPageSelector) {
+            const modalElement = listPageSelector.querySelector('#tagSelectorModal');
+            console.log('模态框元素:', modalElement ? '找到' : '未找到');
             
-            if (containerElement) {
-                console.log('立即初始化TagSelector组件...');
-                initializeTagSelectorComponent(modalElement, containerElement);
+            if (modalElement) {
+                // 在模态框内部查找容器元素
+                const containerElement = modalElement.querySelector('#tag-selector-container');
+                console.log('容器元素:', containerElement ? '找到' : '未找到');
+                
+                if (containerElement) {
+                    console.log('立即初始化TagSelector组件...');
+                    initializeTagSelectorComponent(modalElement, containerElement);
+                } else {
+                    // 等待标签选择器组件加载完成
+                    console.log('等待标签选择器组件加载...');
+                    setTimeout(() => {
+                        const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
+                        
+                        if (delayedContainerElement) {
+                            console.log('延迟加载成功，初始化组件');
+                            initializeTagSelectorComponent(modalElement, delayedContainerElement);
+                        } else {
+                            console.error('延迟加载失败，容器元素仍未找到');
+                        }
+                    }, 1000);
+                }
             } else {
-                // 等待标签选择器组件加载完成
-                console.log('等待标签选择器组件加载...');
-                setTimeout(() => {
-                    const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
-                    
-                    if (delayedContainerElement) {
-                        console.log('延迟加载成功，初始化组件');
-                        initializeTagSelectorComponent(modalElement, delayedContainerElement);
-                    } else {
-                        console.error('延迟加载失败，容器元素仍未找到');
-                    }
-                }, 1000);
+                console.error('模态框元素未找到');
             }
         } else {
-            console.error('模态框元素未找到');
+            console.error('容器元素 list-page-tag-selector 未找到');
         }
-    } else {
-        console.error('容器元素 list-page-tag-selector 未找到');
-    }
-    
+        
         // 添加额外的调试信息
         console.log('initializeTagSelector 完成，accountListTagSelector:', accountListTagSelector ? '已创建' : '未创建');
         
