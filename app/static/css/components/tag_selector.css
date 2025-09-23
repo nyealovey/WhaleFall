@@ -36,13 +36,8 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 0.375rem 0.75rem;
-    border-radius: 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    padding: 0.25rem;
+    border-radius: 0.5rem;
     transition: all 0.3s ease;
     animation: slideInUp 0.3s ease-out;
 }
@@ -64,23 +59,35 @@
 }
 
 .selected-tag .remove-tag {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.1);
     border: none;
-    color: white;
-    width: 20px;
-    height: 20px;
+    color: #6c757d;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    margin-left: 0.25rem;
 }
 
 .selected-tag .remove-tag:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
     transform: scale(1.1);
+}
+
+.selected-tag-badge {
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    position: relative;
 }
 
 .no-tags-placeholder {
@@ -250,17 +257,16 @@
 .tag-details {
     display: flex;
     align-items: center;
-    gap: 0.375rem; /* 减少间距 */
+    gap: 0.5rem; /* 增加间距以适应badge */
     flex: 1;
     min-width: 0; /* 允许flex项目收缩 */
+    flex-wrap: wrap; /* 允许换行 */
 }
 
 .tag-category-badge {
     font-size: 0.7rem;
-    padding: 0.1rem 0.3rem;
+    padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
-    background-color: #e9ecef;
-    color: #6c757d;
     white-space: nowrap;
     flex-shrink: 0; /* 防止收缩 */
 }
@@ -298,15 +304,13 @@
     flex: 1;
 }
 
-.tag-name {
-    font-weight: 600;
-    color: #495057;
+.tag-display-badge {
     font-size: 0.875rem;
-    margin: 0; /* 移除margin */
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px; /* 限制最大宽度 */
+    flex-shrink: 0; /* 防止收缩 */
 }
 
 .tag-description {
@@ -316,7 +320,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 150px; /* 限制最大宽度 */
+    max-width: 200px; /* 增加最大宽度 */
+    flex-shrink: 1; /* 允许收缩 */
 }
 
 .tag-meta {

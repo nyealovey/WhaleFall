@@ -232,13 +232,12 @@ class TagSelector {
             <div class="tag-item ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}" 
                  data-tag-id="${tag.id}">
                 <div class="tag-info">
-                    <div class="tag-icon category-${tag.category}">
-                        ${tag.display_name.charAt(0).toUpperCase()}
-                    </div>
                     <div class="tag-details">
-                        <span class="tag-name">${this.highlightSearch(tag.display_name)}</span>
+                        <span class="badge bg-${tag.color || 'primary'} tag-display-badge">
+                            ${this.highlightSearch(tag.display_name)}
+                        </span>
                         <span class="tag-description">${tag.description || ''}</span>
-                        <span class="tag-category-badge">${this.getCategoryDisplayName(tag.category)}</span>
+                        <span class="badge bg-secondary tag-category-badge">${this.getCategoryDisplayName(tag.category)}</span>
                     </div>
                 </div>
                 <div class="tag-actions">
@@ -374,7 +373,9 @@ class TagSelector {
     getSelectedTagHTML(tag) {
         return `
             <div class="selected-tag" data-tag-id="${tag.id}">
-                <span class="tag-name">${tag.display_name}</span>
+                <span class="badge bg-${tag.color || 'primary'} selected-tag-badge">
+                    ${tag.display_name}
+                </span>
                 <button class="remove-tag" data-tag-id="${tag.id}" title="移除标签">
                     <i class="fas fa-times"></i>
                 </button>
