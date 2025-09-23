@@ -44,6 +44,7 @@ def get_jobs() -> Response:
         if not scheduler.running:
             return APIResponse.error("调度器未启动", code=500)  # type: ignore
         jobs = scheduler.get_jobs()
+        system_logger.info("获取任务列表", module="scheduler", job_count=len(jobs))
         jobs_data: list[dict[str, Any]] = []
 
         for job in jobs:
@@ -229,15 +230,15 @@ def update_job(job_id: str) -> Response:
                 # 内置任务：只能更新触发器
                 scheduler.modify_job(job_id, trigger=trigger)
                 system_logger.info("内置任务触发器更新成功: %s", job_id)
+                return APIResponse.success("触发器更新成功")  # type: ignore
             # 自定义任务：可以更新所有属性
-            else:
-                scheduler.modify_job(
-                    job_id,
-                    trigger=trigger,
-                    name=data.get("name", job.name),
-                    args=data.get("args", job.args),
-                    kwargs=data.get("kwargs", job.kwargs),
-                )
+            scheduler.modify_job(
+                job_id,
+                trigger=trigger,
+                name=data.get("name", job.name),
+                args=data.get("args", job.args),
+                kwargs=data.get("kwargs", job.kwargs),
+            )
         else:
             if is_builtin:
                 # 内置任务：不允许更新其他属性
@@ -251,67 +252,12 @@ def update_job(job_id: str) -> Response:
             )
 
         system_logger.info("任务更新成功: %s", job_id)
-
-        # 获取更新后的job信息并返回
-        updated_job = scheduler.get_job(job_id)
-        if not updated_job:
-            return APIResponse.error("获取更新后的任务信息失败", code=404)  # type: ignore
-
-        # 检查任务状态
-        is_paused = updated_job.next_run_time is None
-        is_builtin = updated_job.id in ["sync_all_accounts", "sync_all_instances", "cleanup_logs"]
-
-        trigger_type = "unknown"
-        trigger_args: dict[str, Any] = {}
-        if isinstance(updated_job.trigger, CronTrigger):
-            trigger_type = "cron"
-            # CronTrigger的字段顺序: year, month, day, week, day_of_week, hour, minute, second
-            trigger_args = {
-                "minute": str(updated_job.trigger.fields[6]),
-                "hour": str(updated_job.trigger.fields[5]),
-                "day": str(updated_job.trigger.fields[2]),
-                "month": str(updated_job.trigger.fields[1]),
-                "day_of_week": str(updated_job.trigger.fields[4]),
-            }
-        elif isinstance(updated_job.trigger, IntervalTrigger):
-            trigger_type = "interval"
-            delta = updated_job.trigger.interval
-            trigger_args = {
-                "weeks": delta.days // 7,
-                "days": delta.days % 7,
-                "hours": delta.seconds // 3600,
-                "minutes": (delta.seconds % 3600) // 60,
-                "seconds": delta.seconds % 60,
-            }
-        elif isinstance(updated_job.trigger, DateTrigger):
-            trigger_type = "date"
-            trigger_args = {"run_date": updated_job.trigger.run_date.isoformat()}
-
-        # 模拟任务状态
-        state = "STATE_PAUSED"
-        if scheduler.running and not is_paused:
-            state = "STATE_RUNNING"
-
-        job_info = {
-            "id": updated_job.id,
-            "name": updated_job.name,
-            "description": updated_job.name,
-            "next_run_time": updated_job.next_run_time.isoformat() if updated_job.next_run_time else None,
-            "last_run_time": None,
-            "trigger_type": trigger_type,
-            "trigger_args": trigger_args,
-            "state": state,
-            "is_builtin": is_builtin,
-            "func": updated_job.func.__name__ if hasattr(updated_job.func, "__name__") else str(updated_job.func),
-            "args": updated_job.args,
-            "kwargs": updated_job.kwargs,
-        }
-        return APIResponse.success(data=job_info, message="任务更新成功")  # type: ignore
+        return APIResponse.success("任务更新成功")  # type: ignore
 
     except Exception as e:
         error_str = str(e) if e else "未知错误"
         system_logger.error("更新任务失败: %s", error_str)
-        return APIResponse.error(f"更新任务失败: {error_str}")  # type: ignore
+        return APIResponse.error("更新任务失败: {error_str}")  # type: ignore
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/disable", methods=["POST"])
