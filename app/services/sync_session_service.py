@@ -272,7 +272,7 @@ class SyncSessionService:
                 succeeded_instances=succeeded_instances,
                 failed_instances=failed_instances,
             )
-        log_info(f"Updated statistics for session {session_id}")
+        self.system_logger.info(f"Updated statistics for session {session_id}")
 
     def get_session_records(self, session_id: str) -> list[SyncInstanceRecord]:
         """
