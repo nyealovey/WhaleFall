@@ -24,10 +24,19 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('准备调用 initializeTagSelector 函数...');
         try {
             console.log('正在调用 initializeTagSelector()...');
-            initializeTagSelector();
-            console.log('initializeTagSelector() 调用完成');
+            console.log('initializeTagSelector 函数类型:', typeof initializeTagSelector);
+            console.log('initializeTagSelector 函数存在:', initializeTagSelector !== undefined);
+            
+            if (typeof initializeTagSelector === 'function') {
+                console.log('调用 initializeTagSelector 函数...');
+                initializeTagSelector();
+                console.log('initializeTagSelector() 调用完成');
+            } else {
+                console.error('initializeTagSelector 不是一个函数:', typeof initializeTagSelector);
+            }
         } catch (error) {
             console.error('initializeTagSelector 调用失败:', error);
+            console.error('错误堆栈:', error.stack);
         }
     }
 });
@@ -188,6 +197,9 @@ function closeTagSelector() {
 function initializeTagSelector() {
     console.log('=== initializeTagSelector 函数被调用 ===');
     console.log('函数开始执行...');
+    console.log('当前时间:', new Date().toISOString());
+    console.log('函数作用域检查...');
+    
     try {
         console.log('开始初始化标签选择器...');
         console.log('TagSelector 类可用性:', typeof TagSelector !== 'undefined');
