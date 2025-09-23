@@ -6,6 +6,7 @@
 // 标签选择器类
 class TagSelector {
     constructor(containerId, options = {}) {
+        console.log('TagSelector: Initializing...');
         this.containerId = containerId;
         this.container = document.getElementById(containerId);
         this.options = {
@@ -31,6 +32,7 @@ class TagSelector {
     
     // 初始化标签选择器
     init() {
+        console.log('TagSelector: init() called.');
         if (!this.container) {
             console.error('TagSelector: Container not found');
             return;
@@ -43,6 +45,7 @@ class TagSelector {
     
     // 设置事件监听器
     setupEventListeners() {
+        console.log('TagSelector: setupEventListeners() called.');
         // 搜索输入
         const searchInput = this.container.querySelector('#tag-search-input');
         if (searchInput) {
@@ -65,17 +68,21 @@ class TagSelector {
     
     // 设置模态框按钮事件
     setupModalButtons() {
+        console.log('TagSelector: setupModalButtons() called.');
         // 立即尝试绑定
         this.bindModalButtons();
         
         // 如果立即绑定失败，使用延迟绑定
         if (!this.areButtonsBound()) {
+            console.log('TagSelector: Modal buttons not bound immediately, will try again after delay.');
             setTimeout(() => {
+                console.log('TagSelector: Retrying to bind modal buttons (500ms).');
                 this.bindModalButtons();
             }, 500);
             
             // 再次延迟绑定（备用方案）
             setTimeout(() => {
+                console.log('TagSelector: Retrying to bind modal buttons (1000ms).');
                 this.bindModalButtons();
             }, 1000);
         }
