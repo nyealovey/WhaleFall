@@ -42,6 +42,36 @@ function initializeEventHandlers() {
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     $('#runDate').val(now.toISOString().slice(0, 16));
 
+    // Cron表达式生成和预览
+    function updateCronPreview() {
+        const minute = $('#cronMinute').val() || '0';
+        const hour = $('#cronHour').val() || '0';
+        const day = $('#cronDay').val() || '*';
+        const month = $('#cronMonth').val() || '*';
+        const weekday = $('#cronWeekday').val() || '*';
+        
+        const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
+        $('#cronPreview').val(cronExpression);
+    }
+
+    function updateEditCronPreview() {
+        const minute = $('#editCronMinute').val() || '0';
+        const hour = $('#editCronHour').val() || '0';
+        const day = $('#editCronDay').val() || '*';
+        const month = $('#editCronMonth').val() || '*';
+        const weekday = $('#editCronWeekday').val() || '*';
+        
+        const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
+        $('#editCronPreview').val(cronExpression);
+    }
+
+    // 监听cron输入框变化
+    $('#cronMinute, #cronHour, #cronDay, #cronMonth, #cronWeekday').on('input', updateCronPreview);
+    $('#editCronMinute, #editCronHour, #editCronDay, #editCronMonth, #editCronWeekday').on('input', updateEditCronPreview);
+
+    // 初始化预览
+    updateCronPreview();
+
     // 任务操作按钮事件
     $(document).on('click', '.btn-start-job', function() {
         const jobId = $(this).data('job-id');
@@ -437,11 +467,25 @@ function editJob(jobId) {
     try {
         const triggerArgs = typeof job.trigger_args === 'string' ? JSON.parse(job.trigger_args) : (job.trigger_args || {});
         if (triggerArgs && typeof triggerArgs === 'object') {
-            Object.entries(triggerArgs).forEach(([key, value]) => {
-                if (key && typeof key === 'string') {
-                    $(`#edit${key.charAt(0).toUpperCase() + key.slice(1)}`).val(value || '');
+            // 如果是cron触发器，解析cron表达式
+            if (triggerType === 'cron' && triggerArgs.cron_expression) {
+                const cronParts = triggerArgs.cron_expression.split(' ');
+                if (cronParts.length >= 5) {
+                    $('#editCronMinute').val(cronParts[0] || '0');
+                    $('#editCronHour').val(cronParts[1] || '0');
+                    $('#editCronDay').val(cronParts[2] || '*');
+                    $('#editCronMonth').val(cronParts[3] || '*');
+                    $('#editCronWeekday').val(cronParts[4] || '*');
+                    updateEditCronPreview();
                 }
-            });
+            } else {
+                // 其他触发器类型的参数处理
+                Object.entries(triggerArgs).forEach(([key, value]) => {
+                    if (key && typeof key === 'string') {
+                        $(`#edit${key.charAt(0).toUpperCase() + key.slice(1)}`).val(value || '');
+                    }
+                });
+            }
         }
     } catch (e) {
         console.error('解析触发器参数失败:', e);
@@ -455,6 +499,18 @@ function editJob(jobId) {
 function updateJob() {
     const formData = new FormData($('#editJobForm')[0]);
     const jobId = formData.get('job_id');
+    
+    // 如果是cron触发器，生成cron表达式
+    const triggerType = formData.get('trigger_type');
+    if (triggerType === 'cron') {
+        const minute = formData.get('cron_minute') || '0';
+        const hour = formData.get('cron_hour') || '0';
+        const day = formData.get('cron_day') || '*';
+        const month = formData.get('cron_month') || '*';
+        const weekday = formData.get('cron_weekday') || '*';
+        const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
+        formData.set('cron_expression', cronExpression);
+    }
     
     showLoadingState($('#editJobForm button[type="submit"]'), '保存中...');
     
@@ -539,6 +595,18 @@ function viewJobLogs(jobId) {
 // 添加任务
 function addJob() {
     const formData = new FormData($('#addJobForm')[0]);
+    
+    // 如果是cron触发器，生成cron表达式
+    const triggerType = formData.get('trigger_type');
+    if (triggerType === 'cron') {
+        const minute = formData.get('cron_minute') || '0';
+        const hour = formData.get('cron_hour') || '0';
+        const day = formData.get('cron_day') || '*';
+        const month = formData.get('cron_month') || '*';
+        const weekday = formData.get('cron_weekday') || '*';
+        const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
+        formData.set('cron_expression', cronExpression);
+    }
     
     showLoadingState($('#addJobForm button[type="submit"]'), '添加中...');
     
