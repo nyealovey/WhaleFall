@@ -3,16 +3,7 @@
 {% block title %}关于鲸落{% endblock %}
 
 {% block extra_css %}
-<style>
-       .artistic-title {
-           font-size: 3.5rem;
-           font-weight: 600;
-           color: #ffffff;
-           text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-           letter-spacing: 0.1em;
-           margin-top: 1.5rem;
-       }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/about.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -201,51 +192,5 @@
     </div>
 </div>
 
-<style>
-.text-white-50 {
-    color: rgba(255, 255, 255, 0.5) !important;
-}
-
-.text-white-75 {
-    color: rgba(255, 255, 255, 0.75) !important;
-}
-
-.card {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border: none;
-}
-
-.card-header {
-    border-bottom: none;
-    font-weight: 600;
-}
-
-.list-unstyled li {
-    padding: 2px 0;
-}
-
-.fa-2x {
-    font-size: 1.5em;
-}
-
-/* 滚动条样式 */
-.card-body::-webkit-scrollbar {
-    width: 6px;
-}
-
-.card-body::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-.card-body::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-}
-
-.card-body::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-</style>
 {% endblock %}
 
