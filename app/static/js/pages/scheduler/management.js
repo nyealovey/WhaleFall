@@ -5,22 +5,21 @@
 
 // 全局变量
 let currentJobs = [];
-let refreshInterval = null;
+
 
 // 页面加载完成后初始化
 $(document).ready(function() {
     initializeSchedulerPage();
 });
 
-// 初始化定时任务管理页面
+// 初始化定时任务管理页面（移除自动刷新）
 function initializeSchedulerPage() {
     loadJobs();
     initializeEventHandlers();
-    startAutoRefresh();
     console.log('定时任务管理页面已加载');
 }
 
-// 初始化事件处理器
+// 初始化事件处理器（移除立即执行绑定）
 function initializeEventHandlers() {
     // 触发器类型切换
     $('input[name="triggerType"]').change(function() {
@@ -49,7 +48,6 @@ function initializeEventHandlers() {
         const day = $('#cronDay').val() || '*';
         const month = $('#cronMonth').val() || '*';
         const weekday = $('#cronWeekday').val() || '*';
-        
         const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
         $('#cronPreview').val(cronExpression);
     }
@@ -60,7 +58,6 @@ function initializeEventHandlers() {
         const day = $('#editCronDay').val() || '*';
         const month = $('#editCronMonth').val() || '*';
         const weekday = $('#editCronWeekday').val() || '*';
-        
         const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
         $('#editCronPreview').val(cronExpression);
     }
@@ -77,32 +74,26 @@ function initializeEventHandlers() {
         const jobId = $(this).data('job-id');
         startJob(jobId);
     });
-
     $(document).on('click', '.btn-pause-job', function() {
         const jobId = $(this).data('job-id');
         pauseJob(jobId);
     });
-
     $(document).on('click', '.btn-resume-job', function() {
         const jobId = $(this).data('job-id');
         resumeJob(jobId);
     });
-
     $(document).on('click', '.btn-stop-job', function() {
         const jobId = $(this).data('job-id');
         stopJob(jobId);
     });
-
     $(document).on('click', '.btn-edit-job', function() {
         const jobId = $(this).data('job-id');
         editJob(jobId);
     });
-
     $(document).on('click', '.btn-delete-job', function() {
         const jobId = $(this).data('job-id');
         deleteJob(jobId);
     });
-
     $(document).on('click', '.btn-view-logs', function() {
         const jobId = $(this).data('job-id');
         viewJobLogs(jobId);
@@ -119,13 +110,11 @@ function initializeEventHandlers() {
         updateJob();
     });
 
-    // 立即执行任务
-    $('#runJobBtn').on('click', function() {
-        runJobNow();
-    });
+    // 移除: 立即执行任务事件绑定
+    // （原绑定：#runJobBtn -> runJobNow）
 }
 
-// 加载任务列表
+// 加载任务列表（移除统计更新）
 function loadJobs() {
     $('#loadingRow').show();
     $('#jobsContainer').empty();
@@ -140,10 +129,10 @@ function loadJobs() {
         success: function(response) {
             $('#loadingRow').hide();
             if (response.success === true) {
-                console.log('Received jobs:', response.data); // 在这里添加日志
+                console.log('Received jobs:', response.data);
                 currentJobs = response.data;
                 displayJobs(response.data);
-                updateStats(response.data);
+                // 移除: updateStats(response.data);
             } else {
                 showAlert('加载任务失败: ' + response.message, 'danger');
             }
@@ -315,18 +304,7 @@ function getActionButtons(job) {
     return buttons;
 }
 
-// 更新统计信息
-function updateStats(jobs) {
-    const total = jobs.length;
-    const active = jobs.filter(job => job.state === 'STATE_RUNNING' || job.state === 'STATE_EXECUTING').length;
-    const paused = jobs.filter(job => job.state === 'STATE_PAUSED').length;
-    const error = jobs.filter(job => job.state === 'STATE_ERROR').length;
-    
-    $('.stats-total').text(total);
-    $('.stats-active').text(active);
-    $('.stats-paused').text(paused);
-    $('.stats-error').text(error);
-}
+
 
 // 启动任务
 function startJob(jobId) {
@@ -681,56 +659,9 @@ function addJob() {
     });
 }
 
-// 立即执行任务
-function runJobNow() {
-    const jobId = $('#runJobId').val();
-    if (!jobId) {
-        showAlert('请选择要执行的任务', 'warning');
-        return;
-    }
-    
-    showLoadingState($('#runJobBtn'), '执行中...');
-    
-    $.ajax({
-        url: `/scheduler/api/jobs/${jobId}/run`,
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function(response) {
-            if (response.success) {
-                showAlert('任务执行成功', 'success');
-                $('#runJobModal').modal('hide');
-                loadJobs();
-            } else {
-                showAlert('执行失败: ' + response.message, 'danger');
-            }
-        },
-        error: function(xhr) {
-            const error = xhr.responseJSON;
-            showAlert('执行失败: ' + (error ? error.message : '未知错误'), 'danger');
-        },
-        complete: function() {
-            hideLoadingState($('#runJobBtn'), '立即执行');
-        }
-    });
-}
 
-// 开始自动刷新
-function startAutoRefresh() {
-    // 每30秒刷新一次任务列表
-    refreshInterval = setInterval(function() {
-        loadJobs();
-    }, 30000);
-}
 
-// 停止自动刷新
-function stopAutoRefresh() {
-    if (refreshInterval) {
-        clearInterval(refreshInterval);
-        refreshInterval = null;
-    }
-}
+
 
 // 显示加载状态
 function showLoadingState(element, text) {
@@ -809,10 +740,7 @@ function formatTime(timeString) {
     }
 }
 
-// 页面卸载时停止自动刷新
-$(window).on('beforeunload', function() {
-    stopAutoRefresh();
-});
+
 
 // 导出函数供全局使用
 window.loadJobs = loadJobs;
@@ -824,6 +752,6 @@ window.editJob = editJob;
 window.deleteJob = deleteJob;
 window.viewJobLogs = viewJobLogs;
 window.addJob = addJob;
-window.runJobNow = runJobNow;
+// 已移除: window.runJobNow = runJobNow;
 window.showAlert = showAlert;
 window.formatTime = formatTime;
