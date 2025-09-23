@@ -1,7 +1,7 @@
 <!-- 标签选择器模态框 -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
 <div class="modal fade" id="tagSelectorModal" tabindex="-1" aria-labelledby="tagSelectorModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg" style="max-height: 90vh;">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="tagSelectorModalLabel">
@@ -9,7 +9,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                 <div id="tag-selector-container" class="tag-selector-container">
                     <!-- 已选择的标签显示区域 -->
                     <div class="selected-tags-area mb-3">
@@ -67,7 +67,7 @@
                         </div>
 
                         <!-- 标签列表区域 -->
-                        <div class="tag-list-area" id="tag-list-container">
+                        <div class="tag-list-area" id="tag-list-container" style="max-height: 180px;">
                             <!-- 标签列表将在这里动态生成 -->
                         </div>
                     </div>
