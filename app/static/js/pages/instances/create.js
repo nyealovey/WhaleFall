@@ -8,35 +8,18 @@ let createPageTagSelector = null;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded 事件触发，开始初始化标签选择器...');
-    console.log('TagSelector 类可用性:', typeof TagSelector !== 'undefined');
-
     // 如果TagSelector类还没有加载，等待一下
     if (typeof TagSelector === 'undefined') {
-        console.log('TagSelector类未加载，等待500ms后重试...');
         setTimeout(() => {
-            console.log('延迟初始化，TagSelector 类可用性:', typeof TagSelector !== 'undefined');
-            console.log('准备调用 initializeInstanceCreateTagSelector()...');
             initializeInstanceCreateTagSelector();
         }, 500);
     } else {
-        console.log('TagSelector类已加载，立即调用 initializeInstanceCreateTagSelector()...');
-        console.log('准备调用 initializeInstanceCreateTagSelector 函数...');
         try {
-            console.log('正在调用 initializeInstanceCreateTagSelector()...');
-            console.log('initializeInstanceCreateTagSelector 函数类型:', typeof initializeInstanceCreateTagSelector);
-            console.log('initializeInstanceCreateTagSelector 函数存在:', initializeInstanceCreateTagSelector !== undefined);
-
             if (typeof initializeInstanceCreateTagSelector === 'function') {
-                console.log('调用 initializeInstanceCreateTagSelector 函数...');
                 initializeInstanceCreateTagSelector();
-                console.log('initializeInstanceCreateTagSelector() 调用完成');
-            } else {
-                console.error('initializeInstanceCreateTagSelector 不是一个函数:', typeof initializeInstanceCreateTagSelector);
             }
         } catch (error) {
             console.error('initializeInstanceCreateTagSelector 调用失败:', error);
-            console.error('错误堆栈:', error.stack);
         }
     }
     
@@ -146,144 +129,69 @@ function closeTagSelector() {
 
 // 初始化标签选择器
 function initializeInstanceCreateTagSelector() {
-    console.log('=== initializeInstanceCreateTagSelector 函数被调用 ===');
-    console.log('函数开始执行...');
-    console.log('当前时间:', new Date().toISOString());
-    console.log('函数作用域检查...');
-
     try {
-        console.log('开始初始化标签选择器...');
-        console.log('TagSelector 类可用性:', typeof TagSelector !== 'undefined');
-
         // 查找容器元素
         const createPageSelector = document.getElementById('create-page-tag-selector');
-        console.log('容器元素:', createPageSelector ? '找到' : '未找到');
 
         if (createPageSelector) {
             const modalElement = createPageSelector.querySelector('#tagSelectorModal');
-            console.log('模态框元素:', modalElement ? '找到' : '未找到');
 
             if (modalElement) {
                 // 在模态框内部查找容器元素
                 const containerElement = modalElement.querySelector('#tag-selector-container');
-                console.log('容器元素:', containerElement ? '找到' : '未找到');
 
                 if (containerElement) {
-                    console.log('立即初始化TagSelector组件...');
                     initializeTagSelectorComponent(modalElement, containerElement);
                 } else {
                     // 等待标签选择器组件加载完成
-                    console.log('等待标签选择器组件加载...');
                     setTimeout(() => {
                         const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
 
                         if (delayedContainerElement) {
-                            console.log('延迟加载成功，初始化组件');
                             initializeTagSelectorComponent(modalElement, delayedContainerElement);
-                        } else {
-                            console.error('延迟加载失败，容器元素仍未找到');
                         }
                     }, 1000);
                 }
-            } else {
-                console.error('模态框元素未找到');
             }
-        } else {
-            console.error('容器元素 create-page-tag-selector 未找到');
-        }
-
-        // 添加额外的调试信息
-        console.log('initializeInstanceCreateTagSelector 完成，createPageTagSelector:', createPageTagSelector ? '已创建' : '未创建');
-
-        // 如果初始化失败，提供强制初始化的建议
-        if (!createPageTagSelector) {
-            console.warn('正常初始化失败，可以尝试运行 forceInitializeTagSelector() 进行强制初始化');
         }
     } catch (error) {
         console.error('initializeInstanceCreateTagSelector 函数执行出错:', error);
-        console.error('错误堆栈:', error.stack);
-        console.error('错误类型:', typeof error);
-        console.error('错误消息:', error.message);
     }
 }
 
 // 初始化标签选择器组件
 function initializeTagSelectorComponent(modalElement, containerElement) {
-    console.log('开始初始化标签选择器组件...');
-    console.log('TagSelector可用:', typeof TagSelector !== 'undefined');
-    console.log('模态框元素:', modalElement ? '找到' : '未找到');
-    console.log('容器元素:', containerElement ? '找到' : '未找到');
-
     if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
         try {
             // 初始化标签选择器
-            console.log('创建TagSelector实例...');
             createPageTagSelector = new TagSelector('tag-selector-container', {
                 allowMultiple: true,
                 allowCreate: true,
                 allowSearch: true,
                 allowCategoryFilter: true
             });
-            console.log('TagSelector实例创建成功');
 
             // 等待TagSelector完全初始化
             setTimeout(() => {
-                console.log('检查TagSelector初始化状态...');
-                console.log('createPageTagSelector存在:', !!createPageTagSelector);
-                console.log('createPageTagSelector.container存在:', !!(createPageTagSelector && createPageTagSelector.container));
-                console.log('createPageTagSelector类型:', typeof createPageTagSelector);
-
                 if (createPageTagSelector && createPageTagSelector.container) {
-                    console.log('TagSelector完全初始化完成');
-                    console.log('TagSelector容器ID:', createPageTagSelector.containerId);
-                    console.log('TagSelector选项:', createPageTagSelector.options);
                     setupTagSelectorEvents();
-                } else {
-                    console.error('TagSelector初始化失败');
-                    console.error('createPageTagSelector:', createPageTagSelector);
-                    if (createPageTagSelector) {
-                        console.error('container:', createPageTagSelector.container);
-                    }
                 }
             }, 100);
-
-            console.log('标签选择器组件初始化完成');
         } catch (error) {
             console.error('初始化标签选择器组件时出错:', error);
             showAlert('danger', '标签选择器初始化失败: ' + error.message);
         }
-    } else {
-        console.error('初始化失败:');
-        console.error('- TagSelector可用:', typeof TagSelector !== 'undefined');
-        console.error('- 模态框元素:', modalElement ? '找到' : '未找到');
-        console.error('- 容器元素:', containerElement ? '找到' : '未找到');
     }
 }
 
 // 设置标签选择器事件
 function setupTagSelectorEvents() {
-    console.log('设置标签选择器事件...');
-
-    // 检查依赖
-    console.log('检查依赖环境:');
-    console.log('- jQuery可用:', typeof $ !== 'undefined');
-    console.log('- Bootstrap可用:', typeof bootstrap !== 'undefined');
-    console.log('- TagSelector可用:', typeof TagSelector !== 'undefined');
-
     if (!createPageTagSelector) {
-        console.error('createPageTagSelector未初始化，无法设置事件');
         return;
     }
 
-    console.log('createPageTagSelector状态:');
-    console.log('- 实例存在:', !!createPageTagSelector);
-    console.log('- 容器存在:', !!createPageTagSelector.container);
-    console.log('- 容器ID:', createPageTagSelector.containerId);
-    console.log('- 选项:', createPageTagSelector.options);
-
     // 绑定打开标签选择器按钮
     const openBtn = document.getElementById('open-tag-selector-btn');
-    console.log('打开按钮:', openBtn ? '找到' : '未找到');
 
     if (openBtn) {
         // 移除之前的事件监听器（如果有）
@@ -291,14 +199,12 @@ function setupTagSelectorEvents() {
 
         // 添加新的事件监听器
         openBtn.addEventListener('click', function(e) {
-            console.log('打开标签选择器按钮被点击');
             e.preventDefault();
 
             try {
                 if (typeof openTagSelector === 'function') {
                     openTagSelector();
                 } else {
-                    console.error('openTagSelector函数未定义');
                     // 直接显示模态框作为备用方案
                     const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
                     modal.show();
@@ -307,10 +213,7 @@ function setupTagSelectorEvents() {
                 // 模态框显示后重新绑定按钮
                 setTimeout(() => {
                     if (createPageTagSelector) {
-                        console.log('重新绑定模态框按钮');
                         createPageTagSelector.rebindModalButtons();
-                    } else {
-                        console.warn('createPageTagSelector未初始化，无法重新绑定按钮');
                     }
                 }, 100);
             } catch (error) {
@@ -318,15 +221,11 @@ function setupTagSelectorEvents() {
                 showAlert('danger', '打开标签选择器失败: ' + error.message);
             }
         });
-        console.log('打开按钮事件绑定成功');
-    } else {
-        console.error('未找到打开标签选择器按钮 (id: open-tag-selector-btn)');
     }
 
     // 监听TagSelector的确认事件
     if (createPageTagSelector.container) {
         createPageTagSelector.container.addEventListener('tagSelectionConfirmed', function(event) {
-            console.log('收到标签选择确认事件:', event.detail);
             const selectedTags = event.detail.selectedTags;
             updateSelectedTagsPreview(selectedTags);
             closeTagSelector();
@@ -334,14 +233,9 @@ function setupTagSelectorEvents() {
 
         // 监听TagSelector的取消事件
         createPageTagSelector.container.addEventListener('tagSelectionCancelled', function(event) {
-            console.log('收到标签选择取消事件');
             closeTagSelector();
         });
-
-        console.log('标签选择器事件监听器设置成功');
     }
-
-    console.log('标签选择器事件设置完成');
 }
 
 // 确认标签选择
@@ -485,73 +379,5 @@ function previewInstance() {
     return preview;
 }
 
-// 强制初始化标签选择器（调试用）
-function forceInitializeTagSelector() {
-    console.log('强制初始化标签选择器...');
-    
-    const createPageSelector = document.getElementById('create-page-tag-selector');
-    const modalElement = createPageSelector?.querySelector('#tagSelectorModal');
-    const containerElement = modalElement?.querySelector('#tag-selector-container');
-    
-    console.log('强制初始化 - 容器元素:', createPageSelector ? '找到' : '未找到');
-    console.log('强制初始化 - 模态框元素:', modalElement ? '找到' : '未找到');
-    console.log('强制初始化 - 容器元素:', containerElement ? '找到' : '未找到');
-    console.log('强制初始化 - TagSelector可用:', typeof TagSelector !== 'undefined');
-    
-    if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
-        console.log('强制创建TagSelector实例...');
-        createPageTagSelector = new TagSelector('tag-selector-container', {
-            allowMultiple: true,
-            allowCreate: true,
-            allowSearch: true,
-            allowCategoryFilter: true
-        });
-        console.log('强制创建成功，createPageTagSelector:', createPageTagSelector ? '已创建' : '未创建');
-        
-        // 强制绑定打开按钮
-        const openBtn = document.getElementById('open-tag-selector-btn');
-        if (openBtn) {
-            openBtn.addEventListener('click', function() {
-                console.log('强制绑定的按钮被点击');
-                openTagSelector();
-            });
-            console.log('强制绑定打开按钮成功');
-        }
-        
-        // 测试确认按钮
-        setTimeout(() => {
-            const confirmBtn = document.getElementById('confirm-selection-btn');
-            console.log('测试确认按钮:', confirmBtn ? '找到' : '未找到');
-            if (confirmBtn) {
-                console.log('确认按钮状态:', confirmBtn.disabled ? '禁用' : '启用');
-                console.log('确认按钮可见性:', confirmBtn.offsetParent !== null ? '可见' : '隐藏');
-                console.log('确认按钮点击事件:', confirmBtn.onclick ? '有' : '无');
-            }
-        }, 1000);
-    }
-}
-
-// 调试函数
-function debugTagSelector() {
-    console.log('=== 标签选择器调试信息 ===');
-    console.log('TagSelector 类:', typeof TagSelector);
-    console.log('createPageTagSelector 实例:', createPageTagSelector ? '已创建' : '未创建');
-    console.log('create-page-tag-selector 容器:', document.getElementById('create-page-tag-selector') ? '找到' : '未找到');
-    console.log('tagSelectorModal 模态框:', document.getElementById('tagSelectorModal') ? '找到' : '未找到');
-    console.log('tag-selector-container 容器:', document.getElementById('tag-selector-container') ? '找到' : '未找到');
-    console.log('open-tag-selector-btn 按钮:', document.getElementById('open-tag-selector-btn') ? '找到' : '未找到');
-    console.log('confirm-selection-btn 按钮:', document.getElementById('confirm-selection-btn') ? '找到' : '未找到');
-    console.log('cancel-selection-btn 按钮:', document.getElementById('cancel-selection-btn') ? '找到' : '未找到');
-    
-    if (createPageTagSelector) {
-        console.log('TagSelector 容器:', createPageTagSelector.container ? '找到' : '未找到');
-        console.log('TagSelector 选项:', createPageTagSelector.options);
-        console.log('TagSelector 已选择标签:', createPageTagSelector.getSelectedTags ? createPageTagSelector.getSelectedTags() : '方法不存在');
-    }
-    console.log('========================');
-}
-
 // 导出到全局作用域
 window.initializeInstanceCreateTagSelector = initializeInstanceCreateTagSelector;
-window.forceInitializeTagSelector = forceInitializeTagSelector;
-window.debugTagSelector = debugTagSelector;
