@@ -236,14 +236,9 @@ class TagSelector {
                         ${tag.display_name.charAt(0).toUpperCase()}
                     </div>
                     <div class="tag-details">
-                        <div class="tag-name">${this.highlightSearch(tag.display_name)}</div>
-                        <div class="tag-description">${this.highlightSearch(tag.name)} - ${tag.description || '无描述'}</div>
-                        <div class="tag-meta">
-                            <span class="tag-category">${tag.category}</span>
-                            <span class="tag-status ${tag.is_active ? 'active' : 'inactive'}">
-                                ${tag.is_active ? '激活' : '停用'}
-                            </span>
-                        </div>
+                        <span class="tag-name">${this.highlightSearch(tag.display_name)}</span>
+                        <span class="tag-description">${tag.description || ''}</span>
+                        <span class="tag-category-badge">${this.getCategoryDisplayName(tag.category)}</span>
                     </div>
                 </div>
                 <div class="tag-actions">
@@ -519,6 +514,22 @@ class TagSelector {
             'company_type': '公司类型',
             'environment': '环境',
             'custom': '自定义'
+        };
+        return categoryNames[category] || category;
+    }
+    
+    // 获取分类显示名称
+    getCategoryDisplayName(category) {
+        const categoryNames = {
+            'architecture': '架构',
+            'company_type': '公司',
+            'department': '部门',
+            'deployment': '部署',
+            'environment': '环境',
+            'region': '地区',
+            'project': '项目',
+            'virtualization': '虚拟化',
+            'other': '其他'
         };
         return categoryNames[category] || category;
     }
