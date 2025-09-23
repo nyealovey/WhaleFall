@@ -144,7 +144,7 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
         });
         
         // 绑定打开标签选择器按钮
-        const openBtn = document.getElementById('open-tag-selector-btn');
+        const openBtn = document.getElementById('open-tag-filter-btn');
         if (openBtn) {
             openBtn.addEventListener('click', function() {
                 if (typeof openTagSelector === 'function') {
