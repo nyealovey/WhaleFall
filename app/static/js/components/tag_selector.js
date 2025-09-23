@@ -62,9 +62,13 @@ class TagSelector {
         // 确认按钮
         const confirmBtn = this.container.querySelector('#confirm-selection-btn');
         if (confirmBtn) {
+            console.log('找到确认按钮，绑定点击事件');
             confirmBtn.addEventListener('click', () => {
+                console.log('确认按钮被点击');
                 this.confirmSelection();
             });
+        } else {
+            console.error('找不到确认按钮 #confirm-selection-btn');
         }
         
         // 取消按钮
@@ -444,7 +448,9 @@ class TagSelector {
     
     // 确认选择
     confirmSelection() {
+        console.log('标签选择器确认选择被调用');
         const selectedTags = this.getSelectedTags();
+        console.log('选中的标签:', selectedTags);
         
         // 触发确认事件
         const confirmEvent = new CustomEvent('tagSelectionConfirmed', {
@@ -455,7 +461,10 @@ class TagSelector {
         // 关闭模态框
         const modal = bootstrap.Modal.getInstance(this.container.closest('.modal'));
         if (modal) {
+            console.log('关闭模态框');
             modal.hide();
+        } else {
+            console.error('找不到模态框实例');
         }
     }
     

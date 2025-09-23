@@ -156,7 +156,7 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
         }
         
         // 绑定确认选择按钮
-        const confirmBtn = document.getElementById('confirm-tag-selection');
+        const confirmBtn = document.getElementById('confirm-selection-btn');
         if (confirmBtn) {
             confirmBtn.addEventListener('click', confirmTagSelection);
         }
@@ -171,6 +171,10 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
 // 确认标签选择
 function confirmTagSelection() {
     if (accountListTagSelector) {
+        // 直接调用标签选择器的确认方法
+        accountListTagSelector.confirmSelection();
+        
+        // 获取选中的标签并更新预览
         const selectedTags = accountListTagSelector.getSelectedTags();
         updateSelectedTagsPreview(selectedTags);
         closeTagSelector();

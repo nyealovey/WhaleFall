@@ -65,11 +65,11 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
         }
         
         // 绑定确认选择按钮
-        const confirmBtn = document.getElementById('confirm-tag-selection');
+        const confirmBtn = document.getElementById('confirm-selection-btn');
         if (confirmBtn) {
             confirmBtn.addEventListener('click', confirmTagSelection);
         } else {
-            console.error('找不到confirm-tag-selection按钮');
+            console.error('找不到confirm-selection-btn按钮');
         }
         
         // 预填充已选择的标签
@@ -508,6 +508,10 @@ function submitJsonInput() {
 // 标签选择器相关功能
 function confirmTagSelection() {
     if (listPageTagSelector) {
+        // 直接调用标签选择器的确认方法
+        listPageTagSelector.confirmSelection();
+        
+        // 获取选中的标签并更新预览
         const selectedTags = listPageTagSelector.getSelectedTags();
         updateSelectedTagsPreview(selectedTags);
         closeTagSelector();
