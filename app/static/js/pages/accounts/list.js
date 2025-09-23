@@ -16,10 +16,16 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('TagSelector类未加载，等待500ms后重试...');
         setTimeout(() => {
             console.log('延迟初始化，TagSelector 类可用性:', typeof TagSelector !== 'undefined');
+            console.log('准备调用 initializeTagSelector()...');
             initializeTagSelector();
         }, 500);
     } else {
-        initializeTagSelector();
+        console.log('TagSelector类已加载，立即调用 initializeTagSelector()...');
+        try {
+            initializeTagSelector();
+        } catch (error) {
+            console.error('initializeTagSelector 调用失败:', error);
+        }
     }
 });
 
@@ -177,12 +183,13 @@ function closeTagSelector() {
 
 // 初始化标签选择器
 function initializeTagSelector() {
-    console.log('开始初始化标签选择器...');
-    console.log('TagSelector 类可用性:', typeof TagSelector !== 'undefined');
-    
-    // 查找容器元素
-    const listPageSelector = document.getElementById('list-page-tag-selector');
-    console.log('容器元素:', listPageSelector ? '找到' : '未找到');
+    try {
+        console.log('开始初始化标签选择器...');
+        console.log('TagSelector 类可用性:', typeof TagSelector !== 'undefined');
+        
+        // 查找容器元素
+        const listPageSelector = document.getElementById('list-page-tag-selector');
+        console.log('容器元素:', listPageSelector ? '找到' : '未找到');
     
     if (listPageSelector) {
         const modalElement = listPageSelector.querySelector('#tagSelectorModal');
@@ -217,12 +224,16 @@ function initializeTagSelector() {
         console.error('容器元素 list-page-tag-selector 未找到');
     }
     
-    // 添加额外的调试信息
-    console.log('initializeTagSelector 完成，accountListTagSelector:', accountListTagSelector ? '已创建' : '未创建');
-    
-    // 如果初始化失败，提供强制初始化的建议
-    if (!accountListTagSelector) {
-        console.warn('正常初始化失败，可以尝试运行 forceInitializeTagSelector() 进行强制初始化');
+        // 添加额外的调试信息
+        console.log('initializeTagSelector 完成，accountListTagSelector:', accountListTagSelector ? '已创建' : '未创建');
+        
+        // 如果初始化失败，提供强制初始化的建议
+        if (!accountListTagSelector) {
+            console.warn('正常初始化失败，可以尝试运行 forceInitializeTagSelector() 进行强制初始化');
+        }
+    } catch (error) {
+        console.error('initializeTagSelector 函数执行出错:', error);
+        console.error('错误堆栈:', error.stack);
     }
 }
 
