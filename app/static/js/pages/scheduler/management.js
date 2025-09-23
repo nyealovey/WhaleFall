@@ -332,7 +332,7 @@ function startJob(jobId) {
     showLoadingState($(`[data-job-id="${jobId}"].btn-start-job`), '启动中...');
     
     $.ajax({
-        url: `/scheduler/start_job/${jobId}`,
+        url: `/scheduler/api/jobs/${jobId}/enable`,
         method: 'POST',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
@@ -360,7 +360,7 @@ function pauseJob(jobId) {
     showLoadingState($(`[data-job-id="${jobId}"].btn-pause-job`), '暂停中...');
     
     $.ajax({
-        url: `/scheduler/pause_job/${jobId}`,
+        url: `/scheduler/api/jobs/${jobId}/pause`,
         method: 'POST',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
@@ -388,7 +388,7 @@ function resumeJob(jobId) {
     showLoadingState($(`[data-job-id="${jobId}"].btn-resume-job`), '恢复中...');
     
     $.ajax({
-        url: `/scheduler/resume_job/${jobId}`,
+        url: `/scheduler/api/jobs/${jobId}/resume`,
         method: 'POST',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
@@ -420,7 +420,7 @@ function stopJob(jobId) {
     showLoadingState($(`[data-job-id="${jobId}"].btn-stop-job`), '停止中...');
     
     $.ajax({
-        url: `/scheduler/stop_job/${jobId}`,
+        url: `/scheduler/api/jobs/${jobId}/disable`,
         method: 'POST',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
@@ -515,11 +515,10 @@ function updateJob() {
     showLoadingState($('#editJobForm button[type="submit"]'), '保存中...');
     
     $.ajax({
-        url: `/scheduler/update_job/${jobId}`,
-        method: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
+        url: `/scheduler/api/jobs/${jobId}`,
+        method: 'PUT',
+        data: JSON.stringify(Object.fromEntries(formData)),
+        contentType: 'application/json',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
@@ -557,8 +556,8 @@ function deleteJob(jobId) {
     showLoadingState($(`[data-job-id="${jobId}"].btn-delete-job`), '删除中...');
     
     $.ajax({
-        url: `/scheduler/delete_job/${jobId}`,
-        method: 'POST',
+        url: `/scheduler/api/jobs/${jobId}`,
+        method: 'DELETE',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
@@ -611,11 +610,10 @@ function addJob() {
     showLoadingState($('#addJobForm button[type="submit"]'), '添加中...');
     
     $.ajax({
-        url: '/scheduler/add_job',
+        url: '/scheduler/api/jobs',
         method: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
+        data: JSON.stringify(Object.fromEntries(formData)),
+        contentType: 'application/json',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
@@ -650,7 +648,7 @@ function runJobNow() {
     showLoadingState($('#runJobBtn'), '执行中...');
     
     $.ajax({
-        url: `/scheduler/run_job/${jobId}`,
+        url: `/scheduler/api/jobs/${jobId}/run`,
         method: 'POST',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
