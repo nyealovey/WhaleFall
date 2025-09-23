@@ -1,12 +1,10 @@
 /**
  * 用户管理页面JavaScript
- * 处理用户增删改查、状态切换、批量操作、搜索筛选等功能
+ * 处理用户增删改查、状态切换、批量操作等功能
  */
 
 // 全局变量
 let selectedUsers = new Set();
-let currentPage = 1;
-let currentFilters = {};
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -19,7 +17,6 @@ function initializeUserManagementPage() {
     initializeEditUserForm();
     initializeDeleteUserHandlers();
     initializeUserStatusToggles();
-    initializeSearchForm();
     initializeBatchOperations();
     initializeUserTable();
     console.log('用户管理页面已加载');
@@ -247,38 +244,6 @@ function toggleUserStatus(userId, isActive) {
     });
 }
 
-// 初始化搜索表单
-function initializeSearchForm() {
-    const searchForm = document.querySelector('form[method="GET"]');
-    
-    if (searchForm) {
-        searchForm.addEventListener('submit', function(e) {
-            handleSearchSubmit(e, this);
-        });
-    }
-}
-
-// 处理搜索提交
-function handleSearchSubmit(event, form) {
-    const searchInput = form.querySelector('input[name="search"]');
-    const roleSelect = form.querySelector('select[name="role"]');
-    const statusSelect = form.querySelector('select[name="status"]');
-    
-    // 基本验证
-    if (searchInput && searchInput.value.trim().length > 0 && searchInput.value.trim().length < 2) {
-        event.preventDefault();
-        showAlert('warning', '搜索关键词至少需要2个字符');
-        return false;
-    }
-    
-    // 显示加载状态
-    const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        showLoadingState(submitBtn, '搜索中...');
-    }
-    
-    return true;
-}
 
 // 初始化批量操作
 function initializeBatchOperations() {
@@ -549,24 +514,6 @@ function showErrorAlert(message) {
 // 键盘快捷键
 function initializeKeyboardShortcuts() {
     document.addEventListener('keydown', function(e) {
-        // Ctrl+F 聚焦搜索框
-        if (e.ctrlKey && e.key === 'f') {
-            e.preventDefault();
-            const searchInput = document.querySelector('input[name="search"]');
-            if (searchInput) {
-                searchInput.focus();
-            }
-        }
-        
-        // Escape 清除搜索
-        if (e.key === 'Escape') {
-            const searchInput = document.querySelector('input[name="search"]');
-            if (searchInput && searchInput.value) {
-                searchInput.value = '';
-                clearSearch();
-            }
-        }
-        
         // Ctrl+A 全选
         if (e.ctrlKey && e.key === 'a' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
             e.preventDefault();
@@ -578,17 +525,9 @@ function initializeKeyboardShortcuts() {
 // 初始化键盘快捷键
 initializeKeyboardShortcuts();
 
-// 清除搜索
-function clearSearch() {
-    window.location.href = window.location.pathname;
-}
-
 // 导出用户数据
 function exportUsers(format = 'csv') {
-    const searchParams = new URLSearchParams(window.location.search);
-    searchParams.append('export', format);
-    
-    const url = `${window.location.pathname}?${searchParams.toString()}`;
+    const url = `${window.location.pathname}?export=${format}`;
     window.open(url, '_blank');
 }
 
@@ -599,7 +538,6 @@ window.confirmDeleteUser = confirmDeleteUser;
 window.toggleUserStatus = toggleUserStatus;
 window.performBatchAction = performBatchAction;
 window.exportUsers = exportUsers;
-window.clearSearch = clearSearch;
 window.showAlert = showAlert;
 window.showSuccessAlert = showSuccessAlert;
 window.showWarningAlert = showWarningAlert;
