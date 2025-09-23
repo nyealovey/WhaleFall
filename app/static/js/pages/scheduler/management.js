@@ -99,7 +99,7 @@ function loadJobs() {
     $('#emptyRow').hide();
 
     $.ajax({
-        url: '/scheduler/get_jobs',
+        url: '/scheduler/api/jobs',
         method: 'GET',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
