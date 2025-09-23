@@ -3,99 +3,7 @@
 {% block title %}用户管理 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    
-    .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 16px;
-    }
-    
-    .role-badge {
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-    
-    .role-admin {
-        background-color: #dc3545;
-        color: white;
-    }
-    
-    .role-user {
-        background-color: #28a745;
-        color: white;
-    }
-    
-    .status-badge {
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-    
-    .status-active {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    
-    .status-inactive {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-    
-    .action-buttons {
-        white-space: nowrap;
-    }
-    
-    .action-buttons .btn {
-        margin: 0 2px;
-        padding: 4px 8px;
-        font-size: 12px;
-    }
-    
-    
-    .table-responsive {
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .table th {
-        background-color: #f8f9fa;
-        border-bottom: 2px solid #dee2e6;
-        font-weight: 600;
-    }
-    
-    .pagination {
-        justify-content: center;
-        margin-top: 20px;
-    }
-    
-    .btn-add-user {
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        border: none;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 25px;
-        font-weight: bold;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-add-user:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        color: white;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/user_management/management.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -103,180 +11,235 @@
     <!-- 页面标题 -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="mb-1">
-                        <i class="fas fa-users me-2"></i>用户管理
-                    </h2>
-                    {% if current_user.role == 'admin' %}
-                    <p class="text-muted mb-0">管理系统用户账户，包括增删改查和权限管理</p>
-                    {% else %}
-                    <p class="text-muted mb-0">查看系统用户账户信息（只读模式）</p>
-                    {% endif %}
+            <div class="page-header">
+                <div class="container">
+                    <h2><i class="fas fa-users me-2"></i>用户管理</h2>
+                    <p class="mb-0">管理系统用户账户，包括添加、编辑、删除和权限管理</p>
                 </div>
-                {% if current_user.role == 'admin' %}
-                <button class="btn btn-add-user" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                    <i class="fas fa-plus me-2"></i>添加用户
-                </button>
-                {% endif %}
             </div>
         </div>
     </div>
 
+    <!-- 统计信息 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number">{{ users|length }}</div>
+                <div class="stats-label">总用户数</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number">{{ users|selectattr('is_active', 'equalto', true)|list|length }}</div>
+                <div class="stats-label">活跃用户</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</div>
+                <div class="stats-label">管理员</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number">{{ users|selectattr('role', 'equalto', 'user')|list|length }}</div>
+                <div class="stats-label">普通用户</div>
+            </div>
+        </div>
+    </div>
 
-
-    <!-- 用户列表 -->
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th width="60">头像</th>
-                    <th>用户名</th>
-                    <th>角色</th>
-                    <th>状态</th>
-                    <th width="200">操作</th>
-                </tr>
-            </thead>
-            <tbody id="usersTableBody">
-                {% if users and users.items %}
-                    {% for user in users.items %}
-                    <tr>
-                        <td>
-                            <div class="user-avatar">
-                                {{ user.username[0].upper() }}
+    <!-- 搜索和筛选 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="search-filter-card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">搜索用户</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   value="{{ request.args.get('search', '') }}" placeholder="搜索用户名或邮箱">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="role" class="form-label">角色筛选</label>
+                            <select class="form-select" id="role" name="role">
+                                <option value="">全部角色</option>
+                                <option value="admin" {% if request.args.get('role') == 'admin' %}selected{% endif %}>管理员</option>
+                                <option value="user" {% if request.args.get('role') == 'user' %}selected{% endif %}>普通用户</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="status" class="form-label">状态筛选</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="">全部状态</option>
+                                <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>活跃</option>
+                                <option value="inactive" {% if request.args.get('status') == 'inactive' %}selected{% endif %}>停用</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-search me-1"></i>搜索
+                                </button>
                             </div>
-                        </td>
-                        <td>
-                            <strong>{{ user.username }}</strong>
-                        </td>
-                        <td>
-                            <span class="role-badge role-{{ user.role }}">
-                                {% if user.role == 'admin' %}管理员{% else %}普通用户{% endif %}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="status-badge status-{% if user.is_active %}active{% else %}inactive{% endif %}">
-                                {% if user.is_active %}活跃{% else %}禁用{% endif %}
-                            </span>
-                        </td>
-                        <td class="action-buttons">
-                            {% if current_user.role == 'admin' %}
-                            <button class="btn btn-sm btn-outline-primary" onclick="editUser({{ user.id }})" title="编辑">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-{% if user.is_active %}warning{% else %}success{% endif %}" 
-                                    onclick="toggleUserStatus({{ user.id }}, {{ 'true' if user.is_active else 'false' }})" 
-                                    title="{% if user.is_active %}禁用{% else %}启用{% endif %}">
-                                <i class="fas fa-{% if user.is_active %}ban{% else %}check{% endif %}"></i>
-                            </button>
-                            {% if user.id != current_user.id %}
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser({{ user.id }})" title="删除">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量操作 -->
+    <div class="batch-actions">
+        <div class="d-flex align-items-center">
+            <span class="selection-counter"></span>
+            <button type="button" class="btn btn-danger btn-sm" id="batchDelete">
+                <i class="fas fa-trash me-1"></i>批量删除
+            </button>
+            <button type="button" class="btn btn-success btn-sm" id="batchActivate">
+                <i class="fas fa-check me-1"></i>批量激活
+            </button>
+            <button type="button" class="btn btn-warning btn-sm" id="batchDeactivate">
+                <i class="fas fa-times me-1"></i>批量停用
+            </button>
+        </div>
+    </div>
+
+    <!-- 用户表格 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="user-table">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                </th>
+                                <th data-sort="2">用户</th>
+                                <th data-sort="3">角色</th>
+                                <th data-sort="4">状态</th>
+                                <th data-sort="5">创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="user_ids" value="{{ user.id }}" class="form-check-input">
+                                </td>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar">
+                                            {{ user.username[0].upper() }}
+                                        </div>
+                                        <div class="user-details">
+                                            <div class="user-name">{{ user.username }}</div>
+                                            <div class="user-email">{{ user.email or '未设置邮箱' }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="role-badge role-{{ user.role }}">
+                                        {{ '管理员' if user.role == 'admin' else '普通用户' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-{{ 'active' if user.is_active else 'inactive' }}">
+                                        {{ '活跃' if user.is_active else '停用' }}
+                                    </span>
+                                </td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '-' }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="editUser({{ user.id }})" title="编辑用户">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                onclick="confirmDeleteUser({{ user.id }}, '{{ user.username }}')" title="删除用户">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <div class="user-status-toggle">
+                                            <input type="checkbox" 
+                                                   {% if user.is_active %}checked{% endif %}
+                                                   data-user-id="{{ user.id }}">
+                                            <span class="user-status-slider"></span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
                             {% else %}
-                            <span class="text-muted">只读模式</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
-                            <i class="fas fa-users fa-3x mb-3"></i>
-                            <p>暂无用户数据</p>
-                        </td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    <div class="empty-state">
+                                        <i class="fas fa-users"></i>
+                                        <h4>暂无用户</h4>
+                                        <p>还没有任何用户，点击上方按钮添加第一个用户</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 分页 -->
-    {% if users and users.pages > 1 %}
-    <nav aria-label="用户分页">
-        <ul class="pagination">
-            {% if users.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('user_management.index', page=users.prev_num, search=search, role=role_filter, status=status_filter) }}">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                </li>
-            {% endif %}
-            
-            {% for page_num in users.iter_pages() %}
-                {% if page_num %}
-                    {% if page_num != users.page %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for('user_management.index', page=page_num, search=search, role=role_filter, status=status_filter) }}">{{ page_num }}</a>
-                        </li>
-                    {% else %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ page_num }}</span>
-                        </li>
-                    {% endif %}
-                {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
-                {% endif %}
-            {% endfor %}
-            
-            {% if users.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('user_management.index', page=users.next_num, search=search, role=role_filter, status=status_filter) }}">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
+    {% if pagination %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="用户分页">
+                {{ pagination.links }}
+            </nav>
+        </div>
+    </div>
     {% endif %}
 </div>
 
 <!-- 添加用户模态框 -->
-<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+<div class="modal fade" id="addUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addUserModalLabel">
+                <h5 class="modal-title">
                     <i class="fas fa-user-plus me-2"></i>添加用户
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="addUserForm">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="addUsername" class="form-label">用户名 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="addUsername" name="username" required>
-                        <div class="form-text">用户名只能包含字母、数字和下划线，长度3-20位</div>
+                        <label for="username" class="form-label">用户名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="username" name="username" required>
                     </div>
                     <div class="mb-3">
-                        <label for="addPassword" class="form-label">密码 <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="addPassword" name="password" required>
-                        <div class="form-text">密码至少8位，必须包含大写字母、小写字母和数字</div>
+                        <label for="password" class="form-label">密码 <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="password" name="password" required>
                     </div>
                     <div class="mb-3">
-                        <label for="addRole" class="form-label">角色 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="addRole" name="role" required>
+                        <label for="role" class="form-label">角色 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="">请选择角色</option>
                             <option value="user">普通用户</option>
                             <option value="admin">管理员</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="addIsActive" name="is_active" checked>
-                            <label class="form-check-label" for="addIsActive">
-                                启用账户
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">
+                                激活用户
                             </label>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i>保存
-                    </button>
+                    <button type="submit" class="btn btn-primary">添加用户</button>
                 </div>
             </form>
         </div>
@@ -284,14 +247,14 @@
 </div>
 
 <!-- 编辑用户模态框 -->
-<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+<div class="modal fade" id="editUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editUserModalLabel">
+                <h5 class="modal-title">
                     <i class="fas fa-user-edit me-2"></i>编辑用户
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="editUserForm">
                 <input type="hidden" id="editUserId" name="user_id">
@@ -299,12 +262,6 @@
                     <div class="mb-3">
                         <label for="editUsername" class="form-label">用户名 <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="editUsername" name="username" required>
-                        <div class="form-text">用户名只能包含字母、数字和下划线，长度3-20位</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editPassword" class="form-label">密码</label>
-                        <input type="password" class="form-control" id="editPassword" name="password">
-                        <div class="form-text">留空表示不修改密码，否则密码至少8位，必须包含大写字母、小写字母和数字</div>
                     </div>
                     <div class="mb-3">
                         <label for="editRole" class="form-label">角色 <span class="text-danger">*</span></label>
@@ -317,16 +274,14 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="editIsActive" name="is_active">
                             <label class="form-check-label" for="editIsActive">
-                                启用账户
+                                激活用户
                             </label>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i>保存
-                    </button>
+                    <button type="submit" class="btn btn-primary">保存更改</button>
                 </div>
             </form>
         </div>
@@ -335,188 +290,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-
-// 添加用户
-document.getElementById('addUserForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const data = {
-        username: formData.get('username'),
-        password: formData.get('password'),
-        role: formData.get('role'),
-        is_active: formData.get('is_active') === 'on'
-    };
-    
-    fetch('{{ url_for("user_management.api_create_user") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
-            location.reload();
-        } else {
-            showAlert('error', data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('error', '添加用户失败');
-    });
-});
-
-// 编辑用户
-function editUser(userId) {
-    fetch(`{{ url_for('user_management.api_get_users') }}?user_id=${userId}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.data.users.length > 0) {
-            const user = data.data.users[0];
-            document.getElementById('editUserId').value = user.id;
-            document.getElementById('editUsername').value = user.username;
-            document.getElementById('editRole').value = user.role;
-            document.getElementById('editIsActive').checked = user.is_active;
-            
-            new bootstrap.Modal(document.getElementById('editUserModal')).show();
-        } else {
-            showAlert('error', '获取用户信息失败');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('error', '获取用户信息失败');
-    });
-}
-
-// 更新用户
-document.getElementById('editUserForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const userId = formData.get('user_id');
-    const data = {
-        username: formData.get('username'),
-        role: formData.get('role'),
-        is_active: formData.get('is_active') === 'on'
-    };
-    
-    // 只有填写了密码才更新密码
-    const password = formData.get('password');
-    if (password) {
-        data.password = password;
-    }
-    
-    fetch(`{{ url_for('user_management.api_update_user', user_id=0) }}`.replace('0', userId), {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
-            location.reload();
-        } else {
-            showAlert('error', data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('error', '更新用户失败');
-    });
-});
-
-// 切换用户状态
-function toggleUserStatus(userId, isActive) {
-    const action = isActive ? '禁用' : '启用';
-    if (!confirm(`确定要${action}该用户吗？`)) {
-        return;
-    }
-    
-    fetch(`{{ url_for('user_management.api_toggle_user_status', user_id=0) }}`.replace('0', userId), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            location.reload();
-        } else {
-            showAlert('error', data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('error', '操作失败');
-    });
-}
-
-// 删除用户
-function deleteUser(userId) {
-    if (!confirm('确定要删除该用户吗？此操作不可恢复！')) {
-        return;
-    }
-    
-    fetch(`{{ url_for('user_management.api_delete_user', user_id=0) }}`.replace('0', userId), {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            location.reload();
-        } else {
-            showAlert('error', data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('error', '删除用户失败');
-    });
-}
-
-// 显示提示信息
-function showAlert(type, message) {
-    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-    const alertHtml = `
-        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-    
-    // 在页面顶部显示提示
-    const container = document.querySelector('.container-fluid');
-    container.insertAdjacentHTML('afterbegin', alertHtml);
-    
-    // 3秒后自动隐藏
-    setTimeout(() => {
-        const alert = container.querySelector('.alert');
-        if (alert) {
-            alert.remove();
-        }
-    }, 3000);
-}
-
-</script>
+<script src="{{ url_for('static', filename='js/pages/user_management/management.js') }}"></script>
 {% endblock %}
