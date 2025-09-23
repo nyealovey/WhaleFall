@@ -527,6 +527,17 @@ function forceInitializeTagSelector() {
                 console.log('强制绑定打开按钮成功');
             }
             
+            // 测试确认按钮
+            setTimeout(() => {
+                const confirmBtn = document.getElementById('confirm-selection-btn');
+                console.log('测试确认按钮:', confirmBtn ? '找到' : '未找到');
+                if (confirmBtn) {
+                    console.log('确认按钮状态:', confirmBtn.disabled ? '禁用' : '启用');
+                    console.log('确认按钮可见性:', confirmBtn.offsetParent !== null ? '可见' : '隐藏');
+                    console.log('确认按钮点击事件:', confirmBtn.onclick ? '有' : '无');
+                }
+            }, 1000);
+            
             return true;
         } catch (error) {
             console.error('强制创建失败:', error);
