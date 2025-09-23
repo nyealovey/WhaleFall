@@ -45,6 +45,7 @@ show_banner() {
     echo "║                   (代码热更新模式)                          ║"
     echo "║                (拷贝代码到运行中容器)                        ║"
     echo "║                (保留数据库和Redis)                          ║"
+    echo "║                (自动刷新Nginx缓存)                          ║"
     echo "║                (最小化停机时间)                              ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -322,6 +323,98 @@ wait_for_service_ready() {
     log_success "Flask应用已就绪"
 }
 
+# 刷新Nginx缓存（Nginx和Flask在同一容器）
+refresh_nginx_cache() {
+    log_step "刷新Nginx缓存..."
+    
+    # 获取Flask容器ID（Nginx和Flask在同一容器）
+    local flask_container_id
+    flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
+    
+    if [ -z "$flask_container_id" ]; then
+        log_warning "未找到Flask容器，跳过Nginx缓存刷新"
+        return 0
+    fi
+    
+    log_info "Flask容器ID: $flask_container_id"
+    
+    # 检查Nginx进程是否在容器内运行
+    log_info "检查Nginx进程状态..."
+    if docker exec "$flask_container_id" pgrep nginx > /dev/null 2>&1; then
+        log_success "Nginx进程正在运行"
+    else
+        log_warning "Nginx进程未运行，尝试启动Nginx"
+        
+        # 尝试启动Nginx
+        if docker exec "$flask_container_id" nginx; then
+            log_success "Nginx启动成功"
+        else
+            log_warning "Nginx启动失败，跳过缓存刷新"
+            return 0
+        fi
+    fi
+    
+    # 方法1: 重新加载Nginx配置（推荐）
+    log_info "重新加载Nginx配置..."
+    if docker exec "$flask_container_id" nginx -s reload; then
+        log_success "Nginx配置重新加载成功"
+    else
+        log_warning "Nginx配置重新加载失败，尝试重启Nginx进程"
+        
+        # 方法2: 重启Nginx进程
+        log_info "重启Nginx进程..."
+        if docker exec "$flask_container_id" pkill nginx && docker exec "$flask_container_id" nginx; then
+            log_success "Nginx进程重启成功"
+        else
+            log_error "Nginx进程重启失败"
+            return 1
+        fi
+    fi
+    
+    # 等待Nginx完全启动
+    log_info "等待Nginx完全启动..."
+    local count=0
+    while [ $count -lt 30 ]; do
+        if curl -f http://localhost/health > /dev/null 2>&1; then
+            break
+        fi
+        sleep 2
+        count=$((count + 1))
+    done
+    
+    if [ $count -eq 30 ]; then
+        log_warning "Nginx启动检查超时，但继续执行"
+    else
+        log_success "Nginx已完全启动"
+    fi
+    
+    # 方法3: 清理静态文件缓存（如果存在缓存目录）
+    log_info "清理静态文件缓存..."
+    if docker exec "$flask_container_id" find /var/cache/nginx -type f -delete 2>/dev/null; then
+        log_success "静态文件缓存清理成功"
+    else
+        log_info "未找到Nginx缓存目录，跳过静态文件缓存清理"
+    fi
+    
+    # 方法4: 清理应用缓存目录（如果存在）
+    log_info "清理应用缓存..."
+    if docker exec "$flask_container_id" find /app/instance -name "*.cache" -type f -delete 2>/dev/null; then
+        log_success "应用缓存清理成功"
+    else
+        log_info "未找到应用缓存文件，跳过应用缓存清理"
+    fi
+    
+    # 方法5: 清理Python缓存
+    log_info "清理Python缓存..."
+    if docker exec "$flask_container_id" find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null; then
+        log_success "Python缓存清理成功"
+    else
+        log_info "Python缓存清理完成"
+    fi
+    
+    log_success "Nginx缓存刷新完成"
+}
+
 # 验证更新
 verify_update() {
     log_step "验证更新..."
@@ -387,6 +480,7 @@ show_update_result() {
     echo "  - 更新模式: 代码热更新"
     echo "  - 停机时间: 约30-60秒"
     echo "  - 数据保留: 完全保留"
+    echo "  - 缓存刷新: Nginx缓存已刷新"
     echo ""
     echo -e "${BLUE}🌐 访问地址：${NC}"
     echo "  - 应用首页: http://localhost"
@@ -408,9 +502,11 @@ show_update_result() {
     echo "  - 本次更新为代码热更新模式，数据完全保留"
     echo "  - 仅更新Flask应用代码，不重建容器"
     echo "  - 数据库和Redis服务保持不变"
+    echo "  - Nginx和Flask在同一容器，缓存已自动刷新"
     echo "  - 如有问题，请手动检查服务状态和日志"
     echo "  - 建议定期备份重要数据"
     echo "  - 监控应用运行状态"
+    echo "  - 如需要手动刷新Nginx缓存，可运行: docker exec whalefall_app_prod nginx -s reload"
 }
 
 # 主函数
@@ -426,6 +522,7 @@ main() {
     copy_code_to_container
     restart_flask_service
     wait_for_service_ready
+    refresh_nginx_cache
     
     # 验证更新
     if verify_update; then
