@@ -165,7 +165,7 @@ function displayLogs(logs) {
 
 // 显示分页
 function displayPagination(pagination) {
-    const container = document.getElementById('pagination');
+    const container = document.getElementById('paginationContainer');
     
     
     if (!pagination || pagination.pages <= 1) {
