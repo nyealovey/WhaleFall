@@ -160,14 +160,21 @@ def sync_accounts(**kwargs):
             for instance in instances:
                 task_logger.info(f"开始同步实例: {instance.name} (ID: {instance.id})")
                 try:
-                    # 使用带有会话的同步服务，它将处理每个实例的状态更新
-                    account_sync_service.sync_instance_with_session(
-                        instance_id=instance.id, session_id=session.session_id
+                    # 使用统一的账户同步服务，与"同步所有账户"相同的逻辑
+                    result = account_sync_service.sync_accounts(
+                        instance, sync_type="scheduled_task", session_id=session.session_id
                     )
+                    
+                    if not result["success"]:
+                        task_logger.error(f"实例同步失败: {instance.name}", error=result.get("error", "未知错误"))
+                        # 找到对应的记录并标记为失败
+                        record = next((r for r in records if r.instance_id == instance.id), None)
+                        if record:
+                            sync_session_service.fail_instance_sync(record.id, result.get("error", "同步失败"))
                 except Exception as e:
                     task_logger.error(f"触发实例同步时发生意外错误: {instance.name}", error=str(e))
-                    # 尝试将此实例标记为失败
-                    record = sync_session_service.get_record_by_instance_and_session(instance.id, session.session_id)
+                    # 找到对应的记录并标记为失败
+                    record = next((r for r in records if r.instance_id == instance.id), None)
                     if record:
                         sync_session_service.fail_instance_sync(record.id, str(e))
 
