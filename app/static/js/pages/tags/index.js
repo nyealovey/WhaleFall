@@ -657,6 +657,9 @@ async function loadTagsForBatchAssign() {
                 
                 html += '</div>';
                 tagListContainer.innerHTML = html;
+                
+                // 添加事件监听器来更新选中标签显示
+                addTagSelectionListeners();
             } else {
                 tagListContainer.innerHTML = '<p class="text-muted text-center">没有可用的标签。</p>';
             }
@@ -708,6 +711,76 @@ function toggleTagGroup(groupId) {
         content.classList.add('show');
         icon.classList.remove('fa-chevron-right');
         icon.classList.add('fa-chevron-down');
+    }
+}
+
+// 添加标签选择监听器
+function addTagSelectionListeners() {
+    // 监听所有标签复选框的变化
+    const tagCheckboxes = document.querySelectorAll('#batchAssignModal .tag-groups input[type="checkbox"]');
+    tagCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedTagsDisplay);
+    });
+    
+    // 监听所有实例复选框的变化
+    const instanceCheckboxes = document.querySelectorAll('#batchAssignModal .instance-groups input[type="checkbox"]');
+    instanceCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedTagsDisplay);
+    });
+    
+    // 初始更新显示
+    updateSelectedTagsDisplay();
+}
+
+// 更新选中标签显示
+function updateSelectedTagsDisplay() {
+    // 获取选中的实例数量
+    const selectedInstances = document.querySelectorAll('#batchAssignModal .instance-groups input[type="checkbox"]:checked');
+    const selectedInstancesCount = selectedInstances.length;
+    
+    // 获取选中的标签
+    const selectedTags = document.querySelectorAll('#batchAssignModal .tag-groups input[type="checkbox"]:checked');
+    const selectedTagsCount = selectedTags.length;
+    
+    // 更新计数显示
+    document.getElementById('selectedInstancesCount').textContent = selectedInstancesCount;
+    document.getElementById('selectedTagsCount').textContent = selectedTagsCount;
+    
+    // 更新选中标签列表显示
+    const selectedTagsDisplay = document.getElementById('selectedTagsDisplay');
+    const selectedTagsList = document.getElementById('selectedTagsList');
+    
+    if (selectedTagsCount > 0) {
+        selectedTagsDisplay.style.display = 'block';
+        
+        // 生成选中标签的HTML
+        let tagsHtml = '';
+        selectedTags.forEach(checkbox => {
+            const tagName = checkbox.getAttribute('data-tag-name');
+            const tagId = checkbox.value;
+            tagsHtml += `
+                <span class="badge bg-primary me-1" data-tag-id="${tagId}">
+                    ${tagName}
+                    <button type="button" class="btn-close btn-close-white ms-1" 
+                            onclick="removeTagSelection('${tagId}')" 
+                            style="font-size: 0.6em;" 
+                            aria-label="移除标签"></button>
+                </span>
+            `;
+        });
+        
+        selectedTagsList.innerHTML = tagsHtml;
+    } else {
+        selectedTagsDisplay.style.display = 'none';
+    }
+}
+
+// 移除标签选择
+function removeTagSelection(tagId) {
+    const checkbox = document.querySelector(`#batchAssignModal .tag-groups input[value="${tagId}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+        updateSelectedTagsDisplay();
     }
 }
 

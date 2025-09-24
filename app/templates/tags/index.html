@@ -243,6 +243,16 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <div class="selected-tags-info me-auto">
+                    <small class="text-muted">
+                        <span id="selectedInstancesCount">0</span> 个实例, 
+                        <span id="selectedTagsCount">0</span> 个标签
+                    </small>
+                    <div id="selectedTagsDisplay" class="mt-1" style="display: none;">
+                        <small class="text-muted">已选标签: </small>
+                        <div id="selectedTagsList" class="d-inline-flex flex-wrap gap-1"></div>
+                    </div>
+                </div>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                 <button type="button" class="btn btn-primary" id="batchAssignSave">保存</button>
             </div>
