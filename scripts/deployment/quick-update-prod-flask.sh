@@ -48,8 +48,8 @@ show_banner() {
     echo "║                (保留数据库和Redis)                          ║"
     echo "║                (自动刷新Nginx缓存)                          ║"
     echo "║                (最小化停机时间)                              ║"
-    echo "║                (直接下载GitHub最新代码)                      ║"
-    echo "║                (避免Git配置问题)                            ║"
+    echo "║                (始终以GitHub代码为准)                        ║"
+    echo "║                (自动强制同步远程状态)                        ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -137,59 +137,51 @@ check_current_status() {
 pull_latest_code() {
     log_step "拉取最新代码..."
     
-    # 直接使用wget下载最新代码，避免Git配置问题
-    log_info "直接从GitHub下载最新代码..."
-    
-    # 创建临时目录
-    local temp_dir="/tmp/whalefall_update_$(date +%s)"
-    mkdir -p "$temp_dir"
-    cd "$temp_dir"
-    
-    # 下载最新代码
-    log_info "下载GitHub最新代码..."
-    if wget -q https://github.com/nyealovey/TaifishingV4/archive/refs/heads/main.zip -O main.zip; then
-        log_success "代码下载成功"
-    else
-        log_error "代码下载失败，请检查网络连接"
-        rm -rf "$temp_dir"
+    # 检查Git状态
+    if ! git status &> /dev/null; then
+        log_error "当前目录不是Git仓库"
         exit 1
     fi
     
-    # 解压代码
-    log_info "解压代码..."
-    if unzip -q main.zip; then
-        log_success "代码解压成功"
+    # 获取当前提交信息
+    local current_commit
+    current_commit=$(git rev-parse --short HEAD)
+    log_info "当前本地提交: $current_commit"
+    
+    # 配置Git用户信息（避免fetch时出错）
+    log_info "配置Git用户信息..."
+    git config user.email "whalefall@taifishing.com" 2>/dev/null || true
+    git config user.name "WhaleFall Deploy" 2>/dev/null || true
+    
+    # 获取远程最新提交信息
+    log_info "获取远程最新信息..."
+    git fetch origin main
+    
+    local remote_commit
+    remote_commit=$(git rev-parse --short origin/main)
+    log_info "远程最新提交: $remote_commit"
+    
+    # 始终强制同步到远程状态（以GitHub为准）
+    log_info "强制同步到远程最新状态（以GitHub为准）..."
+    if git reset --hard origin/main; then
+        log_success "代码已强制同步到远程最新状态"
+        log_info "新的本地提交: $(git rev-parse --short HEAD)"
     else
-        log_error "代码解压失败"
-        rm -rf "$temp_dir"
+        log_error "强制同步失败"
         exit 1
     fi
     
-    # 备份当前代码（可选）
-    log_info "备份当前代码..."
-    if [ -d "/opt/whalefall" ]; then
-        cp -r /opt/whalefall /opt/whalefall_backup_$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
-    fi
+    # 验证最终状态
+    local final_commit
+    final_commit=$(git rev-parse --short HEAD)
+    log_info "最终代码提交: $final_commit"
     
-    # 复制新代码到目标目录
-    log_info "复制新代码到目标目录..."
-    if cp -r TaifishingV4-main/* /opt/whalefall/; then
-        log_success "代码复制成功"
+    # 检查是否有文件变更
+    if [ "$current_commit" != "$final_commit" ]; then
+        log_success "检测到代码变更，准备更新容器"
     else
-        log_error "代码复制失败"
-        rm -rf "$temp_dir"
-        exit 1
+        log_warning "没有检测到代码变更，可能已经是最新状态"
     fi
-    
-    # 复制隐藏文件
-    cp -r TaifishingV4-main/.* /opt/whalefall/ 2>/dev/null || true
-    
-    # 清理临时目录
-    cd /opt/whalefall
-    rm -rf "$temp_dir"
-    
-    log_success "代码更新完成"
-    log_info "新代码已复制到 /opt/whalefall"
 }
 
 # 拷贝代码到容器
@@ -546,7 +538,7 @@ show_update_result() {
     echo -e "${GREEN}🎉 热更新完成！${NC}"
     echo ""
     echo -e "${BLUE}📋 更新信息：${NC}"
-    echo "  - 更新版本: GitHub最新代码"
+    echo "  - 更新版本: $(git rev-parse --short HEAD)"
     echo "  - 更新时间: $(date)"
     echo "  - 更新模式: 代码热更新"
     echo "  - 停机时间: 约30-60秒"
@@ -574,8 +566,8 @@ show_update_result() {
     echo "  - 仅更新Flask应用代码，不重建容器"
     echo "  - 数据库和Redis服务保持不变"
     echo "  - Nginx和Flask在同一容器，缓存已自动刷新"
-    echo "  - 直接下载GitHub最新代码，无需Git配置"
-    echo "  - 自动备份当前代码，支持快速回滚"
+    echo "  - 始终以GitHub上的代码为准，自动强制同步"
+    echo "  - 如果GitHub回滚，本地也会自动回滚"
     echo "  - 如有问题，请手动检查服务状态和日志"
     echo "  - 建议定期备份重要数据"
     echo "  - 监控应用运行状态"
