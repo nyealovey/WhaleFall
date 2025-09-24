@@ -460,14 +460,15 @@ class OptimizedAccountClassificationService:
                         total_classifications_added += added_count
                         total_matches += len(matched_accounts)
 
-                        log_info(
-                            f"规则 {rule.rule_name} 处理完成",
-                            module="account_classification",
-                            rule_id=rule.id,
-                            matched_accounts=len(matched_accounts),
-                            added_classifications=added_count,
-                            batch_id=self.batch_id,
-                        )
+                    # 无论是否匹配到账户，都记录规则处理完成
+                    log_info(
+                        f"规则 {rule.rule_name} 处理完成",
+                        module="account_classification",
+                        rule_id=rule.id,
+                        matched_accounts=len(matched_accounts),
+                        added_classifications=added_count if matched_accounts else 0,
+                        batch_id=self.batch_id,
+                    )
 
                 except Exception as e:
                     failed_count += 1
