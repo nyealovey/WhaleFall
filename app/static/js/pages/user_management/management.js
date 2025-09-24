@@ -43,8 +43,12 @@ function handleAddUser(event, form) {
         is_active: formData.get('is_active') === 'on'
     };
     
+    // 添加调试日志
+    console.log('表单数据:', data);
+    
     // 验证表单
     if (!validateUserForm(data)) {
+        console.log('表单验证失败');
         return;
     }
     
@@ -329,7 +333,10 @@ function editUser(userId) {
 
 // 验证用户表单
 function validateUserForm(data, isEdit = false) {
+    console.log('验证表单数据:', data, 'isEdit:', isEdit);
+    
     if (!data.username || data.username.trim().length < 2) {
+        console.log('用户名验证失败:', data.username);
         showAlert('error', '用户名至少需要2个字符');
         return false;
     }
@@ -338,22 +345,26 @@ function validateUserForm(data, isEdit = false) {
     if (!isEdit) {
         // 新建用户时，密码是必需的
         if (!data.password || data.password.length < 6) {
+            console.log('密码验证失败:', data.password);
             showAlert('error', '密码至少需要6个字符');
             return false;
         }
     } else {
         // 编辑用户时，如果提供了密码，则验证密码长度
         if (data.password && data.password.length < 6) {
+            console.log('密码验证失败:', data.password);
             showAlert('error', '密码至少需要6个字符');
             return false;
         }
     }
     
     if (!data.role) {
+        console.log('角色验证失败:', data.role);
         showAlert('error', '请选择用户角色');
         return false;
     }
     
+    console.log('表单验证通过');
     return true;
 }
 
