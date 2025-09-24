@@ -113,6 +113,136 @@ def batch_assign_tags() -> Response:
         return jsonify({"success": False, "error": f"批量分配失败: {str(e)}"}), 500
 
 
+@tags_bp.route("/api/batch_remove_tags", methods=["POST"])
+@login_required
+@create_required
+def batch_remove_tags() -> Response:
+    """批量移除实例的标签"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "请求数据为空"}), 400
+            
+        instance_ids = data.get("instance_ids", [])
+        tag_ids = data.get("tag_ids", [])
+        
+        # 确保ID是整数类型
+        try:
+            instance_ids = [int(id) for id in instance_ids]
+            tag_ids = [int(id) for id in tag_ids]
+        except (ValueError, TypeError) as e:
+            return jsonify({"success": False, "error": f"ID格式错误: {str(e)}"}), 400
+
+        if not instance_ids or not tag_ids:
+            return jsonify({"success": False, "error": "实例ID和标签ID不能为空"}), 400
+
+        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+        tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
+
+        if not instances:
+            return jsonify({"success": False, "error": "未找到任何实例"}), 404
+        if not tags:
+            return jsonify({"success": False, "error": "未找到任何标签"}), 404
+
+        # 记录移除前的状态
+        log_info(
+            "开始批量移除标签",
+            module="tags",
+            instance_ids=instance_ids,
+            tag_ids=tag_ids,
+            found_instances=len(instances),
+            found_tags=len(tags),
+            user_id=current_user.id,
+        )
+
+        # 移除标签
+        removed_count = 0
+        for instance in instances:
+            for tag in tags:
+                if tag in instance.tags:
+                    instance.tags.remove(tag)
+                    removed_count += 1
+
+        db.session.commit()
+
+        log_info(
+            "批量移除标签成功",
+            module="tags",
+            instance_ids=instance_ids,
+            tag_ids=tag_ids,
+            removed_count=removed_count,
+            user_id=current_user.id,
+        )
+
+        return jsonify({
+            "success": True, 
+            "message": f"标签批量移除成功，共移除 {removed_count} 个标签关系"
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        log_error(
+            "批量移除标签失败",
+            module="tags",
+            error=str(e),
+            error_type=type(e).__name__,
+            user_id=current_user.id,
+        )
+        return jsonify({"success": False, "error": f"批量移除失败: {str(e)}"}), 500
+
+
+@tags_bp.route("/api/instance_tags", methods=["POST"])
+@login_required
+@view_required
+def api_instance_tags() -> Response:
+    """获取实例的已关联标签API"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "请求数据为空"}), 400
+            
+        instance_ids = data.get("instance_ids", [])
+        
+        # 确保ID是整数类型
+        try:
+            instance_ids = [int(id) for id in instance_ids]
+        except (ValueError, TypeError) as e:
+            return jsonify({"success": False, "error": f"ID格式错误: {str(e)}"}), 400
+
+        if not instance_ids:
+            return jsonify({"success": False, "error": "实例ID不能为空"}), 400
+
+        # 获取这些实例的所有已关联标签
+        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+        if not instances:
+            return jsonify({"success": False, "error": "未找到任何实例"}), 404
+
+        # 收集所有已关联的标签
+        all_tags = set()
+        for instance in instances:
+            all_tags.update(instance.tags)
+
+        tags_data = [tag.to_dict() for tag in all_tags]
+        
+        # 获取分类名称映射
+        category_choices = Tag.get_category_choices()
+        category_names = dict(category_choices)
+        
+        return jsonify({
+            "success": True, 
+            "tags": tags_data,
+            "category_names": category_names
+        })
+    except Exception as e:
+        log_error(
+            "获取实例已关联标签失败",
+            module="tags",
+            error=str(e),
+            user_id=current_user.id,
+        )
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @tags_bp.route("/api/instances")
 @login_required
 @view_required
