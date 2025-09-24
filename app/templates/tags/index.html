@@ -85,11 +85,9 @@
                         <th>标签代码</th>
                         <th>显示名称</th>
                         <th>分类</th>
-                        <th>颜色</th>
                         <th>描述</th>
                         <th>状态</th>
                         <th>实例数量</th>
-                        <th>创建时间</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -109,9 +107,6 @@
                             <span class="badge bg-secondary">{{ tag.category }}</span>
                         </td>
                         <td>
-                            <span class="badge bg-{{ tag.color }}">{{ tag.color }}</span>
-                        </td>
-                        <td>
                             {% if tag.description %}
                                 <small class="text-muted">{{ tag.description }}</small>
                             {% else %}
@@ -129,9 +124,6 @@
                             <span class="badge bg-info">{{ tag.instances|length }}</span>
                         </td>
                         <td>
-                            <small class="text-muted">{{ tag.created_at | china_time('%Y-%m-%d %H:%M') }}</small>
-                        </td>
-                        <td>
                             {% if current_user.role == 'admin' %}
                             <div class="btn-group btn-group-sm" role="group">
                                 <a href="{{ url_for('tags.edit', tag_id=tag.id) }}"
@@ -139,7 +131,7 @@
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <button type="button" class="btn btn-outline-danger"
-                                        onclick="deleteTag({{ tag.id }}, '{{ tag.display_name|replace("'", "\\'") }}')" title="删除">
+                                        data-tag-id="{{ tag.id }}" data-tag-name="{{ tag.display_name }}" title="删除">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
