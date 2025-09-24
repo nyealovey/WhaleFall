@@ -101,6 +101,12 @@ function handleEditUser(event, form) {
         is_active: formData.get('is_active') === 'on'
     };
     
+    // 处理密码字段 - 只有非空时才包含
+    const password = formData.get('password');
+    if (password && password.trim() !== '') {
+        data.password = password;
+    }
+    
     // 验证表单
     if (!validateUserForm(data, true)) {
         return;
@@ -291,6 +297,7 @@ function editUser(userId) {
             const user = data.data.user;
             document.getElementById('editUserId').value = user.id;
             document.getElementById('editUsername').value = user.username;
+            document.getElementById('editPassword').value = ''; // 清空密码字段
             document.getElementById('editRole').value = user.role;
             document.getElementById('editIsActive').checked = user.is_active;
             
@@ -313,9 +320,19 @@ function validateUserForm(data, isEdit = false) {
         return false;
     }
     
-    if (!isEdit && (!data.password || data.password.length < 6)) {
-        showAlert('error', '密码至少需要6个字符');
-        return false;
+    // 密码验证逻辑
+    if (!isEdit) {
+        // 新建用户时，密码是必需的
+        if (!data.password || data.password.length < 6) {
+            showAlert('error', '密码至少需要6个字符');
+            return false;
+        }
+    } else {
+        // 编辑用户时，如果提供了密码，则验证密码长度
+        if (data.password && data.password.length < 6) {
+            showAlert('error', '密码至少需要6个字符');
+            return false;
+        }
     }
     
     if (!data.role) {
