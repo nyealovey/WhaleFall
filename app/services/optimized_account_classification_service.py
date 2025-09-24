@@ -608,6 +608,31 @@ class OptimizedAccountClassificationService:
                 if any(perm in actual_global_set for perm in exclude_global):
                     return False
 
+            # 检查数据库权限
+            required_database = rule_expression.get("database_privileges", [])
+            if required_database:
+                actual_database = permissions.get("database_privileges", {})
+                if actual_database:
+                    # 检查是否在任意数据库中有任一要求的权限
+                    database_match = False
+                    for db_name, db_perms in actual_database.items():
+                        if isinstance(db_perms, list):
+                            db_perms_set = set(db_perms)
+                        else:
+                            db_perms_set = {p["privilege"] for p in db_perms if p.get("granted", False)}
+                        
+                        if operator == "AND":
+                            if all(perm in db_perms_set for perm in required_database):
+                                database_match = True
+                                break
+                        else:
+                            if any(perm in db_perms_set for perm in required_database):
+                                database_match = True
+                                break
+                    
+                    if not database_match:
+                        return False
+
             return True
 
         except Exception as e:
@@ -652,6 +677,47 @@ class OptimizedAccountClassificationService:
                 server_roles_match = all(role in actual_server_roles for role in required_server_roles)
                 match_results.append(server_roles_match)
 
+            # 检查数据库角色
+            required_database_roles = rule_expression.get("database_roles", [])
+            if required_database_roles:
+                database_roles_data = permissions.get("database_roles", {})
+                if database_roles_data:
+                    # 检查是否在任意数据库中有任一要求的角色
+                    database_roles_match = False
+                    for db_name, roles in database_roles_data.items():
+                        if isinstance(roles, list):
+                            actual_roles = roles
+                        else:
+                            actual_roles = [r["role"] if isinstance(r, dict) else r for r in roles]
+                        
+                        # 检查是否有任一要求的角色
+                        if any(role in actual_roles for role in required_database_roles):
+                            database_roles_match = True
+                            break
+                    
+                    match_results.append(database_roles_match)
+
+            # 检查数据库权限
+            required_database_perms = rule_expression.get("database_privileges", [])
+            if required_database_perms:
+                database_perms_data = permissions.get("database_permissions", {})
+                if database_perms_data:
+                    # 检查是否在任意数据库中有任一要求的权限
+                    database_perms_match = False
+                    for db_name, perms in database_perms_data.items():
+                        if isinstance(perms, dict):
+                            # 检查数据库级别权限
+                            db_perms = perms.get("database", [])
+                            if any(perm in db_perms for perm in required_database_perms):
+                                database_perms_match = True
+                                break
+                        elif isinstance(perms, list):
+                            if any(perm in perms for perm in required_database_perms):
+                                database_perms_match = True
+                                break
+                    
+                    match_results.append(database_perms_match)
+
             # 根据操作符决定匹配逻辑
             if not match_results:
                 return True
@@ -671,14 +737,71 @@ class OptimizedAccountClassificationService:
             if not permissions:
                 return False
 
+            operator = rule_expression.get("operator", "OR").upper()
+            match_results = []
+
+            # 检查预定义角色
+            required_predefined_roles = rule_expression.get("predefined_roles", [])
+            if required_predefined_roles:
+                actual_predefined_roles = permissions.get("predefined_roles", [])
+                if isinstance(actual_predefined_roles, list):
+                    predefined_roles_set = set(actual_predefined_roles)
+                else:
+                    predefined_roles_set = {r["role"] if isinstance(r, dict) else r for r in actual_predefined_roles}
+                
+                predefined_roles_match = all(role in predefined_roles_set for role in required_predefined_roles)
+                match_results.append(predefined_roles_match)
+
             # 检查角色属性权限
             required_role_attrs = rule_expression.get("role_attributes", [])
-            for required_attr in required_role_attrs:
+            if required_role_attrs:
                 role_attrs = permissions.get("role_attributes", {})
-                if not role_attrs.get(required_attr, False):
-                    return False
+                role_attrs_match = all(role_attrs.get(attr, False) for attr in required_role_attrs)
+                match_results.append(role_attrs_match)
 
-            return True
+            # 检查数据库权限
+            required_database_perms = rule_expression.get("database_privileges", [])
+            if required_database_perms:
+                database_perms = permissions.get("database_privileges", {})
+                if database_perms:
+                    database_perms_match = False
+                    for db_name, db_perms in database_perms.items():
+                        if isinstance(db_perms, list):
+                            db_perms_set = set(db_perms)
+                        else:
+                            db_perms_set = {p["privilege"] for p in db_perms if p.get("granted", False)}
+                        
+                        if any(perm in db_perms_set for perm in required_database_perms):
+                            database_perms_match = True
+                            break
+                    
+                    match_results.append(database_perms_match)
+
+            # 检查表空间权限
+            required_tablespace_perms = rule_expression.get("tablespace_privileges", [])
+            if required_tablespace_perms:
+                tablespace_perms = permissions.get("tablespace_privileges", {})
+                if tablespace_perms:
+                    tablespace_perms_match = False
+                    for tablespace_name, ts_perms in tablespace_perms.items():
+                        if isinstance(ts_perms, list):
+                            ts_perms_set = set(ts_perms)
+                        else:
+                            ts_perms_set = {p["privilege"] for p in ts_perms if p.get("granted", False)}
+                        
+                        if any(perm in ts_perms_set for perm in required_tablespace_perms):
+                            tablespace_perms_match = True
+                            break
+                    
+                    match_results.append(tablespace_perms_match)
+
+            # 根据操作符决定匹配逻辑
+            if not match_results:
+                return True
+
+            if operator == "AND":
+                return all(match_results)
+            return any(match_results)
 
         except Exception as e:
             log_error(f"评估PostgreSQL规则失败: {e}", module="account_classification")
@@ -691,23 +814,76 @@ class OptimizedAccountClassificationService:
             if not permissions:
                 return False
 
+            operator = rule_expression.get("operator", "OR").upper()
+            match_results = []
+
             # 检查角色
             required_roles = rule_expression.get("roles", [])
             if required_roles:
                 account_roles = permissions.get("oracle_roles", [])
-                for required_role in required_roles:
-                    if required_role not in account_roles:
-                        return False
+                if isinstance(account_roles, list):
+                    roles_set = set(account_roles)
+                else:
+                    roles_set = {r["role"] if isinstance(r, dict) else r for r in account_roles}
+                
+                roles_match = all(role in roles_set for role in required_roles)
+                match_results.append(roles_match)
 
             # 检查系统权限
             required_system_perms = rule_expression.get("system_privileges", [])
             if required_system_perms:
                 account_system_perms = permissions.get("system_privileges", [])
-                for required_perm in required_system_perms:
-                    if required_perm not in account_system_perms:
-                        return False
+                if isinstance(account_system_perms, list):
+                    system_perms_set = set(account_system_perms)
+                else:
+                    system_perms_set = {p["privilege"] for p in account_system_perms if p.get("granted", False)}
+                
+                system_perms_match = all(perm in system_perms_set for perm in required_system_perms)
+                match_results.append(system_perms_match)
 
-            return True
+            # 检查表空间权限
+            required_tablespace_perms = rule_expression.get("tablespace_privileges", [])
+            if required_tablespace_perms:
+                tablespace_perms = permissions.get("tablespace_privileges", {})
+                if tablespace_perms:
+                    tablespace_perms_match = False
+                    for tablespace_name, ts_perms in tablespace_perms.items():
+                        if isinstance(ts_perms, list):
+                            ts_perms_set = set(ts_perms)
+                        else:
+                            ts_perms_set = {p["privilege"] for p in ts_perms if p.get("granted", False)}
+                        
+                        if any(perm in ts_perms_set for perm in required_tablespace_perms):
+                            tablespace_perms_match = True
+                            break
+                    
+                    match_results.append(tablespace_perms_match)
+
+            # 检查表空间配额
+            required_tablespace_quotas = rule_expression.get("tablespace_quotas", [])
+            if required_tablespace_quotas:
+                tablespace_quotas = permissions.get("tablespace_quotas", {})
+                if tablespace_quotas:
+                    tablespace_quotas_match = False
+                    for tablespace_name, quota_info in tablespace_quotas.items():
+                        if isinstance(quota_info, list):
+                            quota_set = set(quota_info)
+                        else:
+                            quota_set = {q["quota"] if isinstance(q, dict) else q for q in quota_info}
+                        
+                        if any(quota in quota_set for quota in required_tablespace_quotas):
+                            tablespace_quotas_match = True
+                            break
+                    
+                    match_results.append(tablespace_quotas_match)
+
+            # 根据操作符决定匹配逻辑
+            if not match_results:
+                return True
+
+            if operator == "AND":
+                return all(match_results)
+            return any(match_results)
 
         except Exception as e:
             log_error(f"评估Oracle规则失败: {e}", module="account_classification")
