@@ -65,7 +65,13 @@ function renderSessions(sessions) {
         // 计算成功率百分比 - 始终基于成功实例数
         let progressPercentage = 0;
         if (totalInstances > 0) {
-            progressPercentage = Math.round((successfulInstances / totalInstances) * 100);
+            // 使用Math.floor确保不会超过100%，避免四舍五入导致的显示不一致
+            const rawPercentage = (successfulInstances / totalInstances) * 100;
+            progressPercentage = Math.floor(rawPercentage * 100) / 100; // 保留2位小数
+            progressPercentage = Math.min(progressPercentage, 100); // 确保不超过100%
+            
+            // 调试信息：输出实际数据
+            console.log(`会话 ${session.session_id.substring(0, 8)}: 成功=${successfulInstances}, 失败=${failedInstances}, 总计=${totalInstances}, 原始百分比=${rawPercentage.toFixed(4)}, 最终百分比=${progressPercentage}`);
         }
         
         // 根据成功率确定进度条颜色和样式
