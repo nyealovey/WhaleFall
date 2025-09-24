@@ -1802,9 +1802,12 @@ function deleteRule(id) {
 
 // 自动分类所有账户
 function autoClassifyAll() {
-    if (!confirm('确定要对所有账户进行自动分类吗？')) {
-        return;
-    }
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+
+    // 更新按钮状态
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>分类中...';
+    btn.disabled = true;
 
     // 记录操作开始日志
     logUserAction('开始自动分类所有账户', { operation: 'auto_classify_all' });
@@ -1827,6 +1830,10 @@ function autoClassifyAll() {
                 message: data.message
             });
             showAlert('success', data.message);
+            // 分类完成后刷新页面显示最新数据
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
         } else {
             // 记录失败日志
             logError('自动分类所有账户失败', {
@@ -1844,6 +1851,11 @@ function autoClassifyAll() {
             result: 'exception'
         });
         showAlert('danger', '自动分类失败');
+    })
+    .finally(() => {
+        // 恢复按钮状态
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     });
 }
 
