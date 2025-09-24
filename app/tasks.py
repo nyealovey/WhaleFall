@@ -159,24 +159,42 @@ def sync_accounts(**kwargs):
 
             for instance in instances:
                 task_logger.info(f"开始同步实例: {instance.name} (ID: {instance.id})")
+                
+                # 找到对应的记录
+                record = next((r for r in records if r.instance_id == instance.id), None)
+                if not record:
+                    task_logger.warning(f"未找到实例 {instance.name} 的同步记录，跳过")
+                    continue
+                
                 try:
+                    # 开始实例同步 - 将状态从pending改为running
+                    sync_session_service.start_instance_sync(record.id)
+                    
                     # 使用统一的账户同步服务，与"同步所有账户"相同的逻辑
                     result = account_sync_service.sync_accounts(
                         instance, sync_type="scheduled_task", session_id=session.session_id
                     )
                     
-                    if not result["success"]:
+                    if result["success"]:
+                        # 完成实例同步
+                        sync_session_service.complete_instance_sync(
+                            record.id,
+                            accounts_synced=result.get("synced_count", 0),
+                            accounts_created=result.get("added_count", 0),
+                            accounts_updated=result.get("modified_count", 0),
+                            accounts_deleted=result.get("removed_count", 0),
+                            sync_details=result.get("details", {}),
+                        )
+                        task_logger.info(f"实例同步成功: {instance.name}")
+                    else:
                         task_logger.error(f"实例同步失败: {instance.name}", error=result.get("error", "未知错误"))
-                        # 找到对应的记录并标记为失败
-                        record = next((r for r in records if r.instance_id == instance.id), None)
-                        if record:
-                            sync_session_service.fail_instance_sync(record.id, result.get("error", "同步失败"))
+                        # 标记为失败
+                        sync_session_service.fail_instance_sync(record.id, result.get("error", "同步失败"))
+                        
                 except Exception as e:
                     task_logger.error(f"触发实例同步时发生意外错误: {instance.name}", error=str(e))
-                    # 找到对应的记录并标记为失败
-                    record = next((r for r in records if r.instance_id == instance.id), None)
-                    if record:
-                        sync_session_service.fail_instance_sync(record.id, str(e))
+                    # 标记为失败
+                    sync_session_service.fail_instance_sync(record.id, str(e))
 
             # 5. 任务结束
             # 会话的最终状态将由最后一个完成的实例同步操作在 `sync_session_service` 中更新
