@@ -193,6 +193,16 @@ function deleteTag(tagId, tagName) {
     deleteModal.show();
 }
 
+// 处理删除按钮点击事件
+function handleDeleteClick(event) {
+    const button = event.target.closest('button[data-tag-id]');
+    if (button) {
+        const tagId = button.getAttribute('data-tag-id');
+        const tagName = button.getAttribute('data-tag-name');
+        deleteTag(tagId, tagName);
+    }
+}
+
 // 切换所有标签选择
 function toggleAllTags(checked) {
     const tagCheckboxes = document.querySelectorAll('input[name="tag_ids"]');
@@ -441,6 +451,12 @@ function exportTags(format = 'csv') {
     const url = `${window.location.pathname}?${searchParams.toString()}`;
     window.open(url, '_blank');
 }
+
+// 页面加载完成后绑定事件监听器
+document.addEventListener('DOMContentLoaded', function() {
+    // 绑定删除按钮点击事件
+    document.addEventListener('click', handleDeleteClick);
+});
 
 // 导出函数供全局使用
 window.deleteTag = deleteTag;
