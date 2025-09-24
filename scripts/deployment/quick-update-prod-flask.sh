@@ -370,7 +370,11 @@ wait_for_service_ready() {
     log_info "等待Flask应用完全启动..."
     local count=0
     
-    while [ $count -lt 60 ]; do
+    # 先等待一段时间让服务完全启动
+    log_info "等待服务完全启动（30秒）..."
+    sleep 30
+    
+    while [ $count -lt 30 ]; do
         log_info "第 $((count + 1)) 次检查服务状态..."
         
         # 检查端口5001
@@ -378,7 +382,7 @@ wait_for_service_ready() {
         http_status_5001=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health 2>/dev/null)
         log_info "端口5001状态码: $http_status_5001"
         
-        if [ "$http_status_5001" = "200" ]; then
+        if echo "$http_status_5001" | grep -q "200"; then
             log_success "端口5001检查通过，服务已就绪"
             return 0
         fi
@@ -388,7 +392,7 @@ wait_for_service_ready() {
         http_status_80=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/health 2>/dev/null)
         log_info "端口80状态码: $http_status_80"
         
-        if [ "$http_status_80" = "200" ]; then
+        if echo "$http_status_80" | grep -q "200"; then
             log_success "端口80检查通过，服务已就绪"
             return 0
         fi
@@ -398,13 +402,20 @@ wait_for_service_ready() {
         http_status_nginx=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health 2>/dev/null)
         log_info "Nginx代理状态码: $http_status_nginx"
         
-        if [ "$http_status_nginx" = "200" ]; then
+        if echo "$http_status_nginx" | grep -q "200"; then
             log_success "Nginx代理检查通过，服务已就绪"
             return 0
         fi
         
-        log_info "所有端口检查都失败，等待5秒后重试..."
-        sleep 5
+        # 如果返回503，说明服务正在启动中，继续等待
+        if echo "$http_status_5001" | grep -q "503" || echo "$http_status_80" | grep -q "503" || echo "$http_status_nginx" | grep -q "503"; then
+            log_info "服务正在启动中（503状态），等待10秒后重试..."
+            sleep 10
+        else
+            log_info "所有端口检查都失败，等待5秒后重试..."
+            sleep 5
+        fi
+        
         count=$((count + 1))
     done
     
