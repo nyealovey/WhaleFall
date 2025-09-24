@@ -125,12 +125,20 @@ def api_create_user() -> "Response":
     """创建用户API"""
     try:
         data = request.get_json()
+        
+        # 添加调试日志
+        log_info(
+            "创建用户请求",
+            module="user_management",
+            user_id=current_user.id,
+            request_data=data
+        )
 
         # 验证必填字段
         required_fields = ["username", "password", "role"]
         for field in required_fields:
             if not data.get(field):
-                return APIResponse.error("缺少必填字段: {field}")
+                return APIResponse.error(f"缺少必填字段: {field}")
 
         username = data["username"].strip()
         password = data["password"]
