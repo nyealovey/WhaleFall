@@ -616,11 +616,12 @@ async function loadTagsForBatchAssign() {
             if (data.tags.length > 0) {
                 // 按分类分组标签
                 const groupedTags = groupTagsByCategory(data.tags);
+                const categoryNames = data.category_names || {};
                 let html = '<div class="tag-groups">';
                 
                 // 生成分组HTML
                 Object.keys(groupedTags).forEach(category => {
-                    const categoryName = getCategoryDisplayName(category);
+                    const categoryName = categoryNames[category] || category;
                     const tags = groupedTags[category];
                     const groupId = `tag-group-${category}`;
                     
@@ -693,17 +694,6 @@ function groupTagsByCategory(tags) {
     return grouped;
 }
 
-// 获取分类显示名称
-function getCategoryDisplayName(category) {
-    const categoryNames = {
-        'location': '地区标签',
-        'company_type': '公司类型',
-        'environment': '环境标签',
-        'architecture': '架构类型',
-        'custom': '自定义标签'
-    };
-    return categoryNames[category] || category;
-}
 
 // 切换标签分组展开/合拢
 function toggleTagGroup(groupId) {

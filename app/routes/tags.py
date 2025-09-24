@@ -117,7 +117,16 @@ def api_all_tags() -> Response:
     try:
         tags = Tag.query.all()
         tags_data = [tag.to_dict() for tag in tags]
-        return jsonify({"success": True, "tags": tags_data})
+        
+        # 获取分类名称映射
+        category_choices = Tag.get_category_choices()
+        category_names = dict(category_choices)
+        
+        return jsonify({
+            "success": True, 
+            "tags": tags_data,
+            "category_names": category_names
+        })
     except Exception as e:
         log_error(
             "获取所有标签列表失败",
