@@ -195,6 +195,10 @@
     }
 }
 
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
 /* 图表图例样式 */
 .chart-legend {
     display: flex;
