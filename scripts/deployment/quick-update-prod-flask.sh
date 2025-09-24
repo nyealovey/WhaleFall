@@ -211,16 +211,16 @@ copy_code_to_container() {
     
     log_info "找到 $file_count 个文件，开始更新容器代码..."
     
-    # 先清理容器内的旧代码（保留重要目录）
+    # 先清理容器内的旧代码（保留重要配置文件）
     log_info "清理容器内的旧代码..."
     if docker exec "$flask_container_id" bash -c "
         # 删除应用代码目录
         rm -rf /app/app /app/migrations /app/sql /app/docs /app/tests /app/scripts 2>/dev/null || true
         
-        # 删除根目录的Python文件
-        rm -f /app/*.py 2>/dev/null || true
+        # 删除根目录的Python文件（保留重要的配置文件）
+        rm -f /app/app.py /app/wsgi.py 2>/dev/null || true
         
-        # 删除配置文件
+        # 删除文档和配置文件（保留重要的配置文件）
         rm -f /app/*.md /app/*.txt /app/*.toml /app/*.yml /app/*.yaml /app/*.sh /app/*.ini /app/*.lock 2>/dev/null || true
         
         # 清理Python缓存
@@ -245,6 +245,31 @@ copy_code_to_container() {
         log_error "新代码拷贝失败"
         rm -rf "$temp_dir"
         exit 1
+    fi
+    
+    # 恢复重要的配置文件（如果被清理了）
+    log_info "恢复重要的配置文件..."
+    if docker exec "$flask_container_id" bash -c "
+        # 如果gunicorn.conf.py不存在，从nginx目录复制
+        if [ ! -f /app/gunicorn.conf.py ]; then
+            if [ -f /app/nginx/gunicorn/gunicorn-prod.conf.py ]; then
+                cp /app/nginx/gunicorn/gunicorn-prod.conf.py /app/gunicorn.conf.py
+                echo '已恢复gunicorn.conf.py'
+            fi
+        fi
+        
+        # 确保其他重要配置文件存在
+        if [ ! -f /app/app.py ] && [ -f /app/app.py ]; then
+            echo 'app.py已存在'
+        fi
+        
+        if [ ! -f /app/wsgi.py ] && [ -f /app/wsgi.py ]; then
+            echo 'wsgi.py已存在'
+        fi
+    "; then
+        log_success "重要配置文件检查完成"
+    else
+        log_warning "配置文件检查失败，但继续执行"
     fi
     
     # 清理临时目录
