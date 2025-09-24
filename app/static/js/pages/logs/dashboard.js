@@ -1,13 +1,24 @@
-(function() {
+/**
+ * 日志仪表板页面JavaScript
+ * 处理日志搜索、筛选、分页、详情查看等功能
+ */
+
+// 全局变量
 let currentPage = 1;
 let currentFilters = {};
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
+    initializePage();
+});
+
+// 初始化页面
+function initializePage() {
     loadModules();
     loadStats();
     searchLogs();
-});
+    console.log('日志仪表板页面已加载');
+}
 
 // 加载模块列表
 function loadModules() {
@@ -15,17 +26,27 @@ function loadModules() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const moduleSelect = document.getElementById('moduleFilter');
-                moduleSelect.innerHTML = '<option value="">全部模块</option>';
-                data.data.modules.forEach(module => {
-                    const option = document.createElement('option');
-                    option.value = module;
-                    option.textContent = module;
-                    moduleSelect.appendChild(option);
-                });
+                updateModuleFilter(data.data.modules);
             }
         })
-        .catch(error => console.error('Error loading modules:', error));
+        .catch(error => {
+            console.error('Error loading modules:', error);
+            showError('加载模块列表失败');
+        });
+}
+
+// 更新模块筛选器
+function updateModuleFilter(modules) {
+    const moduleSelect = document.getElementById('moduleFilter');
+    if (moduleSelect) {
+        moduleSelect.innerHTML = '<option value="">全部模块</option>';
+        modules.forEach(module => {
+            const option = document.createElement('option');
+            option.value = module;
+            option.textContent = module;
+            moduleSelect.appendChild(option);
+        });
+    }
 }
 
 // 加载统计信息
@@ -34,13 +55,31 @@ function loadStats() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                document.getElementById('totalLogs').textContent = data.data.total_logs || 0;
-                document.getElementById('errorLogs').textContent = data.data.error_logs || 0;
-                document.getElementById('warningLogs').textContent = data.data.warning_logs || 0;
-                document.getElementById('modulesCount').textContent = data.data.modules_count || 0;
+                updateStatsDisplay(data.data);
             }
         })
-        .catch(error => console.error('Error loading stats:', error));
+        .catch(error => {
+            console.error('Error loading stats:', error);
+            showError('加载统计信息失败');
+        });
+}
+
+// 更新统计信息显示
+function updateStatsDisplay(stats) {
+    const elements = {
+        'totalLogs': stats.total_logs || 0,
+        'errorLogs': stats.error_logs || 0,
+        'warningLogs': stats.warning_logs || 0,
+        'modulesCount': stats.modules_count || 0
+    };
+    
+    Object.entries(elements).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+            element.classList.add('fade-in');
+        }
+    });
 }
 
 // 搜索日志
@@ -66,8 +105,7 @@ function searchLogs(page = 1) {
     });
 
     // 显示加载状态
-    document.getElementById('logsContainer').innerHTML = 
-        '<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i>搜索中...</div>';
+    showLoadingState();
 
     // 发送请求
     fetch(`/logs/api/search?${params}`)
@@ -77,15 +115,21 @@ function searchLogs(page = 1) {
                 displayLogs(data.data.logs);
                 displayPagination(data.data.pagination);
             } else {
-                document.getElementById('logsContainer').innerHTML = 
-                    '<div class="no-logs">搜索失败: ' + data.message + '</div>';
+                showError('搜索失败: ' + data.message);
             }
         })
         .catch(error => {
             console.error('Error searching logs:', error);
-            document.getElementById('logsContainer').innerHTML = 
-                '<div class="no-logs">搜索出错: ' + error.message + '</div>';
+            showError('搜索出错: ' + error.message);
         });
+}
+
+// 显示加载状态
+function showLoadingState() {
+    const container = document.getElementById('logsContainer');
+    if (container) {
+        container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i>搜索中...</div>';
+    }
 }
 
 // 显示日志列表
@@ -97,83 +141,66 @@ function displayLogs(logs) {
         return;
     }
 
-    let html = `
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>日志ID</th>
-                        <th>时间</th>
-                        <th>级别</th>
-                        <th>模块</th>
-                        <th>消息</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-    
+    let html = '';
     logs.forEach(log => {
-        // 更准确地检查上下文：排除空对象和只有null值的对象
-        const hasContext = log.context && 
-                          typeof log.context === 'object' && 
-                          Object.keys(log.context).length > 0 &&
-                          Object.values(log.context).some(value => value !== null && value !== undefined && value !== '');
-        
-        const hasTraceback = log.traceback && log.traceback.trim().length > 0;
-        
-        html += `
-            <tr>
-                <td><code>${log.id}</code></td>
-                <td>${formatTime(log.timestamp, 'datetime')}</td>
-                <td>
-                    <span class="badge bg-${getLevelColor(log.level)}">
-                        ${log.level}
-                    </span>
-                </td>
-                <td><code>${log.module}</code></td>
-                <td class="text-truncate" style="max-width: 400px;" title="${log.message}">
-                    ${log.message}
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="viewLogDetail(${log.id})" title="查看详情">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    ${hasContext ? `
-                        <button class="btn btn-sm btn-outline-info me-1" onclick="viewLogContext(${log.id})" title="查看上下文">
-                            <i class="fas fa-info-circle"></i>
-                        </button>
-                    ` : ''}
-                    ${hasTraceback ? `
-                        <button class="btn btn-sm btn-outline-warning me-1" onclick="viewLogDebug(${log.id})" title="查看调试信息">
-                            <i class="fas fa-bug"></i>
-                        </button>
-                    ` : ''}
-                </td>
-            </tr>
-        `;
+        html += createLogEntryHTML(log);
     });
     
-    html += `
-                </tbody>
-            </table>
+    container.innerHTML = html;
+}
+
+// 创建日志条目HTML
+function createLogEntryHTML(log) {
+    const levelClass = `log-level-${log.level}`;
+    const levelBadge = getLevelBadgeHTML(log.level);
+    const moduleBadge = log.module ? `<span class="module-badge">${log.module}</span>` : '';
+    const timestamp = formatTime(log.timestamp, 'datetime');
+    const message = highlightSearchTerm(log.message, currentFilters.q);
+    
+    return `
+        <div class="log-entry ${levelClass}" onclick="viewLogDetail(${log.id})">
+            <div class="log-header">
+                <div>
+                    ${levelBadge}
+                    ${moduleBadge}
+                    <span class="timestamp-display">${timestamp}</span>
+                </div>
+                <div>
+                    <span class="log-id-display">ID: ${log.id}</span>
+                </div>
+            </div>
+            <div class="log-message">${message}</div>
         </div>
     `;
+}
+
+// 获取级别徽章HTML
+function getLevelBadgeHTML(level) {
+    const colors = {
+        'DEBUG': 'secondary',
+        'INFO': 'info',
+        'WARNING': 'warning',
+        'ERROR': 'danger',
+        'CRITICAL': 'dark'
+    };
+    const color = colors[level] || 'secondary';
+    return `<span class="badge bg-${color} log-level-badge">${level}</span>`;
+}
+
+// 高亮搜索词
+function highlightSearchTerm(text, searchTerm) {
+    if (!searchTerm) return text;
     
-    container.innerHTML = html;
+    const regex = new RegExp(`(${searchTerm})`, 'gi');
+    return text.replace(regex, '<span class="search-highlight">$1</span>');
 }
 
 // 显示分页
 function displayPagination(pagination) {
     const container = document.getElementById('paginationContainer');
+    if (!container) return;
     
-    
-    if (!pagination || pagination.pages <= 1) {
-        container.innerHTML = '';
-        return;
-    }
-
-    let html = '<nav aria-label="日志分页"><ul class="pagination justify-content-center">';
+    let html = '<nav><ul class="pagination">';
     
     // 上一页
     if (pagination.has_prev) {
@@ -225,47 +252,62 @@ function viewLogDetail(logId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const log = data.data.log;
-                const content = document.getElementById('logDetailContent');
-                
-                content.innerHTML = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>时间:</strong> ${formatTime(log.timestamp, 'datetime')}<br>
-                            <strong>级别:</strong> <span class="badge bg-${getLevelColor(log.level)}">${log.level}</span><br>
-                            <strong>模块:</strong> <span class="badge bg-secondary">${log.module}</span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>ID:</strong> <code>${log.id}</code><br>
-                            <strong>创建时间:</strong> ${formatTime(log.created_at, 'datetime')}
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="mb-3">
-                        <strong>消息:</strong><br>
-                        <div class="alert alert-info">${log.message}</div>
-                    </div>
-                    ${log.context ? `
-                        <div class="mb-3">
-                            <strong>上下文:</strong><br>
-                            <div class="log-context" style="margin-top: 8px;">${formatJSON(log.context)}</div>
-                        </div>
-                    ` : ''}
-                    ${log.traceback ? `
-                        <div class="mb-3">
-                            <strong>堆栈追踪:</strong><br>
-                            <div class="log-traceback" style="margin-top: 8px;">${log.traceback}</div>
-                        </div>
-                    ` : ''}
-                `;
-                
-                new bootstrap.Modal(document.getElementById('logDetailModal')).show();
+                displayLogDetail(data.data.log);
+            } else {
+                showError('加载日志详情失败: ' + data.message);
             }
         })
         .catch(error => {
             console.error('Error loading log detail:', error);
-            console.error('加载日志详情失败:', error.message);
+            showError('加载日志详情失败: ' + error.message);
         });
+}
+
+// 显示日志详情
+function displayLogDetail(log) {
+    const content = document.getElementById('logDetailContent');
+    if (!content) return;
+    
+    const levelBadge = getLevelBadgeHTML(log.level);
+    const moduleBadge = log.module ? `<span class="badge bg-secondary">${log.module}</span>` : '';
+    const timestamp = formatTime(log.timestamp, 'datetime');
+    const createdAt = formatTime(log.created_at, 'datetime');
+    
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <strong>时间:</strong> ${timestamp}<br>
+                <strong>级别:</strong> ${levelBadge}<br>
+                <strong>模块:</strong> ${moduleBadge}
+            </div>
+            <div class="col-md-6">
+                <strong>ID:</strong> <code>${log.id}</code><br>
+                <strong>创建时间:</strong> ${createdAt}
+            </div>
+        </div>
+        <hr>
+        <div class="mb-3">
+            <strong>消息:</strong><br>
+            <div class="alert alert-info">${log.message}</div>
+        </div>
+        ${log.context ? `
+            <div class="mb-3">
+                <strong>上下文:</strong><br>
+                <div class="json-context">${formatJSON(log.context)}</div>
+            </div>
+        ` : ''}
+        ${log.traceback ? `
+            <div class="mb-3">
+                <strong>堆栈追踪:</strong><br>
+                <div class="traceback-content">${log.traceback}</div>
+            </div>
+        ` : ''}
+    `;
+    
+    const modal = document.getElementById('logDetailModal');
+    if (modal) {
+        new bootstrap.Modal(modal).show();
+    }
 }
 
 // 获取级别颜色
@@ -280,113 +322,90 @@ function getLevelColor(level) {
     return colors[level] || 'secondary';
 }
 
-// 格式化JSON显示
+// 格式化JSON
 function formatJSON(obj) {
-    if (!obj) return '';
-    try {
-        return JSON.stringify(obj, null, 2);
-    } catch (e) {
-        return String(obj);
+    if (typeof obj === 'string') {
+        try {
+            obj = JSON.parse(obj);
+        } catch (e) {
+            return obj;
+        }
     }
+    return JSON.stringify(obj, null, 2);
 }
 
-// 使用统一的时间格式化函数
-// formatTimestamp 函数已由 time-utils.js 提供
-
-// 导出日志
-function exportLogs(format) {
-    const params = new URLSearchParams(currentFilters);
-    params.append('format', format);
+// 格式化时间
+function formatTime(timeString, format = 'datetime') {
+    if (typeof window.formatChinaTime === 'function') {
+        return window.formatChinaTime(timeString, format);
+    }
     
-    window.open(`/logs/api/export?${params}`, '_blank');
+    // 备用格式化函数
+    const date = new Date(timeString);
+    const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: 'Asia/Shanghai'
+    };
+    
+    return date.toLocaleString('zh-CN', options);
 }
 
-// 查看日志上下文
-function viewLogContext(logId) {
-    fetch(`/logs/api/detail/${logId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const log = data.data.log;
-                const content = document.getElementById('logDetailContent');
-                
-                content.innerHTML = `
-                    <div class="mb-3">
-                        <h6><i class="fas fa-info-circle me-2"></i>日志上下文信息</h6>
-                        <hr>
-                    </div>
-                    <div class="mb-3">
-                        <strong>日志ID:</strong> <code>${log.id}</code><br>
-                        <strong>模块:</strong> <span class="badge bg-secondary">${log.module}</span><br>
-                        <strong>级别:</strong> <span class="badge bg-${getLevelColor(log.level)}">${log.level}</span>
-                    </div>
-                    <div class="mb-3">
-                        <strong>上下文数据:</strong><br>
-                        <div class="log-context" style="margin-top: 8px;">${log.context ? formatJSON(log.context) : '暂无上下文信息'}</div>
-                    </div>
-                `;
-                
-                document.getElementById('logDetailModal').querySelector('.modal-title').textContent = '日志上下文';
-                new bootstrap.Modal(document.getElementById('logDetailModal')).show();
-            }
-        })
-        .catch(error => {
-            console.error('Error loading log context:', error);
-            console.error('加载日志上下文失败:', error.message);
-        });
+// 重置筛选器
+function resetFilters() {
+    document.getElementById('levelFilter').value = '';
+    document.getElementById('moduleFilter').value = '';
+    document.getElementById('searchTerm').value = '';
+    document.getElementById('timeRange').value = '24';
+    
+    searchLogs(1);
 }
 
-// 查看调试信息
-function viewLogDebug(logId) {
-    fetch(`/logs/api/detail/${logId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const log = data.data.log;
-                const content = document.getElementById('logDetailContent');
-                
-                content.innerHTML = `
-                    <div class="mb-3">
-                        <h6><i class="fas fa-bug me-2"></i>调试信息</h6>
-                        <hr>
-                    </div>
-                    <div class="mb-3">
-                        <strong>日志ID:</strong> <code>${log.id}</code><br>
-                        <strong>模块:</strong> <span class="badge bg-secondary">${log.module}</span><br>
-                        <strong>级别:</strong> <span class="badge bg-${getLevelColor(log.level)}">${log.level}</span><br>
-                        <strong>时间:</strong> ${formatTime(log.timestamp, 'datetime')}
-                    </div>
-                    <div class="mb-3">
-                        <strong>错误消息:</strong><br>
-                        <div class="alert alert-danger border-0">${log.message}</div>
-                    </div>
-                    <div class="mb-3">
-                        <strong>堆栈追踪:</strong><br>
-                        <div class="log-traceback" style="margin-top: 8px;">${log.traceback || '暂无堆栈追踪信息'}</div>
-                    </div>
-                    ${log.context ? `
-                        <div class="mb-3">
-                            <strong>调试上下文:</strong><br>
-                            <div class="log-context" style="margin-top: 8px;">${formatJSON(log.context)}</div>
-                        </div>
-                    ` : ''}
-                `;
-                
-                document.getElementById('logDetailModal').querySelector('.modal-title').textContent = '调试信息';
-                new bootstrap.Modal(document.getElementById('logDetailModal')).show();
-            }
-        })
-        .catch(error => {
-            console.error('Error loading log debug info:', error);
-            console.error('加载调试信息失败:', error.message);
-        });
-}
-
-
-// 回车搜索
-document.getElementById('searchTerm').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        searchLogs();
+// 显示错误信息
+function showError(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    if (container) {
+        container.insertBefore(alertDiv, container.firstChild);
     }
-});
-})();
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// 显示成功信息
+function showSuccess(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        <i class="fas fa-check-circle me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    if (container) {
+        container.insertBefore(alertDiv, container.firstChild);
+    }
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+
+// 导出函数供全局使用
+window.searchLogs = searchLogs;
+window.viewLogDetail = viewLogDetail;
+window.resetFilters = resetFilters;
