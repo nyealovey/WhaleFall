@@ -196,11 +196,30 @@ def sync_accounts(**kwargs):
                     # 标记为失败
                     sync_session_service.fail_instance_sync(record.id, str(e))
 
-            # 5. 任务结束
-            # 会话的最终状态将由最后一个完成的实例同步操作在 `sync_session_service` 中更新
+            # 5. 任务结束 - 检查所有实例状态
+            task_logger.info("所有实例同步任务已触发，检查最终状态...")
+            
+            # 等待一小段时间让所有实例完成
+            import time
+            time.sleep(2)
+            
+            # 检查最终状态
+            final_records = sync_session_service.get_session_records(session.session_id)
+            pending_count = len([r for r in final_records if r.status == "pending"])
+            running_count = len([r for r in final_records if r.status == "running"])
+            completed_count = len([r for r in final_records if r.status == "completed"])
+            failed_count = len([r for r in final_records if r.status == "failed"])
+            
             task_logger.info(
-                "所有实例同步任务已触发。请在同步会话页面查看最终结果。"
+                f"最终状态统计 - 总计: {len(final_records)}, "
+                f"待处理: {pending_count}, 运行中: {running_count}, "
+                f"已完成: {completed_count}, 已失败: {failed_count}"
             )
+            
+            # 强制更新会话统计
+            sync_session_service._update_session_statistics(session.session_id)
+            
+            task_logger.info("请在同步会话页面查看最终结果。")
 
         except Exception as e:
             task_logger.error(f"执行定时账户同步任务时发生严重错误: {str(e)}")
