@@ -20,7 +20,7 @@ from app.utils.structlog_config import get_system_logger
 from app.utils.timezone import now
 
 # 常量: 内置任务ID集合（统一前后端识别）
-BUILTIN_TASK_IDS: set[str] = {"cleanup_logs", "sync_all_accounts"}
+BUILTIN_TASK_IDS: set[str] = {"cleanup_logs", "sync_accounts"}
 
 # 初始化日志记录器
 system_logger = get_system_logger()
@@ -442,184 +442,75 @@ def run_job(job_id: str) -> Response:
         return APIResponse.error(f"执行任务失败: {error_str}")  # type: ignore
 
 
-def _get_task_function(func_name: str) -> Callable[..., Any] | None:
-    """获取任务函数"""
-    from app.tasks import cleanup_old_logs, sync_accounts
+@scheduler_bp.route("/api/jobs/by-func", methods=["POST"])  # type: ignore[misc]
+@login_required  # type: ignore
+@scheduler_manage_required  # type: ignore
+def create_job_by_func() -> Response:
+    """通过内置任务函数创建定时任务
 
-    # 任务函数映射
-    task_functions = {
-        "cleanup_old_logs": cleanup_old_logs,
-        "sync_accounts": sync_accounts,
-    }
+    请求体示例:
+        {
+            "name": "账户同步",
+            "func": "sync_accounts",            # 或 "cleanup_old_logs" 等受支持的函数
+            "trigger_type": "cron",            # cron | interval | date
+            # cron: 可提交 cron_expression 或 cron_* 单字段（与 _build_trigger 兼容）
+            # interval: 提交 minutes/seconds（或 weeks/days/hours 等）
+            # date: 提交 run_date（ISO8601 或 datetime-local 格式字符串）
+            "id": "可选-自定义任务ID"
+        }
 
-    return task_functions.get(func_name)
-
-
-def _create_dynamic_task_function(job_id: str, code: str) -> Callable[..., Any] | None:
-    """创建动态任务函数"""
+    Returns:
+        Response: 标准化的 JSON 响应，成功时返回 {"job_id": "..."}
+    """
     try:
-        import os
-        import sys
+        data = request.get_json() or {}
+        system_logger.info("按函数创建任务请求数据: %s", data)
 
-        # 创建动态任务目录
-        dynamic_tasks_dir = "userdata/dynamic_tasks"
-        os.makedirs(dynamic_tasks_dir, exist_ok=True)
+        # 基础字段校验
+        required_fields = ["name", "func", "trigger_type"]
+        for field in required_fields:
+            if field not in data:
+                return APIResponse.error(f"缺少必需字段: {field}", code=400)  # type: ignore
 
-        # 生成任务文件路径
-        task_file = os.path.join(dynamic_tasks_dir, f"{job_id}.py")
+        # 构建触发器（兼容 cron/interval/date）
+        trigger = _build_trigger(data)
+        if not trigger:
+            return APIResponse.error("无效的触发器配置", code=400)  # type: ignore
 
-        # 创建完整的任务代码
-        full_code = f'''"""
-动态任务: {job_id}
-创建时间: {now().isoformat()}
-"""
+        # 解析任务函数
+        func_name = str(data.get("func"))
+        task_func = _get_task_function(func_name)
+        if task_func is None:
+            return APIResponse.error(f"未知的执行函数: {func_name}", code=400)  # type: ignore
 
-from app import create_app, db
+        # 调度器状态检查
+        scheduler = get_scheduler()  # type: ignore
+        if not scheduler.running:
+            return APIResponse.error("调度器未启动", code=500)  # type: ignore
 
-{code}
+        # 生成任务ID（未传入则使用 函数名_时间戳）
+        job_id = data.get("id")
+        if not job_id:
+            import time as _time
+            job_id = f"{func_name}_{int(_time.time())}"
 
-def task_wrapper():
-    """任务包装器"""
-    try:
-        system_logger.info("开始执行动态任务: {job_id}")
-        result = execute_task()
-        system_logger.info("动态任务 {job_id} 执行完成: {{result}}")
-        return result
-    except Exception as e:
-        system_logger.error("动态任务 {job_id} 执行失败: {{e}}")
-        return f"任务执行失败: {{e}}"
-'''
+        # 创建任务
+        job = scheduler.add_job(
+            func=task_func,
+            trigger=trigger,
+            id=job_id,
+            name=str(data.get("name")),
+            args=[],
+            kwargs={},
+        )
 
-        # 保存任务文件
-        with open(task_file, "w", encoding="utf-8") as f:
-            f.write(full_code)
-
-        # 将动态任务目录添加到Python路径
-        if dynamic_tasks_dir not in sys.path:
-            sys.path.insert(0, dynamic_tasks_dir)
-
-        # 动态导入模块
-        module_name = job_id
-        spec = importlib.util.spec_from_file_location(module_name, task_file)
-        if spec is None or spec.loader is None:
-            system_logger.error("无法创建模块规范: {module_name}")
-            return None
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = module
-        spec.loader.exec_module(module)
-
-        # 返回模块中的task_wrapper函数
-        return getattr(module, "task_wrapper", None)
+        system_logger.info("按函数创建任务成功: %s", job.id)
+        return APIResponse.success(data={"job_id": job.id}, message="任务创建成功")  # type: ignore
 
     except Exception as e:
         error_str = str(e) if e else "未知错误"
-        system_logger.error("创建动态任务函数失败: %s", error_str)
-        return None
-
-
-def _build_trigger(
-    data: dict[str, Any],
-) -> CronTrigger | IntervalTrigger | DateTrigger | None:
-    """构建触发器
-
-    Args:
-        data (dict[str, Any]): 前端提交的数据，支持 cron_expression、cron_* 字段及原始字段名。
-
-    Returns:
-        CronTrigger | IntervalTrigger | DateTrigger | None: 创建好的触发器实例，失败时返回 None。
-    """
-    trigger_type = data.get("trigger_type")
-
-    if trigger_type == "cron":
-        # 兼容多种字段命名与 cron 表达式
-        cron_kwargs: dict[str, Any] = {}
-        expr = str(data.get("cron_expression", "")).strip()
-        expr_parts: list[str] = []
-        if expr:
-            expr_parts = expr.split()
-
-        # 从单字段别名中读取
-        minute = data.get("cron_minute") or data.get("minute")
-        hour = data.get("cron_hour") or data.get("hour")
-        day = data.get("cron_day") or data.get("day")
-        month = data.get("cron_month") or data.get("month")
-        day_of_week = (
-            data.get("cron_weekday")
-            or data.get("cron_day_of_week")
-            or data.get("day_of_week")
-            or data.get("weekday")
-        )
-        second = data.get("cron_second") or data.get("second")
-
-        # 从 cron_expression 中回填（优先级低于单字段）
-        if not second and len(expr_parts) == 6:
-            # 允许表达式为: second minute hour day month day_of_week
-            second, minute_e, hour_e, day_e, month_e, dow_e = expr_parts
-            minute = minute or minute_e
-            hour = hour or hour_e
-            day = day or day_e
-            month = month or month_e
-            day_of_week = day_of_week or dow_e
-        elif len(expr_parts) == 5:
-            # 常见格式: minute hour day month day_of_week
-            minute_e, hour_e, day_e, month_e, dow_e = expr_parts
-            minute = minute or minute_e
-            hour = hour or hour_e
-            day = day or day_e
-            month = month or month_e
-            day_of_week = day_of_week or dow_e
-
-        # 组装 kwargs（None 相当于 *）
-        if year := data.get("year"):
-            cron_kwargs["year"] = year
-        if month is not None:
-            cron_kwargs["month"] = month
-        if day is not None:
-            cron_kwargs["day"] = day
-        if week := data.get("week"):
-            cron_kwargs["week"] = week
-        if day_of_week is not None:
-            cron_kwargs["day_of_week"] = day_of_week
-        if hour is not None:
-            cron_kwargs["hour"] = hour
-        if minute is not None:
-            cron_kwargs["minute"] = minute
-        if second is not None:
-            cron_kwargs["second"] = second
-
-        # 打印日志便于排错
-        try:
-            system_logger.info("构建 CronTrigger 参数: %s", cron_kwargs)
-        except Exception:
-            pass
-
-        return CronTrigger(**cron_kwargs)
-    if trigger_type == "interval":
-        # 过滤掉None值
-        kwargs: dict[str, int] = {}
-        for key in ["weeks", "days", "hours", "minutes", "seconds"]:
-            value = data.get(key)
-            if value is not None:
-                try:
-                    # 统一转换为 int，忽略非正值
-                    iv = int(value)
-                    if iv > 0:
-                        kwargs[key] = iv
-                except Exception:
-                    continue
-
-        if not kwargs:
-            return None
-
-        return IntervalTrigger(**kwargs)
-    if trigger_type == "date":
-        run_date = data.get("run_date")
-        if run_date:
-            from datetime import datetime
-
-            return DateTrigger(run_date=datetime.fromisoformat(run_date))
-
-    return None
+        system_logger.error("按函数创建任务失败: %s", error_str)
+        return APIResponse.error(f"创建任务失败: {error_str}")  # type: ignore
 
 
 @scheduler_bp.route("/api/jobs/<job_id>", methods=["DELETE"])
@@ -663,7 +554,7 @@ def purge_jobs() -> Response:
     """批量清理任务，仅保留指定任务ID列表。
 
     请求体示例：
-        {"keep_ids": ["cleanup_logs", "sync_all_accounts"], "include_builtin": false}
+        {"keep_ids": ["cleanup_logs", "sync_accounts"], "include_builtin": false}
 
     说明：
         - keep_ids: 需要保留的任务ID列表；
@@ -711,3 +602,242 @@ def purge_jobs() -> Response:
         error_str = str(e) if e else "未知错误"
         system_logger.error("批量清理任务失败: %s", error_str)
         return APIResponse.error(f"批量清理任务失败: {error_str}")  # type: ignore
+
+
+# 辅助函数
+
+def _get_task_function(func_name: str) -> Callable[..., Any] | None:
+    """根据名称获取任务函数。
+
+    Args:
+        func_name (str): 前端传入的函数名或其别名。
+
+    Returns:
+        Callable[..., Any] | None: 可调用任务函数，未知名称时返回 None。
+    """
+    # 延迟导入以避免循环依赖
+    from app.tasks import cleanup_old_logs, sync_accounts  # type: ignore
+
+    # 任务函数映射与别名
+    task_functions: dict[str, Callable[..., Any]] = {
+        # 标准名称
+        "cleanup_old_logs": cleanup_old_logs,
+        "sync_accounts": sync_accounts,
+        # 别名兼容
+        "cleanup_logs": cleanup_old_logs,  # 内置任务ID别名
+        "sync_all_instances": sync_accounts,  # 前端下拉项兼容
+    }
+
+    return task_functions.get(func_name)
+
+
+def _create_dynamic_task_function(job_id: str, code: str) -> Callable[..., Any] | None:
+    """基于用户提供的代码创建动态任务函数。
+
+    要求 code 中必须包含一个无参的 `def execute_task():` 函数。
+
+    Args:
+        job_id (str): 任务 ID，用于生成唯一模块文件名。
+        code (str): 用户提交的 Python 代码片段。
+
+    Returns:
+        Callable[..., Any] | None: 返回可调用的任务包装器函数；失败时返回 None。
+    """
+    try:
+        import os
+        import sys
+
+        # 动态任务代码保存目录
+        dynamic_tasks_dir = os.path.join("userdata", "dynamic_tasks")
+        os.makedirs(dynamic_tasks_dir, exist_ok=True)
+
+        # 生成任务文件路径
+        task_file = os.path.join(dynamic_tasks_dir, f"{job_id}.py")
+
+        # 组合完整任务代码：包裹应用上下文，调用 execute_task
+        full_code = f'''"""
+动态任务: {job_id}
+生成时间: {now().isoformat()}
+"""
+from app import create_app
+
+{code}
+
+def task_wrapper():
+    """动态任务包装器：负责创建应用上下文并调用 execute_task。"""
+    try:
+        app = create_app()
+        with app.app_context():
+            return execute_task()
+    except Exception as e:  # noqa: BLE001
+        return f"任务执行失败: {e}"
+'''
+
+        # 写入文件
+        with open(task_file, "w", encoding="utf-8") as f:
+            f.write(full_code)
+
+        # 将目录加入 Python 路径
+        if dynamic_tasks_dir not in sys.path:
+            sys.path.insert(0, dynamic_tasks_dir)
+
+        # 使用 importlib 动态导入模块
+        module_name = job_id
+        spec = importlib.util.spec_from_file_location(module_name, task_file)
+        if spec is None or spec.loader is None:
+            system_logger.error("无法创建动态模块规范: %s", module_name)
+            return None
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+
+        # 提取包装器函数
+        task_func = getattr(module, "task_wrapper", None)
+        if callable(task_func):
+            return task_func
+        system_logger.error("动态模块缺少 task_wrapper: %s", module_name)
+        return None
+    except Exception as e:  # noqa: BLE001
+        system_logger.error("创建动态任务函数失败: %s", str(e))
+        return None
+
+
+def _build_trigger(
+    data: dict[str, Any],
+) -> CronTrigger | IntervalTrigger | DateTrigger | None:
+    """根据前端数据构建 APScheduler 触发器。
+
+    支持三种类型：cron、interval、date。
+
+    - cron: 支持 cron_expression（5/6/7 段）与单字段别名：
+        cron_second/cron_minute/cron_hour/cron_day/cron_month/cron_weekday 及 year。
+      若表达式与单字段同时提供，单字段优先。
+    - interval: 接受 weeks/days/hours/minutes/seconds 的正整数。
+    - date: 接受 run_date（ISO8601 或 datetime-local 格式）。
+
+    Args:
+        data (dict[str, Any]): 前端提交的数据。
+
+    Returns:
+        CronTrigger | IntervalTrigger | DateTrigger | None: 构建成功返回触发器，否则 None。
+    """
+    trigger_type = data.get("trigger_type")
+
+    if trigger_type == "cron":
+        cron_kwargs: dict[str, Any] = {}
+        expr = str(data.get("cron_expression", "")).strip()
+        parts: list[str] = expr.split() if expr else []
+
+        # 读取单字段（前端可能传 bare 字段或 cron_ 前缀字段）
+        def pick(*keys: str) -> Any:
+            for k in keys:
+                if data.get(k) is not None and str(data.get(k)).strip() != "":
+                    return data.get(k)
+            return None
+
+        second = pick("cron_second", "second")
+        minute = pick("cron_minute", "minute")
+        hour = pick("cron_hour", "hour")
+        day = pick("cron_day", "day")
+        month = pick("cron_month", "month")
+        day_of_week = pick("cron_weekday", "cron_day_of_week", "day_of_week", "weekday")
+        year = pick("year")
+
+        # 从表达式回填缺失字段
+        try:
+            if len(parts) == 7:
+                s, m, h, d, mo, dow, y = parts
+                second = second or s
+                minute = minute or m
+                hour = hour or h
+                day = day or d
+                month = month or mo
+                day_of_week = day_of_week or dow
+                year = year or y
+            elif len(parts) == 6:
+                s, m, h, d, mo, dow = parts
+                second = second or s
+                minute = minute or m
+                hour = hour or h
+                day = day or d
+                month = month or mo
+                day_of_week = day_of_week or dow
+            elif len(parts) == 5:
+                m, h, d, mo, dow = parts
+                minute = minute or m
+                hour = hour or h
+                day = day or d
+                month = month or mo
+                day_of_week = day_of_week or dow
+        except Exception:  # noqa: BLE001
+            pass
+
+        if year is not None:
+            cron_kwargs["year"] = year
+        if month is not None:
+            cron_kwargs["month"] = month
+        if day is not None:
+            cron_kwargs["day"] = day
+        if day_of_week is not None:
+            cron_kwargs["day_of_week"] = day_of_week
+        if hour is not None:
+            cron_kwargs["hour"] = hour
+        if minute is not None:
+            cron_kwargs["minute"] = minute
+        if second is not None:
+            cron_kwargs["second"] = second
+
+        try:
+            system_logger.info("构建 CronTrigger 参数: %s", cron_kwargs)
+        except Exception:  # noqa: BLE001
+            pass
+
+        try:
+            return CronTrigger(**cron_kwargs)
+        except Exception as e:  # noqa: BLE001
+            system_logger.error("CronTrigger 构建失败: %s", str(e))
+            return None
+
+    if trigger_type == "interval":
+        kwargs: dict[str, int] = {}
+        for key in ["weeks", "days", "hours", "minutes", "seconds"]:
+            val = data.get(key)
+            if val is None or str(val).strip() == "":
+                continue
+            try:
+                iv = int(val)
+                if iv > 0:
+                    kwargs[key] = iv
+            except Exception:  # noqa: BLE001
+                continue
+        if not kwargs:
+            return None
+        try:
+            return IntervalTrigger(**kwargs)
+        except Exception as e:  # noqa: BLE001
+            system_logger.error("IntervalTrigger 构建失败: %s", str(e))
+            return None
+
+    if trigger_type == "date":
+        run_date = data.get("run_date")
+        if not run_date:
+            return None
+        from datetime import datetime
+
+        dt = None
+        try:
+            dt = datetime.fromisoformat(str(run_date))
+        except Exception:  # noqa: BLE001
+            try:
+                dt = datetime.strptime(str(run_date), "%Y-%m-%dT%H:%M")
+            except Exception:  # noqa: BLE001
+                dt = None
+        if dt is None:
+            return None
+        try:
+            return DateTrigger(run_date=dt)
+        except Exception as e:  # noqa: BLE001
+            system_logger.error("DateTrigger 构建失败: %s", str(e))
+            return None
+
+    return None
