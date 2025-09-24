@@ -159,17 +159,11 @@ function createLogEntryHTML(log) {
     
     return `
         <div class="log-entry ${levelClass}" onclick="viewLogDetail(${log.id})">
-            <div class="log-header">
-                <div>
-                    ${levelBadge}
-                    ${moduleBadge}
-                    <span class="timestamp-display">${timestamp}</span>
-                </div>
-                <div>
-                    <span class="log-id-display">ID: ${log.id}</span>
-                </div>
-            </div>
+            ${levelBadge}
+            ${moduleBadge}
+            <span class="log-timestamp">${timestamp}</span>
             <div class="log-message">${message}</div>
+            <span class="log-id-display">ID: ${log.id}</span>
         </div>
     `;
 }
