@@ -112,6 +112,9 @@ function handleEditUser(event, form) {
         return;
     }
     
+    // 添加调试日志
+    console.log('发送用户更新数据:', data);
+    
     showLoadingState(form.querySelector('button[type="submit"]'), '保存中...');
     
     fetch(`/users/api/users/${data.user_id}`, {
@@ -122,15 +125,19 @@ function handleEditUser(event, form) {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('响应状态:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('响应数据:', data);
         if (data.success) {
             showAlert('success', data.message);
             const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
             if (modal) modal.hide();
             location.reload();
         } else {
-            showAlert('error', data.message);
+            showAlert('error', data.message || '更新用户失败');
         }
     })
     .catch(error => {
