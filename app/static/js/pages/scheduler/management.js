@@ -7,13 +7,24 @@
 let currentJobs = [];
 
 // 全局函数
+/**
+ * 更新“编辑任务”表单中的 Cron 预览。
+ * 支持 5/6/7 段 Cron 表达式，顺序为：
+ *   7段: second minute hour day month day_of_week year
+ *   6段: second minute hour day month day_of_week（无year）
+ *   5段: minute hour day month day_of_week（默认second=0，无year）
+ * 该函数会根据当前输入生成 cron_expression 预览字符串。
+ */
 function updateEditCronPreview() {
+    const second = $('#editCronSecond').val() || '0';
     const minute = $('#editCronMinute').val() || '0';
     const hour = $('#editCronHour').val() || '0';
     const day = $('#editCronDay').val() || '*';
     const month = $('#editCronMonth').val() || '*';
     const weekday = $('#editCronWeekday').val() || '*';
-    const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
+    const year = $('#editCronYear').val() || '';
+    const base = `${second} ${minute} ${hour} ${day} ${month} ${weekday}`;
+    const cronExpression = year && year.trim() !== '' ? `${base} ${year}` : base;
     $('#editCronPreview').val(cronExpression);
 }
 
@@ -53,24 +64,26 @@ function initializeEventHandlers() {
 
     // Cron表达式生成和预览
     function updateCronPreview() {
+        const second = $('#cronSecond').val() || '0';
         const minute = $('#cronMinute').val() || '0';
         const hour = $('#cronHour').val() || '0';
         const day = $('#cronDay').val() || '*';
         const month = $('#cronMonth').val() || '*';
         const weekday = $('#cronWeekday').val() || '*';
-        const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
+        const year = $('#cronYear').val() || '';
+        const base = `${second} ${minute} ${hour} ${day} ${month} ${weekday}`;
+        const cronExpression = year && year.trim() !== '' ? `${base} ${year}` : base;
         $('#cronPreview').val(cronExpression);
     }
 
-
-    // 监听cron输入框变化
-    $('#cronMinute, #cronHour, #cronDay, #cronMonth, #cronWeekday').on('input', updateCronPreview);
-    $('#editCronMinute, #editCronHour, #editCronDay, #editCronMonth, #editCronWeekday').on('input', updateEditCronPreview);
+    // 监听cron输入框变化（新增 second 与 year）
+    $('#cronSecond, #cronMinute, #cronHour, #cronDay, #cronMonth, #cronWeekday, #cronYear').on('input', updateCronPreview);
+    $('#editCronSecond, #editCronMinute, #editCronHour, #editCronDay, #editCronMonth, #editCronWeekday, #editCronYear').on('input', updateEditCronPreview);
 
     // 初始化预览
     updateCronPreview();
 
-    // 任务操作按钮事件
+    // 恢复任务操作按钮事件
     $(document).on('click', '.btn-enable-job', function() {
         const jobId = $(this).data('job-id');
         enableJob(jobId);
@@ -88,19 +101,60 @@ function initializeEventHandlers() {
         editJob(jobId);
     });
 
-    // 表单提交事件
+    // 新增：批量清理（仅保留内置任务）按钮事件
++    /**
++     * 仅保留内置任务（cleanup_logs、sync_all_accounts）清理按钮事件处理。
++     * - 向后端 /scheduler/api/jobs/purge 发送 POST 请求
++     * - 参数 include_builtin=false 表示后端会自动跳过内置任务，不会误删
++     * - 成功后刷新任务列表并给出提示
++     */
+     $(document).on('click', '#purgeKeepBuiltinBtn', function() {
+         // 二次确认
+         const confirmMsg = '此操作将删除所有非内置任务，仅保留系统内置任务（cleanup_logs、sync_all_accounts）。\n确定继续吗？';
+         if (!window.confirm(confirmMsg)) {
+             return;
+         }
+    // 显示加载态
+    const $btn = $(this);
+    const original = $btn.html();
+    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>清理中...');
+
+    $.ajax({
+        url: '/scheduler/api/jobs/purge',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ keep_ids: [], include_builtin: false }),
+        headers: {
+            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(resp) {
+            if (resp && resp.success) {
+                const deletedCount = (resp.data && resp.data.deleted) ? resp.data.deleted.length : 0;
+                showAlert(`已删除 ${deletedCount} 个任务，仅保留内置任务`, 'success');
+                loadJobs();
+            } else {
+                showAlert('清理失败: ' + (resp ? resp.message : '未知错误'), 'danger');
+            }
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON;
+            showAlert('清理失败: ' + (error ? error.message : '网络或服务器错误'), 'danger');
+        },
+        complete: function() {
+            $btn.prop('disabled', false).html(original);
+        }
+    });
+});
+
+    // 恢复表单提交事件
     $('#addJobForm').on('submit', function(e) {
         e.preventDefault();
         addJob();
     });
-
     $('#editJobForm').on('submit', function(e) {
         e.preventDefault();
         updateJob();
     });
-
-    // 移除: 立即执行任务事件绑定
-    // （原绑定：#runJobBtn -> runJobNow）
 }
 
 // 加载任务列表（移除统计更新）
@@ -401,35 +455,54 @@ function editJob(jobId) {
     try {
         const triggerArgs = typeof job.trigger_args === 'string' ? JSON.parse(job.trigger_args) : (job.trigger_args || {});
         if (triggerArgs && typeof triggerArgs === 'object') {
-            // 如果是cron触发器，处理cron字段
             if (triggerType === 'cron') {
-                // 优先处理cron_expression（向后兼容）
                 if (triggerArgs.cron_expression) {
-                    const cronParts = triggerArgs.cron_expression.split(' ');
+                    const cronParts = (triggerArgs.cron_expression || '').trim().split(/\s+/);
+                    // 支持 5/6/7 段
                     if (cronParts.length >= 5) {
-                        $('#editCronMinute').val(cronParts[0] || '0');
-                        $('#editCronHour').val(cronParts[1] || '0');
-                        $('#editCronDay').val(cronParts[2] || '*');
-                        $('#editCronMonth').val(cronParts[3] || '*');
-                        $('#editCronWeekday').val(cronParts[4] || '*');
+                        if (cronParts.length === 5) {
+                            // m h d M dow
+                            $('#editCronSecond').val('0');
+                            $('#editCronMinute').val(cronParts[0] || '0');
+                            $('#editCronHour').val(cronParts[1] || '0');
+                            $('#editCronDay').val(cronParts[2] || '*');
+                            $('#editCronMonth').val(cronParts[3] || '*');
+                            $('#editCronWeekday').val(cronParts[4] || '*');
+                            $('#editCronYear').val('');
+                        } else if (cronParts.length === 6) {
+                            // s m h d M dow
+                            $('#editCronSecond').val(cronParts[0] || '0');
+                            $('#editCronMinute').val(cronParts[1] || '0');
+                            $('#editCronHour').val(cronParts[2] || '0');
+                            $('#editCronDay').val(cronParts[3] || '*');
+                            $('#editCronMonth').val(cronParts[4] || '*');
+                            $('#editCronWeekday').val(cronParts[5] || '*');
+                            $('#editCronYear').val('');
+                        } else {
+                            // 7 段: s m h d M dow y
+                            $('#editCronSecond').val(cronParts[0] || '0');
+                            $('#editCronMinute').val(cronParts[1] || '0');
+                            $('#editCronHour').val(cronParts[2] || '0');
+                            $('#editCronDay').val(cronParts[3] || '*');
+                            $('#editCronMonth').val(cronParts[4] || '*');
+                            $('#editCronWeekday').val(cronParts[5] || '*');
+                            $('#editCronYear').val(cronParts[6] || '');
+                        }
                         updateEditCronPreview();
                     }
                 } else {
-                    // 处理分别的cron字段
-                    $('#editCronMinute').val(triggerArgs.minute || '0');
-                    $('#editCronHour').val(triggerArgs.hour || '0');
-                    $('#editCronDay').val(triggerArgs.day || '*');
-                    $('#editCronMonth').val(triggerArgs.month || '*');
-                    $('#editCronWeekday').val(triggerArgs.day_of_week || '*');
+                    // 使用字段名填充
+                    $('#editCronSecond').val(triggerArgs.second ?? '0');
+                    $('#editCronMinute').val(triggerArgs.minute ?? '0');
+                    $('#editCronHour').val(triggerArgs.hour ?? '0');
+                    $('#editCronDay').val(triggerArgs.day ?? '*');
+                    $('#editCronMonth').val(triggerArgs.month ?? '*');
+                    $('#editCronWeekday').val(triggerArgs.day_of_week ?? '*');
+                    $('#editCronYear').val(triggerArgs.year ?? '');
                     updateEditCronPreview();
                 }
             } else {
-                // 其他触发器类型的参数处理
-                Object.entries(triggerArgs).forEach(([key, value]) => {
-                    if (key && typeof key === 'string') {
-                        $(`#edit${key.charAt(0).toUpperCase() + key.slice(1)}`).val(value || '');
-                    }
-                });
+                // ... existing code ...
             }
         }
     } catch (e) {
@@ -459,12 +532,18 @@ function updateJob() {
     data.trigger_type = triggerType;
 
     if (data.trigger_type === 'cron') {
+        const second = $('#editCronSecond').val() || '0';
         const minute = data.cron_minute || '0';
         const hour = data.cron_hour || '0';
         const day = data.cron_day || '*';
         const month = data.cron_month || '*';
         const weekday = data.cron_weekday || '*';
-        data.cron_expression = `${minute} ${hour} ${day} ${month} ${weekday}`;
+        const year = $('#editCronYear').val() || '';
+        const base = `${second} ${minute} ${hour} ${day} ${month} ${weekday}`;
+        data.cron_expression = year && year.trim() !== '' ? `${base} ${year}` : base;
+        // 同时附带单字段，便于后端直接取用
+        data.cron_second = second;
+        if (year && year.trim() !== '') data.year = year;
     }
 
     let payload;
@@ -569,16 +648,17 @@ function viewJobLogs(jobId) {
 // 添加任务
 function addJob() {
     const formData = new FormData($('#addJobForm')[0]);
-    
-    // 如果是cron触发器，生成cron表达式
     const triggerType = formData.get('trigger_type');
     if (triggerType === 'cron') {
+        const second = formData.get('cron_second') || '0';
         const minute = formData.get('cron_minute') || '0';
         const hour = formData.get('cron_hour') || '0';
         const day = formData.get('cron_day') || '*';
         const month = formData.get('cron_month') || '*';
         const weekday = formData.get('cron_weekday') || '*';
-        const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
+        const year = (formData.get('year') || '').toString();
+        const base = `${second} ${minute} ${hour} ${day} ${month} ${weekday}`;
+        const cronExpression = year && year.trim() !== '' ? `${base} ${year}` : base;
         formData.set('cron_expression', cronExpression);
     }
     
