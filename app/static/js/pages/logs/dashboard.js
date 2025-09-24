@@ -336,23 +336,50 @@ function formatJSON(obj) {
 
 // 格式化时间
 function formatTime(timeString, format = 'datetime') {
-    if (typeof window.formatChinaTime === 'function') {
-        return window.formatChinaTime(timeString, format);
+    if (typeof window.formatTime === 'function') {
+        return window.formatTime(timeString, format);
     }
     
     // 备用格式化函数
-    const date = new Date(timeString);
-    const options = {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZone: 'Asia/Shanghai'
-    };
+    if (!timeString) return '-';
     
-    return date.toLocaleString('zh-CN', options);
+    try {
+        const date = new Date(timeString);
+        if (isNaN(date.getTime())) return '-';
+        
+        if (format === 'datetime') {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        } else if (format === 'date') {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        } else if (format === 'time') {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+        
+        return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+    } catch (e) {
+        console.error('时间格式化错误:', e);
+        return '-';
+    }
 }
 
 // 重置筛选器
