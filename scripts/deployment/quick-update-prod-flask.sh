@@ -366,9 +366,9 @@ restart_flask_service() {
 wait_for_service_ready() {
     log_step "等待服务就绪..."
     
-    # 简单等待60秒，然后直接检查一次
-    log_info "等待服务完全启动（60秒）..."
-    sleep 60
+    # 简单等待10秒，然后直接检查一次
+    log_info "等待服务完全启动（10秒）..."
+    sleep 10
     
     # 只检查端口5001
     log_info "检查端口5001服务状态..."
