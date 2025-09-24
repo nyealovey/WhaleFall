@@ -584,8 +584,16 @@ class OptimizedAccountClassificationService:
             required_global = rule_expression.get("global_privileges", [])
             if required_global:
                 actual_global = permissions.get("global_privileges", [])
-                if isinstance(actual_global, list):
-                    actual_global_set = set(actual_global)
+                if actual_global is None:
+                    actual_global_set = set()
+                elif isinstance(actual_global, list):
+                    # 处理混合格式：字符串和字典的混合列表
+                    actual_global_set = set()
+                    for perm in actual_global:
+                        if isinstance(perm, str):
+                            actual_global_set.add(perm)
+                        elif isinstance(perm, dict) and perm.get("granted", False):
+                            actual_global_set.add(perm["privilege"])
                 else:
                     actual_global_set = {p["privilege"] for p in actual_global if p.get("granted", False)}
 
@@ -600,8 +608,16 @@ class OptimizedAccountClassificationService:
             exclude_global = rule_expression.get("exclude_privileges", [])
             if exclude_global:
                 actual_global = permissions.get("global_privileges", [])
-                if isinstance(actual_global, list):
-                    actual_global_set = set(actual_global)
+                if actual_global is None:
+                    actual_global_set = set()
+                elif isinstance(actual_global, list):
+                    # 处理混合格式：字符串和字典的混合列表
+                    actual_global_set = set()
+                    for perm in actual_global:
+                        if isinstance(perm, str):
+                            actual_global_set.add(perm)
+                        elif isinstance(perm, dict) and perm.get("granted", False):
+                            actual_global_set.add(perm["privilege"])
                 else:
                     actual_global_set = {p["privilege"] for p in actual_global if p.get("granted", False)}
 
