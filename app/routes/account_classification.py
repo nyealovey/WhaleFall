@@ -1111,65 +1111,14 @@ def api_get_batch_matches(batch_id: str) -> "Response":
                                     }
                                 )
                 except (json.JSONDecodeError, TypeError):
-                    # 处理旧格式的规则表达式（字符串格式）
-                    rule_expression_str = rule.rule_expression
-                    if rule_expression_str:
-                        # 根据数据库类型和规则表达式解析匹配的权限
-                        if instance.db_type == "sqlserver":
-                            if rule_expression_str == "server_roles.sysadmin":
-                                matched_permissions.append(
-                                    {
-                                        "name": "sysadmin",
-                                        "description": "系统管理员角色",
-                                        "category": "server_roles",
-                                    }
-                                )
-                            elif rule_expression_str.startswith("server_permissions."):
-                                perm_name = rule_expression_str.split(".", 1)[1]
-                                matched_permissions.append(
-                                    {
-                                        "name": perm_name,
-                                        "description": f"服务器权限: {perm_name}",
-                                        "category": "server_permissions",
-                                    }
-                                )
-                        elif instance.db_type == "mysql":
-                            if rule_expression_str == "global_privileges.SUPER":
-                                matched_permissions.append(
-                                    {
-                                        "name": "SUPER",
-                                        "description": "超级用户权限",
-                                        "category": "global_privileges",
-                                    }
-                                )
-                        elif instance.db_type == "postgresql":
-                            if rule_expression_str == "role_attributes.SUPERUSER":
-                                matched_permissions.append(
-                                    {
-                                        "name": "SUPERUSER",
-                                        "description": "超级用户属性",
-                                        "category": "role_attributes",
-                                    }
-                                )
-                            elif rule_expression_str == "role_attributes.CREATEROLE":
-                                matched_permissions.append(
-                                    {
-                                        "name": "CREATEROLE",
-                                        "description": "创建角色权限",
-                                        "category": "role_attributes",
-                                    }
-                                )
-                        elif (
-                            instance.db_type == "oracle"
-                            and rule_expression_str == "system_privileges.GRANT ANY PRIVILEGE"
-                        ):
-                            matched_permissions.append(
-                                {
-                                    "name": "GRANT ANY PRIVILEGE",
-                                    "description": "授权任何权限",
-                                    "category": "system_privileges",
-                                }
-                            )
+                    # 规则表达式格式错误，无法解析
+                    matched_permissions.append(
+                        {
+                            "name": "规则格式错误",
+                            "description": "无法解析规则表达式",
+                            "category": "error",
+                        }
+                    )
 
             matches.append(
                 {
