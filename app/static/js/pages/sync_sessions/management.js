@@ -62,16 +62,10 @@ function renderSessions(sessions) {
         const successfulInstances = session.successful_instances || 0;
         const failedInstances = session.failed_instances || 0;
         
-        // 计算进度百分比
+        // 计算成功率百分比 - 始终基于成功实例数
         let progressPercentage = 0;
         if (totalInstances > 0) {
-            if (session.status === 'completed') {
-                // 对于已完成的会话，进度基于成功实例
-                progressPercentage = Math.round((successfulInstances / totalInstances) * 100);
-            } else {
-                // 对于运行中、失败或取消的会话，进度基于已处理的实例（成功 + 失败）
-                progressPercentage = Math.round(((successfulInstances + failedInstances) / totalInstances) * 100);
-            }
+            progressPercentage = Math.round((successfulInstances / totalInstances) * 100);
         }
         
         // 根据成功率确定进度条颜色和样式
@@ -98,7 +92,7 @@ function renderSessions(sessions) {
                             </div>
                             <small class="text-muted">
                                 <span class="${progressInfo.textClass}">
-                                    <i class="${progressInfo.icon}"></i> ${progressPercentage}% (${successfulInstances}/${totalInstances})
+                                    <i class="${progressInfo.icon}"></i> ${progressPercentage}% 成功率 (${successfulInstances}/${totalInstances})
                                 </span>
                             </small>
                         </div>
@@ -344,10 +338,10 @@ function getProgressInfo(status, progressPercentage, totalInstances, successfulI
 
     if (status === 'running') {
         return {
-            barClass: 'bg-success progress-bar-striped progress-bar-animated',
-            textClass: 'text-success',
+            barClass: 'bg-primary progress-bar-striped progress-bar-animated',
+            textClass: 'text-primary',
             icon: 'fas fa-sync-alt fa-spin',
-            tooltip: `运行中... (${successfulInstances + failedInstances}/${totalInstances})`
+            tooltip: `运行中... 成功率 ${progressPercentage}% (${successfulInstances}/${totalInstances})`
         };
     }
     
@@ -356,28 +350,21 @@ function getProgressInfo(status, progressPercentage, totalInstances, successfulI
             barClass: 'bg-success',
             textClass: 'text-success',
             icon: 'fas fa-check-circle',
-            tooltip: '全部成功'
+            tooltip: '100% 成功率'
         };
-    } else if (failedInstances > 0 && successfulInstances === 0) {
+    } else if (progressPercentage === 0) {
         return {
             barClass: 'bg-danger',
             textClass: 'text-danger',
             icon: 'fas fa-times-circle',
-            tooltip: '全部失败'
+            tooltip: '0% 成功率'
         };
-    } else if (failedInstances > 0) {
+    } else {
         return {
             barClass: 'bg-warning',
             textClass: 'text-warning',
             icon: 'fas fa-exclamation-triangle',
-            tooltip: `部分成功 (${successfulInstances}成功, ${failedInstances}失败)`
-        };
-    } else {
-        return {
-            barClass: 'bg-danger',
-            textClass: 'text-danger',
-            icon: 'fas fa-exclamation-triangle',
-            tooltip: `存在失败 (${successfulInstances}成功, ${failedInstances}失败)`
+            tooltip: `${progressPercentage}% 成功率 (${successfulInstances}成功, ${failedInstances}失败)`
         };
     }
 }
