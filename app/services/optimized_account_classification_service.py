@@ -120,13 +120,13 @@ class OptimizedAccountClassificationService:
             # 缓存未命中，从数据库查询
             rules = (
                 ClassificationRule.query.filter_by(is_active=True)
-                .join(AccountClassification)
-                .order_by(
-                    AccountClassification.priority.desc(),
-                    ClassificationRule.created_at.asc(),
-                )
+                .order_by(ClassificationRule.created_at.asc())
                 .all()
             )
+
+            # 记录加载的规则信息
+            rule_names = [rule.rule_name for rule in rules]
+            log_info(f"从数据库加载分类规则: {rule_names}", module="account_classification", count=len(rules))
 
             # 将规则存入缓存
             if cache_manager and rules:
@@ -214,6 +214,17 @@ class OptimizedAccountClassificationService:
                         # 移除详细的缓存日志，减少日志噪音
                     except Exception as e:
                         log_error(f"缓存数据库类型规则失败: {db_type}", module="account_classification", error=str(e))
+            
+            # 记录每个数据库类型的规则详情
+            for db_type, db_rules in grouped.items():
+                rule_names = [rule.rule_name for rule in db_rules]
+                log_info(
+                    f"数据库类型 {db_type} 规则分组",
+                    module="account_classification",
+                    batch_id=self.batch_id,
+                    rule_names=rule_names,
+                    rule_count=len(db_rules)
+                )
             
             log_info(
                 f"规则按数据库类型分组完成",
