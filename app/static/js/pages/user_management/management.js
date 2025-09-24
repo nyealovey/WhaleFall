@@ -48,6 +48,9 @@ function handleAddUser(event, form) {
         return;
     }
     
+    // 添加调试日志
+    console.log('发送创建用户数据:', data);
+    
     showLoadingState(form.querySelector('button[type="submit"]'), '添加中...');
     
     fetch('/users/api/users', {
@@ -58,15 +61,19 @@ function handleAddUser(event, form) {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('响应状态:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('响应数据:', data);
         if (data.success) {
             showAlert('success', data.message);
             const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
             if (modal) modal.hide();
             location.reload();
         } else {
-            showAlert('error', data.message);
+            showAlert('error', data.message || '添加用户失败');
         }
     })
     .catch(error => {
