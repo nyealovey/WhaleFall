@@ -539,16 +539,46 @@ async function loadTagsForBatchAssign() {
 
         if (data.success) {
             if (data.tags.length > 0) {
-                let html = '<div class="list-group">';
-                data.tags.forEach(tag => {
+                // 按分类分组标签
+                const groupedTags = groupTagsByCategory(data.tags);
+                let html = '<div class="tag-groups">';
+                
+                // 生成分组HTML
+                Object.keys(groupedTags).forEach(category => {
+                    const categoryName = getCategoryDisplayName(category);
+                    const tags = groupedTags[category];
+                    const groupId = `tag-group-${category}`;
+                    
                     html += `
-                        <label class="list-group-item">
-                            <input class="form-check-input me-1" type="checkbox" value="${tag.id}" data-tag-name="${tag.display_name}">
-                            <span class="badge bg-${tag.color} me-2">${tag.display_name}</span>
-                            <small class="text-muted">(${tag.name})</small>
-                        </label>
+                        <div class="tag-group mb-3">
+                            <div class="tag-group-header" onclick="toggleTagGroup('${groupId}')" style="cursor: pointer;">
+                                <h6 class="mb-0 d-flex align-items-center">
+                                    <i class="fas fa-chevron-right me-2 tag-group-icon" id="${groupId}-icon"></i>
+                                    <span class="badge bg-secondary me-2">${categoryName}</span>
+                                    <small class="text-muted">(${tags.length} 个标签)</small>
+                                </h6>
+                            </div>
+                            <div class="tag-group-content collapse" id="${groupId}">
+                                <div class="list-group mt-2">
+                    `;
+                    
+                    tags.forEach(tag => {
+                        html += `
+                            <label class="list-group-item">
+                                <input class="form-check-input me-1" type="checkbox" value="${tag.id}" data-tag-name="${tag.display_name}">
+                                <span class="badge bg-${tag.color} me-2">${tag.display_name}</span>
+                                <small class="text-muted">(${tag.name})</small>
+                            </label>
+                        `;
+                    });
+                    
+                    html += `
+                                </div>
+                            </div>
+                        </div>
                     `;
                 });
+                
                 html += '</div>';
                 tagListContainer.innerHTML = html;
             } else {
@@ -565,11 +595,62 @@ async function loadTagsForBatchAssign() {
     }
 }
 
+// 按分类分组标签
+function groupTagsByCategory(tags) {
+    const grouped = {};
+    tags.forEach(tag => {
+        if (!grouped[tag.category]) {
+            grouped[tag.category] = [];
+        }
+        grouped[tag.category].push(tag);
+    });
+    
+    // 对每个分类内的标签按sort_order和name排序
+    Object.keys(grouped).forEach(category => {
+        grouped[category].sort((a, b) => {
+            if (a.sort_order !== b.sort_order) {
+                return a.sort_order - b.sort_order;
+            }
+            return a.name.localeCompare(b.name);
+        });
+    });
+    
+    return grouped;
+}
+
+// 获取分类显示名称
+function getCategoryDisplayName(category) {
+    const categoryNames = {
+        'location': '地区标签',
+        'company_type': '公司类型',
+        'environment': '环境标签',
+        'architecture': '架构类型',
+        'custom': '自定义标签'
+    };
+    return categoryNames[category] || category;
+}
+
+// 切换标签分组展开/合拢
+function toggleTagGroup(groupId) {
+    const content = document.getElementById(groupId);
+    const icon = document.getElementById(`${groupId}-icon`);
+    
+    if (content.classList.contains('show')) {
+        content.classList.remove('show');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-right');
+    } else {
+        content.classList.add('show');
+        icon.classList.remove('fa-chevron-right');
+        icon.classList.add('fa-chevron-down');
+    }
+}
+
 // 处理批量分配保存按钮点击事件
 async function handleBatchAssignSave() {
     const selectedInstanceIds = Array.from(document.querySelectorAll('#batchAssignModal .instance-list-container input[type="checkbox"]:checked'))
         .map(checkbox => checkbox.value);
-    const selectedTagIds = Array.from(document.querySelectorAll('#batchAssignModal .tag-list-container input[type="checkbox"]:checked'))
+    const selectedTagIds = Array.from(document.querySelectorAll('#batchAssignModal .tag-groups input[type="checkbox"]:checked'))
         .map(checkbox => checkbox.value);
 
     if (selectedInstanceIds.length === 0) {
