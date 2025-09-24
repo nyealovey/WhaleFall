@@ -110,9 +110,9 @@ def api_get_user(user_id: int) -> "Response":
     try:
         user = User.query.get_or_404(user_id)
         
-        return APIResponse.success("获取用户信息成功", {
+        return APIResponse.success({
             "user": user.to_dict()
-        })
+        }, "获取用户信息成功")
         
     except Exception as e:
         return APIResponse.error(f"获取用户信息失败: {str(e)}")
