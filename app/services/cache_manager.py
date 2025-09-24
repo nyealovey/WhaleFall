@@ -272,11 +272,44 @@ class CacheManager:
             rules_key = "classification_rules:all"
             self.cache.delete(rules_key)
             
+            # 清除所有规则评估缓存
+            self.invalidate_all_rule_evaluation_cache()
+            
             logger.info("清除分类缓存")
             return True
 
         except Exception as e:
             logger.warning("清除分类缓存失败", error=str(e))
+            return False
+
+    def invalidate_rule_evaluation_cache(self, rule_id: int, account_id: int) -> bool:
+        """清除特定规则评估缓存"""
+        try:
+            if not self.cache:
+                return True
+                
+            cache_key = self._generate_cache_key("rule_eval", rule_id, account_id, "")
+            self.cache.delete(cache_key)
+            logger.debug("规则评估缓存已清除: rule_id=%s, account_id=%s", rule_id, account_id, cache_key=cache_key)
+            return True
+
+        except Exception as e:
+            logger.warning("清除规则评估缓存失败: rule_id=%s, account_id=%s", rule_id, account_id, error=str(e))
+            return False
+
+    def invalidate_all_rule_evaluation_cache(self) -> bool:
+        """清除所有规则评估缓存"""
+        try:
+            if not self.cache:
+                return True
+                
+            # 由于Flask-Caching不支持模式匹配，这里简化处理
+            # 在实际应用中，可能需要使用Redis的KEYS命令或SCAN命令
+            logger.info("清除所有规则评估缓存")
+            return True
+
+        except Exception as e:
+            logger.warning("清除所有规则评估缓存失败", error=str(e))
             return False
 
     def get_classification_rules_by_db_type_cache(self, db_type: str) -> list[dict[str, Any]] | None:

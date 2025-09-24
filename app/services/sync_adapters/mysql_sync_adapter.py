@@ -355,6 +355,15 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         account.last_change_type = "modify_privilege"
         account.last_change_time = time_utils.now()
         account.last_sync_time = time_utils.now()
+        
+        # 清除该账户的规则评估缓存，确保权限更新后规则重新评估
+        try:
+            from app.services.cache_manager import cache_manager
+            if cache_manager:
+                cache_manager.invalidate_account_cache(account.id)
+                self.sync_logger.debug("已清除账户规则评估缓存: %s", account.username)
+        except Exception as e:
+            self.sync_logger.warning("清除账户规则评估缓存失败: %s", account.username, error=str(e))
 
     def _create_new_account(
         self,
