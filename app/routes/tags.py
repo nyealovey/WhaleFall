@@ -42,8 +42,18 @@ def batch_assign_tags() -> Response:
     """批量分配标签给实例"""
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "请求数据为空"}), 400
+            
         instance_ids = data.get("instance_ids", [])
         tag_ids = data.get("tag_ids", [])
+        
+        # 确保ID是整数类型
+        try:
+            instance_ids = [int(id) for id in instance_ids]
+            tag_ids = [int(id) for id in tag_ids]
+        except (ValueError, TypeError) as e:
+            return jsonify({"success": False, "error": f"ID格式错误: {str(e)}"}), 400
 
         if not instance_ids or not tag_ids:
             return jsonify({"success": False, "error": "实例ID和标签ID不能为空"}), 400
@@ -56,10 +66,24 @@ def batch_assign_tags() -> Response:
         if not tags:
             return jsonify({"success": False, "error": "未找到任何标签"}), 404
 
+        # 记录分配前的状态
+        log_info(
+            "开始批量分配标签",
+            module="tags",
+            instance_ids=instance_ids,
+            tag_ids=tag_ids,
+            found_instances=len(instances),
+            found_tags=len(tags),
+            user_id=current_user.id,
+        )
+
+        # 分配标签
+        assigned_count = 0
         for instance in instances:
             for tag in tags:
                 if tag not in instance.tags:
                     instance.tags.append(tag)
+                    assigned_count += 1
 
         db.session.commit()
 
@@ -68,10 +92,14 @@ def batch_assign_tags() -> Response:
             module="tags",
             instance_ids=instance_ids,
             tag_ids=tag_ids,
+            assigned_count=assigned_count,
             user_id=current_user.id,
         )
 
-        return jsonify({"success": True, "message": "标签批量分配成功"})
+        return jsonify({
+            "success": True, 
+            "message": f"标签批量分配成功，共分配 {assigned_count} 个标签关系"
+        })
 
     except Exception as e:
         db.session.rollback()
@@ -79,9 +107,10 @@ def batch_assign_tags() -> Response:
             "批量分配标签失败",
             module="tags",
             error=str(e),
+            error_type=type(e).__name__,
             user_id=current_user.id,
         )
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": f"批量分配失败: {str(e)}"}), 500
 
 
 @tags_bp.route("/api/instances")
