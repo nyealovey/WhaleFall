@@ -37,6 +37,7 @@
     align-items: center;
     gap: 8px;
     min-height: 28px;
+    font-size: 0.9em;
 }
 
 .log-entry:hover {
@@ -101,6 +102,7 @@
     align-items: center;
     margin-bottom: 2px;
     gap: 8px;
+    font-size: 0.9em;
 }
 
 .log-level-badge {
@@ -129,10 +131,15 @@
     padding: 2px 6px;
     border-radius: 3px;
     font-size: 0.75em;
-    min-width: 60px;
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
     flex-shrink: 0;
     text-align: center;
     display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* 日志消息 */
@@ -145,6 +152,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 0.85em;
+    color: #495057;
 }
 
 .log-message pre {
@@ -507,6 +516,13 @@
     border-radius: 0.25rem;
     font-size: 0.8em;
     font-weight: 500;
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* 时间显示 */

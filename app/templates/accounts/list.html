@@ -2,6 +2,10 @@
 
 {% block title %}账户管理 - 鲸落{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -23,78 +27,8 @@
     </div>
 
     <!-- 搜索和筛选 -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="GET" id="account-search-form" onsubmit="return validateForm()">
-                {% if current_db_type %}
-                <input type="hidden" name="db_type" value="{{ current_db_type }}">
-                {% elif db_type %}
-                <input type="hidden" name="db_type" value="{{ db_type }}">
-                {% endif %}
-
-                <!-- 搜索和筛选条件 - 一行显示 -->
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-2">
-                        <label for="search" class="form-label">搜索</label>
-                        <input type="text" class="form-control" id="search" name="search"
-                               placeholder="搜索用户名、实例名称、IP地址" value="{{ search }}">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="classification" class="form-label">分类筛选</label>
-                        <select class="form-select" id="classification" name="classification">
-                            <option value="">全部分类</option>
-                            {% for classification_item in classifications_list %}
-                            <option value="{{ classification_item.id }}" 
-                                    {% if classification == classification_item.id|string %}selected{% endif %}>
-                                {{ classification_item.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">标签筛选</label>
-                        <div class="d-flex align-items-center gap-2">
-                            <button type="button" class="btn btn-outline-primary" id="open-tag-filter-btn">
-                                <i class="fas fa-tags me-2"></i>选择标签
-                            </button>
-                            <span class="text-muted" id="selected-tags-count">未选择标签</span>
-                        </div>
-                        <div id="selected-tags-preview" class="mt-1" style="display: none;">
-                            <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
-                            </div>
-                        </div>
-                        <input type="hidden" id="selected-tag-names" name="tags" value="{{ selected_tags|join(',') if selected_tags else '' }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="db_type" class="form-label">数据库类型</label>
-                        <select class="form-select" id="db_type" name="db_type">
-                            <option value="">全部类型</option>
-                            {% for db_type_option in filter_options.db_types %}
-                            <option value="{{ db_type_option.value }}"
-                                    {% if db_type == db_type_option.value %}selected{% endif %}>
-                                {{ db_type_option.label }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-1">
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-outline-primary">
-                                <i class="fas fa-search me-1"></i>搜索
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-1">
-                        <div class="d-grid">
-                            <a href="{{ url_for('account_list.list_accounts', db_type=current_db_type) if current_db_type else url_for('account_list.list_accounts') }}"
-                               class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i>清除
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
+    <div class="accounts-page">
+        {% include 'components/unified_search_form.html' %}
     </div>
 
 
@@ -589,6 +523,8 @@
     </div>
 </div>
 
+<!-- 统一搜索组件 -->
+<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <!-- 权限查看核心脚本 -->
 <script src="{{ url_for('static', filename='js/common/permission-viewer.js') }}"></script>
 <!-- 权限调试脚本 -->

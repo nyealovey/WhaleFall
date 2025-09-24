@@ -2,6 +2,10 @@
 
 {% block title %}实例管理 - 鲸落{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -28,57 +32,8 @@
 </div>
 
 <!-- 搜索和筛选 -->
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-3">
-            <div class="col-md-3">
-                <label for="search" class="form-label">搜索</label>
-                <input type="text" class="form-control" id="search" name="search"
-                       value="{{ search }}" placeholder="搜索实例名称、主机或描述">
-            </div>
-            <div class="col-md-2">
-                <label for="db_type" class="form-label">数据库类型</label>
-                <select class="form-select" id="db_type" name="db_type">
-                    <option value="">全部类型</option>
-                    {% for db_type_config in database_types %}
-                    <option value="{{ db_type_config.name }}" {% if db_type == db_type_config.name %}selected{% endif %}>
-                        {{ db_type_config.display_name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">标签筛选</label>
-                <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-outline-primary" id="open-tag-filter-btn">
-                        <i class="fas fa-tags me-2"></i>选择标签
-                    </button>
-                    <span class="text-muted" id="selected-tags-count">未选择标签</span>
-                </div>
-                <div id="selected-tags-preview" class="mt-2" style="display: none;">
-                    <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
-                    </div>
-                </div>
-                <input type="hidden" id="selected-tag-names" name="tags" value="{{ selected_tags|join(',') }}">
-            </div>
-            <div class="col-md-1">
-                <label class="form-label">&nbsp;</label>
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-outline-primary">
-                        <i class="fas fa-search me-1"></i>搜索
-                    </button>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">&nbsp;</label>
-                <div class="d-grid">
-                    <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-times me-1"></i>清除
-                    </a>
-                </div>
-            </div>
-        </form>
-    </div>
+<div class="instances-page">
+    {% include 'components/unified_search_form.html' %}
 </div>
 
 <!-- 实例列表 -->
@@ -410,6 +365,7 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/list.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block extra_js %}
@@ -418,6 +374,7 @@
     {% include 'components/tag_selector.html' %}
 </div>
 
+<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/instances/list.js') }}"></script>
 
 {% endblock %}
