@@ -95,7 +95,7 @@ function handleEditUser(event, form) {
     
     const formData = new FormData(form);
     const data = {
-        user_id: formData.get('user_id'),
+        user_id: parseInt(formData.get('user_id')),
         username: formData.get('username'),
         role: formData.get('role'),
         is_active: formData.get('is_active') === 'on'
