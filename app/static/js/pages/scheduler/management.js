@@ -451,7 +451,7 @@ function updateJob() {
         return;
     }
 
-    const isBuiltInJob = ['sync_all_accounts', 'sync_all_instances', 'cleanup_logs'].includes(originalJob.id);
+    const isBuiltInJob = ['sync_all_accounts', 'cleanup_logs'].includes(originalJob.id);
 
     const data = Object.fromEntries(formData.entries());
     const triggerType = data.editTriggerType;

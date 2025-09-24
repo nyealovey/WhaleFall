@@ -220,12 +220,6 @@ copy_code_to_container() {
         find /app -name '*.pyc' -type f -delete 2>/dev/null || true
         find /app -name '*.pyo' -type f -delete 2>/dev/null || true
         
-        # 清理临时文件
-        find /app -name '*.tmp' -type f -delete 2>/dev/null || true
-        find /app -name '*.log' -type f -delete 2>/dev/null || true
-        
-        # 清理应用日志（保留系统日志）
-        find /app/userdata/logs -name '*.log' -type f -delete 2>/dev/null || true
     "; then
         log_success "缓存清理完成"
     else
