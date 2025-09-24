@@ -609,6 +609,20 @@ class OptimizedAccountClassificationService:
                 else:
                     actual_global_set = {p["privilege"] for p in actual_global if p.get("granted", False)}
 
+                # 调试日志：记录权限匹配详情
+                if "GRANT OPTION" in required_global:
+                    log_info(
+                        f"MySQL GRANT OPTION权限匹配调试",
+                        module="account_classification",
+                        account_id=account.id,
+                        username=account.username,
+                        required_global=required_global,
+                        actual_global=actual_global,
+                        actual_global_set=list(actual_global_set),
+                        operator=operator,
+                        has_grant_option="GRANT OPTION" in actual_global_set
+                    )
+
                 if operator == "AND":
                     if not all(perm in actual_global_set for perm in required_global):
                         return False
