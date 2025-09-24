@@ -48,35 +48,60 @@ def get_jobs() -> Response:
         jobs_data: list[dict[str, Any]] = []
 
         for job in jobs:
-            # 检查任务状态
-            is_paused = job.next_run_time is None
-            is_builtin = job.id in ["sync_all_accounts", "sync_all_instances", "cleanup_logs"]
+            try:
+                # 检查任务状态
+                is_paused = job.next_run_time is None
+                is_builtin = job.id in ["sync_all_accounts", "sync_all_instances", "cleanup_logs"]
 
-            trigger_type = "unknown"
-            trigger_args: dict[str, Any] = {}
-            if isinstance(job.trigger, CronTrigger):
-                trigger_type = "cron"
-                # CronTrigger直接访问属性
-                trigger_args = {
-                    "minute": str(job.trigger.minute) if job.trigger.minute is not None else "*",
-                    "hour": str(job.trigger.hour) if job.trigger.hour is not None else "*",
-                    "day": str(job.trigger.day) if job.trigger.day is not None else "*",
-                    "month": str(job.trigger.month) if job.trigger.month is not None else "*",
-                    "day_of_week": str(job.trigger.day_of_week) if job.trigger.day_of_week is not None else "*",
-                }
-            elif isinstance(job.trigger, IntervalTrigger):
-                trigger_type = "interval"
-                delta = job.trigger.interval
-                trigger_args = {
-                    "weeks": delta.days // 7,
-                    "days": delta.days % 7,
-                    "hours": delta.seconds // 3600,
-                    "minutes": (delta.seconds % 3600) // 60,
-                    "seconds": delta.seconds % 60,
-                }
-            elif isinstance(job.trigger, DateTrigger):
-                trigger_type = "date"
-                trigger_args = {"run_date": job.trigger.run_date.isoformat()}
+                trigger_type = "unknown"
+                trigger_args: dict[str, Any] = {}
+                
+                # 调试信息
+                system_logger.info(f"处理任务: {job.id}, 触发器类型: {type(job.trigger)}")
+                
+                if isinstance(job.trigger, CronTrigger):
+                    trigger_type = "cron"
+                    # CronTrigger直接访问属性，添加异常处理
+                    try:
+                        trigger_args = {
+                            "minute": str(job.trigger.minute) if job.trigger.minute is not None else "*",
+                            "hour": str(job.trigger.hour) if job.trigger.hour is not None else "*",
+                            "day": str(job.trigger.day) if job.trigger.day is not None else "*",
+                            "month": str(job.trigger.month) if job.trigger.month is not None else "*",
+                            "day_of_week": str(job.trigger.day_of_week) if job.trigger.day_of_week is not None else "*",
+                        }
+                        system_logger.info(f"CronTrigger字段: {trigger_args}")
+                    except Exception as trigger_error:
+                        system_logger.error(f"访问CronTrigger字段失败: {trigger_error}")
+                        # 使用默认值
+                        trigger_args = {
+                            "minute": "*",
+                            "hour": "*", 
+                            "day": "*",
+                            "month": "*",
+                            "day_of_week": "*",
+                        }
+                elif isinstance(job.trigger, IntervalTrigger):
+                    trigger_type = "interval"
+                    delta = job.trigger.interval
+                    trigger_args = {
+                        "weeks": delta.days // 7,
+                        "days": delta.days % 7,
+                        "hours": delta.seconds // 3600,
+                        "minutes": (delta.seconds % 3600) // 60,
+                        "seconds": delta.seconds % 60,
+                    }
+                elif isinstance(job.trigger, DateTrigger):
+                    trigger_type = "date"
+                    trigger_args = {"run_date": job.trigger.run_date.isoformat()}
+                else:
+                    system_logger.warning(f"未知触发器类型: {type(job.trigger)}")
+                    
+            except Exception as job_error:
+                system_logger.error(f"处理任务 {job.id} 时出错: {job_error}")
+                # 使用默认值继续处理
+                trigger_type = "unknown"
+                trigger_args = {}
 
             # 模拟任务状态
             state = "STATE_PAUSED"
