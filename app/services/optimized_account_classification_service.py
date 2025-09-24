@@ -368,17 +368,17 @@ class OptimizedAccountClassificationService:
                         
                         total_classifications_added += added_count
                         total_matches += len(matched_accounts)
-                        
-                        log_info(
-                            f"规则 {rule.rule_name} 处理完成",
-                            module="account_classification",
-                            rule_id=rule.id,
-                            db_type=db_type,
-                            matched_accounts=len(matched_accounts),
-                            added_classifications=added_count,
-                            batch_id=self.batch_id
-                        )
-                    # 移除"无匹配账户"的日志，减少日志噪音
+                    
+                    # 无论是否匹配到账户，都记录规则处理完成
+                    log_info(
+                        f"规则 {rule.rule_name} 处理完成",
+                        module="account_classification",
+                        rule_id=rule.id,
+                        db_type=db_type,
+                        matched_accounts=len(matched_accounts),
+                        added_classifications=added_count if matched_accounts else 0,
+                        batch_id=self.batch_id
+                    )
                         
                 except Exception as e:
                     error_msg = f"规则 {rule.rule_name} 处理失败: {str(e)}"
