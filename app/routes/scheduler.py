@@ -75,22 +75,22 @@ def get_jobs() -> Response:
                             "month": str(fields[1]) if len(fields) > 1 and fields[1] is not None else "*",
                             "day_of_week": str(fields[4]) if len(fields) > 4 and fields[4] is not None else "*",
                         }
-+                        # 扩展：补充 second 与 year 字段，并提供标准 7 段 cron_expression 便于前端统一解析
-+                        try:
-+                            second_str = str(fields[7]) if len(fields) > 7 and fields[7] is not None else "*"
-+                        except Exception:
-+                            second_str = "*"
-+                        try:
-+                            year_str = str(fields[0]) if len(fields) > 0 and fields[0] is not None else "*"
-+                        except Exception:
-+                            year_str = "*"
-+
-+                        trigger_args["second"] = second_str
-+                        trigger_args["year"] = year_str
-+
-+                        # 统一构造 7 段表达式：second minute hour day month day_of_week year
-+                        cron_expression = f"{second_str} {trigger_args.get('minute', '*')} {trigger_args.get('hour', '*')} {trigger_args.get('day', '*')} {trigger_args.get('month', '*')} {trigger_args.get('day_of_week', '*')} {year_str}"
-+                        trigger_args["cron_expression"] = cron_expression
+                        # 扩展：补充 second 与 year 字段，并提供标准 7 段 cron_expression 便于前端统一解析
+                        try:
+                            second_str = str(fields[7]) if len(fields) > 7 and fields[7] is not None else "*"
+                        except Exception:
+                            second_str = "*"
+                        try:
+                            year_str = str(fields[0]) if len(fields) > 0 and fields[0] is not None else "*"
+                        except Exception:
+                            year_str = "*"
+
+                        trigger_args["second"] = second_str
+                        trigger_args["year"] = year_str
+
+                        # 统一构造 7 段表达式：second minute hour day month day_of_week year
+                        cron_expression = f"{second_str} {trigger_args.get('minute', '*')} {trigger_args.get('hour', '*')} {trigger_args.get('day', '*')} {trigger_args.get('month', '*')} {trigger_args.get('day_of_week', '*')} {year_str}"
+                        trigger_args["cron_expression"] = cron_expression
                         system_logger.info(f"CronTrigger字段: {trigger_args}")
                     except Exception as trigger_error:
                         system_logger.error(f"访问CronTrigger字段失败: {trigger_error}")
