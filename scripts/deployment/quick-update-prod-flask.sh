@@ -48,8 +48,8 @@ show_banner() {
     echo "║                (保留数据库和Redis)                          ║"
     echo "║                (自动刷新Nginx缓存)                          ║"
     echo "║                (最小化停机时间)                              ║"
-    echo "║                (支持代码回滚后更新)                          ║"
-    echo "║                (自动检测并处理Git状态)                       ║"
+    echo "║                (直接下载GitHub最新代码)                      ║"
+    echo "║                (避免Git配置问题)                            ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -137,113 +137,59 @@ check_current_status() {
 pull_latest_code() {
     log_step "拉取最新代码..."
     
-    # 检查Git状态
-    if ! git status &> /dev/null; then
-        log_error "当前目录不是Git仓库"
+    # 直接使用wget下载最新代码，避免Git配置问题
+    log_info "直接从GitHub下载最新代码..."
+    
+    # 创建临时目录
+    local temp_dir="/tmp/whalefall_update_$(date +%s)"
+    mkdir -p "$temp_dir"
+    cd "$temp_dir"
+    
+    # 下载最新代码
+    log_info "下载GitHub最新代码..."
+    if wget -q https://github.com/nyealovey/TaifishingV4/archive/refs/heads/main.zip -O main.zip; then
+        log_success "代码下载成功"
+    else
+        log_error "代码下载失败，请检查网络连接"
+        rm -rf "$temp_dir"
         exit 1
     fi
     
-    # 获取当前提交信息
-    local current_commit
-    current_commit=$(git rev-parse --short HEAD)
-    log_info "当前本地提交: $current_commit"
-    
-    # 获取远程最新提交信息
-    log_info "获取远程最新信息..."
-    git fetch origin main
-    
-    local remote_commit
-    remote_commit=$(git rev-parse --short origin/main)
-    log_info "远程最新提交: $remote_commit"
-    
-    # 配置Git用户信息（如果未配置）
-    log_info "检查Git用户配置..."
-    if ! git config user.email >/dev/null 2>&1; then
-        log_info "配置Git用户邮箱..."
-        if ! git config user.email "whalefall@taifishing.com"; then
-            log_warning "Git邮箱配置失败，但继续执行"
-        else
-            log_success "Git邮箱配置成功"
-        fi
+    # 解压代码
+    log_info "解压代码..."
+    if unzip -q main.zip; then
+        log_success "代码解压成功"
     else
-        log_info "Git邮箱已配置: $(git config user.email)"
+        log_error "代码解压失败"
+        rm -rf "$temp_dir"
+        exit 1
     fi
     
-    if ! git config user.name >/dev/null 2>&1; then
-        log_info "配置Git用户名..."
-        if ! git config user.name "WhaleFall Deploy"; then
-            log_warning "Git用户名配置失败，但继续执行"
-        else
-            log_success "Git用户名配置成功"
-        fi
+    # 备份当前代码（可选）
+    log_info "备份当前代码..."
+    if [ -d "/opt/whalefall" ]; then
+        cp -r /opt/whalefall /opt/whalefall_backup_$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+    fi
+    
+    # 复制新代码到目标目录
+    log_info "复制新代码到目标目录..."
+    if cp -r TaifishingV4-main/* /opt/whalefall/; then
+        log_success "代码复制成功"
     else
-        log_info "Git用户名已配置: $(git config user.name)"
+        log_error "代码复制失败"
+        rm -rf "$temp_dir"
+        exit 1
     fi
     
-    # 检查本地是否有未提交的更改
-    if ! git diff --quiet; then
-        log_info "检测到本地未提交的更改，暂存当前更改..."
-        git stash push -m "Auto-stash before quick update $(date '+%Y-%m-%d %H:%M:%S')"
-    fi
+    # 复制隐藏文件
+    cp -r TaifishingV4-main/.* /opt/whalefall/ 2>/dev/null || true
     
-    # 检查本地是否领先于远程（回滚情况）
-    local local_ahead
-    local_ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo "0")
+    # 清理临时目录
+    cd /opt/whalefall
+    rm -rf "$temp_dir"
     
-    if [ "$local_ahead" -gt 0 ]; then
-        log_warning "检测到本地代码领先于远程 $local_ahead 个提交（可能是回滚状态）"
-        log_info "当前本地提交: $current_commit"
-        log_info "远程最新提交: $remote_commit"
-        
-        # 询问是否强制同步到远程状态
-        log_warning "本地代码状态与远程不一致，这可能是由于代码回滚导致的"
-        log_info "选项："
-        log_info "  1. 强制同步到远程最新状态（推荐）"
-        log_info "  2. 保持当前本地状态（跳过更新）"
-        log_info "  3. 取消更新"
-        
-        # 自动选择选项1（强制同步到远程）
-        log_info "自动选择：强制同步到远程最新状态"
-        
-        # 强制重置到远程状态
-        log_info "强制重置到远程最新状态..."
-        if git reset --hard origin/main; then
-            log_success "代码已强制同步到远程最新状态"
-            log_info "新的本地提交: $(git rev-parse --short HEAD)"
-        else
-            log_error "强制同步失败"
-            exit 1
-        fi
-    else
-        # 正常拉取最新代码
-        log_info "拉取最新代码..."
-        if git pull origin main; then
-            log_success "代码更新成功"
-            log_info "更新后提交: $(git rev-parse --short HEAD)"
-        else
-            log_warning "git pull失败，尝试使用git reset --hard强制同步..."
-            if git reset --hard origin/main; then
-                log_success "强制同步成功"
-                log_info "同步后提交: $(git rev-parse --short HEAD)"
-            else
-                log_error "代码更新和强制同步都失败"
-                log_error "请手动检查Git状态和网络连接"
-                exit 1
-            fi
-        fi
-    fi
-    
-    # 验证最终状态
-    local final_commit
-    final_commit=$(git rev-parse --short HEAD)
-    log_info "最终代码提交: $final_commit"
-    
-    # 检查是否有文件变更
-    if git diff --quiet HEAD~1 HEAD; then
-        log_warning "没有检测到代码变更，可能已经是最新状态"
-    else
-        log_success "检测到代码变更，准备更新容器"
-    fi
+    log_success "代码更新完成"
+    log_info "新代码已复制到 /opt/whalefall"
 }
 
 # 拷贝代码到容器
@@ -628,8 +574,8 @@ show_update_result() {
     echo "  - 仅更新Flask应用代码，不重建容器"
     echo "  - 数据库和Redis服务保持不变"
     echo "  - Nginx和Flask在同一容器，缓存已自动刷新"
-    echo "  - 支持代码回滚后的自动同步和更新"
-    echo "  - 自动检测并处理Git状态不一致的情况"
+    echo "  - 直接下载GitHub最新代码，无需Git配置"
+    echo "  - 自动备份当前代码，支持快速回滚"
     echo "  - 如有问题，请手动检查服务状态和日志"
     echo "  - 建议定期备份重要数据"
     echo "  - 监控应用运行状态"
