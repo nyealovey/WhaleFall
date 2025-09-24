@@ -836,17 +836,86 @@
     display: block;
 }
 
+/* 实例分组样式（与标签分组保持一致） */
+.instance-groups {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.instance-group {
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    background: white;
+    margin-bottom: 0.5rem;
+}
+
+.instance-group-header {
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 0.5rem 0.5rem 0 0;
+    transition: all 0.2s ease;
+}
+
+.instance-group-header:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+}
+
+.instance-group-icon {
+    transition: transform 0.2s ease;
+    color: #6c757d;
+}
+
+.instance-group-content {
+    padding: 0;
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.instance-group-content .list-group {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+}
+
+.instance-group-content .list-group-item {
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.instance-group-content .list-group-item:last-child {
+    border-bottom: none;
+}
+
+.instance-group-content .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* 实例分组展开动画 */
+.instance-group-content.collapse {
+    display: none;
+}
+
+.instance-group-content.collapse.show {
+    display: block;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
-    .tag-groups {
+    .tag-groups,
+    .instance-groups {
         max-height: 300px;
     }
     
-    .tag-group-header {
+    .tag-group-header,
+    .instance-group-header {
         padding: 0.5rem 0.75rem;
     }
     
-    .tag-group-content .list-group-item {
+    .tag-group-content .list-group-item,
+    .instance-group-content .list-group-item {
         padding: 0.375rem 0.75rem;
     }
 }

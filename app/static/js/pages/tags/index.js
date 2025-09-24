@@ -500,15 +500,45 @@ async function loadInstancesForBatchAssign() {
 
         if (data.success) {
             if (data.instances.length > 0) {
-                let html = '<div class="list-group">';
-                data.instances.forEach(instance => {
+                // 按数据库类型分组实例
+                const groupedInstances = groupInstancesByDbType(data.instances);
+                let html = '<div class="instance-groups">';
+                
+                // 生成分组HTML
+                Object.keys(groupedInstances).forEach(dbType => {
+                    const dbTypeName = getDbTypeDisplayName(dbType);
+                    const instances = groupedInstances[dbType];
+                    const groupId = `instance-group-${dbType}`;
+                    
                     html += `
-                        <label class="list-group-item">
-                            <input class="form-check-input me-1" type="checkbox" value="${instance.id}" data-instance-name="${instance.name}">
-                            ${instance.name} (${instance.host}:${instance.port})
-                        </label>
+                        <div class="instance-group mb-3">
+                            <div class="instance-group-header" onclick="toggleInstanceGroup('${groupId}')" style="cursor: pointer;">
+                                <h6 class="mb-0 d-flex align-items-center">
+                                    <i class="fas fa-chevron-right me-2 instance-group-icon" id="${groupId}-icon"></i>
+                                    <span class="badge bg-secondary me-2">${dbTypeName}</span>
+                                    <small class="text-muted">(${instances.length} 个实例)</small>
+                                </h6>
+                            </div>
+                            <div class="instance-group-content collapse" id="${groupId}">
+                                <div class="list-group mt-2">
+                    `;
+                    
+                    instances.forEach(instance => {
+                        html += `
+                            <label class="list-group-item">
+                                <input class="form-check-input me-1" type="checkbox" value="${instance.id}" data-instance-name="${instance.name}">
+                                ${instance.name} (${instance.host}:${instance.port})
+                            </label>
+                        `;
+                    });
+                    
+                    html += `
+                                </div>
+                            </div>
+                        </div>
                     `;
                 });
+                
                 html += '</div>';
                 instanceListContainer.innerHTML = html;
             } else {
@@ -522,6 +552,51 @@ async function loadInstancesForBatchAssign() {
         console.error('Error loading instances:', error);
         instanceListContainer.innerHTML = '<p class="text-danger">加载实例失败，请检查网络或服务器日志。</p>';
         showErrorAlert('加载实例失败，请检查网络或服务器日志。');
+    }
+}
+
+// 按数据库类型分组实例
+function groupInstancesByDbType(instances) {
+    const grouped = {};
+    instances.forEach(instance => {
+        if (!grouped[instance.db_type]) {
+            grouped[instance.db_type] = [];
+        }
+        grouped[instance.db_type].push(instance);
+    });
+    
+    // 对每个数据库类型的实例按名称排序
+    Object.keys(grouped).forEach(dbType => {
+        grouped[dbType].sort((a, b) => a.name.localeCompare(b.name));
+    });
+    
+    return grouped;
+}
+
+// 获取数据库类型显示名称
+function getDbTypeDisplayName(dbType) {
+    const dbTypeNames = {
+        'mysql': 'MySQL',
+        'postgresql': 'PostgreSQL',
+        'sqlserver': 'SQL Server',
+        'oracle': 'Oracle'
+    };
+    return dbTypeNames[dbType] || dbType.toUpperCase();
+}
+
+// 切换实例分组展开/合拢
+function toggleInstanceGroup(groupId) {
+    const content = document.getElementById(groupId);
+    const icon = document.getElementById(`${groupId}-icon`);
+    
+    if (content.classList.contains('show')) {
+        content.classList.remove('show');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-right');
+    } else {
+        content.classList.add('show');
+        icon.classList.remove('fa-chevron-right');
+        icon.classList.add('fa-chevron-down');
     }
 }
 
@@ -648,7 +723,7 @@ function toggleTagGroup(groupId) {
 
 // 处理批量分配保存按钮点击事件
 async function handleBatchAssignSave() {
-    const selectedInstanceIds = Array.from(document.querySelectorAll('#batchAssignModal .instance-list-container input[type="checkbox"]:checked'))
+    const selectedInstanceIds = Array.from(document.querySelectorAll('#batchAssignModal .instance-groups input[type="checkbox"]:checked'))
         .map(checkbox => checkbox.value);
     const selectedTagIds = Array.from(document.querySelectorAll('#batchAssignModal .tag-groups input[type="checkbox"]:checked'))
         .map(checkbox => checkbox.value);
