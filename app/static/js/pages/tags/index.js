@@ -483,6 +483,17 @@ function initializeBatchAssignModal() {
         if (batchAssignSaveBtn) {
             batchAssignSaveBtn.addEventListener('click', handleBatchAssignSave);
         }
+
+        // 添加模式切换监听器
+        const assignModeRadio = document.getElementById('assignMode');
+        const removeModeRadio = document.getElementById('removeMode');
+        
+        if (assignModeRadio) {
+            assignModeRadio.addEventListener('change', handleModeChange);
+        }
+        if (removeModeRadio) {
+            removeModeRadio.addEventListener('change', handleModeChange);
+        }
     }
 }
 
@@ -784,6 +795,139 @@ function removeTagSelection(tagId) {
     }
 }
 
+// 处理模式切换
+function handleModeChange() {
+    const assignMode = document.getElementById('assignMode').checked;
+    const saveBtn = document.getElementById('batchAssignSave');
+    
+    if (assignMode) {
+        // 分配模式
+        saveBtn.innerHTML = '<i class="fas fa-plus me-1"></i>分配标签';
+        saveBtn.className = 'btn btn-primary';
+        loadTagsForBatchAssign(); // 重新加载所有标签
+    } else {
+        // 移除模式
+        saveBtn.innerHTML = '<i class="fas fa-minus me-1"></i>移除标签';
+        saveBtn.className = 'btn btn-danger';
+        loadTagsForBatchRemove(); // 加载已关联的标签
+    }
+    
+    // 清空当前选择
+    clearAllSelections();
+}
+
+// 清空所有选择
+function clearAllSelections() {
+    // 清空实例选择
+    const instanceCheckboxes = document.querySelectorAll('#batchAssignModal .instance-groups input[type="checkbox"]');
+    instanceCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // 清空标签选择
+    const tagCheckboxes = document.querySelectorAll('#batchAssignModal .tag-groups input[type="checkbox"]');
+    tagCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // 更新显示
+    updateSelectedTagsDisplay();
+}
+
+// 加载移除模式的标签（只显示已关联的标签）
+async function loadTagsForBatchRemove() {
+    const tagListContainer = document.querySelector('#batchAssignModal .tag-list-container');
+    if (!tagListContainer) return;
+
+    tagListContainer.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> 加载已关联标签中...</p>';
+
+    try {
+        // 获取选中的实例
+        const selectedInstances = Array.from(document.querySelectorAll('#batchAssignModal .instance-groups input[type="checkbox"]:checked'))
+            .map(checkbox => checkbox.value);
+        
+        if (selectedInstances.length === 0) {
+            tagListContainer.innerHTML = '<p class="text-muted text-center">请先选择要移除标签的实例。</p>';
+            return;
+        }
+
+        // 获取这些实例的已关联标签
+        const response = await fetch('/tags/api/instance_tags', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                instance_ids: selectedInstances
+            })
+        });
+        
+        const data = await response.json();
+        console.log('Instance tags data:', data);
+
+        if (data.success) {
+            if (data.tags.length > 0) {
+                // 按分类分组标签
+                const groupedTags = groupTagsByCategory(data.tags);
+                const categoryNames = data.category_names || {};
+                let html = '<div class="tag-groups">';
+                
+                // 生成分组HTML
+                Object.keys(groupedTags).forEach(category => {
+                    const categoryName = categoryNames[category] || category;
+                    const tags = groupedTags[category];
+                    const groupId = `tag-group-${category}`;
+                    
+                    html += `
+                        <div class="tag-group mb-3">
+                            <div class="tag-group-header" onclick="toggleTagGroup('${groupId}')" style="cursor: pointer;">
+                                <h6 class="mb-0 d-flex align-items-center">
+                                    <i class="fas fa-chevron-right me-2 tag-group-icon" id="${groupId}-icon"></i>
+                                    <span class="badge bg-secondary me-2">${categoryName}</span>
+                                    <small class="text-muted">(${tags.length} 个标签)</small>
+                                </h6>
+                            </div>
+                            <div class="tag-group-content collapse" id="${groupId}">
+                                <div class="list-group mt-2">
+                    `;
+                    
+                    tags.forEach(tag => {
+                        html += `
+                            <label class="list-group-item">
+                                <input class="form-check-input me-1" type="checkbox" value="${tag.id}" data-tag-name="${tag.display_name}">
+                                <span class="badge bg-${tag.color} me-2">${tag.display_name}</span>
+                                <small class="text-muted">(${tag.name})</small>
+                            </label>
+                        `;
+                    });
+                    
+                    html += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                tagListContainer.innerHTML = html;
+                
+                // 添加事件监听器来更新选中标签显示
+                addTagSelectionListeners();
+            } else {
+                tagListContainer.innerHTML = '<p class="text-muted text-center">选中的实例没有关联任何标签。</p>';
+            }
+        } else {
+            tagListContainer.innerHTML = `<p class="text-danger">加载已关联标签失败: ${data.error}</p>`;
+            showErrorAlert(`加载已关联标签失败: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error loading instance tags:', error);
+        tagListContainer.innerHTML = '<p class="text-danger">加载已关联标签失败，请检查网络或服务器日志。</p>';
+        showErrorAlert('加载已关联标签失败，请检查网络或服务器日志。');
+    }
+}
+
 // 处理批量分配保存按钮点击事件
 async function handleBatchAssignSave() {
     const selectedInstanceIds = Array.from(document.querySelectorAll('#batchAssignModal .instance-groups input[type="checkbox"]:checked'))
@@ -792,18 +936,32 @@ async function handleBatchAssignSave() {
         .map(checkbox => checkbox.value);
 
     if (selectedInstanceIds.length === 0) {
-        showWarningAlert('请至少选择一个实例进行分配。');
+        showWarningAlert('请至少选择一个实例。');
         return;
     }
     if (selectedTagIds.length === 0) {
-        showWarningAlert('请至少选择一个标签进行分配。');
+        showWarningAlert('请至少选择一个标签。');
         return;
     }
 
-    showLoadingState('batchAssignSave', '分配中...');
+    // 检查当前模式
+    const assignMode = document.getElementById('assignMode').checked;
+    const isAssignMode = assignMode;
+    
+    const actionText = isAssignMode ? '分配' : '移除';
+    const confirmText = isAssignMode ? 
+        `确定要将选中的 ${selectedTagIds.length} 个标签分配给 ${selectedInstanceIds.length} 个实例吗？` :
+        `确定要从选中的 ${selectedInstanceIds.length} 个实例中移除 ${selectedTagIds.length} 个标签吗？`;
+
+    if (!confirm(confirmText)) {
+        return;
+    }
+
+    showLoadingState('batchAssignSave', `${actionText}中...`);
 
     try {
-        const response = await fetch('/tags/api/batch_assign_tags', {
+        const apiEndpoint = isAssignMode ? '/tags/api/batch_assign_tags' : '/tags/api/batch_remove_tags';
+        const response = await fetch(apiEndpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -822,12 +980,13 @@ async function handleBatchAssignSave() {
             if (batchAssignModal) batchAssignModal.hide();
             location.reload(); // 重新加载页面以显示更新后的标签分配
         } else {
-            showErrorAlert(`批量分配失败: ${data.error}`);
+            showErrorAlert(`批量${actionText}失败: ${data.error}`);
         }
     } catch (error) {
-        console.error('Error during batch assignment:', error);
-        showErrorAlert('批量分配失败，请检查网络或服务器日志。');
+        console.error(`Error during batch ${actionText}:`, error);
+        showErrorAlert(`批量${actionText}失败，请检查网络或服务器日志。`);
     } finally {
-        hideLoadingState('batchAssignSave', '保存');
+        const buttonText = isAssignMode ? '分配标签' : '移除标签';
+        hideLoadingState('batchAssignSave', buttonText);
     }
 }
