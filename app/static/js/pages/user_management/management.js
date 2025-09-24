@@ -15,7 +15,7 @@ function initializeUserManagementPage() {
     initializeAddUserForm();
     initializeEditUserForm();
     initializeDeleteUserHandlers();
-    initializeUserStatusToggles();
+    // initializeUserStatusToggles(); // 已移除状态切换功能
     initializeUserTable();
     console.log('用户管理页面已加载');
 }
@@ -177,15 +177,20 @@ function initializeDeleteUserHandlers() {
     });
 }
 
-// 确认删除用户
+// 确认删除用户（已废弃，使用deleteUser函数）
 function confirmDeleteUser(userId, username) {
-    if (confirm(`确定要删除用户 "${username}" 吗？此操作不可撤销。`)) {
-        deleteUser(userId);
-    }
+    deleteUser(userId, username);
 }
 
 // 删除用户
-function deleteUser(userId) {
+function deleteUser(userId, username) {
+    if (confirm(`确定要删除用户 "${username}" 吗？此操作不可撤销。`)) {
+        performDeleteUser(userId);
+    }
+}
+
+// 执行删除用户
+function performDeleteUser(userId) {
     showLoadingState(document.querySelector(`[data-user-id="${userId}"]`), '删除中...');
     
     fetch(`/users/api/users/${userId}`, {
