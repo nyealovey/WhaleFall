@@ -165,15 +165,20 @@ pull_latest_code() {
         exit 1
     fi
     
+    # 获取当前工作目录
+    local current_dir
+    current_dir=$(pwd)
+    log_info "当前工作目录: $current_dir"
+    
     # 备份当前代码（可选）
     log_info "备份当前代码..."
-    if [ -d "/opt/whalefall" ]; then
-        cp -r /opt/whalefall /opt/whalefall_backup_$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+    if [ -d "$current_dir" ]; then
+        cp -r "$current_dir" "${current_dir}_backup_$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
     fi
     
     # 复制新代码到目标目录
     log_info "复制新代码到目标目录..."
-    if cp -r TaifishingV4-main/* /opt/whalefall/; then
+    if cp -r TaifishingV4-main/* "$current_dir/"; then
         log_success "代码复制成功"
     else
         log_error "代码复制失败"
@@ -182,14 +187,14 @@ pull_latest_code() {
     fi
     
     # 复制隐藏文件
-    cp -r TaifishingV4-main/.* /opt/whalefall/ 2>/dev/null || true
+    cp -r TaifishingV4-main/.* "$current_dir/" 2>/dev/null || true
     
     # 清理临时目录
-    cd /opt/whalefall
+    cd "$current_dir"
     rm -rf "$temp_dir"
     
     log_success "代码更新完成"
-    log_info "新代码已复制到 /opt/whalefall"
+    log_info "新代码已复制到 $current_dir"
 }
 
 # 拷贝代码到容器
