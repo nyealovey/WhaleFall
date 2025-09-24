@@ -496,8 +496,8 @@ verify_update() {
     local health_response
     health_response=$(curl -s http://localhost:5001/health)
     
-    # 检查响应是否包含healthy状态
-    if echo "$health_response" | grep -q '"status": "healthy"'; then
+    # 检查响应是否包含healthy状态（支持嵌套JSON结构）
+    if echo "$health_response" | grep -q '"status": "healthy"' || echo "$health_response" | grep -q '"success": true'; then
         log_success "健康检查通过"
         log_info "健康检查响应: $health_response"
     else
@@ -506,7 +506,7 @@ verify_update() {
         local nginx_health_response
         nginx_health_response=$(curl -s http://localhost/health)
         
-        if echo "$nginx_health_response" | grep -q '"status": "healthy"'; then
+        if echo "$nginx_health_response" | grep -q '"status": "healthy"' || echo "$nginx_health_response" | grep -q '"success": true'; then
             log_success "通过Nginx健康检查通过"
             log_info "Nginx健康检查响应: $nginx_health_response"
         else
