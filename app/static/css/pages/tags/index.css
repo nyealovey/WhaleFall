@@ -769,3 +769,84 @@
     border-radius: 0.25rem;
     font-weight: 600;
 }
+
+/* 标签分组样式 */
+.tag-groups {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.tag-group {
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    background: white;
+    margin-bottom: 0.5rem;
+}
+
+.tag-group-header {
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 0.5rem 0.5rem 0 0;
+    transition: all 0.2s ease;
+}
+
+.tag-group-header:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+}
+
+.tag-group-icon {
+    transition: transform 0.2s ease;
+    color: #6c757d;
+}
+
+.tag-group-content {
+    padding: 0;
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.tag-group-content .list-group {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+}
+
+.tag-group-content .list-group-item {
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.tag-group-content .list-group-item:last-child {
+    border-bottom: none;
+}
+
+.tag-group-content .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* 分组展开动画 */
+.tag-group-content.collapse {
+    display: none;
+}
+
+.tag-group-content.collapse.show {
+    display: block;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .tag-groups {
+        max-height: 300px;
+    }
+    
+    .tag-group-header {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .tag-group-content .list-group-item {
+        padding: 0.375rem 0.75rem;
+    }
+}
