@@ -271,9 +271,43 @@ def batch_remove_all_tags() -> Response:
         # 记录移除前的状态
         total_removed = 0
         for instance in instances:
-            tag_count = len(instance.tags)
-            instance.tags.clear()  # 清空所有标签
-            total_removed += tag_count
+            try:
+                # 获取当前标签数量（使用all()方法获取实际列表）
+                current_tags = instance.tags.all()
+                tag_count = len(current_tags)
+                log_info(
+                    f"实例 {instance.name} 当前有 {tag_count} 个标签",
+                    module="tags",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    tag_count=tag_count,
+                    user_id=current_user.id,
+                )
+                
+                # 清空所有标签 - 使用remove方法逐个移除
+                for tag in current_tags:
+                    instance.tags.remove(tag)
+                
+                total_removed += tag_count
+                
+                log_info(
+                    f"实例 {instance.name} 标签已清空",
+                    module="tags",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    user_id=current_user.id,
+                )
+            except Exception as instance_error:
+                log_error(
+                    f"清空实例 {instance.name} 标签失败",
+                    module="tags",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    error=str(instance_error),
+                    error_type=type(instance_error).__name__,
+                    user_id=current_user.id,
+                )
+                raise instance_error
 
         db.session.commit()
 
