@@ -61,16 +61,19 @@ class AccountSyncService:
             )
 
             # 根据同步类型决定是否需要会话管理
-            needs_session = sync_type in ["manual_batch", "manual_task", "scheduled_task"]
-
-            if needs_session and not session_id:
-                # 批量同步类型需要会话管理
-                return self._sync_with_session(instance, sync_type, created_by)
             if sync_type == "manual_single":
                 # 单实例同步不需要会话
                 return self._sync_single_instance(instance)
-            # 已有会话ID的批量同步
-            return self._sync_with_existing_session(instance, session_id)
+            elif sync_type in ["manual_batch", "manual_task", "scheduled_task"]:
+                if session_id:
+                    # 已有会话ID的批量同步
+                    return self._sync_with_existing_session(instance, session_id)
+                else:
+                    # 批量同步类型需要会话管理
+                    return self._sync_with_session(instance, sync_type, created_by)
+            else:
+                # 未知同步类型，默认使用单实例同步
+                return self._sync_single_instance(instance)
 
         except Exception as e:
             # 分类异常处理，提供更详细的错误信息
@@ -250,63 +253,6 @@ class AccountSyncService:
                 error=str(e),
             )
             return {"success": False, "error": f"同步失败: {str(e)}"}
-
-    def sync_instance_with_session(self, instance_id: int, session_id: str) -> dict[str, Any]:
-        """
-        使用现有会话同步指定实例 - 用于定时任务
-        
-        Args:
-            instance_id: 实例ID
-            session_id: 会话ID
-            
-        Returns:
-            Dict: 同步结果
-        """
-        try:
-            # 获取实例
-            instance = Instance.query.get(instance_id)
-            if not instance:
-                return {"success": False, "error": f"实例 {instance_id} 不存在"}
-
-            # 获取同步记录
-            record = sync_session_service.get_record_by_instance_and_session(instance_id, session_id)
-            if not record:
-                return {"success": False, "error": f"未找到实例 {instance_id} 的同步记录"}
-
-            # 开始实例同步
-            sync_session_service.start_instance_sync(record.id)
-
-            # 执行实际同步
-            result = self._sync_with_existing_session(instance, session_id)
-
-            # 更新实例同步状态
-            if result["success"]:
-                sync_session_service.complete_instance_sync(
-                    record.id,
-                    accounts_synced=result.get("synced_count", 0),
-                    accounts_created=result.get("added_count", 0),
-                    accounts_updated=result.get("modified_count", 0),
-                    accounts_deleted=result.get("removed_count", 0),
-                    sync_details=result.get("details", {}),
-                )
-            else:
-                sync_session_service.fail_instance_sync(
-                    record.id, 
-                    error_message=result.get("error", "同步失败"), 
-                    sync_details=result.get("details", {})
-                )
-
-            return result
-
-        except Exception as e:
-            self.sync_logger.error(
-                "实例会话同步失败",
-                module="account_sync_unified",
-                instance_id=instance_id,
-                session_id=session_id,
-                error=str(e),
-            )
-            return {"success": False, "error": f"实例同步失败: {str(e)}"}
 
     def _update_database_version(self, instance: Instance, conn: Any) -> None:  # noqa: ANN401
         """更新数据库版本信息（不独立提交，等待统一事务）"""
