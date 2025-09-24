@@ -496,19 +496,24 @@ async function loadInstancesForBatchAssign() {
     try {
         const response = await fetch('/tags/api/instances');
         const data = await response.json();
+        console.log('Instances data:', data); // 调试信息
 
         if (data.success) {
-            let html = '<div class="list-group">';
-            data.instances.forEach(instance => {
-                html += `
-                    <label class="list-group-item">
-                        <input class="form-check-input me-1" type="checkbox" value="${instance.id}" data-instance-name="${instance.name}">
-                        ${instance.name} (${instance.host}:${instance.port})
-                    </label>
-                `;
-            });
-            html += '</div>';
-            instanceListContainer.innerHTML = html;
+            if (data.instances.length > 0) {
+                let html = '<div class="list-group">';
+                data.instances.forEach(instance => {
+                    html += `
+                        <label class="list-group-item">
+                            <input class="form-check-input me-1" type="checkbox" value="${instance.id}" data-instance-name="${instance.name}">
+                            ${instance.name} (${instance.host}:${instance.port})
+                        </label>
+                    `;
+                });
+                html += '</div>';
+                instanceListContainer.innerHTML = html;
+            } else {
+                instanceListContainer.innerHTML = '<p class="text-muted text-center">没有可用的实例。</p>';
+            }
         } else {
             instanceListContainer.innerHTML = `<p class="text-danger">加载实例失败: ${data.error}</p>`;
             showErrorAlert(`加载实例失败: ${data.error}`);
@@ -530,20 +535,25 @@ async function loadTagsForBatchAssign() {
     try {
         const response = await fetch('/tags/api/all_tags'); // 获取所有标签，包括非活跃的
         const data = await response.json();
+        console.log('Tags data:', data); // 调试信息
 
         if (data.success) {
-            let html = '<div class="list-group">';
-            data.tags.forEach(tag => {
-                html += `
-                    <label class="list-group-item">
-                        <input class="form-check-input me-1" type="checkbox" value="${tag.id}" data-tag-name="${tag.display_name}">
-                        <span class="badge bg-${tag.color} me-2">${tag.display_name}</span>
-                        <small class="text-muted">(${tag.name})</small>
-                    </label>
-                `;
-            });
-            html += '</div>';
-            tagListContainer.innerHTML = html;
+            if (data.tags.length > 0) {
+                let html = '<div class="list-group">';
+                data.tags.forEach(tag => {
+                    html += `
+                        <label class="list-group-item">
+                            <input class="form-check-input me-1" type="checkbox" value="${tag.id}" data-tag-name="${tag.display_name}">
+                            <span class="badge bg-${tag.color} me-2">${tag.display_name}</span>
+                            <small class="text-muted">(${tag.name})</small>
+                        </label>
+                    `;
+                });
+                html += '</div>';
+                tagListContainer.innerHTML = html;
+            } else {
+                tagListContainer.innerHTML = '<p class="text-muted text-center">没有可用的标签。</p>';
+            }
         } else {
             tagListContainer.innerHTML = `<p class="text-danger">加载标签失败: ${data.error}</p>`;
             showErrorAlert(`加载标签失败: ${data.error}`);
