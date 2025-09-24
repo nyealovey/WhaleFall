@@ -1,430 +1,353 @@
-# 功能技术规格文档：数据库大小监控与分析
+# 功能技术规格：数据库大小监控与分析
 
-## 1. 文档信息
+## 1. 功能概述
 
-- **功能名称**: 数据库大小监控与分析 (Database Size Monitoring and Analysis)
-- **文档版本**: v1.0
-- **创建日期**: 2024-07-30
-- **维护者**: 鲸落开发团队
-- **关联文档**: [技术规格文档 (spec.md)](/Users/apple/Taifish/TaifishingV4/docs/architecture/spec.md)
+本功能旨在为 TaifishingV4 平台提供一个全面的数据库大小监控与分析解决方案。通过定期采集、存储和分析各数据库实例下每个具体数据库的大小信息（包括数据文件和日志文件），帮助用户有效管理存储资源、预测增长趋势、优化数据库性能，并为容量规划提供数据支持。
 
-## 2. 功能概述
+## 2. 架构整合设计
 
-本项目旨在为“鲸落”平台增加一个全面的、精细化的数据库大小监控与分析功能。该功能将允许用户跟踪其管理的各个数据库实例中，**每一个具体数据库（或Schema）** 的大小变化趋势，并区分**数据文件**和**日志文件**的大小。
-
-系统将通过后台定时任务自动采集数据，模仿并复用现有的账户同步流程架构，利用平台统一的连接管理和会话跟踪机制。最终，通过一个功能丰富的交互式图表在前端进行多维度的数据展示和分析。
-
-## 3. 架构整合设计
-
-本功能将作为一项新的监控服务无缝集成到现有“鲸落”架构中，严格遵循分层设计原则。
-
-### 整体架构集成图
+我们将采用一个与现有 `sync_accounts` 任务类似的异步任务处理模式，以确保数据采集过程的高效、可靠和非阻塞。
 
 ```mermaid
-graph TB
-    subgraph "前端层"
-        UI[Web UI<br/>Bootstrap + jQuery + Chart.js]
-    end
-    
-    subgraph "应用层 (Flask)"
-        INSTANCE_BP[instances.py Blueprint]
-    end
-
-    subgraph "业务层 (Services)"
-        COLLECTOR_SERVICE[DatabaseSizeCollectorService<br/>**新增核心服务**]
-        SYNC_SESSION_SERVICE[SyncSessionService<br/>复用]
-    end
-    
-    subgraph "数据访问层 (DAL)"
-        DB_SIZE_MODEL[DatabaseSizeStat<br/>**新增模型**]
-        INSTANCE_MODEL[Instance Model<br/>读取]
-        CONNECTION_FACTORY[Connection Factory<br/>复用]
-    end
-    
-    subgraph "数据层"
-        POSTGRES[(PostgreSQL<br/>主数据库)]
-    end
-    
-    subgraph "外部数据库 (采集目标)"
-        TARGET_PG[(PostgreSQL)]
-        TARGET_MY[(MySQL)]
-        TARGET_MS[(SQL Server)]
-        TARGET_ORA[(Oracle)]
-    end
-    
-    subgraph "任务调度 (APScheduler)"
-        SCHEDULER[APScheduler]
-        COLLECT_TASK[collect_database_sizes<br/>**新增任务**]
-    end
-    
-    UI --> INSTANCE_BP
-    INSTANCE_BP --> COLLECTOR_SERVICE
-    
-    SCHEDULER --> COLLECT_TASK
-    COLLECT_TASK --> SYNC_SESSION_SERVICE
-    COLLECT_TASK --> COLLECTOR_SERVICE
-    
-    COLLECTOR_SERVICE --> CONNECTION_FACTORY
-    COLLECTOR_SERVICE --> DB_SIZE_MODEL
-    COLLECTOR_SERVICE --> INSTANCE_MODEL
-    
-    CONNECTION_FACTORY --> TARGET_PG
-    CONNECTION_FACTORY --> TARGET_MY
-    CONNECTION_FACTORY --> TARGET_MS
-    CONNECTION_FACTORY --> TARGET_ORA
-
-    DB_SIZE_MODEL --> POSTGRES
-    SYNC_SESSION_SERVICE --> POSTGRES
+graph TD
+    A[Scheduler] -- 每小时触发 --> B(collect_database_sizes Task);
+    B -- 遍历所有活跃实例 --> C{Instance};
+    C -- 针对每个实例 --> D[DatabaseSizeCollectorService];
+    D -- 1. 获取数据库连接 --> E[ConnectionManager];
+    D -- 2. 根据实例类型选择SQL --> F{Switch by DB Type};
+    F -- PostgreSQL --> G_PG[执行PG SQL查询];
+    F -- MySQL --> G_MY[执行MySQL SQL查询];
+    F -- SQL Server --> G_MS[执行SQL Server SQL查询];
+    F -- Oracle --> G_OR[执行Oracle SQL查询];
+    G_PG -- 查询结果 --> H[格式化数据];
+    G_MY -- 查询结果 --> H;
+    G_MS -- 查询结果 --> H;
+    G_OR -- 查询结果 --> H;
+    H -- 批量存入 --> I[DatabaseSizeStat Table];
+    J[API Endpoints] -- 提供数据 --> K[Frontend UI];
+    I -- 为API提供数据 --> J;
 ```
 
-## 4. 数据模型设计 (Data Model)
+- **任务调度 (Scheduler)**: 复用现有的 `apscheduler`，添加一个新的定时任务 `collect_database_sizes`。
+- **后台任务 (Task)**: 在 `app/tasks.py` 中创建 `collect_database_sizes` 任务，负责编排整个采集流程。
+- **核心服务 (Service)**: 在 `app/services` 中创建 `DatabaseSizeCollectorService`，封装所有与数据库大小采集相关的业务逻辑。
+- **数据模型 (Model)**: 在 `app/models` 中创建新的 `DatabaseSizeStat` 模型，用于持久化存储采集到的数据。
+- **API层**: 在 `app/controllers` 中添加新的路由，提供数据查询接口。
+- **前端 (UI)**: 在前端项目中修改相关页面，调用API并以图表和表格形式展示数据。
 
-为了持久化存储每个数据库的历史大小数据，我们将创建一个新的 SQLAlchemy 模型。
+## 3. 数据模型设计
 
-### 4.1. 新建模型 `DatabaseSizeStat`
+### 3.1. `DatabaseSizeStat` 模型
 
-- **文件路径**: `app/models/database_size_stat.py`
-- **模型说明**: 该模型用于存储单次采集中，特定实例下某个具体数据库的大小快照。
+我们将创建一个新的 SQLAlchemy 模型 `DatabaseSizeStat` 来存储每个数据库在特定时间点的大小信息。
 
 ```python
-from __future__ import annotations
+# app/models/database_size_stat.py
 
-from datetime import datetime
-from typing import TYPE_CHECKING
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    ForeignKey,
+    BigInteger,
+    Index,
+)
+from sqlalchemy.orm import relationship
+from app.models.base import Base
+import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app import db
-from app.utils.time_utils import time_utils
-
-if TYPE_CHECKING:
-    from .instance import Instance
-
-class DatabaseSizeStat(db.Model):
+class DatabaseSizeStat(Base):
     """
-    存储数据库大小历史数据的模型
-
-    Attributes:
-        id (int): 主键ID。
-        instance_id (int): 关联的实例ID。
-        database_name (str): 数据库的名称。
-        data_size_mb (Numeric): 数据文件大小（MB）。
-        log_size_mb (Numeric): 日志文件大小（MB）。
-        total_size_mb (Numeric): 总大小（MB）。
-        collected_at (datetime): 采集时间戳。
-        instance (Instance): 关联的Instance对象。
+    存储每个数据库在特定时间点的大小统计信息。
     """
+
     __tablename__ = "database_size_stats"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    instance_id: Mapped[int] = mapped_column(Integer, ForeignKey("instances.id"), nullable=False, index=True)
-    database_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    data_size_mb: Mapped[float] = mapped_column(Numeric(15, 4), nullable=False, default=0.0)
-    log_size_mb: Mapped[float] = mapped_column(Numeric(15, 4), nullable=False, default=0.0)
-    total_size_mb: Mapped[float] = mapped_column(Numeric(15, 4), nullable=False, default=0.0)
-    collected_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=time_utils.now, index=True)
-
-    instance: Mapped["Instance"] = relationship("Instance", back_populates="size_stats")
-
-    __table_args__ = (
-        db.Index("ix_database_size_stats_instance_id_db_name_collected_at", "instance_id", "database_name", "collected_at"),
+    id = Column(Integer, primary_key=True, index=True)
+    instance_id = Column(Integer, ForeignKey("instances.id"), nullable=False)
+    database_name = Column(String(255), nullable=False, comment="数据库名称")
+    size_mb = Column(BigInteger, nullable=False, comment="数据库总大小（MB）")
+    data_size_mb = Column(
+        BigInteger, nullable=True, comment="数据部分大小（MB），如果可获取"
+    )
+    log_size_mb = Column(
+        BigInteger, nullable=True, comment="日志部分大小（MB），如果可获取"
+    )
+    collected_at = Column(
+        DateTime, nullable=False, default=datetime.datetime.utcnow, comment="采集时间戳"
     )
 
-    def __repr__(self) -> str:
-        return f"<DatabaseSizeStat(id={self.id}, instance='{self.instance.name}', db='{self.database_name}', size={self.total_size_mb}MB)>"
+    instance = relationship("Instance", back_populates="database_size_stats")
+
+    __table_args__ = (
+        Index(
+            "ix_database_size_stats_instance_id_collected_at",
+            "instance_id",
+            "collected_at",
+        ),
+        Index(
+            "ix_database_size_stats_instance_id_database_name_collected_at",
+            "instance_id",
+            "database_name",
+            "collected_at",
+            unique=True,
+        ),
+    )
+
+    def __repr__(self):
+        return f"<DatabaseSizeStat(id={self.id}, instance_id={self.instance_id}, db='{self.database_name}', size_mb={self.size_mb})>"
 
 ```
 
-### 4.2. `Instance` 模型扩展
+### 3.2. 扩展 `Instance` 模型
 
-在 `app/models/instance.py` 中的 `Instance` 模型里，需要添加反向关联。
+在 `app/models/instance.py` 的 `Instance` 模型中添加反向关系。
 
 ```python
-# In app/models/instance.py, inside the Instance class
+# app/models/instance.py
+# ... other imports
+from sqlalchemy.orm import relationship
 
-size_stats: Mapped[list["DatabaseSizeStat"]] = relationship(
-    "DatabaseSizeStat", back_populates="instance", cascade="all, delete-orphan"
-)
+class Instance(Base):
+    # ... existing columns
+    database_size_stats = relationship(
+        "DatabaseSizeStat",
+        back_populates="instance",
+        cascade="all, delete-orphan",
+    )
+    # ... rest of the class
 ```
 
-### 4.3. 数据库迁移
+## 4. 业务逻辑层设计 (`DatabaseSizeCollectorService`)
 
-创建新模型文件后，需要执行 `flask db migrate -m "Add DatabaseSizeStat model"` 和 `flask db upgrade` 来应用变更。
+该服务将是数据采集的核心，负责处理不同数据库类型的查询逻辑。
 
-## 5. 业务逻辑层设计 (Services)
+### 4.1. 服务结构
 
-### 5.1. `DatabaseSizeCollectorService`
+```python
+# app/services/database_size_collector_service.py
 
-这是本功能的核心服务，负责连接到目标数据库并执行采集。
+from app.models import Instance
+from app.services.connections import ConnectionManager # 假设的连接管理器
 
-- **文件路径**: `app/services/database_size_collector_service.py`
-- **核心方法**: `collect(instance: Instance) -> dict`
+class DatabaseSizeCollectorService:
+    def __init__(self, instance: Instance):
+        self.instance = instance
+        self.connection = ConnectionManager.get_connection(instance.id) # 获取连接
 
-#### 采集逻辑与SQL查询方案
+    def collect(self) -> list[dict]:
+        """
+        根据实例类型，分派到相应的采集方法。
+        """
+        db_type = self.instance.db_type
+        if db_type == "postgresql":
+            return self._collect_postgresql()
+        elif db_type == "mysql":
+            return self._collect_mysql()
+        elif db_type == "sqlserver":
+            return self._collect_sqlserver()
+        elif db_type == "oracle":
+            return self._collect_oracle()
+        else:
+            # 对于不支持的数据库类型，记录日志并返回空
+            print(f"Unsupported database type for size collection: {db_type}")
+            return []
 
-`collect` 方法将通过 `instance.db_type` 来动态分派到对应的私有方法（`_collect_postgresql`, `_collect_mysql` 等）。服务将复用 `db_context.py` 中的连接管理能力。
+    def _execute_query(self, query: str) -> list:
+        """
+        执行SQL查询并返回结果。
+        """
+        # ... 使用 self.connection 执行查询的逻辑 ...
+        pass
 
----
+    # ... private methods for each db type ...
+```
 
-#### **PostgreSQL**
+### 4.2. 具体数据库采集方案
 
-- **采集方法**: `_collect_postgresql`
+#### 4.2.1. PostgreSQL
+
 - **SQL查询**:
   ```sql
   SELECT
-      datname AS database_name,
-      pg_database_size(datname) / 1024.0 / 1024.0 AS total_size_mb
+    datname AS database_name,
+    pg_database_size(datname) / 1024 / 1024 AS size_mb
   FROM
-      pg_database
+    pg_database
   WHERE
-      datistemplate = false;
+    datistemplate = false;
   ```
-- **说明**:
-  - `pg_database_size()` 函数直接计算指定数据库的总大小（数据+索引等）。
-  - PostgreSQL 的事务日志（WAL）是实例级别的，无法通过标准SQL轻易地归属到单个数据库。因此，我们将 `data_size_mb` 记为总大小，`log_size_mb` 记为 `0`。
-- **权限要求**: 能够连接到实例并执行 `pg_database_size()` 函数即可，普通用户权限通常就足够。
+- **权限要求**: 用户需要有连接到 `postgres` 数据库的权限，并且能够执行 `pg_database_size()` 函数。通常，标准用户即可。
 
----
+#### 4.2.2. MySQL
 
-#### **MySQL**
-
-- **采集方法**: `_collect_mysql`
 - **SQL查询**:
   ```sql
   SELECT
-      table_schema AS database_name,
-      SUM(data_length + index_length) / 1024.0 / 1024.0 AS data_size_mb
+    table_schema AS database_name,
+    SUM(data_length + index_length) / 1024 / 1024 AS size_mb
   FROM
-      information_schema.TABLES
+    information_schema.TABLES
   GROUP BY
-      table_schema;
+    table_schema;
   ```
-- **说明**:
-  - 此查询聚合了 `information_schema.TABLES` 中每个 schema（在MySQL中等同于database）的数据和索引大小。
-  - MySQL 的 Redo/Undo 日志是实例共享的，无法归属到单个数据库。因此，`log_size_mb` 记为 `0`。
-- **权限要求**: 对 `information_schema` 的只读权限，这是默认授予几乎所有用户的。
+- **权限要求**: 用户需要对 `information_schema` 有 `SELECT` 权限，这是默认授予大多数用户的。
 
----
+#### 4.2.3. SQL Server
 
-#### **SQL Server**
-
-- **采集方法**: `_collect_sql_server`
 - **SQL查询**:
   ```sql
   SELECT
-      DB_NAME(database_id) AS database_name,
-      SUM(CASE WHEN type_desc = 'ROWS' THEN size * 8.0 / 1024.0 ELSE 0 END) AS data_size_mb,
-      SUM(CASE WHEN type_desc = 'LOG' THEN size * 8.0 / 1024.0 ELSE 0 END) AS log_size_mb
+      d.name AS database_name,
+      (SUM(mf.size) * 8 / 1024) AS size_mb,
+      SUM(CASE WHEN mf.type = 0 THEN mf.size * 8 / 1024 ELSE 0 END) AS data_size_mb,
+      SUM(CASE WHEN mf.type = 1 THEN mf.size * 8 / 1024 ELSE 0 END) AS log_size_mb
   FROM
-      sys.master_files
+      sys.databases d
+  JOIN
+      sys.master_files mf ON d.database_id = mf.database_id
   GROUP BY
-      database_id;
+      d.name;
   ```
-- **说明**:
-  - `sys.master_files` 视图包含了实例上所有数据库的数据文件（ROWS）和日志文件（LOG）的详细信息。
-  - `size` 列的单位是 8KB 页，因此需要乘以 8 再除以 1024 得到 MB。
-  - 这是最理想的情况，可以精确分离数据和日志大小。
-- **权限要求**: 需要 `VIEW ANY DEFINITION` 或 `VIEW SERVER STATE` 权限，或者 `sysadmin` 固定服务器角色的成员。
+- **权限要求**: 用户需要 `VIEW ANY DEFINITION` 和 `VIEW SERVER STATE` 权限，或者成为 `sysadmin` 角色的成员。
 
----
+#### 4.2.4. Oracle
 
-#### **Oracle**
-
-- **采集方法**: `_collect_oracle`
 - **SQL查询**:
-  - **查询所有用户/Schemas**: `SELECT username FROM dba_users;`
-  - **查询数据大小 (按Schema)**:
-    ```sql
-    SELECT
-        owner AS database_name,
-        SUM(bytes) / 1024.0 / 1024.0 AS data_size_mb
-    FROM
-        dba_segments
-    GROUP BY
-        owner;
-    ```
-  - **查询日志大小 (实例级别)**:
-    ```sql
-    -- Online Redo Logs
-    SELECT SUM(bytes) / 1024.0 / 1024.0 FROM v$log;
-    -- Archived Logs (if applicable, more complex)
-    ```
-- **说明**:
-  - 在Oracle中，大小通常按 `owner` (Schema) 来统计。我们将把每个 Schema 视为一个独立的“数据库”进行采集。
-  - Redo 日志是实例级别的，无法归属到单个 Schema。因此，我们会将查询到的实例级日志总大小**按比例**分配给每个 Schema（基于其数据大小占比），或者简单地将日志大小记录在 `default_tablespace` 对应的用户下。为简化起见，初期方案建议**仅记录数据大小**，`log_size_mb` 记为 `0`。
-- **权限要求**: 需要对 `dba_segments` 和 `dba_users` 的 `SELECT` 权限。这通常意味着需要一个具有 `DBA` 角色或被授予了 `SELECT ANY DICTIONARY` 权限的专用监控用户。**这是本功能对Oracle最强的依赖和限制**。
+  ```sql
+  -- 查询总大小
+  SELECT
+      df.tablespace_name,
+      SUM(df.bytes) / 1024 / 1024 AS data_size_mb
+  FROM
+      dba_data_files df
+  GROUP BY
+      df.tablespace_name;
 
-## 6. 任务调度层设计 (Task Scheduling)
+  -- 查询日志大小
+  SELECT
+      SUM(bytes) / 1024 / 1024 AS log_size_mb
+  FROM
+      v$log;
+  ```
+  *注：Oracle的 "数据库" 概念与其它不同，通常采集 Tablespace 大小作为数据大小，并单独查询 Redo Log 大小。这里为了统一模型，可以将主要数据文件大小的总和作为 `data_size_mb`，重做日志文件大小作为 `log_size_mb`。*
+- **权限要求**: 用户需要有对 `dba_data_files` 和 `v$log` 视图的 `SELECT` 权限。通常需要 `DBA` 或 `SELECT_CATALOG_ROLE` 角色。
 
-我们将创建一个新的后台任务，其结构和流程将严格模仿 `sync_accounts`。
+## 5. 任务调度层设计
 
-### 6.1. 新建任务 `collect_database_sizes`
+### 5.1. `collect_database_sizes` 任务
 
-- **文件路径**: `app/tasks.py`
-- **任务流程**:
+此任务将模仿 `sync_accounts` 的结构，实现健壮的错误处理和会话管理。
 
 ```mermaid
-sequenceDiagram
-    participant Scheduler as APScheduler
-    participant Task as collect_database_sizes
-    participant SyncSvc as sync_session_service
-    participant CollectorSvc as DatabaseSizeCollectorService
-    participant DB as 主数据库
-
-    Scheduler->>Task: 触发定时任务
-    Task->>SyncSvc: create_session(sync_type='scheduled_task', sync_category='db_size')
-    SyncSvc->>DB: 创建会话记录 (status: running)
-    DB-->>SyncSvc: 返回 session
-    SyncSvc-->>Task: 返回 session
-    
-    Task->>DB: 获取所有活跃实例 (Instance.get_active_instances())
-    DB-->>Task: 返回 instances 列表
-    
-    Task->>SyncSvc: add_instance_records(session_id, instance_ids)
-    
-    loop 遍历每个 instance
-        Task->>SyncSvc: start_instance_sync(record_id)
-        Task->>CollectorSvc: collect(instance)
-        
-        alt 采集成功
-            CollectorSvc-->>Task: 返回采集结果 (success: true, data: [...])
-            Task->>DB: 批量保存 DatabaseSizeStat 记录
-            Task->>SyncSvc: complete_instance_sync(record_id, details=...)
-        else 采集失败
-            CollectorSvc-->>Task: 返回错误信息 (success: false, error: "...")
-            Task->>SyncSvc: fail_instance_sync(record_id, error_message)
-        end
-    end
-    
-    Task->>SyncSvc: _update_session_statistics(session_id)
-    Task->>DB: 最终更新会话状态 (completed/partial_success)
+flowchart TD
+    Start --> CreateSyncSession[创建采集会话记录];
+    CreateSyncSession --> GetActiveInstances[获取所有活跃实例];
+    GetActiveInstances --> LoopInstances{遍历每个实例};
+    LoopInstances -- 有下一个实例 --> CreateInstanceRecord[创建实例采集记录];
+    CreateInstanceRecord --> RunCollector[调用 DatabaseSizeCollectorService];
+    RunCollector -- 成功 --> SaveStats[批量保存 DatabaseSizeStat 数据];
+    SaveStats --> UpdateInstanceRecordSuccess[更新实例记录为'成功'];
+    UpdateInstanceRecordSuccess --> LoopInstances;
+    RunCollector -- 失败 --> LogError[记录错误日志];
+    LogError --> UpdateInstanceRecordFailed[更新实例记录为'失败'];
+    UpdateInstanceRecordFailed --> LoopInstances;
+    LoopInstances -- 遍历完成 --> UpdateSyncSession[更新主会话记录状态];
+    UpdateSyncSession --> End;
 ```
 
-### 6.2. 调度器配置
+### 5.2. 调度器配置
 
-- **文件路径**: `config/scheduler_tasks.yaml`
-- **新增配置**:
+在 `app/scheduler.py` 中添加新任务的调度配置。
 
-```yaml
-  - id: "collect_database_sizes"
-    name: "数据库大小采集"
-    function: "app.tasks.collect_database_sizes"
-    trigger_type: "cron"
-    trigger_params:
-      hour: 3
-      minute: 0
-    enabled: true
-    description: "每日凌晨3点执行，采集所有活跃实例的数据库大小。"
+```python
+# app/scheduler.py
+
+def init_scheduler(app):
+    # ...
+    scheduler.add_job(
+        id="collect_database_sizes",
+        func="app.tasks:collect_database_sizes",
+        trigger="cron",
+        hour=app.config.get("COLLECT_DB_SIZE_HOUR", "3"), # 每天凌晨3点执行
+        minute="0",
+        replace_existing=True,
+    )
+    # ...
 ```
 
-## 7. API 接口设计
+## 6. API 接口设计
 
-API 将遵循项目现有的 RESTful 规范。
+### 6.1. 获取指定实例的数据库大小历史
 
-### `GET /api/instances/<int:instance_id>/database-sizes`
-
-- **功能**: 获取指定实例下所有数据库的大小历史记录。
-- **认证**: 需要登录。
-- **参数**:
-  - `start_date` (string, optional, format: `YYYY-MM-DD`): 查询周期的开始日期。
-  - `end_date` (string, optional, format: `YYYY-MM-DD`): 查询周期的结束日期。
+- **Endpoint**: `GET /api/v1/instances/<int:instance_id>/database-sizes`
+- **权限**: 需要是实例的所有者或管理员。
+- **查询参数**:
+    - `start_date` (string, optional): YYYY-MM-DD
+    - `end_date` (string, optional): YYYY-MM-DD
+    - `database_name` (string, optional): 筛选特定数据库。
 - **成功响应 (200 OK)**:
   ```json
   {
-      "success": true,
-      "data": {
-          "instance_name": "My PostgreSQL Prod",
-          "results": [
-              {
-                  "database_name": "sales_db",
-                  "history": [
-                      {"collected_at": "2024-07-29T03:00:00Z", "total_size_mb": 1024.50},
-                      {"collected_at": "2024-07-30T03:00:00Z", "total_size_mb": 1030.00}
-                  ]
-              },
-              {
-                  "database_name": "marketing_db",
-                  "history": [
-                      {"collected_at": "2024-07-29T03:00:00Z", "total_size_mb": 512.00},
-                      {"collected_at": "2024-07-30T03:00:00Z", "total_size_mb": 515.75}
-                  ]
-              }
-          ]
+    "data": [
+      {
+        "database_name": "sales_db",
+        "stats": [
+          {"collected_at": "2023-10-26T10:00:00Z", "size_mb": 1024},
+          {"collected_at": "2023-10-27T10:00:00Z", "size_mb": 1050}
+        ]
+      },
+      {
+        "database_name": "marketing_db",
+        "stats": [
+          {"collected_at": "2023-10-26T10:00:00Z", "size_mb": 512},
+          {"collected_at": "2023-10-27T10:00:00Z", "size_mb": 520}
+        ]
       }
+    ]
   }
   ```
 
-### `POST /api/instances/<int:instance_id>/database-sizes/collect`
+## 7. 前端用户界面设计
 
-- **功能**: 手动触发对指定实例的数据库大小采集任务。
-- **认证**: 需要登录，且建议限制为管理员角色。
-- **成功响应 (202 Accepted)**:
-  ```json
-  {
-      "success": true,
-      "message": "数据库大小采集任务已启动。",
-      "data": {
-          "session_id": "uuid-string-of-the-new-session"
-      }
-  }
-  ```
+- **实例列表页**: 在实例卡片上增加一个“总数据库大小”的显示项，展示最近一次采集的所有数据库大小之和。
+- **实例详情页**:
+    - 新增一个 "存储" (Storage) 标签页。
+    - 在该标签页内，默认显示一个面积图或堆叠条形图，展示总数据库大小在过去30天的增长趋势。
+    - 图表下方提供一个表格，列出该实例下的所有数据库、它们最近一次采集的大小、数据大小、日志大小。
+    - 提供日期范围选择器和数据库名称过滤器，让用户可以交互式地探索历史数据。
 
-## 8. 前端用户界面 (UI/UX)
+## 8. 安全与性能考量
 
-- **位置**: 在实例详情页面 (`/instances/<id>`) 新增一个名为 “**存储分析 (Storage Analysis)**” 的 Tab。
-- **核心组件**: 使用 `Chart.js` 库实现一个交互式图表。
-- **交互功能**:
-    1.  **图表区域**: 默认显示该实例下**所有数据库大小总和**的折线图。
-    2.  **数据库筛选器 (多选下拉框)**:
-        - 位于图表上方。
-        - 列出该实例下所有被采集到的 `database_name`。
-        - 用户可以选择一个或多个数据库，图表会动态更新，为每个选中的数据库渲染一条独立的线。
-        - 提供“全选/全不选”功能。
-    3.  **Top N 筛选**:
-        - 一组按钮，如 `Top 5`, `Top 10`。
-        - 点击后，筛选器将自动勾选当前大小排名前 N 的数据库。
-    4.  **时间范围选择器**:
-        - 预设按钮：`最近7天`, `最近30天`, `最近90天`。
-        - 自定义日期范围选择器。
-- **数据展示**:
-    - **Tooltip**: 鼠标悬浮在图表上时，显示时间点、数据库名称、数据大小、日志大小和总大小。
-    - **图例 (Legend)**: 清晰地标示每条线对应的数据库名称。
+- **连接安全**: 严格复用现有的加密连接和凭证管理机制。
+- **查询性能**: 采集查询都针对系统视图和元数据表，对生产数据库的性能影响极小。查询应设置合理的超时时间。
+- **数据量**: `DatabaseSizeStat` 表会随时间增长。需要考虑未来的数据归档或聚合策略。例如，只保留最近一年的日度数据，更早的数据聚合成月度平均值。
+- **并发控制**: 采集任务应设计为单实例运行，避免并发冲突。
 
-## 9. 安全与性能
+## 9. 实施计划
 
-- **安全**:
-  - 采集任务使用的数据库凭证继承自 `Instance` 配置，遵循现有安全策略。
-  - 明确告知用户在 Oracle 等数据库上所需的 `SELECT` 权限，避免使用过度权限的账户。
-- **性能**:
-  - `DatabaseSizeStat` 表上的复合索引将确保历史数据查询的高效。
-  - 采集查询本身对生产数据库的影响极小，因为它们通常是针对系统目录/视图的快速查询。
-  - 后台任务与Web进程分离，不会影响用户体验。
+1.  **阶段一: 后端基础建设 (Sprint 1)**
+    - [ ] 创建并迁移 `DatabaseSizeStat` 模型。
+    - [ ] 在 `Instance` 模型中添加关系。
+    - [ ] 实现 `DatabaseSizeCollectorService` 的基本结构和 PostgreSQL 的采集逻辑。
+    - [ ] 创建 `collect_database_sizes` 后台任务的基础框架。
 
-## 10. 实施计划
+2.  **阶段二: 完善采集与调度 (Sprint 2)**
+    - [ ] 在 `DatabaseSizeCollectorService` 中实现 MySQL, SQL Server, Oracle 的采集逻辑。
+    - [ ] 完善 `collect_database_sizes` 任务的错误处理和状态记录逻辑。
+    - [ ] 在调度器中正式添加并启用任务。
 
-1.  **Phase 1: 后端基础建设**
-    1.  创建 `app/models/database_size_stat.py` 文件并定义 `DatabaseSizeStat` 模型。
-    2.  在 `app/models/instance.py` 中添加反向关系。
-    3.  运行 `flask db migrate` 和 `flask db upgrade` 应用数据库变更。
-    4.  创建 `app/services/database_size_collector_service.py` 文件，并实现 `DatabaseSizeCollectorService` 的基本框架和针对 **PostgreSQL** 的采集逻辑。
-2.  **Phase 2: 任务与调度**
-    1.  在 `app/tasks.py` 中创建 `collect_database_sizes` 任务，并集成 `sync_session_service` 和 `DatabaseSizeCollectorService`。
-    2.  在 `config/scheduler_tasks.yaml` 中添加新任务的调度配置。
-    3.  手动测试任务执行的完整流程。
-3.  **Phase 3: 扩展采集能力**
-    1.  在 `DatabaseSizeCollectorService` 中依次实现对 `MySQL`, `SQL Server`, `Oracle` 的采集逻辑。
-4.  **Phase 4: API与前端**
-    1.  在 `app/routes/instances.py` 中添加新的 API 端点。
-    2.  修改前端模板，添加“存储分析” Tab。
-    3.  编写 JavaScript 代码，使用 Chart.js 实现交互式图表和所有筛选功能。
+3.  **阶段三: API 与前端集成 (Sprint 3)**
+    - [ ] 开发 `/api/v1/instances/<int:instance_id>/database-sizes` API 端点。
+    - [ ] 在前端实例详情页添加 "存储" 标签页和历史趋势图。
+    - [ ] 在前端实例列表页添加总大小显示。
 
-## 11. 验收标准
+## 10. 验收标准
 
-- [ ] `database_size_stats` 表结构正确创建。
-- [ ] 后台定时任务能够按时执行，并为所有活跃实例创建同步会话。
-- [ ] 针对四种数据库类型的采集均能成功，并将数据正确存入新表。
-- [ ] 手动触发采集的 API 能正常工作。
-- [ ] 获取历史数据的 API 能根据参数返回正确格式的 JSON。
-- [ ] 前端图表能正确渲染，并且所有筛选和交互功能均按预期工作。
-- [ ] 任务失败时，能在同步会话中正确记录错误信息。
+- [ ] 所有活跃的、支持的数据库实例都能被定时任务覆盖。
+- [ ] 采集到的数据（数据库名、大小、时间戳）准确无误地存储在 `DatabaseSizeStat` 表中。
+- [ ] API 能够根据请求参数正确返回格式化的历史数据。
+- [ ] 前端页面能够正确渲染数据库大小的历史趋势图和数据表格。
+- [ ] 采集任务失败时，系统能够正确记录错误并继续处理下一个实例，不影响整体任务。
