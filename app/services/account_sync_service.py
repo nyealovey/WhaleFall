@@ -251,6 +251,63 @@ class AccountSyncService:
             )
             return {"success": False, "error": f"同步失败: {str(e)}"}
 
+    def sync_instance_with_session(self, instance_id: int, session_id: str) -> dict[str, Any]:
+        """
+        使用现有会话同步指定实例 - 用于定时任务
+        
+        Args:
+            instance_id: 实例ID
+            session_id: 会话ID
+            
+        Returns:
+            Dict: 同步结果
+        """
+        try:
+            # 获取实例
+            instance = Instance.query.get(instance_id)
+            if not instance:
+                return {"success": False, "error": f"实例 {instance_id} 不存在"}
+
+            # 获取同步记录
+            record = sync_session_service.get_record_by_instance_and_session(instance_id, session_id)
+            if not record:
+                return {"success": False, "error": f"未找到实例 {instance_id} 的同步记录"}
+
+            # 开始实例同步
+            sync_session_service.start_instance_sync(record.id)
+
+            # 执行实际同步
+            result = self._sync_with_existing_session(instance, session_id)
+
+            # 更新实例同步状态
+            if result["success"]:
+                sync_session_service.complete_instance_sync(
+                    record.id,
+                    accounts_synced=result.get("synced_count", 0),
+                    accounts_created=result.get("added_count", 0),
+                    accounts_updated=result.get("modified_count", 0),
+                    accounts_deleted=result.get("removed_count", 0),
+                    sync_details=result.get("details", {}),
+                )
+            else:
+                sync_session_service.fail_instance_sync(
+                    record.id, 
+                    error_message=result.get("error", "同步失败"), 
+                    sync_details=result.get("details", {})
+                )
+
+            return result
+
+        except Exception as e:
+            self.sync_logger.error(
+                "实例会话同步失败",
+                module="account_sync_unified",
+                instance_id=instance_id,
+                session_id=session_id,
+                error=str(e),
+            )
+            return {"success": False, "error": f"实例同步失败: {str(e)}"}
+
     def _update_database_version(self, instance: Instance, conn: Any) -> None:  # noqa: ANN401
         """更新数据库版本信息（不独立提交，等待统一事务）"""
         try:
