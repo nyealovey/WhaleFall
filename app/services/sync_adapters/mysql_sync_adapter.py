@@ -181,7 +181,7 @@ class MySQLSyncAdapter(BaseSyncAdapter):
             # 匹配全局权限: ON *.*
             global_match = re.match(r"(.+?) ON \*\.\*", simple_grant)
             if global_match:
-                privs = self._extract_privileges_from_string(global_match.group(1))
+                privs = self._extract_privileges_from_string(global_match.group(1), is_global=True)
                 global_privileges.extend(privs)
                 # 如果有GRANT OPTION，添加GRANT OPTION权限
                 if has_grant_option and "GRANT OPTION" not in global_privileges:
@@ -193,13 +193,13 @@ class MySQLSyncAdapter(BaseSyncAdapter):
             if db_match:
                 privs_str = db_match.group(1)
                 db_name = db_match.group(2).replace("``", "`")  # 处理转义的反引号
-                privs = self._extract_privileges_from_string(privs_str)
+                privs = self._extract_privileges_from_string(privs_str, is_global=False)
                 if db_name not in database_privileges:
                     database_privileges[db_name] = []
                 database_privileges[db_name].extend(privs)
-                # 如果有GRANT OPTION，添加GRANT OPTION权限到全局权限
-                if has_grant_option and "GRANT OPTION" not in global_privileges:
-                    global_privileges.append("GRANT OPTION")
+                # 如果有GRANT OPTION，添加GRANT OPTION权限到数据库权限
+                if has_grant_option and "GRANT OPTION" not in database_privileges[db_name]:
+                    database_privileges[db_name].append("GRANT OPTION")
                 return
 
             # 匹配特定对象权限（表、函数、过程），作为数据库级权限的补充
@@ -207,30 +207,30 @@ class MySQLSyncAdapter(BaseSyncAdapter):
             if obj_match:
                 db_name = obj_match.group(2).replace("``", "`")
                 # 将对象级权限简化记录到数据库级别
-                privs = self._extract_privileges_from_string(obj_match.group(1))
+                privs = self._extract_privileges_from_string(obj_match.group(1), is_global=False)
                 priv_summary = f"{obj_match.group(1).strip()} ON {obj_match.group(3).strip()}"
                 if db_name not in database_privileges:
                     database_privileges[db_name] = []
                 # 为避免过于复杂，这里只记录一个概要
                 if priv_summary not in database_privileges[db_name]:
                     database_privileges[db_name].append(priv_summary)
-                # 如果有GRANT OPTION，添加GRANT OPTION权限到全局权限
-                if has_grant_option and "GRANT OPTION" not in global_privileges:
-                    global_privileges.append("GRANT OPTION")
+                # 如果有GRANT OPTION，添加GRANT OPTION权限到数据库权限
+                if has_grant_option and "GRANT OPTION" not in database_privileges[db_name]:
+                    database_privileges[db_name].append("GRANT OPTION")
 
         except Exception as e:
             self.sync_logger.warning(
                 "解析GRANT语句失败: %s", grant_statement, module="mysql_sync_adapter", error=str(e)
             )
 
-    def _extract_privileges_from_string(self, privileges_str: str) -> list[str]:
+    def _extract_privileges_from_string(self, privileges_str: str, is_global: bool = False) -> list[str]:
         """从权限字符串中提取权限列表"""
         # 移除ON子句，只保留权限部分
         privileges_part = privileges_str.split(" ON ")[0].strip()
         
         # ALL PRIVILEGES 需要拆分成具体的权限列表
         if "ALL PRIVILEGES" in privileges_part.upper():
-            return self._expand_all_privileges()
+            return self._expand_all_privileges(is_global)
         
         # 分割权限并清理
         privileges = []
@@ -241,17 +241,26 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         
         return privileges
 
-    def _expand_all_privileges(self) -> list[str]:
+    def _expand_all_privileges(self, is_global: bool = False) -> list[str]:
         """将ALL PRIVILEGES展开为MySQL 5.7的具体权限列表"""
-        # MySQL 5.7 全局权限的完整列表
-        return [
-            "SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "RELOAD", 
-            "SHUTDOWN", "PROCESS", "FILE", "REFERENCES", "INDEX", "ALTER", 
-            "SHOW DATABASES", "SUPER", "CREATE TEMPORARY TABLES", "LOCK TABLES", 
-            "EXECUTE", "REPLICATION SLAVE", "REPLICATION CLIENT", "CREATE VIEW", 
-            "SHOW VIEW", "CREATE ROUTINE", "ALTER ROUTINE", "CREATE USER", 
-            "EVENT", "TRIGGER", "CREATE TABLESPACE", "USAGE"
-        ]
+        if is_global:
+            # MySQL 5.7 全局权限的完整列表
+            return [
+                "SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "RELOAD", 
+                "SHUTDOWN", "PROCESS", "FILE", "REFERENCES", "INDEX", "ALTER", 
+                "SHOW DATABASES", "SUPER", "CREATE TEMPORARY TABLES", "LOCK TABLES", 
+                "EXECUTE", "REPLICATION SLAVE", "REPLICATION CLIENT", "CREATE VIEW", 
+                "SHOW VIEW", "CREATE ROUTINE", "ALTER ROUTINE", "CREATE USER", 
+                "EVENT", "TRIGGER", "CREATE TABLESPACE", "USAGE"
+            ]
+        else:
+            # MySQL 5.7 数据库级别权限的列表（不包含全局权限）
+            return [
+                "SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "DROP", 
+                "REFERENCES", "INDEX", "ALTER", "CREATE TEMPORARY TABLES", 
+                "LOCK TABLES", "EXECUTE", "CREATE VIEW", "SHOW VIEW", 
+                "CREATE ROUTINE", "ALTER ROUTINE", "EVENT", "TRIGGER", "USAGE"
+            ]
 
     def _extract_database_name(self, grant_statement: str) -> str:
         """从GRANT语句中提取数据库名（已由新的解析逻辑取代）"""
