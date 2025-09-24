@@ -2,8 +2,8 @@
 
 # 鲸落项目Flask快速更新脚本
 # 功能：热更新Flask应用，适用于生产环境
-# 特点：先清理旧代码再拷贝新代码、最小化停机时间、自动验证、保留数据库
-# 注意：完全替换Flask应用代码，清理Python缓存，不重建容器，保留所有数据
+# 特点：只清理缓存文件，直接拷贝新代码覆盖、最小化停机时间、自动验证、保留数据库
+# 注意：不删除应用代码文件，只清理Python缓存，直接覆盖更新，不重建容器，保留所有数据
 
 set -e
 
@@ -42,8 +42,8 @@ show_banner() {
     echo "╔══════════════════════════════════════════════════════════════╗"
     echo "║                    鲸落项目热更新                           ║"
     echo "║                    TaifishV4 Hot Update                     ║"
-    echo "║                   (代码完全替换模式)                        ║"
-    echo "║                (先清理旧代码再拷贝新代码)                    ║"
+    echo "║                   (代码覆盖更新模式)                        ║"
+    echo "║                (只清理缓存，直接覆盖代码)                    ║"
     echo "║                (清理Python缓存和临时文件)                    ║"
     echo "║                (保留数据库和Redis)                          ║"
     echo "║                (自动刷新Nginx缓存)                          ║"
@@ -212,18 +212,10 @@ copy_code_to_container() {
     
     log_info "找到 $file_count 个文件，开始更新容器代码..."
     
-    # 先清理容器内的旧代码（保留根目录的Python文件）
-    log_info "清理容器内的旧代码..."
+    # 只清理缓存文件，不删除应用代码
+    log_info "清理缓存文件..."
     if docker exec "$flask_container_id" bash -c "
-        # 删除应用代码目录
-        rm -rf /app/app /app/migrations /app/sql /app/docs /app/tests /app/scripts 2>/dev/null || true
-        
-        # 不删除根目录的Python文件，保留gunicorn.conf.py等配置文件
-        
-        # 删除文档和配置文件（保留重要的配置文件）
-        rm -f /app/*.md /app/*.txt /app/*.toml /app/*.yml /app/*.yaml /app/*.sh /app/*.ini /app/*.lock 2>/dev/null || true
-        
-        # 清理Python缓存
+        # 只清理Python缓存
         find /app -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
         find /app -name '*.pyc' -type f -delete 2>/dev/null || true
         find /app -name '*.pyo' -type f -delete 2>/dev/null || true
@@ -231,10 +223,13 @@ copy_code_to_container() {
         # 清理临时文件
         find /app -name '*.tmp' -type f -delete 2>/dev/null || true
         find /app -name '*.log' -type f -delete 2>/dev/null || true
+        
+        # 清理应用日志（保留系统日志）
+        find /app/userdata/logs -name '*.log' -type f -delete 2>/dev/null || true
     "; then
-        log_success "旧代码清理完成"
+        log_success "缓存清理完成"
     else
-        log_warning "旧代码清理部分失败，但继续执行"
+        log_warning "缓存清理部分失败，但继续执行"
     fi
     
     # 拷贝新代码到容器
@@ -560,7 +555,7 @@ show_update_result() {
 main() {
     show_banner
     
-    log_info "开始热更新Flask应用（代码完全替换模式）..."
+    log_info "开始热更新Flask应用（代码覆盖更新模式）..."
     
     # 执行更新流程
     check_requirements
