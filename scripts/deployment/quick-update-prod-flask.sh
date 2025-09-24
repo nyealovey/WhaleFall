@@ -48,6 +48,8 @@ show_banner() {
     echo "║                (保留数据库和Redis)                          ║"
     echo "║                (自动刷新Nginx缓存)                          ║"
     echo "║                (最小化停机时间)                              ║"
+    echo "║                (支持代码回滚后更新)                          ║"
+    echo "║                (自动检测并处理Git状态)                       ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -141,19 +143,75 @@ pull_latest_code() {
         exit 1
     fi
     
-    # 暂存当前更改
+    # 获取当前提交信息
+    local current_commit
+    current_commit=$(git rev-parse --short HEAD)
+    log_info "当前本地提交: $current_commit"
+    
+    # 获取远程最新提交信息
+    log_info "获取远程最新信息..."
+    git fetch origin main
+    
+    local remote_commit
+    remote_commit=$(git rev-parse --short origin/main)
+    log_info "远程最新提交: $remote_commit"
+    
+    # 检查本地是否有未提交的更改
     if ! git diff --quiet; then
-        log_info "暂存当前更改..."
+        log_info "检测到本地未提交的更改，暂存当前更改..."
         git stash push -m "Auto-stash before quick update $(date '+%Y-%m-%d %H:%M:%S')"
     fi
     
-    # 拉取最新代码
-    log_info "拉取最新代码..."
-    if git pull origin main; then
-        log_success "代码更新成功"
+    # 检查本地是否领先于远程（回滚情况）
+    local local_ahead
+    local_ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo "0")
+    
+    if [ "$local_ahead" -gt 0 ]; then
+        log_warning "检测到本地代码领先于远程 $local_ahead 个提交（可能是回滚状态）"
+        log_info "当前本地提交: $current_commit"
+        log_info "远程最新提交: $remote_commit"
+        
+        # 询问是否强制同步到远程状态
+        log_warning "本地代码状态与远程不一致，这可能是由于代码回滚导致的"
+        log_info "选项："
+        log_info "  1. 强制同步到远程最新状态（推荐）"
+        log_info "  2. 保持当前本地状态（跳过更新）"
+        log_info "  3. 取消更新"
+        
+        # 自动选择选项1（强制同步到远程）
+        log_info "自动选择：强制同步到远程最新状态"
+        
+        # 强制重置到远程状态
+        log_info "强制重置到远程最新状态..."
+        if git reset --hard origin/main; then
+            log_success "代码已强制同步到远程最新状态"
+            log_info "新的本地提交: $(git rev-parse --short HEAD)"
+        else
+            log_error "强制同步失败"
+            exit 1
+        fi
     else
-        log_error "代码更新失败"
-        exit 1
+        # 正常拉取最新代码
+        log_info "拉取最新代码..."
+        if git pull origin main; then
+            log_success "代码更新成功"
+            log_info "更新后提交: $(git rev-parse --short HEAD)"
+        else
+            log_error "代码更新失败"
+            exit 1
+        fi
+    fi
+    
+    # 验证最终状态
+    local final_commit
+    final_commit=$(git rev-parse --short HEAD)
+    log_info "最终代码提交: $final_commit"
+    
+    # 检查是否有文件变更
+    if git diff --quiet HEAD~1 HEAD; then
+        log_warning "没有检测到代码变更，可能已经是最新状态"
+    else
+        log_success "检测到代码变更，准备更新容器"
     fi
 }
 
@@ -539,6 +597,8 @@ show_update_result() {
     echo "  - 仅更新Flask应用代码，不重建容器"
     echo "  - 数据库和Redis服务保持不变"
     echo "  - Nginx和Flask在同一容器，缓存已自动刷新"
+    echo "  - 支持代码回滚后的自动同步和更新"
+    echo "  - 自动检测并处理Git状态不一致的情况"
     echo "  - 如有问题，请手动检查服务状态和日志"
     echo "  - 建议定期备份重要数据"
     echo "  - 监控应用运行状态"
@@ -549,7 +609,7 @@ show_update_result() {
 main() {
     show_banner
     
-    log_info "开始热更新Flask应用（代码覆盖更新模式）..."
+    log_info "开始热更新Flask应用（代码覆盖更新模式，支持回滚后更新）..."
     
     # 执行更新流程
     check_requirements
