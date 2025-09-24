@@ -400,15 +400,26 @@ function editJob(jobId) {
     try {
         const triggerArgs = typeof job.trigger_args === 'string' ? JSON.parse(job.trigger_args) : (job.trigger_args || {});
         if (triggerArgs && typeof triggerArgs === 'object') {
-            // 如果是cron触发器，解析cron表达式
-            if (triggerType === 'cron' && triggerArgs.cron_expression) {
-                const cronParts = triggerArgs.cron_expression.split(' ');
-                if (cronParts.length >= 5) {
-                    $('#editCronMinute').val(cronParts[0] || '0');
-                    $('#editCronHour').val(cronParts[1] || '0');
-                    $('#editCronDay').val(cronParts[2] || '*');
-                    $('#editCronMonth').val(cronParts[3] || '*');
-                    $('#editCronWeekday').val(cronParts[4] || '*');
+            // 如果是cron触发器，处理cron字段
+            if (triggerType === 'cron') {
+                // 优先处理cron_expression（向后兼容）
+                if (triggerArgs.cron_expression) {
+                    const cronParts = triggerArgs.cron_expression.split(' ');
+                    if (cronParts.length >= 5) {
+                        $('#editCronMinute').val(cronParts[0] || '0');
+                        $('#editCronHour').val(cronParts[1] || '0');
+                        $('#editCronDay').val(cronParts[2] || '*');
+                        $('#editCronMonth').val(cronParts[3] || '*');
+                        $('#editCronWeekday').val(cronParts[4] || '*');
+                        updateEditCronPreview();
+                    }
+                } else {
+                    // 处理分别的cron字段
+                    $('#editCronMinute').val(triggerArgs.minute || '0');
+                    $('#editCronHour').val(triggerArgs.hour || '0');
+                    $('#editCronDay').val(triggerArgs.day || '*');
+                    $('#editCronMonth').val(triggerArgs.month || '*');
+                    $('#editCronWeekday').val(triggerArgs.day_of_week || '*');
                     updateEditCronPreview();
                 }
             } else {
