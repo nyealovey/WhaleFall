@@ -17,6 +17,7 @@ function initializeTagsPage() {
     initializeEventHandlers();
     initializeSearchForm();
     initializeTagActions();
+    initializeBatchAssignModal();
     console.log('标签管理页面已加载');
 }
 
@@ -468,3 +469,136 @@ window.showAlert = showAlert;
 window.showSuccessAlert = showSuccessAlert;
 window.showWarningAlert = showWarningAlert;
 window.showErrorAlert = showErrorAlert;
+
+// 批量分配模态框初始化
+function initializeBatchAssignModal() {
+    const batchAssignModal = document.getElementById('batchAssignModal');
+    if (batchAssignModal) {
+        batchAssignModal.addEventListener('show.bs.modal', function () {
+            loadInstancesForBatchAssign();
+            loadTagsForBatchAssign();
+        });
+
+        const batchAssignSaveBtn = document.getElementById('batchAssignSave');
+        if (batchAssignSaveBtn) {
+            batchAssignSaveBtn.addEventListener('click', handleBatchAssignSave);
+        }
+    }
+}
+
+// 加载实例列表到批量分配模态框
+async function loadInstancesForBatchAssign() {
+    const instanceListContainer = document.querySelector('#batchAssignModal .instance-list-container');
+    if (!instanceListContainer) return;
+
+    instanceListContainer.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> 加载实例中...</p>';
+
+    try {
+        const response = await fetch('/tags/api/instances');
+        const data = await response.json();
+
+        if (data.success) {
+            let html = '<div class="list-group">';
+            data.instances.forEach(instance => {
+                html += `
+                    <label class="list-group-item">
+                        <input class="form-check-input me-1" type="checkbox" value="${instance.id}" data-instance-name="${instance.name}">
+                        ${instance.name} (${instance.host}:${instance.port})
+                    </label>
+                `;
+            });
+            html += '</div>';
+            instanceListContainer.innerHTML = html;
+        } else {
+            instanceListContainer.innerHTML = `<p class="text-danger">加载实例失败: ${data.error}</p>`;
+            showErrorAlert(`加载实例失败: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error loading instances:', error);
+        instanceListContainer.innerHTML = '<p class="text-danger">加载实例失败，请检查网络或服务器日志。</p>';
+        showErrorAlert('加载实例失败，请检查网络或服务器日志。');
+    }
+}
+
+// 加载标签列表到批量分配模态框
+async function loadTagsForBatchAssign() {
+    const tagListContainer = document.querySelector('#batchAssignModal .tag-list-container');
+    if (!tagListContainer) return;
+
+    tagListContainer.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> 加载标签中...</p>';
+
+    try {
+        const response = await fetch('/tags/api/all_tags'); // 获取所有标签，包括非活跃的
+        const data = await response.json();
+
+        if (data.success) {
+            let html = '<div class="list-group">';
+            data.tags.forEach(tag => {
+                html += `
+                    <label class="list-group-item">
+                        <input class="form-check-input me-1" type="checkbox" value="${tag.id}" data-tag-name="${tag.display_name}">
+                        <span class="badge bg-${tag.color} me-2">${tag.display_name}</span>
+                        <small class="text-muted">(${tag.name})</small>
+                    </label>
+                `;
+            });
+            html += '</div>';
+            tagListContainer.innerHTML = html;
+        } else {
+            tagListContainer.innerHTML = `<p class="text-danger">加载标签失败: ${data.error}</p>`;
+            showErrorAlert(`加载标签失败: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error loading tags:', error);
+        tagListContainer.innerHTML = '<p class="text-danger">加载标签失败，请检查网络或服务器日志。</p>';
+        showErrorAlert('加载标签失败，请检查网络或服务器日志。');
+    }
+}
+
+// 处理批量分配保存按钮点击事件
+async function handleBatchAssignSave() {
+    const selectedInstanceIds = Array.from(document.querySelectorAll('#batchAssignModal .instance-list-container input[type="checkbox"]:checked'))
+        .map(checkbox => checkbox.value);
+    const selectedTagIds = Array.from(document.querySelectorAll('#batchAssignModal .tag-list-container input[type="checkbox"]:checked'))
+        .map(checkbox => checkbox.value);
+
+    if (selectedInstanceIds.length === 0) {
+        showWarningAlert('请至少选择一个实例进行分配。');
+        return;
+    }
+    if (selectedTagIds.length === 0) {
+        showWarningAlert('请至少选择一个标签进行分配。');
+        return;
+    }
+
+    showLoadingState('batchAssignSave', '分配中...');
+
+    try {
+        const response = await fetch('/tags/api/batch_assign_tags', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                instance_ids: selectedInstanceIds,
+                tag_ids: selectedTagIds
+            })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showSuccessAlert(data.message);
+            const batchAssignModal = bootstrap.Modal.getInstance(document.getElementById('batchAssignModal'));
+            if (batchAssignModal) batchAssignModal.hide();
+            location.reload(); // 重新加载页面以显示更新后的标签分配
+        } else {
+            showErrorAlert(`批量分配失败: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error during batch assignment:', error);
+        showErrorAlert('批量分配失败，请检查网络或服务器日志。');
+    } finally {
+        hideLoadingState('batchAssignSave', '保存');
+    }
+}
