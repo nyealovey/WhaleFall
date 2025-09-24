@@ -12,6 +12,8 @@ from sqlalchemy import text
 
 from app import db
 from app.models.instance import Instance
+from app.models.current_account_sync_data import CurrentAccountSyncData
+from app.models.classification_rule import ClassificationRule
 
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.user import User
@@ -167,14 +169,43 @@ def get_system_overview() -> dict:
             AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
         )
 
-        # 按分类统计（去重后，包含数量为0的分类）
+        # 按分类统计（使用实时计算的规则匹配数量）
         classification_stats = []
+        from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
+        classification_service = OptimizedAccountClassificationService()
+        
         for classification in all_classifications:
-            count = (
-                AccountClassificationAssignment.query.filter_by(classification_id=classification.id, is_active=True)
-                .with_entities(distinct(AccountClassificationAssignment.account_id))
-                .count()
-            )
+            # 获取该分类的所有规则
+            rules = ClassificationRule.query.filter_by(
+                classification_id=classification.id, 
+                is_active=True
+            ).all()
+            
+            if rules:
+                # 计算该分类所有规则匹配的账户数量（去重）
+                matched_account_ids = set()
+                for rule in rules:
+                    matched_count = classification_service.get_rule_matched_accounts_count(rule.id)
+                    # 获取匹配的账户ID列表
+                    accounts = (
+                        CurrentAccountSyncData.query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
+                        .filter(
+                            Instance.is_active.is_(True),
+                            CurrentAccountSyncData.is_deleted.is_(False),
+                            Instance.deleted_at.is_(None),
+                            Instance.db_type == rule.db_type,
+                        )
+                        .all()
+                    )
+                    
+                    for account in accounts:
+                        if classification_service.evaluate_rule(rule, account):
+                            matched_account_ids.add(account.id)
+                
+                count = len(matched_account_ids)
+            else:
+                count = 0
+                
             classification_stats.append((classification.name, classification.color, classification.priority, count))
 
         # 计算自动分类的账户数（去重）
