@@ -213,12 +213,33 @@ class MySQLSyncAdapter(BaseSyncAdapter):
 
     def _extract_privileges_from_string(self, privileges_str: str) -> list[str]:
         """从权限字符串中提取权限列表"""
-        # ALL PRIVILEGES 是一个单独的权限，需要特殊处理
-        if "ALL PRIVILEGES" in privileges_str:
-            return ["ALL PRIVILEGES"]
+        # 移除ON子句，只保留权限部分
+        privileges_part = privileges_str.split(" ON ")[0].strip()
+        
+        # ALL PRIVILEGES 需要拆分成具体的权限列表
+        if "ALL PRIVILEGES" in privileges_part.upper():
+            return self._expand_all_privileges()
+        
         # 分割权限并清理
-        privileges = [p.strip() for p in privileges_str.split(",") if p.strip()]
+        privileges = []
+        for priv in privileges_part.split(","):
+            priv = priv.strip().upper()
+            if priv and not priv.startswith("ON "):
+                privileges.append(priv)
+        
         return privileges
+
+    def _expand_all_privileges(self) -> list[str]:
+        """将ALL PRIVILEGES展开为MySQL 5.7的具体权限列表"""
+        # MySQL 5.7 全局权限的完整列表
+        return [
+            "SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "RELOAD", 
+            "SHUTDOWN", "PROCESS", "FILE", "REFERENCES", "INDEX", "ALTER", 
+            "SHOW DATABASES", "SUPER", "CREATE TEMPORARY TABLES", "LOCK TABLES", 
+            "EXECUTE", "REPLICATION SLAVE", "REPLICATION CLIENT", "CREATE VIEW", 
+            "SHOW VIEW", "CREATE ROUTINE", "ALTER ROUTINE", "CREATE USER", 
+            "EVENT", "TRIGGER", "CREATE TABLESPACE", "USAGE"
+        ]
 
     def _extract_database_name(self, grant_statement: str) -> str:
         """从GRANT语句中提取数据库名（已由新的解析逻辑取代）"""
