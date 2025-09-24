@@ -73,11 +73,15 @@
                                 </td>
                                 <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '-' }}</td>
                                 <td>
-                                    <div class="user-status-toggle">
-                                        <input type="checkbox" 
-                                               {% if user.is_active %}checked{% endif %}
-                                               data-user-id="{{ user.id }}">
-                                        <span class="user-status-slider"></span>
+                                    <div class="action-buttons">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                                onclick="editUser({{ user.id }})" title="编辑用户">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                onclick="deleteUser({{ user.id }}, '{{ user.username }}')" title="删除用户">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
