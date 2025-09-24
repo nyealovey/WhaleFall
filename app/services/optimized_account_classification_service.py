@@ -546,7 +546,7 @@ class OptimizedAccountClassificationService:
             # 缓存未命中，执行规则评估
             rule_expression = rule.get_rule_expression()
             if not rule_expression:
-                result = self._evaluate_legacy_rule(account, rule)
+                result = False
             else:
                 # 根据规则类型进行不同的匹配逻辑
                 if rule_expression.get("type") == "mysql_permissions":
@@ -889,39 +889,6 @@ class OptimizedAccountClassificationService:
             log_error(f"评估Oracle规则失败: {e}", module="account_classification")
             return False
 
-    def _evaluate_legacy_rule(self, account: CurrentAccountSyncData, rule: ClassificationRule) -> bool:
-        """评估旧格式规则（字符串格式）"""
-        try:
-            permissions = account.get_permissions_by_db_type()
-            if not permissions:
-                return False
-
-            rule_expression = rule.rule_expression
-
-            if rule.db_type == "sqlserver":
-                if rule_expression == "server_roles.sysadmin":
-                    server_roles = permissions.get("server_roles", [])
-                    return isinstance(server_roles, list) and "sysadmin" in server_roles
-
-            elif rule.db_type == "mysql":
-                if rule_expression == "global_privileges.SUPER":
-                    global_privileges = permissions.get("global_privileges", [])
-                    return isinstance(global_privileges, list) and "SUPER" in global_privileges
-
-            elif rule.db_type == "postgresql":
-                if rule_expression == "role_attributes.CREATEROLE":
-                    role_attributes = permissions.get("role_attributes", [])
-                    return isinstance(role_attributes, list) and "CREATEROLE" in role_attributes
-
-            elif rule.db_type == "oracle" and rule_expression == "system_privileges.GRANT ANY PRIVILEGE":
-                system_privileges = permissions.get("system_privileges", [])
-                return isinstance(system_privileges, list) and "GRANT ANY PRIVILEGE" in system_privileges
-
-            return False
-
-        except Exception as e:
-            log_error(f"评估旧格式规则失败: {e}", module="account_classification")
-            return False
 
     def _add_classification_to_accounts_batch(
         self, matched_accounts: list[CurrentAccountSyncData], classification_id: int
