@@ -93,7 +93,7 @@ def api_instances() -> Response:
         instances = Instance.query.all()
         instances_data = [{
             "id": instance.id,
-            "name": instance.instance_name,
+            "name": instance.name,
             "host": instance.host,
             "port": instance.port,
             "db_type": instance.db_type,
