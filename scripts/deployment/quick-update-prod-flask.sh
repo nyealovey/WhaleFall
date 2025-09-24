@@ -187,6 +187,7 @@ copy_code_to_container() {
     [ -d "docs" ] && cp -r docs "$temp_dir/" || log_warning "docs目录不存在，跳过"
     [ -d "tests" ] && cp -r tests "$temp_dir/" || log_warning "tests目录不存在，跳过"
     [ -d "scripts" ] && cp -r scripts "$temp_dir/" || log_warning "scripts目录不存在，跳过"
+    [ -d "nginx" ] && cp -r nginx "$temp_dir/" || log_warning "nginx目录不存在，跳过"
     
     # 拷贝根目录文件（静默处理不存在的文件）
     cp *.py "$temp_dir/" 2>/dev/null || true
@@ -244,6 +245,25 @@ copy_code_to_container() {
         log_error "新代码拷贝失败"
         rm -rf "$temp_dir"
         exit 1
+    fi
+    
+    # 确保gunicorn.conf.py文件存在
+    log_info "确保gunicorn.conf.py文件存在..."
+    if docker exec "$flask_container_id" bash -c "
+        if [ ! -f /app/gunicorn.conf.py ]; then
+            if [ -f /app/nginx/gunicorn/gunicorn-prod.conf.py ]; then
+                cp /app/nginx/gunicorn/gunicorn-prod.conf.py /app/gunicorn.conf.py
+                echo '已复制gunicorn.conf.py到根目录'
+            else
+                echo '警告：未找到gunicorn-prod.conf.py文件'
+            fi
+        else
+            echo 'gunicorn.conf.py已存在'
+        fi
+    "; then
+        log_success "gunicorn.conf.py文件检查完成"
+    else
+        log_warning "gunicorn.conf.py文件检查失败，但继续执行"
     fi
     
     # 清理临时目录
