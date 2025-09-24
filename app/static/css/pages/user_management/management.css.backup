@@ -279,6 +279,7 @@
     margin: 0;
 }
 
+
 /* 空状态 */
 .empty-state {
     text-align: center;
@@ -366,7 +367,8 @@
     .page-header h2 {
         font-size: 1.5rem;
     }
-
+    
+    
     .user-table .table th,
     .user-table .table td {
         padding: 0.75rem 0.5rem;
@@ -394,7 +396,8 @@
     .page-header h2 {
         font-size: 1.25rem;
     }
-
+    
+    
     .user-table .table th,
     .user-table .table td {
         padding: 0.5rem 0.25rem;
@@ -419,6 +422,11 @@
     }
 }
 
+/* 动画效果 */
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -428,6 +436,10 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.slide-in-right {
+    animation: slideInRight 0.3s ease-out;
 }
 
 @keyframes slideInRight {
@@ -489,6 +501,7 @@
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
+
 
 /* 卡片悬停效果 */
 .user-table {
@@ -610,6 +623,7 @@
 .permission-indicator i {
     font-size: 0.7rem;
 }
+
 
 /* 用户状态切换 */
 .user-status-toggle {

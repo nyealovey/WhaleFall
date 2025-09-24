@@ -491,7 +491,8 @@
         width: 100%;
         text-align: center;
     }
-
+    
+    
 }
 
 @media (max-width: 576px) {
@@ -521,6 +522,11 @@
     }
 }
 
+/* 动画效果 */
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -530,6 +536,10 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.slide-in-right {
+    animation: slideInRight 0.3s ease-out;
 }
 
 @keyframes slideInRight {
