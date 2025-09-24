@@ -320,6 +320,15 @@ def create_rule() -> "Response":
         db.session.add(rule)
         db.session.commit()
 
+        # 清除分类缓存，确保新规则能被正确获取
+        try:
+            from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
+            service = OptimizedAccountClassificationService()
+            service.invalidate_cache()
+            log_info("规则创建后已清除分类缓存", module="account_classification", rule_id=rule.id, user_id=current_user.id)
+        except Exception as cache_error:
+            log_error(f"清除分类缓存失败: {cache_error}", module="account_classification", rule_id=rule.id)
+
         return jsonify({"success": True})
 
     except Exception as e:
@@ -379,6 +388,15 @@ def update_rule(rule_id: int) -> "Response":
         rule.is_active = data.get("is_active", True)
 
         db.session.commit()
+
+        # 清除分类缓存，确保规则更新后重新从数据库获取
+        try:
+            from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
+            service = OptimizedAccountClassificationService()
+            service.invalidate_cache()
+            log_info("规则更新后已清除分类缓存", module="account_classification", rule_id=rule_id, user_id=current_user.id)
+        except Exception as cache_error:
+            log_error(f"清除分类缓存失败: {cache_error}", module="account_classification", rule_id=rule_id)
 
         return jsonify({"success": True})
 
