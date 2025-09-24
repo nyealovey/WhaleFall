@@ -84,7 +84,7 @@ class Config:
 
     # 应用配置
     APP_NAME = os.getenv("APP_NAME", "鲸落")
-    APP_VERSION = os.getenv("APP_VERSION", "1.0.7")
+    APP_VERSION = os.getenv("APP_VERSION", "1.0.8")
 
     # 监控配置
     ENABLE_MONITORING = os.getenv("ENABLE_MONITORING", "True").lower() == "true"
