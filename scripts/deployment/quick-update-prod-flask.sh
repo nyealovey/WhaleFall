@@ -369,50 +369,60 @@ wait_for_service_ready() {
     # 等待Flask应用完全启动
     log_info "等待Flask应用完全启动..."
     local count=0
-    local service_ready=false
     
     while [ $count -lt 60 ]; do
-        # 尝试多个端口和路径
+        log_info "第 $((count + 1)) 次检查服务状态..."
+        
+        # 检查端口5001
         local http_status_5001
-        local http_status_80
-        local http_status_nginx
-        
-        # 检查直接端口5001
         http_status_5001=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health 2>/dev/null)
+        log_info "端口5001状态码: $http_status_5001"
         
-        # 检查端口80（Nginx）
-        http_status_80=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/health 2>/dev/null)
-        
-        # 检查Nginx代理
-        http_status_nginx=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health 2>/dev/null)
-        
-        log_info "健康检查状态 - 端口5001: $http_status_5001, 端口80: $http_status_80, Nginx: $http_status_nginx"
-        
-        if [ "$http_status_5001" = "200" ] || [ "$http_status_80" = "200" ] || [ "$http_status_nginx" = "200" ]; then
-            service_ready=true
-            break
+        if [ "$http_status_5001" = "200" ]; then
+            log_success "端口5001检查通过，服务已就绪"
+            return 0
         fi
         
+        # 检查端口80
+        local http_status_80
+        http_status_80=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/health 2>/dev/null)
+        log_info "端口80状态码: $http_status_80"
+        
+        if [ "$http_status_80" = "200" ]; then
+            log_success "端口80检查通过，服务已就绪"
+            return 0
+        fi
+        
+        # 检查Nginx代理
+        local http_status_nginx
+        http_status_nginx=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health 2>/dev/null)
+        log_info "Nginx代理状态码: $http_status_nginx"
+        
+        if [ "$http_status_nginx" = "200" ]; then
+            log_success "Nginx代理检查通过，服务已就绪"
+            return 0
+        fi
+        
+        log_info "所有端口检查都失败，等待5秒后重试..."
         sleep 5
         count=$((count + 1))
     done
     
-    if [ "$service_ready" = true ]; then
-        log_success "Flask应用已就绪"
+    # 如果所有检查都超时
+    log_warning "Flask应用启动检查超时（60次检查），但继续执行"
+    log_info "容器状态："
+    docker compose -f docker-compose.prod.yml ps whalefall
+    log_info "容器日志（最后20行）："
+    docker compose -f docker-compose.prod.yml logs whalefall --tail 20
+    
+    # 尝试最后的检查
+    log_info "尝试最后的健康检查..."
+    if curl -s http://localhost:5001/health > /dev/null 2>&1; then
+        log_success "服务实际上已经就绪（端口5001）"
+    elif curl -s http://localhost/health > /dev/null 2>&1; then
+        log_success "服务实际上已经就绪（Nginx代理）"
     else
-        log_warning "Flask应用启动检查超时，但继续执行"
-        log_info "容器状态："
-        docker compose -f docker-compose.prod.yml ps whalefall
-        log_info "容器日志（最后20行）："
-        docker compose -f docker-compose.prod.yml logs whalefall --tail 20
-        
-        # 尝试最后的检查
-        log_info "尝试最后的健康检查..."
-        if curl -s http://localhost:5001/health > /dev/null 2>&1 || curl -s http://localhost/health > /dev/null 2>&1; then
-            log_success "服务实际上已经就绪"
-        else
-            log_warning "服务可能未完全就绪，但继续执行"
-        fi
+        log_warning "服务可能未完全就绪，但继续执行"
     fi
 }
 
