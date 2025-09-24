@@ -21,6 +21,9 @@
         <a href="{{ url_for('tags.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>添加标签
         </a>
+        <button type="button" class="btn btn-info ms-2" data-bs-toggle="modal" data-bs-target="#batchAssignModal">
+            <i class="fas fa-tasks me-2"></i>批量分配
+        </button>
     </div>
     {% endif %}
 </div>
@@ -210,6 +213,38 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <button type="submit" class="btn btn-danger">确认删除</button>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 批量分配模态框 -->
+<div class="modal fade" id="batchAssignModal" tabindex="-1" aria-labelledby="batchAssignModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="batchAssignModalLabel">批量分配标签</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>选择实例</h6>
+                        <div class="instance-list-container">
+                            <!-- 实例列表将通过 JS 动态加载 -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>选择标签</h6>
+                        <div class="tag-list-container">
+                            <!-- 标签列表将通过 JS 动态加载 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="batchAssignSave">保存</button>
             </div>
         </div>
     </div>

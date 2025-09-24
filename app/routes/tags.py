@@ -19,6 +19,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.models.tag import Tag
+from app.models.instance import Instance
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -32,6 +33,99 @@ logger = get_system_logger()
 
 # 创建蓝图
 tags_bp = Blueprint("tags", __name__)
+
+
+@tags_bp.route("/api/batch_assign_tags", methods=["POST"])
+@login_required
+@create_required
+def batch_assign_tags() -> Response:
+    """批量分配标签给实例"""
+    try:
+        data = request.get_json()
+        instance_ids = data.get("instance_ids", [])
+        tag_ids = data.get("tag_ids", [])
+
+        if not instance_ids or not tag_ids:
+            return jsonify({"success": False, "error": "实例ID和标签ID不能为空"}), 400
+
+        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+        tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
+
+        if not instances:
+            return jsonify({"success": False, "error": "未找到任何实例"}), 404
+        if not tags:
+            return jsonify({"success": False, "error": "未找到任何标签"}), 404
+
+        for instance in instances:
+            for tag in tags:
+                if tag not in instance.tags:
+                    instance.tags.append(tag)
+
+        db.session.commit()
+
+        log_info(
+            "批量分配标签成功",
+            module="tags",
+            instance_ids=instance_ids,
+            tag_ids=tag_ids,
+            user_id=current_user.id,
+        )
+
+        return jsonify({"success": True, "message": "标签批量分配成功"})
+
+    except Exception as e:
+        db.session.rollback()
+        log_error(
+            "批量分配标签失败",
+            module="tags",
+            error=str(e),
+            user_id=current_user.id,
+        )
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@tags_bp.route("/api/instances")
+@login_required
+@view_required
+def api_instances() -> Response:
+    """获取所有实例列表API"""
+    try:
+        instances = Instance.query.all()
+        instances_data = [{
+            "id": instance.id,
+            "name": instance.instance_name,
+            "host": instance.host,
+            "port": instance.port,
+            "db_type": instance.db_type,
+        } for instance in instances]
+        return jsonify({"success": True, "instances": instances_data})
+    except Exception as e:
+        log_error(
+            "获取实例列表失败",
+            module="tags",
+            error=str(e),
+            user_id=current_user.id,
+        )
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@tags_bp.route("/api/all_tags")
+@login_required
+@view_required
+def api_all_tags() -> Response:
+    """获取所有标签列表API (包括非活跃标签)"""
+    try:
+        tags = Tag.query.all()
+        tags_data = [tag.to_dict() for tag in tags]
+        return jsonify({"success": True, "tags": tags_data})
+    except Exception as e:
+        log_error(
+            "获取所有标签列表失败",
+            module="tags",
+            error=str(e),
+            user_id=current_user.id,
+        )
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @tags_bp.route("/")
