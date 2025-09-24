@@ -195,6 +195,15 @@ def api_update_user(user_id: int) -> "Response":
     try:
         user = User.query.get_or_404(user_id)
         data = request.get_json()
+        
+        # 添加调试日志
+        log_info(
+            "更新用户请求",
+            module="user_management",
+            user_id=current_user.id,
+            target_user_id=user_id,
+            request_data=data
+        )
 
         # 验证用户名格式
         if "username" in data:
