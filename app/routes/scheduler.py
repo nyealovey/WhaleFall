@@ -61,14 +61,16 @@ def get_jobs() -> Response:
                 
                 if isinstance(job.trigger, CronTrigger):
                     trigger_type = "cron"
-                    # CronTrigger直接访问属性，添加异常处理
+                    # CronTrigger通过fields属性访问，添加异常处理
                     try:
+                        # CronTrigger的fields是一个列表，按顺序包含：year, month, day, week, day_of_week, hour, minute, second
+                        fields = job.trigger.fields
                         trigger_args = {
-                            "minute": str(job.trigger.minute) if job.trigger.minute is not None else "*",
-                            "hour": str(job.trigger.hour) if job.trigger.hour is not None else "*",
-                            "day": str(job.trigger.day) if job.trigger.day is not None else "*",
-                            "month": str(job.trigger.month) if job.trigger.month is not None else "*",
-                            "day_of_week": str(job.trigger.day_of_week) if job.trigger.day_of_week is not None else "*",
+                            "minute": str(fields[6]) if len(fields) > 6 and fields[6] is not None else "*",
+                            "hour": str(fields[5]) if len(fields) > 5 and fields[5] is not None else "*",
+                            "day": str(fields[2]) if len(fields) > 2 and fields[2] is not None else "*",
+                            "month": str(fields[1]) if len(fields) > 1 and fields[1] is not None else "*",
+                            "day_of_week": str(fields[4]) if len(fields) > 4 and fields[4] is not None else "*",
                         }
                         system_logger.info(f"CronTrigger字段: {trigger_args}")
                     except Exception as trigger_error:
