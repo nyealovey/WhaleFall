@@ -216,8 +216,20 @@ def sync_accounts(**kwargs):
                 f"已完成: {completed_count}, 已失败: {failed_count}"
             )
             
-            # 强制更新会话统计
+            # 强制更新会话统计和状态
             sync_session_service._update_session_statistics(session.session_id)
+            
+            # 重新获取会话对象并手动更新状态
+            session = sync_session_service.get_session_by_id(session.session_id)
+            if session:
+                # 直接调用会话的update_statistics方法，这会更新最终状态
+                session.update_statistics(succeeded_instances=completed_count, failed_instances=failed_count)
+                db.session.commit()
+                
+                task_logger.info(
+                    f"会话状态已更新为: {session.status}, "
+                    f"成功: {session.successful_instances}, 失败: {session.failed_instances}"
+                )
             
             task_logger.info("请在同步会话页面查看最终结果。")
 
