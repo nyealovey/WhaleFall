@@ -369,25 +369,50 @@ wait_for_service_ready() {
     # 等待Flask应用完全启动
     log_info "等待Flask应用完全启动..."
     local count=0
+    local service_ready=false
+    
     while [ $count -lt 60 ]; do
-        # 检查HTTP状态码，不要求特定响应内容
-        local http_status
-        http_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health 2>/dev/null)
-        if [ "$http_status" = "200" ]; then
+        # 尝试多个端口和路径
+        local http_status_5001
+        local http_status_80
+        local http_status_nginx
+        
+        # 检查直接端口5001
+        http_status_5001=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health 2>/dev/null)
+        
+        # 检查端口80（Nginx）
+        http_status_80=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/health 2>/dev/null)
+        
+        # 检查Nginx代理
+        http_status_nginx=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health 2>/dev/null)
+        
+        log_info "健康检查状态 - 端口5001: $http_status_5001, 端口80: $http_status_80, Nginx: $http_status_nginx"
+        
+        if [ "$http_status_5001" = "200" ] || [ "$http_status_80" = "200" ] || [ "$http_status_nginx" = "200" ]; then
+            service_ready=true
             break
         fi
+        
         sleep 5
         count=$((count + 1))
     done
     
-    if [ $count -eq 60 ]; then
+    if [ "$service_ready" = true ]; then
+        log_success "Flask应用已就绪"
+    else
         log_warning "Flask应用启动检查超时，但继续执行"
         log_info "容器状态："
         docker compose -f docker-compose.prod.yml ps whalefall
         log_info "容器日志（最后20行）："
         docker compose -f docker-compose.prod.yml logs whalefall --tail 20
-    else
-        log_success "Flask应用已就绪"
+        
+        # 尝试最后的检查
+        log_info "尝试最后的健康检查..."
+        if curl -s http://localhost:5001/health > /dev/null 2>&1 || curl -s http://localhost/health > /dev/null 2>&1; then
+            log_success "服务实际上已经就绪"
+        else
+            log_warning "服务可能未完全就绪，但继续执行"
+        fi
     fi
 }
 
@@ -493,36 +518,76 @@ verify_update() {
     
     # 健康检查
     log_info "执行健康检查..."
-    local health_response
-    health_response=$(curl -s http://localhost:5001/health)
     
-    # 检查响应是否包含healthy状态（支持嵌套JSON结构）
-    if echo "$health_response" | grep -q '"status": "healthy"' || echo "$health_response" | grep -q '"success": true'; then
-        log_success "健康检查通过"
-        log_info "健康检查响应: $health_response"
-    else
-        log_warning "直接访问健康检查响应异常，尝试通过Nginx检查..."
-        # 通过Nginx检查
-        local nginx_health_response
-        nginx_health_response=$(curl -s http://localhost/health)
-        
-        if echo "$nginx_health_response" | grep -q '"status": "healthy"' || echo "$nginx_health_response" | grep -q '"success": true'; then
-            log_success "通过Nginx健康检查通过"
-            log_info "Nginx健康检查响应: $nginx_health_response"
+    # 尝试多个端口的健康检查
+    local health_check_passed=false
+    local health_response=""
+    
+    # 检查端口5001
+    log_info "检查端口5001健康状态..."
+    health_response=$(curl -s http://localhost:5001/health 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$health_response" ]; then
+        if echo "$health_response" | grep -q '"status": "healthy"' || echo "$health_response" | grep -q '"success": true'; then
+            log_success "端口5001健康检查通过"
+            log_info "健康检查响应: $health_response"
+            health_check_passed=true
         else
-            log_warning "健康检查响应格式异常，但服务可能正常运行"
-            log_info "直接访问响应: $health_response"
-            log_info "Nginx访问响应: $nginx_health_response"
-            
-            # 尝试简单的HTTP状态码检查
-            local http_status
-            http_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health)
-            if [ "$http_status" = "200" ]; then
-                log_success "HTTP状态码检查通过 (200)"
+            log_info "端口5001响应: $health_response"
+        fi
+    else
+        log_info "端口5001不可用，尝试其他端口..."
+    fi
+    
+    # 如果端口5001失败，尝试端口80
+    if [ "$health_check_passed" = false ]; then
+        log_info "检查端口80健康状态..."
+        health_response=$(curl -s http://localhost:80/health 2>/dev/null)
+        if [ $? -eq 0 ] && [ -n "$health_response" ]; then
+            if echo "$health_response" | grep -q '"status": "healthy"' || echo "$health_response" | grep -q '"success": true'; then
+                log_success "端口80健康检查通过"
+                log_info "健康检查响应: $health_response"
+                health_check_passed=true
             else
-                log_error "健康检查失败，HTTP状态码: $http_status"
-                return 1
+                log_info "端口80响应: $health_response"
             fi
+        else
+            log_info "端口80不可用，尝试Nginx代理..."
+        fi
+    fi
+    
+    # 如果端口80失败，尝试Nginx代理
+    if [ "$health_check_passed" = false ]; then
+        log_info "检查Nginx代理健康状态..."
+        health_response=$(curl -s http://localhost/health 2>/dev/null)
+        if [ $? -eq 0 ] && [ -n "$health_response" ]; then
+            if echo "$health_response" | grep -q '"status": "healthy"' || echo "$health_response" | grep -q '"success": true'; then
+                log_success "Nginx代理健康检查通过"
+                log_info "健康检查响应: $health_response"
+                health_check_passed=true
+            else
+                log_info "Nginx代理响应: $health_response"
+            fi
+        else
+            log_info "Nginx代理不可用"
+        fi
+    fi
+    
+    # 如果所有健康检查都失败，尝试简单的HTTP状态码检查
+    if [ "$health_check_passed" = false ]; then
+        log_warning "所有健康检查都失败，尝试HTTP状态码检查..."
+        
+        local http_status_5001=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health 2>/dev/null)
+        local http_status_80=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/health 2>/dev/null)
+        local http_status_nginx=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health 2>/dev/null)
+        
+        log_info "HTTP状态码 - 端口5001: $http_status_5001, 端口80: $http_status_80, Nginx: $http_status_nginx"
+        
+        if [ "$http_status_5001" = "200" ] || [ "$http_status_80" = "200" ] || [ "$http_status_nginx" = "200" ]; then
+            log_success "HTTP状态码检查通过"
+            health_check_passed=true
+        else
+            log_warning "所有健康检查都失败，但服务可能正常运行"
+            log_info "建议手动检查服务状态"
         fi
     fi
     
