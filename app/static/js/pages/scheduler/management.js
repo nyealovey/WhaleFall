@@ -6,6 +6,16 @@
 // 全局变量
 let currentJobs = [];
 
+// 全局函数
+function updateEditCronPreview() {
+    const minute = $('#editCronMinute').val() || '0';
+    const hour = $('#editCronHour').val() || '0';
+    const day = $('#editCronDay').val() || '*';
+    const month = $('#editCronMonth').val() || '*';
+    const weekday = $('#editCronWeekday').val() || '*';
+    const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
+    $('#editCronPreview').val(cronExpression);
+}
 
 // 页面加载完成后初始化
 $(document).ready(function() {
@@ -52,15 +62,6 @@ function initializeEventHandlers() {
         $('#cronPreview').val(cronExpression);
     }
 
-    function updateEditCronPreview() {
-        const minute = $('#editCronMinute').val() || '0';
-        const hour = $('#editCronHour').val() || '0';
-        const day = $('#editCronDay').val() || '*';
-        const month = $('#editCronMonth').val() || '*';
-        const weekday = $('#editCronWeekday').val() || '*';
-        const cronExpression = `${minute} ${hour} ${day} ${month} ${weekday}`;
-        $('#editCronPreview').val(cronExpression);
-    }
 
     // 监听cron输入框变化
     $('#cronMinute, #cronHour, #cronDay, #cronMonth, #cronWeekday').on('input', updateCronPreview);
