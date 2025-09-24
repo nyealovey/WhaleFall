@@ -402,10 +402,6 @@ function disableJob(jobId) {
 
 // 立即执行任务
 function runJobNow(jobId) {
-    if (!confirm('确定要立即执行这个任务吗？')) {
-        return;
-    }
-    
     showLoadingState($(`[data-job-id="${jobId}"].btn-run-job`), '执行中...');
     
     $.ajax({
