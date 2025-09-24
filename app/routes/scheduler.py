@@ -56,13 +56,13 @@ def get_jobs() -> Response:
             trigger_args: dict[str, Any] = {}
             if isinstance(job.trigger, CronTrigger):
                 trigger_type = "cron"
-                # CronTrigger的字段顺序: minute, hour, day, month, day_of_week
+                # CronTrigger直接访问属性
                 trigger_args = {
-                    "minute": str(job.trigger.fields[0]),
-                    "hour": str(job.trigger.fields[1]),
-                    "day": str(job.trigger.fields[2]),
-                    "month": str(job.trigger.fields[3]),
-                    "day_of_week": str(job.trigger.fields[4]),
+                    "minute": str(job.trigger.minute) if job.trigger.minute is not None else "*",
+                    "hour": str(job.trigger.hour) if job.trigger.hour is not None else "*",
+                    "day": str(job.trigger.day) if job.trigger.day is not None else "*",
+                    "month": str(job.trigger.month) if job.trigger.month is not None else "*",
+                    "day_of_week": str(job.trigger.day_of_week) if job.trigger.day_of_week is not None else "*",
                 }
             elif isinstance(job.trigger, IntervalTrigger):
                 trigger_type = "interval"
