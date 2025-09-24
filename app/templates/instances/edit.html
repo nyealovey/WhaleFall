@@ -160,11 +160,12 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/edit.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/create.css') }}">
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pages/instances/edit.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/tag_selector.js') }}"></script>
 
 <!-- 标签选择器组件 -->
 <div id="edit-page-tag-selector">

@@ -19,6 +19,9 @@ from app.utils.decorators import scheduler_manage_required, scheduler_view_requi
 from app.utils.structlog_config import get_system_logger
 from app.utils.timezone import now
 
+# 常量: 内置任务ID集合（统一前后端识别）
+BUILTIN_TASK_IDS: set[str] = {"cleanup_logs", "sync_all_accounts"}
+
 # 初始化日志记录器
 system_logger = get_system_logger()
 
@@ -51,7 +54,7 @@ def get_jobs() -> Response:
             try:
                 # 检查任务状态
                 is_paused = job.next_run_time is None
-                is_builtin = job.id in ["sync_all_accounts", "sync_all_instances", "cleanup_logs"]
+                is_builtin = job.id in BUILTIN_TASK_IDS
 
                 trigger_type = "unknown"
                 trigger_args: dict[str, Any] = {}
@@ -187,6 +190,8 @@ def create_job() -> Response:
         trigger = _build_trigger(data)
         if not trigger:
             return APIResponse.error("无效的触发器配置", code=400)  # type: ignore
+        # 记录触发器构建结果
+        system_logger.info("创建任务-触发器构建完成: %s", str(trigger))
 
         # 验证代码格式
         code = data["code"].strip()
@@ -244,8 +249,7 @@ def update_job(job_id: str) -> Response:
             return APIResponse.error("任务不存在", code=404)  # type: ignore
 
         # 检查是否为内置任务
-        builtin_tasks = ["sync_accounts", "cleanup_logs"]
-        is_builtin = job_id in builtin_tasks
+        is_builtin = job_id in BUILTIN_TASK_IDS
 
         # 构建新的触发器
         if "trigger_type" in data:
@@ -270,6 +274,12 @@ def update_job(job_id: str) -> Response:
                 args=data.get("args", job.args),
                 kwargs=data.get("kwargs", job.kwargs),
             )
+            # 记录更新后的下次执行时间
+            try:
+                updated_job = scheduler.get_job(job_id)
+                system_logger.info("任务更新后下次执行时间: %s - %s", job_id, getattr(updated_job, "next_run_time", None))
+            except Exception as _log_err:
+                system_logger.warning("记录任务更新的下次执行时间失败: %s", str(_log_err))
         else:
             if is_builtin:
                 # 内置任务：不允许更新其他属性
@@ -494,27 +504,93 @@ def task_wrapper():
 def _build_trigger(
     data: dict[str, Any],
 ) -> CronTrigger | IntervalTrigger | DateTrigger | None:
-    """构建触发器"""
+    """构建触发器
+
+    Args:
+        data (dict[str, Any]): 前端提交的数据，支持 cron_expression、cron_* 字段及原始字段名。
+
+    Returns:
+        CronTrigger | IntervalTrigger | DateTrigger | None: 创建好的触发器实例，失败时返回 None。
+    """
     trigger_type = data.get("trigger_type")
 
     if trigger_type == "cron":
-        return CronTrigger(
-            year=data.get("year"),
-            month=data.get("month"),
-            day=data.get("day"),
-            week=data.get("week"),
-            day_of_week=data.get("day_of_week"),
-            hour=data.get("cron_hour") or data.get("hour"),
-            minute=data.get("cron_minute") or data.get("minute"),
-            second=data.get("cron_second") or data.get("second"),
+        # 兼容多种字段命名与 cron 表达式
+        cron_kwargs: dict[str, Any] = {}
+        expr = str(data.get("cron_expression", "")).strip()
+        expr_parts: list[str] = []
+        if expr:
+            expr_parts = expr.split()
+
+        # 从单字段别名中读取
+        minute = data.get("cron_minute") or data.get("minute")
+        hour = data.get("cron_hour") or data.get("hour")
+        day = data.get("cron_day") or data.get("day")
+        month = data.get("cron_month") or data.get("month")
+        day_of_week = (
+            data.get("cron_weekday")
+            or data.get("cron_day_of_week")
+            or data.get("day_of_week")
+            or data.get("weekday")
         )
+        second = data.get("cron_second") or data.get("second")
+
+        # 从 cron_expression 中回填（优先级低于单字段）
+        if not second and len(expr_parts) == 6:
+            # 允许表达式为: second minute hour day month day_of_week
+            second, minute_e, hour_e, day_e, month_e, dow_e = expr_parts
+            minute = minute or minute_e
+            hour = hour or hour_e
+            day = day or day_e
+            month = month or month_e
+            day_of_week = day_of_week or dow_e
+        elif len(expr_parts) == 5:
+            # 常见格式: minute hour day month day_of_week
+            minute_e, hour_e, day_e, month_e, dow_e = expr_parts
+            minute = minute or minute_e
+            hour = hour or hour_e
+            day = day or day_e
+            month = month or month_e
+            day_of_week = day_of_week or dow_e
+
+        # 组装 kwargs（None 相当于 *）
+        if year := data.get("year"):
+            cron_kwargs["year"] = year
+        if month is not None:
+            cron_kwargs["month"] = month
+        if day is not None:
+            cron_kwargs["day"] = day
+        if week := data.get("week"):
+            cron_kwargs["week"] = week
+        if day_of_week is not None:
+            cron_kwargs["day_of_week"] = day_of_week
+        if hour is not None:
+            cron_kwargs["hour"] = hour
+        if minute is not None:
+            cron_kwargs["minute"] = minute
+        if second is not None:
+            cron_kwargs["second"] = second
+
+        # 打印日志便于排错
+        try:
+            system_logger.info("构建 CronTrigger 参数: %s", cron_kwargs)
+        except Exception:
+            pass
+
+        return CronTrigger(**cron_kwargs)
     if trigger_type == "interval":
         # 过滤掉None值
-        kwargs = {}
+        kwargs: dict[str, int] = {}
         for key in ["weeks", "days", "hours", "minutes", "seconds"]:
             value = data.get(key)
-            if value is not None and value > 0:
-                kwargs[key] = value
+            if value is not None:
+                try:
+                    # 统一转换为 int，忽略非正值
+                    iv = int(value)
+                    if iv > 0:
+                        kwargs[key] = iv
+                except Exception:
+                    continue
 
         if not kwargs:
             return None
@@ -528,3 +604,94 @@ def _build_trigger(
             return DateTrigger(run_date=datetime.fromisoformat(run_date))
 
     return None
+
+
+@scheduler_bp.route("/api/jobs/<job_id>", methods=["DELETE"])
+@login_required  # type: ignore
+@scheduler_manage_required  # type: ignore
+def delete_job(job_id: str) -> Response:
+    """删除指定定时任务
+
+    Args:
+        job_id (str): 任务ID。
+
+    Returns:
+        Response: 标准化的JSON响应。
+    """
+    try:
+        scheduler = get_scheduler()  # type: ignore
+        if not scheduler.running:
+            return APIResponse.error("调度器未启动", code=500)  # type: ignore
+
+        job = scheduler.get_job(job_id)
+        if not job:
+            return APIResponse.error("任务不存在", code=404)  # type: ignore
+
+        # 保护内置任务，避免误删
+        if job_id in BUILTIN_TASK_IDS:
+            return APIResponse.error("内置任务不允许删除", code=403)  # type: ignore
+
+        scheduler.remove_job(job_id)
+        system_logger.info("任务已删除: %s", job_id)
+        return APIResponse.success(message="任务已删除")  # type: ignore
+    except Exception as e:
+        error_str = str(e) if e else "未知错误"
+        system_logger.error("删除任务失败: %s - %s", job_id, error_str)
+        return APIResponse.error(f"删除任务失败: {error_str}")  # type: ignore
+
+
+@scheduler_bp.route("/api/jobs/purge", methods=["POST"])
+@login_required  # type: ignore
+@scheduler_manage_required  # type: ignore
+def purge_jobs() -> Response:
+    """批量清理任务，仅保留指定任务ID列表。
+
+    请求体示例：
+        {"keep_ids": ["cleanup_logs", "sync_all_accounts"], "include_builtin": false}
+
+    说明：
+        - keep_ids: 需要保留的任务ID列表；
+        - include_builtin: 是否允许清理内置任务；默认 False（内置任务将始终保留）。
+
+    Returns:
+        Response: 标准化的JSON响应，包含删除的任务ID清单。
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        keep_ids = set(data.get("keep_ids", []) or [])
+        include_builtin = bool(data.get("include_builtin", False))
+
+        scheduler = get_scheduler()  # type: ignore
+        if not scheduler.running:
+            return APIResponse.error("调度器未启动", code=500)  # type: ignore
+
+        jobs = scheduler.get_jobs()
+        deleted: list[str] = []
+        skipped: list[str] = []
+
+        for job in jobs:
+            jid = job.id
+            # 内置任务默认跳过
+            if not include_builtin and jid in BUILTIN_TASK_IDS:
+                skipped.append(jid)
+                continue
+            # 保留名单跳过
+            if jid in keep_ids:
+                skipped.append(jid)
+                continue
+            # 执行删除
+            try:
+                scheduler.remove_job(jid)
+                deleted.append(jid)
+                system_logger.info("批量清理-删除任务: %s", jid)
+            except Exception as del_err:
+                system_logger.error("批量清理-删除任务失败: %s - %s", jid, str(del_err))
+
+        return APIResponse.success(
+            data={"deleted": deleted, "kept": list(keep_ids), "skipped": skipped},
+            message=f"已删除 {len(deleted)} 个任务",
+        )  # type: ignore
+    except Exception as e:
+        error_str = str(e) if e else "未知错误"
+        system_logger.error("批量清理任务失败: %s", error_str)
+        return APIResponse.error(f"批量清理任务失败: {error_str}")  # type: ignore
