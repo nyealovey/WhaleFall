@@ -172,6 +172,9 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         使用正则表达式解析GRANT语句，以提高准确性和健壮性
         """
         try:
+            # 检查是否有WITH GRANT OPTION
+            has_grant_option = "WITH GRANT OPTION" in grant_statement.upper()
+            
             # 移除GRANT关键字和WITH GRANT OPTION后缀，简化匹配
             simple_grant = grant_statement.upper().replace("GRANT ", "").replace(" WITH GRANT OPTION", "")
 
@@ -180,6 +183,9 @@ class MySQLSyncAdapter(BaseSyncAdapter):
             if global_match:
                 privs = self._extract_privileges_from_string(global_match.group(1))
                 global_privileges.extend(privs)
+                # 如果有GRANT OPTION，添加GRANT权限
+                if has_grant_option and "GRANT" not in global_privileges:
+                    global_privileges.append("GRANT")
                 return
 
             # 匹配数据库级权限: ON `db_name`.*
@@ -191,6 +197,9 @@ class MySQLSyncAdapter(BaseSyncAdapter):
                 if db_name not in database_privileges:
                     database_privileges[db_name] = []
                 database_privileges[db_name].extend(privs)
+                # 如果有GRANT OPTION，添加GRANT权限到全局权限
+                if has_grant_option and "GRANT" not in global_privileges:
+                    global_privileges.append("GRANT")
                 return
 
             # 匹配特定对象权限（表、函数、过程），作为数据库级权限的补充
@@ -205,6 +214,9 @@ class MySQLSyncAdapter(BaseSyncAdapter):
                 # 为避免过于复杂，这里只记录一个概要
                 if priv_summary not in database_privileges[db_name]:
                     database_privileges[db_name].append(priv_summary)
+                # 如果有GRANT OPTION，添加GRANT权限到全局权限
+                if has_grant_option and "GRANT" not in global_privileges:
+                    global_privileges.append("GRANT")
 
         except Exception as e:
             self.sync_logger.warning(

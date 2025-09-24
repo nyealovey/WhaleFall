@@ -33,6 +33,51 @@ def _extract_privileges_from_string(privileges_str: str) -> list[str]:
     
     return privileges
 
+def test_grant_permission_handling():
+    """测试GRANT权限处理功能"""
+    print("\n🔐 MySQL GRANT权限处理测试")
+    print("=" * 60)
+    
+    # 模拟解析GRANT语句的过程
+    test_grant_statements = [
+        "GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION",
+        "GRANT SELECT, INSERT, UPDATE ON `testdb`.* TO 'user'@'%' WITH GRANT OPTION",
+        "GRANT SELECT, INSERT ON `testdb`.* TO 'user'@'%'",
+        "GRANT ALL PRIVILEGES ON *.* TO 'admin'@'localhost'",
+    ]
+    
+    for i, grant_statement in enumerate(test_grant_statements, 1):
+        print(f"\n📋 GRANT语句 {i}: {grant_statement}")
+        print("-" * 50)
+        
+        # 检查是否有WITH GRANT OPTION
+        has_grant_option = "WITH GRANT OPTION" in grant_statement.upper()
+        print(f"🎯 检测到WITH GRANT OPTION: {has_grant_option}")
+        
+        # 模拟解析权限
+        simple_grant = grant_statement.upper().replace("GRANT ", "").replace(" WITH GRANT OPTION", "")
+        
+        # 匹配全局权限
+        import re
+        global_match = re.match(r"(.+?) ON \*\.\*", simple_grant)
+        if global_match:
+            privileges_str = global_match.group(1)
+            privileges = _extract_privileges_from_string(privileges_str)
+            print(f"✅ 全局权限: {privileges}")
+            if has_grant_option and "GRANT" not in privileges:
+                privileges.append("GRANT")
+                print(f"🔑 添加GRANT权限: {privileges}")
+        
+        # 匹配数据库权限
+        db_match = re.match(r"(.+?) ON `(.+?)`\.\*", simple_grant)
+        if db_match:
+            privileges_str = db_match.group(1)
+            db_name = db_match.group(2)
+            privileges = _extract_privileges_from_string(privileges_str)
+            print(f"✅ 数据库权限 [{db_name}]: {privileges}")
+            if has_grant_option:
+                print(f"🔑 检测到GRANT OPTION，应添加到全局权限")
+
 def test_all_privileges_expansion():
     """测试ALL PRIVILEGES展开功能"""
     
@@ -50,6 +95,10 @@ def test_all_privileges_expansion():
         
         # 部分权限
         "SELECT, INSERT, UPDATE ON `testdb`.*",
+        
+        # 带WITH GRANT OPTION的权限
+        "ALL PRIVILEGES ON *.* WITH GRANT OPTION",
+        "SELECT, INSERT, UPDATE ON `testdb`.* WITH GRANT OPTION",
     ]
     
     print("🔍 MySQL权限展开测试")
@@ -80,4 +129,5 @@ def test_all_privileges_expansion():
     print("✅ 测试完成")
 
 if __name__ == "__main__":
+    test_grant_permission_handling()
     test_all_privileges_expansion()
