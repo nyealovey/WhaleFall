@@ -651,19 +651,49 @@ gunicorn -w 4 -b 0.0.0.0:5001 app:app
 ### 运行测试
 ```bash
 # 运行所有测试
-pytest
+uv run pytest
 
-# 运行特定测试
-pytest tests/test_models.py
+# 运行单元测试
+uv run pytest tests/unit/
+
+# 运行特定测试文件
+uv run pytest tests/unit/models/test_user_model.py
 
 # 运行测试并生成覆盖率报告
-pytest --cov=app tests/
+uv run pytest --cov=app tests/
+
+# 运行测试并显示详细输出
+uv run pytest -v
 ```
 
 ### 测试类型
 - **单元测试** - 测试单个函数和类
+  - 模型测试：用户模型、实例模型等
+  - 服务测试：业务逻辑服务
+  - 工具测试：工具函数和辅助类
 - **集成测试** - 测试API接口
 - **端到端测试** - 测试完整用户流程
+
+### 测试配置
+- 使用SQLite内存数据库进行测试
+- 每个测试独立运行，确保测试隔离
+- 自动清理测试数据
+- 支持测试标记和过滤
+
+### 测试覆盖率
+当前测试覆盖了核心模型的主要功能，包括：
+- ✅ 用户模型（User）- 9个测试用例，覆盖率69%
+- ✅ 凭据模型（Credential）- 14个测试用例，覆盖率71%
+- ✅ 实例模型（Instance）- 16个测试用例，覆盖率46%
+- ✅ 标签模型（Tag）- 10个测试用例，覆盖率85%
+- 🔄 服务层测试（计划中）
+- 🔄 API接口测试（计划中）
+
+**总体覆盖率**: 23% (49个测试用例全部通过)
+
+> 📖 **详细测试分析**: 查看 [单元测试分析报告](docs/development/unit_test_analysis_report.md)  
+> 📊 **测试总结报告**: 查看 [单元测试总结报告](docs/development/unit_test_summary_report.md)  
+> 📈 **覆盖率报告**: 查看 [HTML覆盖率报告](htmlcov/index.html)
 
 ## 📊 监控和日志
 
