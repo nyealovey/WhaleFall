@@ -243,6 +243,65 @@ def api_instance_tags() -> Response:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@tags_bp.route("/api/batch_remove_all_tags", methods=["POST"])
+@login_required
+@create_required
+def batch_remove_all_tags() -> Response:
+    """批量移除实例的所有标签"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "请求数据为空"}), 400
+            
+        instance_ids = data.get("instance_ids", [])
+        
+        # 确保ID是整数类型
+        try:
+            instance_ids = [int(id) for id in instance_ids]
+        except (ValueError, TypeError) as e:
+            return jsonify({"success": False, "error": f"ID格式错误: {str(e)}"}), 400
+
+        if not instance_ids:
+            return jsonify({"success": False, "error": "实例ID不能为空"}), 400
+
+        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+        if not instances:
+            return jsonify({"success": False, "error": "未找到任何实例"}), 404
+
+        # 记录移除前的状态
+        total_removed = 0
+        for instance in instances:
+            tag_count = len(instance.tags)
+            instance.tags.clear()  # 清空所有标签
+            total_removed += tag_count
+
+        db.session.commit()
+
+        log_info(
+            "批量移除所有标签成功",
+            module="tags",
+            instance_ids=instance_ids,
+            removed_count=total_removed,
+            user_id=current_user.id,
+        )
+
+        return jsonify({
+            "success": True, 
+            "message": f"批量移除成功，共移除 {total_removed} 个标签关系"
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        log_error(
+            "批量移除所有标签失败",
+            module="tags",
+            error=str(e),
+            error_type=type(e).__name__,
+            user_id=current_user.id,
+        )
+        return jsonify({"success": False, "error": f"批量移除失败: {str(e)}"}), 500
+
+
 @tags_bp.route("/api/instances")
 @login_required
 @view_required
