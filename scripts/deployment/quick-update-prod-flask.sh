@@ -165,20 +165,15 @@ pull_latest_code() {
         exit 1
     fi
     
-    # 获取当前工作目录
-    local current_dir
-    current_dir=$(pwd)
-    log_info "当前工作目录: $current_dir"
-    
     # 备份当前代码（可选）
     log_info "备份当前代码..."
-    if [ -d "$current_dir" ]; then
-        cp -r "$current_dir" "${current_dir}_backup_$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+    if [ -d "/opt/whalefall" ]; then
+        cp -r /opt/whalefall /opt/whalefall_backup_$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
     fi
     
     # 复制新代码到目标目录
     log_info "复制新代码到目标目录..."
-    if cp -r TaifishingV4-main/* "$current_dir/"; then
+    if cp -r TaifishingV4-main/* /opt/whalefall/; then
         log_success "代码复制成功"
     else
         log_error "代码复制失败"
@@ -187,14 +182,14 @@ pull_latest_code() {
     fi
     
     # 复制隐藏文件
-    cp -r TaifishingV4-main/.* "$current_dir/" 2>/dev/null || true
+    cp -r TaifishingV4-main/.* /opt/whalefall/ 2>/dev/null || true
     
     # 清理临时目录
-    cd "$current_dir"
+    cd /opt/whalefall
     rm -rf "$temp_dir"
     
     log_success "代码更新完成"
-    log_info "新代码已复制到 $current_dir"
+    log_info "新代码已复制到 /opt/whalefall"
 }
 
 # 拷贝代码到容器
@@ -551,7 +546,7 @@ show_update_result() {
     echo -e "${GREEN}🎉 热更新完成！${NC}"
     echo ""
     echo -e "${BLUE}📋 更新信息：${NC}"
-    echo "  - 更新版本: $(git rev-parse --short HEAD)"
+    echo "  - 更新版本: GitHub最新代码"
     echo "  - 更新时间: $(date)"
     echo "  - 更新模式: 代码热更新"
     echo "  - 停机时间: 约30-60秒"
