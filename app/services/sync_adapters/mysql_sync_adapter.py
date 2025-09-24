@@ -183,9 +183,9 @@ class MySQLSyncAdapter(BaseSyncAdapter):
             if global_match:
                 privs = self._extract_privileges_from_string(global_match.group(1))
                 global_privileges.extend(privs)
-                # 如果有GRANT OPTION，添加GRANT权限
-                if has_grant_option and "GRANT" not in global_privileges:
-                    global_privileges.append("GRANT")
+                # 如果有GRANT OPTION，添加GRANT OPTION权限
+                if has_grant_option and "GRANT OPTION" not in global_privileges:
+                    global_privileges.append("GRANT OPTION")
                 return
 
             # 匹配数据库级权限: ON `db_name`.*
@@ -197,9 +197,9 @@ class MySQLSyncAdapter(BaseSyncAdapter):
                 if db_name not in database_privileges:
                     database_privileges[db_name] = []
                 database_privileges[db_name].extend(privs)
-                # 如果有GRANT OPTION，添加GRANT权限到全局权限
-                if has_grant_option and "GRANT" not in global_privileges:
-                    global_privileges.append("GRANT")
+                # 如果有GRANT OPTION，添加GRANT OPTION权限到全局权限
+                if has_grant_option and "GRANT OPTION" not in global_privileges:
+                    global_privileges.append("GRANT OPTION")
                 return
 
             # 匹配特定对象权限（表、函数、过程），作为数据库级权限的补充
@@ -214,9 +214,9 @@ class MySQLSyncAdapter(BaseSyncAdapter):
                 # 为避免过于复杂，这里只记录一个概要
                 if priv_summary not in database_privileges[db_name]:
                     database_privileges[db_name].append(priv_summary)
-                # 如果有GRANT OPTION，添加GRANT权限到全局权限
-                if has_grant_option and "GRANT" not in global_privileges:
-                    global_privileges.append("GRANT")
+                # 如果有GRANT OPTION，添加GRANT OPTION权限到全局权限
+                if has_grant_option and "GRANT OPTION" not in global_privileges:
+                    global_privileges.append("GRANT OPTION")
 
         except Exception as e:
             self.sync_logger.warning(
