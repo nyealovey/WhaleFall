@@ -381,6 +381,32 @@ class SyncSessionService:
             )
             return []
 
+    def get_record_by_instance_and_session(self, instance_id: int, session_id: str) -> SyncInstanceRecord | None:
+        """
+        根据实例ID和会话ID获取同步记录
+
+        Args:
+            instance_id: 实例ID
+            session_id: 会话ID
+
+        Returns:
+            Optional[SyncInstanceRecord]: 同步记录对象
+        """
+        try:
+            return SyncInstanceRecord.query.filter_by(
+                instance_id=instance_id, 
+                session_id=session_id
+            ).first()
+        except Exception as e:
+            self.sync_logger.error(
+                "获取实例同步记录失败",
+                module="sync_session",
+                instance_id=instance_id,
+                session_id=session_id,
+                error=str(e),
+            )
+            return None
+
     def cancel_session(self, session_id: str) -> bool:
         """
         取消会话
