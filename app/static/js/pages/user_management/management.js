@@ -394,8 +394,10 @@ function hideLoadingState(element, originalText) {
 
 // 获取CSRF令牌
 function getCSRFToken() {
-    const csrfInput = document.querySelector('input[name="csrf_token"]');
-    return csrfInput ? csrfInput.value : '';
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const token = csrfMeta ? csrfMeta.getAttribute('content') : '';
+    console.log('CSRF Token:', token ? '已获取' : '未获取');
+    return token;
 }
 
 // 显示提示信息
