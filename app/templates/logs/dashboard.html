@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/logs/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -53,55 +54,8 @@
     </div>
 
     <!-- 搜索和筛选 -->
-    <div class="card search-filter-card">
-        <div class="card-body">
-            <form class="filter-form" onsubmit="searchLogs(1); return false;">
-                <div class="row g-3">
-                    <div class="col-md-2">
-                        <label for="levelFilter" class="form-label">日志级别</label>
-                        <select class="form-select" id="levelFilter">
-                            <option value="">全部级别</option>
-                            <option value="DEBUG">DEBUG</option>
-                            <option value="INFO">INFO</option>
-                            <option value="WARNING">WARNING</option>
-                            <option value="ERROR">ERROR</option>
-                            <option value="CRITICAL">CRITICAL</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="moduleFilter" class="form-label">模块</label>
-                        <select class="form-select" id="moduleFilter">
-                            <option value="">全部模块</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="searchTerm" class="form-label">搜索关键词</label>
-                        <input type="text" class="form-control" id="searchTerm" placeholder="输入搜索关键词">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="timeRange" class="form-label">时间范围</label>
-                        <select class="form-select" id="timeRange">
-                            <option value="1">最近1小时</option>
-                            <option value="6">最近6小时</option>
-                            <option value="24" selected>最近24小时</option>
-                            <option value="72">最近3天</option>
-                            <option value="168">最近7天</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">&nbsp;</label>
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn search-btn">
-                                <i class="fas fa-search me-2"></i>搜索
-                            </button>
-                            <button type="button" class="btn reset-btn" onclick="resetFilters()">
-                                <i class="fas fa-undo me-2"></i>重置
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
+    <div class="logs-page">
+        {% include 'components/unified_search_form.html' %}
     </div>
 
     <!-- 日志列表 -->
@@ -144,5 +98,6 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/logs/dashboard.js') }}"></script>
 {% endblock %}

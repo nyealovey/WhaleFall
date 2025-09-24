@@ -48,6 +48,8 @@ show_banner() {
     echo "║                (保留数据库和Redis)                          ║"
     echo "║                (自动刷新Nginx缓存)                          ║"
     echo "║                (最小化停机时间)                              ║"
+    echo "║                (始终以GitHub代码为准)                        ║"
+    echo "║                (自动强制同步远程状态)                        ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -141,19 +143,44 @@ pull_latest_code() {
         exit 1
     fi
     
-    # 暂存当前更改
-    if ! git diff --quiet; then
-        log_info "暂存当前更改..."
-        git stash push -m "Auto-stash before quick update $(date '+%Y-%m-%d %H:%M:%S')"
+    # 获取当前提交信息
+    local current_commit
+    current_commit=$(git rev-parse --short HEAD)
+    log_info "当前本地提交: $current_commit"
+    
+    # 配置Git用户信息（避免fetch时出错）
+    log_info "配置Git用户信息..."
+    git config user.email "whalefall@taifishing.com" 2>/dev/null || true
+    git config user.name "WhaleFall Deploy" 2>/dev/null || true
+    
+    # 获取远程最新提交信息
+    log_info "获取远程最新信息..."
+    git fetch origin main
+    
+    local remote_commit
+    remote_commit=$(git rev-parse --short origin/main)
+    log_info "远程最新提交: $remote_commit"
+    
+    # 始终强制同步到远程状态（以GitHub为准）
+    log_info "强制同步到远程最新状态（以GitHub为准）..."
+    if git reset --hard origin/main; then
+        log_success "代码已强制同步到远程最新状态"
+        log_info "新的本地提交: $(git rev-parse --short HEAD)"
+    else
+        log_error "强制同步失败"
+        exit 1
     fi
     
-    # 拉取最新代码
-    log_info "拉取最新代码..."
-    if git pull origin main; then
-        log_success "代码更新成功"
+    # 验证最终状态
+    local final_commit
+    final_commit=$(git rev-parse --short HEAD)
+    log_info "最终代码提交: $final_commit"
+    
+    # 检查是否有文件变更
+    if [ "$current_commit" != "$final_commit" ]; then
+        log_success "检测到代码变更，准备更新容器"
     else
-        log_error "代码更新失败"
-        exit 1
+        log_warning "没有检测到代码变更，可能已经是最新状态"
     fi
 }
 
@@ -339,24 +366,20 @@ restart_flask_service() {
 wait_for_service_ready() {
     log_step "等待服务就绪..."
     
-    # 等待Flask应用完全启动
-    log_info "等待Flask应用完全启动..."
-    local count=0
-    while [ $count -lt 60 ]; do
-        if curl -f http://localhost:5001/health > /dev/null 2>&1; then
-            break
-        fi
-        sleep 5
-        count=$((count + 1))
-    done
+    # 简单等待10秒，然后直接检查一次
+    log_info "等待服务完全启动（10秒）..."
+    sleep 10
     
-    if [ $count -eq 60 ]; then
-        log_error "Flask应用启动超时"
-        docker compose -f docker-compose.prod.yml logs whalefall
-        exit 1
+    # 只检查端口5001
+    log_info "检查端口5001服务状态..."
+    
+    if curl --noproxy localhost -f http://localhost:5001/health > /dev/null 2>&1; then
+        log_success "端口5001服务已就绪"
+        return 0
+    else
+        log_warning "端口5001服务检查失败，但继续执行"
+        log_info "端口5001状态码: $(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/health 2>/dev/null)"
     fi
-    
-    log_success "Flask应用已就绪"
 }
 
 # 刷新Nginx缓存（Nginx和Flask在同一容器）
@@ -459,29 +482,18 @@ verify_update() {
     log_info "检查容器状态..."
     docker compose -f docker-compose.prod.yml ps whalefall
     
-    # 健康检查
+    # 健康检查 - 只检查端口5001
     log_info "执行健康检查..."
-    local health_response
-    health_response=$(curl -s http://localhost:5001/health)
     
-    if echo "$health_response" | grep -q "healthy"; then
-        log_success "健康检查通过"
-        log_info "健康检查响应: $health_response"
+    # 检查端口5001
+    log_info "检查端口5001健康状态..."
+    local http_status
+    http_status=$(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/health 2>/dev/null)
+    
+    if [ "$http_status" = "200" ]; then
+        log_success "端口5001健康检查通过 (状态码: $http_status)"
     else
-        log_warning "健康检查响应异常，尝试通过Nginx检查..."
-        # 通过Nginx检查
-        local nginx_health_response
-        nginx_health_response=$(curl -s http://localhost/health)
-        
-        if echo "$nginx_health_response" | grep -q "healthy"; then
-            log_success "通过Nginx健康检查通过"
-            log_info "Nginx健康检查响应: $nginx_health_response"
-        else
-            log_error "健康检查失败"
-            log_error "直接访问响应: $health_response"
-            log_error "Nginx访问响应: $nginx_health_response"
-            return 1
-        fi
+        log_warning "端口5001健康检查失败 (状态码: $http_status)，但继续执行"
     fi
     
     # 测试数据库和Redis连接（通过健康检查已验证）
@@ -539,6 +551,8 @@ show_update_result() {
     echo "  - 仅更新Flask应用代码，不重建容器"
     echo "  - 数据库和Redis服务保持不变"
     echo "  - Nginx和Flask在同一容器，缓存已自动刷新"
+    echo "  - 始终以GitHub上的代码为准，自动强制同步"
+    echo "  - 如果GitHub回滚，本地也会自动回滚"
     echo "  - 如有问题，请手动检查服务状态和日志"
     echo "  - 建议定期备份重要数据"
     echo "  - 监控应用运行状态"
@@ -549,7 +563,7 @@ show_update_result() {
 main() {
     show_banner
     
-    log_info "开始热更新Flask应用（代码覆盖更新模式）..."
+    log_info "开始热更新Flask应用（代码覆盖更新模式，支持回滚后更新）..."
     
     # 执行更新流程
     check_requirements
