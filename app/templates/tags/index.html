@@ -239,16 +239,22 @@
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-6" id="instanceSelectionPanel">
                         <h6>选择实例</h6>
                         <div class="instance-list-container">
                             <!-- 实例列表将通过 JS 动态加载 -->
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6" id="tagSelectionPanel">
                         <h6>选择标签</h6>
                         <div class="tag-list-container">
                             <!-- 标签列表将通过 JS 动态加载 -->
+                        </div>
+                    </div>
+                    <div class="col-12" id="removeModeInfo" style="display: none;">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>移除模式：</strong>选择要移除标签的实例，系统将移除这些实例上的所有标签。
                         </div>
                     </div>
                 </div>
