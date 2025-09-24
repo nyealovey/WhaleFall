@@ -55,6 +55,13 @@ function initializeEventHandlers() {
         if (triggerType && typeof triggerType === 'string') {
             $('#edit' + triggerType.charAt(0).toUpperCase() + triggerType.slice(1) + 'Config').show();
         }
+        // 当切换到 interval 或 date 时，清理其他配置的值以避免误提交
+        if (triggerType === 'interval') {
+            $('#editRunDate').val('');
+        } else if (triggerType === 'date') {
+            $('#editIntervalMinutes').val('0');
+            $('#editIntervalSeconds').val('0');
+        }
     });
 
     // 设置默认日期时间
@@ -102,16 +109,16 @@ function initializeEventHandlers() {
     });
 
     // 新增：批量清理（仅保留内置任务）按钮事件
-+    /**
-+     * 仅保留内置任务（cleanup_logs、sync_all_accounts）清理按钮事件处理。
-+     * - 向后端 /scheduler/api/jobs/purge 发送 POST 请求
-+     * - 参数 include_builtin=false 表示后端会自动跳过内置任务，不会误删
-+     * - 成功后刷新任务列表并给出提示
-+     */
+    /**
+     * 仅保留内置任务（cleanup_logs、sync_accounts）清理按钮事件处理。
+     * - 向后端 /scheduler/api/jobs/purge 发送 POST 请求
+     * - 参数 include_builtin=false 表示后端会自动跳过内置任务，不会误删
+     * - 成功后刷新任务列表并给出提示
+     */
      $(document).on('click', '#purgeKeepBuiltinBtn', function() {
          // 二次确认
-         const confirmMsg = '此操作将删除所有非内置任务，仅保留系统内置任务（cleanup_logs、sync_all_accounts）。\n确定继续吗？';
-         if (!window.confirm(confirmMsg)) {
+        const confirmMsg = '此操作将删除所有非内置任务，仅保留系统内置任务（cleanup_logs、sync_accounts）。\n确定继续吗？';
+        if (!window.confirm(confirmMsg)) {
              return;
          }
     // 显示加载态
@@ -501,8 +508,28 @@ function editJob(jobId) {
                     $('#editCronYear').val(triggerArgs.year ?? '');
                     updateEditCronPreview();
                 }
-            } else {
-                // ... existing code ...
+            } else if (triggerType === 'interval') {
+                // 间隔触发器：预填分钟与秒
+                const minutes = triggerArgs.minutes ?? 0;
+                const seconds = triggerArgs.seconds ?? 0;
+                $('#editIntervalMinutes').val(Number(minutes) || 0);
+                $('#editIntervalSeconds').val(Number(seconds) || 0);
+            } else if (triggerType === 'date') {
+                // 日期触发器：预填运行时间（转换为 datetime-local 格式）
+                const runDateIso = triggerArgs.run_date;
+                if (runDateIso) {
+                    try {
+                        const dt = new Date(runDateIso);
+                        // 调整时区偏移，生成本地时间格式的字符串
+                        dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
+                        $('#editRunDate').val(dt.toISOString().slice(0, 16));
+                    } catch (_err) {
+                        console.warn('解析 run_date 失败:', _err);
+                        $('#editRunDate').val('');
+                    }
+                } else {
+                    $('#editRunDate').val('');
+                }
             }
         }
     } catch (e) {
@@ -524,9 +551,9 @@ function updateJob() {
         return;
     }
 
-    const isBuiltInJob = ['sync_all_accounts', 'cleanup_logs'].includes(originalJob.id);
+    const isBuiltInJob = ['sync_accounts', 'cleanup_logs'].includes(originalJob.id);
 
-    const data = Object.fromEntries(formData.entries());
+    let data = Object.fromEntries(formData.entries());
     const triggerType = data.editTriggerType;
     delete data.editTriggerType;
     data.trigger_type = triggerType;
@@ -544,6 +571,25 @@ function updateJob() {
         // 同时附带单字段，便于后端直接取用
         data.cron_second = second;
         if (year && year.trim() !== '') data.year = year;
+        // 清理 interval/date 字段，避免污染
+        delete data.interval_minutes;
+        delete data.interval_seconds;
+        delete data.minutes;
+        delete data.seconds;
+        delete data.run_date;
+    } else if (data.trigger_type === 'interval') {
+        // 仅发送 interval 所需字段（按后端字段名 minutes/seconds）
+        data = {
+            trigger_type: 'interval',
+            minutes: $('#editIntervalMinutes').val(),
+            seconds: $('#editIntervalSeconds').val()
+        };
+    } else if (data.trigger_type === 'date') {
+        // 仅发送 date 所需字段
+        data = {
+            trigger_type: 'date',
+            run_date: $('#editRunDate').val()
+        };
     }
 
     let payload;
@@ -554,8 +600,9 @@ function updateJob() {
         if (data.trigger_type === 'cron') {
             payload.cron_expression = data.cron_expression;
         } else if (data.trigger_type === 'interval') {
-            payload.seconds = data.interval_seconds;
-            payload.minutes = data.interval_minutes;
+            // 后端识别的字段名：minutes、seconds
+            payload.minutes = data.minutes;
+            payload.seconds = data.seconds;
         } else if (data.trigger_type === 'date') {
             payload.run_date = data.run_date;
         }
@@ -647,8 +694,28 @@ function viewJobLogs(jobId) {
 
 // 添加任务
 function addJob() {
-    const formData = new FormData($('#addJobForm')[0]);
-    const triggerType = formData.get('trigger_type');
+    /**
+     * 新增任务提交逻辑（基于后端 “按函数创建任务” 接口）
+     * 1. 读取表单数据
+     * 2. 将前端的 triggerType 转换为后端识别的 trigger_type
+     * 3. 若为 cron 触发器则生成 cron_expression 并附带单字段
+     * 4. 调用后端 /scheduler/api/jobs/by-func 接口进行创建
+     */
+    const form = $('#addJobForm')[0];
+    const formData = new FormData(form);
+
+    // 前端单选名称为 triggerType，这里转换为后端所需的 trigger_type
+    const triggerType = formData.get('triggerType') || 'cron';
+
+    // 基础载荷：按函数创建任务只需要 name/func/description/trigger_type
+    const payload = {
+        name: formData.get('name') || '',
+        func: formData.get('func') || '',
+        description: formData.get('description') || '',
+        trigger_type: triggerType
+    };
+
+    // Cron 触发器：生成 cron_expression，并附带单字段（便于后端直接取值）
     if (triggerType === 'cron') {
         const second = formData.get('cron_second') || '0';
         const minute = formData.get('cron_minute') || '0';
@@ -659,15 +726,23 @@ function addJob() {
         const year = (formData.get('year') || '').toString();
         const base = `${second} ${minute} ${hour} ${day} ${month} ${weekday}`;
         const cronExpression = year && year.trim() !== '' ? `${base} ${year}` : base;
-        formData.set('cron_expression', cronExpression);
+        payload.cron_expression = cronExpression;
+        payload.cron_second = second;
+        payload.cron_minute = minute;
+        payload.cron_hour = hour;
+        payload.cron_day = day;
+        payload.cron_month = month;
+        payload.cron_weekday = weekday;
+        if (year && year.trim() !== '') payload.year = year;
     }
-    
+
+    // 加载中态
     showLoadingState($('#addJobForm button[type="submit"]'), '添加中...');
-    
+
     $.ajax({
-        url: '/scheduler/api/jobs',
+        url: '/scheduler/api/jobs/by-func',
         method: 'POST',
-        data: JSON.stringify(Object.fromEntries(formData)),
+        data: JSON.stringify(payload),
         contentType: 'application/json',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
@@ -676,7 +751,7 @@ function addJob() {
             if (response.success) {
                 showAlert('任务添加成功', 'success');
                 $('#addJobModal').modal('hide');
-                $('#addJobForm')[0].reset();
+                form.reset();
                 loadJobs();
             } else {
                 showAlert('添加失败: ' + response.message, 'danger');
