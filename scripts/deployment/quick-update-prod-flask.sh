@@ -373,12 +373,12 @@ wait_for_service_ready() {
     # 只检查端口5001
     log_info "检查端口5001服务状态..."
     
-    if curl -f http://localhost:5001/health > /dev/null 2>&1; then
+    if curl --noproxy localhost -f http://localhost:5001/health > /dev/null 2>&1; then
         log_success "端口5001服务已就绪"
         return 0
     else
         log_warning "端口5001服务检查失败，但继续执行"
-        log_info "端口5001状态码: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:5001/health 2>/dev/null)"
+        log_info "端口5001状态码: $(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/health 2>/dev/null)"
     fi
 }
 
@@ -488,7 +488,7 @@ verify_update() {
     # 检查端口5001
     log_info "检查端口5001健康状态..."
     local health_response
-    health_response=$(curl -s http://localhost:5001/health 2>/dev/null)
+    health_response=$(curl --noproxy localhost -s http://localhost:5001/health 2>/dev/null)
     
     if [ $? -eq 0 ] && [ -n "$health_response" ]; then
         if echo "$health_response" | grep -q '"status": "healthy"' || echo "$health_response" | grep -q '"success": true'; then
@@ -500,7 +500,7 @@ verify_update() {
         fi
     else
         log_warning "端口5001健康检查失败，但继续执行"
-        log_info "端口5001状态码: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:5001/health 2>/dev/null)"
+        log_info "端口5001状态码: $(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/health 2>/dev/null)"
     fi
     
     # 测试数据库和Redis连接（通过健康检查已验证）
