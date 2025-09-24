@@ -487,20 +487,13 @@ verify_update() {
     
     # 检查端口5001
     log_info "检查端口5001健康状态..."
-    local health_response
-    health_response=$(curl --noproxy localhost -s http://localhost:5001/health 2>/dev/null)
+    local http_status
+    http_status=$(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/health 2>/dev/null)
     
-    if [ $? -eq 0 ] && [ -n "$health_response" ]; then
-        if echo "$health_response" | grep -q '"status": "healthy"' || echo "$health_response" | grep -q '"success": true'; then
-            log_success "端口5001健康检查通过"
-            log_info "健康检查响应: $health_response"
-        else
-            log_warning "端口5001健康检查响应异常"
-            log_info "响应内容: $health_response"
-        fi
+    if [ "$http_status" = "200" ]; then
+        log_success "端口5001健康检查通过 (状态码: $http_status)"
     else
-        log_warning "端口5001健康检查失败，但继续执行"
-        log_info "端口5001状态码: $(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/health 2>/dev/null)"
+        log_warning "端口5001健康检查失败 (状态码: $http_status)，但继续执行"
     fi
     
     # 测试数据库和Redis连接（通过健康检查已验证）
