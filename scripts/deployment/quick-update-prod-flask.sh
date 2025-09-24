@@ -156,6 +156,30 @@ pull_latest_code() {
     remote_commit=$(git rev-parse --short origin/main)
     log_info "远程最新提交: $remote_commit"
     
+    # 配置Git用户信息（如果未配置）
+    log_info "检查Git用户配置..."
+    if ! git config user.email >/dev/null 2>&1; then
+        log_info "配置Git用户邮箱..."
+        if ! git config user.email "whalefall@taifishing.com"; then
+            log_warning "Git邮箱配置失败，但继续执行"
+        else
+            log_success "Git邮箱配置成功"
+        fi
+    else
+        log_info "Git邮箱已配置: $(git config user.email)"
+    fi
+    
+    if ! git config user.name >/dev/null 2>&1; then
+        log_info "配置Git用户名..."
+        if ! git config user.name "WhaleFall Deploy"; then
+            log_warning "Git用户名配置失败，但继续执行"
+        else
+            log_success "Git用户名配置成功"
+        fi
+    else
+        log_info "Git用户名已配置: $(git config user.name)"
+    fi
+    
     # 检查本地是否有未提交的更改
     if ! git diff --quiet; then
         log_info "检测到本地未提交的更改，暂存当前更改..."
@@ -197,8 +221,15 @@ pull_latest_code() {
             log_success "代码更新成功"
             log_info "更新后提交: $(git rev-parse --short HEAD)"
         else
-            log_error "代码更新失败"
-            exit 1
+            log_warning "git pull失败，尝试使用git reset --hard强制同步..."
+            if git reset --hard origin/main; then
+                log_success "强制同步成功"
+                log_info "同步后提交: $(git rev-parse --short HEAD)"
+            else
+                log_error "代码更新和强制同步都失败"
+                log_error "请手动检查Git状态和网络连接"
+                exit 1
+            fi
         fi
     fi
     
