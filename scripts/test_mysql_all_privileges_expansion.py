@@ -64,9 +64,9 @@ def test_grant_permission_handling():
             privileges_str = global_match.group(1)
             privileges = _extract_privileges_from_string(privileges_str)
             print(f"✅ 全局权限: {privileges}")
-            if has_grant_option and "GRANT" not in privileges:
-                privileges.append("GRANT")
-                print(f"🔑 添加GRANT权限: {privileges}")
+            if has_grant_option and "GRANT OPTION" not in privileges:
+                privileges.append("GRANT OPTION")
+                print(f"🔑 添加GRANT OPTION权限: {privileges}")
         
         # 匹配数据库权限
         db_match = re.match(r"(.+?) ON `(.+?)`\.\*", simple_grant)
@@ -76,7 +76,7 @@ def test_grant_permission_handling():
             privileges = _extract_privileges_from_string(privileges_str)
             print(f"✅ 数据库权限 [{db_name}]: {privileges}")
             if has_grant_option:
-                print(f"🔑 检测到GRANT OPTION，应添加到全局权限")
+                print(f"🔑 检测到GRANT OPTION，应添加GRANT OPTION权限到全局权限")
 
 def test_all_privileges_expansion():
     """测试ALL PRIVILEGES展开功能"""
