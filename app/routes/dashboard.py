@@ -155,15 +155,6 @@ def get_system_overview() -> dict:
         total_logs = UnifiedLog.query.count()
         total_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
 
-        # 分类账户统计（去重）
-        from sqlalchemy import distinct
-
-        total_classified_accounts = (
-            AccountClassificationAssignment.query.filter_by(is_active=True)
-            .with_entities(distinct(AccountClassificationAssignment.account_id))
-            .count()
-        )
-
         # 获取所有活跃分类（按优先级排序）
         all_classifications = (
             AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
@@ -173,6 +164,9 @@ def get_system_overview() -> dict:
         classification_stats = []
         from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
         classification_service = OptimizedAccountClassificationService()
+        
+        # 用于统计总分类账户数的集合
+        all_classified_account_ids = set()
         
         for classification in all_classifications:
             # 获取该分类的所有规则
@@ -185,7 +179,6 @@ def get_system_overview() -> dict:
                 # 计算该分类所有规则匹配的账户数量（去重）
                 matched_account_ids = set()
                 for rule in rules:
-                    matched_count = classification_service.get_rule_matched_accounts_count(rule.id)
                     # 获取匹配的账户ID列表
                     accounts = (
                         CurrentAccountSyncData.query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
@@ -201,12 +194,16 @@ def get_system_overview() -> dict:
                     for account in accounts:
                         if classification_service.evaluate_rule(rule, account):
                             matched_account_ids.add(account.id)
+                            all_classified_account_ids.add(account.id)
                 
                 count = len(matched_account_ids)
             else:
                 count = 0
                 
             classification_stats.append((classification.name, classification.color, classification.priority, count))
+        
+        # 使用实时计算的分类账户总数，确保数据一致性
+        total_classified_accounts = len(all_classified_account_ids)
 
         # 计算自动分类的账户数（去重）
         auto_classified_accounts = (
