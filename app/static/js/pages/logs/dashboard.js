@@ -87,13 +87,18 @@ function searchLogs(page = 1) {
     currentPage = page;
     
     // 收集过滤条件
+    const levelFilter = document.getElementById('levelFilter');
+    const moduleFilter = document.getElementById('moduleFilter');
+    const searchTerm = document.getElementById('searchTerm');
+    const timeRange = document.getElementById('timeRange');
+    
     currentFilters = {
         page: page,
         per_page: 50,
-        level: document.getElementById('levelFilter').value,
-        module: document.getElementById('moduleFilter').value,
-        q: document.getElementById('searchTerm').value,
-        hours: parseInt(document.getElementById('timeRange').value)
+        level: levelFilter ? levelFilter.value : '',
+        module: moduleFilter ? moduleFilter.value : '',
+        q: searchTerm ? searchTerm.value : '',
+        hours: timeRange ? parseInt(timeRange.value) || 24 : 24
     };
 
     // 构建查询参数
@@ -333,10 +338,15 @@ function formatJSON(obj) {
 
 // 重置筛选器
 function resetFilters() {
-    document.getElementById('levelFilter').value = '';
-    document.getElementById('moduleFilter').value = '';
-    document.getElementById('searchTerm').value = '';
-    document.getElementById('timeRange').value = '24';
+    const levelFilter = document.getElementById('levelFilter');
+    const moduleFilter = document.getElementById('moduleFilter');
+    const searchTerm = document.getElementById('searchTerm');
+    const timeRange = document.getElementById('timeRange');
+    
+    if (levelFilter) levelFilter.value = '';
+    if (moduleFilter) moduleFilter.value = '';
+    if (searchTerm) searchTerm.value = '';
+    if (timeRange) timeRange.value = '24';
     
     searchLogs(1);
 }
