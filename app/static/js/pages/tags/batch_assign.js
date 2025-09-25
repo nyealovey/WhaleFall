@@ -201,8 +201,8 @@ class BatchAssignManager {
                                                onchange="batchAssignManager.toggleInstanceSelection(${instance.id})">
                                         <label class="form-check-label" for="instance_${instance.id}">
                                             <div class="instance-info">
-                                                <div class="instance-name">${instance.name}</div>
-                                                <div class="instance-address">${instance.host}:${instance.port}</div>
+                                                <span class="instance-name">${instance.name}</span>
+                                                <span class="instance-address">${instance.host}:${instance.port}</span>
                                             </div>
                                         </label>
                                     </div>
