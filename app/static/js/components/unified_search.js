@@ -365,31 +365,85 @@ class UnifiedSearch {
     removeTagFromSelection(tagName) {
         const selectedTagNames = document.getElementById('selected-tag-names');
         if (!selectedTagNames) return;
-
+        
         const currentTags = selectedTagNames.value ? selectedTagNames.value.split(',') : [];
         const filteredTags = currentTags.filter(tag => tag !== tagName);
         selectedTagNames.value = filteredTags.join(',');
         this.updateSelectedTagsDisplay();
     }
 
+    getCurrentSelectedTags() {
+        // 尝试从全局标签选择器获取选中的标签
+        if (window.tagSelector && typeof window.tagSelector.getSelectedTags === 'function') {
+            return window.tagSelector.getSelectedTags();
+        }
+        
+        // 如果没有全局标签选择器，从隐藏输入框获取
+        const selectedTagNames = document.getElementById('selected-tag-names');
+        if (selectedTagNames && selectedTagNames.value) {
+            return selectedTagNames.value.split(',').map(name => ({ name: name.trim() }));
+        }
+        
+        return [];
+    }
+
     confirmTagSelection() {
+        console.log('confirmTagSelection: 开始确认标签选择');
+        
+        // 获取当前选中的标签
+        const selectedTags = this.getCurrentSelectedTags();
+        console.log('confirmTagSelection: 当前选中标签:', selectedTags);
+        
+        // 更新隐藏的输入框
+        const selectedTagNames = document.getElementById('selected-tag-names');
+        if (selectedTagNames) {
+            const tagNames = selectedTags.map(tag => tag.name).join(',');
+            selectedTagNames.value = tagNames;
+            console.log('confirmTagSelection: 更新隐藏输入框值:', tagNames);
+        }
+        
+        // 更新显示
+        this.updateSelectedTagsDisplay();
+        
         // 关闭模态框
         const modal = document.getElementById('tagSelectorModal');
         if (modal) {
             const bsModal = bootstrap.Modal.getInstance(modal);
             if (bsModal) {
                 bsModal.hide();
+                console.log('confirmTagSelection: 模态框已关闭');
+            } else {
+                // 如果没有实例，直接隐藏
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+                console.log('confirmTagSelection: 强制关闭模态框');
             }
         }
     }
 
     cancelTagSelection() {
+        console.log('cancelTagSelection: 开始取消标签选择');
+        
         // 关闭模态框
         const modal = document.getElementById('tagSelectorModal');
         if (modal) {
             const bsModal = bootstrap.Modal.getInstance(modal);
             if (bsModal) {
                 bsModal.hide();
+                console.log('cancelTagSelection: 模态框已关闭');
+            } else {
+                // 如果没有实例，直接隐藏
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+                console.log('cancelTagSelection: 强制关闭模态框');
             }
         }
     }
