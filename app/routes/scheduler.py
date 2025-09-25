@@ -616,7 +616,7 @@ def _get_task_function(func_name: str) -> Callable[..., Any] | None:
         Callable[..., Any] | None: 可调用任务函数，未知名称时返回 None。
     """
     # 延迟导入以避免循环依赖
-    from app.tasks import cleanup_old_logs, sync_accounts  # type: ignore
+    from app.tasks.legacy_tasks import cleanup_old_logs, sync_accounts  # type: ignore
 
     # 任务函数映射与别名
     task_functions: dict[str, Callable[..., Any]] = {
