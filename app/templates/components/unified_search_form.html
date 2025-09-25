@@ -186,14 +186,14 @@
                         {% if show_tag_filter|default(true) %}
                         <div class="col-md-3 filter-tags">
                             <label class="form-label">标签筛选</label>
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center flex-wrap gap-2">
                                 <button type="button" class="btn tag-selector-btn" id="open-tag-filter-btn">
                                     <i class="fas fa-tags me-2"></i>选择标签
                                 </button>
-                                <span class="text-muted" id="selected-tags-count">未选择标签</span>
-                            </div>
-                            <div class="selected-tags-preview" id="selected-tags-preview" style="display: none;">
-                                <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
+                                <div class="d-flex align-items-center flex-wrap gap-1" id="selected-tags-container">
+                                    <span class="text-muted" id="selected-tags-count">未选择标签</span>
+                                    <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
+                                    </div>
                                 </div>
                             </div>
                             <input type="hidden" id="selected-tag-names" name="tags" value="{{ selected_tags|join(',') }}">
