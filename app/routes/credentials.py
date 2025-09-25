@@ -38,6 +38,10 @@ def index() -> str:
     per_page = request.args.get("per_page", 10, type=int)
     search = request.args.get("search", "", type=str)
     credential_type = request.args.get("credential_type", "", type=str)
+    db_type = request.args.get("db_type", "", type=str)
+    status = request.args.get("status", "", type=str)
+    tags_str = request.args.get("tags", "", type=str)
+    tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
 
     # 构建查询，包含实例数量统计
     query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
@@ -55,6 +59,20 @@ def index() -> str:
 
     if credential_type:
         query = query.filter(Credential.credential_type == credential_type)
+    
+    if db_type:
+        query = query.filter(Credential.db_type == db_type)
+    
+    if status:
+        if status == 'active':
+            query = query.filter(Credential.is_active == True)
+        elif status == 'inactive':
+            query = query.filter(Credential.is_active == False)
+    
+    # 标签筛选
+    if tags:
+        from app.models.tag import Tag
+        query = query.join(Credential.tags).filter(Tag.name.in_(tags))
 
     # 按凭据分组并排序
     query = query.group_by(Credential.id).order_by(Credential.created_at.desc())
@@ -106,6 +124,10 @@ def index() -> str:
         credentials=credentials,
         search=search,
         credential_type=credential_type,
+        db_type=db_type,
+        status=status,
+        tags=tags,
+        selected_tags=tags,
     )
 
 
