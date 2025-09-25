@@ -19,7 +19,6 @@ class BatchAssignManager {
      * 初始化页面
      */
     init() {
-        console.log('批量分配页面：BatchAssignManager.init() 被调用');
         this.bindEvents();
         this.loadData();
         this.updateModeDisplay();
@@ -98,9 +97,6 @@ class BatchAssignManager {
             this.tags = data.tags || [];
             this.tagsByCategory = this.groupTagsByCategory(this.tags);
             
-            // 调试信息：打印标签数据
-            console.log('批量分配页面：加载的标签数据:', this.tags);
-            console.log('批量分配页面：按分类分组的标签:', this.tagsByCategory);
         } catch (error) {
             console.error('加载标签失败:', error);
             throw error;
@@ -204,8 +200,10 @@ class BatchAssignManager {
                                                value="${instance.id}"
                                                onchange="batchAssignManager.toggleInstanceSelection(${instance.id})">
                                         <label class="form-check-label" for="instance_${instance.id}">
-                                            <strong>${instance.name}</strong>
-                                            <small class="text-muted d-block">${instance.host}:${instance.port}</small>
+                                            <div class="instance-info">
+                                                <div class="instance-name">${instance.name}</div>
+                                                <div class="instance-address">${instance.host}:${instance.port}</div>
+                                            </div>
                                         </label>
                                     </div>
                                 </div>
@@ -262,17 +260,7 @@ class BatchAssignManager {
                     </div>
                     <div class="tag-group-content" id="tagGroupContent_${category}">
                         <div class="list-group list-group-flush">
-                            ${tags.map(tag => {
-                                // 调试信息：打印每个标签的数据
-                                console.log(`批量分配页面：渲染标签 ${tag.name}:`, {
-                                    id: tag.id,
-                                    name: tag.name,
-                                    display_name: tag.display_name,
-                                    color: tag.color,
-                                    category: tag.category
-                                });
-                                
-                                return `
+                            ${tags.map(tag => `
                                 <div class="list-group-item">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" 
@@ -282,13 +270,10 @@ class BatchAssignManager {
                                         <label class="form-check-label" for="tag_${tag.id}">
                                             <span class="badge bg-${tag.color || 'primary'} me-2">${tag.display_name || tag.name}</span>
                                             ${tag.description ? `<small class="text-muted">${tag.description}</small>` : ''}
-                                            <!-- 调试信息 -->
-                                            <small class="text-muted d-block">调试: ${tag.name} -> ${tag.display_name || '无display_name'} (${tag.color || '无color'})</small>
                                         </label>
                                     </div>
                                 </div>
-                            `;
-                            }).join('')}
+                            `).join('')}
                         </div>
                     </div>
                 </div>
@@ -844,7 +829,5 @@ class BatchAssignManager {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('批量分配页面：开始初始化...');
     window.batchAssignManager = new BatchAssignManager();
-    console.log('批量分配页面：初始化完成！');
 });
