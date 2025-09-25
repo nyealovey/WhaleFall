@@ -84,7 +84,7 @@ class Config:
 
     # 应用配置
     APP_NAME = os.getenv("APP_NAME", "鲸落")
-    APP_VERSION = os.getenv("APP_VERSION", "1.0.9")
+    APP_VERSION = os.getenv("APP_VERSION", "1.1.0")
 
     # 监控配置
     ENABLE_MONITORING = os.getenv("ENABLE_MONITORING", "True").lower() == "true"
@@ -94,6 +94,29 @@ class Config:
     BACKUP_ENABLED = os.getenv("BACKUP_ENABLED", "True").lower() == "true"
     BACKUP_SCHEDULE = os.getenv("BACKUP_SCHEDULE", "0 2 * * *")
     BACKUP_RETENTION_DAYS = int(os.getenv("BACKUP_RETENTION_DAYS", 30))
+
+    # 数据库大小监控配置
+    COLLECT_DB_SIZE_ENABLED = os.getenv("COLLECT_DB_SIZE_ENABLED", "true").lower() == "true"
+    COLLECT_DB_SIZE_HOUR = os.getenv("COLLECT_DB_SIZE_HOUR", "3")  # 每天凌晨3点执行
+    COLLECT_DB_SIZE_TIMEOUT = int(os.getenv("COLLECT_DB_SIZE_TIMEOUT", "300"))  # 5分钟超时
+    
+    # 统计聚合配置
+    AGGREGATION_ENABLED = os.getenv("AGGREGATION_ENABLED", "true").lower() == "true"
+    AGGREGATION_HOUR = os.getenv("AGGREGATION_HOUR", "5")  # 每天凌晨5点执行
+    
+    # 分区管理配置
+    PARTITION_CLEANUP_ENABLED = os.getenv("PARTITION_CLEANUP_ENABLED", "true").lower() == "true"
+    PARTITION_CLEANUP_HOUR = os.getenv("PARTITION_CLEANUP_HOUR", "4")  # 每天凌晨4点执行
+    PARTITION_CREATE_HOUR = os.getenv("PARTITION_CREATE_HOUR", "2")  # 每月1号凌晨2点执行
+    
+    # 数据保留配置
+    DATABASE_SIZE_RETENTION_DAYS = int(os.getenv("DATABASE_SIZE_RETENTION_DAYS", "365"))  # 默认保留一年
+    DATABASE_SIZE_RETENTION_MONTHS = int(os.getenv("DATABASE_SIZE_RETENTION_MONTHS", "12"))  # 默认保留12个月
+    
+    # 采集配置
+    DB_SIZE_COLLECT_TIMEOUT = int(os.getenv("DB_SIZE_COLLECT_TIMEOUT", "30"))  # 单个实例采集超时（秒）
+    DB_SIZE_COLLECT_BATCH_SIZE = int(os.getenv("DB_SIZE_COLLECT_BATCH_SIZE", "10"))  # 批量处理大小
+    DB_SIZE_COLLECT_RETRY_COUNT = int(os.getenv("DB_SIZE_COLLECT_RETRY_COUNT", "3"))  # 重试次数
 
 
 # 统一配置字典 - 支持开发和生产环境
