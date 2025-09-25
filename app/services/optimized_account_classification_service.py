@@ -60,6 +60,11 @@ class OptimizedAccountClassificationService:
             # 3. 清理所有旧的分配记录，确保数据一致性（仅在手动触发时）
             if batch_type == "manual":
                 self._cleanup_all_old_assignments()
+                log_info(
+                    "已清理所有旧分配记录，准备重新分类",
+                    module="account_classification",
+                    batch_type=batch_type
+                )
 
             # 4. 创建批次记录
             self.batch_id = ClassificationBatchService.create_batch(
@@ -985,15 +990,33 @@ class OptimizedAccountClassificationService:
 
             # 3. 批量插入新的分配记录
             if new_assignments:
-                db.session.bulk_insert_mappings(AccountClassificationAssignment, new_assignments)
-                db.session.commit()
+                try:
+                    db.session.bulk_insert_mappings(AccountClassificationAssignment, new_assignments)
+                    db.session.commit()
+                    
+                    # 验证数据是否真的写入了数据库
+                    actual_count = (
+                        db.session.query(AccountClassificationAssignment)
+                        .filter(AccountClassificationAssignment.classification_id == classification_id)
+                        .count()
+                    )
 
-                log_info(
-                    f"为分类 {classification_id} 添加新分配记录: {len(new_assignments)} 条",
-                    module="account_classification",
-                    classification_id=classification_id,
-                    added_count=len(new_assignments)
-                )
+                    log_info(
+                        f"为分类 {classification_id} 添加新分配记录: {len(new_assignments)} 条，实际写入: {actual_count} 条",
+                        module="account_classification",
+                        classification_id=classification_id,
+                        added_count=len(new_assignments),
+                        actual_count=actual_count
+                    )
+                except Exception as e:
+                    log_error(
+                        f"批量插入分配记录失败: {e}",
+                        module="account_classification",
+                        classification_id=classification_id,
+                        error=str(e)
+                    )
+                    db.session.rollback()
+                    raise
 
             return len(new_assignments)
 
