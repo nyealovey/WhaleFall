@@ -227,7 +227,7 @@ def _add_default_jobs() -> None:
     """添加默认任务（仅当数据库中没有任务时）"""
     import yaml
 
-    from app.tasks import cleanup_old_logs, sync_accounts
+    from app.tasks.legacy_tasks import cleanup_old_logs, sync_accounts
     from app.tasks.partition_management_tasks import (
         create_database_size_partitions,
         cleanup_database_size_partitions,
@@ -345,7 +345,7 @@ def _add_default_jobs() -> None:
 
 def _add_hardcoded_default_jobs() -> None:
     """添加硬编码的默认任务（备用方案）"""
-    from app.tasks import cleanup_old_logs, sync_accounts
+    from app.tasks.legacy_tasks import cleanup_old_logs, sync_accounts
 
     # 清理旧日志 - 每天凌晨2点执行
     try:
