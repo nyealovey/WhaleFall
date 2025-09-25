@@ -11,11 +11,8 @@
     loadSessions();
     setInterval(loadSessions, 30000);
 
-    // 绑定筛选按钮（如果存在）
-    const applyBtn = document.querySelector('#status-filter')?.closest('.row')?.querySelector('button.btn-outline-primary');
-    if (applyBtn) {
-      applyBtn.addEventListener('click', applyFilters);
-    }
+    // 初始化统一搜索组件
+    initUnifiedSearch();
   });
 
   window.loadSessions = function() {
@@ -245,11 +242,49 @@
     }
   }
 
+  // 初始化统一搜索组件
+  function initUnifiedSearch() {
+    // 等待统一搜索组件加载完成
+    if (typeof UnifiedSearch !== 'undefined') {
+      const searchForm = document.querySelector('.unified-search-form');
+      if (searchForm) {
+        const unifiedSearch = new UnifiedSearch(searchForm);
+        
+        // 重写搜索和清除方法
+        unifiedSearch.handleSubmit = function(e) {
+          e.preventDefault();
+          applyFilters();
+        };
+        
+        unifiedSearch.clearForm = function() {
+          // 清除所有筛选条件
+          const inputs = this.form.querySelectorAll('.unified-input');
+          inputs.forEach(input => {
+            input.value = '';
+          });
+
+          const selects = this.form.querySelectorAll('.unified-select');
+          selects.forEach(select => {
+            select.selectedIndex = 0;
+          });
+
+          // 刷新数据
+          currentFilters = {};
+          loadSessions();
+        };
+      }
+    } else {
+      // 如果统一搜索组件未加载，使用传统方式
+      setTimeout(initUnifiedSearch, 100);
+    }
+  }
+
   window.applyFilters = function() {
+    // 从统一搜索组件获取筛选条件
     currentFilters = {
-      sync_type: document.getElementById('sync-type-filter')?.value || '',
-      sync_category: document.getElementById('sync-category-filter')?.value || '',
-      status: document.getElementById('status-filter')?.value || ''
+      sync_type: document.getElementById('sync_type')?.value || '',
+      sync_category: document.getElementById('sync_category')?.value || '',
+      status: document.getElementById('status')?.value || ''
     };
     loadSessions();
   }

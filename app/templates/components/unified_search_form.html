@@ -86,6 +86,34 @@
                 </div>
                 {% endif %}
                 
+                <!-- 同步类型筛选 -->
+                {% if show_sync_type_filter|default(false) %}
+                <div class="col-md-2 filter-sync-type">
+                    <label for="sync_type" class="form-label">同步类型</label>
+                    <select class="form-select unified-select" id="sync_type" name="sync_type">
+                        <option value="">全部类型</option>
+                        <option value="manual_single" {% if sync_type == 'manual_single' %}selected{% endif %}>MANUAL_SINGLE</option>
+                        <option value="manual_batch" {% if sync_type == 'manual_batch' %}selected{% endif %}>MANUAL_BATCH</option>
+                        <option value="manual_task" {% if sync_type == 'manual_task' %}selected{% endif %}>MANUAL_TASK</option>
+                        <option value="scheduled_task" {% if sync_type == 'scheduled_task' %}selected{% endif %}>SCHEDULED_TASK</option>
+                    </select>
+                </div>
+                {% endif %}
+                
+                <!-- 同步分类筛选 -->
+                {% if show_sync_category_filter|default(false) %}
+                <div class="col-md-2 filter-sync-category">
+                    <label for="sync_category" class="form-label">同步分类</label>
+                    <select class="form-select unified-select" id="sync_category" name="sync_category">
+                        <option value="">全部分类</option>
+                        <option value="account" {% if sync_category == 'account' %}selected{% endif %}>account</option>
+                        <option value="capacity" {% if sync_category == 'capacity' %}selected{% endif %}>capacity</option>
+                        <option value="config" {% if sync_category == 'config' %}selected{% endif %}>config</option>
+                        <option value="other" {% if sync_category == 'other' %}selected{% endif %}>other</option>
+                    </select>
+                </div>
+                {% endif %}
+                
                 <!-- 日志级别筛选 -->
                 {% if show_level_filter|default(false) %}
                 <div class="col-md-2 filter-level">
