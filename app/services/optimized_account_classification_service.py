@@ -57,8 +57,9 @@ class OptimizedAccountClassificationService:
             if not accounts:
                 return {"success": False, "error": "没有需要分类的账户"}
 
-            # 3. 清理所有旧的分配记录，确保数据一致性
-            self._cleanup_all_old_assignments()
+            # 3. 清理所有旧的分配记录，确保数据一致性（仅在手动触发时）
+            if batch_type == "manual":
+                self._cleanup_all_old_assignments()
 
             # 4. 创建批次记录
             self.batch_id = ClassificationBatchService.create_batch(
