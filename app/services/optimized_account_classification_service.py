@@ -57,7 +57,10 @@ class OptimizedAccountClassificationService:
             if not accounts:
                 return {"success": False, "error": "没有需要分类的账户"}
 
-            # 3. 创建批次记录
+            # 3. 清理所有旧的分配记录，确保数据一致性
+            self._cleanup_all_old_assignments()
+
+            # 4. 创建批次记录
             self.batch_id = ClassificationBatchService.create_batch(
                 batch_type=batch_type,
                 created_by=created_by,
@@ -74,7 +77,7 @@ class OptimizedAccountClassificationService:
                 instance_id=instance_id,
             )
 
-            # 4. 按数据库类型优化分类
+            # 5. 按数据库类型优化分类
             result = self._classify_accounts_by_db_type_optimized(accounts, rules)
 
             # 5. 完成批次
@@ -922,7 +925,7 @@ class OptimizedAccountClassificationService:
     def _add_classification_to_accounts_batch(
         self, matched_accounts: list[CurrentAccountSyncData], classification_id: int
     ) -> int:
-        """批量添加分类到账户"""
+        """批量添加分类到账户 - 只保留最新的分配记录"""
         try:
             if not matched_accounts:
                 return 0
@@ -930,43 +933,51 @@ class OptimizedAccountClassificationService:
             # 获取账户ID列表
             account_ids = [account.id for account in matched_accounts]
 
-            # 查询已存在的分类分配（包括所有批次）
-            existing_assignments = (
-                db.session.query(AccountClassificationAssignment.account_id)
+            # 1. 先清理该分类的所有旧分配记录（包括活跃和非活跃的）
+            deleted_count = (
+                db.session.query(AccountClassificationAssignment)
                 .filter(
-                    AccountClassificationAssignment.account_id.in_(account_ids),
-                    AccountClassificationAssignment.classification_id == classification_id,
-                    AccountClassificationAssignment.is_active.is_(True),
+                    AccountClassificationAssignment.classification_id == classification_id
                 )
-                .all()
+                .delete()
             )
+            
+            if deleted_count > 0:
+                log_info(
+                    f"清理分类 {classification_id} 的旧分配记录: {deleted_count} 条",
+                    module="account_classification",
+                    classification_id=classification_id,
+                    deleted_count=deleted_count
+                )
 
-            existing_account_ids = {assignment.account_id for assignment in existing_assignments}
-
-            # 准备新的分类分配
+            # 2. 准备新的分类分配记录
             new_assignments = []
             for account in matched_accounts:
-                if account.id not in existing_account_ids:
-                    new_assignments.append(
-                        {
-                            "account_id": account.id,
-                            "classification_id": classification_id,
-                            "assigned_by": None,
-                            "assignment_type": "auto",
-                            "notes": None,
-                            "batch_id": self.batch_id,
-                            "is_active": True,
-                            "created_at": time_utils.now(),
-                            "updated_at": time_utils.now(),
-                        }
-                    )
+                new_assignments.append(
+                    {
+                        "account_id": account.id,
+                        "classification_id": classification_id,
+                        "assigned_by": None,
+                        "assignment_type": "auto",
+                        "notes": None,
+                        "batch_id": self.batch_id,
+                        "is_active": True,
+                        "created_at": time_utils.now(),
+                        "updated_at": time_utils.now(),
+                    }
+                )
 
-            # 批量插入
+            # 3. 批量插入新的分配记录
             if new_assignments:
                 db.session.bulk_insert_mappings(AccountClassificationAssignment, new_assignments)
                 db.session.commit()
 
-                # 移除批量添加分类的详细日志，减少日志噪音
+                log_info(
+                    f"为分类 {classification_id} 添加新分配记录: {len(new_assignments)} 条",
+                    module="account_classification",
+                    classification_id=classification_id,
+                    added_count=len(new_assignments)
+                )
 
             return len(new_assignments)
 
@@ -974,6 +985,26 @@ class OptimizedAccountClassificationService:
             log_error(f"批量添加分类失败: {e}", module="account_classification")
             db.session.rollback()
             return 0
+
+    def _cleanup_all_old_assignments(self) -> None:
+        """清理所有旧的分配记录，确保数据一致性"""
+        try:
+            # 删除所有分配记录
+            deleted_count = db.session.query(AccountClassificationAssignment).delete()
+            
+            if deleted_count > 0:
+                log_info(
+                    f"清理所有旧分配记录: {deleted_count} 条",
+                    module="account_classification",
+                    deleted_count=deleted_count
+                )
+            
+            db.session.commit()
+            
+        except Exception as e:
+            log_error(f"清理旧分配记录失败: {e}", module="account_classification")
+            db.session.rollback()
+            raise
 
     def _update_accounts_classification_time(self, accounts: list[CurrentAccountSyncData]) -> None:
         """更新账户的最后分类时间"""
