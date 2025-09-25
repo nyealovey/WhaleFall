@@ -121,8 +121,8 @@ class UnifiedSearch {
         // 移除验证样式
         this.clearValidationStyles();
 
-        // 触发变化事件
-        this.form.dispatchEvent(new Event('change'));
+        // 提交表单以刷新数据
+        this.form.submit();
     }
 
     clearSelectedTags() {
@@ -456,6 +456,36 @@ let unifiedSearch = null;
 function clearUnifiedSearch() {
     if (unifiedSearch) {
         unifiedSearch.clearForm();
+    } else {
+        // 如果没有统一搜索实例，直接清除表单并提交
+        const form = document.querySelector('.unified-search-form');
+        if (form) {
+            // 清除所有输入框
+            const inputs = form.querySelectorAll('.unified-input');
+            inputs.forEach(input => {
+                input.value = '';
+            });
+
+            // 重置所有下拉框
+            const selects = form.querySelectorAll('.unified-select');
+            selects.forEach(select => {
+                select.selectedIndex = 0;
+            });
+
+            // 清除标签选择
+            const selectedTagsPreview = document.getElementById('selected-tags-preview');
+            const selectedTagsChips = document.getElementById('selected-tags-chips');
+            const selectedTagNames = document.getElementById('selected-tag-names');
+            const selectedTagsCount = document.getElementById('selected-tags-count');
+
+            if (selectedTagsPreview) selectedTagsPreview.style.display = 'none';
+            if (selectedTagsChips) selectedTagsChips.innerHTML = '';
+            if (selectedTagNames) selectedTagNames.value = '';
+            if (selectedTagsCount) selectedTagsCount.textContent = '未选择标签';
+
+            // 提交表单以刷新数据
+            form.submit();
+        }
     }
 }
 
