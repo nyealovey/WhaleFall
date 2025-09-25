@@ -3,9 +3,9 @@
 ## 📋 文档信息
 
 - **项目名称**: 鲸落 (TaifishV4)
-- **文档版本**: v1.0.1
+- **文档版本**: v1.1.0
 - **创建日期**: 2024-12-19
-- **最后更新**: 2024-12-19
+- **最后更新**: 2025-09-25
 - **文档类型**: 技术规格文档
 - **维护者**: 鲸落开发团队
 
@@ -16,7 +16,9 @@
 ### 核心价值
 - **统一管理**: 多数据库类型统一管理平台
 - **智能分类**: 基于权限规则的智能账户分类
-- **实时同步**: 账户权限实时同步和变更追踪
+- **优化同步**: 全新的统一同步数据模型，减少80%存储空间
+- **标签管理**: 灵活的标签分类管理系统
+- **实时监控**: 账户权限实时同步和变更追踪
 - **安全审计**: 完整的操作审计和日志记录
 - **生产就绪**: 企业级安全性和可靠性
 
@@ -142,9 +144,10 @@ graph TD
 | Flask | 3.1.2 | Web框架 | 轻量级Web应用框架 |
 | SQLAlchemy | 2.0.43 | ORM | 数据库对象关系映射 |
 | APScheduler | 3.11.0 | 任务调度 | 定时任务管理 |
-| Redis | 7.4.0 | 缓存 | 数据缓存和会话存储 |
+| Redis | 6.4.0 | 缓存 | 数据缓存和会话存储 |
 | PostgreSQL | 15+ | 主数据库 | 数据持久化存储 |
 | Alembic | 1.16.5 | 数据库迁移 | 版本控制 |
+| Structlog | 25.4.0 | 日志系统 | 结构化日志记录 |
 
 ### 前端技术栈
 
@@ -186,12 +189,16 @@ erDiagram
     
     SyncSession ||--o{ SyncInstanceRecord : contains
     
+    Tag ||--o{ InstanceTag : tagged
+    InstanceTag }o--|| Instance : belongs_to
+    
     User {
         int id PK
         string username
         string email
         string password_hash
         string role
+        boolean is_active
         datetime created_at
         datetime updated_at
     }
@@ -203,8 +210,12 @@ erDiagram
         string host
         int port
         string database_name
+        string database_version
+        string environment
+        int credential_id FK
         string status
         boolean is_active
+        datetime last_connected
         datetime created_at
         datetime updated_at
     }
@@ -214,11 +225,31 @@ erDiagram
         int instance_id FK
         string db_type
         string username
+        boolean is_superuser
+        boolean is_active
         json global_privileges
         json database_privileges
+        json predefined_roles
         json role_attributes
+        json server_roles
+        json server_permissions
+        json oracle_roles
+        json system_privileges
         datetime sync_time
         string status
+    }
+    
+    Tag {
+        int id PK
+        string name
+        string display_name
+        string category
+        string color
+        string description
+        int sort_order
+        boolean is_active
+        datetime created_at
+        datetime updated_at
     }
     
     AccountClassification {
@@ -270,19 +301,25 @@ CREATE TABLE instances (
     port INTEGER NOT NULL,
     database_name VARCHAR(255),
     database_version VARCHAR(1000),
+    main_version VARCHAR(20),
+    detailed_version VARCHAR(50),
     environment VARCHAR(20) DEFAULT 'production',
+    sync_count INTEGER DEFAULT 0,
     credential_id INTEGER REFERENCES credentials(id),
+    description TEXT,
     status VARCHAR(20) DEFAULT 'active',
     is_active BOOLEAN DEFAULT TRUE,
+    last_connected TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE
 );
 ```
 
 #### 账户同步表
 
 ```sql
--- 账户当前状态表
+-- 账户当前状态表（优化版）
 CREATE TABLE current_account_sync_data (
     id SERIAL PRIMARY KEY,
     instance_id INTEGER NOT NULL REFERENCES instances(id),
@@ -290,16 +327,29 @@ CREATE TABLE current_account_sync_data (
     username VARCHAR(255) NOT NULL,
     is_superuser BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
+    -- MySQL权限字段
     global_privileges JSONB,
     database_privileges JSONB,
+    -- PostgreSQL权限字段
     predefined_roles JSONB,
     role_attributes JSONB,
+    database_privileges_pg JSONB,
+    tablespace_privileges JSONB,
+    -- SQL Server权限字段
     server_roles JSONB,
     server_permissions JSONB,
+    database_roles JSONB,
+    database_permissions JSONB,
+    -- Oracle权限字段
     oracle_roles JSONB,
     system_privileges JSONB,
+    tablespace_privileges_oracle JSONB,
+    -- 通用字段
+    session_id VARCHAR(36),
     sync_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     status VARCHAR(20) DEFAULT 'success',
+    message TEXT,
+    error_message TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(instance_id, db_type, username)
@@ -757,6 +807,7 @@ services:
 - 实例CRUD操作
 - 连接测试和状态监控
 - 标签和元数据管理
+- 版本信息解析
 
 #### 支持的数据库
 - PostgreSQL (完整支持)
@@ -764,7 +815,21 @@ services:
 - SQL Server (完整支持)
 - Oracle (完整支持)
 
-### 3. 账户分类模块
+### 3. 标签管理模块
+
+#### 功能特性
+- 灵活的标签分类管理
+- 支持多种标签类型
+- 标签与实例关联
+- 批量标签操作
+
+#### 标签类型
+- 资源类标签 (手动管理)
+- 身份类标签 (自动同步)
+- 支持颜色和描述
+- 排序和筛选
+
+### 4. 账户分类模块
 
 #### 功能特性
 - 智能账户分类
@@ -778,13 +843,14 @@ services:
 - SQL Server: 56个权限配置
 - Oracle: 312个权限配置
 
-### 4. 数据同步模块
+### 5. 数据同步模块
 
 #### 功能特性
-- 实时账户同步
+- 优化的统一同步模型
 - 权限变更追踪
 - 增量同步支持
 - 同步状态管理
+- 减少80%存储空间
 
 #### 同步类型
 - 手动单实例同步
@@ -792,11 +858,11 @@ services:
 - 定时任务同步
 - 自定义任务同步
 
-### 5. 任务调度模块
+### 6. 任务调度模块
 
 #### 功能特性
-- 定时任务管理
-- 任务状态监控
+- 基于APScheduler的轻量级调度
+- 任务状态持久化
 - 批量操作支持
 - 自定义任务执行
 
@@ -806,10 +872,10 @@ services:
 - 健康检查任务
 - 临时文件清理
 
-### 6. 日志监控模块
+### 7. 日志监控模块
 
 #### 功能特性
-- 结构化日志记录
+- 结构化日志记录 (Structlog)
 - 操作审计追踪
 - 日志查询和筛选
 - 统计和导出
@@ -819,6 +885,21 @@ services:
 - 业务日志
 - 安全日志
 - 任务日志
+- 同步日志
+
+### 8. 缓存管理模块
+
+#### 功能特性
+- Redis缓存管理
+- 缓存统计和监控
+- 缓存清理和优化
+- 健康检查
+
+#### 缓存类型
+- 查询结果缓存
+- 会话缓存
+- 配置缓存
+- 统计数据缓存
 
 ## 🔧 开发规范
 
@@ -886,21 +967,38 @@ services:
 
 ## 🔮 扩展规划
 
-### 短期规划 (v1.1.0)
+### 短期规划 (v1.1.0) ✅ 已完成
 
 #### 功能增强
+- [x] 标签管理系统
+- [x] 优化同步数据模型
+- [x] 结构化日志系统
+- [x] 缓存管理优化
+- [x] 版本信息解析
+
+#### 性能优化
+- [x] 统一同步模型优化
+- [x] 减少80%存储空间
+- [x] 提升3倍查询性能
+- [x] 缓存策略优化
+- [x] 数据库连接池优化
+
+### 中期规划 (v1.2.0)
+
+#### 功能增强
+- [ ] 飞书集成同步
 - [ ] 数据库备份与恢复
 - [ ] 数据导入导出功能
 - [ ] 移动端适配
 - [ ] 主题切换
 
 #### 性能优化
-- [ ] 查询性能优化
-- [ ] 缓存策略优化
-- [ ] 数据库连接池优化
+- [ ] 查询性能进一步优化
 - [ ] 前端资源优化
+- [ ] 异步任务处理
+- [ ] 数据库索引优化
 
-### 中期规划 (v2.0.0)
+### 长期规划 (v2.0.0)
 
 #### 架构升级
 - [ ] 微服务架构
@@ -951,6 +1049,6 @@ services:
 
 **文档维护**: 本文档由鲸落开发团队维护，如有问题请提交Issue或联系开发团队。
 
-**最后更新**: 2024-12-19  
-**文档版本**: v1.0.1  
+**最后更新**: 2025-09-25  
+**文档版本**: v1.1.0  
 **维护者**: 鲸落开发团队

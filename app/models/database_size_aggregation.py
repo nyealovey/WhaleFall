@@ -13,13 +13,14 @@ from sqlalchemy import (
     BigInteger,
     Index,
     UniqueConstraint,
+    Numeric,
 )
 from sqlalchemy.orm import relationship
-from app.models.base import Base
+from app import db
 import datetime
 
 
-class DatabaseSizeAggregation(Base):
+class DatabaseSizeAggregation(db.Model):
     """
     数据库大小聚合统计表
     存储每周、每月、每季度的统计信息
@@ -51,6 +52,18 @@ class DatabaseSizeAggregation(Base):
     avg_log_size_mb = Column(BigInteger, nullable=True, comment="平均日志大小（MB）")
     max_log_size_mb = Column(BigInteger, nullable=True, comment="最大日志大小（MB）")
     min_log_size_mb = Column(BigInteger, nullable=True, comment="最小日志大小（MB）")
+    
+    # 增量/减量统计字段
+    size_change_mb = Column(BigInteger, nullable=False, default=0, comment="总大小变化量（MB，可为负值）")
+    size_change_percent = Column(Numeric(5, 2), nullable=False, default=0, comment="总大小变化百分比（%，可为负值）")
+    data_size_change_mb = Column(BigInteger, nullable=True, comment="数据大小变化量（MB，可为负值）")
+    data_size_change_percent = Column(Numeric(5, 2), nullable=True, comment="数据大小变化百分比（%，可为负值）")
+    log_size_change_mb = Column(BigInteger, nullable=True, comment="日志大小变化量（MB，可为负值）")
+    log_size_change_percent = Column(Numeric(5, 2), nullable=True, comment="日志大小变化百分比（%，可为负值）")
+    
+    # 趋势分析字段
+    trend_direction = Column(String(10), nullable=False, default="stable", comment="趋势方向：growing（增长）、shrinking（缩减）、stable（稳定）")
+    growth_rate = Column(Numeric(5, 2), nullable=False, default=0, comment="增长率（%，可为负值）")
     
     # 时间字段
     calculated_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, comment="计算时间")
@@ -103,6 +116,16 @@ class DatabaseSizeAggregation(Base):
             'avg_log_size_mb': self.avg_log_size_mb,
             'max_log_size_mb': self.max_log_size_mb,
             'min_log_size_mb': self.min_log_size_mb,
+            # 增量/减量统计
+            'size_change_mb': self.size_change_mb,
+            'size_change_percent': float(self.size_change_percent) if self.size_change_percent else 0,
+            'data_size_change_mb': self.data_size_change_mb,
+            'data_size_change_percent': float(self.data_size_change_percent) if self.data_size_change_percent else None,
+            'log_size_change_mb': self.log_size_change_mb,
+            'log_size_change_percent': float(self.log_size_change_percent) if self.log_size_change_percent else None,
+            # 趋势分析
+            'trend_direction': self.trend_direction,
+            'growth_rate': float(self.growth_rate) if self.growth_rate else 0,
             'calculated_at': self.calculated_at.isoformat() if self.calculated_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }

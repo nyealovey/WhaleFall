@@ -16,11 +16,11 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
-from app.models.base import Base
+from app import db
 import datetime
 
 
-class DatabaseSizeStat(Base):
+class DatabaseSizeStat(db.Model):
     """
     存储每个数据库在特定时间点的大小统计信息。
     支持 PostgreSQL 分区表，按日期分区。
