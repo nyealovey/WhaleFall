@@ -3,6 +3,8 @@
 {% block title %}账户管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/list.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
@@ -479,10 +481,6 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/list.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
-{% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pages/accounts/list.js') }}"></script>
