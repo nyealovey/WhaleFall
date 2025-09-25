@@ -147,6 +147,7 @@ def index() -> str:
     per_page = request.args.get("per_page", 10, type=int)
     search = request.args.get("search", "", type=str)
     db_type = request.args.get("db_type", "", type=str)
+    status = request.args.get("status", "", type=str)
     tags_str = request.args.get("tags", "")
     tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
 
@@ -164,6 +165,12 @@ def index() -> str:
 
     if db_type:
         query = query.filter(Instance.db_type == db_type)
+    
+    if status:
+        if status == 'active':
+            query = query.filter(Instance.is_active == True)
+        elif status == 'inactive':
+            query = query.filter(Instance.is_active == False)
 
     # 标签筛选
     if tags:
@@ -209,6 +216,7 @@ def index() -> str:
         selected_tags=tags,
         search=search,
         db_type=db_type,
+        status=status,
     )
 
 
