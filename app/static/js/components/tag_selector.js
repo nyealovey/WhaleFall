@@ -590,28 +590,44 @@ class TagSelector {
         });
         this.container.dispatchEvent(confirmEvent);
         
-        // 关闭模态框
-        const modal = bootstrap.Modal.getInstance(this.container.closest('.modal'));
-        if (modal) {
-            console.log('关闭模态框');
-            modal.hide();
+        // 调用统一搜索组件的确认方法
+        if (window.unifiedSearch && typeof window.unifiedSearch.confirmTagSelection === 'function') {
+            console.log('标签选择器: 调用统一搜索组件的确认方法');
+            window.unifiedSearch.confirmTagSelection();
         } else {
-            console.error('找不到模态框实例');
+            console.log('标签选择器: 统一搜索组件不可用，直接关闭模态框');
+            // 直接关闭模态框
+            const modal = bootstrap.Modal.getInstance(this.container.closest('.modal'));
+            if (modal) {
+                console.log('关闭模态框');
+                modal.hide();
+            } else {
+                console.error('找不到模态框实例');
+            }
         }
     }
     
     // 取消选择
     cancelSelection() {
+        console.log('标签选择器取消选择被调用');
+        
         // 触发取消事件
         const cancelEvent = new CustomEvent('tagSelectionCancelled', {
             detail: { selectedTags: this.getSelectedTags() }
         });
         this.container.dispatchEvent(cancelEvent);
         
-        // 关闭模态框
-        const modal = bootstrap.Modal.getInstance(this.container.closest('.modal'));
-        if (modal) {
-            modal.hide();
+        // 调用统一搜索组件的取消方法
+        if (window.unifiedSearch && typeof window.unifiedSearch.cancelTagSelection === 'function') {
+            console.log('标签选择器: 调用统一搜索组件的取消方法');
+            window.unifiedSearch.cancelTagSelection();
+        } else {
+            console.log('标签选择器: 统一搜索组件不可用，直接关闭模态框');
+            // 直接关闭模态框
+            const modal = bootstrap.Modal.getInstance(this.container.closest('.modal'));
+            if (modal) {
+                modal.hide();
+            }
         }
     }
     

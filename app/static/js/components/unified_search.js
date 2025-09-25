@@ -756,7 +756,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     searchForms.forEach((form, index) => {
         console.log(`统一搜索组件: 初始化第${index + 1}个表单, ID:`, form.id);
-        unifiedSearch = new UnifiedSearch(form.id);
+        unifiedSearch = new UnifiedSearch(form);
+        unifiedSearch.init();
+        
+        // 设置全局实例
+        window.unifiedSearch = unifiedSearch;
+        console.log('统一搜索组件: 设置全局实例', window.unifiedSearch);
     });
     
     // 检查标签选择器相关元素
