@@ -384,7 +384,7 @@ class StructlogConfig:
         """添加全局上下文绑定"""
         # 添加应用信息
         event_dict["app_name"] = "鲸落"
-        event_dict["app_version"] = "1.0.8"
+        event_dict["app_version"] = "1.0.9"
 
         # 添加环境信息
         if has_request_context():
