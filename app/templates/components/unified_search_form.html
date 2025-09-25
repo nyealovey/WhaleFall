@@ -91,6 +91,12 @@
                                 <option value="completed" {% if status == 'completed' %}selected{% endif %}>已完成</option>
                                 <option value="failed" {% if status == 'failed' %}selected{% endif %}>失败</option>
                                 <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>已取消</option>
+                                {% elif status_filter_type == 'sync_record' %}
+                                <!-- 同步记录状态选项 -->
+                                <option value="" {% if status == '' %}selected{% endif %}>全部状态</option>
+                                <option value="completed" {% if status == 'completed' %}selected{% endif %}>已完成</option>
+                                <option value="failed" {% if status == 'failed' %}selected{% endif %}>失败</option>
+                                <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>已取消</option>
                                 {% else %}
                                 <!-- 默认状态选项 -->
                                 <option value="all" {% if status == 'all' %}selected{% endif %}>全部状态</option>
