@@ -17,10 +17,11 @@
 
   window.loadSessions = function() {
     const params = new URLSearchParams();
-    if (currentFilters.sync_type) params.append('sync_type', currentFilters.sync_type);
-    if (currentFilters.sync_category) params.append('sync_category', currentFilters.sync_category);
-    if (currentFilters.status) params.append('status', currentFilters.status);
+    if (currentFilters.sync_type !== undefined) params.append('sync_type', currentFilters.sync_type);
+    if (currentFilters.sync_category !== undefined) params.append('sync_category', currentFilters.sync_category);
+    if (currentFilters.status !== undefined) params.append('status', currentFilters.status);
 
+    console.log('loadSessions: 请求参数:', params.toString());
     fetch(`/sync_sessions/api/sessions?${params.toString()}`)
       .then(r => r.json())
       .then(data => {
@@ -318,6 +319,11 @@
     };
     
     console.log('applyFilters: 筛选条件:', currentFilters);
+    console.log('applyFilters: 筛选值详情:', {
+      syncType: syncType,
+      syncCategory: syncCategory,
+      status: status
+    });
     loadSessions();
   }
 
