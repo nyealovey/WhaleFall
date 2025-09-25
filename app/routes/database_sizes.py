@@ -37,6 +37,55 @@ def config():
     """配置管理页面"""
     return render_template('database_sizes/config.html')
 
+@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
+@login_required
+@view_required
+def get_instance_total_size(instance_id: int):
+    """
+    获取指定实例的数据库总大小
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON: 实例总大小信息
+    """
+    try:
+        # 验证实例是否存在
+        instance = Instance.query.get_or_404(instance_id)
+        
+        # 获取最新的数据库大小数据
+        latest_stats = DatabaseSizeStat.query.filter(
+            DatabaseSizeStat.instance_id == instance_id
+        ).order_by(DatabaseSizeStat.collected_date.desc()).all()
+        
+        if not latest_stats:
+            return jsonify({
+                'success': True,
+                'total_size_mb': 0,
+                'database_count': 0,
+                'last_collected': None
+            })
+        
+        # 计算总大小
+        total_size_mb = sum(stat.size_mb for stat in latest_stats)
+        database_count = len(set(stat.database_name for stat in latest_stats))
+        last_collected = latest_stats[0].collected_date if latest_stats else None
+        
+        return jsonify({
+            'success': True,
+            'total_size_mb': total_size_mb,
+            'database_count': database_count,
+            'last_collected': last_collected.isoformat() if last_collected else None
+        })
+        
+    except Exception as e:
+        logger.error(f"获取实例 {instance_id} 总大小失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @database_sizes_bp.route('/instances/<int:instance_id>/database-sizes', methods=['GET'])
 @login_required
