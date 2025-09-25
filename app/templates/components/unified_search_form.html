@@ -7,6 +7,7 @@
                 <div class="col-md-10">
                     <div class="row g-3">
                         <!-- 搜索输入框 -->
+                        {% if show_search_input|default(true) %}
                         <div class="col-md-3">
                             <label for="{{ search_field_id|default('search') }}" class="form-label">搜索</label>
                             <input type="text" 
@@ -16,6 +17,7 @@
                                    placeholder="{{ search_placeholder|default('搜索关键词') }}"
                                    value="{{ search_value|default('') }}">
                         </div>
+                        {% endif %}
                 
                         <!-- 数据库类型筛选 -->
                         {% if show_db_type_filter|default(false) %}
@@ -82,9 +84,19 @@
                         <div class="col-md-2 filter-status">
                             <label for="status" class="form-label">状态</label>
                             <select class="form-select unified-select" id="status" name="status">
+                                {% if status_filter_type == 'sync_session' %}
+                                <!-- 同步会话状态选项 -->
+                                <option value="" {% if status == '' %}selected{% endif %}>全部状态</option>
+                                <option value="running" {% if status == 'running' %}selected{% endif %}>运行中</option>
+                                <option value="completed" {% if status == 'completed' %}selected{% endif %}>已完成</option>
+                                <option value="failed" {% if status == 'failed' %}selected{% endif %}>失败</option>
+                                <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>已取消</option>
+                                {% else %}
+                                <!-- 默认状态选项 -->
                                 <option value="all" {% if status == 'all' %}selected{% endif %}>全部状态</option>
                                 <option value="active" {% if status == 'active' %}selected{% endif %}>激活</option>
                                 <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>禁用</option>
+                                {% endif %}
                             </select>
                         </div>
                         {% endif %}
@@ -188,7 +200,7 @@
                 <div class="col-md-2">
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn unified-search-btn">
-                            <i class="fas fa-search me-1"></i>搜索
+                            <i class="fas fa-filter me-1"></i>{{ search_button_text|default('筛选') }}
                         </button>
                         <button type="button" class="btn unified-clear-btn" onclick="clearUnifiedSearch()">
                             <i class="fas fa-times me-1"></i>清除
