@@ -60,3 +60,13 @@ default_tasks:
       minute: 0
     enabled: true
     description: 每日采集所有数据库实例的大小信息
+    
+  - id: calculate_database_size_aggregations
+    name: 计算统计聚合
+    function: calculate_database_size_aggregations
+    trigger_type: cron
+    trigger_params:
+      hour: 4
+      minute: 0
+    enabled: true
+    description: 每日计算数据库大小的周、月、季度统计聚合
