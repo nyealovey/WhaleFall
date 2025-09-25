@@ -134,11 +134,11 @@ class UnifiedSearch {
         if (this.validateForm()) {
             this.showLoading();
             
-            // 检测页面类型：是否有JavaScript生成的内容
-            const pageType = this.detectPageType();
-            console.log('统一搜索组件: 检测到页面类型:', pageType);
+            // 根据页面路径判断使用哪种方法
+            const currentPath = window.location.pathname;
+            console.log('统一搜索组件: 当前页面路径:', currentPath);
             
-            if (pageType === 'js_dynamic') {
+            if (this.isJsDynamicPage(currentPath)) {
                 // JavaScript动态页面：检查是否有自定义的筛选处理函数
                 if (typeof window.applyFilters === 'function') {
                     console.log('统一搜索组件: 调用自定义筛选函数 (JS动态页面)');
@@ -156,47 +156,27 @@ class UnifiedSearch {
     }
     
     /**
-     * 检测页面类型
-     * @returns {string} 'js_dynamic' | 'traditional'
+     * 判断是否为JavaScript动态页面
+     * @param {string} path 页面路径
+     * @returns {boolean}
      */
-    detectPageType() {
-        console.log('统一搜索组件: 开始检测页面类型...');
-        
-        // 检查是否有JavaScript生成的内容容器
-        const jsContainers = [
-            'sessions-container',      // 会话中心
-            'logsContainer',           // 日志中心
-            'sync-records-container',  // 同步记录
-            'accounts-container'       // 账户管理
+    isJsDynamicPage(path) {
+        const jsPages = [
+            '/sync_sessions/',  // 会话中心
+            '/logs/',           // 日志中心
+            '/accounts/sync_records',  // 同步记录
+            '/accounts/'        // 账户管理
         ];
         
-        // 检查是否有这些容器存在
-        for (const containerId of jsContainers) {
-            const container = document.getElementById(containerId);
-            console.log(`统一搜索组件: 检查容器 ${containerId}:`, container);
-            if (container) {
-                console.log('统一搜索组件: 发现JS容器:', containerId);
-                return 'js_dynamic';
+        for (const jsPage of jsPages) {
+            if (path.includes(jsPage)) {
+                console.log('统一搜索组件: 检测到JS动态页面:', jsPage);
+                return true;
             }
         }
         
-        // 检查是否有数据表格（传统页面）
-        const tables = document.querySelectorAll('table.table');
-        console.log('统一搜索组件: 检查传统表格:', tables.length);
-        if (tables.length > 0) {
-            console.log('统一搜索组件: 发现传统表格');
-            return 'traditional';
-        }
-        
-        // 检查是否有自定义筛选函数（更可靠的检测方法）
-        if (typeof window.applyFilters === 'function') {
-            console.log('统一搜索组件: 发现自定义筛选函数，判断为JS动态页面');
-            return 'js_dynamic';
-        }
-        
-        // 默认返回传统页面
-        console.log('统一搜索组件: 默认使用传统页面模式');
-        return 'traditional';
+        console.log('统一搜索组件: 检测到传统表格页面');
+        return false;
     }
     
     /**
@@ -252,11 +232,11 @@ class UnifiedSearch {
         // 移除验证样式
         this.clearValidationStyles();
 
-        // 检测页面类型
-        const pageType = this.detectPageType();
-        console.log('统一搜索组件: 清除表单 - 检测到页面类型:', pageType);
+        // 根据页面路径判断使用哪种方法
+        const currentPath = window.location.pathname;
+        console.log('统一搜索组件: 清除表单 - 当前页面路径:', currentPath);
         
-        if (pageType === 'js_dynamic') {
+        if (this.isJsDynamicPage(currentPath)) {
             // JavaScript动态页面：检查是否有自定义的清除处理函数
             if (typeof window.clearFilters === 'function') {
                 console.log('统一搜索组件: 调用自定义清除函数 (JS动态页面)');
@@ -937,11 +917,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     searchForms.forEach((form, index) => {
         console.log(`统一搜索组件: 初始化第${index + 1}个表单, ID:`, form.id);
-        unifiedSearch = new UnifiedSearch(form);
+        unifiedSearch = new UnifiedSearch(form.id);
         unifiedSearch.init();
         
         // 设置全局实例
         window.unifiedSearch = unifiedSearch;
+        window.unifiedSearchInstance = unifiedSearch; // 添加这个别名
         console.log('统一搜索组件: 设置全局实例', window.unifiedSearch);
     });
     
