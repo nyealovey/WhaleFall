@@ -362,7 +362,7 @@
   window.refreshData = function() { loadSessions(); }
 
   window.clearFilters = function() {
-    console.log('clearFilters: 清除所有筛选条件');
+    // console.log('clearFilters: 清除所有筛选条件');
     currentFilters = {};
     loadSessions();
   }

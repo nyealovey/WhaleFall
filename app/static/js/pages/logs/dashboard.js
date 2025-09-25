@@ -20,7 +20,7 @@ function initializePage() {
     setDefaultTimeRange();
     loadStats();
     searchLogs();
-    console.log('日志仪表板页面已加载');
+    // console.log('日志仪表板页面已加载');
 }
 
 // 设置默认时间范围
@@ -541,7 +541,7 @@ window.applyFilters = applyFilters;
 
 // 清除筛选条件
 window.clearFilters = function() {
-    console.log('clearFilters: 清除所有筛选条件');
+    // console.log('clearFilters: 清除所有筛选条件');
     currentFilters = {};
     // 重置时间范围为最近1天
     const timeRangeEl = document.getElementById('timeRange');

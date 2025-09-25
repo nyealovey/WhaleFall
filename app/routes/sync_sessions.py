@@ -45,12 +45,7 @@ def api_list_sessions() -> tuple[dict, int]:
         status = request.args.get("status", "")
         limit = int(request.args.get("limit", 50))
         
-        # 添加调试日志
-        log_info(
-            f"同步会话API请求参数: sync_type={sync_type}, sync_category={sync_category}, status={status}, limit={limit}",
-            module="sync_sessions",
-            user_id=current_user.id,
-        )
+        # 调试日志已移除
 
         # 构建查询
         sessions = sync_session_service.get_recent_sessions(limit)
@@ -66,12 +61,7 @@ def api_list_sessions() -> tuple[dict, int]:
         # 转换为字典
         sessions_data = [session.to_dict() for session in sessions]
         
-        # 添加过滤结果日志
-        log_info(
-            f"同步会话过滤结果: 原始数量={len(sync_session_service.get_recent_sessions(limit))}, 过滤后数量={len(sessions_data)}",
-            module="sync_sessions",
-            user_id=current_user.id,
-        )
+        # 过滤结果日志已移除
 
         # 注释掉频繁的日志记录，减少日志噪音
         # log_info(
