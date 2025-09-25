@@ -657,13 +657,18 @@ class BatchAssignManager {
         `;
         
         // 插入到页面顶部
-        const container = document.querySelector('.container-fluid');
-        container.insertAdjacentHTML('afterbegin', alertHtml);
+        const container = document.querySelector('.container');
+        if (container) {
+            container.insertAdjacentHTML('afterbegin', alertHtml);
+        } else {
+            // 如果找不到容器，直接插入到body
+            document.body.insertAdjacentHTML('afterbegin', alertHtml);
+        }
         
         // 自动隐藏成功消息
         if (type === 'success') {
             setTimeout(() => {
-                const alert = container.querySelector('.alert-success');
+                const alert = document.querySelector('.alert-success');
                 if (alert) {
                     alert.remove();
                 }
