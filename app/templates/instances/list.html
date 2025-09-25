@@ -3,6 +3,8 @@
 {% block title %}实例管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/list.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
@@ -362,11 +364,6 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/list.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
-{% endblock %}
 
 {% block extra_js %}
 <!-- 标签选择器组件 -->
