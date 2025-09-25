@@ -160,6 +160,8 @@ class UnifiedSearch {
      * @returns {string} 'js_dynamic' | 'traditional'
      */
     detectPageType() {
+        console.log('统一搜索组件: 开始检测页面类型...');
+        
         // 检查是否有JavaScript生成的内容容器
         const jsContainers = [
             'sessions-container',      // 会话中心
@@ -171,6 +173,7 @@ class UnifiedSearch {
         // 检查是否有这些容器存在
         for (const containerId of jsContainers) {
             const container = document.getElementById(containerId);
+            console.log(`统一搜索组件: 检查容器 ${containerId}:`, container);
             if (container) {
                 console.log('统一搜索组件: 发现JS容器:', containerId);
                 return 'js_dynamic';
@@ -179,9 +182,16 @@ class UnifiedSearch {
         
         // 检查是否有数据表格（传统页面）
         const tables = document.querySelectorAll('table.table');
+        console.log('统一搜索组件: 检查传统表格:', tables.length);
         if (tables.length > 0) {
             console.log('统一搜索组件: 发现传统表格');
             return 'traditional';
+        }
+        
+        // 检查是否有自定义筛选函数（更可靠的检测方法）
+        if (typeof window.applyFilters === 'function') {
+            console.log('统一搜索组件: 发现自定义筛选函数，判断为JS动态页面');
+            return 'js_dynamic';
         }
         
         // 默认返回传统页面

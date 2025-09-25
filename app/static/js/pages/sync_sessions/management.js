@@ -293,7 +293,8 @@
     }
   }
 
-  window.applyFilters = function() {
+  // 应用筛选条件
+  function applyFilters() {
     console.log('applyFilters: 开始应用筛选条件');
     
     // 从统一搜索组件获取筛选条件
@@ -326,6 +327,9 @@
     });
     loadSessions();
   }
+  
+  // 将函数暴露到全局作用域
+  window.applyFilters = applyFilters;
 
   window.refreshData = function() { loadSessions(); }
 
