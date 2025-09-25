@@ -23,7 +23,7 @@ class UnifiedSearch {
         // 表单提交事件
         this.form.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.handleSubmit();
+            this.handleSubmit(e);
         });
 
         // 清除按钮事件
@@ -130,7 +130,7 @@ class UnifiedSearch {
         console.log('restoreFormState: 表单状态恢复完成');
     }
 
-    handleSubmit() {
+    handleSubmit(e) {
         if (this.validateForm()) {
             this.showLoading();
             
