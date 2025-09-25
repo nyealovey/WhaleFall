@@ -484,10 +484,10 @@ function applyFilters() {
     console.log('applyFilters: 开始应用筛选条件');
     
     // 从统一搜索组件获取筛选条件
-    const levelEl = document.getElementById('level');
-    const moduleEl = document.getElementById('module');
+    const levelEl = document.getElementById('levelFilter');
+    const moduleEl = document.getElementById('moduleFilter');
     const searchEl = document.getElementById('search');
-    const timeRangeEl = document.getElementById('time_range');
+    const timeRangeEl = document.getElementById('timeRange');
     
     console.log('applyFilters: 表单元素:', {
         levelEl: levelEl,
