@@ -14,6 +14,8 @@ from .classification_batch import ClassificationBatch
 from .credential import Credential
 
 # 新增模型
+from .database_size_aggregation import DatabaseSizeAggregation
+from .database_size_stat import DatabaseSizeStat
 from .global_param import GlobalParam
 from .instance import Instance
 from .permission_config import PermissionConfig
@@ -41,4 +43,6 @@ __all__ = [
     "ClassificationBatch",
     "PermissionConfig",
     "GlobalParam",
+    "DatabaseSizeStat",
+    "DatabaseSizeAggregation",
 ]
