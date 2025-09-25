@@ -27,7 +27,7 @@ function initializePage() {
 function setDefaultTimeRange() {
     const timeRangeSelect = document.getElementById('timeRange');
     if (timeRangeSelect && !timeRangeSelect.value) {
-        timeRangeSelect.value = 'today';
+        timeRangeSelect.value = '1d';
     }
 }
 
@@ -96,18 +96,14 @@ function loadStats() {
 // 将时间范围转换为小时数
 function getHoursFromTimeRange(timeRange) {
     switch (timeRange) {
-        case 'today':
-            return 24;
-        case 'week':
-        case '7d':
-            return 168; // 7天
-        case 'month':
-        case '30d':
-            return 720; // 30天
-        case '24h':
-            return 24;
-        case 'custom':
-            return null; // 自定义时间范围，不设置hours参数
+        case '1h':
+            return 1; // 1小时
+        case '1d':
+            return 24; // 1天
+        case '1w':
+            return 168; // 1周 (7天)
+        case '1m':
+            return 720; // 1月 (30天)
         default:
             return null; // 全部时间，不设置hours参数
     }
@@ -523,7 +519,7 @@ function applyFilters() {
     const level = levelEl?.value || '';
     const module = moduleEl?.value || '';
     const search = searchEl?.value || '';
-    const timeRange = timeRangeEl?.value || 'today';
+    const timeRange = timeRangeEl?.value || '1d';
     
     // 将时间范围转换为小时数
     const hours = getHoursFromTimeRange(timeRange);
@@ -547,10 +543,10 @@ window.applyFilters = applyFilters;
 window.clearFilters = function() {
     console.log('clearFilters: 清除所有筛选条件');
     currentFilters = {};
-    // 重置时间范围为今天
+    // 重置时间范围为最近1天
     const timeRangeEl = document.getElementById('timeRange');
     if (timeRangeEl) {
-        timeRangeEl.value = 'today';
+        timeRangeEl.value = '1d';
     }
     // 更新统计卡片和日志列表
     loadStats();
