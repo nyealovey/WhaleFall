@@ -91,7 +91,7 @@ class AggregationsManager {
      */
     async loadInstances() {
         try {
-            const response = await fetch('/api/v1/instances');
+            const response = await fetch('/instances');
             const data = await response.json();
             
             if (response.ok) {
@@ -115,7 +115,7 @@ class AggregationsManager {
         try {
             this.showLoading('#totalInstances, #totalDatabases, #averageSize, #maxSize');
             
-            const response = await fetch('/api/v1/database-sizes/aggregations/summary');
+            const response = await fetch('/database-sizes/aggregations/summary');
             const data = await response.json();
             
             if (response.ok) {
@@ -148,7 +148,7 @@ class AggregationsManager {
             this.showChartLoading();
             
             const params = this.buildFilterParams();
-            const response = await fetch(`/api/v1/database-sizes/aggregations?${params}`);
+            const response = await fetch(`/database-sizes/aggregations?${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -364,7 +364,7 @@ class AggregationsManager {
             this.showTableLoading();
             
             const params = this.buildFilterParams();
-            const response = await fetch(`/api/v1/database-sizes/aggregations?${params}`);
+            const response = await fetch(`/database-sizes/aggregations?${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -687,7 +687,7 @@ class AggregationsManager {
             }, 200);
             
             // 调用API重新计算
-            const response = await fetch('/api/v1/database-sizes/aggregate', {
+            const response = await fetch('/database-sizes/aggregate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
