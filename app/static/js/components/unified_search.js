@@ -134,31 +134,81 @@ class UnifiedSearch {
         if (this.validateForm()) {
             this.showLoading();
             
-            // 检查是否有自定义的筛选处理函数
-            if (typeof window.applyFilters === 'function') {
-                // 如果有自定义筛选函数，调用它
-                console.log('统一搜索组件: 调用自定义筛选函数');
-                window.applyFilters();
-            } else {
-                // 否则使用默认的URL跳转方式
-                const formData = new FormData(this.form);
-                const params = new URLSearchParams();
-                
-                // 添加所有表单数据到URL参数
-                for (let [key, value] of formData.entries()) {
-                    if (value && value.trim() !== '') {
-                        params.append(key, value);
-                    }
+            // 检测页面类型：是否有JavaScript生成的内容
+            const pageType = this.detectPageType();
+            console.log('统一搜索组件: 检测到页面类型:', pageType);
+            
+            if (pageType === 'js_dynamic') {
+                // JavaScript动态页面：检查是否有自定义的筛选处理函数
+                if (typeof window.applyFilters === 'function') {
+                    console.log('统一搜索组件: 调用自定义筛选函数 (JS动态页面)');
+                    window.applyFilters();
+                } else {
+                    console.log('统一搜索组件: 未找到自定义筛选函数，使用默认URL跳转');
+                    this.submitWithUrlRedirect();
                 }
-                
-                // 构建新的URL，保持搜索条件
-                const currentUrl = new URL(window.location);
-                const newUrl = `${currentUrl.pathname}?${params.toString()}`;
-                
-                // 跳转到新的URL，保持搜索条件
-                window.location.href = newUrl;
+            } else {
+                // 传统表格页面：直接使用URL跳转
+                console.log('统一搜索组件: 使用URL跳转方式 (传统表格页面)');
+                this.submitWithUrlRedirect();
             }
         }
+    }
+    
+    /**
+     * 检测页面类型
+     * @returns {string} 'js_dynamic' | 'traditional'
+     */
+    detectPageType() {
+        // 检查是否有JavaScript生成的内容容器
+        const jsContainers = [
+            'sessions-container',      // 会话中心
+            'logsContainer',           // 日志中心
+            'sync-records-container',  // 同步记录
+            'accounts-container'       // 账户管理
+        ];
+        
+        // 检查是否有这些容器存在
+        for (const containerId of jsContainers) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                console.log('统一搜索组件: 发现JS容器:', containerId);
+                return 'js_dynamic';
+            }
+        }
+        
+        // 检查是否有数据表格（传统页面）
+        const tables = document.querySelectorAll('table.table');
+        if (tables.length > 0) {
+            console.log('统一搜索组件: 发现传统表格');
+            return 'traditional';
+        }
+        
+        // 默认返回传统页面
+        console.log('统一搜索组件: 默认使用传统页面模式');
+        return 'traditional';
+    }
+    
+    /**
+     * 使用URL跳转方式提交表单
+     */
+    submitWithUrlRedirect() {
+        const formData = new FormData(this.form);
+        const params = new URLSearchParams();
+        
+        // 添加所有表单数据到URL参数
+        for (let [key, value] of formData.entries()) {
+            if (value && value.trim() !== '') {
+                params.append(key, value);
+            }
+        }
+        
+        // 构建新的URL，保持搜索条件
+        const currentUrl = new URL(window.location);
+        const newUrl = `${currentUrl.pathname}?${params.toString()}`;
+        
+        // 跳转到新的URL，保持搜索条件
+        window.location.href = newUrl;
     }
 
     handleSelectChange(select) {
@@ -192,16 +242,32 @@ class UnifiedSearch {
         // 移除验证样式
         this.clearValidationStyles();
 
-        // 检查是否有自定义的清除处理函数
-        if (typeof window.clearFilters === 'function') {
-            // 如果有自定义清除函数，调用它
-            console.log('统一搜索组件: 调用自定义清除函数');
-            window.clearFilters();
+        // 检测页面类型
+        const pageType = this.detectPageType();
+        console.log('统一搜索组件: 清除表单 - 检测到页面类型:', pageType);
+        
+        if (pageType === 'js_dynamic') {
+            // JavaScript动态页面：检查是否有自定义的清除处理函数
+            if (typeof window.clearFilters === 'function') {
+                console.log('统一搜索组件: 调用自定义清除函数 (JS动态页面)');
+                window.clearFilters();
+            } else {
+                console.log('统一搜索组件: 未找到自定义清除函数，使用默认URL跳转');
+                this.clearWithUrlRedirect();
+            }
         } else {
-            // 否则使用默认的URL跳转方式
-            const currentUrl = new URL(window.location);
-            window.location.href = currentUrl.pathname;
+            // 传统表格页面：直接使用URL跳转
+            console.log('统一搜索组件: 使用URL跳转方式清除 (传统表格页面)');
+            this.clearWithUrlRedirect();
         }
+    }
+    
+    /**
+     * 使用URL跳转方式清除筛选
+     */
+    clearWithUrlRedirect() {
+        const currentUrl = new URL(window.location);
+        window.location.href = currentUrl.pathname;
     }
 
     clearSelectedTags() {
