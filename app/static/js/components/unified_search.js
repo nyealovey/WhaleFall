@@ -154,9 +154,9 @@ class UnifiedSearch {
             selectedTagsCount.textContent = `已选择 ${selectedTags.length} 个标签`;
             
             selectedTagsChips.innerHTML = selectedTags.map(tag => `
-                <span class="selected-tag-chip">
+                <span class="selected-tag-chip badge bg-primary me-1 mb-1" style="cursor: pointer;">
                     ${tag}
-                    <span class="remove-tag" onclick="removeTag('${tag}')">&times;</span>
+                    <span class="remove-tag ms-1" onclick="unifiedSearch.removeTagFromSelection('${tag}')" style="cursor: pointer;">&times;</span>
                 </span>
             `).join('');
         } else {
@@ -167,12 +167,142 @@ class UnifiedSearch {
 
     openTagSelector() {
         // 打开标签选择模态框
-        if (typeof openTagFilterModal === 'function') {
-            openTagFilterModal();
+        const modal = document.getElementById('tagSelectorModal');
+        if (modal) {
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            // 初始化标签选择器
+            this.initTagSelectorModal();
         } else {
             // 如果没有标签选择器，显示提示
             alert('标签选择功能暂不可用');
         }
+    }
+
+    initTagSelectorModal() {
+        // 初始化标签选择器模态框
+        const container = document.getElementById('tag-selector-container');
+        if (!container) return;
+
+        // 加载标签数据
+        this.loadTags();
+        
+        // 绑定事件
+        this.bindTagSelectorEvents();
+    }
+
+    loadTags() {
+        // 加载标签数据
+        fetch('/tags/api/list')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.renderTags(data.data.tags || []);
+                }
+            })
+            .catch(error => {
+                console.error('加载标签失败:', error);
+            });
+    }
+
+    renderTags(tags) {
+        const tagListContainer = document.getElementById('tag-list-container');
+        if (!tagListContainer) return;
+
+        tagListContainer.innerHTML = tags.map(tag => `
+            <div class="tag-item d-flex justify-content-between align-items-center p-2 border rounded mb-2">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-${tag.color || 'secondary'} me-2">${tag.name}</span>
+                    <span class="text-muted">${tag.description || ''}</span>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" onclick="unifiedSearch.addTagToSelection('${tag.name}')">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    bindTagSelectorEvents() {
+        // 绑定确认按钮事件
+        const confirmBtn = document.getElementById('confirm-selection-btn');
+        if (confirmBtn) {
+            confirmBtn.onclick = () => {
+                this.confirmTagSelection();
+            };
+        }
+
+        // 绑定取消按钮事件
+        const cancelBtn = document.getElementById('cancel-selection-btn');
+        if (cancelBtn) {
+            cancelBtn.onclick = () => {
+                this.cancelTagSelection();
+            };
+        }
+
+        // 绑定搜索框事件
+        const searchInput = document.getElementById('tag-search-input');
+        if (searchInput) {
+            searchInput.oninput = (e) => {
+                this.filterTags(e.target.value);
+            };
+        }
+    }
+
+    addTagToSelection(tagName) {
+        const selectedTagNames = document.getElementById('selected-tag-names');
+        if (!selectedTagNames) return;
+
+        const currentTags = selectedTagNames.value ? selectedTagNames.value.split(',') : [];
+        if (!currentTags.includes(tagName)) {
+            currentTags.push(tagName);
+            selectedTagNames.value = currentTags.join(',');
+            this.updateSelectedTagsDisplay();
+        }
+    }
+
+    removeTagFromSelection(tagName) {
+        const selectedTagNames = document.getElementById('selected-tag-names');
+        if (!selectedTagNames) return;
+
+        const currentTags = selectedTagNames.value ? selectedTagNames.value.split(',') : [];
+        const filteredTags = currentTags.filter(tag => tag !== tagName);
+        selectedTagNames.value = filteredTags.join(',');
+        this.updateSelectedTagsDisplay();
+    }
+
+    confirmTagSelection() {
+        // 关闭模态框
+        const modal = document.getElementById('tagSelectorModal');
+        if (modal) {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+                bsModal.hide();
+            }
+        }
+    }
+
+    cancelTagSelection() {
+        // 关闭模态框
+        const modal = document.getElementById('tagSelectorModal');
+        if (modal) {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+                bsModal.hide();
+            }
+        }
+    }
+
+    filterTags(query) {
+        // 简单的标签过滤
+        const tagItems = document.querySelectorAll('.tag-item');
+        tagItems.forEach(item => {
+            const tagName = item.querySelector('.badge').textContent;
+            const tagDesc = item.querySelector('.text-muted').textContent;
+            const shouldShow = tagName.toLowerCase().includes(query.toLowerCase()) || 
+                             tagDesc.toLowerCase().includes(query.toLowerCase());
+            item.style.display = shouldShow ? 'flex' : 'none';
+        });
     }
 
     showCustomTimeRange() {
@@ -319,14 +449,20 @@ class UnifiedSearch {
     }
 }
 
+// 全局变量存储当前实例
+let unifiedSearch = null;
+
 // 全局函数
 function clearUnifiedSearch() {
-    const unifiedSearch = new UnifiedSearch();
-    unifiedSearch.clearForm();
+    if (unifiedSearch) {
+        unifiedSearch.clearForm();
+    }
 }
 
 function removeTag(tagName) {
-    UnifiedSearch.removeTag(tagName);
+    if (unifiedSearch) {
+        unifiedSearch.removeTagFromSelection(tagName);
+    }
 }
 
 // 页面加载完成后初始化
@@ -334,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 自动初始化所有统一搜索表单
     const searchForms = document.querySelectorAll('.unified-search-form');
     searchForms.forEach(form => {
-        new UnifiedSearch(form.id);
+        unifiedSearch = new UnifiedSearch(form.id);
     });
 });
 
