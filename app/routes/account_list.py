@@ -89,20 +89,53 @@ def list_accounts(db_type: str | None = None) -> str:
             pass
     # 标签过滤逻辑
 
-    # 分类过滤
+    # 分类过滤 - 使用实时规则匹配而不是分配表
     if classification and classification != "all":
-        from app.models.account_classification import AccountClassification, AccountClassificationAssignment
+        from app.models.account_classification import AccountClassification, ClassificationRule
+        from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
 
         try:
             # 将字符串转换为整数
             classification_id = int(classification)
             
-            # 通过分类分配表进行过滤
-            query = (
-                query.join(AccountClassificationAssignment)
-                .join(AccountClassification)
-                .filter(AccountClassification.id == classification_id, AccountClassificationAssignment.is_active.is_(True))
-            )
+            # 获取该分类的所有规则
+            rules = ClassificationRule.query.filter_by(
+                classification_id=classification_id, 
+                is_active=True
+            ).all()
+            
+            if rules:
+                # 使用实时规则匹配进行过滤
+                classification_service = OptimizedAccountClassificationService()
+                matched_account_ids = set()
+                
+                for rule in rules:
+                    # 获取匹配的账户ID列表
+                    accounts = (
+                        CurrentAccountSyncData.query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
+                        .filter(
+                            Instance.is_active.is_(True),
+                            CurrentAccountSyncData.is_deleted.is_(False),
+                            Instance.deleted_at.is_(None),
+                            Instance.db_type == rule.db_type,
+                        )
+                        .all()
+                    )
+                    
+                    for account in accounts:
+                        if classification_service.evaluate_rule(rule, account):
+                            matched_account_ids.add(account.id)
+                
+                # 使用匹配的账户ID进行过滤
+                if matched_account_ids:
+                    query = query.filter(CurrentAccountSyncData.id.in_(matched_account_ids))
+                else:
+                    # 如果没有匹配的账户，返回空结果
+                    query = query.filter(CurrentAccountSyncData.id == -1)
+            else:
+                # 如果没有规则，返回空结果
+                query = query.filter(CurrentAccountSyncData.id == -1)
+                
         except (ValueError, TypeError) as e:
             log_error(
                 "分类ID转换失败",
