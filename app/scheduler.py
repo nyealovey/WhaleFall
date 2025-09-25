@@ -233,6 +233,13 @@ def _add_default_jobs() -> None:
         cleanup_database_size_partitions,
         monitor_partition_health
     )
+    from app.tasks.database_size_collection_tasks import (
+        collect_database_sizes,
+        collect_specific_instance_database_sizes,
+        collect_database_sizes_by_type,
+        get_collection_status,
+        validate_collection_config
+    )
 
     # 检查是否已有任务
     try:
@@ -277,6 +284,16 @@ def _add_default_jobs() -> None:
                 func = cleanup_database_size_partitions
             elif function_name == "monitor_partition_health":
                 func = monitor_partition_health
+            elif function_name == "collect_database_sizes":
+                func = collect_database_sizes
+            elif function_name == "collect_specific_instance_database_sizes":
+                func = collect_specific_instance_database_sizes
+            elif function_name == "collect_database_sizes_by_type":
+                func = collect_database_sizes_by_type
+            elif function_name == "get_collection_status":
+                func = get_collection_status
+            elif function_name == "validate_collection_config":
+                func = validate_collection_config
             else:
                 logger.warning("未知的任务函数: %s", function_name)
                 continue
