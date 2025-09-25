@@ -159,11 +159,6 @@
 }
 
 /* 已选择标签容器样式 */
-#selected-tags-container {
-    min-height: 32px;
-    align-items: flex-start;
-}
-
 #selected-tags-chips {
     margin-left: 8px;
 }

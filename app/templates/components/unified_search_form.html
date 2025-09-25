@@ -190,10 +190,7 @@
                                 <button type="button" class="btn tag-selector-btn" id="open-tag-filter-btn">
                                     <i class="fas fa-tags me-2"></i>选择标签
                                 </button>
-                                <div class="d-flex align-items-center flex-wrap gap-1" id="selected-tags-container">
-                                    <span class="text-muted" id="selected-tags-count">未选择标签</span>
-                                    <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
-                                    </div>
+                                <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
                                 </div>
                             </div>
                             <input type="hidden" id="selected-tag-names" name="tags" value="{{ selected_tags|join(',') }}">
