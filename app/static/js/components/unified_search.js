@@ -85,7 +85,7 @@ class UnifiedSearch {
     }
 
     restoreFormState() {
-        console.log('restoreFormState: 开始恢复表单状态');
+        // // console.log('restoreFormState: 开始恢复表单状态');
         // 从URL参数中恢复表单状态
         const urlParams = new URLSearchParams(window.location.search);
         
@@ -112,13 +112,13 @@ class UnifiedSearch {
         if (selectedTagNames) {
             const tags = urlParams.get('tags');
             if (tags) {
-                console.log('restoreFormState: 恢复标签状态:', tags);
+                // console.log('restoreFormState: 恢复标签状态:', tags);
                 selectedTagNames.value = tags;
                 this.updateSelectedTagsDisplay();
                 
                 // 如果标签选择器已初始化，也要恢复其状态
                 if (window.tagSelector && typeof window.tagSelector.setSelectedTags === 'function') {
-                    console.log('restoreFormState: 恢复标签选择器状态');
+                    // console.log('restoreFormState: 恢复标签选择器状态');
                     // 将标签名称转换为标签ID
                     const tagNames = tags.split(',');
                     // 这里需要根据标签名称找到对应的标签ID
@@ -127,7 +127,7 @@ class UnifiedSearch {
             }
         }
         
-        console.log('restoreFormState: 表单状态恢复完成');
+        // console.log('restoreFormState: 表单状态恢复完成');
     }
 
     handleSubmit(e) {
@@ -262,24 +262,24 @@ class UnifiedSearch {
         const selectedTagNames = document.getElementById('selected-tag-names');
         const selectedTagsChips = document.getElementById('selected-tags-chips');
 
-        console.log('updateSelectedTagsDisplay: 开始更新标签显示');
-        console.log('updateSelectedTagsDisplay: selectedTagNames元素:', selectedTagNames);
-        console.log('updateSelectedTagsDisplay: selectedTagsChips元素:', selectedTagsChips);
+        // console.log('updateSelectedTagsDisplay: 开始更新标签显示');
+        // console.log('updateSelectedTagsDisplay: selectedTagNames元素:', selectedTagNames);
+        // console.log('updateSelectedTagsDisplay: selectedTagsChips元素:', selectedTagsChips);
 
         if (!selectedTagNames || !selectedTagsChips) {
-            console.log('updateSelectedTagsDisplay: 未找到必要的DOM元素');
+            // console.log('updateSelectedTagsDisplay: 未找到必要的DOM元素');
             return;
         }
 
         const selectedTags = selectedTagNames.value ? selectedTagNames.value.split(',') : [];
-        console.log('updateSelectedTagsDisplay: 选中的标签:', selectedTags);
+        // console.log('updateSelectedTagsDisplay: 选中的标签:', selectedTags);
         
         if (selectedTags.length > 0) {
             // 获取标签数据以获取颜色信息
-            console.log('updateSelectedTagsDisplay: 加载标签显示');
+            // console.log('updateSelectedTagsDisplay: 加载标签显示');
             this.loadTagsForDisplay(selectedTags, selectedTagsChips);
         } else {
-            console.log('updateSelectedTagsDisplay: 没有选中的标签，清空显示');
+            // console.log('updateSelectedTagsDisplay: 没有选中的标签，清空显示');
             selectedTagsChips.innerHTML = '';
         }
     }
@@ -327,14 +327,14 @@ class UnifiedSearch {
     }
 
     openTagSelector() {
-        console.log('openTagSelector: 开始打开标签选择器');
+        // console.log('openTagSelector: 开始打开标签选择器');
         
         // 打开标签选择模态框
         const modal = document.getElementById('tagSelectorModal');
-        console.log('openTagSelector: 查找模态框结果:', modal ? '找到' : '未找到');
+        // console.log('openTagSelector: 查找模态框结果:', modal ? '找到' : '未找到');
         
         if (modal) {
-            console.log('openTagSelector: 模态框找到，准备显示');
+            // console.log('openTagSelector: 模态框找到，准备显示');
             
             // 初始化标签选择器
             this.initTagSelectorModal();
@@ -346,7 +346,7 @@ class UnifiedSearch {
             const bsModal = new bootstrap.Modal(modal);
             bsModal.show();
             
-            console.log('openTagSelector: 模态框显示命令已执行');
+            // console.log('openTagSelector: 模态框显示命令已执行');
         } else {
             console.error('openTagSelector: 标签选择器模态框未找到');
             console.error('openTagSelector: 当前页面DOM状态:');
@@ -359,11 +359,11 @@ class UnifiedSearch {
     }
 
     initTagSelectorModal() {
-        console.log('initTagSelectorModal: 开始初始化标签选择器模态框');
+        // console.log('initTagSelectorModal: 开始初始化标签选择器模态框');
         
         // 初始化标签选择器模态框
         const container = document.getElementById('tag-selector-container');
-        console.log('initTagSelectorModal: 查找容器结果:', container ? '找到' : '未找到');
+        // console.log('initTagSelectorModal: 查找容器结果:', container ? '找到' : '未找到');
         
         if (!container) {
             console.error('initTagSelectorModal: 标签选择器容器未找到');
@@ -372,16 +372,16 @@ class UnifiedSearch {
 
         // 初始化全局标签选择器
         if (typeof initializeTagSelector === 'function') {
-            console.log('initTagSelectorModal: 调用全局标签选择器初始化');
+            // console.log('initTagSelectorModal: 调用全局标签选择器初始化');
             const tagSelector = initializeTagSelector({
                 onSelectionChange: (selectedTags) => {
-                    console.log('initTagSelectorModal: 标签选择变化:', selectedTags);
+                    // console.log('initTagSelectorModal: 标签选择变化:', selectedTags);
                     this.handleTagSelectionChange(selectedTags);
                 }
             });
             
             if (tagSelector) {
-                console.log('initTagSelectorModal: 标签选择器初始化成功');
+                // console.log('initTagSelectorModal: 标签选择器初始化成功');
                 // 设置全局实例
                 window.tagSelector = tagSelector;
             } else {
@@ -393,21 +393,21 @@ class UnifiedSearch {
     }
 
     syncSelectedTagsToSelector() {
-        console.log('syncSelectedTagsToSelector: 开始同步已选择的标签到标签选择器');
+        // console.log('syncSelectedTagsToSelector: 开始同步已选择的标签到标签选择器');
         
         // 获取当前已选择的标签
         const selectedTagNames = document.getElementById('selected-tag-names');
         if (!selectedTagNames || !selectedTagNames.value) {
-            console.log('syncSelectedTagsToSelector: 没有已选择的标签');
+            // console.log('syncSelectedTagsToSelector: 没有已选择的标签');
             return;
         }
         
         const selectedTagNamesList = selectedTagNames.value.split(',');
-        console.log('syncSelectedTagsToSelector: 已选择的标签名称:', selectedTagNamesList);
+        // console.log('syncSelectedTagsToSelector: 已选择的标签名称:', selectedTagNamesList);
         
         // 如果标签选择器已初始化，同步状态
         if (window.tagSelector && typeof window.tagSelector.setSelectedTags === 'function') {
-            console.log('syncSelectedTagsToSelector: 同步标签选择器状态');
+            // console.log('syncSelectedTagsToSelector: 同步标签选择器状态');
             
             // 需要根据标签名称找到对应的标签ID
             // 这里我们等待标签加载完成后再同步
@@ -418,28 +418,28 @@ class UnifiedSearch {
                         return tag ? tag.id : null;
                     }).filter(id => id !== null);
                     
-                    console.log('syncSelectedTagsToSelector: 找到的标签ID:', tagIds);
+                    // console.log('syncSelectedTagsToSelector: 找到的标签ID:', tagIds);
                     window.tagSelector.setSelectedTags(tagIds);
                 } else {
-                    console.log('syncSelectedTagsToSelector: 标签选择器标签未加载完成，稍后重试');
+                    // console.log('syncSelectedTagsToSelector: 标签选择器标签未加载完成，稍后重试');
                     // 如果标签还没加载完成，再次尝试
                     setTimeout(() => this.syncSelectedTagsToSelector(), 500);
                 }
             }, 100);
         } else {
-            console.log('syncSelectedTagsToSelector: 标签选择器未初始化或方法不可用');
+            // console.log('syncSelectedTagsToSelector: 标签选择器未初始化或方法不可用');
         }
     }
 
     handleTagSelectionChange(selectedTags) {
-        console.log('handleTagSelectionChange: 处理标签选择变化:', selectedTags);
+        // console.log('handleTagSelectionChange: 处理标签选择变化:', selectedTags);
         
         // 更新隐藏的输入框
         const selectedTagNames = document.getElementById('selected-tag-names');
         if (selectedTagNames) {
             const tagNames = selectedTags.map(tag => tag.name).join(',');
             selectedTagNames.value = tagNames;
-            console.log('handleTagSelectionChange: 更新隐藏输入框值:', tagNames);
+            // console.log('handleTagSelectionChange: 更新隐藏输入框值:', tagNames);
         }
         
         // 更新显示
@@ -478,32 +478,32 @@ class UnifiedSearch {
     }
 
     bindTagSelectorEvents() {
-        console.log('bindTagSelectorEvents: 开始绑定标签选择器事件');
+        // console.log('bindTagSelectorEvents: 开始绑定标签选择器事件');
         
         // 绑定确认按钮事件
         const confirmBtn = document.getElementById('confirm-selection-btn');
-        console.log('bindTagSelectorEvents: 查找确认按钮结果:', confirmBtn ? '找到' : '未找到');
+        // console.log('bindTagSelectorEvents: 查找确认按钮结果:', confirmBtn ? '找到' : '未找到');
         if (confirmBtn) {
             // 移除之前的事件监听器
             confirmBtn.onclick = null;
             confirmBtn.onclick = () => {
-                console.log('bindTagSelectorEvents: 确认按钮被点击，调用confirmTagSelection');
+                // console.log('bindTagSelectorEvents: 确认按钮被点击，调用confirmTagSelection');
                 this.confirmTagSelection();
             };
-            console.log('bindTagSelectorEvents: 确认按钮事件绑定成功');
+            // console.log('bindTagSelectorEvents: 确认按钮事件绑定成功');
         }
 
         // 绑定取消按钮事件
         const cancelBtn = document.getElementById('cancel-selection-btn');
-        console.log('bindTagSelectorEvents: 查找取消按钮结果:', cancelBtn ? '找到' : '未找到');
+        // console.log('bindTagSelectorEvents: 查找取消按钮结果:', cancelBtn ? '找到' : '未找到');
         if (cancelBtn) {
             // 移除之前的事件监听器
             cancelBtn.onclick = null;
             cancelBtn.onclick = () => {
-                console.log('bindTagSelectorEvents: 取消按钮被点击，调用cancelTagSelection');
+                // console.log('bindTagSelectorEvents: 取消按钮被点击，调用cancelTagSelection');
                 this.cancelTagSelection();
             };
-            console.log('bindTagSelectorEvents: 取消按钮事件绑定成功');
+            // console.log('bindTagSelectorEvents: 取消按钮事件绑定成功');
         }
 
         // 绑定搜索框事件
@@ -514,7 +514,7 @@ class UnifiedSearch {
             };
         }
         
-        console.log('bindTagSelectorEvents: 事件绑定完成');
+        // console.log('bindTagSelectorEvents: 事件绑定完成');
     }
 
     addTagToSelection(tagName) {
@@ -555,47 +555,47 @@ class UnifiedSearch {
     }
 
     confirmTagSelection() {
-        console.log('confirmTagSelection: 开始确认标签选择');
-        console.log('confirmTagSelection: window.tagSelector存在:', !!window.tagSelector);
-        console.log('confirmTagSelection: window.tagSelector.confirmSelection存在:', !!(window.tagSelector && typeof window.tagSelector.confirmSelection === 'function'));
+        // console.log('confirmTagSelection: 开始确认标签选择');
+        // console.log('confirmTagSelection: window.tagSelector存在:', !!window.tagSelector);
+        // console.log('confirmTagSelection: window.tagSelector.confirmSelection存在:', !!(window.tagSelector && typeof window.tagSelector.confirmSelection === 'function'));
         
         // 调用标签选择器的确认方法
         if (window.tagSelector && typeof window.tagSelector.confirmSelection === 'function') {
-            console.log('confirmTagSelection: 调用标签选择器的确认方法');
+            // console.log('confirmTagSelection: 调用标签选择器的确认方法');
             window.tagSelector.confirmSelection();
         } else {
-            console.log('confirmTagSelection: 标签选择器不可用，使用备用方法');
+            // console.log('confirmTagSelection: 标签选择器不可用，使用备用方法');
             
             // 获取当前选中的标签
             const selectedTags = this.getCurrentSelectedTags();
-            console.log('confirmTagSelection: 当前选中标签:', selectedTags);
+            // console.log('confirmTagSelection: 当前选中标签:', selectedTags);
             
             // 更新隐藏的输入框
             const selectedTagNames = document.getElementById('selected-tag-names');
             if (selectedTagNames) {
                 const tagNames = selectedTags.map(tag => tag.name).join(',');
                 selectedTagNames.value = tagNames;
-                console.log('confirmTagSelection: 更新隐藏输入框值:', tagNames);
+                // console.log('confirmTagSelection: 更新隐藏输入框值:', tagNames);
             }
             
             // 更新显示
             this.updateSelectedTagsDisplay();
             
             // 关闭模态框
-            console.log('confirmTagSelection: 准备关闭模态框');
+            // console.log('confirmTagSelection: 准备关闭模态框');
             this.closeTagSelectorModal();
         }
     }
 
     cancelTagSelection() {
-        console.log('cancelTagSelection: 开始取消标签选择');
+        // console.log('cancelTagSelection: 开始取消标签选择');
         
         // 调用标签选择器的取消方法
         if (window.tagSelector && typeof window.tagSelector.cancelSelection === 'function') {
-            console.log('cancelTagSelection: 调用标签选择器的取消方法');
+            // console.log('cancelTagSelection: 调用标签选择器的取消方法');
             window.tagSelector.cancelSelection();
         } else {
-            console.log('cancelTagSelection: 标签选择器不可用，使用备用方法');
+            // console.log('cancelTagSelection: 标签选择器不可用，使用备用方法');
             
             // 关闭模态框
             this.closeTagSelectorModal();
@@ -603,49 +603,49 @@ class UnifiedSearch {
     }
 
     closeTagSelectorModal() {
-        console.log('closeTagSelectorModal: 开始关闭标签选择器模态框');
+        // console.log('closeTagSelectorModal: 开始关闭标签选择器模态框');
         
         const modal = document.getElementById('tagSelectorModal');
-        console.log('closeTagSelectorModal: 模态框元素:', modal);
+        // console.log('closeTagSelectorModal: 模态框元素:', modal);
         if (!modal) {
-            console.log('closeTagSelectorModal: 模态框未找到');
+            // console.log('closeTagSelectorModal: 模态框未找到');
             return;
         }
         
-        console.log('closeTagSelectorModal: 模态框当前状态:');
-        console.log('- display:', modal.style.display);
-        console.log('- classList:', modal.classList.toString());
-        console.log('- aria-hidden:', modal.getAttribute('aria-hidden'));
+        // console.log('closeTagSelectorModal: 模态框当前状态:');
+        // console.log('- display:', modal.style.display);
+        // console.log('- classList:', modal.classList.toString());
+        // console.log('- aria-hidden:', modal.getAttribute('aria-hidden'));
         
         // 方法1: 尝试使用Bootstrap Modal实例
         const bsModal = bootstrap.Modal.getInstance(modal);
-        console.log('closeTagSelectorModal: Bootstrap Modal实例:', bsModal);
+        // console.log('closeTagSelectorModal: Bootstrap Modal实例:', bsModal);
         if (bsModal) {
-            console.log('closeTagSelectorModal: 使用Bootstrap Modal实例关闭');
+            // console.log('closeTagSelectorModal: 使用Bootstrap Modal实例关闭');
             bsModal.hide();
             
             // 等待Bootstrap完成关闭动画
             setTimeout(() => {
-                console.log('closeTagSelectorModal: 延迟执行强制清理');
+                // console.log('closeTagSelectorModal: 延迟执行强制清理');
                 this.forceCleanupModal();
             }, 300);
         } else {
-            console.log('closeTagSelectorModal: Bootstrap实例不可用，直接清理');
+            // console.log('closeTagSelectorModal: Bootstrap实例不可用，直接清理');
             this.forceCleanupModal();
         }
     }
     
     forceCleanupModal() {
-        console.log('forceCleanupModal: 强制清理模态框');
+        // console.log('forceCleanupModal: 强制清理模态框');
         
         const modal = document.getElementById('tagSelectorModal');
-        console.log('forceCleanupModal: 模态框元素:', modal);
+        // console.log('forceCleanupModal: 模态框元素:', modal);
         
         if (modal) {
-            console.log('forceCleanupModal: 清理前模态框状态:');
-            console.log('- display:', modal.style.display);
-            console.log('- classList:', modal.classList.toString());
-            console.log('- aria-hidden:', modal.getAttribute('aria-hidden'));
+            // console.log('forceCleanupModal: 清理前模态框状态:');
+            // console.log('- display:', modal.style.display);
+            // console.log('- classList:', modal.classList.toString());
+            // console.log('- aria-hidden:', modal.getAttribute('aria-hidden'));
             
             // 隐藏模态框
             modal.style.display = 'none';
@@ -653,45 +653,45 @@ class UnifiedSearch {
             modal.setAttribute('aria-hidden', 'true');
             modal.removeAttribute('aria-modal');
             
-            console.log('forceCleanupModal: 清理后模态框状态:');
-            console.log('- display:', modal.style.display);
-            console.log('- classList:', modal.classList.toString());
-            console.log('- aria-hidden:', modal.getAttribute('aria-hidden'));
+            // console.log('forceCleanupModal: 清理后模态框状态:');
+            // console.log('- display:', modal.style.display);
+            // console.log('- classList:', modal.classList.toString());
+            // console.log('- aria-hidden:', modal.getAttribute('aria-hidden'));
         }
         
         // 移除body的modal-open类
-        console.log('forceCleanupModal: body清理前状态:');
-        console.log('- classList:', document.body.classList.toString());
-        console.log('- overflow:', document.body.style.overflow);
-        console.log('- paddingRight:', document.body.style.paddingRight);
+        // console.log('forceCleanupModal: body清理前状态:');
+        // console.log('- classList:', document.body.classList.toString());
+        // console.log('- overflow:', document.body.style.overflow);
+        // console.log('- paddingRight:', document.body.style.paddingRight);
         
         document.body.classList.remove('modal-open');
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
         
-        console.log('forceCleanupModal: body清理后状态:');
-        console.log('- classList:', document.body.classList.toString());
-        console.log('- overflow:', document.body.style.overflow);
-        console.log('- paddingRight:', document.body.style.paddingRight);
+        // console.log('forceCleanupModal: body清理后状态:');
+        // console.log('- classList:', document.body.classList.toString());
+        // console.log('- overflow:', document.body.style.overflow);
+        // console.log('- paddingRight:', document.body.style.paddingRight);
         
         // 移除所有backdrop元素
         const backdrops = document.querySelectorAll('.modal-backdrop');
-        console.log('forceCleanupModal: 找到backdrop元素数量:', backdrops.length);
+        // console.log('forceCleanupModal: 找到backdrop元素数量:', backdrops.length);
         backdrops.forEach((backdrop, index) => {
-            console.log(`forceCleanupModal: 移除backdrop ${index + 1}:`, backdrop);
+            // console.log(`forceCleanupModal: 移除backdrop ${index + 1}:`, backdrop);
             backdrop.remove();
         });
         
         // 移除所有modal相关的类
         const modalElements = document.querySelectorAll('.modal');
-        console.log('forceCleanupModal: 找到modal元素数量:', modalElements.length);
+        // console.log('forceCleanupModal: 找到modal元素数量:', modalElements.length);
         modalElements.forEach((el, index) => {
-            console.log(`forceCleanupModal: 清理modal ${index + 1}:`, el);
+            // console.log(`forceCleanupModal: 清理modal ${index + 1}:`, el);
             el.classList.remove('show');
             el.style.display = 'none';
         });
         
-        console.log('forceCleanupModal: 模态框清理完成');
+        // console.log('forceCleanupModal: 模态框清理完成');
     }
 
     filterTags(query) {
@@ -899,34 +899,34 @@ function removeTag(tagName) {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('统一搜索组件: DOM加载完成，开始初始化');
+    // console.log('统一搜索组件: DOM加载完成，开始初始化');
     
     // 自动初始化所有统一搜索表单
     const searchForms = document.querySelectorAll('.unified-search-form');
-    console.log('统一搜索组件: 找到搜索表单数量:', searchForms.length);
+    // console.log('统一搜索组件: 找到搜索表单数量:', searchForms.length);
     
     searchForms.forEach((form, index) => {
-        console.log(`统一搜索组件: 初始化第${index + 1}个表单, ID:`, form.id);
+        // console.log(`统一搜索组件: 初始化第${index + 1}个表单, ID:`, form.id);
         unifiedSearch = new UnifiedSearch(form.id);
         unifiedSearch.init();
         
         // 设置全局实例
         window.unifiedSearch = unifiedSearch;
         window.unifiedSearchInstance = unifiedSearch; // 添加这个别名
-        console.log('统一搜索组件: 设置全局实例', window.unifiedSearch);
+        // console.log('统一搜索组件: 设置全局实例', window.unifiedSearch);
     });
     
     // 检查标签选择器相关元素
     const tagModal = document.getElementById('tagSelectorModal');
     const tagContainer = document.getElementById('tag-selector-container');
-    console.log('统一搜索组件: 标签选择器模态框:', tagModal ? '找到' : '未找到');
-    console.log('统一搜索组件: 标签选择器容器:', tagContainer ? '找到' : '未找到');
-    console.log('统一搜索组件: initializeTagSelector函数:', typeof initializeTagSelector);
+    // console.log('统一搜索组件: 标签选择器模态框:', tagModal ? '找到' : '未找到');
+    // console.log('统一搜索组件: 标签选择器容器:', tagContainer ? '找到' : '未找到');
+    // console.log('统一搜索组件: initializeTagSelector函数:', typeof initializeTagSelector);
 });
 
 // 全局清理模态框函数
 function forceCleanupAllModals() {
-    console.log('forceCleanupAllModals: 强制清理所有模态框');
+    // console.log('forceCleanupAllModals: 强制清理所有模态框');
     
     // 移除body的modal-open类
     document.body.classList.remove('modal-open');
@@ -948,7 +948,7 @@ function forceCleanupAllModals() {
         modal.removeAttribute('aria-modal');
     });
     
-    console.log('forceCleanupAllModals: 所有模态框清理完成');
+    // console.log('forceCleanupAllModals: 所有模态框清理完成');
 }
 
 // 导出类供其他脚本使用
