@@ -85,6 +85,7 @@ class UnifiedSearch {
     }
 
     restoreFormState() {
+        console.log('restoreFormState: 开始恢复表单状态');
         // 从URL参数中恢复表单状态
         const urlParams = new URLSearchParams(window.location.search);
         
@@ -111,10 +112,22 @@ class UnifiedSearch {
         if (selectedTagNames) {
             const tags = urlParams.get('tags');
             if (tags) {
+                console.log('restoreFormState: 恢复标签状态:', tags);
                 selectedTagNames.value = tags;
                 this.updateSelectedTagsDisplay();
+                
+                // 如果标签选择器已初始化，也要恢复其状态
+                if (window.tagSelector && typeof window.tagSelector.setSelectedTags === 'function') {
+                    console.log('restoreFormState: 恢复标签选择器状态');
+                    // 将标签名称转换为标签ID
+                    const tagNames = tags.split(',');
+                    // 这里需要根据标签名称找到对应的标签ID
+                    // 暂时先更新显示，标签选择器的状态会在下次打开时同步
+                }
             }
         }
+        
+        console.log('restoreFormState: 表单状态恢复完成');
     }
 
     handleSubmit() {
@@ -230,6 +243,9 @@ class UnifiedSearch {
             // 初始化标签选择器
             this.initTagSelectorModal();
             
+            // 同步已选择的标签状态到标签选择器
+            this.syncSelectedTagsToSelector();
+            
             // 显示模态框
             const bsModal = new bootstrap.Modal(modal);
             bsModal.show();
@@ -277,6 +293,45 @@ class UnifiedSearch {
             }
         } else {
             console.error('initTagSelectorModal: initializeTagSelector函数未定义');
+        }
+    }
+
+    syncSelectedTagsToSelector() {
+        console.log('syncSelectedTagsToSelector: 开始同步已选择的标签到标签选择器');
+        
+        // 获取当前已选择的标签
+        const selectedTagNames = document.getElementById('selected-tag-names');
+        if (!selectedTagNames || !selectedTagNames.value) {
+            console.log('syncSelectedTagsToSelector: 没有已选择的标签');
+            return;
+        }
+        
+        const selectedTagNamesList = selectedTagNames.value.split(',');
+        console.log('syncSelectedTagsToSelector: 已选择的标签名称:', selectedTagNamesList);
+        
+        // 如果标签选择器已初始化，同步状态
+        if (window.tagSelector && typeof window.tagSelector.setSelectedTags === 'function') {
+            console.log('syncSelectedTagsToSelector: 同步标签选择器状态');
+            
+            // 需要根据标签名称找到对应的标签ID
+            // 这里我们等待标签加载完成后再同步
+            setTimeout(() => {
+                if (window.tagSelector && window.tagSelector.allTags && window.tagSelector.allTags.length > 0) {
+                    const tagIds = selectedTagNamesList.map(tagName => {
+                        const tag = window.tagSelector.allTags.find(t => t.name === tagName.trim());
+                        return tag ? tag.id : null;
+                    }).filter(id => id !== null);
+                    
+                    console.log('syncSelectedTagsToSelector: 找到的标签ID:', tagIds);
+                    window.tagSelector.setSelectedTags(tagIds);
+                } else {
+                    console.log('syncSelectedTagsToSelector: 标签选择器标签未加载完成，稍后重试');
+                    // 如果标签还没加载完成，再次尝试
+                    setTimeout(() => this.syncSelectedTagsToSelector(), 500);
+                }
+            }, 100);
+        } else {
+            console.log('syncSelectedTagsToSelector: 标签选择器未初始化或方法不可用');
         }
     }
 
