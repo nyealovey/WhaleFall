@@ -424,7 +424,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(health_bp, url_prefix='/health')
     app.register_blueprint(cache_bp, url_prefix='/cache')
     app.register_blueprint(database_types_bp, url_prefix='/database-types')
-    app.register_blueprint(database_sizes_bp, url_prefix='/database-sizes')
+    app.register_blueprint(database_sizes_bp)
     app.register_blueprint(user_management_bp, url_prefix='/users')
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
     app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')
