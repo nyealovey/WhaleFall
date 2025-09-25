@@ -43,6 +43,17 @@ class Instance(db.Model):
     credential = db.relationship("Credential", backref="instances")
     # 标签关系
     tags = db.relationship("Tag", secondary="instance_tags", back_populates="instances", lazy="dynamic")
+    # 数据库大小统计关系
+    database_size_stats = db.relationship(
+        "DatabaseSizeStat",
+        back_populates="instance",
+        cascade="all, delete-orphan",
+    )
+    database_size_aggregations = db.relationship(
+        "DatabaseSizeAggregation",
+        back_populates="instance",
+        cascade="all, delete-orphan",
+    )
     # accounts关系已移除，因为Account模型已废弃，使用CurrentAccountSyncData
     # sync_data关系已移除，因为SyncData表已删除
 
