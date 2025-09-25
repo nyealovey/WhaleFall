@@ -61,8 +61,7 @@ class DatabaseSizeAggregation(db.Model):
     log_size_change_mb = Column(BigInteger, nullable=True, comment="日志大小变化量（MB，可为负值）")
     log_size_change_percent = Column(Numeric(5, 2), nullable=True, comment="日志大小变化百分比（%，可为负值）")
     
-    # 趋势分析字段
-    trend_direction = Column(String(10), nullable=False, default="stable", comment="趋势方向：growing（增长）、shrinking（缩减）、stable（稳定）")
+    # 增长率字段
     growth_rate = Column(Numeric(5, 2), nullable=False, default=0, comment="增长率（%，可为负值）")
     
     # 时间字段
@@ -123,8 +122,7 @@ class DatabaseSizeAggregation(db.Model):
             'data_size_change_percent': float(self.data_size_change_percent) if self.data_size_change_percent else None,
             'log_size_change_mb': self.log_size_change_mb,
             'log_size_change_percent': float(self.log_size_change_percent) if self.log_size_change_percent else None,
-            # 趋势分析
-            'trend_direction': self.trend_direction,
+            # 增长率
             'growth_rate': float(self.growth_rate) if self.growth_rate else 0,
             'calculated_at': self.calculated_at.isoformat() if self.calculated_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
