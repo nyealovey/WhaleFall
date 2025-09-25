@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}统计聚合 - 数据库大小监控{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/database_sizes/aggregations.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        统计聚合
+                    </h1>
+                    <p class="text-muted mb-0">数据库大小统计聚合分析</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary" id="refreshData">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        刷新数据
+                    </button>
+                    <button class="btn btn-primary" id="calculateAggregations">
+                        <i class="fas fa-calculator me-1"></i>
+                        重新计算
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选控制面板 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter me-2"></i>
+                        筛选条件
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="instanceFilter" class="form-label">实例</label>
+                            <select class="form-select" id="instanceFilter">
+                                <option value="">所有实例</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="periodTypeFilter" class="form-label">统计周期</label>
+                            <select class="form-select" id="periodTypeFilter">
+                                <option value="weekly">周统计</option>
+                                <option value="monthly" selected>月统计</option>
+                                <option value="quarterly">季统计</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="databaseFilter" class="form-label">数据库</label>
+                            <select class="form-select" id="databaseFilter">
+                                <option value="">所有数据库</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateRangeFilter" class="form-label">时间范围</label>
+                            <select class="form-select" id="dateRangeFilter">
+                                <option value="3">最近3个月</option>
+                                <option value="6" selected>最近6个月</option>
+                                <option value="12">最近1年</option>
+                                <option value="24">最近2年</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button class="btn btn-primary" id="applyFilters">
+                                <i class="fas fa-search me-1"></i>
+                                应用筛选
+                            </button>
+                            <button class="btn btn-outline-secondary" id="clearFilters">
+                                <i class="fas fa-times me-1"></i>
+                                清除筛选
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计概览 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">总实例数</h6>
+                            <h3 class="mb-0" id="totalInstances">-</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-server fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">总数据库数</h6>
+                            <h3 class="mb-0" id="totalDatabases">-</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-database fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">平均大小</h6>
+                            <h3 class="mb-0" id="averageSize">-</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">最大大小</h6>
+                            <h3 class="mb-0" id="maxSize">-</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-expand-arrows-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-area me-2"></i>
+                                聚合趋势图
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="chartType" id="chartTypeLine" value="line" checked>
+                                <label class="btn btn-outline-primary" for="chartTypeLine">折线图</label>
+                                
+                                <input type="radio" class="btn-check" name="chartType" id="chartTypeBar" value="bar">
+                                <label class="btn btn-outline-primary" for="chartTypeBar">柱状图</label>
+                                
+                                <input type="radio" class="btn-check" name="chartType" id="chartTypeArea" value="area">
+                                <label class="btn btn-outline-primary" for="chartTypeArea">面积图</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative">
+                        <canvas id="aggregationChart" height="400"></canvas>
+                        <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据表格 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-table me-2"></i>
+                                聚合数据表
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control form-control-sm" id="searchTable" placeholder="搜索实例或数据库...">
+                                </div>
+                                <div class="col-md-6">
+                                    <select class="form-select form-select-sm" id="sortTable">
+                                        <option value="period_start">按时间排序</option>
+                                        <option value="instance_name">按实例排序</option>
+                                        <option value="database_name">按数据库排序</option>
+                                        <option value="avg_size_mb">按平均大小排序</option>
+                                        <option value="max_size_mb">按最大大小排序</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="aggregationTable">
+                            <thead>
+                                <tr>
+                                    <th>实例名称</th>
+                                    <th>数据库名称</th>
+                                    <th>统计周期</th>
+                                    <th>平均大小</th>
+                                    <th>最大大小</th>
+                                    <th>最小大小</th>
+                                    <th>数据点数</th>
+                                    <th>计算时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="aggregationTableBody">
+                                <tr>
+                                    <td colspan="9" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">加载中...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 详情模态框 -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    聚合详情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>基本信息</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>实例名称:</td>
+                                <td id="modalInstanceName">-</td>
+                            </tr>
+                            <tr>
+                                <td>数据库名称:</td>
+                                <td id="modalDatabaseName">-</td>
+                            </tr>
+                            <tr>
+                                <td>统计周期:</td>
+                                <td id="modalPeriodType">-</td>
+                            </tr>
+                            <tr>
+                                <td>统计时间:</td>
+                                <td id="modalPeriodRange">-</td>
+                            </tr>
+                            <tr>
+                                <td>数据点数:</td>
+                                <td id="modalDataCount">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>统计指标</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>平均大小:</td>
+                                <td id="modalAvgSize">-</td>
+                            </tr>
+                            <tr>
+                                <td>最大大小:</td>
+                                <td id="modalMaxSize">-</td>
+                            </tr>
+                            <tr>
+                                <td>最小大小:</td>
+                                <td id="modalMinSize">-</td>
+                            </tr>
+                            <tr>
+                                <td>平均数据大小:</td>
+                                <td id="modalAvgDataSize">-</td>
+                            </tr>
+                            <tr>
+                                <td>平均日志大小:</td>
+                                <td id="modalAvgLogSize">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6>趋势图表</h6>
+                        <canvas id="detailChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 计算进度模态框 -->
+<div class="modal fade" id="calculationModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calculator me-2"></i>
+                    重新计算聚合数据
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">计算中...</span>
+                    </div>
+                    <p class="mb-0">正在重新计算统计聚合数据，请稍候...</p>
+                    <div class="progress mt-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/pages/database_sizes/aggregations.js') }}"></script>
+{% endblock %}
