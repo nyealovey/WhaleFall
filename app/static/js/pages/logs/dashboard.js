@@ -113,7 +113,7 @@ function searchLogs(page = 1) {
     if (currentFilters.q) params.append('q', currentFilters.q);
     if (currentFilters.hours) params.append('hours', currentFilters.hours);
 
-    console.log('searchLogs: 请求参数:', params.toString());
+    // console.log('searchLogs: 请求参数:', params.toString());
 
     // 显示加载状态
     showLoadingState();
@@ -399,21 +399,15 @@ function showSuccess(message) {
 
 // 初始化统一搜索组件
 function initUnifiedSearch() {
-    console.log('initUnifiedSearch: 开始初始化统一搜索组件');
-    
     // 检查是否已经有全局的UnifiedSearch实例
     if (window.unifiedSearchInstance) {
-        console.log('initUnifiedSearch: 使用已存在的全局实例');
-        
         // 重写搜索和清除方法
         window.unifiedSearchInstance.handleSubmit = function(e) {
-            console.log('initUnifiedSearch: 搜索表单提交事件触发');
             e.preventDefault();
             applyFilters();
         };
         
         window.unifiedSearchInstance.clearForm = function() {
-            console.log('initUnifiedSearch: 清除表单事件触发');
             // 清除所有筛选条件
             const inputs = this.form.querySelectorAll('.unified-input');
             inputs.forEach(input => {
@@ -430,28 +424,23 @@ function initUnifiedSearch() {
             searchLogs(1);
         };
         
-        console.log('initUnifiedSearch: 统一搜索组件初始化完成');
         return;
     }
     
     // 等待统一搜索组件加载完成
     if (typeof UnifiedSearch !== 'undefined') {
         const searchForm = document.querySelector('.unified-search-form');
-        console.log('initUnifiedSearch: 搜索表单元素:', searchForm);
         
         if (searchForm) {
-            console.log('initUnifiedSearch: 创建UnifiedSearch实例');
             const unifiedSearch = new UnifiedSearch(searchForm);
             
             // 重写搜索和清除方法
             unifiedSearch.handleSubmit = function(e) {
-                console.log('initUnifiedSearch: 搜索表单提交事件触发');
                 e.preventDefault();
                 applyFilters();
             };
             
             unifiedSearch.clearForm = function() {
-                console.log('initUnifiedSearch: 清除表单事件触发');
                 // 清除所有筛选条件
                 const inputs = this.form.querySelectorAll('.unified-input');
                 inputs.forEach(input => {
@@ -467,13 +456,8 @@ function initUnifiedSearch() {
                 currentFilters = {};
                 searchLogs(1);
             };
-            
-            console.log('initUnifiedSearch: 统一搜索组件初始化完成');
-        } else {
-            console.log('initUnifiedSearch: 未找到搜索表单');
         }
     } else {
-        console.log('initUnifiedSearch: UnifiedSearch未加载，100ms后重试');
         // 如果统一搜索组件未加载，使用传统方式
         setTimeout(initUnifiedSearch, 100);
     }
@@ -481,20 +465,11 @@ function initUnifiedSearch() {
 
 // 应用筛选条件
 function applyFilters() {
-    console.log('applyFilters: 开始应用筛选条件');
-    
     // 从统一搜索组件获取筛选条件
     const levelEl = document.getElementById('levelFilter');
     const moduleEl = document.getElementById('moduleFilter');
     const searchEl = document.getElementById('search');
     const timeRangeEl = document.getElementById('timeRange');
-    
-    console.log('applyFilters: 表单元素:', {
-        levelEl: levelEl,
-        moduleEl: moduleEl,
-        searchEl: searchEl,
-        timeRangeEl: timeRangeEl
-    });
     
     // 获取筛选值，空字符串表示不过滤
     const level = levelEl?.value || '';
@@ -509,7 +484,6 @@ function applyFilters() {
         hours: parseInt(timeRange) || 24
     };
     
-    console.log('applyFilters: 筛选条件:', currentFilters);
     searchLogs(1);
 }
 
