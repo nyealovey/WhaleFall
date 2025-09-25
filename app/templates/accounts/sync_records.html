@@ -18,55 +18,21 @@
 
 
     <!-- 搜索和筛选 -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="GET" class="row g-3">
-                <div class="col-md-3">
-                    <label for="sync_type" class="form-label">同步类型</label>
-                    <select class="form-select" id="sync_type" name="sync_type">
-                        <option value="">全部类型</option>
-                        <option value="manual_single" {% if sync_type == 'manual_single' %}selected{% endif %}>MANUAL_SINGLE</option>
-                        <option value="manual_batch" {% if sync_type == 'manual_batch' %}selected{% endif %}>MANUAL_BATCH</option>
-                        <option value="manual_task" {% if sync_type == 'manual_task' %}selected{% endif %}>MANUAL_TASK</option>
-                        <option value="scheduled_task" {% if sync_type == 'scheduled_task' %}selected{% endif %}>SCHEDULED_TASK</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="status" class="form-label">状态</label>
-                    <select class="form-select" id="status" name="status">
-                        <option value="">全部状态</option>
-                        <option value="completed" {% if status == 'completed' %}selected{% endif %}>completed</option>
-                        <option value="failed" {% if status == 'failed' %}selected{% endif %}>failed</option>
-                        <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>cancelled</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="date_range" class="form-label">时间范围</label>
-                    <select class="form-select" id="date_range" name="date_range">
-                        <option value="">全部时间</option>
-                        <option value="today" {% if date_range == 'today' %}selected{% endif %}>今天</option>
-                        <option value="week" {% if date_range == 'week' %}selected{% endif %}>最近7天</option>
-                        <option value="month" {% if date_range == 'month' %}selected{% endif %}>最近30天</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">&nbsp;</label>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-outline-primary">
-                            <i class="fas fa-search me-1"></i>筛选
-                        </button>
-                    </div>
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label">&nbsp;</label>
-                    <div class="d-grid">
-                        <a href="{{ url_for('account_sync.sync_records') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-1"></i>清除
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
+    <div class="sync-records-page">
+        {% set search_field_id = '' %}
+        {% set search_placeholder = '' %}
+        {% set show_db_type_filter = false %}
+        {% set show_classification_filter = false %}
+        {% set show_credential_type_filter = false %}
+        {% set show_tag_category_filter = false %}
+        {% set show_status_filter = true %}
+        {% set show_level_filter = false %}
+        {% set show_module_filter = false %}
+        {% set show_time_range_filter = true %}
+        {% set show_tag_filter = false %}
+        {% set show_sync_type_filter = true %}
+        {% set show_sync_category_filter = false %}
+        {% include 'components/unified_search_form.html' %}
     </div>
 
     <!-- 同步记录列表 -->
@@ -296,10 +262,12 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/sync_records.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block extra_js %}
 <!-- Chart.js -->
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/accounts/sync_records.js') }}"></script>
 {% endblock %}

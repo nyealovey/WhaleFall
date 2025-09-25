@@ -402,9 +402,77 @@ function getStatusText(status) {
     return texts[status] || status;
 }
 
+// 初始化统一搜索组件
+function initUnifiedSearch() {
+    // 等待统一搜索组件加载完成
+    if (typeof UnifiedSearch !== 'undefined') {
+        const searchForm = document.querySelector('.unified-search-form');
+        if (searchForm) {
+            const unifiedSearch = new UnifiedSearch(searchForm);
+            
+            // 重写搜索方法
+            unifiedSearch.handleSubmit = function(e) {
+                e.preventDefault();
+                applyFilters();
+            };
+            
+            // 重写清除方法
+            unifiedSearch.clearForm = function() {
+                // 清除所有筛选条件
+                const inputs = this.form.querySelectorAll('.unified-input');
+                inputs.forEach(input => {
+                    input.value = '';
+                });
+
+                const selects = this.form.querySelectorAll('.unified-select');
+                selects.forEach(select => {
+                    select.selectedIndex = 0;
+                });
+
+                // 刷新页面，清除所有筛选条件
+                window.location.href = window.location.pathname;
+            };
+        }
+    } else {
+        // 如果统一搜索组件未加载，使用传统方式
+        setTimeout(initUnifiedSearch, 100);
+    }
+}
+
+// 应用筛选条件
+function applyFilters() {
+    const form = document.querySelector('.unified-search-form');
+    if (!form) return;
+    
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+    
+    // 获取筛选条件
+    const syncType = formData.get('sync_type') || '';
+    const status = formData.get('status') || '';
+    const timeRange = formData.get('time_range') || '';
+    
+    // 构建URL参数
+    if (syncType) params.append('sync_type', syncType);
+    if (status) params.append('status', status);
+    if (timeRange) params.append('date_range', timeRange);
+    
+    // 跳转到筛选后的页面
+    const url = new URL(window.location);
+    url.search = params.toString();
+    window.location.href = url.toString();
+}
+
+// 页面加载完成后初始化统一搜索组件
+document.addEventListener('DOMContentLoaded', function() {
+    initializePage();
+    initUnifiedSearch();
+});
+
 // 导出函数供全局使用
 window.viewDetails = viewDetails;
 window.retrySync = retrySync;
 window.showAlert = showAlert;
 window.viewBatchDetails = viewBatchDetails;
 window.viewFailedDetails = viewFailedDetails;
+window.applyFilters = applyFilters;
