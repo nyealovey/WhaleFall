@@ -216,27 +216,35 @@ class UnifiedSearch {
         const selectedTagNames = document.getElementById('selected-tag-names');
         const selectedTagsChips = document.getElementById('selected-tags-chips');
 
+        console.log('updateSelectedTagsDisplay: 开始更新标签显示');
+        console.log('updateSelectedTagsDisplay: selectedTagNames元素:', selectedTagNames);
+        console.log('updateSelectedTagsDisplay: selectedTagsChips元素:', selectedTagsChips);
+
         if (!selectedTagNames || !selectedTagsChips) {
+            console.log('updateSelectedTagsDisplay: 未找到必要的DOM元素');
             return;
         }
 
         const selectedTags = selectedTagNames.value ? selectedTagNames.value.split(',') : [];
+        console.log('updateSelectedTagsDisplay: 选中的标签:', selectedTags);
         
         if (selectedTags.length > 0) {
             // 获取标签数据以获取颜色信息
+            console.log('updateSelectedTagsDisplay: 加载标签显示');
             this.loadTagsForDisplay(selectedTags, selectedTagsChips);
         } else {
+            console.log('updateSelectedTagsDisplay: 没有选中的标签，清空显示');
             selectedTagsChips.innerHTML = '';
         }
     }
 
     loadTagsForDisplay(selectedTagNames, container) {
         // 加载标签数据以获取颜色信息
-        fetch('/tags/api/list')
+        fetch('/tags/api/tags')
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.data && data.data.tags) {
-                    const tags = data.data.tags;
+                if (data.success && data.tags) {
+                    const tags = data.tags;
                     container.innerHTML = selectedTagNames.map(tagName => {
                         const tag = tags.find(t => t.name === tagName.trim());
                         const color = tag ? tag.color : 'secondary';
@@ -394,11 +402,11 @@ class UnifiedSearch {
 
     loadTags() {
         // 加载标签数据
-        fetch('/tags/api/list')
+        fetch('/tags/api/tags')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    this.renderTags(data.data.tags || []);
+                    this.renderTags(data.tags || []);
                 }
             })
             .catch(error => {
