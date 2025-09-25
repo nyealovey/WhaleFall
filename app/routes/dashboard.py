@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import psutil
 from flask import Blueprint, Response, jsonify, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import text
+from sqlalchemy import text, distinct
 
 from app import db
 from app.models.instance import Instance
