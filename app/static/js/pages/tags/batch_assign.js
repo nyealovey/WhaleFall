@@ -19,6 +19,7 @@ class BatchAssignManager {
      * 初始化页面
      */
     init() {
+        console.log('批量分配页面：BatchAssignManager.init() 被调用');
         this.bindEvents();
         this.loadData();
         this.updateModeDisplay();
@@ -96,6 +97,10 @@ class BatchAssignManager {
             const data = await response.json();
             this.tags = data.tags || [];
             this.tagsByCategory = this.groupTagsByCategory(this.tags);
+            
+            // 调试信息：打印标签数据
+            console.log('批量分配页面：加载的标签数据:', this.tags);
+            console.log('批量分配页面：按分类分组的标签:', this.tagsByCategory);
         } catch (error) {
             console.error('加载标签失败:', error);
             throw error;
@@ -114,6 +119,16 @@ class BatchAssignManager {
             }
             grouped[dbType].push(instance);
         });
+        
+        // 对每个分组内的实例按名称排序
+        Object.keys(grouped).forEach(dbType => {
+            grouped[dbType].sort((a, b) => {
+                const nameA = a.name || '';
+                const nameB = b.name || '';
+                return nameA.localeCompare(nameB, 'zh-CN', { numeric: true });
+            });
+        });
+        
         return grouped;
     }
 
@@ -129,6 +144,16 @@ class BatchAssignManager {
             }
             grouped[category].push(tag);
         });
+        
+        // 对每个分组内的标签按显示名称排序
+        Object.keys(grouped).forEach(category => {
+            grouped[category].sort((a, b) => {
+                const nameA = a.display_name || a.name || '';
+                const nameB = b.display_name || b.name || '';
+                return nameA.localeCompare(nameB, 'zh-CN', { numeric: true });
+            });
+        });
+        
         return grouped;
     }
 
@@ -194,6 +219,9 @@ class BatchAssignManager {
         container.innerHTML = html;
         loading.style.display = 'none';
         container.style.display = 'block';
+        
+        // 初始化滚动功能
+        this.initializeScrollAreas();
     }
 
     /**
@@ -234,7 +262,17 @@ class BatchAssignManager {
                     </div>
                     <div class="tag-group-content" id="tagGroupContent_${category}">
                         <div class="list-group list-group-flush">
-                            ${tags.map(tag => `
+                            ${tags.map(tag => {
+                                // 调试信息：打印每个标签的数据
+                                console.log(`批量分配页面：渲染标签 ${tag.name}:`, {
+                                    id: tag.id,
+                                    name: tag.name,
+                                    display_name: tag.display_name,
+                                    color: tag.color,
+                                    category: tag.category
+                                });
+                                
+                                return `
                                 <div class="list-group-item">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" 
@@ -242,12 +280,15 @@ class BatchAssignManager {
                                                value="${tag.id}"
                                                onchange="batchAssignManager.toggleTagSelection(${tag.id})">
                                         <label class="form-check-label" for="tag_${tag.id}">
-                                            <span class="badge bg-primary me-2">${tag.name}</span>
+                                            <span class="badge bg-${tag.color || 'primary'} me-2">${tag.display_name || tag.name}</span>
                                             ${tag.description ? `<small class="text-muted">${tag.description}</small>` : ''}
+                                            <!-- 调试信息 -->
+                                            <small class="text-muted d-block">调试: ${tag.name} -> ${tag.display_name || '无display_name'} (${tag.color || '无color'})</small>
                                         </label>
                                     </div>
                                 </div>
-                            `).join('')}
+                            `;
+                            }).join('')}
                         </div>
                     </div>
                 </div>
@@ -257,6 +298,9 @@ class BatchAssignManager {
         container.innerHTML = html;
         loading.style.display = 'none';
         container.style.display = 'block';
+        
+        // 初始化滚动功能
+        this.initializeScrollAreas();
     }
 
     /**
@@ -267,12 +311,58 @@ class BatchAssignManager {
         const icon = document.querySelector(`#instanceGroupContent_${dbType}`).previousElementSibling.querySelector('.instance-group-icon');
         
         if (content.classList.contains('show')) {
+            // 如果当前分组是展开的，则收起
             content.classList.remove('show');
             icon.style.transform = 'rotate(0deg)';
         } else {
+            // 先收起所有其他分组（手风琴效果）
+            this.collapseAllInstanceGroups();
+            
+            // 展开当前分组
             content.classList.add('show');
             icon.style.transform = 'rotate(90deg)';
+            
+            // 确保内容区域可以滚动
+            setTimeout(() => {
+                if (content.scrollHeight > content.clientHeight) {
+                    content.style.overflowY = 'auto';
+                }
+            }, 300);
         }
+    }
+
+    /**
+     * 收起所有实例分组
+     */
+    collapseAllInstanceGroups() {
+        Object.keys(this.instancesByDbType).forEach(dbType => {
+            const content = document.getElementById(`instanceGroupContent_${dbType}`);
+            const icon = document.querySelector(`#instanceGroupContent_${dbType}`)?.previousElementSibling?.querySelector('.instance-group-icon');
+            
+            if (content && content.classList.contains('show')) {
+                content.classList.remove('show');
+                if (icon) {
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            }
+        });
+    }
+
+    /**
+     * 收起所有标签分组
+     */
+    collapseAllTagGroups() {
+        Object.keys(this.tagsByCategory).forEach(category => {
+            const content = document.getElementById(`tagGroupContent_${category}`);
+            const icon = document.querySelector(`#tagGroupContent_${category}`)?.previousElementSibling?.querySelector('.tag-group-icon');
+            
+            if (content && content.classList.contains('show')) {
+                content.classList.remove('show');
+                if (icon) {
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            }
+        });
     }
 
     /**
@@ -283,11 +373,23 @@ class BatchAssignManager {
         const icon = document.querySelector(`#tagGroupContent_${category}`).previousElementSibling.querySelector('.tag-group-icon');
         
         if (content.classList.contains('show')) {
+            // 如果当前分组是展开的，则收起
             content.classList.remove('show');
             icon.style.transform = 'rotate(0deg)';
         } else {
+            // 先收起所有其他分组（手风琴效果）
+            this.collapseAllTagGroups();
+            
+            // 展开当前分组
             content.classList.add('show');
             icon.style.transform = 'rotate(90deg)';
+            
+            // 确保内容区域可以滚动
+            setTimeout(() => {
+                if (content.scrollHeight > content.clientHeight) {
+                    content.style.overflowY = 'auto';
+                }
+            }, 300);
         }
     }
 
@@ -453,13 +555,21 @@ class BatchAssignManager {
         
         // 更新标签列表（仅在分配模式下显示）
         if (this.currentMode === 'assign') {
-            const tagNames = Array.from(this.selectedTags).map(id => {
+            const tagItems = Array.from(this.selectedTags).map(id => {
                 const tag = this.tags.find(t => t.id === id);
-                return tag ? tag.name : `标签 ${id}`;
+                return tag ? {
+                    name: tag.display_name || tag.name,
+                    color: tag.color || 'primary'
+                } : {
+                    name: `标签 ${id}`,
+                    color: 'secondary'
+                };
             });
             
-            selectedTagsList.innerHTML = tagNames.map(name => 
-                `<span class="selected-item">${name}</span>`
+            selectedTagsList.innerHTML = tagItems.map(tag => 
+                `<span class="selected-item">
+                    <span class="badge bg-${tag.color} me-1">${tag.name}</span>
+                </span>`
             ).join('');
         }
     }
@@ -703,6 +813,27 @@ class BatchAssignManager {
     }
 
     /**
+     * 初始化滚动区域
+     */
+    initializeScrollAreas() {
+        // 确保所有分组内容区域都能正确滚动
+        const groupContents = document.querySelectorAll('.instance-group-content, .tag-group-content');
+        groupContents.forEach(content => {
+            if (content.scrollHeight > content.clientHeight) {
+                content.style.overflowY = 'auto';
+            }
+        });
+        
+        // 确保主选择区域也能正确滚动
+        const selectionAreas = document.querySelectorAll('.instance-selection, .tag-selection');
+        selectionAreas.forEach(area => {
+            if (area.scrollHeight > area.clientHeight) {
+                area.style.overflowY = 'auto';
+            }
+        });
+    }
+
+    /**
      * 获取CSRF令牌
      */
     getCSRFToken() {
@@ -713,5 +844,7 @@ class BatchAssignManager {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('批量分配页面：开始初始化...');
     window.batchAssignManager = new BatchAssignManager();
+    console.log('批量分配页面：初始化完成！');
 });
