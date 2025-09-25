@@ -112,7 +112,7 @@ def get_instance_total_size(instance_id: int):
         }), 500
 
 
-@database_sizes_bp.route('/api/v1/instances/<int:instance_id>/database-sizes', methods=['GET'])
+@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int):
