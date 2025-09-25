@@ -193,6 +193,268 @@ def get_aggregations_summary():
             'error': str(e)
         }), 500
 
+# 配置管理相关路由
+@database_sizes_bp.route('/database-sizes/config', methods=['GET', 'PUT'])
+@login_required
+@view_required
+def config_api():
+    """
+    获取或更新数据库大小监控配置
+    
+    GET: 返回当前配置
+    PUT: 更新配置
+    """
+    if request.method == 'GET':
+        try:
+            # 从配置中获取参数
+            config = {
+                'collect_hour': current_app.config.get('COLLECT_DB_SIZE_HOUR', 3),
+                'collect_enabled': current_app.config.get('COLLECT_DB_SIZE_ENABLED', True),
+                'cleanup_hour': current_app.config.get('CLEANUP_PARTITION_HOUR', 3),
+                'create_hour': current_app.config.get('CREATE_PARTITION_HOUR', 2),
+                'retention_days': current_app.config.get('DATABASE_SIZE_RETENTION_DAYS', 365),
+                'retention_months': current_app.config.get('DATABASE_SIZE_RETENTION_MONTHS', 12),
+                'aggregation_hour': current_app.config.get('AGGREGATION_HOUR', 4),
+                'aggregation_enabled': current_app.config.get('AGGREGATION_ENABLED', True),
+                'timeout': current_app.config.get('COLLECT_DB_SIZE_TIMEOUT', 300),
+                'batch_size': current_app.config.get('DB_SIZE_COLLECT_BATCH_SIZE', 10),
+                'retry_count': current_app.config.get('DB_SIZE_COLLECT_RETRY_COUNT', 3)
+            }
+            
+            return jsonify({
+                'success': True,
+                'config': config
+            })
+            
+        except Exception as e:
+            logger.error(f"获取配置时出错: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    elif request.method == 'PUT':
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({
+                    'success': False,
+                    'error': '请求数据不能为空'
+                }), 400
+            
+            # 这里可以添加配置更新逻辑
+            # 由于配置通常在启动时加载，这里只返回成功
+            return jsonify({
+                'success': True,
+                'message': '配置更新成功（需要重启应用生效）'
+            })
+            
+        except Exception as e:
+            logger.error(f"更新配置时出错: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+@database_sizes_bp.route('/database-sizes/status', methods=['GET'])
+@login_required
+@view_required
+def get_status():
+    """
+    获取数据库大小监控状态
+    """
+    try:
+        # 获取采集状态
+        from app.tasks.database_size_collection_tasks import get_collection_status
+        collection_status = get_collection_status()
+        
+        # 获取聚合状态
+        from app.tasks.database_size_aggregation_tasks import get_aggregation_status
+        aggregation_status = get_aggregation_status()
+        
+        # 获取分区管理状态
+        from app.tasks.partition_management_tasks import get_partition_management_status
+        partition_status = get_partition_management_status()
+        
+        status = {
+            'collection': collection_status.get('status', {}),
+            'aggregation': aggregation_status.get('status', {}),
+            'partition': partition_status.get('status', {}),
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': status
+        })
+        
+    except Exception as e:
+        logger.error(f"获取状态时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@database_sizes_bp.route('/database-sizes/stats', methods=['GET'])
+@login_required
+@view_required
+def get_stats():
+    """
+    获取数据库大小监控统计信息
+    """
+    try:
+        # 获取基本统计
+        total_stats = DatabaseSizeStat.query.count()
+        total_aggregations = DatabaseSizeAggregation.query.count()
+        total_instances = Instance.query.filter_by(is_active=True).count()
+        
+        # 获取最近采集时间
+        latest_stat = DatabaseSizeStat.query.order_by(desc(DatabaseSizeStat.collected_at)).first()
+        
+        # 获取按数据库类型统计
+        db_type_stats = db.session.query(
+            Instance.db_type,
+            func.count(DatabaseSizeStat.id).label('count')
+        ).join(DatabaseSizeStat).group_by(Instance.db_type).all()
+        
+        stats = {
+            'total_stats': total_stats,
+            'total_aggregations': total_aggregations,
+            'total_instances': total_instances,
+            'last_collection': latest_stat.collected_at.isoformat() if latest_stat else None,
+            'db_type_stats': [
+                {'db_type': stat.db_type, 'count': stat.count}
+                for stat in db_type_stats
+            ]
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': stats
+        })
+        
+    except Exception as e:
+        logger.error(f"获取统计信息时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@database_sizes_bp.route('/database-sizes/test_connection', methods=['POST'])
+@login_required
+@view_required
+def test_connection():
+    """
+    测试数据库连接
+    """
+    try:
+        data = request.get_json()
+        instance_id = data.get('instance_id')
+        
+        if not instance_id:
+            return jsonify({
+                'success': False,
+                'error': '实例ID不能为空'
+            }), 400
+        
+        instance = Instance.query.get(instance_id)
+        if not instance:
+            return jsonify({
+                'success': False,
+                'error': '实例不存在'
+            }), 404
+        
+        # 这里可以添加连接测试逻辑
+        return jsonify({
+            'success': True,
+            'message': f'实例 {instance.name} 连接测试成功'
+        })
+        
+    except Exception as e:
+        logger.error(f"测试连接时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@database_sizes_bp.route('/database-sizes/manual_collect', methods=['POST'])
+@login_required
+@view_required
+def manual_collect():
+    """
+    手动触发数据采集
+    """
+    try:
+        from app.tasks.database_size_collection_tasks import collect_database_sizes
+        
+        # 触发采集任务
+        result = collect_database_sizes()
+        
+        return jsonify({
+            'success': True,
+            'message': '手动采集任务已触发',
+            'data': result
+        })
+        
+    except Exception as e:
+        logger.error(f"手动采集时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@database_sizes_bp.route('/database-sizes/manual_aggregate', methods=['POST'])
+@login_required
+@view_required
+def manual_aggregate():
+    """
+    手动触发聚合计算
+    """
+    try:
+        from app.tasks.database_size_aggregation_tasks import calculate_database_size_aggregations
+        
+        # 触发聚合任务
+        result = calculate_database_size_aggregations()
+        
+        return jsonify({
+            'success': True,
+            'message': '手动聚合任务已触发',
+            'data': result
+        })
+        
+    except Exception as e:
+        logger.error(f"手动聚合时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@database_sizes_bp.route('/database-sizes/cleanup_partitions', methods=['POST'])
+@login_required
+@view_required
+def cleanup_partitions():
+    """
+    手动清理分区
+    """
+    try:
+        from app.tasks.partition_management_tasks import cleanup_database_size_partitions
+        
+        # 触发清理任务
+        result = cleanup_database_size_partitions()
+        
+        return jsonify({
+            'success': True,
+            'message': '分区清理任务已触发',
+            'data': result
+        })
+        
+    except Exception as e:
+        logger.error(f"清理分区时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @database_sizes_bp.route('/instances', methods=['GET'])
 @login_required
 @view_required

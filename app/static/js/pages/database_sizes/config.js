@@ -78,7 +78,7 @@ class DatabaseSizeConfigManager {
         try {
             this.showLoading('加载配置中...');
             
-            const response = await fetch('/api/database_sizes/config', {
+            const response = await fetch('/database-sizes/config', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ class DatabaseSizeConfigManager {
      */
     async loadStatus() {
         try {
-            const response = await fetch('/api/database_sizes/status', {
+            const response = await fetch('/database-sizes/status', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ class DatabaseSizeConfigManager {
      */
     async loadStats() {
         try {
-            const response = await fetch('/api/database_sizes/stats', {
+            const response = await fetch('/database-sizes/stats', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -260,7 +260,7 @@ class DatabaseSizeConfigManager {
             
             const config = this.collectConfigFromForm();
             
-            const response = await fetch('/api/database_sizes/config', {
+            const response = await fetch('/database-sizes/config', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -317,7 +317,7 @@ class DatabaseSizeConfigManager {
         try {
             this.showProgressModal('测试连接中...', '正在测试数据库连接，请稍候...');
             
-            const response = await fetch('/api/database_sizes/test_connection', {
+            const response = await fetch('/database-sizes/test_connection', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -364,7 +364,7 @@ class DatabaseSizeConfigManager {
         try {
             this.showProgressModal('执行手动采集...', '正在采集数据库大小数据，请稍候...');
             
-            const response = await fetch('/api/database_sizes/manual_collect', {
+            const response = await fetch('/database-sizes/manual_collect', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -412,7 +412,7 @@ class DatabaseSizeConfigManager {
         try {
             this.showProgressModal('执行手动聚合...', '正在计算统计聚合数据，请稍候...');
             
-            const response = await fetch('/api/database_sizes/manual_aggregate', {
+            const response = await fetch('/database-sizes/manual_aggregate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -460,7 +460,7 @@ class DatabaseSizeConfigManager {
         try {
             this.showProgressModal('清理分区中...', '正在清理旧的分区数据，请稍候...');
             
-            const response = await fetch('/api/database_sizes/cleanup_partitions', {
+            const response = await fetch('/database-sizes/cleanup_partitions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
