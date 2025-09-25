@@ -15,6 +15,7 @@
                 </div>
                 
                 <!-- 数据库类型筛选 -->
+                {% if show_db_type_filter|default(true) %}
                 <div class="col-md-2 filter-db-type">
                     <label for="db_type" class="form-label">数据库类型</label>
                     <select class="form-select unified-select" id="db_type" name="db_type">
@@ -27,8 +28,10 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
                 
                 <!-- 分类筛选 -->
+                {% if show_classification_filter|default(true) %}
                 <div class="col-md-2 filter-classification">
                     <label for="classification" class="form-label">分类筛选</label>
                     <select class="form-select unified-select" id="classification" name="classification">
@@ -41,8 +44,10 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
                 
                 <!-- 凭据类型筛选 -->
+                {% if show_credential_type_filter|default(true) %}
                 <div class="col-md-2 filter-credential-type">
                     <label for="credential_type" class="form-label">凭据类型</label>
                     <select class="form-select unified-select" id="credential_type" name="credential_type">
@@ -52,8 +57,10 @@
                         <option value="ssh" {% if credential_type == 'ssh' %}selected{% endif %}>SSH凭据</option>
                     </select>
                 </div>
+                {% endif %}
                 
                 <!-- 标签分类筛选 -->
+                {% if show_tag_category_filter|default(true) %}
                 <div class="col-md-2 filter-category">
                     <label for="category" class="form-label">分类</label>
                     <select class="form-select unified-select" id="category" name="category">
@@ -65,8 +72,10 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
                 
                 <!-- 状态筛选 -->
+                {% if show_status_filter|default(true) %}
                 <div class="col-md-2 filter-status">
                     <label for="status" class="form-label">状态</label>
                     <select class="form-select unified-select" id="status" name="status">
@@ -75,8 +84,10 @@
                         <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>禁用</option>
                     </select>
                 </div>
+                {% endif %}
                 
                 <!-- 日志级别筛选 -->
+                {% if show_level_filter|default(false) %}
                 <div class="col-md-2 filter-level">
                     <label for="levelFilter" class="form-label">日志级别</label>
                     <select class="form-select unified-select" id="levelFilter" name="level">
@@ -88,8 +99,10 @@
                         <option value="CRITICAL" {% if level == 'CRITICAL' %}selected{% endif %}>CRITICAL</option>
                     </select>
                 </div>
+                {% endif %}
                 
                 <!-- 模块筛选 -->
+                {% if show_module_filter|default(false) %}
                 <div class="col-md-2 filter-module">
                     <label for="moduleFilter" class="form-label">模块</label>
                     <select class="form-select unified-select" id="moduleFilter" name="module">
@@ -101,8 +114,10 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
                 
                 <!-- 时间范围筛选 -->
+                {% if show_time_range_filter|default(false) %}
                 <div class="col-md-2 filter-time-range">
                     <label for="timeRange" class="form-label">时间范围</label>
                     <select class="form-select unified-select" id="timeRange" name="time_range">
@@ -112,8 +127,10 @@
                         <option value="custom" {% if time_range == 'custom' %}selected{% endif %}>自定义</option>
                     </select>
                 </div>
+                {% endif %}
                 
                 <!-- 标签选择按钮 -->
+                {% if show_tag_filter|default(true) %}
                 <div class="col-md-3 filter-tags">
                     <label class="form-label">标签筛选</label>
                     <div class="d-flex align-items-center gap-2">
@@ -128,6 +145,7 @@
                     </div>
                     <input type="hidden" id="selected-tag-names" name="tags" value="{{ selected_tags|join(',') }}">
                 </div>
+                {% endif %}
                 
                 <!-- 操作按钮 -->
                 <div class="col-md-2">

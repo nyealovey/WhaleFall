@@ -29,10 +29,19 @@
     {% endif %}
 </div>
 
-<!-- 搜索和筛选 -->
-<div class="tags-page">
-    {% include 'components/unified_search_form.html' %}
-</div>
+    <!-- 搜索和筛选 -->
+    <div class="tags-page">
+        {% set show_db_type_filter = false %}
+        {% set show_classification_filter = false %}
+        {% set show_credential_type_filter = false %}
+        {% set show_tag_category_filter = true %}
+        {% set show_status_filter = true %}
+        {% set show_level_filter = false %}
+        {% set show_module_filter = false %}
+        {% set show_time_range_filter = false %}
+        {% set show_tag_filter = false %}
+        {% include 'components/unified_search_form.html' %}
+    </div>
 
 <!-- 标签列表 -->
 <div class="card">
