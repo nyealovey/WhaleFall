@@ -17,11 +17,30 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializePartitionsPage() {
     console.log('初始化分区管理页面...');
     
-    // 设置默认日期为下个月
+    // 初始化年份选择器
+    initializeYearSelector();
+    
+    // 设置默认月份为下个月
     const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 1);
-    nextMonth.setDate(1);
-    document.getElementById('partitionDate').value = nextMonth.toISOString().split('T')[0];
+    document.getElementById('partitionYear').value = nextMonth.getFullYear();
+    document.getElementById('partitionMonth').value = nextMonth.getMonth() + 1;
+}
+
+/**
+ * 初始化年份选择器
+ */
+function initializeYearSelector() {
+    const yearSelect = document.getElementById('partitionYear');
+    const currentYear = new Date().getFullYear();
+    
+    // 添加过去2年到未来2年的选项
+    for (let year = currentYear - 2; year <= currentYear + 2; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year + '年';
+        yearSelect.appendChild(option);
+    }
 }
 
 /**
@@ -59,43 +78,77 @@ function bindEvents() {
  */
 async function loadPartitionData() {
     try {
+        console.log('开始加载分区数据...');
         showLoadingState();
+        
+        // 获取CSRF token
+        const csrfToken = getCSRFToken();
+        console.log('CSRF Token:', csrfToken ? '已获取' : '未获取');
         
         // 并行加载分区信息和状态
         const [partitionInfoResponse, partitionStatusResponse] = await Promise.all([
-            fetch('/database-sizes/partitions', {
+            fetch('/database-sizes/partitions?api=true', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
+                    'X-CSRFToken': csrfToken
                 }
             }),
             fetch('/database-sizes/partitions/status', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
+                    'X-CSRFToken': csrfToken
                 }
             })
         ]);
         
-        if (!partitionInfoResponse.ok || !partitionStatusResponse.ok) {
-            throw new Error('加载分区数据失败');
+        console.log('分区信息响应状态:', partitionInfoResponse.status);
+        console.log('分区状态响应状态:', partitionStatusResponse.status);
+        
+        if (!partitionInfoResponse.ok) {
+            const errorText = await partitionInfoResponse.text();
+            console.error('分区信息请求失败:', errorText);
+            throw new Error(`分区信息请求失败: ${partitionInfoResponse.status} ${errorText}`);
+        }
+        
+        if (!partitionStatusResponse.ok) {
+            const errorText = await partitionStatusResponse.text();
+            console.error('分区状态请求失败:', errorText);
+            throw new Error(`分区状态请求失败: ${partitionStatusResponse.status} ${errorText}`);
         }
         
         const partitionInfo = await partitionInfoResponse.json();
         const partitionStatus = await partitionStatusResponse.json();
         
+        console.log('分区信息响应:', partitionInfo);
+        console.log('分区状态响应:', partitionStatus);
+        
         if (partitionInfo.success && partitionStatus.success) {
             updatePartitionOverview(partitionStatus.data);
             updatePartitionsTable(partitionInfo.data.partitions);
+            console.log('分区数据加载成功');
         } else {
-            throw new Error(partitionInfo.error || partitionStatus.error || '加载分区数据失败');
+            const errorMsg = partitionInfo.error || partitionStatus.error || '加载分区数据失败';
+            console.error('分区数据加载失败:', errorMsg);
+            throw new Error(errorMsg);
         }
         
     } catch (error) {
         console.error('加载分区数据失败:', error);
         showError('加载分区数据失败: ' + error.message);
+        
+        // 显示错误状态
+        const tbody = document.getElementById('partitionsTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>加载失败: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
     }
 }
 
@@ -235,12 +288,16 @@ function showCleanupPartitionsModal() {
  * 创建分区
  */
 async function createPartition() {
-    const partitionDate = document.getElementById('partitionDate').value;
+    const partitionYear = document.getElementById('partitionYear').value;
+    const partitionMonth = document.getElementById('partitionMonth').value;
     
-    if (!partitionDate) {
-        showError('请选择分区日期');
+    if (!partitionYear || !partitionMonth) {
+        showError('请选择年份和月份');
         return;
     }
+    
+    // 构造日期（使用该月的第一天）
+    const partitionDate = `${partitionYear}-${partitionMonth.padStart(2, '0')}-01`;
     
     try {
         const response = await fetch('/database-sizes/partitions/create', {
@@ -379,18 +436,26 @@ function formatNumber(num) {
 
 /**
  * 获取CSRF Token
+ * 直接使用本地实现，避免循环调用
  */
 function getCSRFToken() {
-    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const token = document.querySelector('meta[name="csrf-token"]');
+    return token ? token.getAttribute('content') : '';
 }
 
 /**
  * 显示成功消息
  */
 function showSuccess(message) {
-    if (typeof toastr !== 'undefined') {
-        toastr.success(message);
-    } else {
+    try {
+        if (typeof toastr !== 'undefined') {
+            toastr.success(message);
+        } else {
+            console.log('成功: ' + message);
+            alert('成功: ' + message);
+        }
+    } catch (error) {
+        console.error('显示成功消息失败:', error);
         alert('成功: ' + message);
     }
 }
@@ -399,9 +464,15 @@ function showSuccess(message) {
  * 显示错误消息
  */
 function showError(message) {
-    if (typeof toastr !== 'undefined') {
-        toastr.error(message);
-    } else {
+    try {
+        if (typeof toastr !== 'undefined') {
+            toastr.error(message);
+        } else {
+            console.error('错误: ' + message);
+            alert('错误: ' + message);
+        }
+    } catch (error) {
+        console.error('显示错误消息失败:', error);
         alert('错误: ' + message);
     }
 }
@@ -410,9 +481,15 @@ function showError(message) {
  * 显示信息消息
  */
 function showInfo(message) {
-    if (typeof toastr !== 'undefined') {
-        toastr.info(message);
-    } else {
+    try {
+        if (typeof toastr !== 'undefined') {
+            toastr.info(message);
+        } else {
+            console.log('信息: ' + message);
+            alert('信息: ' + message);
+        }
+    } catch (error) {
+        console.error('显示信息消息失败:', error);
         alert('信息: ' + message);
     }
 }
