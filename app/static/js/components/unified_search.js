@@ -327,20 +327,32 @@ class UnifiedSearch {
     }
 
     bindTagSelectorEvents() {
+        console.log('bindTagSelectorEvents: 开始绑定标签选择器事件');
+        
         // 绑定确认按钮事件
         const confirmBtn = document.getElementById('confirm-selection-btn');
+        console.log('bindTagSelectorEvents: 查找确认按钮结果:', confirmBtn ? '找到' : '未找到');
         if (confirmBtn) {
+            // 移除之前的事件监听器
+            confirmBtn.onclick = null;
             confirmBtn.onclick = () => {
+                console.log('bindTagSelectorEvents: 确认按钮被点击，调用confirmTagSelection');
                 this.confirmTagSelection();
             };
+            console.log('bindTagSelectorEvents: 确认按钮事件绑定成功');
         }
 
         // 绑定取消按钮事件
         const cancelBtn = document.getElementById('cancel-selection-btn');
+        console.log('bindTagSelectorEvents: 查找取消按钮结果:', cancelBtn ? '找到' : '未找到');
         if (cancelBtn) {
+            // 移除之前的事件监听器
+            cancelBtn.onclick = null;
             cancelBtn.onclick = () => {
+                console.log('bindTagSelectorEvents: 取消按钮被点击，调用cancelTagSelection');
                 this.cancelTagSelection();
             };
+            console.log('bindTagSelectorEvents: 取消按钮事件绑定成功');
         }
 
         // 绑定搜索框事件
@@ -350,6 +362,8 @@ class UnifiedSearch {
                 this.filterTags(e.target.value);
             };
         }
+        
+        console.log('bindTagSelectorEvents: 事件绑定完成');
     }
 
     addTagToSelection(tagName) {
@@ -391,6 +405,8 @@ class UnifiedSearch {
 
     confirmTagSelection() {
         console.log('confirmTagSelection: 开始确认标签选择');
+        console.log('confirmTagSelection: window.tagSelector存在:', !!window.tagSelector);
+        console.log('confirmTagSelection: window.tagSelector.confirmSelection存在:', !!(window.tagSelector && typeof window.tagSelector.confirmSelection === 'function'));
         
         // 调用标签选择器的确认方法
         if (window.tagSelector && typeof window.tagSelector.confirmSelection === 'function') {
@@ -415,6 +431,7 @@ class UnifiedSearch {
             this.updateSelectedTagsDisplay();
             
             // 关闭模态框
+            console.log('confirmTagSelection: 准备关闭模态框');
             this.closeTagSelectorModal();
         }
     }
@@ -438,19 +455,27 @@ class UnifiedSearch {
         console.log('closeTagSelectorModal: 开始关闭标签选择器模态框');
         
         const modal = document.getElementById('tagSelectorModal');
+        console.log('closeTagSelectorModal: 模态框元素:', modal);
         if (!modal) {
             console.log('closeTagSelectorModal: 模态框未找到');
             return;
         }
         
+        console.log('closeTagSelectorModal: 模态框当前状态:');
+        console.log('- display:', modal.style.display);
+        console.log('- classList:', modal.classList.toString());
+        console.log('- aria-hidden:', modal.getAttribute('aria-hidden'));
+        
         // 方法1: 尝试使用Bootstrap Modal实例
         const bsModal = bootstrap.Modal.getInstance(modal);
+        console.log('closeTagSelectorModal: Bootstrap Modal实例:', bsModal);
         if (bsModal) {
             console.log('closeTagSelectorModal: 使用Bootstrap Modal实例关闭');
             bsModal.hide();
             
             // 等待Bootstrap完成关闭动画
             setTimeout(() => {
+                console.log('closeTagSelectorModal: 延迟执行强制清理');
                 this.forceCleanupModal();
             }, 300);
         } else {
@@ -463,28 +488,54 @@ class UnifiedSearch {
         console.log('forceCleanupModal: 强制清理模态框');
         
         const modal = document.getElementById('tagSelectorModal');
+        console.log('forceCleanupModal: 模态框元素:', modal);
+        
         if (modal) {
+            console.log('forceCleanupModal: 清理前模态框状态:');
+            console.log('- display:', modal.style.display);
+            console.log('- classList:', modal.classList.toString());
+            console.log('- aria-hidden:', modal.getAttribute('aria-hidden'));
+            
             // 隐藏模态框
             modal.style.display = 'none';
             modal.classList.remove('show');
             modal.setAttribute('aria-hidden', 'true');
             modal.removeAttribute('aria-modal');
+            
+            console.log('forceCleanupModal: 清理后模态框状态:');
+            console.log('- display:', modal.style.display);
+            console.log('- classList:', modal.classList.toString());
+            console.log('- aria-hidden:', modal.getAttribute('aria-hidden'));
         }
         
         // 移除body的modal-open类
+        console.log('forceCleanupModal: body清理前状态:');
+        console.log('- classList:', document.body.classList.toString());
+        console.log('- overflow:', document.body.style.overflow);
+        console.log('- paddingRight:', document.body.style.paddingRight);
+        
         document.body.classList.remove('modal-open');
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
         
+        console.log('forceCleanupModal: body清理后状态:');
+        console.log('- classList:', document.body.classList.toString());
+        console.log('- overflow:', document.body.style.overflow);
+        console.log('- paddingRight:', document.body.style.paddingRight);
+        
         // 移除所有backdrop元素
         const backdrops = document.querySelectorAll('.modal-backdrop');
-        backdrops.forEach(backdrop => {
+        console.log('forceCleanupModal: 找到backdrop元素数量:', backdrops.length);
+        backdrops.forEach((backdrop, index) => {
+            console.log(`forceCleanupModal: 移除backdrop ${index + 1}:`, backdrop);
             backdrop.remove();
         });
         
         // 移除所有modal相关的类
         const modalElements = document.querySelectorAll('.modal');
-        modalElements.forEach(el => {
+        console.log('forceCleanupModal: 找到modal元素数量:', modalElements.length);
+        modalElements.forEach((el, index) => {
+            console.log(`forceCleanupModal: 清理modal ${index + 1}:`, el);
             el.classList.remove('show');
             el.style.display = 'none';
         });
