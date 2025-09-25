@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}分区管理 - 鲸落{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/database_sizes/partitions.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-layer-group me-2"></i>分区管理</h2>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary" id="refreshBtn">
+                <i class="fas fa-sync-alt me-2"></i>刷新
+            </button>
+            <button type="button" class="btn btn-success" id="createPartitionBtn">
+                <i class="fas fa-plus me-2"></i>创建分区
+            </button>
+            <button type="button" class="btn btn-warning" id="cleanupPartitionsBtn">
+                <i class="fas fa-trash me-2"></i>清理旧分区
+            </button>
+        </div>
+    </div>
+
+    <!-- 分区状态概览 -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title" id="totalPartitions">-</h4>
+                            <p class="card-text">总分区数</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-layer-group fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title" id="totalSize">-</h4>
+                            <p class="card-text">总大小</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-hdd fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title" id="totalRecords">-</h4>
+                            <p class="card-text">总记录数</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-database fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title" id="partitionStatus">-</h4>
+                            <p class="card-text">状态</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-heartbeat fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分区列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>分区列表</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="partitionsTable">
+                    <thead>
+                        <tr>
+                            <th>分区名称</th>
+                            <th>日期</th>
+                            <th>大小</th>
+                            <th>记录数</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="partitionsTableBody">
+                        <tr>
+                            <td colspan="6" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">加载中...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 创建分区模态框 -->
+<div class="modal fade" id="createPartitionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">创建分区</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPartitionForm">
+                    <div class="mb-3">
+                        <label for="partitionDate" class="form-label">分区日期</label>
+                        <input type="date" class="form-control" id="partitionDate" required>
+                        <div class="form-text">选择要创建分区的月份（将创建该月的分区）</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmCreatePartition">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 清理分区模态框 -->
+<div class="modal fade" id="cleanupPartitionsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">清理旧分区</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cleanupPartitionsForm">
+                    <div class="mb-3">
+                        <label for="retentionMonths" class="form-label">保留月数</label>
+                        <input type="number" class="form-control" id="retentionMonths" min="1" max="60" value="12">
+                        <div class="form-text">保留最近几个月的分区，超过此期限的分区将被删除</div>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>警告：</strong>此操作将永久删除旧分区及其数据，请谨慎操作！
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmCleanupPartitions">清理</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/database_sizes/partitions.js') }}"></script>
+{% endblock %}
