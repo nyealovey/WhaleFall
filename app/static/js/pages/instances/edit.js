@@ -197,7 +197,7 @@ function openTagSelector() {
     modalElement.addEventListener('shown.bs.modal', function () {
         if (!getTagSelector()) {
             const selector = initializeTagSelector({
-                onSelectionChange: updateSelectedTagsUI
+                onSelectionChange: updateSelectedTagsPreview
             });
             // 编辑页面需要设置已有的标签
             const currentTags = getCurrentTags();

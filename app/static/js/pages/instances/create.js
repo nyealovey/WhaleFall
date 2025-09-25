@@ -111,7 +111,7 @@ function openTagSelector() {
     modalElement.addEventListener('shown.bs.modal', function () {
         if (!getTagSelector()) {
             const selector = initializeTagSelector({
-                onSelectionChange: updateSelectedTagsUI
+                onSelectionChange: updateSelectedTagsPreview
             });
         }
     }, { once: true });
