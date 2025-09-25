@@ -74,7 +74,7 @@ def detailed_health_check() -> "Response":
             data={
                 "status": overall_status,
                 "timestamp": time.time(),
-                "version": "1.0.9",
+                "version": "1.1.0",
                 "components": {
                     "database": db_status,
                     "cache": cache_status,

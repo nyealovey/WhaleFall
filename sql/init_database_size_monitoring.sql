@@ -68,6 +68,16 @@ CREATE TABLE IF NOT EXISTS database_size_aggregations (
     avg_log_size_mb BIGINT,
     max_log_size_mb BIGINT,
     min_log_size_mb BIGINT,
+    -- 增量/减量统计字段
+    size_change_mb BIGINT DEFAULT 0,
+    size_change_percent DECIMAL(5,2) DEFAULT 0,
+    data_size_change_mb BIGINT DEFAULT 0,
+    data_size_change_percent DECIMAL(5,2) DEFAULT 0,
+    log_size_change_mb BIGINT DEFAULT 0,
+    log_size_change_percent DECIMAL(5,2) DEFAULT 0,
+    -- 趋势分析字段
+    trend_direction VARCHAR(10) DEFAULT 'stable', -- 'growing', 'shrinking', 'stable'
+    growth_rate DECIMAL(5,2) DEFAULT 0,
     calculated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -95,6 +105,14 @@ COMMENT ON COLUMN database_size_aggregations.min_data_size_mb IS '最小数据�
 COMMENT ON COLUMN database_size_aggregations.avg_log_size_mb IS '平均日志大小（MB）';
 COMMENT ON COLUMN database_size_aggregations.max_log_size_mb IS '最大日志大小（MB）';
 COMMENT ON COLUMN database_size_aggregations.min_log_size_mb IS '最小日志大小（MB）';
+COMMENT ON COLUMN database_size_aggregations.size_change_mb IS '总大小变化量（MB，可为负值）';
+COMMENT ON COLUMN database_size_aggregations.size_change_percent IS '总大小变化百分比（%，可为负值）';
+COMMENT ON COLUMN database_size_aggregations.data_size_change_mb IS '数据大小变化量（MB，可为负值）';
+COMMENT ON COLUMN database_size_aggregations.data_size_change_percent IS '数据大小变化百分比（%，可为负值）';
+COMMENT ON COLUMN database_size_aggregations.log_size_change_mb IS '日志大小变化量（MB，可为负值）';
+COMMENT ON COLUMN database_size_aggregations.log_size_change_percent IS '日志大小变化百分比（%，可为负值）';
+COMMENT ON COLUMN database_size_aggregations.trend_direction IS '趋势方向：growing（增长）、shrinking（缩减）、stable（稳定）';
+COMMENT ON COLUMN database_size_aggregations.growth_rate IS '增长率（%，可为负值）';
 COMMENT ON COLUMN database_size_aggregations.calculated_at IS '计算时间';
 COMMENT ON COLUMN database_size_aggregations.created_at IS '记录创建时间';
 

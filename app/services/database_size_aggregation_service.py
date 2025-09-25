@@ -239,6 +239,9 @@ class DatabaseSizeAggregationService:
                 aggregation.max_log_size_mb = max(log_sizes)
                 aggregation.min_log_size_mb = min(log_sizes)
             
+            # 计算增量/减量统计
+            self._calculate_change_statistics(aggregation, instance_id, database_name, period_type, start_date, end_date)
+            
             aggregation.calculated_at = datetime.utcnow()
             
             if not existing:
@@ -252,6 +255,136 @@ class DatabaseSizeAggregationService:
             logger.error(f"计算数据库 {database_name} 的 {period_type} 统计聚合时出错: {str(e)}")
             db.session.rollback()
             raise
+    
+    def _calculate_change_statistics(self, aggregation, instance_id: int, database_name: str, 
+                                   period_type: str, start_date: date, end_date: date) -> None:
+        """
+        计算增量/减量统计
+        
+        Args:
+            aggregation: 聚合数据对象
+            instance_id: 实例ID
+            database_name: 数据库名称
+            period_type: 统计周期类型
+            start_date: 开始日期
+            end_date: 结束日期
+        """
+        try:
+            # 计算上一个周期的日期范围
+            prev_start_date, prev_end_date = self._get_previous_period_dates(period_type, start_date, end_date)
+            
+            # 获取上一个周期的数据
+            prev_stats = DatabaseSizeStat.query.filter(
+                DatabaseSizeStat.instance_id == instance_id,
+                DatabaseSizeStat.database_name == database_name,
+                DatabaseSizeStat.collected_date >= prev_start_date,
+                DatabaseSizeStat.collected_date <= prev_end_date
+            ).all()
+            
+            if not prev_stats:
+                # 没有上一个周期的数据，设置为0
+                aggregation.size_change_mb = 0
+                aggregation.size_change_percent = 0
+                aggregation.data_size_change_mb = 0
+                aggregation.data_size_change_percent = 0
+                aggregation.log_size_change_mb = 0
+                aggregation.log_size_change_percent = 0
+                aggregation.trend_direction = "stable"
+                aggregation.growth_rate = 0
+                return
+            
+            # 计算上一个周期的平均值
+            prev_sizes = [stat.size_mb for stat in prev_stats]
+            prev_avg_size = sum(prev_sizes) / len(prev_sizes)
+            
+            prev_data_sizes = [stat.data_size_mb for stat in prev_stats if stat.data_size_mb is not None]
+            prev_avg_data_size = sum(prev_data_sizes) / len(prev_data_sizes) if prev_data_sizes else None
+            
+            prev_log_sizes = [stat.log_size_mb for stat in prev_stats if stat.log_size_mb is not None]
+            prev_avg_log_size = sum(prev_log_sizes) / len(prev_log_sizes) if prev_log_sizes else None
+            
+            # 计算变化量（当前 - 上一个周期）
+            size_change_mb = aggregation.avg_size_mb - prev_avg_size
+            aggregation.size_change_mb = int(size_change_mb)
+            aggregation.size_change_percent = round((size_change_mb / prev_avg_size * 100) if prev_avg_size > 0 else 0, 2)
+            
+            # 数据大小变化
+            if prev_avg_data_size is not None and aggregation.avg_data_size_mb is not None:
+                data_size_change_mb = aggregation.avg_data_size_mb - prev_avg_data_size
+                aggregation.data_size_change_mb = int(data_size_change_mb)
+                aggregation.data_size_change_percent = round((data_size_change_mb / prev_avg_data_size * 100) if prev_avg_data_size > 0 else 0, 2)
+            
+            # 日志大小变化
+            if prev_avg_log_size is not None and aggregation.avg_log_size_mb is not None:
+                log_size_change_mb = aggregation.avg_log_size_mb - prev_avg_log_size
+                aggregation.log_size_change_mb = int(log_size_change_mb)
+                aggregation.log_size_change_percent = round((log_size_change_mb / prev_avg_log_size * 100) if prev_avg_log_size > 0 else 0, 2)
+            
+            # 确定趋势方向
+            if abs(aggregation.size_change_percent) < 1.0:  # 变化小于1%认为是稳定
+                aggregation.trend_direction = "stable"
+            elif aggregation.size_change_percent > 0:
+                aggregation.trend_direction = "growing"
+            else:
+                aggregation.trend_direction = "shrinking"
+            
+            # 设置增长率
+            aggregation.growth_rate = aggregation.size_change_percent
+            
+        except Exception as e:
+            logger.error(f"计算增量/减量统计时出错: {str(e)}")
+            # 设置默认值
+            aggregation.size_change_mb = 0
+            aggregation.size_change_percent = 0
+            aggregation.data_size_change_mb = 0
+            aggregation.data_size_change_percent = 0
+            aggregation.log_size_change_mb = 0
+            aggregation.log_size_change_percent = 0
+            aggregation.trend_direction = "stable"
+            aggregation.growth_rate = 0
+    
+    def _get_previous_period_dates(self, period_type: str, start_date: date, end_date: date) -> tuple:
+        """
+        获取上一个周期的日期范围
+        
+        Args:
+            period_type: 统计周期类型
+            start_date: 当前周期开始日期
+            end_date: 当前周期结束日期
+            
+        Returns:
+            tuple: (上一个周期开始日期, 上一个周期结束日期)
+        """
+        if period_type == "weekly":
+            # 上一周
+            period_duration = end_date - start_date
+            prev_end_date = start_date - timedelta(days=1)
+            prev_start_date = prev_end_date - period_duration
+        elif period_type == "monthly":
+            # 上一个月
+            if start_date.month == 1:
+                prev_start_date = date(start_date.year - 1, 12, 1)
+                prev_end_date = date(start_date.year - 1, 12, 31)
+            else:
+                prev_start_date = date(start_date.year, start_date.month - 1, 1)
+                prev_end_date = date(start_date.year, start_date.month, 1) - timedelta(days=1)
+        elif period_type == "quarterly":
+            # 上一个季度
+            quarter = (start_date.month - 1) // 3 + 1
+            if quarter == 1:
+                prev_start_date = date(start_date.year - 1, 10, 1)
+                prev_end_date = date(start_date.year - 1, 12, 31)
+            else:
+                prev_quarter_start_month = (quarter - 2) * 3 + 1
+                prev_start_date = date(start_date.year, prev_quarter_start_month, 1)
+                prev_end_date = date(start_date.year, prev_quarter_start_month + 2, 1) - timedelta(days=1)
+        else:
+            # 默认返回相同周期
+            period_duration = end_date - start_date
+            prev_end_date = start_date - timedelta(days=1)
+            prev_start_date = prev_end_date - period_duration
+        
+        return prev_start_date, prev_end_date
     
     def get_aggregations(self, instance_id: int, period_type: str, 
                         start_date: date = None, end_date: date = None,
@@ -418,6 +551,18 @@ class DatabaseSizeAggregationService:
                 'avg_log_size_mb': aggregation.avg_log_size_mb,
                 'max_log_size_mb': aggregation.max_log_size_mb,
                 'min_log_size_mb': aggregation.min_log_size_mb
+            },
+            'changes': {
+                'size_change_mb': aggregation.size_change_mb,
+                'size_change_percent': float(aggregation.size_change_percent) if aggregation.size_change_percent else 0,
+                'data_size_change_mb': aggregation.data_size_change_mb,
+                'data_size_change_percent': float(aggregation.data_size_change_percent) if aggregation.data_size_change_percent else None,
+                'log_size_change_mb': aggregation.log_size_change_mb,
+                'log_size_change_percent': float(aggregation.log_size_change_percent) if aggregation.log_size_change_percent else None
+            },
+            'trend': {
+                'direction': aggregation.trend_direction,
+                'growth_rate': float(aggregation.growth_rate) if aggregation.growth_rate else 0
             },
             'calculated_at': aggregation.calculated_at.isoformat() if aggregation.calculated_at else None,
             'created_at': aggregation.created_at.isoformat() if aggregation.created_at else None

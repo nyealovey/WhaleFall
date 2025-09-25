@@ -1,605 +1,655 @@
-# 鲸落 - API接口文档
+# 鲸落 (TaifishV4) API 文档
 
-## 概述
-鲸落提供完整的RESTful API接口，支持数据库实例管理、账户分类、任务调度、日志监控等功能。
+## 📋 API 概览
 
-## 基础信息
-- **开发环境URL**: `http://localhost:5001`
-- **生产环境URL**: `http://localhost:8000`
-- **认证方式**: JWT Token + Flask-Login Session
+鲸落提供完整的RESTful API接口，支持数据库实例管理、账户分类、数据同步、任务调度等核心功能。所有API接口都支持JSON格式的请求和响应。
+
+### 基础信息
+- **API版本**: v1.1.0
+- **基础URL**: `http://your-domain.com/api`
+- **认证方式**: JWT Token / Session Cookie
 - **数据格式**: JSON
 - **字符编码**: UTF-8
-- **API版本**: v1.0.1
-- **当前状态**: 所有核心API已实现并投入使用
 
-## 已实现的API
+## 🔐 认证与授权
 
-### 系统状态API ✅
+### 认证方式
 
-#### 健康检查
-```http
-GET /api/health
-```
-
-**响应:**
-```json
-{
-  "status": "success",
-  "data": {
-    "status": "healthy",
-    "timestamp": 1694123456.789,
-    "version": "1.0.1"
-  },
-  "message": "服务运行正常"
-}
-```
-
-#### 详细健康检查
-```http
-GET /health/detailed
-```
-
-**响应:**
-```json
-{
-  "status": "success",
-  "data": {
-    "status": "healthy",
-    "database": "connected",
-    "redis": "connected",
-    "timestamp": "2025-09-18T08:30:00Z",
-    "version": "1.0.1"
-  }
-}
-```
-
-### 认证API ✅
-
-#### 登录
+#### 1. Session Cookie 认证
 ```http
 POST /auth/login
 Content-Type: application/json
 
 {
-  "username": "admin",
-  "password": "Admin123"
+    "username": "admin",
+    "password": "password123"
 }
 ```
 
-**响应:**
-```json
-{
-  "status": "success",
-  "data": {
-    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-    "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-    "user": {
-      "id": 1,
-      "username": "admin",
-      "role": "admin"
-    }
-  },
-  "message": "登录成功"
-}
-```
-
-#### 刷新Token
+#### 2. JWT Token 认证
 ```http
-POST /api/refresh
-Authorization: Bearer <refresh_token>
+Authorization: Bearer <jwt_token>
 ```
 
-#### 获取当前用户信息
-```http
-GET /api/me
-Authorization: Bearer <access_token>
-```
+### 用户角色权限
 
-### 仪表板API ✅
+| 角色 | 权限描述 |
+|------|----------|
+| admin | 系统管理员，拥有所有权限 |
+| dba | 数据库管理员，拥有数据库相关权限 |
+| operator | 操作员，拥有基本操作权限 |
+| viewer | 只读用户，只能查看数据 |
 
-#### 系统概览
-```http
-GET /api/overview
-Authorization: Bearer <token>
-```
+## 🗄️ 数据库实例管理 API
 
-#### 图表数据
-```http
-GET /api/charts
-Authorization: Bearer <token>
-```
-
-#### 活动日志
-```http
-GET /api/activities
-Authorization: Bearer <token>
-```
-
-#### 系统状态
-```http
-GET /api/status
-Authorization: Bearer <token>
-```
-
-### 数据库实例管理API ✅
-
-#### 获取实例列表
+### 实例列表
 ```http
 GET /api/instances
-Authorization: Bearer <token>
 ```
 
-#### 获取实例详情
-```http
-GET /api/instances/{id}
-Authorization: Bearer <token>
-```
-
-#### 测试连接
-```http
-POST /api/instances/{id}/test
-Authorization: Bearer <token>
-```
-
-#### 测试连接（通用）
-```http
-POST /api/test-connection
-Authorization: Bearer <token>
-Content-Type: application/json
-
+**响应示例**:
+```json
 {
-  "db_type": "postgresql",
-  "host": "localhost",
-  "port": 5432,
-  "username": "user",
-  "password": "password",
-  "database": "test"
+    "success": true,
+    "data": {
+        "instances": [
+            {
+                "id": 1,
+                "name": "MySQL-Prod",
+                "host": "192.168.1.100",
+                "port": 3306,
+                "db_type": "mysql",
+                "status": "active",
+                "created_at": "2025-09-25T10:00:00Z"
+            }
+        ],
+        "total": 1
+    }
 }
 ```
 
-#### 获取实例统计
+### 创建实例
 ```http
-GET /api/statistics
-Authorization: Bearer <token>
-```
-
-### 账户分类管理API ✅
-
-#### 获取分类批次
-```http
-GET /api/batches
-Authorization: Bearer <token>
-```
-
-#### 获取批次详情
-```http
-GET /api/batches/{batch_id}
-Authorization: Bearer <token>
-```
-
-#### 获取批次匹配结果
-```http
-GET /api/batches/{batch_id}/matches
-Authorization: Bearer <token>
-```
-
-### 任务调度API ✅
-
-#### 获取任务列表
-```http
-GET /api/jobs
-Authorization: Bearer <token>
-```
-
-#### 获取任务详情
-```http
-GET /api/jobs/{job_id}
-Authorization: Bearer <token>
-```
-
-#### 创建任务
-```http
-POST /api/jobs
-Authorization: Bearer <token>
+POST /api/instances
 Content-Type: application/json
 
 {
-  "name": "账户同步任务",
-  "task_type": "sync_accounts",
-  "db_type": "postgresql",
-  "schedule": "0 */30 * * * *",
-  "description": "每30分钟同步一次账户"
+    "name": "MySQL-Prod",
+    "host": "192.168.1.100",
+    "port": 3306,
+    "db_type": "mysql",
+    "credentials": {
+        "username": "root",
+        "password": "password123"
+    }
 }
 ```
 
-#### 更新任务
+### 更新实例
 ```http
-PUT /api/jobs/{job_id}
-Authorization: Bearer <token>
+PUT /api/instances/{id}
 Content-Type: application/json
 
 {
-  "name": "更新的任务名称",
-  "schedule": "0 0 */6 * * *"
+    "name": "MySQL-Prod-Updated",
+    "host": "192.168.1.101"
 }
 ```
 
-#### 删除任务
+### 删除实例
 ```http
-DELETE /api/jobs/{job_id}
-Authorization: Bearer <token>
+DELETE /api/instances/{id}
 ```
 
-#### 启用/禁用任务
+### 测试连接
 ```http
-POST /api/jobs/{job_id}/enable
-POST /api/jobs/{job_id}/disable
-Authorization: Bearer <token>
+POST /api/instances/{id}/test-connection
 ```
 
-#### 暂停/恢复任务
+## 🏷️ 标签管理 API
+
+### 标签列表
 ```http
-POST /api/jobs/{job_id}/pause
-POST /api/jobs/{job_id}/resume
-Authorization: Bearer <token>
+GET /api/tags
 ```
 
-#### 立即执行任务
-```http
-POST /api/jobs/{job_id}/run
-Authorization: Bearer <token>
+**查询参数**:
+- `page`: 页码 (默认: 1)
+- `per_page`: 每页数量 (默认: 20)
+- `search`: 搜索关键词
+- `category`: 分类筛选
+- `status`: 状态筛选
+
+**响应示例**:
+```json
+{
+    "success": true,
+    "data": {
+        "tags": [
+            {
+                "id": 1,
+                "name": "core_system",
+                "display_name": "核心系统",
+                "category": "project",
+                "color": "primary",
+                "description": "核心业务系统",
+                "is_active": true,
+                "instances_count": 5
+            }
+        ],
+        "pagination": {
+            "page": 1,
+            "per_page": 20,
+            "total": 1,
+            "pages": 1
+        }
+    }
+}
 ```
 
-### 同步会话API ✅
-
-#### 获取同步会话列表
+### 创建标签
 ```http
-GET /api/sessions
-Authorization: Bearer <token>
-```
-
-#### 获取会话详情
-```http
-GET /api/sessions/{session_id}
-Authorization: Bearer <token>
-```
-
-#### 取消同步会话
-```http
-POST /api/sessions/{session_id}/cancel
-Authorization: Bearer <token>
-```
-
-#### 获取错误日志
-```http
-GET /api/sessions/{session_id}/error-logs
-Authorization: Bearer <token>
-```
-
-#### 获取同步统计
-```http
-GET /api/statistics
-Authorization: Bearer <token>
-```
-
-### 日志管理API ✅
-
-#### 搜索日志
-```http
-GET /api/search?level=ERROR&module=auth&start_date=2025-09-01&end_date=2025-09-18
-Authorization: Bearer <token>
-```
-
-#### 获取日志统计
-```http
-GET /api/statistics
-Authorization: Bearer <token>
-```
-
-#### 获取错误日志
-```http
-GET /api/errors
-Authorization: Bearer <token>
-```
-
-#### 获取日志模块
-```http
-GET /api/modules
-Authorization: Bearer <token>
-```
-
-#### 导出日志
-```http
-GET /api/export?format=csv&start_date=2025-09-01&end_date=2025-09-18
-Authorization: Bearer <token>
-```
-
-#### 清理日志
-```http
-POST /api/cleanup
-Authorization: Bearer <token>
+POST /api/tags
 Content-Type: application/json
 
 {
-  "days": 30
+    "name": "test_system",
+    "display_name": "测试系统",
+    "category": "project",
+    "color": "success",
+    "description": "测试环境系统"
 }
 ```
 
-#### 实时日志
+### 更新标签
 ```http
-GET /api/real-time
-Authorization: Bearer <token>
+PUT /api/tags/{id}
+Content-Type: application/json
+
+{
+    "display_name": "测试系统-更新",
+    "description": "更新后的描述"
+}
 ```
 
-#### 日志健康检查
+### 删除标签
 ```http
-GET /api/health
-Authorization: Bearer <token>
+DELETE /api/tags/{id}
 ```
 
-#### 日志统计信息
+### 批量分配标签
 ```http
-GET /api/stats
-Authorization: Bearer <token>
+POST /api/tags/batch-assign
+Content-Type: application/json
+
+{
+    "instance_ids": [1, 2, 3],
+    "tag_ids": [1, 2],
+    "operation": "assign"
+}
 ```
 
-#### 获取日志详情
+## 👥 账户分类管理 API
+
+### 分类列表
 ```http
-GET /api/detail/{log_id}
-Authorization: Bearer <token>
+GET /api/account-classifications
 ```
 
-### 用户管理API ✅
+**响应示例**:
+```json
+{
+    "success": true,
+    "data": {
+        "classifications": [
+            {
+                "id": 1,
+                "name": "核心系统账户",
+                "description": "核心业务系统相关账户",
+                "db_type": "mysql",
+                "is_active": true,
+                "accounts_count": 10
+            }
+        ]
+    }
+}
+```
 
-#### 获取用户列表
+### 创建分类
+```http
+POST /api/account-classifications
+Content-Type: application/json
+
+{
+    "name": "测试系统账户",
+    "description": "测试环境相关账户",
+    "db_type": "mysql",
+    "rules": [
+        {
+            "field": "username",
+            "operator": "contains",
+            "value": "test"
+        }
+    ]
+}
+```
+
+### 执行分类
+```http
+POST /api/account-classifications/{id}/execute
+```
+
+### 获取分类结果
+```http
+GET /api/account-classifications/{id}/results
+```
+
+## 🔄 数据同步管理 API
+
+### 同步会话列表
+```http
+GET /api/sync-sessions
+```
+
+**查询参数**:
+- `status`: 状态筛选 (running, completed, failed, cancelled)
+- `page`: 页码
+- `per_page`: 每页数量
+
+**响应示例**:
+```json
+{
+    "success": true,
+    "data": {
+        "sessions": [
+            {
+                "id": 1,
+                "name": "账户同步-2025-09-25",
+                "status": "completed",
+                "start_time": "2025-09-25T10:00:00Z",
+                "end_time": "2025-09-25T10:05:00Z",
+                "records_count": 100,
+                "success_count": 95,
+                "failed_count": 5
+            }
+        ],
+        "pagination": {
+            "page": 1,
+            "per_page": 20,
+            "total": 1,
+            "pages": 1
+        }
+    }
+}
+```
+
+### 创建同步会话
+```http
+POST /api/sync-sessions
+Content-Type: application/json
+
+{
+    "name": "账户同步-2025-09-25",
+    "instance_ids": [1, 2, 3],
+    "sync_type": "account_sync"
+}
+```
+
+### 启动同步
+```http
+POST /api/sync-sessions/{id}/start
+```
+
+### 停止同步
+```http
+POST /api/sync-sessions/{id}/stop
+```
+
+### 获取同步详情
+```http
+GET /api/sync-sessions/{id}/details
+```
+
+## ⏰ 任务调度管理 API
+
+### 任务列表
+```http
+GET /api/scheduler/tasks
+```
+
+**响应示例**:
+```json
+{
+    "success": true,
+    "data": {
+        "tasks": [
+            {
+                "id": "account_sync_task",
+                "name": "账户同步任务",
+                "type": "account_sync",
+                "status": "running",
+                "next_run_time": "2025-09-25T11:00:00Z",
+                "last_run_time": "2025-09-25T10:00:00Z",
+                "is_enabled": true
+            }
+        ]
+    }
+}
+```
+
+### 启用任务
+```http
+POST /api/scheduler/tasks/{id}/enable
+```
+
+### 禁用任务
+```http
+POST /api/scheduler/tasks/{id}/disable
+```
+
+### 立即执行任务
+```http
+POST /api/scheduler/tasks/{id}/execute
+```
+
+### 获取任务日志
+```http
+GET /api/scheduler/tasks/{id}/logs
+```
+
+## 📊 日志监控 API
+
+### 日志列表
+```http
+GET /api/logs
+```
+
+**查询参数**:
+- `level`: 日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `module`: 模块名称
+- `time_range`: 时间范围 (1h, 1d, 1w, 1m)
+- `page`: 页码
+- `per_page`: 每页数量
+
+**响应示例**:
+```json
+{
+    "success": true,
+    "data": {
+        "logs": [
+            {
+                "id": 1,
+                "level": "INFO",
+                "module": "account_sync",
+                "message": "账户同步完成",
+                "timestamp": "2025-09-25T10:05:00Z",
+                "details": {
+                    "instance_id": 1,
+                    "accounts_count": 100
+                }
+            }
+        ],
+        "pagination": {
+            "page": 1,
+            "per_page": 50,
+            "total": 100,
+            "pages": 2
+        }
+    }
+}
+```
+
+### 获取日志统计
+```http
+GET /api/logs/statistics
+```
+
+**响应示例**:
+```json
+{
+    "success": true,
+    "data": {
+        "total_logs": 1000,
+        "by_level": {
+            "DEBUG": 100,
+            "INFO": 700,
+            "WARNING": 150,
+            "ERROR": 40,
+            "CRITICAL": 10
+        },
+        "by_module": {
+            "account_sync": 300,
+            "permission_scan": 200,
+            "data_cleanup": 100
+        }
+    }
+}
+```
+
+## 👤 用户管理 API
+
+### 用户列表
 ```http
 GET /api/users
-Authorization: Bearer <token>
 ```
 
-#### 创建用户
+**响应示例**:
+```json
+{
+    "success": true,
+    "data": {
+        "users": [
+            {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@example.com",
+                "role": "admin",
+                "is_active": true,
+                "created_at": "2025-09-25T10:00:00Z",
+                "last_login": "2025-09-25T10:00:00Z"
+            }
+        ]
+    }
+}
+```
+
+### 创建用户
 ```http
 POST /api/users
-Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "username": "newuser",
-  "password": "password123",
-  "role": "user",
-  "email": "user@example.com"
+    "username": "newuser",
+    "email": "newuser@example.com",
+    "password": "password123",
+    "role": "operator"
 }
 ```
 
-#### 更新用户
+### 更新用户
 ```http
-PUT /api/users/{user_id}
-Authorization: Bearer <token>
+PUT /api/users/{id}
 Content-Type: application/json
 
 {
-  "username": "updateduser",
-  "role": "admin"
+    "email": "updated@example.com",
+    "role": "dba"
 }
 ```
 
-#### 删除用户
+### 删除用户
 ```http
-DELETE /api/users/{user_id}
-Authorization: Bearer <token>
+DELETE /api/users/{id}
 ```
 
-#### 切换用户状态
+## 🔧 系统管理 API
+
+### 系统信息
 ```http
-POST /api/users/{user_id}/toggle-status
-Authorization: Bearer <token>
+GET /api/system/info
 ```
 
-#### 获取用户统计
-```http
-GET /api/users/stats
-Authorization: Bearer <token>
-```
-
-### 凭据管理API ✅
-
-#### 获取凭据列表
-```http
-GET /api/credentials
-Authorization: Bearer <token>
-```
-
-#### 获取凭据详情
-```http
-GET /api/credentials/{credential_id}
-Authorization: Bearer <token>
-```
-
-### 数据库类型API ✅
-
-#### 获取数据库类型列表
-```http
-GET /api/list
-Authorization: Bearer <token>
-```
-
-#### 获取活跃数据库类型
-```http
-GET /api/active
-Authorization: Bearer <token>
-```
-
-#### 获取表单选项
-```http
-GET /api/form-options
-Authorization: Bearer <token>
-```
-
-## 权限控制
-
-### 权限级别
-- **view_required**: 查看权限
-- **create_required**: 创建权限  
-- **update_required**: 更新权限
-- **delete_required**: 删除权限
-- **scheduler_view_required**: 任务查看权限
-- **scheduler_manage_required**: 任务管理权限
-
-### 管理员权限
-- **admin_required**: 管理员权限，用于系统配置和用户管理
-
-## 响应格式
-
-### 成功响应
+**响应示例**:
 ```json
 {
-  "status": "success",
-  "data": {
-    // 具体数据
-  },
-  "message": "操作成功"
+    "success": true,
+    "data": {
+        "app_name": "鲸落",
+        "app_version": "1.1.0",
+        "python_version": "3.11.0",
+        "flask_version": "3.1.2",
+        "uptime": "2 days, 5 hours",
+        "memory_usage": "256MB",
+        "cpu_usage": "15%"
+    }
 }
 ```
 
-### 错误响应
+### 健康检查
+```http
+GET /api/health
+```
+
+**响应示例**:
 ```json
 {
-  "status": "error",
-  "error": "错误类型",
-  "message": "错误描述",
-  "code": 400,
-  "details": {}
+    "success": true,
+    "data": {
+        "status": "healthy",
+        "timestamp": "2025-09-25T10:00:00Z",
+        "version": "1.1.0",
+        "components": {
+            "database": "healthy",
+            "cache": "healthy",
+            "system": "healthy"
+        }
+    }
 }
 ```
 
-### 分页响应
+### 缓存管理
+```http
+GET /api/cache/status
+```
+
+```http
+POST /api/cache/clear
+```
+
+## 📈 统计报告 API
+
+### 实例统计
+```http
+GET /api/statistics/instances
+```
+
+### 账户统计
+```http
+GET /api/statistics/accounts
+```
+
+### 同步统计
+```http
+GET /api/statistics/sync
+```
+
+### 系统统计
+```http
+GET /api/statistics/system
+```
+
+## ❌ 错误处理
+
+### 错误响应格式
 ```json
 {
-  "status": "success",
-  "data": [...],
-  "pagination": {
-    "page": 1,
-    "per_page": 20,
-    "total": 100,
-    "pages": 5
-  }
+    "success": false,
+    "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "请求参数验证失败",
+        "details": {
+            "field": "username",
+            "reason": "用户名不能为空"
+        }
+    }
 }
 ```
-
-## 错误处理
 
 ### 常见错误码
-- `400` - 请求参数错误
-- `401` - 未授权
-- `403` - 禁止访问
-- `404` - 资源不存在
-- `500` - 服务器内部错误
 
-### 错误类型
-- **ValidationError**: 数据验证错误
-- **AuthenticationError**: 认证失败
-- **AuthorizationError**: 权限不足
-- **ResourceNotFoundError**: 资源不存在
-- **DatabaseError**: 数据库操作错误
-- **ExternalServiceError**: 外部服务错误
+| 错误码 | HTTP状态码 | 描述 |
+|--------|------------|------|
+| VALIDATION_ERROR | 400 | 请求参数验证失败 |
+| AUTHENTICATION_FAILED | 401 | 认证失败 |
+| PERMISSION_DENIED | 403 | 权限不足 |
+| RESOURCE_NOT_FOUND | 404 | 资源不存在 |
+| INTERNAL_ERROR | 500 | 服务器内部错误 |
 
-## 分页
+## 🔍 搜索和筛选
 
-### 分页参数
-- `page` - 页码 (默认: 1)
-- `per_page` - 每页数量 (默认: 20, 最大: 100)
-- `sort` - 排序字段
-- `order` - 排序方向 (asc/desc)
+### 统一搜索
+```http
+GET /api/search?q=关键词&type=instances&filters={"status":"active"}
+```
 
-### 查询参数
-- `search` - 搜索关键词
-- `filter` - 过滤条件
-- `start_date` - 开始日期
-- `end_date` - 结束日期
+### 高级筛选
+```http
+GET /api/instances?filters={"db_type":"mysql","status":"active","created_after":"2025-01-01"}
+```
 
-## HTTP状态码
+## 📝 请求示例
 
-### 成功状态码
-- `200` - 成功
-- `201` - 创建成功
-- `204` - 删除成功
-
-### 客户端错误
-- `400` - 请求错误
-- `401` - 未授权
-- `403` - 禁止访问
-- `404` - 未找到
-- `422` - 数据验证错误
-
-### 服务器错误
-- `500` - 服务器内部错误
-- `502` - 网关错误
-- `503` - 服务不可用
-
-## 使用示例
-
-### 完整的API调用流程
+### cURL 示例
 ```bash
-# 1. 登录获取Token
-curl -X POST http://localhost:5001/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "Admin123"}'
+# 获取实例列表
+curl -X GET "http://localhost:5000/api/instances" \
+  -H "Authorization: Bearer your_jwt_token"
 
-# 2. 使用Token获取实例列表
-curl -X GET http://localhost:5001/api/instances \
-  -H "Authorization: Bearer <access_token>"
-
-# 3. 创建定时任务
-curl -X POST http://localhost:5001/api/jobs \
-  -H "Authorization: Bearer <access_token>" \
+# 创建标签
+curl -X POST "http://localhost:5000/api/tags" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_jwt_token" \
   -d '{
-    "name": "账户同步任务",
-    "task_type": "sync_accounts",
-    "db_type": "postgresql",
-    "schedule": "0 */30 * * * *",
-    "description": "每30分钟同步一次账户"
+    "name": "test_tag",
+    "display_name": "测试标签",
+    "category": "project",
+    "color": "primary"
   }'
-
-# 4. 获取日志统计
-curl -X GET "http://localhost:5001/api/statistics?start_date=2025-09-01&end_date=2025-09-18" \
-  -H "Authorization: Bearer <access_token>"
 ```
 
-### JavaScript调用示例
-```javascript
-// 登录获取Token
-const loginResponse = await fetch('/auth/login', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    username: 'admin',
-    password: 'Admin123'
-  })
-});
+### Python 示例
+```python
+import requests
 
-const loginData = await loginResponse.json();
-const token = loginData.data.access_token;
+# 设置基础URL和认证
+base_url = "http://localhost:5000/api"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
 
-// 使用Token调用API
-const instancesResponse = await fetch('/api/instances', {
-  headers: {
-    'Authorization': `Bearer ${token}`
-  }
-});
+# 获取实例列表
+response = requests.get(f"{base_url}/instances", headers=headers)
+instances = response.json()
 
-const instances = await instancesResponse.json();
-console.log(instances);
+# 创建标签
+tag_data = {
+    "name": "test_tag",
+    "display_name": "测试标签",
+    "category": "project",
+    "color": "primary"
+}
+response = requests.post(f"{base_url}/tags", headers=headers, json=tag_data)
 ```
 
-## 注意事项
+## 📚 更多信息
 
-1. **认证**: 大部分API需要JWT Token认证
-2. **权限**: 不同操作需要相应权限级别
-3. **频率限制**: API调用有频率限制，避免过于频繁的请求
-4. **数据格式**: 所有请求和响应都使用JSON格式
-5. **时区**: 所有时间字段使用UTC时区
-6. **错误处理**: 请妥善处理API返回的错误信息
-7. **版本控制**: 当前API版本为v1.0.1
+- [认证授权](./AUTHENTICATION.md) - 详细的认证和授权说明
+- [错误处理](./ERROR_HANDLING.md) - 错误码和异常处理指南
+- [开发指南](../development/DEVELOPMENT_SETUP.md) - 开发环境搭建指南
+
+---
+
+**最后更新**: 2025-09-25  
+**API版本**: v1.1.0  
+**维护团队**: TaifishingV4 Team
