@@ -44,8 +44,65 @@ database_sizes_bp = Blueprint('database_sizes', __name__)
 @login_required
 @view_required
 def aggregations():
-    """统计聚合页面"""
-    return render_template('database_sizes/aggregations.html')
+    """
+    统计聚合页面或API
+    
+    如果是页面请求（无查询参数），返回HTML页面
+    如果是API请求（有查询参数），返回JSON数据
+    """
+    # 检查是否有查询参数，如果有则返回API数据
+    if request.args:
+        try:
+            # 获取查询参数
+            instance_id = request.args.get('instance_id', type=int)
+            database_name = request.args.get('database_name')
+            period_type = request.args.get('period_type')
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+            limit = request.args.get('limit', 100, type=int)
+            offset = request.args.get('offset', 0, type=int)
+            
+            # 构建查询
+            query = DatabaseSizeAggregation.query
+            
+            if instance_id:
+                query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
+            if database_name:
+                query = query.filter(DatabaseSizeAggregation.database_name == database_name)
+            if period_type:
+                query = query.filter(DatabaseSizeAggregation.period_type == period_type)
+            if start_date:
+                query = query.filter(DatabaseSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+            if end_date:
+                query = query.filter(DatabaseSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
+            
+            # 排序和分页
+            query = query.order_by(desc(DatabaseSizeAggregation.period_start))
+            total = query.count()
+            aggregations = query.offset(offset).limit(limit).all()
+            
+            # 转换为字典格式
+            data = []
+            for agg in aggregations:
+                data.append(agg.to_dict())
+            
+            return jsonify({
+                'success': True,
+                'data': data,
+                'total': total,
+                'limit': limit,
+                'offset': offset
+            })
+            
+        except Exception as e:
+            logger.error(f"获取聚合数据时出错: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    else:
+        # 无查询参数，返回HTML页面
+        return render_template('database_sizes/aggregations.html')
 
 @database_sizes_bp.route('/database-sizes/config', methods=['GET'])
 @login_required
@@ -63,73 +120,6 @@ def partitions():
     return render_template('database_sizes/partitions.html')
 
 # API 路由
-@database_sizes_bp.route('/database-sizes/aggregations', methods=['GET'])
-@login_required
-@view_required
-def get_aggregations():
-    """
-    获取聚合数据
-    
-    Query Parameters:
-        instance_id: 实例ID（可选）
-        database_name: 数据库名称（可选）
-        period_type: 周期类型（weekly, monthly, quarterly）
-        start_date: 开始日期
-        end_date: 结束日期
-        limit: 限制数量
-        offset: 偏移量
-    
-    Returns:
-        JSON: 聚合数据列表
-    """
-    try:
-        # 获取查询参数
-        instance_id = request.args.get('instance_id', type=int)
-        database_name = request.args.get('database_name')
-        period_type = request.args.get('period_type')
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        limit = request.args.get('limit', 100, type=int)
-        offset = request.args.get('offset', 0, type=int)
-        
-        # 构建查询
-        query = DatabaseSizeAggregation.query
-        
-        if instance_id:
-            query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
-        if database_name:
-            query = query.filter(DatabaseSizeAggregation.database_name == database_name)
-        if period_type:
-            query = query.filter(DatabaseSizeAggregation.period_type == period_type)
-        if start_date:
-            query = query.filter(DatabaseSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
-        if end_date:
-            query = query.filter(DatabaseSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
-        
-        # 排序和分页
-        query = query.order_by(desc(DatabaseSizeAggregation.period_start))
-        total = query.count()
-        aggregations = query.offset(offset).limit(limit).all()
-        
-        # 转换为字典格式
-        data = []
-        for agg in aggregations:
-            data.append(agg.to_dict())
-        
-        return jsonify({
-            'success': True,
-            'data': data,
-            'total': total,
-            'limit': limit,
-            'offset': offset
-        })
-        
-    except Exception as e:
-        logger.error(f"获取聚合数据时出错: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 @database_sizes_bp.route('/database-sizes/aggregations/summary', methods=['GET'])
 @login_required
