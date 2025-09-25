@@ -306,10 +306,15 @@
       statusEl: statusEl
     });
     
+    // 获取筛选值，空字符串表示不过滤
+    const syncType = syncTypeEl?.value || '';
+    const syncCategory = syncCategoryEl?.value || '';
+    const status = statusEl?.value || '';
+    
     currentFilters = {
-      sync_type: syncTypeEl?.value || '',
-      sync_category: syncCategoryEl?.value || '',
-      status: statusEl?.value || ''
+      sync_type: syncType,
+      sync_category: syncCategory,
+      status: status
     };
     
     console.log('applyFilters: 筛选条件:', currentFilters);
