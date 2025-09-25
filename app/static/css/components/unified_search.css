@@ -161,6 +161,10 @@
 /* 已选择标签容器样式 */
 #selected-tags-chips {
     margin-left: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
 }
 
 /* 标签徽章样式 - 与标签管理页面保持一致 */
