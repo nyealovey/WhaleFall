@@ -215,6 +215,7 @@ def index() -> str:
         all_tags=all_tags,
         selected_tags=tags,
         search=search,
+        search_value=search,
         db_type=db_type,
         status=status,
     )
