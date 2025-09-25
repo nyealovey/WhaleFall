@@ -129,6 +129,19 @@
     display: block;
 }
 
+/* 同步记录页面筛选条件显示 */
+.sync-records-page .filter-sync-type,
+.sync-records-page .filter-status {
+    display: block;
+}
+
+/* 同步会话管理页面筛选条件显示 */
+.sync-sessions-page .filter-sync-type,
+.sync-sessions-page .filter-sync-category,
+.sync-sessions-page .filter-status {
+    display: block;
+}
+
 /* 标签选择按钮样式 */
 .tag-selector-btn {
     border: 2px solid #e9ecef;
