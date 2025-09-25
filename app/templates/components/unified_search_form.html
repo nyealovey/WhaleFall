@@ -162,3 +162,8 @@
         </form>
     </div>
 </div>
+
+<!-- 标签选择器模态框 -->
+{% if show_tag_filter|default(true) %}
+{% include 'components/tag_selector.html' %}
+{% endif %}
