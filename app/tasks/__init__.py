@@ -3,8 +3,8 @@
 包含各种定时任务的实现
 """
 
-# 导入现有任务（从主tasks模块）
-from ..tasks import cleanup_old_logs, sync_accounts
+# 导入现有任务（从legacy_tasks模块）
+from .legacy_tasks import cleanup_old_logs, sync_accounts
 
 # 导入数据库大小监控相关任务
 from .database_size_collection_tasks import (
