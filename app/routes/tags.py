@@ -436,6 +436,7 @@ def index() -> str:
         "tags/index.html",
         tags=tags,
         search=search,
+        search_value=search,
         category=category,
         status=status,
         categories=categories,

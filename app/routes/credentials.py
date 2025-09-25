@@ -123,6 +123,7 @@ def index() -> str:
         "credentials/list.html",
         credentials=credentials,
         search=search,
+        search_value=search,
         credential_type=credential_type,
         db_type=db_type,
         status=status,

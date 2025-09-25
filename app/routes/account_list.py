@@ -202,6 +202,7 @@ def list_accounts(db_type: str | None = None) -> str:
         db_type=db_type or "all",
         current_db_type=db_type,
         search=search,
+        search_value=search,
         instance_id=instance_id,
         is_locked=is_locked,
         is_superuser=is_superuser,
