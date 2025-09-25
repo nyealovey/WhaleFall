@@ -226,7 +226,8 @@ class UnifiedSearch {
                     container.innerHTML = selectedTagNames.map(tagName => {
                         const tag = tags.find(t => t.name === tagName.trim());
                         const color = tag ? tag.color : 'secondary';
-                        const displayName = tag ? tag.display_name : tagName;
+                        // 优先使用display_name，如果没有则使用name
+                        const displayName = tag ? (tag.display_name || tag.name) : tagName;
                         
                         return `
                             <span class="badge bg-${color} me-1 mb-1" style="cursor: pointer; position: relative;">
