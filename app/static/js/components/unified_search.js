@@ -191,35 +191,27 @@ class UnifiedSearch {
     }
 
     clearSelectedTags() {
-        const selectedTagsPreview = document.getElementById('selected-tags-preview');
         const selectedTagsChips = document.getElementById('selected-tags-chips');
         const selectedTagNames = document.getElementById('selected-tag-names');
-        const selectedTagsCount = document.getElementById('selected-tags-count');
 
-        if (selectedTagsPreview) selectedTagsPreview.style.display = 'none';
         if (selectedTagsChips) selectedTagsChips.innerHTML = '';
         if (selectedTagNames) selectedTagNames.value = '';
-        if (selectedTagsCount) selectedTagsCount.textContent = '未选择标签';
     }
 
     updateSelectedTagsDisplay() {
         const selectedTagNames = document.getElementById('selected-tag-names');
         const selectedTagsChips = document.getElementById('selected-tags-chips');
-        const selectedTagsCount = document.getElementById('selected-tags-count');
 
-        if (!selectedTagNames || !selectedTagsChips || !selectedTagsCount) {
+        if (!selectedTagNames || !selectedTagsChips) {
             return;
         }
 
         const selectedTags = selectedTagNames.value ? selectedTagNames.value.split(',') : [];
         
         if (selectedTags.length > 0) {
-            selectedTagsCount.textContent = `已选择 ${selectedTags.length} 个标签`;
-            
             // 获取标签数据以获取颜色信息
             this.loadTagsForDisplay(selectedTags, selectedTagsChips);
         } else {
-            selectedTagsCount.textContent = '未选择标签';
             selectedTagsChips.innerHTML = '';
         }
     }
