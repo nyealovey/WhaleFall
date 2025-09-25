@@ -247,6 +247,11 @@
 </div>
 
 {% block extra_js %}
+<!-- 标签选择器组件 -->
+<div id="list-page-tag-selector">
+    {% include 'components/tag_selector.html' %}
+</div>
+
 <script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/tags/index.js') }}"></script>
 {% endblock %}
