@@ -21,7 +21,7 @@
     if (currentFilters.sync_category !== undefined) params.append('sync_category', currentFilters.sync_category);
     if (currentFilters.status !== undefined) params.append('status', currentFilters.status);
 
-    console.log('loadSessions: 请求参数:', params.toString());
+    // console.log('loadSessions: 请求参数:', params.toString());
     
     // 显示加载状态
     showLoadingState();
@@ -265,22 +265,15 @@
 
   // 初始化统一搜索组件
   function initUnifiedSearch() {
-    console.log('initUnifiedSearch: 开始初始化统一搜索组件');
-    console.log('initUnifiedSearch: UnifiedSearch类型:', typeof UnifiedSearch);
-    
     // 检查是否已经有全局的UnifiedSearch实例
     if (window.unifiedSearchInstance) {
-      console.log('initUnifiedSearch: 使用已存在的全局实例');
-      
       // 重写搜索和清除方法
       window.unifiedSearchInstance.handleSubmit = function(e) {
-        console.log('initUnifiedSearch: 搜索表单提交事件触发');
         e.preventDefault();
         applyFilters();
       };
       
       window.unifiedSearchInstance.clearForm = function() {
-        console.log('initUnifiedSearch: 清除表单事件触发');
         // 清除所有筛选条件
         const inputs = this.form.querySelectorAll('.unified-input');
         inputs.forEach(input => {
@@ -297,28 +290,23 @@
         loadSessions();
       };
       
-      console.log('initUnifiedSearch: 统一搜索组件初始化完成');
       return;
     }
     
     // 等待统一搜索组件加载完成
     if (typeof UnifiedSearch !== 'undefined') {
       const searchForm = document.querySelector('.unified-search-form');
-      console.log('initUnifiedSearch: 搜索表单元素:', searchForm);
       
       if (searchForm) {
-        console.log('initUnifiedSearch: 创建UnifiedSearch实例');
         const unifiedSearch = new UnifiedSearch(searchForm);
         
         // 重写搜索和清除方法
         unifiedSearch.handleSubmit = function(e) {
-          console.log('initUnifiedSearch: 搜索表单提交事件触发');
           e.preventDefault();
           applyFilters();
         };
         
         unifiedSearch.clearForm = function() {
-          console.log('initUnifiedSearch: 清除表单事件触发');
           // 清除所有筛选条件
           const inputs = this.form.querySelectorAll('.unified-input');
           inputs.forEach(input => {
@@ -334,13 +322,8 @@
           currentFilters = {};
           loadSessions();
         };
-        
-        console.log('initUnifiedSearch: 统一搜索组件初始化完成');
-      } else {
-        console.log('initUnifiedSearch: 未找到搜索表单');
       }
     } else {
-      console.log('initUnifiedSearch: UnifiedSearch未加载，100ms后重试');
       // 如果统一搜索组件未加载，使用传统方式
       setTimeout(initUnifiedSearch, 100);
     }
@@ -348,18 +331,10 @@
 
   // 应用筛选条件
   function applyFilters() {
-    console.log('applyFilters: 开始应用筛选条件');
-    
     // 从统一搜索组件获取筛选条件
     const syncTypeEl = document.getElementById('sync_type');
     const syncCategoryEl = document.getElementById('sync_category');
     const statusEl = document.getElementById('status');
-    
-    console.log('applyFilters: 表单元素:', {
-      syncTypeEl: syncTypeEl,
-      syncCategoryEl: syncCategoryEl,
-      statusEl: statusEl
-    });
     
     // 获取筛选值，空字符串表示不过滤
     const syncType = syncTypeEl?.value || '';
@@ -371,13 +346,6 @@
       sync_category: syncCategory,
       status: status
     };
-    
-    console.log('applyFilters: 筛选条件:', currentFilters);
-    console.log('applyFilters: 筛选值详情:', {
-      syncType: syncType,
-      syncCategory: syncCategory,
-      status: status
-    });
     
     // 加载会话数据
     loadSessions();

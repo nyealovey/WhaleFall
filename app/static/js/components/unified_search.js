@@ -136,20 +136,16 @@ class UnifiedSearch {
             
             // 根据页面路径判断使用哪种方法
             const currentPath = window.location.pathname;
-            console.log('统一搜索组件: 当前页面路径:', currentPath);
             
             if (this.isJsDynamicPage(currentPath)) {
                 // JavaScript动态页面：检查是否有自定义的筛选处理函数
                 if (typeof window.applyFilters === 'function') {
-                    console.log('统一搜索组件: 调用自定义筛选函数 (JS动态页面)');
                     window.applyFilters();
                 } else {
-                    console.log('统一搜索组件: 未找到自定义筛选函数，使用默认URL跳转');
                     this.submitWithUrlRedirect();
                 }
             } else {
                 // 传统表格页面：直接使用URL跳转
-                console.log('统一搜索组件: 使用URL跳转方式 (传统表格页面)');
                 this.submitWithUrlRedirect();
             }
         }
@@ -170,12 +166,10 @@ class UnifiedSearch {
         
         for (const jsPage of jsPages) {
             if (path.includes(jsPage)) {
-                console.log('统一搜索组件: 检测到JS动态页面:', jsPage);
                 return true;
             }
         }
         
-        console.log('统一搜索组件: 检测到传统表格页面');
         return false;
     }
     
@@ -234,20 +228,16 @@ class UnifiedSearch {
 
         // 根据页面路径判断使用哪种方法
         const currentPath = window.location.pathname;
-        console.log('统一搜索组件: 清除表单 - 当前页面路径:', currentPath);
         
         if (this.isJsDynamicPage(currentPath)) {
             // JavaScript动态页面：检查是否有自定义的清除处理函数
             if (typeof window.clearFilters === 'function') {
-                console.log('统一搜索组件: 调用自定义清除函数 (JS动态页面)');
                 window.clearFilters();
             } else {
-                console.log('统一搜索组件: 未找到自定义清除函数，使用默认URL跳转');
                 this.clearWithUrlRedirect();
             }
         } else {
             // 传统表格页面：直接使用URL跳转
-            console.log('统一搜索组件: 使用URL跳转方式清除 (传统表格页面)');
             this.clearWithUrlRedirect();
         }
     }
