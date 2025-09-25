@@ -320,15 +320,7 @@ class DatabaseSizeAggregationService:
                 aggregation.log_size_change_mb = int(log_size_change_mb)
                 aggregation.log_size_change_percent = round((log_size_change_mb / prev_avg_log_size * 100) if prev_avg_log_size > 0 else 0, 2)
             
-            # 确定趋势方向
-            if abs(aggregation.size_change_percent) < 1.0:  # 变化小于1%认为是稳定
-                aggregation.trend_direction = "stable"
-            elif aggregation.size_change_percent > 0:
-                aggregation.trend_direction = "growing"
-            else:
-                aggregation.trend_direction = "shrinking"
-            
-            # 设置增长率
+            # 设置增长率（简化，不判断趋势方向）
             aggregation.growth_rate = aggregation.size_change_percent
             
         except Exception as e:
@@ -340,7 +332,6 @@ class DatabaseSizeAggregationService:
             aggregation.data_size_change_percent = 0
             aggregation.log_size_change_mb = 0
             aggregation.log_size_change_percent = 0
-            aggregation.trend_direction = "stable"
             aggregation.growth_rate = 0
     
     def _get_previous_period_dates(self, period_type: str, start_date: date, end_date: date) -> tuple:
@@ -558,10 +549,7 @@ class DatabaseSizeAggregationService:
                 'data_size_change_mb': aggregation.data_size_change_mb,
                 'data_size_change_percent': float(aggregation.data_size_change_percent) if aggregation.data_size_change_percent else None,
                 'log_size_change_mb': aggregation.log_size_change_mb,
-                'log_size_change_percent': float(aggregation.log_size_change_percent) if aggregation.log_size_change_percent else None
-            },
-            'trend': {
-                'direction': aggregation.trend_direction,
+                'log_size_change_percent': float(aggregation.log_size_change_percent) if aggregation.log_size_change_percent else None,
                 'growth_rate': float(aggregation.growth_rate) if aggregation.growth_rate else 0
             },
             'calculated_at': aggregation.calculated_at.isoformat() if aggregation.calculated_at else None,

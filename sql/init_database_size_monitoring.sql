@@ -75,8 +75,7 @@ CREATE TABLE IF NOT EXISTS database_size_aggregations (
     data_size_change_percent DECIMAL(5,2) DEFAULT 0,
     log_size_change_mb BIGINT DEFAULT 0,
     log_size_change_percent DECIMAL(5,2) DEFAULT 0,
-    -- 趋势分析字段
-    trend_direction VARCHAR(10) DEFAULT 'stable', -- 'growing', 'shrinking', 'stable'
+    -- 增长率字段
     growth_rate DECIMAL(5,2) DEFAULT 0,
     calculated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
@@ -111,7 +110,6 @@ COMMENT ON COLUMN database_size_aggregations.data_size_change_mb IS '数据大�
 COMMENT ON COLUMN database_size_aggregations.data_size_change_percent IS '数据大小变化百分比（%，可为负值）';
 COMMENT ON COLUMN database_size_aggregations.log_size_change_mb IS '日志大小变化量（MB，可为负值）';
 COMMENT ON COLUMN database_size_aggregations.log_size_change_percent IS '日志大小变化百分比（%，可为负值）';
-COMMENT ON COLUMN database_size_aggregations.trend_direction IS '趋势方向：growing（增长）、shrinking（缩减）、stable（稳定）';
 COMMENT ON COLUMN database_size_aggregations.growth_rate IS '增长率（%，可为负值）';
 COMMENT ON COLUMN database_size_aggregations.calculated_at IS '计算时间';
 COMMENT ON COLUMN database_size_aggregations.created_at IS '记录创建时间';
