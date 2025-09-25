@@ -234,9 +234,6 @@
                             <li><a class="dropdown-item" href="{{ url_for('account_classification.index') }}">
                                 <i class="fas fa-tags me-2"></i>账户分类管理
                             </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('sync_sessions.index') }}">
-                                <i class="fas fa-tasks me-2"></i>同步会话管理
-                            </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('database_types.index') }}">
                                 <i class="fas fa-database me-2"></i>数据库类型管理
@@ -256,10 +253,18 @@
                             </a></li>
                         </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/logs/">
-                            <i class="fas fa-chart-line me-1"></i>日志中心
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="historyDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-history me-1"></i>历史记录
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="historyDropdown">
+                            <li><a class="dropdown-item" href="/logs/">
+                                <i class="fas fa-chart-line me-2"></i>日志中心
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('sync_sessions.index') }}">
+                                <i class="fas fa-tasks me-2"></i>同步会话管理
+                            </a></li>
+                        </ul>
                     </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
