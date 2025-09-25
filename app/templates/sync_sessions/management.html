@@ -23,8 +23,9 @@
 
             <!-- 搜索和筛选 -->
             <div class="sync-sessions-page">
-                {% set search_field_id = '' %}
-                {% set search_placeholder = '' %}
+                {% set show_search_input = false %}
+                {% set search_button_text = '筛选' %}
+                {% set status_filter_type = 'sync_session' %}
                 {% set show_db_type_filter = false %}
                 {% set show_classification_filter = false %}
                 {% set show_credential_type_filter = false %}
