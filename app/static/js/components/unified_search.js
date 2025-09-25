@@ -205,29 +205,64 @@ class UnifiedSearch {
     updateSelectedTagsDisplay() {
         const selectedTagNames = document.getElementById('selected-tag-names');
         const selectedTagsChips = document.getElementById('selected-tags-chips');
-        const selectedTagsPreview = document.getElementById('selected-tags-preview');
         const selectedTagsCount = document.getElementById('selected-tags-count');
 
-        if (!selectedTagNames || !selectedTagsChips || !selectedTagsPreview || !selectedTagsCount) {
+        if (!selectedTagNames || !selectedTagsChips || !selectedTagsCount) {
             return;
         }
 
         const selectedTags = selectedTagNames.value ? selectedTagNames.value.split(',') : [];
         
         if (selectedTags.length > 0) {
-            selectedTagsPreview.style.display = 'block';
             selectedTagsCount.textContent = `已选择 ${selectedTags.length} 个标签`;
             
-            selectedTagsChips.innerHTML = selectedTags.map(tag => `
-                <span class="selected-tag-chip badge bg-primary me-1 mb-1" style="cursor: pointer;">
-                    ${tag}
-                    <span class="remove-tag ms-1" onclick="unifiedSearch.removeTagFromSelection('${tag}')" style="cursor: pointer;">&times;</span>
-                </span>
-            `).join('');
+            // 获取标签数据以获取颜色信息
+            this.loadTagsForDisplay(selectedTags, selectedTagsChips);
         } else {
-            selectedTagsPreview.style.display = 'none';
             selectedTagsCount.textContent = '未选择标签';
+            selectedTagsChips.innerHTML = '';
         }
+    }
+
+    loadTagsForDisplay(selectedTagNames, container) {
+        // 加载标签数据以获取颜色信息
+        fetch('/tags/api/list')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data && data.data.tags) {
+                    const tags = data.data.tags;
+                    container.innerHTML = selectedTagNames.map(tagName => {
+                        const tag = tags.find(t => t.name === tagName.trim());
+                        const color = tag ? tag.color : 'secondary';
+                        const displayName = tag ? tag.display_name : tagName;
+                        
+                        return `
+                            <span class="badge bg-${color} me-1 mb-1" style="cursor: pointer; position: relative;">
+                                ${displayName}
+                                <span class="remove-tag ms-1" onclick="unifiedSearch.removeTagFromSelection('${tagName}')" style="cursor: pointer; font-weight: bold;">&times;</span>
+                            </span>
+                        `;
+                    }).join('');
+                } else {
+                    // 如果无法获取标签数据，使用默认样式
+                    container.innerHTML = selectedTagNames.map(tagName => `
+                        <span class="badge bg-secondary me-1 mb-1" style="cursor: pointer; position: relative;">
+                            ${tagName}
+                            <span class="remove-tag ms-1" onclick="unifiedSearch.removeTagFromSelection('${tagName}')" style="cursor: pointer; font-weight: bold;">&times;</span>
+                        </span>
+                    `).join('');
+                }
+            })
+            .catch(error => {
+                console.error('加载标签数据失败:', error);
+                // 使用默认样式
+                container.innerHTML = selectedTagNames.map(tagName => `
+                    <span class="badge bg-secondary me-1 mb-1" style="cursor: pointer; position: relative;">
+                        ${tagName}
+                        <span class="remove-tag ms-1" onclick="unifiedSearch.removeTagFromSelection('${tagName}')" style="cursor: pointer; font-weight: bold;">&times;</span>
+                    </span>
+                `).join('');
+            });
     }
 
     openTagSelector() {
