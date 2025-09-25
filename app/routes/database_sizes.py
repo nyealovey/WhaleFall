@@ -432,7 +432,7 @@ def manual_aggregate():
 @database_sizes_bp.route('/database-sizes/cleanup_partitions', methods=['POST'])
 @login_required
 @view_required
-def cleanup_partitions():
+def cleanup_partitions_manual():
     """
     手动清理分区
     """
