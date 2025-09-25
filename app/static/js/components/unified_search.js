@@ -165,8 +165,8 @@ class UnifiedSearch {
         const jsPages = [
             '/sync_sessions/',  // 会话中心
             '/logs/',           // 日志中心
-            '/accounts/sync_records',  // 同步记录
-            '/accounts/'        // 账户管理
+            '/accounts/sync_records'  // 同步记录
+            // 注意：/accounts/ 是传统表单页面，不是JavaScript动态页面
         ];
         
         for (const jsPage of jsPages) {
