@@ -592,9 +592,24 @@ class OptimizedAccountClassificationService:
         try:
             permissions = account.get_permissions_by_db_type()
             if not permissions:
+                log_info(
+                    f"MySQL账户 {account.username} 没有权限数据",
+                    module="account_classification",
+                    account_id=account.id,
+                    db_type=account.db_type
+                )
                 return False
 
             operator = rule_expression.get("operator", "OR").upper()
+
+            # 添加调试日志
+            log_info(
+                f"评估MySQL规则: 账户 {account.username}",
+                module="account_classification",
+                account_id=account.id,
+                permissions=permissions,
+                rule_expression=rule_expression
+            )
 
             # 检查全局权限
             required_global = rule_expression.get("global_privileges", [])
