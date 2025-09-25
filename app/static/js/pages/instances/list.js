@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     setupEventListeners();
+    loadInstanceTotalSizes();
 });
 
 // 打开标签选择器
@@ -39,6 +40,55 @@ function closeTagSelector() {
     if (modal) {
         modal.hide();
     }
+}
+
+// 加载实例总大小
+async function loadInstanceTotalSizes() {
+    try {
+        const sizeElements = document.querySelectorAll('.instance-total-size');
+        
+        for (const element of sizeElements) {
+            const instanceId = element.getAttribute('data-instance-id');
+            if (!instanceId) continue;
+            
+            try {
+                const response = await fetch(`/api/v1/instances/${instanceId}/database-sizes/total`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.total_size_mb !== undefined) {
+                        element.innerHTML = `<small class="text-success">${formatSize(data.total_size_mb)}</small>`;
+                    } else {
+                        element.innerHTML = '<small class="text-muted">暂无数据</small>';
+                    }
+                } else {
+                    element.innerHTML = '<small class="text-muted">加载失败</small>';
+                }
+            } catch (error) {
+                console.error(`加载实例 ${instanceId} 总大小失败:`, error);
+                element.innerHTML = '<small class="text-muted">加载失败</small>';
+            }
+        }
+    } catch (error) {
+        console.error('加载实例总大小失败:', error);
+    }
+}
+
+// 格式化文件大小
+function formatSize(bytes) {
+    if (bytes === 0) return '0 B';
+    
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 // 初始化标签选择器
