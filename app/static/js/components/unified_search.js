@@ -34,7 +34,7 @@ class UnifiedSearch {
             });
         }
 
-        // 输入框回车事件
+        // 输入框回车事件 - 只有搜索关键字才需要手动触发
         const searchInput = this.form.querySelector('.unified-input');
         if (searchInput) {
             searchInput.addEventListener('keypress', (e) => {
@@ -42,6 +42,11 @@ class UnifiedSearch {
                     e.preventDefault();
                     this.handleSubmit();
                 }
+            });
+            
+            // 搜索输入框失去焦点时不自动筛选，需要用户点击筛选按钮
+            searchInput.addEventListener('blur', () => {
+                // 不自动触发筛选，让用户手动点击筛选按钮
             });
         }
 
@@ -199,11 +204,24 @@ class UnifiedSearch {
         // 特定下拉框变化处理
         if (select.id === 'timeRange' && select.value === 'custom') {
             this.showCustomTimeRange();
-        } else if (select.id === 'levelFilter' || select.id === 'moduleFilter') {
-            // 日志页面特殊处理
-            if (typeof searchLogs === 'function') {
-                searchLogs(1);
+        } else {
+            // 自动筛选：当用户选择筛选条件时自动触发筛选
+            this.autoApplyFilters();
+        }
+    }
+    
+    autoApplyFilters() {
+        // 根据页面路径判断使用哪种方法
+        const currentPath = window.location.pathname;
+        
+        if (this.isJsDynamicPage(currentPath)) {
+            // JavaScript动态页面：检查是否有自定义的筛选处理函数
+            if (typeof window.applyFilters === 'function') {
+                window.applyFilters();
             }
+        } else {
+            // 传统表格页面：使用URL跳转
+            this.submitWithUrlRedirect();
         }
     }
 
@@ -444,6 +462,9 @@ class UnifiedSearch {
         
         // 更新显示
         this.updateSelectedTagsDisplay();
+        
+        // 自动触发筛选
+        this.autoApplyFilters();
     }
 
     loadTags() {
@@ -584,6 +605,9 @@ class UnifiedSearch {
             // 关闭模态框
             // console.log('confirmTagSelection: 准备关闭模态框');
             this.closeTagSelectorModal();
+            
+            // 自动触发筛选
+            this.autoApplyFilters();
         }
     }
 
