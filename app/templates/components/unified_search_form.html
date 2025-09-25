@@ -15,7 +15,7 @@
                 </div>
                 
                 <!-- 数据库类型筛选 -->
-                {% if show_db_type_filter|default(true) %}
+                {% if show_db_type_filter|default(false) %}
                 <div class="col-md-2 filter-db-type">
                     <label for="db_type" class="form-label">数据库类型</label>
                     <select class="form-select unified-select" id="db_type" name="db_type">
@@ -31,7 +31,7 @@
                 {% endif %}
                 
                 <!-- 分类筛选 -->
-                {% if show_classification_filter|default(true) %}
+                {% if show_classification_filter|default(false) %}
                 <div class="col-md-2 filter-classification">
                     <label for="classification" class="form-label">分类筛选</label>
                     <select class="form-select unified-select" id="classification" name="classification">
@@ -47,7 +47,7 @@
                 {% endif %}
                 
                 <!-- 凭据类型筛选 -->
-                {% if show_credential_type_filter|default(true) %}
+                {% if show_credential_type_filter|default(false) %}
                 <div class="col-md-2 filter-credential-type">
                     <label for="credential_type" class="form-label">凭据类型</label>
                     <select class="form-select unified-select" id="credential_type" name="credential_type">
@@ -60,7 +60,7 @@
                 {% endif %}
                 
                 <!-- 标签分类筛选 -->
-                {% if show_tag_category_filter|default(true) %}
+                {% if show_tag_category_filter|default(false) %}
                 <div class="col-md-2 filter-category">
                     <label for="category" class="form-label">分类</label>
                     <select class="form-select unified-select" id="category" name="category">
@@ -75,7 +75,7 @@
                 {% endif %}
                 
                 <!-- 状态筛选 -->
-                {% if show_status_filter|default(true) %}
+                {% if show_status_filter|default(false) %}
                 <div class="col-md-2 filter-status">
                     <label for="status" class="form-label">状态</label>
                     <select class="form-select unified-select" id="status" name="status">
