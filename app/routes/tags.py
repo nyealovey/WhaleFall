@@ -389,6 +389,18 @@ def api_all_tags() -> Response:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@tags_bp.route("/batch_assign")
+@login_required
+@view_required
+def batch_assign() -> str:
+    """批量分配标签页面"""
+    if current_user.role != 'admin':
+        flash('您没有权限访问此页面', 'error')
+        return redirect(url_for('tags.index'))
+    
+    return render_template('tags/batch_assign.html')
+
+
 @tags_bp.route("/")
 @login_required
 @view_required
