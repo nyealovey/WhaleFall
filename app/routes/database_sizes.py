@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 database_sizes_bp = Blueprint('database_sizes', __name__)
 
 # 页面路由
-@database_sizes_bp.route('/database-sizes/aggregations', methods=['GET'])
+@database_sizes_bp.route('/aggregations', methods=['GET'])
 @login_required
 @view_required
 def aggregations():
@@ -104,7 +104,7 @@ def aggregations():
         # 无查询参数，返回HTML页面
         return render_template('database_sizes/aggregations.html')
 
-@database_sizes_bp.route('/database-sizes/config', methods=['GET', 'PUT'])
+@database_sizes_bp.route('/config', methods=['GET', 'PUT'])
 @login_required
 @view_required
 def config():
@@ -192,7 +192,7 @@ def config():
         return render_template('database_sizes/config.html')
 
 
-@database_sizes_bp.route('/database-sizes/partitions', methods=['GET'])
+@database_sizes_bp.route('/partitions', methods=['GET'])
 @login_required
 @view_required
 def partitions():
@@ -232,7 +232,7 @@ def partitions():
 
 # API 路由
 
-@database_sizes_bp.route('/database-sizes/aggregations/summary', methods=['GET'])
+@database_sizes_bp.route('/aggregations/summary', methods=['GET'])
 @login_required
 @view_required
 def get_aggregations_summary():
@@ -296,7 +296,7 @@ def get_aggregations_summary():
 
 # 配置管理相关路由
 
-@database_sizes_bp.route('/database-sizes/status', methods=['GET'])
+@database_sizes_bp.route('/status', methods=['GET'])
 @login_required
 @view_required
 def get_status():
@@ -335,7 +335,7 @@ def get_status():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/database-sizes/stats', methods=['GET'])
+@database_sizes_bp.route('/stats', methods=['GET'])
 @login_required
 @view_required
 def get_stats():
@@ -380,7 +380,7 @@ def get_stats():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/database-sizes/test_connection', methods=['POST'])
+@database_sizes_bp.route('/test_connection', methods=['POST'])
 @login_required
 @view_required
 def test_connection():
@@ -417,7 +417,7 @@ def test_connection():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/database-sizes/manual_collect', methods=['POST'])
+@database_sizes_bp.route('/manual_collect', methods=['POST'])
 @login_required
 @view_required
 def manual_collect():
@@ -443,7 +443,7 @@ def manual_collect():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/database-sizes/manual_aggregate', methods=['POST'])
+@database_sizes_bp.route('/manual_aggregate', methods=['POST'])
 @login_required
 @view_required
 def manual_aggregate():
@@ -469,7 +469,7 @@ def manual_aggregate():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/database-sizes/cleanup_partitions', methods=['POST'])
+@database_sizes_bp.route('/cleanup_partitions', methods=['POST'])
 @login_required
 @view_required
 def cleanup_partitions_manual():
@@ -888,7 +888,7 @@ def get_instance_database_summary(instance_id: int):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/collect', methods=['POST'])
+@database_sizes_bp.route('/collect', methods=['POST'])
 @login_required
 @view_required
 def collect_database_sizes():
@@ -916,7 +916,7 @@ def collect_database_sizes():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/aggregate', methods=['POST'])
+@database_sizes_bp.route('/aggregate', methods=['POST'])
 @login_required
 @view_required
 def calculate_aggregations():
@@ -949,7 +949,7 @@ def calculate_aggregations():
 
 
 
-@database_sizes_bp.route('/database-sizes/partitions/status', methods=['GET'])
+@database_sizes_bp.route('/partitions/status', methods=['GET'])
 @login_required
 @view_required
 def get_partition_status():
@@ -979,7 +979,7 @@ def get_partition_status():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/partitions/create', methods=['POST'])
+@database_sizes_bp.route('/partitions/create', methods=['POST'])
 @login_required
 @view_required
 def create_partition():
@@ -1022,7 +1022,7 @@ def create_partition():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/partitions/cleanup', methods=['POST'])
+@database_sizes_bp.route('/partitions/cleanup', methods=['POST'])
 @login_required
 @view_required
 def cleanup_partitions():
@@ -1056,7 +1056,7 @@ def cleanup_partitions():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/partitions/statistics', methods=['GET'])
+@database_sizes_bp.route('/partitions/statistics', methods=['GET'])
 @login_required
 @view_required
 def get_partition_statistics():
@@ -1089,7 +1089,7 @@ def get_partition_statistics():
 
 
 
-@database_sizes_bp.route('/database-sizes/collect/status', methods=['GET'])
+@database_sizes_bp.route('/collect/status', methods=['GET'])
 @login_required
 @view_required
 def get_collection_status_api():
@@ -1119,7 +1119,7 @@ def get_collection_status_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/collect/validate', methods=['GET'])
+@database_sizes_bp.route('/collect/validate', methods=['GET'])
 @login_required
 @view_required
 def validate_collection_config_api():
@@ -1151,7 +1151,7 @@ def validate_collection_config_api():
 
 
 
-@database_sizes_bp.route('/database-sizes/aggregate/status', methods=['GET'])
+@database_sizes_bp.route('/aggregate/status', methods=['GET'])
 @login_required
 @view_required
 def get_aggregation_status_api():
@@ -1181,7 +1181,7 @@ def get_aggregation_status_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/aggregate/validate', methods=['GET'])
+@database_sizes_bp.route('/aggregate/validate', methods=['GET'])
 @login_required
 @view_required
 def validate_aggregation_config_api():
@@ -1211,7 +1211,7 @@ def validate_aggregation_config_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/aggregate/cleanup', methods=['POST'])
+@database_sizes_bp.route('/aggregate/cleanup', methods=['POST'])
 @login_required
 @view_required
 def cleanup_old_aggregations_api():
