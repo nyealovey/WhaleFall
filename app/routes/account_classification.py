@@ -410,7 +410,7 @@ def update_rule(rule_id: int) -> "Response":
 @login_required
 @view_required
 def get_matched_accounts(rule_id: int) -> "Response":
-    """获取规则匹配的账户（支持分页）"""
+    """获取规则匹配的账户（从数据库获取，支持分页）"""
     try:
         rule = ClassificationRule.query.get_or_404(rule_id)
 
@@ -422,79 +422,82 @@ def get_matched_accounts(rule_id: int) -> "Response":
         # 限制每页最大数量
         per_page = min(per_page, 100)
 
-        # 获取匹配的账户
-        classification_service = OptimizedAccountClassificationService()
-
-        # 获取所有账户
+        # 从数据库获取已分配的账户，而不是实时计算
         from app.models.current_account_sync_data import CurrentAccountSyncData
         from app.models.instance import Instance
+        from app.models.account_classification import AccountClassificationAssignment
 
-        all_accounts = (
-            CurrentAccountSyncData.query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
+        # 构建基础查询：通过分配表获取该分类下的所有活跃账户
+        query = (
+            db.session.query(CurrentAccountSyncData, Instance)
+            .join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
+            .join(AccountClassificationAssignment, 
+                  AccountClassificationAssignment.account_id == CurrentAccountSyncData.id)
             .filter(
+                AccountClassificationAssignment.classification_id == rule.classification_id,
+                AccountClassificationAssignment.is_active == True,
                 Instance.db_type == rule.db_type,
                 CurrentAccountSyncData.is_deleted.is_(False),
-                Instance.is_active.is_(True),
-                Instance.deleted_at.is_(None),  # 排除已删除的实例
+                Instance.is_active == True,
+                Instance.deleted_at.is_(None)
             )
-            .all()
         )
-
-        matched_accounts = []
-
-        for account in all_accounts:
-            # 检查账户是否匹配规则
-            if classification_service._evaluate_rule(account, rule):
-                # 统一使用用户名作为显示名称，与账户管理页面保持一致
-                display_name = account.username
-
-                # 获取账户的分类信息
-                account_classifications = []
-                if hasattr(account, "classifications") and account.classifications:
-                    for classification in account.classifications:
-                        account_classifications.append(
-                            {
-                                "id": classification.id,
-                                "name": classification.name,
-                                "color": classification.color,
-                            }
-                        )
-
-                matched_accounts.append(
-                    {
-                        "id": account.id,
-                        "username": account.username,  # 使用原始用户名
-                        "display_name": display_name,  # 显示名称
-                        "instance_name": (account.instance.name if account.instance else "未知实例"),
-                        "instance_host": (account.instance.host if account.instance else "未知IP"),
-                        "instance_environment": (account.instance.environment if account.instance else "unknown"),
-                        "db_type": rule.db_type,
-                        "is_locked": account.is_locked_display,  # 使用计算字段
-                        "classifications": account_classifications,
-                    }
-                )
 
         # 应用搜索过滤
         if search:
-            search_lower = search.lower()
-            matched_accounts = [
-                account for account in matched_accounts
-                if (search_lower in account['username'].lower() or 
-                    search_lower in account['display_name'].lower() or
-                    search_lower in account['instance_name'].lower() or
-                    search_lower in account['instance_host'].lower())
-            ]
+            search_lower = f"%{search.lower()}%"
+            query = query.filter(
+                db.or_(
+                    CurrentAccountSyncData.username.ilike(search_lower),
+                    Instance.name.ilike(search_lower),
+                    Instance.host.ilike(search_lower)
+                )
+            )
 
-        # 计算分页
-        total = len(matched_accounts)
+        # 获取总数（用于分页）
+        total = query.count()
+
+        # 应用分页
+        offset = (page - 1) * per_page
+        results = query.offset(offset).limit(per_page).all()
+
+        # 构建返回数据
+        matched_accounts = []
+        for account, instance in results:
+            # 获取账户的所有分类信息
+            account_classifications = []
+            account_assignments = (
+                AccountClassificationAssignment.query
+                .filter_by(account_id=account.id, is_active=True)
+                .join(AccountClassification, AccountClassificationAssignment.classification_id == AccountClassification.id)
+                .all()
+            )
+            
+            for assignment in account_assignments:
+                account_classifications.append({
+                    "id": assignment.classification.id,
+                    "name": assignment.classification.name,
+                    "color": assignment.classification.color,
+                })
+
+            matched_accounts.append({
+                "id": account.id,
+                "username": account.username,
+                "display_name": account.username,  # 使用用户名作为显示名称
+                "instance_name": instance.name,
+                "instance_host": instance.host,
+                "instance_environment": instance.environment or "unknown",
+                "db_type": rule.db_type,
+                "is_locked": account.is_locked_display,
+                "classifications": account_classifications,
+            })
+
+        # 计算分页信息
         total_pages = (total + per_page - 1) // per_page
-        start_index = (page - 1) * per_page
-        end_index = start_index + per_page
-        paginated_accounts = matched_accounts[start_index:end_index]
 
         return jsonify({
             "success": True, 
-            "accounts": paginated_accounts, 
+            "accounts": matched_accounts, 
             "rule_name": rule.rule_name,
             "pagination": {
                 "page": page,

@@ -166,43 +166,40 @@ def get_system_overview() -> dict:
         classification_service = OptimizedAccountClassificationService()
         
         # 用于统计总分类账户数的集合
+        # 从数据库获取已分配的账户统计，而不是实时计算
+        from app.models.account_classification import AccountClassificationAssignment
+        
         all_classified_account_ids = set()
         
         for classification in all_classifications:
-            # 获取该分类的所有规则
-            rules = ClassificationRule.query.filter_by(
-                classification_id=classification.id, 
-                is_active=True
-            ).all()
+            # 从分配表获取该分类的活跃账户数量
+            matched_account_ids = (
+                AccountClassificationAssignment.query
+                .filter_by(classification_id=classification.id, is_active=True)
+                .with_entities(AccountClassificationAssignment.account_id)
+                .all()
+            )
             
-            if rules:
-                # 计算该分类所有规则匹配的账户数量（去重）
-                matched_account_ids = set()
-                for rule in rules:
-                    # 获取匹配的账户ID列表
-                    accounts = (
-                        CurrentAccountSyncData.query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
-                        .filter(
-                            Instance.is_active.is_(True),
-                            CurrentAccountSyncData.is_deleted.is_(False),
-                            Instance.deleted_at.is_(None),
-                            Instance.db_type == rule.db_type,
-                        )
-                        .all()
-                    )
-                    
-                    for account in accounts:
-                        if classification_service.evaluate_rule(rule, account):
-                            matched_account_ids.add(account.id)
-                            all_classified_account_ids.add(account.id)
+            # 提取账户ID并验证账户是否仍然有效
+            valid_account_ids = set()
+            for (account_id,) in matched_account_ids:
+                # 验证账户是否仍然存在且有效
+                account = CurrentAccountSyncData.query.filter_by(
+                    id=account_id, 
+                    is_deleted=False
+                ).join(Instance).filter(
+                    Instance.is_active == True,
+                    Instance.deleted_at.is_(None)
+                ).first()
                 
-                count = len(matched_account_ids)
-            else:
-                count = 0
-                
+                if account:
+                    valid_account_ids.add(account_id)
+                    all_classified_account_ids.add(account_id)
+            
+            count = len(valid_account_ids)
             classification_stats.append((classification.name, classification.color, classification.priority, count))
         
-        # 使用实时计算的分类账户总数，确保数据一致性
+        # 使用数据库中的分类账户总数
         total_classified_accounts = len(all_classified_account_ids)
 
         # 计算自动分类的账户数（去重）
