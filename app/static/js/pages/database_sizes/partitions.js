@@ -63,14 +63,14 @@ async function loadPartitionData() {
         
         // 并行加载分区信息和状态
         const [partitionInfoResponse, partitionStatusResponse] = await Promise.all([
-            fetch('/api/v1/database-sizes/partitions', {
+            fetch('/database-sizes/partitions', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCSRFToken()
                 }
             }),
-            fetch('/api/v1/database-sizes/partitions/status', {
+            fetch('/database-sizes/partitions/status', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -243,7 +243,7 @@ async function createPartition() {
     }
     
     try {
-        const response = await fetch('/api/v1/database-sizes/partitions/create', {
+        const response = await fetch('/database-sizes/partitions/create', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -286,7 +286,7 @@ async function cleanupPartitions() {
     }
     
     try {
-        const response = await fetch('/api/v1/database-sizes/partitions/cleanup', {
+        const response = await fetch('/database-sizes/partitions/cleanup', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
