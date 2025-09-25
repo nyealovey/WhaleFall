@@ -115,7 +115,7 @@ class AggregationsManager {
         try {
             this.showLoading('#totalInstances, #totalDatabases, #averageSize, #maxSize');
             
-            const response = await fetch('/database-sizes/aggregations/summary');
+            const response = await fetch('/database-sizes/aggregations/summary?api=true');
             const data = await response.json();
             
             if (response.ok) {
@@ -148,7 +148,7 @@ class AggregationsManager {
             this.showChartLoading();
             
             const params = this.buildFilterParams();
-            const response = await fetch(`/database-sizes/aggregations?${params}`);
+            const response = await fetch(`/database-sizes/aggregations?api=true&${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -364,7 +364,7 @@ class AggregationsManager {
             this.showTableLoading();
             
             const params = this.buildFilterParams();
-            const response = await fetch(`/database-sizes/aggregations?${params}`);
+            const response = await fetch(`/database-sizes/aggregations?api=true&${params}`);
             const data = await response.json();
             
             if (response.ok) {

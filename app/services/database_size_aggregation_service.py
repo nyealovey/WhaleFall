@@ -30,19 +30,39 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算所有实例的统计聚合数据...")
         
-        results = {
-            'weekly': self.calculate_weekly_aggregations(),
-            'monthly': self.calculate_monthly_aggregations(),
-            'quarterly': self.calculate_quarterly_aggregations()
-        }
-        
-        # 统计总体结果
-        total_processed = sum(r.get('processed_instances', 0) for r in results.values())
-        total_errors = sum(r.get('errors', 0) for r in results.values())
-        
-        logger.info(f"统计聚合计算完成: 处理了 {total_processed} 个实例，出现 {total_errors} 个错误")
-        
-        return results
+        try:
+            results = {
+                'weekly': self.calculate_weekly_aggregations(),
+                'monthly': self.calculate_monthly_aggregations(),
+                'quarterly': self.calculate_quarterly_aggregations()
+            }
+            
+            # 统计总体结果
+            total_processed = sum(r.get('processed_instances', 0) for r in results.values())
+            total_errors = sum(r.get('errors', 0) for r in results.values())
+            total_aggregations = sum(r.get('aggregations_created', 0) for r in results.values())
+            
+            logger.info(f"统计聚合计算完成: 处理了 {total_processed} 个实例，出现 {total_errors} 个错误，创建了 {total_aggregations} 个聚合记录")
+            
+            return {
+                'success': True,
+                'message': f'统计聚合计算完成，处理了 {total_processed} 个实例，创建了 {total_aggregations} 个聚合记录',
+                'aggregations_created': total_aggregations,
+                'processed_instances': total_processed,
+                'errors': total_errors,
+                'details': results
+            }
+            
+        except Exception as e:
+            logger.error(f"计算统计聚合数据时出错: {str(e)}")
+            return {
+                'success': False,
+                'message': f'计算统计聚合数据时出错: {str(e)}',
+                'error': str(e),
+                'aggregations_created': 0,
+                'processed_instances': 0,
+                'errors': 1
+            }
     
     def calculate_weekly_aggregations(self) -> Dict[str, Any]:
         """

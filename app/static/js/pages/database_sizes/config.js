@@ -78,7 +78,7 @@ class DatabaseSizeConfigManager {
         try {
             this.showLoading('加载配置中...');
             
-            const response = await fetch('/database-sizes/config', {
+            const response = await fetch('/database-sizes/config?api=true', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -261,7 +261,7 @@ class DatabaseSizeConfigManager {
             const config = this.collectConfigFromForm();
             
             const response = await fetch('/database-sizes/config', {
-                method: 'POST',
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': this.getCSRFToken()

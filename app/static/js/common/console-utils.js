@@ -184,3 +184,4 @@ window.logPerformance = logPerformance;
 window.logUserAction = logUserAction;
 window.logApiCall = logApiCall;
 window.logErrorWithContext = logErrorWithContext;
+window.getCSRFToken = getCSRFToken;
