@@ -109,6 +109,13 @@
     display: block;
 }
 
+/* 确保筛选行使用flexbox布局以支持order属性 */
+.sync-records-page .unified-search-form .row,
+.sync-sessions-page .unified-search-form .row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+}
+
 .instances-page .filter-db-type,
 .instances-page .filter-tags {
     display: block;
@@ -130,16 +137,27 @@
 }
 
 /* 同步记录页面筛选条件显示 */
-.sync-records-page .filter-sync-type,
+.sync-records-page .filter-sync-type {
+    display: block !important;
+    order: 1;
+}
 .sync-records-page .filter-status {
-    display: block;
+    display: block !important;
+    order: 2;
 }
 
 /* 同步会话管理页面筛选条件显示 */
-.sync-sessions-page .filter-sync-type,
-.sync-sessions-page .filter-sync-category,
+.sync-sessions-page .filter-sync-type {
+    display: block !important;
+    order: 1;
+}
 .sync-sessions-page .filter-status {
-    display: block;
+    display: block !important;
+    order: 2;
+}
+.sync-sessions-page .filter-sync-category {
+    display: block !important;
+    order: 3;
 }
 
 /* 标签选择按钮样式 */

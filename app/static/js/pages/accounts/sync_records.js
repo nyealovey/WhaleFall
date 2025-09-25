@@ -488,6 +488,13 @@ document.addEventListener('DOMContentLoaded', function() {
     initUnifiedSearch();
 });
 
+// 清除筛选条件
+function clearFilters() {
+    console.log('clearFilters: 清除所有筛选条件');
+    // 跳转到没有筛选参数的URL
+    window.location.href = window.location.pathname;
+}
+
 // 导出函数供全局使用
 window.viewDetails = viewDetails;
 window.retrySync = retrySync;
@@ -495,3 +502,4 @@ window.showAlert = showAlert;
 window.viewBatchDetails = viewBatchDetails;
 window.viewFailedDetails = viewFailedDetails;
 window.applyFilters = applyFilters;
+window.clearFilters = clearFilters;

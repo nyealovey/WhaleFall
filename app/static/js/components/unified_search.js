@@ -134,23 +134,30 @@ class UnifiedSearch {
         if (this.validateForm()) {
             this.showLoading();
             
-            // 构建查询参数，确保搜索条件被保持
-            const formData = new FormData(this.form);
-            const params = new URLSearchParams();
-            
-            // 添加所有表单数据到URL参数
-            for (let [key, value] of formData.entries()) {
-                if (value && value.trim() !== '') {
-                    params.append(key, value);
+            // 检查是否有自定义的筛选处理函数
+            if (typeof window.applyFilters === 'function') {
+                // 如果有自定义筛选函数，调用它
+                console.log('统一搜索组件: 调用自定义筛选函数');
+                window.applyFilters();
+            } else {
+                // 否则使用默认的URL跳转方式
+                const formData = new FormData(this.form);
+                const params = new URLSearchParams();
+                
+                // 添加所有表单数据到URL参数
+                for (let [key, value] of formData.entries()) {
+                    if (value && value.trim() !== '') {
+                        params.append(key, value);
+                    }
                 }
+                
+                // 构建新的URL，保持搜索条件
+                const currentUrl = new URL(window.location);
+                const newUrl = `${currentUrl.pathname}?${params.toString()}`;
+                
+                // 跳转到新的URL，保持搜索条件
+                window.location.href = newUrl;
             }
-            
-            // 构建新的URL，保持搜索条件
-            const currentUrl = new URL(window.location);
-            const newUrl = `${currentUrl.pathname}?${params.toString()}`;
-            
-            // 跳转到新的URL，保持搜索条件
-            window.location.href = newUrl;
         }
     }
 
@@ -185,9 +192,16 @@ class UnifiedSearch {
         // 移除验证样式
         this.clearValidationStyles();
 
-        // 直接跳转到没有搜索参数的URL，显示所有数据
-        const currentUrl = new URL(window.location);
-        window.location.href = currentUrl.pathname;
+        // 检查是否有自定义的清除处理函数
+        if (typeof window.clearFilters === 'function') {
+            // 如果有自定义清除函数，调用它
+            console.log('统一搜索组件: 调用自定义清除函数');
+            window.clearFilters();
+        } else {
+            // 否则使用默认的URL跳转方式
+            const currentUrl = new URL(window.location);
+            window.location.href = currentUrl.pathname;
+        }
     }
 
     clearSelectedTags() {
