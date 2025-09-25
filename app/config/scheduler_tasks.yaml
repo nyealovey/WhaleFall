@@ -50,3 +50,13 @@ default_tasks:
       minutes: 60
     enabled: true
     description: 监控分区健康状态和性能
+    
+  - id: collect_database_sizes
+    name: 采集数据库大小
+    function: collect_database_sizes
+    trigger_type: cron
+    trigger_params:
+      hour: 3
+      minute: 0
+    enabled: true
+    description: 每日采集所有数据库实例的大小信息

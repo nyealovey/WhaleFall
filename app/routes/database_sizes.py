@@ -16,6 +16,13 @@ from app.services.database_size_collector_service import collect_all_instances_d
 from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
 from app.services.partition_management_service import PartitionManagementService
 from app.tasks.partition_management_tasks import get_partition_management_status
+from app.tasks.database_size_collection_tasks import (
+    collect_database_sizes,
+    collect_specific_instance_database_sizes,
+    collect_database_sizes_by_type,
+    get_collection_status,
+    validate_collection_config
+)
 from app.utils.decorators import view_required
 from app import db
 
@@ -664,4 +671,106 @@ def get_partition_statistics():
             
     except Exception as e:
         logger.error(f"获取分区统计信息时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@database_sizes_bp.route('/database-sizes/collect', methods=['POST'])
+@login_required
+@view_required
+def trigger_collection():
+    """
+    手动触发数据库大小采集
+    
+    Returns:
+        JSON: 采集结果
+    """
+    try:
+        data = request.get_json() or {}
+        instance_id = data.get('instance_id')
+        db_type = data.get('db_type')
+        
+        if instance_id:
+            # 采集指定实例
+            result = collect_specific_instance_database_sizes(instance_id)
+        elif db_type:
+            # 采集指定类型的数据库
+            result = collect_database_sizes_by_type(db_type)
+        else:
+            # 采集所有实例
+            result = collect_database_sizes()
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['message']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"触发数据库大小采集时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@database_sizes_bp.route('/database-sizes/collect/status', methods=['GET'])
+@login_required
+@view_required
+def get_collection_status_api():
+    """
+    获取采集状态信息
+    
+    Returns:
+        JSON: 状态信息
+    """
+    try:
+        result = get_collection_status()
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['message']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"获取采集状态时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@database_sizes_bp.route('/database-sizes/collect/validate', methods=['GET'])
+@login_required
+@view_required
+def validate_collection_config_api():
+    """
+    验证采集配置
+    
+    Returns:
+        JSON: 验证结果
+    """
+    try:
+        result = validate_collection_config()
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['message']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"验证采集配置时出错: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
