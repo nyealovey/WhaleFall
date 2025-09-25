@@ -13,7 +13,7 @@ from sqlalchemy import text
 from app import db
 from app.models.instance import Instance
 from app.models.current_account_sync_data import CurrentAccountSyncData
-from app.models.classification_rule import ClassificationRule
+from app.models.account_classification import ClassificationRule
 
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.user import User
