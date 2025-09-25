@@ -6,7 +6,7 @@
 import logging
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Any, Optional
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, render_template
 from flask_login import login_required, current_user
 from sqlalchemy import and_, desc, func
 from app.models.instance import Instance
@@ -21,6 +21,21 @@ logger = logging.getLogger(__name__)
 
 # 创建蓝图
 database_sizes_bp = Blueprint('database_sizes', __name__, url_prefix='/api/v1')
+
+# 页面路由
+@database_sizes_bp.route('/database-sizes/aggregations', methods=['GET'])
+@login_required
+@view_required
+def aggregations():
+    """统计聚合页面"""
+    return render_template('database_sizes/aggregations.html')
+
+@database_sizes_bp.route('/database-sizes/config', methods=['GET'])
+@login_required
+@view_required
+def config():
+    """配置管理页面"""
+    return render_template('database_sizes/config.html')
 
 
 @database_sizes_bp.route('/instances/<int:instance_id>/database-sizes', methods=['GET'])
