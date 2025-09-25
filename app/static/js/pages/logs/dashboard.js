@@ -447,7 +447,7 @@ function initUnifiedSearch() {
 }
 
 // 应用筛选条件
-window.applyFilters = function() {
+function applyFilters() {
     console.log('applyFilters: 开始应用筛选条件');
     
     // 从统一搜索组件获取筛选条件
@@ -479,6 +479,9 @@ window.applyFilters = function() {
     console.log('applyFilters: 筛选条件:', currentFilters);
     searchLogs(1);
 }
+
+// 将函数暴露到全局作用域
+window.applyFilters = applyFilters;
 
 // 清除筛选条件
 window.clearFilters = function() {
