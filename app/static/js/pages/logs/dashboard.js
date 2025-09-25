@@ -401,6 +401,39 @@ function showSuccess(message) {
 function initUnifiedSearch() {
     console.log('initUnifiedSearch: 开始初始化统一搜索组件');
     
+    // 检查是否已经有全局的UnifiedSearch实例
+    if (window.unifiedSearchInstance) {
+        console.log('initUnifiedSearch: 使用已存在的全局实例');
+        
+        // 重写搜索和清除方法
+        window.unifiedSearchInstance.handleSubmit = function(e) {
+            console.log('initUnifiedSearch: 搜索表单提交事件触发');
+            e.preventDefault();
+            applyFilters();
+        };
+        
+        window.unifiedSearchInstance.clearForm = function() {
+            console.log('initUnifiedSearch: 清除表单事件触发');
+            // 清除所有筛选条件
+            const inputs = this.form.querySelectorAll('.unified-input');
+            inputs.forEach(input => {
+                input.value = '';
+            });
+
+            const selects = this.form.querySelectorAll('.unified-select');
+            selects.forEach(select => {
+                select.selectedIndex = 0;
+            });
+
+            // 刷新数据
+            currentFilters = {};
+            searchLogs(1);
+        };
+        
+        console.log('initUnifiedSearch: 统一搜索组件初始化完成');
+        return;
+    }
+    
     // 等待统一搜索组件加载完成
     if (typeof UnifiedSearch !== 'undefined') {
         const searchForm = document.querySelector('.unified-search-form');
