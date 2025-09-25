@@ -1,4 +1,4 @@
-// 同步会话管理页脚本（从模板抽离）
+// 会话中心页脚本（从模板抽离）
 // 依赖：bootstrap, alert-utils.js, time-utils.js
 
 (function() {
@@ -322,6 +322,12 @@
   }
 
   window.refreshData = function() { loadSessions(); }
+
+  window.clearFilters = function() {
+    console.log('clearFilters: 清除所有筛选条件');
+    currentFilters = {};
+    loadSessions();
+  }
 
   window.getProgressInfo = function(successRate, totalInstances, successfulInstances, failedInstances) {
     if (totalInstances === 0) {

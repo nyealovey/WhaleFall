@@ -1,6 +1,6 @@
 
 """
-鲸落 - 同步会话管理路由
+鲸落 - 会话中心路由
 """
 
 from flask import Blueprint, jsonify, render_template, request
@@ -21,12 +21,12 @@ sync_sessions_bp = Blueprint("sync_sessions", __name__)
 @login_required
 @view_required
 def index() -> str:
-    """同步会话管理首页"""
+    """会话中心首页"""
     try:
         return render_template("sync_sessions/management.html")
     except Exception as e:
         log_error(
-            f"访问同步会话管理页面失败: {str(e)}",
+            f"访问会话中心页面失败: {str(e)}",
             module="sync_sessions",
             user_id=current_user.id,
         )
