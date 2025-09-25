@@ -37,17 +37,17 @@ from app import db
 logger = logging.getLogger(__name__)
 
 # 创建蓝图
-database_sizes_bp = Blueprint('database_sizes', __name__, url_prefix='/api/v1')
+database_sizes_bp = Blueprint('database_sizes', __name__)
 
 # 页面路由
-@database_sizes_bp.route('/database-sizes/aggregations', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/aggregations', methods=['GET'])
 @login_required
 @view_required
 def aggregations():
     """统计聚合页面"""
     return render_template('database_sizes/aggregations.html')
 
-@database_sizes_bp.route('/database-sizes/config', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/config', methods=['GET'])
 @login_required
 @view_required
 def config():
@@ -55,14 +55,14 @@ def config():
     return render_template('database_sizes/config.html')
 
 
-@database_sizes_bp.route('/database-sizes/partitions', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/partitions', methods=['GET'])
 @login_required
 @view_required
 def partitions():
     """分区管理页面"""
     return render_template('database_sizes/partitions.html')
 
-@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
+@database_sizes_bp.route('/api/v1/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
 @login_required
 @view_required
 def get_instance_total_size(instance_id: int):
@@ -199,7 +199,7 @@ def get_instance_database_sizes(instance_id: int):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/aggregations', methods=['GET'])
+@database_sizes_bp.route('/api/v1/instances/<int:instance_id>/database-sizes/aggregations', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_aggregations(instance_id: int):
@@ -269,7 +269,7 @@ def get_instance_database_aggregations(instance_id: int):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/trends', methods=['GET'])
+@database_sizes_bp.route('/api/v1/instances/<int:instance_id>/database-sizes/trends', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_trends(instance_id: int):
@@ -320,7 +320,7 @@ def get_instance_database_trends(instance_id: int):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/summary', methods=['GET'])
+@database_sizes_bp.route('/api/v1/instances/<int:instance_id>/database-sizes/summary', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_summary(instance_id: int):
@@ -419,7 +419,7 @@ def get_instance_database_summary(instance_id: int):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/collect', methods=['POST'])
+@database_sizes_bp.route('/api/v1/database-sizes/collect', methods=['POST'])
 @login_required
 @view_required
 def collect_database_sizes():
@@ -447,7 +447,7 @@ def collect_database_sizes():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/aggregate', methods=['POST'])
+@database_sizes_bp.route('/api/v1/database-sizes/aggregate', methods=['POST'])
 @login_required
 @view_required
 def calculate_aggregations():
@@ -476,7 +476,7 @@ def calculate_aggregations():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/config', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/config', methods=['GET'])
 @login_required
 @view_required
 def get_database_size_config():
@@ -513,7 +513,7 @@ def get_database_size_config():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/partitions', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/partitions', methods=['GET'])
 @login_required
 @view_required
 def get_partition_info():
@@ -544,7 +544,7 @@ def get_partition_info():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/partitions/status', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/partitions/status', methods=['GET'])
 @login_required
 @view_required
 def get_partition_status():
@@ -574,7 +574,7 @@ def get_partition_status():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/partitions/create', methods=['POST'])
+@database_sizes_bp.route('/api/v1/database-sizes/partitions/create', methods=['POST'])
 @login_required
 @view_required
 def create_partition():
@@ -617,7 +617,7 @@ def create_partition():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/partitions/cleanup', methods=['POST'])
+@database_sizes_bp.route('/api/v1/database-sizes/partitions/cleanup', methods=['POST'])
 @login_required
 @view_required
 def cleanup_partitions():
@@ -651,7 +651,7 @@ def cleanup_partitions():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/partitions/statistics', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/partitions/statistics', methods=['GET'])
 @login_required
 @view_required
 def get_partition_statistics():
@@ -682,7 +682,7 @@ def get_partition_statistics():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/collect', methods=['POST'])
+@database_sizes_bp.route('/api/v1/database-sizes/collect', methods=['POST'])
 @login_required
 @view_required
 def trigger_collection():
@@ -724,7 +724,7 @@ def trigger_collection():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/collect/status', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/collect/status', methods=['GET'])
 @login_required
 @view_required
 def get_collection_status_api():
@@ -754,7 +754,7 @@ def get_collection_status_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/collect/validate', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/collect/validate', methods=['GET'])
 @login_required
 @view_required
 def validate_collection_config_api():
@@ -784,7 +784,7 @@ def validate_collection_config_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/aggregate', methods=['POST'])
+@database_sizes_bp.route('/api/v1/database-sizes/aggregate', methods=['POST'])
 @login_required
 @view_required
 def trigger_aggregation():
@@ -831,7 +831,7 @@ def trigger_aggregation():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/aggregate/status', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/aggregate/status', methods=['GET'])
 @login_required
 @view_required
 def get_aggregation_status_api():
@@ -861,7 +861,7 @@ def get_aggregation_status_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/aggregate/validate', methods=['GET'])
+@database_sizes_bp.route('/api/v1/database-sizes/aggregate/validate', methods=['GET'])
 @login_required
 @view_required
 def validate_aggregation_config_api():
@@ -891,7 +891,7 @@ def validate_aggregation_config_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/aggregate/cleanup', methods=['POST'])
+@database_sizes_bp.route('/api/v1/database-sizes/aggregate/cleanup', methods=['POST'])
 @login_required
 @view_required
 def cleanup_old_aggregations_api():
