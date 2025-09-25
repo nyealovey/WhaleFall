@@ -57,6 +57,13 @@
     <div class="logs-page">
         {% set search_field_id = 'searchTerm' %}
         {% set search_placeholder = '输入搜索关键词' %}
+        {% set show_db_type_filter = false %}
+        {% set show_classification_filter = false %}
+        {% set show_status_filter = false %}
+        {% set show_tag_filter = false %}
+        {% set show_time_range_filter = true %}
+        {% set show_module_filter = true %}
+        {% set show_level_filter = true %}
         {% include 'components/unified_search_form.html' %}
     </div>
 

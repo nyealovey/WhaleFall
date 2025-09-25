@@ -30,6 +30,15 @@
 
     <!-- 搜索和筛选 -->
     <div class="accounts-page">
+        {% set show_db_type_filter = true %}
+        {% set show_classification_filter = true %}
+        {% set show_credential_type_filter = false %}
+        {% set show_tag_category_filter = false %}
+        {% set show_status_filter = false %}
+        {% set show_level_filter = false %}
+        {% set show_module_filter = false %}
+        {% set show_time_range_filter = false %}
+        {% set show_tag_filter = true %}
         {% include 'components/unified_search_form.html' %}
     </div>
 
