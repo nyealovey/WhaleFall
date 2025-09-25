@@ -228,6 +228,11 @@ def _add_default_jobs() -> None:
     import yaml
 
     from app.tasks import cleanup_old_logs, sync_accounts
+    from app.tasks.partition_management_tasks import (
+        create_database_size_partitions,
+        cleanup_database_size_partitions,
+        monitor_partition_health
+    )
 
     # 检查是否已有任务
     try:
@@ -266,6 +271,12 @@ def _add_default_jobs() -> None:
                 func = sync_accounts
             elif function_name == "cleanup_old_logs":
                 func = cleanup_old_logs
+            elif function_name == "create_database_size_partitions":
+                func = create_database_size_partitions
+            elif function_name == "cleanup_database_size_partitions":
+                func = cleanup_database_size_partitions
+            elif function_name == "monitor_partition_health":
+                func = monitor_partition_health
             else:
                 logger.warning("未知的任务函数: %s", function_name)
                 continue

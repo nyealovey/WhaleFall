@@ -21,3 +21,32 @@ default_tasks:
       minute: 0
     enabled: true
     description: 清理30天前的日志和临时文件
+    
+  - id: create_database_size_partitions
+    name: 创建数据库大小分区
+    function: create_database_size_partitions
+    trigger_type: cron
+    trigger_params:
+      hour: 2
+      minute: 0
+    enabled: true
+    description: 创建数据库大小统计表的未来分区
+    
+  - id: cleanup_database_size_partitions
+    name: 清理数据库大小分区
+    function: cleanup_database_size_partitions
+    trigger_type: cron
+    trigger_params:
+      hour: 3
+      minute: 0
+    enabled: true
+    description: 清理数据库大小统计表的旧分区
+    
+  - id: monitor_partition_health
+    name: 监控分区健康状态
+    function: monitor_partition_health
+    trigger_type: interval
+    trigger_params:
+      minutes: 60
+    enabled: true
+    description: 监控分区健康状态和性能

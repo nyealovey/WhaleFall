@@ -238,9 +238,12 @@
                             <li><a class="dropdown-item" href="{{ url_for('database_sizes.aggregations') }}">
                                 <i class="fas fa-chart-bar me-2"></i>存储监控
                             </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('database_sizes.config') }}">
-                                <i class="fas fa-cog me-2"></i>监控配置
-                            </a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('database_sizes.config') }}">
+                            <i class="fas fa-cog me-2"></i>监控配置
+                        </a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('database_sizes.partitions') }}">
+                            <i class="fas fa-layer-group me-2"></i>分区管理
+                        </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('database_types.index') }}">
                                 <i class="fas fa-database me-2"></i>数据库类型管理
