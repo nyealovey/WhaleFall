@@ -96,7 +96,7 @@
 
 /* 实例和标签选择区域 */
 .instance-selection, .tag-selection {
-    min-height: 500px;
+    min-height: 600px;
     max-height: 80vh;
     border: 1px solid #dee2e6;
     border-radius: 10px;
@@ -219,7 +219,7 @@
 }
 
 .instance-group-content.show, .tag-group-content.show {
-    max-height: 200px;
+    max-height: 300px;
     overflow-y: auto;
 }
 
@@ -242,8 +242,10 @@
 /* 实例信息样式 */
 .instance-info {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
 }
 
 .instance-name {
@@ -251,6 +253,7 @@
     font-size: 0.9rem;
     color: #333;
     line-height: 1.2;
+    flex-shrink: 0;
 }
 
 .instance-address {
@@ -258,6 +261,8 @@
     color: #6c757d;
     line-height: 1.2;
     font-family: 'Courier New', monospace;
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 /* 复选框样式 */
@@ -392,8 +397,8 @@
     }
     
     .instance-selection, .tag-selection {
-        min-height: 400px;
-        max-height: 60vh;
+        min-height: 500px;
+        max-height: 70vh;
         overflow-y: auto;
     }
     
@@ -442,7 +447,7 @@
     }
     
     .instance-group-content.show, .tag-group-content.show {
-        max-height: 150px;
+        max-height: 250px;
         overflow-y: auto;
     }
 }
