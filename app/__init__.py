@@ -97,11 +97,6 @@ def create_app(config_name: str | None = None) -> Flask:  # noqa: ARG001
     # 设置全局日志级别
     logging.getLogger().setLevel(logging.INFO)
 
-    # 注册全局错误处理器
-    from app.utils.error_handler import register_error_handlers
-
-    register_error_handlers(app)
-
     # 注册增强的错误处理器
     from app.utils.structlog_config import enhanced_error_handler, ErrorContext
 
