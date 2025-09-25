@@ -1,7 +1,7 @@
 <!-- 统一搜索表单组件 -->
 <div class="card search-filter-card">
     <div class="card-body">
-        <form method="GET" class="unified-search-form" id="{{ form_id|default('unified-search-form') }}">
+        <form method="GET" class="unified-search-form" id="{{ form_id|default('unified-search-form') }}" action="{{ form_action|default('') }}">
             <div class="row g-3 align-items-end">
                 <!-- 左侧筛选条件区域 -->
                 <div class="col-md-10">

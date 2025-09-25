@@ -39,6 +39,7 @@
         {% set show_module_filter = false %}
         {% set show_time_range_filter = false %}
         {% set show_tag_filter = true %}
+        {% set form_action = url_for('account_list.list_accounts') %}
         {% include 'components/unified_search_form.html' %}
     </div>
 
