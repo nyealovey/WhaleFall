@@ -244,19 +244,27 @@
 
   // 初始化统一搜索组件
   function initUnifiedSearch() {
+    console.log('initUnifiedSearch: 开始初始化统一搜索组件');
+    console.log('initUnifiedSearch: UnifiedSearch类型:', typeof UnifiedSearch);
+    
     // 等待统一搜索组件加载完成
     if (typeof UnifiedSearch !== 'undefined') {
       const searchForm = document.querySelector('.unified-search-form');
+      console.log('initUnifiedSearch: 搜索表单元素:', searchForm);
+      
       if (searchForm) {
+        console.log('initUnifiedSearch: 创建UnifiedSearch实例');
         const unifiedSearch = new UnifiedSearch(searchForm);
         
         // 重写搜索和清除方法
         unifiedSearch.handleSubmit = function(e) {
+          console.log('initUnifiedSearch: 搜索表单提交事件触发');
           e.preventDefault();
           applyFilters();
         };
         
         unifiedSearch.clearForm = function() {
+          console.log('initUnifiedSearch: 清除表单事件触发');
           // 清除所有筛选条件
           const inputs = this.form.querySelectorAll('.unified-input');
           inputs.forEach(input => {
@@ -272,20 +280,39 @@
           currentFilters = {};
           loadSessions();
         };
+        
+        console.log('initUnifiedSearch: 统一搜索组件初始化完成');
+      } else {
+        console.log('initUnifiedSearch: 未找到搜索表单');
       }
     } else {
+      console.log('initUnifiedSearch: UnifiedSearch未加载，100ms后重试');
       // 如果统一搜索组件未加载，使用传统方式
       setTimeout(initUnifiedSearch, 100);
     }
   }
 
   window.applyFilters = function() {
+    console.log('applyFilters: 开始应用筛选条件');
+    
     // 从统一搜索组件获取筛选条件
+    const syncTypeEl = document.getElementById('sync_type');
+    const syncCategoryEl = document.getElementById('sync_category');
+    const statusEl = document.getElementById('status');
+    
+    console.log('applyFilters: 表单元素:', {
+      syncTypeEl: syncTypeEl,
+      syncCategoryEl: syncCategoryEl,
+      statusEl: statusEl
+    });
+    
     currentFilters = {
-      sync_type: document.getElementById('sync_type')?.value || '',
-      sync_category: document.getElementById('sync_category')?.value || '',
-      status: document.getElementById('status')?.value || ''
+      sync_type: syncTypeEl?.value || '',
+      sync_category: syncCategoryEl?.value || '',
+      status: statusEl?.value || ''
     };
+    
+    console.log('applyFilters: 筛选条件:', currentFilters);
     loadSessions();
   }
 

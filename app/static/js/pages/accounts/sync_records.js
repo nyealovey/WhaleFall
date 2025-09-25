@@ -404,20 +404,28 @@ function getStatusText(status) {
 
 // 初始化统一搜索组件
 function initUnifiedSearch() {
+    console.log('initUnifiedSearch: 开始初始化统一搜索组件');
+    console.log('initUnifiedSearch: UnifiedSearch类型:', typeof UnifiedSearch);
+    
     // 等待统一搜索组件加载完成
     if (typeof UnifiedSearch !== 'undefined') {
         const searchForm = document.querySelector('.unified-search-form');
+        console.log('initUnifiedSearch: 搜索表单元素:', searchForm);
+        
         if (searchForm) {
+            console.log('initUnifiedSearch: 创建UnifiedSearch实例');
             const unifiedSearch = new UnifiedSearch(searchForm);
             
             // 重写搜索方法
             unifiedSearch.handleSubmit = function(e) {
+                console.log('initUnifiedSearch: 搜索表单提交事件触发');
                 e.preventDefault();
                 applyFilters();
             };
             
             // 重写清除方法
             unifiedSearch.clearForm = function() {
+                console.log('initUnifiedSearch: 清除表单事件触发');
                 // 清除所有筛选条件
                 const inputs = this.form.querySelectorAll('.unified-input');
                 inputs.forEach(input => {
@@ -430,10 +438,16 @@ function initUnifiedSearch() {
                 });
 
                 // 刷新页面，清除所有筛选条件
+                console.log('initUnifiedSearch: 跳转到基础URL:', window.location.pathname);
                 window.location.href = window.location.pathname;
             };
+            
+            console.log('initUnifiedSearch: 统一搜索组件初始化完成');
+        } else {
+            console.log('initUnifiedSearch: 未找到搜索表单');
         }
     } else {
+        console.log('initUnifiedSearch: UnifiedSearch未加载，100ms后重试');
         // 如果统一搜索组件未加载，使用传统方式
         setTimeout(initUnifiedSearch, 100);
     }
@@ -441,8 +455,12 @@ function initUnifiedSearch() {
 
 // 应用筛选条件
 function applyFilters() {
+    console.log('applyFilters: 开始应用筛选条件');
     const form = document.querySelector('.unified-search-form');
-    if (!form) return;
+    if (!form) {
+        console.log('applyFilters: 未找到统一搜索表单');
+        return;
+    }
     
     const formData = new FormData(form);
     const params = new URLSearchParams();
@@ -450,16 +468,17 @@ function applyFilters() {
     // 获取筛选条件
     const syncType = formData.get('sync_type') || '';
     const status = formData.get('status') || '';
-    const timeRange = formData.get('time_range') || '';
+    
+    console.log('applyFilters: 筛选条件:', { syncType, status });
     
     // 构建URL参数
     if (syncType) params.append('sync_type', syncType);
     if (status) params.append('status', status);
-    if (timeRange) params.append('date_range', timeRange);
     
     // 跳转到筛选后的页面
     const url = new URL(window.location);
     url.search = params.toString();
+    console.log('applyFilters: 跳转到URL:', url.toString());
     window.location.href = url.toString();
 }
 
