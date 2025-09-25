@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/sync_sessions/management.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -20,45 +21,22 @@
             </div>
 
 
-            <!-- 过滤器 -->
-            <div class="filter-section">
-                <div class="row">
-                    <div class="col-md-3">
-                        <label for="sync-type-filter" class="form-label">同步类型</label>
-                        <select class="form-select" id="sync-type-filter">
-                            <option value="">全部</option>
-                            <option value="manual_single">MANUAL_SINGLE</option>
-                            <option value="manual_batch">MANUAL_BATCH</option>
-                            <option value="manual_task">MANUAL_TASK</option>
-                            <option value="scheduled_task">SCHEDULED_TASK</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="sync-category-filter" class="form-label">同步分类</label>
-                        <select class="form-select" id="sync-category-filter">
-                            <option value="">全部</option>
-                            <option value="account">account</option>
-                            <option value="capacity">capacity</option>
-                            <option value="config">config</option>
-                            <option value="other">other</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="status-filter" class="form-label">状态</label>
-                        <select class="form-select" id="status-filter">
-                            <option value="">全部</option>
-                            <option value="running">running</option>
-                            <option value="completed">completed</option>
-                            <option value="failed">failed</option>
-                            <option value="cancelled">cancelled</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button class="btn btn-outline-primary w-100" onclick="applyFilters()">
-                            <i class="fas fa-filter"></i> 应用筛选
-                        </button>
-                    </div>
-                </div>
+            <!-- 搜索和筛选 -->
+            <div class="sync-sessions-page">
+                {% set search_field_id = '' %}
+                {% set search_placeholder = '' %}
+                {% set show_db_type_filter = false %}
+                {% set show_classification_filter = false %}
+                {% set show_credential_type_filter = false %}
+                {% set show_tag_category_filter = false %}
+                {% set show_status_filter = true %}
+                {% set show_level_filter = false %}
+                {% set show_module_filter = false %}
+                {% set show_time_range_filter = false %}
+                {% set show_tag_filter = false %}
+                {% set show_sync_type_filter = true %}
+                {% set show_sync_category_filter = true %}
+                {% include 'components/unified_search_form.html' %}
             </div>
 
             <!-- 会话列表 -->
@@ -126,5 +104,6 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/sync_sessions/management.js') }}"></script>
 {% endblock %}
