@@ -22,24 +22,44 @@
     if (currentFilters.status !== undefined) params.append('status', currentFilters.status);
 
     console.log('loadSessions: 请求参数:', params.toString());
+    
+    // 显示加载状态
+    showLoadingState();
+    
     fetch(`/sync_sessions/api/sessions?${params.toString()}`)
       .then(r => r.json())
       .then(data => {
         if (data.success) {
           currentSessions = data.data;
           renderSessions(data.data);
-          const loading = document.getElementById('sessions-loading');
-          const container = document.getElementById('sessions-container');
-          if (loading) loading.style.display = 'none';
-          if (container) container.style.display = 'block';
+          hideLoadingState();
         } else {
+          console.error('加载会话列表失败:', data.message);
           showAlert('加载会话列表失败: ' + data.message, 'error');
+          hideLoadingState();
         }
       })
       .catch(err => {
         console.error('加载会话列表出错:', err);
         showAlert('加载会话列表出错', 'error');
+        hideLoadingState();
       });
+  }
+  
+  // 显示加载状态
+  function showLoadingState() {
+    const loading = document.getElementById('sessions-loading');
+    const container = document.getElementById('sessions-container');
+    if (loading) loading.style.display = 'block';
+    if (container) container.style.display = 'none';
+  }
+  
+  // 隐藏加载状态
+  function hideLoadingState() {
+    const loading = document.getElementById('sessions-loading');
+    const container = document.getElementById('sessions-container');
+    if (loading) loading.style.display = 'none';
+    if (container) container.style.display = 'block';
   }
 
   window.renderSessions = function(sessions) {
@@ -358,7 +378,14 @@
       syncCategory: syncCategory,
       status: status
     });
+    
+    // 加载会话数据
     loadSessions();
+    
+    // 隐藏统一搜索组件的加载状态
+    if (window.unifiedSearchInstance) {
+      window.unifiedSearchInstance.hideLoading();
+    }
   }
   
   // 将函数暴露到全局作用域
