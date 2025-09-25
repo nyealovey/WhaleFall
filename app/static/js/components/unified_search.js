@@ -16,6 +16,7 @@ class UnifiedSearch {
         this.bindEvents();
         this.initTagSelector();
         this.initFormValidation();
+        this.restoreFormState();
     }
 
     bindEvents() {
@@ -83,10 +84,60 @@ class UnifiedSearch {
         });
     }
 
+    restoreFormState() {
+        // 从URL参数中恢复表单状态
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 恢复输入框的值
+        const inputs = this.form.querySelectorAll('.unified-input');
+        inputs.forEach(input => {
+            const value = urlParams.get(input.name);
+            if (value) {
+                input.value = value;
+            }
+        });
+        
+        // 恢复下拉框的值
+        const selects = this.form.querySelectorAll('.unified-select');
+        selects.forEach(select => {
+            const value = urlParams.get(select.name);
+            if (value) {
+                select.value = value;
+            }
+        });
+        
+        // 恢复标签选择状态
+        const selectedTagNames = document.getElementById('selected-tag-names');
+        if (selectedTagNames) {
+            const tags = urlParams.get('tags');
+            if (tags) {
+                selectedTagNames.value = tags;
+                this.updateSelectedTagsDisplay();
+            }
+        }
+    }
+
     handleSubmit() {
         if (this.validateForm()) {
             this.showLoading();
-            this.form.submit();
+            
+            // 构建查询参数，确保搜索条件被保持
+            const formData = new FormData(this.form);
+            const params = new URLSearchParams();
+            
+            // 添加所有表单数据到URL参数
+            for (let [key, value] of formData.entries()) {
+                if (value && value.trim() !== '') {
+                    params.append(key, value);
+                }
+            }
+            
+            // 构建新的URL，保持搜索条件
+            const currentUrl = new URL(window.location);
+            const newUrl = `${currentUrl.pathname}?${params.toString()}`;
+            
+            // 跳转到新的URL，保持搜索条件
+            window.location.href = newUrl;
         }
     }
 
@@ -121,8 +172,9 @@ class UnifiedSearch {
         // 移除验证样式
         this.clearValidationStyles();
 
-        // 提交表单以刷新数据
-        this.form.submit();
+        // 直接跳转到没有搜索参数的URL，显示所有数据
+        const currentUrl = new URL(window.location);
+        window.location.href = currentUrl.pathname;
     }
 
     clearSelectedTags() {
@@ -483,8 +535,9 @@ function clearUnifiedSearch() {
             if (selectedTagNames) selectedTagNames.value = '';
             if (selectedTagsCount) selectedTagsCount.textContent = '未选择标签';
 
-            // 提交表单以刷新数据
-            form.submit();
+            // 直接跳转到没有搜索参数的URL，显示所有数据
+            const currentUrl = new URL(window.location);
+            window.location.href = currentUrl.pathname;
         }
     }
 }
