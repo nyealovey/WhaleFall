@@ -1,0 +1,313 @@
+/**
+ * 批量分配标签页面样式
+ */
+
+/* 页面容器 */
+.batch-assign-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 模式切换器 */
+.mode-switcher {
+    margin-bottom: 20px;
+}
+
+.mode-switcher .btn-check:checked + .btn {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* 选择面板 */
+.selection-panel {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+/* 实例和标签选择区域 */
+.instance-selection, .tag-selection {
+    min-height: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background: #fff;
+}
+
+/* 分组样式 */
+.instance-group, .tag-group {
+    margin-bottom: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.instance-group-header, .tag-group-header {
+    background: #f8f9fa;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecef;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.instance-group-header:hover, .tag-group-header:hover {
+    background: #e9ecef;
+}
+
+.instance-group-header h6, .tag-group-header h6 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.instance-group-icon, .tag-group-icon {
+    transition: transform 0.2s;
+}
+
+.instance-group-content.show .instance-group-icon,
+.tag-group-content.show .tag-group-icon {
+    transform: rotate(90deg);
+}
+
+.instance-group-content, .tag-group-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.instance-group-content.show, .tag-group-content.show {
+    max-height: 300px;
+}
+
+/* 列表项样式 */
+.list-group-item {
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 10px 15px;
+    transition: background-color 0.2s;
+}
+
+.list-group-item:hover {
+    background: #f8f9fa;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* 复选框样式 */
+.form-check-input {
+    margin-top: 0.2rem;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* 标签徽章样式 */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+/* 选择摘要 */
+.selection-summary {
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.selection-summary h6 {
+    color: #1976d2;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.selected-items-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.selected-item {
+    display: inline-block;
+    background: #fff;
+    border: 1px solid #bbdefb;
+    border-radius: 15px;
+    padding: 4px 12px;
+    margin: 2px;
+    font-size: 0.85rem;
+    color: #1976d2;
+}
+
+.selected-item .remove-item {
+    margin-left: 6px;
+    cursor: pointer;
+    color: #f44336;
+    font-weight: bold;
+}
+
+.selected-item .remove-item:hover {
+    color: #d32f2f;
+}
+
+/* 操作按钮 */
+.action-buttons {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.selection-info {
+    color: #6c757d;
+}
+
+/* 进度条 */
+.progress-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.progress {
+    height: 8px;
+    border-radius: 4px;
+}
+
+.progress-bar {
+    border-radius: 4px;
+}
+
+/* 加载状态 */
+.loading-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.loading-state .fa-spinner {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* 错误状态 */
+.error-state {
+    text-align: center;
+    padding: 20px;
+    color: #dc3545;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 6px;
+    margin: 10px 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .batch-assign-container {
+        padding: 0 15px;
+    }
+    
+    .instance-selection, .tag-selection {
+        min-height: 300px;
+        max-height: 350px;
+    }
+    
+    .selection-summary .row {
+        flex-direction: column;
+    }
+    
+    .selection-summary .col-md-6 {
+        margin-bottom: 15px;
+    }
+    
+    .action-buttons .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    .action-buttons .d-flex > div {
+        margin-bottom: 10px;
+    }
+}
+
+/* 动画效果 */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.slide-down {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+    to {
+        max-height: 300px;
+        opacity: 1;
+    }
+}
+
+/* 工具提示 */
+.tooltip-inner {
+    max-width: 200px;
+    text-align: left;
+}
+
+/* 自定义滚动条 */
+.instance-selection::-webkit-scrollbar,
+.tag-selection::-webkit-scrollbar,
+.selected-items-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.instance-selection::-webkit-scrollbar-track,
+.tag-selection::-webkit-scrollbar-track,
+.selected-items-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.instance-selection::-webkit-scrollbar-thumb,
+.tag-selection::-webkit-scrollbar-thumb,
+.selected-items-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.instance-selection::-webkit-scrollbar-thumb:hover,
+.tag-selection::-webkit-scrollbar-thumb:hover,
+.selected-items-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}

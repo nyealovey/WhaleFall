@@ -22,9 +22,9 @@
         <a href="{{ url_for('tags.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>添加标签
         </a>
-        <button type="button" class="btn btn-info ms-2" data-bs-toggle="modal" data-bs-target="#batchAssignModal">
+        <a href="{{ url_for('tags.batch_assign') }}" class="btn btn-info ms-2">
             <i class="fas fa-tasks me-2"></i>批量分配
-        </button>
+        </a>
     </div>
     {% endif %}
 </div>
@@ -185,66 +185,6 @@
     </div>
 </div>
 
-<!-- 批量分配模态框 -->
-<div class="modal fade" id="batchAssignModal" tabindex="-1" aria-labelledby="batchAssignModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="batchAssignModalLabel">批量管理标签</h5>
-                <div class="btn-group ms-3" role="group">
-                    <input type="radio" class="btn-check" name="batchMode" id="assignMode" value="assign" checked>
-                    <label class="btn btn-outline-primary btn-sm" for="assignMode">
-                        <i class="fas fa-plus me-1"></i>分配模式
-                    </label>
-                    
-                    <input type="radio" class="btn-check" name="batchMode" id="removeMode" value="remove">
-                    <label class="btn btn-outline-danger btn-sm" for="removeMode">
-                        <i class="fas fa-minus me-1"></i>移除模式
-                    </label>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6" id="instanceSelectionPanel">
-                        <h6>选择实例</h6>
-                        <div class="instance-list-container">
-                            <!-- 实例列表将通过 JS 动态加载 -->
-                        </div>
-                    </div>
-                    <div class="col-md-6" id="tagSelectionPanel">
-                        <h6>选择标签</h6>
-                        <div class="tag-list-container">
-                            <!-- 标签列表将通过 JS 动态加载 -->
-                        </div>
-                    </div>
-                    <div class="col-12" id="removeModeInfo" style="display: none;">
-                        <div class="alert alert-warning">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>移除模式：</strong>选择要移除标签的实例，系统将移除这些实例上的所有标签。
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <div class="selected-tags-info me-auto">
-                    <small class="text-muted">
-                        <span id="selectedInstancesCount">0</span> 个实例, 
-                        <span id="selectedTagsCount">0</span> 个标签
-                    </small>
-                    <div id="selectedTagsDisplay" class="mt-1" style="display: none;">
-                        <small class="text-muted">已选标签: </small>
-                        <div id="selectedTagsList" class="d-inline-flex flex-wrap gap-1"></div>
-                    </div>
-                </div>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                <button type="button" class="btn btn-primary" id="batchAssignSave">
-                    <i class="fas fa-plus me-1"></i>分配标签
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 {% block extra_js %}
 <!-- 标签选择器组件 -->
