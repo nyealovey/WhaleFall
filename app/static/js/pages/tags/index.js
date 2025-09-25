@@ -7,16 +7,27 @@
 window.currentTags = window.currentTags || [];
 window.currentFilters = window.currentFilters || {};
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    initializeTagsPage();
-});
+// 防止重复初始化
+if (window.tagsPageInitialized) {
+    console.warn('标签管理页面已经初始化，跳过重复初始化');
+} else {
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeTagsPage();
+    });
+}
 
 // 初始化标签管理页面
 function initializeTagsPage() {
+    if (window.tagsPageInitialized) {
+        console.warn('标签管理页面已经初始化，跳过重复初始化');
+        return;
+    }
+    
     initializeEventHandlers();
     initializeSearchForm();
     initializeTagActions();
+    window.tagsPageInitialized = true;
     console.log('标签管理页面已加载');
 }
 
