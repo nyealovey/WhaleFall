@@ -177,6 +177,10 @@ class OptimizedAccountClassificationService:
                     grouped[db_type] = []
                 grouped[db_type].append(account)
             
+            # 按数据库类型名称排序，确保处理顺序的一致性
+            # 这样可以避免因查询顺序不确定导致的跨数据库类型覆盖问题
+            grouped = dict(sorted(grouped.items()))
+            
             # 缓存分组结果（用于后续优化）
             if cache_manager:
                 for db_type, db_accounts in grouped.items():
@@ -282,6 +286,16 @@ class OptimizedAccountClassificationService:
             
             for db_type, db_accounts in accounts_by_db_type.items():
                 try:
+                    # 记录处理顺序，便于调试跨数据库类型覆盖问题
+                    log_info(
+                        f"开始处理数据库类型: {db_type}",
+                        module="account_classification",
+                        batch_id=self.batch_id,
+                        account_count=len(db_accounts),
+                        processing_order=list(accounts_by_db_type.keys()).index(db_type) + 1,
+                        total_db_types=len(accounts_by_db_type)
+                    )
+                    
                     # 获取该数据库类型的规则
                     db_rules = rules_by_db_type.get(db_type, [])
                     
@@ -319,7 +333,9 @@ class OptimizedAccountClassificationService:
                         rules=result["total_rules"],
                         classifications_added=result["total_classifications_added"],
                         matches=result["total_matches"],
-                        errors=len(result["errors"])
+                        errors=len(result["errors"]),
+                        processing_order=list(accounts_by_db_type.keys()).index(db_type) + 1,
+                        total_db_types=len(accounts_by_db_type)
                     )
                     
                 except Exception as e:
@@ -954,21 +970,24 @@ class OptimizedAccountClassificationService:
             # 获取账户ID列表
             account_ids = [account.id for account in matched_accounts]
 
-            # 1. 先清理该分类的所有旧分配记录（包括活跃和非活跃的）
+            # 1. 先清理**这些账户**的该分类旧分配记录（包括活跃和非活跃的）
+            # 关键修改：限制删除范围到当前匹配的账户，避免跨数据库类型覆盖
             deleted_count = (
                 db.session.query(AccountClassificationAssignment)
                 .filter(
-                    AccountClassificationAssignment.classification_id == classification_id
+                    AccountClassificationAssignment.classification_id == classification_id,
+                    AccountClassificationAssignment.account_id.in_(account_ids)  # 新增：限制到当前账户
                 )
                 .delete()
             )
             
             if deleted_count > 0:
                 log_info(
-                    f"清理分类 {classification_id} 的旧分配记录: {deleted_count} 条",
+                    f"清理分类 {classification_id} 的旧分配记录（针对账户）: {deleted_count} 条",
                     module="account_classification",
                     classification_id=classification_id,
-                    deleted_count=deleted_count
+                    deleted_count=deleted_count,
+                    account_ids=account_ids
                 )
 
             # 2. 准备新的分类分配记录
@@ -994,10 +1013,13 @@ class OptimizedAccountClassificationService:
                     db.session.bulk_insert_mappings(AccountClassificationAssignment, new_assignments)
                     db.session.commit()
                     
-                    # 验证数据是否真的写入了数据库
+                    # 验证数据是否真的写入了数据库（限制到当前账户范围）
                     actual_count = (
                         db.session.query(AccountClassificationAssignment)
-                        .filter(AccountClassificationAssignment.classification_id == classification_id)
+                        .filter(
+                            AccountClassificationAssignment.classification_id == classification_id,
+                            AccountClassificationAssignment.account_id.in_(account_ids)  # 限制到当前账户
+                        )
                         .count()
                     )
 
@@ -1006,7 +1028,8 @@ class OptimizedAccountClassificationService:
                         module="account_classification",
                         classification_id=classification_id,
                         added_count=len(new_assignments),
-                        actual_count=actual_count
+                        actual_count=actual_count,
+                        account_ids=account_ids
                     )
                 except Exception as e:
                     log_error(
