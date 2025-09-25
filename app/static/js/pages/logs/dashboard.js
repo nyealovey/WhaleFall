@@ -16,9 +16,19 @@ document.addEventListener('DOMContentLoaded', function() {
 // 初始化页面
 function initializePage() {
     loadModules();
+    // 设置默认时间范围为今天
+    setDefaultTimeRange();
     loadStats();
     searchLogs();
     console.log('日志仪表板页面已加载');
+}
+
+// 设置默认时间范围
+function setDefaultTimeRange() {
+    const timeRangeSelect = document.getElementById('timeRange');
+    if (timeRangeSelect && !timeRangeSelect.value) {
+        timeRangeSelect.value = 'today';
+    }
 }
 
 // 加载模块列表
@@ -52,7 +62,25 @@ function updateModuleFilter(modules) {
 
 // 加载统计信息
 function loadStats() {
-    fetch('/logs/api/stats')
+    // 构建查询参数，包含当前的筛选条件
+    const params = new URLSearchParams();
+    
+    // 获取当前筛选条件
+    const levelEl = document.getElementById('levelFilter');
+    const moduleEl = document.getElementById('moduleFilter');
+    const searchEl = document.getElementById('search');
+    const timeRangeEl = document.getElementById('timeRange');
+    
+    if (levelEl && levelEl.value) params.append('level', levelEl.value);
+    if (moduleEl && moduleEl.value) params.append('module', moduleEl.value);
+    if (searchEl && searchEl.value) params.append('q', searchEl.value);
+    if (timeRangeEl && timeRangeEl.value) {
+        // 将时间范围转换为小时数
+        const hours = getHoursFromTimeRange(timeRangeEl.value);
+        if (hours) params.append('hours', hours);
+    }
+    
+    fetch(`/logs/api/stats?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -63,6 +91,26 @@ function loadStats() {
             console.error('Error loading stats:', error);
             showError('加载统计信息失败');
         });
+}
+
+// 将时间范围转换为小时数
+function getHoursFromTimeRange(timeRange) {
+    switch (timeRange) {
+        case 'today':
+            return 24;
+        case 'week':
+        case '7d':
+            return 168; // 7天
+        case 'month':
+        case '30d':
+            return 720; // 30天
+        case '24h':
+            return 24;
+        case 'custom':
+            return null; // 自定义时间范围，不设置hours参数
+        default:
+            return null; // 全部时间，不设置hours参数
+    }
 }
 
 // 更新统计信息显示
@@ -475,15 +523,20 @@ function applyFilters() {
     const level = levelEl?.value || '';
     const module = moduleEl?.value || '';
     const search = searchEl?.value || '';
-    const timeRange = timeRangeEl?.value || '24';
+    const timeRange = timeRangeEl?.value || 'today';
+    
+    // 将时间范围转换为小时数
+    const hours = getHoursFromTimeRange(timeRange);
     
     currentFilters = {
         level: level,
         module: module,
         q: search,
-        hours: parseInt(timeRange) || 24
+        hours: hours || 24
     };
     
+    // 更新统计卡片和日志列表
+    loadStats();
     searchLogs(1);
 }
 
@@ -494,6 +547,13 @@ window.applyFilters = applyFilters;
 window.clearFilters = function() {
     console.log('clearFilters: 清除所有筛选条件');
     currentFilters = {};
+    // 重置时间范围为今天
+    const timeRangeEl = document.getElementById('timeRange');
+    if (timeRangeEl) {
+        timeRangeEl.value = 'today';
+    }
+    // 更新统计卡片和日志列表
+    loadStats();
     searchLogs(1);
 }
 

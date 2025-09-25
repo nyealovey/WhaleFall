@@ -433,35 +433,78 @@ def get_log_health() -> tuple[dict, int]:
 def get_log_stats() -> tuple[dict, int]:
     """获取日志统计信息API"""
     try:
-        hours = int(request.args.get("hours", 24))
+        # 获取筛选参数
+        hours = request.args.get("hours")
+        level = request.args.get("level")
+        module = request.args.get("module")
+        q = request.args.get("q")
 
-        # 计算时间范围
-        start_time = now() - timedelta(hours=hours)
+        # 构建基础查询
+        query = UnifiedLog.query
+
+        # 时间范围筛选
+        if hours:
+            hours_int = int(hours)
+            start_time = now() - timedelta(hours=hours_int)
+            query = query.filter(UnifiedLog.timestamp >= start_time)
+
+        # 日志级别筛选
+        if level:
+            query = query.filter(UnifiedLog.level == level)
+
+        # 模块筛选
+        if module:
+            query = query.filter(UnifiedLog.module == module)
+
+        # 关键词搜索
+        if q:
+            query = query.filter(
+                or_(
+                    UnifiedLog.message.contains(q),
+                    UnifiedLog.module.contains(q),
+                    UnifiedLog.category.contains(q)
+                )
+            )
 
         # 总日志数
-        total_logs = UnifiedLog.query.filter(UnifiedLog.timestamp >= start_time).count()
+        total_logs = query.count()
 
-        # 错误日志数
-        error_logs = UnifiedLog.query.filter(
-            UnifiedLog.timestamp >= start_time, UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL])
-        ).count()
+        # 错误日志数（包含ERROR和CRITICAL级别）
+        error_query = query.filter(UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]))
+        error_logs = error_query.count()
 
         # 警告日志数
-        warning_logs = UnifiedLog.query.filter(
-            UnifiedLog.timestamp >= start_time, UnifiedLog.level == LogLevel.WARNING
-        ).count()
+        warning_query = query.filter(UnifiedLog.level == LogLevel.WARNING)
+        warning_logs = warning_query.count()
 
         # 活跃模块数
         from sqlalchemy import distinct
-
-        modules_count = db.session.query(distinct(UnifiedLog.module)).filter(UnifiedLog.timestamp >= start_time).count()
+        modules_query = db.session.query(distinct(UnifiedLog.module))
+        
+        # 应用相同的筛选条件到模块查询
+        if hours:
+            modules_query = modules_query.filter(UnifiedLog.timestamp >= start_time)
+        if level:
+            modules_query = modules_query.filter(UnifiedLog.level == level)
+        if module:
+            modules_query = modules_query.filter(UnifiedLog.module == module)
+        if q:
+            modules_query = modules_query.filter(
+                or_(
+                    UnifiedLog.message.contains(q),
+                    UnifiedLog.module.contains(q),
+                    UnifiedLog.category.contains(q)
+                )
+            )
+        
+        modules_count = modules_query.count()
 
         stats = {
             "total_logs": total_logs,
             "error_logs": error_logs,
             "warning_logs": warning_logs,
             "modules_count": modules_count,
-            "time_range_hours": hours,
+            "time_range_hours": int(hours) if hours else None,
         }
 
         return success_response(stats)
