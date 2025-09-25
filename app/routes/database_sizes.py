@@ -104,20 +104,131 @@ def aggregations():
         # 无查询参数，返回HTML页面
         return render_template('database_sizes/aggregations.html')
 
-@database_sizes_bp.route('/database-sizes/config', methods=['GET'])
+@database_sizes_bp.route('/database-sizes/config', methods=['GET', 'PUT'])
 @login_required
 @view_required
 def config():
-    """配置管理页面"""
-    return render_template('database_sizes/config.html')
+    """
+    配置管理页面或API
+    
+    如果是页面请求（无查询参数），返回HTML页面
+    如果是API请求（有查询参数或PUT请求），返回JSON数据
+    """
+    # 检查是否有查询参数或PUT请求，如果有则返回API数据
+    if request.args or request.method == 'PUT':
+        if request.method == 'GET':
+            try:
+                # 从配置中获取参数
+                config = {
+                    'collect_hour': current_app.config.get('COLLECT_DB_SIZE_HOUR', 3),
+                    'collect_enabled': current_app.config.get('COLLECT_DB_SIZE_ENABLED', True),
+                    'cleanup_hour': current_app.config.get('CLEANUP_PARTITION_HOUR', 3),
+                    'create_hour': current_app.config.get('CREATE_PARTITION_HOUR', 2),
+                    'retention_days': current_app.config.get('DATABASE_SIZE_RETENTION_DAYS', 365),
+                    'retention_months': current_app.config.get('DATABASE_SIZE_RETENTION_MONTHS', 12),
+                    'aggregation_hour': current_app.config.get('AGGREGATION_HOUR', 4),
+                    'aggregation_enabled': current_app.config.get('AGGREGATION_ENABLED', True),
+                    'collect_timeout': current_app.config.get('DB_SIZE_COLLECT_TIMEOUT', 30),
+                    'batch_size': current_app.config.get('DB_SIZE_COLLECT_BATCH_SIZE', 10),
+                    'retry_count': current_app.config.get('DB_SIZE_COLLECT_RETRY_COUNT', 3)
+                }
+                
+                return jsonify({
+                    'success': True,
+                    'config': config,
+                    'timestamp': datetime.utcnow().isoformat()
+                })
+                
+            except Exception as e:
+                logger.error(f"获取配置时出错: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+        else:  # PUT request
+            try:
+                data = request.get_json()
+                if not data:
+                    return jsonify({'success': False, 'error': 'No data provided'}), 400
+                
+                # 更新配置参数
+                if 'collect_hour' in data:
+                    current_app.config['COLLECT_DB_SIZE_HOUR'] = data['collect_hour']
+                if 'collect_enabled' in data:
+                    current_app.config['COLLECT_DB_SIZE_ENABLED'] = data['collect_enabled']
+                if 'cleanup_hour' in data:
+                    current_app.config['CLEANUP_PARTITION_HOUR'] = data['cleanup_hour']
+                if 'create_hour' in data:
+                    current_app.config['CREATE_PARTITION_HOUR'] = data['create_hour']
+                if 'retention_days' in data:
+                    current_app.config['DATABASE_SIZE_RETENTION_DAYS'] = data['retention_days']
+                if 'retention_months' in data:
+                    current_app.config['DATABASE_SIZE_RETENTION_MONTHS'] = data['retention_months']
+                if 'aggregation_hour' in data:
+                    current_app.config['AGGREGATION_HOUR'] = data['aggregation_hour']
+                if 'aggregation_enabled' in data:
+                    current_app.config['AGGREGATION_ENABLED'] = data['aggregation_enabled']
+                if 'collect_timeout' in data:
+                    current_app.config['DB_SIZE_COLLECT_TIMEOUT'] = data['collect_timeout']
+                if 'batch_size' in data:
+                    current_app.config['DB_SIZE_COLLECT_BATCH_SIZE'] = data['batch_size']
+                if 'retry_count' in data:
+                    current_app.config['DB_SIZE_COLLECT_RETRY_COUNT'] = data['retry_count']
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Configuration updated successfully',
+                    'timestamp': datetime.utcnow().isoformat()
+                })
+                
+            except Exception as e:
+                logger.error(f"更新配置时出错: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+    else:
+        # 无查询参数且非PUT请求，返回HTML页面
+        return render_template('database_sizes/config.html')
 
 
 @database_sizes_bp.route('/database-sizes/partitions', methods=['GET'])
 @login_required
 @view_required
 def partitions():
-    """分区管理页面"""
-    return render_template('database_sizes/partitions.html')
+    """
+    分区管理页面或API
+    
+    如果是页面请求（无查询参数），返回HTML页面
+    如果是API请求（有查询参数），返回JSON数据
+    """
+    # 检查是否有查询参数，如果有则返回API数据
+    if request.args:
+        try:
+            service = PartitionManagementService()
+            result = service.get_partition_info()
+            
+            if result['success']:
+                return jsonify({
+                    'success': True,
+                    'data': result,
+                    'timestamp': datetime.utcnow().isoformat()
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': result.get('error', '获取分区信息失败')
+                }), 500
+                
+        except Exception as e:
+            logger.error(f"获取分区信息时出错: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    else:
+        # 无查询参数，返回HTML页面
+        return render_template('database_sizes/partitions.html')
 
 # API 路由
 
@@ -184,67 +295,6 @@ def get_aggregations_summary():
         }), 500
 
 # 配置管理相关路由
-@database_sizes_bp.route('/database-sizes/config', methods=['GET', 'PUT'])
-@login_required
-@view_required
-def config_api():
-    """
-    获取或更新数据库大小监控配置
-    
-    GET: 返回当前配置
-    PUT: 更新配置
-    """
-    if request.method == 'GET':
-        try:
-            # 从配置中获取参数
-            config = {
-                'collect_hour': current_app.config.get('COLLECT_DB_SIZE_HOUR', 3),
-                'collect_enabled': current_app.config.get('COLLECT_DB_SIZE_ENABLED', True),
-                'cleanup_hour': current_app.config.get('CLEANUP_PARTITION_HOUR', 3),
-                'create_hour': current_app.config.get('CREATE_PARTITION_HOUR', 2),
-                'retention_days': current_app.config.get('DATABASE_SIZE_RETENTION_DAYS', 365),
-                'retention_months': current_app.config.get('DATABASE_SIZE_RETENTION_MONTHS', 12),
-                'aggregation_hour': current_app.config.get('AGGREGATION_HOUR', 4),
-                'aggregation_enabled': current_app.config.get('AGGREGATION_ENABLED', True),
-                'timeout': current_app.config.get('COLLECT_DB_SIZE_TIMEOUT', 300),
-                'batch_size': current_app.config.get('DB_SIZE_COLLECT_BATCH_SIZE', 10),
-                'retry_count': current_app.config.get('DB_SIZE_COLLECT_RETRY_COUNT', 3)
-            }
-            
-            return jsonify({
-                'success': True,
-                'config': config
-            })
-            
-        except Exception as e:
-            logger.error(f"获取配置时出错: {str(e)}")
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 500
-    
-    elif request.method == 'PUT':
-        try:
-            data = request.get_json()
-            if not data:
-                return jsonify({
-                    'success': False,
-                    'error': '请求数据不能为空'
-                }), 400
-            
-            # 这里可以添加配置更新逻辑
-            # 由于配置通常在启动时加载，这里只返回成功
-            return jsonify({
-                'success': True,
-                'message': '配置更新成功（需要重启应用生效）'
-            })
-            
-        except Exception as e:
-            logger.error(f"更新配置时出错: {str(e)}")
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 500
 
 @database_sizes_bp.route('/database-sizes/status', methods=['GET'])
 @login_required
@@ -895,72 +945,8 @@ def calculate_aggregations():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/config', methods=['GET'])
-@login_required
-@view_required
-def get_database_size_config():
-    """
-    获取数据库大小监控配置信息
-    
-    Returns:
-        JSON: 配置信息
-    """
-    try:
-        config = {
-            'collect_enabled': current_app.config.get('COLLECT_DB_SIZE_ENABLED', True),
-            'collect_hour': current_app.config.get('COLLECT_DB_SIZE_HOUR', '3'),
-            'collect_timeout': current_app.config.get('COLLECT_DB_SIZE_TIMEOUT', 300),
-            'aggregation_enabled': current_app.config.get('AGGREGATION_ENABLED', True),
-            'aggregation_hour': current_app.config.get('AGGREGATION_HOUR', '5'),
-            'partition_cleanup_enabled': current_app.config.get('PARTITION_CLEANUP_ENABLED', True),
-            'partition_cleanup_hour': current_app.config.get('PARTITION_CLEANUP_HOUR', '4'),
-            'partition_create_hour': current_app.config.get('PARTITION_CREATE_HOUR', '2'),
-            'retention_days': current_app.config.get('DATABASE_SIZE_RETENTION_DAYS', 365),
-            'retention_months': current_app.config.get('DATABASE_SIZE_RETENTION_MONTHS', 12),
-            'collect_timeout': current_app.config.get('DB_SIZE_COLLECT_TIMEOUT', 30),
-            'batch_size': current_app.config.get('DB_SIZE_COLLECT_BATCH_SIZE', 10),
-            'retry_count': current_app.config.get('DB_SIZE_COLLECT_RETRY_COUNT', 3)
-        }
-        
-        return jsonify({
-            'config': config,
-            'timestamp': datetime.utcnow().isoformat()
-        })
-        
-    except Exception as e:
-        logger.error(f"获取数据库大小监控配置时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/partitions', methods=['GET'])
-@login_required
-@view_required
-def get_partition_info():
-    """
-    获取分区信息
-    
-    Returns:
-        JSON: 分区信息
-    """
-    try:
-        service = PartitionManagementService()
-        result = service.get_partition_info()
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"获取分区信息时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 
 @database_sizes_bp.route('/database-sizes/partitions/status', methods=['GET'])
@@ -1101,46 +1087,6 @@ def get_partition_statistics():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/collect', methods=['POST'])
-@login_required
-@view_required
-def trigger_collection():
-    """
-    手动触发数据库大小采集
-    
-    Returns:
-        JSON: 采集结果
-    """
-    try:
-        data = request.get_json() or {}
-        instance_id = data.get('instance_id')
-        db_type = data.get('db_type')
-        
-        if instance_id:
-            # 采集指定实例
-            result = collect_specific_instance_database_sizes(instance_id)
-        elif db_type:
-            # 采集指定类型的数据库
-            result = collect_database_sizes_by_type(db_type)
-        else:
-            # 采集所有实例
-            result = collect_database_sizes()
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"触发数据库大小采集时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 
 @database_sizes_bp.route('/database-sizes/collect/status', methods=['GET'])
@@ -1203,51 +1149,6 @@ def validate_collection_config_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/database-sizes/aggregate', methods=['POST'])
-@login_required
-@view_required
-def trigger_aggregation():
-    """
-    手动触发统计聚合计算
-    
-    Returns:
-        JSON: 聚合结果
-    """
-    try:
-        data = request.get_json() or {}
-        instance_id = data.get('instance_id')
-        period_type = data.get('period_type')
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
-        
-        if instance_id:
-            # 计算指定实例的聚合
-            result = calculate_instance_aggregations(instance_id)
-        elif period_type and start_date and end_date:
-            # 计算指定周期的聚合
-            from datetime import datetime
-            start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
-            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
-            result = calculate_period_aggregations(period_type, start_date_obj, end_date_obj)
-        else:
-            # 计算所有聚合
-            result = calculate_database_size_aggregations()
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"触发统计聚合计算时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 
 @database_sizes_bp.route('/database-sizes/aggregate/status', methods=['GET'])
