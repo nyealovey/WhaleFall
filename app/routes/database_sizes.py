@@ -23,6 +23,14 @@ from app.tasks.database_size_collection_tasks import (
     get_collection_status,
     validate_collection_config
 )
+from app.tasks.database_size_aggregation_tasks import (
+    calculate_database_size_aggregations,
+    calculate_instance_aggregations,
+    calculate_period_aggregations,
+    get_aggregation_status,
+    validate_aggregation_config,
+    cleanup_old_aggregations
+)
 from app.utils.decorators import view_required
 from app import db
 
@@ -773,4 +781,144 @@ def validate_collection_config_api():
             
     except Exception as e:
         logger.error(f"验证采集配置时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@database_sizes_bp.route('/database-sizes/aggregate', methods=['POST'])
+@login_required
+@view_required
+def trigger_aggregation():
+    """
+    手动触发统计聚合计算
+    
+    Returns:
+        JSON: 聚合结果
+    """
+    try:
+        data = request.get_json() or {}
+        instance_id = data.get('instance_id')
+        period_type = data.get('period_type')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        
+        if instance_id:
+            # 计算指定实例的聚合
+            result = calculate_instance_aggregations(instance_id)
+        elif period_type and start_date and end_date:
+            # 计算指定周期的聚合
+            from datetime import datetime
+            start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+            result = calculate_period_aggregations(period_type, start_date_obj, end_date_obj)
+        else:
+            # 计算所有聚合
+            result = calculate_database_size_aggregations()
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['message']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"触发统计聚合计算时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@database_sizes_bp.route('/database-sizes/aggregate/status', methods=['GET'])
+@login_required
+@view_required
+def get_aggregation_status_api():
+    """
+    获取聚合状态信息
+    
+    Returns:
+        JSON: 状态信息
+    """
+    try:
+        result = get_aggregation_status()
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['message']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"获取聚合状态时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@database_sizes_bp.route('/database-sizes/aggregate/validate', methods=['GET'])
+@login_required
+@view_required
+def validate_aggregation_config_api():
+    """
+    验证聚合配置
+    
+    Returns:
+        JSON: 验证结果
+    """
+    try:
+        result = validate_aggregation_config()
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['message']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"验证聚合配置时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@database_sizes_bp.route('/database-sizes/aggregate/cleanup', methods=['POST'])
+@login_required
+@view_required
+def cleanup_old_aggregations_api():
+    """
+    清理旧的聚合数据
+    
+    Returns:
+        JSON: 清理结果
+    """
+    try:
+        data = request.get_json() or {}
+        retention_days = data.get('retention_days', 365)
+        
+        result = cleanup_old_aggregations(retention_days=retention_days)
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['message']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"清理旧聚合数据时出错: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500

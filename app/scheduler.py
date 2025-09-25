@@ -240,6 +240,14 @@ def _add_default_jobs() -> None:
         get_collection_status,
         validate_collection_config
     )
+    from app.tasks.database_size_aggregation_tasks import (
+        calculate_database_size_aggregations,
+        calculate_instance_aggregations,
+        calculate_period_aggregations,
+        get_aggregation_status,
+        validate_aggregation_config,
+        cleanup_old_aggregations
+    )
 
     # 检查是否已有任务
     try:
@@ -294,6 +302,18 @@ def _add_default_jobs() -> None:
                 func = get_collection_status
             elif function_name == "validate_collection_config":
                 func = validate_collection_config
+            elif function_name == "calculate_database_size_aggregations":
+                func = calculate_database_size_aggregations
+            elif function_name == "calculate_instance_aggregations":
+                func = calculate_instance_aggregations
+            elif function_name == "calculate_period_aggregations":
+                func = calculate_period_aggregations
+            elif function_name == "get_aggregation_status":
+                func = get_aggregation_status
+            elif function_name == "validate_aggregation_config":
+                func = validate_aggregation_config
+            elif function_name == "cleanup_old_aggregations":
+                func = cleanup_old_aggregations
             else:
                 logger.warning("未知的任务函数: %s", function_name)
                 continue
