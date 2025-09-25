@@ -4,7 +4,8 @@
 """
 
 # 导入现有任务
-from . import cleanup_old_logs, sync_accounts
+from .cleanup_old_logs import cleanup_old_logs
+from .sync_accounts import sync_accounts
 
 # 导入数据库大小监控相关任务
 from .database_size_collection_tasks import (
