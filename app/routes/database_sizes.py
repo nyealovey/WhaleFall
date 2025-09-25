@@ -62,6 +62,173 @@ def partitions():
     """分区管理页面"""
     return render_template('database_sizes/partitions.html')
 
+# API 路由
+@database_sizes_bp.route('/database-sizes/aggregations', methods=['GET'])
+@login_required
+@view_required
+def get_aggregations():
+    """
+    获取聚合数据
+    
+    Query Parameters:
+        instance_id: 实例ID（可选）
+        database_name: 数据库名称（可选）
+        period_type: 周期类型（weekly, monthly, quarterly）
+        start_date: 开始日期
+        end_date: 结束日期
+        limit: 限制数量
+        offset: 偏移量
+    
+    Returns:
+        JSON: 聚合数据列表
+    """
+    try:
+        # 获取查询参数
+        instance_id = request.args.get('instance_id', type=int)
+        database_name = request.args.get('database_name')
+        period_type = request.args.get('period_type')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        limit = request.args.get('limit', 100, type=int)
+        offset = request.args.get('offset', 0, type=int)
+        
+        # 构建查询
+        query = DatabaseSizeAggregation.query
+        
+        if instance_id:
+            query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
+        if database_name:
+            query = query.filter(DatabaseSizeAggregation.database_name == database_name)
+        if period_type:
+            query = query.filter(DatabaseSizeAggregation.period_type == period_type)
+        if start_date:
+            query = query.filter(DatabaseSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            query = query.filter(DatabaseSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        # 排序和分页
+        query = query.order_by(desc(DatabaseSizeAggregation.period_start))
+        total = query.count()
+        aggregations = query.offset(offset).limit(limit).all()
+        
+        # 转换为字典格式
+        data = []
+        for agg in aggregations:
+            data.append(agg.to_dict())
+        
+        return jsonify({
+            'success': True,
+            'data': data,
+            'total': total,
+            'limit': limit,
+            'offset': offset
+        })
+        
+    except Exception as e:
+        logger.error(f"获取聚合数据时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@database_sizes_bp.route('/database-sizes/aggregations/summary', methods=['GET'])
+@login_required
+@view_required
+def get_aggregations_summary():
+    """
+    获取聚合数据汇总统计
+    
+    Returns:
+        JSON: 汇总统计信息
+    """
+    try:
+        # 获取基本统计
+        total_aggregations = DatabaseSizeAggregation.query.count()
+        total_instances = Instance.query.filter_by(is_active=True).count()
+        
+        # 按周期类型统计
+        period_stats = db.session.query(
+            DatabaseSizeAggregation.period_type,
+            func.count(DatabaseSizeAggregation.id).label('count')
+        ).group_by(DatabaseSizeAggregation.period_type).all()
+        
+        # 按实例统计
+        instance_stats = db.session.query(
+            DatabaseSizeAggregation.instance_id,
+            Instance.name.label('instance_name'),
+            func.count(DatabaseSizeAggregation.id).label('count')
+        ).join(Instance).group_by(
+            DatabaseSizeAggregation.instance_id, 
+            Instance.name
+        ).order_by(func.count(DatabaseSizeAggregation.id).desc()).limit(10).all()
+        
+        # 最近更新时间
+        latest_aggregation = DatabaseSizeAggregation.query.order_by(
+            desc(DatabaseSizeAggregation.calculated_at)
+        ).first()
+        
+        summary = {
+            'total_aggregations': total_aggregations,
+            'total_instances': total_instances,
+            'period_stats': [
+                {'period_type': stat.period_type, 'count': stat.count}
+                for stat in period_stats
+            ],
+            'top_instances': [
+                {'instance_id': stat.instance_id, 'instance_name': stat.instance_name, 'count': stat.count}
+                for stat in instance_stats
+            ],
+            'last_updated': latest_aggregation.calculated_at.isoformat() if latest_aggregation else None
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': summary
+        })
+        
+    except Exception as e:
+        logger.error(f"获取聚合汇总数据时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@database_sizes_bp.route('/instances', methods=['GET'])
+@login_required
+@view_required
+def get_instances():
+    """
+    获取实例列表
+    
+    Returns:
+        JSON: 实例列表
+    """
+    try:
+        instances = Instance.query.filter_by(is_active=True).all()
+        
+        data = []
+        for instance in instances:
+            data.append({
+                'id': instance.id,
+                'name': instance.name,
+                'db_type': instance.db_type,
+                'host': instance.host,
+                'port': instance.port,
+                'is_active': instance.is_active
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': data
+        })
+        
+    except Exception as e:
+        logger.error(f"获取实例列表时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
 @login_required
 @view_required
