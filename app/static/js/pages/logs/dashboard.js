@@ -10,6 +10,7 @@ let currentFilters = {};
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
     initializePage();
+    initUnifiedSearch();
 });
 
 // 初始化页面
@@ -86,28 +87,33 @@ function updateStatsDisplay(stats) {
 function searchLogs(page = 1) {
     currentPage = page;
     
-    // 收集过滤条件
-    const levelFilter = document.getElementById('levelFilter');
-    const moduleFilter = document.getElementById('moduleFilter');
-    const searchTerm = document.getElementById('searchTerm');
-    const timeRange = document.getElementById('timeRange');
+    // 如果currentFilters为空，从DOM元素获取（兼容旧代码）
+    if (Object.keys(currentFilters).length === 0) {
+        const levelFilter = document.getElementById('levelFilter');
+        const moduleFilter = document.getElementById('moduleFilter');
+        const searchTerm = document.getElementById('searchTerm');
+        const timeRange = document.getElementById('timeRange');
+        
+        currentFilters = {
+            level: levelFilter ? levelFilter.value : '',
+            module: moduleFilter ? moduleFilter.value : '',
+            q: searchTerm ? searchTerm.value : '',
+            hours: timeRange ? parseInt(timeRange.value) || 24 : 24
+        };
+    }
     
-    currentFilters = {
-        page: page,
-        per_page: 50,
-        level: levelFilter ? levelFilter.value : '',
-        module: moduleFilter ? moduleFilter.value : '',
-        q: searchTerm ? searchTerm.value : '',
-        hours: timeRange ? parseInt(timeRange.value) || 24 : 24
-    };
-
     // 构建查询参数
     const params = new URLSearchParams();
-    Object.keys(currentFilters).forEach(key => {
-        if (currentFilters[key]) {
-            params.append(key, currentFilters[key]);
-        }
-    });
+    params.append('page', page);
+    params.append('per_page', '50');
+    
+    // 添加筛选条件
+    if (currentFilters.level) params.append('level', currentFilters.level);
+    if (currentFilters.module) params.append('module', currentFilters.module);
+    if (currentFilters.q) params.append('q', currentFilters.q);
+    if (currentFilters.hours) params.append('hours', currentFilters.hours);
+
+    console.log('searchLogs: 请求参数:', params.toString());
 
     // 显示加载状态
     showLoadingState();
@@ -389,6 +395,96 @@ function showSuccess(message) {
     setTimeout(() => {
         alertDiv.remove();
     }, 3000);
+}
+
+// 初始化统一搜索组件
+function initUnifiedSearch() {
+    console.log('initUnifiedSearch: 开始初始化统一搜索组件');
+    
+    // 等待统一搜索组件加载完成
+    if (typeof UnifiedSearch !== 'undefined') {
+        const searchForm = document.querySelector('.unified-search-form');
+        console.log('initUnifiedSearch: 搜索表单元素:', searchForm);
+        
+        if (searchForm) {
+            console.log('initUnifiedSearch: 创建UnifiedSearch实例');
+            const unifiedSearch = new UnifiedSearch(searchForm);
+            
+            // 重写搜索和清除方法
+            unifiedSearch.handleSubmit = function(e) {
+                console.log('initUnifiedSearch: 搜索表单提交事件触发');
+                e.preventDefault();
+                applyFilters();
+            };
+            
+            unifiedSearch.clearForm = function() {
+                console.log('initUnifiedSearch: 清除表单事件触发');
+                // 清除所有筛选条件
+                const inputs = this.form.querySelectorAll('.unified-input');
+                inputs.forEach(input => {
+                    input.value = '';
+                });
+
+                const selects = this.form.querySelectorAll('.unified-select');
+                selects.forEach(select => {
+                    select.selectedIndex = 0;
+                });
+
+                // 刷新数据
+                currentFilters = {};
+                searchLogs(1);
+            };
+            
+            console.log('initUnifiedSearch: 统一搜索组件初始化完成');
+        } else {
+            console.log('initUnifiedSearch: 未找到搜索表单');
+        }
+    } else {
+        console.log('initUnifiedSearch: UnifiedSearch未加载，100ms后重试');
+        // 如果统一搜索组件未加载，使用传统方式
+        setTimeout(initUnifiedSearch, 100);
+    }
+}
+
+// 应用筛选条件
+window.applyFilters = function() {
+    console.log('applyFilters: 开始应用筛选条件');
+    
+    // 从统一搜索组件获取筛选条件
+    const levelEl = document.getElementById('level');
+    const moduleEl = document.getElementById('module');
+    const searchEl = document.getElementById('search');
+    const timeRangeEl = document.getElementById('time_range');
+    
+    console.log('applyFilters: 表单元素:', {
+        levelEl: levelEl,
+        moduleEl: moduleEl,
+        searchEl: searchEl,
+        timeRangeEl: timeRangeEl
+    });
+    
+    // 获取筛选值，空字符串表示不过滤
+    const level = levelEl?.value || '';
+    const module = moduleEl?.value || '';
+    const search = searchEl?.value || '';
+    const timeRange = timeRangeEl?.value || '24';
+    
+    currentFilters = {
+        level: level,
+        module: module,
+        q: search,
+        hours: parseInt(timeRange) || 24
+    };
+    
+    console.log('applyFilters: 筛选条件:', currentFilters);
+    searchLogs(1);
+}
+
+// 清除筛选条件
+window.clearFilters = function() {
+    console.log('clearFilters: 清除所有筛选条件');
+    currentFilters = {};
+    searchLogs(1);
 }
 
 // 导出函数供全局使用
