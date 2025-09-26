@@ -4,6 +4,7 @@
 """
 
 import logging
+import re
 from datetime import datetime, date
 from typing import List, Dict, Any, Optional
 from sqlalchemy.exc import SQLAlchemyError
@@ -110,102 +111,52 @@ class DatabaseSizeCollectorService:
             
             self.logger.info(f"MySQL 权限测试通过，发现 {test_result[0][0]} 个数据库")
             
-            # 先检查所有数据库
-            all_dbs_query = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA ORDER BY SCHEMA_NAME"
-            all_dbs_result = self.db_connection.execute_query(all_dbs_query)
-            if all_dbs_result:
-                all_dbs = [row[0] for row in all_dbs_result]
-                self.logger.info(f"MySQL 所有数据库: {all_dbs}")
-            else:
-                self.logger.warning("无法获取数据库列表")
-                return []
-            
-            # 获取所有数据库列表（包括系统数据库）
-            db_list_query = """
-                SELECT SCHEMA_NAME 
-                FROM information_schema.SCHEMATA 
-                ORDER BY SCHEMA_NAME
+            # 使用统计表方式查询所有数据库大小
+            query = """
+                SELECT
+                    s.SCHEMA_NAME AS database_name,
+                    COALESCE(ROUND(SUM(COALESCE(t.data_length, 0) + COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS size_mb,
+                    COALESCE(ROUND(SUM(COALESCE(t.data_length, 0)) / 1024 / 1024, 2), 0) AS data_size_mb,
+                    COALESCE(ROUND(SUM(COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS index_size_mb
+                FROM
+                    information_schema.SCHEMATA s
+                LEFT JOIN
+                    information_schema.tables t ON s.SCHEMA_NAME = t.table_schema
+                GROUP BY
+                    s.SCHEMA_NAME
+                ORDER BY
+                    size_mb DESC
             """
             
-            db_list_result = self.db_connection.execute_query(db_list_query)
-            if not db_list_result:
-                self.logger.warning("MySQL 未找到任何数据库")
+            result = self.db_connection.execute_query(query)
+            self.logger.info(f"MySQL 查询结果: {len(result) if result else 0} 行数据")
+            
+            if not result:
+                self.logger.warning("MySQL 未查询到任何数据库大小数据")
                 return []
             
-            self.logger.info(f"MySQL 发现 {len(db_list_result)} 个数据库: {[row[0] for row in db_list_result]}")
-            
-            # 使用更简单的查询方式，分别计算每个数据库的大小
             data = []
-            for db_row in db_list_result:
-                db_name = db_row[0]
+            for row in result:
+                db_name = row[0]
+                total_size = float(row[1] or 0)
+                data_size = float(row[2] or 0)
+                index_size = float(row[3] or 0)
                 
-                # 查询该数据库的大小
-                size_query = """
-                    SELECT 
-                        COALESCE(ROUND(SUM(data_length + index_length) / 1024 / 1024, 2), 0) AS total_size_mb,
-                        COALESCE(ROUND(SUM(data_length) / 1024 / 1024, 2), 0) AS data_size_mb,
-                        COALESCE(ROUND(SUM(index_length) / 1024 / 1024, 2), 0) AS index_size_mb
-                    FROM information_schema.tables 
-                    WHERE table_schema = %s
-                """
+                # 判断是否为系统数据库
+                is_system_db = db_name in ('information_schema', 'performance_schema', 'mysql', 'sys')
+                db_type = "系统数据库" if is_system_db else "用户数据库"
                 
-                try:
-                    size_result = self.db_connection.execute_query(size_query, (db_name,))
-                    if size_result and size_result[0]:
-                        total_size = float(size_result[0][0] or 0)
-                        data_size = float(size_result[0][1] or 0)
-                        index_size = float(size_result[0][2] or 0)
-                        
-                        # 判断是否为系统数据库
-                        is_system_db = db_name in ('information_schema', 'performance_schema', 'mysql', 'sys')
-                        db_type = "系统数据库" if is_system_db else "用户数据库"
-                        
-                        data.append({
-                            'database_name': db_name,
-                            'size_mb': int(total_size),
-                            'data_size_mb': int(data_size),
-                            'log_size_mb': None,  # MySQL 没有单独的日志文件大小
-                            'collected_date': date.today(),
-                            'collected_at': datetime.utcnow(),
-                            'is_system': is_system_db
-                        })
-                        
-                        self.logger.info(f"{db_type} {db_name}: 总大小 {total_size:.2f}MB, 数据 {data_size:.2f}MB, 索引 {index_size:.2f}MB")
-                    else:
-                        # 空数据库
-                        is_system_db = db_name in ('information_schema', 'performance_schema', 'mysql', 'sys')
-                        db_type = "系统数据库" if is_system_db else "用户数据库"
-                        
-                        data.append({
-                            'database_name': db_name,
-                            'size_mb': 0,
-                            'data_size_mb': 0,
-                            'log_size_mb': None,
-                            'collected_date': date.today(),
-                            'collected_at': datetime.utcnow(),
-                            'is_system': is_system_db
-                        })
-                        self.logger.info(f"{db_type} {db_name}: 空数据库")
-                        
-                except Exception as e:
-                    self.logger.warning(f"查询数据库 {db_name} 大小时出错: {e}")
-                    # 即使出错也添加记录，大小为0
-                    is_system_db = db_name in ('information_schema', 'performance_schema', 'mysql', 'sys')
-                    db_type = "系统数据库" if is_system_db else "用户数据库"
-                    
-                    data.append({
-                        'database_name': db_name,
-                        'size_mb': 0,
-                        'data_size_mb': 0,
-                        'log_size_mb': None,
-                        'collected_date': date.today(),
-                        'collected_at': datetime.utcnow(),
-                        'is_system': is_system_db
-                    })
-                    self.logger.warning(f"{db_type} {db_name}: 查询失败，记录为0MB")
-            
-            # 按大小排序
-            data.sort(key=lambda x: x['size_mb'], reverse=True)
+                data.append({
+                    'database_name': db_name,
+                    'size_mb': int(total_size),
+                    'data_size_mb': int(data_size),
+                    'log_size_mb': None,  # MySQL 没有单独的日志文件大小
+                    'collected_date': date.today(),
+                    'collected_at': datetime.utcnow(),
+                    'is_system': is_system_db
+                })
+                
+                self.logger.info(f"{db_type} {db_name}: 总大小 {total_size:.2f}MB, 数据 {data_size:.2f}MB, 索引 {index_size:.2f}MB")
             
             self.logger.info(f"MySQL 实例 {self.instance.name} 采集到 {len(data)} 个数据库")
             return data
