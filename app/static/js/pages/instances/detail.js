@@ -584,12 +584,21 @@ function displayDatabaseSizes(databases, totalSize) {
         const logSizeGB = db.log_size_mb ? (db.log_size_mb / 1024).toFixed(3) : '-';
         const collectedAt = new Date(db.collected_at).toLocaleString('zh-CN');
         
+        const isDeleted = db.is_deleted || false;
+        const rowClass = isDeleted ? 'table-secondary' : '';
+        const iconClass = isDeleted ? 'text-muted' : 'text-primary';
+        const textClass = isDeleted ? 'text-muted' : '';
+        const deletedBadge = isDeleted ? '<span class="badge bg-danger ms-2">已删除</span>' : '';
+        
         html += `
-            <tr>
+            <tr class="${rowClass}">
                 <td>
                     <div class="d-flex align-items-start">
-                        <i class="fas fa-database text-primary me-2 mt-1"></i>
-                        <strong style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${db.database_name}</strong>
+                        <i class="fas fa-database ${iconClass} me-2 mt-1"></i>
+                        <div>
+                            <strong class="${textClass}" style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${db.database_name}</strong>
+                            ${deletedBadge}
+                        </div>
                     </div>
                 </td>
                 <td>
