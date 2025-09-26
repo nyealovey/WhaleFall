@@ -1901,9 +1901,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
         # 获取实例信息
         instance = Instance.query.get_or_404(instance_id)
         
-        # 检查权限
-        if not current_user.can_view_instance(instance):
-            return jsonify({'success': False, 'error': '没有权限查看此实例'}), 403
+        # 权限检查由 @view_required 装饰器处理
         
         # 获取最新的数据库大小统计
         from app.models.database_size_stat import DatabaseSizeStat
