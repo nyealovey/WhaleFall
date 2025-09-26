@@ -380,4 +380,14 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/pages/database_sizes/aggregations.js') }}"></script>
+<script>
+// 页面加载完成后初始化聚合页面
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof AggregationsManager !== 'undefined') {
+        window.aggregationsManager = new AggregationsManager();
+    } else {
+        console.error('AggregationsManager class not found');
+    }
+});
+</script>
 {% endblock %}
