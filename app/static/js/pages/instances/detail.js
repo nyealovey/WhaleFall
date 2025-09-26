@@ -568,11 +568,11 @@ function displayDatabaseSizes(databases, totalSize) {
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 40%;"><i class="fas fa-database me-1"></i>数据库名称</th>
-                        <th style="width: 12%;"><i class="fas fa-hdd me-1"></i>总大小</th>
-                        <th style="width: 12%;"><i class="fas fa-file me-1"></i>数据大小</th>
-                        <th style="width: 12%;"><i class="fas fa-file-alt me-1"></i>日志大小</th>
-                        <th style="width: 24%;"><i class="fas fa-clock me-1"></i>采集时间</th>
+                        <th style="width: 35%;"><i class="fas fa-database me-1"></i>数据库名称</th>
+                        <th style="width: 13%;"><i class="fas fa-hdd me-1"></i>总大小</th>
+                        <th style="width: 13%;"><i class="fas fa-file me-1"></i>数据大小</th>
+                        <th style="width: 13%;"><i class="fas fa-file-alt me-1"></i>日志大小</th>
+                        <th style="width: 26%;"><i class="fas fa-clock me-1"></i>采集时间</th>
                     </tr>
                 </thead>
                 <tbody>
