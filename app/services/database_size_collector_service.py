@@ -150,7 +150,7 @@ class DatabaseSizeCollectorService:
                     SUM(CASE WHEN type_desc = 'ROWS' THEN size * 8.0 / 1024 ELSE 0 END) AS DataFileSize_MB,
                     SUM(CASE WHEN type_desc = 'LOG' THEN size * 8.0 / 1024 ELSE 0 END) AS LogFileSize_MB
                 FROM sys.master_files
-                WHERE DB_NAME(database_id) NOT IN ('master', 'tempdb', 'model', 'msdb')
+                WHERE DB_NAME(database_id) IS NOT NULL
                 GROUP BY database_id
             )
             SELECT
