@@ -225,6 +225,16 @@ def _load_existing_jobs() -> None:
 
 def _add_default_jobs() -> None:
     """添加默认任务（仅当数据库中没有任务时）"""
+    _load_tasks_from_config(force=False)
+
+
+def _reload_all_jobs() -> None:
+    """重新加载所有任务（强制模式）"""
+    _load_tasks_from_config(force=True)
+
+
+def _load_tasks_from_config(force: bool = False) -> None:
+    """从配置文件加载任务"""
     import yaml
 
     from app.tasks.legacy_tasks import cleanup_old_logs, sync_accounts
@@ -249,18 +259,19 @@ def _add_default_jobs() -> None:
         cleanup_old_aggregations
     )
 
-    # 检查是否已有任务
-    try:
-        existing_jobs = scheduler.get_jobs()
-        if existing_jobs:
-            logger.info("发现 %d 个现有任务，跳过创建默认任务", len(existing_jobs))
+    # 如果不是强制模式，检查是否已有任务
+    if not force:
+        try:
+            existing_jobs = scheduler.get_jobs()
+            if existing_jobs:
+                logger.info("发现 %d 个现有任务，跳过创建默认任务", len(existing_jobs))
+                return
+        except KeyboardInterrupt:
+            logger.warning("检查现有任务时被中断，跳过创建默认任务")
             return
-    except KeyboardInterrupt:
-        logger.warning("检查现有任务时被中断，跳过创建默认任务")
-        return
-    except Exception as e:
-        logger.error("检查现有任务失败: %s", str(e))
-        return
+        except Exception as e:
+            logger.error("检查现有任务失败: %s", str(e))
+            return
 
     # 从配置文件读取默认任务
     config_file = os.path.join(os.path.dirname(__file__), "config", "scheduler_tasks.yaml")
@@ -318,8 +329,16 @@ def _add_default_jobs() -> None:
                 logger.warning("未知的任务函数: %s", function_name)
                 continue
 
-            # 创建任务（不覆盖现有任务）
+            # 创建任务
             try:
+                # 如果是强制模式，先删除现有任务
+                if force:
+                    try:
+                        scheduler.remove_job(task_id)
+                        logger.info("强制模式-删除现有任务: %s (%s)", task_name, task_id)
+                    except Exception:
+                        pass  # 任务不存在，忽略错误
+                
                 scheduler.add_job(
                     func,
                     trigger_type,
@@ -327,9 +346,12 @@ def _add_default_jobs() -> None:
                     name=task_name,
                     **trigger_params,
                 )
-                logger.info("添加默认任务: %s (%s)", task_name, task_id)
+                logger.info("添加任务: %s (%s)", task_name, task_id)
             except Exception as e:
-                logger.warning("任务已存在，跳过创建: %s (%s) - %s", task_name, task_id, str(e))
+                if force:
+                    logger.error("强制模式-创建任务失败: %s (%s) - %s", task_name, task_id, str(e))
+                else:
+                    logger.warning("任务已存在，跳过创建: %s (%s) - %s", task_name, task_id, str(e))
 
     except FileNotFoundError:
         logger.warning("配置文件不存在: %s，使用硬编码默认任务", config_file)

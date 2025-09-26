@@ -581,8 +581,8 @@ def reload_jobs() -> Response:
                 system_logger.error("重新加载-删除任务失败: %s - %s", job_id, str(del_err))
 
         # 重新加载任务配置
-        from app.scheduler import _add_default_jobs
-        _add_default_jobs()
+        from app.scheduler import _reload_all_jobs
+        _reload_all_jobs()
         
         # 获取重新加载后的任务列表
         reloaded_jobs = scheduler.get_jobs()
