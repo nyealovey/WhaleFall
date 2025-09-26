@@ -100,25 +100,21 @@ class DatabaseSizeCollectorService:
     
     def _collect_mysql_sizes(self) -> List[Dict[str, Any]]:
         """采集 MySQL 数据库大小"""
-        # 先测试基本查询，看看能否获取到数据库列表
-        test_query = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')"
-        test_result = self.db_connection.execute_query(test_query)
-        self.logger.info(f"MySQL 数据库列表查询结果: {len(test_result) if test_result else 0} 行数据")
-        if test_result:
-            self.logger.info(f"找到的数据库: {[row[0] for row in test_result]}")
-        
+        # 使用 LEFT JOIN 确保包含所有数据库，包括空数据库
         query = """
             SELECT
-                table_schema AS database_name,
-                ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb,
-                ROUND(SUM(data_length) / 1024 / 1024, 2) AS data_size_mb,
-                ROUND(SUM(index_length) / 1024 / 1024, 2) AS index_size_mb
+                s.SCHEMA_NAME AS database_name,
+                COALESCE(ROUND(SUM(t.data_length + t.index_length) / 1024 / 1024, 2), 0) AS size_mb,
+                COALESCE(ROUND(SUM(t.data_length) / 1024 / 1024, 2), 0) AS data_size_mb,
+                COALESCE(ROUND(SUM(t.index_length) / 1024 / 1024, 2), 0) AS index_size_mb
             FROM
-                information_schema.tables
+                information_schema.SCHEMATA s
+            LEFT JOIN
+                information_schema.tables t ON s.SCHEMA_NAME = t.table_schema
             WHERE
-                table_schema NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')
+                s.SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')
             GROUP BY
-                table_schema
+                s.SCHEMA_NAME
             ORDER BY
                 size_mb DESC
         """
