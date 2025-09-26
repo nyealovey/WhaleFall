@@ -388,7 +388,21 @@ class AggregationsManager {
      * 渲染图表
      */
     renderChart(data) {
-        const ctx = document.getElementById('aggregationChart').getContext('2d');
+        const chartContainer = document.getElementById('aggregationChart');
+        if (!chartContainer) {
+            console.error('图表容器不存在');
+            return;
+        }
+        
+        // 确保canvas元素存在
+        let canvas = chartContainer.querySelector('canvas');
+        if (!canvas) {
+            canvas = document.createElement('canvas');
+            canvas.id = 'aggregationChartCanvas';
+            chartContainer.appendChild(canvas);
+        }
+        
+        const ctx = canvas.getContext('2d');
         
         // 销毁现有图表
         if (this.chart) {
