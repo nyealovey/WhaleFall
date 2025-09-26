@@ -216,16 +216,44 @@
     </div>
 </div>
 
-<!-- 数据库账户信息 - 横跨整个宽度 -->
+<!-- 数据库信息标签页 -->
 <div class="row">
     <div class="col-12">
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-users me-2"></i>数据库账户信息
-                </h5>
+                <ul class="nav nav-tabs card-header-tabs" id="databaseInfoTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="capacity-tab" data-bs-toggle="tab" data-bs-target="#capacity-pane" type="button" role="tab" aria-controls="capacity-pane" aria-selected="true">
+                            <i class="fas fa-chart-pie me-2"></i>数据库容量信息
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="accounts-tab" data-bs-toggle="tab" data-bs-target="#accounts-pane" type="button" role="tab" aria-controls="accounts-pane" aria-selected="false">
+                            <i class="fas fa-users me-2"></i>数据库账户信息
+                        </button>
+                    </li>
+                </ul>
             </div>
             <div class="card-body">
+                <div class="tab-content" id="databaseInfoTabContent">
+                    <!-- 数据库容量信息标签页 -->
+                    <div class="tab-pane fade show active" id="capacity-pane" role="tabpanel" aria-labelledby="capacity-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">数据库容量信息</h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadDatabaseSizes()" title="刷新容量信息">
+                                <i class="fas fa-sync-alt me-1"></i>刷新
+                            </button>
+                        </div>
+                        <div id="databaseSizesContent">
+                            <div class="text-center py-4">
+                                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">正在加载数据库容量信息...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 数据库账户信息标签页 -->
+                    <div class="tab-pane fade" id="accounts-pane" role="tabpanel" aria-labelledby="accounts-tab">
                 <!-- 账户显示控制 -->
                 <div class="row mb-3">
                     <div class="col-md-6">
@@ -616,36 +644,13 @@
                     <p class="text-muted">点击"同步账户"按钮获取账户信息</p>
                 </div>
                 {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 数据库容量信息 -->
-<div class="row">
-    <div class="col-12">
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-pie me-2"></i>数据库容量信息
-                </h5>
-                <div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshDatabaseSizes()" title="刷新容量信息">
-                        <i class="fas fa-sync-alt me-1"></i>刷新
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <div id="databaseSizesContent">
-                    <div class="text-center py-4">
-                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
-                        <p class="text-muted">正在加载数据库容量信息...</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- 权限查看模态框 -->
 <div class="modal fade" id="permissionsModal" tabindex="-1">
