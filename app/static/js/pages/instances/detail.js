@@ -619,11 +619,11 @@ function displayDatabaseSizes(databases, totalSize) {
                     <span class="${sizeBadgeClass}">${sizeGB} GB</span>
                 </td>
                 <td>
-                    <span class="text-info">${dataSizeGB} GB</span>
+                    <span class="text-muted">${dataSizeGB} GB</span>
                 </td>
                 <td>
                     ${db.log_size_mb ? 
-                        `<span class="text-warning">${logSizeGB} GB</span>` : 
+                        `<span class="text-muted">${logSizeGB} GB</span>` : 
                         '<span class="text-muted">-</span>'
                     }
                 </td>
