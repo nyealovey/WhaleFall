@@ -549,26 +549,43 @@ window.filteredAggregationData = [];
  */
 async function loadAggregationData() {
     try {
-        console.log('开始加载聚合数据...');
+        console.log('开始加载最新聚合数据...');
         showAggregationLoadingState();
         
-        const response = await fetch('/database-sizes/aggregations?api=true&page=1&per_page=20');
+        const response = await fetch('/database-sizes/aggregations/latest?api=true');
         const data = await response.json();
         
         if (response.ok) {
-            window.aggregationData = data.data || [];
-            window.filteredAggregationData = [...window.aggregationData];
-            window.totalAggregationRecords = data.total || 0;
-            window.totalAggregationPages = Math.ceil(window.totalAggregationRecords / window.aggregationPageSize);
+            console.log('最新聚合数据响应:', data);
             
-            renderAggregationTable(window.aggregationData);
-            updateAggregationPagination();
+            // 合并所有周期类型的数据
+            const allData = [];
+            if (data.data) {
+                Object.keys(data.data).forEach(periodType => {
+                    data.data[periodType].forEach(item => {
+                        allData.push(item);
+                    });
+                });
+            }
+            
+            window.aggregationData = allData;
+            window.filteredAggregationData = [...window.aggregationData];
+            window.totalAggregationRecords = allData.length;
+            window.totalAggregationPages = 1; // 最新数据不需要分页
+            
+            console.log('开始渲染最新聚合数据表格...');
+            renderLatestAggregationTable(allData, data.summary);
+            console.log('聚合数据加载完成');
         } else {
+            console.error('API响应失败:', response.status, data);
             showError('加载聚合数据失败: ' + data.error);
         }
     } catch (error) {
         console.error('加载聚合数据时出错:', error);
-        showError('加载聚合数据时出错: ' + error.message);
+        console.error('错误类型:', typeof error);
+        console.error('错误消息:', error.message);
+        console.error('错误堆栈:', error.stack);
+        showError('加载聚合数据时出错: ' + (error.message || '未知错误'));
     }
 }
 
@@ -589,7 +606,76 @@ function showAggregationLoadingState() {
 }
 
 /**
- * 渲染聚合数据表
+ * 渲染最新聚合数据表
+ */
+function renderLatestAggregationTable(data, summary) {
+    const tbody = document.getElementById('aggregationTableBody');
+    tbody.innerHTML = '';
+    
+    if (data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center">
+                    <div class="empty-state">
+                        <i class="fas fa-chart-bar"></i>
+                        <h5>暂无最新聚合数据</h5>
+                        <p>没有找到最新的日、周、月、季度聚合数据</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // 添加汇总信息行
+    if (summary) {
+        const summaryRow = `
+            <tr class="table-info">
+                <td colspan="9" class="text-center">
+                    <strong>最新聚合数据汇总</strong> | 
+                    日: ${summary.daily} | 
+                    周: ${summary.weekly} | 
+                    月: ${summary.monthly} | 
+                    季度: ${summary.quarterly}
+                </td>
+            </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', summaryRow);
+    }
+    
+    // 按周期类型分组显示
+    const periodTypes = ['daily', 'weekly', 'monthly', 'quarterly'];
+    const periodLabels = {
+        'daily': '日',
+        'weekly': '周', 
+        'monthly': '月',
+        'quarterly': '季度'
+    };
+    
+    periodTypes.forEach(periodType => {
+        const periodData = data.filter(item => item.period_type === periodType);
+        if (periodData.length > 0) {
+            // 添加周期类型标题行
+            const titleRow = `
+                <tr class="table-secondary">
+                    <td colspan="9" class="text-center">
+                        <strong>${periodLabels[periodType]}聚合数据 (${periodData.length}条)</strong>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', titleRow);
+            
+            // 显示该周期的数据
+            periodData.forEach(item => {
+                const row = createAggregationTableRow(item);
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+    });
+}
+
+/**
+ * 渲染聚合数据表（保留原函数用于兼容性）
  */
 function renderAggregationTable(data) {
     const tbody = document.getElementById('aggregationTableBody');
@@ -626,13 +712,16 @@ function createAggregationTableRow(item) {
     return `
         <tr>
             <td>
+                <span class="badge bg-primary">${getPeriodTypeLabel(item.period_type)}</span>
+            </td>
+            <td>
                 <span class="instance-name">${item.instance.name}</span>
             </td>
             <td>
                 <span class="database-name" title="${item.database_name}">${wrapDatabaseName(item.database_name)}</span>
             </td>
             <td>
-                <span class="period-type ${item.period_type}">${getPeriodTypeLabel(item.period_type)}</span>
+                <span class="period-range">${periodRange}</span>
             </td>
             <td>
                 <span class="size-display">${formatSizeFromMB(item.avg_size_mb)}</span>
@@ -648,16 +737,6 @@ function createAggregationTableRow(item) {
             </td>
             <td>
                 <small class="text-muted">${calculatedAt}</small>
-            </td>
-            <td>
-                <div class="action-buttons">
-                    <button class="btn btn-outline-info btn-sm" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#detailModal"
-                            data-aggregation-id="${item.id}">
-                        <i class="fas fa-info-circle"></i>
-                    </button>
-                </div>
             </td>
         </tr>
     `;
@@ -715,13 +794,14 @@ function filterAggregationTable() {
     } else {
         window.filteredAggregationData = window.aggregationData.filter(item => 
             item.instance.name.toLowerCase().includes(searchTerm) ||
-            item.database_name.toLowerCase().includes(searchTerm)
+            item.database_name.toLowerCase().includes(searchTerm) ||
+            item.period_type.toLowerCase().includes(searchTerm)
         );
     }
     
     window.currentAggregationPage = 1;
     updateAggregationPagination();
-    renderAggregationTable(getCurrentPageData());
+    renderLatestAggregationTable(window.filteredAggregationData, null);
 }
 
 /**
@@ -742,6 +822,8 @@ function sortAggregationTable() {
                 return b.avg_size_mb - a.avg_size_mb;
             case 'max_size_mb':
                 return b.max_size_mb - a.max_size_mb;
+            case 'period_type':
+                return a.period_type.localeCompare(b.period_type);
             default:
                 return 0;
         }
@@ -749,7 +831,7 @@ function sortAggregationTable() {
     
     window.currentAggregationPage = 1;
     updateAggregationPagination();
-    renderAggregationTable(getCurrentPageData());
+    renderLatestAggregationTable(window.filteredAggregationData, null);
 }
 
 /**
@@ -777,17 +859,21 @@ function goToAggregationPage(page) {
  * 更新聚合数据表分页
  */
 function updateAggregationPagination() {
-    const start = (window.currentAggregationPage - 1) * window.aggregationPageSize + 1;
-    const end = Math.min(window.currentAggregationPage * window.aggregationPageSize, window.filteredAggregationData.length);
+    // 最新聚合数据不需要分页，显示所有数据
+    const total = window.filteredAggregationData.length;
     
-    document.getElementById('paginationStart').textContent = start;
-    document.getElementById('paginationEnd').textContent = end;
-    document.getElementById('paginationTotal').textContent = window.filteredAggregationData.length;
+    document.getElementById('paginationStart').textContent = total > 0 ? 1 : 0;
+    document.getElementById('paginationEnd').textContent = total;
+    document.getElementById('paginationTotal').textContent = total;
     
-    document.getElementById('prevPage').classList.toggle('disabled', window.currentAggregationPage === 1);
-    document.getElementById('nextPage').classList.toggle('disabled', window.currentAggregationPage === window.totalAggregationPages);
+    // 禁用分页按钮
+    document.getElementById('prevPage').classList.add('disabled');
+    document.getElementById('nextPage').classList.add('disabled');
     
-    generateAggregationPaginationButtons();
+    // 隐藏分页按钮
+    const paginationNav = document.getElementById('paginationNav');
+    const pageButtons = paginationNav.querySelectorAll('.page-item:not(#prevPage):not(#nextPage)');
+    pageButtons.forEach(btn => btn.remove());
 }
 
 /**

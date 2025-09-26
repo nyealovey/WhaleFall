@@ -135,13 +135,14 @@
                             <input type="text" class="form-control form-control-sm" id="searchAggregationTable" placeholder="搜索实例或数据库...">
                         </div>
                         <div class="col-md-6">
-                            <select class="form-select form-select-sm" id="sortAggregationTable">
-                                <option value="period_start">按时间排序</option>
-                                <option value="instance_name">按实例排序</option>
-                                <option value="database_name">按数据库排序</option>
-                                <option value="avg_size_mb">按平均大小排序</option>
-                                <option value="max_size_mb">按最大大小排序</option>
-                            </select>
+                               <select class="form-select form-select-sm" id="sortAggregationTable">
+                                   <option value="period_type">按周期类型排序</option>
+                                   <option value="period_start">按时间排序</option>
+                                   <option value="instance_name">按实例排序</option>
+                                   <option value="database_name">按数据库排序</option>
+                                   <option value="avg_size_mb">按平均大小排序</option>
+                                   <option value="max_size_mb">按最大大小排序</option>
+                               </select>
                         </div>
                     </div>
                 </div>
@@ -150,19 +151,19 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover" id="aggregationTable">
-                    <thead>
-                        <tr>
-                            <th>实例名称</th>
-                            <th>数据库名称</th>
-                            <th>统计周期</th>
-                            <th>平均大小</th>
-                            <th>最大大小</th>
-                            <th>最小大小</th>
-                            <th>数据点数</th>
-                            <th>计算时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
+                       <thead>
+                           <tr>
+                               <th>周期类型</th>
+                               <th>实例名称</th>
+                               <th>数据库名称</th>
+                               <th>统计周期</th>
+                               <th>平均大小</th>
+                               <th>最大大小</th>
+                               <th>最小大小</th>
+                               <th>数据点数</th>
+                               <th>计算时间</th>
+                           </tr>
+                       </thead>
                     <tbody id="aggregationTableBody">
                         <tr>
                             <td colspan="9" class="text-center">
