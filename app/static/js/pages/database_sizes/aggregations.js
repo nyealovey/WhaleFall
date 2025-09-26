@@ -507,27 +507,7 @@ class AggregationsManager {
         };
         
         // 根据图表类型调整配置
-        if (this.currentChartType === 'area') {
-            // 面积图使用 line 类型，但设置 fill 为 true
-            chartConfig.type = 'line';
-            chartConfig.data.datasets.forEach(dataset => {
-                dataset.fill = true;
-                // 确保背景色有透明度
-                if (dataset.backgroundColor && !dataset.backgroundColor.includes('20')) {
-                    dataset.backgroundColor = dataset.backgroundColor + '20';
-                }
-            });
-            
-            // 为面积图添加特殊的配置
-            chartConfig.options.scales = chartConfig.options.scales || {};
-            chartConfig.options.scales.x = chartConfig.options.scales.x || {};
-            chartConfig.options.scales.y = chartConfig.options.scales.y || {};
-            
-            // 设置面积图的填充配置
-            chartConfig.options.elements = chartConfig.options.elements || {};
-            chartConfig.options.elements.line = chartConfig.options.elements.line || {};
-            chartConfig.options.elements.line.tension = 0.1;
-        }
+        // 移除面积图支持，只保留折线图和柱状图
         
         this.chart = new Chart(ctx, chartConfig);
     }
