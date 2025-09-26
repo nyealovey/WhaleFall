@@ -1,6 +1,6 @@
 """
 PostgreSQL 分区管理服务
-负责创建、清理和监控数据库大小统计表的分区
+负责创建、清理和监控数据库大小统计表和聚合表的分区
 """
 
 import logging
@@ -17,12 +17,25 @@ class PartitionManagementService:
     """PostgreSQL 分区管理服务"""
     
     def __init__(self):
-        self.table_name = "database_size_stats"
-        self.partition_prefix = "database_size_stats_"
+        # 管理两张表的分区
+        self.tables = {
+            'stats': {
+                'table_name': 'database_size_stats',
+                'partition_prefix': 'database_size_stats_',
+                'partition_column': 'collected_date',
+                'display_name': '统计表'
+            },
+            'aggregations': {
+                'table_name': 'database_size_aggregations',
+                'partition_prefix': 'database_size_aggregations_',
+                'partition_column': 'period_start',
+                'display_name': '聚合表'
+            }
+        }
     
     def create_partition(self, partition_date: date) -> Dict[str, Any]:
         """
-        创建指定日期的分区
+        创建指定日期的分区（同时创建两张表的分区）
         
         Args:
             partition_date: 分区日期
@@ -38,140 +51,82 @@ class PartitionManagementService:
             else:
                 partition_end = partition_start.replace(month=partition_start.month + 1)
             
-            partition_name = f"{self.partition_prefix}{partition_start.strftime('%Y_%m')}"
+            created_partitions = []
+            errors = []
             
-            # 检查分区是否已存在
-            if self._partition_exists(partition_name):
+            # 为每张表创建分区
+            for table_key, table_config in self.tables.items():
+                partition_name = f"{table_config['partition_prefix']}{partition_start.strftime('%Y_%m')}"
+                
+                try:
+                    # 检查分区是否已存在
+                    if self._partition_exists(partition_name):
+                        created_partitions.append({
+                            'table': table_key,
+                            'table_name': table_config['table_name'],
+                            'partition_name': partition_name,
+                            'status': 'exists',
+                            'display_name': table_config['display_name']
+                        })
+                        continue
+                    
+                    # 创建分区
+                    create_sql = f"""
+                    CREATE TABLE {partition_name} 
+                    PARTITION OF {table_config['table_name']}
+                    FOR VALUES FROM ('{partition_start}') TO ('{partition_end}');
+                    """
+                    
+                    db.session.execute(text(create_sql))
+                    
+                    # 创建索引
+                    self._create_partition_indexes(partition_name, table_config)
+                    
+                    # 添加注释
+                    comment_sql = f"""
+                    COMMENT ON TABLE {partition_name} IS '{table_config['display_name']}分区表 - {partition_start.strftime('%Y-%m')}'
+                    """
+                    db.session.execute(text(comment_sql))
+                    
+                    created_partitions.append({
+                        'table': table_key,
+                        'table_name': table_config['table_name'],
+                        'partition_name': partition_name,
+                        'status': 'created',
+                        'display_name': table_config['display_name']
+                    })
+                    
+                    logger.info(f"成功创建分区: {partition_name}")
+                    
+                except Exception as e:
+                    error_msg = f"创建 {table_config['display_name']} 分区失败: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(error_msg)
+            
+            if errors:
+                db.session.rollback()
+                return {
+                    'success': False,
+                    'message': f'部分分区创建失败: {"; ".join(errors)}',
+                    'created_partitions': created_partitions,
+                    'errors': errors
+                }
+            else:
+                db.session.commit()
                 return {
                     'success': True,
-                    'message': f'分区 {partition_name} 已存在',
-                    'partition_name': partition_name,
+                    'message': f'成功创建 {len(created_partitions)} 个分区',
+                    'created_partitions': created_partitions,
                     'partition_start': partition_start.isoformat(),
                     'partition_end': partition_end.isoformat()
                 }
             
-            # 创建分区
-            create_sql = f"""
-            CREATE TABLE {partition_name} 
-            PARTITION OF {self.table_name}
-            FOR VALUES FROM ('{partition_start.isoformat()}') TO ('{partition_end.isoformat()}')
-            """
-            
-            db.session.execute(text(create_sql))
-            db.session.commit()
-            
-            # 添加注释
-            comment_sql = f"""
-            COMMENT ON TABLE {partition_name} IS '数据库大小统计分区表 - {partition_start.strftime('%Y-%m')}'
-            """
-            db.session.execute(text(comment_sql))
-            db.session.commit()
-            
-            logger.info(f"成功创建分区: {partition_name} ({partition_start} 到 {partition_end})")
-            
-            return {
-                'success': True,
-                'message': f'分区 {partition_name} 创建成功',
-                'partition_name': partition_name,
-                'partition_start': partition_start.isoformat(),
-                'partition_end': partition_end.isoformat()
-            }
-            
         except Exception as e:
+            db.session.rollback()
             logger.error(f"创建分区失败: {str(e)}")
-            db.session.rollback()
             return {
                 'success': False,
-                'message': f'创建分区失败: {str(e)}',
-                'error': str(e)
-            }
-    
-    def drop_partition(self, partition_date: date) -> Dict[str, Any]:
-        """
-        删除指定日期的分区
-        
-        Args:
-            partition_date: 分区日期
-            
-        Returns:
-            Dict[str, Any]: 删除结果
-        """
-        try:
-            partition_start = partition_date.replace(day=1)
-            partition_name = f"{self.partition_prefix}{partition_start.strftime('%Y_%m')}"
-            
-            # 检查分区是否存在
-            if not self._partition_exists(partition_name):
-                return {
-                    'success': True,
-                    'message': f'分区 {partition_name} 不存在',
-                    'partition_name': partition_name
-                }
-            
-            # 删除分区
-            drop_sql = f"DROP TABLE {partition_name}"
-            db.session.execute(text(drop_sql))
-            db.session.commit()
-            
-            logger.info(f"成功删除分区: {partition_name}")
-            
-            return {
-                'success': True,
-                'message': f'分区 {partition_name} 删除成功',
-                'partition_name': partition_name
-            }
-            
-        except Exception as e:
-            logger.error(f"删除分区失败: {str(e)}")
-            db.session.rollback()
-            return {
-                'success': False,
-                'message': f'删除分区失败: {str(e)}',
-                'error': str(e)
-            }
-    
-    def cleanup_old_partitions(self, retention_months: int = 12) -> Dict[str, Any]:
-        """
-        清理旧分区
-        
-        Args:
-            retention_months: 保留月数
-            
-        Returns:
-            Dict[str, Any]: 清理结果
-        """
-        try:
-            cutoff_date = date.today() - timedelta(days=retention_months * 30)
-            cleaned_partitions = []
-            
-            # 获取所有分区
-            partitions = self._get_all_partitions()
-            
-            for partition in partitions:
-                partition_name = partition['tablename']
-                partition_date = self._extract_partition_date(partition_name)
-                
-                if partition_date and partition_date < cutoff_date:
-                    # 删除旧分区
-                    result = self.drop_partition(partition_date)
-                    if result['success']:
-                        cleaned_partitions.append(partition_name)
-            
-            logger.info(f"清理了 {len(cleaned_partitions)} 个旧分区")
-            
-            return {
-                'success': True,
-                'message': f'清理了 {len(cleaned_partitions)} 个旧分区',
-                'cleaned_partitions': cleaned_partitions,
-                'retention_months': retention_months
-            }
-            
-        except Exception as e:
-            logger.error(f"清理旧分区失败: {str(e)}")
-            return {
-                'success': False,
-                'message': f'清理旧分区失败: {str(e)}',
-                'error': str(e)
+                'message': f'创建分区失败: {str(e)}'
             }
     
     def create_future_partitions(self, months_ahead: int = 3) -> Dict[str, Any]:
@@ -186,19 +141,20 @@ class PartitionManagementService:
         """
         try:
             created_partitions = []
+            current_date = date.today()
             
             for i in range(months_ahead):
-                future_date = date.today() + timedelta(days=i * 30)
-                result = self.create_partition(future_date)
+                target_date = current_date + timedelta(days=30 * i)
+                result = self.create_partition(target_date)
                 
-                if result['success'] and '已存在' not in result['message']:
-                    created_partitions.append(result['partition_name'])
-            
-            logger.info(f"创建了 {len(created_partitions)} 个未来分区")
+                if result['success']:
+                    created_partitions.extend(result.get('created_partitions', []))
+                else:
+                    logger.warning(f"创建分区失败: {result['message']}")
             
             return {
                 'success': True,
-                'message': f'创建了 {len(created_partitions)} 个未来分区',
+                'message': f'成功创建 {len(created_partitions)} 个未来分区',
                 'created_partitions': created_partitions
             }
             
@@ -206,168 +162,311 @@ class PartitionManagementService:
             logger.error(f"创建未来分区失败: {str(e)}")
             return {
                 'success': False,
-                'message': f'创建未来分区失败: {str(e)}',
-                'error': str(e)
+                'message': f'创建未来分区失败: {str(e)}'
+            }
+    
+    def cleanup_old_partitions(self, retention_months: int = 12) -> Dict[str, Any]:
+        """
+        清理旧分区
+        
+        Args:
+            retention_months: 保留月数
+            
+        Returns:
+            Dict[str, Any]: 清理结果
+        """
+        try:
+            cutoff_date = date.today() - timedelta(days=30 * retention_months)
+            cutoff_date = cutoff_date.replace(day=1)  # 月初
+            
+            dropped_partitions = []
+            errors = []
+            
+            # 为每张表清理旧分区
+            for table_key, table_config in self.tables.items():
+                partitions_to_drop = self._get_partitions_to_cleanup(cutoff_date, table_config)
+                
+                for partition_name in partitions_to_drop:
+                    try:
+                        # 删除分区
+                        drop_sql = f"DROP TABLE IF EXISTS {partition_name};"
+                        db.session.execute(text(drop_sql))
+                        dropped_partitions.append({
+                            'table': table_key,
+                            'table_name': table_config['table_name'],
+                            'partition_name': partition_name,
+                            'display_name': table_config['display_name']
+                        })
+                        logger.info(f"成功删除旧分区: {partition_name}")
+                        
+                    except Exception as e:
+                        error_msg = f"删除 {table_config['display_name']} 分区 {partition_name} 失败: {str(e)}"
+                        errors.append(error_msg)
+                        logger.error(error_msg)
+            
+            if errors:
+                db.session.rollback()
+                return {
+                    'success': False,
+                    'message': f'部分分区清理失败: {"; ".join(errors)}',
+                    'dropped_partitions': dropped_partitions,
+                    'errors': errors
+                }
+            else:
+                db.session.commit()
+                return {
+                    'success': True,
+                    'message': f'成功清理 {len(dropped_partitions)} 个旧分区',
+                    'dropped_partitions': dropped_partitions
+                }
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"清理旧分区失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'清理旧分区失败: {str(e)}'
             }
     
     def get_partition_info(self) -> Dict[str, Any]:
         """
-        获取分区信息
+        获取分区信息（包含两张表的分区）
         
         Returns:
             Dict[str, Any]: 分区信息
         """
         try:
-            partitions = self._get_all_partitions()
-            partition_info = []
+            all_partitions = []
+            total_size_bytes = 0
+            total_records = 0
             
-            for partition in partitions:
-                partition_name = partition['tablename']
-                partition_date = self._extract_partition_date(partition_name)
+            # 获取每张表的分区信息
+            for table_key, table_config in self.tables.items():
+                partitions = self._get_table_partitions(table_config)
+                all_partitions.extend(partitions)
                 
-                # 获取分区大小
-                size_sql = f"""
-                SELECT pg_size_pretty(pg_total_relation_size('{partition_name}')) as size,
-                       pg_total_relation_size('{partition_name}') as size_bytes
-                """
-                size_result = db.session.execute(text(size_sql)).fetchone()
-                
-                # 获取分区记录数
-                count_sql = f"SELECT COUNT(*) as count FROM {partition_name}"
-                count_result = db.session.execute(text(count_sql)).fetchone()
-                
-                partition_info.append({
-                    'name': partition_name,
-                    'date': partition_date.isoformat() if partition_date else None,
-                    'size': size_result[0] if size_result else '0 B',
-                    'size_bytes': size_result[1] if size_result else 0,
-                    'record_count': count_result[0] if count_result else 0
-                })
+                # 计算总大小和记录数
+                for partition in partitions:
+                    total_size_bytes += partition.get('size_bytes', 0)
+                    total_records += partition.get('record_count', 0)
             
-            # 按日期排序
-            partition_info.sort(key=lambda x: x['date'] or '')
+            # 按分区名称排序
+            all_partitions.sort(key=lambda x: x['name'])
             
             return {
                 'success': True,
-                'partitions': partition_info,
-                'total_partitions': len(partition_info)
+                'partitions': all_partitions,
+                'total_partitions': len(all_partitions),
+                'total_size_bytes': total_size_bytes,
+                'total_size': self._format_size(total_size_bytes),
+                'total_records': total_records,
+                'tables': list(self.tables.keys())
             }
             
         except Exception as e:
             logger.error(f"获取分区信息失败: {str(e)}")
             return {
                 'success': False,
-                'message': f'获取分区信息失败: {str(e)}',
-                'error': str(e)
+                'message': f'获取分区信息失败: {str(e)}'
             }
-    
-    def _partition_exists(self, partition_name: str) -> bool:
-        """
-        检查分区是否存在
-        
-        Args:
-            partition_name: 分区名称
-            
-        Returns:
-            bool: 分区是否存在
-        """
-        try:
-            check_sql = """
-            SELECT EXISTS (
-                SELECT 1 FROM pg_tables 
-                WHERE tablename = :partition_name
-            )
-            """
-            result = db.session.execute(text(check_sql), {'partition_name': partition_name}).fetchone()
-            return result[0] if result else False
-        except Exception:
-            return False
-    
-    def _get_all_partitions(self) -> List[Dict[str, Any]]:
-        """
-        获取所有分区
-        
-        Returns:
-            List[Dict[str, Any]]: 分区列表
-        """
-        try:
-            sql = """
-            SELECT tablename, schemaname
-            FROM pg_tables 
-            WHERE tablename LIKE :pattern
-            ORDER BY tablename
-            """
-            result = db.session.execute(text(sql), {'pattern': f'{self.partition_prefix}%'})
-            return [{'tablename': row[0], 'schemaname': row[1]} for row in result.fetchall()]
-        except Exception as e:
-            logger.error(f"获取分区列表失败: {str(e)}")
-            return []
-    
-    def _extract_partition_date(self, partition_name: str) -> Optional[date]:
-        """
-        从分区名称提取日期
-        
-        Args:
-            partition_name: 分区名称
-            
-        Returns:
-            Optional[date]: 分区日期
-        """
-        try:
-            if not partition_name.startswith(self.partition_prefix):
-                return None
-            
-            # 提取 YYYY_MM 格式的日期
-            date_str = partition_name[len(self.partition_prefix):]
-            if len(date_str) == 7 and '_' in date_str:
-                year, month = date_str.split('_')
-                return date(int(year), int(month), 1)
-            
-            return None
-        except Exception:
-            return None
     
     def get_partition_statistics(self) -> Dict[str, Any]:
         """
         获取分区统计信息
         
         Returns:
-            Dict[str, Any]: 统计信息
+            Dict[str, Any]: 分区统计
         """
         try:
-            # 获取总分区数
-            total_partitions = len(self._get_all_partitions())
+            partition_info = self.get_partition_info()
             
-            # 获取总大小
-            size_sql = f"""
-            SELECT 
-                pg_size_pretty(SUM(pg_total_relation_size(tablename::regclass))) as total_size,
-                SUM(pg_total_relation_size(tablename::regclass)) as total_size_bytes
-            FROM pg_tables 
-            WHERE tablename LIKE :pattern
-            """
-            size_result = db.session.execute(text(size_sql), {'pattern': f'{self.partition_prefix}%'}).fetchone()
-            
-            # 获取总记录数
-            count_sql = f"""
-            SELECT SUM(n_tup_ins - n_tup_del) as total_records
-            FROM pg_stat_user_tables 
-            WHERE relname LIKE :pattern
-            """
-            count_result = db.session.execute(text(count_sql), {'pattern': f'{self.partition_prefix}%'}).fetchone()
+            if not partition_info['success']:
+                return partition_info
             
             return {
                 'success': True,
-                'total_partitions': total_partitions,
-                'total_size': size_result[0] if size_result and size_result[0] else '0 B',
-                'total_size_bytes': size_result[1] if size_result and size_result[1] else 0,
-                'total_records': count_result[0] if count_result and count_result[0] else 0
+                'total_records': partition_info['total_records'],
+                'total_partitions': partition_info['total_partitions'],
+                'total_size': partition_info['total_size'],
+                'total_size_bytes': partition_info['total_size_bytes'],
+                'partitions': partition_info['partitions'],
+                'tables': partition_info['tables']
             }
             
         except Exception as e:
-            logger.error(f"获取分区统计信息失败: {str(e)}")
+            logger.error(f"获取分区统计失败: {str(e)}")
             return {
                 'success': False,
-                'message': f'获取分区统计信息失败: {str(e)}',
-                'error': str(e)
+                'message': f'获取分区统计失败: {str(e)}'
             }
+    
+    def _get_table_partitions(self, table_config: Dict[str, str]) -> List[Dict[str, Any]]:
+        """获取指定表的分区信息"""
+        try:
+            # 查询分区信息
+            query = """
+            SELECT 
+                schemaname,
+                tablename,
+                pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size,
+                pg_total_relation_size(schemaname||'.'||tablename) as size_bytes
+            FROM pg_tables 
+            WHERE tablename LIKE :pattern
+            ORDER BY tablename;
+            """
+            
+            result = db.session.execute(text(query), {
+                'pattern': f'{table_config["partition_prefix"]}%'
+            }).fetchall()
+            
+            partitions = []
+            for row in result:
+                # 从分区名提取日期
+                date_str = self._extract_date_from_partition_name(row.tablename, table_config["partition_prefix"])
+                
+                # 获取记录数
+                record_count = self._get_partition_record_count(row.tablename)
+                
+                # 判断分区状态
+                status = self._get_partition_status(date_str)
+                
+                partitions.append({
+                    'name': row.tablename,
+                    'table': table_config['table_name'],
+                    'display_name': table_config['display_name'],
+                    'size': row.size,
+                    'size_bytes': row.size_bytes,
+                    'record_count': record_count,
+                    'date': date_str,
+                    'status': status
+                })
+            
+            return partitions
+            
+        except Exception as e:
+            logger.error(f"获取表 {table_config['table_name']} 分区信息失败: {str(e)}")
+            return []
+    
+    def _partition_exists(self, partition_name: str) -> bool:
+        """检查分区是否存在"""
+        try:
+            query = """
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.tables 
+                WHERE table_name = :partition_name
+            );
+            """
+            result = db.session.execute(text(query), {'partition_name': partition_name}).scalar()
+            return bool(result)
+        except Exception:
+            return False
+    
+    def _get_partitions_to_cleanup(self, cutoff_date: date, table_config: Dict[str, str]) -> List[str]:
+        """获取需要清理的分区列表"""
+        try:
+            query = """
+            SELECT tablename 
+            FROM pg_tables 
+            WHERE tablename LIKE :pattern
+            ORDER BY tablename;
+            """
+            
+            result = db.session.execute(text(query), {
+                'pattern': f'{table_config["partition_prefix"]}%'
+            }).fetchall()
+            
+            partitions_to_drop = []
+            for row in result:
+                # 从分区名提取日期
+                date_str = self._extract_date_from_partition_name(row.tablename, table_config["partition_prefix"])
+                if date_str:
+                    try:
+                        partition_date = datetime.strptime(date_str, '%Y/%m/%d').date()
+                        if partition_date < cutoff_date:
+                            partitions_to_drop.append(row.tablename)
+                    except ValueError:
+                        continue
+            
+            return partitions_to_drop
+            
+        except Exception as e:
+            logger.error(f"获取清理分区列表失败: {str(e)}")
+            return []
+    
+    def _extract_date_from_partition_name(self, partition_name: str, prefix: str) -> Optional[str]:
+        """从分区名提取日期"""
+        try:
+            # 移除前缀，获取日期部分 (YYYY_MM)
+            date_part = partition_name.replace(prefix, '')
+            parts = date_part.split('_')
+            if len(parts) >= 2:
+                year = parts[0]
+                month = parts[1]
+                return f"{year}/{month}/01"
+        except Exception:
+            pass
+        return None
+    
+    def _get_partition_record_count(self, partition_name: str) -> int:
+        """获取分区的记录数"""
+        try:
+            query = f"SELECT COUNT(*) FROM {partition_name};"
+            result = db.session.execute(text(query)).scalar()
+            return result or 0
+        except Exception:
+            return 0
+    
+    def _get_partition_status(self, date_str: Optional[str]) -> str:
+        """获取分区状态"""
+        if not date_str:
+            return 'unknown'
+        
+        try:
+            partition_date = datetime.strptime(date_str, '%Y/%m/%d').date()
+            today = date.today()
+            current_month = today.replace(day=1)
+            
+            if partition_date == current_month:
+                return 'current'
+            elif partition_date < current_month:
+                return 'past'
+            else:
+                return 'future'
+        except ValueError:
+            return 'unknown'
+    
+    def _create_partition_indexes(self, partition_name: str, table_config: Dict[str, str]):
+        """为分区创建索引"""
+        try:
+            if table_config['table_name'] == 'database_size_stats':
+                # 统计表索引
+                indexes = [
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db ON {partition_name} (instance_id, database_name);",
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date ON {partition_name} (collected_date);",
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date ON {partition_name} (instance_id, collected_date);"
+                ]
+            else:
+                # 聚合表索引
+                indexes = [
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db ON {partition_name} (instance_id, database_name);",
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_period ON {partition_name} (period_start, period_end);",
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_type ON {partition_name} (period_type, period_start);"
+                ]
+            
+            for index_sql in indexes:
+                db.session.execute(text(index_sql))
+            
+        except Exception as e:
+            logger.error(f"创建分区索引失败: {str(e)}")
+            raise
+    
+    def _format_size(self, size_bytes: int) -> str:
+        """格式化文件大小"""
+        if size_bytes < 1024:
+            return f"{size_bytes} B"
+        elif size_bytes < 1024**2:
+            return f"{size_bytes/1024:.1f} KB"
+        elif size_bytes < 1024**3:
+            return f"{size_bytes/(1024**2):.1f} MB"
+        else:
+            return f"{size_bytes/(1024**3):.1f} GB"
