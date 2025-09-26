@@ -100,6 +100,13 @@ class DatabaseSizeCollectorService:
     
     def _collect_mysql_sizes(self) -> List[Dict[str, Any]]:
         """采集 MySQL 数据库大小"""
+        # 先测试基本查询，看看能否获取到数据库列表
+        test_query = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')"
+        test_result = self.db_connection.execute_query(test_query)
+        self.logger.info(f"MySQL 数据库列表查询结果: {len(test_result) if test_result else 0} 行数据")
+        if test_result:
+            self.logger.info(f"找到的数据库: {[row[0] for row in test_result]}")
+        
         query = """
             SELECT
                 table_schema AS database_name,
