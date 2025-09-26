@@ -63,6 +63,9 @@ class AggregationsManager {
         // 筛选器变化
         $('#period_type, #timeRange').on('change', () => {
             this.updateFilters();
+            // 自动刷新图表
+            this.loadChartData();
+            this.loadTableData();
         });
         
         // 数据库类型变化时更新实例选项
@@ -71,6 +74,9 @@ class AggregationsManager {
             console.log('数据库类型变化:', dbType);
             await this.updateInstanceOptions(dbType);
             this.updateFilters();
+            // 自动刷新图表
+            this.loadChartData();
+            this.loadTableData();
         });
         
         // 实例变化时更新数据库选项
@@ -78,6 +84,17 @@ class AggregationsManager {
             const instanceId = e.target.value;
             await this.updateDatabaseOptions(instanceId);
             this.updateFilters();
+            // 自动刷新图表
+            this.loadChartData();
+            this.loadTableData();
+        });
+        
+        // 数据库变化时自动刷新
+        $('#database').on('change', () => {
+            this.updateFilters();
+            // 自动刷新图表
+            this.loadChartData();
+            this.loadTableData();
         });
         
         // 统计周期变化时调整时间范围选项
