@@ -525,8 +525,13 @@ class AggregationsManager {
             }
             
             if (this.currentChartMode === 'instance') {
-                // 按实例分组
-                grouped[date][item.instance.name] = item.avg_size_mb;
+                // 按实例分组，累加所有数据库的大小
+                const instanceName = item.instance.name;
+                if (!grouped[date][instanceName]) {
+                    grouped[date][instanceName] = 0;
+                }
+                // 使用max_size_mb累加，表示实例的总容量
+                grouped[date][instanceName] += item.max_size_mb || 0;
             } else {
                 // 按数据库分组
                 grouped[date][item.database_name] = item.avg_size_mb;
@@ -608,14 +613,15 @@ class AggregationsManager {
                     maxSize: 0
                 };
             }
-            instanceStats[instanceName].totalSize += item.avg_size_mb || 0;
+            // 使用max_size_mb累加，表示实例的总容量
+            instanceStats[instanceName].totalSize += item.max_size_mb || 0;
             instanceStats[instanceName].count += 1;
             instanceStats[instanceName].maxSize = Math.max(instanceStats[instanceName].maxSize, item.max_size_mb || 0);
         });
         
-        // 按最大大小排序，选择TOP 20
+        // 按总容量排序，选择TOP 20
         const topInstances = Object.entries(instanceStats)
-            .sort(([,a], [,b]) => b.maxSize - a.maxSize)
+            .sort(([,a], [,b]) => b.totalSize - a.totalSize)
             .slice(0, 20)
             .map(([instanceName]) => instanceName);
         
