@@ -1805,7 +1805,6 @@ def sync_instance_capacity(instance_id: int) -> Response:
     Returns:
         JSON: 同步结果
     """
-    from app.services.sync_session_service import sync_session_service
     
     try:
         # 获取实例信息
@@ -1828,34 +1827,6 @@ def sync_instance_capacity(instance_id: int) -> Response:
         
         log_info(f"开始同步实例容量信息", module="instances", instance_id=instance_id, instance_name=instance.name)
         
-        # 创建同步会话
-        session = sync_session_service.create_session(
-            sync_type="manual_batch",
-            sync_category="capacity",
-            created_by=current_user.id,
-        )
-        
-        log_info(
-            "创建容量同步会话",
-            module="instances",
-            session_id=session.session_id,
-            instance_id=instance_id,
-            user_id=current_user.id,
-        )
-        
-        # 添加实例记录
-        records = sync_session_service.add_instance_records(session.session_id, [instance_id])
-        if not records:
-            return jsonify({
-                'success': False,
-                'error': '创建同步记录失败'
-            }), 500
-        
-        record = records[0]
-        
-        # 开始实例同步
-        sync_session_service.start_instance_sync(record.id)
-        
         # 调用数据库大小采集服务
         from app.services.database_size_collector_service import DatabaseSizeCollectorService
         
@@ -1866,8 +1837,6 @@ def sync_instance_capacity(instance_id: int) -> Response:
             error_msg = f"无法连接到实例 {instance.name} (类型: {instance.db_type})"
             log_error(error_msg, module="instances", instance_id=instance_id, 
                      instance_name=instance.name, db_type=instance.db_type)
-            # 标记同步失败
-            sync_session_service.fail_instance_sync(record.id, error_msg)
             return jsonify({
                 'success': False, 
                 'error': error_msg
@@ -1880,7 +1849,6 @@ def sync_instance_capacity(instance_id: int) -> Response:
             if not data:
                 error_msg = "未采集到任何数据库大小数据"
                 log_error(f"实例 {instance.name} {error_msg}", module="instances", instance_id=instance_id, db_type=instance.db_type)
-                sync_session_service.fail_instance_sync(record.id, error_msg)
                 return jsonify({
                     'success': False, 
                     'error': error_msg
@@ -1893,30 +1861,8 @@ def sync_instance_capacity(instance_id: int) -> Response:
             instance.last_connected = now()
             db.session.commit()
             
-            # 完成实例同步
-            sync_session_service.complete_instance_sync(
-                record.id,
-                accounts_synced=len(data),  # 使用数据库数量作为同步数量
-                accounts_created=saved_count,  # 新创建的记录数
-                accounts_updated=0,  # 容量同步没有更新概念
-                accounts_deleted=0,  # 容量同步没有删除概念
-                sync_details={
-                    'databases_count': len(data),
-                    'saved_count': saved_count,
-                    'total_size_mb': sum(item.get('size_mb', 0) for item in data)
-                }
-            )
-            
-            # 更新会话统计
-            session.successful_instances = 1
-            session.failed_instances = 0
-            session.status = "completed"
-            session.completed_at = now()
-            db.session.commit()
-            
             log_info(f"实例容量同步完成", module="instances", 
                     instance_id=instance_id, instance_name=instance.name,
-                    session_id=session.session_id,
                     databases_count=len(data), saved_count=saved_count)
             
             return jsonify({
@@ -1927,8 +1873,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
                     'instance_name': instance.name,
                     'databases_count': len(data),
                     'saved_count': saved_count,
-                    'total_size_mb': sum(item.get('size_mb', 0) for item in data),
-                    'session_id': session.session_id
+                    'total_size_mb': sum(item.get('size_mb', 0) for item in data)
                 }
             })
             
@@ -1938,17 +1883,6 @@ def sync_instance_capacity(instance_id: int) -> Response:
             
     except Exception as e:
         log_error(f"同步实例容量失败: {e}", module="instances", instance_id=instance_id, exc_info=True)
-        
-        # 如果创建了会话，标记为失败
-        try:
-            if 'session' in locals() and session:
-                session.status = "failed"
-                session.completed_at = now()
-                session.failed_instances = 1
-                db.session.commit()
-        except:
-            pass
-            
         return jsonify({
             'success': False,
             'error': f'同步容量信息失败: {str(e)}'
