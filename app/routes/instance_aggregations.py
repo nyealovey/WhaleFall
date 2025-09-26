@@ -7,10 +7,9 @@ import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template
 from flask_login import login_required, current_user
-from sqlalchemy import and_, or_, func, desc
+from sqlalchemy import func, desc
 from app.models.instance import Instance
 from app.models.database_size_aggregation import DatabaseSizeAggregation
-from app.models.database_size_stat import DatabaseSizeStat
 from app.utils.decorators import view_required
 from app import db
 
@@ -50,42 +49,8 @@ def instance_aggregations():
             offset = (page - 1) * per_page
             limit = per_page
             
-            # 构建查询
+            # 构建查询 - 直接查询聚合统计表
             query = DatabaseSizeAggregation.query.join(Instance)
-            
-            # 过滤掉已删除的数据库（通过检查最新的DatabaseSizeStat记录）
-            # 子查询：获取每个实例-数据库组合的最新状态
-            latest_stats_subquery = db.session.query(
-                DatabaseSizeStat.instance_id,
-                DatabaseSizeStat.database_name,
-                DatabaseSizeStat.is_deleted,
-                func.row_number().over(
-                    partition_by=[DatabaseSizeStat.instance_id, DatabaseSizeStat.database_name],
-                    order_by=DatabaseSizeStat.collected_date.desc()
-                ).label('rn')
-            ).subquery()
-            
-            # 获取未删除的数据库列表
-            active_databases_subquery = db.session.query(
-                latest_stats_subquery.c.instance_id,
-                latest_stats_subquery.c.database_name
-            ).filter(
-                and_(
-                    latest_stats_subquery.c.rn == 1,
-                    or_(
-                        latest_stats_subquery.c.is_deleted == False,
-                        latest_stats_subquery.c.is_deleted.is_(None)
-                    )
-                )
-            ).subquery()
-            
-            query = query.join(
-                active_databases_subquery,
-                and_(
-                    DatabaseSizeAggregation.instance_id == active_databases_subquery.c.instance_id,
-                    DatabaseSizeAggregation.database_name == active_databases_subquery.c.database_name
-                )
-            )
             
             # 应用过滤条件
             if instance_id:
