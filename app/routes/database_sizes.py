@@ -1044,7 +1044,7 @@ def calculate_today_aggregations():
         
         # 执行今日数据聚合计算
         aggregation_service = DatabaseSizeAggregationService()
-        result = aggregation_service.calculate_daily_aggregations()
+        result = aggregation_service.calculate_today_aggregations()
         
         return jsonify({
             'message': 'Today data aggregation completed',
