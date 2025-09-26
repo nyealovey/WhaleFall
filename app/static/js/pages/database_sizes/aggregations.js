@@ -96,7 +96,7 @@ class AggregationsManager {
      */
     async loadInstances() {
         try {
-            const response = await fetch('/instances/api/list');
+            const response = await fetch('/instances/api/instances');
             const data = await response.json();
             
             if (response.ok) {

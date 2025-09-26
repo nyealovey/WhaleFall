@@ -221,38 +221,6 @@ def index() -> str:
     )
 
 
-@instances_bp.route("/api/list")
-@login_required
-@view_required
-def api_list() -> Response:
-    """API: 获取实例列表"""
-    try:
-        # 获取所有启用的实例
-        instances = Instance.query.filter(Instance.is_active == True).all()
-        
-        instances_data = []
-        for instance in instances:
-            instances_data.append({
-                'id': instance.id,
-                'name': instance.name,
-                'db_type': instance.db_type,
-                'host': instance.host,
-                'port': instance.port,
-                'description': instance.description or '',
-                'is_active': instance.is_active
-            })
-        
-        return jsonify({
-            'success': True,
-            'instances': instances_data
-        })
-        
-    except Exception as e:
-        log_error(f"获取实例列表失败: {e}", module="instances", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': '获取实例列表失败'
-        }), 500
 
 
 @instances_bp.route("/create", methods=["GET", "POST"])
@@ -1406,8 +1374,32 @@ def sync_accounts(instance_id: int) -> str | Response | tuple[Response, int]:
 @view_required
 def api_list() -> Response:
     """获取实例列表API"""
-    instances = Instance.query.filter_by(is_active=True).order_by(Instance.id).all()
-    return jsonify([instance.to_dict() for instance in instances])
+    try:
+        instances = Instance.query.filter_by(is_active=True).order_by(Instance.id).all()
+        
+        instances_data = []
+        for instance in instances:
+            instances_data.append({
+                'id': instance.id,
+                'name': instance.name,
+                'db_type': instance.db_type,
+                'host': instance.host,
+                'port': instance.port,
+                'description': instance.description or '',
+                'is_active': instance.is_active
+            })
+        
+        return jsonify({
+            'success': True,
+            'instances': instances_data
+        })
+        
+    except Exception as e:
+        log_error(f"获取实例列表失败: {e}", module="instances", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': '获取实例列表失败'
+        }), 500
 
 
 @instances_bp.route("/api/instances/<int:instance_id>")
