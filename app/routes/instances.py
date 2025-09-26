@@ -1790,3 +1790,92 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
     except Exception as e:
         log_error(f"获取账户变更历史失败: {e}", module="instances")
         return jsonify({"success": False, "error": f"获取变更历史失败: {str(e)}"}), 500
+
+
+@instances_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=['POST'])
+@login_required
+@view_required
+def sync_instance_capacity(instance_id: int) -> Response:
+    """
+    同步指定实例的数据库容量信息
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON: 同步结果
+    """
+    try:
+        # 获取实例信息
+        instance = Instance.query.get_or_404(instance_id)
+        
+        if not instance.is_active:
+            return jsonify({
+                'success': False, 
+                'error': '实例已禁用，无法同步容量信息'
+            }), 400
+        
+        # 检查实例是否有凭据
+        if not instance.credential:
+            return jsonify({
+                'success': False, 
+                'error': '实例缺少连接凭据，无法同步容量信息'
+            }), 400
+        
+        log_info(f"开始同步实例容量信息", module="instances", instance_id=instance_id, instance_name=instance.name)
+        
+        # 调用数据库大小采集服务
+        from app.services.database_size_collector_service import DatabaseSizeCollectorService
+        
+        collector = DatabaseSizeCollectorService(instance)
+        
+        # 建立连接
+        if not collector.connect():
+            return jsonify({
+                'success': False, 
+                'error': f'无法连接到实例 {instance.name}'
+            }), 500
+        
+        try:
+            # 采集数据库大小数据
+            data = collector.collect_database_sizes()
+            
+            if not data:
+                return jsonify({
+                    'success': False, 
+                    'error': '未采集到任何数据库大小数据'
+                }), 400
+            
+            # 保存数据
+            saved_count = collector.save_collected_data(data)
+            
+            # 更新实例的最后连接时间
+            instance.last_connected = now()
+            db.session.commit()
+            
+            log_info(f"实例容量同步完成", module="instances", 
+                    instance_id=instance_id, instance_name=instance.name,
+                    databases_count=len(data), saved_count=saved_count)
+            
+            return jsonify({
+                'success': True,
+                'message': f'成功同步 {saved_count} 个数据库的容量信息',
+                'data': {
+                    'instance_id': instance_id,
+                    'instance_name': instance.name,
+                    'databases_count': len(data),
+                    'saved_count': saved_count,
+                    'total_size_mb': sum(item.get('size_mb', 0) for item in data)
+                }
+            })
+            
+        finally:
+            # 确保断开连接
+            collector.disconnect()
+            
+    except Exception as e:
+        log_error(f"同步实例容量失败: {e}", module="instances", instance_id=instance_id, exc_info=True)
+        return jsonify({
+            'success': False, 
+            'error': f'同步容量信息失败: {str(e)}'
+        }), 500

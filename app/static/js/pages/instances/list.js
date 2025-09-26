@@ -297,6 +297,83 @@ function testConnection(instanceId) {
     });
 }
 
+// 同步容量
+function syncCapacity(instanceId, instanceName) {
+    const btn = event.target.closest('button');
+    const originalHtml = btn.innerHTML;
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.disabled = true;
+
+    // 获取CSRF token
+    const csrfToken = getCSRFToken();
+
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+
+    // 记录操作开始日志
+    logUserAction('开始同步实例容量', {
+        operation: 'sync_instance_capacity',
+        instance_id: instanceId,
+        instance_name: instanceName
+    });
+
+    fetch(`/instances/api/instances/${instanceId}/sync-capacity`, {
+        method: 'POST',
+        headers: headers
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 记录成功日志
+            logUserAction('同步实例容量成功', {
+                operation: 'sync_instance_capacity',
+                instance_id: instanceId,
+                instance_name: instanceName,
+                result: 'success',
+                message: data.message,
+                data: data.data
+            });
+            
+            showAlert('success', data.message);
+            
+            // 刷新页面以更新容量显示
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            // 记录失败日志
+            logError('同步实例容量失败', {
+                operation: 'sync_instance_capacity',
+                instance_id: instanceId,
+                instance_name: instanceName,
+                result: 'failed',
+                error: data.error
+            });
+            showAlert('danger', data.error);
+        }
+    })
+    .catch(error => {
+        // 记录异常日志
+        logErrorWithContext(error, '同步实例容量异常', {
+            operation: 'sync_instance_capacity',
+            instance_id: instanceId,
+            instance_name: instanceName,
+            result: 'exception'
+        });
+        showAlert('danger', '同步容量失败');
+    })
+    .finally(() => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+    });
+}
+
 // 删除实例
 function deleteInstance(instanceId, instanceName) {
     deleteInstanceId = instanceId;

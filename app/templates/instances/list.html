@@ -175,6 +175,10 @@
                                         onclick="testConnection({{ instance.id }})" title="测试连接">
                                     <i class="fas fa-plug"></i>
                                 </button>
+                                <button type="button" class="btn btn-outline-info"
+                                        onclick="syncCapacity({{ instance.id }}, \"{{ instance.name|replace("'", "\\'") }}\")" title="同步容量">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
                                 <button type="button" class="btn btn-outline-danger"
                                         onclick="deleteInstance({{ instance.id }}, \"{{ instance.name|replace("'", "\\'") }}\")" title="删除">
                                     <i class="fas fa-trash"></i>
@@ -189,6 +193,10 @@
                                 <button type="button" class="btn btn-outline-success"
                                         onclick="testConnection({{ instance.id }})" title="测试连接">
                                     <i class="fas fa-plug"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info"
+                                        onclick="syncCapacity({{ instance.id }}, \"{{ instance.name|replace("'", "\\'") }}\")" title="同步容量">
+                                    <i class="fas fa-sync-alt"></i>
                                 </button>
                                 <span class="btn btn-outline-secondary disabled" title="只读模式">
                                     <i class="fas fa-lock"></i>
