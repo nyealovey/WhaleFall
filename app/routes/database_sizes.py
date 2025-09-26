@@ -62,6 +62,8 @@ def aggregations():
             # 分页参数
             page = request.args.get('page', 1, type=int)
             per_page = request.args.get('per_page', 20, type=int)
+            # 是否返回所有数据（用于图表显示）
+            get_all = request.args.get('get_all', 'false').lower() == 'true'
             
             # 计算offset
             offset = (page - 1) * per_page
@@ -123,9 +125,17 @@ def aggregations():
                 query = query.filter(DatabaseSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
             
             # 排序和分页
-            query = query.order_by(desc(DatabaseSizeAggregation.period_start))
-            total = query.count()
-            aggregations = query.offset(offset).limit(limit).all()
+            if get_all:
+                # 用于图表显示：按大小排序获取TOP 20
+                # 直接按avg_size_mb降序排序，取前20条
+                query = query.order_by(desc(DatabaseSizeAggregation.avg_size_mb))
+                aggregations = query.limit(20).all()
+                total = len(aggregations)
+            else:
+                # 用于表格显示：按时间排序分页
+                query = query.order_by(desc(DatabaseSizeAggregation.period_start))
+                total = query.count()
+                aggregations = query.offset(offset).limit(limit).all()
             
             # 转换为字典格式，包含实例信息
             data = []
