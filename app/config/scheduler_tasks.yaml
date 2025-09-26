@@ -52,14 +52,14 @@ default_tasks:
     description: 监控分区健康状态和性能
     
   - id: collect_database_sizes
-    name: 采集数据库大小
+    name: 容量同步
     function: collect_database_sizes
     trigger_type: cron
     trigger_params:
       hour: 3
       minute: 0
     enabled: true
-    description: 每日采集所有数据库实例的大小信息
+    description: 每日同步所有数据库实例的容量信息
     
   - id: calculate_database_size_aggregations
     name: 计算统计聚合

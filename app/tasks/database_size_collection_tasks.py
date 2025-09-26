@@ -16,28 +16,35 @@ logger = logging.getLogger(__name__)
 
 def collect_database_sizes():
     """
-    采集所有数据库实例的大小信息
-    每天凌晨3点执行，采集所有活跃实例的数据库大小
+    容量同步定时任务
+    每天凌晨3点执行，同步所有活跃实例的数据库容量信息
     """
     from app.services.sync_session_service import sync_session_service
     from app.utils.timezone import now
+    from app.utils.structlog_config import get_sync_logger
+    
+    sync_logger = get_sync_logger()
     
     try:
-        logger.info("开始执行数据库大小采集任务...")
+        sync_logger.info("开始容量同步任务", module="capacity_sync")
         
         # 获取所有活跃的实例
         active_instances = Instance.query.filter_by(is_active=True).all()
         
         if not active_instances:
-            logger.warning("没有找到活跃的数据库实例")
+            sync_logger.warning("没有找到活跃的数据库实例", module="capacity_sync")
             return {
                 'success': True,
-                'message': '没有活跃的数据库实例需要采集',
+                'message': '没有活跃的数据库实例需要同步',
                 'instances_processed': 0,
                 'total_size_mb': 0
             }
         
-        logger.info(f"找到 {len(active_instances)} 个活跃实例，开始采集...")
+        sync_logger.info(
+            "找到活跃实例，开始容量同步",
+            module="capacity_sync",
+            instance_count=len(active_instances)
+        )
         
         # 创建同步会话
         session = sync_session_service.create_session(
@@ -46,8 +53,9 @@ def collect_database_sizes():
             created_by=None  # 定时任务没有创建者
         )
         
-        logger.info(
+        sync_logger.info(
             "创建容量同步会话",
+            module="capacity_sync",
             session_id=session.session_id,
             instance_count=len(active_instances)
         )
@@ -60,16 +68,26 @@ def collect_database_sizes():
         total_synced = 0
         total_failed = 0
         total_size_mb = 0
+        results = []
         
         for i, instance in enumerate(active_instances):
+            # 找到对应的记录
+            record = records[i] if i < len(records) else None
+            if not record:
+                continue
+            
             try:
-                # 找到对应的记录
-                record = records[i] if i < len(records) else None
-                if not record:
-                    continue
-                
                 # 开始实例同步
                 sync_session_service.start_instance_sync(record.id)
+                
+                sync_logger.info(
+                    f"开始同步实例容量: {instance.name}",
+                    module="capacity_sync",
+                    session_id=session.session_id,
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    db_type=instance.db_type
+                )
                 
                 # 调用数据库大小采集服务
                 from app.services.database_size_collector_service import DatabaseSizeCollectorService
@@ -78,8 +96,22 @@ def collect_database_sizes():
                 
                 # 建立连接
                 if not collector.connect():
-                    sync_session_service.fail_instance_sync(record.id, "无法连接到实例")
+                    error_msg = f"无法连接到实例 {instance.name}"
+                    sync_logger.error(
+                        error_msg,
+                        module="capacity_sync",
+                        session_id=session.session_id,
+                        instance_id=instance.id,
+                        instance_name=instance.name
+                    )
+                    sync_session_service.fail_instance_sync(record.id, error_msg)
                     total_failed += 1
+                    results.append({
+                        'instance_id': instance.id,
+                        'instance_name': instance.name,
+                        'success': False,
+                        'error': error_msg
+                    })
                     continue
                 
                 try:
@@ -88,9 +120,22 @@ def collect_database_sizes():
                     
                     if not data:
                         error_msg = "未采集到任何数据库大小数据"
-                        logger.warning(f"实例 {instance.name} {error_msg}")
+                        sync_logger.warning(
+                            f"实例 {instance.name} {error_msg}",
+                            module="capacity_sync",
+                            session_id=session.session_id,
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            db_type=instance.db_type
+                        )
                         sync_session_service.fail_instance_sync(record.id, error_msg)
                         total_failed += 1
+                        results.append({
+                            'instance_id': instance.id,
+                            'instance_name': instance.name,
+                            'success': False,
+                            'error': error_msg
+                        })
                         continue
                     
                     # 保存数据
@@ -116,7 +161,25 @@ def collect_database_sizes():
                     )
                     
                     total_synced += 1
-                    logger.info(f"实例 {instance.name} 容量同步完成: {len(data)} 个数据库")
+                    results.append({
+                        'instance_id': instance.id,
+                        'instance_name': instance.name,
+                        'success': True,
+                        'databases_count': len(data),
+                        'saved_count': saved_count,
+                        'total_size_mb': instance_size_mb
+                    })
+                    
+                    sync_logger.info(
+                        f"实例 {instance.name} 容量同步完成",
+                        module="capacity_sync",
+                        session_id=session.session_id,
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        databases_count=len(data),
+                        saved_count=saved_count,
+                        total_size_mb=instance_size_mb
+                    )
                     
                 finally:
                     # 确保断开连接
@@ -124,11 +187,26 @@ def collect_database_sizes():
                     
             except Exception as e:
                 total_failed += 1
-                logger.error(f"实例 {instance.name} 容量同步失败: {str(e)}")
+                sync_logger.error(
+                    f"实例 {instance.name} 容量同步失败",
+                    module="capacity_sync",
+                    session_id=session.session_id,
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    error=str(e),
+                    exc_info=True
+                )
                 
                 # 标记实例同步失败
                 if 'record' in locals() and record:
                     sync_session_service.fail_instance_sync(record.id, str(e))
+                
+                results.append({
+                    'instance_id': instance.id,
+                    'instance_name': instance.name,
+                    'success': False,
+                    'error': str(e)
+                })
         
         # 更新会话状态
         session.successful_instances = total_synced
@@ -139,28 +217,43 @@ def collect_database_sizes():
         
         result = {
             'success': total_failed == 0,
-            'message': f'数据库大小采集完成: 成功 {total_synced} 个，失败 {total_failed} 个',
+            'message': f'容量同步完成: 成功 {total_synced} 个，失败 {total_failed} 个',
             'instances_processed': total_synced,
             'total_size_mb': total_size_mb,
-            'session_id': session.session_id
+            'session_id': session.session_id,
+            'details': results
         }
         
-        logger.info(f"数据库大小采集任务完成: {result['message']}")
+        sync_logger.info(
+            "容量同步任务完成",
+            module="capacity_sync",
+            session_id=session.session_id,
+            total_instances=len(active_instances),
+            successful_instances=total_synced,
+            failed_instances=total_failed,
+            total_size_mb=total_size_mb
+        )
+        
         return result
         
     except Exception as e:
-        logger.error(f"数据库大小采集任务执行失败: {str(e)}")
+        sync_logger.error(
+            "容量同步任务执行失败",
+            module="capacity_sync",
+            error=str(e),
+            exc_info=True
+        )
         
         # 更新会话状态为失败
         if 'session' in locals() and session:
             session.status = "failed"
             session.completed_at = now()
-            session.failed_instances = len(active_instances)
+            session.failed_instances = len(active_instances) if 'active_instances' in locals() else 0
             db.session.commit()
         
         return {
             'success': False,
-            'message': f'数据库大小采集任务执行失败: {str(e)}',
+            'message': f'容量同步任务执行失败: {str(e)}',
             'error': str(e)
         }
 
