@@ -12,7 +12,7 @@ class DatabaseAggregationsManager {
             instance_id: null,
             db_type: null,
             database_name: null,
-            period_type: 'weekly',
+            period_type: 'daily',
             start_date: null,
             end_date: null
         };
@@ -99,7 +99,7 @@ class DatabaseAggregationsManager {
             instance_id: null,
             db_type: null,
             database_name: null,
-            period_type: 'weekly',
+            period_type: 'daily',
             start_date: null,
             end_date: null
         };
