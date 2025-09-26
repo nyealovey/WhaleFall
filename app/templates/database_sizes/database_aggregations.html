@@ -353,16 +353,34 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/database_sizes/database_aggregations.js') }}"></script>
 <script>
 // 页面加载完成后初始化数据库统计页面
 document.addEventListener('DOMContentLoaded', function() {
-    // 等待Chart.js加载完成
+    // 等待Chart.js和统一搜索组件加载完成
     function initManager() {
-        if (typeof Chart !== 'undefined' && typeof DatabaseAggregationsManager !== 'undefined') {
+        if (typeof Chart !== 'undefined' && typeof DatabaseAggregationsManager !== 'undefined' && typeof UnifiedSearch !== 'undefined') {
+            // 初始化统一搜索组件
+            window.unifiedSearch = new UnifiedSearch('unified-search-form');
+            
+            // 初始化数据库统计管理器
             window.databaseAggregationsManager = new DatabaseAggregationsManager();
+            
+            // 为统一搜索组件提供筛选函数
+            window.applyFilters = function() {
+                if (window.databaseAggregationsManager) {
+                    window.databaseAggregationsManager.applyFilters();
+                }
+            };
+            
+            window.clearFilters = function() {
+                if (window.databaseAggregationsManager) {
+                    window.databaseAggregationsManager.resetFilters();
+                }
+            };
         } else {
-            // 如果Chart.js还没加载完成，等待100ms后重试
+            // 如果依赖还没加载完成，等待100ms后重试
             setTimeout(initManager, 100);
         }
     }
