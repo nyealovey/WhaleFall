@@ -273,6 +273,17 @@ def get_aggregations_summary():
         total_aggregations = DatabaseSizeAggregation.query.count()
         total_instances = Instance.query.filter_by(is_active=True).count()
         
+        # 获取数据库数量统计
+        total_databases = db.session.query(
+            func.count(func.distinct(DatabaseSizeAggregation.database_name))
+        ).scalar() or 0
+        
+        # 获取大小统计
+        size_stats = db.session.query(
+            func.avg(DatabaseSizeAggregation.avg_size_mb).label('avg_size'),
+            func.max(DatabaseSizeAggregation.max_size_mb).label('max_size')
+        ).first()
+        
         # 按周期类型统计
         period_stats = db.session.query(
             DatabaseSizeAggregation.period_type,
@@ -297,6 +308,9 @@ def get_aggregations_summary():
         summary = {
             'total_aggregations': total_aggregations,
             'total_instances': total_instances,
+            'total_databases': total_databases,
+            'average_size_mb': float(size_stats.avg_size) if size_stats.avg_size else 0,
+            'max_size_mb': int(size_stats.max_size) if size_stats.max_size else 0,
             'period_stats': [
                 {'period_type': stat.period_type, 'count': stat.count}
                 for stat in period_stats

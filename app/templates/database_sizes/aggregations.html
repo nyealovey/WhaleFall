@@ -158,15 +158,25 @@
                             </h5>
                         </div>
                         <div class="col-md-6">
-                            <div class="btn-group" role="group">
-                                <input type="radio" class="btn-check" name="chartType" id="chartTypeLine" value="line" checked>
-                                <label class="btn btn-outline-primary" for="chartTypeLine">折线图</label>
+                            <div class="d-flex gap-2">
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="chartMode" id="chartModeDatabase" value="database" checked>
+                                    <label class="btn btn-outline-success" for="chartModeDatabase">数据库</label>
+                                    
+                                    <input type="radio" class="btn-check" name="chartMode" id="chartModeInstance" value="instance">
+                                    <label class="btn btn-outline-success" for="chartModeInstance">实例</label>
+                                </div>
                                 
-                                <input type="radio" class="btn-check" name="chartType" id="chartTypeBar" value="bar">
-                                <label class="btn btn-outline-primary" for="chartTypeBar">柱状图</label>
-                                
-                                <input type="radio" class="btn-check" name="chartType" id="chartTypeArea" value="area">
-                                <label class="btn btn-outline-primary" for="chartTypeArea">面积图</label>
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="chartType" id="chartTypeLine" value="line" checked>
+                                    <label class="btn btn-outline-primary" for="chartTypeLine">折线图</label>
+                                    
+                                    <input type="radio" class="btn-check" name="chartType" id="chartTypeBar" value="bar">
+                                    <label class="btn btn-outline-primary" for="chartTypeBar">柱状图</label>
+                                    
+                                    <input type="radio" class="btn-check" name="chartType" id="chartTypeArea" value="area">
+                                    <label class="btn btn-outline-primary" for="chartTypeArea">面积图</label>
+                                </div>
                             </div>
                         </div>
                     </div>
