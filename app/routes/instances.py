@@ -1915,6 +1915,66 @@ def sync_instance_capacity(instance_id: int) -> Response:
         }), 500
 
 
+@instances_bp.route("/<int:instance_id>/databases", methods=['GET'])
+@login_required
+@view_required
+def get_instance_databases(instance_id: int) -> Response:
+    """
+    获取指定实例的数据库列表
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON响应，包含数据库列表
+    """
+    try:
+        # 获取实例信息
+        instance = Instance.query.get_or_404(instance_id)
+        
+        # 获取该实例的所有数据库名称（从数据库大小统计中获取）
+        from app.models.database_size_stat import DatabaseSizeStat
+        from sqlalchemy import distinct, desc
+        
+        # 获取所有不重复的数据库名称
+        database_names = db.session.query(
+            distinct(DatabaseSizeStat.database_name)
+        ).filter_by(
+            instance_id=instance_id
+        ).filter(
+            DatabaseSizeStat.is_deleted == False
+        ).order_by(
+            DatabaseSizeStat.database_name
+        ).all()
+        
+        # 转换为列表格式
+        databases = []
+        for (db_name,) in database_names:
+            databases.append({
+                'name': db_name,
+                'instance_id': instance_id,
+                'instance_name': instance.name
+            })
+        
+        return jsonify({
+            'success': True,
+            'databases': databases,
+            'count': len(databases)
+        })
+        
+    except Exception as e:
+        api_logger.error(
+            "获取实例数据库列表时出错",
+            module="instances",
+            instance_id=instance_id,
+            error=str(e)
+        )
+        return jsonify({
+            'success': False,
+            'error': f'获取数据库列表失败: {str(e)}'
+        }), 500
+
+
 @instances_bp.route("/<int:instance_id>/database-sizes", methods=['GET'])
 @login_required
 @view_required

@@ -31,6 +31,7 @@ class AggregationsManager {
         this.loadSummaryData();
         this.loadChartData();
         this.loadTableData();
+        this.initializeDatabaseFilter();
     }
     
     /**
@@ -58,8 +59,13 @@ class AggregationsManager {
         });
         
         // 筛选器变化
-        $('#instance, #period_type, #database, #timeRange').on('change', () => {
+        $('#instance, #period_type, #database, #db_type, #timeRange').on('change', () => {
             this.updateFilters();
+        });
+        
+        // 实例变化时更新数据库选项
+        $('#instance').on('change', (e) => {
+            this.updateDatabaseOptions(e.target.value);
         });
         
         // 统计周期变化时调整时间范围选项
@@ -237,6 +243,56 @@ class AggregationsManager {
     }
     
     /**
+     * 根据选择的实例更新数据库选项
+     */
+    async updateDatabaseOptions(instanceId) {
+        const databaseSelect = $('#database');
+        
+        if (!instanceId) {
+            // 如果没有选择实例，清空数据库选项并禁用
+            databaseSelect.empty();
+            databaseSelect.append('<option value="">请先选择实例</option>');
+            databaseSelect.prop('disabled', true);
+            return;
+        }
+        
+        try {
+            // 启用数据库选择
+            databaseSelect.prop('disabled', false);
+            
+            // 获取该实例的数据库列表
+            const response = await fetch(`/instances/${instanceId}/databases?api=true`);
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                databaseSelect.empty();
+                databaseSelect.append('<option value="">所有数据库</option>');
+                
+                data.databases.forEach(db => {
+                    databaseSelect.append(`<option value="${db.name}">${db.name}</option>`);
+                });
+            } else {
+                databaseSelect.empty();
+                databaseSelect.append('<option value="">加载失败</option>');
+            }
+        } catch (error) {
+            console.error('加载数据库列表时出错:', error);
+            databaseSelect.empty();
+            databaseSelect.append('<option value="">加载失败</option>');
+        }
+    }
+    
+    /**
+     * 初始化数据库筛选器
+     */
+    initializeDatabaseFilter() {
+        const databaseSelect = $('#database');
+        databaseSelect.empty();
+        databaseSelect.append('<option value="">请先选择实例</option>');
+        databaseSelect.prop('disabled', true);
+    }
+    
+    /**
      * 渲染图表
      */
     renderChart(data) {
@@ -333,6 +389,7 @@ class AggregationsManager {
         
         // 根据图表类型调整配置
         if (this.currentChartType === 'area') {
+            chartConfig.type = 'line'; // 使用 line 类型实现面积图
             chartConfig.data.datasets.forEach(dataset => {
                 dataset.fill = true;
             });
@@ -686,6 +743,7 @@ class AggregationsManager {
         this.currentFilters.instance = $('#instance').val();
         this.currentFilters.periodType = $('#period_type').val();
         this.currentFilters.database = $('#database').val();
+        this.currentFilters.dbType = $('#db_type').val();
         this.currentFilters.dateRange = parseInt($('#timeRange').val());
     }
     
@@ -705,15 +763,20 @@ class AggregationsManager {
         $('#instance').val('');
         $('#period_type').val('daily');
         $('#database').val('');
+        $('#db_type').val('');
         $('#timeRange').val('7');
         $('#searchTable').val('');
         
         this.currentFilters = {
             instance: '',
+            dbType: '',
             periodType: 'daily',
             database: '',
             dateRange: 7
         };
+        
+        // 重置数据库选择器
+        this.initializeDatabaseFilter();
         
         this.applyFilters();
     }

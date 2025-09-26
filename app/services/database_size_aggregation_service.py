@@ -74,9 +74,9 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每日统计聚合...")
         
-        # 获取昨天的数据
+        # 获取今天的数据（支持第一天部署的情况）
         end_date = date.today()
-        start_date = end_date - timedelta(days=1)
+        start_date = end_date  # 同一天，支持当天数据聚合
         
         return self._calculate_aggregations('daily', start_date, end_date)
     
@@ -382,7 +382,18 @@ class DatabaseSizeAggregationService:
         Returns:
             tuple: (上一个周期开始日期, 上一个周期结束日期)
         """
-        if period_type == "weekly":
+        if period_type == "daily":
+            # 前一天（支持当天数据聚合的情况）
+            if start_date == end_date:
+                # 如果是同一天，前一天就是昨天
+                prev_end_date = start_date - timedelta(days=1)
+                prev_start_date = prev_end_date
+            else:
+                # 如果是多天，前一天是开始日期的前一天
+                period_duration = end_date - start_date
+                prev_end_date = start_date - timedelta(days=1)
+                prev_start_date = prev_end_date - period_duration
+        elif period_type == "weekly":
             # 上一周
             period_duration = end_date - start_date
             prev_end_date = start_date - timedelta(days=1)
