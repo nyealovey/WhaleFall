@@ -110,7 +110,17 @@ class DatabaseSizeCollectorService:
             
             self.logger.info(f"MySQL 权限测试通过，发现 {test_result[0][0]} 个数据库")
             
-            # 先获取所有数据库列表
+            # 先检查所有数据库
+            all_dbs_query = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA ORDER BY SCHEMA_NAME"
+            all_dbs_result = self.db_connection.execute_query(all_dbs_query)
+            if all_dbs_result:
+                all_dbs = [row[0] for row in all_dbs_result]
+                self.logger.info(f"MySQL 所有数据库: {all_dbs}")
+            else:
+                self.logger.warning("无法获取数据库列表")
+                return []
+            
+            # 获取用户数据库列表
             db_list_query = """
                 SELECT SCHEMA_NAME 
                 FROM information_schema.SCHEMATA 
