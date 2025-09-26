@@ -105,7 +105,18 @@ def aggregations():
             }), 500
     else:
         # 无查询参数，返回HTML页面
-        return render_template('database_sizes/aggregations.html')
+        # 获取实例列表用于筛选
+        instances = Instance.query.filter_by(is_active=True).order_by(Instance.id).all()
+        instances_list = []
+        for instance in instances:
+            instances_list.append({
+                'id': instance.id,
+                'name': instance.name,
+                'db_type': instance.db_type
+            })
+        
+        return render_template('database_sizes/aggregations.html', 
+                             instances_list=instances_list)
 
 @database_sizes_bp.route('/api/config', methods=['GET', 'PUT'])
 @login_required

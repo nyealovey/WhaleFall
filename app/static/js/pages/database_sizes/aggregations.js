@@ -58,7 +58,7 @@ class AggregationsManager {
         });
         
         // 筛选器变化
-        $('#instanceFilter, #dbTypeFilter, #periodTypeFilter, #databaseFilter, #dateRangeFilter').on('change', () => {
+        $('#instance, #period_type, #database, #timeRange').on('change', () => {
             this.updateFilters();
         });
         
@@ -101,7 +101,7 @@ class AggregationsManager {
             const data = await response.json();
             
             if (response.ok) {
-                const select = $('#instanceFilter');
+                const select = $('#instance');
                 select.empty();
                 select.append('<option value="">所有实例</option>');
                 
@@ -224,7 +224,7 @@ class AggregationsManager {
      */
     updateDatabaseFilter(data) {
         const databases = [...new Set(data.map(item => item.database_name))].sort();
-        const select = $('#databaseFilter');
+        const select = $('#database');
         
         select.empty();
         select.append('<option value="">所有数据库</option>');
@@ -683,11 +683,10 @@ class AggregationsManager {
      * 更新筛选器
      */
     updateFilters() {
-        this.currentFilters.instance = $('#instanceFilter').val();
-        this.currentFilters.dbType = $('#dbTypeFilter').val();
-        this.currentFilters.periodType = $('#periodTypeFilter').val();
-        this.currentFilters.database = $('#databaseFilter').val();
-        this.currentFilters.dateRange = parseInt($('#dateRangeFilter').val());
+        this.currentFilters.instance = $('#instance').val();
+        this.currentFilters.periodType = $('#period_type').val();
+        this.currentFilters.database = $('#database').val();
+        this.currentFilters.dateRange = parseInt($('#timeRange').val());
     }
     
     /**
@@ -703,16 +702,14 @@ class AggregationsManager {
      * 清除筛选
      */
     clearFilters() {
-        $('#instanceFilter').val('');
-        $('#dbTypeFilter').val('');
-        $('#periodTypeFilter').val('daily');
-        $('#databaseFilter').val('');
-        $('#dateRangeFilter').val('7');
+        $('#instance').val('');
+        $('#period_type').val('daily');
+        $('#database').val('');
+        $('#timeRange').val('7');
         $('#searchTable').val('');
         
         this.currentFilters = {
             instance: '',
-            dbType: '',
             periodType: 'daily',
             database: '',
             dateRange: 7
