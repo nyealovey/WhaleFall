@@ -376,6 +376,8 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.dashboard import dashboard_bp
     from app.routes.database_types import database_types_bp
     from app.routes.database_sizes import database_sizes_bp
+    from app.routes.database_aggregations import database_aggregations_bp
+    from app.routes.instance_aggregations import instance_aggregations_bp
     from app.routes.health import health_bp
     from app.routes.instance_accounts import instance_accounts_bp
     from app.routes.instances import instances_bp
@@ -428,6 +430,8 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(cache_bp, url_prefix='/cache')
     app.register_blueprint(database_types_bp, url_prefix='/database-types')
     app.register_blueprint(database_sizes_bp, url_prefix='/database-sizes')
+    app.register_blueprint(database_aggregations_bp, url_prefix='/database-aggregations')
+    app.register_blueprint(instance_aggregations_bp, url_prefix='/instance-aggregations')
     app.register_blueprint(partition_management_bp, url_prefix='/partition-management')
     app.register_blueprint(user_management_bp, url_prefix='/users')
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')

@@ -1,0 +1,399 @@
+/**
+ * 数据库统计页面样式
+ * 基于 Bootstrap 5.3.2
+ */
+
+/* 页面容器样式 */
+.database-aggregations-page {
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+/* 统计卡片样式 */
+.database-aggregations-page .card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: all 0.15s ease-in-out;
+}
+
+.database-aggregations-page .card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+/* 统计概览卡片 */
+.database-aggregations-page .card.bg-primary,
+.database-aggregations-page .card.bg-success,
+.database-aggregations-page .card.bg-info,
+.database-aggregations-page .card.bg-warning {
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.database-aggregations-page .card.bg-primary .card-body,
+.database-aggregations-page .card.bg-success .card-body,
+.database-aggregations-page .card.bg-info .card-body,
+.database-aggregations-page .card.bg-warning .card-body {
+    padding: 1.5rem;
+}
+
+/* 图表容器样式 */
+.database-aggregations-page #databaseChart {
+    position: relative;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 0.375rem;
+    border: 1px solid #dee2e6;
+}
+
+/* 图表加载状态 */
+.database-aggregations-page #chartLoading {
+    z-index: 10;
+}
+
+.database-aggregations-page #chartLoading .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* 表格样式 */
+.database-aggregations-page .table {
+    margin-bottom: 0;
+}
+
+.database-aggregations-page .table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+    padding: 1rem 0.75rem;
+}
+
+.database-aggregations-page .table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.database-aggregations-page .table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* 数据库名称样式 */
+.database-aggregations-page .database-name {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #0d6efd;
+}
+
+.database-aggregations-page .database-name:hover {
+    color: #0a58ca;
+    text-decoration: underline;
+}
+
+/* 实例名称样式 */
+.database-aggregations-page .instance-name {
+    font-weight: 500;
+    color: #495057;
+}
+
+/* 数据库类型标签 */
+.database-aggregations-page .db-type-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-weight: 500;
+}
+
+.database-aggregations-page .db-type-badge.postgresql {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.database-aggregations-page .db-type-badge.mysql {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.database-aggregations-page .db-type-badge.sqlserver {
+    background-color: #e8f5e8;
+    color: #388e3c;
+}
+
+.database-aggregations-page .db-type-badge.oracle {
+    background-color: #fce4ec;
+    color: #c2185b;
+}
+
+/* 大小显示样式 */
+.database-aggregations-page .size-display {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.database-aggregations-page .size-display.large {
+    color: #dc3545;
+}
+
+.database-aggregations-page .size-display.medium {
+    color: #fd7e14;
+}
+
+.database-aggregations-page .size-display.small {
+    color: #198754;
+}
+
+/* 按钮样式 */
+.database-aggregations-page .btn {
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+}
+
+.database-aggregations-page .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+}
+
+.database-aggregations-page .btn-group .btn-check:checked + .btn {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+/* 操作按钮样式 */
+.database-aggregations-page .btn-action {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    margin: 0 0.125rem;
+}
+
+.database-aggregations-page .btn-action:hover {
+    transform: scale(1.05);
+}
+
+/* 模态框样式 */
+.database-aggregations-page .modal-content {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+.database-aggregations-page .modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.database-aggregations-page .modal-title {
+    color: #495057;
+    font-weight: 600;
+}
+
+/* 进度条样式 */
+.database-aggregations-page .progress {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #e9ecef;
+}
+
+.database-aggregations-page .progress-bar {
+    border-radius: 0.25rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .database-aggregations-page .card-body {
+        padding: 1rem;
+    }
+    
+    .database-aggregations-page .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .database-aggregations-page .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .database-aggregations-page .btn-group .btn {
+        border-radius: 0.375rem !important;
+        margin-bottom: 0.25rem;
+    }
+    
+    .database-aggregations-page .table th,
+    .database-aggregations-page .table td {
+        padding: 0.5rem;
+    }
+}
+
+/* 动画效果 */
+.database-aggregations-page .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.database-aggregations-page .slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+/* 加载状态样式 */
+.database-aggregations-page .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.database-aggregations-page .loading-spinner {
+    width: 3rem;
+    height: 3rem;
+    border: 0.25rem solid #f3f3f3;
+    border-top: 0.25rem solid #0d6efd;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 错误状态样式 */
+.database-aggregations-page .error-message {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 0.375rem;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+}
+
+.database-aggregations-page .error-message i {
+    margin-right: 0.5rem;
+}
+
+/* 成功状态样式 */
+.database-aggregations-page .success-message {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 0.375rem;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+}
+
+.database-aggregations-page .success-message i {
+    margin-right: 0.5rem;
+}
+
+/* 空状态样式 */
+.database-aggregations-page .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6c757d;
+}
+
+.database-aggregations-page .empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.database-aggregations-page .empty-state h5 {
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.database-aggregations-page .empty-state p {
+    margin-bottom: 0;
+}
+
+/* 工具提示样式 */
+.database-aggregations-page .tooltip {
+    font-size: 0.875rem;
+}
+
+.database-aggregations-page .tooltip .tooltip-inner {
+    background-color: #212529;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+}
+
+/* 自定义滚动条 */
+.database-aggregations-page ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.database-aggregations-page ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.database-aggregations-page ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.database-aggregations-page ::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* 数据表格特殊样式 */
+.database-aggregations-page .table tbody tr {
+    transition: all 0.15s ease-in-out;
+}
+
+.database-aggregations-page .table tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.01);
+}
+
+/* 图表工具栏样式 */
+.database-aggregations-page .chart-toolbar {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.database-aggregations-page .chart-toolbar .btn-group {
+    margin-right: 1rem;
+}
+
+/* 统计卡片图标样式 */
+.database-aggregations-page .card .fas {
+    opacity: 0.8;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.database-aggregations-page .card:hover .fas {
+    opacity: 1;
+}
+
