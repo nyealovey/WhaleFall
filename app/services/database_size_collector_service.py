@@ -251,7 +251,7 @@ class DatabaseSizeCollectorService:
     
     def save_collected_data(self, data: List[Dict[str, Any]]) -> int:
         """
-        保存采集到的数据
+        保存采集到的数据，实现软删除机制
         
         Args:
             data: 采集到的数据列表
@@ -262,6 +262,26 @@ class DatabaseSizeCollectorService:
         if not data:
             return 0
         
+        # 获取当前采集到的数据库名称列表
+        current_databases = {item['database_name'] for item in data}
+        
+        # 获取今天已存在的所有数据库记录
+        today = date.today()
+        existing_records = DatabaseSizeStat.query.filter_by(
+            instance_id=self.instance.id,
+            collected_date=today
+        ).all()
+        
+        # 标记已删除的数据库
+        deleted_count = 0
+        for record in existing_records:
+            if record.database_name not in current_databases and not record.is_deleted:
+                record.is_deleted = True
+                record.deleted_at = datetime.utcnow()
+                deleted_count += 1
+                self.logger.info(f"标记数据库 {record.database_name} 为已删除")
+        
+        # 保存或更新当前采集的数据
         saved_count = 0
         for item in data:
             try:
@@ -278,6 +298,11 @@ class DatabaseSizeCollectorService:
                     existing.data_size_mb = item['data_size_mb']
                     existing.log_size_mb = item['log_size_mb']
                     existing.collected_at = item['collected_at']
+                    # 如果之前被标记为删除，现在恢复
+                    if existing.is_deleted:
+                        existing.is_deleted = False
+                        existing.deleted_at = None
+                        self.logger.info(f"恢复数据库 {item['database_name']} 为在线状态")
                 else:
                     # 创建新记录
                     new_stat = DatabaseSizeStat(
@@ -287,7 +312,8 @@ class DatabaseSizeCollectorService:
                         data_size_mb=item['data_size_mb'],
                         log_size_mb=item['log_size_mb'],
                         collected_date=item['collected_date'],
-                        collected_at=item['collected_at']
+                        collected_at=item['collected_at'],
+                        is_deleted=False
                     )
                     db.session.add(new_stat)
                 
@@ -299,7 +325,7 @@ class DatabaseSizeCollectorService:
         
         try:
             db.session.commit()
-            self.logger.info(f"成功保存 {saved_count} 条数据库大小记录")
+            self.logger.info(f"成功保存 {saved_count} 条数据库大小记录，标记 {deleted_count} 个数据库为已删除")
         except Exception as e:
             db.session.rollback()
             self.logger.error(f"提交数据库大小数据失败: {str(e)}")

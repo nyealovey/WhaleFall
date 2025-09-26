@@ -1930,7 +1930,9 @@ def get_instance_database_sizes(instance_id: int) -> Response:
                     'data_size_mb': stat.data_size_mb,
                     'log_size_mb': stat.log_size_mb,
                     'collected_at': stat.collected_at.isoformat(),
-                    'collected_date': stat.collected_date.isoformat()
+                    'collected_date': stat.collected_date.isoformat(),
+                    'is_deleted': stat.is_deleted,
+                    'deleted_at': stat.deleted_at.isoformat() if stat.deleted_at else None
                 }
         
         # 按数据库大小降序排序

@@ -12,6 +12,7 @@ from sqlalchemy import (
     Date,
     ForeignKey,
     BigInteger,
+    Boolean,
     Index,
     UniqueConstraint,
 )
@@ -41,6 +42,12 @@ class DatabaseSizeStat(db.Model):
     collected_date = Column(Date, nullable=False, comment="采集日期（用于分区）")
     collected_at = Column(
         DateTime, nullable=False, default=datetime.datetime.utcnow, comment="采集时间戳"
+    )
+    is_deleted = Column(
+        Boolean, nullable=False, default=False, comment="是否已删除（软删除）"
+    )
+    deleted_at = Column(
+        DateTime, nullable=True, comment="删除时间"
     )
     created_at = Column(
         DateTime, nullable=False, default=datetime.datetime.utcnow, comment="记录创建时间"
@@ -83,5 +90,7 @@ class DatabaseSizeStat(db.Model):
             'log_size_mb': self.log_size_mb,
             'collected_date': self.collected_date.isoformat() if self.collected_date else None,
             'collected_at': self.collected_at.isoformat() if self.collected_at else None,
+            'is_deleted': self.is_deleted,
+            'deleted_at': self.deleted_at.isoformat() if self.deleted_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
