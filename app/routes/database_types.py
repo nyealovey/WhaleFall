@@ -4,7 +4,7 @@
 提供数据库类型的Web界面和API接口
 """
 
-from flask import Blueprint, Response, jsonify, render_template
+from flask import Blueprint, Response, jsonify
 from flask_login import login_required
 
 from app.services.database_type_service import DatabaseTypeService
@@ -14,14 +14,6 @@ logger = get_system_logger()
 
 # 创建蓝图
 database_types_bp = Blueprint("database_types", __name__)
-
-
-@database_types_bp.route("/")
-@login_required
-def index() -> str:
-    """数据库类型管理首页"""
-    types = DatabaseTypeService.get_all_types()
-    return render_template("database_types/list.html", types=types)
 
 
 @database_types_bp.route("/api/list")
