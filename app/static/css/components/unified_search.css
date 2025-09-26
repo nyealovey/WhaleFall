@@ -121,6 +121,10 @@
     display: block;
 }
 
+.aggregations-page .filter-db-type {
+    display: block;
+}
+
 .credentials-page .filter-credential-type {
     display: block;
 }
