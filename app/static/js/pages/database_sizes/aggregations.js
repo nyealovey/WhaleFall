@@ -96,7 +96,7 @@ class AggregationsManager {
      */
     async loadInstances() {
         try {
-            const response = await fetch('/instances');
+            const response = await fetch('/instances/api/list');
             const data = await response.json();
             
             if (response.ok) {
@@ -747,10 +747,12 @@ class AggregationsManager {
             }, 200);
             
             // 调用API重新计算
+            const csrfToken = this.getCSRFToken();
             const response = await fetch('/database-sizes/aggregate', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
                 }
             });
             
@@ -877,6 +879,14 @@ class AggregationsManager {
         setTimeout(() => {
             toast.remove();
         }, 5000);
+    }
+    
+    /**
+     * 获取CSRF Token
+     */
+    getCSRFToken() {
+        const token = document.querySelector('meta[name="csrf-token"]');
+        return token ? token.getAttribute('content') : '';
     }
 }
 
