@@ -1863,12 +1863,15 @@ def sync_instance_capacity(instance_id: int) -> Response:
         
         # 建立连接
         if not collector.connect():
+            error_msg = f"无法连接到实例 {instance.name} (类型: {instance.db_type})"
+            log_error(error_msg, module="instances", instance_id=instance_id, 
+                     instance_name=instance.name, db_type=instance.db_type)
             # 标记同步失败
-            sync_session_service.fail_instance_sync(record.id, "无法连接到实例")
+            sync_session_service.fail_instance_sync(record.id, error_msg)
             return jsonify({
                 'success': False, 
-                'error': f'无法连接到实例 {instance.name}'
-            }), 500
+                'error': error_msg
+            }), 400
         
         try:
             # 采集数据库大小数据

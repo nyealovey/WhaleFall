@@ -100,41 +100,53 @@ class DatabaseSizeCollectorService:
     
     def _collect_mysql_sizes(self) -> List[Dict[str, Any]]:
         """采集 MySQL 数据库大小"""
-        # 使用 LEFT JOIN 确保包含所有数据库，包括空数据库
-        query = """
-            SELECT
-                s.SCHEMA_NAME AS database_name,
-                COALESCE(ROUND(SUM(COALESCE(t.data_length, 0) + COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS size_mb,
-                COALESCE(ROUND(SUM(COALESCE(t.data_length, 0)) / 1024 / 1024, 2), 0) AS data_size_mb,
-                COALESCE(ROUND(SUM(COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS index_size_mb
-            FROM
-                information_schema.SCHEMATA s
-            LEFT JOIN
-                information_schema.tables t ON s.SCHEMA_NAME = t.table_schema
-            WHERE
-                s.SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')
-            GROUP BY
-                s.SCHEMA_NAME
-            ORDER BY
-                size_mb DESC
-        """
-        
-        result = self.db_connection.execute_query(query)
-        self.logger.info(f"MySQL 查询结果: {len(result) if result else 0} 行数据")
-        data = []
-        
-        for row in result:
-            data.append({
-                'database_name': row[0],
-                'size_mb': int(float(row[1] or 0)),
-                'data_size_mb': int(float(row[2] or 0)),
-                'log_size_mb': None,  # MySQL 没有单独的日志文件大小
-                'collected_date': date.today(),
-                'collected_at': datetime.utcnow()
-            })
-        
-        self.logger.info(f"MySQL 实例 {self.instance.name} 采集到 {len(data)} 个数据库")
-        return data
+        try:
+            # 首先测试权限
+            test_query = "SELECT COUNT(*) FROM information_schema.SCHEMATA"
+            test_result = self.db_connection.execute_query(test_query)
+            if not test_result:
+                self.logger.error("MySQL 权限测试失败：无法访问 information_schema.SCHEMATA")
+                return []
+            
+            # 使用 LEFT JOIN 确保包含所有数据库，包括空数据库
+            query = """
+                SELECT
+                    s.SCHEMA_NAME AS database_name,
+                    COALESCE(ROUND(SUM(COALESCE(t.data_length, 0) + COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS size_mb,
+                    COALESCE(ROUND(SUM(COALESCE(t.data_length, 0)) / 1024 / 1024, 2), 0) AS data_size_mb,
+                    COALESCE(ROUND(SUM(COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS index_size_mb
+                FROM
+                    information_schema.SCHEMATA s
+                LEFT JOIN
+                    information_schema.tables t ON s.SCHEMA_NAME = t.table_schema
+                WHERE
+                    s.SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')
+                GROUP BY
+                    s.SCHEMA_NAME
+                ORDER BY
+                    size_mb DESC
+            """
+            
+            result = self.db_connection.execute_query(query)
+            self.logger.info(f"MySQL 查询结果: {len(result) if result else 0} 行数据")
+            data = []
+            
+            for row in result:
+                data.append({
+                    'database_name': row[0],
+                    'size_mb': int(float(row[1] or 0)),
+                    'data_size_mb': int(float(row[2] or 0)),
+                    'log_size_mb': None,  # MySQL 没有单独的日志文件大小
+                    'collected_date': date.today(),
+                    'collected_at': datetime.utcnow()
+                })
+            
+            self.logger.info(f"MySQL 实例 {self.instance.name} 采集到 {len(data)} 个数据库")
+            return data
+            
+        except Exception as e:
+            self.logger.error(f"MySQL 数据库大小采集失败: {str(e)}", exc_info=True)
+            raise ValueError(f"MySQL 采集失败: {str(e)}")
     
     def _collect_sqlserver_sizes(self) -> List[Dict[str, Any]]:
         """采集 SQL Server 数据库大小"""
