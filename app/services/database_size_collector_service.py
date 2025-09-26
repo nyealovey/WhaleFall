@@ -105,7 +105,7 @@ class DatabaseSizeCollectorService:
                 table_schema AS database_name,
                 ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb,
                 ROUND(SUM(data_length) / 1024 / 1024, 2) AS data_size_mb,
-                ROUND(SUM(index_length) / 1024 / 1024, 2) AS log_size_mb
+                ROUND(SUM(index_length) / 1024 / 1024, 2) AS index_size_mb
             FROM
                 information_schema.tables
             WHERE
@@ -123,7 +123,7 @@ class DatabaseSizeCollectorService:
                 'database_name': row[0],
                 'size_mb': int(float(row[1] or 0)),
                 'data_size_mb': int(float(row[2] or 0)),
-                'log_size_mb': int(float(row[3] or 0)),
+                'log_size_mb': None,  # MySQL 没有单独的日志文件大小
                 'collected_date': date.today(),
                 'collected_at': datetime.utcnow()
             })
