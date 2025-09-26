@@ -135,6 +135,14 @@ def aggregations():
                 }
                 data.append(agg_dict)
             
+            # 如果没有聚合数据，尝试从原始数据生成
+            if not data and period_type == 'daily':
+                data = _generate_daily_data_from_stats(
+                    instance_id, db_type, database_name, 
+                    start_date, end_date, limit, offset
+                )
+                total = len(data)
+            
             return jsonify({
                 'success': True,
                 'data': data,
@@ -1321,3 +1329,95 @@ def cleanup_old_aggregations_api():
     except Exception as e:
         logger.error(f"清理旧聚合数据时出错: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+def _generate_daily_data_from_stats(instance_id, db_type, database_name, 
+                                  start_date, end_date, limit, offset):
+    """
+    从原始统计数据生成日聚合数据（回退机制）
+    """
+    try:
+        from app.models.database_size_stat import DatabaseSizeStat
+        from sqlalchemy import func, and_, or_
+        
+        # 构建查询
+        query = DatabaseSizeStat.query.join(Instance)
+        
+        # 应用过滤条件
+        if instance_id:
+            query = query.filter(DatabaseSizeStat.instance_id == instance_id)
+        if db_type:
+            query = query.filter(Instance.db_type == db_type)
+        if database_name:
+            query = query.filter(DatabaseSizeStat.database_name == database_name)
+        if start_date:
+            query = query.filter(DatabaseSizeStat.collected_date >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            query = query.filter(DatabaseSizeStat.collected_date <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        # 只获取未删除的数据
+        query = query.filter(
+            or_(
+                DatabaseSizeStat.is_deleted == False,
+                DatabaseSizeStat.is_deleted.is_(None)
+            )
+        )
+        
+        # 按日期和数据库分组，计算聚合数据
+        stats = query.all()
+        
+        # 按日期和数据库分组
+        grouped_data = {}
+        for stat in stats:
+            key = (stat.collected_date, stat.instance_id, stat.database_name)
+            if key not in grouped_data:
+                grouped_data[key] = []
+            grouped_data[key].append(stat)
+        
+        # 生成聚合数据
+        data = []
+        for (collected_date, instance_id, database_name), stats_list in grouped_data.items():
+            # 计算统计值
+            sizes = [s.size_mb for s in stats_list if s.size_mb is not None]
+            if not sizes:
+                continue
+            
+            max_size = max(sizes)
+            min_size = min(sizes)
+            avg_size = sum(sizes) / len(sizes)
+            
+            # 获取实例信息
+            instance = Instance.query.get(instance_id)
+            if not instance:
+                continue
+            
+            # 创建聚合数据格式
+            agg_data = {
+                'id': f"temp_{instance_id}_{database_name}_{collected_date}",
+                'instance_id': instance_id,
+                'database_name': database_name,
+                'period_type': 'daily',
+                'period_start': collected_date.isoformat(),
+                'period_end': collected_date.isoformat(),
+                'max_size_mb': max_size,
+                'min_size_mb': min_size,
+                'avg_size_mb': avg_size,
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+                'instance': {
+                    'id': instance.id,
+                    'name': instance.name,
+                    'db_type': instance.db_type
+                }
+            }
+            data.append(agg_data)
+        
+        # 按日期排序
+        data.sort(key=lambda x: x['period_start'], reverse=True)
+        
+        # 应用分页
+        return data[offset:offset + limit]
+        
+    except Exception as e:
+        logger.error(f"从原始数据生成聚合数据时出错: {str(e)}")
+        return []
