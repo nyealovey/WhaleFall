@@ -28,11 +28,10 @@ class AggregationsManager {
      */
     init() {
         this.bindEvents();
-        this.loadInstances();
+        this.initializeDatabaseFilter();
         this.loadSummaryData();
         this.loadChartData();
         this.loadTableData();
-        this.initializeDatabaseFilter();
     }
     
     /**
@@ -60,11 +59,18 @@ class AggregationsManager {
         });
         
         // 筛选器变化
-        $('#period_type, #database, #db_type, #timeRange').on('change', () => {
+        $('#period_type, #timeRange').on('change', () => {
             this.updateFilters();
         });
         
-        // 实例变化时特殊处理
+        // 数据库类型变化时更新实例选项
+        $('#db_type').on('change', async (e) => {
+            const dbType = e.target.value;
+            await this.updateInstanceOptions(dbType);
+            this.updateFilters();
+        });
+        
+        // 实例变化时更新数据库选项
         $('#instance').on('change', async (e) => {
             const instanceId = e.target.value;
             await this.updateDatabaseOptions(instanceId);
@@ -110,9 +116,14 @@ class AggregationsManager {
     /**
      * 加载实例列表
      */
-    async loadInstances() {
+    async loadInstances(dbType = null) {
         try {
-            const response = await fetch('/instances/api/instances');
+            let url = '/instances/api/instances';
+            if (dbType) {
+                url += `?db_type=${dbType}`;
+            }
+            
+            const response = await fetch(url);
             const data = await response.json();
             
             if (response.ok) {
@@ -254,6 +265,44 @@ class AggregationsManager {
     /**
      * 根据选择的实例更新数据库选项
      */
+    async updateInstanceOptions(dbType) {
+        const instanceSelect = $('#instance');
+        const databaseSelect = $('#database');
+        
+        // 清空数据库选项
+        databaseSelect.empty();
+        databaseSelect.append('<option value="">请先选择实例</option>');
+        databaseSelect.prop('disabled', true);
+        
+        if (!dbType) {
+            // 如果没有选择数据库类型，显示所有实例
+            instanceSelect.prop('disabled', false);
+            await this.loadInstances();
+            return;
+        }
+        
+        try {
+            instanceSelect.prop('disabled', false);
+            const response = await fetch(`/instances?api=true&db_type=${dbType}`);
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                instanceSelect.empty();
+                instanceSelect.append('<option value="">所有实例</option>');
+                data.instances.forEach(instance => {
+                    instanceSelect.append(`<option value="${instance.id}">${instance.name} (${instance.db_type})</option>`);
+                });
+            } else {
+                instanceSelect.empty();
+                instanceSelect.append('<option value="">加载失败</option>');
+            }
+        } catch (error) {
+            console.error('加载实例列表时出错:', error);
+            instanceSelect.empty();
+            instanceSelect.append('<option value="">加载失败</option>');
+        }
+    }
+
     async updateDatabaseOptions(instanceId) {
         const databaseSelect = $('#database');
         
@@ -295,7 +344,15 @@ class AggregationsManager {
      * 初始化数据库筛选器
      */
     initializeDatabaseFilter() {
+        const instanceSelect = $('#instance');
         const databaseSelect = $('#database');
+        
+        // 初始化实例筛选器
+        instanceSelect.empty();
+        instanceSelect.append('<option value="">请先选择数据库类型</option>');
+        instanceSelect.prop('disabled', true);
+        
+        // 初始化数据库筛选器
         databaseSelect.empty();
         databaseSelect.append('<option value="">请先选择实例</option>');
         databaseSelect.prop('disabled', true);
@@ -861,10 +918,10 @@ class AggregationsManager {
      * 更新筛选器
      */
     updateFilters() {
-        this.currentFilters.instance = $('#instance').val();
-        this.currentFilters.periodType = $('#period_type').val();
-        this.currentFilters.database = $('#database').val();
         this.currentFilters.dbType = $('#db_type').val();
+        this.currentFilters.instance = $('#instance').val();
+        this.currentFilters.database = $('#database').val();
+        this.currentFilters.periodType = $('#period_type').val();
         this.currentFilters.dateRange = parseInt($('#timeRange').val());
     }
     
@@ -881,20 +938,25 @@ class AggregationsManager {
      * 清除筛选
      */
     clearFilters() {
-        $('#instance').val('');
-        $('#period_type').val('daily');
-        $('#database').val('');
+        // 重置所有筛选器值
         $('#db_type').val('');
+        $('#instance').val('');
+        $('#database').val('');
+        $('#period_type').val('daily');
         $('#timeRange').val('7');
         $('#searchTable').val('');
         
+        // 重置筛选器状态
         this.currentFilters = {
-            instance: '',
             dbType: '',
-            periodType: 'daily',
+            instance: '',
             database: '',
+            periodType: 'daily',
             dateRange: 7
         };
+        
+        // 重新加载所有实例（不按类型筛选）
+        this.loadInstances();
         
         // 重置数据库选择器
         this.initializeDatabaseFilter();
