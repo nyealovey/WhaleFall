@@ -1810,6 +1810,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
         instance = Instance.query.get_or_404(instance_id)
         
         if not instance.is_active:
+            log_error(f"实例 {instance.name} 已禁用，无法同步容量信息", module="instances", instance_id=instance_id)
             return jsonify({
                 'success': False, 
                 'error': '实例已禁用，无法同步容量信息'
@@ -1817,6 +1818,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
         
         # 检查实例是否有凭据
         if not instance.credential:
+            log_error(f"实例 {instance.name} 缺少连接凭据，无法同步容量信息", module="instances", instance_id=instance_id)
             return jsonify({
                 'success': False, 
                 'error': '实例缺少连接凭据，无法同步容量信息'
@@ -1841,6 +1843,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
             data = collector.collect_database_sizes()
             
             if not data:
+                log_error(f"实例 {instance.name} 未采集到任何数据库大小数据", module="instances", instance_id=instance_id, db_type=instance.db_type)
                 return jsonify({
                     'success': False, 
                     'error': '未采集到任何数据库大小数据'
