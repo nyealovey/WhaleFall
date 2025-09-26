@@ -68,19 +68,30 @@ def aggregations():
             
             # 过滤掉已删除的数据库（通过检查最新的DatabaseSizeStat记录）
             from app.models.database_size_stat import DatabaseSizeStat
-            from sqlalchemy import and_, or_
+            from sqlalchemy import and_, or_, func
             
-            # 子查询：获取今天未删除的数据库列表
-            today = date.today()
-            active_databases_subquery = db.session.query(
+            # 子查询：获取每个实例-数据库组合的最新状态
+            # 使用窗口函数获取每个(instance_id, database_name)的最新记录
+            latest_stats_subquery = db.session.query(
                 DatabaseSizeStat.instance_id,
-                DatabaseSizeStat.database_name
+                DatabaseSizeStat.database_name,
+                DatabaseSizeStat.is_deleted,
+                func.row_number().over(
+                    partition_by=[DatabaseSizeStat.instance_id, DatabaseSizeStat.database_name],
+                    order_by=DatabaseSizeStat.collected_date.desc()
+                ).label('rn')
+            ).subquery()
+            
+            # 获取未删除的数据库列表
+            active_databases_subquery = db.session.query(
+                latest_stats_subquery.c.instance_id,
+                latest_stats_subquery.c.database_name
             ).filter(
                 and_(
-                    DatabaseSizeStat.collected_date == today,
+                    latest_stats_subquery.c.rn == 1,  # 只取最新记录
                     or_(
-                        DatabaseSizeStat.is_deleted == False,
-                        DatabaseSizeStat.is_deleted.is_(None)
+                        latest_stats_subquery.c.is_deleted == False,
+                        latest_stats_subquery.c.is_deleted.is_(None)
                     )
                 )
             ).subquery()
