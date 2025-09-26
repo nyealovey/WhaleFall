@@ -235,14 +235,19 @@ class AggregationsManager {
             this.showChartLoading();
             
             const params = this.buildFilterParams();
+            console.log('加载图表数据，参数:', params.toString());
             const response = await fetch(`/database-sizes/aggregations?api=true&${params}`);
             const data = await response.json();
             
+            console.log('图表数据响应:', data);
+            
             if (response.ok) {
                 this.currentData = data.data;
+                console.log('当前图表数据:', this.currentData);
                 this.updateDatabaseFilter(data.data);
                 this.renderChart(data.data);
             } else {
+                console.error('图表数据加载失败:', data.error);
                 this.showError('加载图表数据失败: ' + data.error);
             }
         } catch (error) {
@@ -435,13 +440,22 @@ class AggregationsManager {
             return;
         }
 
+        console.log('开始渲染图表，数据:', data);
+
         if (this.isRenderingChart) {
-            // 避免并发渲染导致的重复实例
+            console.warn('图表正在渲染中，跳过本次渲染请求');
             return;
         }
         this.isRenderingChart = true;
 
         try {
+            // 检查数据是否为空
+            if (!data || data.length === 0) {
+                console.warn('图表数据为空，显示空状态');
+                this.showEmptyChart();
+                return;
+            }
+
             // 完全清空容器
             chartContainer.innerHTML = '';
             
@@ -475,8 +489,11 @@ class AggregationsManager {
 
             // 数据分组与配置
             const groupedData = this.groupDataByDate(data);
+            console.log('分组后的数据:', groupedData);
             const labels = Object.keys(groupedData).sort();
+            console.log('图表标签:', labels);
             const datasets = this.prepareChartDatasets(groupedData, labels);
+            console.log('图表数据集:', datasets);
 
             const chartConfig = {
                 type: this.currentChartType,
@@ -547,6 +564,22 @@ class AggregationsManager {
     }
     
     /**
+     * 显示空图表状态
+     */
+    showEmptyChart() {
+        const chartContainer = document.getElementById('aggregationChart');
+        if (!chartContainer) return;
+        
+        chartContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-chart-line text-muted"></i>
+                <h5>暂无数据</h5>
+                <p>当前筛选条件下没有聚合数据，请尝试调整筛选条件或点击"聚合今日数据"按钮生成数据。</p>
+            </div>
+        `;
+    }
+    
+    /**
      * 按日期分组数据
      */
     groupDataByDate(data) {
@@ -590,6 +623,10 @@ class AggregationsManager {
      * 准备数据库数据集
      */
     prepareDatabaseDatasets(groupedData, labels) {
+        console.log('准备数据库数据集，当前数据:', this.currentData);
+        console.log('分组数据:', groupedData);
+        console.log('标签:', labels);
+        
         // 计算每个数据库的平均大小，选择TOP 20
         const databaseStats = {};
         
@@ -607,11 +644,15 @@ class AggregationsManager {
             databaseStats[dbName].maxSize = Math.max(databaseStats[dbName].maxSize, item.max_size_mb || 0);
         });
         
+        console.log('数据库统计:', databaseStats);
+        
         // 按最大大小排序，选择TOP 20
         const topDatabases = Object.entries(databaseStats)
             .sort(([,a], [,b]) => b.maxSize - a.maxSize)
             .slice(0, 20)
             .map(([dbName]) => dbName);
+        
+        console.log('TOP 20数据库:', topDatabases);
         
         const colors = [
             '#667eea', '#764ba2', '#f093fb', '#f5576c',
@@ -634,6 +675,10 @@ class AggregationsManager {
      * 准备实例数据集
      */
     prepareInstanceDatasets(groupedData, labels) {
+        console.log('准备实例数据集，当前数据:', this.currentData);
+        console.log('分组数据:', groupedData);
+        console.log('标签:', labels);
+        
         // 计算每个实例的平均大小，选择TOP 20
         const instanceStats = {};
         
@@ -651,6 +696,8 @@ class AggregationsManager {
             instanceStats[instanceName].count += 1;
             instanceStats[instanceName].maxSize = Math.max(instanceStats[instanceName].maxSize, item.max_size_mb || 0);
         });
+        
+        console.log('实例统计:', instanceStats);
         
         // 按总容量排序，选择TOP 20
         const topInstances = Object.entries(instanceStats)
