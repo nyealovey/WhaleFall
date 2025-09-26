@@ -568,11 +568,11 @@ function displayDatabaseSizes(databases, totalSize) {
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 20%;"><i class="fas fa-database me-1"></i>数据库名称</th>
-                        <th style="width: 15%;"><i class="fas fa-hdd me-1"></i>总大小</th>
-                        <th style="width: 15%;"><i class="fas fa-file me-1"></i>数据大小</th>
-                        <th style="width: 15%;"><i class="fas fa-file-alt me-1"></i>日志大小</th>
-                        <th style="width: 35%;"><i class="fas fa-clock me-1"></i>采集时间</th>
+                        <th style="width: 40%;"><i class="fas fa-database me-1"></i>数据库名称</th>
+                        <th style="width: 12%;"><i class="fas fa-hdd me-1"></i>总大小</th>
+                        <th style="width: 12%;"><i class="fas fa-file me-1"></i>数据大小</th>
+                        <th style="width: 12%;"><i class="fas fa-file-alt me-1"></i>日志大小</th>
+                        <th style="width: 24%;"><i class="fas fa-clock me-1"></i>采集时间</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -587,9 +587,9 @@ function displayDatabaseSizes(databases, totalSize) {
         html += `
             <tr>
                 <td>
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-database text-primary me-2"></i>
-                        <strong class="text-truncate" style="max-width: 150px;" title="${db.database_name}">${db.database_name}</strong>
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-database text-primary me-2 mt-1"></i>
+                        <strong style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${db.database_name}</strong>
                     </div>
                 </td>
                 <td>
