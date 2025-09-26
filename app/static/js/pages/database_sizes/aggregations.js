@@ -352,7 +352,7 @@ class AggregationsManager {
             if (!grouped[date]) {
                 grouped[date] = {};
             }
-            grouped[date][item.database_name] = item.statistics.avg_size_mb;
+            grouped[date][item.database_name] = item.avg_size_mb;
         });
         
         return grouped;
@@ -447,9 +447,9 @@ class AggregationsManager {
                 case 'database_name':
                     return a.database_name.localeCompare(b.database_name);
                 case 'avg_size_mb':
-                    return b.statistics.avg_size_mb - a.statistics.avg_size_mb;
+                    return b.avg_size_mb - a.avg_size_mb;
                 case 'max_size_mb':
-                    return b.statistics.max_size_mb - a.statistics.max_size_mb;
+                    return b.max_size_mb - a.max_size_mb;
                 default:
                     return 0;
             }
@@ -475,16 +475,16 @@ class AggregationsManager {
                     <span class="period-type ${item.period_type}">${this.getPeriodTypeLabel(item.period_type)}</span>
                 </td>
                 <td>
-                    <span class="size-display">${this.formatSize(item.statistics.avg_size_mb)}</span>
+                    <span class="size-display">${this.formatSize(item.avg_size_mb)}</span>
                 </td>
                 <td>
-                    <span class="size-display">${this.formatSize(item.statistics.max_size_mb)}</span>
+                    <span class="size-display">${this.formatSize(item.max_size_mb)}</span>
                 </td>
                 <td>
-                    <span class="size-display">${this.formatSize(item.statistics.min_size_mb)}</span>
+                    <span class="size-display">${this.formatSize(item.min_size_mb)}</span>
                 </td>
                 <td>
-                    <span class="badge bg-info">${item.statistics.data_count}</span>
+                    <span class="badge bg-info">${item.data_count}</span>
                 </td>
                 <td>
                     <small class="text-muted">${calculatedAt}</small>

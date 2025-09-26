@@ -84,10 +84,17 @@ def aggregations():
             total = query.count()
             aggregations = query.offset(offset).limit(limit).all()
             
-            # 转换为字典格式
+            # 转换为字典格式，包含实例信息
             data = []
             for agg in aggregations:
-                data.append(agg.to_dict())
+                agg_dict = agg.to_dict()
+                # 添加实例信息
+                agg_dict['instance'] = {
+                    'id': agg.instance.id,
+                    'name': agg.instance.name,
+                    'db_type': agg.instance.db_type
+                }
+                data.append(agg_dict)
             
             return jsonify({
                 'success': True,
