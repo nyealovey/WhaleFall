@@ -259,7 +259,7 @@ class AggregationsManager {
             params.append('end_date', endDate.toISOString().split('T')[0]);
         }
         
-        return params.toString();
+        return params;
     }
     
     /**
