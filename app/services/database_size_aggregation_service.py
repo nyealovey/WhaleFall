@@ -19,7 +19,7 @@ class DatabaseSizeAggregationService:
     """数据库大小统计聚合服务"""
     
     def __init__(self):
-        self.period_types = ['weekly', 'monthly', 'quarterly']
+        self.period_types = ['daily', 'weekly', 'monthly', 'quarterly']
     
     def calculate_all_aggregations(self) -> Dict[str, Any]:
         """
@@ -32,6 +32,7 @@ class DatabaseSizeAggregationService:
         
         try:
             results = {
+                'daily': self.calculate_daily_aggregations(),
                 'weekly': self.calculate_weekly_aggregations(),
                 'monthly': self.calculate_monthly_aggregations(),
                 'quarterly': self.calculate_quarterly_aggregations()
@@ -63,6 +64,21 @@ class DatabaseSizeAggregationService:
                 'processed_instances': 0,
                 'errors': 1
             }
+    
+    def calculate_daily_aggregations(self) -> Dict[str, Any]:
+        """
+        计算每日统计聚合
+        
+        Returns:
+            Dict[str, Any]: 聚合结果统计
+        """
+        logger.info("开始计算每日统计聚合...")
+        
+        # 获取昨天的数据
+        end_date = date.today()
+        start_date = end_date - timedelta(days=1)
+        
+        return self._calculate_aggregations('daily', start_date, end_date)
     
     def calculate_weekly_aggregations(self) -> Dict[str, Any]:
         """

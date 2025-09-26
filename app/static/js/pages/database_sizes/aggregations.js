@@ -61,6 +61,11 @@ class AggregationsManager {
             this.updateFilters();
         });
         
+        // 统计周期变化时调整时间范围选项
+        $('#periodTypeFilter').on('change', (e) => {
+            this.adjustDateRangeOptions(e.target.value);
+        });
+        
         // 图表类型切换
         $('input[name="chartType"]').on('change', (e) => {
             this.currentChartType = e.target.value;
@@ -187,7 +192,20 @@ class AggregationsManager {
         if (this.currentFilters.dateRange) {
             const endDate = new Date();
             const startDate = new Date();
-            startDate.setMonth(startDate.getMonth() - this.currentFilters.dateRange);
+            
+            // 根据统计周期类型调整时间范围计算
+            if (this.currentFilters.periodType === 'daily') {
+                // 日统计：按天数计算
+                if (this.currentFilters.dateRange <= 30) {
+                    startDate.setDate(startDate.getDate() - this.currentFilters.dateRange);
+                } else {
+                    // 超过30天按月份计算
+                    startDate.setMonth(startDate.getMonth() - Math.floor(this.currentFilters.dateRange / 30));
+                }
+            } else {
+                // 周、月、季统计：按月份计算
+                startDate.setMonth(startDate.getMonth() - this.currentFilters.dateRange);
+            }
             
             params.append('start_date', startDate.toISOString().split('T')[0]);
             params.append('end_date', endDate.toISOString().split('T')[0]);
@@ -612,6 +630,48 @@ class AggregationsManager {
                 }
             }
         });
+    }
+    
+    /**
+     * 根据统计周期调整时间范围选项
+     */
+    adjustDateRangeOptions(periodType) {
+        const dateRangeSelect = $('#dateRangeFilter');
+        const currentValue = dateRangeSelect.val();
+        
+        // 清空现有选项
+        dateRangeSelect.empty();
+        
+        if (periodType === 'daily') {
+            // 日统计：提供天数和周数选项
+            dateRangeSelect.append('<option value="7">最近7天</option>');
+            dateRangeSelect.append('<option value="14">最近14天</option>');
+            dateRangeSelect.append('<option value="30" selected>最近30天</option>');
+            dateRangeSelect.append('<option value="60">最近60天</option>');
+            dateRangeSelect.append('<option value="90">最近90天</option>');
+        } else if (periodType === 'weekly') {
+            // 周统计：提供周数和月数选项
+            dateRangeSelect.append('<option value="4">最近4周</option>');
+            dateRangeSelect.append('<option value="8">最近8周</option>');
+            dateRangeSelect.append('<option value="12" selected>最近12周</option>');
+            dateRangeSelect.append('<option value="24">最近24周</option>');
+        } else if (periodType === 'monthly') {
+            // 月统计：提供月数和年数选项
+            dateRangeSelect.append('<option value="3">最近3个月</option>');
+            dateRangeSelect.append('<option value="6" selected>最近6个月</option>');
+            dateRangeSelect.append('<option value="12">最近1年</option>');
+            dateRangeSelect.append('<option value="24">最近2年</option>');
+        } else if (periodType === 'quarterly') {
+            // 季统计：提供季度和年数选项
+            dateRangeSelect.append('<option value="4">最近4个季度</option>');
+            dateRangeSelect.append('<option value="8" selected>最近8个季度</option>');
+            dateRangeSelect.append('<option value="12">最近12个季度</option>');
+        }
+        
+        // 如果当前值在新选项中存在，保持选中；否则选择默认值
+        if (dateRangeSelect.find(`option[value="${currentValue}"]`).length === 0) {
+            dateRangeSelect.find('option[selected]').prop('selected', true);
+        }
     }
     
     /**
