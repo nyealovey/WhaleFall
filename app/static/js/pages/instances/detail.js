@@ -282,13 +282,24 @@ function syncCapacity(instanceId, instanceName) {
     })
     .then(response => {
         if (!response.ok) {
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('认证失败，请重新登录');
-            } else if (response.status === 404) {
-                throw new Error('API接口不存在');
-            } else {
-                throw new Error(`HTTP错误: ${response.status}`);
-            }
+            // 尝试获取详细的错误信息
+            return response.text().then(text => {
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(text);
+                    errorMessage = errorData.error || errorData.message || `HTTP错误: ${response.status}`;
+                } catch (e) {
+                    errorMessage = `HTTP错误: ${response.status} - ${text}`;
+                }
+                
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error('认证失败，请重新登录');
+                } else if (response.status === 404) {
+                    throw new Error('API接口不存在');
+                } else {
+                    throw new Error(errorMessage);
+                }
+            });
         }
         return response.json();
     })
