@@ -547,6 +547,69 @@ def delete_job(job_id: str) -> Response:
         return APIResponse.error(f"删除任务失败: {error_str}")  # type: ignore
 
 
+@scheduler_bp.route("/api/jobs/reload", methods=["POST"])
+@login_required  # type: ignore
+@scheduler_manage_required  # type: ignore
+def reload_jobs() -> Response:
+    """重新加载所有任务配置
+    
+    此操作会：
+    1. 删除所有现有任务
+    2. 重新从配置文件加载任务
+    3. 确保任务名称和配置都是最新的
+    
+    Returns:
+        Response: 标准化的JSON响应，包含重新加载的任务信息
+    """
+    try:
+        scheduler = get_scheduler()  # type: ignore
+        if not scheduler.running:
+            return APIResponse.error("调度器未启动", code=500)  # type: ignore
+
+        # 获取现有任务列表
+        existing_jobs = scheduler.get_jobs()
+        existing_job_ids = [job.id for job in existing_jobs]
+        
+        # 删除所有现有任务
+        deleted_count = 0
+        for job_id in existing_job_ids:
+            try:
+                scheduler.remove_job(job_id)
+                deleted_count += 1
+                system_logger.info("重新加载-删除任务: %s", job_id)
+            except Exception as del_err:
+                system_logger.error("重新加载-删除任务失败: %s - %s", job_id, str(del_err))
+
+        # 重新加载任务配置
+        from app.scheduler import _add_default_jobs
+        _add_default_jobs()
+        
+        # 获取重新加载后的任务列表
+        reloaded_jobs = scheduler.get_jobs()
+        reloaded_job_ids = [job.id for job in reloaded_jobs]
+        
+        system_logger.info(
+            "任务重新加载完成",
+            module="scheduler",
+            deleted_count=deleted_count,
+            reloaded_count=len(reloaded_jobs)
+        )
+
+        return APIResponse.success(
+            data={
+                "deleted": existing_job_ids,
+                "reloaded": reloaded_job_ids,
+                "deleted_count": deleted_count,
+                "reloaded_count": len(reloaded_jobs)
+            },
+            message=f"已删除 {deleted_count} 个任务，重新加载 {len(reloaded_jobs)} 个任务"
+        )
+
+    except Exception as e:
+        system_logger.error("重新加载任务失败: %s", str(e), exc_info=True)
+        return APIResponse.error(f"重新加载任务失败: {str(e)}", code=500)  # type: ignore
+
+
 @scheduler_bp.route("/api/jobs/purge", methods=["POST"])
 @login_required  # type: ignore
 @scheduler_manage_required  # type: ignore

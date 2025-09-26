@@ -108,44 +108,46 @@ function initializeEventHandlers() {
         editJob(jobId);
     });
 
-    // 新增：批量清理（仅保留内置任务）按钮事件
+    // 新增：重新初始化任务按钮事件
     /**
-     * 仅保留内置任务（cleanup_logs、sync_accounts）清理按钮事件处理。
-     * - 向后端 /scheduler/api/jobs/purge 发送 POST 请求
-     * - 参数 include_builtin=false 表示后端会自动跳过内置任务，不会误删
+     * 重新初始化所有任务按钮事件处理。
+     * - 向后端 /scheduler/api/jobs/reload 发送 POST 请求
+     * - 删除所有现有任务，重新从配置文件加载任务
+     * - 确保任务名称和配置都是最新的
      * - 成功后刷新任务列表并给出提示
      */
      $(document).on('click', '#purgeKeepBuiltinBtn', function() {
          // 二次确认
-        const confirmMsg = '此操作将删除所有非内置任务，仅保留系统内置任务（cleanup_logs、sync_accounts）。\n确定继续吗？';
+        const confirmMsg = '此操作将删除所有现有任务，重新从配置文件加载任务。\n这将确保任务名称和配置都是最新的。\n确定继续吗？';
         if (!window.confirm(confirmMsg)) {
              return;
          }
     // 显示加载态
     const $btn = $(this);
     const original = $btn.html();
-    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>清理中...');
+    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>重新初始化中...');
 
     $.ajax({
-        url: '/scheduler/api/jobs/purge',
+        url: '/scheduler/api/jobs/reload',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ keep_ids: [], include_builtin: false }),
+        data: JSON.stringify({}),
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
         success: function(resp) {
             if (resp && resp.success) {
-                const deletedCount = (resp.data && resp.data.deleted) ? resp.data.deleted.length : 0;
-                showAlert(`已删除 ${deletedCount} 个任务，仅保留内置任务`, 'success');
+                const deletedCount = (resp.data && resp.data.deleted_count) ? resp.data.deleted_count : 0;
+                const reloadedCount = (resp.data && resp.data.reloaded_count) ? resp.data.reloaded_count : 0;
+                showAlert(`重新初始化完成：删除了 ${deletedCount} 个任务，重新加载了 ${reloadedCount} 个任务`, 'success');
                 loadJobs();
             } else {
-                showAlert('清理失败: ' + (resp ? resp.message : '未知错误'), 'danger');
+                showAlert('重新初始化失败: ' + (resp ? resp.message : '未知错误'), 'danger');
             }
         },
         error: function(xhr) {
             const error = xhr.responseJSON;
-            showAlert('清理失败: ' + (error ? error.message : '网络或服务器错误'), 'danger');
+            showAlert('重新初始化失败: ' + (error ? error.message : '网络或服务器错误'), 'danger');
         },
         complete: function() {
             $btn.prop('disabled', false).html(original);
