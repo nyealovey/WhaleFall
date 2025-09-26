@@ -19,6 +19,50 @@
                         </div>
                         {% endif %}
                 
+                        <!-- 实例筛选 -->
+                        {% if show_instance_filter|default(false) %}
+                        <div class="col-md-2 filter-instance">
+                            <label for="instance" class="form-label">实例</label>
+                            <select class="form-select unified-select" id="instance" name="instance">
+                                <option value="">所有实例</option>
+                                {% for instance_item in instances_list|default([]) %}
+                                <option value="{{ instance_item.id }}" 
+                                        {% if instance == instance_item.id|string %}selected{% endif %}>
+                                    {{ instance_item.name }} ({{ instance_item.db_type }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                
+                        <!-- 统计周期筛选 -->
+                        {% if show_period_type_filter|default(false) %}
+                        <div class="col-md-2 filter-period-type">
+                            <label for="period_type" class="form-label">统计周期</label>
+                            <select class="form-select unified-select" id="period_type" name="period_type">
+                                <option value="daily" {% if period_type == 'daily' or period_type == '' %}selected{% endif %}>日统计</option>
+                                <option value="weekly" {% if period_type == 'weekly' %}selected{% endif %}>周统计</option>
+                                <option value="monthly" {% if period_type == 'monthly' %}selected{% endif %}>月统计</option>
+                                <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>季统计</option>
+                            </select>
+                        </div>
+                        {% endif %}
+                
+                        <!-- 数据库筛选 -->
+                        {% if show_database_filter|default(false) %}
+                        <div class="col-md-2 filter-database">
+                            <label for="database" class="form-label">数据库</label>
+                            <select class="form-select unified-select" id="database" name="database">
+                                <option value="">所有数据库</option>
+                                {% for db_name in databases_list|default([]) %}
+                                <option value="{{ db_name }}" {% if database == db_name %}selected{% endif %}>
+                                    {{ db_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                
                         <!-- 数据库类型筛选 -->
                         {% if show_db_type_filter|default(false) %}
                         <div class="col-md-2 filter-db-type">
@@ -171,11 +215,12 @@
                         <div class="col-md-2 filter-time-range">
                             <label for="timeRange" class="form-label">时间范围</label>
                             <select class="form-select unified-select" id="timeRange" name="time_range">
-                                <option value="" {% if time_range == '' %}selected{% endif %}>全部时间</option>
-                                <option value="1h" {% if time_range == '1h' %}selected{% endif %}>最近1小时</option>
-                                <option value="1d" {% if time_range == '1d' or time_range == '' %}selected{% endif %}>最近1天</option>
-                                <option value="1w" {% if time_range == '1w' %}selected{% endif %}>最近1周</option>
-                                <option value="1m" {% if time_range == '1m' %}selected{% endif %}>最近1月</option>
+                                <option value="7" {% if time_range == '7' or time_range == '' %}selected{% endif %}>最近7天</option>
+                                <option value="30" {% if time_range == '30' %}selected{% endif %}>最近30天</option>
+                                <option value="3" {% if time_range == '3' %}selected{% endif %}>最近3个月</option>
+                                <option value="6" {% if time_range == '6' %}selected{% endif %}>最近6个月</option>
+                                <option value="12" {% if time_range == '12' %}selected{% endif %}>最近1年</option>
+                                <option value="24" {% if time_range == '24' %}selected{% endif %}>最近2年</option>
                             </select>
                         </div>
                         {% endif %}

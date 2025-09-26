@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/database_sizes/aggregations.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -33,82 +34,27 @@
         </div>
     </div>
 
-    <!-- 筛选控制面板 -->
+    <!-- 统一搜索筛选 -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-filter me-2"></i>
-                        筛选条件
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-2">
-                            <label for="instanceFilter" class="form-label">实例</label>
-                            <select class="form-select" id="instanceFilter">
-                                <option value="">所有实例</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label for="dbTypeFilter" class="form-label">数据库类型</label>
-                            <select class="form-select" id="dbTypeFilter">
-                                <option value="">所有类型</option>
-                                <option value="MySQL">MySQL</option>
-                                <option value="PostgreSQL">PostgreSQL</option>
-                                <option value="SQL Server">SQL Server</option>
-                                <option value="Oracle">Oracle</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label for="periodTypeFilter" class="form-label">统计周期</label>
-                            <select class="form-select" id="periodTypeFilter">
-                                <option value="daily" selected>日统计</option>
-                                <option value="weekly">周统计</option>
-                                <option value="monthly">月统计</option>
-                                <option value="quarterly">季统计</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label for="databaseFilter" class="form-label">数据库</label>
-                            <select class="form-select" id="databaseFilter">
-                                <option value="">所有数据库</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label for="dateRangeFilter" class="form-label">时间范围</label>
-                            <select class="form-select" id="dateRangeFilter">
-                                <option value="7" selected>最近7天</option>
-                                <option value="30">最近30天</option>
-                                <option value="3">最近3个月</option>
-                                <option value="6">最近6个月</option>
-                                <option value="12">最近1年</option>
-                                <option value="24">最近2年</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label for="customDateRange" class="form-label">自定义时间</label>
-                            <div class="input-group">
-                                <input type="date" class="form-control" id="startDate" placeholder="开始日期">
-                                <span class="input-group-text">至</span>
-                                <input type="date" class="form-control" id="endDate" placeholder="结束日期">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <button class="btn btn-primary" id="applyFilters">
-                                <i class="fas fa-search me-1"></i>
-                                应用筛选
-                            </button>
-                            <button class="btn btn-outline-secondary" id="clearFilters">
-                                <i class="fas fa-times me-1"></i>
-                                清除筛选
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div class="aggregations-page">
+                {% set show_search_input = false %}
+                {% set search_button_text = '筛选' %}
+                {% set show_instance_filter = true %}
+                {% set show_period_type_filter = true %}
+                {% set show_database_filter = true %}
+                {% set show_time_range_filter = true %}
+                {% set show_db_type_filter = false %}
+                {% set show_classification_filter = false %}
+                {% set show_credential_type_filter = false %}
+                {% set show_tag_category_filter = false %}
+                {% set show_status_filter = false %}
+                {% set show_level_filter = false %}
+                {% set show_module_filter = false %}
+                {% set show_tag_filter = false %}
+                {% set show_sync_type_filter = false %}
+                {% set show_sync_category_filter = false %}
+                {% include 'components/unified_search_form.html' %}
             </div>
         </div>
     </div>
