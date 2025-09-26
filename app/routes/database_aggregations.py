@@ -114,9 +114,15 @@ def database_aggregations():
         instances = Instance.query.filter_by(is_active=True).all()
         instances_list = [{'id': i.id, 'name': i.name, 'db_type': i.db_type} for i in instances]
         
-        # 获取数据库类型列表
-        db_types = db.session.query(Instance.db_type).filter_by(is_active=True).distinct().all()
-        database_types_list = [{'value': dt[0], 'label': dt[0]} for dt in db_types]
+        # 获取数据库类型配置
+        from app.models.database_type_config import DatabaseTypeConfig
+        database_types = DatabaseTypeConfig.query.filter_by(is_active=True).order_by(DatabaseTypeConfig.id).all()
+        database_types_list = []
+        for db_type in database_types:
+            database_types_list.append({
+                'name': db_type.name,
+                'display_name': db_type.display_name
+            })
         
         # 获取数据库名称列表
         databases = db.session.query(
@@ -128,7 +134,8 @@ def database_aggregations():
         return render_template('database_sizes/database_aggregations.html',
                              instances=instances_list,
                              database_types=database_types_list,
-                             databases=databases_list)
+                             databases=databases_list,
+                             db_type=request.args.get('db_type', ''))
 
 
 @database_aggregations_bp.route('/summary', methods=['GET'])
