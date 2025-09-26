@@ -131,18 +131,24 @@
                 </div>
                 <div class="col-md-6">
                     <div class="row g-2">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <input type="text" class="form-control form-control-sm" id="searchAggregationTable" placeholder="搜索实例或数据库...">
                         </div>
-                        <div class="col-md-6">
-                               <select class="form-select form-select-sm" id="sortAggregationTable">
-                                   <option value="period_type">按周期类型排序</option>
-                                   <option value="period_start">按时间排序</option>
-                                   <option value="instance_name">按实例排序</option>
-                                   <option value="database_name">按数据库排序</option>
-                                   <option value="avg_size_mb">按平均大小排序</option>
-                                   <option value="max_size_mb">按最大大小排序</option>
-                               </select>
+                        <div class="col-md-4">
+                            <select class="form-select form-select-sm" id="periodTypeFilter">
+                                <option value="daily">日聚合数据</option>
+                                <option value="weekly">周聚合数据</option>
+                                <option value="monthly">月聚合数据</option>
+                                <option value="quarterly">季聚合数据</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select form-select-sm" id="sortAggregationTable">
+                                <option value="instance_name">按实例排序</option>
+                                <option value="database_name">按数据库排序</option>
+                                <option value="avg_size_mb">按平均大小排序</option>
+                                <option value="max_size_mb">按最大大小排序</option>
+                            </select>
                         </div>
                     </div>
                 </div>

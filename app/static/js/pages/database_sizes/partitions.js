@@ -81,6 +81,11 @@ function bindEvents() {
         filterAggregationTable();
     });
     
+    // 聚合数据表周期类型筛选
+    document.getElementById('periodTypeFilter').addEventListener('change', function() {
+        loadAggregationData();
+    });
+    
     // 聚合数据表排序
     document.getElementById('sortAggregationTable').addEventListener('change', function() {
         sortAggregationTable();
@@ -552,29 +557,31 @@ async function loadAggregationData() {
         console.log('开始加载最新聚合数据...');
         showAggregationLoadingState();
         
+        // 获取选中的周期类型
+        const periodTypeFilter = document.getElementById('periodTypeFilter');
+        const selectedPeriodType = periodTypeFilter ? periodTypeFilter.value : 'daily';
+        
+        console.log('选中的周期类型:', selectedPeriodType);
+        
         const response = await fetch('/database-sizes/aggregations/latest?api=true');
         const data = await response.json();
         
         if (response.ok) {
             console.log('最新聚合数据响应:', data);
             
-            // 合并所有周期类型的数据
-            const allData = [];
-            if (data.data) {
-                Object.keys(data.data).forEach(periodType => {
-                    data.data[periodType].forEach(item => {
-                        allData.push(item);
-                    });
-                });
+            // 根据选中的周期类型筛选数据
+            let filteredData = [];
+            if (data.data && data.data[selectedPeriodType]) {
+                filteredData = data.data[selectedPeriodType];
             }
             
-            window.aggregationData = allData;
+            window.aggregationData = filteredData;
             window.filteredAggregationData = [...window.aggregationData];
-            window.totalAggregationRecords = allData.length;
+            window.totalAggregationRecords = filteredData.length;
             window.totalAggregationPages = 1; // 最新数据不需要分页
             
-            console.log('开始渲染最新聚合数据表格...');
-            renderLatestAggregationTable(allData, data.summary);
+            console.log(`开始渲染${selectedPeriodType}聚合数据表格...`);
+            renderLatestAggregationTable(filteredData, data.summary);
             console.log('聚合数据加载完成');
         } else {
             console.error('API响应失败:', response.status, data);
@@ -612,14 +619,25 @@ function renderLatestAggregationTable(data, summary) {
     const tbody = document.getElementById('aggregationTableBody');
     tbody.innerHTML = '';
     
+    // 获取当前选中的周期类型
+    const periodTypeFilter = document.getElementById('periodTypeFilter');
+    const selectedPeriodType = periodTypeFilter ? periodTypeFilter.value : 'daily';
+    const periodTypeNames = {
+        'daily': '日',
+        'weekly': '周', 
+        'monthly': '月',
+        'quarterly': '季'
+    };
+    const currentPeriodTypeName = periodTypeNames[selectedPeriodType] || '日';
+    
     if (data.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="9" class="text-center">
                     <div class="empty-state">
                         <i class="fas fa-chart-bar"></i>
-                        <h5>暂无最新聚合数据</h5>
-                        <p>没有找到最新的日、周、月、季度聚合数据</p>
+                        <h5>暂无${currentPeriodTypeName}聚合数据</h5>
+                        <p>没有找到最新的${currentPeriodTypeName}聚合数据，请尝试其他周期类型或点击"聚合今日数据"按钮生成数据</p>
                     </div>
                 </td>
             </tr>
@@ -812,8 +830,6 @@ function sortAggregationTable() {
     
     window.filteredAggregationData.sort((a, b) => {
         switch (sortBy) {
-            case 'period_start':
-                return new Date(b.period_start) - new Date(a.period_start);
             case 'instance_name':
                 return a.instance.name.localeCompare(b.instance.name);
             case 'database_name':
@@ -822,8 +838,6 @@ function sortAggregationTable() {
                 return b.avg_size_mb - a.avg_size_mb;
             case 'max_size_mb':
                 return b.max_size_mb - a.max_size_mb;
-            case 'period_type':
-                return a.period_type.localeCompare(b.period_type);
             default:
                 return 0;
         }
