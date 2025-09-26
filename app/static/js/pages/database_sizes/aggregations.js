@@ -349,7 +349,7 @@ class AggregationsManager {
                     legend: {
                         display: true,
                         position: 'right',
-                        align: 'start',
+                        align: 'end',
                         labels: {
                             usePointStyle: true,
                             padding: 8,
