@@ -11,7 +11,7 @@ class InstanceAggregationsManager {
         this.currentFilters = {
             instance_id: null,
             db_type: null,
-            period_type: 'weekly',
+            period_type: 'daily',
             start_date: null,
             end_date: null
         };
@@ -95,7 +95,7 @@ class InstanceAggregationsManager {
         this.currentFilters = {
             instance_id: null,
             db_type: null,
-            period_type: 'weekly',
+            period_type: 'daily',
             start_date: null,
             end_date: null
         };
