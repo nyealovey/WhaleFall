@@ -406,6 +406,9 @@ def register_blueprints(app: Flask) -> None:
 
     # 注册同步会话管理蓝图
     from app.routes.sync_sessions import sync_sessions_bp
+    
+    # 注册分区管理蓝图
+    from app.routes.partition_management import partition_management_bp
 
     # 注册所有蓝图到Flask应用
     app.register_blueprint(main_bp)
@@ -425,6 +428,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(cache_bp, url_prefix='/cache')
     app.register_blueprint(database_types_bp, url_prefix='/database-types')
     app.register_blueprint(database_sizes_bp, url_prefix='/database-sizes')
+    app.register_blueprint(partition_management_bp, url_prefix='/partition-management')
     app.register_blueprint(user_management_bp, url_prefix='/users')
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
     app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')

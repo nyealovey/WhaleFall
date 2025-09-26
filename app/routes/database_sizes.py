@@ -14,8 +14,6 @@ from app.models.database_size_stat import DatabaseSizeStat
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.services.database_size_collector_service import collect_all_instances_database_sizes
 from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
-from app.services.partition_management_service import PartitionManagementService
-from app.tasks.partition_management_tasks import get_partition_management_status
 from app.tasks.database_size_collection_tasks import (
     collect_database_sizes,
     collect_specific_instance_database_sizes,
@@ -269,43 +267,6 @@ def config():
             }), 500
 
 
-@database_sizes_bp.route('/partitions', methods=['GET'])
-@login_required
-@view_required
-def partitions():
-    """
-    分区管理页面或API
-    
-    如果是页面请求（无查询参数），返回HTML页面
-    如果是API请求（有查询参数），返回JSON数据
-    """
-    # 检查是否有查询参数，如果有则返回API数据
-    if request.args:
-        try:
-            service = PartitionManagementService()
-            result = service.get_partition_info()
-            
-            if result['success']:
-                return jsonify({
-                    'success': True,
-                    'data': result,
-                    'timestamp': datetime.utcnow().isoformat()
-                })
-            else:
-                return jsonify({
-                    'success': False,
-                    'error': result.get('error', '获取分区信息失败')
-                }), 500
-                
-        except Exception as e:
-            logger.error(f"获取分区信息时出错: {str(e)}")
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 500
-    else:
-        # 无查询参数，返回HTML页面
-        return render_template('database_sizes/partitions.html')
 
 # API 路由
 
@@ -1178,150 +1139,6 @@ def get_latest_aggregations():
             'success': False,
             'error': str(e)
         }), 500
-
-
-
-
-
-
-@database_sizes_bp.route('/partitions/status', methods=['GET'])
-@login_required
-@view_required
-def get_partition_status():
-    """
-    获取分区管理状态
-    
-    Returns:
-        JSON: 分区状态
-    """
-    try:
-        result = get_partition_management_status()
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"获取分区状态时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-
-@database_sizes_bp.route('/partitions/create', methods=['POST'])
-@login_required
-@view_required
-def create_partition():
-    """
-    创建分区
-    
-    Returns:
-        JSON: 创建结果
-    """
-    try:
-        data = request.get_json()
-        partition_date_str = data.get('date')
-        
-        if not partition_date_str:
-            return jsonify({'error': '缺少日期参数'}), 400
-        
-        # 解析日期
-        try:
-            partition_date = datetime.strptime(partition_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            return jsonify({'error': '日期格式错误，请使用 YYYY-MM-DD 格式'}), 400
-        
-        service = PartitionManagementService()
-        result = service.create_partition(partition_date)
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"创建分区时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-
-@database_sizes_bp.route('/partitions/cleanup', methods=['POST'])
-@login_required
-@view_required
-def cleanup_partitions():
-    """
-    清理旧分区
-    
-    Returns:
-        JSON: 清理结果
-    """
-    try:
-        data = request.get_json() or {}
-        retention_months = data.get('retention_months', 12)
-        
-        service = PartitionManagementService()
-        result = service.cleanup_old_partitions(retention_months=retention_months)
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"清理分区时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-
-@database_sizes_bp.route('/partitions/statistics', methods=['GET'])
-@login_required
-@view_required
-def get_partition_statistics():
-    """
-    获取分区统计信息
-    
-    Returns:
-        JSON: 统计信息
-    """
-    try:
-        service = PartitionManagementService()
-        result = service.get_partition_statistics()
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"获取分区统计信息时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-
 
 
 @database_sizes_bp.route('/collect/status', methods=['GET'])
