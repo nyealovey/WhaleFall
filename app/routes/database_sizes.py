@@ -60,8 +60,14 @@ def aggregations():
             period_type = request.args.get('period_type')
             start_date = request.args.get('start_date')
             end_date = request.args.get('end_date')
-            limit = request.args.get('limit', 100, type=int)
-            offset = request.args.get('offset', 0, type=int)
+            
+            # 分页参数
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 20, type=int)
+            
+            # 计算offset
+            offset = (page - 1) * per_page
+            limit = per_page
             
             # 构建查询
             query = DatabaseSizeAggregation.query.join(Instance)
@@ -142,8 +148,11 @@ def aggregations():
                 'success': True,
                 'data': data,
                 'total': total,
-                'limit': limit,
-                'offset': offset
+                'page': page,
+                'per_page': per_page,
+                'total_pages': (total + per_page - 1) // per_page,
+                'has_prev': page > 1,
+                'has_next': page < (total + per_page - 1) // per_page
             })
             
         except Exception as e:
