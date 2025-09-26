@@ -55,6 +55,7 @@ def aggregations():
         try:
             # 获取查询参数
             instance_id = request.args.get('instance_id', type=int)
+            db_type = request.args.get('db_type')
             database_name = request.args.get('database_name')
             period_type = request.args.get('period_type')
             start_date = request.args.get('start_date')
@@ -63,10 +64,12 @@ def aggregations():
             offset = request.args.get('offset', 0, type=int)
             
             # 构建查询
-            query = DatabaseSizeAggregation.query
+            query = DatabaseSizeAggregation.query.join(Instance)
             
             if instance_id:
                 query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
+            if db_type:
+                query = query.filter(Instance.db_type == db_type)
             if database_name:
                 query = query.filter(DatabaseSizeAggregation.database_name == database_name)
             if period_type:
