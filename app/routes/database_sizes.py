@@ -18,15 +18,13 @@ from app.tasks.database_size_collection_tasks import (
     collect_database_sizes,
     collect_specific_instance_database_sizes,
     collect_database_sizes_by_type,
-    get_collection_status,
-    validate_collection_config
+    get_collection_status
 )
 from app.tasks.database_size_aggregation_tasks import (
     calculate_database_size_aggregations,
     calculate_instance_aggregations,
     calculate_period_aggregations,
     get_aggregation_status,
-    validate_aggregation_config,
     cleanup_old_aggregations
 )
 from app.utils.decorators import view_required
@@ -195,86 +193,6 @@ def aggregations():
                              instances_list=instances_list,
                              database_types=database_types_list)
 
-@database_sizes_bp.route('/api/config', methods=['GET', 'PUT'])
-@login_required
-@view_required
-def config():
-    """
-    配置管理API
-    
-    提供数据库大小监控相关配置的获取和更新功能
-    """
-    if request.method == 'GET':
-        try:
-            # 从配置中获取参数
-            config = {
-                'collect_hour': current_app.config.get('COLLECT_DB_SIZE_HOUR', 3),
-                'collect_enabled': current_app.config.get('COLLECT_DB_SIZE_ENABLED', True),
-                'cleanup_hour': current_app.config.get('CLEANUP_PARTITION_HOUR', 3),
-                'create_hour': current_app.config.get('CREATE_PARTITION_HOUR', 2),
-                'retention_days': current_app.config.get('DATABASE_SIZE_RETENTION_DAYS', 365),
-                'retention_months': current_app.config.get('DATABASE_SIZE_RETENTION_MONTHS', 12),
-                'aggregation_hour': current_app.config.get('AGGREGATION_HOUR', 4),
-                'aggregation_enabled': current_app.config.get('AGGREGATION_ENABLED', True),
-                'collect_timeout': current_app.config.get('DB_SIZE_COLLECT_TIMEOUT', 30),
-                'batch_size': current_app.config.get('DB_SIZE_COLLECT_BATCH_SIZE', 10),
-                'retry_count': current_app.config.get('DB_SIZE_COLLECT_RETRY_COUNT', 3)
-            }
-            
-            return jsonify({
-                'success': True,
-                'config': config,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-            
-        except Exception as e:
-            logger.error(f"获取配置时出错: {str(e)}")
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 500
-    else:  # PUT request
-        try:
-            data = request.get_json()
-            if not data:
-                return jsonify({'success': False, 'error': 'No data provided'}), 400
-            
-            # 更新配置参数
-            if 'collect_hour' in data:
-                current_app.config['COLLECT_DB_SIZE_HOUR'] = data['collect_hour']
-            if 'collect_enabled' in data:
-                current_app.config['COLLECT_DB_SIZE_ENABLED'] = data['collect_enabled']
-            if 'cleanup_hour' in data:
-                current_app.config['CLEANUP_PARTITION_HOUR'] = data['cleanup_hour']
-            if 'create_hour' in data:
-                current_app.config['CREATE_PARTITION_HOUR'] = data['create_hour']
-            if 'retention_days' in data:
-                current_app.config['DATABASE_SIZE_RETENTION_DAYS'] = data['retention_days']
-            if 'retention_months' in data:
-                current_app.config['DATABASE_SIZE_RETENTION_MONTHS'] = data['retention_months']
-            if 'aggregation_hour' in data:
-                current_app.config['AGGREGATION_HOUR'] = data['aggregation_hour']
-            if 'aggregation_enabled' in data:
-                current_app.config['AGGREGATION_ENABLED'] = data['aggregation_enabled']
-            if 'collect_timeout' in data:
-                current_app.config['DB_SIZE_COLLECT_TIMEOUT'] = data['collect_timeout']
-            if 'batch_size' in data:
-                current_app.config['DB_SIZE_COLLECT_BATCH_SIZE'] = data['batch_size']
-            if 'retry_count' in data:
-                current_app.config['DB_SIZE_COLLECT_RETRY_COUNT'] = data['retry_count']
-            
-            return jsonify({
-                'success': True,
-                'message': 'Configuration updated successfully',
-                'timestamp': datetime.utcnow().isoformat()
-            })
-            
-        except Exception as e:
-            logger.error(f"更新配置时出错: {str(e)}")
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 500
 
 
 
@@ -1181,38 +1099,6 @@ def get_collection_status_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/collect/validate', methods=['GET'])
-@login_required
-@view_required
-def validate_collection_config_api():
-    """
-    验证采集配置
-    
-    Returns:
-        JSON: 验证结果
-    """
-    try:
-        result = validate_collection_config()
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"验证采集配置时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-
-
-
 @database_sizes_bp.route('/aggregate/status', methods=['GET'])
 @login_required
 @view_required
@@ -1243,34 +1129,6 @@ def get_aggregation_status_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/aggregate/validate', methods=['GET'])
-@login_required
-@view_required
-def validate_aggregation_config_api():
-    """
-    验证聚合配置
-    
-    Returns:
-        JSON: 验证结果
-    """
-    try:
-        result = validate_aggregation_config()
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"验证聚合配置时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 
 @database_sizes_bp.route('/aggregate/cleanup', methods=['POST'])
