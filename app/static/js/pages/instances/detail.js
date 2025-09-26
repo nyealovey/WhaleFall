@@ -590,6 +590,20 @@ function displayDatabaseSizes(databases, totalSize) {
         const textClass = isDeleted ? 'text-muted' : '';
         const deletedBadge = isDeleted ? '<span class="badge bg-danger ms-2">已删除</span>' : '';
         
+        // 根据总大小判断颜色
+        let sizeBadgeClass = 'badge bg-success'; // 默认绿色
+        const sizeGBValue = parseFloat(sizeGB);
+        
+        if (sizeGBValue >= 1000) {
+            sizeBadgeClass = 'badge bg-danger'; // 红色 - 大于1000GB
+        } else if (sizeGBValue >= 100) {
+            sizeBadgeClass = 'badge bg-warning'; // 黄色 - 大于100GB
+        } else if (sizeGBValue >= 10) {
+            sizeBadgeClass = 'badge bg-primary'; // 蓝色 - 大于10GB
+        } else {
+            sizeBadgeClass = 'badge bg-success'; // 绿色 - 小于10GB
+        }
+        
         html += `
             <tr class="${rowClass}">
                 <td>
@@ -602,7 +616,7 @@ function displayDatabaseSizes(databases, totalSize) {
                     </div>
                 </td>
                 <td>
-                    <span class="badge bg-primary">${sizeGB} GB</span>
+                    <span class="${sizeBadgeClass}">${sizeGB} GB</span>
                 </td>
                 <td>
                     <span class="text-info">${dataSizeGB} GB</span>
