@@ -122,8 +122,19 @@ def aggregations():
                 'db_type': instance.db_type
             })
         
+        # 获取数据库类型配置
+        from app.models.database_type_config import DatabaseTypeConfig
+        database_types = DatabaseTypeConfig.query.filter_by(is_active=True).order_by(DatabaseTypeConfig.id).all()
+        database_types_list = []
+        for db_type in database_types:
+            database_types_list.append({
+                'name': db_type.name,
+                'display_name': db_type.display_name
+            })
+        
         return render_template('database_sizes/aggregations.html', 
-                             instances_list=instances_list)
+                             instances_list=instances_list,
+                             database_types=database_types_list)
 
 @database_sizes_bp.route('/api/config', methods=['GET', 'PUT'])
 @login_required
