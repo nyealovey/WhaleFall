@@ -1028,7 +1028,7 @@ class AggregationsManager {
     }
     
     /**
-     * 重新计算聚合
+     * 聚合今日数据
      */
     async calculateAggregations() {
         try {
@@ -1053,9 +1053,9 @@ class AggregationsManager {
                 }
             }, 200);
             
-            // 调用API重新计算
+            // 调用API聚合今日数据
             const csrfToken = this.getCSRFToken();
-            const response = await fetch('/database-sizes/aggregate', {
+            const response = await fetch('/database-sizes/aggregate-today', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1066,14 +1066,14 @@ class AggregationsManager {
             const data = await response.json();
             
             if (response.ok) {
-                this.showSuccess('聚合数据重新计算完成');
+                this.showSuccess('今日数据聚合完成');
             } else {
-                this.showError('重新计算失败: ' + data.error);
+                this.showError('聚合今日数据失败: ' + data.error);
             }
             
         } catch (error) {
-            console.error('重新计算聚合时出错:', error);
-            this.showError('重新计算聚合时出错: ' + error.message);
+            console.error('聚合今日数据时出错:', error);
+            this.showError('聚合今日数据时出错: ' + error.message);
         }
     }
     

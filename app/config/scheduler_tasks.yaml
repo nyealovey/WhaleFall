@@ -50,4 +50,4 @@ default_tasks:
       hour: 4
       minute: 0
     enabled: true
-    description: 每日计算数据库大小的周、月、季度统计聚合
+    description: 每日计算数据库大小的日、周、月、季度统计聚合
