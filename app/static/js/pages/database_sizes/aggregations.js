@@ -517,6 +517,16 @@ class AggregationsManager {
                     dataset.backgroundColor = dataset.backgroundColor + '20';
                 }
             });
+            
+            // 为面积图添加特殊的配置
+            chartConfig.options.scales = chartConfig.options.scales || {};
+            chartConfig.options.scales.x = chartConfig.options.scales.x || {};
+            chartConfig.options.scales.y = chartConfig.options.scales.y || {};
+            
+            // 设置面积图的填充配置
+            chartConfig.options.elements = chartConfig.options.elements || {};
+            chartConfig.options.elements.line = chartConfig.options.elements.line || {};
+            chartConfig.options.elements.line.tension = 0.1;
         }
         
         this.chart = new Chart(ctx, chartConfig);
