@@ -71,8 +71,8 @@
                         <div class="col-md-2 filter-period-type">
                             <label for="period_type" class="form-label">统计周期</label>
                             <select class="form-select unified-select" id="period_type" name="period_type">
-                                <option value="daily" {% if period_type == 'daily' or period_type == '' %}selected{% endif %}>日统计</option>
-                                <option value="weekly" {% if period_type == 'weekly' %}selected{% endif %}>周统计</option>
+                                <option value="daily" {% if period_type == 'daily' %}selected{% endif %}>日统计</option>
+                                <option value="weekly" {% if period_type == 'weekly' or period_type == '' %}selected{% endif %}>周统计</option>
                                 <option value="monthly" {% if period_type == 'monthly' %}selected{% endif %}>月统计</option>
                                 <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>季统计</option>
                             </select>
