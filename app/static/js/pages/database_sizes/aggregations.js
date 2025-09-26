@@ -11,9 +11,10 @@ class AggregationsManager {
         this.currentSummary = null;
         this.currentFilters = {
             instance: '',
-            periodType: 'monthly',
+            dbType: '',
+            periodType: 'daily',
             database: '',
-            dateRange: 6
+            dateRange: 7
         };
         this.currentSortBy = 'period_start';
         this.currentChartType = 'line';
@@ -57,7 +58,7 @@ class AggregationsManager {
         });
         
         // 筛选器变化
-        $('#instanceFilter, #periodTypeFilter, #databaseFilter, #dateRangeFilter').on('change', () => {
+        $('#instanceFilter, #dbTypeFilter, #periodTypeFilter, #databaseFilter, #dateRangeFilter').on('change', () => {
             this.updateFilters();
         });
         
@@ -179,6 +180,10 @@ class AggregationsManager {
         
         if (this.currentFilters.instance) {
             params.append('instance_id', this.currentFilters.instance);
+        }
+        
+        if (this.currentFilters.dbType) {
+            params.append('db_type', this.currentFilters.dbType);
         }
         
         if (this.currentFilters.periodType) {
@@ -679,6 +684,7 @@ class AggregationsManager {
      */
     updateFilters() {
         this.currentFilters.instance = $('#instanceFilter').val();
+        this.currentFilters.dbType = $('#dbTypeFilter').val();
         this.currentFilters.periodType = $('#periodTypeFilter').val();
         this.currentFilters.database = $('#databaseFilter').val();
         this.currentFilters.dateRange = parseInt($('#dateRangeFilter').val());
@@ -698,16 +704,18 @@ class AggregationsManager {
      */
     clearFilters() {
         $('#instanceFilter').val('');
-        $('#periodTypeFilter').val('monthly');
+        $('#dbTypeFilter').val('');
+        $('#periodTypeFilter').val('daily');
         $('#databaseFilter').val('');
-        $('#dateRangeFilter').val('6');
+        $('#dateRangeFilter').val('7');
         $('#searchTable').val('');
         
         this.currentFilters = {
             instance: '',
-            periodType: 'monthly',
+            dbType: '',
+            periodType: 'daily',
             database: '',
-            dateRange: 6
+            dateRange: 7
         };
         
         this.applyFilters();
