@@ -189,7 +189,7 @@
                 </div>
                 <div class="card-body">
                     <div class="position-relative">
-                        <div id="databaseChart" style="height: 500px; width: 100%;"></div>
+                        <canvas id="databaseChart" style="height: 500px; width: 100%;"></canvas>
                         <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">加载中...</span>
@@ -357,11 +357,17 @@
 <script>
 // 页面加载完成后初始化数据库统计页面
 document.addEventListener('DOMContentLoaded', function() {
-    if (typeof DatabaseAggregationsManager !== 'undefined') {
-        window.databaseAggregationsManager = new DatabaseAggregationsManager();
-    } else {
-        console.error('DatabaseAggregationsManager class not found');
+    // 等待Chart.js加载完成
+    function initManager() {
+        if (typeof Chart !== 'undefined' && typeof DatabaseAggregationsManager !== 'undefined') {
+            window.databaseAggregationsManager = new DatabaseAggregationsManager();
+        } else {
+            // 如果Chart.js还没加载完成，等待100ms后重试
+            setTimeout(initManager, 100);
+        }
     }
+    
+    initManager();
 });
 </script>
 {% endblock %}
