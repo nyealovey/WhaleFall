@@ -283,7 +283,7 @@ class AggregationsManager {
         
         try {
             instanceSelect.prop('disabled', false);
-            const response = await fetch(`/instances?api=true&db_type=${dbType}`);
+            const response = await fetch(`/api/instances?db_type=${dbType}`);
             const data = await response.json();
             
             if (response.ok && data.success) {
@@ -387,7 +387,7 @@ class AggregationsManager {
                 maintainAspectRatio: false,
                 layout: {
                     padding: {
-                        right: 200  // 为右侧图例留出空间
+                        right: 120  // 减少右侧空白，为图例留出适当空间
                     }
                 },
                 interaction: {
@@ -406,14 +406,15 @@ class AggregationsManager {
                     legend: {
                         display: true,
                         position: 'right',
-                        align: 'end',
+                        align: 'start',
+                        maxHeight: 400,  // 限制图例最大高度
                         labels: {
                             usePointStyle: true,
-                            padding: 8,
-                            boxWidth: 12,
-                            boxHeight: 12,
+                            padding: 4,  // 减少图例项间距
+                            boxWidth: 10,  // 减小图例框宽度
+                            boxHeight: 10,  // 减小图例框高度
                             font: {
-                                size: 11
+                                size: 9  // 减小字体大小
                             },
                             generateLabels: function(chart) {
                                 const original = Chart.defaults.plugins.legend.labels.generateLabels;
@@ -422,7 +423,8 @@ class AggregationsManager {
                                 // 按标签名称排序
                                 labels.sort((a, b) => a.text.localeCompare(b.text));
                                 
-                                return labels;
+                                // 限制显示的图例项数量，避免过多
+                                return labels.slice(0, 20);
                             }
                         }
                     },
@@ -704,7 +706,7 @@ class AggregationsManager {
                     <span class="instance-name">${item.instance.name}</span>
                 </td>
                 <td>
-                    <span class="database-name">${item.database_name}</span>
+                    <span class="database-name" title="${item.database_name}">${this.wrapDatabaseName(item.database_name)}</span>
                 </td>
                 <td>
                     <span class="period-type ${item.period_type}">${this.getPeriodTypeLabel(item.period_type)}</span>
@@ -1163,6 +1165,29 @@ class AggregationsManager {
     getCSRFToken() {
         const token = document.querySelector('meta[name="csrf-token"]');
         return token ? token.getAttribute('content') : '';
+    }
+    
+    /**
+     * 处理数据库名称换行
+     */
+    wrapDatabaseName(name) {
+        if (name.length <= 20) {
+            return name;
+        }
+        
+        // 在适当的位置插入换行符
+        const words = name.split('_');
+        if (words.length > 1) {
+            // 如果有下划线，在下划线处换行
+            const midPoint = Math.ceil(words.length / 2);
+            const firstPart = words.slice(0, midPoint).join('_');
+            const secondPart = words.slice(midPoint).join('_');
+            return `${firstPart}<br/>${secondPart}`;
+        } else {
+            // 如果没有下划线，在中间位置换行
+            const midPoint = Math.ceil(name.length / 2);
+            return `${name.substring(0, midPoint)}<br/>${name.substring(midPoint)}`;
+        }
     }
 }
 

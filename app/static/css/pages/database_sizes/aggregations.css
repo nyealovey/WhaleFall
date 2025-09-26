@@ -14,6 +14,7 @@
 
 .aggregations-page .container-fluid {
     padding: 1.5rem;
+    max-width: 100%;
 }
 
 /* ============================================
@@ -264,17 +265,18 @@
     border-bottom: 2px solid #dee2e6;
     font-weight: 600;
     color: #495057;
-    padding: 1rem 0.75rem;
-    font-size: 0.875rem;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 .table tbody td {
-    padding: 1rem 0.75rem;
+    padding: 0.75rem 0.5rem;
     vertical-align: middle;
     border-bottom: 1px solid #f1f3f4;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
 }
 
 .table tbody tr:hover {
@@ -293,6 +295,12 @@
     font-weight: 500;
     color: #6c757d;
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    word-break: break-all;
+    word-wrap: break-word;
+    white-space: normal;
+    line-height: 1.2;
+    max-width: 150px;
+    min-width: 100px;
 }
 
 /* 周期类型样式 */
@@ -731,7 +739,8 @@
    ============================================ */
 
 #aggregationChart {
-    max-height: 350px;
+    max-height: 500px;
+    min-height: 400px;
 }
 
 #detailChart {
