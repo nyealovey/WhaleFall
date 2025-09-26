@@ -1375,7 +1375,17 @@ def sync_accounts(instance_id: int) -> str | Response | tuple[Response, int]:
 def api_list() -> Response:
     """获取实例列表API"""
     try:
-        instances = Instance.query.filter_by(is_active=True).order_by(Instance.id).all()
+        # 获取查询参数
+        db_type = request.args.get('db_type')
+        
+        # 构建查询
+        query = Instance.query.filter_by(is_active=True)
+        
+        # 如果指定了数据库类型，添加筛选条件
+        if db_type and db_type != '':
+            query = query.filter_by(db_type=db_type)
+        
+        instances = query.order_by(Instance.id).all()
         
         instances_data = []
         for instance in instances:
