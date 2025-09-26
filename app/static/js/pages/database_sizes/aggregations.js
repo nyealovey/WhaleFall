@@ -339,16 +339,21 @@ class AggregationsManager {
             // 启用数据库选择
             databaseSelect.prop('disabled', false);
             
-            // 获取该实例的数据库列表
-            const response = await fetch(`/instances/${instanceId}/databases?api=true`);
+            // 使用聚合数据获取该实例的数据库列表
+            const params = this.buildFilterParams();
+            params.set('instance_id', instanceId);
+            
+            const response = await fetch(`/database-sizes/aggregations?api=true&${params}`);
             const data = await response.json();
             
             if (response.ok && data.success) {
                 databaseSelect.empty();
                 databaseSelect.append('<option value="">所有数据库</option>');
                 
-                data.databases.forEach(db => {
-                    databaseSelect.append(`<option value="${db.name}">${db.name}</option>`);
+                // 从聚合数据中提取数据库列表
+                const databases = [...new Set(data.data.map(item => item.database_name))].sort();
+                databases.forEach(db => {
+                    databaseSelect.append(`<option value="${db}">${db}</option>`);
                 });
             } else {
                 databaseSelect.empty();
