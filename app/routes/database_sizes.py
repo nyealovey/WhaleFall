@@ -903,36 +903,6 @@ def calculate_today_aggregations():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/collect/status', methods=['GET'])
-@login_required
-@view_required
-def get_collection_status_api():
-    """
-    获取采集状态信息
-    
-    Returns:
-        JSON: 状态信息
-    """
-    try:
-        result = get_collection_status()
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"获取采集状态时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-
 @database_sizes_bp.route('/aggregate/status', methods=['GET'])
 @login_required
 @view_required
