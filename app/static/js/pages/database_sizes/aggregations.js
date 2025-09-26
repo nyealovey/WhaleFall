@@ -66,6 +66,7 @@ class AggregationsManager {
         // 数据库类型变化时更新实例选项
         $('#db_type').on('change', async (e) => {
             const dbType = e.target.value;
+            console.log('数据库类型变化:', dbType);
             await this.updateInstanceOptions(dbType);
             this.updateFilters();
         });
@@ -283,7 +284,7 @@ class AggregationsManager {
         
         try {
             instanceSelect.prop('disabled', false);
-            const response = await fetch(`/api/instances?db_type=${dbType}`);
+            const response = await fetch(`/instances/api/instances?db_type=${dbType}`);
             const data = await response.json();
             
             if (response.ok && data.success) {
@@ -295,6 +296,7 @@ class AggregationsManager {
             } else {
                 instanceSelect.empty();
                 instanceSelect.append('<option value="">加载失败</option>');
+                console.error('实例加载失败:', data);
             }
         } catch (error) {
             console.error('加载实例列表时出错:', error);
@@ -387,7 +389,7 @@ class AggregationsManager {
                 maintainAspectRatio: false,
                 layout: {
                     padding: {
-                        right: 120  // 减少右侧空白，为图例留出适当空间
+                        right: 180  // 为23个图例名称留出更多空间
                     }
                 },
                 interaction: {
@@ -407,14 +409,14 @@ class AggregationsManager {
                         display: true,
                         position: 'right',
                         align: 'start',
-                        maxHeight: 400,  // 限制图例最大高度
+                        maxHeight: 500,  // 增加图例最大高度以容纳23个名称
                         labels: {
                             usePointStyle: true,
-                            padding: 4,  // 减少图例项间距
-                            boxWidth: 10,  // 减小图例框宽度
-                            boxHeight: 10,  // 减小图例框高度
+                            padding: 6,  // 增加图例项间距
+                            boxWidth: 12,  // 增加图例框宽度
+                            boxHeight: 12,  // 增加图例框高度
                             font: {
-                                size: 9  // 减小字体大小
+                                size: 11  // 增加字体大小以容纳23个名称
                             },
                             generateLabels: function(chart) {
                                 const original = Chart.defaults.plugins.legend.labels.generateLabels;
@@ -423,8 +425,8 @@ class AggregationsManager {
                                 // 按标签名称排序
                                 labels.sort((a, b) => a.text.localeCompare(b.text));
                                 
-                                // 限制显示的图例项数量，避免过多
-                                return labels.slice(0, 20);
+                                // 限制显示的图例项数量为23个
+                                return labels.slice(0, 23);
                             }
                         }
                     },
