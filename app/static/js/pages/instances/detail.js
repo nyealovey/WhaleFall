@@ -255,6 +255,87 @@ function syncAccounts() {
     });
 }
 
+// 同步容量
+function syncCapacity(instanceId, instanceName) {
+    const syncBtn = event ? event.target : document.querySelector('button[onclick*="syncCapacity"]');
+    const originalText = syncBtn.innerHTML;
+
+    // 记录操作开始日志
+    logUserAction('开始同步容量', {
+        operation: 'sync_capacity',
+        instance_id: instanceId,
+        instance_name: instanceName
+    });
+
+    syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
+    syncBtn.disabled = true;
+
+    // 获取CSRF token
+    const csrfToken = getCSRFToken();
+
+    fetch(`/instances/api/instances/${instanceId}/sync-capacity`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('认证失败，请重新登录');
+            } else if (response.status === 404) {
+                throw new Error('API接口不存在');
+            } else {
+                throw new Error(`HTTP错误: ${response.status}`);
+            }
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // 记录成功日志
+            logUserAction('同步容量成功', {
+                operation: 'sync_capacity',
+                instance_id: instanceId,
+                instance_name: instanceName,
+                result: 'success',
+                message: data.message || '容量同步成功'
+            });
+            showAlert('success', data.message || '容量同步成功');
+            
+            // 刷新页面以显示最新的容量数据
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else if (data.error) {
+            // 记录失败日志
+            logError('同步容量失败', {
+                operation: 'sync_capacity',
+                instance_id: instanceId,
+                instance_name: instanceName,
+                result: 'failed',
+                error: data.error
+            });
+            showAlert('danger', data.error);
+        }
+    })
+    .catch(error => {
+        // 记录异常日志
+        logErrorWithContext(error, '同步容量异常', {
+            operation: 'sync_capacity',
+            instance_id: instanceId,
+            instance_name: instanceName,
+            result: 'exception'
+        });
+        showAlert('danger', '同步容量失败: ' + (error.message || '未知错误'));
+    })
+    .finally(() => {
+        syncBtn.innerHTML = originalText;
+        syncBtn.disabled = false;
+    });
+}
+
 // 查看实例账户权限
 function viewInstanceAccountPermissions(accountId) {
     // 调用全局的 viewAccountPermissions 函数，指定instances页面的API URL
