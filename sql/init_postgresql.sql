@@ -639,13 +639,129 @@ INSERT INTO global_params (key, value, description, param_type, created_at, upda
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================================================
--- 17. 提交事务
+-- 17. 数据库大小监控模块（分区表）
+-- ============================================================================
+
+-- 数据库大小统计表（按月分区）
+CREATE TABLE IF NOT EXISTS database_size_stats (
+    id BIGSERIAL,
+    instance_id INTEGER NOT NULL REFERENCES instances(id),
+    database_name VARCHAR(255) NOT NULL,
+    size_mb BIGINT NOT NULL,
+    data_size_mb BIGINT,
+    log_size_mb BIGINT,
+    collected_date DATE NOT NULL,
+    collected_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+) PARTITION BY RANGE (collected_date);
+
+-- 数据库大小聚合统计表（按月分区）
+CREATE TABLE IF NOT EXISTS database_size_aggregations (
+    id BIGSERIAL,
+    instance_id INTEGER NOT NULL,
+    database_name VARCHAR(255) NOT NULL,
+    period_type VARCHAR(20) NOT NULL,
+    period_start DATE NOT NULL,
+    period_end DATE NOT NULL,
+    avg_size_mb BIGINT NOT NULL,
+    max_size_mb BIGINT NOT NULL,
+    min_size_mb BIGINT NOT NULL,
+    data_count INTEGER NOT NULL,
+    avg_data_size_mb BIGINT,
+    max_data_size_mb BIGINT,
+    min_data_size_mb BIGINT,
+    avg_log_size_mb BIGINT,
+    max_log_size_mb BIGINT,
+    min_log_size_mb BIGINT,
+    size_change_mb BIGINT DEFAULT 0 NOT NULL,
+    size_change_percent NUMERIC(5, 2) DEFAULT 0 NOT NULL,
+    data_size_change_mb BIGINT,
+    data_size_change_percent NUMERIC(5, 2),
+    log_size_change_mb BIGINT,
+    log_size_change_percent NUMERIC(5, 2),
+    growth_rate NUMERIC(5, 2) DEFAULT 0 NOT NULL,
+    calculated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+) PARTITION BY RANGE (period_start);
+
+-- 创建当前月份的分区（统计表）
+DO $$
+DECLARE
+    current_year INTEGER := EXTRACT(YEAR FROM CURRENT_DATE);
+    current_month INTEGER := EXTRACT(MONTH FROM CURRENT_DATE);
+    partition_name TEXT;
+    start_date DATE;
+    end_date DATE;
+BEGIN
+    -- 当前月份分区
+    partition_name := 'database_size_stats_' || current_year || '_' || LPAD(current_month::TEXT, 2, '0');
+    start_date := DATE_TRUNC('month', CURRENT_DATE)::DATE;
+    end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
+    
+    EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF database_size_stats FOR VALUES FROM (%L) TO (%L)',
+                   partition_name, start_date, end_date);
+    
+    -- 下个月分区
+    partition_name := 'database_size_stats_' || current_year || '_' || LPAD((current_month + 1)::TEXT, 2, '0');
+    start_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
+    end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '2 months')::DATE;
+    
+    EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF database_size_stats FOR VALUES FROM (%L) TO (%L)',
+                   partition_name, start_date, end_date);
+END $$;
+
+-- 创建当前月份的分区（聚合表）
+DO $$
+DECLARE
+    current_year INTEGER := EXTRACT(YEAR FROM CURRENT_DATE);
+    current_month INTEGER := EXTRACT(MONTH FROM CURRENT_DATE);
+    partition_name TEXT;
+    start_date DATE;
+    end_date DATE;
+BEGIN
+    -- 当前月份分区
+    partition_name := 'database_size_aggregations_' || current_year || '_' || LPAD(current_month::TEXT, 2, '0');
+    start_date := DATE_TRUNC('month', CURRENT_DATE)::DATE;
+    end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
+    
+    EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF database_size_aggregations FOR VALUES FROM (%L) TO (%L)',
+                   partition_name, start_date, end_date);
+    
+    -- 下个月分区
+    partition_name := 'database_size_aggregations_' || current_year || '_' || LPAD((current_month + 1)::TEXT, 2, '0');
+    start_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
+    end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '2 months')::DATE;
+    
+    EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF database_size_aggregations FOR VALUES FROM (%L) TO (%L)',
+                   partition_name, start_date, end_date);
+END $$;
+
+-- 为分区表创建索引
+-- 统计表索引
+CREATE INDEX IF NOT EXISTS ix_database_size_stats_instance_db ON database_size_stats (instance_id, database_name);
+CREATE INDEX IF NOT EXISTS ix_database_size_stats_collected_date ON database_size_stats (collected_date);
+CREATE INDEX IF NOT EXISTS ix_database_size_stats_instance_date ON database_size_stats (instance_id, collected_date);
+CREATE INDEX IF NOT EXISTS ix_database_size_stats_deleted ON database_size_stats (is_deleted);
+
+-- 聚合表索引
+CREATE INDEX IF NOT EXISTS ix_database_size_aggregations_instance_period ON database_size_aggregations (instance_id, period_type, period_start);
+CREATE INDEX IF NOT EXISTS ix_database_size_aggregations_period_type ON database_size_aggregations (period_type, period_start);
+CREATE INDEX IF NOT EXISTS ix_database_size_aggregations_id ON database_size_aggregations (id);
+
+-- 添加表注释
+COMMENT ON TABLE database_size_stats IS '数据库大小统计表（按月分区）';
+COMMENT ON TABLE database_size_aggregations IS '数据库大小聚合统计表（按月分区）';
+
+-- ============================================================================
+-- 18. 提交事务
 -- ============================================================================
 
 COMMIT;
 
 -- ============================================================================
--- 18. 验证数据
+-- 19. 验证数据
 -- ============================================================================
 
 -- 显示表统计信息
@@ -658,6 +774,15 @@ SELECT
 FROM pg_stats
 WHERE schemaname = 'public'
 ORDER BY tablename, attname;
+
+-- 显示分区表信息
+SELECT 
+    schemaname,
+    tablename,
+    tableowner
+FROM pg_tables 
+WHERE tablename LIKE 'database_size_%'
+ORDER BY tablename;
 
 -- 显示初始数据统计
 SELECT 'Users' as table_name, COUNT(*) as count FROM users
@@ -686,7 +811,11 @@ SELECT 'Account Change Log', COUNT(*) FROM account_change_log
 UNION ALL
 SELECT 'APScheduler Jobs', COUNT(*) FROM apscheduler_jobs
 UNION ALL
-SELECT 'Global Params', COUNT(*) FROM global_params;
+SELECT 'Global Params', COUNT(*) FROM global_params
+UNION ALL
+SELECT 'Database Size Stats', COUNT(*) FROM database_size_stats
+UNION ALL
+SELECT 'Database Size Aggregations', COUNT(*) FROM database_size_aggregations;
 
 -- 脚本执行完成提示
 SELECT 'PostgreSQL 初始化脚本执行完成！' as message,
