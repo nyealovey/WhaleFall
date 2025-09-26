@@ -74,9 +74,9 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每日统计聚合...")
         
-        # 获取昨天的数据（确保有完整的数据进行聚合）
-        end_date = date.today() - timedelta(days=1)
-        start_date = end_date  # 同一天，处理昨天的数据
+        # 获取今天的数据进行聚合
+        end_date = date.today()
+        start_date = end_date  # 同一天，处理今天的数据
         
         return self._calculate_aggregations('daily', start_date, end_date)
     
