@@ -75,7 +75,7 @@
 
 .filter-panel .form-select,
 .filter-panel .form-control {
-    border-radius: 0.5rem;
+    border-radius: 10px;
     border: 1px solid #ced4da;
     font-size: 0.875rem;
     transition: all 0.3s ease;
@@ -240,7 +240,7 @@
 
 .table-controls .form-control,
 .table-controls .form-select {
-    border-radius: 0.5rem;
+    border-radius: 10px;
     border: 1px solid #ced4da;
     font-size: 0.875rem;
     transition: all 0.3s ease;
