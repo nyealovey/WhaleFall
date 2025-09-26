@@ -66,6 +66,34 @@ def aggregations():
             # 构建查询
             query = DatabaseSizeAggregation.query.join(Instance)
             
+            # 过滤掉已删除的数据库（通过检查最新的DatabaseSizeStat记录）
+            from app.models.database_size_stat import DatabaseSizeStat
+            from sqlalchemy import and_, or_
+            
+            # 子查询：获取今天未删除的数据库列表
+            today = date.today()
+            active_databases_subquery = db.session.query(
+                DatabaseSizeStat.instance_id,
+                DatabaseSizeStat.database_name
+            ).filter(
+                and_(
+                    DatabaseSizeStat.collected_date == today,
+                    or_(
+                        DatabaseSizeStat.is_deleted == False,
+                        DatabaseSizeStat.is_deleted.is_(None)
+                    )
+                )
+            ).subquery()
+            
+            # 只显示当前活跃的数据库的聚合数据
+            query = query.join(
+                active_databases_subquery,
+                and_(
+                    DatabaseSizeAggregation.instance_id == active_databases_subquery.c.instance_id,
+                    DatabaseSizeAggregation.database_name == active_databases_subquery.c.database_name
+                )
+            )
+            
             if instance_id:
                 query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
             if db_type:
