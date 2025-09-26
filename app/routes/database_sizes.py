@@ -718,57 +718,6 @@ def get_instance_database_aggregations(instance_id: int):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/trends', methods=['GET'])
-@login_required
-@view_required
-def get_instance_database_trends(instance_id: int):
-    """
-    获取指定实例的数据库大小趋势分析数据
-    
-    Args:
-        instance_id: 实例ID
-        
-    Returns:
-        JSON: 趋势分析数据
-    """
-    try:
-        # 验证实例是否存在
-        instance = Instance.query.get_or_404(instance_id)
-        
-        # 获取查询参数
-        period_type = request.args.get('period_type', 'monthly')
-        months = int(request.args.get('months', 12))
-        
-        # 验证周期类型
-        if period_type not in ['weekly', 'monthly', 'quarterly']:
-            return jsonify({'error': 'Invalid period_type. Must be weekly, monthly, or quarterly'}), 400
-        
-        # 获取趋势分析数据
-        aggregation_service = DatabaseSizeAggregationService()
-        data = aggregation_service.get_trends_analysis(
-            instance_id=instance_id,
-            period_type=period_type,
-            months=months
-        )
-        
-        return jsonify({
-            'data': data,
-            'instance': {
-                'id': instance.id,
-                'name': instance.name,
-                'db_type': instance.db_type,
-                'host': instance.host,
-                'port': instance.port
-            },
-            'period_type': period_type,
-            'months': months
-        })
-        
-    except Exception as e:
-        logger.error(f"获取实例 {instance_id} 趋势分析数据时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-
 @database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/summary', methods=['GET'])
 @login_required
 @view_required
