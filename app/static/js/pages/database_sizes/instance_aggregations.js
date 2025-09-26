@@ -11,7 +11,7 @@ class InstanceAggregationsManager {
         this.currentFilters = {
             instance_id: null,
             db_type: null,
-            period_type: 'daily',
+            period_type: 'weekly',
             start_date: null,
             end_date: null
         };
@@ -95,7 +95,7 @@ class InstanceAggregationsManager {
         this.currentFilters = {
             instance_id: null,
             db_type: null,
-            period_type: 'daily',
+            period_type: 'weekly',
             start_date: null,
             end_date: null
         };
@@ -134,7 +134,7 @@ class InstanceAggregationsManager {
     async loadSummaryData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/database-sizes/aggregations/summary?api=true&${params}`);
+            const response = await fetch(`/instance-aggregations/summary?api=true&${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -169,7 +169,7 @@ class InstanceAggregationsManager {
             params.append('get_all', 'true');
             
             console.log('加载图表数据，参数:', params.toString());
-            const response = await fetch(`/database-sizes/aggregations?api=true&${params}`);
+            const response = await fetch(`/instance-aggregations/?api=true&${params}`);
             const data = await response.json();
             
             console.log('图表数据响应:', data);
@@ -374,7 +374,7 @@ class InstanceAggregationsManager {
     async loadTableData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/database-sizes/aggregations?api=true&${params}`);
+            const response = await fetch(`/instance-aggregations/?api=true&${params}`);
             const data = await response.json();
             
             if (response.ok) {
