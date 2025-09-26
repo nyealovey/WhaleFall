@@ -22,8 +22,9 @@ import datetime
 
 class DatabaseSizeAggregation(db.Model):
     """
-    数据库大小聚合统计表
+    数据库大小聚合统计表（分区表）
     存储每周、每月、每季度的统计信息
+    按 period_start 字段按月分区
     """
     
     __tablename__ = "database_size_aggregations"
@@ -34,7 +35,7 @@ class DatabaseSizeAggregation(db.Model):
     
     # 统计周期
     period_type = Column(String(20), nullable=False, comment="统计周期类型：weekly, monthly, quarterly")
-    period_start = Column(Date, nullable=False, comment="统计周期开始日期")
+    period_start = Column(Date, nullable=False, comment="统计周期开始日期（用于分区）")
     period_end = Column(Date, nullable=False, comment="统计周期结束日期")
     
     # 统计指标
@@ -71,14 +72,8 @@ class DatabaseSizeAggregation(db.Model):
     instance = relationship("Instance", back_populates="database_size_aggregations")
     
     __table_args__ = (
-        # 唯一约束
-        UniqueConstraint(
-            "instance_id",
-            "database_name",
-            "period_type",
-            "period_start",
-            name="uq_database_size_aggregation"
-        ),
+        # 分区表约束 - 主键必须包含分区键
+        # 注意：在分区表中，主键约束会自动包含分区键
         # 查询优化索引
         Index(
             "ix_database_size_aggregations_instance_period",
@@ -90,6 +85,14 @@ class DatabaseSizeAggregation(db.Model):
             "ix_database_size_aggregations_period_type",
             "period_type",
             "period_start",
+        ),
+        # 唯一约束（在分区表中，唯一约束会自动包含分区键）
+        UniqueConstraint(
+            "instance_id",
+            "database_name",
+            "period_type",
+            "period_start",
+            name="uq_database_size_aggregation"
         ),
     )
     
