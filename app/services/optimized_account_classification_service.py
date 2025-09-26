@@ -437,19 +437,26 @@ class OptimizedAccountClassificationService:
             
             # 使用现有的规则评估逻辑
             matched_accounts = []
+            error_count = 0
             for account in filtered_accounts:
                 try:
                     if self._evaluate_rule(account, rule):
                         matched_accounts.append(account)
                 except Exception as e:
-                    log_error(
-                        f"评估账户规则失败",
-                        module="account_classification",
-                        account_id=account.id,
-                        rule_id=rule.id,
-                        error=str(e)
-                    )
+                    error_count += 1
+                    # 只记录错误，不记录每个账户的详细信息
                     continue
+            
+            # 记录规则级别的汇总信息
+            log_info(
+                f"评估MySQL规则: {rule.rule_name}",
+                module="account_classification",
+                rule_id=rule.id,
+                db_type=db_type,
+                total_accounts=len(filtered_accounts),
+                matched_accounts=len(matched_accounts),
+                error_count=error_count
+            )
             
             return matched_accounts
             
@@ -613,24 +620,12 @@ class OptimizedAccountClassificationService:
         try:
             permissions = account.get_permissions_by_db_type()
             if not permissions:
-                log_info(
-                    f"MySQL账户 {account.username} 没有权限数据",
-                    module="account_classification",
-                    account_id=account.id,
-                    db_type=account.db_type
-                )
+                # 移除详细的账户级别日志，减少日志噪音
                 return False
 
             operator = rule_expression.get("operator", "OR").upper()
 
-            # 添加调试日志
-            log_info(
-                f"评估MySQL规则: 账户 {account.username}",
-                module="account_classification",
-                account_id=account.id,
-                permissions=permissions,
-                rule_expression=rule_expression
-            )
+            # 移除详细的账户级别日志，减少日志噪音
 
             # 检查全局权限
             required_global = rule_expression.get("global_privileges", [])
