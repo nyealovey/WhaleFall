@@ -391,7 +391,7 @@ class AggregationsManager {
                 maintainAspectRatio: false,
                 layout: {
                     padding: {
-                        right: 180  // 为23个图例名称留出更多空间
+                        right: 120  // 减少右侧空白，图例圆圈更小
                     }
                 },
                 interaction: {
@@ -414,11 +414,11 @@ class AggregationsManager {
                         maxHeight: 500,  // 增加图例最大高度以容纳23个名称
                         labels: {
                             usePointStyle: true,
-                            padding: 6,  // 增加图例项间距
-                            boxWidth: 12,  // 增加图例框宽度
-                            boxHeight: 12,  // 增加图例框高度
+                            padding: 4,  // 减少图例项间距
+                            boxWidth: 8,  // 减小图例圆圈宽度
+                            boxHeight: 8,  // 减小图例圆圈高度
                             font: {
-                                size: 11  // 增加字体大小以容纳23个名称
+                                size: 10  // 稍微减小字体大小
                             },
                             generateLabels: function(chart) {
                                 const original = Chart.defaults.plugins.legend.labels.generateLabels;
