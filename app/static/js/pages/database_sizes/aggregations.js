@@ -402,22 +402,32 @@ class AggregationsManager {
         this.isRenderingChart = true;
 
         try {
-            // 清空容器并创建（或复用）canvas
-            let canvas = chartContainer.querySelector('#aggregationChartCanvas');
-            if (!canvas) {
-                chartContainer.innerHTML = '';
-                canvas = document.createElement('canvas');
-                canvas.id = 'aggregationChartCanvas';
-                chartContainer.appendChild(canvas);
-            }
+            // 完全清空容器
+            chartContainer.innerHTML = '';
+            
+            // 创建新的canvas元素
+            const canvas = document.createElement('canvas');
+            canvas.id = 'aggregationChartCanvas';
+            chartContainer.appendChild(canvas);
 
-            // 销毁已有实例（通过 canvas 句柄）
-            const existing = Chart.getChart(canvas);
-            if (existing) {
-                existing.destroy();
+            // 销毁所有Chart.js实例
+            if (Chart.instances) {
+                Object.keys(Chart.instances).forEach(id => {
+                    try {
+                        Chart.instances[id].destroy();
+                    } catch (e) {
+                        console.warn(`Error destroying chart instance ${id}:`, e);
+                    }
+                });
             }
+            
+            // 清理当前实例
             if (this.chart) {
-                try { this.chart.destroy(); } catch (e) { /* ignore */ }
+                try { 
+                    this.chart.destroy(); 
+                } catch (e) { 
+                    console.warn('Error destroying current chart:', e);
+                }
                 this.chart = null;
             }
 
