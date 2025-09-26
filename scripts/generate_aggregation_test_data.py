@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
 聚合统计测试数据生成脚本
-为 database_size_aggregations 表生成前七天的测试数据
-按照设计：每天每个实例每个数据库只有一条记录
+为 database_size_aggregations 表生成测试数据
+按照设计：每个实例的每个数据库，每个周期只能有一条记录
+- 日统计：每天一条记录
+- 周统计：每周一条记录
+- 月统计：每月一条记录
+- 季统计：每季一条记录
 """
 
 import os
@@ -37,33 +41,21 @@ def generate_test_data():
             print('没有找到实例，无法生成数据')
             return
         
-        # 生成前7天的数据（每天一条记录）
-        base_date = date.today() - timedelta(days=7)
         database_names = ['postgres', 'whalefall_dev', 'test_db', 'app_db']
+        base_date = date.today() - timedelta(days=7)
         
-        print('开始生成聚合统计数据...')
-        
+        # 生成日统计数据（前7天）
+        print('\n=== 生成日统计数据 ===')
         for i in range(7):
             current_date = base_date + timedelta(days=i)
-            print(f'生成 {current_date} 的数据...')
+            print(f'生成 {current_date} 的日统计数据...')
             
             for instance in instances:
                 for db_name in database_names:
-                    # 生成随机数据
-                    base_size = random.randint(100, 3000)  # 基础大小 100-3000MB
-                    data_size = int(base_size * 0.8)  # 数据大小占80%
-                    log_size = int(base_size * 0.2)   # 日志大小占20%
+                    base_size = random.randint(100, 3000)
+                    data_size = int(base_size * 0.8)
+                    log_size = int(base_size * 0.2)
                     
-                    # 生成变化数据
-                    size_change = random.randint(-50, 50)
-                    size_change_percent = round((size_change / base_size) * 100, 2) if base_size > 0 else 0
-                    data_size_change = random.randint(-30, 30)
-                    data_size_change_percent = round((data_size_change / data_size) * 100, 2) if data_size > 0 else 0
-                    log_size_change = random.randint(-20, 20)
-                    log_size_change_percent = round((log_size_change / log_size) * 100, 2) if log_size > 0 else 0
-                    growth_rate = round(random.uniform(-2, 2), 2)
-                    
-                    # 插入数据
                     sql = """
                     INSERT INTO database_size_aggregations (
                         instance_id, database_name, period_type, period_start, period_end,
@@ -91,8 +83,8 @@ def generate_test_data():
                         'database_name': db_name,
                         'period_type': 'daily',
                         'period_start': current_date,
-                        'period_end': current_date,  # 同一天
-                        'data_count': 1,  # 每天只有一条记录
+                        'period_end': current_date,
+                        'data_count': 1,
                         'avg_size_mb': base_size,
                         'max_size_mb': base_size,
                         'min_size_mb': base_size,
@@ -102,20 +94,103 @@ def generate_test_data():
                         'avg_log_size_mb': log_size,
                         'max_log_size_mb': log_size,
                         'min_log_size_mb': log_size,
-                        'size_change_mb': size_change,
-                        'size_change_percent': size_change_percent,
-                        'data_size_change_mb': data_size_change,
-                        'data_size_change_percent': data_size_change_percent,
-                        'log_size_change_mb': log_size_change,
-                        'log_size_change_percent': log_size_change_percent,
-                        'growth_rate': growth_rate,
+                        'size_change_mb': random.randint(-50, 50),
+                        'size_change_percent': random.uniform(-5, 5),
+                        'data_size_change_mb': random.randint(-30, 30),
+                        'data_size_change_percent': random.uniform(-3, 3),
+                        'log_size_change_mb': random.randint(-20, 20),
+                        'log_size_change_percent': random.uniform(-2, 2),
+                        'growth_rate': random.uniform(-2, 2),
                         'calculated_at': datetime.now(),
                         'created_at': datetime.now()
                     })
-            
-            # 每生成一天的数据就提交一次
             db.session.commit()
-            print(f'  {current_date} 数据生成完成')
+        
+        # 生成周统计数据（前4周）
+        print('\n=== 生成周统计数据 ===')
+        for week in range(4):
+            week_start = base_date - timedelta(days=base_date.weekday()) - timedelta(weeks=week)
+            week_end = week_start + timedelta(days=6)
+            print(f'生成 {week_start} 到 {week_end} 的周统计数据...')
+            
+            for instance in instances:
+                for db_name in database_names:
+                    base_size = random.randint(100, 3000)
+                    data_size = int(base_size * 0.8)
+                    log_size = int(base_size * 0.2)
+                    
+                    db.session.execute(text(sql), {
+                        'instance_id': instance.id,
+                        'database_name': db_name,
+                        'period_type': 'weekly',
+                        'period_start': week_start,
+                        'period_end': week_end,
+                        'data_count': 7,
+                        'avg_size_mb': base_size,
+                        'max_size_mb': base_size + random.randint(0, 200),
+                        'min_size_mb': base_size - random.randint(0, 100),
+                        'avg_data_size_mb': data_size,
+                        'max_data_size_mb': data_size + random.randint(0, 150),
+                        'min_data_size_mb': data_size - random.randint(0, 80),
+                        'avg_log_size_mb': log_size,
+                        'max_log_size_mb': log_size + random.randint(0, 50),
+                        'min_log_size_mb': log_size - random.randint(0, 20),
+                        'size_change_mb': random.randint(-100, 200),
+                        'size_change_percent': random.uniform(-10, 10),
+                        'data_size_change_mb': random.randint(-80, 160),
+                        'data_size_change_percent': random.uniform(-8, 8),
+                        'log_size_change_mb': random.randint(-20, 40),
+                        'log_size_change_percent': random.uniform(-5, 5),
+                        'growth_rate': random.uniform(-5, 5),
+                        'calculated_at': datetime.now(),
+                        'created_at': datetime.now()
+                    })
+            db.session.commit()
+        
+        # 生成月统计数据（前3个月）
+        print('\n=== 生成月统计数据 ===')
+        for month in range(3):
+            month_start = date(base_date.year, base_date.month, 1) - timedelta(days=30 * month)
+            if month_start.month == 12:
+                month_end = date(month_start.year + 1, 1, 1) - timedelta(days=1)
+            else:
+                month_end = date(month_start.year, month_start.month + 1, 1) - timedelta(days=1)
+            
+            print(f'生成 {month_start} 到 {month_end} 的月统计数据...')
+            
+            for instance in instances:
+                for db_name in database_names:
+                    base_size = random.randint(100, 3000)
+                    data_size = int(base_size * 0.8)
+                    log_size = int(base_size * 0.2)
+                    
+                    db.session.execute(text(sql), {
+                        'instance_id': instance.id,
+                        'database_name': db_name,
+                        'period_type': 'monthly',
+                        'period_start': month_start,
+                        'period_end': month_end,
+                        'data_count': 30,
+                        'avg_size_mb': base_size,
+                        'max_size_mb': base_size + random.randint(0, 500),
+                        'min_size_mb': base_size - random.randint(0, 200),
+                        'avg_data_size_mb': data_size,
+                        'max_data_size_mb': data_size + random.randint(0, 400),
+                        'min_data_size_mb': data_size - random.randint(0, 160),
+                        'avg_log_size_mb': log_size,
+                        'max_log_size_mb': log_size + random.randint(0, 100),
+                        'min_log_size_mb': log_size - random.randint(0, 40),
+                        'size_change_mb': random.randint(-200, 500),
+                        'size_change_percent': random.uniform(-20, 20),
+                        'data_size_change_mb': random.randint(-160, 400),
+                        'data_size_change_percent': random.uniform(-16, 16),
+                        'log_size_change_mb': random.randint(-40, 100),
+                        'log_size_change_percent': random.uniform(-10, 10),
+                        'growth_rate': random.uniform(-10, 10),
+                        'calculated_at': datetime.now(),
+                        'created_at': datetime.now()
+                    })
+            db.session.commit()
         
         print('\n数据生成完成！')
         
@@ -124,32 +199,35 @@ def generate_test_data():
         count = result.scalar()
         print(f'总记录数: {count}')
         
+        # 按周期类型查看
+        result = db.session.execute(text('''
+            SELECT period_type, COUNT(*) as count
+            FROM database_size_aggregations 
+            GROUP BY period_type
+            ORDER BY period_type
+        '''))
+        by_period = result.fetchall()
+        
+        print('\n按周期类型分组查看:')
+        for row in by_period:
+            print(f'{row.period_type}: {row.count} 条记录')
+        
         # 按日期查看
         result = db.session.execute(text('''
-            SELECT period_start, COUNT(*) as count
+            SELECT period_type, period_start, COUNT(*) as count
             FROM database_size_aggregations 
-            GROUP BY period_start 
-            ORDER BY period_start
+            GROUP BY period_type, period_start 
+            ORDER BY period_type, period_start
         '''))
         by_date = result.fetchall()
         
-        print('\n按日期分组查看:')
+        print('\n按周期类型和日期分组查看:')
+        current_type = None
         for row in by_date:
-            print(f'{row.period_start}: {row.count} 条记录')
-        
-        # 按实例查看
-        result = db.session.execute(text('''
-            SELECT i.name as instance_name, COUNT(*) as count
-            FROM database_size_aggregations a
-            JOIN instances i ON a.instance_id = i.id
-            GROUP BY i.name
-            ORDER BY i.name
-        '''))
-        by_instance = result.fetchall()
-        
-        print('\n按实例分组查看:')
-        for row in by_instance:
-            print(f'{row.instance_name}: {row.count} 条记录')
+            if current_type != row.period_type:
+                print(f'\n{row.period_type.upper()}:')
+                current_type = row.period_type
+            print(f'  {row.period_start}: {row.count} 条记录')
 
 
 if __name__ == '__main__':
