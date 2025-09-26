@@ -63,7 +63,9 @@ async function loadInstanceTotalSizes() {
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success && data.total_size_mb !== undefined) {
-                        element.innerHTML = `<small class="text-success">${formatSize(data.total_size_mb)}</small>`;
+                        // API返回的是MB，需要转换为字节再格式化
+                        const totalSizeBytes = data.total_size_mb * 1024 * 1024;
+                        element.innerHTML = `<small class="text-success">${formatSize(totalSizeBytes)}</small>`;
                     } else {
                         element.innerHTML = '<small class="text-muted">暂无数据</small>';
                     }
@@ -80,15 +82,14 @@ async function loadInstanceTotalSizes() {
     }
 }
 
-// 格式化文件大小
+// 格式化文件大小 - 统一使用GB单位，保留3位小数
 function formatSize(bytes) {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return '0.000 GB';
     
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    // 将字节转换为GB
+    const gb = bytes / (1024 * 1024 * 1024);
     
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return gb.toFixed(3) + ' GB';
 }
 
 // 初始化标签选择器
