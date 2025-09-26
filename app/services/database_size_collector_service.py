@@ -104,9 +104,9 @@ class DatabaseSizeCollectorService:
         query = """
             SELECT
                 s.SCHEMA_NAME AS database_name,
-                COALESCE(ROUND(SUM(t.data_length + t.index_length) / 1024 / 1024, 2), 0) AS size_mb,
-                COALESCE(ROUND(SUM(t.data_length) / 1024 / 1024, 2), 0) AS data_size_mb,
-                COALESCE(ROUND(SUM(t.index_length) / 1024 / 1024, 2), 0) AS index_size_mb
+                IFNULL(ROUND(SUM(t.data_length + t.index_length) / 1024 / 1024, 2), 0) AS size_mb,
+                IFNULL(ROUND(SUM(t.data_length) / 1024 / 1024, 2), 0) AS data_size_mb,
+                IFNULL(ROUND(SUM(t.index_length) / 1024 / 1024, 2), 0) AS index_size_mb
             FROM
                 information_schema.SCHEMATA s
             LEFT JOIN
