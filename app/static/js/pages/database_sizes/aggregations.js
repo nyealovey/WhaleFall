@@ -394,20 +394,28 @@ class AggregationsManager {
             return;
         }
         
-        // 确保canvas元素存在
-        let canvas = chartContainer.querySelector('canvas');
-        if (!canvas) {
-            canvas = document.createElement('canvas');
-            canvas.id = 'aggregationChartCanvas';
-            chartContainer.appendChild(canvas);
+        // 先清理所有Chart实例
+        if (Chart.instances) {
+            Object.keys(Chart.instances).forEach(id => {
+                Chart.instances[id].destroy();
+            });
         }
-        
-        const ctx = canvas.getContext('2d');
         
         // 销毁现有图表
         if (this.chart) {
             this.chart.destroy();
+            this.chart = null;
         }
+        
+        // 清空容器内容
+        chartContainer.innerHTML = '';
+        
+        // 创建新的canvas元素
+        const canvas = document.createElement('canvas');
+        canvas.id = 'aggregationChartCanvas';
+        chartContainer.appendChild(canvas);
+        
+        const ctx = canvas.getContext('2d');
         
         // 按日期分组数据
         const groupedData = this.groupDataByDate(data);
