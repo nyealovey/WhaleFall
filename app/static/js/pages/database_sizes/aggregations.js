@@ -7,6 +7,7 @@ class AggregationsManager {
     constructor() {
         this.chart = null;
         this.detailChart = null;
+        this.isRenderingChart = false;
         this.currentData = [];
         this.currentSummary = null;
         this.currentFilters = {
@@ -393,91 +394,69 @@ class AggregationsManager {
             console.error('图表容器不存在');
             return;
         }
-        
-        // 销毁现有图表
-        if (this.chart) {
-            this.chart.destroy();
-            this.chart = null;
+
+        if (this.isRenderingChart) {
+            // 避免并发渲染导致的重复实例
+            return;
         }
-        
-        // 先清理所有Chart实例
-        if (Chart.instances) {
-            Object.keys(Chart.instances).forEach(id => {
-                try {
-                    Chart.instances[id].destroy();
-                } catch (e) {
-                    console.warn(`Error destroying chart instance ${id}:`, e);
-                }
-            });
-        }
-        
-        // 清空容器内容
-        chartContainer.innerHTML = '';
-        
-        // 等待一小段时间确保Chart.js完全清理
-        setTimeout(() => {
-            // 创建新的canvas元素
-            const canvas = document.createElement('canvas');
-            canvas.id = 'aggregationChartCanvas';
-            chartContainer.appendChild(canvas);
-            
+        this.isRenderingChart = true;
+
+        try {
+            // 清空容器并创建（或复用）canvas
+            let canvas = chartContainer.querySelector('#aggregationChartCanvas');
+            if (!canvas) {
+                chartContainer.innerHTML = '';
+                canvas = document.createElement('canvas');
+                canvas.id = 'aggregationChartCanvas';
+                chartContainer.appendChild(canvas);
+            }
+
+            // 销毁已有实例（通过 canvas 句柄）
+            const existing = Chart.getChart(canvas);
+            if (existing) {
+                existing.destroy();
+            }
+            if (this.chart) {
+                try { this.chart.destroy(); } catch (e) { /* ignore */ }
+                this.chart = null;
+            }
+
             const ctx = canvas.getContext('2d');
-            
-            // 按日期分组数据
+
+            // 数据分组与配置
             const groupedData = this.groupDataByDate(data);
-            
-            // 准备图表数据
             const labels = Object.keys(groupedData).sort();
             const datasets = this.prepareChartDatasets(groupedData, labels);
-            
+
             const chartConfig = {
                 type: this.currentChartType,
-                data: {
-                    labels: labels,
-                    datasets: datasets
-                },
+                data: { labels, datasets },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    layout: {
-                        padding: {
-                            right: 120  // 减少右侧空白，图例圆圈更小
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
+                    layout: { padding: { right: 120 } },
+                    interaction: { intersect: false, mode: 'index' },
                     plugins: {
                         title: {
                             display: true,
                             text: this.currentChartMode === 'instance' ? '实例聚合趋势图 (TOP 20)' : '数据库聚合趋势图 (TOP 20)',
-                            font: {
-                                size: 16,
-                                weight: 'bold'
-                            }
+                            font: { size: 16, weight: 'bold' }
                         },
                         legend: {
                             display: true,
                             position: 'right',
                             align: 'start',
-                            maxHeight: 500,  // 增加图例最大高度以容纳23个名称
+                            maxHeight: 500,
                             labels: {
                                 usePointStyle: true,
-                                padding: 4,  // 减少图例项间距
-                                boxWidth: 8,  // 减小图例圆圈宽度
-                                boxHeight: 8,  // 减小图例圆圈高度
-                                font: {
-                                    size: 10  // 稍微减小字体大小
-                                },
+                                padding: 4,
+                                boxWidth: 8,
+                                boxHeight: 8,
+                                font: { size: 10 },
                                 generateLabels: function(chart) {
                                     const original = Chart.defaults.plugins.legend.labels.generateLabels;
                                     const labels = original.call(this, chart);
-                                    
-                                    // 按标签名称排序
                                     labels.sort((a, b) => a.text.localeCompare(b.text));
-                                    
-                                    // 限制显示的图例项数量为23个
                                     return labels.slice(0, 23);
                                 }
                             }
@@ -495,50 +474,26 @@ class AggregationsManager {
                         }
                     },
                     scales: {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: '统计周期'
-                            },
-                            grid: {
-                                display: false
-                            }
-                        },
+                        x: { display: true, title: { display: true, text: '统计周期' }, grid: { display: false } },
                         y: {
                             display: true,
-                            title: {
-                                display: true,
-                                text: '存储大小'
-                            },
+                            title: { display: true, text: '存储大小' },
                             beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return AggregationsManager.prototype.formatSizeFromMB(value);
-                                }
-                            }
+                            grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                            ticks: { callback: (v) => AggregationsManager.prototype.formatSizeFromMB(v) }
                         }
                     },
-                    elements: {
-                        point: {
-                            radius: 4,
-                            hoverRadius: 6
-                        },
-                        line: {
-                            tension: 0.1
-                        }
-                    }
+                    elements: { point: { radius: 4, hoverRadius: 6 }, line: { tension: 0.1 } }
                 }
             };
-            
-            // 根据图表类型调整配置
-            // 移除面积图支持，只保留折线图和柱状图
-            
+
             this.chart = new Chart(ctx, chartConfig);
-        }, 100); // 100ms延迟确保Chart.js完全清理
+        } catch (err) {
+            console.error('渲染图表时出错:', err);
+            this.showError('加载图表数据时出错: ' + (err && err.message ? err.message : ''));
+        } finally {
+            this.isRenderingChart = false;
+        }
     }
     
     /**
