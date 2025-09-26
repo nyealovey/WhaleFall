@@ -267,9 +267,6 @@ function updatePartitionsTable(partitions) {
                         <button class="btn btn-outline-info btn-sm" onclick="viewPartitionDetails('${partition.name}')" title="查看详情">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn-outline-danger btn-sm" onclick="deletePartition('${partition.name}')" title="删除分区">
-                            <i class="fas fa-trash"></i>
-                        </button>
                     </div>
                 </td>
             </tr>
@@ -427,22 +424,6 @@ function viewPartitionDetails(partitionName) {
     showInfo('分区详情功能开发中: ' + partitionName);
 }
 
-/**
- * 删除分区
- */
-async function deletePartition(partitionName) {
-    if (!confirm(`确定要删除分区 "${partitionName}" 吗？此操作不可恢复！`)) {
-        return;
-    }
-    
-    try {
-        // TODO: 实现分区删除API
-        showError('分区删除功能开发中');
-    } catch (error) {
-        console.error('删除分区失败:', error);
-        showError('删除分区失败: ' + error.message);
-    }
-}
 
 /**
  * 显示加载状态
