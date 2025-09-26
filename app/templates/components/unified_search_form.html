@@ -19,6 +19,22 @@
                         </div>
                         {% endif %}
                 
+                        <!-- 数据库类型筛选 -->
+                        {% if show_db_type_filter|default(false) %}
+                        <div class="col-md-2 filter-db-type">
+                            <label for="db_type" class="form-label">数据库类型</label>
+                            <select class="form-select unified-select" id="db_type" name="db_type">
+                                <option value="">全部类型</option>
+                                {% for db_type_config in database_types|default([]) %}
+                                <option value="{{ db_type_config.name }}" 
+                                        {% if db_type == db_type_config.name %}selected{% endif %}>
+                                    {{ db_type_config.display_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                
                         <!-- 实例筛选 -->
                         {% if show_instance_filter|default(false) %}
                         <div class="col-md-2 filter-instance">
@@ -31,19 +47,6 @@
                                     {{ instance_item.name }} ({{ instance_item.db_type }})
                                 </option>
                                 {% endfor %}
-                            </select>
-                        </div>
-                        {% endif %}
-                
-                        <!-- 统计周期筛选 -->
-                        {% if show_period_type_filter|default(false) %}
-                        <div class="col-md-2 filter-period-type">
-                            <label for="period_type" class="form-label">统计周期</label>
-                            <select class="form-select unified-select" id="period_type" name="period_type">
-                                <option value="daily" {% if period_type == 'daily' or period_type == '' %}selected{% endif %}>日统计</option>
-                                <option value="weekly" {% if period_type == 'weekly' %}selected{% endif %}>周统计</option>
-                                <option value="monthly" {% if period_type == 'monthly' %}selected{% endif %}>月统计</option>
-                                <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>季统计</option>
                             </select>
                         </div>
                         {% endif %}
@@ -63,18 +66,15 @@
                         </div>
                         {% endif %}
                 
-                        <!-- 数据库类型筛选 -->
-                        {% if show_db_type_filter|default(false) %}
-                        <div class="col-md-2 filter-db-type">
-                            <label for="db_type" class="form-label">数据库类型</label>
-                            <select class="form-select unified-select" id="db_type" name="db_type">
-                                <option value="">全部类型</option>
-                                {% for db_type_config in database_types|default([]) %}
-                                <option value="{{ db_type_config.name }}" 
-                                        {% if db_type == db_type_config.name %}selected{% endif %}>
-                                    {{ db_type_config.display_name }}
-                                </option>
-                                {% endfor %}
+                        <!-- 统计周期筛选 -->
+                        {% if show_period_type_filter|default(false) %}
+                        <div class="col-md-2 filter-period-type">
+                            <label for="period_type" class="form-label">统计周期</label>
+                            <select class="form-select unified-select" id="period_type" name="period_type">
+                                <option value="daily" {% if period_type == 'daily' or period_type == '' %}selected{% endif %}>日统计</option>
+                                <option value="weekly" {% if period_type == 'weekly' %}selected{% endif %}>周统计</option>
+                                <option value="monthly" {% if period_type == 'monthly' %}selected{% endif %}>月统计</option>
+                                <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>季统计</option>
                             </select>
                         </div>
                         {% endif %}
