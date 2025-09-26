@@ -234,7 +234,7 @@ class DatabaseSizeAggregationService:
             # 计算基本统计
             sizes = [stat.size_mb for stat in stats]
             data_sizes = [stat.data_size_mb for stat in stats if stat.data_size_mb is not None]
-            log_sizes = [stat.log_size_mb for stat in stats if stat.log_size_mb is not None]
+            # 不再计算日志大小统计
             
             # 检查是否已存在该周期的聚合数据
             existing = DatabaseSizeAggregation.query.filter(
@@ -269,11 +269,10 @@ class DatabaseSizeAggregationService:
                 aggregation.max_data_size_mb = max(data_sizes)
                 aggregation.min_data_size_mb = min(data_sizes)
             
-            # 日志大小统计（SQL Server）
-            if log_sizes:
-                aggregation.avg_log_size_mb = int(sum(log_sizes) / len(log_sizes))
-                aggregation.max_log_size_mb = max(log_sizes)
-                aggregation.min_log_size_mb = min(log_sizes)
+            # 不计算日志大小统计，直接设置为 None
+            aggregation.avg_log_size_mb = None
+            aggregation.max_log_size_mb = None
+            aggregation.min_log_size_mb = None
             
             # 计算增量/减量统计
             self._calculate_change_statistics(aggregation, instance_id, database_name, period_type, start_date, end_date)
@@ -336,8 +335,7 @@ class DatabaseSizeAggregationService:
             prev_data_sizes = [stat.data_size_mb for stat in prev_stats if stat.data_size_mb is not None]
             prev_avg_data_size = sum(prev_data_sizes) / len(prev_data_sizes) if prev_data_sizes else None
             
-            prev_log_sizes = [stat.log_size_mb for stat in prev_stats if stat.log_size_mb is not None]
-            prev_avg_log_size = sum(prev_log_sizes) / len(prev_log_sizes) if prev_log_sizes else None
+            # 不再计算日志大小变化
             
             # 计算变化量（当前 - 上一个周期）
             size_change_mb = aggregation.avg_size_mb - prev_avg_size
@@ -350,11 +348,9 @@ class DatabaseSizeAggregationService:
                 aggregation.data_size_change_mb = int(data_size_change_mb)
                 aggregation.data_size_change_percent = round((data_size_change_mb / prev_avg_data_size * 100) if prev_avg_data_size > 0 else 0, 2)
             
-            # 日志大小变化
-            if prev_avg_log_size is not None and aggregation.avg_log_size_mb is not None:
-                log_size_change_mb = aggregation.avg_log_size_mb - prev_avg_log_size
-                aggregation.log_size_change_mb = int(log_size_change_mb)
-                aggregation.log_size_change_percent = round((log_size_change_mb / prev_avg_log_size * 100) if prev_avg_log_size > 0 else 0, 2)
+            # 不计算日志大小变化，直接设置为 None
+            aggregation.log_size_change_mb = None
+            aggregation.log_size_change_percent = None
             
             # 设置增长率（简化，不判断趋势方向）
             aggregation.growth_rate = aggregation.size_change_percent
