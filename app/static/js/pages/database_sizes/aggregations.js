@@ -205,6 +205,11 @@ class AggregationsManager {
             this.showError('加载图表数据时出错: ' + error.message);
         } finally {
             this.hideChartLoading();
+            // 如果数据加载成功但图表未渲染，强制重试
+            if (this.currentData.length > 0 && !this.chart) {
+                console.warn('数据加载但图表未渲染，强制重试');
+                setTimeout(() => this.renderChart(this.currentData), 100);
+            }
         }
     }
     
@@ -380,11 +385,13 @@ class AggregationsManager {
     renderChart(data) {
         const chartContainer = document.getElementById('aggregationChart');
         if (!chartContainer) {
-            console.error('图表容器不存在');
+            console.error('图表容器 #aggregationChart 不存在！');
             return;
         }
 
         console.log('开始渲染图表，数据:', data);
+        console.log('容器高度:', chartContainer.offsetHeight);
+        console.log('容器宽度:', chartContainer.offsetWidth);
 
         if (this.isRenderingChart) {
             console.warn('图表正在渲染中，跳过本次渲染请求');
@@ -405,14 +412,21 @@ class AggregationsManager {
             // 创建新的canvas元素
             const canvas = document.createElement('canvas');
             canvas.id = 'aggregationChartCanvas';
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
             chartContainer.appendChild(canvas);
 
             const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error('无法获取canvas上下文');
+                return;
+            }
 
             // 处理数据
             let labels, datasets;
             
             if (!data || data.length === 0) {
+                console.log('数据为空，显示空状态');
                 // 空数据情况
                 labels = ['暂无数据'];
                 datasets = [{
@@ -428,8 +442,35 @@ class AggregationsManager {
                 console.log('分组后的数据:', groupedData);
                 labels = Object.keys(groupedData).sort();
                 console.log('图表标签:', labels);
-                datasets = this.prepareChartDatasets(groupedData, labels);
-                console.log('图表数据集:', datasets);
+                
+                // 检查分组数据是否有效
+                if (labels.length === 0 || Object.keys(groupedData).length === 0) {
+                    console.warn('分组数据为空，显示空状态');
+                    labels = ['暂无数据'];
+                    datasets = [{
+                        label: '无数据',
+                        data: [0],
+                        backgroundColor: 'rgba(200, 200, 200, 0.2)',
+                        borderColor: 'rgba(200, 200, 200, 0.8)',
+                        borderWidth: 1
+                    }];
+                } else {
+                    datasets = this.prepareChartDatasets(groupedData, labels);
+                    console.log('图表数据集:', datasets);
+                    
+                    // 检查数据集是否有效
+                    if (!datasets || datasets.length === 0) {
+                        console.warn('数据集为空，显示空状态');
+                        labels = ['暂无数据'];
+                        datasets = [{
+                            label: '无数据',
+                            data: [0],
+                            backgroundColor: 'rgba(200, 200, 200, 0.2)',
+                            borderColor: 'rgba(200, 200, 200, 0.8)',
+                            borderWidth: 1
+                        }];
+                    }
+                }
             }
 
             // 根据数据情况调整图表类型
@@ -508,8 +549,28 @@ class AggregationsManager {
                 }
             };
 
-            this.chart = new Chart(ctx, chartConfig);
-            console.log('图表渲染完成');
+            // 检查Chart.js是否可用
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js 未加载！');
+                this.showError('图表库未加载，请刷新页面重试');
+                return;
+            }
+
+            // 创建图表前添加调试信息
+            console.log('Chart Config:', chartConfig);
+            console.log('Labels:', labels);
+            console.log('Datasets:', datasets);
+
+            try {
+                this.chart = new Chart(ctx, chartConfig);
+                console.log('图表创建成功');
+            } catch (chartErr) {
+                console.error('Chart 创建失败:', chartErr);
+                this.showError('图表创建失败: ' + chartErr.message);
+                // 回退显示空图
+                this.showEmptyChart();
+                return;
+            }
             
         } catch (err) {
             console.error('渲染图表时出错:', err);
@@ -560,6 +621,34 @@ class AggregationsManager {
             </div>
         `;
     }
+
+    /**
+     * 测试图表渲染（用于调试）
+     */
+    testChartRender() {
+        console.log('开始测试图表渲染...');
+        
+        // 测试数据
+        const testData = [
+            {
+                period_start: '2025-01-01',
+                database_name: 'test_db1',
+                avg_size_mb: 1000,
+                max_size_mb: 1200,
+                instance: { name: 'test_instance' }
+            },
+            {
+                period_start: '2025-01-02',
+                database_name: 'test_db1',
+                avg_size_mb: 1100,
+                max_size_mb: 1300,
+                instance: { name: 'test_instance' }
+            }
+        ];
+        
+        console.log('测试数据:', testData);
+        this.renderChart(testData);
+    }
     
     /**
      * 按日期分组数据
@@ -569,24 +658,35 @@ class AggregationsManager {
         
         data.forEach(item => {
             const date = item.period_start;
+            if (!date) {
+                console.warn('数据项缺少period_start:', item);
+                return;
+            }
+            
             if (!grouped[date]) {
                 grouped[date] = {};
             }
             
             if (this.currentChartMode === 'instance') {
                 // 按实例分组，累加所有数据库的大小
-                const instanceName = item.instance.name;
+                const instanceName = item.instance?.name || '未知实例';
                 if (!grouped[date][instanceName]) {
                     grouped[date][instanceName] = 0;
                 }
-                // 使用max_size_mb累加，表示实例的总容量
-                grouped[date][instanceName] += item.max_size_mb || 0;
+                // 使用avg_size_mb累加，表示实例的平均容量
+                grouped[date][instanceName] += item.avg_size_mb || item.max_size_mb || 0;
             } else {
-                // 按数据库分组，使用max_size_mb作为显示值
-                grouped[date][item.database_name] = item.max_size_mb || item.avg_size_mb || 0;
+                // 按数据库分组，使用avg_size_mb作为显示值（更符合趋势图）
+                const dbName = item.database_name || '未知数据库';
+                if (!grouped[date][dbName]) {
+                    grouped[date][dbName] = 0;
+                }
+                // 累加平均值，处理同一天多条记录的情况
+                grouped[date][dbName] += item.avg_size_mb || item.max_size_mb || 0;
             }
         });
         
+        console.log('分组后的数据:', grouped);
         return grouped;
     }
     
@@ -614,27 +714,42 @@ class AggregationsManager {
         
         this.currentData.forEach(item => {
             const dbName = item.database_name;
+            if (!dbName) {
+                console.warn('数据项缺少database_name:', item);
+                return;
+            }
+            
             if (!databaseStats[dbName]) {
                 databaseStats[dbName] = {
                     totalSize: 0,
                     count: 0,
-                    maxSize: 0
+                    avgSize: 0
                 };
             }
-            databaseStats[dbName].totalSize += item.avg_size_mb || 0;
+            databaseStats[dbName].totalSize += item.avg_size_mb || item.max_size_mb || 0;
             databaseStats[dbName].count += 1;
-            databaseStats[dbName].maxSize = Math.max(databaseStats[dbName].maxSize, item.max_size_mb || 0);
+        });
+        
+        // 计算平均大小
+        Object.keys(databaseStats).forEach(dbName => {
+            databaseStats[dbName].avgSize = databaseStats[dbName].totalSize / databaseStats[dbName].count;
         });
         
         console.log('数据库统计:', databaseStats);
         
-        // 按最大大小排序，选择TOP 20
+        // 按平均大小排序，选择TOP 20
         const topDatabases = Object.entries(databaseStats)
-            .sort(([,a], [,b]) => b.maxSize - a.maxSize)
+            .sort(([,a], [,b]) => b.avgSize - a.avgSize)
             .slice(0, 20)
             .map(([dbName]) => dbName);
         
         console.log('TOP 20数据库:', topDatabases);
+        
+        // 如果没有数据，返回空数据集
+        if (topDatabases.length === 0) {
+            console.warn('没有找到有效的数据库数据');
+            return [];
+        }
         
         const colors = [
             '#667eea', '#764ba2', '#f093fb', '#f5576c',
