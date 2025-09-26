@@ -1,0 +1,726 @@
+/**
+ * 实例统计页面脚本
+ * 基于 jQuery 3.7.1 和 Chart.js 4.4.0
+ */
+
+class InstanceAggregationsManager {
+    constructor() {
+        this.chart = null;
+        this.currentData = [];
+        this.currentChartType = 'line';
+        this.currentFilters = {
+            instance_id: null,
+            db_type: null,
+            period_type: 'daily',
+            start_date: null,
+            end_date: null
+        };
+        
+        this.init();
+    }
+    
+    init() {
+        console.log('初始化实例统计管理器');
+        this.bindEvents();
+        this.loadSummaryData();
+        this.loadChartData();
+        this.loadTableData();
+    }
+    
+    bindEvents() {
+        // 刷新数据按钮
+        $('#refreshData').on('click', () => {
+            this.refreshAllData();
+        });
+        
+        // 聚合计算按钮
+        $('#calculateAggregations').on('click', () => {
+            this.calculateAggregations();
+        });
+        
+        // 图表类型切换
+        $('input[name="chartType"]').on('change', (e) => {
+            this.currentChartType = e.target.value;
+            this.renderChart(this.currentData);
+        });
+        
+        // 筛选按钮
+        $('#searchButton').on('click', () => {
+            this.applyFilters();
+        });
+        
+        // 重置按钮
+        $('#resetButton').on('click', () => {
+            this.resetFilters();
+        });
+    }
+    
+    /**
+     * 应用筛选条件
+     */
+    applyFilters() {
+        console.log('应用筛选条件');
+        
+        // 获取筛选条件
+        this.currentFilters = {
+            instance_id: $('#instanceFilter').val() || null,
+            db_type: $('#dbTypeFilter').val() || null,
+            period_type: $('#periodTypeFilter').val() || 'daily',
+            start_date: $('#startDateFilter').val() || null,
+            end_date: $('#endDateFilter').val() || null
+        };
+        
+        console.log('当前筛选条件:', this.currentFilters);
+        
+        // 重新加载数据
+        this.loadSummaryData();
+        this.loadChartData();
+        this.loadTableData();
+    }
+    
+    /**
+     * 重置筛选条件
+     */
+    resetFilters() {
+        console.log('重置筛选条件');
+        
+        // 清空所有筛选器
+        $('#instanceFilter').val('');
+        $('#dbTypeFilter').val('');
+        $('#periodTypeFilter').val('daily');
+        $('#startDateFilter').val('');
+        $('#endDateFilter').val('');
+        
+        // 重置筛选条件
+        this.currentFilters = {
+            instance_id: null,
+            db_type: null,
+            period_type: 'daily',
+            start_date: null,
+            end_date: null
+        };
+        
+        // 重新加载数据
+        this.loadSummaryData();
+        this.loadChartData();
+        this.loadTableData();
+    }
+    
+    /**
+     * 刷新所有数据
+     */
+    async refreshAllData() {
+        console.log('刷新所有数据');
+        this.showLoading();
+        
+        try {
+            await Promise.all([
+                this.loadSummaryData(),
+                this.loadChartData(),
+                this.loadTableData()
+            ]);
+            this.showSuccess('数据刷新成功');
+        } catch (error) {
+            console.error('刷新数据失败:', error);
+            this.showError('刷新数据失败: ' + error.message);
+        } finally {
+            this.hideLoading();
+        }
+    }
+    
+    /**
+     * 加载汇总数据
+     */
+    async loadSummaryData() {
+        try {
+            const params = this.buildFilterParams();
+            const response = await fetch(`/database-sizes/aggregations/summary?api=true&${params}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.updateSummaryCards(data);
+            } else {
+                console.error('加载汇总数据失败:', data.error);
+            }
+        } catch (error) {
+            console.error('加载汇总数据时出错:', error);
+        }
+    }
+    
+    /**
+     * 更新汇总卡片
+     */
+    updateSummaryCards(data) {
+        $('#totalInstances').text(data.total_instances || 0);
+        $('#totalDatabases').text(data.total_databases || 0);
+        $('#averageSize').text(this.formatSizeFromMB(data.avg_size_mb || 0));
+        $('#maxSize').text(this.formatSizeFromMB(data.max_size_mb || 0));
+    }
+    
+    /**
+     * 加载图表数据
+     */
+    async loadChartData() {
+        try {
+            this.showChartLoading();
+            
+            const params = this.buildFilterParams();
+            params.append('chart_mode', 'instance');
+            params.append('get_all', 'true');
+            
+            console.log('加载图表数据，参数:', params.toString());
+            const response = await fetch(`/database-sizes/aggregations?api=true&${params}`);
+            const data = await response.json();
+            
+            console.log('图表数据响应:', data);
+            
+            if (response.ok) {
+                this.currentData = data.data;
+                console.log('当前图表数据:', this.currentData);
+                this.renderChart(data.data);
+            } else {
+                console.error('图表数据加载失败:', data.error);
+                this.showError('加载图表数据失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('加载图表数据时出错:', error);
+            this.showError('加载图表数据时出错: ' + error.message);
+        } finally {
+            this.hideChartLoading();
+        }
+    }
+    
+    /**
+     * 渲染图表
+     */
+    renderChart(data) {
+        console.log('渲染实例统计图表，数据:', data);
+        
+        const ctx = document.getElementById('instanceChart').getContext('2d');
+        
+        // 销毁现有图表
+        if (this.chart) {
+            this.chart.destroy();
+        }
+        
+        if (!data || data.length === 0) {
+            this.showEmptyChart();
+            return;
+        }
+        
+        // 按实例分组数据
+        const instanceData = this.groupDataByInstance(data);
+        
+        // 准备图表数据
+        const chartData = this.prepareChartData(instanceData);
+        
+        // 创建图表
+        this.chart = new Chart(ctx, {
+            type: this.currentChartType,
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '实例统计趋势图'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.dataset.label || '';
+                                const value = this.formatSizeFromMB(context.parsed.y);
+                                return `${label}: ${value}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '时间'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '大小 (MB)'
+                        },
+                        beginAtZero: true
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+    }
+    
+    /**
+     * 按实例分组数据
+     */
+    groupDataByInstance(data) {
+        const grouped = {};
+        
+        data.forEach(item => {
+            const key = `${item.instance.name}_${item.instance.db_type}`;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    instance_name: item.instance.name,
+                    db_type: item.instance.db_type,
+                    data: []
+                };
+            }
+            grouped[key].data.push(item);
+        });
+        
+        return grouped;
+    }
+    
+    /**
+     * 准备图表数据
+     */
+    prepareChartData(instanceData) {
+        const labels = [];
+        const datasets = [];
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+        ];
+        
+        let colorIndex = 0;
+        
+        Object.keys(instanceData).forEach(key => {
+            const instance = instanceData[key];
+            const sortedData = instance.data.sort((a, b) => 
+                new Date(a.period_start) - new Date(b.period_start)
+            );
+            
+            // 收集标签
+            if (labels.length === 0) {
+                sortedData.forEach(item => {
+                    labels.push(item.period_start);
+                });
+            }
+            
+            // 创建数据集
+            datasets.push({
+                label: `${instance.instance_name} (${instance.db_type})`,
+                data: sortedData.map(item => item.avg_size_mb),
+                borderColor: colors[colorIndex % colors.length],
+                backgroundColor: colors[colorIndex % colors.length] + '20',
+                fill: false,
+                tension: 0.1
+            });
+            
+            colorIndex++;
+        });
+        
+        return {
+            labels: labels,
+            datasets: datasets
+        };
+    }
+    
+    /**
+     * 显示空图表
+     */
+    showEmptyChart() {
+        const ctx = document.getElementById('instanceChart').getContext('2d');
+        
+        if (this.chart) {
+            this.chart.destroy();
+        }
+        
+        this.chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['暂无数据'],
+                datasets: [{
+                    label: '暂无数据',
+                    data: [0],
+                    backgroundColor: '#f8f9fa',
+                    borderColor: '#dee2e6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '实例统计趋势图 - 暂无数据'
+                    }
+                }
+            }
+        });
+    }
+    
+    /**
+     * 加载表格数据
+     */
+    async loadTableData() {
+        try {
+            const params = this.buildFilterParams();
+            const response = await fetch(`/database-sizes/aggregations?api=true&${params}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.renderTable(data.data);
+            } else {
+                console.error('加载表格数据失败:', data.error);
+                this.showError('加载表格数据失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('加载表格数据时出错:', error);
+            this.showError('加载表格数据时出错: ' + error.message);
+        }
+    }
+    
+    /**
+     * 渲染表格
+     */
+    renderTable(data) {
+        const tbody = $('#instanceTable tbody');
+        tbody.empty();
+        
+        if (!data || data.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="8" class="text-center text-muted">
+                        <i class="fas fa-inbox me-2"></i>
+                        暂无数据
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+        
+        // 按实例分组并计算统计
+        const instanceStats = this.calculateInstanceStats(data);
+        
+        instanceStats.forEach(stat => {
+            const row = `
+                <tr>
+                    <td>
+                        <span class="instance-name">${stat.instance_name}</span>
+                    </td>
+                    <td>
+                        <span class="db-type-badge ${stat.db_type.toLowerCase()}">${stat.db_type}</span>
+                    </td>
+                    <td>${stat.database_count}</td>
+                    <td>
+                        <span class="size-display">${this.formatSizeFromMB(stat.total_size_mb)}</span>
+                    </td>
+                    <td>
+                        <span class="size-display">${this.formatSizeFromMB(stat.avg_size_mb)}</span>
+                    </td>
+                    <td>
+                        <span class="size-display">${this.formatSizeFromMB(stat.max_size_mb)}</span>
+                    </td>
+                    <td>${this.formatDate(stat.last_update)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary btn-action" 
+                                onclick="window.instanceAggregationsManager.showDetail('${stat.instance_name}', '${stat.db_type}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+    
+    /**
+     * 计算实例统计
+     */
+    calculateInstanceStats(data) {
+        const instanceMap = {};
+        
+        data.forEach(item => {
+            const key = `${item.instance.name}_${item.instance.db_type}`;
+            if (!instanceMap[key]) {
+                instanceMap[key] = {
+                    instance_name: item.instance.name,
+                    db_type: item.instance.db_type,
+                    database_count: 0,
+                    total_size_mb: 0,
+                    avg_size_mb: 0,
+                    max_size_mb: 0,
+                    min_size_mb: Infinity,
+                    last_update: null
+                };
+            }
+            
+            const stat = instanceMap[key];
+            stat.database_count++;
+            stat.total_size_mb += item.avg_size_mb;
+            stat.max_size_mb = Math.max(stat.max_size_mb, item.max_size_mb);
+            stat.min_size_mb = Math.min(stat.min_size_mb, item.min_size_mb);
+            
+            if (!stat.last_update || new Date(item.calculated_at) > new Date(stat.last_update)) {
+                stat.last_update = item.calculated_at;
+            }
+        });
+        
+        // 计算平均值
+        Object.values(instanceMap).forEach(stat => {
+            stat.avg_size_mb = stat.total_size_mb / stat.database_count;
+            if (stat.min_size_mb === Infinity) {
+                stat.min_size_mb = 0;
+            }
+        });
+        
+        return Object.values(instanceMap).sort((a, b) => b.total_size_mb - a.total_size_mb);
+    }
+    
+    /**
+     * 显示详情
+     */
+    showDetail(instanceName, dbType) {
+        console.log('显示实例详情:', instanceName, dbType);
+        
+        // 过滤当前实例的数据
+        const instanceData = this.currentData.filter(item => 
+            item.instance.name === instanceName && item.instance.db_type === dbType
+        );
+        
+        if (instanceData.length === 0) {
+            this.showError('未找到相关数据');
+            return;
+        }
+        
+        // 更新模态框内容
+        this.updateDetailModal(instanceData[0], instanceData);
+        
+        // 显示模态框
+        $('#detailModal').modal('show');
+    }
+    
+    /**
+     * 更新详情模态框
+     */
+    updateDetailModal(sampleData, allData) {
+        $('#modalInstanceName').text(sampleData.instance.name);
+        $('#modalDbType').text(sampleData.instance.db_type);
+        $('#modalPeriodType').text(sampleData.period_type);
+        $('#modalPeriodRange').text(`${sampleData.period_start} 至 ${sampleData.period_end}`);
+        $('#modalDatabaseCount').text(allData.length);
+        
+        // 计算统计信息
+        const totalSize = allData.reduce((sum, item) => sum + item.avg_size_mb, 0);
+        const avgSize = totalSize / allData.length;
+        const maxSize = Math.max(...allData.map(item => item.max_size_mb));
+        const minSize = Math.min(...allData.map(item => item.min_size_mb));
+        const lastUpdate = allData.reduce((latest, item) => 
+            new Date(item.calculated_at) > new Date(latest) ? item.calculated_at : latest, 
+            allData[0].calculated_at
+        );
+        
+        $('#modalTotalSize').text(this.formatSizeFromMB(totalSize));
+        $('#modalAvgSize').text(this.formatSizeFromMB(avgSize));
+        $('#modalMaxSize').text(this.formatSizeFromMB(maxSize));
+        $('#modalMinSize').text(this.formatSizeFromMB(minSize));
+        $('#modalLastUpdate').text(this.formatDate(lastUpdate));
+        
+        // 渲染详情图表
+        this.renderDetailChart(allData);
+    }
+    
+    /**
+     * 渲染详情图表
+     */
+    renderDetailChart(data) {
+        const ctx = document.getElementById('detailChart').getContext('2d');
+        
+        // 销毁现有图表
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+        
+        const sortedData = data.sort((a, b) => new Date(a.period_start) - new Date(b.period_start));
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: sortedData.map(item => item.period_start),
+                datasets: [{
+                    label: '平均大小',
+                    data: sortedData.map(item => item.avg_size_mb),
+                    borderColor: '#0d6efd',
+                    backgroundColor: '#0d6efd20',
+                    fill: false,
+                    tension: 0.1
+                }, {
+                    label: '最大大小',
+                    data: sortedData.map(item => item.max_size_mb),
+                    borderColor: '#dc3545',
+                    backgroundColor: '#dc354520',
+                    fill: false,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '大小趋势图'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '大小 (MB)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    /**
+     * 聚合计算
+     */
+    async calculateAggregations() {
+        console.log('开始聚合计算');
+        
+        // 显示进度模态框
+        $('#calculationModal').modal('show');
+        
+        try {
+            const response = await fetch('/database-sizes/aggregate-today', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.showSuccess('聚合计算完成');
+                // 重新加载数据
+                this.refreshAllData();
+            } else {
+                this.showError('聚合计算失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('聚合计算时出错:', error);
+            this.showError('聚合计算时出错: ' + error.message);
+        } finally {
+            $('#calculationModal').modal('hide');
+        }
+    }
+    
+    /**
+     * 构建筛选参数
+     */
+    buildFilterParams() {
+        const params = new URLSearchParams();
+        
+        if (this.currentFilters.instance_id) {
+            params.append('instance_id', this.currentFilters.instance_id);
+        }
+        if (this.currentFilters.db_type) {
+            params.append('db_type', this.currentFilters.db_type);
+        }
+        if (this.currentFilters.period_type) {
+            params.append('period_type', this.currentFilters.period_type);
+        }
+        if (this.currentFilters.start_date) {
+            params.append('start_date', this.currentFilters.start_date);
+        }
+        if (this.currentFilters.end_date) {
+            params.append('end_date', this.currentFilters.end_date);
+        }
+        
+        return params;
+    }
+    
+    /**
+     * 显示图表加载状态
+     */
+    showChartLoading() {
+        $('#chartLoading').removeClass('d-none');
+    }
+    
+    /**
+     * 隐藏图表加载状态
+     */
+    hideChartLoading() {
+        $('#chartLoading').addClass('d-none');
+    }
+    
+    /**
+     * 显示加载状态
+     */
+    showLoading() {
+        // 可以添加全局加载状态
+    }
+    
+    /**
+     * 隐藏加载状态
+     */
+    hideLoading() {
+        // 可以添加全局加载状态
+    }
+    
+    /**
+     * 显示成功消息
+     */
+    showSuccess(message) {
+        toastr.success(message);
+    }
+    
+    /**
+     * 显示错误消息
+     */
+    showError(message) {
+        toastr.error(message);
+    }
+    
+    /**
+     * 格式化大小
+     */
+    formatSizeFromMB(mb) {
+        if (mb === 0) return '0 B';
+        if (mb < 1024) return `${mb.toFixed(2)} MB`;
+        if (mb < 1024 * 1024) return `${(mb / 1024).toFixed(2)} GB`;
+        return `${(mb / (1024 * 1024)).toFixed(2)} TB`;
+    }
+    
+    /**
+     * 格式化日期
+     */
+    formatDate(dateString) {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleString('zh-CN');
+    }
+    
+    /**
+     * 获取CSRF令牌
+     */
+    getCSRFToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+}
+

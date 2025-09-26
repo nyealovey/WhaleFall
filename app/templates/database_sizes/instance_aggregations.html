@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}实例统计 - 数据库大小监控{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/database_sizes/instance_aggregations.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
+<style>
+    /* 实例统计页面特定样式 */
+    .instance-aggregations-page .search-filter-card {
+        margin-bottom: 1rem;
+    }
+    
+    .instance-aggregations-page .card-body {
+        padding: 0.75rem 1rem;
+    }
+    
+    .instance-aggregations-page .unified-search-form .row {
+        margin-bottom: 0;
+    }
+    
+    .instance-aggregations-page .filter-instance,
+    .instance-aggregations-page .filter-period-type,
+    .instance-aggregations-page .filter-db-type,
+    .instance-aggregations-page .filter-time-range {
+        margin-bottom: 0.25rem;
+    }
+    
+    /* 优化搜索框高度 */
+    .instance-aggregations-page .unified-search-form .form-label {
+        margin-bottom: 0.25rem;
+        font-size: 0.85rem;
+    }
+    
+    .instance-aggregations-page .unified-search-form .unified-input,
+    .instance-aggregations-page .unified-search-form .unified-select {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .instance-aggregations-page .unified-search-form .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-server me-2"></i>
+                        实例统计
+                    </h1>
+                    <p class="text-muted mb-0">按实例维度统计数据库大小聚合分析</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary" id="refreshData">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        刷新数据
+                    </button>
+                    <button class="btn btn-primary" id="calculateAggregations">
+                        <i class="fas fa-calculator me-1"></i>
+                        聚合今日数据
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统一搜索筛选 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="instance-aggregations-page">
+                {% set show_search_input = false %}
+                {% set search_button_text = '筛选' %}
+                {% set show_instance_filter = true %}
+                {% set show_period_type_filter = true %}
+                {% set show_database_filter = false %}
+                {% set show_time_range_filter = true %}
+                {% set show_db_type_filter = true %}
+                {% set show_classification_filter = false %}
+                {% set show_credential_type_filter = false %}
+                {% set show_tag_category_filter = false %}
+                {% set show_status_filter = false %}
+                {% set show_level_filter = false %}
+                {% set show_module_filter = false %}
+                {% set show_tag_filter = false %}
+                {% set show_sync_type_filter = false %}
+                {% set show_sync_category_filter = false %}
+                {% include 'components/unified_search_form.html' %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计概览 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">总实例数</h6>
+                            <h3 class="mb-0" id="totalInstances">-</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-server fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">总数据库数</h6>
+                            <h3 class="mb-0" id="totalDatabases">-</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-database fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">平均大小</h6>
+                            <h3 class="mb-0" id="averageSize">-</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">最大大小</h6>
+                            <h3 class="mb-0" id="maxSize">-</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-expand-arrows-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-area me-2"></i>
+                                实例统计趋势图
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex gap-2">
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="chartType" id="chartTypeLine" value="line" checked>
+                                    <label class="btn btn-outline-primary" for="chartTypeLine">折线图</label>
+                                    
+                                    <input type="radio" class="btn-check" name="chartType" id="chartTypeBar" value="bar">
+                                    <label class="btn btn-outline-primary" for="chartTypeBar">柱状图</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative">
+                        <div id="instanceChart" style="height: 500px; width: 100%;"></div>
+                        <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 实例统计表格 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table me-2"></i>
+                        实例统计详情
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="instanceTable">
+                            <thead>
+                                <tr>
+                                    <th>实例名称</th>
+                                    <th>数据库类型</th>
+                                    <th>数据库数量</th>
+                                    <th>总大小</th>
+                                    <th>平均大小</th>
+                                    <th>最大大小</th>
+                                    <th>最后更新</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 数据将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 详情模态框 -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    实例统计详情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>基本信息</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>实例名称:</td>
+                                <td id="modalInstanceName">-</td>
+                            </tr>
+                            <tr>
+                                <td>数据库类型:</td>
+                                <td id="modalDbType">-</td>
+                            </tr>
+                            <tr>
+                                <td>统计周期:</td>
+                                <td id="modalPeriodType">-</td>
+                            </tr>
+                            <tr>
+                                <td>统计时间:</td>
+                                <td id="modalPeriodRange">-</td>
+                            </tr>
+                            <tr>
+                                <td>数据库数量:</td>
+                                <td id="modalDatabaseCount">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>统计指标</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>总大小:</td>
+                                <td id="modalTotalSize">-</td>
+                            </tr>
+                            <tr>
+                                <td>平均大小:</td>
+                                <td id="modalAvgSize">-</td>
+                            </tr>
+                            <tr>
+                                <td>最大大小:</td>
+                                <td id="modalMaxSize">-</td>
+                            </tr>
+                            <tr>
+                                <td>最小大小:</td>
+                                <td id="modalMinSize">-</td>
+                            </tr>
+                            <tr>
+                                <td>最后更新:</td>
+                                <td id="modalLastUpdate">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6>趋势图表</h6>
+                        <canvas id="detailChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 计算进度模态框 -->
+<div class="modal fade" id="calculationModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calculator me-2"></i>
+                    聚合今日数据
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">计算中...</span>
+                    </div>
+                    <p class="mb-0">正在聚合今日数据，请稍候...</p>
+                    <div class="progress mt-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/pages/database_sizes/instance_aggregations.js') }}"></script>
+<script>
+// 页面加载完成后初始化实例统计页面
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof InstanceAggregationsManager !== 'undefined') {
+        window.instanceAggregationsManager = new InstanceAggregationsManager();
+    } else {
+        console.error('InstanceAggregationsManager class not found');
+    }
+});
+</script>
+{% endblock %}
+
