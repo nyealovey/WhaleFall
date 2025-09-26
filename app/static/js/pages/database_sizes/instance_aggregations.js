@@ -22,6 +22,7 @@ class InstanceAggregationsManager {
     init() {
         console.log('初始化实例统计管理器');
         this.bindEvents();
+        this.initializeDatabaseFilter();
         this.loadSummaryData();
         this.loadChartData();
         this.loadTableData();
@@ -53,6 +54,107 @@ class InstanceAggregationsManager {
         $('#resetButton').on('click', () => {
             this.resetFilters();
         });
+        
+        // 数据库类型变化时更新实例选项
+        $('#db_type').on('change', async (e) => {
+            const dbType = e.target.value;
+            console.log('数据库类型变化:', dbType);
+            await this.updateInstanceOptions(dbType);
+            this.updateFilters();
+            this.loadChartData();
+        });
+        
+        // 实例变化时自动刷新
+        $('#instance').on('change', () => {
+            this.updateFilters();
+            this.loadChartData();
+        });
+    }
+    
+    /**
+     * 初始化数据库筛选器
+     */
+    initializeDatabaseFilter() {
+        const instanceSelect = $('#instance');
+        
+        // 初始化实例筛选器
+        instanceSelect.empty();
+        instanceSelect.append('<option value="">请先选择数据库类型</option>');
+        instanceSelect.prop('disabled', true);
+    }
+    
+    /**
+     * 根据选择的数据库类型更新实例选项
+     */
+    async updateInstanceOptions(dbType) {
+        const instanceSelect = $('#instance');
+        
+        if (!dbType) {
+            // 如果没有选择数据库类型，显示所有实例
+            instanceSelect.prop('disabled', false);
+            await this.loadInstances();
+            return;
+        }
+        
+        try {
+            instanceSelect.prop('disabled', false);
+            const response = await fetch(`/instances/api/instances?db_type=${dbType}`);
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                instanceSelect.empty();
+                instanceSelect.append('<option value="">所有实例</option>');
+                data.instances.forEach(instance => {
+                    instanceSelect.append(`<option value="${instance.id}">${instance.name} (${instance.db_type})</option>`);
+                });
+            } else {
+                instanceSelect.empty();
+                instanceSelect.append('<option value="">加载失败</option>');
+                console.error('实例加载失败:', data);
+            }
+        } catch (error) {
+            console.error('加载实例列表时出错:', error);
+            instanceSelect.empty();
+            instanceSelect.append('<option value="">加载失败</option>');
+        }
+    }
+    
+    /**
+     * 加载实例列表
+     */
+    async loadInstances(dbType = null) {
+        try {
+            let url = '/instances/api/instances';
+            if (dbType) {
+                url += `?db_type=${dbType}`;
+            }
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (response.ok) {
+                const select = $('#instance');
+                select.empty();
+                select.append('<option value="">所有实例</option>');
+                
+                data.instances.forEach(instance => {
+                    select.append(`<option value="${instance.id}">${instance.name} (${instance.db_type})</option>`);
+                });
+            }
+        } catch (error) {
+            console.error('加载实例列表时出错:', error);
+        }
+    }
+    
+    /**
+     * 更新筛选器
+     */
+    updateFilters() {
+        this.currentFilters.db_type = $('#db_type').val();
+        this.currentFilters.instance_id = $('#instance').val();
+        this.currentFilters.period_type = $('#period_type').val();
+        this.currentFilters.start_date = $('#start_date').val();
+        this.currentFilters.end_date = $('#end_date').val();
     }
     
     /**
@@ -60,16 +162,7 @@ class InstanceAggregationsManager {
      */
     applyFilters() {
         console.log('应用筛选条件');
-        
-        // 获取筛选条件
-        this.currentFilters = {
-            instance_id: $('#instanceFilter').val() || null,
-            db_type: $('#dbTypeFilter').val() || null,
-            period_type: $('#periodTypeFilter').val() || 'daily',
-            start_date: $('#startDateFilter').val() || null,
-            end_date: $('#endDateFilter').val() || null
-        };
-        
+        this.updateFilters();
         console.log('当前筛选条件:', this.currentFilters);
         
         // 重新加载数据
