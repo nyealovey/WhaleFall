@@ -1,10 +1,9 @@
 /**
  * 实例管理页面JavaScript
- * 处理实例的连接测试、删除、批量操作等功能
+ * 处理实例的连接测试、批量操作等功能
  */
 
 // 全局变量
-let deleteInstanceId = null;
 let listPageTagSelector = null;
 
 // 页面加载完成后初始化
@@ -216,12 +215,6 @@ function setupTagSelectorEvents() {
 
 // 设置事件监听器
 function setupEventListeners() {
-    // 删除确认按钮
-    const confirmDeleteBtn = document.getElementById('confirmDelete');
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', handleDeleteConfirm);
-    }
-
     // 批量操作相关
     const selectAllCheckbox = document.getElementById('selectAll');
     if (selectAllCheckbox) {
@@ -375,42 +368,7 @@ function syncCapacity(instanceId, instanceName) {
     });
 }
 
-// 删除实例
-function deleteInstance(instanceId, instanceName) {
-    deleteInstanceId = instanceId;
-    const nameElement = document.getElementById('deleteInstanceName');
-    if (nameElement) {
-        nameElement.textContent = instanceName;
-    }
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-}
 
-// 处理删除确认
-function handleDeleteConfirm() {
-    if (deleteInstanceId) {
-        const csrfToken = getCSRFToken();
-
-        fetch(`/instances/${deleteInstanceId}/delete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.message) {
-                showAlert('success', data.message);
-                setTimeout(() => location.reload(), 1000);
-            } else if (data.error) {
-                showAlert('danger', data.error);
-            }
-        })
-        .catch(error => {
-            showAlert('danger', '删除失败');
-        });
-    }
-}
 
 // 显示提示信息
 function showAlert(type, message) {
