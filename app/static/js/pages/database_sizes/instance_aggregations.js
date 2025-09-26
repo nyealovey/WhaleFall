@@ -208,11 +208,11 @@ class InstanceAggregationsManager {
             return;
         }
         
-        // 按实例分组数据
-        const instanceData = this.groupDataByInstance(data);
+        // 按日期分组数据
+        const groupedData = this.groupDataByDate(data);
         
         // 准备图表数据
-        const chartData = this.prepareChartData(instanceData);
+        const chartData = this.prepareChartData(groupedData);
         
         // 创建图表
         this.chart = new Chart(ctx, {
@@ -269,56 +269,63 @@ class InstanceAggregationsManager {
     }
     
     /**
-     * 按实例分组数据
+     * 按日期分组数据
      */
-    groupDataByInstance(data) {
+    groupDataByDate(data) {
         const grouped = {};
         
         data.forEach(item => {
-            const key = `${item.instance.name}_${item.instance.db_type}`;
-            if (!grouped[key]) {
-                grouped[key] = {
-                    instance_name: item.instance.name,
-                    db_type: item.instance.db_type,
-                    data: []
-                };
+            const date = item.period_start;
+            if (!date) {
+                console.warn('数据项缺少period_start:', item);
+                return;
             }
-            grouped[key].data.push(item);
+            
+            if (!grouped[date]) {
+                grouped[date] = {};
+            }
+            
+            // 按实例分组，累加所有数据库的大小
+            const instanceName = item.instance?.name || '未知实例';
+            if (!grouped[date][instanceName]) {
+                grouped[date][instanceName] = 0;
+            }
+            // 使用avg_size_mb累加，表示实例的平均容量
+            grouped[date][instanceName] += item.avg_size_mb || 0;
         });
         
+        console.log('分组后的数据:', grouped);
         return grouped;
     }
     
     /**
      * 准备图表数据
      */
-    prepareChartData(instanceData) {
-        const labels = [];
+    prepareChartData(groupedData) {
+        const labels = Object.keys(groupedData).sort();
         const datasets = [];
         const colors = [
             '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
             '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
         ];
         
+        // 收集所有实例名称
+        const allInstances = new Set();
+        Object.values(groupedData).forEach(dateData => {
+            Object.keys(dateData).forEach(instanceName => {
+                allInstances.add(instanceName);
+            });
+        });
+        
         let colorIndex = 0;
         
-        Object.keys(instanceData).forEach(key => {
-            const instance = instanceData[key];
-            const sortedData = instance.data.sort((a, b) => 
-                new Date(a.period_start) - new Date(b.period_start)
-            );
+        // 为每个实例创建数据集
+        allInstances.forEach(instanceName => {
+            const data = labels.map(date => groupedData[date][instanceName] || 0);
             
-            // 收集标签
-            if (labels.length === 0) {
-                sortedData.forEach(item => {
-                    labels.push(item.period_start);
-                });
-            }
-            
-            // 创建数据集
             datasets.push({
-                label: `${instance.instance_name} (${instance.db_type})`,
-                data: sortedData.map(item => item.avg_size_mb),
+                label: instanceName,
+                data: data,
                 borderColor: colors[colorIndex % colors.length],
                 backgroundColor: colors[colorIndex % colors.length] + '20',
                 fill: false,

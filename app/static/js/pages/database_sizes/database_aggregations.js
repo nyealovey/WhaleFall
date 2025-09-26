@@ -212,11 +212,11 @@ class DatabaseAggregationsManager {
             return;
         }
         
-        // 按数据库分组数据
-        const databaseData = this.groupDataByDatabase(data);
+        // 按日期分组数据
+        const groupedData = this.groupDataByDate(data);
         
         // 准备图表数据
-        const chartData = this.prepareChartData(databaseData);
+        const chartData = this.prepareChartData(groupedData);
         
         // 创建图表
         this.chart = new Chart(ctx, {
@@ -273,57 +273,63 @@ class DatabaseAggregationsManager {
     }
     
     /**
-     * 按数据库分组数据
+     * 按日期分组数据
      */
-    groupDataByDatabase(data) {
+    groupDataByDate(data) {
         const grouped = {};
         
         data.forEach(item => {
-            const key = `${item.instance.name}_${item.database_name}`;
-            if (!grouped[key]) {
-                grouped[key] = {
-                    instance_name: item.instance.name,
-                    database_name: item.database_name,
-                    db_type: item.instance.db_type,
-                    data: []
-                };
+            const date = item.period_start;
+            if (!date) {
+                console.warn('数据项缺少period_start:', item);
+                return;
             }
-            grouped[key].data.push(item);
+            
+            if (!grouped[date]) {
+                grouped[date] = {};
+            }
+            
+            // 按数据库分组，使用avg_size_mb作为显示值
+            const dbName = item.database_name || '未知数据库';
+            if (!grouped[date][dbName]) {
+                grouped[date][dbName] = 0;
+            }
+            // 累加平均值，处理同一天多条记录的情况
+            grouped[date][dbName] += item.avg_size_mb || 0;
         });
         
+        console.log('分组后的数据:', grouped);
         return grouped;
     }
     
     /**
      * 准备图表数据
      */
-    prepareChartData(databaseData) {
-        const labels = [];
+    prepareChartData(groupedData) {
+        const labels = Object.keys(groupedData).sort();
         const datasets = [];
         const colors = [
             '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
             '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
         ];
         
+        // 收集所有数据库名称
+        const allDatabases = new Set();
+        Object.values(groupedData).forEach(dateData => {
+            Object.keys(dateData).forEach(dbName => {
+                allDatabases.add(dbName);
+            });
+        });
+        
         let colorIndex = 0;
         
-        Object.keys(databaseData).forEach(key => {
-            const database = databaseData[key];
-            const sortedData = database.data.sort((a, b) => 
-                new Date(a.period_start) - new Date(b.period_start)
-            );
+        // 为每个数据库创建数据集
+        allDatabases.forEach(dbName => {
+            const data = labels.map(date => groupedData[date][dbName] || 0);
             
-            // 收集标签
-            if (labels.length === 0) {
-                sortedData.forEach(item => {
-                    labels.push(item.period_start);
-                });
-            }
-            
-            // 创建数据集
             datasets.push({
-                label: `${database.instance_name}.${database.database_name}`,
-                data: sortedData.map(item => item.avg_size_mb),
+                label: dbName,
+                data: data,
                 borderColor: colors[colorIndex % colors.length],
                 backgroundColor: colors[colorIndex % colors.length] + '20',
                 fill: false,
