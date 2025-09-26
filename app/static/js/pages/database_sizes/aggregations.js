@@ -18,6 +18,7 @@ class AggregationsManager {
         };
         this.currentSortBy = 'period_start';
         this.currentChartType = 'line';
+        this.currentChartMode = 'database'; // 'database' 或 'instance'
         
         this.init();
     }
@@ -76,6 +77,12 @@ class AggregationsManager {
         // 图表类型切换
         $('input[name="chartType"]').on('change', (e) => {
             this.currentChartType = e.target.value;
+            this.updateChart();
+        });
+        
+        // 图表模式切换
+        $('input[name="chartMode"]').on('change', (e) => {
+            this.currentChartMode = e.target.value;
             this.updateChart();
         });
         
@@ -148,8 +155,8 @@ class AggregationsManager {
     updateSummaryCards(data) {
         $('#totalInstances').text(data.total_instances || 0);
         $('#totalDatabases').text(data.total_databases || 0);
-        $('#averageSize').text(this.formatSize(data.average_size_mb || 0));
-        $('#maxSize').text(this.formatSize(data.max_size_mb || 0));
+        $('#averageSize').text(this.formatSizeFromMB(data.average_size_mb || 0));
+        $('#maxSize').text(this.formatSizeFromMB(data.max_size_mb || 0));
     }
     
     /**
@@ -326,7 +333,7 @@ class AggregationsManager {
                 plugins: {
                     title: {
                         display: true,
-                        text: '数据库大小统计聚合趋势',
+                        text: this.currentChartMode === 'instance' ? '实例聚合趋势图 (TOP 20)' : '数据库聚合趋势图 (TOP 20)',
                         font: {
                             size: 16,
                             weight: 'bold'
@@ -347,7 +354,7 @@ class AggregationsManager {
                             label: function(context) {
                                 const label = context.dataset.label || '';
                                 const value = context.parsed.y;
-                                return `${label}: ${AggregationsManager.prototype.formatSize(value)}`;
+                                return `${label}: ${AggregationsManager.prototype.formatSizeFromMB(value)}`;
                             }
                         }
                     }
@@ -367,11 +374,16 @@ class AggregationsManager {
                         display: true,
                         title: {
                             display: true,
-                            text: '存储大小 (MB)'
+                            text: '存储大小'
                         },
                         beginAtZero: true,
                         grid: {
                             color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return AggregationsManager.prototype.formatSizeFromMB(value);
+                            }
                         }
                     }
                 },
@@ -409,7 +421,14 @@ class AggregationsManager {
             if (!grouped[date]) {
                 grouped[date] = {};
             }
-            grouped[date][item.database_name] = item.avg_size_mb;
+            
+            if (this.currentChartMode === 'instance') {
+                // 按实例分组
+                grouped[date][item.instance.name] = item.avg_size_mb;
+            } else {
+                // 按数据库分组
+                grouped[date][item.database_name] = item.avg_size_mb;
+            }
         });
         
         return grouped;
@@ -419,16 +438,96 @@ class AggregationsManager {
      * 准备图表数据集
      */
     prepareChartDatasets(groupedData, labels) {
-        const databases = [...new Set(this.currentData.map(item => item.database_name))].sort();
+        if (this.currentChartMode === 'instance') {
+            return this.prepareInstanceDatasets(groupedData, labels);
+        } else {
+            return this.prepareDatabaseDatasets(groupedData, labels);
+        }
+    }
+    
+    /**
+     * 准备数据库数据集
+     */
+    prepareDatabaseDatasets(groupedData, labels) {
+        // 计算每个数据库的平均大小，选择TOP 20
+        const databaseStats = {};
+        
+        this.currentData.forEach(item => {
+            const dbName = item.database_name;
+            if (!databaseStats[dbName]) {
+                databaseStats[dbName] = {
+                    totalSize: 0,
+                    count: 0,
+                    maxSize: 0
+                };
+            }
+            databaseStats[dbName].totalSize += item.avg_size_mb || 0;
+            databaseStats[dbName].count += 1;
+            databaseStats[dbName].maxSize = Math.max(databaseStats[dbName].maxSize, item.max_size_mb || 0);
+        });
+        
+        // 按最大大小排序，选择TOP 20
+        const topDatabases = Object.entries(databaseStats)
+            .sort(([,a], [,b]) => b.maxSize - a.maxSize)
+            .slice(0, 20)
+            .map(([dbName]) => dbName);
+        
         const colors = [
             '#667eea', '#764ba2', '#f093fb', '#f5576c',
             '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
-            '#fa709a', '#fee140', '#a8edea', '#fed6e3'
+            '#fa709a', '#fee140', '#a8edea', '#fed6e3',
+            '#ff9a9e', '#fecfef', '#fecfef', '#a8c0ff',
+            '#ffecd2', '#fcb69f', '#ff8a80', '#ff80ab'
         ];
         
-        return databases.map((db, index) => ({
+        return topDatabases.map((db, index) => ({
             label: db,
             data: labels.map(date => groupedData[date]?.[db] || 0),
+            borderColor: colors[index % colors.length],
+            backgroundColor: colors[index % colors.length] + '20',
+            fill: this.currentChartType === 'area',
+            tension: 0.1
+        }));
+    }
+    
+    /**
+     * 准备实例数据集
+     */
+    prepareInstanceDatasets(groupedData, labels) {
+        // 计算每个实例的平均大小，选择TOP 20
+        const instanceStats = {};
+        
+        this.currentData.forEach(item => {
+            const instanceName = item.instance.name;
+            if (!instanceStats[instanceName]) {
+                instanceStats[instanceName] = {
+                    totalSize: 0,
+                    count: 0,
+                    maxSize: 0
+                };
+            }
+            instanceStats[instanceName].totalSize += item.avg_size_mb || 0;
+            instanceStats[instanceName].count += 1;
+            instanceStats[instanceName].maxSize = Math.max(instanceStats[instanceName].maxSize, item.max_size_mb || 0);
+        });
+        
+        // 按最大大小排序，选择TOP 20
+        const topInstances = Object.entries(instanceStats)
+            .sort(([,a], [,b]) => b.maxSize - a.maxSize)
+            .slice(0, 20)
+            .map(([instanceName]) => instanceName);
+        
+        const colors = [
+            '#667eea', '#764ba2', '#f093fb', '#f5576c',
+            '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+            '#fa709a', '#fee140', '#a8edea', '#fed6e3',
+            '#ff9a9e', '#fecfef', '#fecfef', '#a8c0ff',
+            '#ffecd2', '#fcb69f', '#ff8a80', '#ff80ab'
+        ];
+        
+        return topInstances.map((instance, index) => ({
+            label: instance,
+            data: labels.map(date => groupedData[date]?.[instance] || 0),
             borderColor: colors[index % colors.length],
             backgroundColor: colors[index % colors.length] + '20',
             fill: this.currentChartType === 'area',
@@ -532,13 +631,13 @@ class AggregationsManager {
                     <span class="period-type ${item.period_type}">${this.getPeriodTypeLabel(item.period_type)}</span>
                 </td>
                 <td>
-                    <span class="size-display">${this.formatSize(item.avg_size_mb)}</span>
+                    <span class="size-display">${this.formatSizeFromMB(item.avg_size_mb)}</span>
                 </td>
                 <td>
-                    <span class="size-display">${this.formatSize(item.max_size_mb)}</span>
+                    <span class="size-display">${this.formatSizeFromMB(item.max_size_mb)}</span>
                 </td>
                 <td>
-                    <span class="size-display">${this.formatSize(item.min_size_mb)}</span>
+                    <span class="size-display">${this.formatSizeFromMB(item.min_size_mb)}</span>
                 </td>
                 <td>
                     <span class="badge bg-info">${item.data_count}</span>
@@ -848,7 +947,7 @@ class AggregationsManager {
     }
     
     /**
-     * 格式化文件大小
+     * 格式化文件大小（从字节开始）
      */
     formatSize(bytes) {
         if (bytes === 0) return '0 B';
@@ -858,6 +957,31 @@ class AggregationsManager {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    /**
+     * 格式化文件大小（从MB开始）
+     */
+    formatSizeFromMB(mb) {
+        if (mb === 0) return '0 MB';
+        
+        const k = 1024;
+        const sizes = ['MB', 'GB', 'TB'];
+        
+        if (mb < k) {
+            return parseFloat(mb.toFixed(2)) + ' MB';
+        }
+        
+        // 计算应该使用哪个单位
+        let i = 0;
+        let size = mb;
+        
+        while (size >= k && i < sizes.length - 1) {
+            size = size / k;
+            i++;
+        }
+        
+        return parseFloat(size.toFixed(2)) + ' ' + sizes[i];
     }
     
     /**

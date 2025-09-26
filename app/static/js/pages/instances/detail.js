@@ -600,12 +600,10 @@ function displayDatabaseSizes(databases, totalSize) {
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 30%;"><i class="fas fa-database me-1"></i>数据库名称</th>
-                        <th style="width: 12%;"><i class="fas fa-hdd me-1"></i>总大小</th>
-                        <th style="width: 12%;"><i class="fas fa-file me-1"></i>数据大小</th>
-                        <th style="width: 12%;"><i class="fas fa-file-alt me-1"></i>日志大小</th>
-                        <th style="width: 10%;"><i class="fas fa-trash me-1"></i>状态</th>
-                        <th style="width: 24%;"><i class="fas fa-clock me-1"></i>采集时间</th>
+                        <th style="width: 40%;"><i class="fas fa-database me-1"></i>数据库名称</th>
+                        <th style="width: 20%;"><i class="fas fa-hdd me-1"></i>总大小</th>
+                        <th style="width: 15%;"><i class="fas fa-trash me-1"></i>状态</th>
+                        <th style="width: 25%;"><i class="fas fa-clock me-1"></i>采集时间</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -613,8 +611,6 @@ function displayDatabaseSizes(databases, totalSize) {
     
     databases.forEach(db => {
         const sizeGB = (db.size_mb / 1024).toFixed(3);
-        const dataSizeGB = (db.data_size_mb / 1024).toFixed(3);
-        const logSizeGB = db.log_size_mb ? (db.log_size_mb / 1024).toFixed(3) : '-';
         const collectedAt = new Date(db.collected_at).toLocaleString('zh-CN');
         
         const isDeleted = db.is_deleted || false;
@@ -653,15 +649,6 @@ function displayDatabaseSizes(databases, totalSize) {
                 </td>
                 <td>
                     <span class="${sizeBadgeClass}">${sizeGB} GB</span>
-                </td>
-                <td>
-                    <span class="text-muted">${dataSizeGB} GB</span>
-                </td>
-                <td>
-                    ${db.log_size_mb ? 
-                        `<span class="text-muted">${logSizeGB} GB</span>` : 
-                        '<span class="text-muted">-</span>'
-                    }
                 </td>
                 <td>
                     ${statusBadge}

@@ -167,24 +167,15 @@ class DatabaseSizeCollectorService:
     
     def _collect_sqlserver_sizes(self) -> List[Dict[str, Any]]:
         """采集 SQL Server 数据库大小"""
-        # 使用 sys.master_files 直接查询所有数据库大小，避免使用 USE [database]
+        # 只采集数据文件大小，不采集日志文件大小
         query = """
-            WITH DBSize AS (
-                SELECT
-                    DB_NAME(database_id) AS DatabaseName,
-                    SUM(CASE WHEN type_desc = 'ROWS' THEN size * 8.0 / 1024 ELSE 0 END) AS DataFileSize_MB,
-                    SUM(CASE WHEN type_desc = 'LOG' THEN size * 8.0 / 1024 ELSE 0 END) AS LogFileSize_MB
-                FROM sys.master_files
-                WHERE DB_NAME(database_id) IS NOT NULL
-                GROUP BY database_id
-            )
             SELECT
-                DatabaseName,
-                DataFileSize_MB,
-                LogFileSize_MB,
-                (DataFileSize_MB + LogFileSize_MB) AS TotalSize_MB
-            FROM DBSize
-            ORDER BY TotalSize_MB DESC
+                DB_NAME(database_id) AS DatabaseName,
+                SUM(CASE WHEN type_desc = 'ROWS' THEN size * 8.0 / 1024 ELSE 0 END) AS DataFileSize_MB
+            FROM sys.master_files
+            WHERE DB_NAME(database_id) IS NOT NULL
+            GROUP BY database_id
+            ORDER BY DataFileSize_MB DESC
         """
         
         result = self.db_connection.execute_query(query)
@@ -195,19 +186,17 @@ class DatabaseSizeCollectorService:
         for row in result:
             database_name = row[0]
             data_size_mb = int(float(row[1] or 0))
-            log_size_mb = int(float(row[2] or 0))
-            total_size_mb = int(float(row[3] or 0))
             
             data.append({
                 'database_name': database_name,
-                'size_mb': total_size_mb,
+                'size_mb': data_size_mb,  # 总大小 = 数据大小
                 'data_size_mb': data_size_mb,
-                'log_size_mb': log_size_mb,
+                'log_size_mb': None,  # 不采集日志大小
                 'collected_date': date.today(),
                 'collected_at': datetime.utcnow()
             })
             
-            self.logger.info(f"SQL Server 数据库 {database_name}: 总大小 {total_size_mb} MB, 数据大小 {data_size_mb} MB, 日志大小 {log_size_mb} MB")
+            self.logger.info(f"SQL Server 数据库 {database_name}: 数据大小 {data_size_mb} MB")
         
         self.logger.info(f"SQL Server 实例 {self.instance.name} 采集到 {len(data)} 个数据库")
         return data
