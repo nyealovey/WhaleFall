@@ -544,7 +544,7 @@ async function loadAggregationData() {
         
         console.log('选中的周期类型:', selectedPeriodType);
         
-        const response = await fetch('/database-sizes/aggregations/latest?api=true');
+        const response = await fetch('/partition-management/aggregations/latest?api=true');
         const data = await response.json();
         
         if (response.ok) {
