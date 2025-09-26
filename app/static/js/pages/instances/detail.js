@@ -542,8 +542,7 @@ function displayDatabaseSizes(databases, totalSize) {
     }
     
     // 计算总容量显示
-    const totalSizeGB = (totalSize / 1024).toFixed(2);
-    const totalSizeMB = totalSize.toFixed(0);
+    const totalSizeGB = (totalSize / 1024).toFixed(3);
     
     let html = `
         <div class="row mb-3">
@@ -559,7 +558,7 @@ function displayDatabaseSizes(databases, totalSize) {
                 <div class="card bg-light">
                     <div class="card-body text-center">
                         <h5 class="card-title text-success">${totalSizeGB} GB</h5>
-                        <p class="card-text text-muted">总容量 (${totalSizeMB} MB)</p>
+                        <p class="card-text text-muted">总容量</p>
                     </div>
                 </div>
             </div>
@@ -580,9 +579,9 @@ function displayDatabaseSizes(databases, totalSize) {
     `;
     
     databases.forEach(db => {
-        const sizeGB = (db.size_mb / 1024).toFixed(2);
-        const dataSizeGB = (db.data_size_mb / 1024).toFixed(2);
-        const logSizeGB = db.log_size_mb ? (db.log_size_mb / 1024).toFixed(2) : '-';
+        const sizeGB = (db.size_mb / 1024).toFixed(3);
+        const dataSizeGB = (db.data_size_mb / 1024).toFixed(3);
+        const logSizeGB = db.log_size_mb ? (db.log_size_mb / 1024).toFixed(3) : '-';
         const collectedAt = new Date(db.collected_at).toLocaleString('zh-CN');
         
         html += `
@@ -595,16 +594,13 @@ function displayDatabaseSizes(databases, totalSize) {
                 </td>
                 <td>
                     <span class="badge bg-primary">${sizeGB} GB</span>
-                    <small class="text-muted ms-1">(${db.size_mb} MB)</small>
                 </td>
                 <td>
                     <span class="badge bg-info">${dataSizeGB} GB</span>
-                    <small class="text-muted ms-1">(${db.data_size_mb} MB)</small>
                 </td>
                 <td>
                     ${db.log_size_mb ? 
-                        `<span class="badge bg-warning">${logSizeGB} GB</span>
-                         <small class="text-muted ms-1">(${db.log_size_mb} MB)</small>` : 
+                        `<span class="badge bg-warning">${logSizeGB} GB</span>` : 
                         '<span class="text-muted">-</span>'
                     }
                 </td>
