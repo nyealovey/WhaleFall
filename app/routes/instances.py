@@ -1792,7 +1792,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
         return jsonify({"success": False, "error": f"获取变更历史失败: {str(e)}"}), 500
 
 
-@instances_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=['POST'])
+@instances_bp.route("/<int:instance_id>/sync-capacity", methods=['POST'])
 @login_required
 @view_required
 def sync_instance_capacity(instance_id: int) -> Response:
