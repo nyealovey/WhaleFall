@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS database_size_stats (
     log_size_mb BIGINT,
     collected_date DATE NOT NULL,
     collected_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     PRIMARY KEY (id, collected_date)
 ) PARTITION BY RANGE (collected_date);
@@ -34,6 +36,8 @@ COMMENT ON COLUMN database_size_stats.data_size_mb IS '数据部分大小（MB�
 COMMENT ON COLUMN database_size_stats.log_size_mb IS '日志部分大小（MB，SQL Server）';
 COMMENT ON COLUMN database_size_stats.collected_date IS '采集日期（用于分区）';
 COMMENT ON COLUMN database_size_stats.collected_at IS '采集时间戳';
+COMMENT ON COLUMN database_size_stats.is_deleted IS '是否已删除（软删除）';
+COMMENT ON COLUMN database_size_stats.deleted_at IS '删除时间';
 COMMENT ON COLUMN database_size_stats.created_at IS '记录创建时间';
 
 -- 创建索引
@@ -42,6 +46,17 @@ ON database_size_stats (collected_date);
 
 CREATE INDEX IF NOT EXISTS ix_database_size_stats_instance_date 
 ON database_size_stats (instance_id, collected_date);
+
+-- 软删除相关索引
+CREATE INDEX IF NOT EXISTS ix_database_size_stats_is_deleted 
+ON database_size_stats (is_deleted);
+
+CREATE INDEX IF NOT EXISTS ix_database_size_stats_deleted_at 
+ON database_size_stats (deleted_at);
+
+-- 复合索引（用于软删除查询优化）
+CREATE INDEX IF NOT EXISTS ix_database_size_stats_instance_deleted 
+ON database_size_stats (instance_id, is_deleted, collected_date);
 
 -- 创建唯一约束（确保每日唯一性）
 CREATE UNIQUE INDEX IF NOT EXISTS uq_daily_database_size 
@@ -356,7 +371,88 @@ WHERE EXISTS (SELECT 1 FROM instances WHERE id = 1);
 -- GRANT USAGE, SELECT ON SEQUENCE database_size_aggregations_id_seq TO your_app_user;
 
 -- ============================================
--- 完成
+-- 8. 软删除字段迁移（适用于现有表）
+-- ============================================
+
+-- 为现有表添加软删除字段（如果不存在）
+DO $$
+BEGIN
+    -- 检查 is_deleted 字段是否存在
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'database_size_stats' 
+        AND column_name = 'is_deleted'
+    ) THEN
+        -- 添加 is_deleted 字段
+        ALTER TABLE database_size_stats 
+        ADD COLUMN is_deleted BOOLEAN NOT NULL DEFAULT FALSE;
+        
+        -- 添加注释
+        COMMENT ON COLUMN database_size_stats.is_deleted IS '是否已删除（软删除）';
+        
+        RAISE NOTICE 'Added is_deleted column to database_size_stats table';
+    ELSE
+        RAISE NOTICE 'is_deleted column already exists in database_size_stats table';
+    END IF;
+    
+    -- 检查 deleted_at 字段是否存在
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'database_size_stats' 
+        AND column_name = 'deleted_at'
+    ) THEN
+        -- 添加 deleted_at 字段
+        ALTER TABLE database_size_stats 
+        ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE;
+        
+        -- 添加注释
+        COMMENT ON COLUMN database_size_stats.deleted_at IS '删除时间';
+        
+        RAISE NOTICE 'Added deleted_at column to database_size_stats table';
+    ELSE
+        RAISE NOTICE 'deleted_at column already exists in database_size_stats table';
+    END IF;
+END $$;
+
+-- 为现有表添加软删除相关索引（如果不存在）
+DO $$
+BEGIN
+    -- 检查 is_deleted 索引是否存在
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes 
+        WHERE tablename = 'database_size_stats' 
+        AND indexname = 'ix_database_size_stats_is_deleted'
+    ) THEN
+        CREATE INDEX ix_database_size_stats_is_deleted 
+        ON database_size_stats (is_deleted);
+        RAISE NOTICE 'Created index ix_database_size_stats_is_deleted';
+    END IF;
+    
+    -- 检查 deleted_at 索引是否存在
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes 
+        WHERE tablename = 'database_size_stats' 
+        AND indexname = 'ix_database_size_stats_deleted_at'
+    ) THEN
+        CREATE INDEX ix_database_size_stats_deleted_at 
+        ON database_size_stats (deleted_at);
+        RAISE NOTICE 'Created index ix_database_size_stats_deleted_at';
+    END IF;
+    
+    -- 检查复合索引是否存在
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes 
+        WHERE tablename = 'database_size_stats' 
+        AND indexname = 'ix_database_size_stats_instance_deleted'
+    ) THEN
+        CREATE INDEX ix_database_size_stats_instance_deleted 
+        ON database_size_stats (instance_id, is_deleted, collected_date);
+        RAISE NOTICE 'Created index ix_database_size_stats_instance_deleted';
+    END IF;
+END $$;
+
+-- ============================================
+-- 9. 完成
 -- ============================================
 
 -- 显示创建结果
@@ -374,7 +470,11 @@ SELECT
 UNION ALL
 SELECT 
     'Auto-partition trigger' as table_name,
-    'Trigger created' as status;
+    'Trigger created' as status
+UNION ALL
+SELECT 
+    'Soft delete fields' as table_name,
+    'Migration completed' as status;
 
 -- 显示当前分区
 SELECT 
@@ -384,3 +484,14 @@ SELECT
 FROM pg_tables 
 WHERE tablename LIKE 'database_size_stats_%'
 ORDER BY tablename;
+
+-- 验证软删除字段
+SELECT 
+    column_name, 
+    data_type, 
+    is_nullable, 
+    column_default
+FROM information_schema.columns 
+WHERE table_name = 'database_size_stats' 
+AND column_name IN ('is_deleted', 'deleted_at')
+ORDER BY column_name;
