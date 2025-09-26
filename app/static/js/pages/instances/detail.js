@@ -273,7 +273,7 @@ function syncCapacity(instanceId, instanceName) {
     // 获取CSRF token
     const csrfToken = getCSRFToken();
 
-    fetch(`/instances/api/instances/${instanceId}/sync-capacity`, {
+    fetch(`/instances/${instanceId}/sync-capacity`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
