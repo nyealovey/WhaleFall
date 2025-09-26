@@ -508,9 +508,14 @@ class AggregationsManager {
         
         // 根据图表类型调整配置
         if (this.currentChartType === 'area') {
-            chartConfig.type = 'line'; // 使用 line 类型实现面积图
+            // 面积图使用 line 类型，但设置 fill 为 true
+            chartConfig.type = 'line';
             chartConfig.data.datasets.forEach(dataset => {
                 dataset.fill = true;
+                // 确保背景色有透明度
+                if (dataset.backgroundColor && !dataset.backgroundColor.includes('20')) {
+                    dataset.backgroundColor = dataset.backgroundColor + '20';
+                }
             });
         }
         
@@ -597,7 +602,6 @@ class AggregationsManager {
             data: labels.map(date => groupedData[date]?.[db] || 0),
             borderColor: colors[index % colors.length],
             backgroundColor: colors[index % colors.length] + '20',
-            fill: this.currentChartType === 'area',
             tension: 0.1
         }));
     }
@@ -643,7 +647,6 @@ class AggregationsManager {
             data: labels.map(date => groupedData[date]?.[instance] || 0),
             borderColor: colors[index % colors.length],
             backgroundColor: colors[index % colors.length] + '20',
-            fill: this.currentChartType === 'area',
             tension: 0.1
         }));
     }
