@@ -593,10 +593,10 @@ function showAggregationLoadingState() {
  */
 function renderAggregationTable(data) {
     const tbody = document.getElementById('aggregationTableBody');
-    tbody.empty();
+    tbody.innerHTML = '';
     
     if (data.length === 0) {
-        tbody.append(`
+        tbody.innerHTML = `
             <tr>
                 <td colspan="9" class="text-center">
                     <div class="empty-state">
@@ -606,13 +606,13 @@ function renderAggregationTable(data) {
                     </div>
                 </td>
             </tr>
-        `);
+        `;
         return;
     }
     
     data.forEach(item => {
         const row = createAggregationTableRow(item);
-        tbody.append(row);
+        tbody.insertAdjacentHTML('beforeend', row);
     });
 }
 
