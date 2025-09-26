@@ -185,8 +185,10 @@ class AggregationsManager {
             this.showChartLoading();
             
             const params = this.buildFilterParams();
+            // 添加图表模式参数
+            params.append('chart_mode', this.currentChartMode);
             console.log('加载图表数据，参数:', params.toString());
-            const response = await fetch(`/database-sizes/aggregations?api=true&${params}`);
+            const response = await fetch(`/database-sizes/aggregations?api=true&get_all=true&${params}`);
             const data = await response.json();
             
             console.log('图表数据响应:', data);
@@ -674,7 +676,7 @@ class AggregationsManager {
                     grouped[date][instanceName] = 0;
                 }
                 // 使用avg_size_mb累加，表示实例的平均容量
-                grouped[date][instanceName] += item.avg_size_mb || item.max_size_mb || 0;
+                grouped[date][instanceName] += item.avg_size_mb || 0;
             } else {
                 // 按数据库分组，使用avg_size_mb作为显示值（更符合趋势图）
                 const dbName = item.database_name || '未知数据库';
@@ -682,7 +684,7 @@ class AggregationsManager {
                     grouped[date][dbName] = 0;
                 }
                 // 累加平均值，处理同一天多条记录的情况
-                grouped[date][dbName] += item.avg_size_mb || item.max_size_mb || 0;
+                grouped[date][dbName] += item.avg_size_mb || 0;
             }
         });
         
@@ -709,39 +711,8 @@ class AggregationsManager {
         console.log('分组数据:', groupedData);
         console.log('标签:', labels);
         
-        // 计算每个数据库的平均大小，选择TOP 20
-        const databaseStats = {};
-        
-        this.currentData.forEach(item => {
-            const dbName = item.database_name;
-            if (!dbName) {
-                console.warn('数据项缺少database_name:', item);
-                return;
-            }
-            
-            if (!databaseStats[dbName]) {
-                databaseStats[dbName] = {
-                    totalSize: 0,
-                    count: 0,
-                    avgSize: 0
-                };
-            }
-            databaseStats[dbName].totalSize += item.avg_size_mb || item.max_size_mb || 0;
-            databaseStats[dbName].count += 1;
-        });
-        
-        // 计算平均大小
-        Object.keys(databaseStats).forEach(dbName => {
-            databaseStats[dbName].avgSize = databaseStats[dbName].totalSize / databaseStats[dbName].count;
-        });
-        
-        console.log('数据库统计:', databaseStats);
-        
-        // 按平均大小排序，选择TOP 20
-        const topDatabases = Object.entries(databaseStats)
-            .sort(([,a], [,b]) => b.avgSize - a.avgSize)
-            .slice(0, 20)
-            .map(([dbName]) => dbName);
+        // 数据库已经按大小排序并返回TOP 20，直接使用
+        const topDatabases = [...new Set(this.currentData.map(item => item.database_name).filter(Boolean))];
         
         console.log('TOP 20数据库:', topDatabases);
         
@@ -776,31 +747,10 @@ class AggregationsManager {
         console.log('分组数据:', groupedData);
         console.log('标签:', labels);
         
-        // 计算每个实例的平均大小，选择TOP 20
-        const instanceStats = {};
+        // 实例已经按大小排序并返回TOP 20，直接使用
+        const topInstances = [...new Set(this.currentData.map(item => item.instance?.name).filter(Boolean))];
         
-        this.currentData.forEach(item => {
-            const instanceName = item.instance.name;
-            if (!instanceStats[instanceName]) {
-                instanceStats[instanceName] = {
-                    totalSize: 0,
-                    count: 0,
-                    maxSize: 0
-                };
-            }
-            // 使用max_size_mb累加，表示实例的总容量
-            instanceStats[instanceName].totalSize += item.max_size_mb || 0;
-            instanceStats[instanceName].count += 1;
-            instanceStats[instanceName].maxSize = Math.max(instanceStats[instanceName].maxSize, item.max_size_mb || 0);
-        });
-        
-        console.log('实例统计:', instanceStats);
-        
-        // 按总容量排序，选择TOP 20
-        const topInstances = Object.entries(instanceStats)
-            .sort(([,a], [,b]) => b.totalSize - a.totalSize)
-            .slice(0, 20)
-            .map(([instanceName]) => instanceName);
+        console.log('TOP 20实例:', topInstances);
         
         const colors = [
             '#667eea', '#764ba2', '#f093fb', '#f5576c',
