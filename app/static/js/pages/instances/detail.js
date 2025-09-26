@@ -544,17 +544,29 @@ function displayDatabaseSizes(databases, totalSize) {
     // 计算总容量显示
     const totalSizeGB = (totalSize / 1024).toFixed(3);
     
+    // 统计已删除和在线数据库数量
+    const deletedCount = databases.filter(db => db.is_deleted).length;
+    const onlineCount = databases.length - deletedCount;
+    
     let html = `
         <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="card bg-light">
                     <div class="card-body text-center">
-                        <h5 class="card-title text-primary">${databases.length}</h5>
-                        <p class="card-text text-muted">数据库数量</p>
+                        <h5 class="card-title text-primary">${onlineCount}</h5>
+                        <p class="card-text text-muted">在线数据库</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-danger">${deletedCount}</h5>
+                        <p class="card-text text-muted">已删除数据库</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
                 <div class="card bg-light">
                     <div class="card-body text-center">
                         <h5 class="card-title text-success">${totalSizeGB} GB</h5>
@@ -564,15 +576,25 @@ function displayDatabaseSizes(databases, totalSize) {
             </div>
         </div>
         
+        <div class="mb-3">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="showDeletedDatabases" onchange="toggleDeletedDatabases()">
+                <label class="form-check-label" for="showDeletedDatabases">
+                    <i class="fas fa-eye me-1"></i>显示已删除数据库
+                </label>
+            </div>
+        </div>
+        
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 35%;"><i class="fas fa-database me-1"></i>数据库名称</th>
-                        <th style="width: 13%;"><i class="fas fa-hdd me-1"></i>总大小</th>
-                        <th style="width: 13%;"><i class="fas fa-file me-1"></i>数据大小</th>
-                        <th style="width: 13%;"><i class="fas fa-file-alt me-1"></i>日志大小</th>
-                        <th style="width: 26%;"><i class="fas fa-clock me-1"></i>采集时间</th>
+                        <th style="width: 30%;"><i class="fas fa-database me-1"></i>数据库名称</th>
+                        <th style="width: 12%;"><i class="fas fa-hdd me-1"></i>总大小</th>
+                        <th style="width: 12%;"><i class="fas fa-file me-1"></i>数据大小</th>
+                        <th style="width: 12%;"><i class="fas fa-file-alt me-1"></i>日志大小</th>
+                        <th style="width: 10%;"><i class="fas fa-trash me-1"></i>状态</th>
+                        <th style="width: 24%;"><i class="fas fa-clock me-1"></i>采集时间</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -588,7 +610,6 @@ function displayDatabaseSizes(databases, totalSize) {
         const rowClass = isDeleted ? 'table-secondary' : '';
         const iconClass = isDeleted ? 'text-muted' : 'text-primary';
         const textClass = isDeleted ? 'text-muted' : '';
-        const deletedBadge = isDeleted ? '<span class="badge bg-danger ms-2">已删除</span>' : '';
         
         // 根据总大小判断颜色
         let sizeBadgeClass = 'badge bg-success'; // 默认绿色
@@ -604,14 +625,18 @@ function displayDatabaseSizes(databases, totalSize) {
             sizeBadgeClass = 'badge bg-success'; // 绿色 - 小于10GB
         }
         
+        // 状态列显示
+        const statusBadge = isDeleted ? 
+            '<span class="badge bg-danger">已删除</span>' : 
+            '<span class="badge bg-success">在线</span>';
+        
         html += `
-            <tr class="${rowClass}">
+            <tr class="${rowClass}" data-deleted="${isDeleted}">
                 <td>
                     <div class="d-flex align-items-start">
                         <i class="fas fa-database ${iconClass} me-2 mt-1"></i>
                         <div>
                             <strong class="${textClass}" style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${db.database_name}</strong>
-                            ${deletedBadge}
                         </div>
                     </div>
                 </td>
@@ -626,6 +651,9 @@ function displayDatabaseSizes(databases, totalSize) {
                         `<span class="text-muted">${logSizeGB} GB</span>` : 
                         '<span class="text-muted">-</span>'
                     }
+                </td>
+                <td>
+                    ${statusBadge}
                 </td>
                 <td>
                     <small class="text-muted">${collectedAt}</small>
@@ -659,6 +687,19 @@ function displayDatabaseSizesError(error) {
 
 function refreshDatabaseSizes() {
     loadDatabaseSizes();
+}
+
+// 切换已删除数据库显示/隐藏
+function toggleDeletedDatabases() {
+    const checkbox = document.getElementById('showDeletedDatabases');
+    const rows = document.querySelectorAll('#databaseSizesContent tbody tr[data-deleted]');
+    
+    rows.forEach(row => {
+        const isDeleted = row.getAttribute('data-deleted') === 'true';
+        if (isDeleted) {
+            row.style.display = checkbox.checked ? '' : 'none';
+        }
+    });
 }
 
 // 页面加载完成后自动加载数据库容量信息
