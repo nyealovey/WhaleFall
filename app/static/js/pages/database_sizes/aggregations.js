@@ -449,14 +449,13 @@ class AggregationsManager {
         this.isRenderingChart = true;
 
         try {
-            // 检查数据是否为空
-            if (!data || data.length === 0) {
-                console.warn('图表数据为空，显示空状态');
-                this.showEmptyChart();
-                return;
+            // 销毁现有图表
+            if (this.chart) {
+                this.chart.destroy();
+                this.chart = null;
             }
 
-            // 完全清空容器
+            // 清空容器
             chartContainer.innerHTML = '';
             
             // 创建新的canvas元素
@@ -464,39 +463,43 @@ class AggregationsManager {
             canvas.id = 'aggregationChartCanvas';
             chartContainer.appendChild(canvas);
 
-            // 销毁所有Chart.js实例
-            if (Chart.instances) {
-                Object.keys(Chart.instances).forEach(id => {
-                    try {
-                        Chart.instances[id].destroy();
-                    } catch (e) {
-                        console.warn(`Error destroying chart instance ${id}:`, e);
-                    }
-                });
-            }
-            
-            // 清理当前实例
-            if (this.chart) {
-                try { 
-                    this.chart.destroy(); 
-                } catch (e) { 
-                    console.warn('Error destroying current chart:', e);
-                }
-                this.chart = null;
-            }
-
             const ctx = canvas.getContext('2d');
 
-            // 数据分组与配置
-            const groupedData = this.groupDataByDate(data);
-            console.log('分组后的数据:', groupedData);
-            const labels = Object.keys(groupedData).sort();
-            console.log('图表标签:', labels);
-            const datasets = this.prepareChartDatasets(groupedData, labels);
-            console.log('图表数据集:', datasets);
+            // 处理数据
+            let labels, datasets;
+            
+            if (!data || data.length === 0) {
+                // 空数据情况
+                labels = ['暂无数据'];
+                datasets = [{
+                    label: '无数据',
+                    data: [0],
+                    backgroundColor: 'rgba(200, 200, 200, 0.2)',
+                    borderColor: 'rgba(200, 200, 200, 0.8)',
+                    borderWidth: 1
+                }];
+            } else {
+                // 有数据情况
+                const groupedData = this.groupDataByDate(data);
+                console.log('分组后的数据:', groupedData);
+                labels = Object.keys(groupedData).sort();
+                console.log('图表标签:', labels);
+                datasets = this.prepareChartDatasets(groupedData, labels);
+                console.log('图表数据集:', datasets);
+            }
+
+            // 根据数据情况调整图表类型
+            let chartType = this.currentChartType;
+            if (labels.length === 1 && labels[0] !== '暂无数据') {
+                // 单天数据，如果是折线图则改为柱状图
+                if (chartType === 'line') {
+                    chartType = 'bar';
+                    console.log('单天数据，自动切换到柱状图');
+                }
+            }
 
             const chartConfig = {
-                type: this.currentChartType,
+                type: chartType,
                 data: { labels, datasets },
                 options: {
                     responsive: true,
@@ -506,11 +509,11 @@ class AggregationsManager {
                     plugins: {
                         title: {
                             display: true,
-                            text: this.currentChartMode === 'instance' ? '实例聚合趋势图 (TOP 20)' : '数据库聚合趋势图 (TOP 20)',
+                            text: this.getChartTitle(labels.length, data?.length || 0),
                             font: { size: 16, weight: 'bold' }
                         },
                         legend: {
-                            display: true,
+                            display: labels.length > 1 || (labels.length === 1 && labels[0] !== '暂无数据'),
                             position: 'right',
                             align: 'start',
                             maxHeight: 500,
@@ -541,7 +544,11 @@ class AggregationsManager {
                         }
                     },
                     scales: {
-                        x: { display: true, title: { display: true, text: '统计周期' }, grid: { display: false } },
+                        x: { 
+                            display: true, 
+                            title: { display: true, text: this.getXAxisTitle(labels.length) }, 
+                            grid: { display: false } 
+                        },
                         y: {
                             display: true,
                             title: { display: true, text: '存储大小' },
@@ -550,16 +557,47 @@ class AggregationsManager {
                             ticks: { callback: (v) => AggregationsManager.prototype.formatSizeFromMB(v) }
                         }
                     },
-                    elements: { point: { radius: 4, hoverRadius: 6 }, line: { tension: 0.1 } }
+                    elements: { 
+                        point: { radius: 4, hoverRadius: 6 }, 
+                        line: { tension: 0.1 } 
+                    }
                 }
             };
 
             this.chart = new Chart(ctx, chartConfig);
+            console.log('图表渲染完成');
+            
         } catch (err) {
             console.error('渲染图表时出错:', err);
-            this.showError('加载图表数据时出错: ' + (err && err.message ? err.message : ''));
+            this.showError('渲染图表时出错: ' + (err && err.message ? err.message : ''));
         } finally {
             this.isRenderingChart = false;
+        }
+    }
+    
+    /**
+     * 获取图表标题
+     */
+    getChartTitle(labelCount, dataCount) {
+        if (dataCount === 0) {
+            return '暂无数据';
+        }
+        
+        if (labelCount === 1) {
+            return this.currentChartMode === 'instance' ? '实例容量对比图 (TOP 20)' : '数据库容量对比图 (TOP 20)';
+        } else {
+            return this.currentChartMode === 'instance' ? '实例聚合趋势图 (TOP 20)' : '数据库聚合趋势图 (TOP 20)';
+        }
+    }
+    
+    /**
+     * 获取X轴标题
+     */
+    getXAxisTitle(labelCount) {
+        if (labelCount === 1) {
+            return '数据库名称';
+        } else {
+            return '统计周期';
         }
     }
     
@@ -600,8 +638,8 @@ class AggregationsManager {
                 // 使用max_size_mb累加，表示实例的总容量
                 grouped[date][instanceName] += item.max_size_mb || 0;
             } else {
-                // 按数据库分组
-                grouped[date][item.database_name] = item.avg_size_mb;
+                // 按数据库分组，使用max_size_mb作为显示值
+                grouped[date][item.database_name] = item.max_size_mb || item.avg_size_mb || 0;
             }
         });
         
