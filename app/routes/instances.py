@@ -1933,9 +1933,12 @@ def get_instance_database_sizes(instance_id: int) -> Response:
                     'collected_date': stat.collected_date.isoformat()
                 }
         
+        # 按数据库大小降序排序
+        sorted_data = sorted(latest_stats.values(), key=lambda x: x['size_mb'], reverse=True)
+        
         return jsonify({
             'success': True,
-            'data': list(latest_stats.values()),
+            'data': sorted_data,
             'total_databases': len(latest_stats),
             'total_size_mb': sum(stat['size_mb'] for stat in latest_stats.values())
         })
