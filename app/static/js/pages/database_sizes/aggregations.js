@@ -613,9 +613,9 @@ class AggregationsManager {
             instanceStats[instanceName].maxSize = Math.max(instanceStats[instanceName].maxSize, item.max_size_mb || 0);
         });
         
-        // 按最大大小排序，选择TOP 20
+        // 按平均大小排序，选择TOP 20
         const topInstances = Object.entries(instanceStats)
-            .sort(([,a], [,b]) => b.maxSize - a.maxSize)
+            .sort(([,a], [,b]) => b.totalSize - a.totalSize)
             .slice(0, 20)
             .map(([instanceName]) => instanceName);
         
