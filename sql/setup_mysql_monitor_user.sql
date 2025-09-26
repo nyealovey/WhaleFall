@@ -15,20 +15,20 @@ GRANT USAGE ON *.* TO 'monitor_user'@'%';
 -- 3. 授予SHOW DATABASES权限（用于查看所有数据库）
 GRANT SHOW DATABASES ON *.* TO 'monitor_user'@'%';
 
--- 4. 授予mysql.user表查询权限（最低权限）
-GRANT SELECT ON mysql.user TO 'monitor_user'@'%';
+-- 4. 授予全局查询权限（MySQL 8.4 需要）
+GRANT SELECT ON *.* TO 'monitor_user'@'%';
 
--- 5. 授予information_schema数据库查询权限（用于数据库大小监控）
-GRANT SELECT ON information_schema.* TO 'monitor_user'@'%';
+-- 5. 授予SHOW VIEW权限（用于查看视图信息）
+GRANT SHOW VIEW ON *.* TO 'monitor_user'@'%';
 
--- 6. 授予performance_schema数据库查询权限（用于性能监控）
-GRANT SELECT ON performance_schema.* TO 'monitor_user'@'%';
+-- 6. 授予PROCESS权限（用于查看进程信息）
+GRANT PROCESS ON *.* TO 'monitor_user'@'%';
 
--- 7. 授予mysql数据库查询权限（用于系统信息）
-GRANT SELECT ON mysql.* TO 'monitor_user'@'%';
+-- 7. 授予REPLICATION CLIENT权限（用于查看复制状态）
+GRANT REPLICATION CLIENT ON *.* TO 'monitor_user'@'%';
 
--- 8. 授予sys数据库查询权限（用于系统信息）
-GRANT SELECT ON sys.* TO 'monitor_user'@'%';
+-- 8. 授予SHOW DATABASES权限（确保能查看所有数据库）
+GRANT SHOW DATABASES ON *.* TO 'monitor_user'@'%';
 
 -- 9. 刷新权限
 FLUSH PRIVILEGES;
@@ -42,11 +42,10 @@ SHOW GRANTS FOR 'monitor_user'@'%';
 -- 测试权限
 SELECT '连接测试' AS 测试项目, @@VERSION AS 结果;
 SELECT 'SHOW DATABASES测试' AS 测试项目, '请手动执行 SHOW DATABASES; 命令' AS 说明;
-SELECT 'mysql.user表测试' AS 测试项目, COUNT(*) AS 可访问的用户数量 FROM mysql.user;
-SELECT 'information_schema测试' AS 测试项目, COUNT(*) AS 可访问的数据库数量 FROM information_schema.SCHEMATA;
-SELECT 'performance_schema测试' AS 测试项目, COUNT(*) AS 可访问的表数量 FROM performance_schema.tables LIMIT 1;
-SELECT 'mysql数据库测试' AS 测试项目, COUNT(*) AS 可访问的表数量 FROM mysql.tables LIMIT 1;
-SELECT 'sys数据库测试' AS 测试项目, COUNT(*) AS 可访问的表数量 FROM sys.tables LIMIT 1;
+SELECT '全局SELECT权限测试' AS 测试项目, COUNT(*) AS 可访问的数据库数量 FROM information_schema.SCHEMATA;
+SELECT 'information_schema.tables测试' AS 测试项目, COUNT(*) AS 可访问的表数量 FROM information_schema.tables;
+SELECT '用户数据库表测试' AS 测试项目, COUNT(*) AS 可访问的用户表数量 FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys');
+SELECT '数据库大小查询测试' AS 测试项目, '请手动执行数据库大小查询' AS 说明;
 
 -- 显示权限摘要
 SELECT 
@@ -54,24 +53,20 @@ SELECT
     '查看所有数据库列表' AS 用途
 UNION ALL
 SELECT 
-    'mysql.user' AS 权限,
-    '用户信息查询' AS 用途
+    'SELECT ON *.*' AS 权限,
+    '全局查询权限，访问所有数据库和表' AS 用途
 UNION ALL
 SELECT 
-    'information_schema.*' AS 权限,
-    '数据库大小监控' AS 用途
+    'SHOW VIEW' AS 权限,
+    '查看视图信息' AS 用途
 UNION ALL
 SELECT 
-    'performance_schema.*' AS 权限,
-    '性能监控数据' AS 用途
+    'PROCESS' AS 权限,
+    '查看进程信息' AS 用途
 UNION ALL
 SELECT 
-    'mysql.*' AS 权限,
-    '系统信息查询' AS 用途
-UNION ALL
-SELECT 
-    'sys.*' AS 权限,
-    '系统信息查询' AS 用途;
+    'REPLICATION CLIENT' AS 权限,
+    '查看复制状态' AS 用途;
 
 -- 安全建议
 SELECT '安全建议:' AS 建议;
