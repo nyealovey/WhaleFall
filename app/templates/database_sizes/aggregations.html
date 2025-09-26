@@ -4,7 +4,29 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/database_sizes/aggregations.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
+    <style>
+        /* 统计聚合页面特定样式 */
+        .aggregations-page .search-filter-card {
+            margin-bottom: 1rem;
+        }
+        
+        .aggregations-page .card-body {
+            padding: 1rem 1.5rem;
+        }
+        
+        .aggregations-page .unified-search-form .row {
+            margin-bottom: 0;
+        }
+        
+        .aggregations-page .filter-instance,
+        .aggregations-page .filter-period-type,
+        .aggregations-page .filter-database,
+        .aggregations-page .filter-db-type,
+        .aggregations-page .filter-time-range {
+            margin-bottom: 0.5rem;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -44,7 +66,7 @@
                 {% set show_period_type_filter = true %}
                 {% set show_database_filter = true %}
                 {% set show_time_range_filter = true %}
-                {% set show_db_type_filter = false %}
+                {% set show_db_type_filter = true %}
                 {% set show_classification_filter = false %}
                 {% set show_credential_type_filter = false %}
                 {% set show_tag_category_filter = false %}
