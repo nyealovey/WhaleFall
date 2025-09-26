@@ -42,27 +42,7 @@ function initializeSchedulerPage() {
 
 // 初始化事件处理器（移除立即执行绑定）
 function initializeEventHandlers() {
-    // 触发器类型切换
-    $('input[name="triggerType"]').change(function() {
-        $('.trigger-config').hide();
-        $('#' + $(this).val() + 'Config').show();
-    });
-
-    // 编辑模态框触发器类型切换
-    $('input[name="editTriggerType"]').change(function() {
-        $('.edit-trigger-config').hide();
-        const triggerType = $(this).val();
-        if (triggerType && typeof triggerType === 'string') {
-            $('#edit' + triggerType.charAt(0).toUpperCase() + triggerType.slice(1) + 'Config').show();
-        }
-        // 当切换到 interval 或 date 时，清理其他配置的值以避免误提交
-        if (triggerType === 'interval') {
-            $('#editRunDate').val('');
-        } else if (triggerType === 'date') {
-            $('#editIntervalMinutes').val('0');
-            $('#editIntervalSeconds').val('0');
-        }
-    });
+    // 触发器类型固定为cron，无需切换逻辑
 
     // 设置默认日期时间
     const now = new Date();
@@ -450,11 +430,10 @@ function editJob(jobId) {
     // 将执行函数字段设为只读
     $('#editJobFunction').prop('disabled', true).addClass('form-control-plaintext');
     
-    // 设置触发器类型
-    const triggerType = job.trigger_type || 'cron';
-    $(`input[name="editTriggerType"][value="${triggerType}"]`).prop('checked', true);
+    // 触发器类型固定为cron
+    const triggerType = 'cron';
     $('.edit-trigger-config').hide();
-    $('#edit' + triggerType.charAt(0).toUpperCase() + triggerType.slice(1) + 'Config').show();
+    $('#editCronConfig').show();
     
     // 填充触发器参数
     try {
@@ -552,9 +531,7 @@ function updateJob() {
     const isBuiltInJob = ['sync_accounts', 'cleanup_logs'].includes(originalJob.id);
 
     let data = Object.fromEntries(formData.entries());
-    const triggerType = data.editTriggerType;
-    delete data.editTriggerType;
-    data.trigger_type = triggerType;
+    data.trigger_type = 'cron';  // 固定为cron触发器
 
     if (data.trigger_type === 'cron') {
         const second = $('#editCronSecond').val() || '0';
