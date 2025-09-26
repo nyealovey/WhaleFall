@@ -304,10 +304,10 @@ function syncCapacity(instanceId, instanceName) {
             });
             showAlert('success', data.message || '容量同步成功');
             
-            // 刷新页面以显示最新的容量数据
+            // 刷新数据库容量显示
             setTimeout(() => {
-                window.location.reload();
-            }, 2000);
+                loadDatabaseSizes();
+            }, 1000);
         } else if (data.error) {
             // 记录失败日志
             logError('同步容量失败', {
@@ -487,3 +487,163 @@ function getInstanceName() {
 function getCSRFToken() {
     return document.querySelector('input[name="csrf_token"]')?.value || '';
 }
+
+// 数据库容量相关函数
+function loadDatabaseSizes() {
+    const instanceId = getInstanceId();
+    const contentDiv = document.getElementById('databaseSizesContent');
+    
+    if (!contentDiv) {
+        console.error('找不到数据库容量内容容器');
+        return;
+    }
+    
+    // 显示加载状态
+    contentDiv.innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+            <p class="text-muted">正在加载数据库容量信息...</p>
+        </div>
+    `;
+    
+    fetch(`/instances/${instanceId}/database-sizes`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayDatabaseSizes(data.data, data.total_size_mb);
+        } else {
+            displayDatabaseSizesError(data.error || '加载失败');
+        }
+    })
+    .catch(error => {
+        console.error('加载数据库容量信息失败:', error);
+        displayDatabaseSizesError('网络错误，请稍后重试');
+    });
+}
+
+function displayDatabaseSizes(databases, totalSize) {
+    const contentDiv = document.getElementById('databaseSizesContent');
+    
+    if (!databases || databases.length === 0) {
+        contentDiv.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-database fa-3x text-muted mb-3"></i>
+                <p class="text-muted">暂无数据库容量信息</p>
+                <p class="text-muted">点击"同步容量"按钮获取容量信息</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // 计算总容量显示
+    const totalSizeGB = (totalSize / 1024).toFixed(2);
+    const totalSizeMB = totalSize.toFixed(0);
+    
+    let html = `
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-primary">${databases.length}</h5>
+                        <p class="card-text text-muted">数据库数量</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-success">${totalSizeGB} GB</h5>
+                        <p class="card-text text-muted">总容量 (${totalSizeMB} MB)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th><i class="fas fa-database me-1"></i>数据库名称</th>
+                        <th><i class="fas fa-hdd me-1"></i>总大小</th>
+                        <th><i class="fas fa-file me-1"></i>数据大小</th>
+                        <th><i class="fas fa-file-alt me-1"></i>日志大小</th>
+                        <th><i class="fas fa-clock me-1"></i>采集时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    databases.forEach(db => {
+        const sizeGB = (db.size_mb / 1024).toFixed(2);
+        const dataSizeGB = (db.data_size_mb / 1024).toFixed(2);
+        const logSizeGB = db.log_size_mb ? (db.log_size_mb / 1024).toFixed(2) : '-';
+        const collectedAt = new Date(db.collected_at).toLocaleString('zh-CN');
+        
+        html += `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-database text-primary me-2"></i>
+                        <strong>${db.database_name}</strong>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge bg-primary">${sizeGB} GB</span>
+                    <small class="text-muted ms-1">(${db.size_mb} MB)</small>
+                </td>
+                <td>
+                    <span class="badge bg-info">${dataSizeGB} GB</span>
+                    <small class="text-muted ms-1">(${db.data_size_mb} MB)</small>
+                </td>
+                <td>
+                    ${db.log_size_mb ? 
+                        `<span class="badge bg-warning">${logSizeGB} GB</span>
+                         <small class="text-muted ms-1">(${db.log_size_mb} MB)</small>` : 
+                        '<span class="text-muted">-</span>'
+                    }
+                </td>
+                <td>
+                    <small class="text-muted">${collectedAt}</small>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    contentDiv.innerHTML = html;
+}
+
+function displayDatabaseSizesError(error) {
+    const contentDiv = document.getElementById('databaseSizesContent');
+    contentDiv.innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+            <p class="text-muted">加载数据库容量信息失败</p>
+            <p class="text-danger">${error}</p>
+            <button class="btn btn-outline-primary" onclick="loadDatabaseSizes()">
+                <i class="fas fa-redo me-1"></i>重试
+            </button>
+        </div>
+    `;
+}
+
+function refreshDatabaseSizes() {
+    loadDatabaseSizes();
+}
+
+// 页面加载完成后自动加载数据库容量信息
+document.addEventListener('DOMContentLoaded', function() {
+    // 延迟加载，确保页面完全渲染
+    setTimeout(loadDatabaseSizes, 500);
+});

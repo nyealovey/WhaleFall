@@ -1879,6 +1879,72 @@ def sync_instance_capacity(instance_id: int) -> Response:
     except Exception as e:
         log_error(f"同步实例容量失败: {e}", module="instances", instance_id=instance_id, exc_info=True)
         return jsonify({
-            'success': False, 
+            'success': False,
             'error': f'同步容量信息失败: {str(e)}'
+        }), 500
+
+
+@instances_bp.route("/<int:instance_id>/database-sizes", methods=['GET'])
+@login_required
+@view_required
+def get_instance_database_sizes(instance_id: int) -> Response:
+    """
+    获取指定实例的数据库大小信息
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON响应，包含数据库大小信息列表
+    """
+    try:
+        # 获取实例信息
+        instance = Instance.query.get_or_404(instance_id)
+        
+        # 检查权限
+        if not current_user.can_view_instance(instance):
+            return jsonify({'success': False, 'error': '没有权限查看此实例'}), 403
+        
+        # 获取最新的数据库大小统计
+        from app.models.database_size_stat import DatabaseSizeStat
+        from sqlalchemy import desc
+        
+        # 获取最近7天的数据
+        from datetime import datetime, timedelta
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        
+        size_stats = DatabaseSizeStat.query.filter_by(
+            instance_id=instance_id
+        ).filter(
+            DatabaseSizeStat.collected_at >= seven_days_ago
+        ).order_by(
+            desc(DatabaseSizeStat.collected_at),
+            DatabaseSizeStat.database_name
+        ).all()
+        
+        # 按数据库名称分组，获取最新数据
+        latest_stats = {}
+        for stat in size_stats:
+            if stat.database_name not in latest_stats:
+                latest_stats[stat.database_name] = {
+                    'database_name': stat.database_name,
+                    'size_mb': stat.size_mb,
+                    'data_size_mb': stat.data_size_mb,
+                    'log_size_mb': stat.log_size_mb,
+                    'collected_at': stat.collected_at.isoformat(),
+                    'collected_date': stat.collected_date.isoformat()
+                }
+        
+        return jsonify({
+            'success': True,
+            'data': list(latest_stats.values()),
+            'total_databases': len(latest_stats),
+            'total_size_mb': sum(stat['size_mb'] for stat in latest_stats.values())
+        })
+        
+    except Exception as e:
+        log_error(f"获取实例数据库大小信息失败: {e}", module="instances", instance_id=instance_id, exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'获取数据库大小信息失败: {str(e)}'
         }), 500
