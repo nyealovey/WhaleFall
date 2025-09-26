@@ -60,13 +60,15 @@ class AggregationsManager {
         });
         
         // 筛选器变化
-        $('#instance, #period_type, #database, #db_type, #timeRange').on('change', () => {
+        $('#period_type, #database, #db_type, #timeRange').on('change', () => {
             this.updateFilters();
         });
         
-        // 实例变化时更新数据库选项
-        $('#instance').on('change', (e) => {
-            this.updateDatabaseOptions(e.target.value);
+        // 实例变化时特殊处理
+        $('#instance').on('change', async (e) => {
+            const instanceId = e.target.value;
+            await this.updateDatabaseOptions(instanceId);
+            this.updateFilters();
         });
         
         // 统计周期变化时调整时间范围选项
@@ -326,6 +328,11 @@ class AggregationsManager {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        right: 200  // 为右侧图例留出空间
+                    }
+                },
                 interaction: {
                     intersect: false,
                     mode: 'index'
@@ -341,10 +348,25 @@ class AggregationsManager {
                     },
                     legend: {
                         display: true,
-                        position: 'top',
+                        position: 'right',
+                        align: 'start',
                         labels: {
                             usePointStyle: true,
-                            padding: 20
+                            padding: 8,
+                            boxWidth: 12,
+                            boxHeight: 12,
+                            font: {
+                                size: 11
+                            },
+                            generateLabels: function(chart) {
+                                const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                const labels = original.call(this, chart);
+                                
+                                // 按标签名称排序
+                                labels.sort((a, b) => a.text.localeCompare(b.text));
+                                
+                                return labels;
+                            }
                         }
                     },
                     tooltip: {
