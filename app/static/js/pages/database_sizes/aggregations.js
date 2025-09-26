@@ -49,7 +49,9 @@ class AggregationsManager {
         });
         
         // 应用筛选按钮
-        $('#applyFilters').on('click', () => {
+        $('#applyFilters').on('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             this.applyFilters();
         });
         
