@@ -115,14 +115,15 @@ class DatabaseSizeCollectorService:
         """
         
         result = self.db_connection.execute_query(query)
+        self.logger.info(f"MySQL 查询结果: {len(result) if result else 0} 行数据")
         data = []
         
         for row in result:
             data.append({
                 'database_name': row[0],
-                'size_mb': int(row[1] or 0),
-                'data_size_mb': int(row[2] or 0),
-                'log_size_mb': int(row[3] or 0),
+                'size_mb': int(float(row[1] or 0)),
+                'data_size_mb': int(float(row[2] or 0)),
+                'log_size_mb': int(float(row[3] or 0)),
                 'collected_date': date.today(),
                 'collected_at': datetime.utcnow()
             })
