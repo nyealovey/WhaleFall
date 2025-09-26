@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 加载数据
     loadPartitionData();
+    
+    // 加载聚合数据
+    loadAggregationData();
 });
 
 /**
@@ -50,6 +53,7 @@ function bindEvents() {
     // 刷新按钮
     document.getElementById('refreshBtn').addEventListener('click', function() {
         loadPartitionData();
+        loadAggregationData();
     });
     
     // 创建分区按钮
@@ -70,6 +74,42 @@ function bindEvents() {
     // 确认清理分区
     document.getElementById('confirmCleanupPartitions').addEventListener('click', function() {
         cleanupPartitions();
+    });
+    
+    // 聚合数据表搜索
+    document.getElementById('searchAggregationTable').addEventListener('input', function() {
+        filterAggregationTable();
+    });
+    
+    // 聚合数据表排序
+    document.getElementById('sortAggregationTable').addEventListener('change', function() {
+        sortAggregationTable();
+    });
+    
+    // 聚合数据表分页
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('page-link')) {
+            e.preventDefault();
+            const page = parseInt(e.target.getAttribute('data-page'));
+            if (page && page !== window.currentAggregationPage) {
+                goToAggregationPage(page);
+            }
+        }
+    });
+    
+    // 上一页/下一页按钮
+    document.getElementById('prevPage').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (window.currentAggregationPage > 1) {
+            goToAggregationPage(window.currentAggregationPage - 1);
+        }
+    });
+    
+    document.getElementById('nextPage').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (window.currentAggregationPage < window.totalAggregationPages) {
+            goToAggregationPage(window.currentAggregationPage + 1);
+        }
     });
 }
 
@@ -491,5 +531,287 @@ function showInfo(message) {
     } catch (error) {
         console.error('显示信息消息失败:', error);
         alert('信息: ' + message);
+    }
+}
+
+// ==================== 聚合数据表功能 ====================
+
+// 聚合数据表全局变量
+window.currentAggregationPage = 1;
+window.aggregationPageSize = 20;
+window.totalAggregationRecords = 0;
+window.totalAggregationPages = 0;
+window.aggregationData = [];
+window.filteredAggregationData = [];
+
+/**
+ * 加载聚合数据
+ */
+async function loadAggregationData() {
+    try {
+        console.log('开始加载聚合数据...');
+        showAggregationLoadingState();
+        
+        const response = await fetch('/database-sizes/aggregations?api=true&page=1&per_page=20');
+        const data = await response.json();
+        
+        if (response.ok) {
+            window.aggregationData = data.data || [];
+            window.filteredAggregationData = [...window.aggregationData];
+            window.totalAggregationRecords = data.total || 0;
+            window.totalAggregationPages = Math.ceil(window.totalAggregationRecords / window.aggregationPageSize);
+            
+            renderAggregationTable(window.aggregationData);
+            updateAggregationPagination();
+        } else {
+            showError('加载聚合数据失败: ' + data.error);
+        }
+    } catch (error) {
+        console.error('加载聚合数据时出错:', error);
+        showError('加载聚合数据时出错: ' + error.message);
+    }
+}
+
+/**
+ * 显示聚合数据表加载状态
+ */
+function showAggregationLoadingState() {
+    const tbody = document.getElementById('aggregationTableBody');
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="9" class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+/**
+ * 渲染聚合数据表
+ */
+function renderAggregationTable(data) {
+    const tbody = document.getElementById('aggregationTableBody');
+    tbody.empty();
+    
+    if (data.length === 0) {
+        tbody.append(`
+            <tr>
+                <td colspan="9" class="text-center">
+                    <div class="empty-state">
+                        <i class="fas fa-chart-bar"></i>
+                        <h5>暂无数据</h5>
+                        <p>没有找到符合条件的聚合数据</p>
+                    </div>
+                </td>
+            </tr>
+        `);
+        return;
+    }
+    
+    data.forEach(item => {
+        const row = createAggregationTableRow(item);
+        tbody.append(row);
+    });
+}
+
+/**
+ * 创建聚合数据表行
+ */
+function createAggregationTableRow(item) {
+    const calculatedAt = new Date(item.calculated_at).toLocaleString('zh-CN');
+    const periodRange = `${item.period_start} 至 ${item.period_end}`;
+    
+    return `
+        <tr>
+            <td>
+                <span class="instance-name">${item.instance.name}</span>
+            </td>
+            <td>
+                <span class="database-name" title="${item.database_name}">${wrapDatabaseName(item.database_name)}</span>
+            </td>
+            <td>
+                <span class="period-type ${item.period_type}">${getPeriodTypeLabel(item.period_type)}</span>
+            </td>
+            <td>
+                <span class="size-display">${formatSizeFromMB(item.avg_size_mb)}</span>
+            </td>
+            <td>
+                <span class="size-display">${formatSizeFromMB(item.max_size_mb)}</span>
+            </td>
+            <td>
+                <span class="size-display">${formatSizeFromMB(item.min_size_mb)}</span>
+            </td>
+            <td>
+                <span class="badge bg-info">${item.data_count}</span>
+            </td>
+            <td>
+                <small class="text-muted">${calculatedAt}</small>
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn btn-outline-info btn-sm" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#detailModal"
+                            data-aggregation-id="${item.id}">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+/**
+ * 获取周期类型标签
+ */
+function getPeriodTypeLabel(periodType) {
+    const labels = {
+        'daily': '日',
+        'weekly': '周',
+        'monthly': '月',
+        'quarterly': '季度'
+    };
+    return labels[periodType] || periodType;
+}
+
+/**
+ * 包装数据库名称（处理长名称）
+ */
+function wrapDatabaseName(name) {
+    if (name.length <= 15) {
+        return name;
+    }
+    return name.substring(0, 12) + '...';
+}
+
+/**
+ * 格式化大小（从MB）
+ */
+function formatSizeFromMB(mb) {
+    if (mb === null || mb === undefined) return '0 B';
+    
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = mb * 1024 * 1024; // 转换为字节
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+    }
+    
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+/**
+ * 过滤聚合数据表
+ */
+function filterAggregationTable() {
+    const searchTerm = document.getElementById('searchAggregationTable').value.toLowerCase();
+    
+    if (searchTerm === '') {
+        window.filteredAggregationData = [...window.aggregationData];
+    } else {
+        window.filteredAggregationData = window.aggregationData.filter(item => 
+            item.instance.name.toLowerCase().includes(searchTerm) ||
+            item.database_name.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    window.currentAggregationPage = 1;
+    updateAggregationPagination();
+    renderAggregationTable(getCurrentPageData());
+}
+
+/**
+ * 排序聚合数据表
+ */
+function sortAggregationTable() {
+    const sortBy = document.getElementById('sortAggregationTable').value;
+    
+    window.filteredAggregationData.sort((a, b) => {
+        switch (sortBy) {
+            case 'period_start':
+                return new Date(b.period_start) - new Date(a.period_start);
+            case 'instance_name':
+                return a.instance.name.localeCompare(b.instance.name);
+            case 'database_name':
+                return a.database_name.localeCompare(b.database_name);
+            case 'avg_size_mb':
+                return b.avg_size_mb - a.avg_size_mb;
+            case 'max_size_mb':
+                return b.max_size_mb - a.max_size_mb;
+            default:
+                return 0;
+        }
+    });
+    
+    window.currentAggregationPage = 1;
+    updateAggregationPagination();
+    renderAggregationTable(getCurrentPageData());
+}
+
+/**
+ * 获取当前页数据
+ */
+function getCurrentPageData() {
+    const start = (window.currentAggregationPage - 1) * window.aggregationPageSize;
+    const end = start + window.aggregationPageSize;
+    return window.filteredAggregationData.slice(start, end);
+}
+
+/**
+ * 跳转到指定页
+ */
+function goToAggregationPage(page) {
+    if (page < 1 || page > window.totalAggregationPages || page === window.currentAggregationPage) {
+        return;
+    }
+    window.currentAggregationPage = page;
+    renderAggregationTable(getCurrentPageData());
+    updateAggregationPagination();
+}
+
+/**
+ * 更新聚合数据表分页
+ */
+function updateAggregationPagination() {
+    const start = (window.currentAggregationPage - 1) * window.aggregationPageSize + 1;
+    const end = Math.min(window.currentAggregationPage * window.aggregationPageSize, window.filteredAggregationData.length);
+    
+    document.getElementById('paginationStart').textContent = start;
+    document.getElementById('paginationEnd').textContent = end;
+    document.getElementById('paginationTotal').textContent = window.filteredAggregationData.length;
+    
+    document.getElementById('prevPage').classList.toggle('disabled', window.currentAggregationPage === 1);
+    document.getElementById('nextPage').classList.toggle('disabled', window.currentAggregationPage === window.totalAggregationPages);
+    
+    generateAggregationPaginationButtons();
+}
+
+/**
+ * 生成聚合数据表分页按钮
+ */
+function generateAggregationPaginationButtons() {
+    const paginationNav = document.getElementById('paginationNav');
+    const pageButtons = paginationNav.querySelectorAll('.page-item:not(#prevPage):not(#nextPage)');
+    pageButtons.forEach(btn => btn.remove());
+    
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, window.currentAggregationPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(window.totalAggregationPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    const prevPageElement = document.getElementById('prevPage');
+    for (let i = startPage; i <= endPage; i++) {
+        const pageItem = document.createElement('li');
+        pageItem.className = `page-item ${i === window.currentAggregationPage ? 'active' : ''}`;
+        pageItem.id = `page${i}`;
+        pageItem.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
+        prevPageElement.insertAdjacentElement('afterend', pageItem);
     }
 }
