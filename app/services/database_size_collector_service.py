@@ -115,9 +115,9 @@ class DatabaseSizeCollectorService:
             query = """
                 SELECT
                     s.SCHEMA_NAME AS database_name,
-                    COALESCE(ROUND(SUM(COALESCE(t.data_length, 0) + COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS size_mb,
+                    COALESCE(ROUND(SUM(COALESCE(t.data_length, 0)) / 1024 / 1024, 2), 0) AS size_mb,
                     COALESCE(ROUND(SUM(COALESCE(t.data_length, 0)) / 1024 / 1024, 2), 0) AS data_size_mb,
-                    COALESCE(ROUND(SUM(COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS index_size_mb
+                    NULL AS index_size_mb
                 FROM
                     information_schema.SCHEMATA s
                 LEFT JOIN
@@ -138,9 +138,8 @@ class DatabaseSizeCollectorService:
             data = []
             for row in result:
                 db_name = row[0]
-                total_size = float(row[1] or 0)
-                data_size = float(row[2] or 0)
-                index_size = float(row[3] or 0)
+                data_size = float(row[1] or 0)  # 总大小 = 数据大小（不包含索引）
+                total_size = data_size  # MySQL总大小等于数据大小
                 
                 # 判断是否为系统数据库
                 is_system_db = db_name in ('information_schema', 'performance_schema', 'mysql', 'sys')
@@ -156,7 +155,7 @@ class DatabaseSizeCollectorService:
                     'is_system': is_system_db
                 })
                 
-                self.logger.info(f"{db_type} {db_name}: 总大小 {total_size:.2f}MB, 数据 {data_size:.2f}MB, 索引 {index_size:.2f}MB")
+                self.logger.info(f"{db_type} {db_name}: 总大小 {total_size:.2f}MB, 数据 {data_size:.2f}MB (不包含索引)")
             
             self.logger.info(f"MySQL 实例 {self.instance.name} 采集到 {len(data)} 个数据库")
             return data
