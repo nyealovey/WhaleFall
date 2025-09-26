@@ -21,12 +21,6 @@ class AggregationsManager {
         this.currentChartType = 'line';
         this.currentChartMode = 'database'; // 'database' 或 'instance'
         
-        // 分页相关属性
-        this.currentPage = 1;
-        this.pageSize = 20;
-        this.totalRecords = 0;
-        this.totalPages = 0;
-        
         this.init();
     }
     
@@ -38,7 +32,6 @@ class AggregationsManager {
         this.initializeDatabaseFilter();
         this.loadSummaryData();
         this.loadChartData();
-        this.loadTableData();
     }
     
     /**
@@ -70,10 +63,8 @@ class AggregationsManager {
         // 筛选器变化
         $('#period_type, #timeRange').on('change', () => {
             this.updateFilters();
-            this.resetPagination();
             // 自动刷新图表
             this.loadChartData();
-            this.loadTableData();
         });
         
         // 数据库类型变化时更新实例选项
@@ -82,10 +73,8 @@ class AggregationsManager {
             console.log('数据库类型变化:', dbType);
             await this.updateInstanceOptions(dbType);
             this.updateFilters();
-            this.resetPagination();
             // 自动刷新图表
             this.loadChartData();
-            this.loadTableData();
         });
         
         // 实例变化时更新数据库选项
@@ -93,19 +82,15 @@ class AggregationsManager {
             const instanceId = e.target.value;
             await this.updateDatabaseOptions(instanceId);
             this.updateFilters();
-            this.resetPagination();
             // 自动刷新图表
             this.loadChartData();
-            this.loadTableData();
         });
         
         // 数据库变化时自动刷新
         $('#database').on('change', () => {
             this.updateFilters();
-            this.resetPagination();
             // 自动刷新图表
             this.loadChartData();
-            this.loadTableData();
         });
         
         // 统计周期变化时调整时间范围选项
@@ -125,46 +110,11 @@ class AggregationsManager {
             this.updateChart();
         });
         
-        // 表格搜索
-        $('#searchTable').on('input', (e) => {
-            this.filterTable(e.target.value);
-        });
-        
-        // 表格排序
-        $('#sortTable').on('change', (e) => {
-            this.currentSortBy = e.target.value;
-            this.sortTable();
-        });
-        
         // 详情模态框
         $('#detailModal').on('show.bs.modal', (e) => {
             const button = $(e.relatedTarget);
             const aggregationId = button.data('aggregation-id');
             this.showAggregationDetail(aggregationId);
-        });
-        
-        // 分页事件
-        $(document).on('click', '.page-link', (e) => {
-            e.preventDefault();
-            const page = $(e.target).data('page');
-            if (page && page !== this.currentPage) {
-                this.goToPage(page);
-            }
-        });
-        
-        // 上一页/下一页按钮
-        $('#prevPage').on('click', (e) => {
-            e.preventDefault();
-            if (this.currentPage > 1) {
-                this.goToPage(this.currentPage - 1);
-            }
-        });
-        
-        $('#nextPage').on('click', (e) => {
-            e.preventDefault();
-            if (this.currentPage < this.totalPages) {
-                this.goToPage(this.currentPage + 1);
-            }
         });
     }
     
@@ -261,7 +211,7 @@ class AggregationsManager {
     /**
      * 构建筛选参数
      */
-    buildFilterParams(includePagination = false) {
+    buildFilterParams() {
         const params = new URLSearchParams();
         
         if (this.currentFilters.instance) {
@@ -278,12 +228,6 @@ class AggregationsManager {
         
         if (this.currentFilters.database) {
             params.append('database_name', this.currentFilters.database);
-        }
-        
-        // 添加分页参数
-        if (includePagination) {
-            params.append('page', this.currentPage);
-            params.append('per_page', this.pageSize);
         }
         
         if (this.currentFilters.dateRange) {
@@ -760,133 +704,8 @@ class AggregationsManager {
         }));
     }
     
-    /**
-     * 加载表格数据
-     */
-    async loadTableData() {
-        try {
-            this.showTableLoading();
-            
-            const params = this.buildFilterParams(true); // 包含分页参数
-            const response = await fetch(`/database-sizes/aggregations?api=true&${params}`);
-            const data = await response.json();
-            
-            if (response.ok) {
-                this.currentData = data.data;
-                this.totalRecords = data.total || data.data.length;
-                this.totalPages = Math.ceil(this.totalRecords / this.pageSize);
-                this.renderTable(data.data);
-                this.updatePagination();
-            } else {
-                this.showError('加载表格数据失败: ' + data.error);
-            }
-        } catch (error) {
-            console.error('加载表格数据时出错:', error);
-            this.showError('加载表格数据时出错: ' + error.message);
-        } finally {
-            this.hideTableLoading();
-        }
-    }
     
-    /**
-     * 渲染表格
-     */
-    renderTable(data) {
-        const tbody = $('#aggregationTableBody');
-        tbody.empty();
-        
-        if (data.length === 0) {
-            tbody.append(`
-                <tr>
-                    <td colspan="9" class="text-center">
-                        <div class="empty-state">
-                            <i class="fas fa-chart-bar"></i>
-                            <h5>暂无数据</h5>
-                            <p>没有找到符合条件的聚合数据</p>
-                        </div>
-                    </td>
-                </tr>
-            `);
-            return;
-        }
-        
-        // 排序数据
-        const sortedData = this.sortData(data, this.currentSortBy);
-        
-        sortedData.forEach(item => {
-            const row = this.createTableRow(item);
-            tbody.append(row);
-        });
-    }
     
-    /**
-     * 排序数据
-     */
-    sortData(data, sortBy) {
-        return data.sort((a, b) => {
-            switch (sortBy) {
-                case 'period_start':
-                    return new Date(b.period_start) - new Date(a.period_start);
-                case 'instance_name':
-                    return a.instance.name.localeCompare(b.instance.name);
-                case 'database_name':
-                    return a.database_name.localeCompare(b.database_name);
-                case 'avg_size_mb':
-                    return b.avg_size_mb - a.avg_size_mb;
-                case 'max_size_mb':
-                    return b.max_size_mb - a.max_size_mb;
-                default:
-                    return 0;
-            }
-        });
-    }
-    
-    /**
-     * 创建表格行
-     */
-    createTableRow(item) {
-        const calculatedAt = new Date(item.calculated_at).toLocaleString('zh-CN');
-        const periodRange = `${item.period_start} 至 ${item.period_end}`;
-        
-        return `
-            <tr>
-                <td>
-                    <span class="instance-name">${item.instance.name}</span>
-                </td>
-                <td>
-                    <span class="database-name" title="${item.database_name}">${this.wrapDatabaseName(item.database_name)}</span>
-                </td>
-                <td>
-                    <span class="period-type ${item.period_type}">${this.getPeriodTypeLabel(item.period_type)}</span>
-                </td>
-                <td>
-                    <span class="size-display">${this.formatSizeFromMB(item.avg_size_mb)}</span>
-                </td>
-                <td>
-                    <span class="size-display">${this.formatSizeFromMB(item.max_size_mb)}</span>
-                </td>
-                <td>
-                    <span class="size-display">${this.formatSizeFromMB(item.min_size_mb)}</span>
-                </td>
-                <td>
-                    <span class="badge bg-info">${item.data_count}</span>
-                </td>
-                <td>
-                    <small class="text-muted">${calculatedAt}</small>
-                </td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn btn-outline-info btn-sm" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#detailModal"
-                                data-aggregation-id="${item.id}">
-                            <i class="fas fa-info-circle"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-    }
     
     /**
      * 获取周期类型标签
@@ -900,33 +719,6 @@ class AggregationsManager {
         return labels[periodType] || periodType;
     }
     
-    /**
-     * 筛选表格
-     */
-    filterTable(searchTerm) {
-        const rows = $('#aggregationTableBody tr');
-        const term = searchTerm.toLowerCase();
-        
-        rows.each(function() {
-            const row = $(this);
-            const instanceName = row.find('.instance-name').text().toLowerCase();
-            const databaseName = row.find('.database-name').text().toLowerCase();
-            
-            if (instanceName.includes(term) || databaseName.includes(term)) {
-                row.show();
-            } else {
-                row.hide();
-            }
-        });
-    }
-    
-    /**
-     * 排序表格
-     */
-    sortTable() {
-        this.resetPagination();
-        this.loadTableData();
-    }
     
     /**
      * 显示聚合详情
@@ -1081,9 +873,7 @@ class AggregationsManager {
      */
     applyFilters() {
         this.updateFilters();
-        this.resetPagination();
         this.loadChartData();
-        this.loadTableData();
     }
     
     /**
@@ -1177,10 +967,8 @@ class AggregationsManager {
      * 刷新所有数据
      */
     refreshAllData() {
-        this.resetPagination();
         this.loadSummaryData();
         this.loadChartData();
-        this.loadTableData();
     }
     
     /**
@@ -1341,73 +1129,6 @@ class AggregationsManager {
         }
     }
     
-    /**
-     * 重置分页到第一页
-     */
-    resetPagination() {
-        this.currentPage = 1;
-    }
-    
-    /**
-     * 跳转到指定页面
-     */
-    goToPage(page) {
-        if (page < 1 || page > this.totalPages || page === this.currentPage) {
-            return;
-        }
-        
-        this.currentPage = page;
-        this.loadTableData();
-    }
-    
-    /**
-     * 更新分页组件
-     */
-    updatePagination() {
-        // 更新分页信息
-        const start = (this.currentPage - 1) * this.pageSize + 1;
-        const end = Math.min(this.currentPage * this.pageSize, this.totalRecords);
-        
-        $('#paginationStart').text(start);
-        $('#paginationEnd').text(end);
-        $('#paginationTotal').text(this.totalRecords);
-        
-        // 更新分页按钮状态
-        $('#prevPage').toggleClass('disabled', this.currentPage === 1);
-        $('#nextPage').toggleClass('disabled', this.currentPage === this.totalPages);
-        
-        // 生成页码按钮
-        this.generatePaginationButtons();
-    }
-    
-    /**
-     * 生成分页按钮
-     */
-    generatePaginationButtons() {
-        const paginationNav = $('#paginationNav');
-        const pageButtons = paginationNav.find('.page-item:not(#prevPage):not(#nextPage)');
-        pageButtons.remove();
-        
-        // 计算显示的页码范围
-        const maxVisiblePages = 5;
-        let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
-        let endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
-        
-        // 调整起始页码
-        if (endPage - startPage + 1 < maxVisiblePages) {
-            startPage = Math.max(1, endPage - maxVisiblePages + 1);
-        }
-        
-        // 添加页码按钮
-        for (let i = startPage; i <= endPage; i++) {
-            const pageItem = $(`
-                <li class="page-item ${i === this.currentPage ? 'active' : ''}" id="page${i}">
-                    <a class="page-link" href="#" data-page="${i}">${i}</a>
-                </li>
-            `);
-            $('#prevPage').after(pageItem);
-        }
-    }
 }
 
 // 页面加载完成后初始化
