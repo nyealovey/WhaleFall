@@ -119,6 +119,8 @@ class DatabaseSizeCollectorService:
                 table_schema NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')
             GROUP BY
                 table_schema
+            ORDER BY
+                size_mb DESC
         """
         
         result = self.db_connection.execute_query(query)
@@ -196,6 +198,8 @@ class DatabaseSizeCollectorService:
                 pg_database
             WHERE
                 datistemplate = false
+            ORDER BY
+                size_mb DESC
         """
         
         result = self.db_connection.execute_query(query)
@@ -225,6 +229,8 @@ class DatabaseSizeCollectorService:
                 dba_data_files
             GROUP BY
                 tablespace_name
+            ORDER BY
+                size_mb DESC
         """
         
         result = self.db_connection.execute_query(query)
