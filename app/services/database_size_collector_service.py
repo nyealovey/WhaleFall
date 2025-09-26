@@ -140,57 +140,47 @@ class DatabaseSizeCollectorService:
     
     def _collect_sqlserver_sizes(self) -> List[Dict[str, Any]]:
         """采集 SQL Server 数据库大小"""
-        # 首先获取所有数据库列表
-        databases_query = """
-            SELECT name 
-            FROM sys.databases 
-            WHERE name NOT IN ('master', 'tempdb', 'model', 'msdb')
-            AND state = 0  -- 只查询在线数据库
+        # 使用 sys.master_files 直接查询所有数据库大小，避免使用 USE [database]
+        query = """
+            WITH DBSize AS (
+                SELECT
+                    DB_NAME(database_id) AS DatabaseName,
+                    SUM(CASE WHEN type_desc = 'ROWS' THEN size * 8.0 / 1024 ELSE 0 END) AS DataFileSize_MB,
+                    SUM(CASE WHEN type_desc = 'LOG' THEN size * 8.0 / 1024 ELSE 0 END) AS LogFileSize_MB
+                FROM sys.master_files
+                WHERE DB_NAME(database_id) NOT IN ('master', 'tempdb', 'model', 'msdb')
+                GROUP BY database_id
+            )
+            SELECT
+                DatabaseName,
+                DataFileSize_MB,
+                LogFileSize_MB,
+                (DataFileSize_MB + LogFileSize_MB) AS TotalSize_MB
+            FROM DBSize
+            ORDER BY TotalSize_MB DESC
         """
         
-        databases_result = self.db_connection.execute_query(databases_query)
-        self.logger.info(f"SQL Server 找到 {len(databases_result) if databases_result else 0} 个用户数据库")
-        
-        if not databases_result:
-            self.logger.warning("SQL Server 没有找到用户数据库")
-            return []
+        result = self.db_connection.execute_query(query)
+        self.logger.info(f"SQL Server 查询结果: {len(result) if result else 0} 行数据")
         
         data = []
         
-        # 为每个数据库查询大小信息
-        for db_row in databases_result:
-            db_name = db_row[0]
-            try:
-                # 使用动态SQL查询每个数据库的大小
-                size_query = f"""
-                    USE [{db_name}];
-                    SELECT 
-                        '{db_name}' AS database_name,
-                        CAST(SUM(CAST(FILEPROPERTY(name, 'SpaceUsed') AS bigint) * 8.0 / 1024) AS decimal(15,2)) AS size_mb,
-                        CAST(SUM(CASE WHEN type = 0 THEN CAST(FILEPROPERTY(name, 'SpaceUsed') AS bigint) * 8.0 / 1024 ELSE 0 END) AS decimal(15,2)) AS data_size_mb,
-                        CAST(SUM(CASE WHEN type = 1 THEN CAST(FILEPROPERTY(name, 'SpaceUsed') AS bigint) * 8.0 / 1024 ELSE 0 END) AS decimal(15,2)) AS log_size_mb
-                    FROM sys.database_files
-                """
-                
-                size_result = self.db_connection.execute_query(size_query)
-                
-                if size_result and len(size_result) > 0:
-                    row = size_result[0]
-                    data.append({
-                        'database_name': row[0],
-                        'size_mb': int(float(row[1] or 0)),
-                        'data_size_mb': int(float(row[2] or 0)),
-                        'log_size_mb': int(float(row[3] or 0)),
-                        'collected_date': date.today(),
-                        'collected_at': datetime.utcnow()
-                    })
-                    self.logger.info(f"SQL Server 数据库 {db_name}: 总大小 {row[1]} MB, 数据大小 {row[2]} MB, 日志大小 {row[3]} MB")
-                else:
-                    self.logger.warning(f"SQL Server 数据库 {db_name} 没有返回大小信息")
-                    
-            except Exception as e:
-                self.logger.error(f"查询 SQL Server 数据库 {db_name} 大小时出错: {str(e)}")
-                continue
+        for row in result:
+            database_name = row[0]
+            data_size_mb = int(float(row[1] or 0))
+            log_size_mb = int(float(row[2] or 0))
+            total_size_mb = int(float(row[3] or 0))
+            
+            data.append({
+                'database_name': database_name,
+                'size_mb': total_size_mb,
+                'data_size_mb': data_size_mb,
+                'log_size_mb': log_size_mb,
+                'collected_date': date.today(),
+                'collected_at': datetime.utcnow()
+            })
+            
+            self.logger.info(f"SQL Server 数据库 {database_name}: 总大小 {total_size_mb} MB, 数据大小 {data_size_mb} MB, 日志大小 {log_size_mb} MB")
         
         self.logger.info(f"SQL Server 实例 {self.instance.name} 采集到 {len(data)} 个数据库")
         return data
