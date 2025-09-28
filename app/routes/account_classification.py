@@ -532,31 +532,6 @@ def delete_rule(rule_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/assign", methods=["POST"])
-@login_required
-@update_required
-def assign_classification() -> "Response":
-    """分配账户分类"""
-    try:
-        data = request.get_json()
-
-        service = OptimizedAccountClassificationService()
-        result = service.classify_account(
-            data["account_id"],
-            data["classification_id"],
-            "manual",
-            current_user.id,
-            None,  # notes
-            None,  # batch_id (手动分配不需要批次ID)
-        )
-
-        return jsonify({"success": True, "assignment_id": result})
-
-    except Exception as e:
-        log_error(f"分配账户分类失败: {e}", module="account_classification")
-        return jsonify({"success": False, "error": str(e)})
-
-
 @account_classification_bp.route("/auto-classify", methods=["POST"])
 @login_required
 @update_required
