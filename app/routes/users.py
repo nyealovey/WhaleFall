@@ -3,6 +3,7 @@
 鲸落 - 用户管理路由
 """
 
+import logging
 import re
 
 from flask import Blueprint, Response, flash, render_template, request
@@ -17,6 +18,9 @@ from app.utils.decorators import (
     update_required,
     view_required,
 )
+
+# 配置日志
+logger = logging.getLogger(__name__)
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
@@ -29,16 +33,23 @@ users_bp = Blueprint("users", __name__)
 def index() -> str:
     """用户管理首页"""
     try:
+        logger.info("开始加载用户管理页面")
+        
         # 获取分页参数
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 10, type=int)
+        
+        logger.info(f"分页参数: page={page}, per_page={per_page}")
 
         # 分页查询
         users = User.query.order_by(User.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        
+        logger.info(f"成功获取 {users.total} 个用户")
 
         return render_template("users/management.html", users=users)
 
     except Exception as e:
+        logger.error(f"加载用户管理页面失败: {str(e)}", exc_info=True)
         flash(f"获取用户列表失败: {str(e)}", "error")
         return render_template("users/management.html", users=None, stats={})
 
