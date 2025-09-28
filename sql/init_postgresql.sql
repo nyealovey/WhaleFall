@@ -751,9 +751,72 @@ CREATE INDEX IF NOT EXISTS ix_database_size_aggregations_instance_period ON data
 CREATE INDEX IF NOT EXISTS ix_database_size_aggregations_period_type ON database_size_aggregations (period_type, period_start);
 CREATE INDEX IF NOT EXISTS ix_database_size_aggregations_id ON database_size_aggregations (id);
 
+-- 实例大小聚合统计表（按月分区）
+CREATE TABLE IF NOT EXISTS instance_size_aggregations (
+    id BIGSERIAL,
+    instance_id INTEGER NOT NULL REFERENCES instances(id),
+    period_type VARCHAR(20) NOT NULL,
+    period_start DATE NOT NULL,
+    period_end DATE NOT NULL,
+    total_size_mb BIGINT NOT NULL,
+    avg_size_mb BIGINT NOT NULL,
+    max_size_mb BIGINT NOT NULL,
+    min_size_mb BIGINT NOT NULL,
+    data_count INTEGER NOT NULL,
+    database_count INTEGER NOT NULL,
+    avg_database_count NUMERIC(10, 2),
+    max_database_count INTEGER,
+    min_database_count INTEGER,
+    total_size_change_mb BIGINT,
+    total_size_change_percent NUMERIC(10, 2),
+    database_count_change INTEGER,
+    database_count_change_percent NUMERIC(10, 2),
+    growth_rate NUMERIC(10, 2),
+    trend_direction VARCHAR(20),
+    calculated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+) PARTITION BY RANGE (period_start);
+
+-- 创建当前月份的分区（实例聚合表）
+DO $$
+DECLARE
+    current_year INTEGER := EXTRACT(YEAR FROM CURRENT_DATE);
+    current_month INTEGER := EXTRACT(MONTH FROM CURRENT_DATE);
+    partition_name TEXT;
+    start_date DATE;
+    end_date DATE;
+BEGIN
+    -- 当前月份分区
+    partition_name := 'instance_size_aggregations_' || current_year || '_' || LPAD(current_month::TEXT, 2, '0');
+    start_date := DATE_TRUNC('month', CURRENT_DATE)::DATE;
+    end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
+    
+    EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF instance_size_aggregations FOR VALUES FROM (%L) TO (%L)',
+                   partition_name, start_date, end_date);
+    
+    -- 下个月分区
+    partition_name := 'instance_size_aggregations_' || current_year || '_' || LPAD((current_month + 1)::TEXT, 2, '0');
+    start_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
+    end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '2 months')::DATE;
+    
+    EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF instance_size_aggregations FOR VALUES FROM (%L) TO (%L)',
+                   partition_name, start_date, end_date);
+END $$;
+
+-- 为实例聚合表创建索引
+CREATE INDEX IF NOT EXISTS ix_instance_size_aggregations_instance_period ON instance_size_aggregations (instance_id, period_type, period_start);
+CREATE INDEX IF NOT EXISTS ix_instance_size_aggregations_period_type ON instance_size_aggregations (period_type, period_start);
+CREATE INDEX IF NOT EXISTS ix_instance_size_aggregations_id ON instance_size_aggregations (id);
+
+-- 创建唯一约束
+ALTER TABLE instance_size_aggregations 
+ADD CONSTRAINT uq_instance_size_aggregation 
+UNIQUE (instance_id, period_type, period_start);
+
 -- 添加表注释
 COMMENT ON TABLE database_size_stats IS '数据库大小统计表（按月分区）';
 COMMENT ON TABLE database_size_aggregations IS '数据库大小聚合统计表（按月分区）';
+COMMENT ON TABLE instance_size_aggregations IS '实例大小聚合统计表（按月分区）';
 
 -- ============================================================================
 -- 18. 提交事务
@@ -782,7 +845,7 @@ SELECT
     tablename,
     tableowner
 FROM pg_tables 
-WHERE tablename LIKE 'database_size_%'
+WHERE tablename LIKE 'database_size_%' OR tablename LIKE 'instance_size_%'
 ORDER BY tablename;
 
 -- 显示初始数据统计
@@ -816,7 +879,9 @@ SELECT 'Global Params', COUNT(*) FROM global_params
 UNION ALL
 SELECT 'Database Size Stats', COUNT(*) FROM database_size_stats
 UNION ALL
-SELECT 'Database Size Aggregations', COUNT(*) FROM database_size_aggregations;
+SELECT 'Database Size Aggregations', COUNT(*) FROM database_size_aggregations
+UNION ALL
+SELECT 'Instance Size Aggregations', COUNT(*) FROM instance_size_aggregations;
 
 -- 脚本执行完成提示
 SELECT 'PostgreSQL 初始化脚本执行完成！' as message,
