@@ -408,14 +408,14 @@ def get_instance_database_sizes(instance_id: int):
             InstanceSizeStat.is_deleted == False
         ).order_by(InstanceSizeStat.collected_date.desc()).first()
         
-        # 计算总容量（从 instance_size_stats 或计算数据库大小总和）
+        # 只从 instance_size_stats 表获取总容量信息
         if latest_instance_stat:
             total_size_mb = latest_instance_stat.total_size_mb
             database_count = latest_instance_stat.database_count
         else:
-            # 如果没有实例统计，则计算数据库大小总和
-            total_size_mb = sum(stat.size_mb for stat in stats)
-            database_count = len(stats)
+            # 如果没有实例统计数据，返回0
+            total_size_mb = 0
+            database_count = 0
         
         return jsonify({
             'data': data,
