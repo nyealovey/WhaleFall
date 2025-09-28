@@ -118,6 +118,26 @@ def collect_database_sizes():
                     # 采集数据库大小数据
                     data = collector.collect_database_sizes()
                     
+                    # 检查是否有数据库数据
+                    if not data or len(data) == 0:
+                        error_msg = f"实例 {instance.name} 没有找到任何数据库"
+                        sync_logger.warning(
+                            error_msg,
+                            module="capacity_sync",
+                            session_id=session.session_id,
+                            instance_id=instance.id,
+                            instance_name=instance.name
+                        )
+                        sync_session_service.fail_instance_sync(record.id, error_msg)
+                        total_failed += 1
+                        results.append({
+                            'instance_id': instance.id,
+                            'instance_name': instance.name,
+                            'success': False,
+                            'error': error_msg
+                        })
+                        continue
+                    
                     # 保存数据
                     saved_count = collector.save_collected_data(data)
                     instance_size_mb = sum(item.get('size_mb', 0) for item in data)
