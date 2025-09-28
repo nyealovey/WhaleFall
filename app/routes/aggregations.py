@@ -346,30 +346,31 @@ def instance_aggregations():
             offset = (page - 1) * per_page
             limit = per_page
             
-            # 构建查询 - 直接查询聚合统计表
-            query = DatabaseSizeAggregation.query.join(Instance)
+            # 构建查询 - 查询实例统计聚合表
+            from app.models.instance_size_aggregation import InstanceSizeAggregation
+            query = InstanceSizeAggregation.query.join(Instance)
             
             # 应用过滤条件
             if instance_id:
-                query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
+                query = query.filter(InstanceSizeAggregation.instance_id == instance_id)
             if db_type:
                 query = query.filter(Instance.db_type == db_type)
             if period_type:
-                query = query.filter(DatabaseSizeAggregation.period_type == period_type)
+                query = query.filter(InstanceSizeAggregation.period_type == period_type)
             if start_date:
-                query = query.filter(DatabaseSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+                query = query.filter(InstanceSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
             if end_date:
-                query = query.filter(DatabaseSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
+                query = query.filter(InstanceSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
             
             # 排序和分页
             if get_all:
-                # 用于图表显示：按大小排序获取TOP 20
-                query = query.order_by(desc(DatabaseSizeAggregation.avg_size_mb))
+                # 用于图表显示：按总大小排序获取TOP 20
+                query = query.order_by(desc(InstanceSizeAggregation.total_size_mb))
                 aggregations = query.limit(20).all()
                 total = len(aggregations)
             else:
                 # 用于表格显示：按时间排序分页
-                query = query.order_by(desc(DatabaseSizeAggregation.period_start))
+                query = query.order_by(desc(InstanceSizeAggregation.period_start))
                 total = query.count()
                 aggregations = query.offset(offset).limit(limit).all()
             
@@ -383,6 +384,8 @@ def instance_aggregations():
                     'name': agg.instance.name,
                     'db_type': agg.instance.db_type
                 }
+                # 为了兼容前端，添加 avg_size_mb 字段
+                agg_dict['avg_size_mb'] = agg_dict.get('total_size_mb', 0)
                 data.append(agg_dict)
             
             return jsonify({
@@ -554,40 +557,41 @@ def get_instance_aggregations_summary():
         JSON: 汇总统计信息
     """
     try:
-        # 获取基本统计
-        total_aggregations = DatabaseSizeAggregation.query.count()
+        # 获取基本统计 - 使用实例统计聚合表
+        from app.models.instance_size_aggregation import InstanceSizeAggregation
+        total_aggregations = InstanceSizeAggregation.query.count()
         total_instances = Instance.query.filter_by(is_active=True).count()
         
-        # 获取数据库数量统计
+        # 获取数据库数量统计 - 从实例统计聚合表获取
         total_databases = db.session.query(
-            func.count(func.distinct(DatabaseSizeAggregation.database_name))
+            func.sum(InstanceSizeAggregation.database_count)
         ).scalar() or 0
         
-        # 获取大小统计
+        # 获取大小统计 - 从实例统计聚合表获取
         size_stats = db.session.query(
-            func.avg(DatabaseSizeAggregation.avg_size_mb).label('avg_size'),
-            func.max(DatabaseSizeAggregation.max_size_mb).label('max_size')
+            func.avg(InstanceSizeAggregation.total_size_mb).label('avg_size'),
+            func.max(InstanceSizeAggregation.total_size_mb).label('max_size')
         ).first()
         
         # 按周期类型统计
         period_stats = db.session.query(
-            DatabaseSizeAggregation.period_type,
-            func.count(DatabaseSizeAggregation.id).label('count')
-        ).group_by(DatabaseSizeAggregation.period_type).all()
+            InstanceSizeAggregation.period_type,
+            func.count(InstanceSizeAggregation.id).label('count')
+        ).group_by(InstanceSizeAggregation.period_type).all()
         
         # 按实例统计
         instance_stats = db.session.query(
-            DatabaseSizeAggregation.instance_id,
+            InstanceSizeAggregation.instance_id,
             Instance.name.label('instance_name'),
-            func.count(DatabaseSizeAggregation.id).label('count')
+            func.count(InstanceSizeAggregation.id).label('count')
         ).join(Instance).group_by(
-            DatabaseSizeAggregation.instance_id, 
+            InstanceSizeAggregation.instance_id, 
             Instance.name
-        ).order_by(func.count(DatabaseSizeAggregation.id).desc()).limit(10).all()
+        ).order_by(func.count(InstanceSizeAggregation.id).desc()).limit(10).all()
         
         # 最近更新时间
-        latest_aggregation = DatabaseSizeAggregation.query.order_by(
-            desc(DatabaseSizeAggregation.calculated_at)
+        latest_aggregation = InstanceSizeAggregation.query.order_by(
+            desc(InstanceSizeAggregation.calculated_at)
         ).first()
         
         summary = {
