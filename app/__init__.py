@@ -352,9 +352,6 @@ def initialize_extensions(app: Flask) -> None:
     from app.utils.rate_limiter import init_rate_limiter
     init_rate_limiter(cache)
     
-    # 初始化简化缓存管理器
-    from app.services.cache_manager_simple import init_simple_cache_manager
-    init_simple_cache_manager(cache)
 
 
 def register_blueprints(app: Flask) -> None:

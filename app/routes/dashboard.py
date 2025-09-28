@@ -435,9 +435,9 @@ def get_system_status() -> dict:
         redis_status = "healthy"
         try:
             from flask import current_app
-            from app.services.cache_manager_simple import simple_cache_manager
+            from app.services.cache_manager import cache_manager
 
-            if simple_cache_manager and simple_cache_manager.health_check():
+            if cache_manager and cache_manager.health_check():
                 redis_status = "healthy"
             else:
                 redis_status = "error"

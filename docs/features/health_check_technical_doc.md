@@ -84,9 +84,9 @@ class HealthCheckService:
     def check_redis_health() -> Dict[str, Any]:
         """检查Redis健康状态"""
         try:
-            from app.services.cache_manager_simple import simple_cache_manager
+            from app.services.cache_manager import cache_manager
             
-            if not simple_cache_manager:
+            if not cache_manager:
                 return {
                     "healthy": False,
                     "status": "error",
@@ -94,7 +94,7 @@ class HealthCheckService:
                 }
             
             start_time = time.time()
-            health_check = simple_cache_manager.health_check()
+            health_check = cache_manager.health_check()
             response_time = (time.time() - start_time) * 1000
             
             if health_check:

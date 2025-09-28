@@ -68,9 +68,9 @@ def api_health() -> "Response":
     # 检查Redis状态（通过缓存检查）
     redis_status = "connected"
     try:
-        from app.services.cache_manager_simple import simple_cache_manager
+        from app.services.cache_manager import cache_manager
 
-        if simple_cache_manager and simple_cache_manager.health_check():
+        if cache_manager and cache_manager.health_check():
             redis_status = "connected"
         else:
             redis_status = "error"
