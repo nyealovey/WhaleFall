@@ -557,6 +557,9 @@ function displayDatabaseSizes(databases, totalSize) {
     // 计算总容量显示
     const totalSizeGB = (totalSize / 1024).toFixed(3);
     
+    // 按数据库大小从大到小排序
+    databases.sort((a, b) => (b.size_mb || 0) - (a.size_mb || 0));
+    
     // 统计已删除和在线数据库数量
     const deletedCount = databases.filter(db => !db.is_active).length;
     const onlineCount = databases.length - deletedCount;
