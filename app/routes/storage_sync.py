@@ -401,6 +401,22 @@ def get_instance_database_sizes(instance_id: int):
                 'collected_at': stat.collected_at.isoformat()
             })
         
+        # 从 instance_size_stats 表获取总容量信息
+        from app.models.instance_size_stat import InstanceSizeStat
+        latest_instance_stat = InstanceSizeStat.query.filter(
+            InstanceSizeStat.instance_id == instance_id,
+            InstanceSizeStat.is_deleted == False
+        ).order_by(InstanceSizeStat.collected_date.desc()).first()
+        
+        # 计算总容量（从 instance_size_stats 或计算数据库大小总和）
+        if latest_instance_stat:
+            total_size_mb = latest_instance_stat.total_size_mb
+            database_count = latest_instance_stat.database_count
+        else:
+            # 如果没有实例统计，则计算数据库大小总和
+            total_size_mb = sum(stat.size_mb for stat in stats)
+            database_count = len(stats)
+        
         return jsonify({
             'data': data,
             'pagination': {
@@ -415,7 +431,9 @@ def get_instance_database_sizes(instance_id: int):
                 'db_type': instance.db_type,
                 'host': instance.host,
                 'port': instance.port
-            }
+            },
+            'total_size_mb': total_size_mb,
+            'database_count': database_count
         })
         
     except Exception as e:
