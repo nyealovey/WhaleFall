@@ -121,7 +121,8 @@
     display: block;
 }
 
-.aggregations-page .filter-db-type {
+.aggregations-page .filter-db-type,
+.instance-aggregations-page .filter-db-type {
     display: block;
 }
 
