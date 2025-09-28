@@ -347,50 +347,70 @@ def get_instance_database_sizes(instance_id: int):
         
         if latest_only:
             # 使用窗口函数获取每个数据库的最新记录
-            subquery = db.session.query(
-                DatabaseSizeStat,
-                func.row_number().over(
-                    partition_by=DatabaseSizeStat.database_name,
-                    order_by=desc(DatabaseSizeStat.collected_date)
-                ).label('rn')
-            ).filter(
-                DatabaseSizeStat.instance_id == instance_id
-            ).subquery()
+            from sqlalchemy import text
             
-            # 主查询：只获取rn=1的记录（即每个数据库的最新记录）
-            query = db.session.query(subquery).filter(subquery.c.rn == 1)
+            # 使用原生SQL查询，避免SQLAlchemy窗口函数语法问题
+            sql_query = text("""
+                SELECT * FROM (
+                    SELECT *,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY database_name 
+                               ORDER BY collected_date DESC
+                           ) as rn
+                    FROM database_size_stats 
+                    WHERE instance_id = :instance_id
+                ) ranked
+                WHERE rn = 1
+            """)
+            
+            # 执行原生SQL查询
+            result = db.session.execute(sql_query, {'instance_id': instance_id})
+            stats = []
+            for row in result:
+                # 手动构建DatabaseSizeStat对象
+                stat = DatabaseSizeStat()
+                stat.id = row.id
+                stat.instance_id = row.instance_id
+                stat.database_name = row.database_name
+                stat.size_mb = row.size_mb
+                stat.data_size_mb = row.data_size_mb
+                stat.log_size_mb = row.log_size_mb
+                stat.collected_date = row.collected_date
+                stat.collected_at = row.collected_at
+                stats.append(stat)
             
             # 应用数据库名称筛选
             if database_name:
-                query = query.filter(subquery.c.database_name.ilike(f'%{database_name}%'))
+                stats = [stat for stat in stats if database_name.lower() in stat.database_name.lower()]
             
             # 应用日期筛选条件
             if start_date:
                 try:
                     start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
-                    query = query.filter(subquery.c.collected_date >= start_date_obj)
+                    stats = [stat for stat in stats if stat.collected_date >= start_date_obj]
                 except ValueError:
                     return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
             
             if end_date:
                 try:
                     end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
-                    query = query.filter(subquery.c.collected_date <= end_date_obj)
+                    stats = [stat for stat in stats if stat.collected_date <= end_date_obj]
                 except ValueError:
                     return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
             
-            # 排序和分页
-            query = query.order_by(desc(subquery.c.collected_date))
-            total_count = query.count()
-            results = query.offset(offset).limit(limit).all()
+            # 排序
+            stats.sort(key=lambda x: x.collected_date, reverse=True)
+            
+            # 分页
+            total_count = len(stats)
+            stats = stats[offset:offset + limit]
             
             # 构建返回数据
             data = []
-            for row in results:
-                stat = row[0]  # DatabaseSizeStat对象
+            for stat in stats:
                 data.append({
                     'database_name': stat.database_name,
-                    'is_active': True,  # 从database_size_stats表查询到的都是活跃的
+                    'is_active': True,
                     'first_seen_date': stat.collected_date.isoformat(),
                     'last_seen_date': stat.collected_date.isoformat(),
                     'deleted_at': None,
