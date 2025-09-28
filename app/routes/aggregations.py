@@ -11,6 +11,13 @@ from sqlalchemy import func, desc, and_, or_
 from app.models.instance import Instance
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
+from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.tasks.database_size_aggregation_tasks import (
+    calculate_database_size_aggregations,
+    calculate_instance_aggregations,
+    calculate_period_aggregations,
+    get_aggregation_status
+)
 from app.utils.decorators import view_required
 from app import db
 
@@ -638,3 +645,183 @@ def get_database_aggregations_summary():
             'success': False,
             'error': str(e)
         }), 500
+
+
+# 聚合统计管理相关API
+
+@aggregations_bp.route('/manual_aggregate', methods=['POST'])
+@login_required
+@view_required
+def manual_aggregate():
+    """
+    手动触发聚合计算
+    
+    Returns:
+        JSON: 聚合结果
+    """
+    try:
+        # 触发聚合任务
+        result = calculate_database_size_aggregations()
+        
+        return jsonify({
+            'success': True,
+            'message': '手动聚合任务已触发',
+            'data': result
+        })
+        
+    except Exception as e:
+        logger.error(f"手动聚合时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@aggregations_bp.route('/aggregate', methods=['POST'])
+@login_required
+@view_required
+def calculate_aggregations():
+    """
+    手动触发统计聚合计算
+    
+    Returns:
+        JSON: 聚合结果
+    """
+    try:
+        # 执行聚合计算
+        aggregation_service = DatabaseSizeAggregationService()
+        result = aggregation_service.calculate_all_aggregations()
+        
+        return jsonify({
+            'message': 'Database size aggregation completed',
+            'result': result
+        })
+        
+    except Exception as e:
+        logger.error(f"手动计算统计聚合时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@aggregations_bp.route('/aggregate-today', methods=['POST'])
+@login_required
+@view_required
+def calculate_today_aggregations():
+    """
+    手动触发今日数据聚合计算
+    
+    Returns:
+        JSON: 聚合结果
+    """
+    try:
+        # 执行今日数据聚合计算
+        aggregation_service = DatabaseSizeAggregationService()
+        result = aggregation_service.calculate_today_aggregations()
+        
+        return jsonify({
+            'message': 'Today data aggregation completed',
+            'result': result
+        })
+        
+    except Exception as e:
+        logger.error(f"手动计算今日数据聚合时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@aggregations_bp.route('/aggregate/status', methods=['GET'])
+@login_required
+@view_required
+def get_aggregation_status_api():
+    """
+    获取聚合状态信息
+    
+    Returns:
+        JSON: 状态信息
+    """
+    try:
+        result = get_aggregation_status()
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['message']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"获取聚合状态时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@aggregations_bp.route('/instances/<int:instance_id>/database-sizes/aggregations', methods=['GET'])
+@login_required
+@view_required
+def get_instance_database_aggregations(instance_id: int):
+    """
+    获取指定实例的数据库大小统计聚合数据
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON: 统计聚合数据
+    """
+    try:
+        # 验证实例是否存在
+        instance = Instance.query.get_or_404(instance_id)
+        
+        # 获取查询参数
+        period_type = request.args.get('period_type', 'monthly')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        database_name = request.args.get('database_name')
+        
+        # 验证周期类型
+        if period_type not in ['weekly', 'monthly', 'quarterly']:
+            return jsonify({'error': 'Invalid period_type. Must be weekly, monthly, or quarterly'}), 400
+        
+        # 解析日期
+        start_date_obj = None
+        end_date_obj = None
+        
+        if start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+        
+        if end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+        
+        # 获取聚合数据
+        aggregation_service = DatabaseSizeAggregationService()
+        data = aggregation_service.get_aggregations(
+            instance_id=instance_id,
+            period_type=period_type,
+            start_date=start_date_obj,
+            end_date=end_date_obj,
+            database_name=database_name
+        )
+        
+        return jsonify({
+            'data': data,
+            'instance': {
+                'id': instance.id,
+                'name': instance.name,
+                'db_type': instance.db_type,
+                'host': instance.host,
+                'port': instance.port
+            },
+            'period_type': period_type
+        })
+        
+    except Exception as e:
+        logger.error(f"获取实例 {instance_id} 统计聚合数据时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
