@@ -24,12 +24,10 @@ class OptimizedAccountClassificationService:
 
     def __init__(self) -> None:
         """初始化优化后的账户分类服务"""
-        self.batch_id = None
 
     def auto_classify_accounts_optimized(
         self,
         instance_id: int = None,
-        batch_type: str = "manual",
         created_by: int = None,
     ) -> dict[str, Any]:
         """
@@ -37,7 +35,6 @@ class OptimizedAccountClassificationService:
 
         Args:
             instance_id: 实例ID，None表示所有实例
-            batch_type: 批次类型
             created_by: 创建者用户ID
 
         Returns:
@@ -56,23 +53,16 @@ class OptimizedAccountClassificationService:
             if not accounts:
                 return {"success": False, "error": "没有需要分类的账户"}
 
-            # 3. 清理所有旧的分配记录，确保数据一致性（仅在手动触发时）
-            if batch_type == "manual":
-                self._cleanup_all_old_assignments()
-                log_info(
-                    "已清理所有旧分配记录，准备重新分类",
-                    module="account_classification",
-                    batch_type=batch_type
-                )
-
-            # 4. 生成批次ID（仅用于日志追踪）
-            import uuid
-            self.batch_id = str(uuid.uuid4())
+            # 3. 清理所有旧的分配记录，确保数据一致性
+            self._cleanup_all_old_assignments()
+            log_info(
+                "已清理所有旧分配记录，准备重新分类",
+                module="account_classification"
+            )
 
             log_info(
                 "开始优化后的自动分类",
                 module="account_classification",
-                batch_id=self.batch_id,
                 total_rules=len(rules),
                 total_accounts=len(accounts),
                 instance_id=instance_id,
@@ -81,12 +71,11 @@ class OptimizedAccountClassificationService:
             # 5. 按数据库类型优化分类
             result = self._classify_accounts_by_db_type_optimized(accounts, rules)
 
-            # 5. 批次完成（仅用于日志记录）
+            # 5. 分类完成
             log_info(
-                "批次分类完成",
+                "自动分类完成",
                 module="account_classification",
-                batch_id=self.batch_id,
-                batch_details=result,
+                classification_details=result,
             )
 
             # 6. 性能监控
@@ -96,13 +85,10 @@ class OptimizedAccountClassificationService:
             return {
                 "success": True,
                 "message": "自动分类完成",
-                "batch_id": self.batch_id,
                 **result,
             }
 
         except Exception as e:
-            if self.batch_id:
-                log_error(f"批次分类失败: {e}", module="account_classification", batch_id=self.batch_id)
             log_error(f"优化后的自动分类失败: {e}", module="account_classification")
             return {"success": False, "error": f"自动分类失败: {str(e)}"}
 
@@ -190,7 +176,6 @@ class OptimizedAccountClassificationService:
             log_info(
                 f"账户按数据库类型分组完成",
                 module="account_classification",
-                batch_id=self.batch_id,
                 db_types=list(grouped.keys()),
                 total_groups=len(grouped),
                 accounts_per_group={db_type: len(accs) for db_type, accs in grouped.items()}
@@ -230,7 +215,6 @@ class OptimizedAccountClassificationService:
                 log_info(
                     f"数据库类型 {db_type} 规则分组",
                     module="account_classification",
-                    batch_id=self.batch_id,
                     rule_names=rule_names,
                     rule_count=len(db_rules)
                 )
@@ -238,7 +222,6 @@ class OptimizedAccountClassificationService:
             log_info(
                 f"规则按数据库类型分组完成",
                 module="account_classification",
-                batch_id=self.batch_id,
                 db_types=list(grouped.keys()),
                 total_groups=len(grouped),
                 rules_per_group={db_type: len(rules) for db_type, rules in grouped.items()}
@@ -286,7 +269,6 @@ class OptimizedAccountClassificationService:
                     log_info(
                         f"开始处理数据库类型: {db_type}",
                         module="account_classification",
-                        batch_id=self.batch_id,
                         account_count=len(db_accounts),
                         processing_order=list(accounts_by_db_type.keys()).index(db_type) + 1,
                         total_db_types=len(accounts_by_db_type)
@@ -299,7 +281,6 @@ class OptimizedAccountClassificationService:
                         log_info(
                             f"数据库类型 {db_type} 没有可用规则，跳过",
                             module="account_classification",
-                            batch_id=self.batch_id,
                             account_count=len(db_accounts)
                         )
                         db_type_results[db_type] = {
@@ -324,7 +305,6 @@ class OptimizedAccountClassificationService:
                     log_info(
                         f"数据库类型 {db_type} 分类完成",
                         module="account_classification",
-                        batch_id=self.batch_id,
                         accounts=result["total_accounts"],
                         rules=result["total_rules"],
                         classifications_added=result["total_classifications_added"],
@@ -336,7 +316,7 @@ class OptimizedAccountClassificationService:
                     
                 except Exception as e:
                     error_msg = f"数据库类型 {db_type} 分类失败: {str(e)}"
-                    log_error(error_msg, module="account_classification", batch_id=self.batch_id)
+                    log_error(error_msg, module="account_classification")
                     all_errors.append(error_msg)
                     failed_count += len(db_accounts)
                     db_type_results[db_type] = {
@@ -397,8 +377,7 @@ class OptimizedAccountClassificationService:
                         rule_id=rule.id,
                         db_type=db_type,
                         matched_accounts=len(matched_accounts),
-                        added_classifications=added_count if matched_accounts else 0,
-                        batch_id=self.batch_id
+                        added_classifications=added_count if matched_accounts else 0
                     )
                         
                 except Exception as e:
@@ -494,8 +473,7 @@ class OptimizedAccountClassificationService:
                         module="account_classification",
                         rule_id=rule.id,
                         matched_accounts=len(matched_accounts),
-                        added_classifications=added_count if matched_accounts else 0,
-                        batch_id=self.batch_id,
+                        added_classifications=added_count if matched_accounts else 0
                     )
 
                 except Exception as e:
@@ -505,8 +483,7 @@ class OptimizedAccountClassificationService:
                     log_error(
                         error_msg,
                         module="account_classification",
-                        rule_id=rule.id,
-                        batch_id=self.batch_id,
+                        rule_id=rule.id
                     )
 
             # 3. 更新账户的最后分类时间
@@ -991,7 +968,6 @@ class OptimizedAccountClassificationService:
                         "assigned_by": None,
                         "assignment_type": "auto",
                         "notes": None,
-                        "batch_id": self.batch_id,
                         "is_active": True,
                         "created_at": time_utils.now(),
                         "updated_at": time_utils.now(),
@@ -1061,8 +1037,8 @@ class OptimizedAccountClassificationService:
 
     def _update_accounts_classification_time(self, accounts: list[CurrentAccountSyncData]) -> None:
         """更新账户的最后分类时间"""
-        # 注意：不再更新last_classified_at和last_classification_batch_id字段
-        # 这些字段在数据库模型中不存在，已移除相关更新操作
+        # 注意：不再更新last_classified_at字段
+        # 该字段在数据库模型中不存在，已移除相关更新操作
 
     def _log_performance_stats(
         self, duration: float, total_accounts: int, total_rules: int, result: dict[str, Any]
@@ -1073,7 +1049,6 @@ class OptimizedAccountClassificationService:
         log_info(
             "优化后的自动分类性能统计",
             module="account_classification",
-            batch_id=self.batch_id,
             duration=f"{duration:.2f}秒",
             total_accounts=total_accounts,
             total_rules=total_rules,
@@ -1090,7 +1065,6 @@ class OptimizedAccountClassificationService:
         assignment_type: str = "manual",
         assigned_by: int = None,
         notes: str = None,
-        batch_id: str = None,
         *,
         skip_log: bool = False,
     ) -> dict[str, Any]:
@@ -1116,7 +1090,6 @@ class OptimizedAccountClassificationService:
                     existing_assignment.assigned_by = assigned_by
                     existing_assignment.assignment_type = assignment_type
                     existing_assignment.notes = notes
-                    existing_assignment.batch_id = batch_id
                     existing_assignment.updated_at = time_utils.now()
                     db.session.commit()
                     return {"success": True, "message": "账户分类分配已重新激活"}
@@ -1128,7 +1101,6 @@ class OptimizedAccountClassificationService:
                 assigned_by=assigned_by,
                 assignment_type=assignment_type,
                 notes=notes,
-                batch_id=batch_id,
             )
             db.session.add(assignment)
             db.session.commit()
