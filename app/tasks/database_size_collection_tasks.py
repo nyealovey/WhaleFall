@@ -115,11 +115,17 @@ def collect_database_sizes():
                     continue
                 
                 try:
-                    # 采集数据库大小数据
-                    data = collector.collect_database_sizes()
+                    # 采集并保存数据库大小数据（包括实例大小统计）
+                    saved_count = collector.collect_and_save()
                     
-                    # 检查是否有数据库数据
-                    if not data or len(data) == 0:
+                    # 从实例大小统计表获取总大小
+                    from app.models.instance_size_stat import InstanceSizeStat
+                    latest_stat = InstanceSizeStat.query.filter(
+                        InstanceSizeStat.instance_id == instance.id,
+                        InstanceSizeStat.is_deleted == False
+                    ).order_by(InstanceSizeStat.collected_date.desc()).first()
+                    
+                    if not latest_stat:
                         error_msg = f"实例 {instance.name} 没有找到任何数据库"
                         sync_logger.warning(
                             error_msg,
@@ -138,9 +144,8 @@ def collect_database_sizes():
                         })
                         continue
                     
-                    # 保存数据
-                    saved_count = collector.save_collected_data(data)
-                    instance_size_mb = sum(item.get('size_mb', 0) for item in data)
+                    instance_size_mb = latest_stat.total_size_mb
+                    database_count = latest_stat.database_count
                     total_size_mb += instance_size_mb
                     
                     # 更新实例的最后连接时间
@@ -149,12 +154,12 @@ def collect_database_sizes():
                     # 完成实例同步
                     sync_session_service.complete_instance_sync(
                         record.id,
-                        accounts_synced=len(data),  # 使用数据库数量作为同步数量
+                        accounts_synced=database_count,  # 使用数据库数量作为同步数量
                         accounts_created=saved_count,  # 新创建的记录数
                         accounts_updated=0,  # 容量同步没有更新概念
                         accounts_deleted=0,  # 容量同步没有删除概念
                         sync_details={
-                            'databases_count': len(data),
+                            'databases_count': database_count,
                             'saved_count': saved_count,
                             'total_size_mb': instance_size_mb
                         }
@@ -165,7 +170,7 @@ def collect_database_sizes():
                         'instance_id': instance.id,
                         'instance_name': instance.name,
                         'success': True,
-                        'databases_count': len(data),
+                        'databases_count': database_count,
                         'saved_count': saved_count,
                         'total_size_mb': instance_size_mb
                     })
@@ -176,7 +181,7 @@ def collect_database_sizes():
                         session_id=session.session_id,
                         instance_id=instance.id,
                         instance_name=instance.name,
-                        databases_count=len(data),
+                        databases_count=database_count,
                         saved_count=saved_count,
                         total_size_mb=instance_size_mb
                     )
