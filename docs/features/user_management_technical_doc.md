@@ -46,9 +46,9 @@
 ## 3. 前端实现
 
 ### 3.1 页面结构
-- **主页面**：`app/templates/user_management/management.html`
-- **样式文件**：`app/static/css/pages/user_management/management.css`
-- **脚本文件**：`app/static/js/pages/user_management/management.js`
+- **主页面**：`app/templates/users/management.html`
+- **样式文件**：`app/static/css/pages/users/management.css`
+- **脚本文件**：`app/static/js/pages/users/management.js`
 
 ### 3.2 核心组件
 
@@ -286,7 +286,7 @@ class UserManagementController {
                 ...this.filters
             });
             
-            const response = await fetch(`/user_management/api/users?${params}`);
+            const response = await fetch(`/users/api/users?${params}`);
             const data = await response.json();
             
             if (data.success) {
@@ -495,7 +495,7 @@ class UserManagementController {
     
     async editUser(userId) {
         try {
-            const response = await fetch(`/user_management/api/users/${userId}`);
+            const response = await fetch(`/users/api/users/${userId}`);
             const data = await response.json();
             
             if (data.success) {
@@ -519,7 +519,7 @@ class UserManagementController {
         const userId = formData.get('id');
         
         try {
-            const url = userId ? `/user_management/api/users/${userId}` : '/user_management/api/users';
+            const url = userId ? `/users/api/users/${userId}` : '/users/api/users';
             const method = userId ? 'PUT' : 'POST';
             
             const response = await fetch(url, {
@@ -612,7 +612,7 @@ class UserManagementController {
         }
         
         try {
-            const response = await fetch(`/user_management/api/users/${userId}`, {
+            const response = await fetch(`/users/api/users/${userId}`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRFToken': this.getCSRFToken()
@@ -635,7 +635,7 @@ class UserManagementController {
     
     async toggleUserStatus(userId) {
         try {
-            const response = await fetch(`/user_management/api/users/${userId}/toggle-status`, {
+            const response = await fetch(`/users/api/users/${userId}/toggle-status`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': this.getCSRFToken()
@@ -763,7 +763,7 @@ class User(UserMixin, db.Model):
 
 ### 4.2 路由层
 ```python
-# app/routes/user_management.py
+# app/routes/users.py
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
@@ -774,22 +774,22 @@ from app.utils.decorators import admin_required, view_required, create_required,
 from app.utils.structlog_config import log_info, log_error
 
 
-user_management_bp = Blueprint("user_management", __name__)
+users_bp = Blueprint("users", __name__)
 
 
-@user_management_bp.route("/")
+@users_bp.route("/")
 @login_required
 @view_required
 def index() -> str:
     """用户管理首页"""
     try:
-        return render_template("user_management/management.html")
+        return render_template("users/management.html")
     except Exception as e:
-        log_error(f"加载用户管理页面失败: {str(e)}", module="user_management")
-        return render_template("user_management/management.html", error="页面加载失败")
+        log_error(f"加载用户管理页面失败: {str(e)}", module="users")
+        return render_template("users/management.html", error="页面加载失败")
 
 
-@user_management_bp.route("/api/users")
+@users_bp.route("/api/users")
 @login_required
 @view_required
 def api_get_users() -> tuple[dict, int]:
@@ -837,7 +837,7 @@ def api_get_users() -> tuple[dict, int]:
         # 记录查询日志
         log_info(
             "用户列表查询",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             query_params={
                 "search": search,
@@ -864,11 +864,11 @@ def api_get_users() -> tuple[dict, int]:
         })
         
     except Exception as e:
-        log_error(f"获取用户列表失败: {str(e)}", module="user_management")
+        log_error(f"获取用户列表失败: {str(e)}", module="users")
         return APIResponse.error(f"获取用户列表失败: {str(e)}"), 500
 
 
-@user_management_bp.route("/api/users/<int:user_id>")
+@users_bp.route("/api/users/<int:user_id>")
 @login_required
 @view_required
 def api_get_user(user_id: int) -> tuple[dict, int]:
@@ -879,11 +879,11 @@ def api_get_user(user_id: int) -> tuple[dict, int]:
         return APIResponse.success(user.to_dict())
         
     except Exception as e:
-        log_error(f"获取用户详情失败: {str(e)}", module="user_management")
+        log_error(f"获取用户详情失败: {str(e)}", module="users")
         return APIResponse.error(f"获取用户详情失败: {str(e)}"), 500
 
 
-@user_management_bp.route("/api/users", methods=["POST"])
+@users_bp.route("/api/users", methods=["POST"])
 @login_required
 @create_required
 def api_create_user() -> tuple[dict, int]:
@@ -923,7 +923,7 @@ def api_create_user() -> tuple[dict, int]:
         # 记录操作日志
         log_info(
             "创建用户",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             created_user_id=user.id,
             created_username=user.username,
@@ -940,11 +940,11 @@ def api_create_user() -> tuple[dict, int]:
         return APIResponse.error(str(e)), 400
     except Exception as e:
         db.session.rollback()
-        log_error(f"创建用户失败: {str(e)}", module="user_management")
+        log_error(f"创建用户失败: {str(e)}", module="users")
         return APIResponse.error(f"创建用户失败: {str(e)}"), 500
 
 
-@user_management_bp.route("/api/users/<int:user_id>", methods=["PUT"])
+@users_bp.route("/api/users/<int:user_id>", methods=["PUT"])
 @login_required
 @update_required
 def api_update_user(user_id: int) -> tuple[dict, int]:
@@ -986,7 +986,7 @@ def api_update_user(user_id: int) -> tuple[dict, int]:
         # 记录操作日志
         log_info(
             "更新用户",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             updated_user_id=user.id,
             updated_username=user.username,
@@ -1002,11 +1002,11 @@ def api_update_user(user_id: int) -> tuple[dict, int]:
         return APIResponse.error(str(e)), 400
     except Exception as e:
         db.session.rollback()
-        log_error(f"更新用户失败: {str(e)}", module="user_management")
+        log_error(f"更新用户失败: {str(e)}", module="users")
         return APIResponse.error(f"更新用户失败: {str(e)}"), 500
 
 
-@user_management_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
+@users_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
 @login_required
 @delete_required
 def api_delete_user(user_id: int) -> tuple[dict, int]:
@@ -1025,7 +1025,7 @@ def api_delete_user(user_id: int) -> tuple[dict, int]:
         # 记录操作日志
         log_info(
             "删除用户",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             deleted_user_id=user_id,
             deleted_username=username
@@ -1035,11 +1035,11 @@ def api_delete_user(user_id: int) -> tuple[dict, int]:
         
     except Exception as e:
         db.session.rollback()
-        log_error(f"删除用户失败: {str(e)}", module="user_management")
+        log_error(f"删除用户失败: {str(e)}", module="users")
         return APIResponse.error(f"删除用户失败: {str(e)}"), 500
 
 
-@user_management_bp.route("/api/users/<int:user_id>/toggle-status", methods=["POST"])
+@users_bp.route("/api/users/<int:user_id>/toggle-status", methods=["POST"])
 @login_required
 @update_required
 def api_toggle_user_status(user_id: int) -> tuple[dict, int]:
@@ -1059,7 +1059,7 @@ def api_toggle_user_status(user_id: int) -> tuple[dict, int]:
         # 记录操作日志
         log_info(
             f"{status_text}用户",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             target_user_id=user_id,
             target_username=user.username,
@@ -1073,7 +1073,7 @@ def api_toggle_user_status(user_id: int) -> tuple[dict, int]:
         
     except Exception as e:
         db.session.rollback()
-        log_error(f"切换用户状态失败: {str(e)}", module="user_management")
+        log_error(f"切换用户状态失败: {str(e)}", module="users")
         return APIResponse.error(f"切换用户状态失败: {str(e)}"), 500
 ```
 

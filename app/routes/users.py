@@ -20,10 +20,10 @@ from app.utils.decorators import (
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
-user_management_bp = Blueprint("user_management", __name__)
+users_bp = Blueprint("users", __name__)
 
 
-@user_management_bp.route("/")
+@users_bp.route("/")
 @login_required
 @view_required
 def index() -> str:
@@ -36,14 +36,14 @@ def index() -> str:
         # 分页查询
         users = User.query.order_by(User.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
-        return render_template("user_management/management.html", users=users)
+        return render_template("users/management.html", users=users)
 
     except Exception as e:
         flash(f"获取用户列表失败: {str(e)}", "error")
-        return render_template("user_management/management.html", users=None, stats={})
+        return render_template("users/management.html", users=None, stats={})
 
 
-@user_management_bp.route("/api/users")
+@users_bp.route("/api/users")
 @login_required
 @view_required
 def api_get_users() -> "Response":
@@ -102,7 +102,7 @@ def api_get_users() -> "Response":
         return APIResponse.error(f"获取用户列表失败: {str(e)}")
 
 
-@user_management_bp.route("/api/users/<int:user_id>")
+@users_bp.route("/api/users/<int:user_id>")
 @login_required
 @view_required
 def api_get_user(user_id: int) -> "Response":
@@ -118,7 +118,7 @@ def api_get_user(user_id: int) -> "Response":
         return APIResponse.error(f"获取用户信息失败: {str(e)}")
 
 
-@user_management_bp.route("/api/users", methods=["POST"])
+@users_bp.route("/api/users", methods=["POST"])
 @login_required
 @create_required
 def api_create_user() -> "Response":
@@ -129,7 +129,7 @@ def api_create_user() -> "Response":
         # 添加调试日志
         log_info(
             "创建用户请求",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             request_data=data
         )
@@ -166,7 +166,7 @@ def api_create_user() -> "Response":
         # 记录操作成功日志
         log_info(
             "创建用户",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             created_user_id=user.id,
             created_username=user.username,
@@ -179,7 +179,7 @@ def api_create_user() -> "Response":
     except ValueError as e:
         log_error(
             "创建用户失败: 密码不符合要求",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             error=str(e),
         )
@@ -188,14 +188,14 @@ def api_create_user() -> "Response":
         db.session.rollback()
         log_error(
             "创建用户失败",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             error=str(e),
         )
         return APIResponse.error(f"创建用户失败: {str(e)}")
 
 
-@user_management_bp.route("/api/users/<int:user_id>", methods=["PUT"])
+@users_bp.route("/api/users/<int:user_id>", methods=["PUT"])
 @login_required
 @update_required
 def api_update_user(user_id: int) -> "Response":
@@ -207,7 +207,7 @@ def api_update_user(user_id: int) -> "Response":
         # 添加调试日志
         log_info(
             "更新用户请求",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             target_user_id=user_id,
             request_data=data
@@ -245,7 +245,7 @@ def api_update_user(user_id: int) -> "Response":
         # 记录操作成功日志
         log_info(
             "更新用户",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             updated_user_id=user.id,
             updated_username=user.username,
@@ -258,7 +258,7 @@ def api_update_user(user_id: int) -> "Response":
     except ValueError as e:
         log_error(
             "更新用户失败: 密码不符合要求",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             target_user_id=user_id,
             error=str(e),
@@ -268,7 +268,7 @@ def api_update_user(user_id: int) -> "Response":
         db.session.rollback()
         log_error(
             "更新用户失败",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             target_user_id=user_id,
             error=str(e),
@@ -276,7 +276,7 @@ def api_update_user(user_id: int) -> "Response":
         return APIResponse.error(f"更新用户失败: {str(e)}")
 
 
-@user_management_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
+@users_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
 @login_required
 @delete_required
 def api_delete_user(user_id: int) -> "Response":
@@ -292,7 +292,7 @@ def api_delete_user(user_id: int) -> "Response":
         if user.id == current_user.id:
             log_error(
                 "删除用户失败: 不能删除自己的账户",
-                module="user_management",
+                module="users",
                 user_id=current_user.id,
                 target_user_id=user_id,
             )
@@ -304,7 +304,7 @@ def api_delete_user(user_id: int) -> "Response":
             if admin_count <= 1:
                 log_error(
                     "删除用户失败: 不能删除最后一个管理员账户",
-                    module="user_management",
+                    module="users",
                     user_id=current_user.id,
                     target_user_id=user_id,
                 )
@@ -316,7 +316,7 @@ def api_delete_user(user_id: int) -> "Response":
         # 记录操作成功日志
         log_info(
             "删除用户",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             deleted_user_id=user_id,
             deleted_username=deleted_username,
@@ -329,7 +329,7 @@ def api_delete_user(user_id: int) -> "Response":
         db.session.rollback()
         log_error(
             "删除用户失败",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             target_user_id=user_id,
             error=str(e),
@@ -337,7 +337,7 @@ def api_delete_user(user_id: int) -> "Response":
         return APIResponse.error(f"删除用户失败: {str(e)}")
 
 
-@user_management_bp.route("/api/users/<int:user_id>/toggle-status", methods=["POST"])
+@users_bp.route("/api/users/<int:user_id>/toggle-status", methods=["POST"])
 @login_required
 @update_required
 def api_toggle_user_status(user_id: int) -> "Response":
@@ -354,7 +354,7 @@ def api_toggle_user_status(user_id: int) -> "Response":
         if user.id == current_user.id:
             log_error(
                 "切换用户状态失败: 不能禁用自己的账户",
-                module="user_management",
+                module="users",
                 user_id=current_user.id,
                 target_user_id=user_id,
             )
@@ -366,7 +366,7 @@ def api_toggle_user_status(user_id: int) -> "Response":
             if admin_count <= 1:
                 log_error(
                     "切换用户状态失败: 不能禁用最后一个管理员账户",
-                    module="user_management",
+                    module="users",
                     user_id=current_user.id,
                     target_user_id=user_id,
                 )
@@ -379,7 +379,7 @@ def api_toggle_user_status(user_id: int) -> "Response":
         status_text = "启用" if user.is_active else "禁用"
         log_info(
             f"切换用户状态: {status_text}",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             target_user_id=user_id,
             target_username=username,
@@ -394,7 +394,7 @@ def api_toggle_user_status(user_id: int) -> "Response":
         db.session.rollback()
         log_error(
             "切换用户状态失败",
-            module="user_management",
+            module="users",
             user_id=current_user.id,
             target_user_id=user_id,
             error=str(e),
@@ -402,7 +402,7 @@ def api_toggle_user_status(user_id: int) -> "Response":
         return APIResponse.error(f"切换用户状态失败: {str(e)}")
 
 
-@user_management_bp.route("/api/users/stats")
+@users_bp.route("/api/users/stats")
 @login_required
 @view_required
 def api_get_stats() -> "Response":

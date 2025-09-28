@@ -397,7 +397,7 @@ def register_blueprints(app: Flask) -> None:
     # 注册数据库类型管理蓝图
 
     # 注册用户管理蓝图
-    from app.routes.user_management import user_management_bp
+    from app.routes.users import users_bp
 
 
     # 注册定时任务管理蓝图
@@ -429,7 +429,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(database_aggregations_bp, url_prefix='/database-aggregations')
     app.register_blueprint(instance_aggregations_bp, url_prefix='/instance-aggregations')
     app.register_blueprint(partition_bp, url_prefix='/partition')
-    app.register_blueprint(user_management_bp, url_prefix='/users')
+    app.register_blueprint(users_bp, url_prefix='/users')
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
     app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')
 
