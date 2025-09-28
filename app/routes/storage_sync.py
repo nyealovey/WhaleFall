@@ -611,13 +611,12 @@ def sync_instance_capacity(instance_id: int):
         
         logger.info(f"开始同步实例容量信息: {instance.name}")
         
-        # 第一步：同步数据库列表
-        from app.services.database_discovery_service import DatabaseDiscoveryService
+        # 建立数据库连接（两个服务共享同一个连接）
+        from app.services.database_connection_service import DatabaseConnectionService
         
-        discovery_service = DatabaseDiscoveryService(instance)
+        db_connection = DatabaseConnectionService(instance)
         
-        # 建立连接
-        if not discovery_service.connect():
+        if not db_connection.connect():
             error_msg = f"无法连接到实例 {instance.name} (类型: {instance.db_type})"
             logger.error(error_msg)
             return jsonify({
@@ -626,6 +625,12 @@ def sync_instance_capacity(instance_id: int):
             }), 400
         
         try:
+            # 第一步：同步数据库列表
+            from app.services.database_discovery_service import DatabaseDiscoveryService
+            
+            discovery_service = DatabaseDiscoveryService(instance)
+            discovery_service.db_connection = db_connection  # 共享连接
+            
             # 发现数据库列表
             databases = discovery_service.discover_databases()
             
@@ -634,25 +639,12 @@ def sync_instance_capacity(instance_id: int):
             
             logger.info(f"数据库列表同步完成: {databases_result}")
             
-        finally:
-            # 断开数据库发现连接
-            discovery_service.disconnect()
-        
-        # 第二步：同步数据库大小
-        from app.services.database_size_collector_service import DatabaseSizeCollectorService
-        
-        collector = DatabaseSizeCollectorService(instance)
-        
-        # 建立连接
-        if not collector.connect():
-            error_msg = f"无法连接到实例 {instance.name} (类型: {instance.db_type})"
-            logger.error(error_msg)
-            return jsonify({
-                'success': False, 
-                'error': error_msg
-            }), 400
-        
-        try:
+            # 第二步：同步数据库大小
+            from app.services.database_size_collector_service import DatabaseSizeCollectorService
+            
+            collector = DatabaseSizeCollectorService(instance)
+            collector.db_connection = db_connection  # 共享连接
+            
             # 采集并保存数据库大小数据，同时保存实例大小统计
             saved_count = collector.collect_and_save()
             
@@ -674,7 +666,7 @@ def sync_instance_capacity(instance_id: int):
             
         finally:
             # 确保断开连接
-            collector.disconnect()
+            db_connection.disconnect()
         
         # 返回综合结果
         logger.info(f"实例容量同步完成: {instance.name}, 数据库数量: {database_count}, 保存数量: {saved_count}, 总大小: {total_size_mb}MB")

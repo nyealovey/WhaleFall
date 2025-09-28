@@ -179,7 +179,8 @@ class DatabaseDiscoveryService:
         try:
             from app.services.database_connection_service import DatabaseConnectionService
             
-            self.db_connection = DatabaseConnectionService(self.instance)
+            if not self.db_connection:
+                self.db_connection = DatabaseConnectionService(self.instance)
             return self.db_connection.connect()
             
         except Exception as e:
