@@ -48,9 +48,9 @@
 ## 3. 前端实现
 
 ### 3.1 页面结构
-- **主页面**：`app/templates/unified_logs/dashboard.html`
-- **样式文件**：`app/static/css/pages/unified_logs/dashboard.css`
-- **脚本文件**：`app/static/js/pages/unified_logs/dashboard.js`
+- **主页面**：`app/templates/logs/dashboard.html`
+- **样式文件**：`app/static/css/pages/logs/dashboard.css`
+- **脚本文件**：`app/static/js/pages/logs/dashboard.js`
 
 ### 3.2 核心组件
 
@@ -433,7 +433,7 @@ class LogLevel(Enum):
 class UnifiedLog(db.Model):
     """统一日志表"""
     
-    __tablename__ = "unified_logs"
+    __tablename__ = "logs"
     
     # 主键
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -817,7 +817,7 @@ def configure_structlog():
 
 #### 4.3.1 日志管理路由
 ```python
-# app/routes/unified_logs.py
+# app/routes/logs.py
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import and_, or_, desc, asc
@@ -831,21 +831,21 @@ from app.utils.structlog_config import log_info, log_error
 
 
 # 创建蓝图
-unified_logs_bp = Blueprint("unified_logs", __name__)
+logs_bp = Blueprint("logs", __name__)
 
 
-@unified_logs_bp.route("/")
+@logs_bp.route("/")
 @login_required
 def logs_dashboard() -> str:
     """日志中心首页"""
     try:
-        return render_template("unified_logs/dashboard.html")
+        return render_template("logs/dashboard.html")
     except Exception as e:
-        log_error(f"加载日志中心失败: {str(e)}", module="unified_logs")
-        return render_template("unified_logs/dashboard.html", error="页面加载失败")
+        log_error(f"加载日志中心失败: {str(e)}", module="logs")
+        return render_template("logs/dashboard.html", error="页面加载失败")
 
 
-@unified_logs_bp.route("/api/search")
+@logs_bp.route("/api/search")
 @login_required
 def search_logs() -> tuple[dict, int]:
     """搜索日志API"""
@@ -911,7 +911,7 @@ def search_logs() -> tuple[dict, int]:
         # 记录查询日志
         log_info(
             "日志查询",
-            module="unified_logs",
+            module="logs",
             user_id=current_user.id,
             query_params={
                 "level": level,
@@ -940,11 +940,11 @@ def search_logs() -> tuple[dict, int]:
         })
         
     except Exception as e:
-        log_error(f"搜索日志失败: {str(e)}", module="unified_logs")
+        log_error(f"搜索日志失败: {str(e)}", module="logs")
         return APIResponse.error(f"搜索日志失败: {str(e)}"), 500
 
 
-@unified_logs_bp.route("/api/stats")
+@logs_bp.route("/api/stats")
 @login_required
 def get_log_stats() -> tuple[dict, int]:
     """获取日志统计信息API"""
@@ -998,11 +998,11 @@ def get_log_stats() -> tuple[dict, int]:
         return APIResponse.success(stats)
         
     except Exception as e:
-        log_error(f"获取日志统计失败: {str(e)}", module="unified_logs")
+        log_error(f"获取日志统计失败: {str(e)}", module="logs")
         return APIResponse.error(f"获取日志统计失败: {str(e)}"), 500
 
 
-@unified_logs_bp.route("/api/clear", methods=["POST"])
+@logs_bp.route("/api/clear", methods=["POST"])
 @login_required
 @admin_required
 def clear_logs() -> tuple[dict, int]:
@@ -1025,7 +1025,7 @@ def clear_logs() -> tuple[dict, int]:
         # 记录清空操作
         log_info(
             "清空日志",
-            module="unified_logs",
+            module="logs",
             user_id=current_user.id,
             older_than_days=older_than_days,
             deleted_count=deleted_count
@@ -1037,11 +1037,11 @@ def clear_logs() -> tuple[dict, int]:
         })
         
     except Exception as e:
-        log_error(f"清空日志失败: {str(e)}", module="unified_logs")
+        log_error(f"清空日志失败: {str(e)}", module="logs")
         return APIResponse.error(f"清空日志失败: {str(e)}"), 500
 
 
-@unified_logs_bp.route("/api/<int:log_id>")
+@logs_bp.route("/api/<int:log_id>")
 @login_required
 def get_log_details(log_id: int) -> tuple[dict, int]:
     """获取日志详情API"""
@@ -1051,7 +1051,7 @@ def get_log_details(log_id: int) -> tuple[dict, int]:
         return APIResponse.success(log.to_dict())
         
     except Exception as e:
-        log_error(f"获取日志详情失败: {str(e)}", module="unified_logs")
+        log_error(f"获取日志详情失败: {str(e)}", module="logs")
         return APIResponse.error(f"获取日志详情失败: {str(e)}"), 500
 ```
 

@@ -381,9 +381,9 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.instances import instances_bp
     from app.routes.tags import tags_bp
 
-    # from app.routes.logs import logs_bp  # 已停用，使用unified_logs替代
+    # 注册日志管理蓝图
+    from app.routes.logs import logs_bp
     from app.routes.main import main_bp
-    from app.routes.unified_logs import unified_logs_bp
 
     # 注册蓝图
 
@@ -420,7 +420,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(account_bp, url_prefix='/accounts')
     app.register_blueprint(account_sync_bp, url_prefix='/account-sync')
     app.register_blueprint(tags_bp, url_prefix='/tags')
-    app.register_blueprint(unified_logs_bp, url_prefix='/logs')
+    app.register_blueprint(logs_bp, url_prefix='/logs')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(health_bp, url_prefix='/health')
     app.register_blueprint(cache_bp, url_prefix='/cache')
