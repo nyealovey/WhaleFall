@@ -517,7 +517,7 @@ function loadDatabaseSizes() {
         </div>
     `;
     
-    fetch(`/storage-sync/instances/${instanceId}/database-sizes`, {
+    fetch(`/storage-sync/instances/${instanceId}/database-sizes?latest_only=true`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
