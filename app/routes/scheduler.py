@@ -468,6 +468,8 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
             pass
 
         try:
+            # 确保CronTrigger使用与调度器相同的时区
+            cron_kwargs["timezone"] = "Asia/Shanghai"
             return CronTrigger(**cron_kwargs)
         except Exception as e:  # noqa: BLE001
             system_logger.error("CronTrigger 构建失败: %s", str(e))

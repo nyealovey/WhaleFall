@@ -411,7 +411,7 @@ class StorageMonitor {
      * 创建表格行
      */
     createTableRow(item) {
-        const lastUpdate = new Date(item.collected_at).toLocaleString('zh-CN');
+        const lastUpdate = formatDateTime(item.collected_at);
         
         return `
             <tr>
