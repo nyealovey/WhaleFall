@@ -322,6 +322,7 @@ def get_instance_total_size(instance_id: int):
 def get_instance_database_sizes(instance_id: int):
     """
     获取指定实例的数据库大小历史数据
+    先从instance_databases获取所有数据库（包括软删除的），再从database_size_stats获取最新容量
     
     Args:
         instance_id: 实例ID
@@ -341,12 +342,51 @@ def get_instance_database_sizes(instance_id: int):
         limit = int(request.args.get('limit', 100))
         offset = int(request.args.get('offset', 0))
         
-        # 构建查询
-        query = DatabaseSizeStat.query.filter(
-            DatabaseSizeStat.instance_id == instance_id
+        # 第一步：从 instance_databases 表获取所有数据库（包括软删除的）
+        from app.models.instance_database import InstanceDatabase
+        
+        instance_databases_query = InstanceDatabase.query.filter(
+            InstanceDatabase.instance_id == instance_id
         )
         
-        # 应用筛选条件
+        # 应用数据库名称筛选
+        if database_name:
+            instance_databases_query = instance_databases_query.filter(
+                InstanceDatabase.database_name.ilike(f'%{database_name}%')
+            )
+        
+        instance_databases = instance_databases_query.all()
+        
+        if not instance_databases:
+            return jsonify({
+                'data': [],
+                'pagination': {
+                    'total': 0,
+                    'limit': limit,
+                    'offset': offset,
+                    'has_more': False
+                },
+                'instance': {
+                    'id': instance.id,
+                    'name': instance.name,
+                    'db_type': instance.db_type,
+                    'host': instance.host,
+                    'port': instance.port
+                },
+                'total_size_mb': 0,
+                'database_count': 0
+            })
+        
+        # 获取数据库名称列表
+        database_names = [db.database_name for db in instance_databases]
+        
+        # 第二步：从 database_size_stats 表获取这些数据库的大小数据
+        query = DatabaseSizeStat.query.filter(
+            DatabaseSizeStat.instance_id == instance_id,
+            DatabaseSizeStat.database_name.in_(database_names)
+        )
+        
+        # 应用日期筛选条件
         if start_date:
             try:
                 start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
@@ -361,9 +401,6 @@ def get_instance_database_sizes(instance_id: int):
             except ValueError:
                 return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
         
-        if database_name:
-            query = query.filter(DatabaseSizeStat.database_name.ilike(f'%{database_name}%'))
-        
         # 如果只需要最新数据，则只返回每个数据库的最新记录
         if latest_only:
             from sqlalchemy import func
@@ -373,7 +410,7 @@ def get_instance_database_sizes(instance_id: int):
                 func.max(DatabaseSizeStat.collected_date).label('latest_date')
             ).filter(
                 DatabaseSizeStat.instance_id == instance_id,
-                DatabaseSizeStat.is_deleted == False
+                DatabaseSizeStat.database_name.in_(database_names)
             ).group_by(DatabaseSizeStat.database_name).subquery()
             
             # 主查询：只获取最新日期的数据
@@ -388,18 +425,44 @@ def get_instance_database_sizes(instance_id: int):
         total_count = query.count()
         stats = query.offset(offset).limit(limit).all()
         
-        # 格式化数据
+        # 第三步：合并数据，确保所有数据库都有记录（即使没有大小数据）
         data = []
-        for stat in stats:
-            data.append({
-                'id': stat.id,
-                'database_name': stat.database_name,
-                'size_mb': stat.size_mb,
-                'data_size_mb': stat.data_size_mb,
-                'log_size_mb': stat.log_size_mb,
-                'collected_date': stat.collected_date.isoformat(),
-                'collected_at': stat.collected_at.isoformat()
-            })
+        stats_by_db = {stat.database_name: stat for stat in stats}
+        
+        for instance_db in instance_databases:
+            db_name = instance_db.database_name
+            stat = stats_by_db.get(db_name)
+            
+            if stat:
+                # 有大小数据
+                data.append({
+                    'id': stat.id,
+                    'database_name': db_name,
+                    'size_mb': stat.size_mb,
+                    'data_size_mb': stat.data_size_mb,
+                    'log_size_mb': stat.log_size_mb,
+                    'collected_date': stat.collected_date.isoformat(),
+                    'collected_at': stat.collected_at.isoformat(),
+                    'is_active': instance_db.is_active,
+                    'first_seen_date': instance_db.first_seen_date.isoformat(),
+                    'last_seen_date': instance_db.last_seen_date.isoformat(),
+                    'deleted_at': instance_db.deleted_at.isoformat() if instance_db.deleted_at else None
+                })
+            else:
+                # 没有大小数据，显示为0
+                data.append({
+                    'id': None,
+                    'database_name': db_name,
+                    'size_mb': 0,
+                    'data_size_mb': 0,
+                    'log_size_mb': 0,
+                    'collected_date': None,
+                    'collected_at': None,
+                    'is_active': instance_db.is_active,
+                    'first_seen_date': instance_db.first_seen_date.isoformat(),
+                    'last_seen_date': instance_db.last_seen_date.isoformat(),
+                    'deleted_at': instance_db.deleted_at.isoformat() if instance_db.deleted_at else None
+                })
         
         # 从 instance_size_stats 表获取总容量信息
         from app.models.instance_size_stat import InstanceSizeStat
@@ -420,10 +483,10 @@ def get_instance_database_sizes(instance_id: int):
         return jsonify({
             'data': data,
             'pagination': {
-                'total': total_count,
+                'total': len(data),  # 使用实际数据长度
                 'limit': limit,
                 'offset': offset,
-                'has_more': offset + limit < total_count
+                'has_more': offset + limit < len(data)
             },
             'instance': {
                 'id': instance.id,
