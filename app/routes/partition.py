@@ -10,6 +10,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import and_, or_, func, desc, text
 from app.services.partition_management_service import PartitionManagementService
 from app.tasks.partition_management_tasks import get_partition_management_status
+from app.tasks.database_size_aggregation_tasks import cleanup_old_aggregations
 from app.models.instance import Instance
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
@@ -393,3 +394,36 @@ def get_latest_aggregations():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@partition_bp.route('/aggregations/cleanup', methods=['POST'])
+@login_required
+@view_required
+def cleanup_old_aggregations_api():
+    """
+    清理旧的聚合数据
+    
+    Returns:
+        JSON: 清理结果
+    """
+    try:
+        data = request.get_json() or {}
+        retention_days = data.get('retention_days', 365)
+        
+        result = cleanup_old_aggregations(retention_days=retention_days)
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['message']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"清理旧聚合数据时出错: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
