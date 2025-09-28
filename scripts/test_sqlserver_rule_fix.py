@@ -8,7 +8,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
+from app.services.account_classification_service import AccountClassificationService
 from app.models.current_account_sync_data import CurrentAccountSyncData
 
 
@@ -17,7 +17,7 @@ def test_database_roles_matching():
     print("🧪 开始测试SQL Server数据库角色规则匹配...")
     
     # 创建测试服务
-    service = OptimizedAccountClassificationService()
+    service = AccountClassificationService()
     
     # 创建模拟的账户数据 - 拥有db_owner角色
     test_account = CurrentAccountSyncData()
@@ -116,7 +116,7 @@ def test_edge_cases():
     """测试边界情况"""
     print("\n🔍 测试边界情况...")
     
-    service = OptimizedAccountClassificationService()
+    service = AccountClassificationService()
     
     # 测试空权限数据
     empty_account = CurrentAccountSyncData()

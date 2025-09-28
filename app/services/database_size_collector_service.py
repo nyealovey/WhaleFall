@@ -10,6 +10,7 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.exc import SQLAlchemyError
 from app.models.instance import Instance
 from app.models.database_size_stat import DatabaseSizeStat
+from app.models.instance_size_stat import InstanceSizeStat
 from app.services.connection_factory import ConnectionFactory
 from app import db
 
@@ -365,9 +366,65 @@ class DatabaseSizeCollectorService:
         
         return saved_count
     
+    def save_instance_size_stat(self, data: List[Dict[str, Any]]) -> bool:
+        """
+        保存实例大小统计数据
+        
+        Args:
+            data: 采集到的数据库大小数据列表
+            
+        Returns:
+            bool: 保存是否成功
+        """
+        try:
+            if not data:
+                self.logger.warning(f"实例 {self.instance.name} 没有数据库大小数据，跳过实例统计保存")
+                return False
+            
+            # 计算实例总大小和数据库数量
+            total_size = sum(item['size_mb'] for item in data)
+            database_count = len(data)
+            collected_date = date.today()
+            
+            # 检查是否已存在今天的记录
+            existing_stat = InstanceSizeStat.query.filter_by(
+                instance_id=self.instance.id,
+                collected_date=collected_date
+            ).first()
+            
+            if existing_stat:
+                # 更新现有记录
+                existing_stat.total_size_mb = total_size
+                existing_stat.database_count = database_count
+                existing_stat.collected_at = datetime.utcnow()
+                existing_stat.updated_at = datetime.utcnow()
+                # 如果之前被标记为删除，现在恢复
+                if existing_stat.is_deleted:
+                    existing_stat.is_deleted = False
+                    existing_stat.deleted_at = None
+                    self.logger.info(f"恢复实例 {self.instance.name} 的大小统计记录")
+            else:
+                # 创建新记录
+                new_stat = InstanceSizeStat(
+                    instance_id=self.instance.id,
+                    total_size_mb=total_size,
+                    database_count=database_count,
+                    collected_date=collected_date,
+                    collected_at=datetime.utcnow(),
+                    is_deleted=False
+                )
+                db.session.add(new_stat)
+            
+            self.logger.info(f"实例 {self.instance.name} 大小统计: 总大小 {total_size}MB, 数据库数量 {database_count}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"保存实例 {self.instance.name} 大小统计失败: {str(e)}")
+            return False
+    
     def collect_and_save(self) -> int:
         """
-        采集并保存数据库大小数据，同时更新实例总大小
+        采集并保存数据库大小数据，同时保存实例大小统计
         
         Returns:
             int: 保存的记录数量
@@ -376,16 +433,14 @@ class DatabaseSizeCollectorService:
             # 采集数据
             data = self.collect_database_sizes()
             
-            # 保存数据
+            # 保存数据库大小数据
             saved_count = self.save_collected_data(data)
             
-            # 计算并更新实例总大小
+            # 保存实例大小统计
             if data:
-                total_size = sum(item['size_mb'] for item in data)
-                self.instance.database_size = total_size
-                self.instance.updated_at = datetime.utcnow()
+                self.save_instance_size_stat(data)
                 db.session.commit()
-                self.logger.info(f"实例 {self.instance.name} 总大小更新为: {total_size} MB")
+                self.logger.info(f"实例 {self.instance.name} 数据采集和统计保存完成")
             
             return saved_count
             
@@ -395,7 +450,7 @@ class DatabaseSizeCollectorService:
     
     def update_instance_total_size(self) -> bool:
         """
-        根据已保存的数据库大小数据更新实例总大小
+        根据已保存的数据库大小数据更新实例大小统计
         
         Returns:
             bool: 更新是否成功
@@ -413,19 +468,24 @@ class DatabaseSizeCollectorService:
                 self.logger.warning(f"实例 {self.instance.name} 今天没有数据库大小数据")
                 return False
             
-            # 计算总大小
+            # 计算总大小和数据库数量
             total_size = sum(stat.size_mb for stat in stats)
+            database_count = len(stats)
             
-            # 更新实例总大小
-            self.instance.database_size = total_size
-            self.instance.updated_at = datetime.utcnow()
-            db.session.commit()
+            # 保存或更新实例大小统计
+            success = self.save_instance_size_stat([
+                {'size_mb': stat.size_mb} for stat in stats
+            ])
             
-            self.logger.info(f"实例 {self.instance.name} 总大小更新为: {total_size} MB (基于 {len(stats)} 个数据库)")
-            return True
+            if success:
+                db.session.commit()
+                self.logger.info(f"实例 {self.instance.name} 大小统计更新为: {total_size} MB (基于 {database_count} 个数据库)")
+                return True
+            else:
+                return False
             
         except Exception as e:
-            self.logger.error(f"更新实例 {self.instance.name} 总大小失败: {str(e)}")
+            self.logger.error(f"更新实例 {self.instance.name} 大小统计失败: {str(e)}")
             return False
 
 

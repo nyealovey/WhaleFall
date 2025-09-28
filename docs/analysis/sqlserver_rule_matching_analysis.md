@@ -8,7 +8,7 @@
 
 ### 1. 规则评估逻辑缺陷
 
-**文件位置**: `app/services/optimized_account_classification_service.py:617-665`
+**文件位置**: `app/services/account_classification_service.py:617-665`
 
 **问题描述**: `_evaluate_sqlserver_rule` 方法中**完全缺失数据库角色（database_roles）的检查逻辑**。
 

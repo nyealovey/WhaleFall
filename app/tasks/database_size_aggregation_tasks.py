@@ -116,7 +116,7 @@ def calculate_database_size_aggregations(manual_run=False):
                     period_type=period_type
                 )
                 
-                # 计算该周期的聚合数据
+                # 计算该周期的数据库聚合数据
                 if period_type == 'daily':
                     period_result = service.calculate_daily_aggregations()
                 elif period_type == 'weekly':
@@ -128,11 +128,23 @@ def calculate_database_size_aggregations(manual_run=False):
                 else:
                     continue
                 
+                # 计算该周期的实例聚合数据
+                if period_type == 'daily':
+                    instance_result = service.calculate_daily_instance_aggregations()
+                elif period_type == 'weekly':
+                    instance_result = service.calculate_weekly_instance_aggregations()
+                elif period_type == 'monthly':
+                    instance_result = service.calculate_monthly_instance_aggregations()
+                elif period_type == 'quarterly':
+                    instance_result = service.calculate_quarterly_instance_aggregations()
+                else:
+                    continue
+                
                 # 累计聚合结果
                 if period_result.get('status') == 'success':
                     total_aggregations += period_result.get('total_records', 0)
                     sync_logger.info(
-                        f"{period_type} 周期聚合完成",
+                        f"{period_type} 周期数据库聚合完成",
                         module="aggregation_sync",
                         session_id=session.session_id,
                         period_type=period_type,
@@ -140,16 +152,36 @@ def calculate_database_size_aggregations(manual_run=False):
                     )
                 else:
                     sync_logger.error(
-                        f"{period_type} 周期聚合失败",
+                        f"{period_type} 周期数据库聚合失败",
                         module="aggregation_sync",
                         session_id=session.session_id,
                         period_type=period_type,
                         error=period_result.get('error', '未知错误')
                     )
                 
+                # 累计实例聚合结果
+                if instance_result.get('status') == 'success':
+                    total_aggregations += instance_result.get('total_records', 0)
+                    sync_logger.info(
+                        f"{period_type} 周期实例聚合完成",
+                        module="aggregation_sync",
+                        session_id=session.session_id,
+                        period_type=period_type,
+                        instance_aggregations_created=instance_result.get('total_records', 0)
+                    )
+                else:
+                    sync_logger.error(
+                        f"{period_type} 周期实例聚合失败",
+                        module="aggregation_sync",
+                        session_id=session.session_id,
+                        period_type=period_type,
+                        error=instance_result.get('error', '未知错误')
+                    )
+                
                 results.append({
                     'period_type': period_type,
-                    'result': period_result
+                    'database_result': period_result,
+                    'instance_result': instance_result
                 })
                 
             except Exception as e:

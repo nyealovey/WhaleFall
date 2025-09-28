@@ -658,6 +658,21 @@ CREATE TABLE IF NOT EXISTS database_size_stats (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 ) PARTITION BY RANGE (collected_date);
 
+-- 实例大小统计表（按月分区）
+CREATE TABLE IF NOT EXISTS instance_size_stats (
+    id SERIAL,
+    instance_id INTEGER NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+    total_size_mb INTEGER NOT NULL DEFAULT 0,
+    database_count INTEGER NOT NULL DEFAULT 0,
+    collected_date DATE NOT NULL,
+    collected_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (id, collected_date)
+) PARTITION BY RANGE (collected_date);
+
 -- 数据库大小聚合统计表（按月分区）
 CREATE TABLE IF NOT EXISTS database_size_aggregations (
     id BIGSERIAL,
@@ -713,11 +728,39 @@ BEGIN
                    partition_name, start_date, end_date);
 END $$;
 
+-- 创建当前月份的分区（实例大小统计表）
+DO $$
+DECLARE
+    current_year INTEGER := EXTRACT(YEAR FROM CURRENT_DATE);
+    current_month INTEGER := EXTRACT(MONTH FROM CURRENT_DATE);
+    partition_name TEXT;
+    start_date DATE;
+    end_date DATE;
+BEGIN
+    -- 当前月份分区
+    partition_name := 'instance_size_stats_' || current_year || '_' || LPAD(current_month::TEXT, 2, '0');
+    start_date := DATE_TRUNC('month', CURRENT_DATE)::DATE;
+    end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
+    
+    EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF instance_size_stats FOR VALUES FROM (%L) TO (%L)',
+                   partition_name, start_date, end_date);
+    
+    -- 下个月分区
+    partition_name := 'instance_size_stats_' || current_year || '_' || LPAD((current_month + 1)::TEXT, 2, '0');
+    start_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
+    end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '2 months')::DATE;
+    
+    EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF instance_size_stats FOR VALUES FROM (%L) TO (%L)',
+                   partition_name, start_date, end_date);
+END $$;
+
 -- 创建当前月份的分区（聚合表）
 DO $$
 DECLARE
     current_year INTEGER := EXTRACT(YEAR FROM CURRENT_DATE);
     current_month INTEGER := EXTRACT(MONTH FROM CURRENT_DATE);
+    next_year INTEGER;
+    next_month INTEGER;
     partition_name TEXT;
     start_date DATE;
     end_date DATE;
@@ -730,8 +773,17 @@ BEGIN
     EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF database_size_aggregations FOR VALUES FROM (%L) TO (%L)',
                    partition_name, start_date, end_date);
     
+    -- 计算下个月
+    IF current_month = 12 THEN
+        next_year := current_year + 1;
+        next_month := 1;
+    ELSE
+        next_year := current_year;
+        next_month := current_month + 1;
+    END IF;
+    
     -- 下个月分区
-    partition_name := 'database_size_aggregations_' || current_year || '_' || LPAD((current_month + 1)::TEXT, 2, '0');
+    partition_name := 'database_size_aggregations_' || next_year || '_' || LPAD(next_month::TEXT, 2, '0');
     start_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
     end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '2 months')::DATE;
     
@@ -745,6 +797,13 @@ CREATE INDEX IF NOT EXISTS ix_database_size_stats_instance_db ON database_size_s
 CREATE INDEX IF NOT EXISTS ix_database_size_stats_collected_date ON database_size_stats (collected_date);
 CREATE INDEX IF NOT EXISTS ix_database_size_stats_instance_date ON database_size_stats (instance_id, collected_date);
 CREATE INDEX IF NOT EXISTS ix_database_size_stats_deleted ON database_size_stats (is_deleted);
+
+-- 实例大小统计表索引
+CREATE INDEX IF NOT EXISTS ix_instance_size_stats_instance_id ON instance_size_stats (instance_id);
+CREATE INDEX IF NOT EXISTS ix_instance_size_stats_collected_date ON instance_size_stats (collected_date);
+CREATE INDEX IF NOT EXISTS ix_instance_size_stats_instance_date ON instance_size_stats (instance_id, collected_date);
+CREATE INDEX IF NOT EXISTS ix_instance_size_stats_deleted ON instance_size_stats (is_deleted);
+CREATE INDEX IF NOT EXISTS ix_instance_size_stats_total_size ON instance_size_stats (total_size_mb);
 
 -- 聚合表索引
 CREATE INDEX IF NOT EXISTS ix_database_size_aggregations_instance_period ON database_size_aggregations (instance_id, period_type, period_start);
@@ -782,6 +841,8 @@ DO $$
 DECLARE
     current_year INTEGER := EXTRACT(YEAR FROM CURRENT_DATE);
     current_month INTEGER := EXTRACT(MONTH FROM CURRENT_DATE);
+    next_year INTEGER;
+    next_month INTEGER;
     partition_name TEXT;
     start_date DATE;
     end_date DATE;
@@ -794,8 +855,17 @@ BEGIN
     EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF instance_size_aggregations FOR VALUES FROM (%L) TO (%L)',
                    partition_name, start_date, end_date);
     
+    -- 计算下个月
+    IF current_month = 12 THEN
+        next_year := current_year + 1;
+        next_month := 1;
+    ELSE
+        next_year := current_year;
+        next_month := current_month + 1;
+    END IF;
+    
     -- 下个月分区
-    partition_name := 'instance_size_aggregations_' || current_year || '_' || LPAD((current_month + 1)::TEXT, 2, '0');
+    partition_name := 'instance_size_aggregations_' || next_year || '_' || LPAD(next_month::TEXT, 2, '0');
     start_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
     end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '2 months')::DATE;
     
@@ -813,8 +883,14 @@ ALTER TABLE instance_size_aggregations
 ADD CONSTRAINT uq_instance_size_aggregation 
 UNIQUE (instance_id, period_type, period_start);
 
+-- 实例大小统计表唯一约束（每个实例每天只能有一条记录）
+CREATE UNIQUE INDEX IF NOT EXISTS uq_instance_size_stats_instance_date 
+ON instance_size_stats (instance_id, collected_date) 
+WHERE is_deleted = FALSE;
+
 -- 添加表注释
 COMMENT ON TABLE database_size_stats IS '数据库大小统计表（按月分区）';
+COMMENT ON TABLE instance_size_stats IS '实例大小统计表（按月分区）';
 COMMENT ON TABLE database_size_aggregations IS '数据库大小聚合统计表（按月分区）';
 COMMENT ON TABLE instance_size_aggregations IS '实例大小聚合统计表（按月分区）';
 
@@ -878,6 +954,8 @@ UNION ALL
 SELECT 'Global Params', COUNT(*) FROM global_params
 UNION ALL
 SELECT 'Database Size Stats', COUNT(*) FROM database_size_stats
+UNION ALL
+SELECT 'Instance Size Stats', COUNT(*) FROM instance_size_stats
 UNION ALL
 SELECT 'Database Size Aggregations', COUNT(*) FROM database_size_aggregations
 UNION ALL

@@ -715,11 +715,17 @@ def calculate_today_aggregations():
     try:
         # 执行今日数据聚合计算
         aggregation_service = DatabaseSizeAggregationService()
-        result = aggregation_service.calculate_today_aggregations()
+        
+        # 计算数据库聚合
+        database_result = aggregation_service.calculate_today_aggregations()
+        
+        # 计算实例聚合
+        instance_result = aggregation_service.calculate_today_instance_aggregations()
         
         return jsonify({
             'message': 'Today data aggregation completed',
-            'result': result
+            'database_result': database_result,
+            'instance_result': instance_result
         })
         
     except Exception as e:

@@ -12,7 +12,7 @@ from app.utils.decorators import admin_required, update_required, view_required
 from app.models import Instance
 from app.services.cache_manager import cache_manager
 from app.services.sync_adapters.sqlserver_sync_adapter import SQLServerSyncAdapter
-from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
+from app.services.account_classification_service import AccountClassificationService
 from app.utils.structlog_config import get_system_logger, log_error, log_info
 
 logger = get_system_logger()
@@ -134,7 +134,7 @@ def clear_all_cache() -> tuple[dict, int]:
 def clear_classification_cache() -> tuple[dict, int]:
     """清除分类相关缓存"""
     try:
-        service = OptimizedAccountClassificationService()
+        service = AccountClassificationService()
         result = service.invalidate_cache()
         
         if result:
@@ -159,7 +159,7 @@ def clear_db_type_cache(db_type: str) -> tuple[dict, int]:
         if db_type.lower() not in valid_db_types:
             return jsonify({"success": False, "error": f"不支持的数据库类型: {db_type}"}), 400
         
-        service = OptimizedAccountClassificationService()
+        service = AccountClassificationService()
         result = service.invalidate_db_type_cache(db_type.lower())
         
         if result:

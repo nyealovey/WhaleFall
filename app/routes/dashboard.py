@@ -162,8 +162,8 @@ def get_system_overview() -> dict:
 
         # 按分类统计（使用实时计算的规则匹配数量）
         classification_stats = []
-        from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
-        classification_service = OptimizedAccountClassificationService()
+        from app.services.account_classification_service import AccountClassificationService
+        classification_service = AccountClassificationService()
         
         # 用于统计总分类账户数的集合
         # 从数据库获取已分配的账户统计，而不是实时计算

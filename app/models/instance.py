@@ -54,6 +54,12 @@ class Instance(db.Model):
         back_populates="instance",
         cascade="all, delete-orphan",
     )
+    # 实例大小统计关系
+    instance_size_stats = db.relationship(
+        "InstanceSizeStat",
+        back_populates="instance",
+        cascade="all, delete-orphan",
+    )
     instance_size_aggregations = db.relationship(
         "InstanceSizeAggregation",
         back_populates="instance",

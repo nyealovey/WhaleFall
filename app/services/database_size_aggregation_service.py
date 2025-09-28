@@ -10,6 +10,7 @@ from sqlalchemy import func, and_, or_
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance_size_aggregation import InstanceSizeAggregation
+from app.models.instance_size_stat import InstanceSizeStat
 from app.models.instance import Instance
 from app import db
 
@@ -283,16 +284,16 @@ class DatabaseSizeAggregationService:
             
             for instance in instances:
                 try:
-                    # 获取该实例在指定时间范围内的数据
-                    stats = DatabaseSizeStat.query.filter(
-                        DatabaseSizeStat.instance_id == instance.id,
-                        DatabaseSizeStat.collected_date >= start_date,
-                        DatabaseSizeStat.collected_date <= end_date,
-                        DatabaseSizeStat.is_deleted == False
+                    # 获取该实例在指定时间范围内的实例大小统计数据
+                    stats = InstanceSizeStat.query.filter(
+                        InstanceSizeStat.instance_id == instance.id,
+                        InstanceSizeStat.collected_date >= start_date,
+                        InstanceSizeStat.collected_date <= end_date,
+                        InstanceSizeStat.is_deleted == False
                     ).all()
                     
                     if not stats:
-                        logger.warning(f"实例 {instance.name} 在 {start_date} 到 {end_date} 期间没有数据，标记为失败")
+                        logger.warning(f"实例 {instance.name} 在 {start_date} 到 {end_date} 期间没有实例大小统计数据，标记为失败")
                         total_errors += 1
                         continue
                     
@@ -331,7 +332,7 @@ class DatabaseSizeAggregationService:
     
     def _calculate_instance_aggregation(self, instance_id: int, period_type: str, 
                                       start_date: date, end_date: date, 
-                                      stats: List[DatabaseSizeStat]) -> None:
+                                      stats: List[InstanceSizeStat]) -> None:
         """
         计算单个实例的统计聚合
         
@@ -340,7 +341,7 @@ class DatabaseSizeAggregationService:
             period_type: 统计周期类型
             start_date: 开始日期
             end_date: 结束日期
-            stats: 统计数据列表
+            stats: 实例大小统计数据列表
         """
         try:
             # 按日期分组统计数据
@@ -356,12 +357,12 @@ class DatabaseSizeAggregationService:
             daily_db_counts = []
             
             for collected_date, day_stats in daily_groups.items():
-                # 计算当日实例总大小
-                daily_total_size = sum(stat.size_mb for stat in day_stats)
+                # 计算当日实例总大小（已经是实例级别的总大小）
+                daily_total_size = sum(stat.total_size_mb for stat in day_stats)
                 daily_totals.append(daily_total_size)
                 
-                # 计算当日数据库数量
-                daily_db_count = len(set(stat.database_name for stat in day_stats))
+                # 计算当日数据库数量（已经是实例级别的数据库数量）
+                daily_db_count = sum(stat.database_count for stat in day_stats)
                 daily_db_counts.append(daily_db_count)
             
             # 检查是否已存在该周期的聚合数据
@@ -429,12 +430,12 @@ class DatabaseSizeAggregationService:
             # 计算上一个周期的日期范围
             prev_start_date, prev_end_date = self._get_previous_period_dates(period_type, start_date, end_date)
             
-            # 获取上一个周期的数据
-            prev_stats = DatabaseSizeStat.query.filter(
-                DatabaseSizeStat.instance_id == instance_id,
-                DatabaseSizeStat.collected_date >= prev_start_date,
-                DatabaseSizeStat.collected_date <= prev_end_date,
-                DatabaseSizeStat.is_deleted == False
+            # 获取上一个周期的实例大小统计数据
+            prev_stats = InstanceSizeStat.query.filter(
+                InstanceSizeStat.instance_id == instance_id,
+                InstanceSizeStat.collected_date >= prev_start_date,
+                InstanceSizeStat.collected_date <= prev_end_date,
+                InstanceSizeStat.is_deleted == False
             ).all()
             
             if not prev_stats:
@@ -459,10 +460,10 @@ class DatabaseSizeAggregationService:
             prev_daily_db_counts = []
             
             for collected_date, day_stats in prev_daily_groups.items():
-                daily_total_size = sum(stat.size_mb for stat in day_stats)
+                daily_total_size = sum(stat.total_size_mb for stat in day_stats)
                 prev_daily_totals.append(daily_total_size)
                 
-                daily_db_count = len(set(stat.database_name for stat in day_stats))
+                daily_db_count = sum(stat.database_count for stat in day_stats)
                 prev_daily_db_counts.append(daily_db_count)
             
             prev_avg_total_size = sum(prev_daily_totals) / len(prev_daily_totals)

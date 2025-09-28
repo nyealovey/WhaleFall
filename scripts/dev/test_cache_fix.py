@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from app import create_app
 from app.services.cache_manager import cache_manager
-from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
+from app.services.account_classification_service import AccountClassificationService
 from app.models.account_classification import ClassificationRule, AccountClassification
 from app.utils.structlog_config import get_system_logger
 
@@ -85,7 +85,7 @@ def test_db_type_grouping():
     """测试按数据库类型分组功能"""
     print("🔍 测试按数据库类型分组功能...")
     
-    service = OptimizedAccountClassificationService()
+    service = AccountClassificationService()
     
     # 创建测试规则
     test_rules = []

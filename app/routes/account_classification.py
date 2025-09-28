@@ -15,7 +15,7 @@ from app.models.account_classification import (
     AccountClassificationAssignment,
     ClassificationRule,
 )
-from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
+from app.services.account_classification_service import AccountClassificationService
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -263,7 +263,7 @@ def list_rules() -> "Response":
         rules = ClassificationRule.query.filter_by(is_active=True).order_by(ClassificationRule.created_at.desc()).all()
 
         # 获取匹配账户数量
-        service = OptimizedAccountClassificationService()
+        service = AccountClassificationService()
         result = []
         for rule in rules:
             matched_count = service.get_rule_matched_accounts_count(rule.id)
@@ -321,8 +321,8 @@ def create_rule() -> "Response":
 
         # 清除分类缓存，确保新规则能被正确获取
         try:
-            from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
-            service = OptimizedAccountClassificationService()
+            from app.services.account_classification_service import AccountClassificationService
+            service = AccountClassificationService()
             service.invalidate_cache()
             log_info("规则创建后已清除分类缓存", module="account_classification", rule_id=rule.id, user_id=current_user.id)
         except Exception as cache_error:
@@ -390,8 +390,8 @@ def update_rule(rule_id: int) -> "Response":
 
         # 清除分类缓存，确保规则更新后重新从数据库获取
         try:
-            from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
-            service = OptimizedAccountClassificationService()
+            from app.services.account_classification_service import AccountClassificationService
+            service = AccountClassificationService()
             service.invalidate_cache()
             log_info("规则更新后已清除分类缓存", module="account_classification", rule_id=rule_id, user_id=current_user.id)
         except Exception as cache_error:
@@ -552,7 +552,7 @@ def auto_classify() -> "Response":
         )
 
         # 使用优化后的服务
-        service = OptimizedAccountClassificationService()
+        service = AccountClassificationService()
         result = service.auto_classify_accounts_optimized(
             instance_id=instance_id,
             batch_type=batch_type,
@@ -610,7 +610,7 @@ def auto_classify_optimized() -> "Response":
             batch_type=batch_type,
         )
 
-        service = OptimizedAccountClassificationService()
+        service = AccountClassificationService()
         result = service.auto_classify_accounts_optimized(
             instance_id=instance_id,
             batch_type=batch_type,
