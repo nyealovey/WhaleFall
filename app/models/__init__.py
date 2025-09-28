@@ -10,7 +10,6 @@ from .account_classification import (
     AccountClassificationAssignment,
     ClassificationRule,
 )
-from .classification_batch import ClassificationBatch
 from .credential import Credential
 
 # 新增模型
@@ -40,7 +39,6 @@ __all__ = [
     "AccountClassification",
     "ClassificationRule",
     "AccountClassificationAssignment",
-    "ClassificationBatch",
     "PermissionConfig",
     "GlobalParam",
     "DatabaseSizeStat",

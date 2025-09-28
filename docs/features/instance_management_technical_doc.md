@@ -249,7 +249,7 @@ function syncCapacity(instanceId, instanceName) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     btn.disabled = true;
 
-    fetch(`/instances/api/instances/${instanceId}/sync-capacity`, {
+    fetch(`/database-sizes/instances/${instanceId}/sync-capacity`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -280,7 +280,7 @@ function syncCapacity(instanceId, instanceName) {
 
 #### 3.2 后端容量同步
 ```python
-@instances_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=["POST"])
+@database_sizes_bp.route("/instances/<int:instance_id>/sync-capacity", methods=["POST"])
 @login_required
 @view_required
 def sync_instance_capacity(instance_id: int) -> Response:
@@ -517,7 +517,7 @@ CREATE TABLE instance_tags (
 
 
 #### 1.4 同步容量
-- **URL**: `POST /instances/api/instances/{id}/sync-capacity`
+- **URL**: `POST /database-sizes/instances/{id}/sync-capacity`
 - **返回**:
   ```json
   {

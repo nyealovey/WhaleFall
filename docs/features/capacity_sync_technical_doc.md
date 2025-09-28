@@ -108,7 +108,7 @@ function syncCapacity(instanceId, instanceName) {
         instance_name: instanceName
     });
 
-    fetch(`/instances/api/instances/${instanceId}/sync-capacity`, {
+    fetch(`/database-sizes/instances/${instanceId}/sync-capacity`, {
         method: 'POST',
         headers: headers
     })
@@ -251,7 +251,7 @@ function updateInstanceSizeDisplays(sizeData) {
 
 #### 4.1.1 单实例容量同步API
 ```python
-@instances_bp.route("/<int:instance_id>/sync-capacity", methods=['POST'])
+@database_sizes_bp.route("/instances/<int:instance_id>/sync-capacity", methods=['POST'])
 @login_required
 @update_required
 def sync_instance_capacity(instance_id: int) -> Response:

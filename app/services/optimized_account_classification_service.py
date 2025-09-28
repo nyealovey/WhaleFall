@@ -14,7 +14,6 @@ from app.models.account_classification import (
 )
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
-from app.services.classification_batch_service import ClassificationBatchService
 from app.services.cache_manager import cache_manager
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
@@ -66,13 +65,9 @@ class OptimizedAccountClassificationService:
                     batch_type=batch_type
                 )
 
-            # 4. 创建批次记录
-            self.batch_id = ClassificationBatchService.create_batch(
-                batch_type=batch_type,
-                created_by=created_by,
-                total_rules=len(rules),
-                active_rules=len(rules),
-            )
+            # 4. 生成批次ID（仅用于日志追踪）
+            import uuid
+            self.batch_id = str(uuid.uuid4())
 
             log_info(
                 "开始优化后的自动分类",
@@ -86,10 +81,11 @@ class OptimizedAccountClassificationService:
             # 5. 按数据库类型优化分类
             result = self._classify_accounts_by_db_type_optimized(accounts, rules)
 
-            # 5. 完成批次
-            ClassificationBatchService.complete_batch(
-                self.batch_id,
-                status="completed",
+            # 5. 批次完成（仅用于日志记录）
+            log_info(
+                "批次分类完成",
+                module="account_classification",
+                batch_id=self.batch_id,
                 batch_details=result,
             )
 
@@ -106,7 +102,7 @@ class OptimizedAccountClassificationService:
 
         except Exception as e:
             if self.batch_id:
-                ClassificationBatchService.complete_batch(self.batch_id, status="failed", error_message=str(e))
+                log_error(f"批次分类失败: {e}", module="account_classification", batch_id=self.batch_id)
             log_error(f"优化后的自动分类失败: {e}", module="account_classification")
             return {"success": False, "error": f"自动分类失败: {str(e)}"}
 

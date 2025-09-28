@@ -528,7 +528,13 @@ function updateJob() {
         return;
     }
 
-    const isBuiltInJob = ['sync_accounts', 'cleanup_logs'].includes(originalJob.id);
+    const isBuiltInJob = [
+        'sync_accounts', 
+        'cleanup_logs', 
+        'monitor_partition_health', 
+        'collect_database_sizes', 
+        'calculate_database_size_aggregations'
+    ].includes(originalJob.id);
 
     let data = Object.fromEntries(formData.entries());
     data.trigger_type = 'cron';  // 固定为cron触发器

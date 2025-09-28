@@ -137,30 +137,6 @@ def test_db_type_grouping():
     
     print("✅ 按数据库类型分组功能测试完成")
 
-def test_cache_debug():
-    """测试缓存调试功能"""
-    print("🔍 测试缓存调试功能...")
-    
-    try:
-        debug_info = cache_manager.debug_cache_status()
-        
-        print("  📊 缓存调试信息:")
-        print(f"    缓存启用: {debug_info.get('cache_enabled', False)}")
-        print(f"    缓存类型: {debug_info.get('cache_type', 'Unknown')}")
-        print(f"    健康检查: {debug_info.get('health_check', False)}")
-        
-        cache_keys = debug_info.get('cache_keys', {})
-        print("  📋 缓存键状态:")
-        for key, info in cache_keys.items():
-            if info.get('exists'):
-                print(f"    ✅ {key}: {info.get('type', 'unknown')} - {info.get('count', 0)} 项")
-            else:
-                print(f"    ❌ {key}: 不存在")
-        
-        print("✅ 缓存调试功能测试完成")
-        
-    except Exception as e:
-        print(f"❌ 缓存调试功能测试失败: {e}")
 
 def test_cache_clear():
     """测试缓存清除功能"""
@@ -218,9 +194,6 @@ def main():
             test_db_type_grouping()
             print()
             
-            # 测试缓存调试功能
-            test_cache_debug()
-            print()
             
             # 测试缓存清除功能
             test_cache_clear()

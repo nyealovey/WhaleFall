@@ -388,46 +388,6 @@ def get_recent_logs() -> tuple[dict, int]:
         return error_response("Failed to get recent logs", 500)
 
 
-@unified_logs_bp.route("/api/health", methods=["GET"])
-@login_required
-def get_log_health() -> tuple[dict, int]:
-    """获取日志系统健康状态API"""
-    try:
-        # 获取最近1小时的统计
-        stats = UnifiedLog.get_log_statistics(hours=1)
-
-        # 计算健康分数
-        health_score = 100
-        if stats["error_count"] > 0:
-            health_score -= min(stats["error_count"] * 10, 50)
-
-        if stats["error_rate"] > 10:
-            health_score -= 20
-
-        # 确定健康状态
-        if health_score >= 90:
-            status = "healthy"
-        elif health_score >= 70:
-            status = "warning"
-        else:
-            status = "critical"
-
-        health_data = {
-            "status": status,
-            "health_score": health_score,
-            "error_count": stats["error_count"],
-            "error_rate": stats["error_rate"],
-            "total_logs": stats["total_logs"],
-            "last_updated": now().isoformat(),
-        }
-
-        return success_response(health_data)
-
-    except Exception as e:
-        log_error("Failed to get log health", module="unified_logs", error=str(e))
-        return error_response("Failed to get log health", 500)
-
-
 @unified_logs_bp.route("/api/stats", methods=["GET"])
 @login_required
 def get_log_stats() -> tuple[dict, int]:
