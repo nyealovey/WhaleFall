@@ -32,9 +32,9 @@
 - **聚合API**: `/database-sizes/aggregations` (GET, API)
 - **聚合汇总**: `/database-sizes/aggregations/summary` (GET)
 - **今日聚合**: `/database-sizes/aggregate-today` (POST)
-- **分区管理**: `/partition-management/partitions` (GET)
-- **分区状态**: `/partition-management/partitions/status` (GET)
-- **最新聚合**: `/partition-management/aggregations/latest` (GET)
+- **分区管理**: `/partition/partitions` (GET)
+- **分区状态**: `/partition/partitions/status` (GET)
+- **最新聚合**: `/partition/aggregations/latest` (GET)
 
 #### 核心服务
 - **`DatabaseSizeAggregationService`**: 数据库大小统计聚合服务
@@ -889,14 +889,14 @@ async function loadPartitionData() {
         
         // 并行加载分区信息和状态
         const [partitionInfoResponse, partitionStatusResponse] = await Promise.all([
-            fetch('/partition-management/partitions?api=true', {
+            fetch('/partition/partitions?api=true', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 }
             }),
-            fetch('/partition-management/partitions/status', {
+            fetch('/partition/partitions/status', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -957,7 +957,7 @@ async function loadAggregationData() {
         const periodTypeFilter = document.getElementById('periodTypeFilter');
         const selectedPeriodType = periodTypeFilter ? periodTypeFilter.value : 'daily';
         
-        const response = await fetch('/partition-management/aggregations/latest?api=true');
+        const response = await fetch('/partition/aggregations/latest?api=true');
         const data = await response.json();
         
         if (response.ok) {

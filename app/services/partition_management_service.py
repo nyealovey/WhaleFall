@@ -236,12 +236,23 @@ class PartitionManagementService:
             Dict[str, Any]: 分区信息
         """
         try:
+            # 检查数据库连接
+            try:
+                db.session.execute(text("SELECT 1"))
+            except Exception as db_error:
+                logger.error(f"数据库连接失败: {str(db_error)}")
+                return {
+                    'success': False,
+                    'message': f'数据库连接失败: {str(db_error)}'
+                }
+            
             all_partitions = []
             total_size_bytes = 0
             total_records = 0
             
             # 获取每张表的分区信息
             for table_key, table_config in self.tables.items():
+                logger.info(f"获取表 {table_key} 的分区信息")
                 partitions = self._get_table_partitions(table_config)
                 all_partitions.extend(partitions)
                 
@@ -252,6 +263,8 @@ class PartitionManagementService:
             
             # 按分区名称排序
             all_partitions.sort(key=lambda x: x['name'])
+            
+            logger.info(f"成功获取 {len(all_partitions)} 个分区信息")
             
             return {
                 'success': True,
@@ -264,7 +277,7 @@ class PartitionManagementService:
             }
             
         except Exception as e:
-            logger.error(f"获取分区信息失败: {str(e)}")
+            logger.error(f"获取分区信息失败: {str(e)}", exc_info=True)
             return {
                 'success': False,
                 'message': f'获取分区信息失败: {str(e)}'
