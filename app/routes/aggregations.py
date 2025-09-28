@@ -181,10 +181,10 @@ def aggregations():
         ).join(Instance).distinct().all()
         databases_list = [{'value': d.database_name, 'label': f"{d.instance_name}.{d.database_name}"} for d in databases]
         
-        return render_template('database_sizes/aggregations.html', 
-                             instances_list=instances_list,
+        return render_template('database_sizes/instance_aggregations.html', 
+                             instances=instances_list,
                              database_types=database_types_list,
-                             databases=databases_list)
+                             db_type=request.args.get('db_type', ''))
 
 
 @aggregations_bp.route('/summary', methods=['GET'])
