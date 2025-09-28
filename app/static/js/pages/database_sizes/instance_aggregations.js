@@ -227,7 +227,7 @@ class InstanceAggregationsManager {
     async loadSummaryData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/instance-aggregations/summary?api=true&${params}`);
+            const response = await fetch(`/aggregations/instance/summary?api=true&${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -262,7 +262,7 @@ class InstanceAggregationsManager {
             params.append('get_all', 'true');
             
             console.log('加载图表数据，参数:', params.toString());
-            const response = await fetch(`/instance-aggregations/?api=true&${params}`);
+            const response = await fetch(`/aggregations/instance?api=true&${params}`);
             const data = await response.json();
             
             console.log('图表数据响应:', data);
@@ -474,7 +474,7 @@ class InstanceAggregationsManager {
     async loadTableData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/instance-aggregations/?api=true&${params}`);
+            const response = await fetch(`/aggregations/instance?api=true&${params}`);
             const data = await response.json();
             
             if (response.ok) {
