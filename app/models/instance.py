@@ -54,6 +54,11 @@ class Instance(db.Model):
         back_populates="instance",
         cascade="all, delete-orphan",
     )
+    instance_size_aggregations = db.relationship(
+        "InstanceSizeAggregation",
+        back_populates="instance",
+        cascade="all, delete-orphan",
+    )
     # accounts关系已移除，因为Account模型已废弃，使用CurrentAccountSyncData
     # sync_data关系已移除，因为SyncData表已删除
 
