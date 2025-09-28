@@ -185,7 +185,8 @@ class DatabaseSizeAggregationService:
                     ).all()
                     
                     if not stats:
-                        logger.debug(f"实例 {instance.name} 在 {start_date} 到 {end_date} 期间没有数据")
+                        logger.warning(f"实例 {instance.name} 在 {start_date} 到 {end_date} 期间没有数据，标记为失败")
+                        total_errors += 1
                         continue
                     
                     # 按数据库分组计算统计
