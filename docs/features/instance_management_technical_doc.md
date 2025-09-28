@@ -1,697 +1,247 @@
 # 实例管理功能技术文档
 
-## 功能概述
+## 1. 功能概述
 
-实例管理功能是鲸落系统的核心基础功能，负责管理数据库实例的创建、编辑、删除、连接测试、容量同步等操作。支持MySQL、PostgreSQL、SQL Server、Oracle等多种数据库类型。
+### 1.1 模块职责
+- 提供数据库实例的完整生命周期管理，包括创建、编辑、删除、查询、连接测试等操作。
+- 支持多种数据库类型（MySQL、PostgreSQL、SQL Server、Oracle）的实例管理。
+- 实现实例的批量操作、标签管理、容量同步等高级功能。
+- 提供实例统计和监控功能，支持实例状态跟踪和性能分析。
 
-## 技术架构
+### 1.2 代码定位
+- 路由：`app/routes/instances.py`（实例管理核心路由）
+- 模型：`app/models/instance.py`（实例数据模型）
+- 前端：`app/templates/instances/list.html`、`app/static/js/pages/instances/list.js`
+- 服务：`app/services/connection_test_service.py`、`app/services/database_size_collector_service.py`
 
-### 1. 前端架构
+## 2. 架构设计
 
-#### 1.1 HTML模板文件
-- **主模板**: `app/templates/instances/list.html`
-  - 实例列表页面主模板
-  - 包含搜索筛选、批量操作、标签管理等功能
-  - 继承自 `base.html` 基础模板
-
-- **创建模板**: `app/templates/instances/create.html`
-  - 实例创建表单页面
-  - 包含数据库类型选择、连接参数配置等
-
-- **编辑模板**: `app/templates/instances/edit.html`
-  - 实例编辑表单页面
-  - 预填充现有实例数据
-
-- **详情模板**: `app/templates/instances/detail.html`
-  - 实例详情展示页面
-  - 包含实例信息、账户列表、统计图表等
-
-#### 1.2 JavaScript文件
-- **主页面脚本**: `app/static/js/pages/instances/list.js`
-  - 实例列表页面交互逻辑
-  - 连接测试、容量同步、批量操作等功能
-  - 标签选择器集成
-
-- **创建页面脚本**: `app/static/js/pages/instances/create.js`
-  - 实例创建表单验证和提交
-  - 数据库类型切换逻辑
-
-- **编辑页面脚本**: `app/static/js/pages/instances/edit.js`
-  - 实例编辑表单处理
-  - 数据预填充和验证
-
-- **详情页面脚本**: `app/static/js/pages/instances/detail.js`
-  - 实例详情页面交互
-  - 账户列表管理、统计图表展示
-
-- **统计页面脚本**: `app/static/js/pages/instances/statistics.js`
-  - 实例统计页面功能
-  - 图表渲染和数据分析
-
-#### 1.3 CSS样式文件
-- **主样式**: `app/static/css/pages/instances/list.css`
-  - 实例列表页面样式
-  - 卡片布局、状态指示器、批量操作按钮等
-
-- **通用组件样式**: `app/static/css/components/`
-  - `tag_selector.css`: 标签选择器组件样式
-  - `unified_search.css`: 统一搜索组件样式
-
-### 2. 后端架构
-
-#### 2.1 数据模型
-- **主模型**: `app/models/instance.py`
-  - `Instance` 类：数据库实例模型
-  - 包含实例基本信息、连接参数、版本信息等
-  - 支持软删除、标签关联、凭据关联
-
-#### 2.2 路由控制器
-- **主路由**: `app/routes/instances.py`
-  - 实例管理相关API接口
-  - 包含CRUD操作、连接测试、容量同步等
-
-#### 2.3 服务层
-- **连接测试服务**: `app/services/connection_test_service.py`
-  - 数据库连接测试逻辑
-  - 支持多种数据库类型的连接验证
-
-- **数据库大小采集服务**: `app/services/database_size_collector_service.py`
-  - 实例容量数据采集
-  - 支持MySQL、SQL Server、PostgreSQL、Oracle
-
-- **同步数据管理器**: `app/services/sync_data_manager.py`
-  - 统一同步数据管理
-  - 适配器模式支持多种数据库类型
-
-- **连接工厂**: `app/services/connection_factory.py`
-  - 数据库连接创建工厂
-  - 统一连接接口和生命周期管理
-
-#### 2.4 工具类
-- **数据验证器**: `app/utils/data_validator.py`
-  - 表单数据验证
-  - 实例参数校验
-
-- **安全工具**: `app/utils/security.py`
-  - 数据清理和验证
-  - 安全防护措施
-
-- **版本解析器**: `app/utils/version_parser.py`
-  - 数据库版本信息解析
-  - 支持多种数据库版本格式
-
-## 核心功能实现
-
-### 1. 实例CRUD操作
-
-#### 1.1 创建实例
-**前端流程**:
-```javascript
-// 表单提交处理
-function submitInstanceForm() {
-    const formData = new FormData(document.getElementById('instanceForm'));
-    
-    fetch('/instances/create', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            window.location.href = '/instances/';
-        } else {
-            showAlert('danger', data.error);
-        }
-    });
-}
+### 2.1 模块关系
+```
+┌─────────────────────────────┐
+│ 前端管理界面                 │
+│  - 实例列表展示            │
+│  - 搜索筛选功能            │
+│  - 批量操作控制            │
+│  - 标签管理集成            │
+└───────▲───────────┬──────┘
+        │AJAX        │
+┌───────┴───────────▼──────┐
+│ Flask 路由 (instances.py) │
+│  - CRUD操作接口          │
+│  - 批量操作接口          │
+│  - 连接测试接口          │
+│  - 容量同步接口          │
+└───────▲───────────┬──────┘
+        │SQLAlchemy │服务调用
+┌───────┴───────────▼──────┐
+│ 数据层与服务              │
+│  - Instance模型           │
+│  - 连接测试服务           │
+│  - 容量采集服务           │
+└────────────────────────────┘
 ```
 
-**后端处理**:
-```python
-@instances_bp.route("/create", methods=["GET", "POST"])
-@login_required
-@create_required
-def create() -> str | Response:
-    """创建实例"""
-    if request.method == "POST":
-        # 数据验证
-        validator = DataValidator()
-        validation_result = validator.validate_instance_data(request.form)
-        
-        if not validation_result["valid"]:
-            flash(validation_result["error"], "error")
-            return render_template("instances/create.html", form_data=request.form)
-        
-        # 创建实例
-        instance = Instance(
-            name=request.form["name"],
-            db_type=request.form["db_type"],
-            host=request.form["host"],
-            port=int(request.form["port"]),
-            database_name=request.form.get("database_name"),
-            credential_id=request.form.get("credential_id") or None,
-            description=request.form.get("description"),
-        )
-        
-        db.session.add(instance)
-        db.session.commit()
-        
-        flash("实例创建成功", "success")
-        return redirect(url_for("instances.detail", instance_id=instance.id))
-    
-    return render_template("instances/create.html")
-```
-
-#### 1.2 实例列表查询
-**前端搜索筛选**:
-```javascript
-// 搜索和筛选功能
-function applyFilters() {
-    const search = document.getElementById('search').value;
-    const dbType = document.getElementById('db_type').value;
-    const status = document.getElementById('status').value;
-    const tags = document.getElementById('selected-tag-names').value;
-    
-    const params = new URLSearchParams();
-    if (search) params.append('search', search);
-    if (dbType) params.append('db_type', dbType);
-    if (status) params.append('status', status);
-    if (tags) params.append('tags', tags);
-    
-    window.location.href = `/instances/?${params.toString()}`;
-}
-```
-
-**后端查询逻辑**:
-```python
-@instances_bp.route("/")
-@login_required
-@view_required
-def index() -> str:
-    """实例管理首页"""
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 10, type=int)
-    search = request.args.get("search", "", type=str)
-    db_type = request.args.get("db_type", "", type=str)
-    status = request.args.get("status", "", type=str)
-    tags_str = request.args.get("tags", "")
-    tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
-
-    # 构建查询
-    query = Instance.query
-
-    if search:
-        query = query.filter(
-            db.or_(
-                Instance.name.contains(search),
-                Instance.host.contains(search),
-                Instance.description.contains(search),
-            )
-        )
-
-    if db_type:
-        query = query.filter(Instance.db_type == db_type)
-    
-    if status:
-        if status == 'active':
-            query = query.filter(Instance.is_active == True)
-        elif status == 'inactive':
-            query = query.filter(Instance.is_active == False)
-
-    # 标签筛选
-    if tags:
-        query = query.join(Instance.tags).filter(Tag.name.in_(tags))
-
-    # 分页查询
-    instances = query.order_by(Instance.id).paginate(page=page, per_page=per_page, error_out=False)
-    
-    return render_template("instances/list.html", instances=instances)
-```
-
-### 2. 连接测试功能
-
-
-
-
-
-### 3. 容量同步功能
-
-#### 3.1 前端容量同步
-```javascript
-function syncCapacity(instanceId, instanceName) {
-    const btn = event.target.closest('button');
-    const originalHtml = btn.innerHTML;
-
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    btn.disabled = true;
-
-    fetch(`/database-sizes/instances/${instanceId}/sync-capacity`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            // 刷新页面以更新容量显示
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        showAlert('danger', '同步容量失败');
-    })
-    .finally(() => {
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-    });
-}
-```
-
-#### 3.2 后端容量同步
-```python
-@database_sizes_bp.route("/instances/<int:instance_id>/sync-capacity", methods=["POST"])
-@login_required
-@view_required
-def sync_instance_capacity(instance_id: int) -> Response:
-    """同步实例容量"""
-    instance = Instance.query.get_or_404(instance_id)
-    
-    try:
-        # 使用数据库大小采集服务
-        with DatabaseSizeCollectorService(instance) as collector:
-            # 采集数据库大小数据
-            data = collector.collect_database_sizes()
-            
-            # 保存数据
-            saved_count = collector.save_collected_data(data)
-            
-            return jsonify({
-                "success": True,
-                "message": f"容量同步成功，采集了 {saved_count} 条记录",
-                "data": {
-                    "saved_count": saved_count,
-                    "instance_id": instance_id,
-                    "instance_name": instance.name
-                }
-            })
-            
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": f"容量同步失败: {str(e)}"
-        }), 500
-```
-
-### 4. 批量操作功能
-
-#### 4.1 批量删除
-```javascript
-function batchDelete() {
-    const selectedCheckboxes = document.querySelectorAll('.instance-checkbox:checked');
-    const instanceIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
-
-    if (instanceIds.length === 0) {
-        showAlert('warning', '请选择要删除的实例');
-        return;
-    }
-
-    if (!confirm(`确定要删除选中的 ${instanceIds.length} 个实例吗？此操作不可撤销！`)) {
-        return;
-    }
-
-    const btn = document.getElementById('batchDeleteBtn');
-    const originalText = btn.textContent;
-
-    btn.textContent = '删除中...';
-    btn.disabled = true;
-
-    fetch('/instances/batch-delete', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify({ instance_ids: instanceIds })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        showAlert('danger', '批量删除失败');
-    })
-    .finally(() => {
-        btn.textContent = originalText;
-        btn.disabled = true;
-    });
-}
-```
-
-#### 4.2 批量创建
-```javascript
-function submitBatchCreate() {
-    const uploadMethod = document.querySelector('input[name="uploadMethod"]:checked');
-    
-    if (uploadMethod && uploadMethod.value === 'file') {
-        submitFileUpload();
-    } else {
-        submitJsonInput();
-    }
-}
-
-function submitFileUpload() {
-    const fileInput = document.getElementById('csvFile');
-    const file = fileInput.files[0];
-
-    if (!file) {
-        showAlert('warning', '请选择CSV文件');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    fetch('/instances/batch-create', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            if (data.errors && data.errors.length > 0) {
-                showAlert('warning', `部分实例创建失败：\n${data.errors.join('\n')}`);
-            }
-            // 关闭模态框并刷新页面
-            const modal = bootstrap.Modal.getInstance(document.getElementById('batchCreateModal'));
-            if (modal) modal.hide();
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        showAlert('danger', '批量创建失败');
-    });
-}
-```
-
-### 5. 标签管理功能
-
-#### 5.1 标签选择器集成
-```javascript
-// 初始化标签选择器
-function initializeInstanceListTagSelector() {
-    const listPageSelector = document.getElementById('list-page-tag-selector');
-    
-    if (listPageSelector) {
-        const modalElement = listPageSelector.querySelector('#tagSelectorModal');
-        const containerElement = modalElement.querySelector('#tag-selector-container');
-        
-        if (containerElement) {
-            // 初始化标签选择器组件
-            listPageTagSelector = new TagSelector('tag-selector-container', {
-                allowMultiple: true,
-                allowCreate: true,
-                allowSearch: true,
-                allowCategoryFilter: true
-            });
-            
-            // 设置事件监听
-            setupTagSelectorEvents();
-        }
-    }
-}
-
-// 标签选择确认
-function confirmTagSelection() {
-    if (listPageTagSelector) {
-        listPageTagSelector.confirmSelection();
-        const selectedTags = listPageTagSelector.getSelectedTags();
-        updateSelectedTagsPreview(selectedTags);
-        closeTagSelector();
-    }
-}
-```
-
-## 数据库设计
-
-### 1. 实例表结构
-```sql
-CREATE TABLE instances (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    db_type VARCHAR(50) NOT NULL,
-    host VARCHAR(255) NOT NULL,
-    port INTEGER NOT NULL,
-    database_name VARCHAR(255),
-    database_version VARCHAR(1000),
-    main_version VARCHAR(20),
-    detailed_version VARCHAR(50),
-    environment VARCHAR(20) DEFAULT 'production',
-    sync_count INTEGER DEFAULT 0,
-    credential_id INTEGER REFERENCES credentials(id),
-    description TEXT,
-    status VARCHAR(20) DEFAULT 'active',
-    is_active BOOLEAN DEFAULT TRUE,
-    last_connected TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    deleted_at TIMESTAMP WITH TIME ZONE
-);
-```
-
-### 2. 实例标签关联表
-```sql
-CREATE TABLE instance_tags (
-    instance_id INTEGER REFERENCES instances(id) ON DELETE CASCADE,
-    tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
-    PRIMARY KEY (instance_id, tag_id)
-);
-```
-
-## API接口文档
-
-### 1. 实例管理接口
-
-#### 1.1 获取实例列表
-- **URL**: `GET /instances/`
-- **参数**:
-  - `page`: 页码 (默认: 1)
-  - `per_page`: 每页数量 (默认: 10)
-  - `search`: 搜索关键词
-  - `db_type`: 数据库类型筛选
-  - `status`: 状态筛选 (active/inactive)
-  - `tags`: 标签筛选 (逗号分隔)
-
-#### 1.2 创建实例
-- **URL**: `POST /instances/create`
-- **参数**:
-  - `name`: 实例名称 (必填)
-  - `db_type`: 数据库类型 (必填)
-  - `host`: 主机地址 (必填)
-  - `port`: 端口号 (必填)
-  - `database_name`: 数据库名称
-  - `credential_id`: 凭据ID
-  - `description`: 描述
-
-
-
-#### 1.4 同步容量
-- **URL**: `POST /database-sizes/instances/{id}/sync-capacity`
-- **返回**:
-  ```json
-  {
-    "success": true,
-    "message": "容量同步成功，采集了 5 条记录",
-    "data": {
-      "saved_count": 5,
-      "instance_id": 1,
-      "instance_name": "MySQL-01"
-    }
-  }
-  ```
-
-## 错误处理
-
-### 1. 前端错误处理
-```javascript
-// 统一错误处理函数
-function handleError(error, context) {
-    console.error(`${context} 错误:`, error);
-    
-    // 显示用户友好的错误信息
-    showAlert('danger', `${context}失败，请稍后重试`);
-    
-    // 记录错误日志
-    logErrorWithContext(error, context, {
-        operation: context,
-        result: 'exception'
-    });
-}
-
-// 网络请求错误处理
-function handleFetchError(response, context) {
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    return response.json();
-}
-```
-
-### 2. 后端错误处理
-```python
-# 统一异常处理装饰器
-def handle_instance_errors(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except InstanceNotFoundError as e:
-            return jsonify({"success": False, "error": "实例不存在"}), 404
-        except ConnectionError as e:
-            return jsonify({"success": False, "error": "数据库连接失败"}), 500
-        except ValidationError as e:
-            return jsonify({"success": False, "error": f"数据验证失败: {str(e)}"}), 400
-        except Exception as e:
-            logger.error(f"实例操作异常: {str(e)}")
-            return jsonify({"success": False, "error": "服务器内部错误"}), 500
-    return decorated_function
-```
-
-## 性能优化
-
-### 1. 数据库查询优化
-- 使用索引优化查询性能
-- 分页查询避免大量数据加载
-- 预加载关联数据减少N+1查询
-
-### 2. 前端性能优化
-- 懒加载实例容量数据
-- 防抖搜索避免频繁请求
-- 缓存标签选择器数据
-
-### 3. 连接池管理
-- 使用连接池管理数据库连接
-- 自动释放空闲连接
-- 连接超时和重试机制
-
-## 安全考虑
-
-### 1. 输入验证
-- 所有用户输入进行严格验证
-- 防止SQL注入攻击
-- 文件上传类型和大小限制
-
-### 2. 权限控制
-- 基于角色的访问控制
-- 操作权限验证
-- 敏感操作审计日志
-
-### 3. 数据安全
-- 密码等敏感信息加密存储
-- 连接参数安全传输
-- 定期清理过期数据
-
-## 测试策略
-
-### 1. 单元测试
-- 模型方法测试
-- 服务类功能测试
-- 工具函数测试
-
-### 2. 集成测试
-- API接口测试
-- 数据库操作测试
-- 前后端交互测试
-
-### 3. 性能测试
-- 大量数据查询测试
-- 并发操作测试
-- 连接池压力测试
-
-## 部署配置
-
-### 1. 环境变量
-```bash
-# 数据库连接配置
-DATABASE_URL=postgresql://user:password@localhost:5432/taifish
-
-# 连接池配置
-DB_POOL_SIZE=10
-DB_POOL_OVERFLOW=20
-DB_POOL_TIMEOUT=30
-
-# 安全配置
-SECRET_KEY=your-secret-key
-CSRF_SECRET_KEY=your-csrf-secret-key
-```
-
-### 2. 依赖包
-```txt
-Flask==3.0.3
-SQLAlchemy==1.4.54
-psycopg2-binary==2.9.9
-pymysql==1.1.0
-pymssql==2.2.8
-oracledb==1.4.2
-```
-
-## 监控和日志
-
-### 1. 操作日志
-- 实例创建、编辑、删除操作
-- 连接测试结果记录
-- 容量同步操作记录
-
-### 2. 性能监控
-- 数据库查询性能
-- 连接池使用情况
-- 页面加载时间
-
-### 3. 错误监控
-- 异常错误记录
-- 连接失败统计
-- 用户操作错误追踪
-
-## 维护指南
-
-### 1. 日常维护
-- 定期清理软删除的实例
-- 监控连接池状态
-- 检查实例连接状态
-
-### 2. 故障排查
-- 查看错误日志定位问题
-- 检查数据库连接配置
-- 验证网络连通性
-
-### 3. 性能调优
-- 分析慢查询日志
-- 优化数据库索引
-- 调整连接池参数
-
----
-
-**文档版本**: 1.0  
-**最后更新**: 2025-01-28  
-**维护人员**: 开发团队
+### 2.2 权限控制
+- 所有接口使用 `@login_required` 和相应的权限装饰器。
+- 创建：`@create_required`，编辑：`@update_required`，删除：`@delete_required`，查看：`@view_required`。
+
+## 3. 数据模型（`instance.py`）
+
+### 3.1 Instance模型结构
+- `id`：主键，自增整数。
+- `name`：实例名称，唯一索引，最大255字符。
+- `db_type`：数据库类型，索引，支持MySQL、PostgreSQL、SQL Server、Oracle。
+- `host`：主机地址，最大255字符。
+- `port`：端口号，整数类型。
+- `database_name`：数据库名称，可选。
+- `database_version`：原始版本字符串，最大1000字符。
+- `main_version`：主版本号（如8.0、13.4、14.0），最大20字符。
+- `detailed_version`：详细版本号（如8.0.32、13.4、14.0.3465.1），最大50字符。
+- `environment`：环境类型，默认production，索引。
+- `sync_count`：同步次数，默认0。
+- `credential_id`：关联凭据ID，外键。
+- `description`：描述信息，文本类型。
+- `status`：状态，默认active，索引。
+- `is_active`：是否活跃，布尔类型。
+- `last_connected`：最后连接时间，带时区的时间戳。
+- `created_at`、`updated_at`、`deleted_at`：时间戳字段。
+
+### 3.2 关系定义
+- `credential`：与凭据的一对多关系。
+- `tags`：与标签的多对多关系，通过`instance_tags`中间表。
+- `database_size_stats`：与数据库大小统计的一对多关系。
+- `instance_databases`：与实例数据库的一对多关系。
+
+## 4. 路由实现（`instances.py`）
+
+### 4.1 实例列表查询
+- `GET /instances/`（141-200）：
+  - 支持分页查询，默认每页10条记录。
+  - 支持按名称、主机、描述搜索。
+  - 支持按数据库类型、状态筛选。
+  - 支持按标签筛选，使用多对多关系查询。
+  - 返回HTML页面或JSON数据。
+
+### 4.2 实例创建
+- `GET /instances/create`（203-210）：渲染创建表单页面。
+- `POST /instances/create`（213-280）：
+  - 验证必填字段：名称、数据库类型、主机、端口。
+  - 验证数据库类型是否支持。
+  - 检查实例名称唯一性。
+  - 创建实例并保存到数据库。
+  - 记录操作日志。
+
+### 4.3 实例编辑
+- `GET /instances/<id>/edit`（283-300）：渲染编辑表单页面。
+- `POST /instances/<id>/edit`（303-380）：
+  - 验证表单数据。
+  - 更新实例信息。
+  - 记录操作日志。
+
+### 4.4 实例删除
+- `POST /instances/<id>/delete`（383-420）：
+  - 软删除实例（设置deleted_at）。
+  - 删除关联数据：分类分配、同步数据、同步记录、变更日志。
+  - 记录操作日志。
+
+### 4.5 连接测试
+- `POST /instances/<id>/test-connection`（423-460）：
+  - 使用`ConnectionTestService`测试数据库连接。
+  - 更新最后连接时间。
+  - 返回连接测试结果。
+
+### 4.6 批量操作
+- `POST /instances/batch-delete`（463-500）：批量删除选中的实例。
+- `POST /instances/batch-create`（503-540）：批量创建实例，支持CSV文件上传。
+
+## 5. 前端实现
+
+### 5.1 实例列表页面（`list.html`）
+- 搜索筛选表单：支持按名称、主机、描述搜索，按数据库类型、状态、标签筛选。
+- 实例卡片展示：显示实例基本信息、状态指示器、操作按钮。
+- 批量操作工具栏：全选、批量删除、批量创建功能。
+- 分页导航：支持分页浏览实例列表。
+
+### 5.2 前端JavaScript（`list.js`）
+- `loadInstanceTotalSizes()`（45-82）：异步加载实例总大小信息。
+- `formatSize()`（85-92）：格式化文件大小显示，统一使用GB单位。
+- `initializeInstanceListTagSelector()`（95-150）：初始化标签选择器组件。
+- `testConnection()`（200-250）：测试实例连接，显示加载状态和结果。
+- `syncCapacity()`（300-350）：同步实例容量数据。
+- `batchDelete()`（400-450）：批量删除选中的实例。
+- `batchCreate()`（500-550）：批量创建实例，支持文件上传。
+
+## 6. 核心功能实现
+
+### 6.1 实例CRUD操作
+- **创建**：表单验证 → 数据清理 → 唯一性检查 → 数据库保存 → 日志记录。
+- **查询**：多条件筛选 → 分页查询 → 关联数据预加载 → 结果返回。
+- **更新**：数据验证 → 权限检查 → 数据更新 → 日志记录。
+- **删除**：软删除 → 关联数据清理 → 日志记录。
+
+### 6.2 连接测试功能
+- 使用`ConnectionTestService`进行数据库连接测试。
+- 支持多种数据库类型的连接验证。
+- 测试成功后更新`last_connected`字段。
+- 提供详细的错误信息和状态反馈。
+
+### 6.3 容量同步功能
+- 集成`DatabaseSizeCollectorService`进行容量数据采集。
+- 支持MySQL、SQL Server、PostgreSQL、Oracle的容量统计。
+- 异步加载实例总大小信息。
+- 提供容量同步状态和进度反馈。
+
+### 6.4 标签管理功能
+- 集成标签选择器组件。
+- 支持多标签筛选和搜索。
+- 标签与实例的多对多关系管理。
+- 标签创建、编辑、删除功能。
+
+## 7. 批量操作功能
+
+### 7.1 批量删除
+- 前端：选中多个实例 → 确认删除 → 发送批量删除请求。
+- 后端：遍历实例ID → 软删除每个实例 → 清理关联数据 → 返回结果。
+
+### 7.2 批量创建
+- 支持CSV文件上传和JSON数据输入。
+- 数据验证：必填字段检查、数据类型验证、唯一性检查。
+- 错误处理：收集验证错误，返回详细的错误信息。
+- 事务处理：确保批量操作的原子性。
+
+## 8. 数据验证和安全
+
+### 8.1 数据验证
+- 使用`DataValidator`进行表单数据验证。
+- 必填字段检查：名称、数据库类型、主机、端口。
+- 数据类型验证：端口号整数验证、凭据ID验证。
+- 业务规则验证：数据库类型支持检查、实例名称唯一性。
+
+### 8.2 安全措施
+- 使用`sanitize_form_data()`清理用户输入。
+- 防止SQL注入：使用SQLAlchemy ORM。
+- 权限控制：基于角色的访问控制。
+- 操作审计：记录所有关键操作。
+
+## 9. 性能优化
+
+### 9.1 查询优化
+- 使用索引优化查询性能。
+- 分页查询避免大量数据加载。
+- 预加载关联数据减少N+1查询。
+- 使用窗口函数优化复杂查询。
+
+### 9.2 前端优化
+- 异步加载实例容量数据。
+- 防抖搜索避免频繁请求。
+- 缓存标签选择器数据。
+- 懒加载和虚拟滚动。
+
+## 10. 错误处理
+
+### 10.1 后端错误处理
+- 统一异常处理装饰器。
+- 详细的错误日志记录。
+- 用户友好的错误信息。
+- 操作回滚和恢复机制。
+
+### 10.2 前端错误处理
+- AJAX请求错误处理。
+- 用户操作错误提示。
+- 网络异常处理。
+- 数据验证错误显示。
+
+## 11. 测试建议
+
+### 11.1 功能测试
+- 实例CRUD操作的正确性。
+- 连接测试的准确性。
+- 批量操作的功能性。
+- 标签管理的完整性。
+
+### 11.2 性能测试
+- 大量实例的查询性能。
+- 批量操作的执行效率。
+- 并发操作的稳定性。
+- 内存使用和响应时间。
+
+## 12. 后续优化方向
+
+### 12.1 功能增强
+- 添加实例健康检查功能。
+- 实现实例性能监控。
+- 支持实例配置管理。
+- 添加实例备份和恢复功能。
+
+### 12.2 性能优化
+- 实现实例数据缓存。
+- 优化大量实例的查询性能。
+- 添加实例数据预加载。
+- 实现实例状态实时更新。
+
+### 12.3 监控告警
+- 集成实例监控系统。
+- 添加实例异常告警。
+- 实现实例性能分析。
+- 提供实例使用报告。
