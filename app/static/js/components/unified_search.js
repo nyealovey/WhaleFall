@@ -166,8 +166,8 @@ class UnifiedSearch {
             '/sync_sessions/',  // 会话中心
             '/logs/',           // 日志中心
             '/accounts/sync_records',  // 同步记录
-            '/database-aggregations/',  // 数据库统计聚合页面
-            '/instance-aggregations/'   // 实例统计聚合页面
+            '/aggregations/database/',  // 数据库统计聚合页面
+            '/aggregations/instance/'   // 实例统计聚合页面
             // 注意：/accounts/ 是传统表单页面，不是JavaScript动态页面
         ];
         
