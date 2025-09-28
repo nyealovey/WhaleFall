@@ -132,14 +132,14 @@ async function loadPartitionData() {
         
         // 并行加载分区信息和状态
         const [partitionInfoResponse, partitionStatusResponse] = await Promise.all([
-            fetch('/partition-management/partitions?api=true', {
+            fetch('/partition/partitions?api=true', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 }
             }),
-            fetch('/partition-management/partitions/status', {
+            fetch('/partition/partitions/status', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -342,7 +342,7 @@ async function createPartition() {
     const partitionDate = `${partitionYear}-${partitionMonth.padStart(2, '0')}-01`;
     
     try {
-        const response = await fetch('/partition-management/partitions/create', {
+        const response = await fetch('/partition/partitions/create', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -385,7 +385,7 @@ async function cleanupPartitions() {
     }
     
     try {
-        const response = await fetch('/partition-management/partitions/cleanup', {
+        const response = await fetch('/partition/partitions/cleanup', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -544,7 +544,7 @@ async function loadAggregationData() {
         
         console.log('选中的周期类型:', selectedPeriodType);
         
-        const response = await fetch('/partition-management/aggregations/latest?api=true');
+        const response = await fetch('/partition/aggregations/latest?api=true');
         const data = await response.json();
         
         if (response.ok) {
