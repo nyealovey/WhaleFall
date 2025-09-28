@@ -229,7 +229,7 @@ function updatePartitionsTable(partitions) {
     if (!partitions || partitions.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center text-muted">
+                <td colspan="7" class="text-center text-muted">
                     <i class="fas fa-inbox me-2"></i>暂无分区数据
                 </td>
             </tr>
@@ -241,8 +241,14 @@ function updatePartitionsTable(partitions) {
         const status = getPartitionStatus(partition);
         const statusBadge = getStatusBadge(status);
         
+        const tableType = getTableTypeDisplayName(partition.table_type);
+        const tableTypeBadge = getTableTypeBadge(partition.table_type);
+        
         return `
             <tr>
+                <td>
+                    ${tableTypeBadge}
+                </td>
                 <td>
                     <code>${partition.name}</code>
                 </td>
@@ -272,6 +278,32 @@ function updatePartitionsTable(partitions) {
             </tr>
         `;
     }).join('');
+}
+
+/**
+ * 获取表类型显示名称
+ */
+function getTableTypeDisplayName(tableType) {
+    const typeMap = {
+        'stats': '数据库统计表',
+        'aggregations': '数据库聚合表',
+        'instance_stats': '实例统计表',
+        'instance_aggregations': '实例聚合表'
+    };
+    return typeMap[tableType] || tableType;
+}
+
+/**
+ * 获取表类型徽章
+ */
+function getTableTypeBadge(tableType) {
+    const badgeMap = {
+        'stats': '<span class="badge bg-primary">数据库统计</span>',
+        'aggregations': '<span class="badge bg-info">数据库聚合</span>',
+        'instance_stats': '<span class="badge bg-success">实例统计</span>',
+        'instance_aggregations': '<span class="badge bg-warning">实例聚合</span>'
+    };
+    return badgeMap[tableType] || `<span class="badge bg-secondary">${tableType}</span>`;
 }
 
 /**
