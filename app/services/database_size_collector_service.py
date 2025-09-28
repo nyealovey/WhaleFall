@@ -350,6 +350,14 @@ class DatabaseSizeCollectorService:
                     )
                     db.session.add(new_stat)
                 
+                # 更新实例-数据库关系
+                from app.models.instance_database import InstanceDatabase
+                InstanceDatabase.update_database_status(
+                    self.instance.id, 
+                    item['database_name'], 
+                    item['collected_date']
+                )
+                
                 saved_count += 1
                 
             except Exception as e:
