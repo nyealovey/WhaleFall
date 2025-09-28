@@ -67,7 +67,30 @@ def get_jobs() -> Response:
                 
                 # 简化触发器信息显示
                 trigger_type = str(type(job.trigger).__name__).lower().replace("trigger", "")
-                trigger_args = {"description": str(job.trigger)}
+                
+                # 统一触发器信息显示格式
+                if hasattr(job.trigger, 'fields_set'):
+                    # 对于CronTrigger，只显示实际设置的字段
+                    trigger_info = {}
+                    if hasattr(job.trigger, 'second') and job.trigger.second is not None:
+                        trigger_info['second'] = job.trigger.second
+                    if hasattr(job.trigger, 'minute') and job.trigger.minute is not None:
+                        trigger_info['minute'] = job.trigger.minute
+                    if hasattr(job.trigger, 'hour') and job.trigger.hour is not None:
+                        trigger_info['hour'] = job.trigger.hour
+                    if hasattr(job.trigger, 'day') and job.trigger.day is not None:
+                        trigger_info['day'] = job.trigger.day
+                    if hasattr(job.trigger, 'month') and job.trigger.month is not None:
+                        trigger_info['month'] = job.trigger.month
+                    if hasattr(job.trigger, 'day_of_week') and job.trigger.day_of_week is not None:
+                        trigger_info['day_of_week'] = job.trigger.day_of_week
+                    if hasattr(job.trigger, 'year') and job.trigger.year is not None:
+                        trigger_info['year'] = job.trigger.year
+                    
+                    trigger_args = {"description": f"cron{trigger_info}"}
+                else:
+                    # 对于其他类型的触发器，使用原始字符串
+                    trigger_args = {"description": str(job.trigger)}
                     
             except Exception as job_error:
                 system_logger.error(f"处理任务 {job.id} 时出错: {job_error}")
