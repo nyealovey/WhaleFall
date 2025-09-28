@@ -87,7 +87,7 @@ routes/
 ├── cache.py               # 缓存管理路由
 ├── database_types.py       # 数据库类型路由
 ├── storage_sync.py         # 存储同步路由
-├── user_management.py      # 用户管理路由
+├── users.py                # 用户管理路由
 └── health.py               # 健康检查路由
 ```
 
@@ -207,7 +207,7 @@ templates/
 │   └── management.html
 ├── logs/                   # 日志模板
 │   └── dashboard.html
-├── user_management/        # 用户管理模板
+├── users/                  # 用户管理模板
 │   └── management.html
 ├── account_classification/ # 账户分类模板
 │   └── account_classification.html
