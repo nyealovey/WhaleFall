@@ -318,7 +318,7 @@ class InstanceAggregationsManager {
                     },
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'right'
                     },
                     tooltip: {
                         mode: 'index',
