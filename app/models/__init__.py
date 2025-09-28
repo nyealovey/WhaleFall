@@ -17,6 +17,7 @@ from .database_size_aggregation import DatabaseSizeAggregation
 from .database_size_stat import DatabaseSizeStat
 from .instance_size_aggregation import InstanceSizeAggregation
 from .instance_size_stat import InstanceSizeStat
+from .instance_database import InstanceDatabase
 from .global_param import GlobalParam
 from .instance import Instance
 from .permission_config import PermissionConfig
@@ -47,4 +48,5 @@ __all__ = [
     "DatabaseSizeAggregation",
     "InstanceSizeAggregation",
     "InstanceSizeStat",
+    "InstanceDatabase",
 ]

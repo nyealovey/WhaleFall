@@ -60,6 +60,13 @@ class Instance(db.Model):
         back_populates="instance",
         cascade="all, delete-orphan",
     )
+    
+    # 实例数据库关系
+    instance_databases = db.relationship(
+        "InstanceDatabase",
+        back_populates="instance",
+        cascade="all, delete-orphan",
+    )
     instance_size_aggregations = db.relationship(
         "InstanceSizeAggregation",
         back_populates="instance",

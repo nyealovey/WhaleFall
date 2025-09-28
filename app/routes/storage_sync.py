@@ -577,6 +577,235 @@ def collect_database_sizes():
 
 
 # 实例容量管理相关API
+@storage_sync_bp.route("/instances/<int:instance_id>/sync-databases", methods=['POST'])
+@login_required
+@view_required
+def sync_instance_databases(instance_id: int):
+    """
+    同步指定实例的数据库列表
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON: 同步结果，包含发现的数据库列表
+    """
+    try:
+        # 获取实例信息
+        instance = Instance.query.get_or_404(instance_id)
+        
+        if not instance.is_active:
+            logger.error(f"实例 {instance.name} 已禁用，无法同步数据库列表")
+            return jsonify({
+                'success': False, 
+                'error': '实例已禁用，无法同步数据库列表'
+            }), 400
+        
+        # 检查实例是否有凭据
+        if not instance.credential:
+            logger.error(f"实例 {instance.name} 缺少连接凭据，无法同步数据库列表")
+            return jsonify({
+                'success': False, 
+                'error': '实例缺少连接凭据，无法同步数据库列表'
+            }), 400
+        
+        logger.info(f"开始同步实例数据库列表: {instance.name}")
+        
+        # 调用数据库发现服务
+        from app.services.database_discovery_service import DatabaseDiscoveryService
+        
+        discovery_service = DatabaseDiscoveryService(instance)
+        
+        # 建立连接
+        if not discovery_service.connect():
+            error_msg = f"无法连接到实例 {instance.name} (类型: {instance.db_type})"
+            logger.error(error_msg)
+            return jsonify({
+                'success': False, 
+                'error': error_msg
+            }), 400
+        
+        try:
+            # 发现数据库列表
+            databases = discovery_service.discover_databases()
+            
+            # 更新数据库列表
+            result = discovery_service.update_database_list(databases)
+            
+            # 更新实例的最后连接时间
+            instance.last_connected = datetime.utcnow()
+            db.session.commit()
+            
+            logger.info(f"实例数据库列表同步完成: {instance.name}, 结果: {result}")
+            
+            return jsonify({
+                'success': True,
+                'message': f'成功同步数据库列表，发现 {result["databases_found"]} 个数据库',
+                'data': {
+                    'instance_id': instance_id,
+                    'instance_name': instance.name,
+                    'databases_found': result['databases_found'],
+                    'databases_added': result['databases_added'],
+                    'databases_deleted': result['databases_deleted'],
+                    'databases_updated': result['databases_updated']
+                }
+            })
+            
+        finally:
+            # 确保断开连接
+            discovery_service.disconnect()
+            
+    except Exception as e:
+        logger.error(f"同步实例数据库列表失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'同步数据库列表失败: {str(e)}'
+        }), 500
+
+
+@storage_sync_bp.route("/instances/<int:instance_id>/sync-database-sizes", methods=['POST'])
+@login_required
+@view_required
+def sync_database_sizes(instance_id: int):
+    """
+    同步指定实例的数据库大小信息
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON: 同步结果，包含大小统计信息
+    """
+    try:
+        # 获取实例信息
+        instance = Instance.query.get_or_404(instance_id)
+        
+        if not instance.is_active:
+            logger.error(f"实例 {instance.name} 已禁用，无法同步数据库大小信息")
+            return jsonify({
+                'success': False, 
+                'error': '实例已禁用，无法同步数据库大小信息'
+            }), 400
+        
+        # 检查实例是否有凭据
+        if not instance.credential:
+            logger.error(f"实例 {instance.name} 缺少连接凭据，无法同步数据库大小信息")
+            return jsonify({
+                'success': False, 
+                'error': '实例缺少连接凭据，无法同步数据库大小信息'
+            }), 400
+        
+        logger.info(f"开始同步实例数据库大小信息: {instance.name}")
+        
+        # 调用数据库大小采集服务
+        from app.services.database_size_collector_service import DatabaseSizeCollectorService
+        
+        collector = DatabaseSizeCollectorService(instance)
+        
+        # 建立连接
+        if not collector.connect():
+            error_msg = f"无法连接到实例 {instance.name} (类型: {instance.db_type})"
+            logger.error(error_msg)
+            return jsonify({
+                'success': False, 
+                'error': error_msg
+            }), 400
+        
+        try:
+            # 采集并保存数据库大小数据，同时保存实例大小统计
+            saved_count = collector.collect_and_save()
+            
+            # 更新实例的最后连接时间
+            instance.last_connected = datetime.utcnow()
+            db.session.commit()
+            
+            # 获取最新的实例统计信息
+            from app.models.instance_size_stat import InstanceSizeStat
+            latest_stat = InstanceSizeStat.query.filter(
+                InstanceSizeStat.instance_id == instance_id,
+                InstanceSizeStat.is_deleted == False
+            ).order_by(InstanceSizeStat.collected_date.desc()).first()
+            
+            total_size_mb = latest_stat.total_size_mb if latest_stat else 0
+            database_count = latest_stat.database_count if latest_stat else 0
+            
+            logger.info(f"实例数据库大小同步完成: {instance.name}, 数据库数量: {database_count}, 保存数量: {saved_count}, 总大小: {total_size_mb}MB")
+            
+            return jsonify({
+                'success': True,
+                'message': f'成功同步 {saved_count} 个数据库的大小信息',
+                'data': {
+                    'instance_id': instance_id,
+                    'instance_name': instance.name,
+                    'databases_count': database_count,
+                    'saved_count': saved_count,
+                    'total_size_mb': total_size_mb
+                }
+            })
+            
+        finally:
+            # 确保断开连接
+            collector.disconnect()
+            
+    except Exception as e:
+        logger.error(f"同步实例数据库大小失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'同步数据库大小失败: {str(e)}'
+        }), 500
+
+
+@storage_sync_bp.route("/instances/<int:instance_id>/sync-all", methods=['POST'])
+@login_required
+@view_required
+def sync_instance_all(instance_id: int):
+    """
+    同步指定实例的所有信息（数据库列表 + 大小信息）
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON: 完整同步结果
+    """
+    try:
+        # 先同步数据库列表
+        databases_result = sync_instance_databases(instance_id)
+        if not databases_result[0].json['success']:
+            return databases_result
+        
+        # 再同步数据库大小
+        sizes_result = sync_database_sizes(instance_id)
+        if not sizes_result[0].json['success']:
+            return sizes_result
+        
+        # 返回综合结果
+        databases_data = databases_result[0].json['data']
+        sizes_data = sizes_result[0].json['data']
+        
+        return jsonify({
+            'success': True,
+            'message': '完整同步完成',
+            'data': {
+                'instance_id': instance_id,
+                'instance_name': databases_data['instance_name'],
+                'databases_found': databases_data['databases_found'],
+                'databases_added': databases_data['databases_added'],
+                'databases_deleted': databases_data['databases_deleted'],
+                'databases_updated': databases_data['databases_updated'],
+                'saved_count': sizes_data['saved_count'],
+                'total_size_mb': sizes_data['total_size_mb']
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"完整同步实例失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'完整同步失败: {str(e)}'
+        }), 500
+
+
 @storage_sync_bp.route("/instances/<int:instance_id>/sync-capacity", methods=['POST'])
 @login_required
 @view_required
