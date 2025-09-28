@@ -253,8 +253,7 @@ class OptimizedAccountClassificationService:
                     "db_type_results": {}
                 }
             
-            # 2. 清除所有现有分类分配
-            self._clear_all_classifications(accounts)
+            # 2. 分类分配已在主函数中清理，无需重复清理
             
             # 3. 按数据库类型并行处理（当前为串行，后续可优化为并行）
             total_classifications_added = 0
@@ -327,8 +326,7 @@ class OptimizedAccountClassificationService:
                         "errors": [error_msg]
                     }
             
-            # 4. 更新账户的最后分类时间
-            self._update_accounts_classification_time(accounts)
+            # 4. 分类完成，无需更新分类时间字段
             
             return {
                 "total_accounts": len(accounts),
@@ -439,112 +437,8 @@ class OptimizedAccountClassificationService:
             log_error(f"查找匹配规则账户失败: {e}", module="account_classification")
             return []
 
-    def _full_reclassify_accounts(
-        self, accounts: list[CurrentAccountSyncData], rules: list[ClassificationRule]
-    ) -> dict[str, Any]:
-        """全量重新分类账户"""
-        try:
-            # 1. 清除所有现有分类分配
-            self._clear_all_classifications(accounts)
 
-            # 2. 按规则逐个处理
-            total_classifications_added = 0
-            total_matches = 0
-            failed_count = 0
-            errors = []
 
-            for rule in rules:
-                try:
-                    # 获取匹配该规则的账户
-                    matched_accounts = self._find_accounts_matching_rule(rule, accounts)
-
-                    if matched_accounts:
-                        # 批量添加分类
-                        added_count = self._add_classification_to_accounts_batch(
-                            matched_accounts, rule.classification_id
-                        )
-
-                        total_classifications_added += added_count
-                        total_matches += len(matched_accounts)
-
-                    # 无论是否匹配到账户，都记录规则处理完成
-                    log_info(
-                        f"规则 {rule.rule_name} 处理完成",
-                        module="account_classification",
-                        rule_id=rule.id,
-                        matched_accounts=len(matched_accounts),
-                        added_classifications=added_count if matched_accounts else 0
-                    )
-
-                except Exception as e:
-                    failed_count += 1
-                    error_msg = f"规则 {rule.rule_name} 处理失败: {str(e)}"
-                    errors.append(error_msg)
-                    log_error(
-                        error_msg,
-                        module="account_classification",
-                        rule_id=rule.id
-                    )
-
-            # 3. 更新账户的最后分类时间
-            self._update_accounts_classification_time(accounts)
-
-            return {
-                "total_accounts": len(accounts),
-                "total_rules": len(rules),
-                "classified_accounts": len({acc.id for acc in accounts}),
-                "total_classifications_added": total_classifications_added,
-                "total_matches": total_matches,
-                "failed_count": failed_count,
-                "errors": errors,
-            }
-
-        except Exception as e:
-            log_error(f"全量重新分类失败: {e}", module="account_classification")
-            raise
-
-    def _clear_all_classifications(self, accounts: list[CurrentAccountSyncData]) -> None:
-        """清除所有现有分类分配"""
-        try:
-            account_ids = [account.id for account in accounts]
-
-            # 批量更新，将现有分类分配标记为非活跃
-            AccountClassificationAssignment.query.filter(
-                AccountClassificationAssignment.account_id.in_(account_ids),
-                AccountClassificationAssignment.is_active.is_(True),
-            ).update(
-                {
-                    "is_active": False,
-                    "updated_at": time_utils.now(),
-                },
-                synchronize_session=False,
-            )
-
-            db.session.commit()
-
-            # 移除清除分类的详细日志，减少日志噪音
-
-        except Exception as e:
-            log_error(f"清除分类失败: {e}", module="account_classification")
-            db.session.rollback()
-            raise
-
-    def _find_accounts_matching_rule(
-        self, rule: ClassificationRule, accounts: list[CurrentAccountSyncData]
-    ) -> list[CurrentAccountSyncData]:
-        """查找匹配规则的账户"""
-        matched_accounts = []
-
-        for account in accounts:
-            # 检查数据库类型是否匹配
-            if account.instance.db_type != rule.db_type:
-                continue
-
-            # 评估规则
-            if self._evaluate_rule(account, rule):
-                matched_accounts.append(account)
-
-        return matched_accounts
 
     def evaluate_rule(self, rule: ClassificationRule, account: CurrentAccountSyncData) -> bool:
         """评估规则是否匹配账户（公共方法）"""
@@ -1035,10 +929,6 @@ class OptimizedAccountClassificationService:
             db.session.rollback()
             raise
 
-    def _update_accounts_classification_time(self, accounts: list[CurrentAccountSyncData]) -> None:
-        """更新账户的最后分类时间"""
-        # 注意：不再更新last_classified_at字段
-        # 该字段在数据库模型中不存在，已移除相关更新操作
 
     def _log_performance_stats(
         self, duration: float, total_accounts: int, total_rules: int, result: dict[str, Any]
@@ -1058,69 +948,6 @@ class OptimizedAccountClassificationService:
             failed_count=result.get("failed_count", 0),
         )
 
-    def classify_account(
-        self,
-        account_id: int,
-        classification_id: int,
-        assignment_type: str = "manual",
-        assigned_by: int = None,
-        notes: str = None,
-        *,
-        skip_log: bool = False,
-    ) -> dict[str, Any]:
-        """为账户分配分类"""
-        try:
-            account = CurrentAccountSyncData.query.get(account_id)
-            if not account:
-                return {"success": False, "error": "账户不存在"}
-
-            classification = AccountClassification.query.get(classification_id)
-            if not classification:
-                return {"success": False, "error": "分类不存在"}
-
-            # 检查是否已有该账户和分类的组合记录（包括非活跃的）
-            existing_assignment = AccountClassificationAssignment.query.filter_by(
-                account_id=account_id, classification_id=classification_id
-            ).first()
-
-            if existing_assignment:
-                # 如果记录存在但非活跃，重新激活它
-                if not existing_assignment.is_active:
-                    existing_assignment.is_active = True
-                    existing_assignment.assigned_by = assigned_by
-                    existing_assignment.assignment_type = assignment_type
-                    existing_assignment.notes = notes
-                    existing_assignment.updated_at = time_utils.now()
-                    db.session.commit()
-                    return {"success": True, "message": "账户分类分配已重新激活"}
-                return {"success": False, "error": "账户已分配该分类"}
-            # 创建新的分配记录
-            assignment = AccountClassificationAssignment(
-                account_id=account_id,
-                classification_id=classification_id,
-                assigned_by=assigned_by,
-                assignment_type=assignment_type,
-                notes=notes,
-            )
-            db.session.add(assignment)
-            db.session.commit()
-
-            if not skip_log:
-                log_info(
-                    "分配账户分类",
-                    module="account_classification",
-                    account_id=account_id,
-                    classification_id=classification_id,
-                    assignment_type=assignment_type,
-                    assigned_by=assigned_by,
-                )
-
-            return {"success": True, "message": "账户分类分配成功"}
-
-        except Exception as e:
-            db.session.rollback()
-            log_error(f"分配账户分类失败: {str(e)}", module="account_classification")
-            return {"success": False, "error": f"分配账户分类失败: {str(e)}"}
 
     def _rules_to_cache_data(self, rules: list[ClassificationRule]) -> list[dict[str, Any]]:
         """将规则对象转换为缓存数据"""
@@ -1197,44 +1024,6 @@ class OptimizedAccountClassificationService:
             log_error(f"转换账户数据失败: {e}", module="account_classification")
             return []
 
-    def _accounts_from_cache_data(self, accounts_data: list[dict[str, Any]]) -> list[CurrentAccountSyncData]:
-        """将缓存数据转换为账户对象（简化版本）"""
-        try:
-            accounts = []
-            for account_data in accounts_data:
-                # 创建简化的账户对象（仅用于缓存恢复）
-                account = CurrentAccountSyncData()
-                account.id = account_data.get("id")
-                account.username = account_data.get("username")
-                account.instance_id = account_data.get("instance_id")
-                account.db_type = account_data.get("db_type")
-                
-                # 设置时间字段（如果存在）
-                if account_data.get("sync_time"):
-                    from datetime import datetime
-                    account.sync_time = datetime.fromisoformat(account_data["sync_time"])
-                if account_data.get("last_sync_time"):
-                    from datetime import datetime
-                    account.last_sync_time = datetime.fromisoformat(account_data["last_sync_time"])
-                if account_data.get("last_change_time"):
-                    from datetime import datetime
-                    account.last_change_time = datetime.fromisoformat(account_data["last_change_time"])
-                
-                # 创建简化的实例对象
-                if account_data.get("instance_name") and account_data.get("instance_host"):
-                    from app.models.instance import Instance
-                    instance = Instance()
-                    instance.id = account_data.get("instance_id")
-                    instance.name = account_data.get("instance_name")
-                    instance.host = account_data.get("instance_host")
-                    instance.db_type = account_data.get("db_type")
-                    account.instance = instance
-                
-                accounts.append(account)
-            return accounts
-        except Exception as e:
-            log_error(f"从缓存数据创建账户失败: {e}", module="account_classification")
-            return []
 
     def invalidate_cache(self) -> bool:
         """清除分类相关缓存"""
