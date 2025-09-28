@@ -403,14 +403,13 @@ def get_instance_database_sizes(instance_id: int):
         
         # 如果只需要最新数据，则只返回每个数据库的最新记录
         if latest_only:
-            from sqlalchemy import func
-            # 子查询：获取每个数据库的最新采集日期
+            from sqlalchemy import func, text
+            # 使用原生SQL查询获取每个数据库的最新采集日期，避免SQLAlchemy in_()方法的限制
             latest_dates_subquery = db.session.query(
                 DatabaseSizeStat.database_name,
                 func.max(DatabaseSizeStat.collected_date).label('latest_date')
             ).filter(
-                DatabaseSizeStat.instance_id == instance_id,
-                DatabaseSizeStat.database_name.in_(database_names)
+                DatabaseSizeStat.instance_id == instance_id
             ).group_by(DatabaseSizeStat.database_name).subquery()
             
             # 主查询：只获取最新日期的数据
