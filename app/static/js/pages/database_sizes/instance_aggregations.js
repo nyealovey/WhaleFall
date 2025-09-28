@@ -9,6 +9,7 @@ class InstanceAggregationsManager {
         this.currentData = [];
         this.currentChartType = 'line';
         this.currentTopCount = 5; // 默认显示TOP5
+        this.currentStatisticsPeriod = 7; // 默认7个周期
         this.currentFilters = {
             instance_id: null,
             db_type: null,
@@ -24,6 +25,7 @@ class InstanceAggregationsManager {
         console.log('初始化实例统计管理器');
         this.bindEvents();
         this.initializeDatabaseFilter();
+        this.updateTimeRangeFromPeriod(); // 初始化时间范围
         this.loadSummaryData();
         this.loadChartData();
     }
@@ -49,6 +51,13 @@ class InstanceAggregationsManager {
         $('input[name="topSelector"]').on('change', (e) => {
             this.currentTopCount = parseInt(e.target.value);
             this.renderChart(this.currentData);
+        });
+        
+        // 统计周期选择器切换
+        $('input[name="statisticsPeriod"]').on('change', (e) => {
+            this.currentStatisticsPeriod = parseInt(e.target.value);
+            this.updateTimeRangeFromPeriod();
+            this.loadChartData();
         });
         
         // 筛选按钮
@@ -533,6 +542,43 @@ class InstanceAggregationsManager {
         } finally {
             $('#calculationModal').modal('hide');
         }
+    }
+    
+    /**
+     * 根据统计周期更新时间范围
+     */
+    updateTimeRangeFromPeriod() {
+        const endDate = new Date();
+        const startDate = new Date();
+        
+        // 根据当前统计周期类型计算开始日期
+        const periodType = this.currentFilters.period_type || 'daily';
+        
+        switch (periodType) {
+            case 'daily':
+                startDate.setDate(endDate.getDate() - this.currentStatisticsPeriod);
+                break;
+            case 'weekly':
+                startDate.setDate(endDate.getDate() - (this.currentStatisticsPeriod * 7));
+                break;
+            case 'monthly':
+                startDate.setMonth(endDate.getMonth() - this.currentStatisticsPeriod);
+                break;
+            case 'quarterly':
+                startDate.setMonth(endDate.getMonth() - (this.currentStatisticsPeriod * 3));
+                break;
+            default:
+                startDate.setDate(endDate.getDate() - this.currentStatisticsPeriod);
+        }
+        
+        // 更新筛选条件中的时间范围
+        this.currentFilters.start_date = startDate.toISOString().split('T')[0];
+        this.currentFilters.end_date = endDate.toISOString().split('T')[0];
+        
+        console.log(`更新时间范围: ${this.currentStatisticsPeriod}个${periodType}周期`, {
+            start_date: this.currentFilters.start_date,
+            end_date: this.currentFilters.end_date
+        });
     }
     
     /**
