@@ -1,6 +1,6 @@
 """
-鲸落 - 数据库大小同步服务
-统一处理手动同步和定时任务的数据库大小同步逻辑
+鲸落 - 实例大小同步服务
+统一处理手动同步和定时任务的实例大小同步逻辑
 """
 
 from typing import Any
@@ -31,15 +31,15 @@ from app.utils.timezone import now
 logger = get_system_logger()
 
 
-class DatabaseSizeService:
-    """数据库大小同步服务"""
+class InstanceSizeService:
+    """实例大小同步服务"""
 
     def __init__(self) -> None:
         pass
 
-    def sync_database_size(self, instance: Instance, _sync_type: str = "batch") -> dict[str, Any]:
+    def sync_instance_size(self, instance: Instance, _sync_type: str = "batch") -> dict[str, Any]:
         """
-        同步数据库大小信息 - 统一入口
+        同步实例大小信息 - 统一入口
 
         Args:
             instance: 数据库实例
@@ -54,15 +54,15 @@ class DatabaseSizeService:
             if not conn:
                 return {"success": False, "error": "无法获取数据库连接"}
 
-            # 根据数据库类型获取大小信息
+            # 根据数据库类型获取实例大小信息
             if instance.db_type == "mysql":
-                result = self._get_mysql_size(instance, conn)
+                result = self._get_mysql_instance_size(instance, conn)
             elif instance.db_type == "postgresql":
-                result = self._get_postgresql_size(instance, conn)
+                result = self._get_postgresql_instance_size(instance, conn)
             elif instance.db_type == "sqlserver":
-                result = self._get_sqlserver_size(instance, conn)
+                result = self._get_sqlserver_instance_size(instance, conn)
             elif instance.db_type == "oracle":
-                result = self._get_oracle_size(instance, conn)
+                result = self._get_oracle_instance_size(instance, conn)
             else:
                 return {
                     "success": False,
@@ -78,10 +78,10 @@ class DatabaseSizeService:
             return result
 
         except Exception as e:
-            self.logger.error("数据库大小同步失败: {str(e)}")
+            self.logger.error("实例大小同步失败: {str(e)}")
             return {
                 "success": False,
-                "error": f"{instance.db_type.upper()}数据库大小同步失败: {str(e)}",
+                "error": f"{instance.db_type.upper()}实例大小同步失败: {str(e)}",
                 "database_size": 0,
             }
 
@@ -154,8 +154,8 @@ class DatabaseSizeService:
             self.logger.error("数据库连接失败: {str(e)}")
             return None
 
-    def _get_mysql_size(self, instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
-        """获取MySQL数据库大小"""
+    def _get_mysql_instance_size(self, instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
+        """获取MySQL实例大小"""
         cursor = conn.cursor()
 
         try:
@@ -178,7 +178,7 @@ class DatabaseSizeService:
 
             return {
                 "success": True,
-                "message": f"成功获取MySQL数据库大小: {size_mb} MB",
+                "message": f"成功获取MySQL实例大小: {size_mb} MB",
                 "database_size": size_mb,
             }
 
@@ -187,8 +187,8 @@ class DatabaseSizeService:
             conn.close()
             raise e
 
-    def _get_postgresql_size(self, _instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
-        """获取PostgreSQL数据库大小"""
+    def _get_postgresql_instance_size(self, _instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
+        """获取PostgreSQL实例大小"""
         cursor = conn.cursor()
 
         try:
@@ -209,7 +209,7 @@ class DatabaseSizeService:
 
             return {
                 "success": True,
-                "message": f"成功获取PostgreSQL数据库大小: {size_mb:.2f} MB",
+                "message": f"成功获取PostgreSQL实例大小: {size_mb:.2f} MB",
                 "database_size": round(size_mb, 2),
             }
 
@@ -218,8 +218,8 @@ class DatabaseSizeService:
             conn.close()
             raise e
 
-    def _get_sqlserver_size(self, _instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
-        """获取SQL Server数据库大小"""
+    def _get_sqlserver_instance_size(self, _instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
+        """获取SQL Server实例大小"""
         cursor = conn.cursor()
 
         try:
@@ -242,7 +242,7 @@ class DatabaseSizeService:
 
             return {
                 "success": True,
-                "message": f"成功获取SQL Server数据库大小: {size_mb:.2f} MB",
+                "message": f"成功获取SQL Server实例大小: {size_mb:.2f} MB",
                 "database_size": round(size_mb, 2),
             }
 
@@ -251,8 +251,8 @@ class DatabaseSizeService:
             conn.close()
             raise e
 
-    def _get_oracle_size(self, _instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
-        """获取Oracle数据库大小"""
+    def _get_oracle_instance_size(self, _instance: Instance, conn: Any) -> dict[str, Any]:  # noqa: ANN401
+        """获取Oracle实例大小"""
         cursor = conn.cursor()
 
         try:
@@ -281,7 +281,7 @@ class DatabaseSizeService:
 
             return {
                 "success": True,
-                "message": f"成功获取Oracle数据库大小: {total_size_mb:.2f} MB",
+                "message": f"成功获取Oracle实例大小: {total_size_mb:.2f} MB",
                 "database_size": round(total_size_mb, 2),
             }
 
@@ -292,4 +292,4 @@ class DatabaseSizeService:
 
 
 # 全局实例
-database_size_service = DatabaseSizeService()
+instance_size_service = InstanceSizeService()
