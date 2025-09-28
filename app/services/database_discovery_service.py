@@ -8,7 +8,7 @@ from datetime import date, datetime
 from app import db
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
-from app.utils.logger import get_logger
+from app.utils.structlog_config import get_logger
 
 
 class DatabaseDiscoveryService:
