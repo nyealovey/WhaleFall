@@ -316,6 +316,8 @@ class PartitionManagementService:
     def _get_table_partitions(self, table_config: Dict[str, str]) -> List[Dict[str, Any]]:
         """获取指定表的分区信息"""
         try:
+            logger.info(f"开始获取表 {table_config['table_name']} 的分区信息")
+            
             # 查询分区信息
             query = """
             SELECT 
@@ -328,32 +330,43 @@ class PartitionManagementService:
             ORDER BY tablename;
             """
             
+            pattern = f'{table_config["partition_prefix"]}%'
+            logger.info(f"查询模式: {pattern}")
+            
             result = db.session.execute(text(query), {
-                'pattern': f'{table_config["partition_prefix"]}%'
+                'pattern': pattern
             }).fetchall()
+            
+            logger.info(f"找到 {len(result)} 个分区")
             
             partitions = []
             for row in result:
-                # 从分区名提取日期
-                date_str = self._extract_date_from_partition_name(row.tablename, table_config["partition_prefix"])
-                
-                # 获取记录数
-                record_count = self._get_partition_record_count(row.tablename)
-                
-                # 判断分区状态
-                status = self._get_partition_status(date_str)
-                
-                partitions.append({
-                    'name': row.tablename,
-                    'table': table_config['table_name'],
-                    'display_name': table_config['display_name'],
-                    'size': row.size,
-                    'size_bytes': row.size_bytes,
-                    'record_count': record_count,
-                    'date': date_str,
-                    'status': status
-                })
+                try:
+                    # 从分区名提取日期
+                    date_str = self._extract_date_from_partition_name(row.tablename, table_config["partition_prefix"])
+                    
+                    # 获取记录数
+                    record_count = self._get_partition_record_count(row.tablename)
+                    
+                    # 判断分区状态
+                    status = self._get_partition_status(date_str)
+                    
+                    partitions.append({
+                        'name': row.tablename,
+                        'table': table_config['table_name'],
+                        'display_name': table_config['display_name'],
+                        'size': row.size,
+                        'size_bytes': row.size_bytes,
+                        'record_count': record_count,
+                        'date': date_str,
+                        'status': status
+                    })
+                except Exception as partition_error:
+                    logger.error(f"处理分区 {row.tablename} 时出错: {str(partition_error)}")
+                    # 继续处理其他分区
+                    continue
             
+            logger.info(f"成功处理 {len(partitions)} 个分区")
             return partitions
             
         except Exception as e:
@@ -426,7 +439,8 @@ class PartitionManagementService:
             query = f"SELECT COUNT(*) FROM {partition_name};"
             result = db.session.execute(text(query)).scalar()
             return result or 0
-        except Exception:
+        except Exception as e:
+            logger.warning(f"获取分区 {partition_name} 记录数失败: {str(e)}")
             return 0
     
     def _get_partition_status(self, date_str: Optional[str]) -> str:
