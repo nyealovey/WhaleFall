@@ -342,108 +342,58 @@ def get_instance_database_sizes(instance_id: int):
         limit = int(request.args.get('limit', 100))
         offset = int(request.args.get('offset', 0))
         
-        # 第一步：从 instance_databases 表获取所有数据库（包括软删除的）
-        from app.models.instance_database import InstanceDatabase
+        # 直接从 database_size_stats 表查询数据库大小数据
+        from sqlalchemy import func
         
-        instance_databases_query = InstanceDatabase.query.filter(
-            InstanceDatabase.instance_id == instance_id
-        )
-        
-        # 应用数据库名称筛选
-        if database_name:
-            instance_databases_query = instance_databases_query.filter(
-                InstanceDatabase.database_name.ilike(f'%{database_name}%')
-            )
-        
-        instance_databases = instance_databases_query.all()
-        
-        if not instance_databases:
-            return jsonify({
-                'data': [],
-                'pagination': {
-                    'total': 0,
-                    'limit': limit,
-                    'offset': offset,
-                    'has_more': False
-                },
-                'instance': {
-                    'id': instance.id,
-                    'name': instance.name,
-                    'db_type': instance.db_type,
-                    'host': instance.host,
-                    'port': instance.port
-                },
-                'total_size_mb': 0,
-                'database_count': 0
-            })
-        
-        # 获取数据库名称列表
-        database_names = [db.database_name for db in instance_databases]
-        
-        # 第二步：从 database_size_stats 表获取这些数据库的大小数据
-        query = DatabaseSizeStat.query.filter(
-            DatabaseSizeStat.instance_id == instance_id,
-            DatabaseSizeStat.database_name.in_(database_names)
-        )
-        
-        # 应用日期筛选条件
-        if start_date:
-            try:
-                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
-                query = query.filter(DatabaseSizeStat.collected_date >= start_date_obj)
-            except ValueError:
-                return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
-        
-        if end_date:
-            try:
-                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
-                query = query.filter(DatabaseSizeStat.collected_date <= end_date_obj)
-            except ValueError:
-                return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
-        
-        # 如果只需要最新数据，则只返回每个数据库的最新记录
         if latest_only:
-            from sqlalchemy import func, text
-            # 使用原生SQL查询获取每个数据库的最新采集日期，避免SQLAlchemy in_()方法的限制
-            latest_dates_subquery = db.session.query(
-                DatabaseSizeStat.database_name,
-                func.max(DatabaseSizeStat.collected_date).label('latest_date')
+            # 使用窗口函数获取每个数据库的最新记录
+            subquery = db.session.query(
+                DatabaseSizeStat,
+                func.row_number().over(
+                    partition_by=DatabaseSizeStat.database_name,
+                    order_by=desc(DatabaseSizeStat.collected_date)
+                ).label('rn')
             ).filter(
                 DatabaseSizeStat.instance_id == instance_id
-            ).group_by(DatabaseSizeStat.database_name).subquery()
+            ).subquery()
             
-            # 主查询：只获取最新日期的数据
-            query = query.join(
-                latest_dates_subquery,
-                (DatabaseSizeStat.database_name == latest_dates_subquery.c.database_name) &
-                (DatabaseSizeStat.collected_date == latest_dates_subquery.c.latest_date)
-            )
-        
-        # 排序和分页
-        query = query.order_by(desc(DatabaseSizeStat.collected_date))
-        total_count = query.count()
-        stats = query.offset(offset).limit(limit).all()
-        
-        # 第三步：合并数据，确保所有数据库都有记录（即使没有大小数据）
-        data = []
-        stats_by_db = {stat.database_name: stat for stat in stats}
-        
-        for instance_db in instance_databases:
-            db_name = instance_db.database_name
-            stat = stats_by_db.get(db_name)
+            # 主查询：只获取rn=1的记录（即每个数据库的最新记录）
+            query = db.session.query(subquery).filter(subquery.c.rn == 1)
             
-            # 所有状态信息都从 instance_databases 表获取
-            base_data = {
-                'database_name': db_name,
-                'is_active': instance_db.is_active,
-                'first_seen_date': instance_db.first_seen_date.isoformat(),
-                'last_seen_date': instance_db.last_seen_date.isoformat(),
-                'deleted_at': instance_db.deleted_at.isoformat() if instance_db.deleted_at else None
-            }
+            # 应用数据库名称筛选
+            if database_name:
+                query = query.filter(subquery.c.database_name.ilike(f'%{database_name}%'))
             
-            if stat:
-                # 有大小数据，添加大小信息
-                base_data.update({
+            # 应用日期筛选条件
+            if start_date:
+                try:
+                    start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+                    query = query.filter(subquery.c.collected_date >= start_date_obj)
+                except ValueError:
+                    return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+            
+            if end_date:
+                try:
+                    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                    query = query.filter(subquery.c.collected_date <= end_date_obj)
+                except ValueError:
+                    return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+            
+            # 排序和分页
+            query = query.order_by(desc(subquery.c.collected_date))
+            total_count = query.count()
+            results = query.offset(offset).limit(limit).all()
+            
+            # 构建返回数据
+            data = []
+            for row in results:
+                stat = row[0]  # DatabaseSizeStat对象
+                data.append({
+                    'database_name': stat.database_name,
+                    'is_active': True,  # 从database_size_stats表查询到的都是活跃的
+                    'first_seen_date': stat.collected_date.isoformat(),
+                    'last_seen_date': stat.collected_date.isoformat(),
+                    'deleted_at': None,
                     'id': stat.id,
                     'size_mb': stat.size_mb,
                     'data_size_mb': stat.data_size_mb,
@@ -451,18 +401,52 @@ def get_instance_database_sizes(instance_id: int):
                     'collected_date': stat.collected_date.isoformat(),
                     'collected_at': stat.collected_at.isoformat()
                 })
-            else:
-                # 没有大小数据，显示为0
-                base_data.update({
-                    'id': None,
-                    'size_mb': 0,
-                    'data_size_mb': 0,
-                    'log_size_mb': 0,
-                    'collected_date': None,
-                    'collected_at': None
-                })
+        else:
+            # 查询所有数据（非latest_only模式）
+            query = DatabaseSizeStat.query.filter(
+                DatabaseSizeStat.instance_id == instance_id
+            )
             
-            data.append(base_data)
+            # 应用数据库名称筛选
+            if database_name:
+                query = query.filter(DatabaseSizeStat.database_name.ilike(f'%{database_name}%'))
+            
+            # 应用日期筛选条件
+            if start_date:
+                try:
+                    start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+                    query = query.filter(DatabaseSizeStat.collected_date >= start_date_obj)
+                except ValueError:
+                    return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+            
+            if end_date:
+                try:
+                    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                    query = query.filter(DatabaseSizeStat.collected_date <= end_date_obj)
+                except ValueError:
+                    return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+            
+            # 排序和分页
+            query = query.order_by(desc(DatabaseSizeStat.collected_date))
+            total_count = query.count()
+            stats = query.offset(offset).limit(limit).all()
+            
+            # 构建返回数据
+            data = []
+            for stat in stats:
+                data.append({
+                    'database_name': stat.database_name,
+                    'is_active': True,
+                    'first_seen_date': stat.collected_date.isoformat(),
+                    'last_seen_date': stat.collected_date.isoformat(),
+                    'deleted_at': None,
+                    'id': stat.id,
+                    'size_mb': stat.size_mb,
+                    'data_size_mb': stat.data_size_mb,
+                    'log_size_mb': stat.log_size_mb,
+                    'collected_date': stat.collected_date.isoformat(),
+                    'collected_at': stat.collected_at.isoformat()
+                })
         
         # 从 instance_size_stats 表获取总容量信息
         from app.models.instance_size_stat import InstanceSizeStat
