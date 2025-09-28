@@ -17,25 +17,41 @@ class PartitionManagementService:
     """PostgreSQL 分区管理服务"""
     
     def __init__(self):
-        # 管理两张表的分区
+        # 管理四张表的分区
         self.tables = {
             'stats': {
                 'table_name': 'database_size_stats',
+                'table_type': 'stats',
                 'partition_prefix': 'database_size_stats_',
                 'partition_column': 'collected_date',
-                'display_name': '统计表'
+                'display_name': '数据库统计表'
             },
             'aggregations': {
                 'table_name': 'database_size_aggregations',
+                'table_type': 'aggregations',
                 'partition_prefix': 'database_size_aggregations_',
                 'partition_column': 'period_start',
-                'display_name': '聚合表'
+                'display_name': '数据库聚合表'
+            },
+            'instance_stats': {
+                'table_name': 'instance_size_stats',
+                'table_type': 'instance_stats',
+                'partition_prefix': 'instance_size_stats_',
+                'partition_column': 'collected_date',
+                'display_name': '实例统计表'
+            },
+            'instance_aggregations': {
+                'table_name': 'instance_size_aggregations',
+                'table_type': 'instance_aggregations',
+                'partition_prefix': 'instance_size_aggregations_',
+                'partition_column': 'period_start',
+                'display_name': '实例聚合表'
             }
         }
     
     def create_partition(self, partition_date: date) -> Dict[str, Any]:
         """
-        创建指定日期的分区（同时创建两张表的分区）
+        创建指定日期的分区（同时创建四张表的分区）
         
         Args:
             partition_date: 分区日期
@@ -230,7 +246,7 @@ class PartitionManagementService:
     
     def get_partition_info(self) -> Dict[str, Any]:
         """
-        获取分区信息（包含两张表的分区）
+        获取分区信息（包含四张表的分区）
         
         Returns:
             Dict[str, Any]: 分区信息
@@ -354,6 +370,7 @@ class PartitionManagementService:
                     partitions.append({
                         'name': row.tablename,
                         'table': table_config['table_name'],
+                        'table_type': table_config.get('table_type', 'unknown'),
                         'display_name': table_config['display_name'],
                         'size': row.size,
                         'size_bytes': row.size_bytes,
