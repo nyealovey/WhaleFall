@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}实例统计 - 数据库大小监控{% endblock %}
+{% block title %}容量统计(实例) - 数据库大小监控{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/database_sizes/instance_aggregations.css') }}">
@@ -53,10 +53,10 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="h3 mb-0">
-                        <i class="fas fa-server me-2"></i>
-                        实例统计
+                        <i class="fas fa-chart-pie me-2"></i>
+                        容量统计(实例)
                     </h1>
-                    <p class="text-muted mb-0">按实例维度统计数据库大小聚合分析</p>
+                    <p class="text-muted mb-0">按实例维度统计数据库容量大小分析</p>
                 </div>
                 <div>
                     <button class="btn btn-outline-primary" id="refreshData">
@@ -65,7 +65,7 @@
                     </button>
                     <button class="btn btn-primary" id="calculateAggregations">
                         <i class="fas fa-calculator me-1"></i>
-                        聚合今日数据
+                        统计今日容量
                     </button>
                 </div>
             </div>
@@ -104,7 +104,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="card-title">总实例数</h6>
+                            <h6 class="card-title">活跃实例数</h6>
                             <h3 class="mb-0" id="totalInstances">-</h3>
                         </div>
                         <div class="align-self-center">
@@ -119,11 +119,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="card-title">总数据库数</h6>
+                            <h6 class="card-title">总容量</h6>
                             <h3 class="mb-0" id="totalDatabases">-</h3>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-database fa-2x opacity-75"></i>
+                            <i class="fas fa-hdd fa-2x opacity-75"></i>
                         </div>
                     </div>
                 </div>
@@ -134,7 +134,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="card-title">平均大小</h6>
+                            <h6 class="card-title">平均容量</h6>
                             <h3 class="mb-0" id="averageSize">-</h3>
                         </div>
                         <div class="align-self-center">
@@ -149,7 +149,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="card-title">最大大小</h6>
+                            <h6 class="card-title">最大容量</h6>
                             <h3 class="mb-0" id="maxSize">-</h3>
                         </div>
                         <div class="align-self-center">
@@ -170,7 +170,7 @@
                         <div class="col-md-6">
                             <h5 class="card-title mb-0">
                                 <i class="fas fa-chart-area me-2"></i>
-                                实例统计趋势图
+                                容量统计趋势图
                             </h5>
                         </div>
                         <div class="col-md-6">
@@ -207,7 +207,7 @@
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-table me-2"></i>
-                        实例统计详情
+                        容量统计详情
                     </h5>
                 </div>
                 <div class="card-body">
@@ -218,9 +218,9 @@
                                     <th>实例名称</th>
                                     <th>数据库类型</th>
                                     <th>数据库数量</th>
-                                    <th>总大小</th>
-                                    <th>平均大小</th>
-                                    <th>最大大小</th>
+                                    <th>总容量</th>
+                                    <th>平均容量</th>
+                                    <th>最大容量</th>
                                     <th>最后更新</th>
                                     <th>操作</th>
                                 </tr>
@@ -243,7 +243,7 @@
             <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="fas fa-info-circle me-2"></i>
-                    实例统计详情
+                    容量统计详情
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -278,19 +278,19 @@
                         <h6>统计指标</h6>
                         <table class="table table-sm">
                             <tr>
-                                <td>总大小:</td>
+                                <td>总容量:</td>
                                 <td id="modalTotalSize">-</td>
                             </tr>
                             <tr>
-                                <td>平均大小:</td>
+                                <td>平均容量:</td>
                                 <td id="modalAvgSize">-</td>
                             </tr>
                             <tr>
-                                <td>最大大小:</td>
+                                <td>最大容量:</td>
                                 <td id="modalMaxSize">-</td>
                             </tr>
                             <tr>
-                                <td>最小大小:</td>
+                                <td>最小容量:</td>
                                 <td id="modalMinSize">-</td>
                             </tr>
                             <tr>
@@ -321,7 +321,7 @@
             <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="fas fa-calculator me-2"></i>
-                    聚合今日数据
+                    统计今日容量
                 </h5>
             </div>
             <div class="modal-body">
@@ -329,7 +329,7 @@
                     <div class="spinner-border text-primary mb-3" role="status">
                         <span class="visually-hidden">计算中...</span>
                     </div>
-                    <p class="mb-0">正在聚合今日数据，请稍候...</p>
+                    <p class="mb-0">正在统计今日容量，请稍候...</p>
                     <div class="progress mt-3">
                         <div class="progress-bar progress-bar-striped progress-bar-animated" 
                              role="progressbar" style="width: 0%"></div>
