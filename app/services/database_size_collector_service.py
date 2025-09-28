@@ -367,7 +367,7 @@ class DatabaseSizeCollectorService:
     
     def collect_and_save(self) -> int:
         """
-        采集并保存数据库大小数据
+        采集并保存数据库大小数据，同时更新实例总大小
         
         Returns:
             int: 保存的记录数量
@@ -379,11 +379,54 @@ class DatabaseSizeCollectorService:
             # 保存数据
             saved_count = self.save_collected_data(data)
             
+            # 计算并更新实例总大小
+            if data:
+                total_size = sum(item['size_mb'] for item in data)
+                self.instance.database_size = total_size
+                self.instance.updated_at = datetime.utcnow()
+                db.session.commit()
+                self.logger.info(f"实例 {self.instance.name} 总大小更新为: {total_size} MB")
+            
             return saved_count
             
         except Exception as e:
             self.logger.error(f"实例 {self.instance.name} 采集和保存数据失败: {str(e)}")
             raise
+    
+    def update_instance_total_size(self) -> bool:
+        """
+        根据已保存的数据库大小数据更新实例总大小
+        
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            # 获取今天该实例的所有数据库大小数据
+            today = date.today()
+            stats = DatabaseSizeStat.query.filter_by(
+                instance_id=self.instance.id,
+                collected_date=today,
+                is_deleted=False
+            ).all()
+            
+            if not stats:
+                self.logger.warning(f"实例 {self.instance.name} 今天没有数据库大小数据")
+                return False
+            
+            # 计算总大小
+            total_size = sum(stat.size_mb for stat in stats)
+            
+            # 更新实例总大小
+            self.instance.database_size = total_size
+            self.instance.updated_at = datetime.utcnow()
+            db.session.commit()
+            
+            self.logger.info(f"实例 {self.instance.name} 总大小更新为: {total_size} MB (基于 {len(stats)} 个数据库)")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"更新实例 {self.instance.name} 总大小失败: {str(e)}")
+            return False
 
 
 def collect_all_instances_database_sizes() -> Dict[str, Any]:
