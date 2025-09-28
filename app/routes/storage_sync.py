@@ -24,8 +24,7 @@ from app.tasks.database_size_aggregation_tasks import (
     calculate_database_size_aggregations,
     calculate_instance_aggregations,
     calculate_period_aggregations,
-    get_aggregation_status,
-    cleanup_old_aggregations
+    get_aggregation_status
 )
 from app.utils.decorators import view_required
 from app import db
@@ -935,37 +934,6 @@ def get_aggregation_status_api():
 
 
 
-@storage_sync_bp.route('/aggregate/cleanup', methods=['POST'])
-@login_required
-@view_required
-def cleanup_old_aggregations_api():
-    """
-    清理旧的聚合数据
-    
-    Returns:
-        JSON: 清理结果
-    """
-    try:
-        data = request.get_json() or {}
-        retention_days = data.get('retention_days', 365)
-        
-        result = cleanup_old_aggregations(retention_days=retention_days)
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': datetime.utcnow().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"清理旧聚合数据时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 
 # 实例容量管理相关API
