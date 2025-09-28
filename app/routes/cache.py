@@ -20,7 +20,7 @@ logger = get_system_logger()
 cache_bp = Blueprint("cache", __name__)
 
 
-@cache_bp.route("/cache/stats", methods=["GET"])
+@cache_bp.route("/stats", methods=["GET"])
 @login_required
 def get_cache_stats() -> tuple[dict, int]:
     """获取缓存统计信息"""
@@ -31,7 +31,7 @@ def get_cache_stats() -> tuple[dict, int]:
         return jsonify({"success": False, "message": f"获取缓存统计失败: {str(e)}"}), 500
 
 
-@cache_bp.route("/cache/health", methods=["GET"])
+@cache_bp.route("/health", methods=["GET"])
 @login_required
 def check_cache_health() -> tuple[dict, int]:
     """检查缓存健康状态"""
@@ -42,7 +42,7 @@ def check_cache_health() -> tuple[dict, int]:
         return jsonify({"success": False, "message": f"缓存健康检查失败: {str(e)}"}), 500
 
 
-@cache_bp.route("/cache/clear/user", methods=["POST"])
+@cache_bp.route("/clear/user", methods=["POST"])
 @login_required
 @admin_required
 def clear_user_cache() -> tuple[dict, int]:
@@ -73,7 +73,7 @@ def clear_user_cache() -> tuple[dict, int]:
         return jsonify({"success": False, "message": f"清除用户缓存失败: {str(e)}"}), 500
 
 
-@cache_bp.route("/cache/clear/instance", methods=["POST"])
+@cache_bp.route("/clear/instance", methods=["POST"])
 @login_required
 @admin_required
 def clear_instance_cache() -> tuple[dict, int]:
@@ -103,7 +103,7 @@ def clear_instance_cache() -> tuple[dict, int]:
         return jsonify({"success": False, "message": f"清除实例缓存失败: {str(e)}"}), 500
 
 
-@cache_bp.route("/cache/clear/all", methods=["POST"])
+@cache_bp.route("/clear/all", methods=["POST"])
 @login_required
 @admin_required
 def clear_all_cache() -> tuple[dict, int]:
