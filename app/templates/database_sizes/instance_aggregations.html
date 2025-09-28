@@ -222,7 +222,6 @@
                                     <th>平均容量</th>
                                     <th>最大容量</th>
                                     <th>最后更新</th>
-                                    <th>操作</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -236,83 +235,6 @@
     </div>
 </div>
 
-<!-- 详情模态框 -->
-<div class="modal fade" id="detailModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-info-circle me-2"></i>
-                    容量统计详情
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>基本信息</h6>
-                        <table class="table table-sm">
-                            <tr>
-                                <td>实例名称:</td>
-                                <td id="modalInstanceName">-</td>
-                            </tr>
-                            <tr>
-                                <td>数据库类型:</td>
-                                <td id="modalDbType">-</td>
-                            </tr>
-                            <tr>
-                                <td>统计周期:</td>
-                                <td id="modalPeriodType">-</td>
-                            </tr>
-                            <tr>
-                                <td>统计时间:</td>
-                                <td id="modalPeriodRange">-</td>
-                            </tr>
-                            <tr>
-                                <td>数据库数量:</td>
-                                <td id="modalDatabaseCount">-</td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>统计指标</h6>
-                        <table class="table table-sm">
-                            <tr>
-                                <td>总容量:</td>
-                                <td id="modalTotalSize">-</td>
-                            </tr>
-                            <tr>
-                                <td>平均容量:</td>
-                                <td id="modalAvgSize">-</td>
-                            </tr>
-                            <tr>
-                                <td>最大容量:</td>
-                                <td id="modalMaxSize">-</td>
-                            </tr>
-                            <tr>
-                                <td>最小容量:</td>
-                                <td id="modalMinSize">-</td>
-                            </tr>
-                            <tr>
-                                <td>最后更新:</td>
-                                <td id="modalLastUpdate">-</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <h6>趋势图表</h6>
-                        <canvas id="detailChart" height="200"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- 计算进度模态框 -->
 <div class="modal fade" id="calculationModal" tabindex="-1" data-bs-backdrop="static">
