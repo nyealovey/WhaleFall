@@ -100,7 +100,6 @@ services/
 ├── sync_session_service.py # 同步会话服务
 ├── sync_data_manager.py    # 同步数据管理
 ├── database_type_service.py # 数据库类型服务
-├── instance_size_service.py # 实例大小服务
 ├── connection_test_service.py # 连接测试服务
 ├── connection_factory.py   # 连接工厂
 ├── cache_manager.py        # 缓存管理器
