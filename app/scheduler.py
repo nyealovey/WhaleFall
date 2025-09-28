@@ -368,6 +368,9 @@ def _load_tasks_from_config(force: bool = False) -> None:
 def _add_hardcoded_default_jobs() -> None:
     """添加硬编码的默认任务（备用方案）"""
     from app.tasks.legacy_tasks import cleanup_old_logs, sync_accounts
+    from app.tasks.database_size_collection_tasks import collect_database_sizes
+    from app.tasks.database_size_aggregation_tasks import calculate_database_size_aggregations
+    from app.tasks.partition_management_tasks import monitor_partition_health
 
     # 清理旧日志 - 每天凌晨2点执行
     try:
@@ -395,6 +398,48 @@ def _add_hardcoded_default_jobs() -> None:
         logger.info("添加硬编码任务: 账户同步")
     except Exception as e:
         logger.warning("任务已存在，跳过创建: sync_accounts - %s", str(e))
+
+    # 容量同步 - 每天凌晨3点执行
+    try:
+        scheduler.add_job(
+            collect_database_sizes,
+            "cron",
+            hour=3,
+            minute=0,
+            id="collect_database_sizes",
+            name="容量同步",
+        )
+        logger.info("添加硬编码任务: 容量同步")
+    except Exception as e:
+        logger.warning("任务已存在，跳过创建: collect_database_sizes - %s", str(e))
+
+    # 统计聚合 - 每天凌晨4点执行
+    try:
+        scheduler.add_job(
+            calculate_database_size_aggregations,
+            "cron",
+            hour=4,
+            minute=0,
+            id="calculate_database_size_aggregations",
+            name="统计聚合",
+        )
+        logger.info("添加硬编码任务: 统计聚合")
+    except Exception as e:
+        logger.warning("任务已存在，跳过创建: calculate_database_size_aggregations - %s", str(e))
+
+    # 监控分区健康状态 - 每天凌晨0点30分执行
+    try:
+        scheduler.add_job(
+            monitor_partition_health,
+            "cron",
+            hour=0,
+            minute=30,
+            id="monitor_partition_health",
+            name="监控分区健康状态",
+        )
+        logger.info("添加硬编码任务: 监控分区健康状态")
+    except Exception as e:
+        logger.warning("任务已存在，跳过创建: monitor_partition_health - %s", str(e))
 
 
 # 装饰器：用于标记任务函数
