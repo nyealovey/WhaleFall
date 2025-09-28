@@ -51,6 +51,9 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         def timeout_handler(signum, frame):
             raise TimeoutError(f"查询超时 ({self.query_timeout}秒): {sql[:100]}...")
         
+        # 初始化old_handler变量，避免UnboundLocalError
+        old_handler = None
+        
         try:
             # 设置超时信号
             old_handler = signal.signal(signal.SIGALRM, timeout_handler)
@@ -79,12 +82,14 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
             )
             # 取消超时信号
             signal.alarm(0)
-            signal.signal(signal.SIGALRM, old_handler)
+            if old_handler is not None:
+                signal.signal(signal.SIGALRM, old_handler)
             return []
         except Exception as e:
             # 取消超时信号
             signal.alarm(0)
-            signal.signal(signal.SIGALRM, old_handler)
+            if old_handler is not None:
+                signal.signal(signal.SIGALRM, old_handler)
             raise e
 
     def _quote_identifier(self, identifier: str) -> str:

@@ -392,7 +392,16 @@
     return map[status] || 'secondary';
   }
   window.getSyncTypeText = function(type) { return type; }
-  window.getSyncCategoryText = function(category) { return category; }
+  window.getSyncCategoryText = function(category) { 
+    const categoryMap = {
+      'account': '账户同步',
+      'capacity': '容量同步', 
+      'config': '配置同步',
+      'aggregation': '统计聚合',
+      'other': '其他'
+    };
+    return categoryMap[category] || category; 
+  }
 
   window.getDurationBadge = function(startedAt, completedAt) {
     if (!startedAt || !completedAt) return '<span class="text-muted">-</span>';
