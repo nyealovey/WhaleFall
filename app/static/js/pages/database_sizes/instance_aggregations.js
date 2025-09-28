@@ -531,12 +531,6 @@ class InstanceAggregationsManager {
                         <span class="size-display">${this.formatSizeFromMB(stat.max_size_mb)}</span>
                     </td>
                     <td>${this.formatDate(stat.last_update)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary btn-action" 
-                                onclick="window.instanceAggregationsManager.showDetail('${stat.instance_name}', '${stat.db_type}')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </td>
                 </tr>
             `;
             tbody.append(row);
@@ -586,114 +580,8 @@ class InstanceAggregationsManager {
         return Object.values(instanceMap).sort((a, b) => b.total_size_mb - a.total_size_mb);
     }
     
-    /**
-     * 显示详情
-     */
-    showDetail(instanceName, dbType) {
-        console.log('显示实例详情:', instanceName, dbType);
-        
-        // 过滤当前实例的数据
-        const instanceData = this.currentData.filter(item => 
-            item.instance.name === instanceName && item.instance.db_type === dbType
-        );
-        
-        if (instanceData.length === 0) {
-            this.showError('未找到相关数据');
-            return;
-        }
-        
-        // 更新模态框内容
-        this.updateDetailModal(instanceData[0], instanceData);
-        
-        // 显示模态框
-        $('#detailModal').modal('show');
-    }
     
-    /**
-     * 更新详情模态框
-     */
-    updateDetailModal(sampleData, allData) {
-        $('#modalInstanceName').text(sampleData.instance.name);
-        $('#modalDbType').text(sampleData.instance.db_type);
-        $('#modalPeriodType').text(sampleData.period_type);
-        $('#modalPeriodRange').text(`${sampleData.period_start} 至 ${sampleData.period_end}`);
-        $('#modalDatabaseCount').text(allData.length);
-        
-        // 计算统计信息
-        const totalSize = allData.reduce((sum, item) => sum + item.avg_size_mb, 0);
-        const avgSize = totalSize / allData.length;
-        const maxSize = Math.max(...allData.map(item => item.max_size_mb));
-        const minSize = Math.min(...allData.map(item => item.min_size_mb));
-        const lastUpdate = allData.reduce((latest, item) => 
-            new Date(item.calculated_at) > new Date(latest) ? item.calculated_at : latest, 
-            allData[0].calculated_at
-        );
-        
-        $('#modalTotalSize').text(this.formatSizeFromMB(totalSize));
-        $('#modalAvgSize').text(this.formatSizeFromMB(avgSize));
-        $('#modalMaxSize').text(this.formatSizeFromMB(maxSize));
-        $('#modalMinSize').text(this.formatSizeFromMB(minSize));
-        $('#modalLastUpdate').text(this.formatDate(lastUpdate));
-        
-        // 渲染详情图表
-        this.renderDetailChart(allData);
-    }
     
-    /**
-     * 渲染详情图表
-     */
-    renderDetailChart(data) {
-        const ctx = document.getElementById('detailChart').getContext('2d');
-        
-        // 销毁现有图表
-        const existingChart = Chart.getChart(ctx);
-        if (existingChart) {
-            existingChart.destroy();
-        }
-        
-        const sortedData = data.sort((a, b) => new Date(a.period_start) - new Date(b.period_start));
-        
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: sortedData.map(item => item.period_start),
-                datasets: [{
-                    label: '平均大小',
-                    data: sortedData.map(item => item.avg_size_mb),
-                    borderColor: '#0d6efd',
-                    backgroundColor: '#0d6efd20',
-                    fill: false,
-                    tension: 0.1
-                }, {
-                    label: '最大大小',
-                    data: sortedData.map(item => item.max_size_mb),
-                    borderColor: '#dc3545',
-                    backgroundColor: '#dc354520',
-                    fill: false,
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: '大小趋势图'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: '大小 (MB)'
-                        }
-                    }
-                }
-            }
-        });
-    }
     
     /**
      * 聚合计算
