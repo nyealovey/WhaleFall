@@ -559,9 +559,9 @@ class SystemMonitoringService:
     def _check_redis_health() -> str:
         """检查Redis健康状态"""
         try:
-            from app.services.cache_manager_simple import simple_cache_manager
+            from app.services.cache_manager import cache_manager
             
-            if simple_cache_manager and simple_cache_manager.health_check():
+            if cache_manager and cache_manager.health_check():
                 return "healthy"
             else:
                 return "error"

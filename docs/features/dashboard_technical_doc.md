@@ -557,8 +557,8 @@ class DashboardService:
             # Redis状态
             redis_status = "healthy"
             try:
-                from app.services.cache_manager_simple import simple_cache_manager
-                if not simple_cache_manager or not simple_cache_manager.health_check():
+                from app.services.cache_manager import cache_manager
+                if not cache_manager or not cache_manager.health_check():
                     redis_status = "error"
             except Exception:
                 redis_status = "error"

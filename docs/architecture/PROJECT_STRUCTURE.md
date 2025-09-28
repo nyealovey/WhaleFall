@@ -104,7 +104,6 @@ services/
 ├── connection_test_service.py # 连接测试服务
 ├── connection_factory.py   # 连接工厂
 ├── cache_manager.py        # 缓存管理器
-├── cache_manager_simple.py # 简单缓存管理器
 ├── database_filter_manager.py # 数据库过滤器管理
 ├── optimized_account_classification_service.py # 优化账户分类服务
 ├── classification_batch_service.py # 分类批次服务
