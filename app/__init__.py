@@ -370,7 +370,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.account_sync import account_sync_bp
     from app.routes.admin import admin_bp
     from app.routes.auth import auth_bp
-    from app.routes.cache_management import cache_bp
+    from app.routes.cache import cache_bp
     from app.routes.credentials import credentials_bp
     from app.routes.dashboard import dashboard_bp
     from app.routes.database_types import database_types_bp

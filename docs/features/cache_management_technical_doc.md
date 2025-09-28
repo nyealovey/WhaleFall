@@ -174,7 +174,7 @@ def cached(
 
 ### 3.2 缓存路由
 ```python
-# app/routes/cache_management.py
+# app/routes/cache.py
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from app.utils.decorators import admin_required
@@ -196,7 +196,7 @@ def get_cache_stats() -> tuple[dict, int]:
         
         log_info(
             "获取缓存统计",
-            module="cache_management",
+            module="cache",
             user_id=current_user.id,
             stats=stats
         )
@@ -204,7 +204,7 @@ def get_cache_stats() -> tuple[dict, int]:
         return APIResponse.success(stats)
         
     except Exception as e:
-        log_error(f"获取缓存统计失败: {str(e)}", module="cache_management")
+        log_error(f"获取缓存统计失败: {str(e)}", module="cache")
         return APIResponse.error(f"获取缓存统计失败: {str(e)}"), 500
 
 
@@ -219,7 +219,7 @@ def clear_cache() -> tuple[dict, int]:
         if success:
             log_info(
                 "清空缓存",
-                module="cache_management",
+                module="cache",
                 user_id=current_user.id
             )
             return APIResponse.success({"message": "缓存清空成功"})
@@ -227,7 +227,7 @@ def clear_cache() -> tuple[dict, int]:
             return APIResponse.error("缓存清空失败"), 500
             
     except Exception as e:
-        log_error(f"清空缓存失败: {str(e)}", module="cache_management")
+        log_error(f"清空缓存失败: {str(e)}", module="cache")
         return APIResponse.error(f"清空缓存失败: {str(e)}"), 500
 
 
@@ -248,7 +248,7 @@ def delete_cache_key() -> tuple[dict, int]:
         if success:
             log_info(
                 "删除缓存键",
-                module="cache_management",
+                module="cache",
                 user_id=current_user.id,
                 cache_key=key
             )
@@ -257,7 +257,7 @@ def delete_cache_key() -> tuple[dict, int]:
             return APIResponse.error("缓存键删除失败"), 500
             
     except Exception as e:
-        log_error(f"删除缓存键失败: {str(e)}", module="cache_management")
+        log_error(f"删除缓存键失败: {str(e)}", module="cache")
         return APIResponse.error(f"删除缓存键失败: {str(e)}"), 500
 ```
 
