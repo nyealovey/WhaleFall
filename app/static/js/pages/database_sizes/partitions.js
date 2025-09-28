@@ -86,6 +86,11 @@ function bindEvents() {
         loadAggregationData();
     });
     
+    // 聚合数据表类型筛选
+    document.getElementById('tableTypeFilter').addEventListener('change', function() {
+        loadAggregationData();
+    });
+    
     // 聚合数据表排序
     document.getElementById('sortAggregationTable').addEventListener('change', function() {
         sortAggregationTable();
@@ -298,10 +303,8 @@ function getTableTypeDisplayName(tableType) {
  */
 function getTableTypeBadge(tableType) {
     const badgeMap = {
-        'stats': '<span class="badge bg-primary">数据库统计</span>',
-        'aggregations': '<span class="badge bg-info">数据库聚合</span>',
-        'instance_stats': '<span class="badge bg-success">实例统计</span>',
-        'instance_aggregations': '<span class="badge bg-warning">实例聚合</span>'
+        'database': '<span class="badge bg-info">数据库聚合</span>',
+        'instance': '<span class="badge bg-success">实例聚合</span>'
     };
     return badgeMap[tableType] || `<span class="badge bg-secondary">${tableType}</span>`;
 }
@@ -570,13 +573,23 @@ async function loadAggregationData() {
         console.log('开始加载最新聚合数据...');
         showAggregationLoadingState();
         
-        // 获取选中的周期类型
+        // 获取选中的周期类型和表类型
         const periodTypeFilter = document.getElementById('periodTypeFilter');
+        const tableTypeFilter = document.getElementById('tableTypeFilter');
         const selectedPeriodType = periodTypeFilter ? periodTypeFilter.value : 'daily';
+        const selectedTableType = tableTypeFilter ? tableTypeFilter.value : 'all';
         
         console.log('选中的周期类型:', selectedPeriodType);
+        console.log('选中的表类型:', selectedTableType);
         
-        const response = await fetch('/partition/aggregations/latest?api=true');
+        // 构建查询参数
+        const params = new URLSearchParams({
+            'api': 'true',
+            'period_type': selectedPeriodType,
+            'table_type': selectedTableType
+        });
+        
+        const response = await fetch(`/partition/aggregations/latest?${params}`);
         const data = await response.json();
         
         if (response.ok) {
@@ -646,7 +659,7 @@ function renderLatestAggregationTable(data, summary) {
     if (data.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" class="text-center">
+                <td colspan="10" class="text-center">
                     <div class="empty-state">
                         <i class="fas fa-chart-bar"></i>
                         <h5>暂无${currentPeriodTypeName}聚合数据</h5>
@@ -662,7 +675,7 @@ function renderLatestAggregationTable(data, summary) {
     if (summary) {
         const summaryRow = `
             <tr class="table-info">
-                <td colspan="9" class="text-center">
+                <td colspan="10" class="text-center">
                     <strong>最新聚合数据汇总</strong> | 
                     日: ${summary.daily} | 
                     周: ${summary.weekly} | 
@@ -689,7 +702,7 @@ function renderLatestAggregationTable(data, summary) {
             // 添加周期类型标题行
             const titleRow = `
                 <tr class="table-secondary">
-                    <td colspan="9" class="text-center">
+                    <td colspan="10" class="text-center">
                         <strong>${periodLabels[periodType]}聚合数据 (${periodData.length}条)</strong>
                     </td>
                 </tr>
@@ -715,7 +728,7 @@ function renderAggregationTable(data) {
     if (data.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" class="text-center">
+                <td colspan="10" class="text-center">
                     <div class="empty-state">
                         <i class="fas fa-chart-bar"></i>
                         <h5>暂无数据</h5>
@@ -740,8 +753,13 @@ function createAggregationTableRow(item) {
     const calculatedAt = new Date(item.calculated_at).toLocaleString('zh-CN');
     const periodRange = `${item.period_start} 至 ${item.period_end}`;
     
+    const tableTypeBadge = getTableTypeBadge(item.table_type);
+    
     return `
         <tr>
+            <td>
+                ${tableTypeBadge}
+            </td>
             <td>
                 <span class="badge bg-primary">${getPeriodTypeLabel(item.period_type)}</span>
             </td>

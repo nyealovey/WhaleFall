@@ -48,6 +48,7 @@ def aggregations():
             start_date = request.args.get('start_date')
             end_date = request.args.get('end_date')
             view_type = request.args.get('view_type', 'instance')  # instance 或 database
+            table_type = request.args.get('table_type', 'all')  # all, database, instance
             
             # 分页参数
             page = request.args.get('page', 1, type=int)
@@ -59,80 +60,117 @@ def aggregations():
             offset = (page - 1) * per_page
             limit = per_page
             
-            # 构建查询
-            query = DatabaseSizeAggregation.query.join(Instance)
+            # 根据表类型选择查询
+            from app.models.instance_size_aggregation import InstanceSizeAggregation
             
-            # 过滤掉已删除的数据库（通过检查最新的DatabaseSizeStat记录）
-            latest_stats_subquery = db.session.query(
-                DatabaseSizeStat.instance_id,
-                DatabaseSizeStat.database_name,
-                DatabaseSizeStat.is_deleted,
-                func.row_number().over(
-                    partition_by=[DatabaseSizeStat.instance_id, DatabaseSizeStat.database_name],
-                    order_by=DatabaseSizeStat.collected_date.desc()
-                ).label('rn')
-            ).subquery()
-            
-            # 获取未删除的数据库列表
-            active_databases_subquery = db.session.query(
-                latest_stats_subquery.c.instance_id,
-                latest_stats_subquery.c.database_name
-            ).filter(
-                and_(
-                    latest_stats_subquery.c.rn == 1,  # 只取最新记录
-                    or_(
-                        latest_stats_subquery.c.is_deleted == False,
-                        latest_stats_subquery.c.is_deleted.is_(None)
+            if table_type == 'instance':
+                # 查询实例聚合表
+                query = InstanceSizeAggregation.query.join(Instance)
+                
+                # 应用过滤条件
+                if instance_id:
+                    query = query.filter(InstanceSizeAggregation.instance_id == instance_id)
+                if db_type:
+                    query = query.filter(Instance.db_type == db_type)
+                if period_type:
+                    query = query.filter(InstanceSizeAggregation.period_type == period_type)
+                if start_date:
+                    query = query.filter(InstanceSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+                if end_date:
+                    query = query.filter(InstanceSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
+                
+                # 排序和分页
+                if get_all:
+                    aggregations = query.order_by(desc(InstanceSizeAggregation.avg_size_mb)).limit(20).all()
+                    total = len(aggregations)
+                else:
+                    query = query.order_by(desc(InstanceSizeAggregation.period_start))
+                    total = query.count()
+                    aggregations = query.offset(offset).limit(limit).all()
+                
+                # 转换为字典格式
+                data = []
+                for agg in aggregations:
+                    agg_dict = agg.to_dict()
+                    agg_dict['table_type'] = 'instance'
+                    agg_dict['database_name'] = 'N/A'  # 实例聚合没有数据库名称
+                    agg_dict['instance'] = {
+                        'id': agg.instance.id,
+                        'name': agg.instance.name,
+                        'db_type': agg.instance.db_type
+                    }
+                    data.append(agg_dict)
+                    
+            else:
+                # 默认查询数据库聚合表
+                query = DatabaseSizeAggregation.query.join(Instance)
+                
+                # 过滤掉已删除的数据库
+                latest_stats_subquery = db.session.query(
+                    DatabaseSizeStat.instance_id,
+                    DatabaseSizeStat.database_name,
+                    DatabaseSizeStat.is_deleted,
+                    func.row_number().over(
+                        partition_by=[DatabaseSizeStat.instance_id, DatabaseSizeStat.database_name],
+                        order_by=DatabaseSizeStat.collected_date.desc()
+                    ).label('rn')
+                ).subquery()
+                
+                active_databases_subquery = db.session.query(
+                    latest_stats_subquery.c.instance_id,
+                    latest_stats_subquery.c.database_name
+                ).filter(
+                    and_(
+                        latest_stats_subquery.c.rn == 1,
+                        or_(
+                            latest_stats_subquery.c.is_deleted == False,
+                            latest_stats_subquery.c.is_deleted.is_(None)
+                        )
+                    )
+                ).subquery()
+                
+                query = query.join(
+                    active_databases_subquery,
+                    and_(
+                        DatabaseSizeAggregation.instance_id == active_databases_subquery.c.instance_id,
+                        DatabaseSizeAggregation.database_name == active_databases_subquery.c.database_name
                     )
                 )
-            ).subquery()
-            
-            # 只显示当前活跃的数据库的聚合数据
-            query = query.join(
-                active_databases_subquery,
-                and_(
-                    DatabaseSizeAggregation.instance_id == active_databases_subquery.c.instance_id,
-                    DatabaseSizeAggregation.database_name == active_databases_subquery.c.database_name
-                )
-            )
-            
-            # 应用过滤条件
-            if instance_id:
-                query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
-            if db_type:
-                query = query.filter(Instance.db_type == db_type)
-            if database_name:
-                query = query.filter(DatabaseSizeAggregation.database_name == database_name)
-            if period_type:
-                query = query.filter(DatabaseSizeAggregation.period_type == period_type)
-            if start_date:
-                query = query.filter(DatabaseSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
-            if end_date:
-                query = query.filter(DatabaseSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
-            
-            # 排序和分页
-            if get_all:
-                # 用于图表显示：按大小排序获取TOP 20
-                query = query.order_by(desc(DatabaseSizeAggregation.avg_size_mb))
-                aggregations = query.limit(20).all()
-                total = len(aggregations)
-            else:
-                # 用于表格显示：按时间排序分页
-                query = query.order_by(desc(DatabaseSizeAggregation.period_start))
-                total = query.count()
-                aggregations = query.offset(offset).limit(limit).all()
-            
-            # 转换为字典格式，包含实例信息
-            data = []
-            for agg in aggregations:
-                agg_dict = agg.to_dict()
-                # 添加实例信息
-                agg_dict['instance'] = {
-                    'id': agg.instance.id,
-                    'name': agg.instance.name,
-                    'db_type': agg.instance.db_type
-                }
-                data.append(agg_dict)
+                
+                # 应用过滤条件
+                if instance_id:
+                    query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
+                if db_type:
+                    query = query.filter(Instance.db_type == db_type)
+                if database_name:
+                    query = query.filter(DatabaseSizeAggregation.database_name == database_name)
+                if period_type:
+                    query = query.filter(DatabaseSizeAggregation.period_type == period_type)
+                if start_date:
+                    query = query.filter(DatabaseSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+                if end_date:
+                    query = query.filter(DatabaseSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
+                
+                # 排序和分页
+                if get_all:
+                    aggregations = query.order_by(desc(DatabaseSizeAggregation.avg_size_mb)).limit(20).all()
+                    total = len(aggregations)
+                else:
+                    query = query.order_by(desc(DatabaseSizeAggregation.period_start))
+                    total = query.count()
+                    aggregations = query.offset(offset).limit(limit).all()
+                
+                # 转换为字典格式
+                data = []
+                for agg in aggregations:
+                    agg_dict = agg.to_dict()
+                    agg_dict['table_type'] = 'database'
+                    agg_dict['instance'] = {
+                        'id': agg.instance.id,
+                        'name': agg.instance.name,
+                        'db_type': agg.instance.db_type
+                    }
+                    data.append(agg_dict)
             
             return jsonify({
                 'success': True,

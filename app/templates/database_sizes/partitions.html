@@ -130,12 +130,19 @@
                         聚合数据表
                     </h5>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-8">
                     <div class="row g-2">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <input type="text" class="form-control form-control-sm" id="searchAggregationTable" placeholder="搜索实例或数据库...">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <select class="form-select form-select-sm" id="tableTypeFilter">
+                                <option value="all">所有表类型</option>
+                                <option value="database">数据库聚合表</option>
+                                <option value="instance">实例聚合表</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <select class="form-select form-select-sm" id="periodTypeFilter">
                                 <option value="daily">日聚合数据</option>
                                 <option value="weekly">周聚合数据</option>
@@ -143,7 +150,7 @@
                                 <option value="quarterly">季聚合数据</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <select class="form-select form-select-sm" id="sortAggregationTable">
                                 <option value="instance_name">按实例排序</option>
                                 <option value="database_name">按数据库排序</option>
@@ -160,6 +167,7 @@
                 <table class="table table-hover" id="aggregationTable">
                        <thead>
                            <tr>
+                               <th>表类型</th>
                                <th>周期类型</th>
                                <th>实例名称</th>
                                <th>数据库名称</th>
@@ -173,7 +181,7 @@
                        </thead>
                     <tbody id="aggregationTableBody">
                         <tr>
-                            <td colspan="9" class="text-center">
+                            <td colspan="10" class="text-center">
                                 <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">加载中...</span>
                                 </div>
