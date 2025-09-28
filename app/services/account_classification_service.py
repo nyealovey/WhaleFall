@@ -19,7 +19,7 @@ from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 
-class OptimizedAccountClassificationService:
+class AccountClassificationService:
     """优化后的账户分类管理服务"""
 
     def __init__(self) -> None:
@@ -1089,4 +1089,4 @@ class OptimizedAccountClassificationService:
 
 
 # 全局实例
-optimized_account_classification_service = OptimizedAccountClassificationService()
+account_classification_service = AccountClassificationService()

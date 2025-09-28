@@ -268,7 +268,7 @@ def get_instances():
 @view_required
 def get_instance_total_size(instance_id: int):
     """
-    获取指定实例的数据库总大小
+    获取指定实例的数据库总大小（从InstanceSizeStat表获取）
     
     Args:
         instance_id: 实例ID
@@ -280,12 +280,15 @@ def get_instance_total_size(instance_id: int):
         # 验证实例是否存在
         instance = Instance.query.get_or_404(instance_id)
         
-        # 获取最新的数据库大小数据
-        latest_stats = DatabaseSizeStat.query.filter(
-            DatabaseSizeStat.instance_id == instance_id
-        ).order_by(DatabaseSizeStat.collected_date.desc()).all()
+        # 从InstanceSizeStat表获取最新的实例大小统计数据
+        from app.models.instance_size_stat import InstanceSizeStat
         
-        if not latest_stats:
+        latest_stat = InstanceSizeStat.query.filter(
+            InstanceSizeStat.instance_id == instance_id,
+            InstanceSizeStat.is_deleted == False
+        ).order_by(InstanceSizeStat.collected_date.desc()).first()
+        
+        if not latest_stat:
             return jsonify({
                 'success': True,
                 'total_size_mb': 0,
@@ -293,10 +296,10 @@ def get_instance_total_size(instance_id: int):
                 'last_collected': None
             })
         
-        # 计算总大小
-        total_size_mb = sum(stat.size_mb for stat in latest_stats)
-        database_count = len(set(stat.database_name for stat in latest_stats))
-        last_collected = latest_stats[0].collected_date if latest_stats else None
+        # 直接使用实例大小统计数据
+        total_size_mb = latest_stat.total_size_mb
+        database_count = latest_stat.database_count
+        last_collected = latest_stat.collected_date
         
         return jsonify({
             'success': True,

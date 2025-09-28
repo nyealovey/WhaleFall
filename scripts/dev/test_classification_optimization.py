@@ -15,7 +15,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 sys.path.insert(0, project_root)
 
 from app import create_app
-from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
+from app.services.account_classification_service import AccountClassificationService
 from app.services.cache_manager import cache_manager
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.account_classification import ClassificationRule
@@ -28,7 +28,7 @@ class ClassificationOptimizationTester:
     
     def __init__(self):
         self.app = create_app()
-        self.service = OptimizedAccountClassificationService()
+        self.service = AccountClassificationService()
         self.results = {}
     
     def run_tests(self):
