@@ -75,7 +75,7 @@ app/static/css/
 # app/routes/auth.py
 @auth_bp.route("/login")                          # 登录页面
 @auth_bp.route("/logout")                         # 登出功能
-@auth_bp.route("/api/login", methods=["POST"])    # 登录API
+@auth_bp.route("/login", methods=["POST"])    # 登录API
 ```
 
 #### 数据模型
@@ -216,7 +216,7 @@ def admin_required(f):
 #### 登录功能
 ```python
 # app/routes/auth.py
-@auth_bp.route("/api/login", methods=["POST"])
+@auth_bp.route("/login", methods=["POST"])
 def api_login():
     """用户登录API"""
     try:
@@ -865,7 +865,7 @@ async function handleLogin(event) {
     try {
         showLoadingState(form.querySelector('button[type="submit"]'), '登录中...');
         
-        const response = await fetch('/auth/api/login', {
+        const response = await fetch('/auth/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1221,7 +1221,7 @@ def test_permission_decorator(client, auth_headers):
 ```python
 # 测试登录API
 def test_login_api(client):
-    response = client.post('/auth/api/login', json={
+    response = client.post('/auth/login', json={
         'username': 'admin',
         'password': 'password'
     })

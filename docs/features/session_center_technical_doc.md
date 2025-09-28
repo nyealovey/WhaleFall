@@ -67,7 +67,7 @@
                     <p class="text-muted mb-0">数据库管理平台</p>
                 </div>
                 <div class="card-body">
-                    <form id="login-form" method="POST" action="/auth/api/login">
+                    <form id="login-form" method="POST" action="/auth/login">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         
                         <!-- 用户名输入 -->
@@ -253,7 +253,7 @@ class LoginFormManager {
         
         try {
             const formData = new FormData(this.form);
-            const response = await fetch('/auth/api/login', {
+            const response = await fetch('/auth/login', {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -984,7 +984,7 @@ def login() -> str:
         return render_template("auth/login.html", error="页面加载失败")
 
 
-@auth_bp.route("/api/login", methods=["POST"])
+@auth_bp.route("/login", methods=["POST"])
 def api_login() -> tuple[dict, int]:
     """登录API"""
     try:
