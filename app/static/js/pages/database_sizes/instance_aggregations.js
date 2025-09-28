@@ -25,7 +25,6 @@ class InstanceAggregationsManager {
         this.initializeDatabaseFilter();
         this.loadSummaryData();
         this.loadChartData();
-        this.loadTableData();
     }
     
     bindEvents() {
@@ -168,7 +167,6 @@ class InstanceAggregationsManager {
         // 重新加载数据
         this.loadSummaryData();
         this.loadChartData();
-        this.loadTableData();
     }
     
     /**
@@ -196,7 +194,6 @@ class InstanceAggregationsManager {
         // 重新加载数据
         this.loadSummaryData();
         this.loadChartData();
-        this.loadTableData();
     }
     
     /**
@@ -468,117 +465,8 @@ class InstanceAggregationsManager {
         });
     }
     
-    /**
-     * 加载表格数据
-     */
-    async loadTableData() {
-        try {
-            const params = this.buildFilterParams();
-            const response = await fetch(`/aggregations/instance?api=true&${params}`);
-            const data = await response.json();
-            
-            if (response.ok) {
-                this.renderTable(data.data);
-            } else {
-                console.error('加载表格数据失败:', data.error);
-                this.showError('加载表格数据失败: ' + data.error);
-            }
-        } catch (error) {
-            console.error('加载表格数据时出错:', error);
-            this.showError('加载表格数据时出错: ' + error.message);
-        }
-    }
     
-    /**
-     * 渲染表格
-     */
-    renderTable(data) {
-        const tbody = $('#instanceTable tbody');
-        tbody.empty();
-        
-        if (!data || data.length === 0) {
-            tbody.append(`
-                <tr>
-                    <td colspan="8" class="text-center text-muted">
-                        <i class="fas fa-inbox me-2"></i>
-                        暂无数据
-                    </td>
-                </tr>
-            `);
-            return;
-        }
-        
-        // 按实例分组并计算统计
-        const instanceStats = this.calculateInstanceStats(data);
-        
-        instanceStats.forEach(stat => {
-            const row = `
-                <tr>
-                    <td>
-                        <span class="instance-name">${stat.instance_name}</span>
-                    </td>
-                    <td>
-                        <span class="db-type-badge ${stat.db_type.toLowerCase()}">${stat.db_type}</span>
-                    </td>
-                    <td>${stat.database_count}</td>
-                    <td>
-                        <span class="size-display">${this.formatSizeFromMB(stat.total_size_mb)}</span>
-                    </td>
-                    <td>
-                        <span class="size-display">${this.formatSizeFromMB(stat.avg_size_mb)}</span>
-                    </td>
-                    <td>
-                        <span class="size-display">${this.formatSizeFromMB(stat.max_size_mb)}</span>
-                    </td>
-                    <td>${this.formatDate(stat.last_update)}</td>
-                </tr>
-            `;
-            tbody.append(row);
-        });
-    }
     
-    /**
-     * 计算实例统计
-     */
-    calculateInstanceStats(data) {
-        const instanceMap = {};
-        
-        data.forEach(item => {
-            const key = `${item.instance.name}_${item.instance.db_type}`;
-            if (!instanceMap[key]) {
-                instanceMap[key] = {
-                    instance_name: item.instance.name,
-                    db_type: item.instance.db_type,
-                    database_count: 0,
-                    total_size_mb: 0,
-                    avg_size_mb: 0,
-                    max_size_mb: 0,
-                    min_size_mb: Infinity,
-                    last_update: null
-                };
-            }
-            
-            const stat = instanceMap[key];
-            stat.database_count++;
-            stat.total_size_mb += item.avg_size_mb;
-            stat.max_size_mb = Math.max(stat.max_size_mb, item.max_size_mb);
-            stat.min_size_mb = Math.min(stat.min_size_mb, item.min_size_mb);
-            
-            if (!stat.last_update || new Date(item.calculated_at) > new Date(stat.last_update)) {
-                stat.last_update = item.calculated_at;
-            }
-        });
-        
-        // 计算平均值
-        Object.values(instanceMap).forEach(stat => {
-            stat.avg_size_mb = stat.total_size_mb / stat.database_count;
-            if (stat.min_size_mb === Infinity) {
-                stat.min_size_mb = 0;
-            }
-        });
-        
-        return Object.values(instanceMap).sort((a, b) => b.total_size_mb - a.total_size_mb);
-    }
     
     
     
