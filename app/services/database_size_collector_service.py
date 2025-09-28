@@ -289,7 +289,7 @@ class DatabaseSizeCollectorService:
     
     def save_collected_data(self, data: List[Dict[str, Any]]) -> int:
         """
-        保存采集到的数据，实现软删除机制
+        保存采集到的数据库大小数据
         
         Args:
             data: 采集到的数据列表
@@ -300,30 +300,6 @@ class DatabaseSizeCollectorService:
         if not data:
             return 0
         
-        # 获取当前采集到的数据库名称列表
-        current_databases = {item['database_name'] for item in data}
-        
-        # 获取今天已存在的所有数据库记录
-        today = date.today()
-        existing_records = DatabaseSizeStat.query.filter_by(
-            instance_id=self.instance.id,
-            collected_date=today
-        ).all()
-        
-        # 标记已删除的数据库
-        deleted_count = 0
-        for record in existing_records:
-            if record.database_name not in current_databases and not record.is_deleted:
-                record.is_deleted = True
-                record.deleted_at = datetime.utcnow()
-                deleted_count += 1
-                self.logger.info(f"标记数据库 {record.database_name} 为已删除")
-                
-                # 同步更新 instance_databases 表
-                from app.models.instance_database import InstanceDatabase
-                InstanceDatabase.mark_as_deleted(self.instance.id, record.database_name)
-        
-        # 保存或更新当前采集的数据
         saved_count = 0
         for item in data:
             try:
@@ -340,19 +316,7 @@ class DatabaseSizeCollectorService:
                     existing.data_size_mb = item['data_size_mb']
                     existing.log_size_mb = item['log_size_mb']
                     existing.collected_at = item['collected_at']
-                    # 如果之前被标记为删除，现在恢复
-                    if existing.is_deleted:
-                        existing.is_deleted = False
-                        existing.deleted_at = None
-                        self.logger.info(f"恢复数据库 {item['database_name']} 为在线状态")
-                        
-                        # 同步更新 instance_databases 表
-                        from app.models.instance_database import InstanceDatabase
-                        InstanceDatabase.update_database_status(
-                            self.instance.id, 
-                            item['database_name'], 
-                            item['collected_date']
-                        )
+                    self.logger.debug(f"更新数据库 {item['database_name']} 大小记录")
                 else:
                     # 创建新记录
                     new_stat = DatabaseSizeStat(
@@ -366,24 +330,17 @@ class DatabaseSizeCollectorService:
                         is_deleted=False
                     )
                     db.session.add(new_stat)
-                
-                # 更新实例-数据库关系
-                from app.models.instance_database import InstanceDatabase
-                InstanceDatabase.update_database_status(
-                    self.instance.id, 
-                    item['database_name'], 
-                    item['collected_date']
-                )
+                    self.logger.debug(f"创建数据库 {item['database_name']} 大小记录")
                 
                 saved_count += 1
                 
             except Exception as e:
-                self.logger.error(f"保存数据库大小数据失败: {str(e)}")
+                self.logger.error(f"保存数据库 {item['database_name']} 大小数据失败: {str(e)}")
                 continue
         
         try:
             db.session.commit()
-            self.logger.info(f"成功保存 {saved_count} 条数据库大小记录，标记 {deleted_count} 个数据库为已删除")
+            self.logger.info(f"成功保存 {saved_count} 条数据库大小记录")
         except Exception as e:
             db.session.rollback()
             self.logger.error(f"提交数据库大小数据失败: {str(e)}")
@@ -423,11 +380,7 @@ class DatabaseSizeCollectorService:
                 existing_stat.database_count = database_count
                 existing_stat.collected_at = datetime.utcnow()
                 existing_stat.updated_at = datetime.utcnow()
-                # 如果之前被标记为删除，现在恢复
-                if existing_stat.is_deleted:
-                    existing_stat.is_deleted = False
-                    existing_stat.deleted_at = None
-                    self.logger.info(f"恢复实例 {self.instance.name} 的大小统计记录")
+                self.logger.debug(f"更新实例 {self.instance.name} 大小统计记录")
             else:
                 # 创建新记录
                 new_stat = InstanceSizeStat(
@@ -439,6 +392,7 @@ class DatabaseSizeCollectorService:
                     is_deleted=False
                 )
                 db.session.add(new_stat)
+                self.logger.debug(f"创建实例 {self.instance.name} 大小统计记录")
             
             self.logger.info(f"实例 {self.instance.name} 大小统计: 总大小 {total_size}MB, 数据库数量 {database_count}")
             return True
