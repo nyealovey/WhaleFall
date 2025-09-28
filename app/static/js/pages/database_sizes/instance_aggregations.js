@@ -274,9 +274,11 @@ class InstanceAggregationsManager {
             console.log('图表数据响应:', data);
             
             if (response.ok) {
-                this.currentData = data.data;
-                console.log('当前图表数据:', this.currentData);
-                this.renderChart(data.data);
+                // 限制处理的数据量，防止前端崩溃
+                const limitedData = data.data ? data.data.slice(0, 100) : [];
+                this.currentData = limitedData;
+                console.log('当前图表数据（限制100条）:', this.currentData.length);
+                this.renderChart(limitedData);
             } else {
                 console.error('图表数据加载失败:', data.error);
                 this.showError('加载图表数据失败: ' + data.error);
@@ -426,6 +428,8 @@ class InstanceAggregationsManager {
             .sort((a, b) => b[1] - a[1])
             .slice(0, this.currentTopCount)
             .map(([name]) => name);
+        
+        console.log(`显示TOP ${this.currentTopCount}实例:`, sortedInstances);
         
         let colorIndex = 0;
         
