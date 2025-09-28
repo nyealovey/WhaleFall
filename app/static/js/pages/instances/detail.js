@@ -526,8 +526,10 @@ function loadDatabaseSizes() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            displayDatabaseSizes(data.data, data.total_size_mb);
+        if (data.data && Array.isArray(data.data)) {
+            // 计算总大小
+            const totalSize = data.data.reduce((sum, db) => sum + (db.size_mb || 0), 0);
+            displayDatabaseSizes(data.data, totalSize);
         } else {
             displayDatabaseSizesError(data.error || '加载失败');
         }
