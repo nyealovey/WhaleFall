@@ -59,8 +59,7 @@ window.formatTime = function(timestamp, type = 'datetime') {
         const date = new Date(timestamp);
         if (isNaN(date.getTime())) return '-';
         
-        // 使用自定义格式化确保使用 - 分隔符
-        // 注意：后端已经转换为东八区时间，前端直接格式化即可
+        // 后端已经返回东八区时间，前端直接格式化，不进行时区转换
         if (type === 'datetime') {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -81,7 +80,14 @@ window.formatTime = function(timestamp, type = 'datetime') {
             return `${hours}:${minutes}:${seconds}`;
         }
         
-        return formatters[type].format(date);
+        // 默认使用自定义格式化，避免时区转换
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     } catch (e) {
         console.error('时间格式化错误:', e);
         return '-';

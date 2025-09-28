@@ -339,13 +339,25 @@ def _load_tasks_from_config(force: bool = False) -> None:
                     except Exception:
                         pass  # 任务不存在，忽略错误
                 
-                scheduler.add_job(
-                    func,
-                    trigger_type,
-                    id=task_id,
-                    name=task_name,
-                    **trigger_params,
-                )
+                # 对于cron触发器，确保使用正确的时区
+                if trigger_type == "cron":
+                    from apscheduler.triggers.cron import CronTrigger
+                    trigger_params["timezone"] = "Asia/Shanghai"
+                    trigger = CronTrigger(**trigger_params)
+                    scheduler.add_job(
+                        func,
+                        trigger,
+                        id=task_id,
+                        name=task_name,
+                    )
+                else:
+                    scheduler.add_job(
+                        func,
+                        trigger_type,
+                        id=task_id,
+                        name=task_name,
+                        **trigger_params,
+                    )
                 logger.info("添加任务: %s (%s)", task_name, task_id)
             except Exception as e:
                 if force:
@@ -374,11 +386,10 @@ def _add_hardcoded_default_jobs() -> None:
 
     # 清理旧日志 - 每天凌晨2点执行
     try:
+        from apscheduler.triggers.cron import CronTrigger
         scheduler.add_job(
             cleanup_old_logs,
-            "cron",
-            hour=2,
-            minute=0,
+            CronTrigger(hour=2, minute=0, timezone="Asia/Shanghai"),
             id="cleanup_logs",
             name="清理旧日志",
         )
@@ -403,9 +414,7 @@ def _add_hardcoded_default_jobs() -> None:
     try:
         scheduler.add_job(
             collect_database_sizes,
-            "cron",
-            hour=3,
-            minute=0,
+            CronTrigger(hour=3, minute=0, timezone="Asia/Shanghai"),
             id="collect_database_sizes",
             name="容量同步",
         )
@@ -417,9 +426,7 @@ def _add_hardcoded_default_jobs() -> None:
     try:
         scheduler.add_job(
             calculate_database_size_aggregations,
-            "cron",
-            hour=4,
-            minute=0,
+            CronTrigger(hour=4, minute=0, timezone="Asia/Shanghai"),
             id="calculate_database_size_aggregations",
             name="统计聚合",
         )
@@ -431,9 +438,7 @@ def _add_hardcoded_default_jobs() -> None:
     try:
         scheduler.add_job(
             monitor_partition_health,
-            "cron",
-            hour=0,
-            minute=30,
+            CronTrigger(hour=0, minute=30, timezone="Asia/Shanghai"),
             id="monitor_partition_health",
             name="监控分区健康状态",
         )
