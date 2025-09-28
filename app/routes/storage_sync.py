@@ -626,17 +626,24 @@ def sync_instance_capacity(instance_id: int):
             }), 400
         
         try:
-            # 采集数据库大小数据
-            data = collector.collect_database_sizes()
-            
-            # 保存数据
-            saved_count = collector.save_collected_data(data)
+            # 采集并保存数据库大小数据，同时保存实例大小统计
+            saved_count = collector.collect_and_save()
             
             # 更新实例的最后连接时间
             instance.last_connected = datetime.utcnow()
             db.session.commit()
             
-            logger.info(f"实例容量同步完成: {instance.name}, 数据库数量: {len(data)}, 保存数量: {saved_count}")
+            # 获取最新的实例统计信息
+            from app.models.instance_size_stat import InstanceSizeStat
+            latest_stat = InstanceSizeStat.query.filter(
+                InstanceSizeStat.instance_id == instance_id,
+                InstanceSizeStat.is_deleted == False
+            ).order_by(InstanceSizeStat.collected_date.desc()).first()
+            
+            total_size_mb = latest_stat.total_size_mb if latest_stat else 0
+            database_count = latest_stat.database_count if latest_stat else 0
+            
+            logger.info(f"实例容量同步完成: {instance.name}, 数据库数量: {database_count}, 保存数量: {saved_count}, 总大小: {total_size_mb}MB")
             
             return jsonify({
                 'success': True,
@@ -644,9 +651,9 @@ def sync_instance_capacity(instance_id: int):
                 'data': {
                     'instance_id': instance_id,
                     'instance_name': instance.name,
-                    'databases_count': len(data),
+                    'databases_count': database_count,
                     'saved_count': saved_count,
-                    'total_size_mb': sum(item.get('size_mb', 0) for item in data)
+                    'total_size_mb': total_size_mb
                 }
             })
             
