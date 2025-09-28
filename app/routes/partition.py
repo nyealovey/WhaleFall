@@ -19,10 +19,10 @@ from app import db
 logger = logging.getLogger(__name__)
 
 # 创建蓝图
-partition_management_bp = Blueprint('partition_management', __name__)
+partition_bp = Blueprint('partition', __name__)
 
 # 页面路由
-@partition_management_bp.route('/partitions', methods=['GET'])
+@partition_bp.route('/partitions', methods=['GET'])
 @login_required
 @view_required
 def partitions():
@@ -62,7 +62,7 @@ def partitions():
 
 # API 路由
 
-@partition_management_bp.route('/partitions/status', methods=['GET'])
+@partition_bp.route('/partitions/status', methods=['GET'])
 @login_required
 @view_required
 def get_partition_status():
@@ -92,7 +92,7 @@ def get_partition_status():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_management_bp.route('/partitions/create', methods=['POST'])
+@partition_bp.route('/partitions/create', methods=['POST'])
 @login_required
 @view_required
 def create_partition():
@@ -136,7 +136,7 @@ def create_partition():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_management_bp.route('/partitions/cleanup', methods=['POST'])
+@partition_bp.route('/partitions/cleanup', methods=['POST'])
 @login_required
 @view_required
 def cleanup_partitions():
@@ -170,7 +170,7 @@ def cleanup_partitions():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_management_bp.route('/partitions/statistics', methods=['GET'])
+@partition_bp.route('/partitions/statistics', methods=['GET'])
 @login_required
 @view_required
 def get_partition_statistics():
@@ -201,7 +201,7 @@ def get_partition_statistics():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_management_bp.route('/partitions/create-future', methods=['POST'])
+@partition_bp.route('/partitions/create-future', methods=['POST'])
 @login_required
 @view_required
 def create_future_partitions():
@@ -235,7 +235,7 @@ def create_future_partitions():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_management_bp.route('/aggregations/latest', methods=['GET'])
+@partition_bp.route('/aggregations/latest', methods=['GET'])
 @login_required
 @view_required
 def get_latest_aggregations():

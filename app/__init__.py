@@ -408,7 +408,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.sync_sessions import sync_sessions_bp
     
     # 注册分区管理蓝图
-    from app.routes.partition_management import partition_management_bp
+    from app.routes.partition import partition_bp
 
     # 注册所有蓝图到Flask应用
     app.register_blueprint(main_bp)
@@ -428,7 +428,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(storage_sync_bp, url_prefix='/storage-sync')
     app.register_blueprint(database_aggregations_bp, url_prefix='/database-aggregations')
     app.register_blueprint(instance_aggregations_bp, url_prefix='/instance-aggregations')
-    app.register_blueprint(partition_management_bp, url_prefix='/partition-management')
+    app.register_blueprint(partition_bp, url_prefix='/partition')
     app.register_blueprint(user_management_bp, url_prefix='/users')
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
     app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')

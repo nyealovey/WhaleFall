@@ -404,21 +404,21 @@ def create_monthly_partitions():
         if result['success']:
             log_info(
                 "月度分区创建成功",
-                module="partition_management",
+                module="partition",
                 partition_date=result['partition_date'],
                 created_count=len([p for p in result['partitions'] if p['status'] == 'created'])
             )
         else:
             log_error(
                 "月度分区创建失败",
-                module="partition_management",
+                module="partition",
                 error=result['message']
             )
         
         return result
         
     except Exception as e:
-        log_error(f"创建月度分区任务失败: {str(e)}", module="partition_management")
+        log_error(f"创建月度分区任务失败: {str(e)}", module="partition")
         return {'success': False, 'message': str(e)}
 
 
@@ -433,21 +433,21 @@ def cleanup_old_partitions():
         if result['success']:
             log_info(
                 "旧分区清理成功",
-                module="partition_management",
+                module="partition",
                 cleaned_count=len(result['cleaned_partitions']),
                 retention_months=result['retention_months']
             )
         else:
             log_error(
                 "旧分区清理失败",
-                module="partition_management",
+                module="partition",
                 error=result['message']
             )
         
         return result
         
     except Exception as e:
-        log_error(f"清理旧分区任务失败: {str(e)}", module="partition_management")
+        log_error(f"清理旧分区任务失败: {str(e)}", module="partition")
         return {'success': False, 'message': str(e)}
 
 
@@ -460,20 +460,20 @@ def monitor_partition_health():
         if result['success']:
             log_info(
                 "分区健康检查完成",
-                module="partition_management",
+                module="partition",
                 partition_info=result['partition_info']
             )
         else:
             log_error(
                 "分区健康检查失败",
-                module="partition_management",
+                module="partition",
                 error=result['message']
             )
         
         return result
         
     except Exception as e:
-        log_error(f"分区健康检查任务失败: {str(e)}", module="partition_management")
+        log_error(f"分区健康检查任务失败: {str(e)}", module="partition")
         return {'success': False, 'message': str(e)}
 ```
 
