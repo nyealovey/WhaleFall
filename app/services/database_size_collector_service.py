@@ -132,8 +132,9 @@ class DatabaseSizeCollectorService:
             self.logger.info(f"MySQL 查询结果: {len(result) if result else 0} 行数据")
             
             if not result:
-                self.logger.warning("MySQL 未查询到任何数据库大小数据")
-                return []
+                error_msg = "MySQL 未查询到任何数据库大小数据"
+                self.logger.error(error_msg)
+                raise ValueError(error_msg)
             
             data = []
             for row in result:
@@ -181,6 +182,11 @@ class DatabaseSizeCollectorService:
         result = self.db_connection.execute_query(query)
         self.logger.info(f"SQL Server 查询结果: {len(result) if result else 0} 行数据")
         
+        if not result:
+            error_msg = "SQL Server 未查询到任何数据库大小数据"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+        
         data = []
         
         for row in result:
@@ -217,6 +223,12 @@ class DatabaseSizeCollectorService:
         """
         
         result = self.db_connection.execute_query(query)
+        
+        if not result:
+            error_msg = "PostgreSQL 未查询到任何数据库大小数据"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+        
         data = []
         
         for row in result:
@@ -248,6 +260,12 @@ class DatabaseSizeCollectorService:
         """
         
         result = self.db_connection.execute_query(query)
+        
+        if not result:
+            error_msg = "Oracle 未查询到任何数据库大小数据"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+        
         data = []
         
         for row in result:

@@ -252,19 +252,6 @@ def create() -> "str | Response":
     return render_template("credentials/create.html")
 
 
-@credentials_bp.route("/<int:credential_id>")
-@login_required
-@view_required
-def detail(credential_id: int) -> str:
-    """凭据详情"""
-    credential = Credential.query.get_or_404(credential_id)
-
-    if request.is_json:
-        return jsonify(credential.to_dict())
-
-    return render_template("credentials/detail.html", credential=credential)
-
-
 @credentials_bp.route("/<int:credential_id>/edit", methods=["GET", "POST"])
 @login_required
 @update_required
@@ -371,7 +358,7 @@ def edit(credential_id: int) -> "str | Response":
                 return jsonify({"message": "凭据更新成功", "credential": credential.to_dict()})
 
             flash("凭据更新成功！", "success")
-            return redirect(url_for("credentials.detail", credential_id=credential_id))
+            return redirect(url_for("credentials.index"))
 
         except Exception as e:
             db.session.rollback()

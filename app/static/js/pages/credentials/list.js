@@ -262,41 +262,6 @@ function exportCredentials(format = 'csv') {
     window.open(url, '_blank');
 }
 
-// 批量操作
-function performBatchAction(action, credentialIds) {
-    if (!credentialIds || credentialIds.length === 0) {
-        showAlert('warning', '请选择要操作的凭据');
-        return;
-    }
-    
-    const csrfToken = getCSRFToken();
-    
-    fetch('/credentials/batch-action', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-            action: action,
-            credential_ids: credentialIds
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.message) {
-            showAlert('success', data.message);
-            setTimeout(() => location.reload(), 1000);
-        } else if (data.error) {
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('批量操作失败:', error);
-        showAlert('danger', '批量操作失败，请稍后重试');
-    });
-}
-
 // 键盘快捷键
 function initializeKeyboardShortcuts() {
     document.addEventListener('keydown', function(e) {
@@ -387,7 +352,6 @@ window.toggleCredentialStatus = toggleCredentialStatus;
 window.performSearch = performSearch;
 window.clearSearch = clearSearch;
 window.exportCredentials = exportCredentials;
-window.performBatchAction = performBatchAction;
 window.sortTable = sortTable;
 window.filterTable = filterTable;
 window.showAlert = showAlert;

@@ -371,118 +371,7 @@ def create() -> str | Response | tuple[Response, int]:
     return render_template("instances/create.html", credentials=credentials, database_types=database_types, all_tags=all_tags)
 
 
-@instances_bp.route("/test-connection", methods=["POST"])
-@login_required
-@view_required
-def test_instance_connection() -> str | Response | tuple[Response, int]:
-    """测试数据库连接"""
-    try:
-        # 添加调试日志
-        log_info(
-            f"收到测试连接请求，Content-Type: {request.content_type}",
-            module="instances",
-        )
-        # 处理请求数据
 
-        # 检查Content-Type
-        if not request.is_json:
-            log_warning(
-                f"请求不是JSON格式，Content-Type: {request.content_type}",
-                module="instances",
-            )
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": f"请求必须是JSON格式，当前Content-Type: {request.content_type}",
-                    }
-                ),
-                400,
-            )
-
-        data = request.get_json()
-
-        # 添加调试日志
-        # 解析JSON数据
-
-        # 验证必需参数
-        if not data:
-            log_warning("测试连接请求参数为空", module="instances")
-            return jsonify({"success": False, "error": "请求参数为空"}), 400
-
-        required_fields = ["db_type", "host", "port", "credential_id"]
-        missing_fields = [field for field in required_fields if not data.get(field)]
-
-        if missing_fields:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": f"缺少必需参数: {', '.join(missing_fields)}",
-                    }
-                ),
-                400,
-            )
-
-        # 验证端口号
-        try:
-            port = int(data.get("port", 0))
-            if port <= 0 or port > 65535:
-                return (
-                    jsonify({"success": False, "error": "端口号必须在1-65535之间"}),
-                    400,
-                )
-        except (ValueError, TypeError):
-            return jsonify({"success": False, "error": "端口号必须是有效的数字"}), 400
-
-        # 验证凭据ID
-        try:
-            credential_id = int(data.get("credential_id")) if data.get("credential_id") else None
-            if credential_id and credential_id <= 0:
-                return (
-                    jsonify({"success": False, "error": "凭据ID必须是有效的正整数"}),
-                    400,
-                )
-        except (ValueError, TypeError):
-            return jsonify({"success": False, "error": "凭据ID必须是有效的数字"}), 400
-
-        # 创建临时实例对象进行测试
-        temp_instance = Instance(
-            name=data.get("name", "test"),
-            db_type=data.get("db_type"),
-            host=data.get("host"),
-            port=port,
-            credential_id=credential_id,
-            description="test",
-        )
-
-        # 获取凭据信息
-        if temp_instance.credential_id:
-            credential = Credential.query.get(temp_instance.credential_id)
-            if not credential:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "error": f"凭据ID {temp_instance.credential_id} 不存在",
-                        }
-                    ),
-                    400,
-                )
-            temp_instance.credential = credential
-        else:
-            return jsonify({"success": False, "error": "必须选择数据库凭据"}), 400
-
-        # 使用连接测试服务
-        from app.services.connection_test_service import connection_test_service
-
-        result = connection_test_service.test_connection(temp_instance)
-
-        return jsonify(result)
-
-    except Exception as e:
-        log_error(f"测试连接失败: {e}", module="instances")
-        return jsonify({"success": False, "error": f"测试连接失败: {str(e)}"}), 500
 
 
 @instances_bp.route("/<int:instance_id>")
@@ -1881,14 +1770,6 @@ def sync_instance_capacity(instance_id: int) -> Response:
         try:
             # 采集数据库大小数据
             data = collector.collect_database_sizes()
-            
-            if not data:
-                error_msg = "未采集到任何数据库大小数据"
-                log_error(f"实例 {instance.name} {error_msg}", module="instances", instance_id=instance_id, db_type=instance.db_type)
-                return jsonify({
-                    'success': False, 
-                    'error': error_msg
-                }), 400
             
             # 保存数据
             saved_count = collector.save_collected_data(data)
