@@ -318,6 +318,10 @@ class DatabaseSizeCollectorService:
                 record.deleted_at = datetime.utcnow()
                 deleted_count += 1
                 self.logger.info(f"标记数据库 {record.database_name} 为已删除")
+                
+                # 同步更新 instance_databases 表
+                from app.models.instance_database import InstanceDatabase
+                InstanceDatabase.mark_as_deleted(self.instance.id, record.database_name)
         
         # 保存或更新当前采集的数据
         saved_count = 0
@@ -341,6 +345,14 @@ class DatabaseSizeCollectorService:
                         existing.is_deleted = False
                         existing.deleted_at = None
                         self.logger.info(f"恢复数据库 {item['database_name']} 为在线状态")
+                        
+                        # 同步更新 instance_databases 表
+                        from app.models.instance_database import InstanceDatabase
+                        InstanceDatabase.update_database_status(
+                            self.instance.id, 
+                            item['database_name'], 
+                            item['collected_date']
+                        )
                 else:
                     # 创建新记录
                     new_stat = DatabaseSizeStat(
