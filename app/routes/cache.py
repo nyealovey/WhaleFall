@@ -7,12 +7,13 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
 
-from app.utils.decorators import admin_required
+from app.utils.decorators import admin_required, update_required, view_required
 
 from app.models import Instance
 from app.services.cache_manager import cache_manager
 from app.services.sync_adapters.sqlserver_sync_adapter import SQLServerSyncAdapter
-from app.utils.structlog_config import get_system_logger
+from app.services.optimized_account_classification_service import OptimizedAccountClassificationService
+from app.utils.structlog_config import get_system_logger, log_error, log_info
 
 logger = get_system_logger()
 
@@ -123,3 +124,100 @@ def clear_all_cache() -> tuple[dict, int]:
 
     except Exception as e:
         return jsonify({"success": False, "message": f"清除所有缓存失败: {str(e)}"}), 500
+
+
+# 分类缓存相关路由
+
+@cache_bp.route("/classification/clear", methods=["POST"])
+@login_required
+@update_required
+def clear_classification_cache() -> tuple[dict, int]:
+    """清除分类相关缓存"""
+    try:
+        service = OptimizedAccountClassificationService()
+        result = service.invalidate_cache()
+        
+        if result:
+            log_info("分类缓存清除成功", module="cache", user_id=request.user.id if hasattr(request, 'user') else None)
+            return jsonify({"success": True, "message": "分类缓存已清除"})
+        else:
+            return jsonify({"success": False, "error": "缓存清除失败"})
+            
+    except Exception as e:
+        log_error(f"清除分类缓存失败: {e}", module="cache")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@cache_bp.route("/classification/clear/<db_type>", methods=["POST"])
+@login_required
+@update_required
+def clear_db_type_cache(db_type: str) -> tuple[dict, int]:
+    """清除特定数据库类型的缓存"""
+    try:
+        # 验证数据库类型
+        valid_db_types = ["mysql", "postgresql", "sqlserver", "oracle"]
+        if db_type.lower() not in valid_db_types:
+            return jsonify({"success": False, "error": f"不支持的数据库类型: {db_type}"}), 400
+        
+        service = OptimizedAccountClassificationService()
+        result = service.invalidate_db_type_cache(db_type.lower())
+        
+        if result:
+            log_info(f"数据库类型 {db_type} 缓存清除成功", module="cache", user_id=request.user.id if hasattr(request, 'user') else None)
+            return jsonify({"success": True, "message": f"数据库类型 {db_type} 缓存已清除"})
+        else:
+            return jsonify({"success": False, "error": f"数据库类型 {db_type} 缓存清除失败"})
+            
+    except Exception as e:
+        log_error(f"清除数据库类型 {db_type} 缓存失败: {e}", module="cache")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@cache_bp.route("/classification/stats", methods=["GET"])
+@login_required
+@view_required
+def get_classification_cache_stats() -> tuple[dict, int]:
+    """获取分类缓存统计信息"""
+    try:
+        if not cache_manager:
+            return jsonify({"success": False, "error": "缓存管理器未初始化"}), 500
+            
+        stats = cache_manager.get_cache_stats()
+        
+        # 获取按数据库类型的缓存统计
+        db_type_stats = {}
+        db_types = ["mysql", "postgresql", "sqlserver", "oracle"]
+        
+        for db_type in db_types:
+            try:
+                # 检查规则缓存
+                rules_cache = cache_manager.get_classification_rules_by_db_type_cache(db_type)
+                # 检查账户缓存
+                accounts_cache = cache_manager.get_accounts_by_db_type_cache(db_type)
+                
+                db_type_stats[db_type] = {
+                    "rules_cached": rules_cache is not None,
+                    "rules_count": len(rules_cache) if rules_cache else 0,
+                    "accounts_cached": accounts_cache is not None,
+                    "accounts_count": len(accounts_cache) if accounts_cache else 0
+                }
+            except Exception as e:
+                log_error(f"获取数据库类型 {db_type} 缓存统计失败: {e}", module="cache")
+                db_type_stats[db_type] = {
+                    "rules_cached": False,
+                    "rules_count": 0,
+                    "accounts_cached": False,
+                    "accounts_count": 0,
+                    "error": str(e)
+                }
+        
+        return jsonify({
+            "success": True, 
+            "cache_stats": stats,
+            "db_type_stats": db_type_stats,
+            "cache_enabled": cache_manager is not None
+        })
+        
+    except Exception as e:
+        log_error(f"获取分类缓存统计失败: {e}", module="cache")
+        return jsonify({"success": False, "error": str(e)}), 500
