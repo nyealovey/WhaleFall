@@ -1,0 +1,121 @@
+"""
+实例大小聚合统计模型
+存储实例级别的每周、每月、每季度的统计信息
+"""
+
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Date,
+    ForeignKey,
+    BigInteger,
+    Index,
+    UniqueConstraint,
+    Numeric,
+)
+from sqlalchemy.orm import relationship
+from app import db
+import datetime
+
+
+class InstanceSizeAggregation(db.Model):
+    """
+    实例大小聚合统计表（分区表）
+    存储每周、每月、每季度的实例级别统计信息
+    按 period_start 字段按月分区
+    """
+    
+    __tablename__ = "instance_size_aggregations"
+    
+    id = Column(BigInteger, primary_key=True, index=True)
+    instance_id = Column(Integer, ForeignKey("instances.id"), nullable=False)
+    
+    # 统计周期
+    period_type = Column(String(20), nullable=False, comment="统计周期类型：daily, weekly, monthly, quarterly")
+    period_start = Column(Date, nullable=False, comment="统计周期开始日期（用于分区）")
+    period_end = Column(Date, nullable=False, comment="统计周期结束日期")
+    
+    # 实例总大小统计
+    total_size_mb = Column(BigInteger, nullable=False, comment="实例总大小（MB）")
+    avg_size_mb = Column(BigInteger, nullable=False, comment="平均大小（MB）")
+    max_size_mb = Column(BigInteger, nullable=False, comment="最大大小（MB）")
+    min_size_mb = Column(BigInteger, nullable=False, comment="最小大小（MB）")
+    data_count = Column(Integer, nullable=False, comment="统计的数据点数量")
+    
+    # 数据库数量统计
+    database_count = Column(Integer, nullable=False, comment="数据库数量")
+    avg_database_count = Column(Numeric(10, 2), nullable=True, comment="平均数据库数量")
+    max_database_count = Column(Integer, nullable=True, comment="最大数据库数量")
+    min_database_count = Column(Integer, nullable=True, comment="最小数据库数量")
+    
+    # 变化统计
+    total_size_change_mb = Column(BigInteger, nullable=True, comment="总大小变化（MB）")
+    total_size_change_percent = Column(Numeric(10, 2), nullable=True, comment="总大小变化百分比")
+    database_count_change = Column(Integer, nullable=True, comment="数据库数量变化")
+    database_count_change_percent = Column(Numeric(10, 2), nullable=True, comment="数据库数量变化百分比")
+    
+    # 增长率
+    growth_rate = Column(Numeric(10, 2), nullable=True, comment="增长率（百分比）")
+    trend_direction = Column(String(20), nullable=True, comment="趋势方向：growing, shrinking, stable")
+    
+    # 时间戳
+    calculated_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, comment="计算时间")
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, comment="记录创建时间")
+    
+    instance = relationship("Instance", back_populates="instance_size_aggregations")
+    
+    __table_args__ = (
+        # 分区表约束 - 主键必须包含分区键
+        # 注意：在分区表中，主键约束会自动包含分区键
+        # 查询优化索引
+        Index(
+            "ix_instance_size_aggregations_instance_period",
+            "instance_id",
+            "period_type",
+            "period_start",
+        ),
+        Index(
+            "ix_instance_size_aggregations_period_type",
+            "period_type",
+            "period_start",
+        ),
+        # 唯一约束（在分区表中，唯一约束会自动包含分区键）
+        UniqueConstraint(
+            "instance_id",
+            "period_type",
+            "period_start",
+            name="uq_instance_size_aggregation"
+        ),
+    )
+    
+    def __repr__(self):
+        return f"<InstanceSizeAggregation(id={self.id}, instance_id={self.instance_id}, period={self.period_type}, total={self.total_size_mb})>"
+
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'instance_id': self.instance_id,
+            'period_type': self.period_type,
+            'period_start': self.period_start.isoformat() if self.period_start else None,
+            'period_end': self.period_end.isoformat() if self.period_end else None,
+            'total_size_mb': self.total_size_mb,
+            'avg_size_mb': self.avg_size_mb,
+            'max_size_mb': self.max_size_mb,
+            'min_size_mb': self.min_size_mb,
+            'data_count': self.data_count,
+            'database_count': self.database_count,
+            'avg_database_count': float(self.avg_database_count) if self.avg_database_count else None,
+            'max_database_count': self.max_database_count,
+            'min_database_count': self.min_database_count,
+            'total_size_change_mb': self.total_size_change_mb,
+            'total_size_change_percent': float(self.total_size_change_percent) if self.total_size_change_percent else None,
+            'database_count_change': self.database_count_change,
+            'database_count_change_percent': float(self.database_count_change_percent) if self.database_count_change_percent else None,
+            'growth_rate': float(self.growth_rate) if self.growth_rate else None,
+            'trend_direction': self.trend_direction,
+            'calculated_at': self.calculated_at.isoformat() if self.calculated_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
