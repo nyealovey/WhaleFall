@@ -370,7 +370,7 @@ sequenceDiagram
     participant E as External DB
     
     U->>W: 触发账户同步
-    W->>A: POST /instances/{id}/sync
+    W->>A: POST /account-sync/instances/{id}/sync
     A->>S: 创建同步会话
     S->>D: 记录同步会话
     S->>E: 连接外部数据库
@@ -485,7 +485,7 @@ Response:
 #### 账户同步接口
 
 ```http
-POST /api/instances/{id}/sync
+POST /account-sync/instances/{id}/sync
 Authorization: Bearer <token>
 Content-Type: application/json
 

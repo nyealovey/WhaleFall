@@ -76,18 +76,17 @@ routes/
 ├── admin.py                # 管理路由
 ├── dashboard.py            # 仪表板路由
 ├── instances.py            # 实例管理路由
-├── instance_accounts.py    # 实例账户路由
 ├── credentials.py          # 凭据管理路由
 ├── tags.py                 # 标签管理路由
 ├── account_classification.py # 账户分类路由
-├── account_list.py         # 账户列表路由
-├── account_static.py       # 账户统计路由
+├── account.py              # 账户管理路由（包含统计功能）
 ├── account_sync.py         # 账户同步路由
 ├── sync_sessions.py        # 同步会话路由
 ├── unified_logs.py         # 统一日志路由
 ├── scheduler.py            # 任务调度路由
 ├── cache_management.py     # 缓存管理路由
 ├── database_types.py       # 数据库类型路由
+├── storage_sync.py         # 存储同步路由
 ├── user_management.py      # 用户管理路由
 └── health.py               # 健康检查路由
 ```

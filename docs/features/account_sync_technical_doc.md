@@ -603,7 +603,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 
 #### 4.1.3 单实例同步API
 ```python
-@instances_bp.route("/<int:instance_id>/sync", methods=["POST"])
+@account_sync_bp.route("/instances/<int:instance_id>/sync", methods=["POST"])
 @login_required
 @update_required
 def sync_accounts(instance_id: int) -> str | Response | tuple[Response, int]:

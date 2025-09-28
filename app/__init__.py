@@ -366,8 +366,7 @@ def register_blueprints(app: Flask) -> None:
     """
     # 导入蓝图
     from app.routes.account_classification import account_classification_bp
-    from app.routes.account_list import account_list_bp
-    from app.routes.account_static import account_static_bp
+    from app.routes.account import account_bp
     from app.routes.account_sync import account_sync_bp
     from app.routes.admin import admin_bp
     from app.routes.auth import auth_bp
@@ -375,11 +374,10 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.credentials import credentials_bp
     from app.routes.dashboard import dashboard_bp
     from app.routes.database_types import database_types_bp
-    from app.routes.database_sizes import database_sizes_bp
+    from app.routes.storage_sync import storage_sync_bp
     from app.routes.database_aggregations import database_aggregations_bp
     from app.routes.instance_aggregations import instance_aggregations_bp
     from app.routes.health import health_bp
-    from app.routes.instance_accounts import instance_accounts_bp
     from app.routes.instances import instances_bp
     from app.routes.tags import tags_bp
 
@@ -419,17 +417,15 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(instances_bp, url_prefix='/instances')
     app.register_blueprint(credentials_bp, url_prefix='/credentials')
     app.register_blueprint(account_classification_bp, url_prefix='/account-classification')
-    app.register_blueprint(account_list_bp, url_prefix='/accounts')
-    app.register_blueprint(account_static_bp, url_prefix='/account-static')
+    app.register_blueprint(account_bp, url_prefix='/accounts')
     app.register_blueprint(account_sync_bp, url_prefix='/account-sync')
-    app.register_blueprint(instance_accounts_bp, url_prefix='/instance-accounts')
     app.register_blueprint(tags_bp, url_prefix='/tags')
     app.register_blueprint(unified_logs_bp, url_prefix='/logs')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(health_bp, url_prefix='/health')
     app.register_blueprint(cache_bp, url_prefix='/cache')
     app.register_blueprint(database_types_bp, url_prefix='/database-types')
-    app.register_blueprint(database_sizes_bp, url_prefix='/database-sizes')
+    app.register_blueprint(storage_sync_bp, url_prefix='/storage-sync')
     app.register_blueprint(database_aggregations_bp, url_prefix='/database-aggregations')
     app.register_blueprint(instance_aggregations_bp, url_prefix='/instance-aggregations')
     app.register_blueprint(partition_management_bp, url_prefix='/partition-management')
@@ -531,7 +527,6 @@ app = create_app()
 
 # 导入模型（确保模型被注册）
 from app.models import (  # noqa: F401, E402
-    classification_batch,
     credential,
     database_type_config,
     instance,

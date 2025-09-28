@@ -208,7 +208,7 @@ function syncAccounts() {
     // 获取CSRF token
     const csrfToken = getCSRFToken();
 
-    fetch(`/instances/${getInstanceId()}/sync`, {
+    fetch(`/account-sync/instances/${getInstanceId()}/sync`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -273,7 +273,7 @@ function syncCapacity(instanceId, instanceName) {
     // 获取CSRF token
     const csrfToken = getCSRFToken();
 
-    fetch(`/instances/${instanceId}/sync-capacity`, {
+        fetch(`/storage-sync/instances/${instanceId}/sync-capacity`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -517,7 +517,7 @@ function loadDatabaseSizes() {
         </div>
     `;
     
-    fetch(`/instances/${instanceId}/database-sizes`, {
+    fetch(`/storage-sync/instances/${instanceId}/database-sizes`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',

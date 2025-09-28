@@ -648,3 +648,89 @@ def sync_details(sync_id: int) -> str | Response | tuple[Response, int]:
 
         flash(f"获取同步详情失败: {str(e)}", "error")
         return redirect(url_for("account_sync.sync_records"))
+
+
+@account_sync_bp.route("/instances/<int:instance_id>/sync", methods=["POST"])
+@login_required
+@update_required
+def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response, int]:
+    """同步指定实例的账户信息"""
+    instance = Instance.query.get_or_404(instance_id)
+
+    try:
+        # 记录操作开始日志
+        log_info(
+            "开始同步实例账户",
+            module="account_sync",
+            user_id=current_user.id,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            db_type=instance.db_type,
+            host=instance.host,
+        )
+
+        # 使用数据库服务同步账户
+        result = account_sync_service.sync_accounts(instance, sync_type="manual_single")
+
+        if result["success"]:
+            # 增加同步次数计数
+            instance.sync_count = (instance.sync_count or 0) + 1
+            db.session.commit()
+
+            # 记录操作成功日志
+            log_info(
+                "实例账户同步成功",
+                module="account_sync",
+                user_id=current_user.id,
+                instance_id=instance.id,
+                instance_name=instance.name,
+                synced_count=result.get("synced_count", 0),
+            )
+
+            if request.is_json:
+                return jsonify({"message": "账户同步成功", "result": result})
+
+            flash("账户同步成功！", "success")
+        else:
+            # 记录操作失败日志
+            log_error(
+                "实例账户同步失败",
+                module="account_sync",
+                user_id=current_user.id,
+                instance_id=instance.id,
+                instance_name=instance.name,
+                db_type=instance.db_type,
+                host=instance.host,
+                error=result.get("error", "未知错误"),
+            )
+
+            if request.is_json:
+                return jsonify({"error": "账户同步失败", "result": result}), 400
+
+            flash(f"账户同步失败: {result.get('error', '未知错误')}", "error")
+
+    except Exception as e:
+        log_error(f"同步实例账户失败: {e}", module="account_sync", instance_id=instance.id)
+
+        # 记录操作异常日志
+        log_error(
+            "实例账户同步异常",
+            module="account_sync",
+            user_id=current_user.id,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            db_type=instance.db_type,
+            host=instance.host,
+            error=str(e),
+        )
+
+        if request.is_json:
+            return jsonify({"error": "账户同步失败，请重试"}), 500
+
+        flash("账户同步失败，请重试", "error")
+
+    # 如果是AJAX请求，返回JSON响应
+    if request.is_json:
+        return jsonify({"error": "同步失败，请重试"}), 500
+
+    return redirect(url_for("instances.detail", instance_id=instance_id))

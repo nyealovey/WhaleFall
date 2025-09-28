@@ -1,6 +1,6 @@
 """
-数据库大小监控 API 路由
-提供历史数据、统计聚合、趋势分析等接口
+存储同步 API 路由
+提供数据库大小监控、历史数据、统计聚合、趋势分析等接口
 """
 
 import logging
@@ -33,10 +33,10 @@ from app import db
 logger = logging.getLogger(__name__)
 
 # 创建蓝图
-database_sizes_bp = Blueprint('database_sizes', __name__)
+storage_sync_bp = Blueprint('storage_sync', __name__)
 
 # 页面路由
-@database_sizes_bp.route('/aggregations', methods=['GET'])
+@storage_sync_bp.route('/aggregations', methods=['GET'])
 @login_required
 @view_required
 def aggregations():
@@ -198,7 +198,7 @@ def aggregations():
 
 # API 路由
 
-@database_sizes_bp.route('/aggregations/summary', methods=['GET'])
+@storage_sync_bp.route('/aggregations/summary', methods=['GET'])
 @login_required
 @view_required
 def get_aggregations_summary():
@@ -276,7 +276,7 @@ def get_aggregations_summary():
 
 # 配置管理相关路由
 
-@database_sizes_bp.route('/status', methods=['GET'])
+@storage_sync_bp.route('/status', methods=['GET'])
 @login_required
 @view_required
 def get_status():
@@ -315,7 +315,7 @@ def get_status():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/stats', methods=['GET'])
+@storage_sync_bp.route('/stats', methods=['GET'])
 @login_required
 @view_required
 def get_stats():
@@ -360,7 +360,7 @@ def get_stats():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/test_connection', methods=['POST'])
+@storage_sync_bp.route('/test_connection', methods=['POST'])
 @login_required
 @view_required
 def test_connection():
@@ -397,7 +397,7 @@ def test_connection():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/manual_collect', methods=['POST'])
+@storage_sync_bp.route('/manual_collect', methods=['POST'])
 @login_required
 @view_required
 def manual_collect():
@@ -423,7 +423,7 @@ def manual_collect():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/manual_aggregate', methods=['POST'])
+@storage_sync_bp.route('/manual_aggregate', methods=['POST'])
 @login_required
 @view_required
 def manual_aggregate():
@@ -449,7 +449,7 @@ def manual_aggregate():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/cleanup_partitions', methods=['POST'])
+@storage_sync_bp.route('/cleanup_partitions', methods=['POST'])
 @login_required
 @view_required
 def cleanup_partitions_manual():
@@ -475,7 +475,7 @@ def cleanup_partitions_manual():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/instances', methods=['GET'])
+@storage_sync_bp.route('/instances', methods=['GET'])
 @login_required
 @view_required
 def get_instances():
@@ -511,7 +511,7 @@ def get_instances():
             'error': str(e)
         }), 500
 
-@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
+@storage_sync_bp.route('/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
 @login_required
 @view_required
 def get_instance_total_size(instance_id: int):
@@ -561,7 +561,7 @@ def get_instance_total_size(instance_id: int):
         }), 500
 
 
-@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes', methods=['GET'])
+@storage_sync_bp.route('/instances/<int:instance_id>/database-sizes', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int):
@@ -648,7 +648,7 @@ def get_instance_database_sizes(instance_id: int):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/aggregations', methods=['GET'])
+@storage_sync_bp.route('/instances/<int:instance_id>/database-sizes/aggregations', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_aggregations(instance_id: int):
@@ -718,7 +718,7 @@ def get_instance_database_aggregations(instance_id: int):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/instances/<int:instance_id>/database-sizes/summary', methods=['GET'])
+@storage_sync_bp.route('/instances/<int:instance_id>/database-sizes/summary', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_summary(instance_id: int):
@@ -817,7 +817,7 @@ def get_instance_database_summary(instance_id: int):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/collect', methods=['POST'])
+@storage_sync_bp.route('/collect', methods=['POST'])
 @login_required
 @view_required
 def collect_database_sizes():
@@ -845,7 +845,7 @@ def collect_database_sizes():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/aggregate', methods=['POST'])
+@storage_sync_bp.route('/aggregate', methods=['POST'])
 @login_required
 @view_required
 def calculate_aggregations():
@@ -874,7 +874,7 @@ def calculate_aggregations():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/aggregate-today', methods=['POST'])
+@storage_sync_bp.route('/aggregate-today', methods=['POST'])
 @login_required
 @view_required
 def calculate_today_aggregations():
@@ -903,7 +903,7 @@ def calculate_today_aggregations():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@database_sizes_bp.route('/aggregate/status', methods=['GET'])
+@storage_sync_bp.route('/aggregate/status', methods=['GET'])
 @login_required
 @view_required
 def get_aggregation_status_api():
@@ -935,7 +935,7 @@ def get_aggregation_status_api():
 
 
 
-@database_sizes_bp.route('/aggregate/cleanup', methods=['POST'])
+@storage_sync_bp.route('/aggregate/cleanup', methods=['POST'])
 @login_required
 @view_required
 def cleanup_old_aggregations_api():
@@ -966,5 +966,207 @@ def cleanup_old_aggregations_api():
     except Exception as e:
         logger.error(f"清理旧聚合数据时出错: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+# 实例容量管理相关API
+@storage_sync_bp.route("/instances/<int:instance_id>/sync-capacity", methods=['POST'])
+@login_required
+@view_required
+def sync_instance_capacity(instance_id: int):
+    """
+    同步指定实例的数据库容量信息
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON: 同步结果
+    """
+    try:
+        # 获取实例信息
+        instance = Instance.query.get_or_404(instance_id)
+        
+        if not instance.is_active:
+            logger.error(f"实例 {instance.name} 已禁用，无法同步容量信息")
+            return jsonify({
+                'success': False, 
+                'error': '实例已禁用，无法同步容量信息'
+            }), 400
+        
+        # 检查实例是否有凭据
+        if not instance.credential:
+            logger.error(f"实例 {instance.name} 缺少连接凭据，无法同步容量信息")
+            return jsonify({
+                'success': False, 
+                'error': '实例缺少连接凭据，无法同步容量信息'
+            }), 400
+        
+        logger.info(f"开始同步实例容量信息: {instance.name}")
+        
+        # 调用数据库大小采集服务
+        from app.services.database_size_collector_service import DatabaseSizeCollectorService
+        
+        collector = DatabaseSizeCollectorService(instance)
+        
+        # 建立连接
+        if not collector.connect():
+            error_msg = f"无法连接到实例 {instance.name} (类型: {instance.db_type})"
+            logger.error(error_msg)
+            return jsonify({
+                'success': False, 
+                'error': error_msg
+            }), 400
+        
+        try:
+            # 采集数据库大小数据
+            data = collector.collect_database_sizes()
+            
+            # 保存数据
+            saved_count = collector.save_collected_data(data)
+            
+            # 更新实例的最后连接时间
+            instance.last_connected = datetime.utcnow()
+            db.session.commit()
+            
+            logger.info(f"实例容量同步完成: {instance.name}, 数据库数量: {len(data)}, 保存数量: {saved_count}")
+            
+            return jsonify({
+                'success': True,
+                'message': f'成功同步 {saved_count} 个数据库的容量信息',
+                'data': {
+                    'instance_id': instance_id,
+                    'instance_name': instance.name,
+                    'databases_count': len(data),
+                    'saved_count': saved_count,
+                    'total_size_mb': sum(item.get('size_mb', 0) for item in data)
+                }
+            })
+            
+        finally:
+            # 确保断开连接
+            collector.disconnect()
+            
+    except Exception as e:
+        logger.error(f"同步实例容量失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'同步容量信息失败: {str(e)}'
+        }), 500
+
+
+@storage_sync_bp.route("/instances/<int:instance_id>/databases", methods=['GET'])
+@login_required
+@view_required
+def get_instance_databases(instance_id: int):
+    """
+    获取指定实例的数据库列表
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON响应，包含数据库列表
+    """
+    try:
+        # 获取实例信息
+        instance = Instance.query.get_or_404(instance_id)
+        
+        # 获取该实例的所有数据库名称（从数据库大小统计中获取）
+        from sqlalchemy import distinct
+        
+        # 获取所有不重复的数据库名称
+        database_names = db.session.query(
+            distinct(DatabaseSizeStat.database_name)
+        ).filter_by(
+            instance_id=instance_id
+        ).filter(
+            DatabaseSizeStat.is_deleted == False
+        ).order_by(
+            DatabaseSizeStat.database_name
+        ).all()
+        
+        # 转换为列表格式
+        databases = []
+        for (db_name,) in database_names:
+            databases.append({
+                'name': db_name,
+                'instance_id': instance_id,
+                'instance_name': instance.name
+            })
+        
+        return jsonify({
+            'success': True,
+            'databases': databases,
+            'count': len(databases)
+        })
+        
+    except Exception as e:
+        logger.error(f"获取实例数据库列表失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'获取数据库列表失败: {str(e)}'
+        }), 500
+
+
+@storage_sync_bp.route("/instances/<int:instance_id>/database-sizes", methods=['GET'])
+@login_required
+@view_required
+def get_instance_database_sizes(instance_id: int):
+    """
+    获取指定实例的数据库大小信息
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        JSON响应，包含数据库大小信息列表
+    """
+    try:
+        # 获取实例信息
+        instance = Instance.query.get_or_404(instance_id)
+        
+        # 获取最近7天的数据
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        
+        size_stats = DatabaseSizeStat.query.filter_by(
+            instance_id=instance_id
+        ).filter(
+            DatabaseSizeStat.collected_at >= seven_days_ago
+        ).order_by(
+            desc(DatabaseSizeStat.collected_at),
+            DatabaseSizeStat.database_name
+        ).all()
+        
+        # 按数据库名称分组，获取最新数据
+        latest_stats = {}
+        for stat in size_stats:
+            if stat.database_name not in latest_stats:
+                latest_stats[stat.database_name] = {
+                    'database_name': stat.database_name,
+                    'size_mb': stat.size_mb,
+                    'data_size_mb': stat.data_size_mb,
+                    'log_size_mb': stat.log_size_mb,
+                    'collected_at': stat.collected_at.isoformat(),
+                    'collected_date': stat.collected_date.isoformat(),
+                    'is_deleted': stat.is_deleted,
+                    'deleted_at': stat.deleted_at.isoformat() if stat.deleted_at else None
+                }
+        
+        # 按数据库大小降序排序
+        sorted_data = sorted(latest_stats.values(), key=lambda x: x['size_mb'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'data': sorted_data,
+            'total_databases': len(latest_stats),
+            'total_size_mb': sum(stat['size_mb'] for stat in latest_stats.values())
+        })
+        
+    except Exception as e:
+        logger.error(f"获取实例数据库大小信息失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'获取数据库大小信息失败: {str(e)}'
+        }), 500
 
 
