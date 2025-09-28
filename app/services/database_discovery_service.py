@@ -50,14 +50,8 @@ class DatabaseDiscoveryService:
             self.logger.warning(f"MySQL 实例 {self.instance.name} 未查询到任何数据库")
             return []
         
-        databases = []
-        for row in result:
-            db_name = row[0]
-            # 排除系统数据库
-            if db_name not in ['information_schema', 'performance_schema', 'mysql', 'sys']:
-                databases.append(db_name)
-        
-        self.logger.info(f"MySQL 实例 {self.instance.name} 发现 {len(databases)} 个用户数据库")
+        databases = [row[0] for row in result]
+        self.logger.info(f"MySQL 实例 {self.instance.name} 发现 {len(databases)} 个数据库")
         return databases
     
     def _discover_postgresql_databases(self) -> List[str]:
@@ -65,7 +59,6 @@ class DatabaseDiscoveryService:
         query = """
             SELECT datname 
             FROM pg_database 
-            WHERE datistemplate = false
             ORDER BY datname
         """
         result = self.db_connection.execute_query(query)
@@ -83,7 +76,6 @@ class DatabaseDiscoveryService:
         query = """
             SELECT name 
             FROM sys.databases 
-            WHERE database_id > 4  -- 排除系统数据库
             ORDER BY name
         """
         result = self.db_connection.execute_query(query)
