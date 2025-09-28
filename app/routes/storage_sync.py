@@ -676,9 +676,9 @@ def sync_instance_capacity(instance_id: int):
         logger.info(f"开始同步实例容量信息: {instance.name}")
         
         # 建立数据库连接（两个服务共享同一个连接）
-        from app.services.database_connection_service import DatabaseConnectionService
+        from app.services.connection_factory import ConnectionFactory
         
-        db_connection = DatabaseConnectionService(instance)
+        db_connection = ConnectionFactory.create_connection(instance)
         
         if not db_connection.connect():
             error_msg = f"无法连接到实例 {instance.name} (类型: {instance.db_type})"
