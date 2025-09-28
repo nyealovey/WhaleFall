@@ -540,14 +540,12 @@ def auto_classify() -> "Response":
     try:
         data = request.get_json()
         instance_id = data.get("instance_id")
-        batch_type = data.get("batch_type", "manual")  # 默认为手动操作
         use_optimized = data.get("use_optimized", True)  # 默认使用优化版本
 
         log_info(
             "开始自动分类账户",
             module="account_classification",
             instance_id=instance_id,
-            batch_type=batch_type,
             use_optimized=use_optimized,
         )
 
@@ -555,7 +553,6 @@ def auto_classify() -> "Response":
         service = AccountClassificationService()
         result = service.auto_classify_accounts_optimized(
             instance_id=instance_id,
-            batch_type=batch_type,
             created_by=current_user.id if current_user.is_authenticated else None,
         )
 
@@ -564,7 +561,6 @@ def auto_classify() -> "Response":
                 f"自动分类完成: {result.get('message', '分类成功')}",
                 module="account_classification",
                 instance_id=instance_id,
-                batch_id=result.get("batch_id"),
                 classified_count=result.get("classified_accounts", 0),
                 total_classifications=result.get("total_classifications_added", 0),
                 failed_count=result.get("failed_count", 0),
@@ -575,7 +571,6 @@ def auto_classify() -> "Response":
                 "自动分类失败",
                 module="account_classification",
                 instance_id=instance_id,
-                batch_id=result.get("batch_id"),
                 error=result.get("error", "未知错误"),
                 use_optimized=use_optimized,
             )
@@ -601,19 +596,15 @@ def auto_classify_optimized() -> "Response":
     try:
         data = request.get_json()
         instance_id = data.get("instance_id")
-        batch_type = data.get("batch_type", "manual")
-
         log_info(
             "开始优化后的自动分类",
             module="account_classification",
             instance_id=instance_id,
-            batch_type=batch_type,
         )
 
         service = AccountClassificationService()
         result = service.auto_classify_accounts_optimized(
             instance_id=instance_id,
-            batch_type=batch_type,
             created_by=current_user.id if current_user.is_authenticated else None,
         )
 
@@ -622,7 +613,6 @@ def auto_classify_optimized() -> "Response":
                 f"优化后的自动分类完成: {result.get('message', '分类成功')}",
                 module="account_classification",
                 instance_id=instance_id,
-                batch_id=result.get("batch_id"),
                 total_accounts=result.get("total_accounts", 0),
                 total_classifications=result.get("total_classifications_added", 0),
                 total_matches=result.get("total_matches", 0),
@@ -633,7 +623,6 @@ def auto_classify_optimized() -> "Response":
                 "优化后的自动分类失败",
                 module="account_classification",
                 instance_id=instance_id,
-                batch_id=result.get("batch_id"),
                 error=result.get("error", "未知错误"),
             )
 
