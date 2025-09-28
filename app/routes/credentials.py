@@ -482,6 +482,15 @@ def api_list() -> "Response":
     return jsonify([cred.to_dict() for cred in credentials])
 
 
+@credentials_bp.route("/<int:credential_id>")
+@login_required
+@view_required
+def detail(credential_id: int) -> str:
+    """查看凭据详情"""
+    credential = Credential.query.get_or_404(credential_id)
+    return render_template("credentials/detail.html", credential=credential)
+
+
 @credentials_bp.route("/api/credentials/<int:credential_id>")
 @login_required
 @view_required
