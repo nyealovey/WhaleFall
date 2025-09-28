@@ -274,7 +274,7 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
                     if (currentTagNames.length > 0) {
                         // 等待标签加载完成后再设置选中状态
                         setTimeout(() => {
-                            const allTags = editPageTagSelector.availableTags;
+                            const allTags = editPageTagSelector.allTags;
                             const currentTagIds = allTags
                                 .filter(tag => currentTagNames.includes(tag.name))
                                 .map(tag => tag.id);
