@@ -613,7 +613,7 @@ function displayDatabaseSizes(databases, totalSize) {
     
     databases.forEach(db => {
         const sizeGB = (db.size_mb / 1024).toFixed(3);
-        const collectedAt = new Date(db.collected_at).toLocaleString('zh-CN');
+        const collectedAt = db.collected_at ? new Date(db.collected_at).toLocaleString('zh-CN') : '未采集';
         
         const isDeleted = !db.is_active;
         const rowClass = isDeleted ? 'table-secondary' : '';
