@@ -35,8 +35,10 @@ def partitions():
     # 检查是否有查询参数，如果有则返回API数据
     if request.args:
         try:
+            logger.info("开始获取分区信息")
             service = PartitionManagementService()
             result = service.get_partition_info()
+            logger.info(f"分区信息获取结果: {result}")
             
             if result['success']:
                 return jsonify({
@@ -45,16 +47,19 @@ def partitions():
                     'timestamp': datetime.utcnow().isoformat()
                 })
             else:
+                logger.error(f"分区信息获取失败: {result}")
                 return jsonify({
                     'success': False,
-                    'error': result.get('error', '获取分区信息失败')
+                    'error': result.get('message', '获取分区信息失败'),
+                    'details': result
                 }), 500
                 
         except Exception as e:
-            logger.error(f"获取分区信息时出错: {str(e)}")
+            logger.error(f"获取分区信息时出错: {str(e)}", exc_info=True)
             return jsonify({
                 'success': False,
-                'error': str(e)
+                'error': f'获取分区信息失败: {str(e)}',
+                'message': '系统内部错误'
             }), 500
     else:
         # 无查询参数，返回HTML页面
