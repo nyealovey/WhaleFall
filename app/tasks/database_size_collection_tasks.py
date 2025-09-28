@@ -118,6 +118,26 @@ def collect_database_sizes():
                     # 采集并保存数据库大小数据（包括实例大小统计）
                     saved_count = collector.collect_and_save()
                     
+                    # 检查是否采集到任何数据库大小数据
+                    if saved_count == 0:
+                        error_msg = f"实例 {instance.name} 没有采集到任何数据库大小数据"
+                        sync_logger.warning(
+                            error_msg,
+                            module="capacity_sync",
+                            session_id=session.session_id,
+                            instance_id=instance.id,
+                            instance_name=instance.name
+                        )
+                        sync_session_service.fail_instance_sync(record.id, error_msg)
+                        total_failed += 1
+                        results.append({
+                            'instance_id': instance.id,
+                            'instance_name': instance.name,
+                            'success': False,
+                            'error': error_msg
+                        })
+                        continue
+                    
                     # 从实例大小统计表获取总大小
                     from app.models.instance_size_stat import InstanceSizeStat
                     latest_stat = InstanceSizeStat.query.filter(
@@ -125,7 +145,7 @@ def collect_database_sizes():
                         InstanceSizeStat.is_deleted == False
                     ).order_by(InstanceSizeStat.collected_date.desc()).first()
                     
-                    if not latest_stat:
+                    if not latest_stat or latest_stat.database_count == 0:
                         error_msg = f"实例 {instance.name} 没有找到任何数据库"
                         sync_logger.warning(
                             error_msg,
