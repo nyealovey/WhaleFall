@@ -8,6 +8,7 @@ class InstanceAggregationsManager {
         this.chart = null;
         this.currentData = [];
         this.currentChartType = 'line';
+        this.currentTopCount = 5; // 默认显示TOP5
         this.currentFilters = {
             instance_id: null,
             db_type: null,
@@ -41,6 +42,12 @@ class InstanceAggregationsManager {
         // 图表类型切换
         $('input[name="chartType"]').on('change', (e) => {
             this.currentChartType = e.target.value;
+            this.renderChart(this.currentData);
+        });
+        
+        // TOP选择器切换
+        $('input[name="topSelector"]').on('change', (e) => {
+            this.currentTopCount = parseInt(e.target.value);
             this.renderChart(this.currentData);
         });
         
@@ -398,21 +405,32 @@ class InstanceAggregationsManager {
         const datasets = [];
         const colors = [
             '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+            '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+            '#BB8FCE', '#85C1E9', '#F8C471', '#82E0AA'
         ];
         
-        // 收集所有实例名称
-        const allInstances = new Set();
+        // 收集所有实例名称和它们的最大容量
+        const instanceMaxSizes = new Map();
         Object.values(groupedData).forEach(dateData => {
             Object.keys(dateData).forEach(instanceName => {
-                allInstances.add(instanceName);
+                const currentSize = dateData[instanceName] || 0;
+                const existingMax = instanceMaxSizes.get(instanceName) || 0;
+                instanceMaxSizes.set(instanceName, Math.max(existingMax, currentSize));
             });
         });
         
+        // 按最大容量排序，获取TOP N实例
+        const sortedInstances = Array.from(instanceMaxSizes.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, this.currentTopCount)
+            .map(([name]) => name);
+        
         let colorIndex = 0;
         
-        // 为每个实例创建数据集
-        allInstances.forEach(instanceName => {
+        // 为TOP N实例创建数据集
+        sortedInstances.forEach(instanceName => {
             // 将MB转换为GB用于图表显示
             const data = labels.map(date => {
                 const mbValue = groupedData[date][instanceName] || 0;
@@ -425,7 +443,8 @@ class InstanceAggregationsManager {
                 borderColor: colors[colorIndex % colors.length],
                 backgroundColor: colors[colorIndex % colors.length] + '20',
                 fill: false,
-                tension: 0.1
+                tension: 0.1,
+                hidden: false // 确保数据点可见
             });
             
             colorIndex++;
