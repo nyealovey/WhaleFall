@@ -48,6 +48,11 @@ class DatabaseSizeCollectorService:
             bool: 连接是否成功
         """
         try:
+            # 如果已经有连接对象，直接使用
+            if self.db_connection:
+                self.logger.info(f"使用现有连接实例 {self.instance.name} ({self.instance.db_type})")
+                return True
+            
             # 使用连接工厂创建连接
             self.db_connection = ConnectionFactory.create_connection(self.instance)
             if not self.db_connection:
