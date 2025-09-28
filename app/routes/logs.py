@@ -22,21 +22,21 @@ from app.utils.timezone import now
 logger = get_logger("api")
 
 # 创建蓝图
-unified_logs_bp = Blueprint("unified_logs", __name__)
+logs_bp = Blueprint("logs", __name__)
 
 
-@unified_logs_bp.route("/")
+@logs_bp.route("/")
 @login_required
 def logs_dashboard() -> str | tuple[dict, int]:
     """日志中心仪表板"""
     try:
         return render_template("logs/dashboard.html")
     except Exception as e:
-        log_error("Failed to render logs dashboard", module="unified_logs", error=str(e))
+        log_error("Failed to render logs dashboard", module="logs", error=str(e))
         return error_response("Failed to load logs dashboard", 500)
 
 
-@unified_logs_bp.route("/api/search", methods=["GET"])
+@logs_bp.route("/api/search", methods=["GET"])
 @login_required
 def search_logs() -> tuple[dict, int]:
     """搜索日志API"""
@@ -132,11 +132,11 @@ def search_logs() -> tuple[dict, int]:
         return success_response(response_data)
 
     except Exception as e:
-        log_error("Failed to search logs", module="unified_logs", error=str(e))
+        log_error("Failed to search logs", module="logs", error=str(e))
         return error_response("Failed to search logs", 500)
 
 
-@unified_logs_bp.route("/api/statistics", methods=["GET"])
+@logs_bp.route("/api/statistics", methods=["GET"])
 @login_required
 def get_log_statistics() -> tuple[dict, int]:
     """获取日志统计信息API"""
@@ -147,7 +147,7 @@ def get_log_statistics() -> tuple[dict, int]:
 
         log_info(
             "Log statistics retrieved",
-            module="unified_logs",
+            module="logs",
             hours=hours,
             total_logs=stats["total_logs"],
         )
@@ -155,11 +155,11 @@ def get_log_statistics() -> tuple[dict, int]:
         return success_response(stats)
 
     except Exception as e:
-        log_error("Failed to get log statistics", module="unified_logs", error=str(e))
+        log_error("Failed to get log statistics", module="logs", error=str(e))
         return error_response("Failed to get log statistics", 500)
 
 
-@unified_logs_bp.route("/api/errors", methods=["GET"])
+@logs_bp.route("/api/errors", methods=["GET"])
 @login_required
 def get_error_logs() -> tuple[dict, int]:
     """获取错误日志API"""
@@ -174,11 +174,11 @@ def get_error_logs() -> tuple[dict, int]:
         return success_response({"logs": logs})
 
     except Exception as e:
-        log_error("Failed to get error logs", module="unified_logs", error=str(e))
+        log_error("Failed to get error logs", module="logs", error=str(e))
         return error_response("Failed to get error logs", 500)
 
 
-@unified_logs_bp.route("/api/modules", methods=["GET"])
+@logs_bp.route("/api/modules", methods=["GET"])
 @login_required
 def get_log_modules() -> tuple[dict, int]:
     """获取日志模块列表API"""
@@ -193,11 +193,11 @@ def get_log_modules() -> tuple[dict, int]:
         return success_response({"modules": module_list})
 
     except Exception as e:
-        log_error("Failed to get log modules", module="unified_logs", error=str(e))
+        log_error("Failed to get log modules", module="logs", error=str(e))
         return error_response("Failed to get log modules", 500)
 
 
-@unified_logs_bp.route("/api/export", methods=["GET"])
+@logs_bp.route("/api/export", methods=["GET"])
 @login_required
 def export_logs() -> tuple[dict, int]:
     """导出日志API"""
@@ -314,7 +314,7 @@ def export_logs() -> tuple[dict, int]:
     except Exception as e:
         log_error(
             "Failed to export logs",
-            module="unified_logs",
+            module="logs",
             format_type=format_type,
             level=level,
             module_filter=module,
@@ -326,7 +326,7 @@ def export_logs() -> tuple[dict, int]:
         return error_response("Failed to export logs", 500)
 
 
-@unified_logs_bp.route("/api/cleanup", methods=["POST"])
+@logs_bp.route("/api/cleanup", methods=["POST"])
 @login_required
 @admin_required
 def cleanup_logs() -> tuple[dict, int]:
@@ -342,7 +342,7 @@ def cleanup_logs() -> tuple[dict, int]:
 
         log_info(
             "Logs cleanup completed",
-            module="unified_logs",
+            module="logs",
             deleted_count=deleted_count,
             days=days,
         )
@@ -355,11 +355,11 @@ def cleanup_logs() -> tuple[dict, int]:
         )
 
     except Exception as e:
-        log_error("Failed to cleanup logs", module="unified_logs", error=str(e))
+        log_error("Failed to cleanup logs", module="logs", error=str(e))
         return error_response("Failed to cleanup logs", 500)
 
 
-@unified_logs_bp.route("/api/real-time", methods=["GET"])
+@logs_bp.route("/api/real-time", methods=["GET"])
 @login_required
 def get_recent_logs() -> tuple[dict, int]:
     """获取实时日志API（用于实时监控）"""
@@ -384,11 +384,11 @@ def get_recent_logs() -> tuple[dict, int]:
         return success_response({"logs": logs})
 
     except Exception as e:
-        log_error("Failed to get recent logs", module="unified_logs", error=str(e))
+        log_error("Failed to get recent logs", module="logs", error=str(e))
         return error_response("Failed to get recent logs", 500)
 
 
-@unified_logs_bp.route("/api/stats", methods=["GET"])
+@logs_bp.route("/api/stats", methods=["GET"])
 @login_required
 def get_log_stats() -> tuple[dict, int]:
     """获取日志统计信息API"""
@@ -470,11 +470,11 @@ def get_log_stats() -> tuple[dict, int]:
         return success_response(stats)
 
     except Exception as e:
-        log_error("Failed to get log stats", module="unified_logs", error=str(e))
+        log_error("Failed to get log stats", module="logs", error=str(e))
         return error_response("Failed to get log stats", 500)
 
 
-@unified_logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
+@logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @login_required
 def get_log_detail(log_id: int) -> tuple[dict, int]:
     """获取日志详情API"""
@@ -484,5 +484,5 @@ def get_log_detail(log_id: int) -> tuple[dict, int]:
         return success_response({"log": log.to_dict()})
 
     except Exception as e:
-        log_error("Failed to get log detail", module="unified_logs", error=str(e), log_id=log_id)
+        log_error("Failed to get log detail", module="logs", error=str(e), log_id=log_id)
         return error_response("Failed to get log detail", 500)

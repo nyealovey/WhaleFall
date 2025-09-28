@@ -82,7 +82,7 @@ routes/
 ├── account.py              # 账户管理路由（包含统计功能）
 ├── account_sync.py         # 账户同步路由
 ├── sync_sessions.py        # 同步会话路由
-├── unified_logs.py         # 统一日志路由
+├── logs.py                 # 日志管理路由
 ├── scheduler.py            # 任务调度路由
 ├── cache.py               # 缓存管理路由
 ├── database_types.py       # 数据库类型路由
@@ -236,7 +236,7 @@ templates/
 | base_sync_data | 基础同步数据表 | id, instance_id, sync_data, sync_time |
 | database_type_configs | 数据库类型配置表 | id, name, display_name, driver, port |
 | global_params | 全局参数表 | id, key, value, description |
-| unified_logs | 统一日志表 | id, level, module, message, timestamp |
+| logs | 日志表 | id, level, module, message, timestamp |
 
 ## 🔧 配置文件
 
