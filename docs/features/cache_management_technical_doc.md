@@ -2,347 +2,199 @@
 
 ## 1. 功能概述
 
-### 1.1 功能描述
-缓存管理功能是鲸落系统的性能优化模块，负责系统缓存的创建、更新、删除和监控。该模块基于Flask-Caching实现，提供统一的缓存接口，支持多种缓存后端，显著提升系统性能和响应速度。
+### 1.1 模块职责
+- 提供统一的缓存管理接口，支持多种缓存类型的操作和统计。
+- 实现数据库权限缓存、账户权限缓存、规则评估缓存、分类规则缓存等。
+- 提供缓存健康检查、统计信息查询、批量清理等功能。
+- 支持按数据库类型、用户、实例等维度的缓存管理。
 
-### 1.2 主要特性
-- **多缓存后端**：支持Redis、内存、文件系统缓存
-- **统一缓存接口**：提供一致的缓存操作API
-- **缓存策略**：支持TTL、LRU等缓存策略
-- **缓存监控**：实时监控缓存使用情况
-- **缓存清理**：支持手动和自动缓存清理
-- **性能优化**：智能缓存键生成和批量操作
-- **缓存统计**：详细的缓存命中率和性能统计
+### 1.2 代码定位
+- 路由：`app/routes/cache.py`
+- 服务：`app/services/cache_manager.py`
+- 模型：`app/models/instance.py`
+- 适配器：`app/services/sync_adapters/sqlserver_sync_adapter.py`
+- 分类服务：`app/services/account_classification_service.py`
 
-### 1.3 技术特点
-- 基于Flask-Caching的缓存框架
-- 支持多种缓存后端
-- 智能缓存键管理
-- 异步缓存操作
-- 缓存性能监控
+## 2. 架构设计
 
-## 2. 技术架构
-
-### 2.1 整体架构
+### 2.1 模块关系
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   缓存接口层    │    │   缓存管理层    │    │   缓存存储层    │
-│                 │    │                 │    │                 │
-│ - 装饰器接口    │◄──►│ - 缓存管理器    │◄──►│ - Redis缓存     │
-│ - API接口       │    │ - 键生成器      │    │ - 内存缓存      │
-│ - 监控接口      │    │ - 策略管理      │    │ - 文件缓存      │
-│ - 统计接口      │    │ - 性能优化      │    │ - 数据库缓存    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-### 2.2 核心组件
-- **缓存管理器**：统一缓存操作接口
-- **键生成器**：智能缓存键生成
-- **策略管理器**：缓存策略配置
-- **监控服务**：缓存性能监控
-
-## 3. 后端实现
-
-### 3.1 缓存管理器
-```python
-# app/utils/cache_manager.py
-import hashlib
-import json
-from collections.abc import Callable
-from functools import wraps
-from typing import Any
-from flask_caching import Cache
-from app.utils.structlog_config import get_system_logger
-
-
-class CacheManager:
-    """缓存管理器"""
-    
-    def __init__(self, cache: Cache) -> None:
-        self.cache = cache
-        self.default_timeout = 300  # 5分钟默认超时
-        self.system_logger = get_system_logger()
-    
-    def _generate_key(self, prefix: str, *args, **kwargs: Any) -> str:
-        """生成缓存键"""
-        # 将参数序列化为字符串
-        key_data = {"args": args, "kwargs": sorted(kwargs.items())}
-        key_string = json.dumps(key_data, sort_keys=True, default=str)
-        
-        # 生成哈希值
-        key_hash = hashlib.sha256(key_string.encode()).hexdigest()
-        
-        return f"{prefix}:{key_hash}"
-    
-    def get(self, key: str) -> Any | None:
-        """获取缓存值"""
-        try:
-            return self.cache.get(key)
-        except Exception as e:
-            self.system_logger.warning("获取缓存失败", module="cache", key=key, exception=str(e))
-            return None
-    
-    def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
-        """设置缓存值"""
-        try:
-            timeout = timeout or self.default_timeout
-            self.cache.set(key, value, timeout=timeout)
-            return True
-        except Exception as e:
-            self.system_logger.warning("设置缓存失败", module="cache", key=key, exception=str(e))
-            return False
-    
-    def delete(self, key: str) -> bool:
-        """删除缓存值"""
-        try:
-            self.cache.delete(key)
-            return True
-        except Exception:
-            self.system_logger.warning("删除缓存失败: {key}, 错误: {e}")
-            return False
-    
-    def clear(self) -> bool:
-        """清空所有缓存"""
-        try:
-            self.cache.clear()
-            return True
-        except Exception as e:
-            self.system_logger.warning("清空缓存失败", module="cache", exception=str(e))
-            return False
-    
-    def get_cache_stats(self) -> dict:
-        """获取缓存统计信息"""
-        try:
-            # 这里需要根据具体的缓存后端实现
-            return {
-                "total_keys": 0,
-                "memory_usage": 0,
-                "hit_rate": 0.0,
-                "miss_rate": 0.0
-            }
-        except Exception as e:
-            self.system_logger.error("获取缓存统计失败", module="cache", exception=str(e))
-            return {}
-
-
-# 全局缓存管理器实例
-cache_manager = None
-
-
-def init_cache_manager(cache: Cache) -> None:
-    """初始化缓存管理器"""
-    global cache_manager
-    cache_manager = CacheManager(cache)
-    system_logger = get_system_logger()
-    system_logger.info("缓存管理器初始化完成", module="cache")
-
-
-def cached(
-    timeout: int = 300,
-    key_prefix: str = "default",
-    unless: Callable | None = None,
-    key_func: Callable | None = None,
-) -> Callable:
-    """缓存装饰器"""
-    def decorator(f: Callable) -> Callable:
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            # 生成缓存键
-            if key_func:
-                cache_key = key_func(*args, **kwargs)
-            else:
-                cache_key = cache_manager._generate_key(key_prefix, *args, **kwargs)
-            
-            # 检查unless条件
-            if unless and unless(*args, **kwargs):
-                return f(*args, **kwargs)
-            
-            # 尝试从缓存获取
-            result = cache_manager.get(cache_key)
-            if result is not None:
-                return result
-            
-            # 执行函数并缓存结果
-            result = f(*args, **kwargs)
-            cache_manager.set(cache_key, result, timeout)
-            
-            return result
-        
-        return decorated_function
-    return decorator
+┌─────────────────────────────┐
+│ 路由层 (cache.py)           │
+│  - 缓存统计/健康检查        │
+│  - 用户/实例缓存清理        │
+│  - 分类缓存管理            │
+└───────▲───────────┬──────┘
+        │调用        │
+┌───────┴───────────▼──────┐
+│ 缓存管理器 (cache_manager.py)│
+│  - 缓存键生成            │
+│  - 缓存操作封装          │
+│  - 统计信息收集          │
+└───────▲───────────┬──────┘
+        │依赖        │
+┌───────┴───────────▼──────┐
+│ 底层缓存 (Flask-Caching)  │
+│  - Redis/Memory 后端     │
+│  - 缓存存储与检索        │
+└────────────────────────────┘
 ```
 
-### 3.2 缓存路由
-```python
-# app/routes/cache.py
-from flask import Blueprint, jsonify, request
-from flask_login import login_required, current_user
-from app.utils.decorators import admin_required
-from app.utils.cache_manager import cache_manager
-from app.utils.api_response import APIResponse
-from app.utils.structlog_config import log_info, log_error
+### 2.2 权限控制
+- 统计和健康检查：`@login_required`（路由 25、35）。
+- 缓存清理：`@admin_required`（路由 48、79、109）。
+- 分类缓存：`@update_required`（路由 133、153）。
 
+## 3. 缓存管理器实现（`cache_manager.py`）
 
-cache_bp = Blueprint("cache", __name__)
+### 3.1 核心类：`CacheManager`
+- 初始化：接收 `Flask-Caching` 实例，设置默认 TTL 为 7 天（21-24）。
+- 缓存键生成：`_generate_cache_key()`（25-31）使用 SHA-256 哈希确保键名安全。
 
+### 3.2 数据库权限缓存
+- `get_database_permissions_cache()`（33-55）：获取用户数据库权限缓存。
+- `set_database_permissions_cache()`（57-82）：设置权限缓存，包含角色和权限列表。
+- 缓存键格式：`whalefall:{hash(db_perms:instance_id:username:db_name)}`。
 
-@cache_bp.route("/api/cache/stats")
-@login_required
-@admin_required
-def get_cache_stats() -> tuple[dict, int]:
-    """获取缓存统计信息"""
-    try:
-        stats = cache_manager.get_cache_stats()
-        
-        log_info(
-            "获取缓存统计",
-            module="cache",
-            user_id=current_user.id,
-            stats=stats
-        )
-        
-        return APIResponse.success(stats)
-        
-    except Exception as e:
-        log_error(f"获取缓存统计失败: {str(e)}", module="cache")
-        return APIResponse.error(f"获取缓存统计失败: {str(e)}"), 500
+### 3.3 账户权限缓存
+- `get_account_permissions_cache()`（119-137）：获取账户权限缓存。
+- `set_account_permissions_cache()`（139-159）：设置账户权限缓存。
+- 缓存键格式：`whalefall:{hash(account_perms:account_id:)}`。
 
+### 3.4 规则评估缓存
+- `get_rule_evaluation_cache()`（161-179）：获取规则评估结果缓存。
+- `set_rule_evaluation_cache()`（181-202）：设置规则评估缓存，TTL 1 天。
+- 缓存键格式：`whalefall:{hash(rule_eval:rule_id:account_id:)}`。
 
-@cache_bp.route("/api/cache/clear", methods=["POST"])
-@login_required
-@admin_required
-def clear_cache() -> tuple[dict, int]:
-    """清空缓存"""
-    try:
-        success = cache_manager.clear()
-        
-        if success:
-            log_info(
-                "清空缓存",
-                module="cache",
-                user_id=current_user.id
-            )
-            return APIResponse.success({"message": "缓存清空成功"})
-        else:
-            return APIResponse.error("缓存清空失败"), 500
-            
-    except Exception as e:
-        log_error(f"清空缓存失败: {str(e)}", module="cache")
-        return APIResponse.error(f"清空缓存失败: {str(e)}"), 500
+### 3.5 分类规则缓存
+- `get_classification_rules_cache()`（204-222）：获取所有分类规则缓存。
+- `set_classification_rules_cache()`（224-244）：设置规则缓存，TTL 2 小时。
+- `get_classification_rules_by_db_type_cache()`（315-341）：按数据库类型获取规则缓存。
+- `set_classification_rules_by_db_type_cache()`（343-364）：按数据库类型设置规则缓存。
 
+### 3.6 账户缓存
+- `get_accounts_by_db_type_cache()`（366-392）：获取按数据库类型分组的账户缓存。
+- `set_accounts_by_db_type_cache()`（394-415）：设置账户缓存，TTL 1 小时。
 
-@cache_bp.route("/api/cache/delete", methods=["POST"])
-@login_required
-@admin_required
-def delete_cache_key() -> tuple[dict, int]:
-    """删除指定缓存键"""
-    try:
-        data = request.get_json()
-        key = data.get("key")
-        
-        if not key:
-            return APIResponse.error("缺少缓存键参数"), 400
-        
-        success = cache_manager.delete(key)
-        
-        if success:
-            log_info(
-                "删除缓存键",
-                module="cache",
-                user_id=current_user.id,
-                cache_key=key
-            )
-            return APIResponse.success({"message": "缓存键删除成功"})
-        else:
-            return APIResponse.error("缓存键删除失败"), 500
-            
-    except Exception as e:
-        log_error(f"删除缓存键失败: {str(e)}", module="cache")
-        return APIResponse.error(f"删除缓存键失败: {str(e)}"), 500
-```
+### 3.7 缓存清理方法
+- `invalidate_user_cache()`（92-97）：清除用户缓存（简化实现）。
+- `invalidate_instance_cache()`（99-104）：清除实例缓存（简化实现）。
+- `invalidate_account_cache()`（246-263）：清除账户相关缓存。
+- `invalidate_classification_cache()`（265-283）：清除分类相关缓存。
+- `invalidate_db_type_cache()`（417-436）：清除特定数据库类型缓存。
+- `invalidate_all_db_type_cache()`（438-454）：清除所有数据库类型缓存。
 
-## 4. 配置管理
+### 3.8 统计与健康检查
+- `get_cache_stats()`（106-117）：获取缓存统计信息。
+- `health_check()`（456-471）：缓存健康检查，通过测试键验证。
 
-### 4.1 缓存配置
-```python
-# app/config.py
-import os
+## 4. 路由实现（`cache.py`）
 
-class Config:
-    # 缓存配置
-    CACHE_TYPE = os.getenv("CACHE_TYPE", "simple")  # simple, redis, filesystem
-    
-    if CACHE_TYPE == "redis":
-        CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/0")
-    elif CACHE_TYPE == "filesystem":
-        CACHE_DIR = os.getenv("CACHE_DIR", "userdata/cache")
-    
-    # 缓存默认超时时间（秒）
-    CACHE_DEFAULT_TIMEOUT = int(os.getenv("CACHE_DEFAULT_TIMEOUT", "300"))
-    
-    # 缓存键前缀
-    CACHE_KEY_PREFIX = os.getenv("CACHE_KEY_PREFIX", "whalefall")
-```
+### 4.1 基础缓存接口
+- `GET /stats`（24-32）：获取缓存统计信息。
+- `GET /health`（35-43）：检查缓存健康状态。
 
-### 4.2 环境变量配置
-```bash
-# 缓存配置
-CACHE_TYPE=redis
-CACHE_REDIS_URL=redis://localhost:6379/0
-CACHE_DEFAULT_TIMEOUT=300
-CACHE_KEY_PREFIX=whalefall
-```
+### 4.2 用户缓存清理
+- `POST /clear/user`（46-74）：
+  - 参数：`instance_id`、`username`。
+  - SQL Server 使用 `SQLServerSyncAdapter.clear_user_cache()`（65-66）。
+  - 其他数据库类型调用 `cache_manager.invalidate_user_cache()`（69）。
 
-## 5. 使用示例
+### 4.3 实例缓存清理
+- `POST /clear/instance`（77-104）：
+  - 参数：`instance_id`。
+  - SQL Server 使用 `SQLServerSyncAdapter.clear_instance_cache()`（95-96）。
+  - 其他数据库类型调用 `cache_manager.invalidate_instance_cache()`（99）。
 
-### 5.1 装饰器使用
-```python
-from app.utils.cache_manager import cached
+### 4.4 全局缓存清理
+- `POST /clear/all`（107-126）：
+  - 遍历所有活跃实例，仅支持 SQL Server 缓存清理。
+  - 统计清理成功的实例数量。
 
-@cached(timeout=600, key_prefix="user_data")
-def get_user_data(user_id: int):
-    """获取用户数据（缓存10分钟）"""
-    # 数据库查询逻辑
-    return user_data
+### 4.5 分类缓存管理
+- `POST /classification/clear`（131-148）：清除所有分类缓存。
+- `POST /classification/clear/<db_type>`（151-173）：清除特定数据库类型缓存。
+- `GET /classification/stats`（176-223）：获取分类缓存统计信息。
 
-@cached(timeout=300, key_prefix="system_stats", unless=lambda: current_user.is_admin())
-def get_system_stats():
-    """获取系统统计（管理员不缓存）"""
-    # 统计计算逻辑
-    return stats
-```
+## 5. 缓存策略
 
-### 5.2 手动缓存操作
-```python
-from app.utils.cache_manager import cache_manager
+### 5.1 TTL 设置
+- 数据库权限：7 天（默认）。
+- 规则评估：1 天。
+- 分类规则：2 小时。
+- 账户缓存：1 小时。
 
-# 设置缓存
-cache_manager.set("user:123", user_data, timeout=600)
+### 5.2 缓存键设计
+- 使用 SHA-256 哈希确保键名长度合理且安全。
+- 前缀区分缓存类型：`db_perms`、`account_perms`、`rule_eval`、`classification_rules`。
+- 包含实例ID、用户名、数据库名等标识信息。
 
-# 获取缓存
-user_data = cache_manager.get("user:123")
+### 5.3 数据格式
+- 所有缓存数据包含 `cached_at` 时间戳。
+- 分类规则缓存支持新旧格式兼容（327-335、377-386）。
+- 使用 JSON 序列化存储复杂数据结构。
 
-# 删除缓存
-cache_manager.delete("user:123")
-```
+## 6. 错误处理与日志
 
-## 6. 性能优化
+### 6.1 异常处理
+- 所有缓存操作都有 try-catch 包装。
+- 缓存失败时记录警告日志，不影响主业务流程。
+- 返回 None 或 False 表示缓存操作失败。
 
-### 6.1 缓存策略
-- 合理设置TTL时间
-- 使用LRU淘汰策略
-- 批量操作减少网络开销
+### 6.2 日志记录
+- 使用结构化日志记录缓存操作。
+- 包含缓存键、TTL、数据量等关键信息。
+- 区分 debug、warning、info 等不同级别。
 
-### 6.2 键管理
-- 使用有意义的键前缀
-- 避免键冲突
-- 定期清理过期键
+## 7. 性能优化
 
-### 6.3 监控优化
-- 监控缓存命中率
-- 分析缓存性能
-- 优化缓存策略
+### 7.1 缓存命中优化
+- 合理的 TTL 设置平衡数据新鲜度和性能。
+- 按数据库类型分组缓存，减少缓存键冲突。
+- 使用哈希键名避免键名过长问题。
 
----
+### 7.2 清理策略
+- 提供多种清理粒度：用户、实例、数据库类型、全局。
+- 支持按需清理和批量清理。
+- 简化实现避免复杂的模式匹配。
 
-**注意**: 本文档描述了缓存管理功能的完整技术实现，包括缓存操作、配置管理、性能优化等各个方面。该功能为鲸落系统提供了高效的缓存能力，显著提升了系统性能。
+## 8. 限制与约束
+
+### 8.1 Flask-Caching 限制
+- 不支持模式匹配的键查找。
+- 部分清理方法使用简化实现。
+- 依赖底层缓存后端的特性。
+
+### 8.2 数据库适配器
+- 仅 SQL Server 支持完整的缓存清理。
+- 其他数据库类型使用通用清理方法。
+- 需要适配器支持才能实现完整功能。
+
+## 9. 测试建议
+
+### 9.1 功能测试
+- 缓存设置和获取的准确性。
+- 不同 TTL 的过期行为。
+- 缓存清理的完整性。
+
+### 9.2 性能测试
+- 大量缓存的读写性能。
+- 缓存命中率统计。
+- 并发访问的稳定性。
+
+## 10. 后续优化方向
+
+### 10.1 功能增强
+- 实现缓存预热机制。
+- 添加缓存使用率监控。
+- 支持缓存数据的压缩存储。
+
+### 10.2 性能优化
+- 使用 Redis 集群提升缓存容量。
+- 实现缓存数据的增量更新。
+- 添加缓存数据的持久化备份。
+
+### 10.3 监控告警
+- 集成缓存监控系统。
+- 添加缓存异常告警。
+- 提供缓存性能分析报告。

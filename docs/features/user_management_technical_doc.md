@@ -2,1170 +2,145 @@
 
 ## 1. 功能概述
 
-### 1.1 功能描述
-用户管理功能是鲸落系统的核心管理模块，负责系统用户的创建、编辑、删除、权限分配等操作。该模块提供完整的用户生命周期管理，支持基于角色的访问控制（RBAC），确保系统安全性和用户权限的精确控制。
+### 1.1 模块职责
+- 提供系统用户完整生命周期管理：创建、查看、更新、删除、启用/禁用。
+- 通过角色模型实现权限控制：管理员具备全部权限，普通用户仅可查看。
+- 提供统一的前端管理界面与后端 REST API，支持分页查询与条件筛选。
 
-### 1.2 主要特性
-- **用户CRUD操作**：创建、查看、编辑、删除用户
-- **角色管理**：支持管理员和普通用户角色
-- **权限控制**：基于角色的细粒度权限控制
-- **密码管理**：安全的密码设置和验证
-- **用户状态管理**：启用/禁用用户账户
-- **登录记录**：记录用户登录历史和活动
-- **批量操作**：支持批量用户管理操作
-- **搜索过滤**：多条件用户搜索和过滤
+来源：后端蓝图 `users_bp` (`app/routes/users.py`)，前端模板 `app/templates/users/management.html`，脚本 `app/static/js/pages/users/management.js`，模型 `app/models/user.py`，权限工具 `app/utils/decorators.py`。
 
-### 1.3 技术特点
-- 基于Flask-Login的用户认证
-- bcrypt密码加密存储
-- 基于装饰器的权限控制
-- 响应式用户界面
-- 实时用户状态更新
-- 安全审计日志
+### 1.2 核心能力与代码定位
+- 用户列表与分页：`app/routes/users.py` 30-55 行，模板 `management.html` 34-123 行。
+- 条件查询与分页 API：`app/routes/users.py` 57-114 行。
+- 创建用户：后端 API 132-207 行，前端表单 `management.html` 125-169 行，脚本 23-90 行。
+- 更新用户：后端 API 209-288 行，脚本 92-161 行与 `editUser` 315-337 行。
+- 删除用户：后端 API 290-349 行，脚本 163-219 行。
+- 启用/禁用：后端 API 351-413 行，脚本 221-272 行。
+- 用户统计：后端 API 416-438 行。
 
-## 2. 技术架构
+## 2. 架构设计
 
-### 2.1 整体架构
+### 2.1 模块关系
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   前端界面层    │    │   业务逻辑层    │    │   数据存储层    │
-│                 │    │                 │    │                 │
-│ - 用户列表      │◄──►│ - 用户服务      │◄──►│ - 用户表        │
-│ - 用户编辑      │    │ - 权限服务      │    │ - 角色表        │
-│ - 权限管理      │    │ - 验证服务      │    │ - 权限表        │
-│ - 状态监控      │    │ - 审计服务      │    │ - 审计日志      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌────────────────────────┐    ┌──────────────────────┐    ┌─────────────────────┐
+│ 前端界面层             │    │ Flask 路由层          │    │ 数据持久化层         │
+│ management.html + JS   │◄──►│ users_bp / APIResponse│◄──►│ SQLAlchemy User 模型 │
+└────────────────────────┘    └──────────────────────┘    └─────────────────────┘
 ```
 
-### 2.2 核心组件
-- **用户管理服务**：核心用户操作逻辑
-- **权限控制服务**：权限验证和分配
-- **密码管理服务**：密码加密和验证
-- **审计服务**：用户操作审计记录
+### 2.2 关键组件
+- 模板/脚本：`management.html`、`management.css`、`management.js`。
+- 路由蓝图：`users_bp`，定义页面渲染与 API (`app/routes/users.py`)。
+- 数据模型：`User` (`app/models/user.py`) 负责密码加密、权限判断。
+- 权限装饰器：`permission_required` (`app/utils/decorators.py`) 实现基于角色的操作限制。
 
 ## 3. 前端实现
 
-### 3.1 页面结构
-- **主页面**：`app/templates/users/management.html`
-- **样式文件**：`app/static/css/pages/users/management.css`
-- **脚本文件**：`app/static/js/pages/users/management.js`
+### 3.1 页面模板 `app/templates/users/management.html`
+- 页面标题与操作按钮：12-30 行。
+- 用户表格（用户名、角色、状态、时间、操作）：34-111 行。
+- 分页渲染：113-122 行。
+- 新建模态框：125-169 行；编辑模态框：171-216 行。
+- 依赖资源：`management.css`、`management.js`（220 行）。
 
-### 3.2 核心组件
+### 3.2 样式 `app/static/css/pages/users/management.css`
+- 用户卡片、徽章、按钮、模态布局样式定义。
 
-#### 3.2.1 用户列表组件
-```html
-<!-- 用户管理主界面 -->
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-users me-2"></i>用户管理
-                    </h5>
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-primary" id="add-user-btn">
-                            <i class="fas fa-plus me-1"></i>添加用户
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" id="refresh-btn">
-                            <i class="fas fa-sync-alt me-1"></i>刷新
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <!-- 搜索和过滤区域 -->
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <input type="text" class="form-control" id="search-input" placeholder="搜索用户名...">
-                        </div>
-                        <div class="col-md-2">
-                            <select class="form-select" id="role-filter">
-                                <option value="">全部角色</option>
-                                <option value="admin">管理员</option>
-                                <option value="user">普通用户</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select class="form-select" id="status-filter">
-                                <option value="">全部状态</option>
-                                <option value="active">活跃</option>
-                                <option value="inactive">禁用</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn btn-outline-primary" id="search-btn">
-                                <i class="fas fa-search me-1"></i>搜索
-                            </button>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn btn-outline-secondary" id="reset-btn">
-                                <i class="fas fa-undo me-1"></i>重置
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- 用户列表表格 -->
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="users-table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>
-                                        <input type="checkbox" id="select-all" class="form-check-input">
-                                    </th>
-                                    <th>用户名</th>
-                                    <th>角色</th>
-                                    <th>状态</th>
-                                    <th>创建时间</th>
-                                    <th>最后登录</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="users-tbody">
-                                <!-- 用户数据通过JavaScript动态加载 -->
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- 分页组件 -->
-                    <nav aria-label="用户分页">
-                        <ul class="pagination justify-content-center" id="pagination">
-                            <!-- 分页组件通过JavaScript动态生成 -->
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-```
+### 3.3 脚本 `app/static/js/pages/users/management.js`
+- 初始化入口 `initializeUserManagementPage`：14-21 行。
+- 添加：`handleAddUser` 35-90 行，提交到 `/users/api/users`。
+- 编辑：`handleEditUser` 104-161 行；`editUser` 315-337 行加载数据。
+- 删除：`performDeleteUser` 193-218 行。
+- 状态切换：`toggleUserStatus` 238-272 行。
+- 表单校验：`validateUserForm` 340-374 行。
+- 通知反馈：`showAlert` 408-441 行。
+- CSRF Token 读取：`getCSRFToken` 400-406 行。
 
-#### 3.2.2 用户编辑模态框
-```html
-<!-- 用户编辑模态框 -->
-<div class="modal fade" id="userModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="userModalTitle">
-                    <i class="fas fa-user me-2"></i>用户信息
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="user-form">
-                    <input type="hidden" id="user-id" name="id">
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="username" class="form-label">用户名 *</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                                <div class="invalid-feedback" id="username-error"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="role" class="form-label">角色 *</label>
-                                <select class="form-select" id="role" name="role" required>
-                                    <option value="">请选择角色</option>
-                                    <option value="admin">管理员</option>
-                                    <option value="user">普通用户</option>
-                                </select>
-                                <div class="invalid-feedback" id="role-error"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="password" class="form-label">密码</label>
-                                <input type="password" class="form-control" id="password" name="password">
-                                <div class="form-text">留空表示不修改密码</div>
-                                <div class="invalid-feedback" id="password-error"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="confirm-password" class="form-label">确认密码</label>
-                                <input type="password" class="form-control" id="confirm-password" name="confirm_password">
-                                <div class="invalid-feedback" id="confirm-password-error"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active">
-                                    <label class="form-check-label" for="is_active">
-                                        启用账户
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="save-user-btn">
-                    <i class="fas fa-save me-1"></i>保存
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-```
-
-### 3.3 JavaScript实现
-
-#### 3.3.1 用户管理控制器
-```javascript
-// 用户管理控制器
-class UserManagementController {
-    constructor() {
-        this.currentPage = 1;
-        this.pageSize = 10;
-        this.filters = {};
-        this.selectedUsers = new Set();
-        
-        this.init();
-    }
-    
-    init() {
-        this.bindEvents();
-        this.loadUsers();
-    }
-    
-    bindEvents() {
-        // 添加用户按钮
-        document.getElementById('add-user-btn').addEventListener('click', () => {
-            this.showUserModal();
-        });
-        
-        // 刷新按钮
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            this.loadUsers();
-        });
-        
-        // 搜索按钮
-        document.getElementById('search-btn').addEventListener('click', () => {
-            this.applyFilters();
-        });
-        
-        // 重置按钮
-        document.getElementById('reset-btn').addEventListener('click', () => {
-            this.resetFilters();
-        });
-        
-        // 全选复选框
-        document.getElementById('select-all').addEventListener('change', (e) => {
-            this.toggleSelectAll(e.target.checked);
-        });
-        
-        // 保存用户按钮
-        document.getElementById('save-user-btn').addEventListener('click', () => {
-            this.saveUser();
-        });
-        
-        // 搜索输入框回车
-        document.getElementById('search-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.applyFilters();
-            }
-        });
-    }
-    
-    async loadUsers() {
-        try {
-            const params = new URLSearchParams({
-                page: this.currentPage,
-                per_page: this.pageSize,
-                ...this.filters
-            });
-            
-            const response = await fetch(`/users/api/users?${params}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                this.renderUsers(data.data.users);
-                this.renderPagination(data.data.pagination);
-            } else {
-                this.showError(data.message || '加载用户列表失败');
-            }
-        } catch (error) {
-            console.error('加载用户列表失败:', error);
-            this.showError('网络错误，请稍后重试');
-        }
-    }
-    
-    renderUsers(users) {
-        const tbody = document.getElementById('users-tbody');
-        tbody.innerHTML = '';
-        
-        if (users.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
-                        <i class="fas fa-users fa-2x mb-2"></i>
-                        <p class="mb-0">暂无用户数据</p>
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-        
-        users.forEach(user => {
-            const row = this.createUserRow(user);
-            tbody.appendChild(row);
-        });
-    }
-    
-    createUserRow(user) {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>
-                <input type="checkbox" class="form-check-input user-checkbox" 
-                       value="${user.id}" ${this.selectedUsers.has(user.id) ? 'checked' : ''}>
-            </td>
-            <td>
-                <div class="d-flex align-items-center">
-                    <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
-                        ${user.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                        <h6 class="mb-0">${this.escapeHtml(user.username)}</h6>
-                        <small class="text-muted">ID: ${user.id}</small>
-                    </div>
-                </div>
-            </td>
-            <td>
-                <span class="badge ${this.getRoleBadgeClass(user.role)}">
-                    ${this.getRoleDisplayName(user.role)}
-                </span>
-            </td>
-            <td>
-                <span class="badge ${user.is_active ? 'bg-success' : 'bg-secondary'}">
-                    ${user.is_active ? '活跃' : '禁用'}
-                </span>
-            </td>
-            <td>
-                <small class="text-muted">${this.formatDate(user.created_at)}</small>
-            </td>
-            <td>
-                <small class="text-muted">
-                    ${user.last_login ? this.formatDate(user.last_login) : '从未登录'}
-                </small>
-            </td>
-            <td>
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-primary" 
-                            onclick="userManager.editUser(${user.id})" title="编辑">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-danger" 
-                            onclick="userManager.deleteUser(${user.id})" title="删除">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary" 
-                            onclick="userManager.toggleUserStatus(${user.id})" 
-                            title="${user.is_active ? '禁用' : '启用'}">
-                        <i class="fas fa-${user.is_active ? 'ban' : 'check'}"></i>
-                    </button>
-                </div>
-            </td>
-        `;
-        
-        // 绑定复选框事件
-        const checkbox = row.querySelector('.user-checkbox');
-        checkbox.addEventListener('change', (e) => {
-            this.toggleUserSelection(user.id, e.target.checked);
-        });
-        
-        return row;
-    }
-    
-    getRoleBadgeClass(role) {
-        const roleClasses = {
-            'admin': 'bg-danger',
-            'user': 'bg-primary'
-        };
-        return roleClasses[role] || 'bg-secondary';
-    }
-    
-    getRoleDisplayName(role) {
-        const roleNames = {
-            'admin': '管理员',
-            'user': '普通用户'
-        };
-        return roleNames[role] || role;
-    }
-    
-    formatDate(dateString) {
-        if (!dateString) return '-';
-        return new Date(dateString).toLocaleString('zh-CN');
-    }
-    
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    applyFilters() {
-        const searchInput = document.getElementById('search-input');
-        const roleFilter = document.getElementById('role-filter');
-        const statusFilter = document.getElementById('status-filter');
-        
-        this.filters = {};
-        
-        if (searchInput.value.trim()) {
-            this.filters.search = searchInput.value.trim();
-        }
-        
-        if (roleFilter.value) {
-            this.filters.role = roleFilter.value;
-        }
-        
-        if (statusFilter.value) {
-            this.filters.status = statusFilter.value;
-        }
-        
-        this.currentPage = 1;
-        this.loadUsers();
-    }
-    
-    resetFilters() {
-        document.getElementById('search-input').value = '';
-        document.getElementById('role-filter').value = '';
-        document.getElementById('status-filter').value = '';
-        
-        this.filters = {};
-        this.currentPage = 1;
-        this.loadUsers();
-    }
-    
-    toggleSelectAll(checked) {
-        const checkboxes = document.querySelectorAll('.user-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = checked;
-            const userId = parseInt(checkbox.value);
-            if (checked) {
-                this.selectedUsers.add(userId);
-            } else {
-                this.selectedUsers.delete(userId);
-            }
-        });
-    }
-    
-    toggleUserSelection(userId, checked) {
-        if (checked) {
-            this.selectedUsers.add(userId);
-        } else {
-            this.selectedUsers.delete(userId);
-        }
-    }
-    
-    showUserModal(user = null) {
-        const modal = new bootstrap.Modal(document.getElementById('userModal'));
-        const modalTitle = document.getElementById('userModalTitle');
-        const form = document.getElementById('user-form');
-        
-        // 重置表单
-        form.reset();
-        
-        if (user) {
-            // 编辑模式
-            modalTitle.innerHTML = '<i class="fas fa-edit me-2"></i>编辑用户';
-            document.getElementById('user-id').value = user.id;
-            document.getElementById('username').value = user.username;
-            document.getElementById('role').value = user.role;
-            document.getElementById('is_active').checked = user.is_active;
-        } else {
-            // 添加模式
-            modalTitle.innerHTML = '<i class="fas fa-plus me-2"></i>添加用户';
-            document.getElementById('password').required = true;
-            document.getElementById('confirm-password').required = true;
-        }
-        
-        modal.show();
-    }
-    
-    async editUser(userId) {
-        try {
-            const response = await fetch(`/users/api/users/${userId}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                this.showUserModal(data.data);
-            } else {
-                this.showError(data.message || '获取用户信息失败');
-            }
-        } catch (error) {
-            console.error('获取用户信息失败:', error);
-            this.showError('网络错误，请稍后重试');
-        }
-    }
-    
-    async saveUser() {
-        if (!this.validateUserForm()) {
-            return;
-        }
-        
-        const form = document.getElementById('user-form');
-        const formData = new FormData(form);
-        const userId = formData.get('id');
-        
-        try {
-            const url = userId ? `/users/api/users/${userId}` : '/users/api/users';
-            const method = userId ? 'PUT' : 'POST';
-            
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
-                },
-                body: JSON.stringify(Object.fromEntries(formData))
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                this.showSuccess(data.message || '保存成功');
-                bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
-                this.loadUsers();
-            } else {
-                this.showError(data.message || '保存失败');
-            }
-        } catch (error) {
-            console.error('保存用户失败:', error);
-            this.showError('网络错误，请稍后重试');
-        }
-    }
-    
-    validateUserForm() {
-        let isValid = true;
-        
-        // 验证用户名
-        const username = document.getElementById('username').value.trim();
-        if (!username) {
-            this.showFieldError('username', '请输入用户名');
-            isValid = false;
-        } else if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
-            this.showFieldError('username', '用户名只能包含字母、数字和下划线，长度3-20位');
-            isValid = false;
-        } else {
-            this.clearFieldError('username');
-        }
-        
-        // 验证角色
-        const role = document.getElementById('role').value;
-        if (!role) {
-            this.showFieldError('role', '请选择角色');
-            isValid = false;
-        } else {
-            this.clearFieldError('role');
-        }
-        
-        // 验证密码
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
-        
-        if (password || confirmPassword) {
-            if (password.length < 8) {
-                this.showFieldError('password', '密码至少8位');
-                isValid = false;
-            } else if (password !== confirmPassword) {
-                this.showFieldError('confirm-password', '两次输入的密码不一致');
-                isValid = false;
-            } else {
-                this.clearFieldError('password');
-                this.clearFieldError('confirm-password');
-            }
-        }
-        
-        return isValid;
-    }
-    
-    showFieldError(fieldName, message) {
-        const field = document.getElementById(fieldName);
-        const errorDiv = document.getElementById(`${fieldName}-error`);
-        
-        field.classList.add('is-invalid');
-        errorDiv.textContent = message;
-    }
-    
-    clearFieldError(fieldName) {
-        const field = document.getElementById(fieldName);
-        const errorDiv = document.getElementById(`${fieldName}-error`);
-        
-        field.classList.remove('is-invalid');
-        errorDiv.textContent = '';
-    }
-    
-    async deleteUser(userId) {
-        if (!confirm('确定要删除这个用户吗？此操作不可恢复！')) {
-            return;
-        }
-        
-        try {
-            const response = await fetch(`/users/api/users/${userId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRFToken': this.getCSRFToken()
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                this.showSuccess(data.message || '删除成功');
-                this.loadUsers();
-            } else {
-                this.showError(data.message || '删除失败');
-            }
-        } catch (error) {
-            console.error('删除用户失败:', error);
-            this.showError('网络错误，请稍后重试');
-        }
-    }
-    
-    async toggleUserStatus(userId) {
-        try {
-            const response = await fetch(`/users/api/users/${userId}/toggle-status`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': this.getCSRFToken()
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                this.showSuccess(data.message || '状态更新成功');
-                this.loadUsers();
-            } else {
-                this.showError(data.message || '状态更新失败');
-            }
-        } catch (error) {
-            console.error('更新用户状态失败:', error);
-            this.showError('网络错误，请稍后重试');
-        }
-    }
-    
-    getCSRFToken() {
-        return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    }
-    
-    showSuccess(message) {
-        this.showAlert(message, 'success');
-    }
-    
-    showError(message) {
-        this.showAlert(message, 'danger');
-    }
-    
-    showAlert(message, type) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        document.body.appendChild(alertDiv);
-        
-        setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
-            }
-        }, 5000);
-    }
-}
-
-// 初始化用户管理器
-const userManager = new UserManagementController();
-```
+### 3.4 交互流程
+1. 页面加载 → 调用初始化函数绑定事件。
+2. 表单提交 → 读取表单数据 → 验证 → 携带 CSRF Token 调用后端 API。
+3. 接收 JSON → `showAlert` 展示结果 → 刷新列表或关闭模态框。
 
 ## 4. 后端实现
 
-### 4.1 数据模型
-```python
-# app/models/user.py
-from flask_login import UserMixin
-from app import bcrypt, db
-from app.utils.timezone import now
-
-
-class User(UserMixin, db.Model):
-    """用户模型"""
-    
-    __tablename__ = "users"
-    
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    password = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(50), nullable=False, default="user")
-    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=now)
-    last_login = db.Column(db.DateTime(timezone=True), nullable=True)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    
-    def set_password(self, password: str) -> None:
-        """设置密码（加密）"""
-        # 密码强度验证
-        if len(password) < 8:
-            raise ValueError("密码长度至少8位")
-        if not any(c.isupper() for c in password):
-            raise ValueError("密码必须包含大写字母")
-        if not any(c.islower() for c in password):
-            raise ValueError("密码必须包含小写字母")
-        if not any(c.isdigit() for c in password):
-            raise ValueError("密码必须包含数字")
-        
-        self.password = bcrypt.generate_password_hash(password, rounds=12).decode("utf-8")
-    
-    def check_password(self, password: str) -> bool:
-        """验证密码"""
-        return bcrypt.check_password_hash(self.password, password)
-    
-    def is_admin(self) -> bool:
-        """检查是否为管理员"""
-        return self.role == "admin"
-    
-    def has_permission(self, permission: str) -> bool:
-        """检查用户是否有指定权限"""
-        if self.is_admin():
-            return True
-        if self.role == "user":
-            return permission == "view"
-        return False
-    
-    def update_last_login(self) -> None:
-        """更新最后登录时间"""
-        self.last_login = now()
-        db.session.commit()
-    
-    def to_dict(self) -> dict:
-        """转换为字典"""
-        return {
-            "id": self.id,
-            "username": self.username,
-            "role": self.role,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "last_login": self.last_login.isoformat() if self.last_login else None,
-            "is_active": self.is_active,
-        }
-```
-
-### 4.2 路由层
-```python
-# app/routes/users.py
-from flask import Blueprint, render_template, request, jsonify
-from flask_login import current_user, login_required
-from sqlalchemy import or_, and_
-from app import db
-from app.models.user import User
-from app.utils.api_response import APIResponse
-from app.utils.decorators import admin_required, view_required, create_required, update_required, delete_required
-from app.utils.structlog_config import log_info, log_error
-
-
-users_bp = Blueprint("users", __name__)
-
-
+### 4.1 蓝图与模板渲染
+```30:55:app/routes/users.py
 @users_bp.route("/")
 @login_required
 @view_required
 def index() -> str:
-    """用户管理首页"""
-    try:
-        return render_template("users/management.html")
-    except Exception as e:
-        log_error(f"加载用户管理页面失败: {str(e)}", module="users")
-        return render_template("users/management.html", error="页面加载失败")
-
-
-@users_bp.route("/api/users")
-@login_required
-@view_required
-def api_get_users() -> tuple[dict, int]:
-    """获取用户列表API"""
-    try:
-        # 获取查询参数
-        page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("per_page", 10, type=int)
-        search = request.args.get("search", "").strip()
-        role = request.args.get("role", "").strip()
-        status = request.args.get("status", "").strip()
-        
-        # 构建查询
-        query = User.query
-        
-        # 应用过滤条件
-        filters = []
-        
-        if search:
-            filters.append(User.username.ilike(f"%{search}%"))
-        
-        if role:
-            filters.append(User.role == role)
-        
-        if status:
-            if status == "active":
-                filters.append(User.is_active == True)
-            elif status == "inactive":
-                filters.append(User.is_active == False)
-        
-        if filters:
-            query = query.filter(and_(*filters))
-        
-        # 排序和分页
-        query = query.order_by(User.created_at.desc())
-        pagination = query.paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False
-        )
-        
-        # 转换为字典格式
-        users = [user.to_dict() for user in pagination.items]
-        
-        # 记录查询日志
-        log_info(
-            "用户列表查询",
-            module="users",
-            user_id=current_user.id,
-            query_params={
-                "search": search,
-                "role": role,
-                "status": status,
-                "page": page,
-                "per_page": per_page
-            },
-            result_count=len(users)
-        )
-        
-        return APIResponse.success({
-            "users": users,
-            "pagination": {
-                "page": pagination.page,
-                "per_page": pagination.per_page,
-                "total": pagination.total,
-                "pages": pagination.pages,
-                "has_prev": pagination.has_prev,
-                "has_next": pagination.has_next,
-                "prev_num": pagination.prev_num,
-                "next_num": pagination.next_num,
-            }
-        })
-        
-    except Exception as e:
-        log_error(f"获取用户列表失败: {str(e)}", module="users")
-        return APIResponse.error(f"获取用户列表失败: {str(e)}"), 500
-
-
-@users_bp.route("/api/users/<int:user_id>")
-@login_required
-@view_required
-def api_get_user(user_id: int) -> tuple[dict, int]:
-    """获取用户详情API"""
-    try:
-        user = User.query.get_or_404(user_id)
-        
-        return APIResponse.success(user.to_dict())
-        
-    except Exception as e:
-        log_error(f"获取用户详情失败: {str(e)}", module="users")
-        return APIResponse.error(f"获取用户详情失败: {str(e)}"), 500
-
-
-@users_bp.route("/api/users", methods=["POST"])
-@login_required
-@create_required
-def api_create_user() -> tuple[dict, int]:
-    """创建用户API"""
-    try:
-        data = request.get_json()
-        
-        # 验证必填字段
-        required_fields = ["username", "password", "role"]
-        for field in required_fields:
-            if not data.get(field):
-                return APIResponse.error(f"缺少必填字段: {field}"), 400
-        
-        username = data["username"].strip()
-        password = data["password"]
-        role = data["role"]
-        is_active = data.get("is_active", True)
-        
-        # 验证用户名格式
-        if not re.match(r"^[a-zA-Z0-9_]{3,20}$", username):
-            return APIResponse.error("用户名只能包含字母、数字和下划线，长度3-20位"), 400
-        
-        # 检查用户名是否已存在
-        if User.query.filter_by(username=username).first():
-            return APIResponse.error("用户名已存在"), 400
-        
-        # 验证角色
-        if role not in ["admin", "user"]:
-            return APIResponse.error("角色只能是admin或user"), 400
-        
-        # 创建用户
-        user = User(username=username, password=password, role=role)
-        user.is_active = is_active
-        db.session.add(user)
-        db.session.commit()
-        
-        # 记录操作日志
-        log_info(
-            "创建用户",
-            module="users",
-            user_id=current_user.id,
-            created_user_id=user.id,
-            created_username=user.username,
-            created_role=user.role,
-            is_active=user.is_active,
-        )
-        
-        return APIResponse.success({
-            "message": "用户创建成功",
-            "user": user.to_dict()
-        })
-        
-    except ValueError as e:
-        return APIResponse.error(str(e)), 400
-    except Exception as e:
-        db.session.rollback()
-        log_error(f"创建用户失败: {str(e)}", module="users")
-        return APIResponse.error(f"创建用户失败: {str(e)}"), 500
-
-
-@users_bp.route("/api/users/<int:user_id>", methods=["PUT"])
-@login_required
-@update_required
-def api_update_user(user_id: int) -> tuple[dict, int]:
-    """更新用户API"""
-    try:
-        user = User.query.get_or_404(user_id)
-        data = request.get_json()
-        
-        # 更新用户名
-        if "username" in data:
-            username = data["username"].strip()
-            if not re.match(r"^[a-zA-Z0-9_]{3,20}$", username):
-                return APIResponse.error("用户名只能包含字母、数字和下划线，长度3-20位"), 400
-            
-            # 检查用户名是否已被其他用户使用
-            existing_user = User.query.filter(User.username == username, User.id != user_id).first()
-            if existing_user:
-                return APIResponse.error("用户名已被其他用户使用"), 400
-            
-            user.username = username
-        
-        # 更新角色
-        if "role" in data:
-            role = data["role"]
-            if role not in ["admin", "user"]:
-                return APIResponse.error("角色只能是admin或user"), 400
-            user.role = role
-        
-        # 更新密码
-        if "password" in data and data["password"]:
-            user.set_password(data["password"])
-        
-        # 更新状态
-        if "is_active" in data:
-            user.is_active = data["is_active"]
-        
-        db.session.commit()
-        
-        # 记录操作日志
-        log_info(
-            "更新用户",
-            module="users",
-            user_id=current_user.id,
-            updated_user_id=user.id,
-            updated_username=user.username,
-            changes=data
-        )
-        
-        return APIResponse.success({
-            "message": "用户更新成功",
-            "user": user.to_dict()
-        })
-        
-    except ValueError as e:
-        return APIResponse.error(str(e)), 400
-    except Exception as e:
-        db.session.rollback()
-        log_error(f"更新用户失败: {str(e)}", module="users")
-        return APIResponse.error(f"更新用户失败: {str(e)}"), 500
-
-
-@users_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
-@login_required
-@delete_required
-def api_delete_user(user_id: int) -> tuple[dict, int]:
-    """删除用户API"""
-    try:
-        user = User.query.get_or_404(user_id)
-        
-        # 不能删除自己
-        if user.id == current_user.id:
-            return APIResponse.error("不能删除自己的账户"), 400
-        
-        username = user.username
-        db.session.delete(user)
-        db.session.commit()
-        
-        # 记录操作日志
-        log_info(
-            "删除用户",
-            module="users",
-            user_id=current_user.id,
-            deleted_user_id=user_id,
-            deleted_username=username
-        )
-        
-        return APIResponse.success({"message": "用户删除成功"})
-        
-    except Exception as e:
-        db.session.rollback()
-        log_error(f"删除用户失败: {str(e)}", module="users")
-        return APIResponse.error(f"删除用户失败: {str(e)}"), 500
-
-
-@users_bp.route("/api/users/<int:user_id>/toggle-status", methods=["POST"])
-@login_required
-@update_required
-def api_toggle_user_status(user_id: int) -> tuple[dict, int]:
-    """切换用户状态API"""
-    try:
-        user = User.query.get_or_404(user_id)
-        
-        # 不能禁用自己
-        if user.id == current_user.id:
-            return APIResponse.error("不能禁用自己的账户"), 400
-        
-        user.is_active = not user.is_active
-        db.session.commit()
-        
-        status_text = "启用" if user.is_active else "禁用"
-        
-        # 记录操作日志
-        log_info(
-            f"{status_text}用户",
-            module="users",
-            user_id=current_user.id,
-            target_user_id=user_id,
-            target_username=user.username,
-            new_status=user.is_active
-        )
-        
-        return APIResponse.success({
-            "message": f"用户{status_text}成功",
-            "user": user.to_dict()
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        log_error(f"切换用户状态失败: {str(e)}", module="users")
-        return APIResponse.error(f"切换用户状态失败: {str(e)}"), 500
+    # 分页查询并渲染 management.html
 ```
 
-## 5. 权限控制
+### 4.2 API 详情
+- **用户列表**：`/users/api/users` (`GET`) → 57-114 行，支持搜索、角色、状态筛选，返回分页数据。
+- **单个用户**：`/users/api/users/<id>` (`GET`) → 116-130 行。
+- **创建用户**：`POST /users/api/users` → 132-207 行，校验必填字段、用户名正则、角色范围，调用 `User` 构造函数加密密码。
+- **更新用户**：`PUT /users/api/users/<id>` → 209-288 行，处理重名、密码更新、角色与状态修改。
+- **删除用户**：`DELETE /users/api/users/<id>` → 290-349 行，阻止删除自身或最后一个管理员。
+- **切换状态**：`POST /users/api/users/<id>/toggle-status` → 351-413 行，确保不会禁用自身或最后一个管理员。
+- **统计数据**：`GET /users/api/users/stats` → 416-438 行。
 
-### 5.1 权限装饰器
-```python
-# app/utils/decorators.py
-from functools import wraps
-from flask import abort
-from flask_login import current_user
+所有接口通过 `APIResponse.success/error` 返回统一 JSON 结构 (`app/utils/api_response.py`)。
 
+### 4.3 日志记录
+- 使用 `log_info`、`log_error` (`app/utils/structlog_config.py`) 记录操作。
+  - 创建：178-186 行。
+  - 更新：257-265 行。
+  - 删除：327-335 行。
+  - 状态切换：390-399 行。
 
-def admin_required(f):
-    """需要管理员权限"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin():
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
+## 5. 数据模型 `app/models/user.py`
 
+### 5.1 字段定义
+- `id`、`username`（唯一索引）、`password`、`role`、`created_at`、`last_login`、`is_active`（11-126 行）。
 
-def view_required(f):
-    """需要查看权限"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.has_permission("view"):
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
+### 5.2 密码与权限
+- 构造函数 `__init__` 调用 `set_password`（27-39 行）。
+- `set_password` 强制长度 ≥ 8，包含大小写字母与数字，并使用 bcrypt 加密（40-62 行）。
+- `check_password` 用于登录验证（63-73 行）。
+- `has_permission` 根据角色返回可用操作（84-105 行）。
 
+### 5.3 辅助方法
+- `update_last_login` 更新最后登录时间（107-111 行）。
+- `to_dict` 序列化模型（112-126 行）。
+- `create_admin` 创建默认管理员，密码来源环境变量或随机生成（128-163 行）。
 
-def create_required(f):
-    """需要创建权限"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.has_permission("create"):
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
+## 6. 权限体系
 
+### 6.1 装饰器实现
+- `permission_required` (`app/utils/decorators.py` 419-511 行) 校验登录状态和权限。
+- `view_required`、`create_required`、`update_required`、`delete_required` 分别包装 `permission_required`（546-563 行）。
+- `has_permission` 内部角色 → 权限映射，管理员拥有全部权限（529-543 行）。
 
-def update_required(f):
-    """需要更新权限"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.has_permission("update"):
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
+### 6.2 前端配合
+- 表单校验防止空值；后端再次校验，确保绕过前端也无法违规操作。
 
+## 7. 安全措施
+- **认证**：所有路由使用 `@login_required`，确保用户登录。
+- **授权**：各 API 叠加 `view/create/update/delete` 装饰器确保角色隔离。
+- **CSRF 防护**：前端读取 `meta[name="csrf-token"]`，随请求发送；后端启用 CSRF 校验。
+- **密码强度**：`User.set_password` 强制复杂度，防止弱密码。
+- **风险防护**：禁止删除/禁用自身以及最后一个管理员账户。
+- **日志审计**：所有关键操作写入结构化日志供追踪。
 
-def delete_required(f):
-    """需要删除权限"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.has_permission("delete"):
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
-```
+## 8. 性能与扩展
+- 列表查询使用 `paginate` 避免一次性加载所有数据。
+- 搜索、筛选在数据库层完成，可按需扩展更多过滤条件。
+- `exportUsers` 函数预留导出能力，可接入后端生成导出文件。
 
-## 6. 安全考虑
+## 9. 测试建议
+- 单元测试：验证创建/更新/删除/状态切换各分支，尤其是权限、异常路径。
+- 接口测试：确保所有 API 返回统一结构与 HTTP 状态码。
+- 前端 E2E：覆盖模态框交互、表单校验、提示信息和 CSRF 令牌使用。
 
-### 6.1 密码安全
-- 使用bcrypt加密存储密码
-- 强制密码复杂度要求
-- 密码强度验证
+## 10. 配置与部署
+- 在应用工厂 `create_app` 注册蓝图：`app.register_blueprint(users_bp, url_prefix="/users")`。
+- `base.html` 需包含 CSRF meta 标签供前端读取。
+- 管理员初始密码通过环境变量 `DEFAULT_ADMIN_PASSWORD` 设置。
+- 依赖包参见 `requirements.txt`（Flask、Flask-Login、Flask-WTF、SQLAlchemy、bcrypt 等）。
 
-### 6.2 权限安全
-- 基于角色的访问控制
-- 权限装饰器验证
-- 防止权限提升攻击
-
-### 6.3 操作安全
-- 防止删除自己的账户
-- 防止禁用自己的账户
-- 操作审计日志
-
-## 7. 性能优化
-
-### 7.1 查询优化
-- 使用索引优化查询
-- 分页查询减少内存使用
-- 缓存用户信息
-
-### 7.2 前端优化
-- 异步加载用户数据
-- 虚拟滚动处理大量数据
-- 防抖搜索优化
-
----
-
-**注意**: 本文档描述了用户管理功能的完整技术实现，包括用户CRUD操作、权限控制、安全考虑等各个方面。该功能为鲸落系统提供了完整的用户管理能力，确保系统安全性和用户权限的精确控制。
+## 11. 未来优化方向
+- 完善前端状态切换交互（脚本中已提供逻辑，可按需启用 UI 控件）。
+- 增加导出、批量操作能力。
+- 扩展角色与权限管理界面，实现更细粒度访问控制。

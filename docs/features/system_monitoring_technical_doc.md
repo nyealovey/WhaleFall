@@ -2,881 +2,355 @@
 
 ## 1. 功能概述
 
-### 1.1 功能描述
-系统监控功能是鲸落系统的核心运维模块，负责实时监控系统资源使用情况、服务状态、性能指标等关键信息。该模块提供全面的系统健康监控、性能分析和告警通知功能，确保系统稳定运行。
+### 1.1 模块职责
+- 提供系统资源（CPU、内存、磁盘）的实时监控功能。
+- 监控核心服务（数据库、Redis、应用）的健康状态。
+- 提供系统运行时间和性能指标的查看。
+- 集成到仪表板和健康检查接口，支持实时更新和状态展示。
+- 为容器编排系统提供标准的健康检查接口。
 
-### 1.2 主要特性
-- **资源监控**：CPU、内存、磁盘使用率监控
-- **服务监控**：数据库、Redis、应用服务状态监控
-- **性能监控**：响应时间、吞吐量、并发数监控
-- **实时告警**：资源超阈值自动告警
-- **历史数据**：监控数据历史记录和趋势分析
-- **可视化展示**：丰富的图表和仪表板展示
-- **健康检查**：系统健康状态自动检查
-- **自定义监控**：支持自定义监控指标
+### 1.2 代码定位
+- **健康检查路由**：`app/routes/health.py`
+- **仪表板系统状态**：`app/routes/dashboard.py`（419-486行）
+- **前端仪表板**：`app/templates/dashboard/overview.html`（158-247行）
+- **前端监控脚本**：`app/static/js/pages/dashboard/overview.js`（138-222行）
 
-### 1.3 技术特点
-- 基于psutil的系统资源监控
-- 实时数据采集和存储
-- 多维度性能分析
-- 智能告警机制
-- 可视化图表展示
+## 2. 架构设计
 
-## 2. 技术架构
-
-### 2.1 整体架构
+### 2.1 模块关系
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   数据采集层    │    │   数据处理层    │    │   展示层        │
-│                 │    │                 │    │                 │
-│ - 系统资源      │◄──►│ - 数据聚合      │◄──►│ - 监控仪表板    │
-│ - 服务状态      │    │ - 告警分析      │    │ - 图表展示      │
-│ - 性能指标      │    │ - 数据存储      │    │ - 告警通知      │
-│ - 自定义指标    │    │ - 趋势分析      │    │ - 报告生成      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-### 2.2 核心组件
-- **监控采集器**：实时采集系统指标
-- **数据处理引擎**：数据聚合和分析
-- **告警引擎**：智能告警和通知
-- **可视化引擎**：图表和仪表板展示
-
-## 3. 前端实现
-
-### 3.1 页面结构
-- **主页面**：`app/templates/monitoring/dashboard.html`
-- **样式文件**：`app/static/css/pages/monitoring/dashboard.css`
-- **脚本文件**：`app/static/js/pages/monitoring/dashboard.js`
-
-### 3.2 核心组件
-
-#### 3.2.1 系统概览组件
-```html
-<!-- 系统监控仪表板 -->
-<div class="container-fluid">
-    <div class="row">
-        <!-- 系统状态卡片 -->
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title" id="cpu-usage">0%</h4>
-                            <p class="card-text">CPU使用率</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-microchip fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title" id="memory-usage">0%</h4>
-                            <p class="card-text">内存使用率</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-memory fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title" id="disk-usage">0%</h4>
-                            <p class="card-text">磁盘使用率</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-hdd fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title" id="uptime">0天</h4>
-                            <p class="card-text">系统运行时间</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-clock fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 服务状态监控 -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-server me-2"></i>服务状态监控
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center mb-3">
-                                <span class="status-indicator" id="db-indicator"></span>
-                                <div class="ms-3">
-                                    <h6 class="mb-0">数据库</h6>
-                                    <small class="text-muted" id="db-status">检查中...</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center mb-3">
-                                <span class="status-indicator" id="redis-indicator"></span>
-                                <div class="ms-3">
-                                    <h6 class="mb-0">Redis缓存</h6>
-                                    <small class="text-muted" id="redis-status">检查中...</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center mb-3">
-                                <span class="status-indicator" id="app-indicator"></span>
-                                <div class="ms-3">
-                                    <h6 class="mb-0">应用服务</h6>
-                                    <small class="text-muted" id="app-status">运行中</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 性能图表 -->
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-line me-2"></i>CPU使用率趋势
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="cpu-chart" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-area me-2"></i>内存使用率趋势
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="memory-chart" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+┌─────────────────────────────────┐
+│ 前端监控界面                    │
+│  - 仪表板系统状态卡片           │
+│  - 资源使用率进度条             │
+│  - 服务状态指示器               │
+│  - 自动刷新机制                 │
+└───────▲───────────┬─────────────┘
+        │AJAX        │
+┌───────┴───────────▼─────────────┐
+│ Flask 路由层                    │
+│  - /dashboard/api/status        │
+│  - /health/                     │
+│  - /health/detailed            │
+│  - /health/readiness           │
+└───────▲───────────┬─────────────┘
+        │系统调用    │
+┌───────┴───────────▼─────────────┐
+│ 系统监控服务                    │
+│  - psutil 系统资源监控          │
+│  - 数据库连接检查               │
+│  - Redis 连接检查               │
+│  - 应用运行时间计算             │
+└─────────────────────────────────┘
 ```
 
-### 3.3 JavaScript实现
+### 2.2 权限控制
+- 健康检查接口无需认证，用于系统状态监控。
+- 仪表板系统状态需要登录验证 `@login_required`。
 
-#### 3.3.1 监控数据管理器
-```javascript
-// 系统监控数据管理器
-class SystemMonitoringManager {
-    constructor() {
-        this.refreshInterval = 5000; // 5秒刷新一次
-        this.chartData = {
-            cpu: [],
-            memory: [],
-            disk: []
-        };
-        this.maxDataPoints = 20; // 最多显示20个数据点
-        this.charts = {};
-        
-        this.init();
+## 3. 健康检查路由实现（`health.py`）
+
+### 3.1 基础健康检查
+- `GET /health/`（20-30）：
+  - 返回基本的服务状态和版本信息。
+  - 包含时间戳和版本号（1.0.7）。
+  - 无需认证，供外部监控系统调用。
+
+- `GET /health/` (空路径)（33-44）：
+  - 兼容Nginx配置的根路由健康检查。
+  - 功能与上述基础检查相同。
+
+### 3.2 详细健康检查
+- `GET /health/detailed`（47-90）：
+  - 综合检查数据库、缓存、系统资源的健康状态。
+  - 调用 `check_database_health()`、`check_cache_health()`、`check_system_health()`。
+  - 返回详细的组件状态信息。
+  - 根据所有组件状态确定总体健康状态。
+
+### 3.3 数据库健康检查
+- `check_database_health()`（93-109）：
+  - 执行简单的 `SELECT 1` 查询测试数据库连接。
+  - 计算数据库响应时间（毫秒）。
+  - 返回连接状态和响应时间信息。
+
+### 3.4 缓存健康检查
+- `check_cache_health()`（112-128）：
+  - 使用 `cache.set()` 和 `cache.get()` 测试缓存功能。
+  - 计算缓存操作响应时间。
+  - 验证缓存读写操作的正确性。
+
+### 3.5 系统资源健康检查
+- `check_system_health()`（131-164）：
+  - 使用 `psutil` 获取CPU、内存、磁盘使用率。
+  - 设定健康阈值：CPU < 90%、内存 < 90%、磁盘 < 90%。
+  - 返回详细的资源使用情况和健康状态。
+
+### 3.6 容器编排支持
+- `GET /health/readiness`（167-169）：
+  - Kubernetes等容器编排系统的就绪检查接口。
+  - 检查服务是否准备好接收流量。
+
+## 4. 仪表板系统状态实现（`dashboard.py`）
+
+### 4.1 系统状态API
+- `get_system_status()`（419-486）：
+  - 使用 `psutil` 获取实时系统资源信息。
+  - 检查数据库连接：执行 `SELECT 1` 查询。
+  - 检查Redis状态：通过 `cache_manager.health_check()`。
+  - 计算应用运行时间：调用 `get_system_uptime()`。
+  - 返回统一格式的系统状态数据。
+
+### 4.2 系统运行时间计算
+- `get_system_uptime()`（489-505）：
+  - 基于应用启动时间 `app_start_time` 计算运行时间。
+  - 使用中国时区时间 `now_china()`。
+  - 格式化为 "X天 X小时 X分钟" 的友好显示格式。
+
+### 4.3 错误处理
+- 系统状态获取失败时返回默认的"未知"状态（474-486）。
+- 包含错误日志记录和异常处理机制。
+
+## 5. 前端监控界面实现
+
+### 5.1 仪表板监控界面（`overview.html`）
+
+#### 5.1.1 系统资源监控卡片（158-213）
+- **CPU使用率**：进度条和百分比显示，按阈值分色（成功/警告/危险）。
+- **内存使用率**：动态计算使用百分比，支持颜色分级显示。
+- **磁盘使用率**：显示磁盘空间使用情况和剩余空间。
+- **阈值分级**：>80%红色（危险）、>60%黄色（警告）、其他绿色（正常）。
+
+#### 5.1.2 服务状态监控（214-238）
+- **数据库状态**：显示连接状态（正常/异常）和状态指示器。
+- **Redis状态**：Redis缓存服务的连接状态。
+- **应用状态**：应用程序运行状态（运行中/停止）。
+- **状态指示器**：彩色圆点表示不同服务的健康状态。
+
+#### 5.1.3 系统运行时间（240-246）
+- 显示系统连续运行时间。
+- 包含时钟图标和友好的时间格式。
+
+### 5.2 前端监控脚本（`overview.js`）
+
+#### 5.2.1 自动刷新机制（138-151）
+- `startAutoRefresh()`：每30秒自动刷新系统状态。
+- 调用 `/dashboard/api/status` 接口获取最新数据。
+- 支持启动和停止自动刷新功能。
+
+#### 5.2.2 状态更新功能（154-169）
+- `updateSystemStatus(status)`：更新整个系统状态显示。
+- 分别更新CPU、内存、磁盘使用率。
+- 更新系统运行时间显示。
+- 显示数据更新通知。
+
+#### 5.2.3 资源使用率更新（172-200）
+- `updateResourceUsage(type, percent)`：更新特定资源的使用率显示。
+- 动态更新进度条宽度和颜色。
+- 更新百分比徽章的数值和样式。
+- 支持CPU、内存、磁盘三种资源类型。
+
+#### 5.2.4 样式控制（203-214）
+- `getResourceBadgeClass(percent)`：根据使用率返回相应的Bootstrap样式类。
+- `getResourceBarClass(percent)`：为进度条返回颜色样式类。
+- 阈值设置：>80% 危险（红色）、>60% 警告（黄色）、其他正常（绿色）。
+
+#### 5.2.5 运行时间更新（217-222）
+- `updateUptime(uptime)`：更新系统运行时间显示。
+- 动态更新DOM元素内容。
+- 保持图标和格式的一致性。
+
+#### 5.2.6 通知机制（225-229）
+- `showDataUpdatedNotification(message)`：显示数据更新通知。
+- 自动移除已存在的通知，避免重复显示。
+- 提供用户友好的更新反馈。
+
+## 6. 监控数据结构
+
+### 6.1 系统状态数据格式
+```json
+{
+  "system": {
+    "cpu": 15.2,
+    "memory": {
+      "used": 8589934592,
+      "total": 17179869184,
+      "percent": 50.0
+    },
+    "disk": {
+      "used": 107374182400,
+      "total": 500107862016,
+      "percent": 21.5
     }
-    
-    init() {
-        this.initCharts();
-        this.startMonitoring();
-        this.bindEvents();
-    }
-    
-    initCharts() {
-        // 初始化CPU图表
-        const cpuCtx = document.getElementById('cpu-chart').getContext('2d');
-        this.charts.cpu = new Chart(cpuCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'CPU使用率 (%)',
-                    data: [],
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
-        
-        // 初始化内存图表
-        const memoryCtx = document.getElementById('memory-chart').getContext('2d');
-        this.charts.memory = new Chart(memoryCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: '内存使用率 (%)',
-                    data: [],
-                    borderColor: 'rgb(255, 99, 132)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
-    }
-    
-    startMonitoring() {
-        // 立即执行一次
-        this.updateSystemStatus();
-        
-        // 定时更新
-        setInterval(() => {
-            this.updateSystemStatus();
-        }, this.refreshInterval);
-    }
-    
-    async updateSystemStatus() {
-        try {
-            const response = await fetch('/api/monitoring/status');
-            const data = await response.json();
-            
-            if (data.success) {
-                this.updateSystemOverview(data.data);
-                this.updateServiceStatus(data.data);
-                this.updateCharts(data.data);
-            } else {
-                this.showError('获取系统状态失败');
-            }
-        } catch (error) {
-            console.error('更新系统状态失败:', error);
-            this.showError('网络错误，请稍后重试');
-        }
-    }
-    
-    updateSystemOverview(data) {
-        // 更新CPU使用率
-        const cpuUsage = data.system.cpu;
-        document.getElementById('cpu-usage').textContent = `${cpuUsage.toFixed(1)}%`;
-        this.updateCardColor('cpu-usage', cpuUsage, 80, 90);
-        
-        // 更新内存使用率
-        const memoryUsage = data.system.memory.percent;
-        document.getElementById('memory-usage').textContent = `${memoryUsage.toFixed(1)}%`;
-        this.updateCardColor('memory-usage', memoryUsage, 80, 90);
-        
-        // 更新磁盘使用率
-        const diskUsage = data.system.disk.percent;
-        document.getElementById('disk-usage').textContent = `${diskUsage.toFixed(1)}%`;
-        this.updateCardColor('disk-usage', diskUsage, 80, 90);
-        
-        // 更新运行时间
-        const uptime = data.uptime;
-        document.getElementById('uptime').textContent = this.formatUptime(uptime);
-    }
-    
-    updateServiceStatus(data) {
-        const services = data.services;
-        
-        // 更新数据库状态
-        this.updateServiceIndicator('db', services.database);
-        
-        // 更新Redis状态
-        this.updateServiceIndicator('redis', services.redis);
-        
-        // 更新应用状态
-        this.updateServiceIndicator('app', services.application);
-    }
-    
-    updateServiceIndicator(serviceName, status) {
-        const indicator = document.getElementById(`${serviceName}-indicator`);
-        const statusText = document.getElementById(`${serviceName}-status`);
-        
-        if (status === 'healthy') {
-            indicator.className = 'status-indicator bg-success';
-            statusText.textContent = '正常';
-        } else if (status === 'warning') {
-            indicator.className = 'status-indicator bg-warning';
-            statusText.textContent = '警告';
-        } else {
-            indicator.className = 'status-indicator bg-danger';
-            statusText.textContent = '异常';
-        }
-    }
-    
-    updateCharts(data) {
-        const now = new Date();
-        const timeLabel = now.toLocaleTimeString();
-        
-        // 更新CPU图表
-        this.updateChart('cpu', timeLabel, data.system.cpu);
-        
-        // 更新内存图表
-        this.updateChart('memory', timeLabel, data.system.memory.percent);
-    }
-    
-    updateChart(chartName, label, value) {
-        const chart = this.charts[chartName];
-        const data = chart.data;
-        
-        // 添加新数据点
-        data.labels.push(label);
-        data.datasets[0].data.push(value);
-        
-        // 保持最大数据点数量
-        if (data.labels.length > this.maxDataPoints) {
-            data.labels.shift();
-            data.datasets[0].data.shift();
-        }
-        
-        // 更新图表
-        chart.update('none');
-    }
-    
-    updateCardColor(elementId, value, warningThreshold, dangerThreshold) {
-        const element = document.getElementById(elementId).closest('.card');
-        
-        // 移除现有颜色类
-        element.classList.remove('bg-success', 'bg-warning', 'bg-danger');
-        
-        // 根据值设置颜色
-        if (value >= dangerThreshold) {
-            element.classList.add('bg-danger');
-        } else if (value >= warningThreshold) {
-            element.classList.add('bg-warning');
-        } else {
-            element.classList.add('bg-success');
-        }
-    }
-    
-    formatUptime(seconds) {
-        const days = Math.floor(seconds / 86400);
-        const hours = Math.floor((seconds % 86400) / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        
-        if (days > 0) {
-            return `${days}天${hours}小时`;
-        } else if (hours > 0) {
-            return `${hours}小时${minutes}分钟`;
-        } else {
-            return `${minutes}分钟`;
-        }
-    }
-    
-    bindEvents() {
-        // 手动刷新按钮
-        document.getElementById('refresh-btn')?.addEventListener('click', () => {
-            this.updateSystemStatus();
-        });
-        
-        // 自动刷新开关
-        document.getElementById('auto-refresh-toggle')?.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                this.startMonitoring();
-            } else {
-                this.stopMonitoring();
-            }
-        });
-    }
-    
-    stopMonitoring() {
-        if (this.monitoringInterval) {
-            clearInterval(this.monitoringInterval);
-            this.monitoringInterval = null;
-        }
-    }
-    
-    showError(message) {
-        // 显示错误消息
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed';
-        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-        alertDiv.innerHTML = `
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        document.body.appendChild(alertDiv);
-        
-        setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
-            }
-        }, 5000);
-    }
+  },
+  "services": {
+    "database": "healthy",
+    "redis": "healthy", 
+    "application": "running"
+  },
+  "uptime": "5天 12小时 30分钟"
 }
-
-// 初始化系统监控管理器
-const systemMonitor = new SystemMonitoringManager();
 ```
 
-## 4. 后端实现
-
-### 4.1 监控服务
-```python
-# app/services/monitoring_service.py
-import psutil
-import time
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
-from app import db
-from app.utils.structlog_config import log_info, log_error
-
-
-class SystemMonitoringService:
-    """系统监控服务"""
-    
-    @staticmethod
-    def get_system_status() -> Dict[str, Any]:
-        """获取系统状态"""
-        try:
-            # 系统资源状态
-            cpu_percent = psutil.cpu_percent(interval=1)
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage("/")
-            
-            # 数据库状态
-            db_status = SystemMonitoringService._check_database_health()
-            
-            # Redis状态
-            redis_status = SystemMonitoringService._check_redis_health()
-            
-            # 应用状态
-            app_status = "running"
-            
-            # 系统运行时间
-            uptime = SystemMonitoringService._get_system_uptime()
-            
-            return {
-                "system": {
-                    "cpu": cpu_percent,
-                    "memory": {
-                        "used": memory.used,
-                        "total": memory.total,
-                        "percent": memory.percent,
-                    },
-                    "disk": {
-                        "used": disk.used,
-                        "total": disk.total,
-                        "percent": (disk.used / disk.total) * 100,
-                    },
-                },
-                "services": {
-                    "database": db_status,
-                    "redis": redis_status,
-                    "application": app_status,
-                },
-                "uptime": uptime,
-            }
-            
-        except Exception as e:
-            log_error(f"获取系统状态失败: {str(e)}", module="monitoring")
-            return {
-                "system": {
-                    "cpu": 0,
-                    "memory": {"used": 0, "total": 0, "percent": 0},
-                    "disk": {"used": 0, "total": 0, "percent": 0},
-                },
-                "services": {
-                    "database": "error",
-                    "redis": "error",
-                    "application": "error",
-                },
-                "uptime": 0,
-            }
-    
-    @staticmethod
-    def _check_database_health() -> str:
-        """检查数据库健康状态"""
-        try:
-            db.session.execute(text("SELECT 1"))
-            return "healthy"
-        except Exception:
-            return "error"
-    
-    @staticmethod
-    def _check_redis_health() -> str:
-        """检查Redis健康状态"""
-        try:
-            from app.services.cache_manager import cache_manager
-            
-            if cache_manager and cache_manager.health_check():
-                return "healthy"
-            else:
-                return "error"
-        except Exception:
-            return "error"
-    
-    @staticmethod
-    def _get_system_uptime() -> int:
-        """获取系统运行时间（秒）"""
-        try:
-            return int(time.time() - psutil.boot_time())
-        except Exception:
-            return 0
-    
-    @staticmethod
-    def get_performance_metrics() -> Dict[str, Any]:
-        """获取性能指标"""
-        try:
-            # CPU使用率历史
-            cpu_percent = psutil.cpu_percent(interval=1, percpu=True)
-            cpu_avg = sum(cpu_percent) / len(cpu_percent)
-            
-            # 内存使用情况
-            memory = psutil.virtual_memory()
-            
-            # 磁盘使用情况
-            disk = psutil.disk_usage("/")
-            
-            # 网络IO
-            network = psutil.net_io_counters()
-            
-            # 进程信息
-            processes = []
-            for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
-                try:
-                    processes.append(proc.info)
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    pass
-            
-            # 按CPU使用率排序
-            processes.sort(key=lambda x: x.get('cpu_percent', 0), reverse=True)
-            
-            return {
-                "cpu": {
-                    "percent": cpu_avg,
-                    "per_cpu": cpu_percent,
-                    "count": psutil.cpu_count(),
-                },
-                "memory": {
-                    "total": memory.total,
-                    "available": memory.available,
-                    "used": memory.used,
-                    "percent": memory.percent,
-                },
-                "disk": {
-                    "total": disk.total,
-                    "used": disk.used,
-                    "free": disk.free,
-                    "percent": (disk.used / disk.total) * 100,
-                },
-                "network": {
-                    "bytes_sent": network.bytes_sent,
-                    "bytes_recv": network.bytes_recv,
-                    "packets_sent": network.packets_sent,
-                    "packets_recv": network.packets_recv,
-                },
-                "processes": processes[:10],  # 前10个进程
-            }
-            
-        except Exception as e:
-            log_error(f"获取性能指标失败: {str(e)}", module="monitoring")
-            return {}
-    
-    @staticmethod
-    def check_alerts() -> List[Dict[str, Any]]:
-        """检查告警条件"""
-        alerts = []
-        
-        try:
-            status = SystemMonitoringService.get_system_status()
-            
-            # CPU使用率告警
-            cpu_percent = status["system"]["cpu"]
-            if cpu_percent > 90:
-                alerts.append({
-                    "type": "cpu",
-                    "level": "critical",
-                    "message": f"CPU使用率过高: {cpu_percent:.1f}%",
-                    "value": cpu_percent,
-                    "threshold": 90,
-                })
-            elif cpu_percent > 80:
-                alerts.append({
-                    "type": "cpu",
-                    "level": "warning",
-                    "message": f"CPU使用率较高: {cpu_percent:.1f}%",
-                    "value": cpu_percent,
-                    "threshold": 80,
-                })
-            
-            # 内存使用率告警
-            memory_percent = status["system"]["memory"]["percent"]
-            if memory_percent > 90:
-                alerts.append({
-                    "type": "memory",
-                    "level": "critical",
-                    "message": f"内存使用率过高: {memory_percent:.1f}%",
-                    "value": memory_percent,
-                    "threshold": 90,
-                })
-            elif memory_percent > 80:
-                alerts.append({
-                    "type": "memory",
-                    "level": "warning",
-                    "message": f"内存使用率较高: {memory_percent:.1f}%",
-                    "value": memory_percent,
-                    "threshold": 80,
-                })
-            
-            # 磁盘使用率告警
-            disk_percent = status["system"]["disk"]["percent"]
-            if disk_percent > 90:
-                alerts.append({
-                    "type": "disk",
-                    "level": "critical",
-                    "message": f"磁盘使用率过高: {disk_percent:.1f}%",
-                    "value": disk_percent,
-                    "threshold": 90,
-                })
-            elif disk_percent > 80:
-                alerts.append({
-                    "type": "disk",
-                    "level": "warning",
-                    "message": f"磁盘使用率较高: {disk_percent:.1f}%",
-                    "value": disk_percent,
-                    "threshold": 80,
-                })
-            
-            # 服务状态告警
-            services = status["services"]
-            for service_name, service_status in services.items():
-                if service_status == "error":
-                    alerts.append({
-                        "type": "service",
-                        "level": "critical",
-                        "message": f"{service_name}服务异常",
-                        "value": service_status,
-                        "threshold": "healthy",
-                    })
-            
-        except Exception as e:
-            log_error(f"检查告警失败: {str(e)}", module="monitoring")
-        
-        return alerts
+### 6.2 健康检查数据格式
+```json
+{
+  "status": "healthy",
+  "timestamp": 1640995200.0,
+  "version": "1.0.7",
+  "components": {
+    "database": {
+      "healthy": true,
+      "response_time_ms": 2.5,
+      "status": "connected"
+    },
+    "cache": {
+      "healthy": true,
+      "response_time_ms": 1.2,
+      "status": "connected"
+    },
+    "system": {
+      "healthy": true,
+      "cpu_percent": 15.2,
+      "memory_percent": 50.0,
+      "disk_percent": 21.5,
+      "status": "healthy"
+    }
+  }
+}
 ```
 
-### 4.2 路由层
-```python
-# app/routes/monitoring.py
-from flask import Blueprint, jsonify, render_template
-from flask_login import login_required, current_user
-from app.services.monitoring_service import SystemMonitoringService
-from app.utils.api_response import APIResponse
-from app.utils.decorators import admin_required
-from app.utils.structlog_config import log_info, log_error
+## 7. 核心技术特性
 
+### 7.1 实时监控
+- **系统资源**：使用 `psutil` 库获取CPU、内存、磁盘的实时使用情况。
+- **服务状态**：通过连接测试验证数据库和Redis的可用性。
+- **响应时间**：测量各服务的响应时间，提供性能指标。
 
-monitoring_bp = Blueprint("monitoring", __name__)
+### 7.2 智能阈值
+- **分级告警**：设置多级阈值（60%、80%、90%）进行颜色分级。
+- **视觉反馈**：使用Bootstrap颜色系统提供直观的状态反馈。
+- **动态更新**：实时更新资源使用率和状态指示器。
 
+### 7.3 容器支持
+- **健康检查**：提供标准的HTTP健康检查接口。
+- **就绪检查**：支持Kubernetes等容器编排系统的就绪检查。
+- **无认证**：健康检查接口无需认证，便于外部监控系统调用。
 
-@monitoring_bp.route("/")
-@login_required
-@admin_required
-def index() -> str:
-    """系统监控首页"""
-    try:
-        return render_template("monitoring/dashboard.html")
-    except Exception as e:
-        log_error(f"加载监控页面失败: {str(e)}", module="monitoring")
-        return render_template("monitoring/dashboard.html", error="页面加载失败")
+### 7.4 用户体验
+- **自动刷新**：30秒间隔自动更新监控数据。
+- **实时通知**：数据更新时提供用户通知。
+- **响应式设计**：适配不同屏幕尺寸的监控界面。
 
+## 8. 性能优化
 
-@monitoring_bp.route("/api/status")
-@login_required
-@admin_required
-def api_system_status() -> tuple[dict, int]:
-    """获取系统状态API"""
-    try:
-        status = SystemMonitoringService.get_system_status()
-        
-        return APIResponse.success(status)
-        
-    except Exception as e:
-        log_error(f"获取系统状态失败: {str(e)}", module="monitoring")
-        return APIResponse.error(f"获取系统状态失败: {str(e)}"), 500
+### 8.1 数据采集优化
+- **缓存机制**：避免频繁的系统资源查询。
+- **异步更新**：前端使用AJAX异步获取数据，不阻塞界面。
+- **合理间隔**：30秒刷新间隔平衡实时性和性能。
 
+### 8.2 前端优化
+- **DOM操作优化**：只更新变化的元素，减少重绘。
+- **内存管理**：自动清理旧的通知元素，防止内存泄漏。
+- **错误处理**：完善的错误处理机制，提升用户体验。
 
-@monitoring_bp.route("/api/performance")
-@login_required
-@admin_required
-def api_performance_metrics() -> tuple[dict, int]:
-    """获取性能指标API"""
-    try:
-        metrics = SystemMonitoringService.get_performance_metrics()
-        
-        return APIResponse.success(metrics)
-        
-    except Exception as e:
-        log_error(f"获取性能指标失败: {str(e)}", module="monitoring")
-        return APIResponse.error(f"获取性能指标失败: {str(e)}"), 500
+### 8.3 监控轻量化
+- **简单查询**：使用简单的 `SELECT 1` 查询测试数据库连接。
+- **快速检查**：缓存健康检查使用轻量级的读写操作。
+- **最小影响**：监控操作对系统性能影响最小化。
 
+## 9. 错误处理
 
-@monitoring_bp.route("/api/alerts")
-@login_required
-@admin_required
-def api_check_alerts() -> tuple[dict, int]:
-    """检查告警API"""
-    try:
-        alerts = SystemMonitoringService.check_alerts()
-        
-        return APIResponse.success({
-            "alerts": alerts,
-            "count": len(alerts)
-        })
-        
-    except Exception as e:
-        log_error(f"检查告警失败: {str(e)}", module="monitoring")
-        return APIResponse.error(f"检查告警失败: {str(e)}"), 500
-```
+### 9.1 服务层错误处理
+- **异常捕获**：所有监控函数都有完整的异常处理机制。
+- **默认状态**：服务不可用时返回预定义的默认状态。
+- **错误日志**：使用结构化日志记录监控过程中的错误。
 
-## 5. 配置管理
+### 9.2 前端错误处理
+- **网络异常**：AJAX请求失败时显示错误提示。
+- **数据校验**：验证接收到的数据格式和完整性。
+- **降级处理**：监控数据获取失败时显示默认状态。
 
-### 5.1 监控配置
-```yaml
-# app/config/monitoring_config.yaml
-monitoring:
-  # 监控间隔（秒）
-  refresh_interval: 5
-  
-  # 告警阈值
-  thresholds:
-    cpu:
-      warning: 80
-      critical: 90
-    memory:
-      warning: 80
-      critical: 90
-    disk:
-      warning: 80
-      critical: 90
-  
-  # 数据保留
-  retention:
-    days: 30
-    
-  # 告警配置
-  alerts:
-    enabled: true
-    email: true
-    webhook: false
-```
+### 9.3 状态恢复
+- **自动重试**：网络异常时自动重试获取数据。
+- **状态持久化**：保持最后一次成功获取的状态数据。
+- **故障转移**：主要监控源不可用时的备用方案。
 
-### 5.2 环境变量配置
-```bash
-# 监控配置
-MONITORING_ENABLED=true
-MONITORING_REFRESH_INTERVAL=5
-MONITORING_RETENTION_DAYS=30
-ALERT_EMAIL_ENABLED=true
-ALERT_WEBHOOK_URL=
-```
+## 10. 安全考虑
 
-## 6. 性能优化
+### 10.1 访问控制
+- **健康检查**：无认证要求，仅返回基本状态信息。
+- **详细监控**：仪表板访问需要用户登录验证。
+- **敏感信息**：不在监控数据中暴露敏感的系统信息。
 
-### 6.1 数据采集优化
-- 使用异步数据采集
-- 缓存监控数据
-- 批量处理数据更新
+### 10.2 数据安全
+- **信息过滤**：只返回必要的监控指标，避免信息泄露。
+- **错误处理**：异常信息经过过滤，不暴露系统内部细节。
+- **访问限制**：通过Flask路由控制对监控接口的访问。
 
-### 6.2 前端优化
-- 使用WebSocket实时更新
-- 图表数据分页加载
-- 防抖处理频繁更新
+## 11. 扩展性设计
 
-### 6.3 存储优化
-- 使用时序数据库存储历史数据
-- 数据压缩和归档
-- 定期清理过期数据
+### 11.1 监控指标扩展
+- **自定义指标**：可以轻松添加新的系统资源监控指标。
+- **服务扩展**：支持添加新的服务健康检查（如消息队列、外部API等）。
+- **阈值配置**：支持动态配置不同资源的告警阈值。
 
-## 7. 告警机制
+### 11.2 展示方式扩展
+- **图表集成**：可以集成Chart.js等库显示趋势图表。
+- **仪表板定制**：支持用户自定义监控仪表板布局。
+- **移动适配**：响应式设计支持移动设备访问。
 
-### 7.1 告警规则
-- CPU使用率超过阈值
-- 内存使用率超过阈值
-- 磁盘使用率超过阈值
-- 服务状态异常
+### 11.3 集成能力
+- **监控系统**：与Prometheus、Grafana等监控系统集成。
+- **告警通知**：集成邮件、短信、Webhook等告警通知方式。
+- **日志系统**：与集中式日志系统集成，便于问题排查。
 
-### 7.2 告警通知
-- 邮件通知
-- Webhook通知
-- 系统内通知
-- 短信通知（可选）
+## 12. 测试建议
 
-## 8. 扩展功能
+### 12.1 功能测试
+- **资源监控**：验证CPU、内存、磁盘监控数据的准确性。
+- **服务检查**：测试数据库、Redis连接状态检查的可靠性。
+- **界面更新**：验证前端自动刷新和状态更新的正确性。
 
-### 8.1 自定义监控
-- 支持自定义监控指标
-- 自定义告警规则
-- 监控脚本集成
+### 12.2 性能测试
+- **监控开销**：测试监控功能对系统性能的影响。
+- **并发访问**：验证多用户同时访问监控界面的性能。
+- **响应时间**：测试健康检查接口的响应时间。
 
-### 8.2 报告生成
-- 定期监控报告
-- 性能分析报告
-- 趋势分析报告
+### 12.3 异常测试
+- **服务中断**：测试数据库、Redis不可用时的处理。
+- **网络异常**：验证网络中断时的错误处理和恢复。
+- **资源不足**：测试系统资源不足时的监控表现。
 
----
+## 13. 运维指南
 
-**注意**: 本文档描述了系统监控功能的完整技术实现，包括资源监控、服务监控、性能分析、告警机制等各个方面。该功能为鲸落系统提供了全面的监控能力，确保系统稳定运行和及时发现问题。
+### 13.1 监控配置
+- **阈值设置**：根据系统特性调整CPU、内存、磁盘的告警阈值。
+- **刷新间隔**：根据监控需求调整自动刷新的时间间隔。
+- **日志级别**：配置适当的日志级别，便于问题排查。
+
+### 13.2 故障排查
+- **状态异常**：通过详细健康检查接口排查具体问题。
+- **性能问题**：分析资源使用趋势，识别性能瓶颈。
+- **服务中断**：使用监控数据确定服务中断的根本原因。
+
+### 13.3 优化建议
+- **定期检查**：定期查看监控数据，优化系统配置。
+- **历史分析**：分析历史监控数据，预测资源需求。
+- **告警优化**：根据实际情况调整告警策略，减少误报。
+
+## 14. 后续优化方向
+
+### 14.1 功能增强
+- **历史数据**：存储历史监控数据，支持趋势分析。
+- **告警机制**：实现自动告警通知功能。
+- **性能分析**：提供更详细的性能分析和建议。
+
+### 14.2 可视化增强
+- **图表展示**：添加趋势图表和统计图表。
+- **实时图表**：实现实时更新的监控图表。
+- **自定义仪表板**：支持用户自定义监控仪表板。
+
+### 14.3 集成能力
+- **第三方监控**：与Prometheus、Zabbix等监控系统集成。
+- **告警渠道**：集成多种告警通知渠道。
+- **API扩展**：提供更丰富的监控API接口。
