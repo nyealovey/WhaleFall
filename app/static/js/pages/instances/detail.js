@@ -558,7 +558,7 @@ function displayDatabaseSizes(databases, totalSize) {
     const totalSizeGB = (totalSize / 1024).toFixed(3);
     
     // 统计已删除和在线数据库数量
-    const deletedCount = databases.filter(db => db.is_deleted).length;
+    const deletedCount = databases.filter(db => !db.is_active).length;
     const onlineCount = databases.length - deletedCount;
     
     let html = `
@@ -615,7 +615,7 @@ function displayDatabaseSizes(databases, totalSize) {
         const sizeGB = (db.size_mb / 1024).toFixed(3);
         const collectedAt = new Date(db.collected_at).toLocaleString('zh-CN');
         
-        const isDeleted = db.is_deleted || false;
+        const isDeleted = !db.is_active;
         const rowClass = isDeleted ? 'table-secondary' : '';
         const iconClass = isDeleted ? 'text-muted' : 'text-primary';
         const textClass = isDeleted ? 'text-muted' : '';
