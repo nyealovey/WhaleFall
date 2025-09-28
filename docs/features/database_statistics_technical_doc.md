@@ -32,8 +32,8 @@
 - **聚合API**: `/database-sizes/aggregations` (GET, API)
 - **聚合汇总**: `/database-sizes/aggregations/summary` (GET)
 - **今日聚合**: `/database-sizes/aggregate-today` (POST)
-- **分区管理**: `/partition/partitions` (GET)
-- **分区状态**: `/partition/partitions/status` (GET)
+- **分区管理**: `/partition/` (GET)
+- **分区状态**: `/partition/status` (GET)
 - **最新聚合**: `/partition/aggregations/latest` (GET)
 
 #### 核心服务
@@ -889,14 +889,14 @@ async function loadPartitionData() {
         
         // 并行加载分区信息和状态
         const [partitionInfoResponse, partitionStatusResponse] = await Promise.all([
-            fetch('/partition/partitions?api=true', {
+            fetch('/partition/?api=true', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 }
             }),
-            fetch('/partition/partitions/status', {
+            fetch('/partition/status', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
