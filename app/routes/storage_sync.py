@@ -433,36 +433,37 @@ def get_instance_database_sizes(instance_id: int):
             db_name = instance_db.database_name
             stat = stats_by_db.get(db_name)
             
+            # 所有状态信息都从 instance_databases 表获取
+            base_data = {
+                'database_name': db_name,
+                'is_active': instance_db.is_active,
+                'first_seen_date': instance_db.first_seen_date.isoformat(),
+                'last_seen_date': instance_db.last_seen_date.isoformat(),
+                'deleted_at': instance_db.deleted_at.isoformat() if instance_db.deleted_at else None
+            }
+            
             if stat:
-                # 有大小数据
-                data.append({
+                # 有大小数据，添加大小信息
+                base_data.update({
                     'id': stat.id,
-                    'database_name': db_name,
                     'size_mb': stat.size_mb,
                     'data_size_mb': stat.data_size_mb,
                     'log_size_mb': stat.log_size_mb,
                     'collected_date': stat.collected_date.isoformat(),
-                    'collected_at': stat.collected_at.isoformat(),
-                    'is_active': instance_db.is_active,
-                    'first_seen_date': instance_db.first_seen_date.isoformat(),
-                    'last_seen_date': instance_db.last_seen_date.isoformat(),
-                    'deleted_at': instance_db.deleted_at.isoformat() if instance_db.deleted_at else None
+                    'collected_at': stat.collected_at.isoformat()
                 })
             else:
                 # 没有大小数据，显示为0
-                data.append({
+                base_data.update({
                     'id': None,
-                    'database_name': db_name,
                     'size_mb': 0,
                     'data_size_mb': 0,
                     'log_size_mb': 0,
                     'collected_date': None,
-                    'collected_at': None,
-                    'is_active': instance_db.is_active,
-                    'first_seen_date': instance_db.first_seen_date.isoformat(),
-                    'last_seen_date': instance_db.last_seen_date.isoformat(),
-                    'deleted_at': instance_db.deleted_at.isoformat() if instance_db.deleted_at else None
+                    'collected_at': None
                 })
+            
+            data.append(base_data)
         
         # 从 instance_size_stats 表获取总容量信息
         from app.models.instance_size_stat import InstanceSizeStat
