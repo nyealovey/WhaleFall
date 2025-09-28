@@ -158,7 +158,7 @@ default_tasks:
     description: 每日同步所有数据库实例的容量信息
     
   - id: calculate_database_size_aggregations
-    name: 计算统计聚合
+    name: 统计聚合
     function: calculate_database_size_aggregations
     trigger_type: cron
     trigger_params:
@@ -1367,7 +1367,7 @@ default_tasks:
     
   # 数据处理任务
   - id: calculate_database_size_aggregations
-    name: 计算统计聚合
+    name: 统计聚合
     function: calculate_database_size_aggregations
     trigger_type: cron
     trigger_params:

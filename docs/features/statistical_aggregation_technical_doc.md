@@ -693,7 +693,7 @@ def _calculate_aggregations(self, period_type: str, start_date: date, end_date: 
                         db_groups[db_name] = []
                     db_groups[db_name].append(stat)
                 
-                # 为每个数据库计算统计聚合
+                # 为每个数据库统计聚合
                 for db_name, db_stats in db_groups.items():
                     self._calculate_database_aggregation(
                         instance.id, db_name, period_type, 
