@@ -14,11 +14,14 @@ from app import db
 logger = logging.getLogger(__name__)
 
 
-def calculate_database_size_aggregations():
+def calculate_database_size_aggregations(manual_run=False):
     """
     计算数据库大小统计聚合
     每天凌晨4点执行，计算周、月、季度统计
     支持会话管理，可在会话中心查看进度
+    
+    Args:
+        manual_run: 是否手动执行，手动执行时不创建会话
     """
     from app.services.sync_session_service import sync_session_service
     from app.utils.timezone import now
@@ -55,24 +58,34 @@ def calculate_database_size_aggregations():
             instance_count=len(active_instances)
         )
         
-        # 创建同步会话
-        session = sync_session_service.create_session(
-            sync_type="scheduled_task",
-            sync_category="aggregation",
-            created_by=None  # 定时任务没有创建者
-        )
-        
-        sync_logger.info(
-            "创建统计聚合会话",
-            module="aggregation_sync",
-            session_id=session.session_id,
-            instance_count=len(active_instances)
-        )
-        
-        # 添加实例记录
-        instance_ids = [inst.id for inst in active_instances]
-        records = sync_session_service.add_instance_records(session.session_id, instance_ids)
-        session.total_instances = len(active_instances)
+        # 根据执行方式决定是否创建会话
+        if manual_run:
+            # 手动执行时不创建会话，直接执行聚合
+            sync_logger.info(
+                "手动执行统计聚合，跳过会话创建",
+                module="aggregation_sync",
+                instance_count=len(active_instances)
+            )
+            session = None
+        else:
+            # 定时任务执行时创建会话
+            session = sync_session_service.create_session(
+                sync_type="scheduled_task",
+                sync_category="aggregation",
+                created_by=None  # 定时任务没有创建者
+            )
+            
+            sync_logger.info(
+                "创建统计聚合会话",
+                module="aggregation_sync",
+                session_id=session.session_id,
+                instance_count=len(active_instances)
+            )
+            
+            # 添加实例记录
+            instance_ids = [inst.id for inst in active_instances]
+            records = sync_session_service.add_instance_records(session.session_id, instance_ids)
+            session.total_instances = len(active_instances)
         
         total_processed = 0
         total_failed = 0
@@ -112,7 +125,7 @@ def calculate_database_size_aggregations():
                     sync_logger.info(
                         f"{period_type} 周期聚合完成",
                         module="aggregation_sync",
-                        session_id=session.session_id,
+                        session_id=session.session_id if session else None,
                         period_type=period_type,
                         aggregations_created=period_result.get('total_records', 0)
                     )
@@ -120,7 +133,7 @@ def calculate_database_size_aggregations():
                     sync_logger.error(
                         f"{period_type} 周期聚合失败",
                         module="aggregation_sync",
-                        session_id=session.session_id,
+                        session_id=session.session_id if session else None,
                         period_type=period_type,
                         error=period_result.get('error', '未知错误')
                     )
@@ -144,26 +157,27 @@ def calculate_database_size_aggregations():
                 })
                 continue
         
-        # 根据聚合结果更新所有实例记录状态
-        # 如果所有周期都成功，则所有实例标记为成功
-        # 如果有任何周期失败，则所有实例标记为失败
-        all_periods_success = all(
-            result.get('result', {}).get('status') == 'success' 
-            for result in results
-        )
-        
-        for i, instance in enumerate(active_instances):
-            record = records[i] if i < len(records) else None
-            if record:
-                try:
-                    sync_session_service.start_instance_sync(record.id)
-                    
-                    if all_periods_success:
-                        # 所有周期都成功，标记实例为成功
-                        sync_logger.info(
-                            f"实例聚合完成: {instance.name}",
-                            module="aggregation_sync",
-                            session_id=session.session_id,
+        # 根据聚合结果更新所有实例记录状态（仅定时任务执行时）
+        if not manual_run and session:
+            # 如果所有周期都成功，则所有实例标记为成功
+            # 如果有任何周期失败，则所有实例标记为失败
+            all_periods_success = all(
+                result.get('result', {}).get('status') == 'success' 
+                for result in results
+            )
+            
+            for i, instance in enumerate(active_instances):
+                record = records[i] if i < len(records) else None
+                if record:
+                    try:
+                        sync_session_service.start_instance_sync(record.id)
+                        
+                        if all_periods_success:
+                            # 所有周期都成功，标记实例为成功
+                            sync_logger.info(
+                                f"实例聚合完成: {instance.name}",
+                                module="aggregation_sync",
+                                session_id=session.session_id,
                             instance_id=instance.id,
                             instance_name=instance.name
                         )
@@ -215,21 +229,30 @@ def calculate_database_size_aggregations():
                     )
                     total_failed += 1
         
-        # 更新会话状态
-        session.successful_instances = total_processed
-        session.failed_instances = total_failed
-        session.status = "completed" if total_failed == 0 else "failed"
-        session.completed_at = now()
-        db.session.commit()
-        
-        sync_logger.info(
-            "统计聚合任务完成",
-            module="aggregation_sync",
-            session_id=session.session_id,
-            total_processed=total_processed,
-            total_failed=total_failed,
-            total_aggregations=total_aggregations
-        )
+        # 更新会话状态（仅定时任务执行时）
+        if not manual_run and session:
+            session.successful_instances = total_processed
+            session.failed_instances = total_failed
+            session.status = "completed" if total_failed == 0 else "failed"
+            session.completed_at = now()
+            db.session.commit()
+            
+            sync_logger.info(
+                "统计聚合任务完成",
+                module="aggregation_sync",
+                session_id=session.session_id,
+                total_processed=total_processed,
+                total_failed=total_failed,
+                total_aggregations=total_aggregations
+            )
+        else:
+            sync_logger.info(
+                "手动统计聚合任务完成",
+                module="aggregation_sync",
+                total_processed=total_processed,
+                total_failed=total_failed,
+                total_aggregations=total_aggregations
+            )
         
         return {
             'success': True,
@@ -237,7 +260,7 @@ def calculate_database_size_aggregations():
             'aggregations_created': total_aggregations,
             'processed_instances': total_processed,
             'failed_instances': total_failed,
-            'session_id': session.session_id,
+            'session_id': session.session_id if session else None,
             'details': results
         }
         

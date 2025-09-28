@@ -786,7 +786,7 @@ class DatabaseAggregationsManager {
         $('#calculationModal').modal('show');
         
         try {
-            const response = await fetch('/database-sizes/aggregate-today', {
+            const response = await fetch('/aggregations/aggregate-today', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
