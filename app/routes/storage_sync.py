@@ -337,6 +337,7 @@ def get_instance_database_sizes(instance_id: int):
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         database_name = request.args.get('database_name')
+        latest_only = request.args.get('latest_only', 'false').lower() == 'true'
         limit = int(request.args.get('limit', 100))
         offset = int(request.args.get('offset', 0))
         
@@ -362,6 +363,25 @@ def get_instance_database_sizes(instance_id: int):
         
         if database_name:
             query = query.filter(DatabaseSizeStat.database_name.ilike(f'%{database_name}%'))
+        
+        # 如果只需要最新数据，则只返回每个数据库的最新记录
+        if latest_only:
+            from sqlalchemy import func
+            # 子查询：获取每个数据库的最新采集日期
+            latest_dates_subquery = db.session.query(
+                DatabaseSizeStat.database_name,
+                func.max(DatabaseSizeStat.collected_date).label('latest_date')
+            ).filter(
+                DatabaseSizeStat.instance_id == instance_id,
+                DatabaseSizeStat.is_deleted == False
+            ).group_by(DatabaseSizeStat.database_name).subquery()
+            
+            # 主查询：只获取最新日期的数据
+            query = query.join(
+                latest_dates_subquery,
+                (DatabaseSizeStat.database_name == latest_dates_subquery.c.database_name) &
+                (DatabaseSizeStat.collected_date == latest_dates_subquery.c.latest_date)
+            )
         
         # 排序和分页
         query = query.order_by(desc(DatabaseSizeStat.collected_date))
