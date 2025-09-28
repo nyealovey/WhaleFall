@@ -28,7 +28,7 @@ auth_bp = Blueprint("auth", __name__)
 auth_logger = get_auth_logger()
 
 
-@auth_bp.route("/api/login", methods=["GET", "POST"])
+@auth_bp.route("/login", methods=["GET", "POST"])
 def login() -> "str | Response":
     """用户登录页面"""
     if request.method == "POST":
@@ -123,7 +123,7 @@ def login() -> "str | Response":
     return render_template("auth/login.html")
 
 
-@auth_bp.route("/api/logout", methods=["GET", "POST"])
+@auth_bp.route("/logout", methods=["GET", "POST"])
 @login_required
 def logout() -> "Response":
     """用户登出"""
