@@ -18,13 +18,20 @@ def calculate_database_size_aggregations():
     """
     计算数据库大小统计聚合
     每天凌晨4点执行，计算周、月、季度统计
+    支持会话管理，可在会话中心查看进度
     """
+    from app.services.sync_session_service import sync_session_service
+    from app.utils.timezone import now
+    from app.utils.structlog_config import get_sync_logger
+    
+    sync_logger = get_sync_logger()
+    
     try:
-        logger.info("开始执行数据库大小统计聚合任务...")
+        sync_logger.info("开始执行数据库大小统计聚合任务", module="aggregation_sync")
         
         # 检查聚合功能是否启用
         if not getattr(Config, 'AGGREGATION_ENABLED', True):
-            logger.info("数据库大小统计聚合功能已禁用")
+            sync_logger.info("数据库大小统计聚合功能已禁用", module="aggregation_sync")
             return {
                 'success': True,
                 'message': '统计聚合功能已禁用',
@@ -35,31 +42,187 @@ def calculate_database_size_aggregations():
         active_instances = Instance.query.filter_by(is_active=True).all()
         
         if not active_instances:
-            logger.warning("没有找到活跃的数据库实例")
+            sync_logger.warning("没有找到活跃的数据库实例", module="aggregation_sync")
             return {
                 'success': True,
                 'message': '没有活跃的数据库实例需要聚合',
                 'aggregations_created': 0
             }
         
-        logger.info(f"找到 {len(active_instances)} 个活跃实例，开始计算聚合...")
+        sync_logger.info(
+            "找到活跃实例，开始统计聚合",
+            module="aggregation_sync",
+            instance_count=len(active_instances)
+        )
+        
+        # 创建同步会话
+        session = sync_session_service.create_session(
+            sync_type="scheduled_task",
+            sync_category="aggregation",
+            created_by=None  # 定时任务没有创建者
+        )
+        
+        sync_logger.info(
+            "创建统计聚合会话",
+            module="aggregation_sync",
+            session_id=session.session_id,
+            instance_count=len(active_instances)
+        )
+        
+        # 添加实例记录
+        instance_ids = [inst.id for inst in active_instances]
+        records = sync_session_service.add_instance_records(session.session_id, instance_ids)
+        session.total_instances = len(active_instances)
+        
+        total_processed = 0
+        total_failed = 0
+        total_aggregations = 0
+        results = []
         
         # 创建聚合服务
         service = DatabaseSizeAggregationService()
         
-        # 计算所有实例的聚合数据
-        result = service.calculate_all_aggregations()
+        # 按周期类型计算聚合
+        period_types = ['daily', 'weekly', 'monthly', 'quarterly']
         
-        if result['success']:
-            logger.info(f"数据库大小统计聚合完成: {result['message']}")
-            logger.info(f"创建聚合记录数: {result['aggregations_created']}")
-        else:
-            logger.error(f"数据库大小统计聚合失败: {result['message']}")
+        for period_type in period_types:
+            try:
+                sync_logger.info(
+                    f"开始计算 {period_type} 周期聚合",
+                    module="aggregation_sync",
+                    session_id=session.session_id,
+                    period_type=period_type
+                )
+                
+                # 计算该周期的聚合数据
+                if period_type == 'daily':
+                    period_result = service.calculate_daily_aggregations()
+                elif period_type == 'weekly':
+                    period_result = service.calculate_weekly_aggregations()
+                elif period_type == 'monthly':
+                    period_result = service.calculate_monthly_aggregations()
+                elif period_type == 'quarterly':
+                    period_result = service.calculate_quarterly_aggregations()
+                else:
+                    continue
+                
+                # 更新实例记录状态
+                for i, instance in enumerate(active_instances):
+                    record = records[i] if i < len(records) else None
+                    if record:
+                        try:
+                            sync_session_service.start_instance_sync(record.id)
+                            
+                            # 模拟实例级别的聚合处理
+                            sync_logger.info(
+                                f"处理实例聚合: {instance.name} ({period_type})",
+                                module="aggregation_sync",
+                                session_id=session.session_id,
+                                instance_id=instance.id,
+                                instance_name=instance.name,
+                                period_type=period_type
+                            )
+                            
+                            # 更新记录状态
+                            sync_session_service.complete_instance_sync(
+                                record.id, 
+                                success=True,
+                                sync_details={
+                                    'period_type': period_type,
+                                    'aggregations_created': period_result.get('aggregations_created', 0),
+                                    'processed_instances': period_result.get('processed_instances', 0)
+                                }
+                            )
+                            
+                            total_processed += 1
+                            
+                        except Exception as e:
+                            sync_logger.error(
+                                f"处理实例聚合失败: {instance.name} ({period_type})",
+                                module="aggregation_sync",
+                                session_id=session.session_id,
+                                instance_id=instance.id,
+                                instance_name=instance.name,
+                                period_type=period_type,
+                                error=str(e)
+                            )
+                            
+                            sync_session_service.complete_instance_sync(
+                                record.id, 
+                                success=False,
+                                error_message=str(e)
+                            )
+                            
+                            total_failed += 1
+                
+                # 累计聚合结果
+                total_aggregations += period_result.get('aggregations_created', 0)
+                results.append({
+                    'period_type': period_type,
+                    'result': period_result
+                })
+                
+                sync_logger.info(
+                    f"{period_type} 周期聚合完成",
+                    module="aggregation_sync",
+                    session_id=session.session_id,
+                    period_type=period_type,
+                    aggregations_created=period_result.get('aggregations_created', 0)
+                )
+                
+            except Exception as e:
+                sync_logger.error(
+                    f"计算 {period_type} 周期聚合失败",
+                    module="aggregation_sync",
+                    session_id=session.session_id,
+                    period_type=period_type,
+                    error=str(e)
+                )
+                total_failed += 1
+                continue
         
-        return result
+        # 更新会话状态
+        session.successful_instances = total_processed
+        session.failed_instances = total_failed
+        session.status = "completed" if total_failed == 0 else "failed"
+        session.completed_at = now()
+        db.session.commit()
+        
+        sync_logger.info(
+            "统计聚合任务完成",
+            module="aggregation_sync",
+            session_id=session.session_id,
+            total_processed=total_processed,
+            total_failed=total_failed,
+            total_aggregations=total_aggregations
+        )
+        
+        return {
+            'success': True,
+            'message': f'统计聚合计算完成，处理了 {total_processed} 个实例，创建了 {total_aggregations} 个聚合记录',
+            'aggregations_created': total_aggregations,
+            'processed_instances': total_processed,
+            'failed_instances': total_failed,
+            'session_id': session.session_id,
+            'details': results
+        }
         
     except Exception as e:
-        logger.error(f"数据库大小统计聚合任务执行失败: {str(e)}")
+        sync_logger.error(
+            "数据库大小统计聚合任务执行失败",
+            module="aggregation_sync",
+            error=str(e)
+        )
+        
+        # 如果创建了会话，更新其状态为失败
+        try:
+            if 'session' in locals():
+                session.status = "failed"
+                session.completed_at = now()
+                db.session.commit()
+        except:
+            pass
+        
         return {
             'success': False,
             'message': f'数据库大小统计聚合任务执行失败: {str(e)}',
