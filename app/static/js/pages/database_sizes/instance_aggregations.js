@@ -241,10 +241,12 @@ class InstanceAggregationsManager {
      * 更新汇总卡片
      */
     updateSummaryCards(data) {
-        $('#totalInstances').text(data.total_instances || 0);
-        $('#totalDatabases').text(data.total_databases || 0);
-        $('#averageSize').text(this.formatSizeFromMB(data.avg_size_mb || 0));
-        $('#maxSize').text(this.formatSizeFromMB(data.max_size_mb || 0));
+        // 从API响应中提取正确的数据
+        const summaryData = data.data || data;
+        $('#totalInstances').text(summaryData.total_instances || 0);
+        $('#totalDatabases').text(summaryData.total_databases || 0);
+        $('#averageSize').text(this.formatSizeFromMB(summaryData.avg_size_mb || 0));
+        $('#maxSize').text(this.formatSizeFromMB(summaryData.max_size_mb || 0));
     }
     
     /**
@@ -326,7 +328,7 @@ class InstanceAggregationsManager {
                         callbacks: {
                             label: (context) => {
                                 const label = context.dataset.label || '';
-                                const value = this.formatSizeFromMB(context.parsed.y);
+                                const value = `${context.parsed.y.toFixed(2)} GB`;
                                 return `${label}: ${value}`;
                             }
                         }
@@ -344,7 +346,7 @@ class InstanceAggregationsManager {
                         display: true,
                         title: {
                             display: true,
-                            text: '大小 (MB)'
+                            text: '大小 (GB)'
                         },
                         beginAtZero: true
                     }
@@ -411,7 +413,11 @@ class InstanceAggregationsManager {
         
         // 为每个实例创建数据集
         allInstances.forEach(instanceName => {
-            const data = labels.map(date => groupedData[date][instanceName] || 0);
+            // 将MB转换为GB用于图表显示
+            const data = labels.map(date => {
+                const mbValue = groupedData[date][instanceName] || 0;
+                return mbValue / 1024; // 转换为GB
+            });
             
             datasets.push({
                 label: instanceName,
