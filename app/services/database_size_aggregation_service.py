@@ -55,10 +55,10 @@ class DatabaseSizeAggregationService:
             }
             
         except Exception as e:
-            logger.error(f"计算统计聚合数据时出错: {str(e)}")
+            logger.error(f"统计聚合数据时出错: {str(e)}")
             return {
                 'success': False,
-                'message': f'计算统计聚合数据时出错: {str(e)}',
+                'message': f'统计聚合数据时出错: {str(e)}',
                 'error': str(e),
                 'aggregations_created': 0,
                 'processed_instances': 0,
@@ -196,7 +196,7 @@ class DatabaseSizeAggregationService:
                             db_groups[db_name] = []
                         db_groups[db_name].append(stat)
                     
-                    # 为每个数据库计算统计聚合
+                    # 为每个数据库统计聚合
                     for db_name, db_stats in db_groups.items():
                         self._calculate_database_aggregation(
                             instance.id, db_name, period_type, 

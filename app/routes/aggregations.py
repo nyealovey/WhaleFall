@@ -698,7 +698,7 @@ def calculate_aggregations():
         })
         
     except Exception as e:
-        logger.error(f"手动计算统计聚合时出错: {str(e)}")
+        logger.error(f"手动统计聚合时出错: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
 
