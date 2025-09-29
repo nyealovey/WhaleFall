@@ -77,7 +77,7 @@ class TaskType(Enum):
 
 
 class SyncType(Enum):
-    """同步类型枚举"""
+    """同步操作方式枚举"""
 
     MANUAL_SINGLE = "manual_single"  # 手动单台
     MANUAL_BATCH = "manual_batch"  # 手动批量
