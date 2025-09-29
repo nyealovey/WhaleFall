@@ -119,11 +119,34 @@ def collect_database_sizes():
                         continue
                     
                     # 采集数据库大小
-                    collection_result = collector.collect_database_sizes()
+                    try:
+                        databases_data = collector.collect_database_sizes()
+                    except Exception as e:
+                        error_msg = f"采集数据库大小失败: {str(e)}"
+                        sync_logger.error(
+                            error_msg,
+                            module="capacity_sync",
+                            session_id=session.session_id,
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            error=str(e)
+                        )
+                        sync_session_service.fail_instance_sync(record.id, error_msg)
+                        total_failed += 1
+                        results.append({
+                            'instance_id': instance.id,
+                            'instance_name': instance.name,
+                            'success': False,
+                            'error': error_msg
+                        })
+                        continue
                     
-                    if collection_result['success']:
+                    if databases_data and len(databases_data) > 0:
+                        # 计算总大小和数据库数量
+                        database_count = len(databases_data)
+                        total_size_mb = sum(db.get('size_mb', 0) for db in databases_data)
+                        
                         # 更新同步记录 - 容量同步使用数据库数量作为同步数量
-                        database_count = len(collection_result.get('databases', []))
                         sync_session_service.complete_instance_sync(
                             record.id,
                             items_synced=database_count,  # 使用数据库数量作为同步数量
@@ -131,14 +154,14 @@ def collect_database_sizes():
                             items_updated=0,  # 容量同步没有更新概念
                             items_deleted=0,  # 容量同步没有删除概念
                             sync_details={
-                                'total_size_mb': collection_result.get('total_size_mb', 0),
+                                'total_size_mb': total_size_mb,
                                 'database_count': database_count,
-                                'databases': collection_result.get('databases', [])
+                                'databases': databases_data
                             }
                         )
                         
                         total_synced += 1
-                        total_size_mb += collection_result.get('total_size_mb', 0)
+                        total_size_mb += total_size_mb
                         
                         sync_logger.info(
                             f"实例容量同步成功: {instance.name}",
@@ -146,18 +169,18 @@ def collect_database_sizes():
                             session_id=session.session_id,
                             instance_id=instance.id,
                             instance_name=instance.name,
-                            size_mb=collection_result.get('total_size_mb', 0)
+                            size_mb=total_size_mb
                         )
                         
                         results.append({
                             'instance_id': instance.id,
                             'instance_name': instance.name,
                             'success': True,
-                            'size_mb': collection_result.get('total_size_mb', 0),
-                            'databases': collection_result.get('databases', [])
+                            'size_mb': total_size_mb,
+                            'databases': databases_data
                         })
                     else:
-                        error_msg = collection_result.get('message', '采集失败')
+                        error_msg = '未采集到任何数据库大小数据'
                         sync_logger.error(
                             f"实例容量同步失败: {instance.name} - {error_msg}",
                             module="capacity_sync",
@@ -292,8 +315,25 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
             
             try:
                 # 采集数据库大小
-                result = collector.collect_database_sizes()
-                return result
+                databases_data = collector.collect_database_sizes()
+                
+                if databases_data and len(databases_data) > 0:
+                    # 计算总大小和数据库数量
+                    database_count = len(databases_data)
+                    total_size_mb = sum(db.get('size_mb', 0) for db in databases_data)
+                    
+                    return {
+                        'success': True,
+                        'databases': databases_data,
+                        'database_count': database_count,
+                        'total_size_mb': total_size_mb,
+                        'message': f'成功采集 {database_count} 个数据库的大小信息'
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'message': '未采集到任何数据库大小数据'
+                    }
             finally:
                 # 确保关闭连接
                 collector.disconnect()
@@ -340,17 +380,13 @@ def collect_database_sizes_by_type(db_type: str) -> Dict[str, Any]:
             
             logger.info(f"找到 {len(instances)} 个 {db_type} 类型实例")
             
-            # 调用采集服务
-            from app.services.database_size_collector_service import DatabaseSizeCollectorService
-            service = DatabaseSizeCollectorService()
-            
             total_processed = 0
             total_size_mb = 0
             errors = []
             
             for instance in instances:
                 try:
-                    result = service.collect_instance_database_sizes(instance.id)
+                    result = collect_specific_instance_database_sizes(instance.id)
                     if result['success']:
                         total_processed += 1
                         total_size_mb += result.get('total_size_mb', 0)
