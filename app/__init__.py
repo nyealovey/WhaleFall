@@ -364,6 +364,7 @@ def register_blueprints(app: Flask) -> None:
     # 导入蓝图
     from app.routes.account_classification import account_classification_bp
     from app.routes.account import account_bp
+    from app.routes.account_sync import account_sync_bp
     from app.routes.admin import admin_bp
     from app.routes.auth import auth_bp
     from app.routes.cache import cache_bp
@@ -413,6 +414,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(credentials_bp, url_prefix='/credentials')
     app.register_blueprint(account_classification_bp, url_prefix='/account-classification')
     app.register_blueprint(account_bp, url_prefix='/accounts')
+    app.register_blueprint(account_sync_bp, url_prefix='/account-sync')
     app.register_blueprint(tags_bp, url_prefix='/tags')
     app.register_blueprint(logs_bp, url_prefix='/logs')
     app.register_blueprint(admin_bp, url_prefix='/admin')
