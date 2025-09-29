@@ -105,25 +105,30 @@ def get_jobs() -> Response:
                         trigger_args['day_of_week'] = fields.get('day_of_week', '*')
                         trigger_args['year'] = fields.get('year', '') if fields.get('year') is not None else ''
                     elif isinstance(fields, list):
-                        # 如果是列表，解析BaseField对象
+                        # 如果是列表，直接使用字段值
                         system_logger.info(f"fields是列表类型，包含{len(fields)}个字段")
-                        field_dict = {}
-                        for field in fields:
-                            system_logger.info(f"检查字段对象: {field}, 类型: {type(field)}")
-                            system_logger.info(f"字段属性: {dir(field)}")
-                            if hasattr(field, 'name') and hasattr(field, 'value'):
-                                field_dict[field.name] = field.value
-                                system_logger.info(f"字段: {field.name} = {field.value}")
-                            else:
-                                system_logger.warning(f"字段对象没有name或value属性: {field}")
+                        system_logger.info(f"fields值: {fields}")
                         
-                        trigger_args['second'] = field_dict.get('second', '0')
-                        trigger_args['minute'] = field_dict.get('minute', '0')
-                        trigger_args['hour'] = field_dict.get('hour', '0')
-                        trigger_args['day'] = field_dict.get('day', '*')
-                        trigger_args['month'] = field_dict.get('month', '*')
-                        trigger_args['day_of_week'] = field_dict.get('day_of_week', '*')
-                        trigger_args['year'] = field_dict.get('year', '') if field_dict.get('year') is not None else ''
+                        # 根据APScheduler的字段顺序：year, month, day, week, day_of_week, hour, minute, second
+                        if len(fields) >= 8:
+                            trigger_args['year'] = str(fields[0]) if fields[0] is not None else ''
+                            trigger_args['month'] = str(fields[1]) if fields[1] is not None else '*'
+                            trigger_args['day'] = str(fields[2]) if fields[2] is not None else '*'
+                            trigger_args['week'] = str(fields[3]) if fields[3] is not None else '*'
+                            trigger_args['day_of_week'] = str(fields[4]) if fields[4] is not None else '*'
+                            trigger_args['hour'] = str(fields[5]) if fields[5] is not None else '0'
+                            trigger_args['minute'] = str(fields[6]) if fields[6] is not None else '0'
+                            trigger_args['second'] = str(fields[7]) if fields[7] is not None else '0'
+                            system_logger.info(f"解析的字段值: year={trigger_args['year']}, month={trigger_args['month']}, day={trigger_args['day']}, week={trigger_args['week']}, day_of_week={trigger_args['day_of_week']}, hour={trigger_args['hour']}, minute={trigger_args['minute']}, second={trigger_args['second']}")
+                        else:
+                            system_logger.warning(f"fields列表长度不足: {len(fields)}")
+                            trigger_args['second'] = '0'
+                            trigger_args['minute'] = '0'
+                            trigger_args['hour'] = '0'
+                            trigger_args['day'] = '*'
+                            trigger_args['month'] = '*'
+                            trigger_args['day_of_week'] = '*'
+                            trigger_args['year'] = ''
                     else:
                         # 如果既不是字典也不是列表，使用默认值
                         system_logger.warning(f"fields不是字典或列表类型: {type(fields)}")
@@ -154,26 +159,22 @@ def get_jobs() -> Response:
                         if fields.get('year') and fields.get('year') is not None and fields.get('year') != '*':
                             trigger_info['year'] = fields.get('year')
                     elif isinstance(fields, list):
-                        # 如果是列表，使用field_dict来检查
-                        field_dict = {}
-                        for field in fields:
-                            if hasattr(field, 'name') and hasattr(field, 'value'):
-                                field_dict[field.name] = field.value
-                        
-                        if field_dict.get('second') and field_dict.get('second') != '*':
-                            trigger_info['second'] = field_dict.get('second')
-                        if field_dict.get('minute') and field_dict.get('minute') != '*':
-                            trigger_info['minute'] = field_dict.get('minute')
-                        if field_dict.get('hour') and field_dict.get('hour') != '*':
-                            trigger_info['hour'] = field_dict.get('hour')
-                        if field_dict.get('day') and field_dict.get('day') != '*':
-                            trigger_info['day'] = field_dict.get('day')
-                        if field_dict.get('month') and field_dict.get('month') != '*':
-                            trigger_info['month'] = field_dict.get('month')
-                        if field_dict.get('day_of_week') and field_dict.get('day_of_week') != '*':
-                            trigger_info['day_of_week'] = field_dict.get('day_of_week')
-                        if field_dict.get('year') and field_dict.get('year') is not None and field_dict.get('year') != '*':
-                            trigger_info['year'] = field_dict.get('year')
+                        # 如果是列表，直接使用字段值
+                        if len(fields) >= 8:
+                            if str(fields[7]) != '0':  # second
+                                trigger_info['second'] = str(fields[7])
+                            if str(fields[6]) != '0':  # minute
+                                trigger_info['minute'] = str(fields[6])
+                            if str(fields[5]) != '0':  # hour
+                                trigger_info['hour'] = str(fields[5])
+                            if str(fields[2]) != '*':  # day
+                                trigger_info['day'] = str(fields[2])
+                            if str(fields[1]) != '*':  # month
+                                trigger_info['month'] = str(fields[1])
+                            if str(fields[4]) != '*':  # day_of_week
+                                trigger_info['day_of_week'] = str(fields[4])
+                            if str(fields[0]) != '*' and str(fields[0]) != '':  # year
+                                trigger_info['year'] = str(fields[0])
                     
                     # 添加description字段用于显示
                     trigger_args['description'] = f"cron{trigger_info}"
