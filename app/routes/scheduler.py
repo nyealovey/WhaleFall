@@ -70,32 +70,34 @@ def get_jobs() -> Response:
                 
                 # 统一触发器信息显示格式
                 if hasattr(job.trigger, 'second') and 'CronTrigger' in str(type(job.trigger)):
-                    # 对于CronTrigger，只显示非通配符字段
+                    # 对于CronTrigger，包含所有字段用于编辑
                     trigger_info = {}
                     trigger_args = {}
                     
-                    # 只显示非'*'的字段，这样所有任务都会显示简洁的配置
+                    # 包含所有字段，用于编辑时正确显示
+                    trigger_args['second'] = getattr(job.trigger, 'second', '0')
+                    trigger_args['minute'] = getattr(job.trigger, 'minute', '0')
+                    trigger_args['hour'] = getattr(job.trigger, 'hour', '0')
+                    trigger_args['day'] = getattr(job.trigger, 'day', '*')
+                    trigger_args['month'] = getattr(job.trigger, 'month', '*')
+                    trigger_args['day_of_week'] = getattr(job.trigger, 'day_of_week', '*')
+                    trigger_args['year'] = getattr(job.trigger, 'year', '') if getattr(job.trigger, 'year', None) is not None else ''
+                    
+                    # 只显示非通配符的字段用于简洁显示
                     if hasattr(job.trigger, 'second') and job.trigger.second != '*':
                         trigger_info['second'] = job.trigger.second
-                        trigger_args['second'] = job.trigger.second
                     if hasattr(job.trigger, 'minute') and job.trigger.minute != '*':
                         trigger_info['minute'] = job.trigger.minute
-                        trigger_args['minute'] = job.trigger.minute
                     if hasattr(job.trigger, 'hour') and job.trigger.hour != '*':
                         trigger_info['hour'] = job.trigger.hour
-                        trigger_args['hour'] = job.trigger.hour
                     if hasattr(job.trigger, 'day') and job.trigger.day != '*':
                         trigger_info['day'] = job.trigger.day
-                        trigger_args['day'] = job.trigger.day
                     if hasattr(job.trigger, 'month') and job.trigger.month != '*':
                         trigger_info['month'] = job.trigger.month
-                        trigger_args['month'] = job.trigger.month
                     if hasattr(job.trigger, 'day_of_week') and job.trigger.day_of_week != '*':
                         trigger_info['day_of_week'] = job.trigger.day_of_week
-                        trigger_args['day_of_week'] = job.trigger.day_of_week
                     if hasattr(job.trigger, 'year') and job.trigger.year is not None and job.trigger.year != '*':
                         trigger_info['year'] = job.trigger.year
-                        trigger_args['year'] = job.trigger.year
                     
                     # 添加description字段用于显示
                     trigger_args['description'] = f"cron{trigger_info}"
