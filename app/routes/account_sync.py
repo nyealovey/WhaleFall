@@ -21,9 +21,12 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app import db
+from app.constants.sync_constants import SyncOperationType, SyncCategory
 from app.models.instance import Instance
+from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.services.account_sync_service import account_sync_service
+from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import update_required, view_required
 from app.utils.structlog_config import get_api_logger, log_error, log_info, log_warning
 
@@ -45,7 +48,7 @@ def sync_records() -> str | Response:
         date_range = request.args.get("date_range", "all")
 
         # 构建查询 - 使用新的同步会话模型
-        query = SyncSession.query.filter_by(sync_category="account")
+        query = SyncSession.query.filter_by(sync_category=SyncCategory.ACCOUNT.value)
 
         # 同步操作方式过滤
         if sync_type and sync_type != "all":
@@ -80,8 +83,8 @@ def sync_records() -> str | Response:
 
         # 分离需要聚合的记录和单独显示的记录
         # 所有批量操作方式的记录都需要聚合处理
-        batch_records = [r for r in all_records if r.sync_type in ["manual_batch", "manual_task", "scheduled_task"]]
-        manual_records = [r for r in all_records if r.sync_type == "manual_single"]
+        batch_records = [r for r in all_records if r.sync_type in [SyncOperationType.MANUAL_BATCH.value, SyncOperationType.MANUAL_TASK.value, SyncOperationType.SCHEDULED_TASK.value]]
+        manual_records = [r for r in all_records if r.sync_type == SyncOperationType.MANUAL_SINGLE.value]
 
         # 应用状态筛选到聚合记录
         if status and status != "all":
@@ -107,7 +110,7 @@ def sync_records() -> str | Response:
 
         for record in batch_records:
             # 根据同步类型选择分组键
-            if record.sync_type == "manual_batch":
+            if record.sync_type == SyncOperationType.MANUAL_BATCH.value:
                 # manual_batch按session_id分组，同一个批次的所有实例记录聚合
                 time_key = record.session_id
             else:
@@ -368,8 +371,8 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 
         # 创建同步会话
         session = sync_session_service.create_session(
-            sync_type="manual_batch",
-            sync_category="account",
+            sync_type=SyncOperationType.MANUAL_BATCH.value,
+            sync_category=SyncCategory.ACCOUNT.value,
             created_by=current_user.id,
         )
 
@@ -409,7 +412,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 
                 # 使用统一的账户同步服务
                 result = account_sync_service.sync_accounts(
-                    instance, sync_type="manual_batch", session_id=session.session_id
+                    instance, sync_type=SyncOperationType.MANUAL_BATCH.value, session_id=session.session_id
                 )
 
                 if result["success"]:
@@ -670,7 +673,7 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
         )
 
         # 使用数据库服务同步账户
-        result = account_sync_service.sync_accounts(instance, sync_type="manual_single")
+        result = account_sync_service.sync_accounts(instance, sync_type=SyncOperationType.MANUAL_SINGLE.value)
 
         if result["success"]:
             # 增加同步次数计数
