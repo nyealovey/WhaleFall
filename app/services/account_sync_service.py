@@ -43,7 +43,7 @@ class AccountSyncService:
 
         Args:
             instance: 数据库实例
-            sync_type: 同步类型 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
+            sync_type: 同步操作方式 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
             session_id: 同步会话ID（batch类型需要）
             created_by: 创建者ID（手动同步需要）
 
@@ -60,7 +60,7 @@ class AccountSyncService:
                 session_id=session_id,
             )
 
-            # 根据同步类型决定是否需要会话管理
+            # 根据同步操作方式决定是否需要会话管理
             if sync_type == "manual_single":
                 # 单实例同步不需要会话
                 return self._sync_single_instance(instance)
@@ -69,10 +69,10 @@ class AccountSyncService:
                     # 已有会话ID的批量同步
                     return self._sync_with_existing_session(instance, session_id)
                 else:
-                    # 批量同步类型需要会话管理
+                    # 批量同步操作方式需要会话管理
                     return self._sync_with_session(instance, sync_type, created_by)
             else:
-                # 未知同步类型，默认使用单实例同步
+                # 未知同步操作方式，默认使用单实例同步
                 return self._sync_single_instance(instance)
 
         except Exception as e:

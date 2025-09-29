@@ -228,7 +228,7 @@
         <div class="col-md-6"><strong>状态:</strong> <span class="badge bg-${getStatusColor(session.status)}">${getStatusText(session.status)}</span></div>
       </div>
       <div class="row mb-3">
-        <div class="col-md-6"><strong>同步类型:</strong> ${getSyncTypeText(session.sync_type)}</div>
+        <div class="col-md-6"><strong>操作方式:</strong> ${getSyncTypeText(session.sync_type)}</div>
         <div class="col-md-6"><strong>同步分类:</strong> ${getSyncCategoryText(session.sync_category)}</div>
       </div>
       <div class="row mb-3">
@@ -391,7 +391,15 @@
     const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning' };
     return map[status] || 'secondary';
   }
-  window.getSyncTypeText = function(type) { return type; }
+  window.getSyncTypeText = function(type) { 
+    const typeMap = {
+      'manual_single': '手动单台',
+      'manual_batch': '手动批量',
+      'manual_task': '手动任务',
+      'scheduled_task': '定时任务'
+    };
+    return typeMap[type] || type; 
+  }
   window.getSyncCategoryText = function(category) { 
     const categoryMap = {
       'account': '账户同步',

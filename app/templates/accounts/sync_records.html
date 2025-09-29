@@ -109,19 +109,19 @@
                             <td>
                                 {% if record.sync_type == 'manual_single' %}
                                 <span class="badge bg-info">
-                                    <i class="fas fa-hand-pointer me-1"></i>MANUAL_SINGLE
+                                    <i class="fas fa-hand-pointer me-1"></i>手动单台
                                 </span>
                                 {% elif record.sync_type == 'manual_batch' %}
                                 <span class="badge bg-primary">
-                                    <i class="fas fa-tasks me-1"></i>MANUAL_BATCH
+                                    <i class="fas fa-tasks me-1"></i>手动批量
                                 </span>
                                 {% elif record.sync_type == 'manual_task' %}
                                 <span class="badge bg-warning">
-                                    <i class="fas fa-play me-1"></i>MANUAL_TASK
+                                    <i class="fas fa-play me-1"></i>手动任务
                                 </span>
                                 {% elif record.sync_type == 'scheduled_task' %}
                                 <span class="badge bg-success">
-                                    <i class="fas fa-clock me-1"></i>SCHEDULED_TASK
+                                    <i class="fas fa-clock me-1"></i>定时任务
                                 </span>
                                 {% elif '+' in record.sync_type %}
                                 <span class="badge bg-success">
