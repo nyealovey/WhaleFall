@@ -54,9 +54,33 @@
                 </div>
             </div>
 
-            <!-- 任务容器 -->
-            <div id="jobsContainer" class="row">
-                <!-- 任务卡片将在这里动态生成 -->
+            <!-- 进行中的任务 -->
+            <div id="activeJobsSection" class="mb-4">
+                <div class="d-flex align-items-center mb-3">
+                    <h5 class="mb-0 me-3">
+                        <i class="fas fa-play-circle text-success me-2"></i>进行中的任务
+                    </h5>
+                    <span id="activeJobsCount" class="badge bg-success">0</span>
+                </div>
+                <div id="activeJobsContainer" class="row">
+                    <!-- 进行中的任务卡片将在这里动态生成 -->
+                </div>
+            </div>
+
+            <!-- 分割线 -->
+            <div class="border-top my-4"></div>
+
+            <!-- 已暂停的任务 -->
+            <div id="pausedJobsSection" class="mb-4">
+                <div class="d-flex align-items-center mb-3">
+                    <h5 class="mb-0 me-3">
+                        <i class="fas fa-pause-circle text-warning me-2"></i>已暂停的任务
+                    </h5>
+                    <span id="pausedJobsCount" class="badge bg-warning">0</span>
+                </div>
+                <div id="pausedJobsContainer" class="row">
+                    <!-- 已暂停的任务卡片将在这里动态生成 -->
+                </div>
             </div>
         </div>
     </div>
