@@ -140,20 +140,143 @@ class SyncInstanceRecord(db.Model):
             "items_deleted": self.items_deleted,
             "has_error": bool(self.error_message),
             "error_message": self.error_message,
+            "is_successful": self.is_successful(),
+            "is_failed": self.is_failed(),
+            "failure_reason": self.get_failure_reason(),
+            "quality_score": self.get_sync_quality_score(),
+            "sync_category_display": self.get_sync_category_display(),
         }
     
     def is_successful(self) -> bool:
         """判断同步是否成功"""
-        return self.status == "completed" and not self.error_message
+        if self.status != "completed" or self.error_message:
+            return False
+        
+        # 根据同步分类判断是否有实际数据
+        return self._has_meaningful_data()
     
     def is_failed(self) -> bool:
         """判断同步是否失败"""
-        return self.status == "failed" or bool(self.error_message)
+        return self.status == "failed" or bool(self.error_message) or not self._has_meaningful_data()
+    
+    def _has_meaningful_data(self) -> bool:
+        """根据同步分类判断是否有有意义的数据"""
+        if self.sync_category == "account":
+            # 账户同步：至少要有同步的账户数据
+            return self.items_synced > 0
+        elif self.sync_category == "capacity":
+            # 容量同步：至少要有容量数据
+            return self.items_synced > 0 and self._has_capacity_data()
+        elif self.sync_category == "aggregation":
+            # 聚合统计：至少要有聚合数据
+            return self.items_synced > 0 and self._has_aggregation_data()
+        elif self.sync_category == "config":
+            # 配置同步：至少要有配置数据
+            return self.items_synced > 0
+        else:
+            # 其他类型：至少要有同步的项目
+            return self.items_synced > 0
+    
+    def _has_capacity_data(self) -> bool:
+        """检查是否有容量数据"""
+        if not self.sync_details:
+            return False
+        
+        # 检查sync_details中是否包含容量相关信息
+        capacity_indicators = [
+            'total_size_mb', 'database_count', 'avg_size_mb', 
+            'max_size_mb', 'min_size_mb', 'capacity_data'
+        ]
+        
+        return any(
+            key in self.sync_details and self.sync_details[key] is not None
+            for key in capacity_indicators
+        )
+    
+    def _has_aggregation_data(self) -> bool:
+        """检查是否有聚合数据"""
+        if not self.sync_details:
+            return False
+        
+        # 检查sync_details中是否包含聚合相关信息
+        aggregation_indicators = [
+            'aggregation_count', 'period_type', 'calculated_at',
+            'aggregation_data', 'statistics_generated'
+        ]
+        
+        return any(
+            key in self.sync_details and self.sync_details[key] is not None
+            for key in aggregation_indicators
+        )
     
     def get_sync_category_display(self) -> str:
         """获取同步分类的显示名称"""
         from app.utils.sync_utils import SyncUtils
         return SyncUtils.get_category_display(self.sync_category)
+    
+    def get_failure_reason(self) -> str | None:
+        """获取失败原因"""
+        if self.error_message:
+            return self.error_message
+        
+        if self.status == "failed":
+            return "同步状态标记为失败"
+        
+        if not self._has_meaningful_data():
+            return self._get_no_data_reason()
+        
+        return None
+    
+    def _get_no_data_reason(self) -> str:
+        """获取无数据的原因"""
+        if self.sync_category == "account":
+            return f"账户同步失败：未同步到任何账户数据 (items_synced={self.items_synced})"
+        elif self.sync_category == "capacity":
+            if self.items_synced == 0:
+                return f"容量同步失败：未同步到任何容量数据 (items_synced={self.items_synced})"
+            else:
+                return "容量同步失败：未检测到有效的容量数据"
+        elif self.sync_category == "aggregation":
+            if self.items_synced == 0:
+                return f"聚合统计失败：未生成任何聚合数据 (items_synced={self.items_synced})"
+            else:
+                return "聚合统计失败：未检测到有效的聚合数据"
+        elif self.sync_category == "config":
+            return f"配置同步失败：未同步到任何配置数据 (items_synced={self.items_synced})"
+        else:
+            return f"同步失败：未同步到任何数据 (items_synced={self.items_synced})"
+    
+    def get_sync_quality_score(self) -> float:
+        """获取同步质量评分 (0-100)"""
+        if self.is_failed():
+            return 0.0
+        
+        if not self.is_successful():
+            return 0.0
+        
+        # 基础分数
+        score = 60.0
+        
+        # 根据同步分类加分
+        if self.sync_category == "account":
+            # 账户同步：根据同步数量加分
+            if self.items_synced > 0:
+                score += min(30, self.items_synced / 10)  # 最多加30分
+        elif self.sync_category == "capacity":
+            # 容量同步：根据数据完整性加分
+            if self._has_capacity_data():
+                score += 30
+        elif self.sync_category == "aggregation":
+            # 聚合统计：根据数据完整性加分
+            if self._has_aggregation_data():
+                score += 30
+        
+        # 根据执行时间加分（越快越好）
+        duration = self.get_duration_seconds()
+        if duration and duration < 60:  # 1分钟内完成
+            score += 10
+        
+        return min(100.0, score)
 
     @staticmethod
     def get_records_by_session(session_id: str) -> list["SyncInstanceRecord"]:
@@ -198,16 +321,57 @@ class SyncInstanceRecord(db.Model):
     
     @staticmethod
     def get_successful_records(limit: int = 50) -> list["SyncInstanceRecord"]:
-        """获取成功的同步记录"""
-        return (
+        """获取成功的同步记录（使用新的成功判断逻辑）"""
+        all_records = (
             SyncInstanceRecord.query.filter(
                 SyncInstanceRecord.status == "completed",
                 SyncInstanceRecord.error_message.is_(None)
             )
             .order_by(SyncInstanceRecord.created_at.desc())
-            .limit(limit)
+            .limit(limit * 2)  # 多查询一些，因为要过滤
             .all()
         )
+        
+        # 使用新的成功判断逻辑过滤
+        successful_records = [r for r in all_records if r.is_successful()]
+        return successful_records[:limit]
+    
+    @staticmethod
+    def get_failure_statistics() -> dict[str, any]:
+        """获取失败统计信息"""
+        from sqlalchemy import func
+        
+        # 查询所有记录
+        all_records = SyncInstanceRecord.query.all()
+        
+        total_count = len(all_records)
+        failed_count = sum(1 for r in all_records if r.is_failed())
+        successful_count = sum(1 for r in all_records if r.is_successful())
+        
+        # 按分类统计失败原因
+        failure_reasons = {}
+        for record in all_records:
+            if record.is_failed():
+                reason = record.get_failure_reason()
+                if reason:
+                    failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
+        
+        # 按分类统计失败数量
+        category_failures = {}
+        for record in all_records:
+            if record.is_failed():
+                category = record.sync_category
+                category_failures[category] = category_failures.get(category, 0) + 1
+        
+        return {
+            "total_records": total_count,
+            "successful_count": successful_count,
+            "failed_count": failed_count,
+            "success_rate": (successful_count / total_count * 100) if total_count > 0 else 0,
+            "failure_rate": (failed_count / total_count * 100) if total_count > 0 else 0,
+            "failure_reasons": failure_reasons,
+            "category_failures": category_failures,
+        }
     
     @staticmethod
     def get_records_by_instance_and_category(
