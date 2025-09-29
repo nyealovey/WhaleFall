@@ -1044,7 +1044,16 @@ class DatabaseSizeAggregationService:
             ).all()
             
             if not stats:
-                return {'status': 'error', 'error': f'实例 {instance.name} 在 {yesterday} 没有统计数据'}
+                # 没有数据不算失败，返回成功状态
+                return {
+                    'status': 'success',
+                    'total_records': 0,
+                    'instance_id': instance_id,
+                    'instance_name': instance.name,
+                    'period_type': 'daily',
+                    'period_date': yesterday.isoformat(),
+                    'message': f'实例 {instance.name} 在 {yesterday} 没有统计数据，跳过聚合'
+                }
             
             self._calculate_instance_aggregation(instance_id, 'daily', yesterday, yesterday, stats)
             
@@ -1081,7 +1090,17 @@ class DatabaseSizeAggregationService:
             ).all()
             
             if not stats:
-                return {'status': 'error', 'error': f'实例 {instance.name} 在 {last_monday} 到 {last_sunday} 期间没有统计数据'}
+                # 没有数据不算失败，返回成功状态
+                return {
+                    'status': 'success',
+                    'total_records': 0,
+                    'instance_id': instance_id,
+                    'instance_name': instance.name,
+                    'period_type': 'weekly',
+                    'period_start': last_monday.isoformat(),
+                    'period_end': last_sunday.isoformat(),
+                    'message': f'实例 {instance.name} 在 {last_monday} 到 {last_sunday} 期间没有统计数据，跳过聚合'
+                }
             
             self._calculate_instance_aggregation(instance_id, 'weekly', last_monday, last_sunday, stats)
             
@@ -1128,7 +1147,17 @@ class DatabaseSizeAggregationService:
             ).all()
             
             if not stats:
-                return {'status': 'error', 'error': f'实例 {instance.name} 在 {start_date} 到 {end_date} 期间没有统计数据'}
+                # 没有数据不算失败，返回成功状态
+                return {
+                    'status': 'success',
+                    'total_records': 0,
+                    'instance_id': instance_id,
+                    'instance_name': instance.name,
+                    'period_type': 'monthly',
+                    'period_start': start_date.isoformat(),
+                    'period_end': end_date.isoformat(),
+                    'message': f'实例 {instance.name} 在 {start_date} 到 {end_date} 期间没有统计数据，跳过聚合'
+                }
             
             self._calculate_instance_aggregation(instance_id, 'monthly', start_date, end_date, stats)
             
@@ -1174,7 +1203,17 @@ class DatabaseSizeAggregationService:
             ).all()
             
             if not stats:
-                return {'status': 'error', 'error': f'实例 {instance.name} 在 {start_date} 到 {end_date} 期间没有统计数据'}
+                # 没有数据不算失败，返回成功状态
+                return {
+                    'status': 'success',
+                    'total_records': 0,
+                    'instance_id': instance_id,
+                    'instance_name': instance.name,
+                    'period_type': 'quarterly',
+                    'period_start': start_date.isoformat(),
+                    'period_end': end_date.isoformat(),
+                    'message': f'实例 {instance.name} 在 {start_date} 到 {end_date} 期间没有统计数据，跳过聚合'
+                }
             
             self._calculate_instance_aggregation(instance_id, 'quarterly', start_date, end_date, stats)
             
