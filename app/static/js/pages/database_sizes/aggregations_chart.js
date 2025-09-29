@@ -7,7 +7,7 @@ class AggregationsChartManager {
     constructor() {
         this.chart = null;
         this.currentData = [];
-        this.currentChartType = 'line';
+        this.currentChartType = 'line'; // 固定为折线图
         this.currentPeriodType = 'daily';
         this.chartColors = [
             '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
@@ -22,17 +22,10 @@ class AggregationsChartManager {
     init() {
         console.log('初始化聚合数据图表管理器');
         this.bindEvents();
-        this.loadSummaryData();
         this.loadChartData();
     }
     
     bindEvents() {
-        // 图表类型切换
-        $('input[name="chartType"]').on('change', (e) => {
-            this.currentChartType = e.target.value;
-            this.renderChart(this.currentData);
-        });
-        
         // 周期类型切换
         $('input[name="periodType"]').on('change', (e) => {
             this.currentPeriodType = e.target.value;
@@ -46,32 +39,6 @@ class AggregationsChartManager {
         });
     }
     
-    /**
-     * 加载统计概览数据
-     */
-    async loadSummaryData() {
-        try {
-            const response = await fetch('/partition/api/aggregations/summary');
-            if (response.ok) {
-                const data = await response.json();
-                this.updateSummaryCards(data);
-            } else {
-                console.error('加载统计概览失败:', response.statusText);
-            }
-        } catch (error) {
-            console.error('加载统计概览异常:', error);
-        }
-    }
-    
-    /**
-     * 更新统计卡片
-     */
-    updateSummaryCards(data) {
-        $('#dailyCount').text(data.daily || 0);
-        $('#weeklyCount').text(data.weekly || 0);
-        $('#monthlyCount').text(data.monthly || 0);
-        $('#quarterlyCount').text(data.quarterly || 0);
-    }
     
     /**
      * 更新图表信息
@@ -352,10 +319,7 @@ class AggregationsChartManager {
      * 刷新所有数据
      */
     async refreshAllData() {
-        await Promise.all([
-            this.loadSummaryData(),
-            this.loadChartData()
-        ]);
+        await this.loadChartData();
     }
     
     
