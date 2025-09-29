@@ -7,6 +7,7 @@ from typing import Any
 from uuid import uuid4
 
 from app import db
+from app.constants.sync_constants import SyncOperationType, SyncCategory
 from app.models import Instance
 from app.services.connection_factory import ConnectionFactory
 from app.services.sync_data_manager import SyncDataManager
@@ -34,7 +35,7 @@ class AccountSyncService:
     def sync_accounts(
         self,
         instance: Instance,
-        sync_type: str = "manual_single",
+        sync_type: str = SyncOperationType.MANUAL_SINGLE.value,
         session_id: str | None = None,
         created_by: int | None = None,
     ) -> dict[str, Any]:
@@ -61,10 +62,10 @@ class AccountSyncService:
             )
 
             # 根据同步操作方式决定是否需要会话管理
-            if sync_type == "manual_single":
+            if sync_type == SyncOperationType.MANUAL_SINGLE.value:
                 # 单实例同步不需要会话
                 return self._sync_single_instance(instance)
-            elif sync_type in ["manual_batch", "manual_task", "scheduled_task"]:
+            elif sync_type in [SyncOperationType.MANUAL_BATCH.value, SyncOperationType.MANUAL_TASK.value, SyncOperationType.SCHEDULED_TASK.value]:
                 if session_id:
                     # 已有会话ID的批量同步
                     return self._sync_with_existing_session(instance, session_id)
