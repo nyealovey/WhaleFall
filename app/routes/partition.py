@@ -427,3 +427,184 @@ def cleanup_old_aggregations_api():
     except Exception as e:
         logger.error(f"清理旧聚合数据时出错: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@partition_bp.route('/api/aggregations/summary', methods=['GET'])
+@login_required
+@view_required
+def get_aggregations_summary():
+    """
+    获取聚合数据统计概览
+    """
+    try:
+        # 获取每种周期类型的记录数
+        daily_count = DatabaseSizeAggregation.query.filter(
+            DatabaseSizeAggregation.period_type == 'daily'
+        ).count()
+        
+        weekly_count = DatabaseSizeAggregation.query.filter(
+            DatabaseSizeAggregation.period_type == 'weekly'
+        ).count()
+        
+        monthly_count = DatabaseSizeAggregation.query.filter(
+            DatabaseSizeAggregation.period_type == 'monthly'
+        ).count()
+        
+        quarterly_count = DatabaseSizeAggregation.query.filter(
+            DatabaseSizeAggregation.period_type == 'quarterly'
+        ).count()
+        
+        return jsonify({
+            'success': True,
+            'daily': daily_count,
+            'weekly': weekly_count,
+            'monthly': monthly_count,
+            'quarterly': quarterly_count
+        })
+        
+    except Exception as e:
+        logger.error(f"获取聚合数据概览时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@partition_bp.route('/api/aggregations/chart', methods=['GET'])
+@login_required
+@view_required
+def get_aggregations_chart():
+    """
+    获取聚合数据图表数据
+    """
+    try:
+        # 获取查询参数
+        period_type = request.args.get('period_type', 'daily')
+        days = request.args.get('days', 7, type=int)
+        
+        # 验证周期类型
+        if period_type not in ['daily', 'weekly', 'monthly', 'quarterly']:
+            return jsonify({'error': 'Invalid period_type'}), 400
+        
+        # 计算日期范围
+        from datetime import date, timedelta
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days)
+        
+        # 查询聚合数据
+        query = DatabaseSizeAggregation.query.join(Instance).filter(
+            DatabaseSizeAggregation.period_type == period_type,
+            DatabaseSizeAggregation.period_start >= start_date,
+            DatabaseSizeAggregation.period_start <= end_date
+        ).order_by(DatabaseSizeAggregation.period_start)
+        
+        aggregations = query.all()
+        
+        # 转换为字典格式
+        data = []
+        for agg in aggregations:
+            data.append({
+                'table_type': 'database',
+                'period_type': agg.period_type,
+                'instance_name': agg.instance.name,
+                'database_name': agg.database_name,
+                'period_start': agg.period_start.isoformat(),
+                'period_end': agg.period_end.isoformat(),
+                'period_range': f"{agg.period_start} 至 {agg.period_end}",
+                'avg_size_mb': float(agg.avg_size_mb or 0),
+                'max_size_mb': float(agg.max_size_mb or 0),
+                'min_size_mb': float(agg.min_size_mb or 0),
+                'data_count': agg.data_count or 0,
+                'calculated_at': agg.calculated_at.isoformat() if agg.calculated_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': data,
+            'period_type': period_type,
+            'days': days,
+            'count': len(data)
+        })
+        
+    except Exception as e:
+        logger.error(f"获取聚合数据图表时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@partition_bp.route('/api/aggregations/table', methods=['GET'])
+@login_required
+@view_required
+def get_aggregations_table():
+    """
+    获取聚合数据表格数据
+    """
+    try:
+        # 获取查询参数
+        period_type = request.args.get('period_type', 'daily')
+        days = request.args.get('days', 7, type=int)
+        sort_by = request.args.get('sort_by', 'period_start')
+        
+        # 验证周期类型
+        if period_type not in ['daily', 'weekly', 'monthly', 'quarterly']:
+            return jsonify({'error': 'Invalid period_type'}), 400
+        
+        # 计算日期范围
+        from datetime import date, timedelta
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days)
+        
+        # 构建查询
+        query = DatabaseSizeAggregation.query.join(Instance).filter(
+            DatabaseSizeAggregation.period_type == period_type,
+            DatabaseSizeAggregation.period_start >= start_date,
+            DatabaseSizeAggregation.period_start <= end_date
+        )
+        
+        # 应用排序
+        if sort_by == 'period_start':
+            query = query.order_by(DatabaseSizeAggregation.period_start)
+        elif sort_by == 'instance_name':
+            query = query.order_by(Instance.name)
+        elif sort_by == 'database_name':
+            query = query.order_by(DatabaseSizeAggregation.database_name)
+        elif sort_by == 'avg_size_mb':
+            query = query.order_by(desc(DatabaseSizeAggregation.avg_size_mb))
+        
+        aggregations = query.all()
+        
+        # 转换为字典格式
+        data = []
+        for agg in aggregations:
+            data.append({
+                'table_type': 'database',
+                'period_type': agg.period_type,
+                'instance_name': agg.instance.name,
+                'database_name': agg.database_name,
+                'period_start': agg.period_start.isoformat(),
+                'period_end': agg.period_end.isoformat(),
+                'period_range': f"{agg.period_start} 至 {agg.period_end}",
+                'avg_size_mb': float(agg.avg_size_mb or 0),
+                'max_size_mb': float(agg.max_size_mb or 0),
+                'min_size_mb': float(agg.min_size_mb or 0),
+                'data_count': agg.data_count or 0,
+                'calculated_at': agg.calculated_at.isoformat() if agg.calculated_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': data,
+            'period_type': period_type,
+            'days': days,
+            'sort_by': sort_by,
+            'count': len(data)
+        })
+        
+    except Exception as e:
+        logger.error(f"获取聚合数据表格时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

@@ -120,102 +120,205 @@
         </div>
     </div>
 
-    <!-- 聚合数据表 -->
+    <!-- 聚合数据表 - 折线图展示 -->
     <div class="card">
         <div class="card-header">
             <div class="row align-items-center">
                 <div class="col-md-6">
                     <h5 class="mb-0">
-                        <i class="fas fa-chart-bar me-2"></i>
+                        <i class="fas fa-chart-line me-2"></i>
                         聚合数据表
                     </h5>
                 </div>
-                <div class="col-md-8">
-                    <div class="row g-2">
-                        <div class="col-md-3">
-                            <input type="text" class="form-control form-control-sm" id="searchAggregationTable" placeholder="搜索实例或数据库...">
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-end gap-2">
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="chartType" id="chartTypeLine" value="line" checked>
+                            <label class="btn btn-outline-primary btn-sm" for="chartTypeLine">折线图</label>
+                            
+                            <input type="radio" class="btn-check" name="chartType" id="chartTypeBar" value="bar">
+                            <label class="btn btn-outline-primary btn-sm" for="chartTypeBar">柱状图</label>
                         </div>
-                        <div class="col-md-3">
-                            <select class="form-select form-select-sm" id="tableTypeFilter">
-                                <option value="all">所有表类型</option>
-                                <option value="database">数据库聚合表</option>
-                                <option value="instance">实例聚合表</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-select form-select-sm" id="periodTypeFilter">
-                                <option value="daily">日聚合数据</option>
-                                <option value="weekly">周聚合数据</option>
-                                <option value="monthly">月聚合数据</option>
-                                <option value="quarterly">季聚合数据</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-select form-select-sm" id="sortAggregationTable">
-                                <option value="instance_name">按实例排序</option>
-                                <option value="database_name">按数据库排序</option>
-                                <option value="avg_size_mb">按平均大小排序</option>
-                                <option value="max_size_mb">按最大大小排序</option>
-                            </select>
-                        </div>
+                        <button class="btn btn-outline-secondary btn-sm" id="refreshAggregations">
+                            <i class="fas fa-sync-alt me-1"></i>
+                            刷新
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover" id="aggregationTable">
-                       <thead>
-                           <tr>
-                               <th>表类型</th>
-                               <th>周期类型</th>
-                               <th>实例名称</th>
-                               <th>数据库名称</th>
-                               <th>统计周期</th>
-                               <th>平均大小</th>
-                               <th>最大大小</th>
-                               <th>最小大小</th>
-                               <th>数据点数</th>
-                               <th>计算时间</th>
-                           </tr>
-                       </thead>
-                    <tbody id="aggregationTableBody">
-                        <tr>
-                            <td colspan="10" class="text-center">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">加载中...</span>
+            <!-- 统计概览 -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-1">日聚合条目</h6>
+                                    <h3 class="mb-0" id="dailyCount">-</h3>
                                 </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- 分页组件 -->
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <div class="pagination-info">
-                    <span class="text-muted">
-                        显示第 <span id="paginationStart">1</span> - <span id="paginationEnd">10</span> 条，
-                        共 <span id="paginationTotal">0</span> 条记录
-                    </span>
+                                <div>
+                                    <i class="fas fa-calendar-day fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <nav aria-label="分页导航">
-                    <ul class="pagination pagination-sm mb-0" id="paginationNav">
-                        <li class="page-item disabled" id="prevPage">
-                            <a class="page-link" href="#" aria-label="上一页">
-                                <span aria-hidden="true">&laquo;</span>
-                            </a>
-                        </li>
-                        <li class="page-item active" id="page1">
-                            <a class="page-link" href="#" data-page="1">1</a>
-                        </li>
-                        <li class="page-item" id="nextPage">
-                            <a class="page-link" href="#" aria-label="下一页">
-                                <span aria-hidden="true">&raquo;</span>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-1">周聚合条目</h6>
+                                    <h3 class="mb-0" id="weeklyCount">-</h3>
+                                </div>
+                                <div>
+                                    <i class="fas fa-calendar-week fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-1">月聚合条目</h6>
+                                    <h3 class="mb-0" id="monthlyCount">-</h3>
+                                </div>
+                                <div>
+                                    <i class="fas fa-calendar-alt fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-1">季度聚合条目</h6>
+                                    <h3 class="mb-0" id="quarterlyCount">-</h3>
+                                </div>
+                                <div>
+                                    <i class="fas fa-calendar fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 周期类型切换标签 -->
+            <div class="d-flex justify-content-center mb-4">
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="periodType" id="periodDaily" value="daily" checked>
+                    <label class="btn btn-outline-primary" for="periodDaily">
+                        <i class="fas fa-calendar-day me-2"></i>日统计
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="periodType" id="periodWeekly" value="weekly">
+                    <label class="btn btn-outline-primary" for="periodWeekly">
+                        <i class="fas fa-calendar-week me-2"></i>周统计
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="periodType" id="periodMonthly" value="monthly">
+                    <label class="btn btn-outline-primary" for="periodMonthly">
+                        <i class="fas fa-calendar-alt me-2"></i>月统计
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="periodType" id="periodQuarterly" value="quarterly">
+                    <label class="btn btn-outline-primary" for="periodQuarterly">
+                        <i class="fas fa-calendar me-2"></i>季统计
+                    </label>
+                </div>
+            </div>
+
+            <!-- 图表信息 -->
+            <div class="alert alert-info mb-3">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h6 class="mb-1" id="chartTitle">日聚合数据趋势</h6>
+                        <small class="opacity-75" id="chartSubtitle">最近7天的数据统计</small>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div class="d-flex justify-content-end gap-3">
+                            <div>
+                                <small class="opacity-75">数据点数</small>
+                                <div class="fw-bold" id="dataPointCount">-</div>
+                            </div>
+                            <div>
+                                <small class="opacity-75">时间范围</small>
+                                <div class="fw-bold" id="timeRange">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表容器 -->
+            <div class="position-relative" style="height: 500px;">
+                <canvas id="aggregationsChart" style="height: 100%; width: 100%;"></canvas>
+                <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mb-0">正在加载图表数据...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据详情表格 -->
+            <div class="mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">
+                        <i class="fas fa-table me-2"></i>
+                        数据详情
+                    </h6>
+                    <div class="d-flex gap-2">
+                        <select class="form-select form-select-sm" id="sortBy" style="width: auto;">
+                            <option value="period_start">按时间排序</option>
+                            <option value="instance_name">按实例排序</option>
+                            <option value="database_name">按数据库排序</option>
+                            <option value="avg_size_mb">按平均大小排序</option>
+                        </select>
+                        <button class="btn btn-outline-secondary btn-sm" id="exportData">
+                            <i class="fas fa-download me-1"></i>
+                            导出
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm" id="aggregationsTable">
+                        <thead>
+                            <tr>
+                                <th>表类型</th>
+                                <th>周期类型</th>
+                                <th>实例名称</th>
+                                <th>数据库名称</th>
+                                <th>统计周期</th>
+                                <th>平均大小</th>
+                                <th>最大大小</th>
+                                <th>最小大小</th>
+                                <th>数据点数</th>
+                                <th>计算时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aggregationsTableBody">
+                            <tr>
+                                <td colspan="10" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">加载中...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -297,5 +400,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/pages/database_sizes/partitions.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/database_sizes/aggregations_chart.js') }}"></script>
 {% endblock %}
