@@ -128,7 +128,7 @@
 
                     <!-- Cron触发器配置 -->
                     <div id="cronConfig" class="trigger-config show">
-                        <!-- 第一行：秒、分、时、日、月、周、年 -->
+                        <!-- 第一行：秒、分、时、日 -->
                         <div class="row">
                             <div class="col-md-2">
                                 <div class="form-group">
@@ -158,6 +158,10 @@
                                     <small class="form-text text-muted small">1-31</small>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <!-- 第二行：月、周、年 -->
+                        <div class="row mt-2">
                             <div class="col-md-2">
                                 <div class="form-group">
                                     <label for="cronMonth" class="form-label small">月份 <span class="text-danger">*</span></label>
@@ -165,14 +169,14 @@
                                     <small class="form-text text-muted small">1-12</small>
                                 </div>
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label for="cronWeekday" class="form-label small">星期 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="cronWeekday" name="cron_weekday" placeholder="0-6" value="*">
                                     <small class="form-text text-muted small">0-6</small>
                                 </div>
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label for="cronYear" class="form-label small">年</label>
                                     <input type="text" class="form-control" id="cronYear" name="year" placeholder="2024" value="*">
@@ -181,7 +185,7 @@
                             </div>
                         </div>
                         
-                        <!-- 第二行：预览 -->
+                        <!-- 第三行：预览 -->
                         <div class="row mt-2">
                             <div class="col-12">
                                 <div class="form-group">
@@ -252,7 +256,7 @@
 
                     <!-- Cron触发器配置（编辑） -->
                     <div id="editCronConfig" class="edit-trigger-config show">
-                        <!-- 第一行：秒、分、时、日、月、周、年 -->
+                        <!-- 第一行：秒、分、时、日 -->
                         <div class="row">
                             <div class="col-md-2">
                                 <div class="form-group">
@@ -282,6 +286,10 @@
                                     <small class="form-text text-muted small">1-31</small>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <!-- 第二行：月、周、年 -->
+                        <div class="row mt-2">
                             <div class="col-md-2">
                                 <div class="form-group">
                                     <label for="editCronMonth" class="form-label small">月份 <span class="text-danger">*</span></label>
@@ -289,14 +297,14 @@
                                     <small class="form-text text-muted small">1-12</small>
                                 </div>
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label for="editCronWeekday" class="form-label small">星期 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="editCronWeekday" name="cron_weekday" placeholder="0-6" value="*">
                                     <small class="form-text text-muted small">0-6</small>
                                 </div>
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label for="editCronYear" class="form-label small">年</label>
                                     <input type="text" class="form-control" id="editCronYear" name="year" placeholder="2024" value="*">
@@ -305,7 +313,7 @@
                             </div>
                         </div>
                         
-                        <!-- 第二行：预览 -->
+                        <!-- 第三行：预览 -->
                         <div class="row mt-2">
                             <div class="col-12">
                                 <div class="form-group">
