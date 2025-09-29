@@ -715,7 +715,7 @@ def get_scheduler_health():
             "total_jobs": len(jobs),
             "running_jobs": len(running_jobs),
             "paused_jobs": len(paused_jobs),
-            "last_check": datetime.now().isoformat()
+            "last_check": datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         }
         
         return jsonify({
@@ -733,7 +733,7 @@ def get_scheduler_health():
                 "status_text": "检查失败",
                 "status_color": "danger",
                 "health_score": 0,
-                "last_check": datetime.now().isoformat()
+                "last_check": datetime.now().strftime("%Y/%m/%d %H:%M:%S")
             }
         })
 
