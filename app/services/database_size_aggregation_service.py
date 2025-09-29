@@ -1026,3 +1026,168 @@ class DatabaseSizeAggregationService:
             'calculated_at': aggregation.calculated_at.isoformat() if aggregation.calculated_at else None,
             'created_at': aggregation.created_at.isoformat() if aggregation.created_at else None
         }
+    
+    def calculate_daily_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+        """为指定实例计算日统计聚合"""
+        try:
+            instance = Instance.query.get(instance_id)
+            if not instance:
+                return {'status': 'error', 'error': f'实例 {instance_id} 不存在'}
+            
+            today = date.today()
+            yesterday = today - timedelta(days=1)
+            
+            stats = InstanceSizeStat.query.filter(
+                InstanceSizeStat.instance_id == instance_id,
+                InstanceSizeStat.collected_date == yesterday,
+                InstanceSizeStat.is_deleted == False
+            ).all()
+            
+            if not stats:
+                return {'status': 'error', 'error': f'实例 {instance.name} 在 {yesterday} 没有统计数据'}
+            
+            self._calculate_instance_aggregation(instance_id, 'daily', yesterday, yesterday, stats)
+            
+            return {
+                'status': 'success',
+                'total_records': 1,
+                'instance_id': instance_id,
+                'instance_name': instance.name,
+                'period_type': 'daily',
+                'period_date': yesterday.isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"计算实例 {instance_id} 日聚合失败: {str(e)}")
+            return {'status': 'error', 'error': str(e)}
+    
+    def calculate_weekly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+        """为指定实例计算周统计聚合"""
+        try:
+            instance = Instance.query.get(instance_id)
+            if not instance:
+                return {'status': 'error', 'error': f'实例 {instance_id} 不存在'}
+            
+            today = date.today()
+            days_since_monday = today.weekday()
+            last_monday = today - timedelta(days=days_since_monday + 7)
+            last_sunday = last_monday + timedelta(days=6)
+            
+            stats = InstanceSizeStat.query.filter(
+                InstanceSizeStat.instance_id == instance_id,
+                InstanceSizeStat.collected_date >= last_monday,
+                InstanceSizeStat.collected_date <= last_sunday,
+                InstanceSizeStat.is_deleted == False
+            ).all()
+            
+            if not stats:
+                return {'status': 'error', 'error': f'实例 {instance.name} 在 {last_monday} 到 {last_sunday} 期间没有统计数据'}
+            
+            self._calculate_instance_aggregation(instance_id, 'weekly', last_monday, last_sunday, stats)
+            
+            return {
+                'status': 'success',
+                'total_records': 1,
+                'instance_id': instance_id,
+                'instance_name': instance.name,
+                'period_type': 'weekly',
+                'period_start': last_monday.isoformat(),
+                'period_end': last_sunday.isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"计算实例 {instance_id} 周聚合失败: {str(e)}")
+            return {'status': 'error', 'error': str(e)}
+    
+    def calculate_monthly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+        """为指定实例计算月统计聚合"""
+        try:
+            instance = Instance.query.get(instance_id)
+            if not instance:
+                return {'status': 'error', 'error': f'实例 {instance_id} 不存在'}
+            
+            today = date.today()
+            if today.month == 1:
+                last_month = 12
+                last_year = today.year - 1
+            else:
+                last_month = today.month - 1
+                last_year = today.year
+            
+            start_date = date(last_year, last_month, 1)
+            if last_month == 12:
+                end_date = date(last_year + 1, 1, 1) - timedelta(days=1)
+            else:
+                end_date = date(last_year, last_month + 1, 1) - timedelta(days=1)
+            
+            stats = InstanceSizeStat.query.filter(
+                InstanceSizeStat.instance_id == instance_id,
+                InstanceSizeStat.collected_date >= start_date,
+                InstanceSizeStat.collected_date <= end_date,
+                InstanceSizeStat.is_deleted == False
+            ).all()
+            
+            if not stats:
+                return {'status': 'error', 'error': f'实例 {instance.name} 在 {start_date} 到 {end_date} 期间没有统计数据'}
+            
+            self._calculate_instance_aggregation(instance_id, 'monthly', start_date, end_date, stats)
+            
+            return {
+                'status': 'success',
+                'total_records': 1,
+                'instance_id': instance_id,
+                'instance_name': instance.name,
+                'period_type': 'monthly',
+                'period_start': start_date.isoformat(),
+                'period_end': end_date.isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"计算实例 {instance_id} 月聚合失败: {str(e)}")
+            return {'status': 'error', 'error': str(e)}
+    
+    def calculate_quarterly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+        """为指定实例计算季度统计聚合"""
+        try:
+            instance = Instance.query.get(instance_id)
+            if not instance:
+                return {'status': 'error', 'error': f'实例 {instance_id} 不存在'}
+            
+            today = date.today()
+            current_quarter = (today.month - 1) // 3 + 1
+            
+            if current_quarter == 1:
+                quarter_start_month = 10
+                year = today.year - 1
+            else:
+                quarter_start_month = ((current_quarter - 2) * 3) + 1
+                year = today.year
+            
+            start_date = date(year, quarter_start_month, 1)
+            end_date = date(year, quarter_start_month + 2, 1) - timedelta(days=1)
+            
+            stats = InstanceSizeStat.query.filter(
+                InstanceSizeStat.instance_id == instance_id,
+                InstanceSizeStat.collected_date >= start_date,
+                InstanceSizeStat.collected_date <= end_date,
+                InstanceSizeStat.is_deleted == False
+            ).all()
+            
+            if not stats:
+                return {'status': 'error', 'error': f'实例 {instance.name} 在 {start_date} 到 {end_date} 期间没有统计数据'}
+            
+            self._calculate_instance_aggregation(instance_id, 'quarterly', start_date, end_date, stats)
+            
+            return {
+                'status': 'success',
+                'total_records': 1,
+                'instance_id': instance_id,
+                'instance_name': instance.name,
+                'period_type': 'quarterly',
+                'period_start': start_date.isoformat(),
+                'period_end': end_date.isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"计算实例 {instance_id} 季度聚合失败: {str(e)}")
+            return {'status': 'error', 'error': str(e)}
