@@ -105,6 +105,11 @@ class AggregationsChartManager {
         
         const chartData = this.prepareChartData(data);
         
+        // 如果有数据，隐藏消息
+        if (chartData.labels.length > 0 && chartData.datasets.length > 0) {
+            this.hideChartMessage();
+        }
+        
         this.chart = new Chart(ctx, {
             type: this.currentChartType,
             data: chartData,
@@ -201,7 +206,25 @@ class AggregationsChartManager {
      * 准备图表数据
      */
     prepareChartData(data) {
+        // 检查数据格式 - 新API直接返回Chart.js格式
+        if (data.labels && data.datasets) {
+            // 新格式：直接返回Chart.js数据
+            if (data.labels.length === 0 || data.datasets.length === 0) {
+                this.showChartMessage(data.message || '暂无聚合数据');
+                return {
+                    labels: [],
+                    datasets: []
+                };
+            }
+            return {
+                labels: data.labels || [],
+                datasets: data.datasets || []
+            };
+        }
+        
+        // 旧格式：处理原始数据
         if (!data || !data.length) {
+            this.showChartMessage('暂无数据');
             return {
                 labels: [],
                 datasets: []
@@ -281,6 +304,14 @@ class AggregationsChartManager {
      * 更新图表统计信息
      */
     updateChartStats(data) {
+        // 检查新格式数据
+        if (data.dataPointCount !== undefined && data.timeRange !== undefined) {
+            $('#dataPointCount').text(data.dataPointCount);
+            $('#timeRange').text(data.timeRange);
+            return;
+        }
+        
+        // 旧格式数据处理
         if (!data || !data.length) {
             $('#dataPointCount').text('0');
             $('#timeRange').text('-');
@@ -333,6 +364,24 @@ class AggregationsChartManager {
         } else {
             loading.addClass('d-none');
         }
+    }
+    
+    /**
+     * 显示图表消息
+     */
+    showChartMessage(message) {
+        const messageDiv = $('#chartMessage');
+        const messageText = $('#chartMessageText');
+        messageText.text(message);
+        messageDiv.removeClass('d-none');
+    }
+    
+    /**
+     * 隐藏图表消息
+     */
+    hideChartMessage() {
+        const messageDiv = $('#chartMessage');
+        messageDiv.addClass('d-none');
     }
     
     /**
