@@ -895,6 +895,161 @@ COMMENT ON TABLE database_size_aggregations IS '数据库大小聚合统计表�
 COMMENT ON TABLE instance_size_aggregations IS '实例大小聚合统计表（按月分区）';
 
 -- ============================================================================
+-- 17. 数据库大小监控高级功能
+-- ============================================================================
+
+-- 创建分区管理函数
+CREATE OR REPLACE FUNCTION create_database_size_partition(partition_date DATE)
+RETURNS VOID AS $$
+DECLARE
+    partition_name TEXT;
+    partition_start DATE;
+    partition_end DATE;
+BEGIN
+    partition_start := DATE_TRUNC('month', partition_date);
+    partition_end := partition_start + '1 month'::INTERVAL;
+    partition_name := 'database_size_stats_' || TO_CHAR(partition_start, 'YYYY_MM');
+    
+    -- 检查分区是否已存在
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_tables 
+        WHERE tablename = partition_name
+    ) THEN
+        -- 创建分区
+        EXECUTE format('
+            CREATE TABLE %I 
+            PARTITION OF database_size_stats
+            FOR VALUES FROM (%L) TO (%L)',
+            partition_name, partition_start, partition_end
+        );
+        
+        -- 添加注释
+        EXECUTE format('
+            COMMENT ON TABLE %I IS ''数据库大小统计分区表 - %s''',
+            partition_name, TO_CHAR(partition_start, 'YYYY-MM')
+        );
+        
+        RAISE NOTICE 'Created partition: % for period % to %', 
+            partition_name, partition_start, partition_end;
+    ELSE
+        RAISE NOTICE 'Partition % already exists', partition_name;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 删除分区函数
+CREATE OR REPLACE FUNCTION drop_database_size_partition(partition_date DATE)
+RETURNS VOID AS $$
+DECLARE
+    partition_name TEXT;
+    partition_start DATE;
+BEGIN
+    partition_start := DATE_TRUNC('month', partition_date);
+    partition_name := 'database_size_stats_' || TO_CHAR(partition_start, 'YYYY_MM');
+    
+    -- 检查分区是否存在
+    IF EXISTS (
+        SELECT 1 FROM pg_tables 
+        WHERE tablename = partition_name
+    ) THEN
+        -- 删除分区
+        EXECUTE format('DROP TABLE %I', partition_name);
+        RAISE NOTICE 'Dropped partition: %', partition_name;
+    ELSE
+        RAISE NOTICE 'Partition % does not exist', partition_name;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 清理旧分区函数（保留指定月数）
+CREATE OR REPLACE FUNCTION cleanup_old_database_size_partitions(retention_months INTEGER DEFAULT 12)
+RETURNS VOID AS $$
+DECLARE
+    cutoff_date DATE;
+    partition_record RECORD;
+BEGIN
+    cutoff_date := CURRENT_DATE - (retention_months || ' months')::INTERVAL;
+    
+    -- 查找需要清理的分区
+    FOR partition_record IN
+        SELECT tablename 
+        FROM pg_tables 
+        WHERE tablename LIKE 'database_size_stats_%'
+        AND tablename ~ '^\d{4}_\d{2}$'
+    LOOP
+        -- 从表名提取日期
+        DECLARE
+            year_month TEXT;
+            partition_date DATE;
+        BEGIN
+            year_month := substring(partition_record.tablename from 'database_size_stats_(\d{4}_\d{2})$');
+            partition_date := TO_DATE(year_month, 'YYYY_MM');
+            
+            -- 如果分区日期早于截止日期，则删除
+            IF partition_date < cutoff_date THEN
+                EXECUTE format('DROP TABLE %I', partition_record.tablename);
+                RAISE NOTICE 'Cleaned up old partition: %', partition_record.tablename;
+            END IF;
+        EXCEPTION
+            WHEN OTHERS THEN
+                RAISE WARNING 'Error processing partition %: %', partition_record.tablename, SQLERRM;
+        END;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 创建自动分区触发器函数
+CREATE OR REPLACE FUNCTION auto_create_database_size_partition()
+RETURNS TRIGGER AS $$
+DECLARE
+    partition_date DATE;
+BEGIN
+    partition_date := DATE_TRUNC('month', NEW.collected_date);
+    
+    -- 尝试创建分区（如果不存在）
+    PERFORM create_database_size_partition(partition_date);
+    
+    RETURN NEW;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE WARNING 'Failed to create partition for date %: %', partition_date, SQLERRM;
+        RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 创建自动分区触发器
+DROP TRIGGER IF EXISTS trigger_auto_create_database_size_partition ON database_size_stats;
+CREATE TRIGGER trigger_auto_create_database_size_partition
+    BEFORE INSERT ON database_size_stats
+    FOR EACH ROW
+    EXECUTE FUNCTION auto_create_database_size_partition();
+
+-- 创建查询视图
+CREATE OR REPLACE VIEW v_database_size_recent AS
+SELECT 
+    dss.*,
+    i.name as instance_name,
+    i.db_type,
+    i.host,
+    i.port
+FROM database_size_stats dss
+JOIN instances i ON dss.instance_id = i.id
+WHERE dss.collected_date >= CURRENT_DATE - INTERVAL '30 days'
+ORDER BY dss.collected_date DESC, dss.instance_id, dss.database_name;
+
+CREATE OR REPLACE VIEW v_database_size_aggregations_recent AS
+SELECT 
+    dsa.*,
+    i.name as instance_name,
+    i.db_type,
+    i.host,
+    i.port
+FROM database_size_aggregations dsa
+JOIN instances i ON dsa.instance_id = i.id
+WHERE dsa.period_start >= CURRENT_DATE - INTERVAL '12 months'
+ORDER BY dsa.period_start DESC, dsa.instance_id, dsa.database_name;
+
+-- ============================================================================
 -- 18. 提交事务
 -- ============================================================================
 
