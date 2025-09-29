@@ -539,25 +539,25 @@ def get_aggregations_chart():
         for agg in db_aggregations:
             period_start_str = agg.period_start.strftime('%Y-%m-%d')
             instance_name = agg.instance.name if agg.instance else 'Unknown'
-            daily_counts[period_start_str][f"{instance_name} - 数据库聚合"] += 1
+            daily_counts[period_start_str][f"📊 {instance_name} - 数据库聚合"] += 1
         
         # 统计实例聚合数据数量
         for agg in instance_aggregations:
             period_start_str = agg.period_start.strftime('%Y-%m-%d')
             instance_name = agg.instance.name if agg.instance else 'Unknown'
-            daily_counts[period_start_str][f"{instance_name} - 实例聚合"] += 1
+            daily_counts[period_start_str][f"🖥️ {instance_name} - 实例聚合"] += 1
         
         # 统计数据库统计数据数量（daily类型）
         for stat in db_stats:
             period_start_str = stat.collected_date.strftime('%Y-%m-%d')
             instance_name = stat.instance.name if stat.instance else 'Unknown'
-            daily_counts[period_start_str][f"{instance_name} - 数据库统计"] += 1
+            daily_counts[period_start_str][f"📈 {instance_name} - 数据库统计"] += 1
         
         # 统计实例统计数据数量（daily类型）
         for stat in instance_stats:
             period_start_str = stat.collected_date.strftime('%Y-%m-%d')
             instance_name = stat.instance.name if stat.instance else 'Unknown'
-            daily_counts[period_start_str][f"{instance_name} - 实例统计"] += 1
+            daily_counts[period_start_str][f"📈 {instance_name} - 实例统计"] += 1
         
         # 转换为图表格式
         for date_str, instance_counts in daily_counts.items():
