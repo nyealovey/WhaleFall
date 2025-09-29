@@ -528,58 +528,45 @@ def get_aggregations_chart():
                 InstanceSizeStat.collected_date <= end_date
             ).join(Instance).all()
         
-        # 处理数据为Chart.js格式
+        # 处理数据为Chart.js格式 - 显示聚合数据数量统计
         processed_data = {}
         
-        # 处理数据库聚合数据
+        # 按日期统计聚合数据数量
+        from collections import defaultdict
+        daily_counts = defaultdict(lambda: defaultdict(int))  # {date: {instance: count}}
+        
+        # 统计数据库聚合数据数量
         for agg in db_aggregations:
             period_start_str = agg.period_start.strftime('%Y-%m-%d')
             instance_name = agg.instance.name if agg.instance else 'Unknown'
-            database_name = agg.database_name
-            
-            key = f"{instance_name} - {database_name}"
-            if key not in processed_data:
-                processed_data[key] = {'labels': [], 'data': []}
-            
-            processed_data[key]['labels'].append(period_start_str)
-            processed_data[key]['data'].append(float(agg.avg_size_mb or 0))
+            daily_counts[period_start_str][f"{instance_name} - 数据库聚合"] += 1
         
-        # 处理实例聚合数据
+        # 统计实例聚合数据数量
         for agg in instance_aggregations:
             period_start_str = agg.period_start.strftime('%Y-%m-%d')
             instance_name = agg.instance.name if agg.instance else 'Unknown'
-            
-            key = f"{instance_name} - Total Instance"
-            if key not in processed_data:
-                processed_data[key] = {'labels': [], 'data': []}
-            
-            processed_data[key]['labels'].append(period_start_str)
-            processed_data[key]['data'].append(float(agg.avg_size_mb or 0))
+            daily_counts[period_start_str][f"{instance_name} - 实例聚合"] += 1
         
-        # 处理数据库统计数据
+        # 统计数据库统计数据数量（daily类型）
         for stat in db_stats:
             period_start_str = stat.collected_date.strftime('%Y-%m-%d')
             instance_name = stat.instance.name if stat.instance else 'Unknown'
-            database_name = stat.database_name
-            
-            key = f"{instance_name} - {database_name}"
-            if key not in processed_data:
-                processed_data[key] = {'labels': [], 'data': []}
-            
-            processed_data[key]['labels'].append(period_start_str)
-            processed_data[key]['data'].append(float(stat.size_mb or 0))
+            daily_counts[period_start_str][f"{instance_name} - 数据库统计"] += 1
         
-        # 处理实例统计数据
+        # 统计实例统计数据数量（daily类型）
         for stat in instance_stats:
             period_start_str = stat.collected_date.strftime('%Y-%m-%d')
             instance_name = stat.instance.name if stat.instance else 'Unknown'
-            
-            key = f"{instance_name} - Total Instance"
-            if key not in processed_data:
-                processed_data[key] = {'labels': [], 'data': []}
-            
-            processed_data[key]['labels'].append(period_start_str)
-            processed_data[key]['data'].append(float(stat.total_size_mb or 0))
+            daily_counts[period_start_str][f"{instance_name} - 实例统计"] += 1
+        
+        # 转换为图表格式
+        for date_str, instance_counts in daily_counts.items():
+            for instance_key, count in instance_counts.items():
+                if instance_key not in processed_data:
+                    processed_data[instance_key] = {'labels': [], 'data': []}
+                
+                processed_data[instance_key]['labels'].append(date_str)
+                processed_data[instance_key]['data'].append(count)
 
         # 生成所有唯一的日期标签
         all_labels = set()
@@ -605,12 +592,14 @@ def get_aggregations_chart():
                 'tension': 0.1
             })
         
-        return jsonify({
-            'labels': labels,
-            'datasets': datasets,
-            'dataPointCount': len(labels),
-            'timeRange': f'{start_date.strftime("%Y-%m-%d")} - {end_date.strftime("%Y-%m-%d")}'
-        })
+               return jsonify({
+                   'labels': labels,
+                   'datasets': datasets,
+                   'dataPointCount': len(labels),
+                   'timeRange': f'{start_date.strftime("%Y-%m-%d")} - {end_date.strftime("%Y-%m-%d")}',
+                   'yAxisLabel': '聚合数据数量',
+                   'chartTitle': f'{period_type.title()}聚合数据统计'
+               })
         
     except Exception as e:
         logger.error(f"获取聚合数据图表时出错: {str(e)}", exc_info=True)

@@ -145,8 +145,13 @@ class AggregationsChartManager {
                             },
                             label: function(context) {
                                 const label = context.dataset.label || '';
-                                const value = AggregationsChartManager.formatSizeFromMB(context.parsed.y);
-                                return `${label}: ${value}`;
+                                const value = context.parsed.y;
+                                // 如果是聚合数据数量，直接显示数字
+                                if (data.yAxisLabel && data.yAxisLabel.includes('数量')) {
+                                    return `${label}: ${value} 条`;
+                                }
+                                // 否则使用原来的大小格式化
+                                return `${label}: ${AggregationsChartManager.formatSizeFromMB(value)}`;
                             }
                         }
                     }
@@ -171,7 +176,7 @@ class AggregationsChartManager {
                         display: true,
                         title: {
                             display: true,
-                            text: '大小 (MB)',
+                            text: data.yAxisLabel || '聚合数据数量',
                             font: {
                                 size: 14,
                                 weight: 'bold'
@@ -184,6 +189,11 @@ class AggregationsChartManager {
                         },
                         ticks: {
                             callback: function(value) {
+                                // 如果是聚合数据数量，直接显示数字
+                                if (data.yAxisLabel && data.yAxisLabel.includes('数量')) {
+                                    return value;
+                                }
+                                // 否则使用原来的大小格式化
                                 return AggregationsChartManager.formatSizeFromMB(value);
                             }
                         }
