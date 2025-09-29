@@ -66,8 +66,8 @@ class MySQLConnection(DatabaseConnection):
                 charset="utf8mb4",
                 autocommit=True,
                 connect_timeout=30,
-                read_timeout=60,
-                write_timeout=60,
+                read_timeout=300,  # 5分钟读取超时
+                write_timeout=300,  # 5分钟写入超时
                 sql_mode="TRADITIONAL",
             )
             self.is_connected = True
@@ -162,6 +162,7 @@ class PostgreSQLConnection(DatabaseConnection):
                 user=(self.instance.credential.username if self.instance.credential else ""),
                 password=password,
                 connect_timeout=30,
+                options="-c statement_timeout=300000",  # 5分钟查询超时（毫秒）
             )
             self.is_connected = True
             return True
@@ -284,8 +285,8 @@ class SQLServerConnection(DatabaseConnection):
                 user=username,
                 password=password,
                 database=database_name,
-                timeout=5,  # 查询超时5秒
-                login_timeout=10,  # 连接/登录超时10秒，避免网络不可达时长时间挂起
+                timeout=300,  # 查询超时5分钟
+                login_timeout=30,  # 连接/登录超时30秒
                 # 支持SQL Server 2008+
                 tds_version="7.2",  # 支持SQL Server 2008+
             )
@@ -432,6 +433,7 @@ class OracleConnection(DatabaseConnection):
                     user=(self.instance.credential.username if self.instance.credential else ""),
                     password=password,
                     dsn=dsn,
+                    timeout=300,  # 5分钟连接超时
                 )
             except Exception as e:
                 # 如果服务名格式失败，尝试SID格式
@@ -442,6 +444,7 @@ class OracleConnection(DatabaseConnection):
                             user=(self.instance.credential.username if self.instance.credential else ""),
                             password=password,
                             dsn=sid_dsn,
+                            timeout=300,  # 5分钟连接超时
                         )
                     except Exception:
                         # 如果SID格式也失败，抛出原始错误

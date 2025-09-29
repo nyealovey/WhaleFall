@@ -210,21 +210,13 @@ def calculate_database_size_aggregations(manual_run=False):
                 # 开始实例同步
                 sync_session_service.start_instance_sync(record.id)
                 
-                # 为当前实例执行聚合计算（添加超时处理）
+                # 为当前实例执行聚合计算（使用连接工厂的超时机制）
                 instance_aggregations = 0
                 instance_success = True
                 instance_error_msg = ""
                 
-                # 设置单个实例的超时时间（5分钟）
-                import signal
-                import time
-                
-                def timeout_handler(signum, frame):
-                    raise TimeoutError(f"实例 {instance.name} 聚合计算超时")
-                
-                # 设置超时信号
-                old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(300)  # 5分钟超时
+                # 使用连接工厂创建数据库连接，设置超时参数
+                from app.services.connection_factory import ConnectionFactory
                 
                 try:
                     for period_type in period_types:
@@ -336,26 +328,21 @@ def calculate_database_size_aggregations(manual_run=False):
                             error=error_msg
                         )
                 
-                finally:
-                    # 清理超时信号
-                    signal.alarm(0)  # 取消超时
-                    signal.signal(signal.SIGALRM, old_handler)  # 恢复原信号处理器
-                    
-            except TimeoutError as e:
-                # 超时异常处理
-                sync_logger.error(
-                    f"实例聚合超时: {instance.name}",
-                    module="aggregation_sync",
-                    session_id=session.session_id,
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    error=str(e)
-                )
-                sync_session_service.fail_instance_sync(
-                    record.id,
-                    error_message=f"聚合计算超时: {str(e)}"
-                )
-                total_failed += 1
+                except Exception as e:
+                    # 连接或聚合异常处理
+                    sync_logger.error(
+                        f"实例聚合异常: {instance.name}",
+                        module="aggregation_sync",
+                        session_id=session.session_id,
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        error=str(e)
+                    )
+                    sync_session_service.fail_instance_sync(
+                        record.id,
+                        error_message=f"聚合计算异常: {str(e)}"
+                    )
+                    total_failed += 1
                 
             except Exception as e:
                 sync_logger.error(
