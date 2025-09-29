@@ -91,31 +91,33 @@ def get_jobs() -> Response:
                     trigger_args = {}
                     
                     # 包含所有字段，用于编辑时正确显示
-                    trigger_args['second'] = getattr(job.trigger, 'second', '0')
-                    trigger_args['minute'] = getattr(job.trigger, 'minute', '0')
-                    trigger_args['hour'] = getattr(job.trigger, 'hour', '0')
-                    trigger_args['day'] = getattr(job.trigger, 'day', '*')
-                    trigger_args['month'] = getattr(job.trigger, 'month', '*')
-                    trigger_args['day_of_week'] = getattr(job.trigger, 'day_of_week', '*')
-                    trigger_args['year'] = getattr(job.trigger, 'year', '') if getattr(job.trigger, 'year', None) is not None else ''
+                    # CronTrigger使用fields属性存储字段值
+                    fields = getattr(job.trigger, 'fields', {})
+                    trigger_args['second'] = fields.get('second', '0')
+                    trigger_args['minute'] = fields.get('minute', '0')
+                    trigger_args['hour'] = fields.get('hour', '0')
+                    trigger_args['day'] = fields.get('day', '*')
+                    trigger_args['month'] = fields.get('month', '*')
+                    trigger_args['day_of_week'] = fields.get('day_of_week', '*')
+                    trigger_args['year'] = fields.get('year', '') if fields.get('year') is not None else ''
                     
                     system_logger.info(f"提取的trigger_args: {trigger_args}")
                     
                     # 只显示非通配符的字段用于简洁显示
-                    if hasattr(job.trigger, 'second') and job.trigger.second != '*':
-                        trigger_info['second'] = job.trigger.second
-                    if hasattr(job.trigger, 'minute') and job.trigger.minute != '*':
-                        trigger_info['minute'] = job.trigger.minute
-                    if hasattr(job.trigger, 'hour') and job.trigger.hour != '*':
-                        trigger_info['hour'] = job.trigger.hour
-                    if hasattr(job.trigger, 'day') and job.trigger.day != '*':
-                        trigger_info['day'] = job.trigger.day
-                    if hasattr(job.trigger, 'month') and job.trigger.month != '*':
-                        trigger_info['month'] = job.trigger.month
-                    if hasattr(job.trigger, 'day_of_week') and job.trigger.day_of_week != '*':
-                        trigger_info['day_of_week'] = job.trigger.day_of_week
-                    if hasattr(job.trigger, 'year') and job.trigger.year is not None and job.trigger.year != '*':
-                        trigger_info['year'] = job.trigger.year
+                    if fields.get('second') and fields.get('second') != '*':
+                        trigger_info['second'] = fields.get('second')
+                    if fields.get('minute') and fields.get('minute') != '*':
+                        trigger_info['minute'] = fields.get('minute')
+                    if fields.get('hour') and fields.get('hour') != '*':
+                        trigger_info['hour'] = fields.get('hour')
+                    if fields.get('day') and fields.get('day') != '*':
+                        trigger_info['day'] = fields.get('day')
+                    if fields.get('month') and fields.get('month') != '*':
+                        trigger_info['month'] = fields.get('month')
+                    if fields.get('day_of_week') and fields.get('day_of_week') != '*':
+                        trigger_info['day_of_week'] = fields.get('day_of_week')
+                    if fields.get('year') and fields.get('year') is not None and fields.get('year') != '*':
+                        trigger_info['year'] = fields.get('year')
                     
                     # 添加description字段用于显示
                     trigger_args['description'] = f"cron{trigger_info}"
