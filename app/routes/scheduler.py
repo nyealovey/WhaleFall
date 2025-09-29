@@ -639,14 +639,26 @@ def get_scheduler_health():
         running_jobs = [job for job in jobs if job.next_run_time is not None]
         paused_jobs = [job for job in jobs if job.next_run_time is None]
         
-        # 检查调度器线程状态 - 如果调度器运行说明线程正常
+        # 检查调度器线程状态 - 检查调度器是否真正运行
         thread_alive = scheduler and scheduler.running
         
         # 检查作业存储状态 - 如果能获取到任务说明存储正常
-        jobstore_accessible = len(jobs) > 0 or (scheduler and scheduler.running)
+        jobstore_accessible = len(jobs) > 0
         
-        # 检查执行器状态 - 如果调度器运行且能获取任务说明执行器正常
-        executor_working = scheduler and scheduler.running and len(jobs) > 0
+        # 检查执行器状态 - 检查执行器是否可用
+        executor_working = False
+        try:
+            if scheduler and hasattr(scheduler, 'executors'):
+                default_executor = scheduler.executors.get('default')
+                if default_executor:
+                    # 检查执行器是否可用
+                    executor_working = True
+        except Exception as e:
+            current_app.logger.warning(f"执行器检查失败: {e}")
+        
+        # 检查任务执行能力 - 检查是否有任务在等待执行
+        has_pending_jobs = len(running_jobs) > 0
+        current_app.logger.info(f"健康检查: 调度器运行={is_running}, 线程={thread_alive}, 存储={jobstore_accessible}, 执行器={executor_working}, 待执行任务={len(running_jobs)}")
         
         # 计算健康状态
         health_score = 0
@@ -658,6 +670,10 @@ def get_scheduler_health():
             health_score += 25
         if executor_working:
             health_score += 20
+        
+        # 如果有待执行任务但执行器不工作，降低分数
+        if has_pending_jobs and not executor_working:
+            health_score = max(0, health_score - 30)
         
         # 确定健康状态
         if health_score >= 80:
