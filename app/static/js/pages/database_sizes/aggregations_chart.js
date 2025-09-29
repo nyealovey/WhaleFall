@@ -16,6 +16,14 @@ class AggregationsChartManager {
             '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'
         ];
         
+        // 为不同类型的聚合数据定义颜色和样式
+        this.dataTypeStyles = {
+            '数据库聚合': { color: '#FF6384', borderDash: [], pointStyle: 'circle' },
+            '实例聚合': { color: '#36A2EB', borderDash: [5, 5], pointStyle: 'rect' },
+            '数据库统计': { color: '#FFCE56', borderDash: [10, 5], pointStyle: 'triangle' },
+            '实例统计': { color: '#4BC0C0', borderDash: [2, 2], pointStyle: 'star' }
+        };
+        
         this.init();
     }
     
@@ -23,6 +31,41 @@ class AggregationsChartManager {
         console.log('初始化聚合数据图表管理器');
         this.bindEvents();
         this.loadChartData();
+        this.createLegend();
+    }
+    
+    /**
+     * 创建图例说明
+     */
+    createLegend() {
+        const legendContainer = document.getElementById('chartLegend');
+        if (!legendContainer) return;
+        
+        const legendHtml = `
+            <div class="chart-legend">
+                <h6>数据类型说明：</h6>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #FF6384;"></span>
+                        <span class="legend-text">📊 数据库聚合 - 按数据库维度聚合的容量数据</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #36A2EB; border-style: dashed;"></span>
+                        <span class="legend-text">🖥️ 实例聚合 - 按实例维度聚合的容量数据</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #FFCE56;"></span>
+                        <span class="legend-text">📈 数据库统计 - 原始数据库容量统计数据</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #4BC0C0;"></span>
+                        <span class="legend-text">📈 实例统计 - 原始实例容量统计数据</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        legendContainer.innerHTML = legendHtml;
     }
     
     bindEvents() {
@@ -260,16 +303,27 @@ class AggregationsChartManager {
         allDatabases.forEach(dbName => {
             const dataPoints = labels.map(date => groupedData[date][dbName] || 0);
             
+            // 根据数据类型确定样式
+            let style = this.dataTypeStyles['数据库聚合']; // 默认样式
+            for (const [type, typeStyle] of Object.entries(this.dataTypeStyles)) {
+                if (dbName.includes(type)) {
+                    style = typeStyle;
+                    break;
+                }
+            }
+            
             datasets.push({
                 label: dbName,
                 data: dataPoints,
-                borderColor: this.chartColors[colorIndex % this.chartColors.length],
-                backgroundColor: this.chartColors[colorIndex % this.chartColors.length] + '20',
+                borderColor: style.color,
+                backgroundColor: style.color + '20',
                 fill: false,
                 tension: 0.1,
                 pointRadius: 4,
                 pointHoverRadius: 6,
-                borderWidth: 2
+                borderWidth: 2,
+                borderDash: style.borderDash,
+                pointStyle: style.pointStyle
             });
             
             colorIndex++;
