@@ -109,9 +109,13 @@ def get_jobs() -> Response:
                         system_logger.info(f"fields是列表类型，包含{len(fields)}个字段")
                         field_dict = {}
                         for field in fields:
+                            system_logger.info(f"检查字段对象: {field}, 类型: {type(field)}")
+                            system_logger.info(f"字段属性: {dir(field)}")
                             if hasattr(field, 'name') and hasattr(field, 'value'):
                                 field_dict[field.name] = field.value
                                 system_logger.info(f"字段: {field.name} = {field.value}")
+                            else:
+                                system_logger.warning(f"字段对象没有name或value属性: {field}")
                         
                         trigger_args['second'] = field_dict.get('second', '0')
                         trigger_args['minute'] = field_dict.get('minute', '0')
