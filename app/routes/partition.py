@@ -478,7 +478,6 @@ def get_aggregations_chart():
     获取聚合数据图表数据
     """
     try:
-        from sqlalchemy import text
         from datetime import date, timedelta
         
         # 获取查询参数
@@ -493,142 +492,94 @@ def get_aggregations_chart():
         end_date = date.today()
         start_date = end_date - timedelta(days=days)
         
-        # 查找相关的表 - 包括主表和分区表
-        all_tables = db.session.execute(text("""
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND (table_name = 'database_size_aggregations'
-                 OR table_name = 'database_size_stats'
-                 OR table_name = 'instance_size_aggregations'
-                 OR table_name = 'instance_size_stats'
-                 OR table_name LIKE 'database_size_aggregations_%' 
-                 OR table_name LIKE 'database_size_stats_%'
-                 OR table_name LIKE 'instance_size_aggregations_%'
-                 OR table_name LIKE 'instance_size_stats_%')
-            ORDER BY table_name
-        """)).fetchall()
+        # 简化实现：直接查询主表，不使用复杂的UNION查询
+        from app.models.database_size_aggregation import DatabaseSizeAggregation
+        from app.models.instance_size_aggregation import InstanceSizeAggregation
+        from app.models.database_size_stat import DatabaseSizeStat
+        from app.models.instance_size_stat import InstanceSizeStat
         
-        if not all_tables:
-            return jsonify({
-                'labels': [],
-                'datasets': [],
-                'dataPointCount': 0,
-                'timeRange': f'{start_date.strftime("%Y-%m-%d")} - {end_date.strftime("%Y-%m-%d")}',
-                'message': '暂无聚合数据，请先运行容量同步任务生成数据'
-            })
+        # 查询数据库聚合数据
+        db_aggregations = DatabaseSizeAggregation.query.filter(
+            DatabaseSizeAggregation.period_type == period_type,
+            DatabaseSizeAggregation.period_start >= start_date,
+            DatabaseSizeAggregation.period_start <= end_date
+        ).join(Instance).all()
         
-        # 构建UNION查询所有表
-        union_queries = []
-        for table_row in all_tables:
-            table_name = table_row[0]
-            
-            # 根据表名确定表类型和字段
-            if 'database_size_aggregations' in table_name:
-                table_type = 'aggregations'
-                union_queries.append(f"""
-                    SELECT 
-                        '{table_type}' as table_type,
-                        period_type,
-                        i.name as instance_name,
-                        database_name,
-                        period_start,
-                        period_end,
-                        avg_size_mb,
-                        max_size_mb,
-                        min_size_mb,
-                        data_count,
-                        calculated_at
-                    FROM {table_name} dsa
-                    JOIN instances i ON dsa.instance_id = i.id
-                    WHERE dsa.period_type = :period_type
-                    AND dsa.period_start >= :start_date
-                    AND dsa.period_start <= :end_date
-                """)
-            elif 'database_size_stats' in table_name:
-                table_type = 'stats'
-                union_queries.append(f"""
-                    SELECT 
-                        '{table_type}' as table_type,
-                        'daily' as period_type,
-                        i.name as instance_name,
-                        database_name,
-                        collected_date as period_start,
-                        collected_date as period_end,
-                        size_mb as avg_size_mb,
-                        size_mb as max_size_mb,
-                        size_mb as min_size_mb,
-                        1 as data_count,
-                        collected_at as calculated_at
-                    FROM {table_name} dss
-                    JOIN instances i ON dss.instance_id = i.id
-                    WHERE dss.collected_date >= :start_date
-                    AND dss.collected_date <= :end_date
-                """)
-            elif 'instance_size_aggregations' in table_name:
-                table_type = 'instance_aggregations'
-                union_queries.append(f"""
-                    SELECT 
-                        '{table_type}' as table_type,
-                        period_type,
-                        i.name as instance_name,
-                        'instance' as database_name,
-                        period_start,
-                        period_end,
-                        avg_size_mb,
-                        max_size_mb,
-                        min_size_mb,
-                        data_count,
-                        calculated_at
-                    FROM {table_name} isa
-                    JOIN instances i ON isa.instance_id = i.id
-                    WHERE isa.period_type = :period_type
-                    AND isa.period_start >= :start_date
-                    AND isa.period_start <= :end_date
-                """)
-            elif 'instance_size_stats' in table_name:
-                table_type = 'instance_stats'
-                union_queries.append(f"""
-                    SELECT 
-                        '{table_type}' as table_type,
-                        'daily' as period_type,
-                        i.name as instance_name,
-                        'instance' as database_name,
-                        collected_date as period_start,
-                        collected_date as period_end,
-                        total_size_mb as avg_size_mb,
-                        total_size_mb as max_size_mb,
-                        total_size_mb as min_size_mb,
-                        1 as data_count,
-                        collected_at as calculated_at
-                    FROM {table_name} iss
-                    JOIN instances i ON iss.instance_id = i.id
-                    WHERE iss.collected_date >= :start_date
-                    AND iss.collected_date <= :end_date
-                """)
+        # 查询实例聚合数据
+        instance_aggregations = InstanceSizeAggregation.query.filter(
+            InstanceSizeAggregation.period_type == period_type,
+            InstanceSizeAggregation.period_start >= start_date,
+            InstanceSizeAggregation.period_start <= end_date
+        ).join(Instance).all()
         
-        # 执行UNION查询
-        union_sql = " UNION ALL ".join(union_queries) + " ORDER BY period_start"
+        # 查询数据库统计数据（daily类型）
+        db_stats = []
+        if period_type == 'daily':
+            db_stats = DatabaseSizeStat.query.filter(
+                DatabaseSizeStat.collected_date >= start_date,
+                DatabaseSizeStat.collected_date <= end_date
+            ).join(Instance).all()
         
-        result = db.session.execute(text(union_sql), {
-            'period_type': period_type,
-            'start_date': start_date,
-            'end_date': end_date
-        }).fetchall()
+        # 查询实例统计数据（daily类型）
+        instance_stats = []
+        if period_type == 'daily':
+            instance_stats = InstanceSizeStat.query.filter(
+                InstanceSizeStat.collected_date >= start_date,
+                InstanceSizeStat.collected_date <= end_date
+            ).join(Instance).all()
         
         # 处理数据为Chart.js格式
         processed_data = {}
-        for row in result:
-            period_start_str = row[4].strftime('%Y-%m-%d') if row[4] else ''
-            instance_name = row[2] or 'Unknown'
-            database_name = row[3] if row[3] else 'Total Instance Size'
+        
+        # 处理数据库聚合数据
+        for agg in db_aggregations:
+            period_start_str = agg.period_start.strftime('%Y-%m-%d')
+            instance_name = agg.instance.name if agg.instance else 'Unknown'
+            database_name = agg.database_name
             
             key = f"{instance_name} - {database_name}"
             if key not in processed_data:
                 processed_data[key] = {'labels': [], 'data': []}
             
             processed_data[key]['labels'].append(period_start_str)
-            processed_data[key]['data'].append(float(row[6] or 0))  # avg_size_mb
+            processed_data[key]['data'].append(float(agg.avg_size_mb or 0))
+        
+        # 处理实例聚合数据
+        for agg in instance_aggregations:
+            period_start_str = agg.period_start.strftime('%Y-%m-%d')
+            instance_name = agg.instance.name if agg.instance else 'Unknown'
+            
+            key = f"{instance_name} - Total Instance"
+            if key not in processed_data:
+                processed_data[key] = {'labels': [], 'data': []}
+            
+            processed_data[key]['labels'].append(period_start_str)
+            processed_data[key]['data'].append(float(agg.avg_size_mb or 0))
+        
+        # 处理数据库统计数据
+        for stat in db_stats:
+            period_start_str = stat.collected_date.strftime('%Y-%m-%d')
+            instance_name = stat.instance.name if stat.instance else 'Unknown'
+            database_name = stat.database_name
+            
+            key = f"{instance_name} - {database_name}"
+            if key not in processed_data:
+                processed_data[key] = {'labels': [], 'data': []}
+            
+            processed_data[key]['labels'].append(period_start_str)
+            processed_data[key]['data'].append(float(stat.size_mb or 0))
+        
+        # 处理实例统计数据
+        for stat in instance_stats:
+            period_start_str = stat.collected_date.strftime('%Y-%m-%d')
+            instance_name = stat.instance.name if stat.instance else 'Unknown'
+            
+            key = f"{instance_name} - Total Instance"
+            if key not in processed_data:
+                processed_data[key] = {'labels': [], 'data': []}
+            
+            processed_data[key]['labels'].append(period_start_str)
+            processed_data[key]['data'].append(float(stat.total_size_mb or 0))
 
         # 生成所有唯一的日期标签
         all_labels = set()
@@ -662,7 +613,7 @@ def get_aggregations_chart():
         })
         
     except Exception as e:
-        logger.error(f"获取聚合数据图表时出错: {str(e)}")
+        logger.error(f"获取聚合数据图表时出错: {str(e)}", exc_info=True)
         return jsonify({
             'labels': [],
             'datasets': [],
