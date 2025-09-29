@@ -64,12 +64,28 @@ def get_jobs() -> Response:
                 
                 # 调试信息
                 system_logger.info(f"处理任务: {job.id}, 触发器类型: {type(job.trigger)}")
+                system_logger.info(f"触发器对象: {job.trigger}")
+                system_logger.info(f"触发器属性: {dir(job.trigger)}")
                 
                 # 简化触发器信息显示
                 trigger_type = str(type(job.trigger).__name__).lower().replace("trigger", "")
+                system_logger.info(f"解析的触发器类型: {trigger_type}")
+                
+                # 检查CronTrigger相关属性
+                if hasattr(job.trigger, 'second'):
+                    system_logger.info(f"触发器有second属性: {job.trigger.second}")
+                else:
+                    system_logger.info("触发器没有second属性")
+                
+                if hasattr(job.trigger, 'hour'):
+                    system_logger.info(f"触发器有hour属性: {job.trigger.hour}")
+                else:
+                    system_logger.info("触发器没有hour属性")
                 
                 # 统一触发器信息显示格式
+                system_logger.info(f"条件检查: trigger_type='{trigger_type}', CronTrigger检查='{'CronTrigger' in str(type(job.trigger))}'")
                 if trigger_type == "cron" and 'CronTrigger' in str(type(job.trigger)):
+                    system_logger.info(f"进入CronTrigger处理分支: {job.id}")
                     # 对于CronTrigger，包含所有字段用于编辑
                     trigger_info = {}
                     trigger_args = {}
@@ -82,6 +98,8 @@ def get_jobs() -> Response:
                     trigger_args['month'] = getattr(job.trigger, 'month', '*')
                     trigger_args['day_of_week'] = getattr(job.trigger, 'day_of_week', '*')
                     trigger_args['year'] = getattr(job.trigger, 'year', '') if getattr(job.trigger, 'year', None) is not None else ''
+                    
+                    system_logger.info(f"提取的trigger_args: {trigger_args}")
                     
                     # 只显示非通配符的字段用于简洁显示
                     if hasattr(job.trigger, 'second') and job.trigger.second != '*':
@@ -101,9 +119,12 @@ def get_jobs() -> Response:
                     
                     # 添加description字段用于显示
                     trigger_args['description'] = f"cron{trigger_info}"
+                    system_logger.info(f"最终trigger_args: {trigger_args}")
                 else:
+                    system_logger.info(f"进入其他触发器处理分支: {job.id}, 触发器类型: {trigger_type}")
                     # 对于其他类型的触发器，使用原始字符串
                     trigger_args = {"description": str(job.trigger)}
+                    system_logger.info(f"其他触发器trigger_args: {trigger_args}")
                     
             except Exception as job_error:
                 system_logger.error(f"处理任务 {job.id} 时出错: {job_error}")
