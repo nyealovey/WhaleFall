@@ -73,9 +73,9 @@ async function loadPartitionData() {
  */
 function updatePartitionStats(data) {
     document.getElementById('totalPartitions').textContent = data.total_partitions || 0;
-    document.getElementById('totalSize').textContent = formatSize(data.total_size_mb || 0);
+    document.getElementById('totalSize').textContent = data.total_size || '0 B';
     document.getElementById('totalRecords').textContent = data.total_records || 0;
-    document.getElementById('partitionStatus').textContent = data.status || '正常';
+    document.getElementById('partitionStatus').textContent = '正常';
 }
 
 /**
@@ -103,17 +103,17 @@ function renderPartitionTable(partitions) {
             <td>
                 <span class="badge bg-secondary">${partition.table_type || '未知'}</span>
             </td>
-            <td>${partition.partition_name || '-'}</td>
+            <td>${partition.name || '-'}</td>
             <td>${partition.date || '-'}</td>
-            <td>${formatSize(partition.size_mb || 0)}</td>
+            <td>${partition.size || '0 B'}</td>
             <td>${partition.record_count || 0}</td>
             <td>
-                <span class="badge bg-${partition.status === 'active' ? 'success' : 'warning'}">
+                <span class="badge bg-${partition.status === 'current' ? 'success' : 'warning'}">
                     ${partition.status || '未知'}
                 </span>
             </td>
             <td>
-                <button class="btn btn-sm btn-outline-danger" onclick="deletePartition('${partition.partition_name}')">
+                <button class="btn btn-sm btn-outline-danger" onclick="deletePartition('${partition.name}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
