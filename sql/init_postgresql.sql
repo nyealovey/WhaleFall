@@ -317,10 +317,10 @@ CREATE TABLE IF NOT EXISTS sync_instance_records (
     status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'completed', 'failed')),
     started_at TIMESTAMP WITH TIME ZONE,
     completed_at TIMESTAMP WITH TIME ZONE,
-    accounts_synced INTEGER DEFAULT 0,
-    accounts_created INTEGER DEFAULT 0,
-    accounts_updated INTEGER DEFAULT 0,
-    accounts_deleted INTEGER DEFAULT 0,
+    items_synced INTEGER DEFAULT 0,  -- 同步的项目数量（通用字段，支持账户、容量、聚合等）
+    items_created INTEGER DEFAULT 0,  -- 创建的项目数量（通用字段，支持账户、容量、聚合等）
+    items_updated INTEGER DEFAULT 0,  -- 更新的项目数量（通用字段，支持账户、容量、聚合等）
+    items_deleted INTEGER DEFAULT 0,  -- 删除的项目数量（通用字段，支持账户、容量、聚合等）
     error_message TEXT,
     sync_details JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
