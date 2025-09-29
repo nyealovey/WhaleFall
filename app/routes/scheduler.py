@@ -62,30 +62,10 @@ def get_jobs() -> Response:
                 trigger_type = "unknown"
                 trigger_args: dict[str, Any] = {}
                 
-                # 调试信息
-                system_logger.info(f"处理任务: {job.id}, 触发器类型: {type(job.trigger)}")
-                system_logger.info(f"触发器对象: {job.trigger}")
-                system_logger.info(f"触发器属性: {dir(job.trigger)}")
-                
                 # 简化触发器信息显示
                 trigger_type = str(type(job.trigger).__name__).lower().replace("trigger", "")
-                system_logger.info(f"解析的触发器类型: {trigger_type}")
                 
-                # 检查CronTrigger相关属性
-                if hasattr(job.trigger, 'second'):
-                    system_logger.info(f"触发器有second属性: {job.trigger.second}")
-                else:
-                    system_logger.info("触发器没有second属性")
-                
-                if hasattr(job.trigger, 'hour'):
-                    system_logger.info(f"触发器有hour属性: {job.trigger.hour}")
-                else:
-                    system_logger.info("触发器没有hour属性")
-                
-                # 统一触发器信息显示格式
-                system_logger.info(f"条件检查: trigger_type='{trigger_type}', CronTrigger检查='{'CronTrigger' in str(type(job.trigger))}'")
                 if trigger_type == "cron" and 'CronTrigger' in str(type(job.trigger)):
-                    system_logger.info(f"进入CronTrigger处理分支: {job.id}")
                     # 对于CronTrigger，包含所有字段用于编辑
                     trigger_info = {}
                     trigger_args = {}
@@ -93,7 +73,6 @@ def get_jobs() -> Response:
                     # 包含所有字段，用于编辑时正确显示
                     # CronTrigger使用fields属性存储字段值
                     fields = getattr(job.trigger, 'fields', {})
-                    system_logger.info(f"fields类型: {type(fields)}, 值: {fields}")
                     
                     # 检查fields是否为字典
                     if isinstance(fields, dict):
@@ -107,9 +86,6 @@ def get_jobs() -> Response:
                         trigger_args['year'] = fields.get('year', '') if fields.get('year') is not None else ''
                     elif isinstance(fields, list):
                         # 如果是列表，直接使用字段值
-                        system_logger.info(f"fields是列表类型，包含{len(fields)}个字段")
-                        system_logger.info(f"fields值: {fields}")
-                        
                         # 按时间顺序生成trigger_args：秒、分、时、日、月、周、年
                         if len(fields) >= 8:
                             trigger_args['second'] = str(fields[7]) if fields[7] is not None else '0'
@@ -119,7 +95,6 @@ def get_jobs() -> Response:
                             trigger_args['month'] = str(fields[1]) if fields[1] is not None else '*'
                             trigger_args['day_of_week'] = str(fields[4]) if fields[4] is not None else '*'
                             trigger_args['year'] = str(fields[0]) if fields[0] is not None else ''
-                            system_logger.info(f"解析的字段值: second={trigger_args['second']}, minute={trigger_args['minute']}, hour={trigger_args['hour']}, day={trigger_args['day']}, month={trigger_args['month']}, day_of_week={trigger_args['day_of_week']}, year={trigger_args['year']}")
                         else:
                             system_logger.warning(f"fields列表长度不足: {len(fields)}")
                             trigger_args['second'] = '0'
@@ -139,8 +114,6 @@ def get_jobs() -> Response:
                         trigger_args['month'] = '*'
                         trigger_args['day_of_week'] = '*'
                         trigger_args['year'] = ''
-                    
-                    system_logger.info(f"提取的trigger_args: {trigger_args}")
                     
                     # 只显示非通配符的字段用于简洁显示
                     if isinstance(fields, dict):
@@ -176,13 +149,9 @@ def get_jobs() -> Response:
                                 trigger_info['day_of_week'] = str(fields[4])
                             if str(fields[0]) != '*' and str(fields[0]) != '':  # year
                                 trigger_info['year'] = str(fields[0])
-                    
-                    system_logger.info(f"最终trigger_args: {trigger_args}")
                 else:
-                    system_logger.info(f"进入其他触发器处理分支: {job.id}, 触发器类型: {trigger_type}")
                     # 对于其他类型的触发器，使用原始字符串
                     trigger_args = {"description": str(job.trigger)}
-                    system_logger.info(f"其他触发器trigger_args: {trigger_args}")
                     
             except Exception as job_error:
                 system_logger.error(f"处理任务 {job.id} 时出错: {job_error}")
