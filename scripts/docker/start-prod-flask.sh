@@ -95,9 +95,10 @@ wait_for_flask() {
     log_info "等待Flask应用启动..."
     
     # 等待Flask应用（通过Nginx代理）
+    # 使用 --noproxy 确保curl不使用代理检查本地服务
     local count=0
     while [ $count -lt 30 ]; do
-        if curl -f http://localhost/health > /dev/null 2>&1; then
+        if curl --noproxy localhost,127.0.0.1,::1 -f http://localhost/health > /dev/null 2>&1; then
             break
         fi
         sleep 5
