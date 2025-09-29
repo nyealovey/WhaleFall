@@ -70,10 +70,10 @@ def get_jobs() -> Response:
                 
                 # 统一触发器信息显示格式
                 if hasattr(job.trigger, 'second') and 'CronTrigger' in str(type(job.trigger)):
-                    # 对于CronTrigger，只显示实际设置的字段（非默认值）
+                    # 对于CronTrigger，只显示非通配符字段
                     trigger_info = {}
                     
-                    # 检查每个字段是否被显式设置（不是默认值）
+                    # 只显示非'*'的字段，这样所有任务都会显示简洁的配置
                     if hasattr(job.trigger, 'second') and job.trigger.second != '*':
                         trigger_info['second'] = job.trigger.second
                     if hasattr(job.trigger, 'minute') and job.trigger.minute != '*':
