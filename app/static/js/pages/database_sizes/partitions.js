@@ -88,7 +88,7 @@ function renderPartitionTable(partitions) {
     if (!partitions || partitions.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center text-muted">
+                <td colspan="6" class="text-center text-muted">
                     <i class="fas fa-inbox me-2"></i>
                     暂无分区数据
                 </td>
@@ -111,11 +111,6 @@ function renderPartitionTable(partitions) {
                 <span class="badge bg-${partition.status === 'current' ? 'success' : 'warning'}">
                     ${partition.status || '未知'}
                 </span>
-            </td>
-            <td>
-                <button class="btn btn-sm btn-outline-danger" onclick="deletePartition('${partition.name}')">
-                    <i class="fas fa-trash"></i>
-                </button>
             </td>
         `;
         tbody.appendChild(row);
@@ -229,37 +224,6 @@ async function cleanupPartitions() {
     }
 }
 
-/**
- * 删除分区
- */
-async function deletePartition(partitionName) {
-    if (!confirm(`确定要删除分区 ${partitionName} 吗？此操作不可恢复！`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('/partition/delete', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ partition_name: partitionName })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            alert('分区删除成功');
-            loadPartitionData();
-        } else {
-            alert('分区删除失败: ' + (data.error || '未知错误'));
-        }
-        
-    } catch (error) {
-        console.error('删除分区异常:', error);
-        alert('删除分区异常: ' + error.message);
-    }
-}
 
 /**
  * 显示加载状态
@@ -291,7 +255,7 @@ function showError(message) {
     const tbody = document.getElementById('partitionsTableBody');
     tbody.innerHTML = `
         <tr>
-            <td colspan="7" class="text-center text-danger">
+            <td colspan="6" class="text-center text-danger">
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 ${message}
             </td>
