@@ -231,15 +231,28 @@ def calculate_database_size_aggregations(manual_run=False):
                         
                         if period_result.get('status') == 'success':
                             instance_aggregations += period_result.get('total_records', 0)
-                            sync_logger.info(
-                                f"实例 {instance.name} {period_type} 聚合完成",
-                                module="aggregation_sync",
-                                session_id=session.session_id,
-                                instance_id=instance.id,
-                                instance_name=instance.name,
-                                period_type=period_type,
-                                aggregations=period_result.get('total_records', 0)
-                            )
+                            # 记录日志，区分有数据和无数据的情况
+                            if period_result.get('total_records', 0) > 0:
+                                sync_logger.info(
+                                    f"实例 {instance.name} {period_type} 聚合完成",
+                                    module="aggregation_sync",
+                                    session_id=session.session_id,
+                                    instance_id=instance.id,
+                                    instance_name=instance.name,
+                                    period_type=period_type,
+                                    aggregations=period_result.get('total_records', 0)
+                                )
+                            else:
+                                # 没有数据的情况，记录为信息级别
+                                sync_logger.info(
+                                    f"实例 {instance.name} {period_type} 聚合跳过（无数据）",
+                                    module="aggregation_sync",
+                                    session_id=session.session_id,
+                                    instance_id=instance.id,
+                                    instance_name=instance.name,
+                                    period_type=period_type,
+                                    message=period_result.get('message', '没有统计数据')
+                                )
                         else:
                             instance_success = False
                             instance_error_msg += f"{period_type}聚合失败; "
