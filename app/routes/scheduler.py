@@ -50,7 +50,6 @@ def get_jobs() -> Response:
         if not scheduler.running:
             return APIResponse.error("调度器未启动", code=500)  # type: ignore
         jobs = scheduler.get_jobs()
-        system_logger.info("获取任务列表", module="scheduler", job_count=len(jobs))
         jobs_data: list[dict[str, Any]] = []
 
         for job in jobs:
@@ -565,10 +564,6 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
         if second is not None:
             cron_kwargs["second"] = second
 
-        try:
-            system_logger.info("构建 CronTrigger 参数: %s", cron_kwargs)
-        except Exception:  # noqa: BLE001
-            pass
 
         try:
             # 确保CronTrigger使用与调度器相同的时区
