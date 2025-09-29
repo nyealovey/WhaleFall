@@ -339,12 +339,13 @@ def calculate_database_size_aggregations(manual_run=False):
                 )
                 total_failed += 1
         
-        # 更新会话状态
-        session.successful_instances = total_processed
-        session.failed_instances = total_failed
-        session.status = "completed" if total_failed == 0 else "failed"
-        session.completed_at = now()
-        db.session.commit()
+        # 会话状态已通过 _update_session_statistics 实时更新，这里不需要手动更新
+        # 只需要确保会话最终状态正确
+        if session.status == "running":
+            # 如果会话状态还是running，说明所有实例都已完成，更新最终状态
+            session.status = "completed" if total_failed == 0 else "failed"
+            session.completed_at = now()
+            db.session.commit()
         
         sync_logger.info(
             "统计聚合任务完成",
