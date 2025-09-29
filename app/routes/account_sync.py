@@ -583,7 +583,7 @@ def sync_details_batch() -> str | Response | tuple[Response, int]:
                 # 如果这个实例还没有记录，或者当前记录更新，则保存
                 if (
                     instance_name not in instance_records
-                    or instance_record.created_at > instance_records[instance_name]["sync_time"]
+                    or instance_record.created_at > instance_records[instance_name].get("created_at")
                 ):
                     instance_records[instance_name] = {
                         "id": instance_record.id,
@@ -591,19 +591,17 @@ def sync_details_batch() -> str | Response | tuple[Response, int]:
                         "status": instance_record.status,
                         "message": instance_record.error_message or "",
                         "synced_count": instance_record.items_synced or 0,
-                        "sync_time": instance_record.created_at,
+                        "sync_time": instance_record.created_at.isoformat() if instance_record.created_at else None,
+                        "created_at": instance_record.created_at,  # 保留原始datetime对象用于比较
                     }
 
         # 转换为列表并按实例名称排序
         details = list(instance_records.values())
         details.sort(key=lambda x: x["instance_name"])
 
-        # 转换时间格式
+        # 移除临时字段，只保留JSON可序列化的字段
         for detail in details:
-            if detail["sync_time"]:
-                detail["sync_time"] = detail["sync_time"].isoformat()
-            else:
-                detail["sync_time"] = None
+            detail.pop("created_at", None)  # 移除用于比较的临时字段
 
         return jsonify(
             {
