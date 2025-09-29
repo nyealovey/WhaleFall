@@ -125,10 +125,10 @@ def sync_records() -> str | Response:
             # 从关联的实例记录中获取详细统计
             instance_records = record.instance_records.all()  # 执行查询获取实际记录
             for instance_record in instance_records:
-                total_accounts += instance_record.accounts_synced or 0
-                added_count += instance_record.accounts_created or 0
-                removed_count += instance_record.accounts_deleted or 0
-                modified_count += instance_record.accounts_updated or 0
+                total_accounts += instance_record.items_synced or 0
+                added_count += instance_record.items_created or 0
+                removed_count += instance_record.items_deleted or 0
+                modified_count += instance_record.items_updated or 0
 
                 # 统计成功和失败的实例数量
                 if instance_record.status == "completed":
@@ -418,10 +418,10 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                     # 完成实例同步
                     sync_session_service.complete_instance_sync(
                         record.id,
-                        accounts_synced=result.get("synced_count", 0),
-                        accounts_created=result.get("added_count", 0),
-                        accounts_updated=result.get("modified_count", 0),
-                        accounts_deleted=result.get("removed_count", 0),
+                        items_synced=result.get("synced_count", 0),
+                        items_created=result.get("added_count", 0),
+                        items_updated=result.get("modified_count", 0),
+                        items_deleted=result.get("removed_count", 0),
                         sync_details=result.get("details", {}),
                     )
 
@@ -587,7 +587,7 @@ def sync_details_batch() -> str | Response | tuple[Response, int]:
                         "instance_name": instance_name,
                         "status": instance_record.status,
                         "message": instance_record.error_message or "",
-                        "synced_count": instance_record.accounts_synced or 0,
+                        "synced_count": instance_record.items_synced or 0,
                         "sync_time": instance_record.created_at,
                     }
 
