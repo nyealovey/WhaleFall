@@ -217,8 +217,19 @@ def calculate_database_size_aggregations(manual_run=False):
                 
                 # 使用连接工厂创建数据库连接，设置超时参数
                 from app.services.connection_factory import ConnectionFactory
+                import signal
+                import time
                 
+                # 设置实例级别的超时处理（5分钟）
+                def timeout_handler(signum, frame):
+                    raise TimeoutError(f"实例 {instance.name} 聚合计算超时（5分钟）")
+                
+                old_handler = None
                 try:
+                    # 设置超时信号
+                    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+                    signal.alarm(300)  # 5分钟超时
+                    
                     for period_type in period_types:
                         try:
                             # 为当前实例计算该周期的聚合数据
@@ -328,6 +339,22 @@ def calculate_database_size_aggregations(manual_run=False):
                             error=error_msg
                         )
                 
+                except TimeoutError as e:
+                    # 超时异常处理
+                    sync_logger.error(
+                        f"实例聚合超时: {instance.name}",
+                        module="aggregation_sync",
+                        session_id=session.session_id,
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        error=str(e)
+                    )
+                    sync_session_service.fail_instance_sync(
+                        record.id,
+                        error_message=f"聚合计算超时: {str(e)}"
+                    )
+                    total_failed += 1
+                    
                 except Exception as e:
                     # 连接或聚合异常处理
                     sync_logger.error(
@@ -343,6 +370,12 @@ def calculate_database_size_aggregations(manual_run=False):
                         error_message=f"聚合计算异常: {str(e)}"
                     )
                     total_failed += 1
+                
+                finally:
+                    # 清理超时信号
+                    if old_handler is not None:
+                        signal.alarm(0)  # 取消超时
+                        signal.signal(signal.SIGALRM, old_handler)  # 恢复原信号处理器
                 
             except Exception as e:
                 sync_logger.error(
