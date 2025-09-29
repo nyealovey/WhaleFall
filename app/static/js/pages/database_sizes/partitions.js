@@ -88,7 +88,7 @@ function renderPartitionTable(partitions) {
     if (!partitions || partitions.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center text-muted">
+                <td colspan="5" class="text-center text-muted">
                     <i class="fas fa-inbox me-2"></i>
                     暂无分区数据
                 </td>
@@ -104,7 +104,6 @@ function renderPartitionTable(partitions) {
                 <span class="badge bg-secondary">${partition.table_type || '未知'}</span>
             </td>
             <td>${partition.name || '-'}</td>
-            <td>${partition.date || '-'}</td>
             <td>${partition.size || '0 B'}</td>
             <td>${partition.record_count || 0}</td>
             <td>
@@ -255,7 +254,7 @@ function showError(message) {
     const tbody = document.getElementById('partitionsTableBody');
     tbody.innerHTML = `
         <tr>
-            <td colspan="6" class="text-center text-danger">
+            <td colspan="5" class="text-center text-danger">
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 ${message}
             </td>
