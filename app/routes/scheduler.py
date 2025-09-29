@@ -93,31 +93,46 @@ def get_jobs() -> Response:
                     # 包含所有字段，用于编辑时正确显示
                     # CronTrigger使用fields属性存储字段值
                     fields = getattr(job.trigger, 'fields', {})
-                    trigger_args['second'] = fields.get('second', '0')
-                    trigger_args['minute'] = fields.get('minute', '0')
-                    trigger_args['hour'] = fields.get('hour', '0')
-                    trigger_args['day'] = fields.get('day', '*')
-                    trigger_args['month'] = fields.get('month', '*')
-                    trigger_args['day_of_week'] = fields.get('day_of_week', '*')
-                    trigger_args['year'] = fields.get('year', '') if fields.get('year') is not None else ''
+                    system_logger.info(f"fields类型: {type(fields)}, 值: {fields}")
+                    
+                    # 检查fields是否为字典
+                    if isinstance(fields, dict):
+                        trigger_args['second'] = fields.get('second', '0')
+                        trigger_args['minute'] = fields.get('minute', '0')
+                        trigger_args['hour'] = fields.get('hour', '0')
+                        trigger_args['day'] = fields.get('day', '*')
+                        trigger_args['month'] = fields.get('month', '*')
+                        trigger_args['day_of_week'] = fields.get('day_of_week', '*')
+                        trigger_args['year'] = fields.get('year', '') if fields.get('year') is not None else ''
+                    else:
+                        # 如果不是字典，使用默认值
+                        system_logger.warning(f"fields不是字典类型: {type(fields)}")
+                        trigger_args['second'] = '0'
+                        trigger_args['minute'] = '0'
+                        trigger_args['hour'] = '0'
+                        trigger_args['day'] = '*'
+                        trigger_args['month'] = '*'
+                        trigger_args['day_of_week'] = '*'
+                        trigger_args['year'] = ''
                     
                     system_logger.info(f"提取的trigger_args: {trigger_args}")
                     
                     # 只显示非通配符的字段用于简洁显示
-                    if fields.get('second') and fields.get('second') != '*':
-                        trigger_info['second'] = fields.get('second')
-                    if fields.get('minute') and fields.get('minute') != '*':
-                        trigger_info['minute'] = fields.get('minute')
-                    if fields.get('hour') and fields.get('hour') != '*':
-                        trigger_info['hour'] = fields.get('hour')
-                    if fields.get('day') and fields.get('day') != '*':
-                        trigger_info['day'] = fields.get('day')
-                    if fields.get('month') and fields.get('month') != '*':
-                        trigger_info['month'] = fields.get('month')
-                    if fields.get('day_of_week') and fields.get('day_of_week') != '*':
-                        trigger_info['day_of_week'] = fields.get('day_of_week')
-                    if fields.get('year') and fields.get('year') is not None and fields.get('year') != '*':
-                        trigger_info['year'] = fields.get('year')
+                    if isinstance(fields, dict):
+                        if fields.get('second') and fields.get('second') != '*':
+                            trigger_info['second'] = fields.get('second')
+                        if fields.get('minute') and fields.get('minute') != '*':
+                            trigger_info['minute'] = fields.get('minute')
+                        if fields.get('hour') and fields.get('hour') != '*':
+                            trigger_info['hour'] = fields.get('hour')
+                        if fields.get('day') and fields.get('day') != '*':
+                            trigger_info['day'] = fields.get('day')
+                        if fields.get('month') and fields.get('month') != '*':
+                            trigger_info['month'] = fields.get('month')
+                        if fields.get('day_of_week') and fields.get('day_of_week') != '*':
+                            trigger_info['day_of_week'] = fields.get('day_of_week')
+                        if fields.get('year') and fields.get('year') is not None and fields.get('year') != '*':
+                            trigger_info['year'] = fields.get('year')
                     
                     # 添加description字段用于显示
                     trigger_args['description'] = f"cron{trigger_info}"
