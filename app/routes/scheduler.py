@@ -105,12 +105,31 @@ def get_jobs() -> Response:
             if scheduler.running and not is_paused:
                 state = "STATE_RUNNING"
 
+            # 获取任务的上次运行时间（从日志中查找）
+            last_run_time = None
+            try:
+                from app.models.unified_log import UnifiedLog
+                from app.utils.time_utils import now_china
+                from datetime import timedelta
+                
+                # 查找最近24小时内该任务的执行日志
+                recent_logs = UnifiedLog.query.filter(
+                    UnifiedLog.module == "scheduler",
+                    UnifiedLog.message.like(f"%{job.name}%"),
+                    UnifiedLog.timestamp >= now_china() - timedelta(days=1)
+                ).order_by(UnifiedLog.timestamp.desc()).first()
+                
+                if recent_logs:
+                    last_run_time = recent_logs.timestamp.isoformat()
+            except Exception as e:
+                system_logger.warning(f"获取任务 {job.id} 上次运行时间失败: {e}")
+
             job_info = {
                 "id": job.id,
                 "name": job.name,
                 "description": job.name,
                 "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None,
-                "last_run_time": None,
+                "last_run_time": last_run_time,
                 "trigger_type": trigger_type,
                 "trigger_args": trigger_args,
                 "state": state,
