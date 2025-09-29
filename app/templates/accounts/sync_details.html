@@ -82,20 +82,20 @@
                             <h6>统计信息</h6>
                             <table class="table table-borderless">
                                 <tr>
-                                    <td><strong>新增账户:</strong></td>
-                                    <td><span class="badge bg-success">{{ record.accounts_added or 0 }}</span></td>
+                                    <td><strong>新增项目:</strong></td>
+                                    <td><span class="badge bg-success">{{ record.items_created or 0 }}</span></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>更新账户:</strong></td>
-                                    <td><span class="badge bg-warning">{{ record.accounts_updated or 0 }}</span></td>
+                                    <td><strong>更新项目:</strong></td>
+                                    <td><span class="badge bg-warning">{{ record.items_updated or 0 }}</span></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>删除账户:</strong></td>
-                                    <td><span class="badge bg-danger">{{ record.accounts_deleted or 0 }}</span></td>
+                                    <td><strong>删除项目:</strong></td>
+                                    <td><span class="badge bg-danger">{{ record.items_deleted or 0 }}</span></td>
                                 </tr>
                                 <tr>
                                     <td><strong>总处理数:</strong></td>
-                                    <td><span class="badge bg-primary">{{ (record.accounts_added or 0) + (record.accounts_updated or 0) + (record.accounts_deleted or 0) }}</span></td>
+                                    <td><span class="badge bg-primary">{{ (record.items_created or 0) + (record.items_updated or 0) + (record.items_deleted or 0) }}</span></td>
                                 </tr>
                             </table>
                         </div>
