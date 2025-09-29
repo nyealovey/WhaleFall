@@ -28,7 +28,91 @@
         </div>
     </div>
 
-    <!-- 统计信息：已移除 -->
+    <!-- 调度器健康状态 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-heartbeat me-2"></i>调度器健康状态
+                    </h5>
+                    <button id="refreshHealthBtn" class="btn btn-sm btn-outline-primary" type="button">
+                        <i class="fas fa-sync-alt me-1"></i>刷新状态
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="healthStatus" class="row">
+                        <div class="col-md-3">
+                            <div class="health-item">
+                                <div class="health-label">整体状态</div>
+                                <div id="overallStatus" class="health-value">
+                                    <span class="badge bg-secondary">检查中...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="health-item">
+                                <div class="health-label">健康分数</div>
+                                <div id="healthScore" class="health-value">
+                                    <span class="badge bg-secondary">--</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="health-item">
+                                <div class="health-label">调度器运行</div>
+                                <div id="schedulerRunning" class="health-value">
+                                    <span class="badge bg-secondary">--</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="health-item">
+                                <div class="health-label">任务数量</div>
+                                <div id="totalJobs" class="health-value">
+                                    <span class="badge bg-secondary">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="health-details">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="detail-item">
+                                            <span class="detail-label">线程状态:</span>
+                                            <span id="threadStatus" class="detail-value">--</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="detail-item">
+                                            <span class="detail-label">作业存储:</span>
+                                            <span id="jobstoreStatus" class="detail-value">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="detail-item">
+                                            <span class="detail-label">执行器:</span>
+                                            <span id="executorStatus" class="detail-value">--</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="detail-item">
+                                            <span class="detail-label">最后检查:</span>
+                                            <span id="lastCheck" class="detail-value">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 任务列表 -->
     <div class="row">

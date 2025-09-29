@@ -4,7 +4,8 @@
 """
 
 from typing import Any
-from flask import Blueprint, Response, render_template, request
+from datetime import datetime
+from flask import Blueprint, Response, render_template, request, current_app, jsonify
 from flask_login import login_required  # type: ignore
 
 from apscheduler.triggers.cron import CronTrigger
@@ -622,7 +623,108 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
 
 # 辅助函数
 
-
+@scheduler_bp.route("/api/health")
+@login_required
+@scheduler_view_required
+def get_scheduler_health():
+    """获取调度器健康状态"""
+    try:
+        scheduler = get_scheduler()
+        
+        # 基本状态检查
+        is_running = scheduler.running if scheduler else False
+        jobs = scheduler.get_jobs() if scheduler else []
+        
+        # 统计任务状态
+        running_jobs = [job for job in jobs if job.next_run_time is not None]
+        paused_jobs = [job for job in jobs if job.next_run_time is None]
+        
+        # 检查调度器线程状态
+        thread_alive = False
+        if scheduler and hasattr(scheduler, '_thread'):
+            thread_alive = scheduler._thread.is_alive() if scheduler._thread else False
+        
+        # 检查作业存储状态
+        jobstore_accessible = False
+        try:
+            if scheduler and hasattr(scheduler, 'jobstores'):
+                # 尝试访问默认作业存储
+                default_store = scheduler.jobstores.get('default')
+                if default_store:
+                    # 尝试获取作业数量
+                    len(list(default_store.get_all_jobs()))
+                    jobstore_accessible = True
+        except Exception as e:
+            current_app.logger.warning(f"作业存储检查失败: {e}")
+        
+        # 检查执行器状态
+        executor_working = False
+        try:
+            if scheduler and hasattr(scheduler, 'executors'):
+                default_executor = scheduler.executors.get('default')
+                if default_executor:
+                    executor_working = True
+        except Exception as e:
+            current_app.logger.warning(f"执行器检查失败: {e}")
+        
+        # 计算健康状态
+        health_score = 0
+        if is_running:
+            health_score += 30
+        if thread_alive:
+            health_score += 25
+        if jobstore_accessible:
+            health_score += 25
+        if executor_working:
+            health_score += 20
+        
+        # 确定健康状态
+        if health_score >= 80:
+            status = "healthy"
+            status_text = "健康"
+            status_color = "success"
+        elif health_score >= 60:
+            status = "warning"
+            status_text = "警告"
+            status_color = "warning"
+        else:
+            status = "error"
+            status_text = "异常"
+            status_color = "danger"
+        
+        health_data = {
+            "status": status,
+            "status_text": status_text,
+            "status_color": status_color,
+            "health_score": health_score,
+            "scheduler_running": is_running,
+            "thread_alive": thread_alive,
+            "jobstore_accessible": jobstore_accessible,
+            "executor_working": executor_working,
+            "total_jobs": len(jobs),
+            "running_jobs": len(running_jobs),
+            "paused_jobs": len(paused_jobs),
+            "last_check": datetime.now().isoformat()
+        }
+        
+        return jsonify({
+            "success": True,
+            "data": health_data
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"获取调度器健康状态失败: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "data": {
+                "status": "error",
+                "status_text": "检查失败",
+                "status_color": "danger",
+                "health_score": 0,
+                "last_check": datetime.now().isoformat()
+            }
+        })
 
 
 
