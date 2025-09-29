@@ -156,18 +156,24 @@
                 </div>
             </div>
 
-            <!-- 图表容器 -->
-            <div class="position-relative" style="height: 500px;">
-                <canvas id="aggregationsChart" style="height: 100%; width: 100%;"></canvas>
-                <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
-                    <div class="text-center">
-                        <div class="spinner-border text-primary mb-3" role="status">
-                            <span class="visually-hidden">加载中...</span>
+                <!-- 图表容器 -->
+                <div class="position-relative" style="height: 500px;">
+                    <canvas id="aggregationsChart" style="height: 100%; width: 100%;"></canvas>
+                    <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                            <p class="mb-0">正在加载图表数据...</p>
                         </div>
-                        <p class="mb-0">正在加载图表数据...</p>
+                    </div>
+                    <div id="chartMessage" class="position-absolute top-50 start-50 translate-middle d-none">
+                        <div class="text-center">
+                            <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                            <p class="mb-0 text-muted" id="chartMessageText">暂无数据</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
         </div>
     </div>

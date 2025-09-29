@@ -478,6 +478,9 @@ def get_aggregations_chart():
     获取聚合数据图表数据
     """
     try:
+        from sqlalchemy import text
+        from datetime import date, timedelta
+        
         # 获取查询参数
         period_type = request.args.get('period_type', 'daily')
         days = request.args.get('days', 7, type=int)
@@ -487,50 +490,181 @@ def get_aggregations_chart():
             return jsonify({'error': 'Invalid period_type'}), 400
         
         # 计算日期范围
-        from datetime import date, timedelta
         end_date = date.today()
         start_date = end_date - timedelta(days=days)
         
-        # 查询聚合数据
-        query = DatabaseSizeAggregation.query.join(Instance).filter(
-            DatabaseSizeAggregation.period_type == period_type,
-            DatabaseSizeAggregation.period_start >= start_date,
-            DatabaseSizeAggregation.period_start <= end_date
-        ).order_by(DatabaseSizeAggregation.period_start)
+        # 查找相关的分区表 - 根据实际的分区表命名模式
+        partition_tables = db.session.execute(text("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND (table_name LIKE 'database_size_aggregations_%' 
+                 OR table_name LIKE 'database_size_stats_%'
+                 OR table_name LIKE 'instance_size_aggregations_%'
+                 OR table_name LIKE 'instance_size_stats_%')
+            ORDER BY table_name
+        """)).fetchall()
         
-        aggregations = query.all()
+        if not partition_tables:
+            return jsonify({
+                'labels': [],
+                'datasets': [],
+                'dataPointCount': 0,
+                'timeRange': f'{start_date.strftime("%Y-%m-%d")} - {end_date.strftime("%Y-%m-%d")}',
+                'message': '暂无聚合数据，请先运行容量同步任务生成数据'
+            })
         
-        # 转换为字典格式
-        data = []
-        for agg in aggregations:
-            data.append({
-                'table_type': 'database',
-                'period_type': agg.period_type,
-                'instance_name': agg.instance.name,
-                'database_name': agg.database_name,
-                'period_start': agg.period_start.isoformat(),
-                'period_end': agg.period_end.isoformat(),
-                'period_range': f"{agg.period_start} 至 {agg.period_end}",
-                'avg_size_mb': float(agg.avg_size_mb or 0),
-                'max_size_mb': float(agg.max_size_mb or 0),
-                'min_size_mb': float(agg.min_size_mb or 0),
-                'data_count': agg.data_count or 0,
-                'calculated_at': agg.calculated_at.isoformat() if agg.calculated_at else None
+        # 构建UNION查询所有分区表
+        union_queries = []
+        for table_row in partition_tables:
+            table_name = table_row[0]
+            
+            # 根据表名确定表类型和字段
+            if 'database_size_aggregations' in table_name:
+                table_type = 'aggregations'
+                union_queries.append(f"""
+                    SELECT 
+                        '{table_type}' as table_type,
+                        period_type,
+                        i.name as instance_name,
+                        database_name,
+                        period_start,
+                        period_end,
+                        avg_size_mb,
+                        max_size_mb,
+                        min_size_mb,
+                        data_count,
+                        calculated_at
+                    FROM {table_name} dsa
+                    JOIN instances i ON dsa.instance_id = i.id
+                    WHERE dsa.period_type = :period_type
+                    AND dsa.period_start >= :start_date
+                    AND dsa.period_start <= :end_date
+                """)
+            elif 'database_size_stats' in table_name:
+                table_type = 'stats'
+                union_queries.append(f"""
+                    SELECT 
+                        '{table_type}' as table_type,
+                        'daily' as period_type,
+                        i.name as instance_name,
+                        database_name,
+                        recorded_at as period_start,
+                        recorded_at as period_end,
+                        size_mb as avg_size_mb,
+                        size_mb as max_size_mb,
+                        size_mb as min_size_mb,
+                        1 as data_count,
+                        recorded_at as calculated_at
+                    FROM {table_name} dss
+                    JOIN instances i ON dss.instance_id = i.id
+                    WHERE dss.recorded_at >= :start_date
+                    AND dss.recorded_at <= :end_date
+                """)
+            elif 'instance_size_aggregations' in table_name:
+                table_type = 'instance_aggregations'
+                union_queries.append(f"""
+                    SELECT 
+                        '{table_type}' as table_type,
+                        period_type,
+                        i.name as instance_name,
+                        'instance' as database_name,
+                        period_start,
+                        period_end,
+                        avg_size_mb,
+                        max_size_mb,
+                        min_size_mb,
+                        data_count,
+                        calculated_at
+                    FROM {table_name} isa
+                    JOIN instances i ON isa.instance_id = i.id
+                    WHERE isa.period_type = :period_type
+                    AND isa.period_start >= :start_date
+                    AND isa.period_start <= :end_date
+                """)
+            elif 'instance_size_stats' in table_name:
+                table_type = 'instance_stats'
+                union_queries.append(f"""
+                    SELECT 
+                        '{table_type}' as table_type,
+                        'daily' as period_type,
+                        i.name as instance_name,
+                        'instance' as database_name,
+                        recorded_at as period_start,
+                        recorded_at as period_end,
+                        total_size_mb as avg_size_mb,
+                        total_size_mb as max_size_mb,
+                        total_size_mb as min_size_mb,
+                        1 as data_count,
+                        recorded_at as calculated_at
+                    FROM {table_name} iss
+                    JOIN instances i ON iss.instance_id = i.id
+                    WHERE iss.recorded_at >= :start_date
+                    AND iss.recorded_at <= :end_date
+                """)
+        
+        # 执行UNION查询
+        union_sql = " UNION ALL ".join(union_queries) + " ORDER BY period_start"
+        
+        result = db.session.execute(text(union_sql), {
+            'period_type': period_type,
+            'start_date': start_date,
+            'end_date': end_date
+        }).fetchall()
+        
+        # 处理数据为Chart.js格式
+        processed_data = {}
+        for row in result:
+            period_start_str = row[4].strftime('%Y-%m-%d') if row[4] else ''
+            instance_name = row[2] or 'Unknown'
+            database_name = row[3] if row[3] else 'Total Instance Size'
+            
+            key = f"{instance_name} - {database_name}"
+            if key not in processed_data:
+                processed_data[key] = {'labels': [], 'data': []}
+            
+            processed_data[key]['labels'].append(period_start_str)
+            processed_data[key]['data'].append(float(row[6] or 0))  # avg_size_mb
+
+        # 生成所有唯一的日期标签
+        all_labels = set()
+        for key, value in processed_data.items():
+            all_labels.update(value['labels'])
+        labels = sorted(list(all_labels))
+        
+        # 生成Chart.js数据集
+        datasets = []
+        import random
+        for key, value in processed_data.items():
+            # 确保数据点与所有标签对齐，缺失的日期用0填充
+            aligned_data = []
+            data_map = dict(zip(value['labels'], value['data']))
+            for lbl in labels:
+                aligned_data.append(data_map.get(lbl, 0))
+
+            datasets.append({
+                'label': key,
+                'data': aligned_data,
+                'fill': False,
+                'borderColor': '#'+''.join([random.choice('0123456789ABCDEF') for j in range(6)]),
+                'tension': 0.1
             })
         
         return jsonify({
-            'success': True,
-            'data': data,
-            'period_type': period_type,
-            'days': days,
-            'count': len(data)
+            'labels': labels,
+            'datasets': datasets,
+            'dataPointCount': len(labels),
+            'timeRange': f'{start_date.strftime("%Y-%m-%d")} - {end_date.strftime("%Y-%m-%d")}'
         })
         
     except Exception as e:
         logger.error(f"获取聚合数据图表时出错: {str(e)}")
         return jsonify({
-            'success': False,
-            'error': str(e)
+            'labels': [],
+            'datasets': [],
+            'dataPointCount': 0,
+            'timeRange': '',
+            'error': f'Failed to load chart data: {str(e)}'
         }), 500
 
 
