@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta
 
 from app import create_app, db
+from app.constants.sync_constants import SyncOperationType, SyncCategory
 from app.models.account_change_log import AccountChangeLog
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.unified_log import UnifiedLog
@@ -92,8 +93,8 @@ def sync_accounts(**kwargs):
             
             # 创建同步会话
             session = sync_session_service.create_session(
-                sync_type="scheduled_task",
-                sync_category="account",
+                sync_type=SyncOperationType.SCHEDULED_TASK.value,
+                sync_category=SyncCategory.ACCOUNT.value,
                 created_by=None  # 定时任务没有创建者
             )
             
@@ -115,7 +116,7 @@ def sync_accounts(**kwargs):
                     # 执行同步
                     result = account_sync_service.sync_accounts(
                         instance, 
-                        sync_type="scheduled_task", 
+                        sync_type=SyncOperationType.SCHEDULED_TASK.value, 
                         session_id=session.session_id
                     )
                     
