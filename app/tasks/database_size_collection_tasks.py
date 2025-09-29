@@ -126,10 +126,10 @@ def collect_database_sizes():
                         database_count = len(collection_result.get('databases', []))
                         sync_session_service.complete_instance_sync(
                             record.id,
-                            accounts_synced=database_count,  # 使用数据库数量作为同步数量
-                            accounts_created=0,  # 容量同步没有新增概念
-                            accounts_updated=0,  # 容量同步没有更新概念
-                            accounts_deleted=0,  # 容量同步没有删除概念
+                            items_synced=database_count,  # 使用数据库数量作为同步数量
+                            items_created=0,  # 容量同步没有新增概念
+                            items_updated=0,  # 容量同步没有更新概念
+                            items_deleted=0,  # 容量同步没有删除概念
                             sync_details={
                                 'total_size_mb': collection_result.get('total_size_mb', 0),
                                 'database_count': database_count,

@@ -224,10 +224,10 @@ def calculate_database_size_aggregations(manual_run=False):
                         
                         sync_session_service.complete_instance_sync(
                             record.id,
-                            accounts_synced=1,  # 聚合任务使用1表示成功
-                            accounts_created=0,
-                            accounts_updated=0,
-                            accounts_deleted=0,
+                            items_synced=1,  # 聚合任务使用1表示成功
+                            items_created=0,
+                            items_updated=0,
+                            items_deleted=0,
                             sync_details={
                                 'total_aggregations': total_aggregations,
                                 'periods_processed': len(period_types)
