@@ -6,6 +6,7 @@
 import logging
 from datetime import datetime, date, timedelta
 from typing import Dict, Any, List
+from app.constants.sync_constants import SyncOperationType, SyncCategory
 from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
 from app.models.instance import Instance
 from app.config import Config
@@ -64,8 +65,8 @@ def calculate_database_size_aggregations(manual_run=False):
             from flask_login import current_user
             created_by = current_user.id if current_user.is_authenticated else None
             session = sync_session_service.create_session(
-                sync_type="manual_task",
-                sync_category="aggregation",
+                sync_type=SyncOperationType.MANUAL_TASK.value,
+                sync_category=SyncCategory.AGGREGATION.value,
                 created_by=created_by
             )
             
@@ -79,8 +80,8 @@ def calculate_database_size_aggregations(manual_run=False):
         else:
             # 定时任务执行时创建会话
             session = sync_session_service.create_session(
-                sync_type="scheduled_task",
-                sync_category="aggregation",
+                sync_type=SyncOperationType.SCHEDULED_TASK.value,
+                sync_category=SyncCategory.AGGREGATION.value,
                 created_by=None  # 定时任务没有创建者
             )
             

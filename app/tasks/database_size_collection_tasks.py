@@ -6,6 +6,7 @@
 import logging
 from datetime import datetime, date
 from typing import Dict, Any, List
+from app.constants.sync_constants import SyncOperationType, SyncCategory
 from app.services.database_size_collector_service import collect_all_instances_database_sizes
 from app.models.instance import Instance
 from app.config import Config
@@ -52,8 +53,8 @@ def collect_database_sizes():
             
             # 创建同步会话
             session = sync_session_service.create_session(
-                sync_type="scheduled_task",
-                sync_category="capacity",
+                sync_type=SyncOperationType.SCHEDULED_TASK.value,
+                sync_category=SyncCategory.CAPACITY.value,
                 created_by=None  # 定时任务没有创建者
             )
             
@@ -66,7 +67,7 @@ def collect_database_sizes():
             
             # 添加实例记录
             instance_ids = [inst.id for inst in active_instances]
-            records = sync_session_service.add_instance_records(session.session_id, instance_ids, sync_category="capacity")
+            records = sync_session_service.add_instance_records(session.session_id, instance_ids, sync_category=SyncCategory.CAPACITY.value)
             session.total_instances = len(active_instances)
             
             total_synced = 0
