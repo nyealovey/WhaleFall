@@ -131,14 +131,7 @@
                     </h5>
                 </div>
                 <div class="col-md-6">
-                    <div class="d-flex justify-content-end gap-2">
-                        <div class="btn-group" role="group">
-                            <input type="radio" class="btn-check" name="chartType" id="chartTypeLine" value="line" checked>
-                            <label class="btn btn-outline-primary btn-sm" for="chartTypeLine">折线图</label>
-                            
-                            <input type="radio" class="btn-check" name="chartType" id="chartTypeBar" value="bar">
-                            <label class="btn btn-outline-primary btn-sm" for="chartTypeBar">柱状图</label>
-                        </div>
+                    <div class="d-flex justify-content-end">
                         <button class="btn btn-outline-secondary btn-sm" id="refreshAggregations">
                             <i class="fas fa-sync-alt me-1"></i>
                             刷新
@@ -148,69 +141,6 @@
             </div>
         </div>
         <div class="card-body">
-            <!-- 统计概览 -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card bg-primary text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title mb-1">日聚合条目</h6>
-                                    <h3 class="mb-0" id="dailyCount">-</h3>
-                                </div>
-                                <div>
-                                    <i class="fas fa-calendar-day fa-2x opacity-75"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-success text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title mb-1">周聚合条目</h6>
-                                    <h3 class="mb-0" id="weeklyCount">-</h3>
-                                </div>
-                                <div>
-                                    <i class="fas fa-calendar-week fa-2x opacity-75"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-info text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title mb-1">月聚合条目</h6>
-                                    <h3 class="mb-0" id="monthlyCount">-</h3>
-                                </div>
-                                <div>
-                                    <i class="fas fa-calendar-alt fa-2x opacity-75"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title mb-1">季度聚合条目</h6>
-                                    <h3 class="mb-0" id="quarterlyCount">-</h3>
-                                </div>
-                                <div>
-                                    <i class="fas fa-calendar fa-2x opacity-75"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- 周期类型切换标签 -->
             <div class="d-flex justify-content-center mb-4">
