@@ -4,6 +4,7 @@
 """
 
 from typing import Any
+from datetime import datetime, date
 
 from sqlalchemy import func
 
@@ -21,6 +22,33 @@ class SyncSessionService:
     def __init__(self):
         self.system_logger = get_system_logger()
         self.sync_logger = get_sync_logger()
+
+    def _clean_sync_details(self, sync_details: dict[str, Any] | None) -> dict[str, Any] | None:
+        """
+        清理同步详情中的datetime对象，确保JSON可序列化
+        
+        Args:
+            sync_details: 原始同步详情
+            
+        Returns:
+            清理后的同步详情
+        """
+        if not sync_details:
+            return None
+            
+        def clean_value(value):
+            if isinstance(value, datetime):
+                return value.isoformat()
+            elif isinstance(value, date):
+                return value.isoformat()
+            elif isinstance(value, dict):
+                return {k: clean_value(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [clean_value(item) for item in value]
+            else:
+                return value
+        
+        return clean_value(sync_details)
 
     def create_session(self, sync_type: str, sync_category: str = "account", created_by: int = None) -> SyncSession:
         """
@@ -181,7 +209,7 @@ class SyncSessionService:
                 items_created=items_created,
                 items_updated=items_updated,
                 items_deleted=items_deleted,
-                sync_details=sync_details,
+                sync_details=self._clean_sync_details(sync_details),
             )
             db.session.commit()
 
@@ -228,7 +256,7 @@ class SyncSessionService:
             if not record:
                 return False
 
-            record.fail_sync(error_message=error_message, sync_details=sync_details)
+            record.fail_sync(error_message=error_message, sync_details=self._clean_sync_details(sync_details))
             db.session.commit()
 
             # 更新会话统计
