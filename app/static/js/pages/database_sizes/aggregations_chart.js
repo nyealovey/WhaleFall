@@ -24,7 +24,6 @@ class AggregationsChartManager {
         this.bindEvents();
         this.loadSummaryData();
         this.loadChartData();
-        this.loadTableData();
     }
     
     bindEvents() {
@@ -39,22 +38,11 @@ class AggregationsChartManager {
             this.currentPeriodType = e.target.value;
             this.updateChartInfo();
             this.loadChartData();
-            this.loadTableData();
         });
         
         // 刷新按钮
         $('#refreshAggregations').on('click', () => {
             this.refreshAllData();
-        });
-        
-        // 排序选择
-        $('#sortBy').on('change', () => {
-            this.loadTableData();
-        });
-        
-        // 导出按钮
-        $('#exportData').on('click', () => {
-            this.exportData();
         });
     }
     
@@ -346,72 +334,6 @@ class AggregationsChartManager {
         $('#timeRange').text(timeRange);
     }
     
-    /**
-     * 加载表格数据
-     */
-    async loadTableData() {
-        try {
-            const params = new URLSearchParams({
-                period_type: this.currentPeriodType,
-                days: 7,
-                sort_by: $('#sortBy').val() || 'period_start'
-            });
-            
-            const response = await fetch(`/partition/api/aggregations/table?${params}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.renderTable(data);
-            } else {
-                console.error('加载表格数据失败:', response.statusText);
-            }
-        } catch (error) {
-            console.error('加载表格数据异常:', error);
-        }
-    }
-    
-    /**
-     * 渲染表格
-     */
-    renderTable(data) {
-        const tbody = $('#aggregationsTableBody');
-        tbody.empty();
-        
-        if (!data || !data.length) {
-            tbody.append(`
-                <tr>
-                    <td colspan="10" class="text-center text-muted">
-                        <i class="fas fa-inbox me-2"></i>
-                        暂无数据
-                    </td>
-                </tr>
-            `);
-            return;
-        }
-        
-        data.forEach(item => {
-            const row = `
-                <tr>
-                    <td>
-                        <span class="badge bg-secondary">${item.table_type || 'undefined'}</span>
-                    </td>
-                    <td>
-                        <span class="badge bg-primary">${this.getPeriodTypeName(item.period_type)}</span>
-                    </td>
-                    <td>${item.instance_name || '-'}</td>
-                    <td>${item.database_name || '-'}</td>
-                    <td>${item.period_range || '-'}</td>
-                    <td>${this.formatSizeFromMB(item.avg_size_mb || 0)}</td>
-                    <td>${this.formatSizeFromMB(item.max_size_mb || 0)}</td>
-                    <td>${this.formatSizeFromMB(item.min_size_mb || 0)}</td>
-                    <td>
-                        <span class="badge bg-info">${item.data_count || 0}</span>
-                    </td>
-                    <td>${this.formatDateTime(item.calculated_at)}</td>
-                </tr>
-            `;
-            tbody.append(row);
-        });
-    }
     
     /**
      * 获取周期类型名称
@@ -432,49 +354,10 @@ class AggregationsChartManager {
     async refreshAllData() {
         await Promise.all([
             this.loadSummaryData(),
-            this.loadChartData(),
-            this.loadTableData()
+            this.loadChartData()
         ]);
     }
     
-    /**
-     * 导出数据
-     */
-    exportData() {
-        if (!this.currentData || !this.currentData.length) {
-            alert('暂无数据可导出');
-            return;
-        }
-        
-        // 创建CSV内容
-        const headers = ['表类型', '周期类型', '实例名称', '数据库名称', '统计周期', '平均大小', '最大大小', '最小大小', '数据点数', '计算时间'];
-        const csvContent = [
-            headers.join(','),
-            ...this.currentData.map(item => [
-                item.table_type || '',
-                this.getPeriodTypeName(item.period_type),
-                item.instance_name || '',
-                item.database_name || '',
-                item.period_range || '',
-                item.avg_size_mb || 0,
-                item.max_size_mb || 0,
-                item.min_size_mb || 0,
-                item.data_count || 0,
-                this.formatDateTime(item.calculated_at)
-            ].join(','))
-        ].join('\n');
-        
-        // 下载文件
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `aggregations_${this.currentPeriodType}_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
     
     /**
      * 显示图表加载状态
@@ -492,16 +375,7 @@ class AggregationsChartManager {
      * 显示错误信息
      */
     showError(message) {
-        const tbody = $('#aggregationsTableBody');
-        tbody.empty();
-        tbody.append(`
-            <tr>
-                <td colspan="10" class="text-center text-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    ${message}
-                </td>
-            </tr>
-        `);
+        console.error('图表错误:', message);
     }
     
     /**
