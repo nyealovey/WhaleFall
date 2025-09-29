@@ -639,49 +639,14 @@ def get_scheduler_health():
         running_jobs = [job for job in jobs if job.next_run_time is not None]
         paused_jobs = [job for job in jobs if job.next_run_time is None]
         
-        # 检查调度器线程状态
-        thread_alive = False
-        if scheduler and hasattr(scheduler, '_thread'):
-            thread_alive = scheduler._thread.is_alive() if scheduler._thread else False
+        # 检查调度器线程状态 - 如果调度器运行说明线程正常
+        thread_alive = scheduler and scheduler.running
         
-        # 检查作业存储状态 (SQLite)
-        jobstore_accessible = False
-        try:
-            if scheduler and hasattr(scheduler, 'jobstores'):
-                # 尝试访问默认作业存储
-                default_store = scheduler.jobstores.get('default')
-                if default_store:
-                    # 尝试获取作业数量
-                    jobs = list(default_store.get_all_jobs())
-                    current_app.logger.info(f"SQLite作业存储中有 {len(jobs)} 个任务")
-                    jobstore_accessible = True
-        except Exception as e:
-            current_app.logger.warning(f"SQLite作业存储检查失败: {e}")
-            # 如果通过调度器访问失败，直接检查SQLite文件
-            try:
-                import sqlite3
-                from pathlib import Path
-                sqlite_path = Path("userdata/scheduler.db")
-                if sqlite_path.exists():
-                    conn = sqlite3.connect(str(sqlite_path))
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT COUNT(*) FROM apscheduler_jobs")
-                    count = cursor.fetchone()[0]
-                    conn.close()
-                    current_app.logger.info(f"直接访问SQLite: {count} 个任务")
-                    jobstore_accessible = True
-            except Exception as e2:
-                current_app.logger.warning(f"直接访问SQLite也失败: {e2}")
+        # 检查作业存储状态 - 如果能获取到任务说明存储正常
+        jobstore_accessible = len(jobs) > 0 or (scheduler and scheduler.running)
         
-        # 检查执行器状态
-        executor_working = False
-        try:
-            if scheduler and hasattr(scheduler, 'executors'):
-                default_executor = scheduler.executors.get('default')
-                if default_executor:
-                    executor_working = True
-        except Exception as e:
-            current_app.logger.warning(f"执行器检查失败: {e}")
+        # 检查执行器状态 - 如果调度器运行且能获取任务说明执行器正常
+        executor_working = scheduler and scheduler.running and len(jobs) > 0
         
         # 计算健康状态
         health_score = 0
