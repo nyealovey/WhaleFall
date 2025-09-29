@@ -255,7 +255,7 @@ def test_sync_accounts_invalid_sync_type():
     
     # 3. Assert
     assert result["success"] is False
-    assert "不支持的同步类型" in result["message"]
+    assert "不支持的同步操作方式" in result["message"]
 
 
 @pytest.mark.unit

@@ -27,7 +27,7 @@ class SyncSessionService:
         创建同步会话
 
         Args:
-            sync_type: 同步类型 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
+            sync_type: 同步操作方式 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
             sync_category: 同步分类 ('account', 'capacity', 'config', 'aggregation', 'other')
             created_by: 创建用户ID
 

@@ -47,7 +47,7 @@ def sync_records() -> str | Response:
         # 构建查询 - 使用新的同步会话模型
         query = SyncSession.query.filter_by(sync_category="account")
 
-        # 同步类型过滤
+        # 同步操作方式过滤
         if sync_type and sync_type != "all":
             query = query.filter(SyncSession.sync_type == sync_type)
 
@@ -74,12 +74,12 @@ def sync_records() -> str | Response:
         # 排序
         query = query.order_by(SyncSession.created_at.desc())
 
-        # 聚合显示逻辑 - 当同步类型是手动批量或定时任务时，需要聚合显示
+        # 聚合显示逻辑 - 当同步操作方式是手动批量或定时任务时，需要聚合显示
         # 获取所有记录进行聚合处理，然后手动分页
         all_records = query.order_by(SyncSession.created_at.desc()).all()
 
         # 分离需要聚合的记录和单独显示的记录
-        # 所有批量类型的记录都需要聚合处理
+        # 所有批量操作方式的记录都需要聚合处理
         batch_records = [r for r in all_records if r.sync_type in ["manual_batch", "manual_task", "scheduled_task"]]
         manual_records = [r for r in all_records if r.sync_type == "manual_single"]
 
