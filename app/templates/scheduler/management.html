@@ -104,67 +104,74 @@
 
                     <!-- Cron触发器配置 -->
                     <div id="cronConfig" class="trigger-config show">
+                        <!-- 第一行：秒、分、时、日、月、周、年 -->
                         <div class="row">
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="cronSecond" class="form-label">秒 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="cronSecond" name="cron_second" placeholder="0-59" value="0">
-                                    <small class="form-text text-muted">0-59</small>
+                                    <label for="cronSecond" class="form-label small">秒 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="cronSecond" name="cron_second" placeholder="0-59" value="0">
+                                    <small class="form-text text-muted small">0-59</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="cronMinute" class="form-label">分钟 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="cronMinute" name="cron_minute" placeholder="0-59" value="0">
-                                    <small class="form-text text-muted">0-59</small>
+                                    <label for="cronMinute" class="form-label small">分钟 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="cronMinute" name="cron_minute" placeholder="0-59" value="0">
+                                    <small class="form-text text-muted small">0-59</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="cronHour" class="form-label">小时 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="cronHour" name="cron_hour" placeholder="0-23" value="0">
-                                    <small class="form-text text-muted">0-23</small>
+                                    <label for="cronHour" class="form-label small">小时 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="cronHour" name="cron_hour" placeholder="0-23" value="0">
+                                    <small class="form-text text-muted small">0-23</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="cronDay" class="form-label">日期 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="cronDay" name="cron_day" placeholder="1-31" value="*">
-                                    <small class="form-text text-muted">1-31</small>
+                                    <label for="cronDay" class="form-label small">日期 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="cronDay" name="cron_day" placeholder="1-31" value="*">
+                                    <small class="form-text text-muted small">1-31</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="cronMonth" class="form-label">月份 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="cronMonth" name="cron_month" placeholder="1-12" value="*">
-                                    <small class="form-text text-muted">1-12</small>
+                                    <label for="cronMonth" class="form-label small">月份 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="cronMonth" name="cron_month" placeholder="1-12" value="*">
+                                    <small class="form-text text-muted small">1-12</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="cronWeekday" class="form-label">星期 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="cronWeekday" name="cron_weekday" placeholder="0-6" value="*">
-                                    <small class="form-text text-muted">0-6</small>
+                                    <label for="cronWeekday" class="form-label small">星期 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="cronWeekday" name="cron_weekday" placeholder="0-6" value="*">
+                                    <small class="form-text text-muted small">0-6</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="cronYear" class="form-label">年</label>
-                                    <input type="text" class="form-control" id="cronYear" name="year" placeholder="2024" value="*">
-                                    <small class="form-text text-muted">如 2024 或 2024-2026</small>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label class="form-label">预览</label>
-                                    <input type="text" class="form-control" id="cronPreview" readonly placeholder="生成的Cron表达式">
+                                    <label for="cronYear" class="form-label small">年</label>
+                                    <input type="text" class="form-control form-control-sm" id="cronYear" name="year" placeholder="2024" value="*">
+                                    <small class="form-text text-muted small">可选</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group mt-2">
-                            <small class="text-muted">
+                        
+                        <!-- 第二行：预览 -->
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="form-label small">预览</label>
+                                    <input type="text" class="form-control form-control-sm" id="cronPreview" readonly placeholder="生成的Cron表达式">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 说明 -->
+                        <div class="form-group mt-1">
+                            <small class="text-muted small">
                                 <strong>说明：</strong>
-                                秒(0-59) 分钟(0-59) 小时(0-23) 日期(1-31) 月份(1-12) 星期(0-6) 年(可选)<br>
+                                秒(0-59) 分钟(0-59) 小时(0-23) 日期(1-31) 月份(1-12) 星期(0-6) 年(可选) | 
                                 使用 * 表示任意值，使用 , 分隔多个值，使用 - 表示范围，使用 / 表示步长
                             </small>
                         </div>
@@ -221,67 +228,74 @@
 
                     <!-- Cron触发器配置（编辑） -->
                     <div id="editCronConfig" class="edit-trigger-config show">
+                        <!-- 第一行：秒、分、时、日、月、周、年 -->
                         <div class="row">
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="editCronSecond" class="form-label">秒 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editCronSecond" name="cron_second" placeholder="0-59" value="0">
-                                    <small class="form-text text-muted">0-59</small>
+                                    <label for="editCronSecond" class="form-label small">秒 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="editCronSecond" name="cron_second" placeholder="0-59" value="0">
+                                    <small class="form-text text-muted small">0-59</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="editCronMinute" class="form-label">分钟 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editCronMinute" name="cron_minute" placeholder="0-59" value="0">
-                                    <small class="form-text text-muted">0-59</small>
+                                    <label for="editCronMinute" class="form-label small">分钟 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="editCronMinute" name="cron_minute" placeholder="0-59" value="0">
+                                    <small class="form-text text-muted small">0-59</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="editCronHour" class="form-label">小时 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editCronHour" name="cron_hour" placeholder="0-23" value="0">
-                                    <small class="form-text text-muted">0-23</small>
+                                    <label for="editCronHour" class="form-label small">小时 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="editCronHour" name="cron_hour" placeholder="0-23" value="0">
+                                    <small class="form-text text-muted small">0-23</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="editCronDay" class="form-label">日期 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editCronDay" name="cron_day" placeholder="1-31" value="*">
-                                    <small class="form-text text-muted">1-31</small>
+                                    <label for="editCronDay" class="form-label small">日期 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="editCronDay" name="cron_day" placeholder="1-31" value="*">
+                                    <small class="form-text text-muted small">1-31</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="editCronMonth" class="form-label">月份 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editCronMonth" name="cron_month" placeholder="1-12" value="*">
-                                    <small class="form-text text-muted">1-12</small>
+                                    <label for="editCronMonth" class="form-label small">月份 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="editCronMonth" name="cron_month" placeholder="1-12" value="*">
+                                    <small class="form-text text-muted small">1-12</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="editCronWeekday" class="form-label">星期 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editCronWeekday" name="cron_weekday" placeholder="0-6" value="*">
-                                    <small class="form-text text-muted">0-6</small>
+                                    <label for="editCronWeekday" class="form-label small">星期 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="editCronWeekday" name="cron_weekday" placeholder="0-6" value="*">
+                                    <small class="form-text text-muted small">0-6</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
-                                    <label for="editCronYear" class="form-label">年</label>
-                                    <input type="text" class="form-control" id="editCronYear" name="year" placeholder="2024" value="*">
-                                    <small class="form-text text-muted">如 2024 或 2024-2026</small>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label class="form-label">预览</label>
-                                    <input type="text" class="form-control" id="editCronPreview" readonly placeholder="生成的Cron表达式">
+                                    <label for="editCronYear" class="form-label small">年</label>
+                                    <input type="text" class="form-control form-control-sm" id="editCronYear" name="year" placeholder="2024" value="*">
+                                    <small class="form-text text-muted small">可选</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group mt-2">
-                            <small class="text-muted">
+                        
+                        <!-- 第二行：预览 -->
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="form-label small">预览</label>
+                                    <input type="text" class="form-control form-control-sm" id="editCronPreview" readonly placeholder="生成的Cron表达式">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 说明 -->
+                        <div class="form-group mt-1">
+                            <small class="text-muted small">
                                 <strong>说明：</strong>
-                                秒(0-59) 分钟(0-59) 小时(0-23) 日期(1-31) 月份(1-12) 星期(0-6) 年(可选)<br>
+                                秒(0-59) 分钟(0-59) 小时(0-23) 日期(1-31) 月份(1-12) 星期(0-6) 年(可选) | 
                                 使用 * 表示任意值，使用 , 分隔多个值，使用 - 表示范围，使用 / 表示步长
                             </small>
                         </div>
