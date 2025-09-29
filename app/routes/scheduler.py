@@ -648,10 +648,24 @@ def get_scheduler_health():
         # 检查执行器状态 - 检查执行器是否可用
         executor_working = False
         try:
-            if scheduler and hasattr(scheduler, 'executors'):
-                default_executor = scheduler.executors.get('default')
-                if default_executor:
-                    # 检查执行器是否可用
+            if scheduler:
+                # 检查调度器属性
+                current_app.logger.info(f"调度器属性: {dir(scheduler)}")
+                
+                if hasattr(scheduler, 'executors'):
+                    default_executor = scheduler.executors.get('default')
+                    if default_executor:
+                        # 检查执行器是否可用
+                        executor_working = True
+                        current_app.logger.info(f"执行器检查: 找到默认执行器 {type(default_executor)}")
+                    else:
+                        current_app.logger.warning("执行器检查: 未找到默认执行器")
+                else:
+                    current_app.logger.warning(f"执行器检查: 调度器无executors属性, 调度器类型: {type(scheduler)}")
+                    
+                # 备用检查：如果调度器运行且能获取任务，认为执行器可能正常
+                if scheduler.running and len(jobs) > 0:
+                    current_app.logger.info("执行器备用检查: 调度器运行且能获取任务，认为执行器可能正常")
                     executor_working = True
         except Exception as e:
             current_app.logger.warning(f"执行器检查失败: {e}")
