@@ -112,9 +112,6 @@ else:
 if capacity_record.is_failed():
     print(f"容量同步失败: {capacity_record.get_failure_reason()}")
 
-# 获取质量评分
-quality_score = aggregation_record.get_sync_quality_score()
-print(f"聚合统计质量评分: {quality_score}/100")
 ```
 
 ### 获取同步摘要
@@ -127,7 +124,6 @@ print(f"""
 - 是否成功: {summary['is_successful']}
 - 是否失败: {summary['is_failed']}
 - 失败原因: {summary['failure_reason']}
-- 质量评分: {summary['quality_score']}/100
 - 同步分类: {summary['sync_category_display']}
 - 同步数量: {summary['items_synced']}
 - 执行时间: {summary['duration_seconds']}秒
@@ -178,15 +174,3 @@ print(f"失败原因统计: {stats['failure_reasons']}")
 - `items_synced=0`: 未同步到任何配置数据
 - 无有效配置数据: `sync_details` 中缺少配置相关信息
 
-## 质量评分说明
-
-质量评分基于以下因素：
-- 基础分数: 60分
-- 数据完整性: 最多30分
-- 执行效率: 1分钟内完成加10分
-- 最高分数: 100分
-
-不同同步类型的加分规则：
-- 账户同步: 根据同步数量加分
-- 容量同步: 根据数据完整性加分
-- 聚合统计: 根据数据完整性加分

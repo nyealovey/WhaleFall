@@ -143,7 +143,6 @@ class SyncInstanceRecord(db.Model):
             "is_successful": self.is_successful(),
             "is_failed": self.is_failed(),
             "failure_reason": self.get_failure_reason(),
-            "quality_score": self.get_sync_quality_score(),
             "sync_category_display": self.get_sync_category_display(),
         }
     
@@ -285,37 +284,6 @@ class SyncInstanceRecord(db.Model):
         else:
             return f"同步失败：未同步到任何数据 (items_synced={self.items_synced})"
     
-    def get_sync_quality_score(self) -> float:
-        """获取同步质量评分 (0-100)"""
-        if self.is_failed():
-            return 0.0
-        
-        if not self.is_successful():
-            return 0.0
-        
-        # 基础分数
-        score = 60.0
-        
-        # 根据同步分类加分
-        if self.sync_category == "account":
-            # 账户同步：根据同步数量加分
-            if self.items_synced > 0:
-                score += min(30, self.items_synced / 10)  # 最多加30分
-        elif self.sync_category == "capacity":
-            # 容量同步：根据数据完整性加分
-            if self._has_capacity_data():
-                score += 30
-        elif self.sync_category == "aggregation":
-            # 聚合统计：根据数据完整性加分
-            if self._has_aggregation_data():
-                score += 30
-        
-        # 根据执行时间加分（越快越好）
-        duration = self.get_duration_seconds()
-        if duration and duration < 60:  # 1分钟内完成
-            score += 10
-        
-        return min(100.0, score)
 
     @staticmethod
     def get_records_by_session(session_id: str) -> list["SyncInstanceRecord"]:
