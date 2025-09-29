@@ -253,10 +253,6 @@
                             <li><a class="dropdown-item" href="{{ url_for('tags.index') }}">
                                 <i class="fas fa-tag me-2"></i>标签管理
                             </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('partition.partitions') }}">
-                                <i class="fas fa-layer-group me-2"></i>分区管理
-                            </a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -283,6 +279,10 @@
                </a></li>
                <li><a class="dropdown-item" href="{{ url_for('scheduler.index') }}">
                    <i class="fas fa-clock me-2"></i>定时任务
+               </a></li>
+               <li><hr class="dropdown-divider"></li>
+               <li><a class="dropdown-item" href="{{ url_for('partition.partitions') }}">
+                   <i class="fas fa-layer-group me-2"></i>分区管理
                </a></li>
                         </ul>
                     </li>
