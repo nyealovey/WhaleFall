@@ -66,7 +66,7 @@ def collect_database_sizes():
             
             # 添加实例记录
             instance_ids = [inst.id for inst in active_instances]
-            records = sync_session_service.add_instance_records(session.session_id, instance_ids)
+            records = sync_session_service.add_instance_records(session.session_id, instance_ids, sync_category="capacity")
             session.total_instances = len(active_instances)
             
             total_synced = 0
@@ -122,10 +122,19 @@ def collect_database_sizes():
                     collection_result = collector.collect_database_sizes()
                     
                     if collection_result['success']:
-                        # 更新同步记录
+                        # 更新同步记录 - 容量同步使用数据库数量作为同步数量
+                        database_count = len(collection_result.get('databases', []))
                         sync_session_service.complete_instance_sync(
-                            record.id, 
-                            collection_result.get('total_size_mb', 0)
+                            record.id,
+                            accounts_synced=database_count,  # 使用数据库数量作为同步数量
+                            accounts_created=0,  # 容量同步没有新增概念
+                            accounts_updated=0,  # 容量同步没有更新概念
+                            accounts_deleted=0,  # 容量同步没有删除概念
+                            sync_details={
+                                'total_size_mb': collection_result.get('total_size_mb', 0),
+                                'database_count': database_count,
+                                'databases': collection_result.get('databases', [])
+                            }
                         )
                         
                         total_synced += 1

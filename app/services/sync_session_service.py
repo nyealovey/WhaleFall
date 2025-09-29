@@ -60,13 +60,14 @@ class SyncSessionService:
             )
             raise
 
-    def add_instance_records(self, session_id: str, instance_ids: list[int]) -> list[SyncInstanceRecord]:
+    def add_instance_records(self, session_id: str, instance_ids: list[int], sync_category: str = "account") -> list[SyncInstanceRecord]:
         """
         为会话添加实例记录
 
         Args:
             session_id: 会话ID
             instance_ids: 实例ID列表
+            sync_category: 同步分类 ('account', 'capacity', 'config', 'aggregation', 'other')
 
         Returns:
             List[SyncInstanceRecord]: 创建的实例记录列表
@@ -83,7 +84,7 @@ class SyncSessionService:
                         session_id=session_id,
                         instance_id=instance_id,
                         instance_name=instance.name,
-                        sync_category="account",  # 默认账户同步
+                        sync_category=sync_category,  # 使用传入的同步分类
                     )
                     db.session.add(record)
                     records.append(record)
@@ -95,6 +96,7 @@ class SyncSessionService:
                 module="sync_session",
                 session_id=session_id,
                 instance_count=len(records),
+                sync_category=sync_category,
             )
 
             return records
@@ -104,6 +106,7 @@ class SyncSessionService:
                 "添加实例记录失败",
                 module="sync_session",
                 session_id=session_id,
+                sync_category=sync_category,
                 error=str(e),
             )
             raise
