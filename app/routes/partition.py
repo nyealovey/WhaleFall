@@ -493,19 +493,23 @@ def get_aggregations_chart():
         end_date = date.today()
         start_date = end_date - timedelta(days=days)
         
-        # 查找相关的分区表 - 根据实际的分区表命名模式
-        partition_tables = db.session.execute(text("""
+        # 查找相关的表 - 包括主表和分区表
+        all_tables = db.session.execute(text("""
             SELECT table_name 
             FROM information_schema.tables 
             WHERE table_schema = 'public' 
-            AND (table_name LIKE 'database_size_aggregations_%' 
+            AND (table_name = 'database_size_aggregations'
+                 OR table_name = 'database_size_stats'
+                 OR table_name = 'instance_size_aggregations'
+                 OR table_name = 'instance_size_stats'
+                 OR table_name LIKE 'database_size_aggregations_%' 
                  OR table_name LIKE 'database_size_stats_%'
                  OR table_name LIKE 'instance_size_aggregations_%'
                  OR table_name LIKE 'instance_size_stats_%')
             ORDER BY table_name
         """)).fetchall()
         
-        if not partition_tables:
+        if not all_tables:
             return jsonify({
                 'labels': [],
                 'datasets': [],
@@ -514,9 +518,9 @@ def get_aggregations_chart():
                 'message': '暂无聚合数据，请先运行容量同步任务生成数据'
             })
         
-        # 构建UNION查询所有分区表
+        # 构建UNION查询所有表
         union_queries = []
-        for table_row in partition_tables:
+        for table_row in all_tables:
             table_name = table_row[0]
             
             # 根据表名确定表类型和字段
@@ -549,17 +553,17 @@ def get_aggregations_chart():
                         'daily' as period_type,
                         i.name as instance_name,
                         database_name,
-                        recorded_at as period_start,
-                        recorded_at as period_end,
+                        collected_date as period_start,
+                        collected_date as period_end,
                         size_mb as avg_size_mb,
                         size_mb as max_size_mb,
                         size_mb as min_size_mb,
                         1 as data_count,
-                        recorded_at as calculated_at
+                        collected_at as calculated_at
                     FROM {table_name} dss
                     JOIN instances i ON dss.instance_id = i.id
-                    WHERE dss.recorded_at >= :start_date
-                    AND dss.recorded_at <= :end_date
+                    WHERE dss.collected_date >= :start_date
+                    AND dss.collected_date <= :end_date
                 """)
             elif 'instance_size_aggregations' in table_name:
                 table_type = 'instance_aggregations'
@@ -590,17 +594,17 @@ def get_aggregations_chart():
                         'daily' as period_type,
                         i.name as instance_name,
                         'instance' as database_name,
-                        recorded_at as period_start,
-                        recorded_at as period_end,
+                        collected_date as period_start,
+                        collected_date as period_end,
                         total_size_mb as avg_size_mb,
                         total_size_mb as max_size_mb,
                         total_size_mb as min_size_mb,
                         1 as data_count,
-                        recorded_at as calculated_at
+                        collected_at as calculated_at
                     FROM {table_name} iss
                     JOIN instances i ON iss.instance_id = i.id
-                    WHERE iss.recorded_at >= :start_date
-                    AND iss.recorded_at <= :end_date
+                    WHERE iss.collected_date >= :start_date
+                    AND iss.collected_date <= :end_date
                 """)
         
         # 执行UNION查询
