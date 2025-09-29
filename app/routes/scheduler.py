@@ -644,7 +644,7 @@ def get_scheduler_health():
         if scheduler and hasattr(scheduler, '_thread'):
             thread_alive = scheduler._thread.is_alive() if scheduler._thread else False
         
-        # 检查作业存储状态
+        # 检查作业存储状态 (SQLite)
         jobstore_accessible = False
         try:
             if scheduler and hasattr(scheduler, 'jobstores'):
@@ -652,10 +652,26 @@ def get_scheduler_health():
                 default_store = scheduler.jobstores.get('default')
                 if default_store:
                     # 尝试获取作业数量
-                    len(list(default_store.get_all_jobs()))
+                    jobs = list(default_store.get_all_jobs())
+                    current_app.logger.info(f"SQLite作业存储中有 {len(jobs)} 个任务")
                     jobstore_accessible = True
         except Exception as e:
-            current_app.logger.warning(f"作业存储检查失败: {e}")
+            current_app.logger.warning(f"SQLite作业存储检查失败: {e}")
+            # 如果通过调度器访问失败，直接检查SQLite文件
+            try:
+                import sqlite3
+                from pathlib import Path
+                sqlite_path = Path("userdata/scheduler.db")
+                if sqlite_path.exists():
+                    conn = sqlite3.connect(str(sqlite_path))
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM apscheduler_jobs")
+                    count = cursor.fetchone()[0]
+                    conn.close()
+                    current_app.logger.info(f"直接访问SQLite: {count} 个任务")
+                    jobstore_accessible = True
+            except Exception as e2:
+                current_app.logger.warning(f"直接访问SQLite也失败: {e2}")
         
         # 检查执行器状态
         executor_working = False
