@@ -69,7 +69,7 @@ def get_jobs() -> Response:
                 trigger_type = str(type(job.trigger).__name__).lower().replace("trigger", "")
                 
                 # 统一触发器信息显示格式
-                if hasattr(job.trigger, 'second') and 'CronTrigger' in str(type(job.trigger)):
+                if trigger_type == "cron" and 'CronTrigger' in str(type(job.trigger)):
                     # 对于CronTrigger，包含所有字段用于编辑
                     trigger_info = {}
                     trigger_args = {}
