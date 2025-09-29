@@ -280,9 +280,26 @@ function formatTriggerInfo(triggerArgs) {
     
     try {
         const args = typeof triggerArgs === 'string' ? JSON.parse(triggerArgs) : triggerArgs;
-        return Object.entries(args)
-            .map(([key, value]) => `${key}: ${value}`)
-            .join('<br>');
+        
+        // 按时间顺序定义字段顺序：秒、分、时、日、月、周、年
+        const fieldOrder = ['second', 'minute', 'hour', 'day', 'month', 'day_of_week', 'year'];
+        
+        // 按指定顺序显示字段
+        const orderedFields = [];
+        fieldOrder.forEach(field => {
+            if (args.hasOwnProperty(field)) {
+                orderedFields.push(`${field}: ${args[field]}`);
+            }
+        });
+        
+        // 显示其他未在顺序中的字段
+        Object.entries(args).forEach(([key, value]) => {
+            if (!fieldOrder.includes(key) && key !== 'description') {
+                orderedFields.push(`${key}: ${value}`);
+            }
+        });
+        
+        return orderedFields.join('<br>');
     } catch (e) {
         return triggerArgs.toString();
     }
