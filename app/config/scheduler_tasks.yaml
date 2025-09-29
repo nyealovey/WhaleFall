@@ -8,8 +8,12 @@ default_tasks:
     function: sync_accounts
     trigger_type: cron
     trigger_params:
-      hour: 1
+      second: 0
       minute: 0
+      hour: 1
+      day: '*'
+      month: '*'
+      day_of_week: '*'
     enabled: true
     description: 每日同步所有数据库实例的账户信息
     
@@ -18,8 +22,12 @@ default_tasks:
     function: cleanup_old_logs
     trigger_type: cron
     trigger_params:
-      hour: 2
+      second: 0
       minute: 0
+      hour: 2
+      day: '*'
+      month: '*'
+      day_of_week: '*'
     enabled: true
     description: 清理30天前的日志和临时文件
     
@@ -29,8 +37,12 @@ default_tasks:
     function: monitor_partition_health
     trigger_type: cron
     trigger_params:
-      hour: 0
+      second: 0
       minute: 30
+      hour: 0
+      day: '*'
+      month: '*'
+      day_of_week: '*'
     enabled: true
     description: 每日监控分区健康状态和性能
     
@@ -39,8 +51,12 @@ default_tasks:
     function: collect_database_sizes
     trigger_type: cron
     trigger_params:
-      hour: 3
+      second: 0
       minute: 0
+      hour: 3
+      day: '*'
+      month: '*'
+      day_of_week: '*'
     enabled: true
     description: 每日同步所有数据库实例的容量信息
     
@@ -49,7 +65,11 @@ default_tasks:
     function: calculate_database_size_aggregations
     trigger_type: cron
     trigger_params:
-      hour: 4
+      second: 0
       minute: 0
+      hour: 4
+      day: '*'
+      month: '*'
+      day_of_week: '*'
     enabled: true
     description: 每日计算数据库大小的日、周、月、季度统计聚合
