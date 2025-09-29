@@ -342,8 +342,25 @@ def _load_tasks_from_config(force: bool = False) -> None:
                 # 对于cron触发器，确保使用正确的时区
                 if trigger_type == "cron":
                     from apscheduler.triggers.cron import CronTrigger
-                    trigger_params["timezone"] = "Asia/Shanghai"
-                    trigger = CronTrigger(**trigger_params)
+                    # 只传递实际配置的字段，避免APScheduler自动填充默认值
+                    cron_kwargs = {}
+                    if "second" in trigger_params:
+                        cron_kwargs["second"] = trigger_params["second"]
+                    if "minute" in trigger_params:
+                        cron_kwargs["minute"] = trigger_params["minute"]
+                    if "hour" in trigger_params:
+                        cron_kwargs["hour"] = trigger_params["hour"]
+                    if "day" in trigger_params:
+                        cron_kwargs["day"] = trigger_params["day"]
+                    if "month" in trigger_params:
+                        cron_kwargs["month"] = trigger_params["month"]
+                    if "day_of_week" in trigger_params:
+                        cron_kwargs["day_of_week"] = trigger_params["day_of_week"]
+                    if "year" in trigger_params:
+                        cron_kwargs["year"] = trigger_params["year"]
+                    
+                    cron_kwargs["timezone"] = "Asia/Shanghai"
+                    trigger = CronTrigger(**cron_kwargs)
                     scheduler.add_job(
                         func,
                         trigger,
