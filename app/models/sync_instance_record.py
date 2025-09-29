@@ -7,7 +7,15 @@ from app.utils.timezone import now
 
 
 class SyncInstanceRecord(db.Model):
-    """同步实例记录模型 - 记录每个实例的同步详情"""
+    """同步实例记录模型 - 记录每个实例的同步详情
+    
+    支持多种同步类型：
+    - account: 账户同步
+    - capacity: 容量同步  
+    - aggregation: 聚合统计
+    - config: 配置同步
+    - other: 其他同步类型
+    """
 
     __tablename__ = "sync_instance_records"
 
@@ -33,11 +41,11 @@ class SyncInstanceRecord(db.Model):
     started_at = db.Column(db.DateTime(timezone=True))
     completed_at = db.Column(db.DateTime(timezone=True))
 
-    # 账户同步统计字段
-    accounts_synced = db.Column(db.Integer, default=0)
-    accounts_created = db.Column(db.Integer, default=0)
-    accounts_updated = db.Column(db.Integer, default=0)
-    accounts_deleted = db.Column(db.Integer, default=0)
+    # 通用同步统计字段
+    items_synced = db.Column(db.Integer, default=0)  # 同步的项目数量
+    items_created = db.Column(db.Integer, default=0)  # 创建的项目数量
+    items_updated = db.Column(db.Integer, default=0)  # 更新的项目数量
+    items_deleted = db.Column(db.Integer, default=0)  # 删除的项目数量
 
     # 通用字段
     error_message = db.Column(db.Text)
@@ -77,10 +85,10 @@ class SyncInstanceRecord(db.Model):
             "status": self.status,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
-            "accounts_synced": self.accounts_synced,
-            "accounts_created": self.accounts_created,
-            "accounts_updated": self.accounts_updated,
-            "accounts_deleted": self.accounts_deleted,
+            "items_synced": self.items_synced,
+            "items_created": self.items_created,
+            "items_updated": self.items_updated,
+            "items_deleted": self.items_deleted,
             "error_message": self.error_message,
             "sync_details": self.sync_details,
             "created_at": self.created_at.isoformat() if self.created_at else None,
@@ -93,19 +101,19 @@ class SyncInstanceRecord(db.Model):
 
     def complete_sync(
         self,
-        accounts_synced: int = 0,
-        accounts_created: int = 0,
-        accounts_updated: int = 0,
-        accounts_deleted: int = 0,
+        items_synced: int = 0,
+        items_created: int = 0,
+        items_updated: int = 0,
+        items_deleted: int = 0,
         sync_details: dict | None = None,
     ) -> None:
         """完成同步"""
         self.status = "completed"
         self.completed_at = now()
-        self.accounts_synced = accounts_synced
-        self.accounts_created = accounts_created
-        self.accounts_updated = accounts_updated
-        self.accounts_deleted = accounts_deleted
+        self.items_synced = items_synced
+        self.items_created = items_created
+        self.items_updated = items_updated
+        self.items_deleted = items_deleted
         self.sync_details = sync_details
 
     def fail_sync(self, error_message: str, sync_details: dict | None = None) -> None:
@@ -120,6 +128,32 @@ class SyncInstanceRecord(db.Model):
         if not self.started_at or not self.completed_at:
             return None
         return (self.completed_at - self.started_at).total_seconds()
+    
+    def get_sync_summary(self) -> dict[str, any]:
+        """获取同步摘要信息"""
+        return {
+            "status": self.status,
+            "duration_seconds": self.get_duration_seconds(),
+            "items_synced": self.items_synced,
+            "items_created": self.items_created,
+            "items_updated": self.items_updated,
+            "items_deleted": self.items_deleted,
+            "has_error": bool(self.error_message),
+            "error_message": self.error_message,
+        }
+    
+    def is_successful(self) -> bool:
+        """判断同步是否成功"""
+        return self.status == "completed" and not self.error_message
+    
+    def is_failed(self) -> bool:
+        """判断同步是否失败"""
+        return self.status == "failed" or bool(self.error_message)
+    
+    def get_sync_category_display(self) -> str:
+        """获取同步分类的显示名称"""
+        from app.utils.sync_utils import SyncUtils
+        return SyncUtils.get_category_display(self.sync_category)
 
     @staticmethod
     def get_records_by_session(session_id: str) -> list["SyncInstanceRecord"]:
@@ -135,6 +169,58 @@ class SyncInstanceRecord(db.Model):
         """根据实例ID获取同步记录"""
         return (
             SyncInstanceRecord.query.filter_by(instance_id=instance_id)
+            .order_by(SyncInstanceRecord.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+    
+    @staticmethod
+    def get_records_by_category(sync_category: str, limit: int = 100) -> list["SyncInstanceRecord"]:
+        """根据同步分类获取记录"""
+        return (
+            SyncInstanceRecord.query.filter_by(sync_category=sync_category)
+            .order_by(SyncInstanceRecord.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+    
+    @staticmethod
+    def get_failed_records(limit: int = 50) -> list["SyncInstanceRecord"]:
+        """获取失败的同步记录"""
+        return (
+            SyncInstanceRecord.query.filter(
+                SyncInstanceRecord.status == "failed"
+            )
+            .order_by(SyncInstanceRecord.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+    
+    @staticmethod
+    def get_successful_records(limit: int = 50) -> list["SyncInstanceRecord"]:
+        """获取成功的同步记录"""
+        return (
+            SyncInstanceRecord.query.filter(
+                SyncInstanceRecord.status == "completed",
+                SyncInstanceRecord.error_message.is_(None)
+            )
+            .order_by(SyncInstanceRecord.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+    
+    @staticmethod
+    def get_records_by_instance_and_category(
+        instance_id: int, 
+        sync_category: str, 
+        limit: int = 50
+    ) -> list["SyncInstanceRecord"]:
+        """根据实例ID和同步分类获取记录"""
+        return (
+            SyncInstanceRecord.query.filter_by(
+                instance_id=instance_id,
+                sync_category=sync_category
+            )
             .order_by(SyncInstanceRecord.created_at.desc())
             .limit(limit)
             .all()

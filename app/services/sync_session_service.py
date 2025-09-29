@@ -151,10 +151,10 @@ class SyncSessionService:
     def complete_instance_sync(
         self,
         record_id: int,
-        accounts_synced: int = 0,
-        accounts_created: int = 0,
-        accounts_updated: int = 0,
-        accounts_deleted: int = 0,
+        items_synced: int = 0,
+        items_created: int = 0,
+        items_updated: int = 0,
+        items_deleted: int = 0,
         sync_details: dict[str, Any] = None,
     ) -> bool:
         """
@@ -162,10 +162,10 @@ class SyncSessionService:
 
         Args:
             record_id: 实例记录ID
-            accounts_synced: 同步的账户总数
-            accounts_created: 新增的账户数量
-            accounts_updated: 更新的账户数量
-            accounts_deleted: 删除的账户数量
+            items_synced: 同步的项目总数
+            items_created: 新增的项目数量
+            items_updated: 更新的项目数量
+            items_deleted: 删除的项目数量
             sync_details: 同步详情
 
         Returns:
@@ -177,10 +177,10 @@ class SyncSessionService:
                 return False
 
             record.complete_sync(
-                accounts_synced=accounts_synced,
-                accounts_created=accounts_created,
-                accounts_updated=accounts_updated,
-                accounts_deleted=accounts_deleted,
+                items_synced=items_synced,
+                items_created=items_created,
+                items_updated=items_updated,
+                items_deleted=items_deleted,
                 sync_details=sync_details,
             )
             db.session.commit()
@@ -194,10 +194,10 @@ class SyncSessionService:
                 session_id=record.session_id,
                 instance_id=record.instance_id,
                 instance_name=record.instance_name,
-                accounts_synced=accounts_synced,
-                accounts_created=accounts_created,
-                accounts_updated=accounts_updated,
-                accounts_deleted=accounts_deleted,
+                items_synced=items_synced,
+                items_created=items_created,
+                items_updated=items_updated,
+                items_deleted=items_deleted,
             )
 
             return True

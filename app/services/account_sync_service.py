@@ -193,10 +193,10 @@ class AccountSyncService:
             if result["success"]:
                 sync_session_service.complete_instance_sync(
                     record.id,
-                    accounts_synced=result.get("synced_count", 0),
-                    accounts_created=result.get("added_count", 0),
-                    accounts_updated=result.get("modified_count", 0),
-                    accounts_deleted=result.get("removed_count", 0),
+                    items_synced=result.get("synced_count", 0),
+                    items_created=result.get("added_count", 0),
+                    items_updated=result.get("modified_count", 0),
+                    items_deleted=result.get("removed_count", 0),
                     sync_details=result.get("details", {}),
                 )
             else:
