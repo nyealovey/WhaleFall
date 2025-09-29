@@ -63,7 +63,7 @@ class AggregationsChartManager {
      */
     async loadSummaryData() {
         try {
-            const response = await fetch('/api/aggregations/summary');
+            const response = await fetch('/partition/api/aggregations/summary');
             if (response.ok) {
                 const data = await response.json();
                 this.updateSummaryCards(data);
@@ -119,7 +119,7 @@ class AggregationsChartManager {
                 days: 7
             });
             
-            const response = await fetch(`/api/aggregations/chart?${params}`);
+            const response = await fetch(`/partition/api/aggregations/chart?${params}`);
             if (response.ok) {
                 const data = await response.json();
                 this.currentData = data;
@@ -357,7 +357,7 @@ class AggregationsChartManager {
                 sort_by: $('#sortBy').val() || 'period_start'
             });
             
-            const response = await fetch(`/api/aggregations/table?${params}`);
+            const response = await fetch(`/partition/api/aggregations/table?${params}`);
             if (response.ok) {
                 const data = await response.json();
                 this.renderTable(data);
