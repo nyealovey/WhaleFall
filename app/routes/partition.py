@@ -592,7 +592,7 @@ def get_aggregations_chart():
                 'tension': 0.1
             })
         
-               return jsonify({
+        return jsonify({
                    'labels': labels,
                    'datasets': datasets,
                    'dataPointCount': len(labels),
