@@ -7,8 +7,9 @@
 ## 支持的同步类型
 
 ### 1. 账户同步 (account)
-- **成功条件**: `items_synced > 0`
-- **数据检查**: 至少同步到账户数据
+- **成功条件**: `items_synced > 0` 且包含账户数据
+- **数据检查**: `sync_details` 中包含账户相关信息
+  - `account_count`, `account_types`, `account_list`, `accounts`, `user_count`, `admin_count`, `account_data`, `permissions`, `account_details`, `sync_result`, `account_info`
 
 ### 2. 容量同步 (capacity)
 - **成功条件**: `items_synced > 0` 且包含容量数据
@@ -21,8 +22,9 @@
   - `aggregation_count`, `period_type`, `calculated_at`, `aggregation_data`, `statistics_generated`
 
 ### 4. 配置同步 (config)
-- **成功条件**: `items_synced > 0`
-- **数据检查**: 至少同步到配置数据
+- **成功条件**: `items_synced > 0` 且包含配置数据
+- **数据检查**: `sync_details` 中包含配置相关信息
+  - `config_count`, `config_items`, `config_data`, `settings`, `configuration`, `config_details`, `sync_config`
 
 ### 5. 其他类型 (other)
 - **成功条件**: `items_synced > 0`
@@ -162,6 +164,7 @@ print(f"失败原因统计: {stats['failure_reasons']}")
 
 ### 账户同步失败
 - `items_synced=0`: 未同步到任何账户数据
+- 无有效账户数据: `sync_details` 中缺少账户相关信息
 
 ### 容量同步失败
 - `items_synced=0`: 未同步到任何容量数据
@@ -173,6 +176,7 @@ print(f"失败原因统计: {stats['failure_reasons']}")
 
 ### 配置同步失败
 - `items_synced=0`: 未同步到任何配置数据
+- 无有效配置数据: `sync_details` 中缺少配置相关信息
 
 ## 质量评分说明
 

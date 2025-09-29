@@ -162,8 +162,8 @@ class SyncInstanceRecord(db.Model):
     def _has_meaningful_data(self) -> bool:
         """根据同步分类判断是否有有意义的数据"""
         if self.sync_category == "account":
-            # 账户同步：至少要有同步的账户数据
-            return self.items_synced > 0
+            # 账户同步：至少要有同步的账户数据且包含账户信息
+            return self.items_synced > 0 and self._has_account_data()
         elif self.sync_category == "capacity":
             # 容量同步：至少要有容量数据
             return self.items_synced > 0 and self._has_capacity_data()
@@ -172,7 +172,7 @@ class SyncInstanceRecord(db.Model):
             return self.items_synced > 0 and self._has_aggregation_data()
         elif self.sync_category == "config":
             # 配置同步：至少要有配置数据
-            return self.items_synced > 0
+            return self.items_synced > 0 and self._has_config_data()
         else:
             # 其他类型：至少要有同步的项目
             return self.items_synced > 0
@@ -209,6 +209,39 @@ class SyncInstanceRecord(db.Model):
             for key in aggregation_indicators
         )
     
+    def _has_account_data(self) -> bool:
+        """检查是否有账户数据"""
+        if not self.sync_details:
+            return False
+        
+        # 检查sync_details中是否包含账户相关信息
+        account_indicators = [
+            'account_count', 'account_types', 'account_list', 'accounts',
+            'user_count', 'admin_count', 'account_data', 'permissions',
+            'account_details', 'sync_result', 'account_info'
+        ]
+        
+        return any(
+            key in self.sync_details and self.sync_details[key] is not None
+            for key in account_indicators
+        )
+    
+    def _has_config_data(self) -> bool:
+        """检查是否有配置数据"""
+        if not self.sync_details:
+            return False
+        
+        # 检查sync_details中是否包含配置相关信息
+        config_indicators = [
+            'config_count', 'config_items', 'config_data', 'settings',
+            'configuration', 'config_details', 'sync_config'
+        ]
+        
+        return any(
+            key in self.sync_details and self.sync_details[key] is not None
+            for key in config_indicators
+        )
+    
     def get_sync_category_display(self) -> str:
         """获取同步分类的显示名称"""
         from app.utils.sync_utils import SyncUtils
@@ -230,7 +263,10 @@ class SyncInstanceRecord(db.Model):
     def _get_no_data_reason(self) -> str:
         """获取无数据的原因"""
         if self.sync_category == "account":
-            return f"账户同步失败：未同步到任何账户数据 (items_synced={self.items_synced})"
+            if self.items_synced == 0:
+                return f"账户同步失败：未同步到任何账户数据 (items_synced={self.items_synced})"
+            else:
+                return "账户同步失败：未检测到有效的账户数据"
         elif self.sync_category == "capacity":
             if self.items_synced == 0:
                 return f"容量同步失败：未同步到任何容量数据 (items_synced={self.items_synced})"
@@ -242,7 +278,10 @@ class SyncInstanceRecord(db.Model):
             else:
                 return "聚合统计失败：未检测到有效的聚合数据"
         elif self.sync_category == "config":
-            return f"配置同步失败：未同步到任何配置数据 (items_synced={self.items_synced})"
+            if self.items_synced == 0:
+                return f"配置同步失败：未同步到任何配置数据 (items_synced={self.items_synced})"
+            else:
+                return "配置同步失败：未检测到有效的配置数据"
         else:
             return f"同步失败：未同步到任何数据 (items_synced={self.items_synced})"
     
