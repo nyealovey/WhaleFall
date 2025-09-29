@@ -650,21 +650,31 @@ def get_scheduler_health():
         # 检查执行器状态 - 更严格的检查
         executor_working = False
         try:
-            if scheduler and hasattr(scheduler, 'executors'):
-                default_executor = scheduler.executors.get('default')
-                if default_executor:
-                    # 检查执行器是否可用
-                    executor_working = True
-                    system_logger.info(f"执行器检查: 找到默认执行器 {type(default_executor)}")
-                else:
-                    system_logger.warning("执行器检查: 未找到默认执行器")
-            else:
-                system_logger.warning(f"执行器检查: 调度器无executors属性, 调度器类型: {type(scheduler)}")
+            if scheduler:
+                # 检查调度器类型和属性
+                scheduler_type = type(scheduler).__name__
+                system_logger.info(f"调度器类型: {scheduler_type}")
                 
-            # 备用检查：如果调度器运行且能获取任务，认为执行器可能正常
-            if scheduler and scheduler.running and len(jobs) > 0:
-                system_logger.info("执行器备用检查: 调度器运行且能获取任务，认为执行器可能正常")
-                executor_working = True
+                # 检查executors属性
+                if hasattr(scheduler, 'executors'):
+                    executors = scheduler.executors
+                    system_logger.info(f"执行器字典: {list(executors.keys()) if executors else 'None'}")
+                    
+                    if executors and 'default' in executors:
+                        default_executor = executors['default']
+                        executor_working = True
+                        system_logger.info(f"执行器检查: 找到默认执行器 {type(default_executor)}")
+                    else:
+                        system_logger.warning("执行器检查: 未找到默认执行器")
+                else:
+                    system_logger.warning(f"执行器检查: 调度器无executors属性")
+                    
+                # 备用检查：如果调度器运行且能获取任务，认为执行器可能正常
+                if scheduler.running and len(jobs) > 0:
+                    system_logger.info("执行器备用检查: 调度器运行且能获取任务，认为执行器可能正常")
+                    executor_working = True
+            else:
+                system_logger.warning("执行器检查: 调度器对象为空")
         except Exception as e:
             system_logger.warning(f"执行器检查失败: {e}", exc_info=True)
         
