@@ -199,76 +199,132 @@ def calculate_database_size_aggregations(manual_run=False):
                 })
                 continue
         
-        # 根据聚合结果更新所有实例记录状态
-        # 如果所有周期都成功，则所有实例标记为成功
-        # 如果有任何周期失败，则所有实例标记为失败
-        all_periods_success = all(
-            result.get('result', {}).get('status') == 'success' 
-            for result in results
-        )
-        
+        # 为每个实例单独处理聚合任务
+        # 聚合任务需要为每个实例单独执行，因为每个实例的数据是独立的
         for i, instance in enumerate(active_instances):
             record = records[i] if i < len(records) else None
-            if record:
-                try:
-                    sync_session_service.start_instance_sync(record.id)
-                    
-                    if all_periods_success:
-                        # 所有周期都成功，标记实例为成功
-                        sync_logger.info(
-                            f"实例聚合完成: {instance.name}",
-                            module="aggregation_sync",
-                            session_id=session.session_id,
-                            instance_id=instance.id,
-                            instance_name=instance.name
-                        )
+            if not record:
+                continue
+                
+            try:
+                # 开始实例同步
+                sync_session_service.start_instance_sync(record.id)
+                
+                # 为当前实例执行聚合计算
+                instance_aggregations = 0
+                instance_success = True
+                instance_error_msg = ""
+                
+                for period_type in period_types:
+                    try:
+                        # 为当前实例计算该周期的聚合数据
+                        if period_type == 'daily':
+                            period_result = service.calculate_daily_aggregations_for_instance(instance.id)
+                        elif period_type == 'weekly':
+                            period_result = service.calculate_weekly_aggregations_for_instance(instance.id)
+                        elif period_type == 'monthly':
+                            period_result = service.calculate_monthly_aggregations_for_instance(instance.id)
+                        elif period_type == 'quarterly':
+                            period_result = service.calculate_quarterly_aggregations_for_instance(instance.id)
+                        else:
+                            continue
                         
-                        sync_session_service.complete_instance_sync(
-                            record.id,
-                            items_synced=1,  # 聚合任务使用1表示成功
-                            items_created=0,
-                            items_updated=0,
-                            items_deleted=0,
-                            sync_details={
-                                'total_aggregations': total_aggregations,
-                                'periods_processed': len(period_types)
-                            }
-                        )
-                        total_processed += 1
-                    else:
-                        # 有周期失败，标记实例为失败
-                        failed_periods = [
-                            result['period_type'] 
-                            for result in results 
-                            if result.get('result', {}).get('status') != 'success'
-                        ]
-                        
-                        error_msg = f"聚合失败，失败的周期: {', '.join(failed_periods)}"
+                        if period_result.get('status') == 'success':
+                            instance_aggregations += period_result.get('total_records', 0)
+                            sync_logger.info(
+                                f"实例 {instance.name} {period_type} 聚合完成",
+                                module="aggregation_sync",
+                                session_id=session.session_id,
+                                instance_id=instance.id,
+                                instance_name=instance.name,
+                                period_type=period_type,
+                                aggregations=period_result.get('total_records', 0)
+                            )
+                        else:
+                            instance_success = False
+                            instance_error_msg += f"{period_type}聚合失败; "
+                            sync_logger.error(
+                                f"实例 {instance.name} {period_type} 聚合失败",
+                                module="aggregation_sync",
+                                session_id=session.session_id,
+                                instance_id=instance.id,
+                                instance_name=instance.name,
+                                period_type=period_type,
+                                error=period_result.get('error', '未知错误')
+                            )
+                            
+                    except Exception as e:
+                        instance_success = False
+                        instance_error_msg += f"{period_type}聚合异常: {str(e)}; "
                         sync_logger.error(
-                            f"实例聚合失败: {instance.name}",
+                            f"实例 {instance.name} {period_type} 聚合异常",
                             module="aggregation_sync",
                             session_id=session.session_id,
                             instance_id=instance.id,
                             instance_name=instance.name,
-                            error=error_msg
+                            period_type=period_type,
+                            error=str(e)
                         )
-                        
-                        sync_session_service.fail_instance_sync(
-                            record.id,
-                            error_message=error_msg
-                        )
-                        total_failed += 1
-                        
-                except Exception as e:
-                    sync_logger.error(
-                        f"更新实例记录失败: {instance.name}",
+                
+                # 根据实例聚合结果更新记录状态
+                if instance_success:
+                    # 实例聚合成功
+                    sync_session_service.complete_instance_sync(
+                        record.id,
+                        items_synced=instance_aggregations,  # 使用实际聚合数量
+                        items_created=0,
+                        items_updated=0,
+                        items_deleted=0,
+                        sync_details={
+                            'total_aggregations': instance_aggregations,
+                            'periods_processed': len(period_types),
+                            'instance_id': instance.id,
+                            'instance_name': instance.name
+                        }
+                    )
+                    total_processed += 1
+                    total_aggregations += instance_aggregations
+                    
+                    sync_logger.info(
+                        f"实例聚合完成: {instance.name}",
                         module="aggregation_sync",
                         session_id=session.session_id,
                         instance_id=instance.id,
                         instance_name=instance.name,
-                        error=str(e)
+                        aggregations=instance_aggregations
+                    )
+                else:
+                    # 实例聚合失败
+                    error_msg = f"聚合失败，失败的周期: {instance_error_msg.strip()}"
+                    sync_session_service.fail_instance_sync(
+                        record.id,
+                        error_message=error_msg
                     )
                     total_failed += 1
+                    
+                    sync_logger.error(
+                        f"实例聚合失败: {instance.name}",
+                        module="aggregation_sync",
+                        session_id=session.session_id,
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        error=error_msg
+                    )
+                    
+            except Exception as e:
+                sync_logger.error(
+                    f"处理实例聚合失败: {instance.name}",
+                    module="aggregation_sync",
+                    session_id=session.session_id,
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    error=str(e)
+                )
+                sync_session_service.fail_instance_sync(
+                    record.id,
+                    error_message=f"处理聚合异常: {str(e)}"
+                )
+                total_failed += 1
         
         # 更新会话状态
         session.successful_instances = total_processed
