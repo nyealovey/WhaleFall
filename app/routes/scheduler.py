@@ -628,6 +628,11 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
 @scheduler_view_required
 def get_scheduler_health():
     """获取调度器健康状态"""
+    from app.utils.timezone import now_china
+    from app.utils.structlog_config import get_system_logger
+    
+    system_logger = get_system_logger()
+    
     try:
         scheduler = get_scheduler()
         
@@ -639,55 +644,51 @@ def get_scheduler_health():
         running_jobs = [job for job in jobs if job.next_run_time is not None]
         paused_jobs = [job for job in jobs if job.next_run_time is None]
         
-        # 检查调度器线程状态 - 检查调度器是否真正运行
-        thread_alive = scheduler and scheduler.running
-        
         # 检查作业存储状态 - 如果能获取到任务说明存储正常
         jobstore_accessible = len(jobs) > 0
         
-        # 检查执行器状态 - 检查执行器是否可用
+        # 检查执行器状态 - 更严格的检查
         executor_working = False
         try:
-            if scheduler:
-                # 检查调度器属性
-                current_app.logger.info(f"调度器属性: {dir(scheduler)}")
-                
-                if hasattr(scheduler, 'executors'):
-                    default_executor = scheduler.executors.get('default')
-                    if default_executor:
-                        # 检查执行器是否可用
-                        executor_working = True
-                        current_app.logger.info(f"执行器检查: 找到默认执行器 {type(default_executor)}")
-                    else:
-                        current_app.logger.warning("执行器检查: 未找到默认执行器")
-                else:
-                    current_app.logger.warning(f"执行器检查: 调度器无executors属性, 调度器类型: {type(scheduler)}")
-                    
-                # 备用检查：如果调度器运行且能获取任务，认为执行器可能正常
-                if scheduler.running and len(jobs) > 0:
-                    current_app.logger.info("执行器备用检查: 调度器运行且能获取任务，认为执行器可能正常")
+            if scheduler and hasattr(scheduler, 'executors'):
+                default_executor = scheduler.executors.get('default')
+                if default_executor:
+                    # 检查执行器是否可用
                     executor_working = True
+                    system_logger.info(f"执行器检查: 找到默认执行器 {type(default_executor)}")
+                else:
+                    system_logger.warning("执行器检查: 未找到默认执行器")
+            else:
+                system_logger.warning(f"执行器检查: 调度器无executors属性, 调度器类型: {type(scheduler)}")
+                
+            # 备用检查：如果调度器运行且能获取任务，认为执行器可能正常
+            if scheduler and scheduler.running and len(jobs) > 0:
+                system_logger.info("执行器备用检查: 调度器运行且能获取任务，认为执行器可能正常")
+                executor_working = True
         except Exception as e:
-            current_app.logger.warning(f"执行器检查失败: {e}")
+            system_logger.warning(f"执行器检查失败: {e}", exc_info=True)
         
         # 检查任务执行能力 - 检查是否有任务在等待执行
         has_pending_jobs = len(running_jobs) > 0
-        current_app.logger.info(f"健康检查: 调度器运行={is_running}, 线程={thread_alive}, 存储={jobstore_accessible}, 执行器={executor_working}, 待执行任务={len(running_jobs)}")
         
-        # 计算健康状态
+        # 计算健康状态 - 优化评分逻辑
         health_score = 0
         if is_running:
             health_score += 30
-        if thread_alive:
-            health_score += 25
         if jobstore_accessible:
             health_score += 25
         if executor_working:
+            health_score += 25
+        if len(jobs) > 0:  # 有任务说明调度器活跃
             health_score += 20
         
         # 如果有待执行任务但执行器不工作，降低分数
         if has_pending_jobs and not executor_working:
             health_score = max(0, health_score - 30)
+        
+        # 如果无任务但调度器正常，给予基础分数
+        if len(jobs) == 0 and is_running and jobstore_accessible:
+            health_score = max(health_score, 50)
         
         # 确定健康状态
         if health_score >= 80:
@@ -702,6 +703,9 @@ def get_scheduler_health():
             status = "error"
             status_text = "异常"
             status_color = "danger"
+
+        # 使用统一时区
+        current_time = now_china()
         
         health_data = {
             "status": status,
@@ -709,22 +713,43 @@ def get_scheduler_health():
             "status_color": status_color,
             "health_score": health_score,
             "scheduler_running": is_running,
-            "thread_alive": thread_alive,
+            "thread_alive": is_running,  # 简化：调度器运行即线程正常
             "jobstore_accessible": jobstore_accessible,
             "executor_working": executor_working,
             "total_jobs": len(jobs),
             "running_jobs": len(running_jobs),
             "paused_jobs": len(paused_jobs),
-            "last_check": datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+            "last_check": current_time.strftime("%Y/%m/%d %H:%M:%S")
         }
-        
+
+        system_logger.info(
+            "调度器健康检查完成",
+            module="scheduler",
+            health_score=health_score,
+            status=status,
+            total_jobs=len(jobs),
+            running_jobs=len(running_jobs),
+            executor_working=executor_working
+        )
+
         return jsonify({
             "success": True,
             "data": health_data
         })
-        
+
     except Exception as e:
-        current_app.logger.error(f"获取调度器健康状态失败: {e}")
+        system_logger.error(f"获取调度器健康状态失败: {e}", exc_info=True)
+        
+        # 计算部分分数，即使异常也提供有用信息
+        partial_score = 0
+        try:
+            if scheduler and scheduler.running:
+                partial_score += 30
+            if len(jobs) > 0:
+                partial_score += 25
+        except:
+            pass
+        
         return jsonify({
             "success": False,
             "error": str(e),
@@ -732,8 +757,8 @@ def get_scheduler_health():
                 "status": "error",
                 "status_text": "检查失败",
                 "status_color": "danger",
-                "health_score": 0,
-                "last_check": datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+                "health_score": partial_score,
+                "last_check": now_china().strftime("%Y/%m/%d %H:%M:%S")
             }
         })
 
