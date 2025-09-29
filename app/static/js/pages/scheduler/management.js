@@ -149,7 +149,8 @@ function initializeEventHandlers() {
 // 加载任务列表（移除统计更新）
 function loadJobs() {
     $('#loadingRow').show();
-    $('#jobsContainer').empty();
+    $('#activeJobsContainer').empty();
+    $('#pausedJobsContainer').empty();
     $('#emptyRow').hide();
 
     $.ajax({
@@ -189,12 +190,61 @@ function displayJobs(jobs) {
         return;
     }
 
-    const container = $('#jobsContainer');
+    // 清空所有容器
+    $('#activeJobsContainer').empty();
+    $('#pausedJobsContainer').empty();
+    
+    // 分离进行中和已暂停的任务
+    const activeJobs = [];
+    const pausedJobs = [];
     
     jobs.forEach(function(job) {
-        const jobCard = createJobCard(job);
-        container.append(jobCard);
+        if (job.state === 'STATE_RUNNING' || job.state === 'STATE_EXECUTING') {
+            activeJobs.push(job);
+        } else {
+            pausedJobs.push(job);
+        }
     });
+    
+    // 显示进行中的任务
+    activeJobs.forEach(function(job) {
+        const jobCard = createJobCard(job);
+        $('#activeJobsContainer').append(jobCard);
+    });
+    
+    // 显示已暂停的任务
+    pausedJobs.forEach(function(job) {
+        const jobCard = createJobCard(job);
+        $('#pausedJobsContainer').append(jobCard);
+    });
+    
+    // 更新计数
+    $('#activeJobsCount').text(activeJobs.length);
+    $('#pausedJobsCount').text(pausedJobs.length);
+    
+    // 如果没有进行中的任务，显示提示
+    if (activeJobs.length === 0) {
+        $('#activeJobsContainer').html(`
+            <div class="col-12">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-play-circle fa-2x mb-2"></i>
+                    <p>暂无进行中的任务</p>
+                </div>
+            </div>
+        `);
+    }
+    
+    // 如果没有已暂停的任务，显示提示
+    if (pausedJobs.length === 0) {
+        $('#pausedJobsContainer').html(`
+            <div class="col-12">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-pause-circle fa-2x mb-2"></i>
+                    <p>暂无已暂停的任务</p>
+                </div>
+            </div>
+        `);
+    }
 }
 
 // 创建任务卡片
