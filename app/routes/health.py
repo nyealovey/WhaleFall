@@ -30,20 +30,6 @@ def health_check() -> "Response":
         return APIResponse.server_error("健康检查失败")
 
 
-@health_bp.route("")
-def health_check_root() -> "Response":
-    """健康检查根路由 - 兼容Nginx配置"""
-    try:
-        return APIResponse.success(
-            data={"status": "healthy", "timestamp": time.time(), "version": "1.0.7"},
-            message="服务运行正常",
-        )
-    except Exception as e:
-        system_logger = get_system_logger()
-        system_logger.error("健康检查失败", module="health", exception=e)
-        return APIResponse.server_error("健康检查失败")
-
-
 @health_bp.route("/detailed")
 def detailed_health_check() -> "Response":
     """详细健康检查"""
