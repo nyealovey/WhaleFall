@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 instance_stats_bp = Blueprint('instance_stats', __name__)
 
 # 页面路由
-# 数据库统计聚合页面已移至 database_stats 模块
+# 实例统计页面已存在于 database_stats 模块中
 
 @instance_stats_bp.route('/api/instances/<int:instance_id>/performance', methods=['GET'])
 @login_required
