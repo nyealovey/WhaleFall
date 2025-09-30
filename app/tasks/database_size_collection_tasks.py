@@ -147,6 +147,12 @@ def collect_database_sizes():
                         database_count = len(databases_data)
                         total_size_mb = sum(db.get('size_mb', 0) for db in databases_data)
                         
+                        # 保存数据库大小数据到数据库
+                        saved_count = collector.save_collected_data(databases_data)
+                        
+                        # 更新实例大小统计
+                        collector.update_instance_total_size(databases_data)
+                        
                         # 更新同步记录 - 容量同步使用数据库数量作为同步数量
                         sync_session_service.complete_instance_sync(
                             record.id,
@@ -157,6 +163,7 @@ def collect_database_sizes():
                             sync_details={
                                 'total_size_mb': total_size_mb,
                                 'database_count': database_count,
+                                'saved_count': saved_count,
                                 'databases': databases_data
                             }
                         )
@@ -170,7 +177,9 @@ def collect_database_sizes():
                             session_id=session.session_id,
                             instance_id=instance.id,
                             instance_name=instance.name,
-                            size_mb=total_size_mb
+                            size_mb=total_size_mb,
+                            database_count=database_count,
+                            saved_count=saved_count
                         )
                         
                         results.append({
@@ -178,6 +187,8 @@ def collect_database_sizes():
                             'instance_name': instance.name,
                             'success': True,
                             'size_mb': total_size_mb,
+                            'database_count': database_count,
+                            'saved_count': saved_count,
                             'databases': databases_data
                         })
                     else:
@@ -422,6 +433,7 @@ def get_collection_status() -> Dict[str, Any]:
     """
     from app import create_app
     from app.models.instance_size_stat import InstanceSizeStat
+    from app.utils.time_utils import time_utils
     
     # 创建Flask应用上下文
     app = create_app()
