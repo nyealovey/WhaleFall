@@ -86,12 +86,11 @@ def collect_database_sizes():
                     sync_session_service.start_instance_sync(record.id)
                     
                     sync_logger.info(
-                        f"开始同步实例容量: {instance.name}",
+                        f"开始同步实例: {instance.name} (ID: {instance.id})",
                         module="capacity_sync",
                         session_id=session.session_id,
                         instance_id=instance.id,
-                        instance_name=instance.name,
-                        db_type=instance.db_type
+                        instance_name=instance.name
                     )
                     
                     # 调用数据库大小采集服务
