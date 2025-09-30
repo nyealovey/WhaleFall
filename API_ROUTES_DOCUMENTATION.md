@@ -141,6 +141,8 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
+| `/credentials/create` | POST | 创建凭据 API（JSON请求） |
+| `/credentials/<int:id>/edit` | POST | 编辑凭据 API（JSON请求） |
 | `/credentials/api/credentials/<int:id>/toggle` | POST | 启用/禁用凭据 |
 | `/credentials/api/credentials/<int:id>/delete` | POST | 删除凭据 |
 | `/credentials/api/credentials` | GET | 获取凭据列表 API |
@@ -424,8 +426,8 @@
 ### 总体统计
 - **总模块数**: 20 个
 - **页面路由总数**: 约 39 个
-- **API 接口总数**: 139 个
-- **总路由数**: 178 个
+- **API 接口总数**: 141 个
+- **总路由数**: 180 个
 
 ### API 前缀使用情况
 根据内存中的已知问题，项目存在 API 前缀不统一的情况：
@@ -448,7 +450,15 @@
 
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
-- **版本**: v1.2.3
+- **版本**: v1.2.4
+
+### v1.2.4 更新内容 (2025-09-30)
+- ✅ 补全凭据管理模块缺失的API接口
+- ✅ 添加 /credentials/create POST API（创建凭据）
+- ✅ 添加 /credentials/<int:id>/edit POST API（编辑凭据）
+- ✅ 更新API接口总数统计（从139个增加到141个）
+- ✅ 更新总路由数统计（从178个增加到180个）
+- ✅ 确保API文档完整性
 
 ### v1.2.3 更新内容 (2025-09-30)
 - ✅ 删除不存在的 /aggregations/ 根路径路由记录
