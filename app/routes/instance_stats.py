@@ -447,3 +447,172 @@ def get_instance_capacity_forecast(instance_id: int):
             'success': False,
             'error': str(e)
         }), 500
+
+
+@instance_stats_bp.route('/api/databases/aggregations', methods=['GET'])
+@login_required
+@view_required
+def get_databases_aggregations():
+    """
+    获取数据库统计聚合数据（实例统计层面）
+    原 /api/database 功能
+    
+    Returns:
+        JSON: 数据库聚合数据
+    """
+    try:
+        # 获取查询参数
+        instance_id = request.args.get('instance_id', type=int)
+        db_type = request.args.get('db_type')
+        database_name = request.args.get('database_name')
+        period_type = request.args.get('period_type')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # 分页参数
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        # 是否返回所有数据（用于图表显示）
+        get_all = request.args.get('get_all', 'false').lower() == 'true'
+        
+        # 计算offset
+        offset = (page - 1) * per_page
+        limit = per_page
+        
+        # 构建查询 - 直接查询聚合统计表
+        from app.models.database_size_aggregation import DatabaseSizeAggregation
+        query = DatabaseSizeAggregation.query.join(Instance)
+        
+        # 应用过滤条件
+        if instance_id:
+            query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
+        if db_type:
+            query = query.filter(Instance.db_type == db_type)
+        if database_name:
+            query = query.filter(DatabaseSizeAggregation.database_name == database_name)
+        if period_type:
+            query = query.filter(DatabaseSizeAggregation.period_type == period_type)
+        if start_date:
+            query = query.filter(DatabaseSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            query = query.filter(DatabaseSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        # 排序和分页
+        if get_all:
+            # 用于图表显示：按大小排序获取TOP 20
+            query = query.order_by(desc(DatabaseSizeAggregation.avg_size_mb))
+            aggregations = query.limit(20).all()
+            total = len(aggregations)
+        else:
+            # 用于表格显示：按时间排序分页
+            query = query.order_by(desc(DatabaseSizeAggregation.period_start))
+            total = query.count()
+            aggregations = query.offset(offset).limit(limit).all()
+        
+        # 转换为字典格式，包含实例信息
+        data = []
+        for agg in aggregations:
+            agg_dict = agg.to_dict()
+            # 添加实例信息
+            agg_dict['instance'] = {
+                'id': agg.instance.id,
+                'name': agg.instance.name,
+                'db_type': agg.instance.db_type
+            }
+            data.append(agg_dict)
+        
+        return jsonify({
+            'success': True,
+            'data': data,
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page,
+            'has_prev': page > 1,
+            'has_next': page < (total + per_page - 1) // per_page
+        })
+        
+    except Exception as e:
+        logger.error(f"获取数据库统计聚合数据时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@instance_stats_bp.route('/api/databases/aggregations/summary', methods=['GET'])
+@login_required
+@view_required
+def get_databases_aggregations_summary():
+    """
+    获取数据库统计聚合汇总信息（实例统计层面）
+    原 /api/database/summary 功能
+    
+    Returns:
+        JSON: 数据库聚合汇总信息
+    """
+    try:
+        # 获取查询参数
+        instance_id = request.args.get('instance_id', type=int)
+        db_type = request.args.get('db_type')
+        database_name = request.args.get('database_name')
+        period_type = request.args.get('period_type')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # 构建查询
+        from app.models.database_size_aggregation import DatabaseSizeAggregation
+        query = DatabaseSizeAggregation.query.join(Instance)
+        
+        # 应用过滤条件
+        if instance_id:
+            query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
+        if db_type:
+            query = query.filter(Instance.db_type == db_type)
+        if database_name:
+            query = query.filter(DatabaseSizeAggregation.database_name == database_name)
+        if period_type:
+            query = query.filter(DatabaseSizeAggregation.period_type == period_type)
+        if start_date:
+            query = query.filter(DatabaseSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            query = query.filter(DatabaseSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        # 获取聚合数据
+        aggregations = query.all()
+        
+        if not aggregations:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'total_databases': 0,
+                    'total_size_mb': 0,
+                    'avg_size_mb': 0,
+                    'max_size_mb': 0,
+                    'period_type': period_type or 'all'
+                }
+            })
+        
+        # 计算汇总统计
+        total_databases = len(set(agg.database_name for agg in aggregations))
+        total_size_mb = sum(agg.avg_size_mb for agg in aggregations)
+        avg_size_mb = total_size_mb / len(aggregations) if aggregations else 0
+        max_size_mb = max(agg.avg_size_mb for agg in aggregations) if aggregations else 0
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'total_databases': total_databases,
+                'total_size_mb': total_size_mb,
+                'avg_size_mb': avg_size_mb,
+                'max_size_mb': max_size_mb,
+                'period_type': period_type or 'all'
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"获取数据库统计聚合汇总时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
