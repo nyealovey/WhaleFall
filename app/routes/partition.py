@@ -521,10 +521,10 @@ def get_core_aggregation_metrics():
         # 按日期统计4个核心指标
         from collections import defaultdict
         daily_metrics = defaultdict(lambda: {
-            'instance_count': 0,      # 每天采集的实例数总量
-            'database_count': 0,      # 每天采集的数据库数总量
-            'instance_aggregation_count': 0,  # 聚合统计下每天的实例日统计数量
-            'database_aggregation_count': 0   # 聚合统计下每天的数据库日统计数量
+            'instance_count': 0,      # 每天采集的实例数总量（日统计）或平均值（周/月/季统计）
+            'database_count': 0,      # 每天采集的数据库数总量（日统计）或平均值（周/月/季统计）
+            'instance_aggregation_count': 0,  # 聚合统计下的实例统计数量
+            'database_aggregation_count': 0   # 聚合统计下的数据库统计数量
         })
         
         # 统计原始采集数据
@@ -544,6 +544,56 @@ def get_core_aggregation_metrics():
         for agg in instance_aggregations:
             date_str = agg.period_start.strftime('%Y-%m-%d')
             daily_metrics[date_str]['instance_aggregation_count'] += 1
+        
+        # 对于周、月、季统计，需要计算平均值
+        if period_type in ['weekly', 'monthly', 'quarterly']:
+            # 计算每个周期内的平均值
+            period_metrics = defaultdict(lambda: {
+                'instance_count': 0,
+                'database_count': 0,
+                'instance_aggregation_count': 0,
+                'database_aggregation_count': 0,
+                'days_in_period': 0
+            })
+            
+            # 按周期分组计算平均值
+            for date_str, metrics in daily_metrics.items():
+                period_start = datetime.strptime(date_str, '%Y-%m-%d').date()
+                
+                if period_type == 'weekly':
+                    # 计算周的开始日期（周一）
+                    week_start = period_start - timedelta(days=period_start.weekday())
+                    period_key = week_start.strftime('%Y-%m-%d')
+                elif period_type == 'monthly':
+                    # 计算月的开始日期
+                    month_start = period_start.replace(day=1)
+                    period_key = month_start.strftime('%Y-%m-%d')
+                elif period_type == 'quarterly':
+                    # 计算季度的开始日期
+                    quarter_month = ((period_start.month - 1) // 3) * 3 + 1
+                    quarter_start = period_start.replace(month=quarter_month, day=1)
+                    period_key = quarter_start.strftime('%Y-%m-%d')
+                
+                period_metrics[period_key]['instance_count'] += metrics['instance_count']
+                period_metrics[period_key]['database_count'] += metrics['database_count']
+                period_metrics[period_key]['instance_aggregation_count'] += metrics['instance_aggregation_count']
+                period_metrics[period_key]['database_aggregation_count'] += metrics['database_aggregation_count']
+                period_metrics[period_key]['days_in_period'] += 1
+            
+            # 计算平均值并更新daily_metrics
+            daily_metrics = defaultdict(lambda: {
+                'instance_count': 0,
+                'database_count': 0,
+                'instance_aggregation_count': 0,
+                'database_aggregation_count': 0
+            })
+            
+            for period_key, metrics in period_metrics.items():
+                if metrics['days_in_period'] > 0:
+                    daily_metrics[period_key]['instance_count'] = round(metrics['instance_count'] / metrics['days_in_period'], 1)
+                    daily_metrics[period_key]['database_count'] = round(metrics['database_count'] / metrics['days_in_period'], 1)
+                    daily_metrics[period_key]['instance_aggregation_count'] = metrics['instance_aggregation_count']
+                    daily_metrics[period_key]['database_aggregation_count'] = metrics['database_aggregation_count']
         
         # 生成时间序列数据
         labels = []
@@ -565,10 +615,37 @@ def get_core_aggregation_metrics():
             
             current_date += timedelta(days=1)
         
+        # 根据统计周期确定标签
+        if period_type == 'daily':
+            instance_label = '实例数总量'
+            database_label = '数据库数总量'
+            instance_agg_label = '实例日统计数量'
+            database_agg_label = '数据库日统计数量'
+        elif period_type == 'weekly':
+            instance_label = '实例数平均值（周）'
+            database_label = '数据库数平均值（周）'
+            instance_agg_label = '实例周统计数量'
+            database_agg_label = '数据库周统计数量'
+        elif period_type == 'monthly':
+            instance_label = '实例数平均值（月）'
+            database_label = '数据库数平均值（月）'
+            instance_agg_label = '实例月统计数量'
+            database_agg_label = '数据库月统计数量'
+        elif period_type == 'quarterly':
+            instance_label = '实例数平均值（季）'
+            database_label = '数据库数平均值（季）'
+            instance_agg_label = '实例季统计数量'
+            database_agg_label = '数据库季统计数量'
+        else:
+            instance_label = '实例数总量'
+            database_label = '数据库数总量'
+            instance_agg_label = '实例统计数量'
+            database_agg_label = '数据库统计数量'
+        
         # 构建Chart.js数据集
         datasets = [
             {
-                'label': '实例数总量',
+                'label': instance_label,
                 'data': instance_count_data,
                 'borderColor': '#FF6384',
                 'backgroundColor': 'rgba(255, 99, 132, 0.1)',
@@ -577,7 +654,7 @@ def get_core_aggregation_metrics():
                 'tension': 0.1
             },
             {
-                'label': '数据库数总量',
+                'label': database_label,
                 'data': database_count_data,
                 'borderColor': '#36A2EB',
                 'backgroundColor': 'rgba(54, 162, 235, 0.1)',
@@ -586,7 +663,7 @@ def get_core_aggregation_metrics():
                 'tension': 0.1
             },
             {
-                'label': '实例日统计数量',
+                'label': instance_agg_label,
                 'data': instance_aggregation_data,
                 'borderColor': '#FFCE56',
                 'backgroundColor': 'rgba(255, 206, 86, 0.1)',
@@ -596,7 +673,7 @@ def get_core_aggregation_metrics():
                 'borderDash': [5, 5]
             },
             {
-                'label': '数据库日统计数量',
+                'label': database_agg_label,
                 'data': database_aggregation_data,
                 'borderColor': '#4BC0C0',
                 'backgroundColor': 'rgba(75, 192, 192, 0.1)',
