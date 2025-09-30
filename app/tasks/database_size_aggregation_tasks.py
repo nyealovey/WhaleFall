@@ -221,18 +221,10 @@ def calculate_database_size_aggregations(manual_run=False):
                     
                     # 使用连接工厂创建数据库连接，设置超时参数
                     from app.services.connection_factory import ConnectionFactory
-                    import signal
                     import time
                     
-                    # 设置实例级别的超时处理（5分钟）
-                    def timeout_handler(signum, frame):
-                        raise TimeoutError(f"实例 {instance.name} 聚合计算超时（5分钟）")
-                    
-                    old_handler = None
+                    # 移除signal超时控制，依赖连接工厂的超时机制
                     try:
-                        # 设置超时信号
-                        old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-                        signal.alarm(300)  # 5分钟超时
                         
                         for period_type in period_types:
                             try:
@@ -376,10 +368,8 @@ def calculate_database_size_aggregations(manual_run=False):
                         total_failed += 1
                     
                     finally:
-                        # 清理超时信号
-                        if old_handler is not None:
-                            signal.alarm(0)  # 取消超时
-                            signal.signal(signal.SIGALRM, old_handler)  # 恢复原信号处理器
+                        # 清理工作（移除signal相关代码）
+                        pass
                 
                 except Exception as e:
                     sync_logger.error(
