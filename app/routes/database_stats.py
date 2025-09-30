@@ -7,7 +7,7 @@
 import logging
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Any, Optional
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, render_template
 from app.utils.time_utils import time_utils
 from flask_login import login_required, current_user
 from sqlalchemy import and_, desc, func
@@ -20,6 +20,28 @@ logger = logging.getLogger(__name__)
 
 # 创建蓝图
 database_stats_bp = Blueprint('database_stats', __name__)
+
+# 页面路由
+@database_stats_bp.route('/instance', methods=['GET'])
+@login_required
+@view_required
+def instance_aggregations():
+    """
+    实例统计聚合页面（数据库统计层面）
+    返回HTML页面
+    """
+    # 获取实例列表用于筛选
+    instances = Instance.query.filter_by(is_active=True).order_by(Instance.id).all()
+    instances_list = []
+    for instance in instances:
+        instances_list.append({
+            'id': instance.id,
+            'name': instance.name,
+            'db_type': instance.db_type
+        })
+    
+    return render_template('database_sizes/instance_aggregations.html', 
+                         instances_list=instances_list)
 
 @database_stats_bp.route('/api/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
 @login_required
