@@ -48,7 +48,7 @@ async function loadPartitionData() {
         console.log('开始加载分区数据...');
         showLoadingState();
         
-        const response = await fetch('/partition/?api=true');
+        const response = await fetch('/partition/api/info');
         const data = await response.json();
         
         if (response.ok && data.success) {

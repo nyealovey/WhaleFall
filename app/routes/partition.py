@@ -27,45 +27,50 @@ partition_bp = Blueprint('partition', __name__)
 @partition_bp.route('/', methods=['GET'])
 @login_required
 @view_required
-def partitions():
+def partitions_page():
     """
-    分区管理页面或API
+    分区管理页面
+    """
+    return render_template('database_sizes/partitions.html')
+
+# API 路由
+@partition_bp.route('/api/info', methods=['GET'])
+@login_required
+@view_required
+def get_partition_info():
+    """
+    获取分区信息API
     
-    如果是页面请求（无查询参数），返回HTML页面
-    如果是API请求（有查询参数），返回JSON数据
+    Returns:
+        JSON: 分区信息
     """
-    # 检查是否有查询参数，如果有则返回API数据
-    if request.args:
-        try:
-            logger.info("开始获取分区信息")
-            service = PartitionManagementService()
-            result = service.get_partition_info()
-            logger.info(f"分区信息获取结果: {result}")
-            
-            if result['success']:
-                return jsonify({
-                    'success': True,
-                    'data': result,
-                    'timestamp': time_utils.now().isoformat()
-                })
-            else:
-                logger.error(f"分区信息获取失败: {result}")
-                return jsonify({
-                    'success': False,
-                    'error': result.get('message', '获取分区信息失败'),
-                    'details': result
-                }), 500
-                
-        except Exception as e:
-            logger.error(f"获取分区信息时出错: {str(e)}", exc_info=True)
+    try:
+        logger.info("开始获取分区信息")
+        service = PartitionManagementService()
+        result = service.get_partition_info()
+        logger.info(f"分区信息获取结果: {result}")
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'data': result,
+                'timestamp': time_utils.now().isoformat()
+            })
+        else:
+            logger.error(f"分区信息获取失败: {result}")
             return jsonify({
                 'success': False,
-                'error': f'获取分区信息失败: {str(e)}',
-                'message': '系统内部错误'
+                'error': result.get('message', '获取分区信息失败'),
+                'details': result
             }), 500
-    else:
-        # 无查询参数，返回HTML页面
-        return render_template('database_sizes/partitions.html')
+            
+    except Exception as e:
+        logger.error(f"获取分区信息时出错: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'获取分区信息失败: {str(e)}',
+            'message': '系统内部错误'
+        }), 500
 
 # API 路由
 
