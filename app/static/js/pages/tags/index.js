@@ -93,7 +93,7 @@ function initializeEventHandlers() {
             const tagName = button.getAttribute('data-tag-name');
             
             document.getElementById('deleteTagName').textContent = tagName;
-            document.getElementById('deleteForm').action = `/tags/delete/${tagId}`;
+            document.getElementById('deleteForm').action = `/tags/api/delete/${tagId}`;
         });
     }
 }

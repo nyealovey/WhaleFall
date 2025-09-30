@@ -362,7 +362,7 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/tags/delete/<int:id>` | POST | 删除标签 |
+| `/tags/api/delete/<int:id>` | POST | 删除标签 |
 | `/tags/api/batch_assign_tags` | POST | 批量分配标签给实例 |
 | `/tags/api/batch_remove_tags` | POST | 批量移除实例的标签 |
 | `/tags/api/instance_tags` | POST | 获取实例的已关联标签 |
