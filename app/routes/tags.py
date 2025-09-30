@@ -592,7 +592,7 @@ def edit(tag_id: int) -> str | Response:
     return render_template("tags/edit.html", tag=tag)
 
 
-@tags_bp.route("/delete/<int:tag_id>", methods=["POST"])
+@tags_bp.route("/api/delete/<int:tag_id>", methods=["POST"])
 @login_required
 @delete_required
 def delete(tag_id: int) -> Response:
