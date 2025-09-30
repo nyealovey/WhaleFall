@@ -52,16 +52,16 @@ class AggregationsChartManager {
                     <div class="legend-items">
                         <div class="legend-item">
                             <span class="legend-color" style="background: linear-gradient(90deg, rgba(54, 162, 235, 0.7) 0%, rgba(255, 99, 132, 0.7) 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
-                            <span class="legend-text">📊 实例数总量（蓝色实线，70%透明度）+ 实例日统计数量（红色虚线，70%透明度）→ 紫色偏粉红混合效果</span>
+                            <span class="legend-text">📊 实例数总量（蓝色实线，70%透明度）+ 实例日统计数量（红色实线，70%透明度）→ 紫色偏粉红混合效果</span>
                         </div>
                         <div class="legend-item">
                             <span class="legend-color" style="background: linear-gradient(90deg, rgba(75, 192, 192, 0.7) 0%, rgba(255, 159, 64, 0.7) 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
-                            <span class="legend-text">🗄️ 数据库数总量（绿色实线，70%透明度）+ 数据库日统计数量（橙色虚线，70%透明度）→ 黄绿色混合效果</span>
+                            <span class="legend-text">🗄️ 数据库数总量（绿色实线，70%透明度）+ 数据库日统计数量（橙色实线，70%透明度）→ 黄绿色混合效果</span>
                         </div>
                     </div>
                     <div class="alert alert-info mt-2" style="font-size: 0.85em;">
                         <i class="fas fa-info-circle me-1"></i>
-                        <strong>颜色混合设计：</strong>每条组合线由两条高透明度的线叠加而成，产生真正的颜色混合效果。蓝色+红色=紫色偏粉红，绿色+橙色=黄绿色。
+                        <strong>颜色混合设计：</strong>每条组合线由两条高透明度的实线叠加而成，产生真正的颜色混合效果。蓝色+红色=紫色偏粉红，绿色+橙色=黄绿色。
                     </div>
                 </div>
             `;
