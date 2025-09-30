@@ -490,15 +490,6 @@ def statistics() -> str:
     # 获取实例列表
     instances = Instance.query.filter_by(is_active=True).all()
 
-    if request.is_json:
-        return jsonify(
-            {
-                "stats": stats,
-                "recent_syncs": [sync.to_dict() for sync in recent_syncs],
-                "instances": [instance.to_dict() for instance in instances],
-            }
-        )
-
     return render_template(
         "accounts/statistics.html",
         stats=stats,
@@ -508,20 +499,35 @@ def statistics() -> str:
     )
 
 
-@account_bp.route("/api/account-statistics")
+@account_bp.route("/api/statistics")
 @login_required
-def account_statistics() -> "Response":
+@view_required
+def statistics_api() -> "Response":
     """账户统计API"""
     try:
+        # 获取统计信息
         stats = get_account_statistics()
+
+        # 获取最近同步记录 - 使用新的同步会话模型
+        from app.models.sync_session import SyncSession
+
+        recent_syncs = SyncSession.query.order_by(SyncSession.created_at.desc()).limit(10).all()
+
+        # 获取实例列表
+        instances = Instance.query.filter_by(is_active=True).all()
+
         return jsonify(
             {
                 "success": True,
                 "stats": stats,
+                "recent_syncs": [sync.to_dict() for sync in recent_syncs],
+                "instances": [instance.to_dict() for instance in instances],
             }
         )
     except Exception as e:
         return jsonify({"success": False, "error": f"获取统计信息失败: {str(e)}"}), 500
+
+
 
 
 def get_account_statistics() -> dict:
