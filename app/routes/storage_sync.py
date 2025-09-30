@@ -12,11 +12,6 @@ from flask_login import login_required, current_user
 from sqlalchemy import and_, desc, func
 from app.models.instance import Instance
 from app.services.database_size_collector_service import collect_all_instances_database_sizes
-from app.tasks.database_size_collection_tasks import (
-    collect_database_sizes,
-    collect_specific_instance_database_sizes,
-    collect_database_sizes_by_type
-)
 from app.utils.decorators import view_required
 from app import db
 
@@ -59,43 +54,6 @@ def test_connection():
         'error': '此API已弃用，请使用 /connections/api/test'
     }), 410
 
-@storage_sync_bp.route('/api/manual_collect', methods=['POST'])
-@login_required
-@view_required
-def manual_collect():
-    """
-    手动触发数据采集
-    
-    Returns:
-        JSON: 采集结果
-    """
-    try:
-        data = request.get_json() or {}
-        instance_id = data.get('instance_id')
-        db_type = data.get('db_type')
-        
-        if instance_id:
-            # 采集指定实例
-            result = collect_specific_instance_database_sizes(instance_id)
-        elif db_type:
-            # 按数据库类型采集
-            result = collect_database_sizes_by_type(db_type)
-        else:
-            # 采集所有实例
-            result = collect_database_sizes()
-        
-        return jsonify({
-            'success': True,
-            'message': '数据采集任务已触发',
-            'data': result
-        })
-        
-    except Exception as e:
-        logger.error(f"手动采集数据失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 @storage_sync_bp.route('/api/instances', methods=['GET'])
 @login_required
@@ -133,32 +91,6 @@ def get_instances():
             'error': str(e)
         }), 500
 
-@storage_sync_bp.route('/api/collect', methods=['POST'])
-@login_required
-@view_required
-def collect_data():
-    """
-    手动触发数据库大小采集
-    
-    Returns:
-        JSON: 采集结果
-    """
-    try:
-        # 触发采集任务
-        result = collect_database_sizes()
-        
-        return jsonify({
-            'success': True,
-            'message': '数据库大小采集任务已触发',
-            'data': result
-        })
-        
-    except Exception as e:
-        logger.error(f"触发采集任务失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 @storage_sync_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=['POST'])
 @login_required

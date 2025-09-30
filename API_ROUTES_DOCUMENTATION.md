@@ -356,9 +356,7 @@
 | 路径 | 方法 | 描述 |
 |------|------|------|
 | `/storage_sync/api/test_connection` | POST | 测试数据库连接（已弃用，请使用 /connections/api/test） |
-| `/storage_sync/api/manual_collect` | POST | 手动触发数据采集 |
 | `/storage_sync/api/instances` | GET | 获取实例列表 |
-| `/storage_sync/api/collect` | POST | 手动触发数据库大小采集 |
 | `/storage_sync/api/instances/<int:id>/sync-capacity` | POST | 同步指定实例的数据库容量信息 |
 | `/storage_sync/api/instances/<int:id>/databases` | GET | 获取指定实例的数据库列表 |
 
@@ -489,8 +487,8 @@ connectionManager.batchTestConnections([1,2,3], {
 ### 总体统计
 - **总模块数**: 23 个
 - **页面路由总数**: 约 39 个
-- **API 接口总数**: 180 个
-- **总路由数**: 219 个
+- **API 接口总数**: 178 个
+- **总路由数**: 217 个
 - **前端组件数**: 1 个（连接管理组件）
 - **已弃用API**: 2 个（保持向后兼容）
 
@@ -536,6 +534,15 @@ connectionManager.batchTestConnections([1,2,3], {
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
 - **版本**: v1.5.0
+
+### v1.5.2 更新内容 (2025-09-30)
+- ✅ 删除存储同步模块中重复的API接口
+- ✅ 删除 `/storage_sync/api/manual_collect` 和 `/storage_sync/api/collect` 接口
+- ✅ 这两个API功能重复且都未被调用，定时任务直接调用底层函数
+- ✅ 清理未使用的导入和代码
+- ✅ 更新API接口总数统计（从180个减少到178个）
+- ✅ 更新总路由数统计（从219个减少到217个）
+- ✅ 进一步优化代码质量，移除冗余代码
 
 ### v1.5.1 更新内容 (2025-09-30)
 - ✅ 删除存储同步模块中未被使用的API接口
