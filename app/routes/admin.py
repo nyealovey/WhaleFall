@@ -39,7 +39,7 @@ def admin_required(f):
     return decorated_function  # type: ignore
 
 
-@admin_bp.route("/app-info", methods=["GET"])
+@admin_bp.route("/api/app-info", methods=["GET"])
 def app_info() -> Response:
     """获取应用信息（公开接口，用于右上角显示）"""
     try:
@@ -51,48 +51,3 @@ def app_info() -> Response:
 
 
 # 快速操作相关路由
-@admin_bp.route("/refresh-data", methods=["POST"])
-@login_required  # type: ignore
-@admin_required
-def refresh_system_data() -> Response:
-    """刷新系统数据"""
-    try:
-        # 这里可以实现数据刷新逻辑
-        logger.info("系统数据刷新请求")
-        return APIResponse.success(message="系统数据已刷新")  # type: ignore
-    except Exception as e:
-        logger.error("刷新系统数据失败: %s", e)
-        return APIResponse.server_error("刷新系统数据失败")  # type: ignore
-
-
-@admin_bp.route("/clear-cache", methods=["POST"])
-@login_required  # type: ignore
-@admin_required
-def clear_cache() -> Response:
-    """清除缓存"""
-    try:
-        # 这里可以实现清除缓存逻辑
-        logger.info("清除缓存请求")
-        return APIResponse.success(message="缓存已清除")  # type: ignore
-    except Exception as e:
-        logger.error("清除缓存失败: %s", e)
-        return APIResponse.server_error("清除缓存失败")  # type: ignore
-
-
-@admin_bp.route("/health-check", methods=["POST"])
-@login_required  # type: ignore
-@admin_required
-def run_health_check() -> Response:
-    """运行健康检查"""
-    try:
-        # 检查各个组件状态
-        health_status = {
-            "database": "healthy",
-            "redis": "healthy",
-            "application": "healthy",
-        }
-
-        return APIResponse.success(data=health_status, message="健康检查完成")  # type: ignore
-    except Exception as e:
-        logger.error("健康检查失败: %s", e)
-        return APIResponse.server_error("健康检查失败")  # type: ignore

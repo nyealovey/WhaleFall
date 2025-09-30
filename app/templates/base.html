@@ -377,7 +377,7 @@
         // 加载应用信息
         async function loadAppInfo() {
             try {
-                const response = await fetch('/admin/app-info');
+                const response = await fetch('/admin/api/app-info');
                 const data = await response.json();
 
                 if (data.success && data.data) {
