@@ -15,8 +15,7 @@ from app.services.database_size_collector_service import collect_all_instances_d
 from app.tasks.database_size_collection_tasks import (
     collect_database_sizes,
     collect_specific_instance_database_sizes,
-    collect_database_sizes_by_type,
-    get_collection_status
+    collect_database_sizes_by_type
 )
 from app.utils.decorators import view_required
 from app import db
@@ -47,73 +46,6 @@ def storage_sync():
     return render_template('database_sizes/storage_sync.html', 
                          instances_list=instances_list)
 
-@storage_sync_bp.route('/api/status', methods=['GET'])
-@login_required
-@view_required
-def get_sync_status():
-    """
-    获取数据库大小监控状态
-    
-    Returns:
-        JSON: 监控状态信息
-    """
-    try:
-        # 获取采集状态
-        status = get_collection_status()
-        
-        return jsonify({
-            'success': True,
-            'data': status,
-            'timestamp': time_utils.now().isoformat()
-        })
-        
-    except Exception as e:
-        logger.error(f"获取监控状态失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@storage_sync_bp.route('/api/stats', methods=['GET'])
-@login_required
-@view_required
-def get_sync_stats():
-    """
-    获取数据库大小监控统计信息
-    
-    Returns:
-        JSON: 统计信息
-    """
-    try:
-        from app.models.database_size_stat import DatabaseSizeStat
-        from app.models.instance_size_stat import InstanceSizeStat
-        
-        # 获取基本统计信息
-        total_records = DatabaseSizeStat.query.count()
-        total_instances = InstanceSizeStat.query.filter_by(is_deleted=False).count()
-        
-        # 获取最近24小时的数据
-        yesterday = time_utils.now_china().date() - timedelta(days=1)
-        recent_records = DatabaseSizeStat.query.filter(
-            DatabaseSizeStat.collected_date >= yesterday
-        ).count()
-        
-        return jsonify({
-            'success': True,
-            'data': {
-                'total_records': total_records,
-                'total_instances': total_instances,
-                'recent_records_24h': recent_records,
-                'last_updated': time_utils.now().isoformat()
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"获取统计信息失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 @storage_sync_bp.route('/api/test_connection', methods=['POST'])
 @login_required
