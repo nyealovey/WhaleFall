@@ -646,18 +646,19 @@ def get_instance_aggregations_summary():
         
         # 获取大小统计 - 从筛选后的数据获取，按实例去重取最新数据
         # 先获取每个实例的最新数据
+        query_subquery = query.subquery()
         latest_data_subquery = db.session.query(
-            InstanceSizeAggregation.instance_id,
-            func.max(InstanceSizeAggregation.calculated_at).label('latest_calculated_at')
-        ).select_from(query.subquery()).group_by(InstanceSizeAggregation.instance_id).subquery()
+            query_subquery.c.instance_id,
+            func.max(query_subquery.c.calculated_at).label('latest_calculated_at')
+        ).group_by(query_subquery.c.instance_id).subquery()
         
         # 获取每个实例的最新容量数据
         latest_sizes = db.session.query(
-            InstanceSizeAggregation.total_size_mb
-        ).select_from(query.subquery()).join(
+            query_subquery.c.total_size_mb
+        ).join(
             latest_data_subquery,
-            (InstanceSizeAggregation.instance_id == latest_data_subquery.c.instance_id) &
-            (InstanceSizeAggregation.calculated_at == latest_data_subquery.c.latest_calculated_at)
+            (query_subquery.c.instance_id == latest_data_subquery.c.instance_id) &
+            (query_subquery.c.calculated_at == latest_data_subquery.c.latest_calculated_at)
         ).all()
         
         # 计算统计值
