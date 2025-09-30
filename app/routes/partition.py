@@ -643,24 +643,24 @@ def get_core_aggregation_metrics():
             instance_agg_label = '实例统计数量'
             database_agg_label = '数据库统计数量'
         
-        # 构建Chart.js数据集 - 使用渐变和透明度模拟颜色混合效果
+        # 构建Chart.js数据集 - 使用高透明度实现颜色混合效果
         datasets = [
-            # 实例数总量 - 蓝色实线，较粗
+            # 实例数总量 - 蓝色实线，较粗，高透明度
             {
                 'label': instance_label,
                 'data': instance_count_data,
-                'borderColor': '#36A2EB',  # 蓝色
+                'borderColor': 'rgba(54, 162, 235, 0.7)',  # 蓝色，70%透明度
                 'backgroundColor': 'rgba(54, 162, 235, 0.1)',
                 'borderWidth': 4,
                 'pointStyle': 'circle',
                 'tension': 0.1,
                 'fill': False
             },
-            # 实例日统计数量 - 红色虚线，较细，半透明叠加
+            # 实例日统计数量 - 红色虚线，较细，高透明度叠加
             {
                 'label': instance_agg_label,
                 'data': instance_aggregation_data,
-                'borderColor': 'rgba(255, 99, 132, 0.8)',  # 红色，80%透明度
+                'borderColor': 'rgba(255, 99, 132, 0.7)',  # 红色，70%透明度
                 'backgroundColor': 'rgba(255, 99, 132, 0.05)',
                 'borderWidth': 3,
                 'pointStyle': 'triangle',
@@ -668,22 +668,22 @@ def get_core_aggregation_metrics():
                 'borderDash': [8, 4],
                 'fill': False
             },
-            # 数据库数总量 - 绿色实线，较粗
+            # 数据库数总量 - 绿色实线，较粗，高透明度
             {
                 'label': database_label,
                 'data': database_count_data,
-                'borderColor': '#4BC0C0',  # 绿色
+                'borderColor': 'rgba(75, 192, 192, 0.7)',  # 绿色，70%透明度
                 'backgroundColor': 'rgba(75, 192, 192, 0.1)',
                 'borderWidth': 4,
                 'pointStyle': 'rect',
                 'tension': 0.1,
                 'fill': False
             },
-            # 数据库日统计数量 - 橙色虚线，较细，半透明叠加
+            # 数据库日统计数量 - 橙色虚线，较细，高透明度叠加
             {
                 'label': database_agg_label,
                 'data': database_aggregation_data,
-                'borderColor': 'rgba(255, 159, 64, 0.8)',  # 橙色，80%透明度
+                'borderColor': 'rgba(255, 159, 64, 0.7)',  # 橙色，70%透明度
                 'backgroundColor': 'rgba(255, 159, 64, 0.05)',
                 'borderWidth': 3,
                 'pointStyle': 'star',
