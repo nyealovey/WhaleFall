@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 aggregations_bp = Blueprint('aggregations', __name__)
 
 # 页面路由
-@aggregations_bp.route('/api/', methods=['GET'])
+@aggregations_bp.route('/api/data', methods=['GET'])
 @login_required
 @view_required
 def aggregations():

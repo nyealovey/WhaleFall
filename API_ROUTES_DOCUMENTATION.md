@@ -97,7 +97,7 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/aggregations/api/` | GET | 统计聚合数据（有查询参数时） |
+| `/aggregations/api/data` | GET | 统计聚合数据（有查询参数时） |
 | `/aggregations/api/summary` | GET | 获取统计聚合数据汇总 |
 | `/aggregations/api/instance` | GET | 实例统计聚合数据（有查询参数时） |
 | `/aggregations/api/database` | GET | 数据库统计聚合数据（有查询参数时） |
