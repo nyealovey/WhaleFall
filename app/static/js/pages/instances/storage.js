@@ -79,7 +79,7 @@ class StorageMonitor {
         try {
             this.showLoading('#totalDatabases, #totalSize, #averageSize, #growthRate');
             
-            const response = await fetch(`/storage-sync/instances/${this.instanceId}/database-sizes/summary`);
+            const response = await fetch(`/storage_sync/api/instances/${this.instanceId}/database-sizes/summary`);
             const data = await response.json();
             
             if (response.ok) {
@@ -137,7 +137,7 @@ class StorageMonitor {
                 params.append('database_name', this.currentDatabaseFilter);
             }
             
-            const response = await fetch(`/storage-sync/instances/${this.instanceId}/database-sizes?${params}`);
+            const response = await fetch(`/storage_sync/api/instances/${this.instanceId}/database-sizes?${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -323,7 +323,7 @@ class StorageMonitor {
                 limit: 1000
             });
             
-            const response = await fetch(`/storage-sync/instances/${this.instanceId}/database-sizes?${params}`);
+            const response = await fetch(`/storage_sync/api/instances/${this.instanceId}/database-sizes?${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -479,7 +479,7 @@ class StorageMonitor {
             $('#modalDatabaseName').text(databaseName);
             
             // 获取该数据库的详细信息
-            const response = await fetch(`/storage-sync/instances/${this.instanceId}/database-sizes?database_name=${encodeURIComponent(databaseName)}&limit=30`);
+            const response = await fetch(`/storage_sync/api/instances/${this.instanceId}/database-sizes?database_name=${encodeURIComponent(databaseName)}&limit=30`);
             const data = await response.json();
             
             if (response.ok && data.data.length > 0) {
