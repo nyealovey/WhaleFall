@@ -141,8 +141,8 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/credentials/create` | POST | 创建凭据 API（JSON请求） |
-| `/credentials/<int:id>/edit` | POST | 编辑凭据 API（JSON请求） |
+| `/credentials/api/create` | POST | 创建凭据 API |
+| `/credentials/api/<int:id>/edit` | POST | 编辑凭据 API |
 | `/credentials/api/credentials/<int:id>/toggle` | POST | 启用/禁用凭据 |
 | `/credentials/api/credentials/<int:id>/delete` | POST | 删除凭据 |
 | `/credentials/api/credentials` | GET | 获取凭据列表 API |
@@ -426,8 +426,8 @@
 ### 总体统计
 - **总模块数**: 20 个
 - **页面路由总数**: 约 39 个
-- **API 接口总数**: 147 个
-- **总路由数**: 186 个
+- **API 接口总数**: 149 个
+- **总路由数**: 188 个
 
 ### API 前缀使用情况
 根据内存中的已知问题，项目存在 API 前缀不统一的情况：
@@ -450,7 +450,15 @@
 
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
-- **版本**: v1.2.5
+- **版本**: v1.2.6
+
+### v1.2.6 更新内容 (2025-09-30)
+- ✅ 修复凭据管理模块缺失的API路径
+- ✅ 添加 /credentials/api/create POST API（创建凭据）
+- ✅ 添加 /credentials/api/<int:id>/edit POST API（编辑凭据）
+- ✅ 更新API接口总数统计（从147个增加到149个）
+- ✅ 更新总路由数统计（从186个增加到188个）
+- ✅ 完善API路径标准化
 
 ### v1.2.5 更新内容 (2025-09-30)
 - ✅ 进行全面代码扫描，发现API接口统计不准确
