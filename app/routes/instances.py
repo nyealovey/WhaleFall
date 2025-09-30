@@ -640,7 +640,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
     )
 
 
-@instances_bp.route("/<int:instance_id>/delete", methods=["POST"])
+@instances_bp.route("/api/instances/<int:instance_id>/delete", methods=["POST"])
 @login_required
 @delete_required
 def delete(instance_id: int) -> str | Response | tuple[Response, int]:
@@ -720,7 +720,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
         return redirect(url_for("instances.index"))
 
 
-@instances_bp.route("/batch-delete", methods=["POST"])
+@instances_bp.route("/api/batch-delete", methods=["POST"])
 @login_required
 @delete_required
 def batch_delete() -> str | Response | tuple[Response, int]:
@@ -830,7 +830,7 @@ def batch_delete() -> str | Response | tuple[Response, int]:
         return jsonify({"success": False, "error": f"批量删除实例失败: {str(e)}"}), 500
 
 
-@instances_bp.route("/batch-create", methods=["POST"])
+@instances_bp.route("/api/batch-create", methods=["POST"])
 @login_required
 @create_required
 def batch_create() -> str | Response | tuple[Response, int]:
@@ -976,7 +976,7 @@ def _process_instances_data(
     )
 
 
-@instances_bp.route("/export")
+@instances_bp.route("/api/export")
 @login_required
 @view_required
 def export_instances() -> Response:
@@ -1071,7 +1071,7 @@ def export_instances() -> Response:
     )
 
 
-@instances_bp.route("/template/download")
+@instances_bp.route("/api/template/download")
 @login_required
 @view_required
 def download_template() -> Response:
@@ -1142,7 +1142,7 @@ def download_template() -> Response:
     )
 
 
-@instances_bp.route("/<int:instance_id>/test", methods=["POST"])
+@instances_bp.route("/api/instances/<int:instance_id>/test", methods=["POST"])
 @login_required
 @view_required
 def test_connection(instance_id: int) -> str | Response | tuple[Response, int]:
@@ -1234,7 +1234,7 @@ def api_detail(instance_id: int) -> Response:
     return jsonify(instance.to_dict())
 
 
-@instances_bp.route("/instances/<int:instance_id>/accounts")
+@instances_bp.route("/api/instances/<int:instance_id>/accounts")
 @login_required
 @view_required
 def api_get_accounts(instance_id: int) -> Response:
@@ -1507,7 +1507,7 @@ def get_default_version(db_type: str) -> str:
     return default_versions.get(db_type, "未知版本")
 
 
-@instances_bp.route("/<int:instance_id>/accounts/<int:account_id>/permissions")
+@instances_bp.route("/api/instances/<int:instance_id>/accounts/<int:account_id>/permissions")
 @login_required
 @view_required
 def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
