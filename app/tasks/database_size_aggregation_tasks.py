@@ -24,34 +24,38 @@ def calculate_database_size_aggregations(manual_run=False):
     Args:
         manual_run: 是否手动执行，手动执行时不创建会话
     """
+    from app import create_app
     from app.services.sync_session_service import sync_session_service
     from app.utils.timezone import now
     from app.utils.structlog_config import get_sync_logger
     
-    sync_logger = get_sync_logger()
-    
-    try:
-        sync_logger.info("开始执行数据库大小统计聚合任务", module="aggregation_sync")
+    # 创建Flask应用上下文，确保数据库操作正常
+    app = create_app()
+    with app.app_context():
+        sync_logger = get_sync_logger()
         
-        # 检查聚合功能是否启用
-        if not getattr(Config, 'AGGREGATION_ENABLED', True):
-            sync_logger.info("数据库大小统计聚合功能已禁用", module="aggregation_sync")
-            return {
-                'success': True,
-                'message': '统计聚合功能已禁用',
-                'aggregations_created': 0
-            }
+        try:
+            sync_logger.info("开始执行数据库大小统计聚合任务", module="aggregation_sync")
         
-        # 获取所有活跃的实例
-        active_instances = Instance.query.filter_by(is_active=True).all()
-        
-        if not active_instances:
-            sync_logger.warning("没有找到活跃的数据库实例", module="aggregation_sync")
-            return {
-                'success': True,
-                'message': '没有活跃的数据库实例需要聚合',
-                'aggregations_created': 0
-            }
+            # 检查聚合功能是否启用
+            if not getattr(Config, 'AGGREGATION_ENABLED', True):
+                sync_logger.info("数据库大小统计聚合功能已禁用", module="aggregation_sync")
+                return {
+                    'success': True,
+                    'message': '统计聚合功能已禁用',
+                    'aggregations_created': 0
+                }
+            
+            # 获取所有活跃的实例
+            active_instances = Instance.query.filter_by(is_active=True).all()
+            
+            if not active_instances:
+                sync_logger.warning("没有找到活跃的数据库实例", module="aggregation_sync")
+                return {
+                    'success': True,
+                    'message': '没有活跃的数据库实例需要聚合',
+                    'aggregations_created': 0
+                }
         
         sync_logger.info(
             "找到活跃实例，开始统计聚合",
