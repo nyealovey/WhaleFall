@@ -132,6 +132,93 @@ def index() -> str:
     )
 
 
+@credentials_bp.route("/api/create", methods=["POST"])
+@login_required
+@create_required
+def create_api() -> "Response":
+    """创建凭据API"""
+    data = request.get_json() if request.is_json else request.form
+
+    # 清理输入数据
+    data = sanitize_form_data(data)
+
+    # 输入验证
+    required_fields = ["name", "credential_type", "username", "password"]
+    validation_error = validate_required_fields(data, required_fields)
+    if validation_error:
+        return jsonify({"error": validation_error}), 400
+
+    # 验证用户名格式
+    username_error = validate_username(data.get("username"))
+    if username_error:
+        return jsonify({"error": username_error}), 400
+
+    # 验证密码强度
+    password_error = validate_password(data.get("password"))
+    if password_error:
+        return jsonify({"error": password_error}), 400
+
+    # 验证数据库类型
+    if data.get("db_type"):
+        db_type_error = validate_db_type(data.get("db_type"))
+        if db_type_error:
+            return jsonify({"error": db_type_error}), 400
+
+    # 验证凭据类型
+    credential_type_error = validate_credential_type(data.get("credential_type"))
+    if credential_type_error:
+        return jsonify({"error": credential_type_error}), 400
+
+    # 验证凭据名称唯一性
+    existing_credential = Credential.query.filter_by(name=data.get("name")).first()
+    if existing_credential:
+        return jsonify({"error": "凭据名称已存在"}), 400
+
+    try:
+        # 创建新凭据
+        credential = Credential(
+            name=data.get("name").strip(),
+            credential_type=data.get("credential_type"),
+            username=data.get("username").strip(),
+            password=data.get("password"),
+            db_type=data.get("db_type"),
+            description=data.get("description", "").strip(),
+        )
+
+        db.session.add(credential)
+        db.session.commit()
+
+        # 记录操作日志
+        log_info(
+            "创建数据库凭据",
+            module="credentials",
+            user_id=current_user.id,
+            credential_id=credential.id,
+            credential_name=credential.name,
+            credential_type=credential.credential_type,
+            db_type=credential.db_type,
+        )
+
+        return (
+            jsonify({"message": "凭据创建成功", "credential": credential.to_dict()}),
+            201,
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        log_error(f"创建凭据失败: {e}", module="credentials", exc_info=True)
+
+        # 根据错误类型提供更具体的错误信息
+        if "UNIQUE constraint failed" in str(e):
+            error_msg = "凭据名称已存在，请使用其他名称"
+        elif "NOT NULL constraint failed" in str(e):
+            error_msg = "必填字段不能为空"
+        else:
+            error_msg = f"创建凭据失败: {str(e)}"
+
+        return jsonify({"error": error_msg}), 500
+
+
 @credentials_bp.route("/create", methods=["GET", "POST"])
 @login_required
 @create_required
@@ -250,6 +337,104 @@ def create() -> "str | Response":
         return jsonify({})
 
     return render_template("credentials/create.html")
+
+
+@credentials_bp.route("/api/<int:credential_id>/edit", methods=["POST"])
+@login_required
+@update_required
+def edit_api(credential_id: int) -> "Response":
+    """编辑凭据API"""
+    credential = Credential.query.get_or_404(credential_id)
+    data = request.get_json() if request.is_json else request.form
+
+    # 清理输入数据
+    data = sanitize_form_data(data)
+
+    # 输入验证
+    required_fields = ["name", "credential_type", "username"]
+    validation_error = validate_required_fields(data, required_fields)
+    if validation_error:
+        return jsonify({"error": validation_error}), 400
+
+    # 验证用户名格式
+    username_error = validate_username(data.get("username"))
+    if username_error:
+        return jsonify({"error": username_error}), 400
+
+    # 验证密码强度（如果提供了新密码）
+    if data.get("password"):
+        password_error = validate_password(data.get("password"))
+        if password_error:
+            return jsonify({"error": password_error}), 400
+
+    # 验证数据库类型
+    if data.get("db_type"):
+        db_type_error = validate_db_type(data.get("db_type"))
+        if db_type_error:
+            return jsonify({"error": db_type_error}), 400
+
+    # 验证凭据类型
+    credential_type_error = validate_credential_type(data.get("credential_type"))
+    if credential_type_error:
+        return jsonify({"error": credential_type_error}), 400
+
+    # 验证凭据名称唯一性（排除当前凭据）
+    existing_credential = Credential.query.filter(
+        Credential.name == data.get("name"), Credential.id != credential_id
+    ).first()
+    if existing_credential:
+        return jsonify({"error": "凭据名称已存在"}), 400
+
+    try:
+        # 更新凭据信息
+        credential.name = data.get("name", credential.name).strip()
+        credential.credential_type = data.get("credential_type", credential.credential_type)
+        credential.db_type = data.get("db_type", credential.db_type)
+        credential.username = data.get("username", credential.username).strip()
+        credential.description = data.get("description", credential.description)
+        if data.get("description"):
+            credential.description = data.get("description").strip()
+
+        # 正确处理布尔值
+        is_active_value = data.get("is_active", credential.is_active)
+        if isinstance(is_active_value, str):
+            credential.is_active = is_active_value in ["on", "true", "1", "yes"]
+        else:
+            credential.is_active = bool(is_active_value)
+
+        # 如果提供了新密码，则更新密码
+        if data.get("password"):
+            credential.set_password(data.get("password"))
+
+        db.session.commit()
+
+        # 记录操作成功日志
+        log_info(
+            "更新数据库凭据",
+            module="credentials",
+            user_id=current_user.id,
+            credential_id=credential.id,
+            credential_name=credential.name,
+            credential_type=credential.credential_type,
+            db_type=credential.db_type,
+            is_active=credential.is_active,
+        )
+
+        return jsonify({"message": "凭据更新成功", "credential": credential.to_dict()})
+
+    except Exception as e:
+        db.session.rollback()
+        log_error(f"更新凭据失败: {e}", module="credentials", exc_info=True)
+
+        # 根据错误类型提供更具体的错误信息
+        if "UNIQUE constraint failed" in str(e):
+            error_msg = "凭据名称已存在，请使用其他名称"
+        elif "NOT NULL constraint failed" in str(e):
+            error_msg = "必填字段不能为空"
+        else:
+            error_msg = f"更新凭据失败: {str(e)}"
+
+        return jsonify({"error": error_msg}), 500
 
 
 @credentials_bp.route("/<int:credential_id>/edit", methods=["GET", "POST"])
