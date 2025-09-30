@@ -67,7 +67,6 @@
 | `/account_classification/rules/<int:id>` | GET, PUT, DELETE | 单个规则操作 |
 | `/account_classification/rules/<int:id>/matched-accounts` | GET | 获取规则匹配的账户 |
 | `/account_classification/auto-classify` | POST | 自动分类账户 |
-| `/account_classification/auto-classify-optimized` | POST | 优化版自动分类 |
 | `/account_classification/assignments` | GET | 获取账户分类分配 |
 | `/account_classification/assignments/<int:id>` | DELETE | 移除账户分类分配 |
 | `/account_classification/permissions/<db_type>` | GET | 获取数据库权限列表 |
