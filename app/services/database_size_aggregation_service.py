@@ -92,8 +92,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每日统计聚合...")
         
-        # 获取今天的数据（与容量同步任务保持一致）
-        end_date = date.today()
+        # 获取今天的数据（与容量同步任务保持一致，使用中国时区）
+        end_date = time_utils.now_china().date()
         start_date = end_date  # 同一天，处理今天的数据
         
         return self._calculate_aggregations('daily', start_date, end_date)
@@ -107,8 +107,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算今日统计聚合...")
         
-        # 获取今天的数据进行聚合
-        end_date = date.today()
+        # 获取今天的数据进行聚合（使用中国时区）
+        end_date = time_utils.now_china().date()
         start_date = end_date  # 同一天，处理今天的数据
         
         return self._calculate_aggregations('daily', start_date, end_date)
@@ -122,8 +122,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每周统计聚合...")
         
-        # 获取上周的数据
-        end_date = date.today()
+        # 获取上周的数据（使用中国时区）
+        end_date = time_utils.now_china().date()
         start_date = end_date - timedelta(days=7)
         
         return self._calculate_aggregations('weekly', start_date, end_date)
@@ -137,8 +137,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每月统计聚合...")
         
-        # 获取上个月的数据
-        today = date.today()
+        # 获取上个月的数据（使用中国时区）
+        today = time_utils.now_china().date()
         if today.month == 1:
             start_date = date(today.year - 1, 12, 1)
             end_date = date(today.year - 1, 12, 31)
@@ -157,8 +157,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每季度统计聚合...")
         
-        # 获取上个季度的数据
-        today = date.today()
+        # 获取上个季度的数据（使用中国时区）
+        today = time_utils.now_china().date()
         quarter = (today.month - 1) // 3 + 1
         
         if quarter == 1:
@@ -182,8 +182,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每日实例统计聚合...")
         
-        # 获取今天的数据（与容量同步任务保持一致）
-        end_date = date.today()
+        # 获取今天的数据（与容量同步任务保持一致，使用中国时区）
+        end_date = time_utils.now_china().date()
         start_date = end_date  # 同一天，处理今天的数据
         
         return self._calculate_instance_aggregations('daily', start_date, end_date)
@@ -197,8 +197,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算今日实例统计聚合...")
         
-        # 获取今天的数据进行聚合
-        end_date = date.today()
+        # 获取今天的数据进行聚合（使用中国时区）
+        end_date = time_utils.now_china().date()
         start_date = end_date  # 同一天，处理今天的数据
         
         return self._calculate_instance_aggregations('daily', start_date, end_date)
@@ -212,8 +212,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每周实例统计聚合...")
         
-        # 获取上周的数据
-        end_date = date.today()
+        # 获取上周的数据（使用中国时区）
+        end_date = time_utils.now_china().date()
         start_date = end_date - timedelta(days=7)
         
         return self._calculate_instance_aggregations('weekly', start_date, end_date)
@@ -227,8 +227,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每月实例统计聚合...")
         
-        # 获取上个月的数据
-        today = date.today()
+        # 获取上个月的数据（使用中国时区）
+        today = time_utils.now_china().date()
         if today.month == 1:
             start_date = date(today.year - 1, 12, 1)
             end_date = date(today.year - 1, 12, 31)
@@ -247,8 +247,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每季度实例统计聚合...")
         
-        # 获取上个季度的数据
-        today = date.today()
+        # 获取上个季度的数据（使用中国时区）
+        today = time_utils.now_china().date()
         quarter = (today.month - 1) // 3 + 1
         
         if quarter == 1:
@@ -856,8 +856,8 @@ class DatabaseSizeAggregationService:
             Dict[str, Any]: 趋势分析数据
         """
         try:
-            # 计算开始日期
-            end_date = date.today()
+            # 计算开始日期（使用中国时区）
+            end_date = time_utils.now_china().date()
             start_date = end_date - timedelta(days=months * 30)
             
             # 获取聚合数据
@@ -1035,7 +1035,7 @@ class DatabaseSizeAggregationService:
             if not instance:
                 return {'status': 'error', 'error': f'实例 {instance_id} 不存在'}
             
-            today = date.today()
+            today = time_utils.now_china().date()
             yesterday = today - timedelta(days=1)
             
             stats = InstanceSizeStat.query.filter(
@@ -1078,7 +1078,7 @@ class DatabaseSizeAggregationService:
             if not instance:
                 return {'status': 'error', 'error': f'实例 {instance_id} 不存在'}
             
-            today = date.today()
+            today = time_utils.now_china().date()
             days_since_monday = today.weekday()
             last_monday = today - timedelta(days=days_since_monday + 7)
             last_sunday = last_monday + timedelta(days=6)
@@ -1126,7 +1126,7 @@ class DatabaseSizeAggregationService:
             if not instance:
                 return {'status': 'error', 'error': f'实例 {instance_id} 不存在'}
             
-            today = date.today()
+            today = time_utils.now_china().date()
             if today.month == 1:
                 last_month = 12
                 last_year = today.year - 1
@@ -1183,7 +1183,7 @@ class DatabaseSizeAggregationService:
             if not instance:
                 return {'status': 'error', 'error': f'实例 {instance_id} 不存在'}
             
-            today = date.today()
+            today = time_utils.now_china().date()
             current_quarter = (today.month - 1) // 3 + 1
             
             if current_quarter == 1:
