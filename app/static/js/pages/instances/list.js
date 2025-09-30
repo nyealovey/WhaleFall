@@ -251,7 +251,7 @@ function setupEventListeners() {
     }
 }
 
-// 测试连接
+// 测试连接 - 使用新的连接管理API
 function testConnection(instanceId) {
     const btn = event.target.closest('button');
     const originalHtml = btn.innerHTML;
@@ -259,36 +259,57 @@ function testConnection(instanceId) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     btn.disabled = true;
 
-    // 获取CSRF token
-    const csrfToken = getCSRFToken();
-
-    const headers = {
-        'Content-Type': 'application/json',
-    };
-
-    if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken;
-    }
-
-    fetch(`/instances/api/${instanceId}/test`, {
-        method: 'GET',
-        headers: headers
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.message) {
-            showAlert('success', data.message);
-        } else if (data.error) {
-            showAlert('danger', data.error);
+    // 使用新的连接管理API
+    connectionManager.testInstanceConnection(instanceId, {
+        onSuccess: (data) => {
+            showAlert('success', data.message || '连接测试成功');
+        },
+        onError: (error) => {
+            showAlert('danger', error.error || '连接测试失败');
         }
-    })
-    .catch(error => {
-        showAlert('danger', '测试连接失败');
-    })
-    .finally(() => {
+    }).finally(() => {
         btn.innerHTML = originalHtml;
         btn.disabled = false;
     });
+}
+
+// 批量测试连接
+function batchTestConnections() {
+    const selectedInstances = getSelectedInstances();
+    
+    if (selectedInstances.length === 0) {
+        showAlert('warning', '请先选择要测试的实例');
+        return;
+    }
+    
+    if (selectedInstances.length > 50) {
+        showAlert('warning', '批量测试最多支持50个实例');
+        return;
+    }
+    
+    // 显示批量测试进度容器
+    const progressContainer = document.getElementById('batch-test-progress');
+    if (progressContainer) {
+        progressContainer.style.display = 'block';
+    }
+    
+    // 使用连接管理API进行批量测试
+    connectionManager.batchTestConnections(selectedInstances, {
+        onProgress: (result) => {
+            if (progressContainer) {
+                connectionManager.showBatchTestProgress(result, 'batch-test-progress');
+            }
+        },
+        onError: (error) => {
+            showAlert('danger', error.error || '批量测试失败');
+        }
+    });
+}
+
+// 获取选中的实例ID列表
+function getSelectedInstances() {
+    const checkboxes = document.querySelectorAll('input[name="instance_ids"]:checked');
+    return Array.from(checkboxes).map(checkbox => parseInt(checkbox.value));
 }
 
 // 同步容量

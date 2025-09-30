@@ -94,7 +94,7 @@ function handleFormSubmit(e) {
     }, 5000);
 }
 
-// 测试连接功能
+// 测试连接功能 - 使用新的连接管理API
 function testConnection() {
     const testBtn = event.target;
     const originalText = testBtn.innerHTML;
@@ -102,79 +102,28 @@ function testConnection() {
     testBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>测试中...';
     testBtn.disabled = true;
     
-    // 获取CSRF token
-    const csrfToken = getCSRFToken();
     const instanceId = getInstanceId();
     
     console.log('测试连接 - 实例ID:', instanceId);
-    console.log('测试连接 - CSRF Token:', csrfToken);
-    console.log('测试连接 - API URL:', `/instances/api/${instanceId}/test`);
+    console.log('使用新的连接管理API');
     
-    fetch(`/instances/api/${instanceId}/test`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
+    // 使用新的连接管理API
+    connectionManager.testInstanceConnection(instanceId, {
+        onSuccess: (data) => {
+            const resultDiv = document.getElementById('testResult');
+            
+            // 使用连接管理组件的显示方法
+            connectionManager.showTestResult(data, 'testResultContent');
+            resultDiv.style.display = 'block';
+        },
+        onError: (error) => {
+            const resultDiv = document.getElementById('testResult');
+            
+            // 使用连接管理组件的显示方法
+            connectionManager.showTestResult(error, 'testResultContent');
+            resultDiv.style.display = 'block';
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        const resultDiv = document.getElementById('testResult');
-        const contentDiv = document.getElementById('testResultContent');
-        
-        if (data.success) {
-            contentDiv.innerHTML = `
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle me-2"></i>
-                    <strong>连接成功！</strong><br>
-                    ${data.message || '数据库连接正常'}
-                </div>
-            `;
-        } else {
-            // 构建详细的错误信息
-            let errorHtml = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>连接失败！</strong><br>
-                    <strong>错误类型：</strong>${data.error || '未知错误'}<br>
-            `;
-            
-            // 添加详细信息
-            if (data.details) {
-                errorHtml += `<strong>详细信息：</strong>${data.details}<br>`;
-            }
-            
-            // 添加解决方案
-            if (data.solution) {
-                errorHtml += `<strong>解决方案：</strong>${data.solution}<br>`;
-            }
-            
-            // 添加错误类型
-            if (data.error_type) {
-                errorHtml += `<small class="text-muted">错误类型: ${data.error_type}</small>`;
-            }
-            
-            errorHtml += `</div>`;
-            
-            contentDiv.innerHTML = errorHtml;
-        }
-        
-        resultDiv.style.display = 'block';
-    })
-    .catch(error => {
-        const resultDiv = document.getElementById('testResult');
-        const contentDiv = document.getElementById('testResultContent');
-        
-        contentDiv.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>测试失败！</strong><br>
-                网络错误或服务器无响应
-            </div>
-        `;
-        resultDiv.style.display = 'block';
-    })
-    .finally(() => {
+    }).finally(() => {
         testBtn.innerHTML = originalText;
         testBtn.disabled = false;
     });
