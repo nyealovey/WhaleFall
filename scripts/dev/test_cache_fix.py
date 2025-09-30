@@ -8,6 +8,7 @@ import sys
 import os
 import json
 from datetime import datetime
+from app.utils.time_utils import time_utils
 
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -31,8 +32,8 @@ def test_cache_format_compatibility():
             "rule_expression": '{"type": "permission", "permissions": ["SELECT"]}',
             "is_active": True,
             "classification_id": 1,
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
+            "created_at": time_utils.now().isoformat(),
+            "updated_at": time_utils.now().isoformat(),
         },
         {
             "id": 2,
@@ -41,8 +42,8 @@ def test_cache_format_compatibility():
             "rule_expression": '{"type": "permission", "permissions": ["SELECT"]}',
             "is_active": True,
             "classification_id": 2,
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
+            "created_at": time_utils.now().isoformat(),
+            "updated_at": time_utils.now().isoformat(),
         }
     ]
     
@@ -50,7 +51,7 @@ def test_cache_format_compatibility():
     print("  📝 测试新格式缓存...")
     new_format_data = {
         "rules": test_rules_data,
-        "cached_at": datetime.now().isoformat(),
+        "cached_at": time_utils.now().isoformat(),
         "count": len(test_rules_data)
     }
     
@@ -97,8 +98,8 @@ def test_db_type_grouping():
         rule.rule_expression = '{"type": "permission", "permissions": ["SELECT"]}'
         rule.is_active = True
         rule.classification_id = i + 1
-        rule.created_at = datetime.now()
-        rule.updated_at = datetime.now()
+        rule.created_at = time_utils.now()
+        rule.updated_at = time_utils.now()
         test_rules.append(rule)
     
     # 测试规则分组

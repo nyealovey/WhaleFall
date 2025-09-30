@@ -12,6 +12,7 @@ import re
 import sys
 from collections import defaultdict
 from datetime import datetime
+from app.utils.time_utils import time_utils
 from pathlib import Path
 from typing import Any, Dict, List, Set, Tuple
 
@@ -181,7 +182,7 @@ class ConstantsAnalyzer:
 
 ## 📋 文档信息
 
-- **生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+- **生成时间**: {time_utils.now().strftime('%Y-%m-%d %H:%M:%S')}
 - **项目路径**: {self.project_root}
 - **常量总数**: {len(self.constants_usage)}
 - **使用文件数**: {len(set(file for files in self.constants_usage.values() for file in files))}

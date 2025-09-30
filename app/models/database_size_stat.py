@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app import db
-import datetime
+from app.utils.time_utils import now
 
 
 class DatabaseSizeStat(db.Model):
@@ -41,7 +41,7 @@ class DatabaseSizeStat(db.Model):
     )
     collected_date = Column(Date, nullable=False, comment="采集日期（用于分区）")
     collected_at = Column(
-        DateTime, nullable=False, default=datetime.datetime.utcnow, comment="采集时间戳"
+        DateTime, nullable=False, default=now, comment="采集时间戳"
     )
     is_deleted = Column(
         Boolean, nullable=False, default=False, comment="是否已删除（软删除）"
@@ -50,7 +50,7 @@ class DatabaseSizeStat(db.Model):
         DateTime, nullable=True, comment="删除时间"
     )
     created_at = Column(
-        DateTime, nullable=False, default=datetime.datetime.utcnow, comment="记录创建时间"
+        DateTime, nullable=False, default=now, comment="记录创建时间"
     )
 
     instance = relationship("Instance", back_populates="database_size_stats")
