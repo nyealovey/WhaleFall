@@ -41,29 +41,107 @@ class AggregationsChartManager {
         const legendContainer = document.getElementById('chartLegend');
         if (!legendContainer) return;
         
-        const legendHtml = `
-            <div class="chart-legend">
-                <h6>核心指标说明：</h6>
-                <div class="legend-items">
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #FF6384;"></span>
-                        <span class="legend-text">📊 实例数总量 - 每天采集的实例数量</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #36A2EB;"></span>
-                        <span class="legend-text">🗄️ 数据库数总量 - 每天采集的数据库数量</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #FFCE56; border-style: dashed;"></span>
-                        <span class="legend-text">📈 实例日统计数量 - 聚合统计下的实例日统计数量</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #4BC0C0; border-style: dashed;"></span>
-                        <span class="legend-text">📈 数据库日统计数量 - 聚合统计下的数据库日统计数量</span>
+        // 根据当前统计周期生成图例说明
+        const periodType = this.currentPeriodType;
+        let legendHtml = '';
+        
+        if (periodType === 'daily') {
+            legendHtml = `
+                <div class="chart-legend">
+                    <h6>核心指标说明：</h6>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #FF6384;"></span>
+                            <span class="legend-text">📊 实例数总量 - 每天采集的实例数量</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #36A2EB;"></span>
+                            <span class="legend-text">🗄️ 数据库数总量 - 每天采集的数据库数量</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #FFCE56; border-style: dashed;"></span>
+                            <span class="legend-text">📈 实例日统计数量 - 聚合统计下的实例日统计数量</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #4BC0C0; border-style: dashed;"></span>
+                            <span class="legend-text">📈 数据库日统计数量 - 聚合统计下的数据库日统计数量</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+        } else if (periodType === 'weekly') {
+            legendHtml = `
+                <div class="chart-legend">
+                    <h6>核心指标说明：</h6>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #FF6384;"></span>
+                            <span class="legend-text">📊 实例数平均值（周） - 每周采集的实例数量平均值</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #36A2EB;"></span>
+                            <span class="legend-text">🗄️ 数据库数平均值（周） - 每周采集的数据库数量平均值</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #FFCE56; border-style: dashed;"></span>
+                            <span class="legend-text">📈 实例周统计数量 - 聚合统计下的实例周统计数量</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #4BC0C0; border-style: dashed;"></span>
+                            <span class="legend-text">📈 数据库周统计数量 - 聚合统计下的数据库周统计数量</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (periodType === 'monthly') {
+            legendHtml = `
+                <div class="chart-legend">
+                    <h6>核心指标说明：</h6>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #FF6384;"></span>
+                            <span class="legend-text">📊 实例数平均值（月） - 每月采集的实例数量平均值</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #36A2EB;"></span>
+                            <span class="legend-text">🗄️ 数据库数平均值（月） - 每月采集的数据库数量平均值</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #FFCE56; border-style: dashed;"></span>
+                            <span class="legend-text">📈 实例月统计数量 - 聚合统计下的实例月统计数量</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #4BC0C0; border-style: dashed;"></span>
+                            <span class="legend-text">📈 数据库月统计数量 - 聚合统计下的数据库月统计数量</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (periodType === 'quarterly') {
+            legendHtml = `
+                <div class="chart-legend">
+                    <h6>核心指标说明：</h6>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #FF6384;"></span>
+                            <span class="legend-text">📊 实例数平均值（季） - 每季采集的实例数量平均值</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #36A2EB;"></span>
+                            <span class="legend-text">🗄️ 数据库数平均值（季） - 每季采集的数据库数量平均值</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #FFCE56; border-style: dashed;"></span>
+                            <span class="legend-text">📈 实例季统计数量 - 聚合统计下的实例季统计数量</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #4BC0C0; border-style: dashed;"></span>
+                            <span class="legend-text">📈 数据库季统计数量 - 聚合统计下的数据库季统计数量</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
         
         legendContainer.innerHTML = legendHtml;
     }
@@ -73,6 +151,7 @@ class AggregationsChartManager {
         $('input[name="periodType"]').on('change', (e) => {
             this.currentPeriodType = e.target.value;
             this.updateChartInfo();
+            this.createLegend(); // 重新创建图例
             this.loadChartData();
         });
         
