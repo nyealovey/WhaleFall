@@ -445,7 +445,7 @@ function batchDelete() {
 
     const csrfToken = getCSRFToken();
 
-    fetch('/instances/batch-delete', {
+    fetch('/instances/api/batch-delete', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -567,7 +567,7 @@ function submitFileUpload() {
 
     const csrfToken = getCSRFToken();
 
-    fetch('/instances/batch-create', {
+    fetch('/instances/api/batch-create', {
         method: 'POST',
         headers: {
             'X-CSRFToken': csrfToken
@@ -627,7 +627,7 @@ function submitJsonInput() {
 
         const csrfToken = getCSRFToken();
 
-        fetch('/instances/batch-create', {
+        fetch('/instances/api/batch-create', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

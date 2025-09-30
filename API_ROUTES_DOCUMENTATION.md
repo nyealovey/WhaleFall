@@ -216,14 +216,14 @@
 | `/instances/api/instances/<int:id>/delete` | POST | 删除实例 |
 | `/instances/api/instances/<int:id>/test` | GET | 测试连接API |
 | `/instances/api/test-connection` | POST | 测试数据库连接API（无需CSRF） |
-| `/instances/instances/<int:id>/accounts` | GET | 获取实例账户数据API |
+| `/instances/api/instances/<int:id>/accounts` | GET | 获取实例账户数据API |
 | `/instances/api/instances/<int:id>/accounts/<int:account_id>/change-history` | GET | 获取账户变更历史 |
-| `/instances/<int:id>/accounts/<int:account_id>/permissions` | GET | 获取账户权限详情 |
-| `/instances/<int:id>/test` | POST | 测试数据库连接 |
-| `/instances/batch-delete` | POST | 批量删除实例 |
-| `/instances/batch-create` | POST | 批量创建实例 |
-| `/instances/export` | GET | 导出实例数据为CSV |
-| `/instances/template/download` | GET | 下载CSV模板 |
+| `/instances/api/instances/<int:id>/accounts/<int:account_id>/permissions` | GET | 获取账户权限详情 |
+| `/instances/api/instances/<int:id>/test` | POST | 测试数据库连接 |
+| `/instances/api/batch-delete` | POST | 批量删除实例 |
+| `/instances/api/batch-create` | POST | 批量创建实例 |
+| `/instances/api/export` | GET | 导出实例数据为CSV |
+| `/instances/api/template/download` | GET | 下载CSV模板 |
 
 ---
 

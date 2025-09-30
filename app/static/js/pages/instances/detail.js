@@ -351,7 +351,7 @@ function syncCapacity(instanceId, instanceName) {
 function viewInstanceAccountPermissions(accountId) {
     // 调用全局的 viewAccountPermissions 函数，指定instances页面的API URL
     window.viewAccountPermissions(accountId, {
-        apiUrl: `/instances/${getInstanceId()}/accounts/${accountId}/permissions`
+        apiUrl: `/instances/api/instances/${getInstanceId()}/accounts/${accountId}/permissions`
     });
 }
 
