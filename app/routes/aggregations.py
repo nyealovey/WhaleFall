@@ -322,134 +322,146 @@ def get_aggregations_summary():
 @view_required
 def instance_aggregations():
     """
-    实例统计聚合页面或API
-    
-    如果是页面请求（无查询参数），返回HTML页面
-    如果是API请求（有查询参数），返回JSON数据
+    实例统计聚合页面
+    返回HTML页面
     """
-    # 检查是否有查询参数，如果有则返回API数据
-    if request.args:
-        try:
-            # 获取查询参数
-            instance_id = request.args.get('instance_id', type=int)
-            db_type = request.args.get('db_type')
-            period_type = request.args.get('period_type')
-            start_date = request.args.get('start_date')
-            end_date = request.args.get('end_date')
-            time_range = request.args.get('time_range')
-            
-            # 处理time_range参数，转换为start_date和end_date
-            if time_range and not start_date and not end_date:
-                from datetime import timedelta
-                end_date_obj = datetime.now()
-                start_date_obj = end_date_obj - timedelta(days=int(time_range))
-                start_date = start_date_obj.strftime('%Y-%m-%d')
-                end_date = end_date_obj.strftime('%Y-%m-%d')
-            
-            # 分页参数
-            page = request.args.get('page', 1, type=int)
-            per_page = request.args.get('per_page', 20, type=int)
-            # 是否返回所有数据（用于图表显示）
-            get_all = request.args.get('get_all', 'false').lower() == 'true'
-            
-            # 计算offset
-            offset = (page - 1) * per_page
-            limit = per_page
-            
-            # 构建查询 - 查询实例统计聚合表
-            from app.models.instance_size_aggregation import InstanceSizeAggregation
-            query = InstanceSizeAggregation.query.join(Instance)
-            
-            # 应用过滤条件
-            if instance_id:
-                query = query.filter(InstanceSizeAggregation.instance_id == instance_id)
-            if db_type:
-                query = query.filter(Instance.db_type == db_type)
-            if period_type:
-                query = query.filter(InstanceSizeAggregation.period_type == period_type)
-            if start_date:
-                query = query.filter(InstanceSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
-            if end_date:
-                query = query.filter(InstanceSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
-            
-            # 排序和分页
-            if get_all:
-                # 用于图表显示：按总大小排序获取TOP N实例
-                # 先按实例分组，获取每个实例的最大容量
-                from sqlalchemy import func
-                subquery = query.with_entities(
-                    InstanceSizeAggregation.instance_id,
-                    func.max(InstanceSizeAggregation.total_size_mb).label('max_total_size_mb')
-                ).group_by(InstanceSizeAggregation.instance_id).subquery()
-                
-                # 获取TOP 100实例的ID
-                top_instances = db.session.query(subquery.c.instance_id).order_by(
-                    desc(subquery.c.max_total_size_mb)
-                ).limit(100).all()
-                top_instance_ids = [row[0] for row in top_instances]
-                
-                # 获取这些实例的所有聚合数据
-                aggregations = query.filter(
-                    InstanceSizeAggregation.instance_id.in_(top_instance_ids)
-                ).order_by(desc(InstanceSizeAggregation.total_size_mb)).all()
-                total = len(aggregations)
-            else:
-                # 用于表格显示：按时间排序分页
-                query = query.order_by(desc(InstanceSizeAggregation.period_start))
-                total = query.count()
-                aggregations = query.offset(offset).limit(limit).all()
-            
-            # 转换为字典格式，包含实例信息
-            data = []
-            for agg in aggregations:
-                agg_dict = agg.to_dict()
-                # 添加实例信息
-                agg_dict['instance'] = {
-                    'id': agg.instance.id,
-                    'name': agg.instance.name,
-                    'db_type': agg.instance.db_type
-                }
-                # 为了兼容前端，添加 avg_size_mb 字段
-                agg_dict['avg_size_mb'] = agg_dict.get('total_size_mb', 0)
-                data.append(agg_dict)
-            
-            return jsonify({
-                'success': True,
-                'data': data,
-                'total': total,
-                'page': page,
-                'per_page': per_page,
-                'total_pages': (total + per_page - 1) // per_page,
-                'has_prev': page > 1,
-                'has_next': page < (total + per_page - 1) // per_page
-            })
-            
-        except Exception as e:
-            logger.error(f"获取实例统计聚合数据时出错: {str(e)}")
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 500
-    else:
-        # 无查询参数，返回HTML页面
-        # 获取实例列表用于筛选
-        instances = Instance.query.filter_by(is_active=True).all()
-        instances_list = [{'id': i.id, 'name': i.name, 'db_type': i.db_type} for i in instances]
+    # 获取实例列表
+    instances = Instance.query.filter_by(is_active=True).order_by(Instance.name).all()
+    instances_list = []
+    for instance in instances:
+        instances_list.append({
+            'id': instance.id,
+            'name': instance.name,
+            'db_type': instance.db_type,
+            'host': instance.host,
+            'port': instance.port
+        })
+    
+    # 获取数据库类型配置
+    from app.models.database_type_config import DatabaseTypeConfig
+    database_types = DatabaseTypeConfig.query.filter_by(is_active=True).order_by(DatabaseTypeConfig.id).all()
+    database_types_list = []
+    for db_type in database_types:
+        database_types_list.append({
+            'name': db_type.name,
+            'display_name': db_type.display_name
+        })
+    
+    return render_template('database_sizes/instance_aggregations.html',
+                         instances=instances_list,
+                         database_types=database_types_list,
+                         db_type=request.args.get('db_type', ''))
+
+
+@aggregations_bp.route('/instance/api', methods=['GET'])
+@login_required
+@view_required
+def instance_aggregations_api():
+    """
+    实例统计聚合API
+    返回JSON数据
+    """
+    try:
+        # 获取查询参数
+        instance_id = request.args.get('instance_id', type=int)
+        db_type = request.args.get('db_type')
+        period_type = request.args.get('period_type')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        time_range = request.args.get('time_range')
         
-        # 获取数据库类型配置
-        from app.models.database_type_config import DatabaseTypeConfig
-        database_types = DatabaseTypeConfig.query.filter_by(is_active=True).order_by(DatabaseTypeConfig.id).all()
-        database_types_list = []
-        for db_type in database_types:
-            database_types_list.append({
-                'name': db_type.name,
-                'display_name': db_type.display_name
-            })
+        # 处理time_range参数，转换为start_date和end_date
+        if time_range and not start_date and not end_date:
+            from datetime import timedelta
+            end_date_obj = datetime.now()
+            start_date_obj = end_date_obj - timedelta(days=int(time_range))
+            start_date = start_date_obj.strftime('%Y-%m-%d')
+            end_date = end_date_obj.strftime('%Y-%m-%d')
         
-        return render_template('database_sizes/instance_aggregations.html',
-                             instances=instances_list,
-                             database_types=database_types_list,
-                             db_type=request.args.get('db_type', ''))
+        # 分页参数
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        # 是否返回所有数据（用于图表显示）
+        get_all = request.args.get('get_all', 'false').lower() == 'true'
+        
+        # 计算offset
+        offset = (page - 1) * per_page
+        limit = per_page
+        
+        # 构建查询 - 查询实例统计聚合表
+        from app.models.instance_size_aggregation import InstanceSizeAggregation
+        query = InstanceSizeAggregation.query.join(Instance)
+        
+        # 应用过滤条件
+        if instance_id:
+            query = query.filter(InstanceSizeAggregation.instance_id == instance_id)
+        if db_type:
+            query = query.filter(Instance.db_type == db_type)
+        if period_type:
+            query = query.filter(InstanceSizeAggregation.period_type == period_type)
+        if start_date:
+            query = query.filter(InstanceSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            query = query.filter(InstanceSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        # 排序和分页
+        if get_all:
+            # 用于图表显示：按总大小排序获取TOP N实例
+            # 先按实例分组，获取每个实例的最大容量
+            from sqlalchemy import func
+            subquery = query.with_entities(
+                InstanceSizeAggregation.instance_id,
+                func.max(InstanceSizeAggregation.total_size_mb).label('max_total_size_mb')
+            ).group_by(InstanceSizeAggregation.instance_id).subquery()
+            
+            # 获取TOP 100实例的ID
+            top_instances = db.session.query(subquery.c.instance_id).order_by(
+                desc(subquery.c.max_total_size_mb)
+            ).limit(100).all()
+            top_instance_ids = [row[0] for row in top_instances]
+            
+            # 获取这些实例的所有聚合数据
+            aggregations = query.filter(
+                InstanceSizeAggregation.instance_id.in_(top_instance_ids)
+            ).order_by(desc(InstanceSizeAggregation.total_size_mb)).all()
+            total = len(aggregations)
+        else:
+            # 用于表格显示：按时间排序分页
+            query = query.order_by(desc(InstanceSizeAggregation.period_start))
+            total = query.count()
+            aggregations = query.offset(offset).limit(limit).all()
+        
+        # 转换为字典格式，包含实例信息
+        data = []
+        for agg in aggregations:
+            agg_dict = agg.to_dict()
+            # 添加实例信息
+            agg_dict['instance'] = {
+                'id': agg.instance.id,
+                'name': agg.instance.name,
+                'db_type': agg.instance.db_type
+            }
+            # 为了兼容前端，添加 avg_size_mb 字段
+            agg_dict['avg_size_mb'] = agg_dict.get('total_size_mb', 0)
+            data.append(agg_dict)
+        
+        return jsonify({
+            'success': True,
+            'data': data,
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page,
+            'has_prev': page > 1,
+            'has_next': page < (total + per_page - 1) // per_page
+        })
+        
+    except Exception as e:
+        logger.error(f"获取实例统计聚合数据时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @aggregations_bp.route('/database', methods=['GET'])
