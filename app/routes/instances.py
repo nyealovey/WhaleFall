@@ -187,23 +187,6 @@ def index() -> str:
 
     database_types = DatabaseTypeService.get_active_types()
 
-    if request.is_json:
-        return jsonify(
-            {
-                "instances": [instance.to_dict() for instance in instances.items],
-                "pagination": {
-                    "page": instances.page,
-                    "pages": instances.pages,
-                    "per_page": instances.per_page,
-                    "total": instances.total,
-                    "has_next": instances.has_next,
-                    "has_prev": instances.has_prev,
-                },
-                "credentials": [cred.to_dict() for cred in credentials],
-                "database_types": [db_type.to_dict() for db_type in database_types],
-            }
-        )
-
     # 获取所有标签用于筛选
     all_tags = Tag.get_active_tags()
     
@@ -291,13 +274,13 @@ def create_api() -> Response:
 @instances_bp.route("/create", methods=["GET", "POST"])
 @login_required
 @create_required
-def create() -> str | Response | tuple[Response, int]:
-    """创建实例"""
+def create() -> str | Response:
+    """创建实例页面"""
     # 获取凭据列表
     credentials = Credential.query.filter_by(is_active=True).all()
 
     if request.method == "POST":
-        data = request.get_json() if request.is_json else request.form
+        data = request.form
 
         # 清理输入数据
         data = DataValidator.sanitize_input(data)
@@ -305,8 +288,6 @@ def create() -> str | Response | tuple[Response, int]:
         # 使用新的数据验证器进行严格验证
         is_valid, validation_error = DataValidator.validate_instance_data(data)
         if not is_valid:
-            if request.is_json:
-                return jsonify({"error": validation_error}), 400
             flash(validation_error, "error")
             return render_template("instances/create.html", credentials=credentials)
 
@@ -317,14 +298,10 @@ def create() -> str | Response | tuple[Response, int]:
                 credential = Credential.query.get(credential_id)
                 if not credential:
                     error_msg = "凭据不存在"
-                    if request.is_json:
-                        return jsonify({"error": error_msg}), 400
                     flash(error_msg, "error")
                     return render_template("instances/create.html", credentials=credentials)
             except (ValueError, TypeError):
                 error_msg = "无效的凭据ID"
-                if request.is_json:
-                    return jsonify({"error": error_msg}), 400
                 flash(error_msg, "error")
                 return render_template("instances/create.html", credentials=credentials)
 
@@ -332,8 +309,6 @@ def create() -> str | Response | tuple[Response, int]:
         existing_instance = Instance.query.filter_by(name=data.get("name")).first()
         if existing_instance:
             error_msg = "实例名称已存在"
-            if request.is_json:
-                return jsonify({"error": error_msg}), 400
             flash(error_msg, "error")
             return render_template("instances/create.html", credentials=credentials)
 
@@ -385,12 +360,6 @@ def create() -> str | Response | tuple[Response, int]:
                 host=instance.host,
             )
 
-            if request.is_json:
-                return (
-                    jsonify({"message": "实例创建成功", "instance": instance.to_dict()}),
-                    201,
-                )
-
             flash("实例创建成功！", "success")
             return redirect(url_for("instances.index"))
 
@@ -408,9 +377,6 @@ def create() -> str | Response | tuple[Response, int]:
             else:
                 error_msg = f"创建实例失败: {str(e)}"
 
-            if request.is_json:
-                return jsonify({"error": error_msg}), 500
-
             flash(error_msg, "error")
 
     # GET请求，显示创建表单
@@ -423,15 +389,6 @@ def create() -> str | Response | tuple[Response, int]:
     
     # 获取所有标签
     all_tags = Tag.get_active_tags()
-
-    if request.is_json:
-        return jsonify(
-            {
-                "credentials": [cred.to_dict() for cred in credentials],
-                "database_types": [dt.to_dict() for dt in database_types],
-                "tags": [tag.to_dict() for tag in all_tags],
-            }
-        )
 
     return render_template("instances/create.html", credentials=credentials, database_types=database_types, all_tags=all_tags)
 
@@ -487,22 +444,15 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
         }
         accounts.append(account_data)
 
-    if request.is_json:
-        return jsonify({"instance": instance.to_dict(), "accounts": accounts})
-
     return render_template("instances/detail.html", instance=instance, accounts=accounts)
 
 
 @instances_bp.route("/statistics")
 @login_required
 @view_required
-def statistics() -> str | Response:
+def statistics() -> str:
     """实例统计页面"""
     stats = get_instance_statistics()
-
-    if request.is_json:
-        return jsonify(stats)
-
     return render_template("instances/statistics.html", stats=stats)
 
 
@@ -595,7 +545,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
     instance = Instance.query.get_or_404(instance_id)
 
     if request.method == "POST":
-        data = request.get_json() if request.is_json else request.form
+        data = request.form
 
         # 清理输入数据
         data = sanitize_form_data(data)
@@ -604,16 +554,12 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
         required_fields = ["name", "db_type", "host", "port"]
         validation_error = validate_required_fields(data, required_fields)
         if validation_error:
-            if request.is_json:
-                return jsonify({"error": validation_error}), 400
             flash(validation_error, "error")
             return render_template("instances/edit.html", instance=instance)
 
         # 验证数据库类型
         db_type_error = validate_db_type(data.get("db_type"))
         if db_type_error:
-            if request.is_json:
-                return jsonify({"error": db_type_error}), 400
             flash(db_type_error, "error")
             return render_template("instances/edit.html", instance=instance)
 
@@ -626,8 +572,6 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
                 raise ValueError(error_msg)
         except (ValueError, TypeError):
             error_msg = "端口号必须是1-65535之间的整数"
-            if request.is_json:
-                return jsonify({"error": error_msg}), 400
             flash(error_msg, "error")
             return render_template("instances/edit.html", instance=instance)
 
@@ -641,8 +585,6 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
                     raise ValueError(error_msg)
             except (ValueError, TypeError):
                 error_msg = "无效的凭据ID"
-                if request.is_json:
-                    return jsonify({"error": error_msg}), 400
                 flash(error_msg, "error")
                 return render_template("instances/edit.html", instance=instance)
 
@@ -650,8 +592,6 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
         existing_instance = Instance.query.filter(Instance.name == data.get("name"), Instance.id != instance_id).first()
         if existing_instance:
             error_msg = "实例名称已存在"
-            if request.is_json:
-                return jsonify({"error": error_msg}), 400
             flash(error_msg, "error")
             return render_template("instances/edit.html", instance=instance)
 
@@ -722,9 +662,6 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
                 },
             )
 
-            if request.is_json:
-                return jsonify({"message": "实例更新成功", "instance": instance.to_dict()})
-
             flash("实例更新成功！", "success")
             return redirect(url_for("instances.detail", instance_id=instance_id))
 
@@ -742,9 +679,6 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
             else:
                 error_msg = f"更新实例失败: {str(e)}"
 
-            if request.is_json:
-                return jsonify({"error": error_msg}), 500
-
             flash(error_msg, "error")
 
     # GET请求，显示编辑表单
@@ -757,16 +691,6 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
     
     # 获取所有标签
     all_tags = Tag.get_active_tags()
-
-    if request.is_json:
-        return jsonify(
-            {
-                "instance": instance.to_dict(),
-                "credentials": [cred.to_dict() for cred in credentials],
-                "database_types": [dt.to_dict() for dt in database_types],
-                "tags": [tag.to_dict() for tag in all_tags],
-            }
-        )
 
     return render_template(
         "instances/edit.html",
@@ -802,10 +726,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
         except Exception as e:
             log_error(f"删除实例 {instance.name} 关联数据失败: {e}", module="instances")
             db.session.rollback()
-            if request.is_json:
-                return jsonify({"error": f"删除关联数据失败: {str(e)}"}), 500
-            flash("删除关联数据失败，请重试", "error")
-            return redirect(url_for("instances.index"))
+            return jsonify({"error": f"删除关联数据失败: {str(e)}"}), 500
 
         # 第二步：最后删除实例本身
         try:
@@ -816,10 +737,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
         except Exception as e:
             log_error(f"删除实例 {instance.name} 失败: {e}", module="instances")
             db.session.rollback()
-            if request.is_json:
-                return jsonify({"error": f"删除实例失败: {str(e)}"}), 500
-            flash("删除实例失败，请重试", "error")
-            return redirect(url_for("instances.index"))
+            return jsonify({"error": f"删除实例失败: {str(e)}"}), 500
 
         # 提取统计信息
         assignment_count = stats["assignment_count"]
@@ -829,32 +747,20 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 
         # 实例及其相关数据删除成功
 
-        if request.is_json:
-            return jsonify(
-                {
-                    "message": "实例删除成功",
-                    "deleted_assignments": assignment_count,
-                    "deleted_sync_data": sync_data_count,
-                    "deleted_sync_records": sync_record_count,
-                    "deleted_change_logs": change_log_count,
-                }
-            )
-
-        flash(
-            f"实例删除成功！已删除 {assignment_count} 个分类分配，{sync_data_count} 条同步数据，{sync_record_count} 条同步记录，{change_log_count} 条变更日志",
-            "success",
+        return jsonify(
+            {
+                "message": "实例删除成功",
+                "deleted_assignments": assignment_count,
+                "deleted_sync_data": sync_data_count,
+                "deleted_sync_records": sync_record_count,
+                "deleted_change_logs": change_log_count,
+            }
         )
-        return redirect(url_for("instances.index"))
 
     except Exception as e:
         db.session.rollback()
         log_error(f"删除实例失败: {e}", module="instances")
-
-        if request.is_json:
-            return jsonify({"error": "删除实例失败，请重试"}), 500
-
-        flash("删除实例失败，请重试", "error")
-        return redirect(url_for("instances.index"))
+        return jsonify({"error": "删除实例失败，请重试"}), 500
 
 
 @instances_bp.route("/api/batch-delete", methods=["POST"])
@@ -1294,26 +1200,13 @@ def test_connection(instance_id: int) -> str | Response | tuple[Response, int]:
             # 更新最后连接时间
             instance.last_connected = time_utils.now()
             db.session.commit()
-
-            if request.is_json:
-                return jsonify({"message": "连接测试成功", "result": result})
-
-            flash("连接测试成功！", "success")
+            return jsonify({"message": "连接测试成功", "result": result})
         else:
-            if request.is_json:
-                return jsonify({"error": "连接测试失败", "result": result}), 400
-
-            flash(f"连接测试失败: {result.get('error', '未知错误')}", "error")
+            return jsonify({"error": "连接测试失败", "result": result}), 400
 
     except Exception as e:
         log_error(f"测试连接失败: {e}", module="instances")
-
-        if request.is_json:
-            return jsonify({"error": "连接测试失败，请重试"}), 500
-
-        flash("连接测试失败，请重试", "error")
-
-    return redirect(url_for("instances.detail", instance_id=instance_id))
+        return jsonify({"error": "连接测试失败，请重试"}), 500
 
 
 
