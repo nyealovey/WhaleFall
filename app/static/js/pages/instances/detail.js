@@ -208,7 +208,7 @@ function syncAccounts() {
     // 获取CSRF token
     const csrfToken = getCSRFToken();
 
-    fetch(`/account-sync/instances/${getInstanceId()}/sync`, {
+    fetch(`/account-sync/api/instances/${getInstanceId()}/sync`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
