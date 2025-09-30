@@ -248,6 +248,14 @@
     color: #495057;
 }
 
+/* 限制图表标题宽度 */
+.instance-aggregations-page .card-title.mb-0 {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .instance-aggregations-page .empty-state p {
     margin-bottom: 0;
 }
