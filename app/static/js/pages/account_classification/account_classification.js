@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 加载分类列表
 function loadClassifications() {
-    fetch('/account-classification/api/classifications')
+    fetch('/account_classification/api/classifications')
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -124,7 +124,7 @@ function createClassification() {
         icon_name: document.querySelector('input[name="classificationIcon"]:checked').value
     };
 
-    fetch('/account-classification/api/classifications', {
+    fetch('/account_classification/api/classifications', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -151,7 +151,7 @@ function createClassification() {
 // 编辑分类
 function editClassification(id) {
     // 获取分类信息
-    fetch(`/account-classification/api/classifications/${id}`)
+    fetch(`/account_classification/api/classifications/${id}`)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -232,7 +232,7 @@ function updateClassification() {
         icon_name: document.querySelector('input[name="editClassificationIcon"]:checked').value
     };
 
-    fetch(`/account-classification/api/classifications/${id}`, {
+    fetch(`/account_classification/api/classifications/${id}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -262,7 +262,7 @@ function deleteClassification(id) {
         return;
     }
 
-    fetch(`/account-classification/api/classifications/${id}`, {
+    fetch(`/account_classification/api/classifications/${id}`, {
         method: 'DELETE'
     })
     .then(response => response.json())
@@ -284,7 +284,7 @@ function deleteClassification(id) {
 
 // 加载规则
 function loadRules() {
-    fetch('/account-classification/api/rules')
+    fetch('/account_classification/api/rules')
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -417,7 +417,7 @@ function displayRules(rulesByDbType) {
 
 // 加载分类列表（用于规则创建）
 function loadClassificationsForRules(prefix = '') {
-    return fetch('/account-classification/api/classifications')
+    return fetch('/account_classification/api/classifications')
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -457,7 +457,7 @@ function loadPermissions(prefix = '') {
         return Promise.resolve();
     }
 
-    return fetch(`/account-classification/api/permissions/${dbType}`)
+    return fetch(`/account_classification/api/permissions/${dbType}`)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -912,7 +912,7 @@ function createRule() {
         rule_expression: ruleExpression
     };
 
-    fetch('/account-classification/api/rules', {
+    fetch('/account_classification/api/rules', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -939,7 +939,7 @@ function createRule() {
 
 // 编辑规则
 function editRule(id) {
-    fetch(`/account-classification/api/rules/${id}`)
+    fetch(`/account_classification/api/rules/${id}`)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -1242,7 +1242,7 @@ function updateRule() {
         rule_expression: ruleExpression
     };
 
-    fetch(`/account-classification/api/rules/${ruleId}`, {
+    fetch(`/account_classification/api/rules/${ruleId}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -1276,7 +1276,7 @@ function viewMatchedAccounts(ruleId, page = 1, search = '') {
         search: search
     });
     
-    fetch(`/account-classification/api/rules/${ruleId}/matched-accounts?${params}`)
+    fetch(`/account_classification/api/rules/${ruleId}/matched-accounts?${params}`)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -1514,7 +1514,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 查看规则
 function viewRule(id) {
-    fetch(`/account-classification/api/rules/${id}`)
+    fetch(`/account_classification/api/rules/${id}`)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -1779,7 +1779,7 @@ function deleteRule(id) {
         return;
     }
 
-    fetch(`/account-classification/rules/${id}`, {
+    fetch(`/account_classification/rules/${id}`, {
         method: 'DELETE',
         headers: {
             'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
@@ -1812,7 +1812,7 @@ function autoClassifyAll() {
     // 记录操作开始日志
     logUserAction('开始自动分类所有账户', { operation: 'auto_classify_all' });
 
-    fetch('/account-classification/api/auto-classify', {
+    fetch('/account_classification/api/auto-classify', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
