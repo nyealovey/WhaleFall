@@ -69,7 +69,7 @@ def partitions():
 
 # API 路由
 
-@partition_bp.route('/status', methods=['GET'])
+@partition_bp.route('/api/status', methods=['GET'])
 @login_required
 @view_required
 def get_partition_status():
@@ -99,7 +99,7 @@ def get_partition_status():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_bp.route('/test', methods=['GET'])
+@partition_bp.route('/api/test', methods=['GET'])
 @login_required
 @view_required
 def test_partition_service():
@@ -141,7 +141,7 @@ def test_partition_service():
         }), 500
 
 
-@partition_bp.route('/create', methods=['POST'])
+@partition_bp.route('/api/create', methods=['POST'])
 @login_required
 @view_required
 def create_partition():
@@ -185,7 +185,7 @@ def create_partition():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_bp.route('/cleanup', methods=['POST'])
+@partition_bp.route('/api/cleanup', methods=['POST'])
 @login_required
 @view_required
 def cleanup_partitions():
@@ -219,7 +219,7 @@ def cleanup_partitions():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_bp.route('/statistics', methods=['GET'])
+@partition_bp.route('/api/statistics', methods=['GET'])
 @login_required
 @view_required
 def get_partition_statistics():
@@ -250,7 +250,7 @@ def get_partition_statistics():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_bp.route('/create-future', methods=['POST'])
+@partition_bp.route('/api/create-future', methods=['POST'])
 @login_required
 @view_required
 def create_future_partitions():
@@ -284,7 +284,7 @@ def create_future_partitions():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_bp.route('/aggregations/latest', methods=['GET'])
+@partition_bp.route('/api/aggregations/latest', methods=['GET'])
 @login_required
 @view_required
 def get_latest_aggregations():
@@ -397,7 +397,7 @@ def get_latest_aggregations():
         }), 500
 
 
-@partition_bp.route('/aggregations/cleanup', methods=['POST'])
+@partition_bp.route('/api/aggregations/cleanup', methods=['POST'])
 @login_required
 @view_required
 def cleanup_old_aggregations_api():
