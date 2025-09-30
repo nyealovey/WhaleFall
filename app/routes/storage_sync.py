@@ -143,7 +143,9 @@ def get_stats():
 @view_required
 def test_connection():
     """
-    测试数据库连接
+    测试数据库连接（已弃用，请使用 /connections/api/test）
+    
+    为了向后兼容保留此API，建议迁移到新的连接管理API
     """
     try:
         data = request.get_json()
@@ -155,18 +157,9 @@ def test_connection():
                 'error': '实例ID不能为空'
             }), 400
         
-        instance = Instance.query.get(instance_id)
-        if not instance:
-            return jsonify({
-                'success': False,
-                'error': '实例不存在'
-            }), 404
-        
-        # 这里可以添加连接测试逻辑
-        return jsonify({
-            'success': True,
-            'message': f'实例 {instance.name} 连接测试成功'
-        })
+        # 重定向到新的连接管理API
+        from flask import redirect, url_for
+        return redirect(url_for('connections.test_connection', instance_id=instance_id))
         
     except Exception as e:
         logger.error(f"测试连接时出错: {str(e)}")

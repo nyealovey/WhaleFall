@@ -1438,14 +1438,14 @@ def api_get_accounts(instance_id: int) -> Response:
 @login_required
 @view_required
 def api_test_connection(instance_id: int) -> Response | tuple[Response, int]:
-    """测试连接API"""
-    instance = Instance.query.get_or_404(instance_id)
-
-    try:
-        result = instance.test_connection()
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+    """
+    测试连接API（已弃用，请使用 /connections/api/test）
+    
+    为了向后兼容保留此API，建议迁移到新的连接管理API
+    """
+    # 重定向到新的连接管理API
+    from flask import redirect, url_for
+    return redirect(url_for('connections.test_connection', instance_id=instance_id))
 
 
 def get_instance_statistics() -> dict[str, Any]:

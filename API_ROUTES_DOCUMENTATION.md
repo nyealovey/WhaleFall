@@ -425,13 +425,29 @@
 
 ---
 
+## 21. 连接管理模块 (connections.py)
+
+### 页面路由
+*此模块无页面路由，仅提供API接口*
+
+### API 接口
+| 路径 | 方法 | 描述 |
+|------|------|------|
+| `/connections/api/test` | POST | 测试数据库连接（支持现有实例和新连接） |
+| `/connections/api/supported-types` | GET | 获取支持的数据库类型列表 |
+| `/connections/api/validate-params` | POST | 验证连接参数 |
+| `/connections/api/batch-test` | POST | 批量测试连接 |
+| `/connections/api/status/<int:instance_id>` | GET | 获取实例连接状态 |
+
+---
+
 ## 📊 统计信息
 
 ### 总体统计
-- **总模块数**: 20 个
+- **总模块数**: 21 个
 - **页面路由总数**: 约 39 个
-- **API 接口总数**: 153 个
-- **总路由数**: 192 个
+- **API 接口总数**: 158 个
+- **总路由数**: 197 个
 
 ### API 前缀使用情况
 根据内存中的已知问题，项目存在 API 前缀不统一的情况：
