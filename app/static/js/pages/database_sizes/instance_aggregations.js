@@ -26,6 +26,7 @@ class InstanceAggregationsManager {
         this.bindEvents();
         this.initializeDatabaseFilter();
         this.updateTimeRangeFromPeriod(); // 初始化时间范围
+        this.syncUIState(); // 同步UI状态
         this.loadSummaryData();
         this.loadChartData();
     }
@@ -236,6 +237,7 @@ class InstanceAggregationsManager {
                 this.loadSummaryData(),
                 this.loadChartData()
             ]);
+            this.syncUIState(); // 同步UI状态
             this.showSuccess('数据刷新成功');
         } catch (error) {
             console.error('刷新数据失败:', error);
@@ -299,6 +301,8 @@ class InstanceAggregationsManager {
                 this.currentData = data.data || [];
                 console.log('当前图表数据:', this.currentData.length);
                 this.renderChart(this.currentData);
+                // 重新同步UI状态
+                this.syncUIState();
             } else {
                 console.error('图表数据加载失败:', data.error);
                 this.showError('加载图表数据失败: ' + data.error);
@@ -643,6 +647,27 @@ class InstanceAggregationsManager {
      */
     hideLoading() {
         // 可以添加全局加载状态
+    }
+    
+    /**
+     * 同步UI状态
+     * 确保UI控件状态与内部状态一致
+     */
+    syncUIState() {
+        // 同步图表类型选择器
+        $(`input[name="chartType"][value="${this.currentChartType}"]`).prop('checked', true);
+        
+        // 同步TOP选择器
+        $(`input[name="topSelector"][value="${this.currentTopCount}"]`).prop('checked', true);
+        
+        // 同步统计周期选择器
+        $(`input[name="statisticsPeriod"][value="${this.currentStatisticsPeriod}"]`).prop('checked', true);
+        
+        console.log('UI状态已同步:', {
+            chartType: this.currentChartType,
+            topCount: this.currentTopCount,
+            statisticsPeriod: this.currentStatisticsPeriod
+        });
     }
     
     /**
