@@ -41,10 +41,10 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/account/export` | GET | 导出账户数据为 CSV |
-| `/account/<int:account_id>/permissions` | GET | 获取账户权限详情 |
-| `/account/<int:account_id>/change-history` | GET | 获取账户变更历史 |
-| `/account/account-statistics` | GET | 账户统计 API |
+| `/account/api/export` | GET | 导出账户数据为 CSV |
+| `/account/api/<int:account_id>/permissions` | GET | 获取账户权限详情 |
+| `/account/api/<int:account_id>/change-history` | GET | 获取账户变更历史 |
+| `/account/api/account-statistics` | GET | 账户统计 API |
 | `/account/api/statistics` | GET | 获取账户统计信息 |
 
 ---
