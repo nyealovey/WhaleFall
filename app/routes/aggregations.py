@@ -373,10 +373,10 @@ def instance_aggregations():
                     func.max(InstanceSizeAggregation.total_size_mb).label('max_total_size_mb')
                 ).group_by(InstanceSizeAggregation.instance_id).subquery()
                 
-                # 获取TOP 50实例的ID
+                # 获取TOP 100实例的ID
                 top_instances = db.session.query(subquery.c.instance_id).order_by(
                     desc(subquery.c.max_total_size_mb)
-                ).limit(50).all()
+                ).limit(100).all()
                 top_instance_ids = [row[0] for row in top_instances]
                 
                 # 获取这些实例的所有聚合数据
