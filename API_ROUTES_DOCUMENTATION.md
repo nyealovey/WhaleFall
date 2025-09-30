@@ -355,8 +355,6 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/storage_sync/api/status` | GET | 获取数据库大小监控状态 |
-| `/storage_sync/api/stats` | GET | 获取数据库大小监控统计信息 |
 | `/storage_sync/api/test_connection` | POST | 测试数据库连接（已弃用，请使用 /connections/api/test） |
 | `/storage_sync/api/manual_collect` | POST | 手动触发数据采集 |
 | `/storage_sync/api/instances` | GET | 获取实例列表 |
@@ -491,8 +489,8 @@ connectionManager.batchTestConnections([1,2,3], {
 ### 总体统计
 - **总模块数**: 23 个
 - **页面路由总数**: 约 39 个
-- **API 接口总数**: 182 个
-- **总路由数**: 221 个
+- **API 接口总数**: 180 个
+- **总路由数**: 219 个
 - **前端组件数**: 1 个（连接管理组件）
 - **已弃用API**: 2 个（保持向后兼容）
 
@@ -538,6 +536,14 @@ connectionManager.batchTestConnections([1,2,3], {
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
 - **版本**: v1.5.0
+
+### v1.5.1 更新内容 (2025-09-30)
+- ✅ 删除存储同步模块中未被使用的API接口
+- ✅ 删除 `/storage_sync/api/status` 和 `/storage_sync/api/stats` 接口
+- ✅ 清理未使用的导入和代码
+- ✅ 更新API接口总数统计（从182个减少到180个）
+- ✅ 更新总路由数统计（从221个减少到219个）
+- ✅ 优化代码质量，移除冗余代码
 
 ### v1.5.0 更新内容 (2025-09-30)
 - ✅ 重构聚合统计模块，专注于核心聚合功能
