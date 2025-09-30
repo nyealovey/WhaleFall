@@ -213,6 +213,8 @@
 | `/instances/api/statistics` | GET | 获取实例统计API |
 | `/instances/api/instances` | GET | 获取实例列表API |
 | `/instances/api/instances/<int:id>` | GET | 获取实例详情API |
+| `/instances/api/create` | POST | 创建实例API |
+| `/instances/api/<int:id>/edit` | POST | 编辑实例API |
 | `/instances/api/instances/<int:id>/delete` | POST | 删除实例 |
 | `/instances/api/instances/<int:id>/test` | GET, POST | 测试连接API（支持GET和POST方法） |
 | `/instances/api/test-connection` | POST | 测试数据库连接API（无需CSRF） |
@@ -370,6 +372,8 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
+| `/tags/api/create` | POST | 创建标签API |
+| `/tags/api/edit/<int:tag_id>` | POST | 编辑标签API |
 | `/tags/api/delete/<int:id>` | POST | 删除标签 |
 | `/tags/api/batch_assign_tags` | POST | 批量分配标签给实例 |
 | `/tags/api/batch_remove_tags` | POST | 批量移除实例的标签 |
@@ -425,8 +429,8 @@
 ### 总体统计
 - **总模块数**: 20 个
 - **页面路由总数**: 约 39 个
-- **API 接口总数**: 148 个
-- **总路由数**: 187 个
+- **API 接口总数**: 152 个
+- **总路由数**: 191 个
 
 ### API 前缀使用情况
 根据内存中的已知问题，项目存在 API 前缀不统一的情况：
@@ -449,7 +453,15 @@
 
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
-- **版本**: v1.2.7
+- **版本**: v1.2.8
+
+### v1.2.8 更新内容 (2025-09-30)
+- ✅ 修复页面路由和API混在一起的问题
+- ✅ 添加实例管理模块缺失的API：/instances/api/create 和 /instances/api/<int:id>/edit
+- ✅ 添加标签管理模块缺失的API：/tags/api/create 和 /tags/api/edit/<int:tag_id>
+- ✅ 更新API接口总数统计（从148个增加到152个）
+- ✅ 更新总路由数统计（从187个增加到191个）
+- ✅ 完善API路径标准化
 
 ### v1.2.7 更新内容 (2025-09-30)
 - ✅ 修复健康检查模块重复路由问题

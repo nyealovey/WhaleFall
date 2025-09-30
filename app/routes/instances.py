@@ -223,6 +223,71 @@ def index() -> str:
 
 
 
+@instances_bp.route("/api/create", methods=["POST"])
+@login_required
+@create_required
+def create_api() -> Response:
+    """创建实例API"""
+    data = request.get_json() if request.is_json else request.form
+
+    # 清理输入数据
+    data = DataValidator.sanitize_input(data)
+
+    # 使用新的数据验证器进行严格验证
+    is_valid, validation_error = DataValidator.validate_instance_data(data)
+    if not is_valid:
+        return jsonify({"error": validation_error}), 400
+
+    # 验证凭据ID（如果提供）
+    if data.get("credential_id"):
+        try:
+            credential_id = int(data.get("credential_id"))
+            credential = Credential.query.get(credential_id)
+            if not credential:
+                return jsonify({"error": "凭据不存在"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "无效的凭据ID"}), 400
+
+    # 验证实例名称唯一性
+    existing_instance = Instance.query.filter_by(name=data.get("name")).first()
+    if existing_instance:
+        return jsonify({"error": "实例名称已存在"}), 400
+
+    try:
+        # 创建新实例
+        instance = Instance(
+            name=data.get("name").strip(),
+            db_type=data.get("db_type"),
+            host=data.get("host").strip(),
+            port=int(data.get("port")),
+            credential_id=data.get("credential_id"),
+            description=data.get("description", "").strip(),
+            is_active=True,
+        )
+
+        db.session.add(instance)
+        db.session.commit()
+
+        # 记录操作日志
+        log_info(
+            "创建数据库实例",
+            module="instances",
+            user_id=current_user.id,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            db_type=instance.db_type,
+            host=instance.host,
+            port=instance.port,
+        )
+
+        return jsonify({"message": "实例创建成功", "instance": instance.to_dict()}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        log_error(f"创建实例失败: {e}", module="instances", exc_info=True)
+        return jsonify({"error": f"创建实例失败: {str(e)}"}), 500
+
+
 @instances_bp.route("/create", methods=["GET", "POST"])
 @login_required
 @create_required
@@ -448,6 +513,78 @@ def api_statistics() -> Response:
     """获取实例统计API"""
     stats = get_instance_statistics()
     return jsonify(stats)
+
+
+@instances_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
+@login_required
+@update_required
+def edit_api(instance_id: int) -> Response:
+    """编辑实例API"""
+    instance = Instance.query.get_or_404(instance_id)
+    data = request.get_json() if request.is_json else request.form
+
+    # 清理输入数据
+    data = DataValidator.sanitize_input(data)
+
+    # 使用新的数据验证器进行严格验证
+    is_valid, validation_error = DataValidator.validate_instance_data(data)
+    if not is_valid:
+        return jsonify({"error": validation_error}), 400
+
+    # 验证凭据ID（如果提供）
+    if data.get("credential_id"):
+        try:
+            credential_id = int(data.get("credential_id"))
+            credential = Credential.query.get(credential_id)
+            if not credential:
+                return jsonify({"error": "凭据不存在"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "无效的凭据ID"}), 400
+
+    # 验证实例名称唯一性（排除当前实例）
+    existing_instance = Instance.query.filter(
+        Instance.name == data.get("name"), Instance.id != instance_id
+    ).first()
+    if existing_instance:
+        return jsonify({"error": "实例名称已存在"}), 400
+
+    try:
+        # 更新实例信息
+        instance.name = data.get("name", instance.name).strip()
+        instance.db_type = data.get("db_type", instance.db_type)
+        instance.host = data.get("host", instance.host).strip()
+        instance.port = int(data.get("port", instance.port))
+        instance.credential_id = data.get("credential_id", instance.credential_id)
+        instance.description = data.get("description", instance.description).strip()
+        
+        # 处理布尔值
+        is_active_value = data.get("is_active", instance.is_active)
+        if isinstance(is_active_value, str):
+            instance.is_active = is_active_value in ["on", "true", "1", "yes"]
+        else:
+            instance.is_active = bool(is_active_value)
+
+        db.session.commit()
+
+        # 记录操作日志
+        log_info(
+            "更新数据库实例",
+            module="instances",
+            user_id=current_user.id,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            db_type=instance.db_type,
+            host=instance.host,
+            port=instance.port,
+            is_active=instance.is_active,
+        )
+
+        return jsonify({"message": "实例更新成功", "instance": instance.to_dict()})
+
+    except Exception as e:
+        db.session.rollback()
+        log_error(f"更新实例失败: {e}", module="instances", exc_info=True)
+        return jsonify({"error": f"更新实例失败: {str(e)}"}), 500
 
 
 @instances_bp.route("/<int:instance_id>/edit", methods=["GET", "POST"])
