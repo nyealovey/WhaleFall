@@ -111,7 +111,7 @@ def sync_instance_capacity(instance_id: int):
             extra={
                 "operation": "sync_capacity",
                 "instance_id": instance.id,
-                "instance_name": instance.instance_name,
+                "instance_name": instance.name,
                 "action": "开始同步容量",
                 "user_action": True,
             },
@@ -127,7 +127,7 @@ def sync_instance_capacity(instance_id: int):
                 "同步实例容量成功",
                 extra={
                     "instance_id": instance.id,
-                    "instance_name": instance.instance_name,
+                    "instance_name": instance.name,
                     "action": "开始同步容量",
                     "user_action": True,
                 },
