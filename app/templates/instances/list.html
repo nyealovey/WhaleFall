@@ -82,9 +82,7 @@
                         <th>名称</th>
                         <th>类型</th>
                         <th>主机</th>
-                        <th>端口</th>
                         <th>版本信息</th>
-                        <th>总大小</th>
                         <th>标签</th>
                         <th>状态</th>
                         <th>最后连接</th>
@@ -119,21 +117,12 @@
                             {% endif %}
                         </td>
                         <td><small class="text-muted">{{ instance.host }}</small></td>
-                        <td><small class="text-muted">{{ instance.port }}</small></td>
                         <td>
                             {% if instance.main_version %}
                                 <span class="badge bg-primary">{{ instance.main_version }}</span>
                             {% else %}
                                 <small class="text-muted">未检测</small>
                             {% endif %}
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-hdd text-info me-1"></i>
-                                <span class="instance-total-size" data-instance-id="{{ instance.id }}">
-                                    <small class="text-muted">加载中...</small>
-                                </span>
-                            </div>
                         </td>
                         <td>
                             {% if instance.tags.all() %}
