@@ -77,6 +77,7 @@ class InstanceAggregationsManager {
             console.log('数据库类型变化:', dbType);
             await this.updateInstanceOptions(dbType);
             this.updateFilters();
+            console.log('更新后的筛选条件:', this.currentFilters);
             this.loadSummaryData(); // 更新统计卡片
             this.loadChartData();   // 更新趋势图
         });
@@ -195,11 +196,11 @@ class InstanceAggregationsManager {
         console.log('重置筛选条件');
         
         // 清空所有筛选器
-        $('#instanceFilter').val('');
-        $('#dbTypeFilter').val('');
-        $('#periodTypeFilter').val('daily');
-        $('#startDateFilter').val('');
-        $('#endDateFilter').val('');
+        $('#instance').val('');
+        $('#db_type').val('');
+        $('#period_type').val('daily');
+        $('#start_date').val('');
+        $('#end_date').val('');
         
         // 重置筛选条件
         this.currentFilters = {
@@ -242,7 +243,8 @@ class InstanceAggregationsManager {
     async loadSummaryData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/aggregations/instance/summary?api=true&${params}`);
+            console.log('加载汇总数据，参数:', params.toString());
+            const response = await fetch(`/aggregations/instance/summary?${params}`);
             const data = await response.json();
             
             if (response.ok) {
