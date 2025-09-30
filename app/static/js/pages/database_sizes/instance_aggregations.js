@@ -54,6 +54,14 @@ class InstanceAggregationsManager {
         });
         
         // 统计周期选择器切换
+        $('input[name="statisticsPeriod"]').on('change', (e) => {
+            this.currentStatisticsPeriod = parseInt(e.target.value);
+            this.updateTimeRangeFromPeriod();
+            this.loadSummaryData(); // 更新统计卡片
+            this.loadChartData();   // 更新趋势图
+        });
+        
+        // 统计周期选择器切换
         $('#period_type').on('change', (e) => {
             this.currentFilters.period_type = e.target.value;
             this.updateTimeRangeFromPeriod();
