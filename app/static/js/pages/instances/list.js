@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupEventListeners();
     loadInstanceTotalSizes();
+    
+    // 初始化批量操作按钮状态
+    updateBatchButtons();
 });
 
 // 打开标签选择器
@@ -277,6 +280,9 @@ function testConnection(instanceId) {
 function batchTestConnections() {
     const selectedInstances = getSelectedInstances();
     
+    console.log('选中的实例数量:', selectedInstances.length);
+    console.log('选中的实例ID:', selectedInstances);
+    
     if (selectedInstances.length === 0) {
         showAlert('warning', '请先选择要测试的实例');
         return;
@@ -308,7 +314,7 @@ function batchTestConnections() {
 
 // 获取选中的实例ID列表
 function getSelectedInstances() {
-    const checkboxes = document.querySelectorAll('input[name="instance_ids"]:checked');
+    const checkboxes = document.querySelectorAll('input.instance-checkbox:checked');
     return Array.from(checkboxes).map(checkbox => parseInt(checkbox.value));
 }
 
@@ -426,6 +432,7 @@ function toggleSelectAll() {
 function updateBatchButtons() {
     const selectedCheckboxes = document.querySelectorAll('.instance-checkbox:checked');
     const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+    const batchTestBtn = document.getElementById('batchTestBtn');
 
     if (batchDeleteBtn) {
         if (selectedCheckboxes.length > 0) {
@@ -434,6 +441,17 @@ function updateBatchButtons() {
         } else {
             batchDeleteBtn.disabled = true;
             batchDeleteBtn.textContent = '批量删除';
+        }
+    }
+    
+    // 更新批量测试连接按钮状态
+    if (batchTestBtn) {
+        if (selectedCheckboxes.length > 0) {
+            batchTestBtn.disabled = false;
+            batchTestBtn.textContent = `批量测试连接 (${selectedCheckboxes.length})`;
+        } else {
+            batchTestBtn.disabled = true;
+            batchTestBtn.textContent = '批量测试连接';
         }
     }
 }
