@@ -270,7 +270,7 @@ function testConnection(instanceId) {
         headers['X-CSRFToken'] = csrfToken;
     }
 
-    fetch(`/instances/api/instances/${instanceId}/test`, {
+    fetch(`/instances/api/${instanceId}/test`, {
         method: 'GET',
         headers: headers
     })

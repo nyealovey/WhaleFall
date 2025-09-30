@@ -31,7 +31,7 @@ function testConnection() {
     // 获取CSRF token
     const csrfToken = getCSRFToken();
 
-    fetch(`/instances/api/instances/${getInstanceId()}/test`, {
+    fetch(`/instances/api/${getInstanceId()}/test`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -351,7 +351,7 @@ function syncCapacity(instanceId, instanceName) {
 function viewInstanceAccountPermissions(accountId) {
     // 调用全局的 viewAccountPermissions 函数，指定instances页面的API URL
     window.viewAccountPermissions(accountId, {
-        apiUrl: `/instances/api/instances/${getInstanceId()}/accounts/${accountId}/permissions`
+        apiUrl: `/instances/api/${getInstanceId()}/accounts/${accountId}/permissions`
     });
 }
 
@@ -360,7 +360,7 @@ function viewAccountChangeHistory(accountId) {
     // 查看变更历史
     const csrfToken = getCSRFToken();
 
-    fetch(`/instances/api/instances/${getInstanceId()}/accounts/${accountId}/change-history`, {
+    fetch(`/instances/api/${getInstanceId()}/accounts/${accountId}/change-history`, {
         method: 'GET',
         headers: {
             'X-CSRFToken': csrfToken,

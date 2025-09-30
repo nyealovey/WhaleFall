@@ -777,7 +777,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
     )
 
 
-@instances_bp.route("/api/instances/<int:instance_id>/delete", methods=["POST"])
+@instances_bp.route("/api/<int:instance_id>/delete", methods=["POST"])
 @login_required
 @delete_required
 def delete(instance_id: int) -> str | Response | tuple[Response, int]:
@@ -1279,7 +1279,7 @@ def download_template() -> Response:
     )
 
 
-@instances_bp.route("/api/instances/<int:instance_id>/test", methods=["POST"])
+@instances_bp.route("/api/<int:instance_id>/test", methods=["POST"])
 @login_required
 @view_required
 def test_connection(instance_id: int) -> str | Response | tuple[Response, int]:
@@ -1319,7 +1319,7 @@ def test_connection(instance_id: int) -> str | Response | tuple[Response, int]:
 
 
 # API路由
-@instances_bp.route("/api/instances")
+@instances_bp.route("/api")
 @login_required
 @view_required
 def api_list() -> Response:
@@ -1362,7 +1362,7 @@ def api_list() -> Response:
         }), 500
 
 
-@instances_bp.route("/api/instances/<int:instance_id>")
+@instances_bp.route("/api/<int:instance_id>")
 @login_required
 @view_required
 def api_detail(instance_id: int) -> Response:
@@ -1371,7 +1371,7 @@ def api_detail(instance_id: int) -> Response:
     return jsonify(instance.to_dict())
 
 
-@instances_bp.route("/api/instances/<int:instance_id>/accounts")
+@instances_bp.route("/api/<int:instance_id>/accounts")
 @login_required
 @view_required
 def api_get_accounts(instance_id: int) -> Response:
@@ -1434,7 +1434,7 @@ def api_get_accounts(instance_id: int) -> Response:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@instances_bp.route("/api/instances/<int:instance_id>/test")
+@instances_bp.route("/api/<int:instance_id>/test")
 @login_required
 @view_required
 def api_test_connection(instance_id: int) -> Response | tuple[Response, int]:
@@ -1644,7 +1644,7 @@ def get_default_version(db_type: str) -> str:
     return default_versions.get(db_type, "未知版本")
 
 
-@instances_bp.route("/api/instances/<int:instance_id>/accounts/<int:account_id>/permissions")
+@instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
 @login_required
 @view_required
 def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
@@ -1719,7 +1719,7 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         return jsonify({"success": False, "error": f"获取权限失败: {str(e)}"}), 500
 
 
-@instances_bp.route("/api/instances/<int:instance_id>/accounts/<int:account_id>/change-history")
+@instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
 @login_required
 @view_required
 def get_account_change_history(instance_id: int, account_id: int) -> Response:

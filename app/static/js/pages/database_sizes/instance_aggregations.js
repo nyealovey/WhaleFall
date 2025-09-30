@@ -126,7 +126,7 @@ class InstanceAggregationsManager {
         
         try {
             instanceSelect.prop('disabled', false);
-            const response = await fetch(`/instances/api/instances?db_type=${dbType}`);
+            const response = await fetch(`/instances/api?db_type=${dbType}`);
             const data = await response.json();
             
             if (response.ok && data.success) {
@@ -152,7 +152,7 @@ class InstanceAggregationsManager {
      */
     async loadInstances(dbType = null) {
         try {
-            let url = '/instances/api/instances';
+            let url = '/instances/api';
             if (dbType) {
                 url += `?db_type=${dbType}`;
             }
@@ -292,7 +292,7 @@ class InstanceAggregationsManager {
             params.append('get_all', 'true');
             
             console.log('加载图表数据，参数:', params.toString());
-            const response = await fetch(`/aggregations/api/instance/api?${params}`);
+            const response = await fetch(`/aggregations/api/instance/data?${params}`);
             const data = await response.json();
             
             console.log('图表数据响应:', data);
