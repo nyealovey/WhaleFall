@@ -643,52 +643,52 @@ def get_core_aggregation_metrics():
             instance_agg_label = '实例统计数量'
             database_agg_label = '数据库统计数量'
         
-        # 构建Chart.js数据集 - 使用相同颜色但不同透明度和线型，形成组合线效果
+        # 构建Chart.js数据集 - 使用不同颜色形成颜色混合效果
         datasets = [
-            # 实例数总量 - 实线，较粗，不透明
+            # 实例数总量 - 蓝色，实线，较粗
             {
                 'label': instance_label,
                 'data': instance_count_data,
-                'borderColor': '#FF6384',
-                'backgroundColor': 'rgba(255, 99, 132, 0.1)',
+                'borderColor': '#36A2EB',  # 蓝色
+                'backgroundColor': 'rgba(54, 162, 235, 0.1)',
                 'borderWidth': 4,
                 'pointStyle': 'circle',
                 'tension': 0.1,
                 'fill': False
             },
-            # 实例日统计数量 - 虚线，较细，半透明，与实例数总量同色
+            # 实例日统计数量 - 红色，虚线，较细，叠加在蓝色上形成紫色偏粉红
             {
                 'label': instance_agg_label,
                 'data': instance_aggregation_data,
-                'borderColor': 'rgba(255, 99, 132, 0.7)',
-                'backgroundColor': 'rgba(255, 99, 132, 0.05)',
-                'borderWidth': 2,
+                'borderColor': '#FF6384',  # 红色
+                'backgroundColor': 'rgba(255, 99, 132, 0.1)',
+                'borderWidth': 3,
                 'pointStyle': 'triangle',
                 'tension': 0.1,
-                'borderDash': [6, 3],
+                'borderDash': [8, 4],
                 'fill': False
             },
-            # 数据库数总量 - 实线，较粗，不透明
+            # 数据库数总量 - 绿色，实线，较粗
             {
                 'label': database_label,
                 'data': database_count_data,
-                'borderColor': '#36A2EB',
-                'backgroundColor': 'rgba(54, 162, 235, 0.1)',
+                'borderColor': '#4BC0C0',  # 绿色
+                'backgroundColor': 'rgba(75, 192, 192, 0.1)',
                 'borderWidth': 4,
                 'pointStyle': 'rect',
                 'tension': 0.1,
                 'fill': False
             },
-            # 数据库日统计数量 - 虚线，较细，半透明，与数据库数总量同色
+            # 数据库日统计数量 - 橙色，虚线，较细，叠加在绿色上形成黄绿色
             {
                 'label': database_agg_label,
                 'data': database_aggregation_data,
-                'borderColor': 'rgba(54, 162, 235, 0.7)',
-                'backgroundColor': 'rgba(54, 162, 235, 0.05)',
-                'borderWidth': 2,
+                'borderColor': '#FF9F40',  # 橙色
+                'backgroundColor': 'rgba(255, 159, 64, 0.1)',
+                'borderWidth': 3,
                 'pointStyle': 'star',
                 'tension': 0.1,
-                'borderDash': [6, 3],
+                'borderDash': [8, 4],
                 'fill': False
             }
         ]
