@@ -384,7 +384,7 @@ def edit(credential_id: int) -> "str | Response":
     return render_template("credentials/edit.html", credential=credential)
 
 
-@credentials_bp.route("/<int:credential_id>/toggle", methods=["POST"])
+@credentials_bp.route("/api/credentials/<int:credential_id>/toggle", methods=["POST"])
 @login_required
 @update_required
 def toggle(credential_id: int) -> "Response":
@@ -429,7 +429,7 @@ def toggle(credential_id: int) -> "Response":
         return redirect(url_for("credentials.index"))
 
 
-@credentials_bp.route("/<int:credential_id>/delete", methods=["POST"])
+@credentials_bp.route("/api/credentials/<int:credential_id>/delete", methods=["POST"])
 @login_required
 @delete_required
 def delete(credential_id: int) -> "Response":

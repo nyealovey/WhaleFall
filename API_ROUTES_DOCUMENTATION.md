@@ -143,8 +143,8 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/credentials/<int:id>/toggle` | POST | 启用/禁用凭据 |
-| `/credentials/<int:id>/delete` | POST | 删除凭据 |
+| `/credentials/api/credentials/<int:id>/toggle` | POST | 启用/禁用凭据 |
+| `/credentials/api/credentials/<int:id>/delete` | POST | 删除凭据 |
 | `/credentials/api/credentials` | GET | 获取凭据列表 API |
 | `/credentials/api/credentials/<int:id>` | GET | 获取凭据详情 API |
 
