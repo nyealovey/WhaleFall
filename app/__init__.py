@@ -405,6 +405,9 @@ def register_blueprints(app: Flask) -> None:
     
     # 注册分区管理蓝图
     from app.routes.partition import partition_bp
+    
+    # 注册连接管理蓝图
+    from app.routes.connections import connections_bp
 
     # 注册所有蓝图到Flask应用
     app.register_blueprint(main_bp)
@@ -427,6 +430,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(users_bp, url_prefix='/users')
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
     app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')
+    app.register_blueprint(connections_bp, url_prefix='/connections')
 
     # 初始化定时任务调度器
     from app.scheduler import init_scheduler
