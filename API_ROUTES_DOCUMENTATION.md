@@ -265,7 +265,7 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/partition/` | GET | 分区管理数据（有查询参数时） |
+| `/partition/api/info` | GET | 获取分区信息 |
 | `/partition/api/status` | GET | 获取分区管理状态 |
 | `/partition/api/test` | GET | 测试分区管理服务（调试用） |
 | `/partition/api/create` | POST | 创建分区 |
