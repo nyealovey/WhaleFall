@@ -365,10 +365,24 @@ def instance_aggregations():
             
             # 排序和分页
             if get_all:
-                # 用于图表显示：按总大小排序获取TOP N（默认50，支持更多实例）
-                query = query.order_by(desc(InstanceSizeAggregation.total_size_mb))
-                # 增加限制到50，确保有足够的数据供前端TOP选择
-                aggregations = query.limit(50).all()
+                # 用于图表显示：按总大小排序获取TOP N实例
+                # 先按实例分组，获取每个实例的最大容量
+                from sqlalchemy import func
+                subquery = query.with_entities(
+                    InstanceSizeAggregation.instance_id,
+                    func.max(InstanceSizeAggregation.total_size_mb).label('max_total_size_mb')
+                ).group_by(InstanceSizeAggregation.instance_id).subquery()
+                
+                # 获取TOP 50实例的ID
+                top_instances = db.session.query(subquery.c.instance_id).order_by(
+                    desc(subquery.c.max_total_size_mb)
+                ).limit(50).all()
+                top_instance_ids = [row[0] for row in top_instances]
+                
+                # 获取这些实例的所有聚合数据
+                aggregations = query.filter(
+                    InstanceSizeAggregation.instance_id.in_(top_instance_ids)
+                ).order_by(desc(InstanceSizeAggregation.total_size_mb)).all()
                 total = len(aggregations)
             else:
                 # 用于表格显示：按时间排序分页
