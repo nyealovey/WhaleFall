@@ -512,25 +512,16 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
     return decorator
 
 
-def has_permission(user: Any, permission: str) -> bool:  # noqa: ANN401
-    """
-    检查用户是否有指定权限
+def has_permission(user: Any, permission: str) -> bool:
+    """检查用户是否有指定权限。
 
     Args:
-        user: 用户对象
-        permission: 权限名称
+        user: 用户对象。
+        permission: 权限名称，可以是简单的字符串或以点分隔的路径。
 
     Returns:
-        bool: 是否有权限
+        bool: 是否有权限。
     """
-    # 权限级别定义
-
-    # 角色权限映射
-    ROLE_PERMISSIONS = {
-        "admin": ["view", "create", "update", "delete"],
-        "user": ["view"],
-    }  # 普通用户只能查看
-
     if not user or not user.is_authenticated:
         return False
 
@@ -538,9 +529,21 @@ def has_permission(user: Any, permission: str) -> bool:  # noqa: ANN401
     if user.role == "admin":
         return True
 
-    # 检查用户角色是否有该权限
-    user_permissions = ROLE_PERMISSIONS.get(user.role, [])
-    return permission in user_permissions
+    # 模拟从数据库或配置中加载的用户权限
+    # 在真实应用中，这里应该查询数据库
+    user_permissions = {
+        "user": {
+            "view",
+            "instance_management.instance_list.view",
+            "instance_management.instance_list.sync_capacity",  # 授予 user 角色同步权限
+        },
+        "guest": {"view"},
+    }
+
+    required_permissions = user_permissions.get(user.role, set())
+
+    # 检查是否有所需的权限
+    return permission in required_permissions
 
 
 def view_required(f: Any = None, *, permission: str = "view") -> Any:  # noqa: ANN401
