@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app import db
-import datetime
+from app.utils.time_utils import now
 
 
 class InstanceSizeAggregation(db.Model):
@@ -61,8 +61,8 @@ class InstanceSizeAggregation(db.Model):
     trend_direction = Column(String(20), nullable=True, comment="趋势方向：growing, shrinking, stable")
     
     # 时间戳
-    calculated_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, comment="计算时间")
-    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, comment="记录创建时间")
+    calculated_at = Column(DateTime, nullable=False, default=now, comment="计算时间")
+    created_at = Column(DateTime, nullable=False, default=now, comment="记录创建时间")
     
     instance = relationship("Instance", back_populates="instance_size_aggregations")
     

@@ -8,6 +8,7 @@ import json
 import subprocess
 import sys
 from datetime import datetime
+from app.utils.time_utils import time_utils
 from pathlib import Path
 
 # 添加项目根目录到Python路径
@@ -141,7 +142,7 @@ def generate_report(results: dict, project_root: Path) -> None:
     report_file.parent.mkdir(parents=True, exist_ok=True)
 
     # 添加时间戳和摘要
-    results["timestamp"] = datetime.now().isoformat()
+    results["timestamp"] = time_utils.now().isoformat()
     results["summary"] = {
         "total_checks": len(results["checks"]),
         "passed_checks": sum(1 for r in results["checks"].values() if r["returncode"] == 0),
@@ -163,7 +164,7 @@ def generate_fix_suggestions(results: dict, project_root: Path) -> None:
 
     with open(suggestions_file, "w", encoding="utf-8") as f:
         f.write("# 代码质量修复建议\n\n")
-        f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        f.write(f"生成时间: {time_utils.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
 
         # Ruff问题
         ruff_result = results["checks"].get("ruff", {})

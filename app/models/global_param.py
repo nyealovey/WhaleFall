@@ -2,7 +2,7 @@
 全局参数模型
 """
 
-from datetime import datetime
+from app.utils.time_utils import now
 
 from app import db
 
@@ -17,8 +17,8 @@ class GlobalParam(db.Model):
     value = db.Column(db.Text, nullable=False, comment="参数值")
     description = db.Column(db.Text, comment="参数描述")
     param_type = db.Column(db.String(50), nullable=False, default="string", comment="参数类型")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, comment="创建时间")
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
+    created_at = db.Column(db.DateTime, default=now, comment="创建时间")
+    updated_at = db.Column(db.DateTime, default=now, onupdate=now, comment="更新时间")
 
     def __repr__(self) -> str:
         return f"<GlobalParam {self.key}>"

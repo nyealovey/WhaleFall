@@ -8,6 +8,7 @@ import json
 import subprocess
 import sys
 from datetime import datetime
+from app.utils.time_utils import time_utils
 from pathlib import Path
 from typing import Any
 
@@ -26,7 +27,7 @@ class QualityChecker:
     def __init__(self):
         self.project_root = Path(__file__).parent.parent
         self.results = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": time_utils.now().isoformat(),
             "checks": {},
             "summary": {"total_checks": 0, "passed_checks": 0, "failed_checks": 0, "warnings": 0},
         }

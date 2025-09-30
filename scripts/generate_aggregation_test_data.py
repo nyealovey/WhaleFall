@@ -13,6 +13,7 @@ import os
 import sys
 import random
 from datetime import datetime, date, timedelta
+from app.utils.time_utils import time_utils
 
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -101,8 +102,8 @@ def generate_test_data():
                         'log_size_change_mb': random.randint(-20, 20),
                         'log_size_change_percent': random.uniform(-2, 2),
                         'growth_rate': random.uniform(-2, 2),
-                        'calculated_at': datetime.now(),
-                        'created_at': datetime.now()
+                        'calculated_at': time_utils.now(),
+                        'created_at': time_utils.now()
                     })
             db.session.commit()
         
@@ -142,8 +143,8 @@ def generate_test_data():
                         'log_size_change_mb': random.randint(-20, 40),
                         'log_size_change_percent': random.uniform(-5, 5),
                         'growth_rate': random.uniform(-5, 5),
-                        'calculated_at': datetime.now(),
-                        'created_at': datetime.now()
+                        'calculated_at': time_utils.now(),
+                        'created_at': time_utils.now()
                     })
             db.session.commit()
         
@@ -187,8 +188,8 @@ def generate_test_data():
                         'log_size_change_mb': random.randint(-40, 100),
                         'log_size_change_percent': random.uniform(-10, 10),
                         'growth_rate': random.uniform(-10, 10),
-                        'calculated_at': datetime.now(),
-                        'created_at': datetime.now()
+                        'calculated_at': time_utils.now(),
+                        'created_at': time_utils.now()
                     })
             db.session.commit()
         
