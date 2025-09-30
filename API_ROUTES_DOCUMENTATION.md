@@ -314,11 +314,7 @@
 | `/partition/api/cleanup` | POST | 清理旧分区 |
 | `/partition/api/statistics` | GET | 获取分区统计信息 |
 | `/partition/api/create-future` | POST | 创建未来分区 |
-| `/partition/api/aggregations/latest` | GET | 获取最新的聚合数据 |
-| `/partition/api/aggregations/cleanup` | POST | 清理旧的聚合数据 |
-| `/partition/api/aggregations/summary` | GET | 获取聚合数据统计概览 |
 | `/partition/api/aggregations/core-metrics` | GET | 获取核心指标数据 |
-| `/partition/api/aggregations/chart` | GET | 获取聚合数据图表数据 |
 
 ---
 
@@ -487,8 +483,8 @@ connectionManager.batchTestConnections([1,2,3], {
 ### 总体统计
 - **总模块数**: 23 个
 - **页面路由总数**: 约 39 个
-- **API 接口总数**: 178 个
-- **总路由数**: 217 个
+- **API 接口总数**: 174 个
+- **总路由数**: 213 个
 - **前端组件数**: 1 个（连接管理组件）
 - **已弃用API**: 2 个（保持向后兼容）
 
@@ -534,6 +530,15 @@ connectionManager.batchTestConnections([1,2,3], {
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
 - **版本**: v1.5.0
+
+### v1.5.3 更新内容 (2025-09-30)
+- ✅ 删除分区管理模块中未使用的聚合API接口
+- ✅ 删除 `/partition/api/aggregations/latest`、`/partition/api/aggregations/cleanup`、`/partition/api/aggregations/summary`、`/partition/api/aggregations/chart` 接口
+- ✅ 这4个API都未被前端调用，只保留被使用的 `/partition/api/aggregations/core-metrics`
+- ✅ 清理未使用的代码和函数
+- ✅ 更新API接口总数统计（从178个减少到174个）
+- ✅ 更新总路由数统计（从217个减少到213个）
+- ✅ 进一步优化代码质量，移除冗余功能
 
 ### v1.5.2 更新内容 (2025-09-30)
 - ✅ 删除存储同步模块中重复的API接口
