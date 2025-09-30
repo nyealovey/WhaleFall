@@ -331,7 +331,6 @@
 | `/storage_sync/api/stats` | GET | 获取数据库大小监控统计信息 |
 | `/storage_sync/api/test_connection` | POST | 测试数据库连接（已弃用，请使用 /connections/api/test） |
 | `/storage_sync/api/manual_collect` | POST | 手动触发数据采集 |
-| `/storage_sync/api/cleanup_partitions` | POST | 手动清理分区 |
 | `/storage_sync/api/instances` | GET | 获取实例列表 |
 | `/storage_sync/api/instances/<int:id>/database-sizes/total` | GET | 获取指定实例的数据库总大小 |
 | `/storage_sync/api/instances/<int:id>/database-sizes` | GET | 获取指定实例的数据库大小历史数据 |
@@ -467,8 +466,8 @@ connectionManager.batchTestConnections([1,2,3], {
 ### 总体统计
 - **总模块数**: 21 个
 - **页面路由总数**: 约 39 个
-- **API 接口总数**: 163 个
-- **总路由数**: 202 个
+- **API 接口总数**: 162 个
+- **总路由数**: 201 个
 - **前端组件数**: 1 个（连接管理组件）
 - **已弃用API**: 2 个（保持向后兼容）
 
@@ -513,7 +512,15 @@ connectionManager.batchTestConnections([1,2,3], {
 
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
-- **版本**: v1.3.0
+- **版本**: v1.3.1
+
+### v1.3.1 更新内容 (2025-09-30)
+- ✅ 重构存储同步模块，移除手动清理分区功能
+- ✅ 手动清理分区功能已移至分区管理模块
+- ✅ 优化模块职责分离，提高代码组织性
+- ✅ 更新API接口总数统计（从163个减少到162个）
+- ✅ 更新总路由数统计（从202个减少到201个）
+- ✅ 完善分区管理模块的清理功能文档
 
 ### v1.3.0 更新内容 (2025-09-30)
 - ✅ 实现数据库连接API抽离方案

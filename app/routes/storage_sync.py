@@ -195,31 +195,6 @@ def manual_collect():
         }), 500
 
 
-@storage_sync_bp.route('/api/cleanup_partitions', methods=['POST'])
-@login_required
-@view_required
-def cleanup_partitions_manual():
-    """
-    手动清理分区
-    """
-    try:
-        from app.tasks.partition_management_tasks import cleanup_database_size_partitions
-        
-        # 触发清理任务
-        result = cleanup_database_size_partitions()
-        
-        return jsonify({
-            'success': True,
-            'message': '分区清理任务已触发',
-            'data': result
-        })
-        
-    except Exception as e:
-        logger.error(f"清理分区时出错: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 @storage_sync_bp.route('/api/instances', methods=['GET'])
 @login_required
