@@ -37,7 +37,7 @@ function handleDeleteConfirmation() {
         
         showLoadingState('confirmDelete', '删除中...');
         
-        fetch(`/credentials/${deleteCredentialId}/delete`, {
+        fetch(`/credentials/api/credentials/${deleteCredentialId}/delete`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ function toggleCredentialStatus(credentialId, isActive, button) {
     
     const csrfToken = getCSRFToken();
     
-    fetch(`/credentials/${credentialId}/toggle`, {
+    fetch(`/credentials/api/credentials/${credentialId}/toggle`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
