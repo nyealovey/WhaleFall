@@ -524,17 +524,6 @@ def account_statistics() -> "Response":
         return jsonify({"success": False, "error": f"获取统计信息失败: {str(e)}"}), 500
 
 
-@account_bp.route("/api/statistics")
-@login_required
-def api_statistics() -> "Response":
-    """API: 获取账户统计信息"""
-    try:
-        stats = get_account_statistics()
-        return jsonify(stats)
-    except Exception as e:
-        return jsonify({"success": False, "error": f"获取统计信息失败: {str(e)}"}), 500
-
-
 def get_account_statistics() -> dict:
     """获取账户统计信息"""
     try:
