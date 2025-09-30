@@ -371,6 +371,14 @@
     line-height: 1.5 !important;
 }
 
+/* 强制覆盖Bootstrap样式 - 最高优先级 */
+.unified-search-form .form-control.unified-input,
+.unified-search-form .form-select.unified-select {
+    height: 2.5rem !important;
+    min-height: 2.5rem !important;
+    line-height: 1.5 !important;
+}
+
 /* 确保卡片圆角在所有情况下都生效 - 使用更高优先级的选择器 */
 .card.search-filter-card,
 .card.search-filter-card .card-body {
@@ -384,10 +392,30 @@
     border-radius: 0.5rem !important;
 }
 
+/* 强制覆盖Bootstrap样式 - 最高优先级 */
+.card.search-filter-card {
+    border-radius: 0.5rem !important;
+}
+.card.search-filter-card .card-body {
+    border-radius: 0.5rem !important;
+    background: white !important;
+    padding: 1rem !important;
+}
+
 /* 确保按钮组高度一致 */
 .unified-search-form .d-grid {
     height: 100%;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+}
+
+/* 强制覆盖Bootstrap样式 - 最高优先级 */
+.btn.unified-search-btn,
+.btn.unified-clear-btn {
+    height: 2.5rem !important;
+    min-height: 2.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
