@@ -644,12 +644,32 @@ def get_instance_aggregations_summary():
             func.sum(InstanceSizeAggregation.database_count)
         ).select_from(query.subquery()).scalar() or 0
         
-        # 获取大小统计 - 从筛选后的数据获取
-        size_stats = db.session.query(
-            func.avg(InstanceSizeAggregation.total_size_mb).label('avg_size'),
-            func.max(InstanceSizeAggregation.total_size_mb).label('max_size'),
-            func.sum(InstanceSizeAggregation.total_size_mb).label('total_size')
-        ).select_from(query.subquery()).first()
+        # 获取大小统计 - 从筛选后的数据获取，按实例去重取最新数据
+        # 先获取每个实例的最新数据
+        latest_data_subquery = db.session.query(
+            InstanceSizeAggregation.instance_id,
+            func.max(InstanceSizeAggregation.calculated_at).label('latest_calculated_at')
+        ).select_from(query.subquery()).group_by(InstanceSizeAggregation.instance_id).subquery()
+        
+        # 获取每个实例的最新容量数据
+        latest_sizes = db.session.query(
+            InstanceSizeAggregation.total_size_mb
+        ).select_from(query.subquery()).join(
+            latest_data_subquery,
+            (InstanceSizeAggregation.instance_id == latest_data_subquery.c.instance_id) &
+            (InstanceSizeAggregation.calculated_at == latest_data_subquery.c.latest_calculated_at)
+        ).all()
+        
+        # 计算统计值
+        if latest_sizes:
+            sizes = [row[0] for row in latest_sizes if row[0] is not None]
+            total_size = sum(sizes)
+            avg_size = total_size / len(sizes) if sizes else 0
+            max_size = max(sizes) if sizes else 0
+        else:
+            total_size = 0
+            avg_size = 0
+            max_size = 0
         
         # 按周期类型统计 - 使用筛选后的数据
         period_stats = db.session.query(
@@ -676,16 +696,16 @@ def get_instance_aggregations_summary():
             'total_aggregations': total_aggregations,
             'total_instances': total_instances,
             'total_databases': total_databases,
-            'total_size_mb': size_stats.total_size or 0,
-            'avg_size_mb': float(size_stats.avg_size) if size_stats.avg_size else 0,
-            'max_size_mb': size_stats.max_size or 0,
+            'total_size_mb': total_size,
+            'avg_size_mb': float(avg_size),
+            'max_size_mb': max_size,
             'period_stats': [{'period_type': p.period_type, 'count': p.count} for p in period_stats],
             'instance_stats': [{'instance_name': i.instance_name, 'count': i.count} for i in instance_stats],
             'last_update': latest_aggregation.calculated_at.isoformat() if latest_aggregation else None
         }
         
         # 添加调试日志
-        logger.info(f"API响应数据: db_type={db_type}, total_instances={total_instances}, total_size_mb={size_stats.total_size or 0}")
+        logger.info(f"API响应数据: db_type={db_type}, total_instances={total_instances}, total_size_mb={total_size}")
         
         return jsonify({
             'success': True,
