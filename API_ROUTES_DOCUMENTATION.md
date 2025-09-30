@@ -218,7 +218,7 @@
 | `/instances/api/create` | POST | 创建实例API |
 | `/instances/api/<int:id>/edit` | POST | 编辑实例API |
 | `/instances/api/<int:id>/delete` | POST | 删除实例 |
-| `/instances/api/<int:id>/test` | GET, POST | 测试连接API（支持GET和POST方法） |
+| `/instances/api/<int:id>/test` | GET, POST | 测试连接API（已弃用，请使用 /connections/api/test） |
 | `/instances/api/<int:id>/accounts` | GET | 获取实例账户数据API |
 | `/instances/api/<int:id>/accounts/<int:account_id>/change-history` | GET | 获取账户变更历史 |
 | `/instances/api/<int:id>/accounts/<int:account_id>/permissions` | GET | 获取账户权限详情 |
@@ -329,7 +329,7 @@
 |------|------|------|
 | `/storage_sync/api/status` | GET | 获取数据库大小监控状态 |
 | `/storage_sync/api/stats` | GET | 获取数据库大小监控统计信息 |
-| `/storage_sync/api/test_connection` | POST | 测试数据库连接 |
+| `/storage_sync/api/test_connection` | POST | 测试数据库连接（已弃用，请使用 /connections/api/test） |
 | `/storage_sync/api/manual_collect` | POST | 手动触发数据采集 |
 | `/storage_sync/api/cleanup_partitions` | POST | 手动清理分区 |
 | `/storage_sync/api/instances` | GET | 获取实例列表 |
@@ -436,8 +436,29 @@
 | `/connections/api/test` | POST | 测试数据库连接（支持现有实例和新连接） |
 | `/connections/api/supported-types` | GET | 获取支持的数据库类型列表 |
 | `/connections/api/validate-params` | POST | 验证连接参数 |
-| `/connections/api/batch-test` | POST | 批量测试连接 |
+| `/connections/api/batch-test` | POST | 批量测试连接（最多50个实例） |
 | `/connections/api/status/<int:instance_id>` | GET | 获取实例连接状态 |
+
+### 前端组件
+| 组件 | 路径 | 描述 |
+|------|------|------|
+| `connectionManager` | `/static/js/components/connection-manager.js` | 统一的连接管理前端组件 |
+| 批量测试UI | 实例列表页面 | 支持批量选择和测试连接 |
+| 进度显示 | 各页面 | 实时显示测试进度和结果 |
+
+### 使用示例
+```javascript
+// 测试现有实例连接
+connectionManager.testInstanceConnection(instanceId, {
+    onSuccess: (data) => console.log('成功:', data),
+    onError: (error) => console.error('失败:', error)
+});
+
+// 批量测试连接
+connectionManager.batchTestConnections([1,2,3], {
+    onProgress: (result) => connectionManager.showBatchTestProgress(result)
+});
+```
 
 ---
 
@@ -446,8 +467,10 @@
 ### 总体统计
 - **总模块数**: 21 个
 - **页面路由总数**: 约 39 个
-- **API 接口总数**: 158 个
-- **总路由数**: 197 个
+- **API 接口总数**: 163 个
+- **总路由数**: 202 个
+- **前端组件数**: 1 个（连接管理组件）
+- **已弃用API**: 2 个（保持向后兼容）
 
 ### API 前缀使用情况
 根据内存中的已知问题，项目存在 API 前缀不统一的情况：
@@ -463,7 +486,6 @@
 2. **规范命名风格**: 统一使用横杠分隔符 (`kebab-case`)
 3. **版本控制**: 为 API 添加版本号支持
 4. **文档化**: 建议添加 Swagger/OpenAPI 文档
-
 5. **语义化方法**: 避免使用 GET 执行有副作用的操作（如登出），建议限制为 POST
 6. **路径去冗余**: 避免重复片段，如 `/aggregations/api/instance/api`，建议统一到 `/aggregations/api/instance`
 7. **资源层级一致性**: 类似 `/instances/api/instances/<id>` 建议调整为 `/instances/api/<id>`，保持层级简洁一致
@@ -471,13 +493,38 @@
 9. **CSRF 策略明确**: 仅对确需跨域或非表单请求的接口豁免 CSRF，例如 `/instances/api/test-connection`
 10. **限流与防护**: 对登录等敏感接口（`/auth/api/login`）增加限流与强校验，防止暴力尝试
 
+### 连接管理API迁移状态
+- ✅ **已完成**: 连接管理模块API抽离和前端迁移
+- ✅ **新功能**: 批量测试连接（最多50个实例）
+- ✅ **向后兼容**: 旧API标记为已弃用但仍可用
+- ✅ **统一组件**: 前端使用 `connectionManager` 统一组件
+- 📋 **迁移指南**: 详见 `docs/connection-api-migration.md`
+
+### 迁移影响范围
+- **前端页面**: 实例详情、编辑、列表页面已完全迁移
+- **代码优化**: 减少137行重复代码，提高维护性
+- **功能增强**: 新增批量测试和进度显示功能
+- **用户体验**: 统一的操作界面和错误处理
+- **开发效率**: 统一的API调用方式，简化开发流程
+
 ---
 
 ## 📝 更新日志
 
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
-- **版本**: v1.2.10
+- **版本**: v1.3.0
+
+### v1.3.0 更新内容 (2025-09-30)
+- ✅ 实现数据库连接API抽离方案
+- ✅ 新增连接管理模块 (connections.py) 包含5个API接口
+- ✅ 创建统一的前端连接管理组件 (connection-manager.js)
+- ✅ 完成前端迁移：实例详情、编辑、列表页面
+- ✅ 添加批量测试连接功能（支持最多50个实例）
+- ✅ 标记旧连接测试API为已弃用，保持向后兼容
+- ✅ 更新API接口总数统计（从158个增加到163个）
+- ✅ 更新总路由数统计（从197个增加到202个）
+- ✅ 提供完整的迁移指南和使用文档
 
 ### v1.2.10 更新内容 (2025-09-30)
 - ✅ 删除无用的API路由：/aggregations/api/data
