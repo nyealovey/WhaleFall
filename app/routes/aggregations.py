@@ -586,7 +586,8 @@ def get_instance_aggregations_summary():
         # 获取大小统计 - 从实例统计聚合表获取
         size_stats = db.session.query(
             func.avg(InstanceSizeAggregation.total_size_mb).label('avg_size'),
-            func.max(InstanceSizeAggregation.total_size_mb).label('max_size')
+            func.max(InstanceSizeAggregation.total_size_mb).label('max_size'),
+            func.sum(InstanceSizeAggregation.total_size_mb).label('total_size')
         ).first()
         
         # 按周期类型统计
@@ -614,6 +615,7 @@ def get_instance_aggregations_summary():
             'total_aggregations': total_aggregations,
             'total_instances': total_instances,
             'total_databases': total_databases,
+            'total_size_mb': size_stats.total_size or 0,
             'avg_size_mb': float(size_stats.avg_size) if size_stats.avg_size else 0,
             'max_size_mb': size_stats.max_size or 0,
             'period_stats': [{'period_type': p.period_type, 'count': p.count} for p in period_stats],

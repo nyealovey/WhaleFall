@@ -260,7 +260,7 @@ class InstanceAggregationsManager {
         // 从API响应中提取正确的数据
         const summaryData = data.data || data;
         $('#totalInstances').text(summaryData.total_instances || 0);
-        $('#totalDatabases').text(summaryData.total_databases || 0);
+        $('#totalDatabases').text(this.formatSizeFromMB(summaryData.total_size_mb || 0));
         $('#averageSize').text(this.formatSizeFromMB(summaryData.avg_size_mb || 0));
         $('#maxSize').text(this.formatSizeFromMB(summaryData.max_size_mb || 0));
     }
