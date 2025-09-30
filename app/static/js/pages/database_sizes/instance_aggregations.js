@@ -454,7 +454,7 @@ class InstanceAggregationsManager {
                 label: instanceName,
                 data: data,
                 borderColor: colors[colorIndex % colors.length],
-                backgroundColor: colors[colorIndex % colors.length] + '20',
+                backgroundColor: colors[colorIndex % colors.length] + '10',
                 fill: false,
                 tension: 0.1,
                 hidden: false // 确保数据点可见
