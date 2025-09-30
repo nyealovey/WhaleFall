@@ -97,17 +97,17 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/aggregations/` | GET | 统计聚合数据（有查询参数时） |
-| `/aggregations/summary` | GET | 获取统计聚合数据汇总 |
-| `/aggregations/instance` | GET | 实例统计聚合数据（有查询参数时） |
-| `/aggregations/database` | GET | 数据库统计聚合数据（有查询参数时） |
-| `/aggregations/instance/summary` | GET | 获取实例统计聚合汇总 |
-| `/aggregations/database/summary` | GET | 获取数据库统计聚合汇总 |
-| `/aggregations/manual_aggregate` | POST | 手动触发聚合计算 |
-| `/aggregations/aggregate` | POST | 手动触发统计聚合计算 |
-| `/aggregations/aggregate-today` | POST | 手动触发今日数据聚合 |
-| `/aggregations/aggregate/status` | GET | 获取聚合状态信息 |
-| `/aggregations/instances/<int:id>/database-sizes/aggregations` | GET | 获取指定实例的聚合数据 |
+| `/aggregations/api/` | GET | 统计聚合数据（有查询参数时） |
+| `/aggregations/api/summary` | GET | 获取统计聚合数据汇总 |
+| `/aggregations/api/instance` | GET | 实例统计聚合数据（有查询参数时） |
+| `/aggregations/api/database` | GET | 数据库统计聚合数据（有查询参数时） |
+| `/aggregations/api/instance/summary` | GET | 获取实例统计聚合汇总 |
+| `/aggregations/api/database/summary` | GET | 获取数据库统计聚合汇总 |
+| `/aggregations/api/manual_aggregate` | POST | 手动触发聚合计算 |
+| `/aggregations/api/aggregate` | POST | 手动触发统计聚合计算 |
+| `/aggregations/api/aggregate-today` | POST | 手动触发今日数据聚合 |
+| `/aggregations/api/aggregate/status` | GET | 获取聚合状态信息 |
+| `/aggregations/api/instances/<int:id>/database-sizes/aggregations` | GET | 获取指定实例的聚合数据 |
 
 ---
 

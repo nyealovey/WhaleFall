@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 aggregations_bp = Blueprint('aggregations', __name__)
 
 # 页面路由
-@aggregations_bp.route('/', methods=['GET'])
+@aggregations_bp.route('/api/', methods=['GET'])
 @login_required
 @view_required
 def aggregations():
@@ -226,7 +226,7 @@ def aggregations():
                              db_type=request.args.get('db_type', ''))
 
 
-@aggregations_bp.route('/summary', methods=['GET'])
+@aggregations_bp.route('/api/summary', methods=['GET'])
 @login_required
 @view_required
 def get_aggregations_summary():
@@ -317,7 +317,7 @@ def get_aggregations_summary():
         }), 500
 
 
-@aggregations_bp.route('/instance', methods=['GET'])
+@aggregations_bp.route('/api/instance', methods=['GET'])
 @login_required
 @view_required
 def instance_aggregations():
@@ -353,7 +353,7 @@ def instance_aggregations():
                          db_type=request.args.get('db_type', ''))
 
 
-@aggregations_bp.route('/instance/api', methods=['GET'])
+@aggregations_bp.route('/api/instance/api', methods=['GET'])
 @login_required
 @view_required
 def instance_aggregations_api():
@@ -464,7 +464,7 @@ def instance_aggregations_api():
         }), 500
 
 
-@aggregations_bp.route('/database', methods=['GET'])
+@aggregations_bp.route('/api/database', methods=['GET'])
 @login_required
 @view_required
 def database_aggregations():
@@ -583,7 +583,7 @@ def database_aggregations():
                              db_type=request.args.get('db_type', ''))
 
 
-@aggregations_bp.route('/instance/summary', methods=['GET'])
+@aggregations_bp.route('/api/instance/summary', methods=['GET'])
 @login_required
 @view_required
 def get_instance_aggregations_summary():
@@ -721,7 +721,7 @@ def get_instance_aggregations_summary():
         }), 500
 
 
-@aggregations_bp.route('/database/summary', methods=['GET'])
+@aggregations_bp.route('/api/database/summary', methods=['GET'])
 @login_required
 @view_required
 def get_database_aggregations_summary():
@@ -794,7 +794,7 @@ def get_database_aggregations_summary():
 
 # 聚合统计管理相关API
 
-@aggregations_bp.route('/manual_aggregate', methods=['POST'])
+@aggregations_bp.route('/api/manual_aggregate', methods=['POST'])
 @login_required
 @view_required
 def manual_aggregate():
@@ -822,7 +822,7 @@ def manual_aggregate():
         }), 500
 
 
-@aggregations_bp.route('/aggregate', methods=['POST'])
+@aggregations_bp.route('/api/aggregate', methods=['POST'])
 @login_required
 @view_required
 def calculate_aggregations():
@@ -847,7 +847,7 @@ def calculate_aggregations():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@aggregations_bp.route('/aggregate-today', methods=['POST'])
+@aggregations_bp.route('/api/aggregate-today', methods=['POST'])
 @login_required
 @view_required
 def calculate_today_aggregations():
@@ -878,7 +878,7 @@ def calculate_today_aggregations():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@aggregations_bp.route('/aggregate/status', methods=['GET'])
+@aggregations_bp.route('/api/aggregate/status', methods=['GET'])
 @login_required
 @view_required
 def get_aggregation_status_api():
@@ -908,7 +908,7 @@ def get_aggregation_status_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@aggregations_bp.route('/instances/<int:instance_id>/database-sizes/aggregations', methods=['GET'])
+@aggregations_bp.route('/api/instances/<int:instance_id>/database-sizes/aggregations', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_aggregations(instance_id: int):

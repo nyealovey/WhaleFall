@@ -254,7 +254,7 @@ class InstanceAggregationsManager {
         try {
             const params = this.buildFilterParams();
             console.log('加载汇总数据，参数:', params.toString());
-            const response = await fetch(`/aggregations/instance/summary?${params}`);
+            const response = await fetch(`/aggregations/api/instance/summary?${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -292,7 +292,7 @@ class InstanceAggregationsManager {
             params.append('get_all', 'true');
             
             console.log('加载图表数据，参数:', params.toString());
-            const response = await fetch(`/aggregations/instance/api?${params}`);
+            const response = await fetch(`/aggregations/api/instance/api?${params}`);
             const data = await response.json();
             
             console.log('图表数据响应:', data);
@@ -535,7 +535,7 @@ class InstanceAggregationsManager {
         $('#calculationModal').modal('show');
         
         try {
-            const response = await fetch('/aggregations/aggregate-today', {
+            const response = await fetch('/aggregations/api/aggregate-today', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
