@@ -162,7 +162,7 @@ class DatabaseAggregationsManager {
             const params = this.buildFilterParams();
             params.set('instance_id', instanceId);
             
-            const response = await fetch(`/aggregations/database?api=true&${params}`);
+            const response = await fetch(`/aggregations/api/database?api=true&${params}`);
             const data = await response.json();
             
             if (response.ok && data.success) {
@@ -296,7 +296,7 @@ class DatabaseAggregationsManager {
     async loadSummaryData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/aggregations/database/summary?api=true&${params}`);
+            const response = await fetch(`/aggregations/api/database/summary?api=true&${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -331,7 +331,7 @@ class DatabaseAggregationsManager {
             params.append('get_all', 'true');
             
             console.log('加载图表数据，参数:', params.toString());
-            const response = await fetch(`/aggregations/database?api=true&${params}`);
+            const response = await fetch(`/aggregations/api/database?api=true&${params}`);
             const data = await response.json();
             
             console.log('图表数据响应:', data);
@@ -543,7 +543,7 @@ class DatabaseAggregationsManager {
     async loadTableData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/aggregations/database?api=true&${params}`);
+            const response = await fetch(`/aggregations/api/database?api=true&${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -786,7 +786,7 @@ class DatabaseAggregationsManager {
         $('#calculationModal').modal('show');
         
         try {
-            const response = await fetch('/aggregations/aggregate-today', {
+            const response = await fetch('/aggregations/api/aggregate-today', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
