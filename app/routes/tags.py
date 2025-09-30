@@ -455,6 +455,68 @@ def index() -> str:
     )
 
 
+@tags_bp.route("/api/create", methods=["POST"])
+@login_required
+@create_required
+def create_api() -> Response:
+    """创建标签API"""
+    data = request.get_json() if request.is_json else request.form
+
+    # 验证必填字段
+    required_fields = ["name", "display_name", "category"]
+    validation_error = validate_required_fields(data, required_fields)
+    if validation_error:
+        return jsonify({"error": validation_error}), 400
+
+    # 获取表单数据
+    name = data.get("name", "").strip()
+    display_name = data.get("display_name", "").strip()
+    category = data.get("category", "").strip()
+    color = data.get("color", "primary").strip()
+    description = data.get("description", "").strip()
+    sort_order = data.get("sort_order", 0, type=int)
+    is_active = data.get("is_active", True)
+    if isinstance(is_active, str):
+        is_active = is_active in ["on", "true", "1", "yes"]
+
+    # 验证标签名称唯一性
+    existing_tag = Tag.query.filter_by(name=name).first()
+    if existing_tag:
+        return jsonify({"error": "标签名称已存在"}), 400
+
+    try:
+        # 创建新标签
+        tag = Tag(
+            name=name,
+            display_name=display_name,
+            category=category,
+            color=color,
+            description=description,
+            sort_order=sort_order,
+            is_active=is_active,
+        )
+
+        db.session.add(tag)
+        db.session.commit()
+
+        # 记录操作日志
+        log_info(
+            "创建标签",
+            module="tags",
+            user_id=current_user.id,
+            tag_id=tag.id,
+            tag_name=tag.name,
+            category=tag.category,
+        )
+
+        return jsonify({"message": "标签创建成功", "tag": tag.to_dict()}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        log_error(f"创建标签失败: {e}", module="tags", exc_info=True)
+        return jsonify({"error": f"创建标签失败: {str(e)}"}), 500
+
+
 @tags_bp.route("/create", methods=["GET", "POST"])
 @login_required
 @create_required
@@ -520,6 +582,67 @@ def create() -> str | Response:
             flash(f"标签创建失败: {str(e)}", "error")
 
     return render_template("tags/create.html")
+
+
+@tags_bp.route("/api/edit/<int:tag_id>", methods=["POST"])
+@login_required
+@update_required
+def edit_api(tag_id: int) -> Response:
+    """编辑标签API"""
+    tag = Tag.query.get_or_404(tag_id)
+    data = request.get_json() if request.is_json else request.form
+
+    # 验证必填字段
+    required_fields = ["name", "display_name", "category"]
+    validation_error = validate_required_fields(data, required_fields)
+    if validation_error:
+        return jsonify({"error": validation_error}), 400
+
+    # 获取表单数据
+    name = data.get("name", "").strip()
+    display_name = data.get("display_name", "").strip()
+    category = data.get("category", "").strip()
+    color = data.get("color", "primary").strip()
+    description = data.get("description", "").strip()
+    sort_order = data.get("sort_order", 0, type=int)
+    is_active = data.get("is_active", tag.is_active)
+    if isinstance(is_active, str):
+        is_active = is_active in ["on", "true", "1", "yes"]
+
+    # 验证标签名称唯一性（排除当前标签）
+    existing_tag = Tag.query.filter(Tag.name == name, Tag.id != tag_id).first()
+    if existing_tag:
+        return jsonify({"error": "标签名称已存在"}), 400
+
+    try:
+        # 更新标签信息
+        tag.name = name
+        tag.display_name = display_name
+        tag.category = category
+        tag.color = color
+        tag.description = description
+        tag.sort_order = sort_order
+        tag.is_active = is_active
+
+        db.session.commit()
+
+        # 记录操作日志
+        log_info(
+            "更新标签",
+            module="tags",
+            user_id=current_user.id,
+            tag_id=tag.id,
+            tag_name=tag.name,
+            category=tag.category,
+            is_active=tag.is_active,
+        )
+
+        return jsonify({"message": "标签更新成功", "tag": tag.to_dict()})
+
+    except Exception as e:
+        db.session.rollback()
+        log_error(f"更新标签失败: {e}", module="tags", exc_info=True)
+        return jsonify({"error": f"更新标签失败: {str(e)}"}), 500
 
 
 @tags_bp.route("/edit/<int:tag_id>", methods=["GET", "POST"])
