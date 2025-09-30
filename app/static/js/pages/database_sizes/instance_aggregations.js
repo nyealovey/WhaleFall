@@ -400,8 +400,8 @@ class InstanceAggregationsManager {
             if (!grouped[date][instanceName]) {
                 grouped[date][instanceName] = 0;
             }
-            // 使用total_size_mb，表示实例的总容量
-            grouped[date][instanceName] = Math.max(grouped[date][instanceName], item.total_size_mb || 0);
+            // 使用total_size_mb，表示实例的总容量（直接赋值，因为每个实例每天只有一条记录）
+            grouped[date][instanceName] = item.total_size_mb || 0;
         });
         
         console.log('分组后的数据:', grouped);
