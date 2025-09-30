@@ -123,7 +123,7 @@ def login() -> "str | Response":
     return render_template("auth/login.html")
 
 
-@auth_bp.route("/logout", methods=["GET", "POST"])
+@auth_bp.route("/api/logout", methods=["GET", "POST"])
 @login_required
 def logout() -> "Response":
     """用户登出"""
