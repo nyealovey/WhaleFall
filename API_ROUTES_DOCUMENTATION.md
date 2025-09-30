@@ -312,18 +312,18 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/storage_sync/status` | GET | 获取数据库大小监控状态 |
-| `/storage_sync/stats` | GET | 获取数据库大小监控统计信息 |
-| `/storage_sync/test_connection` | POST | 测试数据库连接 |
-| `/storage_sync/manual_collect` | POST | 手动触发数据采集 |
-| `/storage_sync/cleanup_partitions` | POST | 手动清理分区 |
-| `/storage_sync/instances` | GET | 获取实例列表 |
-| `/storage_sync/instances/<int:id>/database-sizes/total` | GET | 获取指定实例的数据库总大小 |
-| `/storage_sync/instances/<int:id>/database-sizes` | GET | 获取指定实例的数据库大小历史数据 |
-| `/storage_sync/instances/<int:id>/database-sizes/summary` | GET | 获取指定实例的数据库大小汇总信息 |
-| `/storage_sync/collect` | POST | 手动触发数据库大小采集 |
-| `/storage_sync/instances/<int:id>/sync-capacity` | POST | 同步指定实例的数据库容量信息 |
-| `/storage_sync/instances/<int:id>/databases` | GET | 获取指定实例的数据库列表 |
+| `/storage_sync/api/status` | GET | 获取数据库大小监控状态 |
+| `/storage_sync/api/stats` | GET | 获取数据库大小监控统计信息 |
+| `/storage_sync/api/test_connection` | POST | 测试数据库连接 |
+| `/storage_sync/api/manual_collect` | POST | 手动触发数据采集 |
+| `/storage_sync/api/cleanup_partitions` | POST | 手动清理分区 |
+| `/storage_sync/api/instances` | GET | 获取实例列表 |
+| `/storage_sync/api/instances/<int:id>/database-sizes/total` | GET | 获取指定实例的数据库总大小 |
+| `/storage_sync/api/instances/<int:id>/database-sizes` | GET | 获取指定实例的数据库大小历史数据 |
+| `/storage_sync/api/instances/<int:id>/database-sizes/summary` | GET | 获取指定实例的数据库大小汇总信息 |
+| `/storage_sync/api/collect` | POST | 手动触发数据库大小采集 |
+| `/storage_sync/api/instances/<int:id>/sync-capacity` | POST | 同步指定实例的数据库容量信息 |
+| `/storage_sync/api/instances/<int:id>/databases` | GET | 获取指定实例的数据库列表 |
 
 ---
 
