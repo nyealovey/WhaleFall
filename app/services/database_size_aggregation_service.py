@@ -387,7 +387,12 @@ class DatabaseSizeAggregationService:
             
             # 更新统计指标
             aggregation.total_size_mb = int(sum(daily_totals) / len(daily_totals))  # 平均总大小
-            aggregation.avg_size_mb = int(sum(daily_totals) / len(daily_totals))    # 平均大小
+            # 计算平均每个数据库的容量
+            if sum(daily_db_counts) > 0:
+                avg_size_per_db = sum(daily_totals) / sum(daily_db_counts)
+                aggregation.avg_size_mb = int(avg_size_per_db)
+            else:
+                aggregation.avg_size_mb = 0
             aggregation.max_size_mb = max(daily_totals)                             # 最大大小
             aggregation.min_size_mb = min(daily_totals)                             # 最小大小
             aggregation.data_count = len(daily_totals)                              # 数据点数量
