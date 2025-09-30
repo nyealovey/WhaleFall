@@ -43,23 +43,23 @@ class AggregationsChartManager {
         
         const legendHtml = `
             <div class="chart-legend">
-                <h6>数据类型说明：</h6>
+                <h6>核心指标说明：</h6>
                 <div class="legend-items">
                     <div class="legend-item">
                         <span class="legend-color" style="background-color: #FF6384;"></span>
-                        <span class="legend-text">📊 数据库聚合 - 按数据库维度聚合的容量数据</span>
+                        <span class="legend-text">📊 实例数总量 - 每天采集的实例数量</span>
                     </div>
                     <div class="legend-item">
-                        <span class="legend-color" style="background-color: #36A2EB; border-style: dashed;"></span>
-                        <span class="legend-text">🖥️ 实例聚合 - 按实例维度聚合的容量数据</span>
+                        <span class="legend-color" style="background-color: #36A2EB;"></span>
+                        <span class="legend-text">🗄️ 数据库数总量 - 每天采集的数据库数量</span>
                     </div>
                     <div class="legend-item">
-                        <span class="legend-color" style="background-color: #FFCE56;"></span>
-                        <span class="legend-text">📈 数据库统计 - 原始数据库容量统计数据</span>
+                        <span class="legend-color" style="background-color: #FFCE56; border-style: dashed;"></span>
+                        <span class="legend-text">📈 实例日统计数量 - 聚合统计下的实例日统计数量</span>
                     </div>
                     <div class="legend-item">
-                        <span class="legend-color" style="background-color: #4BC0C0;"></span>
-                        <span class="legend-text">📈 实例统计 - 原始实例容量统计数据</span>
+                        <span class="legend-color" style="background-color: #4BC0C0; border-style: dashed;"></span>
+                        <span class="legend-text">📈 数据库日统计数量 - 聚合统计下的数据库日统计数量</span>
                     </div>
                 </div>
             </div>
@@ -88,17 +88,17 @@ class AggregationsChartManager {
      */
     updateChartInfo() {
         const periodNames = {
-            'daily': '日聚合数据趋势',
-            'weekly': '周聚合数据趋势', 
-            'monthly': '月聚合数据趋势',
-            'quarterly': '季度聚合数据趋势'
+            'daily': '日核心指标趋势',
+            'weekly': '周核心指标趋势', 
+            'monthly': '月核心指标趋势',
+            'quarterly': '季度核心指标趋势'
         };
         
         const periodSubtitles = {
-            'daily': '最近7天的数据统计',
-            'weekly': '最近7周的数据统计',
-            'monthly': '最近7个月的数据统计', 
-            'quarterly': '最近7个季度的数据统计'
+            'daily': '最近7天的核心指标统计',
+            'weekly': '最近7周的核心指标统计',
+            'monthly': '最近7个月的核心指标统计', 
+            'quarterly': '最近7个季度的核心指标统计'
         };
         
         $('#chartTitle').text(periodNames[this.currentPeriodType]);
@@ -117,7 +117,7 @@ class AggregationsChartManager {
                 days: 7
             });
             
-            const response = await fetch(`/partition/api/aggregations/chart?${params}`);
+            const response = await fetch(`/partition/api/aggregations/core-metrics?${params}`);
             if (response.ok) {
                 const data = await response.json();
                 this.currentData = data;

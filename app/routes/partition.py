@@ -470,12 +470,174 @@ def get_aggregations_summary():
         }), 500
 
 
+@partition_bp.route('/api/aggregations/core-metrics', methods=['GET'])
+@login_required
+@view_required
+def get_core_aggregation_metrics():
+    """
+    获取核心聚合指标数据
+    返回4个核心指标：实例数总量、数据库数总量、实例日统计数量、数据库日统计数量
+    """
+    try:
+        from datetime import date, timedelta
+        
+        # 获取查询参数
+        period_type = request.args.get('period_type', 'daily')
+        days = request.args.get('days', 7, type=int)
+        
+        # 计算日期范围
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days-1)
+        
+        # 查询数据库聚合数据
+        db_aggregations = DatabaseSizeAggregation.query.filter(
+            DatabaseSizeAggregation.period_type == period_type,
+            DatabaseSizeAggregation.period_start >= start_date,
+            DatabaseSizeAggregation.period_start <= end_date
+        ).all()
+        
+        # 查询实例聚合数据
+        from app.models.instance_size_aggregation import InstanceSizeAggregation
+        instance_aggregations = InstanceSizeAggregation.query.filter(
+            InstanceSizeAggregation.period_type == period_type,
+            InstanceSizeAggregation.period_start >= start_date,
+            InstanceSizeAggregation.period_start <= end_date
+        ).all()
+        
+        # 查询原始统计数据
+        from app.models.database_size_stat import DatabaseSizeStat
+        from app.models.instance_size_stat import InstanceSizeStat
+        
+        db_stats = DatabaseSizeStat.query.filter(
+            DatabaseSizeStat.collected_date >= start_date,
+            DatabaseSizeStat.collected_date <= end_date
+        ).all()
+        
+        instance_stats = InstanceSizeStat.query.filter(
+            InstanceSizeStat.collected_date >= start_date,
+            InstanceSizeStat.collected_date <= end_date
+        ).all()
+        
+        # 按日期统计4个核心指标
+        from collections import defaultdict
+        daily_metrics = defaultdict(lambda: {
+            'instance_count': 0,      # 每天采集的实例数总量
+            'database_count': 0,      # 每天采集的数据库数总量
+            'instance_aggregation_count': 0,  # 聚合统计下每天的实例日统计数量
+            'database_aggregation_count': 0   # 聚合统计下每天的数据库日统计数量
+        })
+        
+        # 统计原始采集数据
+        for stat in db_stats:
+            date_str = stat.collected_date.strftime('%Y-%m-%d')
+            daily_metrics[date_str]['database_count'] += 1
+        
+        for stat in instance_stats:
+            date_str = stat.collected_date.strftime('%Y-%m-%d')
+            daily_metrics[date_str]['instance_count'] += 1
+        
+        # 统计聚合数据
+        for agg in db_aggregations:
+            date_str = agg.period_start.strftime('%Y-%m-%d')
+            daily_metrics[date_str]['database_aggregation_count'] += 1
+        
+        for agg in instance_aggregations:
+            date_str = agg.period_start.strftime('%Y-%m-%d')
+            daily_metrics[date_str]['instance_aggregation_count'] += 1
+        
+        # 生成时间序列数据
+        labels = []
+        instance_count_data = []
+        database_count_data = []
+        instance_aggregation_data = []
+        database_aggregation_data = []
+        
+        current_date = start_date
+        while current_date <= end_date:
+            date_str = current_date.strftime('%Y-%m-%d')
+            labels.append(date_str)
+            
+            metrics = daily_metrics[date_str]
+            instance_count_data.append(metrics['instance_count'])
+            database_count_data.append(metrics['database_count'])
+            instance_aggregation_data.append(metrics['instance_aggregation_count'])
+            database_aggregation_data.append(metrics['database_aggregation_count'])
+            
+            current_date += timedelta(days=1)
+        
+        # 构建Chart.js数据集
+        datasets = [
+            {
+                'label': '实例数总量',
+                'data': instance_count_data,
+                'borderColor': '#FF6384',
+                'backgroundColor': 'rgba(255, 99, 132, 0.1)',
+                'borderWidth': 2,
+                'pointStyle': 'circle',
+                'tension': 0.1
+            },
+            {
+                'label': '数据库数总量',
+                'data': database_count_data,
+                'borderColor': '#36A2EB',
+                'backgroundColor': 'rgba(54, 162, 235, 0.1)',
+                'borderWidth': 2,
+                'pointStyle': 'rect',
+                'tension': 0.1
+            },
+            {
+                'label': '实例日统计数量',
+                'data': instance_aggregation_data,
+                'borderColor': '#FFCE56',
+                'backgroundColor': 'rgba(255, 206, 86, 0.1)',
+                'borderWidth': 2,
+                'pointStyle': 'triangle',
+                'tension': 0.1,
+                'borderDash': [5, 5]
+            },
+            {
+                'label': '数据库日统计数量',
+                'data': database_aggregation_data,
+                'borderColor': '#4BC0C0',
+                'backgroundColor': 'rgba(75, 192, 192, 0.1)',
+                'borderWidth': 2,
+                'pointStyle': 'star',
+                'tension': 0.1,
+                'borderDash': [10, 5]
+            }
+        ]
+        
+        return jsonify({
+            'success': True,
+            'labels': labels,
+            'datasets': datasets,
+            'dataPointCount': len(labels),
+            'timeRange': f'{start_date.strftime("%Y-%m-%d")} - {end_date.strftime("%Y-%m-%d")}',
+            'yAxisLabel': '数量',
+            'chartTitle': f'{period_type.title()}核心指标统计',
+            'periodType': period_type
+        })
+        
+    except Exception as e:
+        logger.error(f"获取核心聚合指标时出错: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'labels': [],
+            'datasets': [],
+            'dataPointCount': 0,
+            'timeRange': '',
+            'yAxisLabel': '数量',
+            'chartTitle': '核心指标统计'
+        }), 500
+
+
 @partition_bp.route('/api/aggregations/chart', methods=['GET'])
 @login_required
 @view_required
 def get_aggregations_chart():
     """
-    获取聚合数据图表数据
+    获取聚合数据图表数据（按实例分别显示）
     """
     try:
         from datetime import date, timedelta
