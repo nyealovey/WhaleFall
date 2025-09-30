@@ -543,21 +543,48 @@ def has_permission(user: Any, permission: str) -> bool:  # noqa: ANN401
     return permission in user_permissions
 
 
-def view_required(f: Any) -> Any:  # noqa: ANN401
-    """查看权限装饰器"""
-    return permission_required("view")(f)
+def view_required(f: Any = None, *, permission: str = "view") -> Any:  # noqa: ANN401
+    """查看权限装饰器.
+
+    可以作为 @view_required 或 @view_required(permission="...") 使用.
+    """
+
+    def decorator(func: Any) -> Any:
+        return permission_required(permission)(func)
+
+    if callable(f):
+        return decorator(f)
+    return decorator
 
 
-def create_required(f: Any) -> Any:  # noqa: ANN401
-    """创建权限装饰器"""
-    return permission_required("create")(f)
+def create_required(f: Any = None, *, permission: str = "create") -> Any:  # noqa: ANN401
+    """创建权限装饰器."""
+
+    def decorator(func: Any) -> Any:
+        return permission_required(permission)(func)
+
+    if callable(f):
+        return decorator(f)
+    return decorator
 
 
-def update_required(f: Any) -> Any:  # noqa: ANN401
-    """更新权限装饰器"""
-    return permission_required("update")(f)
+def update_required(f: Any = None, *, permission: str = "update") -> Any:  # noqa: ANN401
+    """更新权限装饰器."""
+
+    def decorator(func: Any) -> Any:
+        return permission_required(permission)(func)
+
+    if callable(f):
+        return decorator(f)
+    return decorator
 
 
-def delete_required(f: Any) -> Any:  # noqa: ANN401
-    """删除权限装饰器"""
-    return permission_required("delete")(f)
+def delete_required(f: Any = None, *, permission: str = "delete") -> Any:  # noqa: ANN401
+    """删除权限装饰器."""
+
+    def decorator(func: Any) -> Any:
+        return permission_required(permission)(func)
+
+    if callable(f):
+        return decorator(f)
+    return decorator
