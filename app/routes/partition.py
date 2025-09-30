@@ -656,7 +656,7 @@ def get_core_aggregation_metrics():
                 'tension': 0.1,
                 'fill': False
             },
-            # 实例日统计数量 - 红色虚线，较细，高透明度叠加
+            # 实例日统计数量 - 红色实线，较细，高透明度叠加
             {
                 'label': instance_agg_label,
                 'data': instance_aggregation_data,
@@ -665,7 +665,6 @@ def get_core_aggregation_metrics():
                 'borderWidth': 3,
                 'pointStyle': 'triangle',
                 'tension': 0.1,
-                'borderDash': [8, 4],
                 'fill': False
             },
             # 数据库数总量 - 绿色实线，较粗，高透明度
@@ -679,7 +678,7 @@ def get_core_aggregation_metrics():
                 'tension': 0.1,
                 'fill': False
             },
-            # 数据库日统计数量 - 橙色虚线，较细，高透明度叠加
+            # 数据库日统计数量 - 橙色实线，较细，高透明度叠加
             {
                 'label': database_agg_label,
                 'data': database_aggregation_data,
@@ -688,7 +687,6 @@ def get_core_aggregation_metrics():
                 'borderWidth': 3,
                 'pointStyle': 'star',
                 'tension': 0.1,
-                'borderDash': [8, 4],
                 'fill': False
             }
         ]
