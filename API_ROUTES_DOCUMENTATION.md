@@ -266,14 +266,14 @@
 | 路径 | 方法 | 描述 |
 |------|------|------|
 | `/partition/` | GET | 分区管理数据（有查询参数时） |
-| `/partition/status` | GET | 获取分区管理状态 |
-| `/partition/test` | GET | 测试分区管理服务（调试用） |
-| `/partition/create` | POST | 创建分区 |
-| `/partition/cleanup` | POST | 清理旧分区 |
-| `/partition/statistics` | GET | 获取分区统计信息 |
-| `/partition/create-future` | POST | 创建未来分区 |
-| `/partition/aggregations/latest` | GET | 获取最新的聚合数据 |
-| `/partition/aggregations/cleanup` | POST | 清理旧的聚合数据 |
+| `/partition/api/status` | GET | 获取分区管理状态 |
+| `/partition/api/test` | GET | 测试分区管理服务（调试用） |
+| `/partition/api/create` | POST | 创建分区 |
+| `/partition/api/cleanup` | POST | 清理旧分区 |
+| `/partition/api/statistics` | GET | 获取分区统计信息 |
+| `/partition/api/create-future` | POST | 创建未来分区 |
+| `/partition/api/aggregations/latest` | GET | 获取最新的聚合数据 |
+| `/partition/api/aggregations/cleanup` | POST | 清理旧的聚合数据 |
 | `/partition/api/aggregations/summary` | GET | 获取聚合数据统计概览 |
 | `/partition/api/aggregations/chart` | GET | 获取聚合数据图表数据 |
 

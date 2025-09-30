@@ -159,7 +159,7 @@ async function createPartition() {
     const date = `${year}-${month.padStart(2, '0')}-01`;
     
     try {
-        const response = await fetch('/partition/create', {
+        const response = await fetch('/partition/api/create', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -199,7 +199,7 @@ async function cleanupPartitions() {
     }
     
     try {
-        const response = await fetch('/partition/cleanup', {
+        const response = await fetch('/partition/api/cleanup', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
