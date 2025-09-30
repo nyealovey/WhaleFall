@@ -104,46 +104,6 @@ def get_partition_status():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@partition_bp.route('/api/test', methods=['GET'])
-@login_required
-@view_required
-def test_partition_service():
-    """
-    测试分区管理服务（调试用）
-    
-    Returns:
-        JSON: 测试结果
-    """
-    try:
-        logger.info("开始测试分区管理服务")
-        
-        # 测试数据库连接
-        try:
-            db.session.execute(text("SELECT 1"))
-            logger.info("数据库连接正常")
-        except Exception as db_error:
-            logger.error(f"数据库连接失败: {str(db_error)}")
-            return jsonify({
-                'success': False,
-                'error': f'数据库连接失败: {str(db_error)}'
-            }), 500
-        
-        # 测试分区管理服务
-        service = PartitionManagementService()
-        result = service.get_partition_info()
-        
-        return jsonify({
-            'success': True,
-            'data': result,
-            'timestamp': time_utils.now().isoformat()
-        })
-        
-    except Exception as e:
-        logger.error(f"测试分区管理服务时出错: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': f'测试失败: {str(e)}'
-        }), 500
 
 
 @partition_bp.route('/api/create', methods=['POST'])
