@@ -684,6 +684,9 @@ def get_instance_aggregations_summary():
             'last_update': latest_aggregation.calculated_at.isoformat() if latest_aggregation else None
         }
         
+        # 添加调试日志
+        logger.info(f"API响应数据: db_type={db_type}, total_instances={total_instances}, total_size_mb={size_stats.total_size or 0}")
+        
         return jsonify({
             'success': True,
             'data': summary
