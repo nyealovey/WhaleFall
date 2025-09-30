@@ -226,7 +226,7 @@ def list_accounts(db_type: str | None = None) -> str:
     )
 
 
-@account_bp.route("/export")
+@account_bp.route("/api/export")
 @login_required
 @view_required
 def export_accounts() -> "Response":
@@ -363,7 +363,7 @@ def export_accounts() -> "Response":
     )
 
 
-@account_bp.route("/<int:account_id>/permissions")
+@account_bp.route("/api/<int:account_id>/permissions")
 @login_required
 @view_required
 def get_account_permissions(account_id: int) -> "Response":
@@ -420,7 +420,7 @@ def get_account_permissions(account_id: int) -> "Response":
         return jsonify({"success": False, "error": f"获取权限失败: {str(e)}"}), 500
 
 
-@account_bp.route("/<int:account_id>/change-history")
+@account_bp.route("/api/<int:account_id>/change-history")
 @login_required
 @view_required
 def get_account_change_history(account_id: int) -> "Response":
@@ -508,7 +508,7 @@ def statistics() -> str:
     )
 
 
-@account_bp.route("/account-statistics")
+@account_bp.route("/api/account-statistics")
 @login_required
 def account_statistics() -> "Response":
     """账户统计API"""
