@@ -44,8 +44,7 @@
 | `/account/api/export` | GET | 导出账户数据为 CSV |
 | `/account/api/<int:account_id>/permissions` | GET | 获取账户权限详情 |
 | `/account/api/<int:account_id>/change-history` | GET | 获取账户变更历史 |
-| `/account/api/account-statistics` | GET | 账户统计 API（详细格式） |
-| `/account/api/statistics` | GET | 获取账户统计信息（简化格式） |
+| `/account/api/account-statistics` | GET | 账户统计 API |
 
 ---
 
@@ -426,8 +425,8 @@
 ### 总体统计
 - **总模块数**: 20 个
 - **页面路由总数**: 约 40 个
-- **API 接口总数**: 140 个
-- **总路由数**: 180 个
+- **API 接口总数**: 139 个
+- **总路由数**: 179 个
 
 ### API 前缀使用情况
 根据内存中的已知问题，项目存在 API 前缀不统一的情况：
@@ -450,7 +449,14 @@
 
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
-- **版本**: v1.2.1
+- **版本**: v1.2.2
+
+### v1.2.2 更新内容 (2025-09-30)
+- ✅ 删除冗余的 /account/api/statistics 接口
+- ✅ 保留 /account/api/account-statistics 接口（标准格式）
+- ✅ 更新API接口总数统计（从140个减少为139个）
+- ✅ 更新总路由数统计（从180个减少为179个）
+- ✅ 清理代码冗余，提高维护性
 
 ### v1.2.1 更新内容 (2025-09-30)
 - ✅ 修复健康检查模块API路径错误（readiness和liveness路径）
