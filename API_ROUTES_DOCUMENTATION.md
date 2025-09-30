@@ -15,9 +15,9 @@
 ### 页面路由
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/auth/login` | GET, POST | 用户登录页面（支持JSON API） |
-| `/auth/profile` | GET | 用户资料页面（支持JSON API） |
-| `/auth/change-password` | GET, POST | 修改密码页面（支持JSON API） |
+| `/auth/login` | GET, POST | 用户登录页面 |
+| `/auth/profile` | GET | 用户资料页面 |
+| `/auth/change-password` | GET, POST | 修改密码页面 |
 
 ### API 接口
 | 路径 | 方法 | 描述 |
@@ -36,8 +36,8 @@
 ### 页面路由
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/account/` | GET | 账户列表页面（支持JSON API） |
-| `/account/<db_type>` | GET | 按数据库类型筛选的账户页面（支持JSON API） |
+| `/account/` | GET | 账户列表页面 |
+| `/account/<db_type>` | GET | 按数据库类型筛选的账户页面 |
 | `/account/statistics` | GET | 账户统计页面（支持JSON API） |
 
 ### API 接口
@@ -489,11 +489,12 @@ connectionManager.batchTestConnections([1,2,3], {
 
 ### 混合路由说明
 部分路由同时支持页面渲染和JSON API响应：
-- **认证模块**: `/auth/login`, `/auth/profile`, `/auth/change-password`
-- **账户管理模块**: `/account/`, `/account/<db_type>`, `/account/statistics`
 - **实例管理模块**: `/instances/`, `/instances/create`, `/instances/<int:id>`, `/instances/<int:id>/edit`, `/instances/statistics`
+- **账户管理模块**: `/account/statistics`
 
 这些路由会根据请求的 `Content-Type` 或 `Accept` 头自动判断返回HTML页面还是JSON数据。
+
+**注意**: 认证模块已经完成拆分，有独立的API路由（如 `/auth/api/login`）和页面路由（如 `/auth/login`）。
 
 ### API 前缀使用情况
 根据内存中的已知问题，项目存在 API 前缀不统一的情况：
