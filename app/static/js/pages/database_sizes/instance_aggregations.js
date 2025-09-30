@@ -292,7 +292,7 @@ class InstanceAggregationsManager {
             params.append('get_all', 'true');
             
             console.log('加载图表数据，参数:', params.toString());
-            const response = await fetch(`/database_stats/api/instances/aggregations/data?${params}`);
+            const response = await fetch(`/database_stats/api/instances/aggregations?${params}`);
             const data = await response.json();
             
             console.log('图表数据响应:', data);
