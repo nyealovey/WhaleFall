@@ -38,7 +38,7 @@
 |------|------|------|
 | `/account/` | GET | 账户列表页面 |
 | `/account/<db_type>` | GET | 按数据库类型筛选的账户页面 |
-| `/account/statistics` | GET | 账户统计页面（支持JSON API） |
+| `/account/statistics` | GET | 账户统计页面 |
 
 ### API 接口
 | 路径 | 方法 | 描述 |
@@ -46,7 +46,7 @@
 | `/account/api/export` | GET | 导出账户数据为 CSV |
 | `/account/api/<int:account_id>/permissions` | GET | 获取账户权限详情 |
 | `/account/api/<int:account_id>/change-history` | GET | 获取账户变更历史 |
-| `/account/api/account-statistics` | GET | 账户统计 API |
+| `/account/api/statistics` | GET | 账户统计 API |
 
 ---
 
@@ -489,12 +489,11 @@ connectionManager.batchTestConnections([1,2,3], {
 
 ### 混合路由说明
 部分路由同时支持页面渲染和JSON API响应：
-- **实例管理模块**: `/instances/`, `/instances/create`, `/instances/<int:id>`, `/instances/<int:id>/edit`, `/instances/statistics`
-- **账户管理模块**: `/account/statistics`
+- **实例管理模块**: `/instances/`, `/instances/create`, `/instances/<int:instance_id>`, `/instances/<int:instance_id>/edit`, `/instances/statistics`
 
 这些路由会根据请求的 `Content-Type` 或 `Accept` 头自动判断返回HTML页面还是JSON数据。
 
-**注意**: 认证模块已经完成拆分，有独立的API路由（如 `/auth/api/login`）和页面路由（如 `/auth/login`）。
+**注意**: 认证模块和账户管理模块已经完成拆分，有独立的API路由和页面路由。
 
 ### API 前缀使用情况
 根据内存中的已知问题，项目存在 API 前缀不统一的情况：
@@ -538,6 +537,14 @@ connectionManager.batchTestConnections([1,2,3], {
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
 - **版本**: v1.5.0
+
+### v1.5.7 更新内容 (2025-09-30)
+- ✅ 拆分账户管理模块的统计功能
+- ✅ 将 `/account/statistics` 拆分为页面路由和API路由
+- ✅ 新增 `/account/api/statistics` API接口
+- ✅ 删除旧的 `/account/api/account-statistics` API接口
+- ✅ 更新混合路由说明，移除账户统计页面
+- ✅ 完成账户管理模块的页面/API分离
 
 ### v1.5.6 更新内容 (2025-09-30)
 - ✅ 修正API文档中参数名不一致的错误
