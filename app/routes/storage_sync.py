@@ -56,7 +56,7 @@ def storage_sync():
 
 # 配置管理相关路由
 
-@storage_sync_bp.route('/status', methods=['GET'])
+@storage_sync_bp.route('/api/status', methods=['GET'])
 @login_required
 @view_required
 def get_status():
@@ -95,7 +95,7 @@ def get_status():
             'error': str(e)
         }), 500
 
-@storage_sync_bp.route('/stats', methods=['GET'])
+@storage_sync_bp.route('/api/stats', methods=['GET'])
 @login_required
 @view_required
 def get_stats():
@@ -138,7 +138,7 @@ def get_stats():
             'error': str(e)
         }), 500
 
-@storage_sync_bp.route('/test_connection', methods=['POST'])
+@storage_sync_bp.route('/api/test_connection', methods=['POST'])
 @login_required
 @view_required
 def test_connection():
@@ -175,7 +175,7 @@ def test_connection():
             'error': str(e)
         }), 500
 
-@storage_sync_bp.route('/manual_collect', methods=['POST'])
+@storage_sync_bp.route('/api/manual_collect', methods=['POST'])
 @login_required
 @view_required
 def manual_collect():
@@ -202,7 +202,7 @@ def manual_collect():
         }), 500
 
 
-@storage_sync_bp.route('/cleanup_partitions', methods=['POST'])
+@storage_sync_bp.route('/api/cleanup_partitions', methods=['POST'])
 @login_required
 @view_required
 def cleanup_partitions_manual():
@@ -228,7 +228,7 @@ def cleanup_partitions_manual():
             'error': str(e)
         }), 500
 
-@storage_sync_bp.route('/instances', methods=['GET'])
+@storage_sync_bp.route('/api/instances', methods=['GET'])
 @login_required
 @view_required
 def get_instances():
@@ -264,7 +264,7 @@ def get_instances():
             'error': str(e)
         }), 500
 
-@storage_sync_bp.route('/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
+@storage_sync_bp.route('/api/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
 @login_required
 @view_required
 def get_instance_total_size(instance_id: int):
@@ -317,7 +317,7 @@ def get_instance_total_size(instance_id: int):
         }), 500
 
 
-@storage_sync_bp.route('/instances/<int:instance_id>/database-sizes', methods=['GET'])
+@storage_sync_bp.route('/api/instances/<int:instance_id>/database-sizes', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int):
@@ -511,7 +511,7 @@ def get_instance_database_sizes(instance_id: int):
 
 
 
-@storage_sync_bp.route('/instances/<int:instance_id>/database-sizes/summary', methods=['GET'])
+@storage_sync_bp.route('/api/instances/<int:instance_id>/database-sizes/summary', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_summary(instance_id: int):
@@ -610,7 +610,7 @@ def get_instance_database_summary(instance_id: int):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@storage_sync_bp.route('/collect', methods=['POST'])
+@storage_sync_bp.route('/api/collect', methods=['POST'])
 @login_required
 @view_required
 def collect_database_sizes():
@@ -645,7 +645,7 @@ def collect_database_sizes():
 
 
 # 实例容量管理相关API
-@storage_sync_bp.route("/instances/<int:instance_id>/sync-capacity", methods=['POST'])
+@storage_sync_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=['POST'])
 @login_required
 @view_required
 def sync_instance_capacity(instance_id: int):
@@ -763,7 +763,7 @@ def sync_instance_capacity(instance_id: int):
         }), 500
 
 
-@storage_sync_bp.route("/instances/<int:instance_id>/databases", methods=['GET'])
+@storage_sync_bp.route("/api/instances/<int:instance_id>/databases", methods=['GET'])
 @login_required
 @view_required
 def get_instance_databases(instance_id: int):
