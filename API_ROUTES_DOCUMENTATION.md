@@ -36,17 +36,17 @@
 ### 页面路由
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/accounts/` | GET | 账户列表页面 |
-| `/accounts/<db_type>` | GET | 按数据库类型筛选的账户页面 |
-| `/accounts/statistics` | GET | 账户统计页面 |
+| `/account/` | GET | 账户列表页面 |
+| `/account/<db_type>` | GET | 按数据库类型筛选的账户页面 |
+| `/account/statistics` | GET | 账户统计页面 |
 
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/accounts/api/export` | GET | 导出账户数据为 CSV |
-| `/accounts/api/<int:account_id>/permissions` | GET | 获取账户权限详情 |
-| `/accounts/api/<int:account_id>/change-history` | GET | 获取账户变更历史 |
-| `/accounts/api/account-statistics` | GET | 账户统计 API |
+| `/account/api/export` | GET | 导出账户数据为 CSV |
+| `/account/api/<int:account_id>/permissions` | GET | 获取账户权限详情 |
+| `/account/api/<int:account_id>/change-history` | GET | 获取账户变更历史 |
+| `/account/api/account-statistics` | GET | 账户统计 API |
 
 ---
 
@@ -55,22 +55,22 @@
 ### 页面路由
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/account-classification/` | GET | 账户分类管理首页 |
-| `/account-classification/rules-page` | GET | 规则管理页面 |
+| `/account_classification/` | GET | 账户分类管理首页 |
+| `/account_classification/rules-page` | GET | 规则管理页面 |
 
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/account-classification/api/classifications` | GET, POST | 分类列表和创建 |
-| `/account-classification/api/classifications/<int:id>` | GET, PUT, DELETE | 单个分类操作 |
-| `/account-classification/api/rules/filter` | GET | 获取分类规则 |
-| `/account-classification/api/rules` | GET, POST | 规则列表和创建 |
-| `/account-classification/api/rules/<int:id>` | GET, PUT, DELETE | 单个规则操作 |
-| `/account-classification/api/rules/<int:id>/matched-accounts` | GET | 获取规则匹配的账户 |
-| `/account-classification/api/auto-classify` | POST | 自动分类账户 |
-| `/account-classification/api/assignments` | GET | 获取账户分类分配 |
-| `/account-classification/api/assignments/<int:id>` | DELETE | 移除账户分类分配 |
-| `/account-classification/api/permissions/<db_type>` | GET | 获取数据库权限列表 |
+| `/account_classification/api/classifications` | GET, POST | 分类列表和创建 |
+| `/account_classification/api/classifications/<int:id>` | GET, PUT, DELETE | 单个分类操作 |
+| `/account_classification/api/rules/filter` | GET | 获取分类规则 |
+| `/account_classification/api/rules` | GET, POST | 规则列表和创建 |
+| `/account_classification/api/rules/<int:id>` | GET, PUT, DELETE | 单个规则操作 |
+| `/account_classification/api/rules/<int:id>/matched-accounts` | GET | 获取规则匹配的账户 |
+| `/account_classification/api/auto-classify` | POST | 自动分类账户 |
+| `/account_classification/api/assignments` | GET | 获取账户分类分配 |
+| `/account_classification/api/assignments/<int:id>` | DELETE | 移除账户分类分配 |
+| `/account_classification/api/permissions/<db_type>` | GET | 获取数据库权限列表 |
 
 ---
 
@@ -177,9 +177,9 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/database-types/api/list` | GET | 获取数据库类型列表 |
-| `/database-types/api/active` | GET | 获取启用的数据库类型 |
-| `/database-types/api/form-options` | GET | 获取用于表单的数据库类型选项 |
+| `/database_types/api/list` | GET | 获取数据库类型列表 |
+| `/database_types/api/active` | GET | 获取启用的数据库类型 |
+| `/database_types/api/form-options` | GET | 获取用于表单的数据库类型选项 |
 
 ---
 
@@ -219,7 +219,6 @@
 | `/instances/api/<int:id>/edit` | POST | 编辑实例API |
 | `/instances/api/<int:id>/delete` | POST | 删除实例 |
 | `/instances/api/<int:id>/test` | GET, POST | 测试连接API（支持GET和POST方法） |
-| `/instances/api/test-connection` | POST | 测试数据库连接API（无需CSRF） |
 | `/instances/api/<int:id>/accounts` | GET | 获取实例账户数据API |
 | `/instances/api/<int:id>/accounts/<int:account_id>/change-history` | GET | 获取账户变更历史 |
 | `/instances/api/<int:id>/accounts/<int:account_id>/permissions` | GET | 获取账户权限详情 |
@@ -323,23 +322,23 @@
 ### 页面路由
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/storage-sync/` | GET | 存储同步主页面 |
+| `/storage_sync/` | GET | 存储同步主页面 |
 
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/storage-sync/api/status` | GET | 获取数据库大小监控状态 |
-| `/storage-sync/api/stats` | GET | 获取数据库大小监控统计信息 |
-| `/storage-sync/api/test_connection` | POST | 测试数据库连接 |
-| `/storage-sync/api/manual_collect` | POST | 手动触发数据采集 |
-| `/storage-sync/api/cleanup_partitions` | POST | 手动清理分区 |
-| `/storage-sync/api/instances` | GET | 获取实例列表 |
-| `/storage-sync/api/instances/<int:id>/database-sizes/total` | GET | 获取指定实例的数据库总大小 |
-| `/storage-sync/api/instances/<int:id>/database-sizes` | GET | 获取指定实例的数据库大小历史数据 |
-| `/storage-sync/api/instances/<int:id>/database-sizes/summary` | GET | 获取指定实例的数据库大小汇总信息 |
-| `/storage-sync/api/collect` | POST | 手动触发数据库大小采集 |
-| `/storage-sync/api/instances/<int:id>/sync-capacity` | POST | 同步指定实例的数据库容量信息 |
-| `/storage-sync/api/instances/<int:id>/databases` | GET | 获取指定实例的数据库列表 |
+| `/storage_sync/api/status` | GET | 获取数据库大小监控状态 |
+| `/storage_sync/api/stats` | GET | 获取数据库大小监控统计信息 |
+| `/storage_sync/api/test_connection` | POST | 测试数据库连接 |
+| `/storage_sync/api/manual_collect` | POST | 手动触发数据采集 |
+| `/storage_sync/api/cleanup_partitions` | POST | 手动清理分区 |
+| `/storage_sync/api/instances` | GET | 获取实例列表 |
+| `/storage_sync/api/instances/<int:id>/database-sizes/total` | GET | 获取指定实例的数据库总大小 |
+| `/storage_sync/api/instances/<int:id>/database-sizes` | GET | 获取指定实例的数据库大小历史数据 |
+| `/storage_sync/api/instances/<int:id>/database-sizes/summary` | GET | 获取指定实例的数据库大小汇总信息 |
+| `/storage_sync/api/collect` | POST | 手动触发数据库大小采集 |
+| `/storage_sync/api/instances/<int:id>/sync-capacity` | POST | 同步指定实例的数据库容量信息 |
+| `/storage_sync/api/instances/<int:id>/databases` | GET | 获取指定实例的数据库列表 |
 
 ---
 
@@ -414,15 +413,15 @@
 ### 页面路由
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/account-sync/` | GET | 同步记录页面 |
-| `/account-sync/sync-details/<sync_id>` | GET | 同步详情页面 |
+| `/account_sync/` | GET | 同步记录页面 |
+| `/account_sync/sync-details/<sync_id>` | GET | 同步详情页面 |
 
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/account-sync/api/sync-all` | POST | 同步所有实例的账户 |
-| `/account-sync/api/sync-details-batch` | GET | 获取批量同步详情 |
-| `/account-sync/api/instances/<int:id>/sync` | POST | 同步指定实例的账户信息 |
+| `/account_sync/api/sync-all` | POST | 同步所有实例的账户 |
+| `/account_sync/api/sync-details-batch` | GET | 获取批量同步详情 |
+| `/account_sync/api/instances/<int:id>/sync` | POST | 同步指定实例的账户信息 |
 
 ---
 
