@@ -57,7 +57,8 @@ class InstanceAggregationsManager {
         $('#period_type').on('change', (e) => {
             this.currentFilters.period_type = e.target.value;
             this.updateTimeRangeFromPeriod();
-            this.loadChartData();
+            this.loadSummaryData(); // 更新统计卡片
+            this.loadChartData();   // 更新趋势图
         });
         
         // 筛选按钮
@@ -76,13 +77,15 @@ class InstanceAggregationsManager {
             console.log('数据库类型变化:', dbType);
             await this.updateInstanceOptions(dbType);
             this.updateFilters();
-            this.loadChartData();
+            this.loadSummaryData(); // 更新统计卡片
+            this.loadChartData();   // 更新趋势图
         });
         
         // 实例变化时自动刷新
         $('#instance').on('change', () => {
             this.updateFilters();
-            this.loadChartData();
+            this.loadSummaryData(); // 更新统计卡片
+            this.loadChartData();   // 更新趋势图
         });
     }
     

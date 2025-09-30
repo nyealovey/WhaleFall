@@ -594,41 +594,77 @@ def get_instance_aggregations_summary():
         JSON: 汇总统计信息
     """
     try:
-        # 获取基本统计 - 使用实例统计聚合表
-        from app.models.instance_size_aggregation import InstanceSizeAggregation
-        total_aggregations = InstanceSizeAggregation.query.count()
-        total_instances = Instance.query.filter_by(is_active=True).count()
+        # 获取查询参数
+        instance_id = request.args.get('instance_id', type=int)
+        db_type = request.args.get('db_type')
+        period_type = request.args.get('period_type')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        time_range = request.args.get('time_range')
         
-        # 获取数据库数量统计 - 从实例统计聚合表获取
+        # 处理time_range参数，转换为start_date和end_date
+        if time_range and not start_date and not end_date:
+            from datetime import timedelta
+            end_date_obj = datetime.now()
+            start_date_obj = end_date_obj - timedelta(days=int(time_range))
+            start_date = start_date_obj.strftime('%Y-%m-%d')
+            end_date = end_date_obj.strftime('%Y-%m-%d')
+        
+        # 构建查询 - 使用实例统计聚合表
+        from app.models.instance_size_aggregation import InstanceSizeAggregation
+        query = InstanceSizeAggregation.query.join(Instance)
+        
+        # 应用过滤条件
+        if instance_id:
+            query = query.filter(InstanceSizeAggregation.instance_id == instance_id)
+        if db_type:
+            query = query.filter(Instance.db_type == db_type)
+        if period_type:
+            query = query.filter(InstanceSizeAggregation.period_type == period_type)
+        if start_date:
+            query = query.filter(InstanceSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            query = query.filter(InstanceSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        # 获取基本统计
+        total_aggregations = query.count()
+        
+        # 获取活跃实例数 - 根据筛选条件
+        if db_type:
+            total_instances = Instance.query.filter_by(is_active=True, db_type=db_type).count()
+        else:
+            total_instances = Instance.query.filter_by(is_active=True).count()
+        
+        # 获取数据库数量统计 - 从筛选后的数据获取
         total_databases = db.session.query(
             func.sum(InstanceSizeAggregation.database_count)
-        ).scalar() or 0
+        ).select_from(query.subquery()).scalar() or 0
         
-        # 获取大小统计 - 从实例统计聚合表获取
+        # 获取大小统计 - 从筛选后的数据获取
         size_stats = db.session.query(
             func.avg(InstanceSizeAggregation.total_size_mb).label('avg_size'),
             func.max(InstanceSizeAggregation.total_size_mb).label('max_size'),
             func.sum(InstanceSizeAggregation.total_size_mb).label('total_size')
-        ).first()
+        ).select_from(query.subquery()).first()
         
-        # 按周期类型统计
+        # 按周期类型统计 - 使用筛选后的数据
         period_stats = db.session.query(
             InstanceSizeAggregation.period_type,
             func.count(InstanceSizeAggregation.id).label('count')
-        ).group_by(InstanceSizeAggregation.period_type).all()
+        ).select_from(query.subquery()).group_by(InstanceSizeAggregation.period_type).all()
         
-        # 按实例统计
+        # 按实例统计 - 使用筛选后的数据
         instance_stats = db.session.query(
             InstanceSizeAggregation.instance_id,
             Instance.name.label('instance_name'),
             func.count(InstanceSizeAggregation.id).label('count')
-        ).join(Instance).group_by(
+        ).select_from(query.subquery()).join(Instance).group_by(
             InstanceSizeAggregation.instance_id, 
             Instance.name
         ).order_by(func.count(InstanceSizeAggregation.id).desc()).limit(10).all()
         
-        # 最近更新时间
-        latest_aggregation = InstanceSizeAggregation.query.order_by(
+        # 最近更新时间 - 使用筛选后的数据
+        latest_aggregation = query.order_by(
             desc(InstanceSizeAggregation.calculated_at)
         ).first()
         
