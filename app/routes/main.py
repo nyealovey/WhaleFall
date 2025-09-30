@@ -8,7 +8,7 @@ from flask_login import login_required
 
 from app.utils.decorators import admin_required
 from app.utils.structlog_config import log_info
-from app.utils.timezone import get_china_time
+from app.utils.time_utils import get_china_time
 
 # 创建蓝图
 main_bp = Blueprint("main", __name__)

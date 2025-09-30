@@ -6,6 +6,7 @@
 import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template
+from app.utils.time_utils import time_utils
 from flask_login import login_required, current_user
 from sqlalchemy import and_, or_, func, desc, text
 from app.services.partition_management_service import PartitionManagementService
@@ -45,7 +46,7 @@ def partitions():
                 return jsonify({
                     'success': True,
                     'data': result,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': time_utils.now().isoformat()
                 })
             else:
                 logger.error(f"分区信息获取失败: {result}")
@@ -85,7 +86,7 @@ def get_partition_status():
             return jsonify({
                 'success': True,
                 'data': result,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': time_utils.now().isoformat()
             })
         else:
             return jsonify({
@@ -129,7 +130,7 @@ def test_partition_service():
         return jsonify({
             'success': True,
             'data': result,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': time_utils.now().isoformat()
         })
         
     except Exception as e:
@@ -171,7 +172,7 @@ def create_partition():
             return jsonify({
                 'success': True,
                 'data': result,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': time_utils.now().isoformat()
             })
         else:
             return jsonify({
@@ -205,7 +206,7 @@ def cleanup_partitions():
             return jsonify({
                 'success': True,
                 'data': result,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': time_utils.now().isoformat()
             })
         else:
             return jsonify({
@@ -236,7 +237,7 @@ def get_partition_statistics():
             return jsonify({
                 'success': True,
                 'data': result,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': time_utils.now().isoformat()
             })
         else:
             return jsonify({
@@ -270,7 +271,7 @@ def create_future_partitions():
             return jsonify({
                 'success': True,
                 'data': result,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': time_utils.now().isoformat()
             })
         else:
             return jsonify({
@@ -416,7 +417,7 @@ def cleanup_old_aggregations_api():
             return jsonify({
                 'success': True,
                 'data': result,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': time_utils.now().isoformat()
             })
         else:
             return jsonify({

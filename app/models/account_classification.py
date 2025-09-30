@@ -5,7 +5,7 @@
 import json
 
 from app import db
-from app.utils.timezone import now
+from app.utils.time_utils import now
 
 
 class AccountClassification(db.Model):

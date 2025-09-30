@@ -37,9 +37,9 @@ class ConnectionTestService:
 
             # 更新最后连接时间
             from app import db
-            from app.utils.timezone import now
+            from app.utils.time_utils import time_utils
 
-            instance.last_connected = now()
+            instance.last_connected = time_utils.now()
             db.session.commit()
 
             return {
@@ -52,9 +52,9 @@ class ConnectionTestService:
             # 即使连接失败，也记录尝试时间
             try:
                 from app import db
-                from app.utils.timezone import now
+                from app.utils.time_utils import time_utils
 
-                instance.last_connected = now()
+                instance.last_connected = time_utils.now()
                 db.session.commit()
             except Exception as update_error:
                 self.test_logger.error(f"更新最后连接时间失败: {update_error}")

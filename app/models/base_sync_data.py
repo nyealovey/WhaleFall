@@ -6,7 +6,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapped
 
 from app import db
-from app.utils.timezone import now
+from app.utils.time_utils import now
 
 
 class BaseSyncData(db.Model):

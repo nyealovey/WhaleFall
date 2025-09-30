@@ -37,7 +37,7 @@ from app.utils.security import (
     validate_required_fields,
 )
 from app.utils.structlog_config import get_api_logger, get_system_logger, log_error, log_info, log_warning
-from app.utils.timezone import now
+from app.utils.time_utils import time_utils
 
 logger = get_system_logger()
 
@@ -1061,7 +1061,7 @@ def export_instances() -> Response:
 
     # 创建响应
     output.seek(0)
-    timestamp = now().strftime("%Y%m%d_%H%M%S")
+    timestamp = time_utils.now().strftime("%Y%m%d_%H%M%S")
     filename = f"instances_export_{timestamp}.csv"
 
     return Response(
@@ -1155,7 +1155,7 @@ def test_connection(instance_id: int) -> str | Response | tuple[Response, int]:
 
         if result["success"]:
             # 更新最后连接时间
-            instance.last_connected = now()
+            instance.last_connected = time_utils.now()
             db.session.commit()
 
             if request.is_json:

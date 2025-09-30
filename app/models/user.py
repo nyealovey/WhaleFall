@@ -5,7 +5,7 @@
 from flask_login import UserMixin
 
 from app import bcrypt, db
-from app.utils.timezone import now
+from app.utils.time_utils import now
 
 
 class User(UserMixin, db.Model):

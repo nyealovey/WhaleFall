@@ -9,7 +9,7 @@ from typing import Any
 from flask import g, has_request_context
 from flask_login import current_user
 
-from app.utils.timezone import now
+from app.utils.time_utils import time_utils
 
 
 class ContextManager:
@@ -266,7 +266,7 @@ class ContextManager:
     def build_base_context() -> dict[str, Any]:
         """构建基础上下文"""
         context = {
-            "timestamp": now(),
+            "timestamp": time_utils.now(),
         }
 
         # 添加请求上下文

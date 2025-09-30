@@ -4,7 +4,7 @@
 
 from app import db
 from app.models.base_sync_data import BaseSyncData
-from app.utils.timezone import now
+from app.utils.time_utils import now
 
 
 class CurrentAccountSyncData(BaseSyncData):

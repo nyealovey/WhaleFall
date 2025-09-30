@@ -16,7 +16,7 @@ from app import db
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.utils.api_response import error_response, success_response
 from app.utils.structlog_config import get_logger, log_error, log_info
-from app.utils.timezone import now
+from app.utils.time_utils import time_utils
 
 # 获取日志记录器
 logger = get_logger("api")
@@ -72,7 +72,7 @@ def search_logs() -> tuple[dict, int]:
 
         # 默认时间范围：最近24小时
         if not start_time and not end_time:
-            default_start = now() - timedelta(hours=24)
+            default_start = time_utils.now() - timedelta(hours=24)
             query = query.filter(UnifiedLog.timestamp >= default_start)
 
         # 级别过滤
@@ -255,14 +255,14 @@ def export_logs() -> tuple[dict, int]:
                 # 格式化时间戳（转换为东八区时间）
                 timestamp_str = ""
                 if log.timestamp:
-                    from app.utils.timezone import utc_to_china
+                    from app.utils.time_utils import utc_to_china
 
                     china_time = utc_to_china(log.timestamp)
                     timestamp_str = china_time.strftime("%Y-%m-%d %H:%M:%S")
 
                 created_at_str = ""
                 if log.created_at:
-                    from app.utils.timezone import utc_to_china
+                    from app.utils.time_utils import utc_to_china
 
                     china_created_at = utc_to_china(log.created_at)
                     created_at_str = china_created_at.strftime("%Y-%m-%d %H:%M:%S")
@@ -297,7 +297,7 @@ def export_logs() -> tuple[dict, int]:
             from flask import Response
 
             # 生成文件名
-            timestamp = now().strftime("%Y%m%d_%H%M%S")
+            timestamp = time_utils.now().strftime("%Y%m%d_%H%M%S")
             filename = f"logs_export_{timestamp}.csv"
 
             return Response(
@@ -405,7 +405,7 @@ def get_log_stats() -> tuple[dict, int]:
         # 时间范围筛选
         if hours:
             hours_int = int(hours)
-            start_time = now() - timedelta(hours=hours_int)
+            start_time = time_utils.now() - timedelta(hours=hours_int)
             query = query.filter(UnifiedLog.timestamp >= start_time)
 
         # 日志级别筛选

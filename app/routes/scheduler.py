@@ -168,14 +168,14 @@ def get_jobs() -> Response:
             last_run_time = None
             try:
                 from app.models.unified_log import UnifiedLog
-                from app.utils.time_utils import now_china
+                from app.utils.time_utils import time_utils
                 from datetime import timedelta
                 
                 # 查找最近24小时内该任务的执行日志
                 recent_logs = UnifiedLog.query.filter(
                     UnifiedLog.module == "scheduler",
                     UnifiedLog.message.like(f"%{job.name}%"),
-                    UnifiedLog.timestamp >= now_china() - timedelta(days=1)
+                    UnifiedLog.timestamp >= time_utils.now_china() - timedelta(days=1)
                 ).order_by(UnifiedLog.timestamp.desc()).first()
                 
                 if recent_logs:
@@ -628,7 +628,7 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
 @scheduler_view_required
 def get_scheduler_health():
     """获取调度器健康状态"""
-    from app.utils.timezone import now_china
+    from app.utils.time_utils import time_utils
     from app.utils.structlog_config import get_system_logger
     
     system_logger = get_system_logger()
@@ -715,7 +715,7 @@ def get_scheduler_health():
             status_color = "danger"
 
         # 使用统一时区
-        current_time = now_china()
+        current_time = time_utils.now_china()
         
         health_data = {
             "status": status,
@@ -768,7 +768,7 @@ def get_scheduler_health():
                 "status_text": "检查失败",
                 "status_color": "danger",
                 "health_score": partial_score,
-                "last_check": now_china().strftime("%Y/%m/%d %H:%M:%S")
+                "last_check": time_utils.now_china().strftime("%Y/%m/%d %H:%M:%S")
             }
         })
 

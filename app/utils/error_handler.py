@@ -9,7 +9,7 @@ from flask import Response, current_app, jsonify, render_template, request
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.utils.structlog_config import get_system_logger
-from app.utils.timezone import now
+from app.utils.time_utils import time_utils
 
 
 def register_error_handlers(app: Any) -> None:  # noqa: ANN401
@@ -157,7 +157,7 @@ def _get_timestamp():
         str: ISO格式时间戳
     """
 
-    return now().isoformat()
+    return time_utils.now().isoformat()
 
 
 def safe_error_message(error: Any) -> str:  # noqa: ANN401

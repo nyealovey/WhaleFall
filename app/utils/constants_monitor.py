@@ -9,6 +9,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Set
+from app.utils.time_utils import time_utils
 
 from app.constants import (
     CacheKeys,
@@ -65,7 +66,7 @@ class ConstantsMonitor:
             "constant_name": constant_name,
             "file_path": file_path,
             "line_number": line_number,
-            "timestamp": datetime.now(),
+            "timestamp": time_utils.now(),
         }
         
         # 这里可以添加更详细的日志记录
@@ -89,7 +90,7 @@ class ConstantsMonitor:
             "old_value": old_value,
             "new_value": new_value,
             "file_path": file_path,
-            "timestamp": datetime.now(),
+            "timestamp": time_utils.now(),
         }
         
         self.change_log.append(change_info)
@@ -183,7 +184,7 @@ class ConstantsMonitor:
             "high_usage_constants": self.get_high_usage_constants(),
             "unused_constants_list": self.get_unused_constants(),
             "constants_by_usage": self.get_constants_by_usage(),
-            "last_updated": datetime.now().isoformat(),
+            "last_updated": time_utils.now().isoformat(),
         }
 
     def export_usage_data(self, output_file: str = None) -> str:

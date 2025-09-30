@@ -3,7 +3,7 @@
 基于Python 3.9+的zoneinfo模块，提供一致的时间处理功能
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, date, timedelta
 from zoneinfo import ZoneInfo
 
 # 时区配置
@@ -197,3 +197,37 @@ def utc_to_china(dt: str | datetime | None) -> datetime | None:
 def format_china_time(dt: str | datetime | None, format_str: str = TIME_FORMATS["datetime"]) -> str:
     """格式化中国时间（向后兼容）"""
     return time_utils.format_china_time(dt, format_str)
+
+
+# 从 timezone.py 迁移的函数（向后兼容）
+def get_china_time() -> datetime:
+    """获取东八区当前时间（向后兼容）"""
+    return time_utils.now_china()
+
+
+def china_to_utc(china_dt: datetime | None) -> datetime | None:
+    """将东八区时间转换为UTC时间（向后兼容）"""
+    return time_utils.to_utc(china_dt)
+
+
+def get_china_date() -> date:
+    """获取东八区当前日期（向后兼容）"""
+    return time_utils.now_china().date()
+
+
+def get_china_today() -> datetime:
+    """获取东八区今天的开始时间（UTC）（向后兼容）"""
+    china_today = time_utils.now_china().date()
+    china_start = datetime.combine(china_today, datetime.min.time()).replace(tzinfo=CHINA_TZ)
+    return china_start.astimezone(UTC_TZ)
+
+
+def get_china_tomorrow() -> datetime:
+    """获取东八区明天的开始时间（UTC）（向后兼容）"""
+    china_tomorrow = time_utils.now_china().date() + timedelta(days=1)
+    china_start = datetime.combine(china_tomorrow, datetime.min.time()).replace(tzinfo=CHINA_TZ)
+    return china_start.astimezone(UTC_TZ)
+
+
+# 常量（向后兼容）
+# UTC_TZ 已在文件顶部定义

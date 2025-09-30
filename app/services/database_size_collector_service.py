@@ -153,13 +153,17 @@ class DatabaseSizeCollectorService:
                 is_system_db = db_name in ('information_schema', 'performance_schema', 'mysql', 'sys')
                 db_type = "系统数据库" if is_system_db else "用户数据库"
                 
+                # 使用中国时区统一处理日期
+                from app.utils.time_utils import time_utils
+                china_now = time_utils.now_china()
+                
                 data.append({
                     'database_name': db_name,
                     'size_mb': int(total_size),
                     'data_size_mb': int(data_size),
                     'log_size_mb': None,  # MySQL 没有单独的日志文件大小
-                    'collected_date': date.today(),
-                    'collected_at': datetime.utcnow(),
+                    'collected_date': china_now.date(),  # 使用中国时区的日期
+                    'collected_at': time_utils.now(),  # 使用UTC时间戳
                     'is_system': is_system_db
                 })
                 
@@ -199,13 +203,17 @@ class DatabaseSizeCollectorService:
             database_name = row[0]
             data_size_mb = int(float(row[1] or 0))
             
+            # 使用中国时区统一处理日期
+            from app.utils.time_utils import time_utils
+            china_now = time_utils.now_china()
+            
             data.append({
                 'database_name': database_name,
                 'size_mb': data_size_mb,  # 总大小 = 数据大小
                 'data_size_mb': data_size_mb,
                 'log_size_mb': None,  # 不采集日志大小
-                'collected_date': date.today(),
-                'collected_at': datetime.utcnow()
+                'collected_date': china_now.date(),  # 使用中国时区的日期
+                'collected_at': time_utils.now()  # 使用UTC时间戳
             })
             
             self.logger.info(f"SQL Server 数据库 {database_name}: 数据大小 {data_size_mb} MB")
@@ -237,14 +245,18 @@ class DatabaseSizeCollectorService:
         
         data = []
         
+        # 使用中国时区统一处理日期
+        from app.utils.time_utils import time_utils
+        china_now = time_utils.now_china()
+        
         for row in result:
             data.append({
                 'database_name': row[0],
                 'size_mb': int(row[1] or 0),
                 'data_size_mb': int(row[2] or 0),
                 'log_size_mb': None,  # PostgreSQL 不单独采集日志大小
-                'collected_date': date.today(),
-                'collected_at': datetime.utcnow()
+                'collected_date': china_now.date(),  # 使用中国时区的日期
+                'collected_at': time_utils.now()  # 使用UTC时间戳
             })
         
         self.logger.info(f"PostgreSQL 实例 {self.instance.name} 采集到 {len(data)} 个数据库")
@@ -274,14 +286,18 @@ class DatabaseSizeCollectorService:
         
         data = []
         
+        # 使用中国时区统一处理日期
+        from app.utils.time_utils import time_utils
+        china_now = time_utils.now_china()
+        
         for row in result:
             data.append({
                 'database_name': row[0],
                 'size_mb': int(row[1] or 0),
                 'data_size_mb': int(row[2] or 0),
                 'log_size_mb': None,  # Oracle 不单独采集日志大小
-                'collected_date': date.today(),
-                'collected_at': datetime.utcnow()
+                'collected_date': china_now.date(),  # 使用中国时区的日期
+                'collected_at': time_utils.now()  # 使用UTC时间戳
             })
         
         self.logger.info(f"Oracle 实例 {self.instance.name} 采集到 {len(data)} 个数据库")
@@ -366,7 +382,11 @@ class DatabaseSizeCollectorService:
             # 计算实例总大小和数据库数量
             total_size = sum(item['size_mb'] for item in data)
             database_count = len(data)
-            collected_date = date.today()
+            
+            # 使用中国时区统一处理日期
+            from app.utils.time_utils import time_utils
+            china_now = time_utils.now_china()
+            collected_date = china_now.date()
             
             # 检查是否已存在今天的记录
             existing_stat = InstanceSizeStat.query.filter_by(
@@ -378,8 +398,8 @@ class DatabaseSizeCollectorService:
                 # 更新现有记录
                 existing_stat.total_size_mb = total_size
                 existing_stat.database_count = database_count
-                existing_stat.collected_at = datetime.utcnow()
-                existing_stat.updated_at = datetime.utcnow()
+                existing_stat.collected_at = time_utils.now()
+                existing_stat.updated_at = time_utils.now()
                 self.logger.debug(f"更新实例 {self.instance.name} 大小统计记录")
             else:
                 # 创建新记录
@@ -388,7 +408,7 @@ class DatabaseSizeCollectorService:
                     total_size_mb=total_size,
                     database_count=database_count,
                     collected_date=collected_date,
-                    collected_at=datetime.utcnow(),
+                    collected_at=time_utils.now(),
                     is_deleted=False
                 )
                 db.session.add(new_stat)
@@ -435,8 +455,9 @@ class DatabaseSizeCollectorService:
             bool: 更新是否成功
         """
         try:
-            # 获取今天该实例的所有数据库大小数据
-            today = date.today()
+            # 获取今天该实例的所有数据库大小数据（使用中国时区）
+            from app.utils.time_utils import time_utils
+            today = time_utils.now_china().date()
             stats = DatabaseSizeStat.query.filter_by(
                 instance_id=self.instance.id,
                 collected_date=today,

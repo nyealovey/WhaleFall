@@ -6,6 +6,7 @@
 import logging
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Any, Optional
+from app.utils.time_utils import time_utils
 from sqlalchemy import func, and_, or_
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.database_size_aggregation import DatabaseSizeAggregation
@@ -400,7 +401,7 @@ class DatabaseSizeAggregationService:
             # 计算增量/减量统计
             self._calculate_instance_change_statistics(aggregation, instance_id, period_type, start_date, end_date)
             
-            aggregation.calculated_at = datetime.utcnow()
+            aggregation.calculated_at = time_utils.now()
             
             if not existing:
                 db.session.add(aggregation)
@@ -638,7 +639,7 @@ class DatabaseSizeAggregationService:
             # 计算增量/减量统计
             self._calculate_change_statistics(aggregation, instance_id, database_name, period_type, start_date, end_date)
             
-            aggregation.calculated_at = datetime.utcnow()
+            aggregation.calculated_at = time_utils.now()
             
             if not existing:
                 db.session.add(aggregation)

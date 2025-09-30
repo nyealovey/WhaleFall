@@ -13,7 +13,7 @@ from app.services.connection_factory import ConnectionFactory
 from app.services.sync_data_manager import SyncDataManager
 from app.services.sync_session_service import sync_session_service
 from app.utils.structlog_config import get_sync_logger
-from app.utils.timezone import now
+from app.utils.time_utils import time_utils
 
 
 class AccountSyncService:
@@ -145,7 +145,7 @@ class AccountSyncService:
                 conn.close()
 
             # 更新实例最后连接时间
-            instance.last_connected_at = now()
+            instance.last_connected_at = time_utils.now()
             db.session.commit()
 
             self.sync_logger.info(
@@ -240,7 +240,7 @@ class AccountSyncService:
                 conn.close()
 
             # 更新实例最后连接时间
-            instance.last_connected_at = now()
+            instance.last_connected_at = time_utils.now()
             db.session.commit()
 
             return result

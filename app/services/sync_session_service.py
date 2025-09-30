@@ -315,11 +315,11 @@ class SyncSessionService:
             dict: 恢复结果
         """
         try:
-            from app.utils.timezone import now
+            from app.utils.time_utils import time_utils
             from datetime import timedelta
             
             # 查找卡住的实例（running状态超过指定时间）
-            timeout_threshold = now() - timedelta(minutes=timeout_minutes)
+            timeout_threshold = time_utils.now() - timedelta(minutes=timeout_minutes)
             
             stuck_records = (
                 db.session.query(SyncInstanceRecord)
