@@ -122,21 +122,37 @@ def sync_instance_capacity(instance_id: int):
         from app.tasks.database_size_collection_tasks import collect_specific_instance_database_sizes
         result = collect_specific_instance_database_sizes(instance_id)
 
-        if result and result.get("status") == "success":
+        if result and result.get("success"):
             logger.info(
                 "同步实例容量成功",
                 extra={
                     "instance_id": instance.id,
                     "instance_name": instance.name,
-                    "action": "开始同步容量",
+                    "action": "同步容量成功",
                     "user_action": True,
                 },
             )
             return jsonify({
                 'success': True,
-                'message': f'实例 {instance.name} 的容量同步任务已触发',
+                'message': f'实例 {instance.name} 的容量同步任务已成功完成',
                 'data': result
             })
+        else:
+            logger.warning(
+                "同步实例容量失败",
+                extra={
+                    "instance_id": instance.id,
+                    "instance_name": instance.name,
+                    "action": "同步容量失败",
+                    "user_action": True,
+                    "result": result,
+                },
+            )
+            return jsonify({
+                'success': False,
+                'message': f'实例 {instance.name} 的容量同步失败: {result.get("message", "未知错误")}',
+                'error': result.get('error', '任务返回失败状态但没有提供错误信息。')
+            }), 400
         
     except Exception as e:
         logger.error(f"同步实例 {instance_id} 容量失败: {str(e)}")
