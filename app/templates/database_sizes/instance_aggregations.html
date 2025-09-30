@@ -48,27 +48,25 @@
     </div>
 
     <!-- 统一搜索筛选 -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="instance-aggregations-page">
-                {% set show_search_input = false %}
-                {% set search_button_text = '筛选' %}
-                {% set show_instance_filter = true %}
-                {% set show_period_type_filter = true %}
-                {% set show_database_filter = false %}
-                {% set show_time_range_filter = true %}
-                {% set show_db_type_filter = true %}
-                {% set show_classification_filter = false %}
-                {% set show_credential_type_filter = false %}
-                {% set show_tag_category_filter = false %}
-                {% set show_status_filter = false %}
-                {% set show_level_filter = false %}
-                {% set show_module_filter = false %}
-                {% set show_tag_filter = false %}
-                {% set show_sync_type_filter = false %}
-                {% set show_sync_category_filter = false %}
-                {% include 'components/unified_search_form.html' %}
-            </div>
+    <div class="mb-4">
+        <div class="instance-aggregations-page">
+            {% set show_search_input = false %}
+            {% set search_button_text = '筛选' %}
+            {% set show_instance_filter = true %}
+            {% set show_period_type_filter = true %}
+            {% set show_database_filter = false %}
+            {% set show_time_range_filter = true %}
+            {% set show_db_type_filter = true %}
+            {% set show_classification_filter = false %}
+            {% set show_credential_type_filter = false %}
+            {% set show_tag_category_filter = false %}
+            {% set show_status_filter = false %}
+            {% set show_level_filter = false %}
+            {% set show_module_filter = false %}
+            {% set show_tag_filter = false %}
+            {% set show_sync_type_filter = false %}
+            {% set show_sync_category_filter = false %}
+            {% include 'components/unified_search_form.html' %}
         </div>
     </div>
 
