@@ -629,10 +629,14 @@ def get_instance_aggregations_summary():
         # 获取基本统计
         total_aggregations = query.count()
         
-        # 获取活跃实例数 - 根据筛选条件
+        # 获取活跃实例数 - 从筛选后的聚合数据中获取
         if db_type:
-            total_instances = Instance.query.filter_by(is_active=True, db_type=db_type).count()
+            # 当有数据库类型筛选时，从聚合数据中获取实例数
+            total_instances = db.session.query(
+                func.count(func.distinct(InstanceSizeAggregation.instance_id))
+            ).select_from(query.subquery()).scalar() or 0
         else:
+            # 没有筛选时，获取所有活跃实例数
             total_instances = Instance.query.filter_by(is_active=True).count()
         
         # 获取数据库数量统计 - 从筛选后的数据获取
