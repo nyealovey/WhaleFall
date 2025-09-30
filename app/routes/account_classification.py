@@ -44,7 +44,7 @@ def rules() -> str:
     return render_template("account_classification/rules.html")
 
 
-@account_classification_bp.route("/classifications")
+@account_classification_bp.route("/api/classifications")
 @login_required
 @view_required
 def get_classifications() -> "Response":
@@ -89,7 +89,7 @@ def get_classifications() -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/classifications", methods=["POST"])
+@account_classification_bp.route("/api/classifications", methods=["POST"])
 @login_required
 @create_required
 def create_classification() -> "Response":
@@ -132,7 +132,7 @@ def create_classification() -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/classifications/<int:classification_id>")
+@account_classification_bp.route("/api/classifications/<int:classification_id>")
 @login_required
 @view_required
 def get_classification(classification_id: int) -> "Response":
@@ -162,7 +162,7 @@ def get_classification(classification_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/classifications/<int:classification_id>", methods=["PUT"])
+@account_classification_bp.route("/api/classifications/<int:classification_id>", methods=["PUT"])
 @login_required
 @update_required
 def update_classification(classification_id: int) -> "Response":
@@ -188,7 +188,7 @@ def update_classification(classification_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/classifications/<int:classification_id>", methods=["DELETE"])
+@account_classification_bp.route("/api/classifications/<int:classification_id>", methods=["DELETE"])
 @login_required
 @delete_required
 def delete_classification(classification_id: int) -> "Response":
@@ -211,7 +211,7 @@ def delete_classification(classification_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/rules/filter")
+@account_classification_bp.route("/api/rules/filter")
 @login_required
 @view_required
 def get_rules() -> "Response":
@@ -253,7 +253,7 @@ def get_rules() -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/rules")
+@account_classification_bp.route("/api/rules")
 @login_required
 @view_required
 def list_rules() -> "Response":
@@ -297,7 +297,7 @@ def list_rules() -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/rules", methods=["POST"])
+@account_classification_bp.route("/api/rules", methods=["POST"])
 @login_required
 @create_required
 def create_rule() -> "Response":
@@ -336,7 +336,7 @@ def create_rule() -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/rules/<int:rule_id>", methods=["GET"])
+@account_classification_bp.route("/api/rules/<int:rule_id>", methods=["GET"])
 @login_required
 @view_required
 def get_rule(rule_id: int) -> "Response":
@@ -369,7 +369,7 @@ def get_rule(rule_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/rules/<int:rule_id>", methods=["PUT"])
+@account_classification_bp.route("/api/rules/<int:rule_id>", methods=["PUT"])
 @login_required
 @update_required
 def update_rule(rule_id: int) -> "Response":
@@ -405,7 +405,7 @@ def update_rule(rule_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/rules/<int:rule_id>/matched-accounts", methods=["GET"])
+@account_classification_bp.route("/api/rules/<int:rule_id>/matched-accounts", methods=["GET"])
 @login_required
 @view_required
 def get_matched_accounts(rule_id: int) -> "Response":
@@ -513,7 +513,7 @@ def get_matched_accounts(rule_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/rules/<int:rule_id>", methods=["DELETE"])
+@account_classification_bp.route("/api/rules/<int:rule_id>", methods=["DELETE"])
 @login_required
 @delete_required
 def delete_rule(rule_id: int) -> "Response":
@@ -532,7 +532,7 @@ def delete_rule(rule_id: int) -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/auto-classify", methods=["POST"])
+@account_classification_bp.route("/api/auto-classify", methods=["POST"])
 @login_required
 @update_required
 def auto_classify() -> "Response":
@@ -588,7 +588,7 @@ def auto_classify() -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/assignments")
+@account_classification_bp.route("/api/assignments")
 @login_required
 @view_required
 def get_assignments() -> "Response":
@@ -623,7 +623,7 @@ def get_assignments() -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/assignments/<int:assignment_id>", methods=["DELETE"])
+@account_classification_bp.route("/api/assignments/<int:assignment_id>", methods=["DELETE"])
 @login_required
 @delete_required
 def remove_assignment(assignment_id: int) -> "Response":
@@ -641,7 +641,7 @@ def remove_assignment(assignment_id: int) -> "Response":
         return jsonify({"success": False, "error": f"移除分配失败: {str(e)}"})
 
 
-@account_classification_bp.route("/permissions/<db_type>")
+@account_classification_bp.route("/api/permissions/<db_type>")
 @login_required
 @view_required
 def get_permissions(db_type: str) -> "Response":
