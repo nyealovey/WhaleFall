@@ -273,6 +273,7 @@ class InstanceAggregationsManager {
     updateSummaryCards(data) {
         // 从API响应中提取正确的数据
         const summaryData = data.data || data;
+        console.log('更新统计卡片数据:', summaryData);
         $('#totalInstances').text(summaryData.total_instances || 0);
         $('#totalDatabases').text(this.formatSizeFromMB(summaryData.total_size_mb || 0));
         $('#averageSize').text(this.formatSizeFromMB(summaryData.avg_size_mb || 0));
