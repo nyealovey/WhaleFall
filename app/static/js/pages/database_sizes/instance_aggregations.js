@@ -54,8 +54,8 @@ class InstanceAggregationsManager {
         });
         
         // 统计周期选择器切换
-        $('input[name="statisticsPeriod"]').on('change', (e) => {
-            this.currentStatisticsPeriod = parseInt(e.target.value);
+        $('#period_type').on('change', (e) => {
+            this.currentFilters.period_type = e.target.value;
             this.updateTimeRangeFromPeriod();
             this.loadChartData();
         });
