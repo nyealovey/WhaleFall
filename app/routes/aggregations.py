@@ -340,7 +340,7 @@ def instance_aggregations():
             
             # 处理time_range参数，转换为start_date和end_date
             if time_range and not start_date and not end_date:
-                from datetime import datetime, timedelta
+                from datetime import timedelta
                 end_date_obj = datetime.now()
                 start_date_obj = end_date_obj - timedelta(days=int(time_range))
                 start_date = start_date_obj.strftime('%Y-%m-%d')
