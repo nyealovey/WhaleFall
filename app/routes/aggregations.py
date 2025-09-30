@@ -140,7 +140,7 @@ def instance_aggregations():
     )
 
 
-@aggregations_bp.route('/api/instance/api', methods=['GET'])
+@aggregations_bp.route('/api/instance/data', methods=['GET'])
 @login_required
 @view_required
 def instance_aggregations_api():

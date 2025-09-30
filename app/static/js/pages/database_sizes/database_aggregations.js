@@ -119,7 +119,7 @@ class DatabaseAggregationsManager {
         
         try {
             instanceSelect.prop('disabled', false);
-            const response = await fetch(`/instances/api/instances?db_type=${dbType}`);
+            const response = await fetch(`/instances/api?db_type=${dbType}`);
             const data = await response.json();
             
             if (response.ok && data.success) {
@@ -190,7 +190,7 @@ class DatabaseAggregationsManager {
      */
     async loadInstances(dbType = null) {
         try {
-            let url = '/instances/api/instances';
+            let url = '/instances/api';
             if (dbType) {
                 url += `?db_type=${dbType}`;
             }

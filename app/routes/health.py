@@ -150,7 +150,7 @@ def check_system_health() -> dict:
         return {"healthy": False, "error": str(e), "status": "error"}
 
 
-@health_bp.route("/health/readiness")
+@health_bp.route("/readiness")
 def readiness_check() -> "Response":
     """就绪检查 - 用于Kubernetes等容器编排"""
     try:
@@ -167,7 +167,7 @@ def readiness_check() -> "Response":
         return APIResponse.server_error("就绪检查失败")
 
 
-@health_bp.route("/health/liveness")
+@health_bp.route("/liveness")
 def liveness_check() -> "Response":
     """存活检查 - 用于Kubernetes等容器编排"""
     try:

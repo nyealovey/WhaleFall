@@ -108,9 +108,9 @@ function testConnection() {
     
     console.log('测试连接 - 实例ID:', instanceId);
     console.log('测试连接 - CSRF Token:', csrfToken);
-    console.log('测试连接 - API URL:', `/instances/api/instances/${instanceId}/test`);
+    console.log('测试连接 - API URL:', `/instances/api/${instanceId}/test`);
     
-    fetch(`/instances/api/instances/${instanceId}/test`, {
+    fetch(`/instances/api/${instanceId}/test`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
