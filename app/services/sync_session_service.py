@@ -284,7 +284,7 @@ class SyncSessionService:
 
     def _update_session_statistics(self, session_id: str) -> None:
         """更新会话统计信息"""
-        with db.session.begin_nested():
+        try:
             session = db.session.query(SyncSession).filter_by(session_id=session_id).with_for_update().one()
             
             succeeded_instances = (
@@ -303,6 +303,19 @@ class SyncSessionService:
                 succeeded_instances=succeeded_instances,
                 failed_instances=failed_instances,
             )
+            
+            # 提交事务
+            db.session.commit()
+            
+        except Exception as e:
+            db.session.rollback()
+            self.sync_logger.error(
+                "更新会话统计失败",
+                module="sync_session",
+                session_id=session_id,
+                error=str(e),
+            )
+            raise
 
     def recover_stuck_instances(self, timeout_minutes: int = 10) -> dict[str, Any]:
         """
