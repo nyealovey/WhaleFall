@@ -44,8 +44,8 @@
 | `/account/api/export` | GET | 导出账户数据为 CSV |
 | `/account/api/<int:account_id>/permissions` | GET | 获取账户权限详情 |
 | `/account/api/<int:account_id>/change-history` | GET | 获取账户变更历史 |
-| `/account/api/account-statistics` | GET | 账户统计 API |
-| `/account/api/statistics` | GET | 获取账户统计信息 |
+| `/account/api/account-statistics` | GET | 账户统计 API（详细格式） |
+| `/account/api/statistics` | GET | 获取账户统计信息（简化格式） |
 
 ---
 
@@ -190,9 +190,10 @@
 | 路径 | 方法 | 描述 |
 |------|------|------|
 | `/health/` | GET | 基础健康检查 |
+| `/health/` | GET | 健康检查根路由（兼容Nginx配置） |
 | `/health/detailed` | GET | 详细健康检查 |
-| `/health/readiness` | GET | 就绪检查（Kubernetes 用） |
-| `/health/liveness` | GET | 存活检查（Kubernetes 用） |
+| `/health/health/readiness` | GET | 就绪检查（Kubernetes 用） |
+| `/health/health/liveness` | GET | 存活检查（Kubernetes 用） |
 
 ---
 
@@ -214,12 +215,11 @@
 | `/instances/api/instances` | GET | 获取实例列表API |
 | `/instances/api/instances/<int:id>` | GET | 获取实例详情API |
 | `/instances/api/instances/<int:id>/delete` | POST | 删除实例 |
-| `/instances/api/instances/<int:id>/test` | GET | 测试连接API |
+| `/instances/api/instances/<int:id>/test` | GET, POST | 测试连接API（支持GET和POST方法） |
 | `/instances/api/test-connection` | POST | 测试数据库连接API（无需CSRF） |
 | `/instances/api/instances/<int:id>/accounts` | GET | 获取实例账户数据API |
 | `/instances/api/instances/<int:id>/accounts/<int:account_id>/change-history` | GET | 获取账户变更历史 |
 | `/instances/api/instances/<int:id>/accounts/<int:account_id>/permissions` | GET | 获取账户权限详情 |
-| `/instances/api/instances/<int:id>/test` | POST | 测试数据库连接 |
 | `/instances/api/batch-delete` | POST | 批量删除实例 |
 | `/instances/api/batch-create` | POST | 批量创建实例 |
 | `/instances/api/export` | GET | 导出实例数据为CSV |
@@ -287,6 +287,7 @@
 | `/partition/api/aggregations/latest` | GET | 获取最新的聚合数据 |
 | `/partition/api/aggregations/cleanup` | POST | 清理旧的聚合数据 |
 | `/partition/api/aggregations/summary` | GET | 获取聚合数据统计概览 |
+| `/partition/api/aggregations/core-metrics` | GET | 获取核心指标数据 |
 | `/partition/api/aggregations/chart` | GET | 获取聚合数据图表数据 |
 
 ---
@@ -424,9 +425,9 @@
 
 ### 总体统计
 - **总模块数**: 20 个
-- **页面路由总数**: 约 41 个
-- **API 接口总数**: 约 158 个
-- **总路由数**: 约 199 个
+- **页面路由总数**: 约 40 个
+- **API 接口总数**: 140 个
+- **总路由数**: 180 个
 
 ### API 前缀使用情况
 根据内存中的已知问题，项目存在 API 前缀不统一的情况：
@@ -449,7 +450,16 @@
 
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
-- **版本**: v1.2.0
+- **版本**: v1.2.1
+
+### v1.2.1 更新内容 (2025-09-30)
+- ✅ 修复健康检查模块API路径错误（readiness和liveness路径）
+- ✅ 补充分区管理模块缺失的API路径（core-metrics和chart）
+- ✅ 修复实例管理模块API路径重复定义问题
+- ✅ 修复账户管理模块API路径重复定义问题
+- ✅ 更新API接口总数统计（从158个修正为140个）
+- ✅ 更新总路由数统计（从199个修正为180个）
+- ✅ 修正API文档中的路径错误和不一致问题
 
 ### v1.2.0 更新内容 (2025-09-30)
 - ✅ 全面补充实例管理模块的API接口（增加15个接口）
