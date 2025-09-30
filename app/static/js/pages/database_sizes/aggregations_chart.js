@@ -51,17 +51,17 @@ class AggregationsChartManager {
                     <h6>核心指标说明：</h6>
                     <div class="legend-items">
                         <div class="legend-item">
-                            <span class="legend-color" style="background: linear-gradient(90deg, #36A2EB 0%, #FF6384 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
-                            <span class="legend-text">📊 实例数总量（蓝色实线）+ 实例日统计数量（红色虚线）→ 紫色偏粉红混合效果</span>
+                            <span class="legend-color" style="background: linear-gradient(90deg, #36A2EB 0%, rgba(255, 99, 132, 0.8) 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
+                            <span class="legend-text">📊 实例数总量（蓝色实线）+ 实例日统计数量（红色虚线，80%透明度）→ 叠加效果</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background: linear-gradient(90deg, #4BC0C0 0%, #FF9F40 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
-                            <span class="legend-text">🗄️ 数据库数总量（绿色实线）+ 数据库日统计数量（橙色虚线）→ 黄绿色混合效果</span>
+                            <span class="legend-color" style="background: linear-gradient(90deg, #4BC0C0 0%, rgba(255, 159, 64, 0.8) 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
+                            <span class="legend-text">🗄️ 数据库数总量（绿色实线）+ 数据库日统计数量（橙色虚线，80%透明度）→ 叠加效果</span>
                         </div>
                     </div>
                     <div class="alert alert-info mt-2" style="font-size: 0.85em;">
                         <i class="fas fa-info-circle me-1"></i>
-                        <strong>颜色混合设计：</strong>每条组合线由两种不同颜色的线叠加而成，产生颜色混合效果。粗实线表示原始数据，细虚线表示聚合数据，叠加时形成新的混合颜色。
+                        <strong>叠加设计：</strong>每条组合线由两条线叠加而成：粗实线表示原始数据，细虚线（半透明）表示聚合数据。通过透明度和线型差异，可以清楚看到两条线的组合效果。
                     </div>
                 </div>
             `;
