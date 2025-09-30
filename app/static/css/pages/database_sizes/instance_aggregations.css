@@ -249,11 +249,12 @@
 }
 
 /* 限制图表标题宽度 */
-.instance-aggregations-page .card-header .card-title.mb-0 {
+.card-header .card-title.mb-0 {
     max-width: 200px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+    display: inline-block !important;
 }
 
 .instance-aggregations-page .empty-state p {
