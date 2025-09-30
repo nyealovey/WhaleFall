@@ -231,11 +231,11 @@
 ### 页面路由
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/instances/` | GET | 实例管理首页（支持JSON API） |
-| `/instances/create` | GET, POST | 创建实例页面（支持JSON API） |
-| `/instances/<int:id>/edit` | GET, POST | 编辑实例页面（支持JSON API） |
-| `/instances/<int:id>` | GET | 查看实例详情页面（支持JSON API） |
-| `/instances/statistics` | GET | 实例统计页面（支持JSON API） |
+| `/instances/` | GET | 实例管理首页 |
+| `/instances/create` | GET, POST | 创建实例页面 |
+| `/instances/<int:instance_id>/edit` | GET, POST | 编辑实例页面 |
+| `/instances/<int:instance_id>` | GET | 查看实例详情页面 |
+| `/instances/statistics` | GET | 实例统计页面 |
 
 ### API 接口
 | 路径 | 方法 | 描述 |
@@ -488,12 +488,9 @@ connectionManager.batchTestConnections([1,2,3], {
 - **已弃用API**: 2 个（保持向后兼容）
 
 ### 混合路由说明
-部分路由同时支持页面渲染和JSON API响应：
-- **实例管理模块**: `/instances/`, `/instances/create`, `/instances/<int:instance_id>`, `/instances/<int:instance_id>/edit`, `/instances/statistics`
+目前没有混合路由，所有模块都已完成页面路由和API路由的分离。
 
-这些路由会根据请求的 `Content-Type` 或 `Accept` 头自动判断返回HTML页面还是JSON数据。
-
-**注意**: 认证模块和账户管理模块已经完成拆分，有独立的API路由和页面路由。
+**注意**: 认证模块、账户管理模块和实例管理模块都已经完成拆分，有独立的API路由和页面路由。
 
 ### API 前缀使用情况
 根据内存中的已知问题，项目存在 API 前缀不统一的情况：
@@ -537,6 +534,14 @@ connectionManager.batchTestConnections([1,2,3], {
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
 - **版本**: v1.5.0
+
+### v1.5.8 更新内容 (2025-09-30)
+- ✅ 完成实例管理模块的页面/API分离
+- ✅ 移除所有页面路由中的混合逻辑（`if request.is_json`）
+- ✅ 页面路由只负责HTML渲染，API路由只负责JSON数据
+- ✅ 更新API文档，移除"支持JSON API"标注
+- ✅ 更新混合路由说明，确认所有模块已完成分离
+- ✅ 提高代码的清晰度和可维护性
 
 ### v1.5.7 更新内容 (2025-09-30)
 - ✅ 拆分账户管理模块的统计功能
