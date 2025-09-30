@@ -336,6 +336,15 @@ def instance_aggregations():
             period_type = request.args.get('period_type')
             start_date = request.args.get('start_date')
             end_date = request.args.get('end_date')
+            time_range = request.args.get('time_range')
+            
+            # 处理time_range参数，转换为start_date和end_date
+            if time_range and not start_date and not end_date:
+                from datetime import datetime, timedelta
+                end_date_obj = datetime.now()
+                start_date_obj = end_date_obj - timedelta(days=int(time_range))
+                start_date = start_date_obj.strftime('%Y-%m-%d')
+                end_date = end_date_obj.strftime('%Y-%m-%d')
             
             # 分页参数
             page = request.args.get('page', 1, type=int)
