@@ -408,6 +408,8 @@ def register_blueprints(app: Flask) -> None:
     
     # 注册连接管理蓝图
     from app.routes.connections import connections_bp
+    from app.routes.database_stats import database_stats_bp
+    from app.routes.instance_stats import instance_stats_bp
 
     # 注册所有蓝图到Flask应用
     app.register_blueprint(main_bp)
@@ -431,6 +433,8 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
     app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')
     app.register_blueprint(connections_bp, url_prefix='/connections')
+    app.register_blueprint(database_stats_bp, url_prefix='/database_stats')
+    app.register_blueprint(instance_stats_bp, url_prefix='/instance_stats')
 
     # 初始化定时任务调度器
     from app.scheduler import init_scheduler

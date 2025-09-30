@@ -54,7 +54,7 @@ async function loadInstanceTotalSizes() {
             if (!instanceId) continue;
             
             try {
-                const response = await fetch(`/storage_sync/api/instances/${instanceId}/database-sizes/total`, {
+                const response = await fetch(`/database_stats/api/instances/${instanceId}/database-sizes/total`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
