@@ -12,6 +12,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import and_, desc, func
 from app.models.instance import Instance
 from app.services.database_size_collector_service import collect_all_instances_database_sizes
+from app.tasks.database_size_collection_tasks import collect_specific_instance_database_sizes
 from app.utils.decorators import view_required
 from app import db
 
