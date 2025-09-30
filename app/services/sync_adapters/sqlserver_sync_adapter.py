@@ -10,7 +10,7 @@
 - 通过实际查询获取真实权限，避免硬编码假设
 """
 
-import signal
+# import signal  # 移除signal导入，避免在子线程中使用
 import time
 from typing import Any
 
@@ -48,48 +48,27 @@ class SQLServerSyncAdapter(BaseSyncAdapter):
         Returns:
             查询结果列表
         """
-        def timeout_handler(signum, frame):
-            raise TimeoutError(f"查询超时 ({self.query_timeout}秒): {sql[:100]}...")
-        
-        # 初始化old_handler变量，避免UnboundLocalError
-        old_handler = None
-        
         try:
-            # 设置超时信号
-            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(self.query_timeout)
-            
-            # 执行查询
+            # 执行查询（移除signal超时控制，依赖连接工厂的超时机制）
             if params:
                 result = connection.execute_query(sql, params)
             else:
                 result = connection.execute_query(sql)
             
-            # 取消超时信号
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, old_handler)
-            
             return result
             
-        except TimeoutError as e:
-            self.sync_logger.warning(
-                "SQL Server查询超时",
-                module="sqlserver_sync_adapter",
-                instance_id=self._current_instance.id if self._current_instance else None,
-                sql=sql[:100],
-                timeout=self.query_timeout,
-                error=str(e)
-            )
-            # 取消超时信号
-            signal.alarm(0)
-            if old_handler is not None:
-                signal.signal(signal.SIGALRM, old_handler)
-            return []
         except Exception as e:
-            # 取消超时信号
-            signal.alarm(0)
-            if old_handler is not None:
-                signal.signal(signal.SIGALRM, old_handler)
+            # 检查是否是超时相关的异常
+            if "timeout" in str(e).lower() or "timed out" in str(e).lower():
+                self.sync_logger.warning(
+                    "SQL Server查询超时",
+                    module="sqlserver_sync_adapter",
+                    instance_id=self._current_instance.id if self._current_instance else None,
+                    sql=sql[:100],
+                    timeout=self.query_timeout,
+                    error=str(e)
+                )
+                raise TimeoutError(f"查询超时 ({self.query_timeout}秒): {sql[:100]}...")
             raise e
 
     def _quote_identifier(self, identifier: str) -> str:
