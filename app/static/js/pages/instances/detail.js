@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// 测试连接
+// 测试连接 - 使用新的连接管理API
 function testConnection() {
     const testBtn = event ? event.target : document.querySelector('button[onclick="testConnection()"]');
     const originalText = testBtn.innerHTML;
@@ -28,34 +28,9 @@ function testConnection() {
     testBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>测试中...';
     testBtn.disabled = true;
 
-    // 获取CSRF token
-    const csrfToken = getCSRFToken();
-
-    fetch(`/instances/api/${getInstanceId()}/test`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('认证失败，请重新登录');
-            } else if (response.status === 404) {
-                throw new Error('API接口不存在');
-            } else {
-                throw new Error(`HTTP错误: ${response.status}`);
-            }
-        }
-        return response.json();
-    })
-    .then(data => {
-        const statusBadge = document.getElementById('connectionStatus');
-        const resultDiv = document.getElementById('testResult');
-        const contentDiv = document.getElementById('testResultContent');
-
-        if (data.success) {
+    // 使用新的连接管理API
+    connectionManager.testInstanceConnection(getInstanceId(), {
+        onSuccess: (data) => {
             // 记录成功日志
             logUserAction('测试连接成功', {
                 operation: 'test_connection',
@@ -65,126 +40,37 @@ function testConnection() {
                 message: data.message || '数据库连接正常'
             });
 
+            const statusBadge = document.getElementById('connectionStatus');
+            const resultDiv = document.getElementById('testResult');
+
             statusBadge.textContent = '正常';
             statusBadge.className = 'badge bg-success';
 
-            // 安全地创建HTML内容，避免XSS攻击
-            const successDiv = document.createElement('div');
-            successDiv.className = 'alert alert-success';
-            
-            const icon = document.createElement('i');
-            icon.className = 'fas fa-check-circle me-2';
-            
-            const strong = document.createElement('strong');
-            strong.textContent = '连接成功！';
-            
-            const br = document.createElement('br');
-            
-            const message = document.createElement('span');
-            message.textContent = data.message || '数据库连接正常';
-            
-            successDiv.appendChild(icon);
-            successDiv.appendChild(strong);
-            successDiv.appendChild(br);
-            successDiv.appendChild(message);
-            
-            contentDiv.innerHTML = '';
-            contentDiv.appendChild(successDiv);
-        } else if (data.error) {
+            // 使用连接管理组件的显示方法
+            connectionManager.showTestResult(data, 'testResultContent');
+            resultDiv.style.display = 'block';
+        },
+        onError: (error) => {
             // 记录失败日志
             logError('测试连接失败', {
                 operation: 'test_connection',
                 instance_id: getInstanceId(),
                 instance_name: getInstanceName(),
                 result: 'failed',
-                error: data.error
+                error: error.error
             });
+
+            const statusBadge = document.getElementById('connectionStatus');
+            const resultDiv = document.getElementById('testResult');
 
             statusBadge.textContent = '失败';
             statusBadge.className = 'badge bg-danger';
 
-            // 构建详细的错误信息
-            let errorHtml = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>连接失败！</strong><br>
-                    <strong>错误类型：</strong>${data.error}<br>
-            `;
-
-            // 添加详细信息
-            if (data.details) {
-                errorHtml += `<strong>详细信息：</strong>${data.details}<br>`;
-            }
-
-            // 添加解决方案
-            if (data.solution) {
-                errorHtml += `<strong>解决方案：</strong>${data.solution}<br>`;
-            }
-
-            // 添加错误类型
-            if (data.error_type) {
-                errorHtml += `<small class="text-muted">错误类型: ${data.error_type}</small>`;
-            }
-
-            errorHtml += `</div>`;
-
-            contentDiv.innerHTML = errorHtml;
+            // 使用连接管理组件的显示方法
+            connectionManager.showTestResult(error, 'testResultContent');
+            resultDiv.style.display = 'block';
         }
-
-        resultDiv.style.display = 'block';
-    })
-    .catch(error => {
-        const statusBadge = document.getElementById('connectionStatus');
-        statusBadge.textContent = '错误';
-        statusBadge.className = 'badge bg-danger';
-
-        // 安全地创建错误HTML内容，避免XSS攻击
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'alert alert-danger';
-        
-        const icon = document.createElement('i');
-        icon.className = 'fas fa-exclamation-triangle me-2';
-        
-        const strong1 = document.createElement('strong');
-        strong1.textContent = '测试失败！';
-        
-        const br1 = document.createElement('br');
-        
-        const strong2 = document.createElement('strong');
-        strong2.textContent = '错误信息：';
-        
-        const message = document.createElement('span');
-        message.textContent = error.message || '未知错误';
-        
-        const br2 = document.createElement('br');
-        
-        const small = document.createElement('small');
-        small.className = 'text-muted';
-        small.textContent = '请检查网络连接或重新登录';
-        
-        errorDiv.appendChild(icon);
-        errorDiv.appendChild(strong1);
-        errorDiv.appendChild(br1);
-        errorDiv.appendChild(strong2);
-        errorDiv.appendChild(message);
-        errorDiv.appendChild(br2);
-        errorDiv.appendChild(small);
-        
-        const contentDiv = document.getElementById('testResultContent');
-        contentDiv.innerHTML = '';
-        contentDiv.appendChild(errorDiv);
-        document.getElementById('testResult').style.display = 'block';
-    })
-    .catch(error => {
-        // 记录异常日志
-        logErrorWithContext(error, '测试连接异常', {
-            operation: 'test_connection',
-            instance_id: getInstanceId(),
-            instance_name: getInstanceName(),
-            result: 'exception'
-        });
-    })
-    .finally(() => {
+    }).finally(() => {
         testBtn.innerHTML = originalText;
         testBtn.disabled = false;
     });

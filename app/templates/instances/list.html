@@ -47,6 +47,9 @@
         {% include 'components/unified_search_form.html' %}
     </div>
 
+<!-- 批量测试进度显示 -->
+<div id="batch-test-progress" style="display: none;" class="mb-3"></div>
+
 <!-- 实例列表 -->
 <div class="card">
     <div class="card-body">
@@ -60,8 +63,11 @@
                 <button type="button" class="btn btn-outline-danger btn-sm me-2" onclick="batchDelete()" disabled id="batchDeleteBtn">
                     <i class="fas fa-trash me-1"></i>批量删除
                 </button>
-                <button type="button" class="btn btn-outline-success btn-sm" onclick="showBatchCreateModal()">
+                <button type="button" class="btn btn-outline-success btn-sm me-2" onclick="showBatchCreateModal()">
                     <i class="fas fa-plus me-1"></i>批量添加
+                </button>
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="batchTestConnections()">
+                    <i class="fas fa-plug me-1"></i>批量测试连接
                 </button>
                 {% else %}
                 <span class="text-muted">只读模式 - 无法进行批量操作</span>
