@@ -119,14 +119,14 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/cache/stats` | GET | 获取缓存统计信息 |
-| `/cache/health` | GET | 检查缓存健康状态 |
-| `/cache/clear/user` | POST | 清除用户缓存 |
-| `/cache/clear/instance` | POST | 清除实例缓存 |
-| `/cache/clear/all` | POST | 清除所有缓存 |
-| `/cache/classification/clear` | POST | 清除分类相关缓存 |
-| `/cache/classification/clear/<db_type>` | POST | 清除特定数据库类型缓存 |
-| `/cache/classification/stats` | GET | 获取分类缓存统计信息 |
+| `/cache/api/stats` | GET | 获取缓存统计信息 |
+| `/cache/api/health` | GET | 检查缓存健康状态 |
+| `/cache/api/clear/user` | POST | 清除用户缓存 |
+| `/cache/api/clear/instance` | POST | 清除实例缓存 |
+| `/cache/api/clear/all` | POST | 清除所有缓存 |
+| `/cache/api/classification/clear` | POST | 清除分类相关缓存 |
+| `/cache/api/classification/clear/<db_type>` | POST | 清除特定数据库类型缓存 |
+| `/cache/api/classification/stats` | GET | 获取分类缓存统计信息 |
 
 ---
 
