@@ -395,13 +395,13 @@ class InstanceAggregationsManager {
                 grouped[date] = {};
             }
             
-            // 按实例分组，累加所有数据库的大小
+            // 按实例分组，使用实例的总容量
             const instanceName = item.instance?.name || '未知实例';
             if (!grouped[date][instanceName]) {
                 grouped[date][instanceName] = 0;
             }
-            // 使用avg_size_mb累加，表示实例的平均容量
-            grouped[date][instanceName] += item.avg_size_mb || 0;
+            // 使用total_size_mb，表示实例的总容量
+            grouped[date][instanceName] = Math.max(grouped[date][instanceName], item.total_size_mb || 0);
         });
         
         console.log('分组后的数据:', grouped);
