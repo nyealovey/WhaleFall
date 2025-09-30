@@ -60,16 +60,16 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/account_classification/classifications` | GET, POST | 分类列表和创建 |
-| `/account_classification/classifications/<int:id>` | GET, PUT, DELETE | 单个分类操作 |
-| `/account_classification/rules/filter` | GET | 获取分类规则 |
-| `/account_classification/rules` | GET, POST | 规则列表和创建 |
-| `/account_classification/rules/<int:id>` | GET, PUT, DELETE | 单个规则操作 |
-| `/account_classification/rules/<int:id>/matched-accounts` | GET | 获取规则匹配的账户 |
-| `/account_classification/auto-classify` | POST | 自动分类账户 |
-| `/account_classification/assignments` | GET | 获取账户分类分配 |
-| `/account_classification/assignments/<int:id>` | DELETE | 移除账户分类分配 |
-| `/account_classification/permissions/<db_type>` | GET | 获取数据库权限列表 |
+| `/account_classification/api/classifications` | GET, POST | 分类列表和创建 |
+| `/account_classification/api/classifications/<int:id>` | GET, PUT, DELETE | 单个分类操作 |
+| `/account_classification/api/rules/filter` | GET | 获取分类规则 |
+| `/account_classification/api/rules` | GET, POST | 规则列表和创建 |
+| `/account_classification/api/rules/<int:id>` | GET, PUT, DELETE | 单个规则操作 |
+| `/account_classification/api/rules/<int:id>/matched-accounts` | GET | 获取规则匹配的账户 |
+| `/account_classification/api/auto-classify` | POST | 自动分类账户 |
+| `/account_classification/api/assignments` | GET | 获取账户分类分配 |
+| `/account_classification/api/assignments/<int:id>` | DELETE | 移除账户分类分配 |
+| `/account_classification/api/permissions/<db_type>` | GET | 获取数据库权限列表 |
 
 ---
 
