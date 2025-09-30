@@ -81,10 +81,7 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/admin/app-info` | GET | 获取应用信息 |
-| `/admin/refresh-data` | POST | 刷新系统数据 |
-| `/admin/clear-cache` | POST | 清除缓存 |
-| `/admin/health-check` | POST | 运行健康检查 |
+| `/admin/api/app-info` | GET | 获取应用信息 |
 
 ---
 
