@@ -12,7 +12,6 @@ from flask_login import login_required, current_user
 from sqlalchemy import and_, desc, func
 from app.models.instance import Instance
 from app.services.database_size_collector_service import collect_all_instances_database_sizes
-from app.tasks.database_size_collection_tasks import collect_specific_instance_database_sizes
 from app.utils.decorators import view_required
 from app import db
 
@@ -93,31 +92,51 @@ def get_instances():
         }), 500
 
 
-@storage_sync_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=['POST'])
-@login_required
-@view_required
+@storage_sync_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=["POST"])
+@view_required("instance_management.instance_list.sync_capacity")
 def sync_instance_capacity(instance_id: int):
     """
-    同步指定实例的数据库容量信息
-    
+    同步指定实例的容量信息
+
     Args:
-        instance_id: 实例ID
-        
+        instance_id (int): 实例ID
+
     Returns:
-        JSON: 同步结果
+        json: 同步结果
     """
     try:
-        # 验证实例是否存在
         instance = Instance.query.get_or_404(instance_id)
-        
+        logger.info(
+            "用户操作: 开始同步容量",
+            extra={
+                "operation": "sync_capacity",
+                "instance_id": instance.id,
+                "instance_name": instance.instance_name,
+                "action": "开始同步容量",
+                "user_action": True,
+            },
+        )
+
         # 触发指定实例的容量同步
+        # 运行时导入以避免潜在的加载顺序问题
+        from app.tasks.database_size_collection_tasks import collect_specific_instance_database_sizes
         result = collect_specific_instance_database_sizes(instance_id)
-        
-        return jsonify({
-            'success': True,
-            'message': f'实例 {instance.name} 的容量同步任务已触发',
-            'data': result
-        })
+
+        if result and result.get("status") == "success":
+            logger.info(
+                "同步实例容量成功",
+                extra={
+                    "instance_id": instance.id,
+                    "instance_name": instance.instance_name,
+                    "action": "开始同步容量",
+                    "user_action": True,
+                },
+            )
+            return jsonify({
+                'success': True,
+                'message': f'实例 {instance.name} 的容量同步任务已触发',
+                'data': result
+            })
         
     except Exception as e:
         logger.error(f"同步实例 {instance_id} 容量失败: {str(e)}")
