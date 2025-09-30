@@ -151,7 +151,7 @@ def collect_database_sizes():
                         saved_count = collector.save_collected_data(databases_data)
                         
                         # 更新实例大小统计
-                        collector.update_instance_total_size(databases_data)
+                        collector.update_instance_total_size()
                         
                         # 更新同步记录 - 容量同步使用数据库数量作为同步数量
                         sync_session_service.complete_instance_sync(
