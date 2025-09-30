@@ -588,56 +588,6 @@ def auto_classify() -> "Response":
         return jsonify({"success": False, "error": str(e)})
 
 
-@account_classification_bp.route("/auto-classify-optimized", methods=["POST"])
-@login_required
-@update_required
-def auto_classify_optimized() -> "Response":
-    """使用优化后的服务进行自动分类"""
-    try:
-        data = request.get_json()
-        instance_id = data.get("instance_id")
-        log_info(
-            "开始优化后的自动分类",
-            module="account_classification",
-            instance_id=instance_id,
-        )
-
-        service = AccountClassificationService()
-        result = service.auto_classify_accounts_optimized(
-            instance_id=instance_id,
-            created_by=current_user.id if current_user.is_authenticated else None,
-        )
-
-        if result.get("success"):
-            log_info(
-                f"优化后的自动分类完成: {result.get('message', '分类成功')}",
-                module="account_classification",
-                instance_id=instance_id,
-                total_accounts=result.get("total_accounts", 0),
-                total_classifications=result.get("total_classifications_added", 0),
-                total_matches=result.get("total_matches", 0),
-                failed_count=result.get("failed_count", 0),
-            )
-        else:
-            log_error(
-                "优化后的自动分类失败",
-                module="account_classification",
-                instance_id=instance_id,
-                error=result.get("error", "未知错误"),
-            )
-
-        return jsonify(result)
-
-    except Exception as e:
-        log_error(
-            "优化后的自动分类异常",
-            module="account_classification",
-            instance_id=instance_id,
-            exception=e,
-        )
-        return jsonify({"success": False, "error": str(e)})
-
-
 @account_classification_bp.route("/assignments")
 @login_required
 @view_required
