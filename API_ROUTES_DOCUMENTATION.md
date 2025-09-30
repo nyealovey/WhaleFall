@@ -242,14 +242,14 @@
 |------|------|------|
 | `/instances/api/statistics` | GET | 获取实例统计API |
 | `/instances/api` | GET | 获取实例列表API |
-| `/instances/api/<int:id>` | GET | 获取实例详情API |
+| `/instances/api/<int:instance_id>` | GET | 获取实例详情API |
 | `/instances/api/create` | POST | 创建实例API |
-| `/instances/api/<int:id>/edit` | POST | 编辑实例API |
-| `/instances/api/<int:id>/delete` | POST | 删除实例 |
-| `/instances/api/<int:id>/test` | GET, POST | 测试连接API（已弃用，请使用 /connections/api/test） |
-| `/instances/api/<int:id>/accounts` | GET | 获取实例账户数据API |
-| `/instances/api/<int:id>/accounts/<int:account_id>/change-history` | GET | 获取账户变更历史 |
-| `/instances/api/<int:id>/accounts/<int:account_id>/permissions` | GET | 获取账户权限详情 |
+| `/instances/api/<int:instance_id>/edit` | POST | 编辑实例API |
+| `/instances/api/<int:instance_id>/delete` | POST | 删除实例 |
+| `/instances/api/<int:instance_id>/test` | GET, POST | 测试连接API（已弃用，请使用 /connections/api/test） |
+| `/instances/api/<int:instance_id>/accounts` | GET | 获取实例账户数据API |
+| `/instances/api/<int:instance_id>/accounts/<int:account_id>/change-history` | GET | 获取账户变更历史 |
+| `/instances/api/<int:instance_id>/accounts/<int:account_id>/permissions` | GET | 获取账户权限详情 |
 | `/instances/api/batch-delete` | POST | 批量删除实例 |
 | `/instances/api/batch-create` | POST | 批量创建实例 |
 | `/instances/api/export` | GET | 导出实例数据为CSV |
@@ -390,7 +390,7 @@
 |------|------|------|
 | `/tags/api/create` | POST | 创建标签API |
 | `/tags/api/edit/<int:tag_id>` | POST | 编辑标签API |
-| `/tags/api/delete/<int:id>` | POST | 删除标签 |
+| `/tags/api/delete/<int:tag_id>` | POST | 删除标签 |
 | `/tags/api/batch_assign_tags` | POST | 批量分配标签给实例 |
 | `/tags/api/batch_remove_tags` | POST | 批量移除实例的标签 |
 | `/tags/api/instance_tags` | POST | 获取实例的已关联标签 |
@@ -414,11 +414,11 @@
 | 路径 | 方法 | 描述 |
 |------|------|------|
 | `/users/api/users` | GET | 获取用户列表 API |
-| `/users/api/users/<int:id>` | GET | 获取单个用户信息 API |
+| `/users/api/users/<int:user_id>` | GET | 获取单个用户信息 API |
 | `/users/api/users` | POST | 创建用户 API |
-| `/users/api/users/<int:id>` | PUT | 更新用户 API |
-| `/users/api/users/<int:id>` | DELETE | 删除用户 API |
-| `/users/api/users/<int:id>/toggle-status` | POST | 切换用户状态 API |
+| `/users/api/users/<int:user_id>` | PUT | 更新用户 API |
+| `/users/api/users/<int:user_id>` | DELETE | 删除用户 API |
+| `/users/api/users/<int:user_id>/toggle-status` | POST | 切换用户状态 API |
 | `/users/api/users/stats` | GET | 获取用户统计信息 API |
 
 ---
@@ -538,6 +538,14 @@ connectionManager.batchTestConnections([1,2,3], {
 - **创建日期**: 2025年1月X日
 - **最后更新**: 2025年9月30日
 - **版本**: v1.5.0
+
+### v1.5.6 更新内容 (2025-09-30)
+- ✅ 修正API文档中参数名不一致的错误
+- ✅ 用户管理模块：修正 `<int:id>` 为 `<int:user_id>`
+- ✅ 标签管理模块：修正 `<int:id>` 为 `<int:tag_id>`
+- ✅ 实例管理模块：修正 `<int:id>` 为 `<int:instance_id>`
+- ✅ 确保API文档中的参数名与实际代码一致
+- ✅ 提高API文档的准确性和可维护性
 
 ### v1.5.5 更新内容 (2025-09-30)
 - ✅ 修正API文档中混合路由的描述错误
