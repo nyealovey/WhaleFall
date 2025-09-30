@@ -317,7 +317,7 @@ def get_aggregations_summary():
         }), 500
 
 
-@aggregations_bp.route('/api/instance', methods=['GET'])
+@aggregations_bp.route('/instance', methods=['GET'])
 @login_required
 @view_required
 def instance_aggregations():
@@ -327,30 +327,16 @@ def instance_aggregations():
     """
     # 获取实例列表
     instances = Instance.query.filter_by(is_active=True).order_by(Instance.name).all()
-    instances_list = []
-    for instance in instances:
-        instances_list.append({
-            'id': instance.id,
-            'name': instance.name,
-            'db_type': instance.db_type,
-            'host': instance.host,
-            'port': instance.port
-        })
     
-    # 获取数据库类型配置
-    from app.models.database_type_config import DatabaseTypeConfig
-    database_types = DatabaseTypeConfig.query.filter_by(is_active=True).order_by(DatabaseTypeConfig.id).all()
-    database_types_list = []
-    for db_type in database_types:
-        database_types_list.append({
-            'name': db_type.name,
-            'display_name': db_type.display_name
-        })
+    # 获取数据库类型列表
+    db_types = db.session.query(Instance.db_type).distinct().all()
+    db_types = [db_type[0] for db_type in db_types if db_type[0]]
     
-    return render_template('database_sizes/instance_aggregations.html',
-                         instances=instances_list,
-                         database_types=database_types_list,
-                         db_type=request.args.get('db_type', ''))
+    return render_template(
+        'database_sizes/instance_aggregations.html',
+        instances=instances,
+        db_types=db_types
+    )
 
 
 @aggregations_bp.route('/api/instance/api', methods=['GET'])
@@ -464,19 +450,39 @@ def instance_aggregations_api():
         }), 500
 
 
-@aggregations_bp.route('/api/database', methods=['GET'])
+@aggregations_bp.route('/database', methods=['GET'])
 @login_required
 @view_required
 def database_aggregations():
     """
-    数据库统计聚合页面或API
-    
-    如果是页面请求（无查询参数），返回HTML页面
-    如果是API请求（有查询参数），返回JSON数据
+    数据库统计聚合页面
+    返回HTML页面
     """
-    # 检查是否有查询参数，如果有则返回API数据
-    if request.args:
-        try:
+    # 获取数据库类型列表
+    from app.models.database_type_config import DatabaseTypeConfig
+    database_types = DatabaseTypeConfig.query.filter_by(is_active=True).order_by(DatabaseTypeConfig.id).all()
+    database_types_list = []
+    for db_type in database_types:
+        database_types_list.append({
+            'name': db_type.name,
+            'display_name': db_type.display_name
+        })
+    
+    return render_template(
+        'database_sizes/database_aggregations.html',
+        database_types=database_types_list
+    )
+
+
+@aggregations_bp.route('/api/database', methods=['GET'])
+@login_required
+@view_required
+def database_aggregations_api():
+    """
+    数据库统计聚合API
+    返回JSON数据
+    """
+    try:
             # 获取查询参数
             instance_id = request.args.get('instance_id', type=int)
             db_type = request.args.get('db_type')
