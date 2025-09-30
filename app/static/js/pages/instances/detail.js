@@ -403,7 +403,7 @@ function loadDatabaseSizes() {
         </div>
     `;
     
-    fetch(`/storage_sync/api/instances/${instanceId}/database-sizes?latest_only=true`, {
+    fetch(`/database_stats/api/instances/${instanceId}/database-sizes?latest_only=true`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
