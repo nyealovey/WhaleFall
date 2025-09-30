@@ -222,8 +222,7 @@ class InstanceAggregationsManager {
         try {
             await Promise.all([
                 this.loadSummaryData(),
-                this.loadChartData(),
-                this.loadTableData()
+                this.loadChartData()
             ]);
             this.showSuccess('数据刷新成功');
         } catch (error) {
@@ -283,11 +282,10 @@ class InstanceAggregationsManager {
             console.log('图表数据响应:', data);
             
             if (response.ok) {
-                // 限制处理的数据量，防止前端崩溃
-                const limitedData = data.data ? data.data.slice(0, 100) : [];
-                this.currentData = limitedData;
-                console.log('当前图表数据（限制100条）:', this.currentData.length);
-                this.renderChart(limitedData);
+                // 使用所有数据，不进行前端限制
+                this.currentData = data.data || [];
+                console.log('当前图表数据:', this.currentData.length);
+                this.renderChart(this.currentData);
             } else {
                 console.error('图表数据加载失败:', data.error);
                 this.showError('加载图表数据失败: ' + data.error);
