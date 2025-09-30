@@ -27,7 +27,42 @@ logger = logging.getLogger(__name__)
 # 创建蓝图
 aggregations_bp = Blueprint('aggregations', __name__)
 
-# 聚合模块专注于核心聚合功能，不包含页面路由
+# 页面路由
+@aggregations_bp.route('/instance', methods=['GET'])
+@login_required
+@view_required
+def instance_aggregations():
+    """
+    实例统计聚合页面
+    返回HTML页面
+    """
+    # 获取实例列表用于筛选
+    instances = Instance.query.filter_by(is_active=True).order_by(Instance.id).all()
+    instances_list = []
+    for instance in instances:
+        instances_list.append({
+            'id': instance.id,
+            'name': instance.name,
+            'db_type': instance.db_type
+        })
+    
+    return render_template('database_sizes/instance_aggregations.html', 
+                         instances_list=instances_list)
+
+@aggregations_bp.route('/database', methods=['GET'])
+@login_required
+@view_required
+def database_aggregations():
+    """
+    数据库统计聚合页面
+    返回HTML页面
+    """
+    # 获取数据库类型列表
+    db_types = db.session.query(Instance.db_type).distinct().all()
+    db_types_list = [db_type[0] for db_type in db_types]
+    
+    return render_template('database_sizes/database_aggregations.html', 
+                         db_types_list=db_types_list)
 
 # 核心聚合功能API
 @aggregations_bp.route('/api/summary', methods=['GET'])
