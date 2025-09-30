@@ -22,7 +22,7 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/auth/logout` | GET, POST | 用户登出接口 |
+| `/auth/api/logout` | GET, POST | 用户登出接口 |
 | `/auth/api/csrf-token` | GET | 获取 CSRF 令牌 |
 | `/auth/api/refresh` | POST | 刷新 JWT 令牌 |
 | `/auth/api/me` | GET | 获取当前用户信息 |
