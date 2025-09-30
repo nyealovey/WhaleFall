@@ -21,7 +21,7 @@ logger = get_system_logger()
 cache_bp = Blueprint("cache", __name__)
 
 
-@cache_bp.route("/stats", methods=["GET"])
+@cache_bp.route("/api/stats", methods=["GET"])
 @login_required
 def get_cache_stats() -> tuple[dict, int]:
     """获取缓存统计信息"""
@@ -32,7 +32,7 @@ def get_cache_stats() -> tuple[dict, int]:
         return jsonify({"success": False, "message": f"获取缓存统计失败: {str(e)}"}), 500
 
 
-@cache_bp.route("/health", methods=["GET"])
+@cache_bp.route("/api/health", methods=["GET"])
 @login_required
 def check_cache_health() -> tuple[dict, int]:
     """检查缓存健康状态"""
@@ -43,7 +43,7 @@ def check_cache_health() -> tuple[dict, int]:
         return jsonify({"success": False, "message": f"缓存健康检查失败: {str(e)}"}), 500
 
 
-@cache_bp.route("/clear/user", methods=["POST"])
+@cache_bp.route("/api/clear/user", methods=["POST"])
 @login_required
 @admin_required
 def clear_user_cache() -> tuple[dict, int]:
@@ -74,7 +74,7 @@ def clear_user_cache() -> tuple[dict, int]:
         return jsonify({"success": False, "message": f"清除用户缓存失败: {str(e)}"}), 500
 
 
-@cache_bp.route("/clear/instance", methods=["POST"])
+@cache_bp.route("/api/clear/instance", methods=["POST"])
 @login_required
 @admin_required
 def clear_instance_cache() -> tuple[dict, int]:
@@ -104,7 +104,7 @@ def clear_instance_cache() -> tuple[dict, int]:
         return jsonify({"success": False, "message": f"清除实例缓存失败: {str(e)}"}), 500
 
 
-@cache_bp.route("/clear/all", methods=["POST"])
+@cache_bp.route("/api/clear/all", methods=["POST"])
 @login_required
 @admin_required
 def clear_all_cache() -> tuple[dict, int]:
@@ -128,7 +128,7 @@ def clear_all_cache() -> tuple[dict, int]:
 
 # 分类缓存相关路由
 
-@cache_bp.route("/classification/clear", methods=["POST"])
+@cache_bp.route("/api/classification/clear", methods=["POST"])
 @login_required
 @update_required
 def clear_classification_cache() -> tuple[dict, int]:
@@ -148,7 +148,7 @@ def clear_classification_cache() -> tuple[dict, int]:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@cache_bp.route("/classification/clear/<db_type>", methods=["POST"])
+@cache_bp.route("/api/classification/clear/<db_type>", methods=["POST"])
 @login_required
 @update_required
 def clear_db_type_cache(db_type: str) -> tuple[dict, int]:
@@ -173,7 +173,7 @@ def clear_db_type_cache(db_type: str) -> tuple[dict, int]:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@cache_bp.route("/classification/stats", methods=["GET"])
+@cache_bp.route("/api/classification/stats", methods=["GET"])
 @login_required
 @view_required
 def get_classification_cache_stats() -> tuple[dict, int]:
