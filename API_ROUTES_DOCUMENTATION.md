@@ -414,9 +414,9 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/account_sync/sync-all` | POST | 同步所有实例的账户 |
-| `/account_sync/sync-details-batch` | GET | 获取批量同步详情 |
-| `/account_sync/instances/<int:id>/sync` | POST | 同步指定实例的账户信息 |
+| `/account_sync/api/sync-all` | POST | 同步所有实例的账户 |
+| `/account_sync/api/sync-details-batch` | GET | 获取批量同步详情 |
+| `/account_sync/api/instances/<int:id>/sync` | POST | 同步指定实例的账户信息 |
 
 ---
 

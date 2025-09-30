@@ -43,7 +43,7 @@ function syncAllAccounts() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
     btn.disabled = true;
 
-    fetch('/account-sync/sync-all', {
+    fetch('/account-sync/api/sync-all', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

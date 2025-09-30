@@ -348,7 +348,7 @@ def sync_records() -> str | Response:
         )
 
 
-@account_sync_bp.route("/sync-all", methods=["POST"])
+@account_sync_bp.route("/api/sync-all", methods=["POST"])
 @login_required
 @update_required
 def sync_all_accounts() -> str | Response | tuple[Response, int]:
@@ -553,7 +553,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
         )
 
 
-@account_sync_bp.route("/sync-details-batch", methods=["GET"])
+@account_sync_bp.route("/api/sync-details-batch", methods=["GET"])
 @login_required
 def sync_details_batch() -> str | Response | tuple[Response, int]:
     """获取批量同步详情"""
@@ -651,7 +651,7 @@ def sync_details(sync_id: int) -> str | Response | tuple[Response, int]:
         return redirect(url_for("account_sync.sync_records"))
 
 
-@account_sync_bp.route("/instances/<int:instance_id>/sync", methods=["POST"])
+@account_sync_bp.route("/api/instances/<int:instance_id>/sync", methods=["POST"])
 @login_required
 @update_required
 def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response, int]:
