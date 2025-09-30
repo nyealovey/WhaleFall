@@ -84,7 +84,6 @@
 }
 
 .unified-search-btn:hover {
-    transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
     color: white;
 }
@@ -112,7 +111,6 @@
 .unified-clear-btn:hover {
     background-color: #5a6268;
     border-color: #545b62;
-    transform: translateY(-1px);
     color: white;
 }
 
