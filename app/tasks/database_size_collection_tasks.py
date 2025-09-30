@@ -22,7 +22,7 @@ def collect_database_sizes():
     """
     from app import create_app
     from app.services.sync_session_service import sync_session_service
-    from app.utils.timezone import now
+    from app.utils.time_utils import time_utils
     from app.utils.structlog_config import get_sync_logger
     
     # 创建Flask应用上下文，确保数据库操作正常
@@ -225,7 +225,7 @@ def collect_database_sizes():
             session.successful_instances = total_synced
             session.failed_instances = total_failed
             session.status = "completed" if total_failed == 0 else "failed"
-            session.completed_at = now()
+            session.completed_at = time_utils.now()
             db.session.commit()
             
             result = {
@@ -260,7 +260,7 @@ def collect_database_sizes():
             # 更新会话状态为失败
             if 'session' in locals() and session:
                 session.status = "failed"
-                session.completed_at = now()
+                session.completed_at = time_utils.now()
                 session.failed_instances = len(active_instances) if 'active_instances' in locals() else 0
                 db.session.commit()
             
@@ -430,7 +430,7 @@ def get_collection_status() -> Dict[str, Any]:
             # 统计采集数据
             total_stats = InstanceSizeStat.query.count()
             recent_stats = InstanceSizeStat.query.filter(
-                InstanceSizeStat.created_at >= datetime.now().date()
+                InstanceSizeStat.created_at >= time_utils.now_china().date()
             ).count()
             
             # 获取最新采集时间

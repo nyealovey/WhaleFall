@@ -152,7 +152,7 @@ class SQLAlchemyLogHandler:
 
             # 确保时间戳带时区信息
             if timestamp.tzinfo is None:
-                from app.utils.timezone import UTC_TZ
+                from app.utils.time_utils import UTC_TZ
 
                 timestamp = timestamp.replace(tzinfo=UTC_TZ)
 
@@ -273,7 +273,7 @@ class SQLAlchemyLogHandler:
 
                         # 确保时间戳带时区信息
                         if log_data["timestamp"].tzinfo is None:
-                            from app.utils.timezone import UTC_TZ
+                            from app.utils.time_utils import UTC_TZ
 
                             log_data["timestamp"] = log_data["timestamp"].replace(tzinfo=UTC_TZ)
 

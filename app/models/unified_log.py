@@ -11,7 +11,7 @@ from sqlalchemy import JSON, Column, DateTime, Index, Integer, String, Text
 from sqlalchemy import Enum as SQLEnum
 
 from app import db
-from app.utils.timezone import now, utc_to_china
+from app.utils.time_utils import now, utc_to_china
 
 
 class LogLevel(Enum):
@@ -96,7 +96,7 @@ class UnifiedLog(db.Model):
             timestamp = now()
         elif timestamp.tzinfo is None:
             # 如果没有时区信息，假设为UTC时间
-            from app.utils.timezone import UTC_TZ
+            from app.utils.time_utils import UTC_TZ
 
             timestamp = timestamp.replace(tzinfo=UTC_TZ)
 

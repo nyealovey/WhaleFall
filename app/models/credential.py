@@ -4,7 +4,7 @@
 
 from app import bcrypt, db
 from app.utils.password_manager import get_password_manager
-from app.utils.timezone import now
+from app.utils.time_utils import now
 
 
 class Credential(db.Model):

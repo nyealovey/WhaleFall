@@ -20,7 +20,7 @@ from app.models.tag import Tag
 from app.services.account_sync_service import account_sync_service
 from app.utils.decorators import update_required, view_required
 from app.utils.structlog_config import log_error, log_info
-from app.utils.timezone import now
+from app.utils.time_utils import time_utils
 
 # 创建蓝图
 account_bp = Blueprint("account", __name__)
@@ -353,7 +353,7 @@ def export_accounts() -> "Response":
 
     # 创建响应
     output.seek(0)
-    timestamp = now().strftime("%Y%m%d_%H%M%S")
+    timestamp = time_utils.now().strftime("%Y%m%d_%H%M%S")
     filename = f"accounts_export_{timestamp}.csv"
 
     return Response(
@@ -681,7 +681,7 @@ def get_account_statistics() -> dict:
         database_instances = len(instances)  # 数据库实例数
 
         # 最近7天新增账户趋势
-        end_date = now()
+        end_date = time_utils.now()
         start_date = end_date - timedelta(days=7)
 
         trend_data = []

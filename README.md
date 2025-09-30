@@ -47,6 +47,28 @@
   - 🔧 **易于维护** - 清晰的代码结构，便于开发和维护
   - 📱 **响应式设计** - 支持各种屏幕尺寸的设备
 
+## ⏰ 时区处理
+
+本项目统一使用 `app.utils.time_utils` 模块进行时区处理，确保时间数据的一致性和准确性。
+
+### 核心原则
+- **数据库存储**：使用 UTC 时区存储所有时间戳
+- **业务逻辑**：使用中国时区 (Asia/Shanghai) 进行业务计算
+- **用户显示**：统一显示为中国时区时间
+
+### 使用方法
+```python
+from app.utils.time_utils import time_utils
+
+# 获取当前 UTC 时间（用于数据库存储）
+utc_now = time_utils.now()
+
+# 获取当前中国时间（用于业务逻辑和显示）
+china_now = time_utils.now_china()
+```
+
+详细文档请参考：[时区处理规范](docs/development/timezone_handling.md)
+
 ## 🚀 快速开始
 
 ### 环境要求

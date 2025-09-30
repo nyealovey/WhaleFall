@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING
 
 from app import db
-from app.utils.timezone import now
+from app.utils.time_utils import now
 from app.utils.version_parser import DatabaseVersionParser
 
 if TYPE_CHECKING:
@@ -118,7 +118,7 @@ class Instance(db.Model):
         """
         try:
             from app.services.connection_test_service import connection_test_service
-            from app.utils.timezone import now
+            from app.utils.time_utils import now
 
             # 使用连接测试服务
             result = connection_test_service.test_connection(self)
@@ -149,7 +149,7 @@ class Instance(db.Model):
         except Exception as e:
             # 即使出现异常，也尝试更新最后连接时间
             try:
-                from app.utils.timezone import now
+                from app.utils.time_utils import now
 
                 self.last_connected = now()
                 db.session.commit()

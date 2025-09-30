@@ -17,7 +17,7 @@ from app.services.account_sync_service import account_sync_service
 from app.services.sync_session_service import sync_session_service
 from app.utils.structlog_config import get_sync_logger, get_task_logger
 from app.utils.time_utils import time_utils
-from app.utils.timezone import now
+from app.utils.time_utils import now
 
 
 def cleanup_old_logs() -> None:

@@ -7,6 +7,7 @@ import logging
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Any, Optional
 from flask import Blueprint, request, jsonify, current_app, render_template
+from app.utils.time_utils import time_utils
 from flask_login import login_required, current_user
 from sqlalchemy import and_, desc, func
 from app.models.instance import Instance
@@ -79,7 +80,7 @@ def get_status():
             'collection': collection_status.get('status', {}),
             'aggregation': aggregation_status.get('status', {}),
             'partition': partition_status.get('status', {}),
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': time_utils.now().isoformat()
         }
         
         return jsonify({
@@ -716,7 +717,7 @@ def sync_instance_capacity(instance_id: int):
             saved_count = collector.collect_and_save()
             
             # 更新实例的最后连接时间
-            instance.last_connected = datetime.utcnow()
+            instance.last_connected = time_utils.now()
             db.session.commit()
             
             # 获取最新的实例统计信息

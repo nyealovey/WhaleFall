@@ -6,6 +6,7 @@
 import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template
+from app.utils.time_utils import time_utils
 from flask_login import login_required, current_user
 from sqlalchemy import func, desc, and_, or_
 from app.models.instance import Instance
@@ -792,7 +793,7 @@ def get_aggregation_status_api():
             return jsonify({
                 'success': True,
                 'data': result,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': time_utils.now().isoformat()
             })
         else:
             return jsonify({

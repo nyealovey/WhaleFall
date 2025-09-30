@@ -3,7 +3,7 @@
 """
 
 from app import db
-from app.utils.timezone import now
+from app.utils.time_utils import now
 
 
 class Tag(db.Model):

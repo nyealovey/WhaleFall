@@ -26,7 +26,7 @@ def calculate_database_size_aggregations(manual_run=False):
     """
     from app import create_app
     from app.services.sync_session_service import sync_session_service
-    from app.utils.timezone import now
+    from app.utils.time_utils import time_utils
     from app.utils.structlog_config import get_sync_logger
     
     # 创建Flask应用上下文，确保数据库操作正常
@@ -401,7 +401,7 @@ def calculate_database_size_aggregations(manual_run=False):
             if session.status == "running":
                 # 如果会话状态还是running，说明所有实例都已完成，更新最终状态
                 session.status = "completed" if total_failed == 0 else "failed"
-                session.completed_at = now()
+                session.completed_at = time_utils.now()
                 db.session.commit()
             
             sync_logger.info(
@@ -435,7 +435,7 @@ def calculate_database_size_aggregations(manual_run=False):
             try:
                 if 'session' in locals():
                     session.status = "failed"
-                    session.completed_at = now()
+                    session.completed_at = time_utils.now()
                     db.session.commit()
             except:
                 pass

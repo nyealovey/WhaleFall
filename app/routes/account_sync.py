@@ -60,9 +60,9 @@ def sync_records() -> str | Response:
 
         # 时间范围过滤
         if date_range and date_range != "all":
-            from app.utils.timezone import now_china
+            from app.utils.time_utils import time_utils
 
-            now = now_china()
+            now = time_utils.now_china()
 
             if date_range == "today":
                 start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)

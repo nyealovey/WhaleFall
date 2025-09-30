@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
+from app.utils.time_utils import time_utils
 
 from app.utils.constants_doc_generator import ConstantsDocGenerator
 from app.utils.constants_monitor import ConstantsMonitor
@@ -123,7 +124,7 @@ class ConstantsManager:
 
 ## 📋 报告信息
 
-- **生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+- **生成时间**: {time_utils.now().strftime('%Y-%m-%d %H:%M:%S')}
 - **项目路径**: {self.project_root}
 - **报告类型**: 综合报告
 
@@ -254,7 +255,7 @@ class ConstantsManager:
 4. 完善文档和监控
 
 ---
-*报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
+*报告生成时间: {time_utils.now().strftime('%Y-%m-%d %H:%M:%S')}*
 """
         
         # 保存报告
