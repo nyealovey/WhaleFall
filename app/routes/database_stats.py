@@ -43,6 +43,21 @@ def instance_aggregations():
     return render_template('database_sizes/instance_aggregations.html', 
                          instances_list=instances_list)
 
+@database_stats_bp.route('/database', methods=['GET'])
+@login_required
+@view_required
+def database_aggregations():
+    """
+    数据库统计聚合页面（数据库统计层面）
+    返回HTML页面
+    """
+    # 获取数据库类型列表
+    db_types = db.session.query(Instance.db_type).distinct().all()
+    db_types_list = [db_type[0] for db_type in db_types]
+    
+    return render_template('database_sizes/database_aggregations.html', 
+                         db_types_list=db_types_list)
+
 @database_stats_bp.route('/api/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
 @login_required
 @view_required

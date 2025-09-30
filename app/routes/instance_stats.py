@@ -22,21 +22,7 @@ logger = logging.getLogger(__name__)
 instance_stats_bp = Blueprint('instance_stats', __name__)
 
 # 页面路由
-@instance_stats_bp.route('/database', methods=['GET'])
-@login_required
-@view_required
-def database_aggregations():
-    """
-    数据库统计聚合页面（实例统计层面）
-    返回HTML页面
-    """
-    # 获取数据库类型列表
-    from app import db
-    db_types = db.session.query(Instance.db_type).distinct().all()
-    db_types_list = [db_type[0] for db_type in db_types]
-    
-    return render_template('database_sizes/database_aggregations.html', 
-                         db_types_list=db_types_list)
+# 数据库统计聚合页面已移至 database_stats 模块
 
 @instance_stats_bp.route('/api/instances/<int:instance_id>/performance', methods=['GET'])
 @login_required
