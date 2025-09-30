@@ -643,45 +643,53 @@ def get_core_aggregation_metrics():
             instance_agg_label = '实例统计数量'
             database_agg_label = '数据库统计数量'
         
-        # 构建Chart.js数据集
+        # 构建Chart.js数据集 - 使用相同颜色但不同透明度和线型，形成组合线效果
         datasets = [
+            # 实例数总量 - 实线，较粗，不透明
             {
                 'label': instance_label,
                 'data': instance_count_data,
                 'borderColor': '#FF6384',
                 'backgroundColor': 'rgba(255, 99, 132, 0.1)',
-                'borderWidth': 2,
+                'borderWidth': 4,
                 'pointStyle': 'circle',
-                'tension': 0.1
+                'tension': 0.1,
+                'fill': False
             },
+            # 实例日统计数量 - 虚线，较细，半透明，与实例数总量同色
+            {
+                'label': instance_agg_label,
+                'data': instance_aggregation_data,
+                'borderColor': 'rgba(255, 99, 132, 0.7)',
+                'backgroundColor': 'rgba(255, 99, 132, 0.05)',
+                'borderWidth': 2,
+                'pointStyle': 'triangle',
+                'tension': 0.1,
+                'borderDash': [6, 3],
+                'fill': False
+            },
+            # 数据库数总量 - 实线，较粗，不透明
             {
                 'label': database_label,
                 'data': database_count_data,
                 'borderColor': '#36A2EB',
                 'backgroundColor': 'rgba(54, 162, 235, 0.1)',
-                'borderWidth': 2,
+                'borderWidth': 4,
                 'pointStyle': 'rect',
-                'tension': 0.1
-            },
-            {
-                'label': instance_agg_label,
-                'data': instance_aggregation_data,
-                'borderColor': '#FFCE56',
-                'backgroundColor': 'rgba(255, 206, 86, 0.1)',
-                'borderWidth': 2,
-                'pointStyle': 'triangle',
                 'tension': 0.1,
-                'borderDash': [5, 5]
+                'fill': False
             },
+            # 数据库日统计数量 - 虚线，较细，半透明，与数据库数总量同色
             {
                 'label': database_agg_label,
                 'data': database_aggregation_data,
-                'borderColor': '#4BC0C0',
-                'backgroundColor': 'rgba(75, 192, 192, 0.1)',
+                'borderColor': 'rgba(54, 162, 235, 0.7)',
+                'backgroundColor': 'rgba(54, 162, 235, 0.05)',
                 'borderWidth': 2,
                 'pointStyle': 'star',
                 'tension': 0.1,
-                'borderDash': [10, 5]
+                'borderDash': [6, 3],
+                'fill': False
             }
         ]
         

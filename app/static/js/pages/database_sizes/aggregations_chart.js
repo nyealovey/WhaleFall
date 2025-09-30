@@ -51,21 +51,17 @@ class AggregationsChartManager {
                     <h6>核心指标说明：</h6>
                     <div class="legend-items">
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #FF6384;"></span>
-                            <span class="legend-text">📊 实例数总量 - 每天采集的实例数量</span>
+                            <span class="legend-color" style="background: linear-gradient(90deg, #FF6384 0%, rgba(255, 99, 132, 0.7) 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
+                            <span class="legend-text">📊 实例数总量 + 实例日统计数量 - 组合线（实线+虚线）</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #36A2EB;"></span>
-                            <span class="legend-text">🗄️ 数据库数总量 - 每天采集的数据库数量</span>
+                            <span class="legend-color" style="background: linear-gradient(90deg, #36A2EB 0%, rgba(54, 162, 235, 0.7) 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
+                            <span class="legend-text">🗄️ 数据库数总量 + 数据库日统计数量 - 组合线（实线+虚线）</span>
                         </div>
-                        <div class="legend-item">
-                            <span class="legend-color" style="background-color: #FFCE56; border-style: dashed;"></span>
-                            <span class="legend-text">📈 实例日统计数量 - 聚合统计下的实例日统计数量</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-color" style="background-color: #4BC0C0; border-style: dashed;"></span>
-                            <span class="legend-text">📈 数据库日统计数量 - 聚合统计下的数据库日统计数量</span>
-                        </div>
+                    </div>
+                    <div class="alert alert-info mt-2" style="font-size: 0.85em;">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>组合线设计：</strong>每条线由两条线组合而成：粗实线表示原始数据，细虚线表示聚合数据。正常情况下两条线数值相同，通过颜色叠加和透明度变化形成组合效果。
                     </div>
                 </div>
             `;
@@ -75,21 +71,17 @@ class AggregationsChartManager {
                     <h6>核心指标说明：</h6>
                     <div class="legend-items">
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #FF6384;"></span>
-                            <span class="legend-text">📊 实例数平均值（周） - 每周采集的实例数量平均值</span>
+                            <span class="legend-color" style="background: linear-gradient(90deg, #FF6384 0%, rgba(255, 99, 132, 0.7) 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
+                            <span class="legend-text">📊 实例数平均值（周） + 实例周统计数量 - 组合线（实线+虚线）</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #36A2EB;"></span>
-                            <span class="legend-text">🗄️ 数据库数平均值（周） - 每周采集的数据库数量平均值</span>
+                            <span class="legend-color" style="background: linear-gradient(90deg, #36A2EB 0%, rgba(54, 162, 235, 0.7) 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
+                            <span class="legend-text">🗄️ 数据库数平均值（周） + 数据库周统计数量 - 组合线（实线+虚线）</span>
                         </div>
-                        <div class="legend-item">
-                            <span class="legend-color" style="background-color: #FFCE56; border-style: dashed;"></span>
-                            <span class="legend-text">📈 实例周统计数量 - 聚合统计下的实例周统计数量</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-color" style="background-color: #4BC0C0; border-style: dashed;"></span>
-                            <span class="legend-text">📈 数据库周统计数量 - 聚合统计下的数据库周统计数量</span>
-                        </div>
+                    </div>
+                    <div class="alert alert-info mt-2" style="font-size: 0.85em;">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>组合线设计：</strong>每条线由两条线组合而成：粗实线表示原始数据，细虚线表示聚合数据。正常情况下两条线数值相同，通过颜色叠加和透明度变化形成组合效果。
                     </div>
                 </div>
             `;
