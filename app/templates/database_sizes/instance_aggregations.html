@@ -17,6 +17,23 @@
     .instance-aggregations-page .filter-time-range {
         margin-bottom: 0.25rem;
     }
+    /* 对齐数据库页面的搜索条外观：去掉浮动阴影与圆角 */
+    .instance-aggregations-page .search-filter-card {
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border: 1px solid #e9ecef !important;
+    }
+    .instance-aggregations-page .unified-input,
+    .instance-aggregations-page .unified-select {
+        border-radius: 0 !important;
+        background-color: #fff !important;
+        box-shadow: none !important;
+    }
+    .instance-aggregations-page .unified-input:focus,
+    .instance-aggregations-page .unified-select:focus {
+        box-shadow: none !important;
+        border-color: #ced4da !important;
+    }
 </style>
 {% endblock %}
 
