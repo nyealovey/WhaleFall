@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Optional
 from flask import Blueprint, request, jsonify, render_template, current_app
 from app.utils.time_utils import time_utils
 from flask_login import login_required, current_user
-from sqlalchemy import and_, desc, func
+from sqlalchemy import and_, desc, func, tuple_
 from app.models.instance import Instance
 from app.models.instance_size_stat import InstanceSizeStat
 from app.utils.decorators import view_required
@@ -502,10 +502,26 @@ def get_databases_aggregations():
         
         # 排序和分页
         if get_all:
-            # 用于图表显示：按大小排序获取TOP 20
-            query = query.order_by(desc(DatabaseSizeAggregation.avg_size_mb))
-            aggregations = query.limit(20).all()
-            total = len(aggregations)
+            base_query = query.with_entities(
+                DatabaseSizeAggregation.instance_id,
+                DatabaseSizeAggregation.database_name,
+                func.max(DatabaseSizeAggregation.avg_size_mb).label('max_avg_size_mb')
+            ).group_by(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name).subquery()
+
+            top_pairs = db.session.query(
+                base_query.c.instance_id,
+                base_query.c.database_name
+            ).order_by(desc(base_query.c.max_avg_size_mb)).limit(100).all()
+
+            if top_pairs:
+                pair_values = [(row.instance_id, row.database_name) for row in top_pairs]
+                aggregations = query.filter(
+                    tuple_(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name).in_(pair_values)
+                ).order_by(DatabaseSizeAggregation.period_start.asc()).all()
+                total = len(aggregations)
+            else:
+                aggregations = []
+                total = 0
         else:
             # 用于表格显示：按时间排序分页
             query = query.order_by(desc(DatabaseSizeAggregation.period_start))
