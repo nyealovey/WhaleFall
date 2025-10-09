@@ -199,12 +199,48 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-wave-square me-2"></i>
-                        容量变化趋势图
-                    </h5>
-                    <span class="text-muted small">展示日/周/月/季容量变化（GB）</span>
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-wave-square me-2"></i>
+                                容量变化趋势图
+                            </h5>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="changeChartType" id="changeChartTypeLine" value="line" checked>
+                                    <label class="btn btn-outline-primary" for="changeChartTypeLine">折线图</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeChartType" id="changeChartTypeBar" value="bar">
+                                    <label class="btn btn-outline-primary" for="changeChartTypeBar">柱状图</label>
+                                </div>
+                                
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop5" value="5" checked>
+                                    <label class="btn btn-outline-secondary" for="changeTop5">TOP5</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop10" value="10">
+                                    <label class="btn btn-outline-secondary" for="changeTop10">TOP10</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop20" value="20">
+                                    <label class="btn btn-outline-secondary" for="changeTop20">TOP20</label>
+                                </div>
+                                
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod7" value="7" checked>
+                                    <label class="btn btn-outline-info" for="changePeriod7">7</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod14" value="14">
+                                    <label class="btn btn-outline-info" for="changePeriod14">14</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod30" value="30">
+                                    <label class="btn btn-outline-info" for="changePeriod30">30</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="position-relative">

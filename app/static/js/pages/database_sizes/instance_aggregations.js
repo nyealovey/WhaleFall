@@ -8,10 +8,13 @@ class InstanceAggregationsManager {
         this.chart = null;
         this.changeChart = null;
         this.currentData = [];
-        this.changeChartData = {};
+        this.changeChartData = [];
         this.currentChartType = 'line';
         this.currentTopCount = 5; // 默认显示TOP5
         this.currentStatisticsPeriod = 7; // 默认7个周期
+        this.changeChartType = 'line';
+        this.changeTopCount = 5;
+        this.changeStatisticsPeriod = 7;
         this.currentFilters = {
             instance_id: null,
             db_type: null,
@@ -69,6 +72,24 @@ class InstanceAggregationsManager {
         $('input[name="topSelector"]').on('change', (e) => {
             this.currentTopCount = parseInt(e.target.value);
             this.renderChart(this.currentData);
+        });
+
+        // 容量变化图表类型切换
+        $('input[name="changeChartType"]').on('change', (e) => {
+            this.changeChartType = e.target.value;
+            this.renderChangeChart(this.changeChartData);
+        });
+        
+        // 容量变化TOP选择器切换
+        $('input[name="changeTopSelector"]').on('change', (e) => {
+            this.changeTopCount = parseInt(e.target.value);
+            this.renderChangeChart(this.changeChartData);
+        });
+        
+        // 容量变化统计周期选择器切换
+        $('input[name="changeStatisticsPeriod"]').on('change', (e) => {
+            this.changeStatisticsPeriod = parseInt(e.target.value);
+            this.loadChangeChartData();
         });
         
         // 统计周期选择器切换
@@ -383,41 +404,22 @@ class InstanceAggregationsManager {
      * 加载容量变化图表数据
      */
     async loadChangeChartData() {
-        const periodTypes = ['daily', 'weekly', 'monthly', 'quarterly'];
-        
         try {
             this.showChangeChartLoading();
             
-            const fetchTasks = periodTypes.map(async (periodType) => {
-                const params = this.buildChangeChartParams(periodType);
-                console.log(`加载容量变化数据(${periodType})，参数:`, params.toString());
-                const response = await fetch(`/database_stats/api/instances/aggregations?${params}`);
-                const payload = await response.json();
-                return {
-                    periodType,
-                    ok: response.ok,
-                    payload
-                };
-            });
+            const params = this.buildChangeChartParams();
+            console.log('加载容量变化图表数据，参数:', params.toString());
+            const response = await fetch(`/database_stats/api/instances/aggregations?${params}`);
+            const data = await response.json();
             
-            const results = await Promise.all(fetchTasks);
-            const changeData = {};
-            let hasError = false;
-            
-            results.forEach(({ periodType, ok, payload }) => {
-                if (ok) {
-                    changeData[periodType] = payload.data || [];
-                } else {
-                    hasError = true;
-                    console.error(`加载容量变化数据失败(${periodType}):`, payload.error);
-                }
-            });
-            
-            this.changeChartData = changeData;
-            this.renderChangeChart(changeData);
-            
-            if (hasError) {
-                this.showError('部分容量变化数据加载失败，请查看控制台日志');
+            if (response.ok) {
+                this.changeChartData = data.data || [];
+                console.log('容量变化图表数据条目:', this.changeChartData.length);
+                this.renderChangeChart(this.changeChartData);
+                this.syncUIState();
+            } else {
+                console.error('容量变化图表数据加载失败:', data.error);
+                this.showError('容量变化趋势数据加载失败: ' + data.error);
             }
         } catch (error) {
             console.error('加载容量变化数据时出错:', error);
@@ -508,7 +510,7 @@ class InstanceAggregationsManager {
     /**
      * 渲染容量变化趋势图
      */
-    renderChangeChart(changeData) {
+    renderChangeChart(data) {
         const canvas = document.getElementById('instanceChangeChart');
         if (!canvas) {
             return;
@@ -520,76 +522,22 @@ class InstanceAggregationsManager {
             this.changeChart.destroy();
         }
         
-        const labelsSet = new Set();
-        Object.values(changeData || {}).forEach(items => {
-            (items || []).forEach(item => {
-                if (item?.period_start) {
-                    labelsSet.add(item.period_start);
-                }
-            });
-        });
-        
-        const labels = Array.from(labelsSet).sort();
-        
-        if (labels.length === 0) {
+        if (!data || data.length === 0) {
             this.showEmptyChangeChart();
             return;
         }
         
-        const periodNames = {
-            daily: '日变化',
-            weekly: '周变化',
-            monthly: '月变化',
-            quarterly: '季变化'
-        };
+        const groupedData = this.groupChangeDataByDate(data);
+        const chartData = this.prepareChangeChartData(groupedData);
         
-        const colors = {
-            daily: '#4e73df',
-            weekly: '#1cc88a',
-            monthly: '#36b9cc',
-            quarterly: '#f6c23e'
-        };
-        
-        const datasets = Object.keys(periodNames).map(periodType => {
-            const items = changeData[periodType] || [];
-            const valueMap = {};
-            
-            items.forEach(item => {
-                if (!item?.period_start) {
-                    return;
-                }
-                valueMap[item.period_start] = item.total_size_change_mb ?? null;
-            });
-            
-            const dataPoints = labels.map(label => {
-                if (!(label in valueMap) || valueMap[label] === null || valueMap[label] === undefined) {
-                    return null;
-                }
-                return (valueMap[label] || 0) / 1024;
-            });
-            
-            return {
-                label: periodNames[periodType],
-                data: dataPoints,
-                borderColor: colors[periodType],
-                backgroundColor: colors[periodType] + '33',
-                fill: false,
-                tension: 0.2,
-                spanGaps: true
-            };
-        }).filter(dataset => dataset.data.some(value => value !== null));
-        
-        if (datasets.length === 0) {
+        if (!chartData || chartData.labels.length === 0 || chartData.datasets.length === 0) {
             this.showEmptyChangeChart();
             return;
         }
         
         this.changeChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels,
-                datasets
-            },
+            type: this.changeChartType,
+            data: chartData,
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -612,7 +560,8 @@ class InstanceAggregationsManager {
                                 if (value === null || value === undefined || Number.isNaN(value)) {
                                     return `${label}: 无数据`;
                                 }
-                                return `${label}: ${value.toFixed(2)} GB`;
+                                const formatted = `${value >= 0 ? '+' : ''}${value.toFixed(2)} GB`;
+                                return `${label}: ${formatted}`;
                             }
                         }
                     }
@@ -631,10 +580,7 @@ class InstanceAggregationsManager {
                             display: true,
                             text: '变化量 (GB)'
                         },
-                        beginAtZero: true,
-                        ticks: {
-                            callback: (value) => `${value} GB`
-                        }
+                        beginAtZero: true
                     }
                 },
                 interaction: {
@@ -673,6 +619,32 @@ class InstanceAggregationsManager {
         });
         
         console.log('分组后的数据:', grouped);
+        return grouped;
+    }
+    
+    /**
+     * 按日期分组容量变化数据
+     */
+    groupChangeDataByDate(data) {
+        const grouped = {};
+        
+        data.forEach(item => {
+            const date = item.period_start;
+            if (!date) {
+                console.warn('容量变化数据缺少period_start:', item);
+                return;
+            }
+            
+            if (!grouped[date]) {
+                grouped[date] = {};
+            }
+            
+            const instanceName = item.instance?.name || '未知实例';
+            const changeValue = Number(item.total_size_change_mb ?? 0);
+            grouped[date][instanceName] = Number.isNaN(changeValue) ? 0 : changeValue;
+        });
+        
+        console.log('容量变化分组数据:', grouped);
         return grouped;
     }
     
@@ -738,6 +710,75 @@ class InstanceAggregationsManager {
     }
     
     /**
+     * 准备容量变化图表数据
+     */
+    prepareChangeChartData(groupedData) {
+        const labels = Object.keys(groupedData).sort();
+        const datasets = [];
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+            '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+            '#BB8FCE', '#85C1E9', '#F8C471', '#82E0AA'
+        ];
+        
+        const instanceMaxChanges = new Map();
+        Object.values(groupedData).forEach(dateData => {
+            Object.entries(dateData).forEach(([instanceName, changeValue]) => {
+                const absValue = Math.abs(changeValue || 0);
+                const existingMax = instanceMaxChanges.get(instanceName) || 0;
+                instanceMaxChanges.set(instanceName, Math.max(existingMax, absValue));
+            });
+        });
+        
+        const sortedInstances = Array.from(instanceMaxChanges.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, this.changeTopCount)
+            .map(([name]) => name);
+        
+        console.log(`容量变化TOP ${this.changeTopCount}实例:`, sortedInstances);
+        
+        let colorIndex = 0;
+        
+        sortedInstances.forEach(instanceName => {
+            const data = labels.map(date => {
+                const rawValue = groupedData[date][instanceName];
+                if (rawValue === undefined || rawValue === null) {
+                    return 0;
+                }
+                const numericValue = Number(rawValue);
+                if (Number.isNaN(numericValue)) {
+                    return 0;
+                }
+                return numericValue / 1024;
+            });
+            
+            const baseColor = colors[colorIndex % colors.length];
+            const backgroundColor = this.changeChartType === 'line'
+                ? `${baseColor}10`
+                : `${baseColor}66`;
+            const borderColor = baseColor;
+            
+            datasets.push({
+                label: instanceName,
+                data: data,
+                borderColor,
+                backgroundColor,
+                fill: this.changeChartType === 'line' ? false : true,
+                tension: 0.1
+            });
+            
+            colorIndex++;
+        });
+        
+        return {
+            labels,
+            datasets
+        };
+    }
+    
+    /**
      * 显示空图表
      */
     showEmptyChart() {
@@ -787,7 +828,7 @@ class InstanceAggregationsManager {
         }
         
         this.changeChart = new Chart(ctx, {
-            type: 'bar',
+            type: this.changeChartType,
             data: {
                 labels: ['暂无数据'],
                 datasets: [{
@@ -860,32 +901,10 @@ class InstanceAggregationsManager {
      * 根据统计周期更新时间范围
      */
     updateTimeRangeFromPeriod() {
-        const endDate = new Date();
-        const startDate = new Date();
-        
-        // 根据当前统计周期类型计算开始日期
         const periodType = this.currentFilters.period_type || 'daily';
-        
-        switch (periodType) {
-            case 'daily':
-                startDate.setDate(endDate.getDate() - this.currentStatisticsPeriod);
-                break;
-            case 'weekly':
-                startDate.setDate(endDate.getDate() - (this.currentStatisticsPeriod * 7));
-                break;
-            case 'monthly':
-                startDate.setMonth(endDate.getMonth() - this.currentStatisticsPeriod);
-                break;
-            case 'quarterly':
-                startDate.setMonth(endDate.getMonth() - (this.currentStatisticsPeriod * 3));
-                break;
-            default:
-                startDate.setDate(endDate.getDate() - this.currentStatisticsPeriod);
-        }
-        
-        // 更新筛选条件中的时间范围
-        this.currentFilters.start_date = startDate.toISOString().split('T')[0];
-        this.currentFilters.end_date = endDate.toISOString().split('T')[0];
+        const range = this.calculateDateRange(periodType, this.currentStatisticsPeriod);
+        this.currentFilters.start_date = range.startDate;
+        this.currentFilters.end_date = range.endDate;
         
         console.log(`更新时间范围: ${this.currentStatisticsPeriod}个${periodType}周期`, {
             start_date: this.currentFilters.start_date,
@@ -921,7 +940,7 @@ class InstanceAggregationsManager {
     /**
      * 构建容量变化图表的筛选参数
      */
-    buildChangeChartParams(periodType) {
+    buildChangeChartParams() {
         const params = new URLSearchParams();
         
         if (this.currentFilters.instance_id) {
@@ -930,9 +949,9 @@ class InstanceAggregationsManager {
         if (this.currentFilters.db_type) {
             params.append('db_type', this.currentFilters.db_type);
         }
-        if (periodType) {
-            params.append('period_type', periodType);
-        }
+        
+        const periodType = this.currentFilters.period_type || 'daily';
+        params.append('period_type', periodType);
         
         const { startDate, endDate } = this.getChangeChartDateRange(periodType);
         if (startDate) {
@@ -942,7 +961,6 @@ class InstanceAggregationsManager {
             params.append('end_date', endDate);
         }
         
-        params.append('chart_mode', 'instance_change');
         params.append('get_all', 'true');
         return params;
     }
@@ -953,7 +971,11 @@ class InstanceAggregationsManager {
     getChangeChartDateRange(periodType) {
         const hasStart = Boolean(this.currentFilters.start_date);
         const hasEnd = Boolean(this.currentFilters.end_date);
-        const computedRange = this.calculateDateRange(periodType);
+        const computedRange = this.calculateDateRange(
+            periodType,
+            this.changeStatisticsPeriod,
+            { respectExistingStart: true, respectExistingEnd: true }
+        );
         
         return {
             startDate: hasStart ? this.currentFilters.start_date : computedRange.startDate,
@@ -964,14 +986,18 @@ class InstanceAggregationsManager {
     /**
      * 按周期类型计算时间范围
      */
-    calculateDateRange(periodType) {
+    calculateDateRange(periodType, periodsCount = this.currentStatisticsPeriod || 1, options = {}) {
+        const { respectExistingStart = false, respectExistingEnd = false } = options;
+        const normalizedPeriodType = periodType || 'daily';
+        const hasStart = Boolean(this.currentFilters.start_date) && respectExistingStart;
+        const hasEnd = Boolean(this.currentFilters.end_date) && respectExistingEnd;
         const today = new Date();
-        const endDate = this.currentFilters.end_date ? new Date(this.currentFilters.end_date) : today;
-        const startDate = this.currentFilters.start_date ? new Date(this.currentFilters.start_date) : new Date(endDate);
-        const periods = Math.max(1, this.currentStatisticsPeriod || 1);
+        const endDate = hasEnd ? new Date(this.currentFilters.end_date) : today;
+        const startDate = hasStart ? new Date(this.currentFilters.start_date) : new Date(endDate);
+        const periods = Math.max(1, periodsCount || 1);
         
-        if (!this.currentFilters.start_date) {
-            switch (periodType) {
+        if (!hasStart) {
+            switch (normalizedPeriodType) {
                 case 'weekly':
                     startDate.setDate(endDate.getDate() - periods * 7);
                     break;
@@ -1049,10 +1075,22 @@ class InstanceAggregationsManager {
         // 同步统计周期选择器
         $(`input[name="statisticsPeriod"][value="${this.currentStatisticsPeriod}"]`).prop('checked', true);
         
+        // 同步容量变化图表类型
+        $(`input[name="changeChartType"][value="${this.changeChartType}"]`).prop('checked', true);
+        
+        // 同步容量变化TOP选择器
+        $(`input[name="changeTopSelector"][value="${this.changeTopCount}"]`).prop('checked', true);
+        
+        // 同步容量变化统计周期选择器
+        $(`input[name="changeStatisticsPeriod"][value="${this.changeStatisticsPeriod}"]`).prop('checked', true);
+        
         console.log('UI状态已同步:', {
             chartType: this.currentChartType,
             topCount: this.currentTopCount,
-            statisticsPeriod: this.currentStatisticsPeriod
+            statisticsPeriod: this.currentStatisticsPeriod,
+            changeChartType: this.changeChartType,
+            changeTopCount: this.changeTopCount,
+            changeStatisticsPeriod: this.changeStatisticsPeriod
         });
     }
     
