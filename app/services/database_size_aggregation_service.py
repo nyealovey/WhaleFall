@@ -212,9 +212,13 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每周实例统计聚合...")
         
-        # 获取上周的数据（使用中国时区）
-        end_date = time_utils.now_china().date()
-        start_date = end_date - timedelta(days=7)
+        # 获取上周完整自然周的数据（使用中国时区）
+        today = time_utils.now_china().date()
+        # weekday: Monday=0 ... Sunday=6
+        days_since_monday = today.weekday()
+        # 上周周一 = 今天减去本周已过天数再减去7天
+        start_date = today - timedelta(days=days_since_monday + 7)
+        end_date = start_date + timedelta(days=6)
         
         return self._calculate_instance_aggregations('weekly', start_date, end_date)
     
