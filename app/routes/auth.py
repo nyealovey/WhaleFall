@@ -72,12 +72,13 @@ def login_api() -> "Response":
             )
 
             # API登录，返回JWT token
-            from app.utils.jwt_utils import generate_token
-            token = generate_token(user.id)
-            
+            access_token = create_access_token(identity=user.id)
+            refresh_token = create_refresh_token(identity=user.id)
+
             return jsonify({
                 "message": "登录成功",
-                "token": token,
+                "access_token": access_token,
+                "refresh_token": refresh_token,
                 "user": {
                     "id": user.id,
                     "username": user.username,

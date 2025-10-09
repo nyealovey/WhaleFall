@@ -145,7 +145,7 @@ class AccountSyncService:
                 conn.close()
 
             # 更新实例最后连接时间
-            instance.last_connected_at = time_utils.now()
+            instance.last_connected = time_utils.now()
             db.session.commit()
 
             self.sync_logger.info(
@@ -240,7 +240,7 @@ class AccountSyncService:
                 conn.close()
 
             # 更新实例最后连接时间
-            instance.last_connected_at = time_utils.now()
+            instance.last_connected = time_utils.now()
             db.session.commit()
 
             return result

@@ -81,9 +81,9 @@ def api_get_users() -> "Response":
         # 状态筛选
         if status_filter:
             if status_filter == "active":
-                query = query.filter(User.is_active)
+                query = query.filter(User.is_active.is_(True))
             elif status_filter == "inactive":
-                query = query.filter(not User.is_active)
+                query = query.filter(User.is_active.is_(False))
 
         # 分页查询
         users_pagination = query.order_by(User.created_at.desc()).paginate(
