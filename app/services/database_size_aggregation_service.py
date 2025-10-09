@@ -486,7 +486,8 @@ class DatabaseSizeAggregationService:
             prev_avg_db_count = sum(prev_daily_db_counts) / len(prev_daily_db_counts)
             
             # 计算变化量（当前 - 上一个周期）
-            total_size_change_mb = aggregation.avg_size_mb - prev_avg_total_size
+            # 使用实例总容量的均值进行变化对比，确保量纲一致
+            total_size_change_mb = aggregation.total_size_mb - prev_avg_total_size
             aggregation.total_size_change_mb = int(total_size_change_mb)
             aggregation.total_size_change_percent = round((total_size_change_mb / prev_avg_total_size * 100) if prev_avg_total_size > 0 else 0, 2)
             
