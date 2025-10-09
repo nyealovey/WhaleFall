@@ -1,22 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}数据库统计 - 数据库大小监控{% endblock %}
+{% block title %}容量统计(数据库) - 数据库大小监控{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/database_sizes/database_aggregations.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/database_sizes/instance_aggregations.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 <style>
     /* 数据库统计页面特定样式 */
     .database-aggregations-page .search-filter-card {
-        margin-bottom: 1rem;
-    }
-    
-    .database-aggregations-page .card-body {
-        padding: 0.75rem 1rem;
-    }
-    
-    .database-aggregations-page .unified-search-form .row {
-        margin-bottom: 0;
+        margin-bottom: 0.75rem;
     }
     
     .database-aggregations-page .filter-instance,
@@ -25,23 +17,6 @@
     .database-aggregations-page .filter-db-type,
     .database-aggregations-page .filter-time-range {
         margin-bottom: 0.25rem;
-    }
-    
-    /* 优化搜索框高度 */
-    .database-aggregations-page .unified-search-form .form-label {
-        margin-bottom: 0.25rem;
-        font-size: 0.85rem;
-    }
-    
-    .database-aggregations-page .unified-search-form .unified-input,
-    .database-aggregations-page .unified-search-form .unified-select {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.9rem;
-    }
-    
-    .database-aggregations-page .unified-search-form .btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
     }
 </style>
 {% endblock %}
@@ -55,9 +30,9 @@
                 <div>
                     <h1 class="h3 mb-0">
                         <i class="fas fa-database me-2"></i>
-                        数据库统计
+                        容量统计(数据库)
                     </h1>
-                    <p class="text-muted mb-0">按数据库维度统计大小聚合分析</p>
+                    <p class="text-muted mb-0">按数据库维度统计容量大小分析</p>
                 </div>
                 <div>
                     <button class="btn btn-outline-primary" id="refreshData">
@@ -66,7 +41,7 @@
                     </button>
                     <button class="btn btn-primary" id="calculateAggregations">
                         <i class="fas fa-calculator me-1"></i>
-                        聚合今日数据
+                        统计今日容量
                     </button>
                 </div>
             </div>
@@ -74,27 +49,25 @@
     </div>
 
     <!-- 统一搜索筛选 -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="database-aggregations-page">
-                {% set show_search_input = false %}
-                {% set search_button_text = '筛选' %}
-                {% set show_instance_filter = true %}
-                {% set show_period_type_filter = true %}
-                {% set show_database_filter = true %}
-                {% set show_time_range_filter = true %}
-                {% set show_db_type_filter = true %}
-                {% set show_classification_filter = false %}
-                {% set show_credential_type_filter = false %}
-                {% set show_tag_category_filter = false %}
-                {% set show_status_filter = false %}
-                {% set show_level_filter = false %}
-                {% set show_module_filter = false %}
-                {% set show_tag_filter = false %}
-                {% set show_sync_type_filter = false %}
-                {% set show_sync_category_filter = false %}
-                {% include 'components/unified_search_form.html' %}
-            </div>
+    <div class="mb-4">
+        <div class="database-aggregations-page">
+            {% set show_search_input = false %}
+            {% set search_button_text = '筛选' %}
+            {% set show_instance_filter = true %}
+            {% set show_period_type_filter = true %}
+            {% set show_database_filter = true %}
+            {% set show_time_range_filter = true %}
+            {% set show_db_type_filter = true %}
+            {% set show_classification_filter = false %}
+            {% set show_credential_type_filter = false %}
+            {% set show_tag_category_filter = false %}
+            {% set show_status_filter = false %}
+            {% set show_level_filter = false %}
+            {% set show_module_filter = false %}
+            {% set show_tag_filter = false %}
+            {% set show_sync_type_filter = false %}
+            {% set show_sync_category_filter = false %}
+            {% include 'components/unified_search_form.html' %}
         </div>
     </div>
 
@@ -105,7 +78,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="card-title">总实例数</h6>
+                            <h6 class="card-title">活跃实例数</h6>
                             <h3 class="mb-0" id="totalInstances">-</h3>
                         </div>
                         <div class="align-self-center">
@@ -135,7 +108,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="card-title">平均大小</h6>
+                            <h6 class="card-title">平均容量</h6>
                             <h3 class="mb-0" id="averageSize">-</h3>
                         </div>
                         <div class="align-self-center">
@@ -150,7 +123,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="card-title">最大大小</h6>
+                            <h6 class="card-title">最大容量</h6>
                             <h3 class="mb-0" id="maxSize">-</h3>
                         </div>
                         <div class="align-self-center">
@@ -162,26 +135,48 @@
         </div>
     </div>
 
-    <!-- 图表区域 -->
+    <!-- 容量统计趋势图 -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <div class="row align-items-center">
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <h5 class="card-title mb-0">
                                 <i class="fas fa-chart-area me-2"></i>
-                                数据库统计趋势图
+                                容量统计趋势图
                             </h5>
                         </div>
-                        <div class="col-md-6">
-                            <div class="d-flex gap-2">
-                                <div class="btn-group" role="group">
+                        <div class="col-md-9">
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="btn-group me-3" role="group">
                                     <input type="radio" class="btn-check" name="chartType" id="chartTypeLine" value="line" checked>
                                     <label class="btn btn-outline-primary" for="chartTypeLine">折线图</label>
                                     
                                     <input type="radio" class="btn-check" name="chartType" id="chartTypeBar" value="bar">
                                     <label class="btn btn-outline-primary" for="chartTypeBar">柱状图</label>
+                                </div>
+                                
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="topSelector" id="top5" value="5" checked>
+                                    <label class="btn btn-outline-secondary" for="top5">TOP5</label>
+                                    
+                                    <input type="radio" class="btn-check" name="topSelector" id="top10" value="10">
+                                    <label class="btn btn-outline-secondary" for="top10">TOP10</label>
+                                    
+                                    <input type="radio" class="btn-check" name="topSelector" id="top20" value="20">
+                                    <label class="btn btn-outline-secondary" for="top20">TOP20</label>
+                                </div>
+                                
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="statisticsPeriod" id="period7" value="7" checked>
+                                    <label class="btn btn-outline-info" for="period7">7</label>
+                                    
+                                    <input type="radio" class="btn-check" name="statisticsPeriod" id="period14" value="14">
+                                    <label class="btn btn-outline-info" for="period14">14</label>
+                                    
+                                    <input type="radio" class="btn-check" name="statisticsPeriod" id="period30" value="30">
+                                    <label class="btn btn-outline-info" for="period30">30</label>
                                 </div>
                             </div>
                         </div>
@@ -201,124 +196,63 @@
         </div>
     </div>
 
-    <!-- 数据库统计表格 -->
-    <div class="row">
+    <!-- 容量变化趋势图 -->
+    <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-table me-2"></i>
-                        数据库统计详情
-                    </h5>
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-wave-square me-2"></i>
+                                容量变化趋势图
+                            </h5>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="changeChartType" id="changeChartTypeLine" value="line" checked>
+                                    <label class="btn btn-outline-primary" for="changeChartTypeLine">折线图</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeChartType" id="changeChartTypeBar" value="bar">
+                                    <label class="btn btn-outline-primary" for="changeChartTypeBar">柱状图</label>
+                                </div>
+                                
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop5" value="5" checked>
+                                    <label class="btn btn-outline-secondary" for="changeTop5">TOP5</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop10" value="10">
+                                    <label class="btn btn-outline-secondary" for="changeTop10">TOP10</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop20" value="20">
+                                    <label class="btn btn-outline-secondary" for="changeTop20">TOP20</label>
+                                </div>
+                                
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod7" value="7" checked>
+                                    <label class="btn btn-outline-info" for="changePeriod7">7</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod14" value="14">
+                                    <label class="btn btn-outline-info" for="changePeriod14">14</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod30" value="30">
+                                    <label class="btn btn-outline-info" for="changePeriod30">30</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="databaseTable">
-                            <thead>
-                                <tr>
-                                    <th>实例名称</th>
-                                    <th>数据库名称</th>
-                                    <th>数据库类型</th>
-                                    <th>平均大小</th>
-                                    <th>最大大小</th>
-                                    <th>最小大小</th>
-                                    <th>数据点数</th>
-                                    <th>最后更新</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- 数据将通过JavaScript动态加载 -->
-                            </tbody>
-                        </table>
+                    <div class="position-relative">
+                        <canvas id="databaseChangeChart" style="height: 500px; width: 100%;"></canvas>
+                        <div id="changeChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 详情模态框 -->
-<div class="modal fade" id="detailModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-info-circle me-2"></i>
-                    数据库统计详情
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>基本信息</h6>
-                        <table class="table table-sm">
-                            <tr>
-                                <td>实例名称:</td>
-                                <td id="modalInstanceName">-</td>
-                            </tr>
-                            <tr>
-                                <td>数据库名称:</td>
-                                <td id="modalDatabaseName">-</td>
-                            </tr>
-                            <tr>
-                                <td>数据库类型:</td>
-                                <td id="modalDbType">-</td>
-                            </tr>
-                            <tr>
-                                <td>统计周期:</td>
-                                <td id="modalPeriodType">-</td>
-                            </tr>
-                            <tr>
-                                <td>统计时间:</td>
-                                <td id="modalPeriodRange">-</td>
-                            </tr>
-                            <tr>
-                                <td>数据点数:</td>
-                                <td id="modalDataCount">-</td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>统计指标</h6>
-                        <table class="table table-sm">
-                            <tr>
-                                <td>平均大小:</td>
-                                <td id="modalAvgSize">-</td>
-                            </tr>
-                            <tr>
-                                <td>最大大小:</td>
-                                <td id="modalMaxSize">-</td>
-                            </tr>
-                            <tr>
-                                <td>最小大小:</td>
-                                <td id="modalMinSize">-</td>
-                            </tr>
-                            <tr>
-                                <td>平均数据大小:</td>
-                                <td id="modalAvgDataSize">-</td>
-                            </tr>
-                            <tr>
-                                <td>平均日志大小:</td>
-                                <td id="modalAvgLogSize">-</td>
-                            </tr>
-                            <tr>
-                                <td>最后更新:</td>
-                                <td id="modalLastUpdate">-</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <h6>趋势图表</h6>
-                        <canvas id="detailChart" height="200"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
             </div>
         </div>
     </div>
@@ -331,7 +265,7 @@
             <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="fas fa-calculator me-2"></i>
-                    聚合今日数据
+                    统计今日容量
                 </h5>
             </div>
             <div class="modal-body">
@@ -339,12 +273,15 @@
                     <div class="spinner-border text-primary mb-3" role="status">
                         <span class="visually-hidden">计算中...</span>
                     </div>
-                    <p class="mb-0">正在聚合今日数据，请稍候...</p>
+                    <p class="mb-0">正在统计今日容量，请稍候...</p>
                     <div class="progress mt-3">
                         <div class="progress-bar progress-bar-striped progress-bar-animated" 
                              role="progressbar" style="width: 0%"></div>
                     </div>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelCalculation">取消</button>
             </div>
         </div>
     </div>
@@ -356,37 +293,26 @@
 <script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/database_sizes/database_aggregations.js') }}"></script>
 <script>
-// 页面加载完成后初始化数据库统计页面
 document.addEventListener('DOMContentLoaded', function() {
-    // 等待Chart.js和统一搜索组件加载完成
     function initManager() {
         if (typeof Chart !== 'undefined' && typeof DatabaseAggregationsManager !== 'undefined' && typeof UnifiedSearch !== 'undefined') {
-            // 初始化统一搜索组件
             window.unifiedSearch = new UnifiedSearch('unified-search-form');
-            
-            // 初始化数据库统计管理器
             window.databaseAggregationsManager = new DatabaseAggregationsManager();
-            
-            // 为统一搜索组件提供筛选函数
             window.applyFilters = function() {
                 if (window.databaseAggregationsManager) {
                     window.databaseAggregationsManager.applyFilters();
                 }
             };
-            
             window.clearFilters = function() {
                 if (window.databaseAggregationsManager) {
                     window.databaseAggregationsManager.resetFilters();
                 }
             };
         } else {
-            // 如果依赖还没加载完成，等待100ms后重试
             setTimeout(initManager, 100);
         }
     }
-    
     initManager();
 });
 </script>
 {% endblock %}
-

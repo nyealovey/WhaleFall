@@ -71,11 +71,33 @@ def database_aggregations():
     返回HTML页面
     """
     # 获取数据库类型列表
-    db_types = db.session.query(Instance.db_type).distinct().all()
-    db_types_list = [db_type[0] for db_type in db_types]
+    database_types = DatabaseTypeService.get_active_types()
+    instances = Instance.query.filter_by(is_active=True).order_by(Instance.name.asc()).all()
+    instances_list = [{
+        'id': instance.id,
+        'name': instance.name,
+        'db_type': instance.db_type
+    } for instance in instances]
     
-    return render_template('database_sizes/database_aggregations.html', 
-                         db_types_list=db_types_list)
+    selected_db_type = request.args.get('db_type', '')
+    selected_instance = request.args.get('instance', '')
+    selected_database = request.args.get('database', '')
+    selected_period_type = request.args.get('period_type', 'daily')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    return render_template(
+        'database_sizes/database_aggregations.html',
+        database_types=database_types,
+        instances_list=instances_list,
+        databases_list=[],
+        db_type=selected_db_type,
+        instance=selected_instance,
+        database=selected_database,
+        period_type=selected_period_type,
+        start_date=start_date,
+        end_date=end_date
+    )
 
 @database_stats_bp.route('/api/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
 @login_required
