@@ -136,9 +136,9 @@ class InstanceAggregationsManager {
         }
         
         // 保存当前实例选择
-        const instanceSelect = document.getElementById('instance');
-        if (instanceSelect) {
-            const selectedValue = instanceSelect.value;
+        const instanceSelectElement = document.getElementById('instance');
+        if (instanceSelectElement) {
+            const selectedValue = instanceSelectElement.value;
             $('#instance').data('selected', selectedValue);
         }
     }
