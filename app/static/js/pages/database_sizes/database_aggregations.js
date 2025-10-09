@@ -15,6 +15,7 @@ class DatabaseAggregationsManager {
         this.changeChartType = 'line';
         this.changeTopCount = 5;
         this.changeStatisticsPeriod = 7;
+        this.databaseLabelMap = {};
         this.currentFilters = {
             instance_id: null,
             db_type: null,
@@ -382,6 +383,7 @@ class DatabaseAggregationsManager {
             const data = await response.json();
             
             if (response.ok) {
+                this.databaseLabelMap = {};
                 this.currentData = data.data || [];
                 this.renderChart(this.currentData);
                 this.syncUIState();
@@ -608,11 +610,15 @@ class DatabaseAggregationsManager {
                 grouped[date] = {};
             }
             const dbName = item.database_name || '未知数据库';
-            grouped[date][dbName] = item.avg_size_mb || 0;
+            const instanceName = item.instance?.name || '未知实例';
+            const instanceId = item.instance?.id || `unknown-${instanceName}`;
+            const key = `${instanceId}::${dbName}`;
+            this.databaseLabelMap[key] = `${dbName} (${instanceName})`;
+            grouped[date][key] = item.avg_size_mb || 0;
         });
         return grouped;
     }
-    
+
     groupChangeDataByDate(data) {
         const grouped = {};
         data.forEach(item => {
@@ -624,12 +630,16 @@ class DatabaseAggregationsManager {
                 grouped[date] = {};
             }
             const dbName = item.database_name || '未知数据库';
+            const instanceName = item.instance?.name || '未知实例';
+            const instanceId = item.instance?.id || `unknown-${instanceName}`;
+            const key = `${instanceId}::${dbName}`;
+            this.databaseLabelMap[key] = `${dbName} (${instanceName})`;
             const changeValue = Number(item.size_change_mb ?? 0);
-            grouped[date][dbName] = Number.isNaN(changeValue) ? 0 : changeValue;
+            grouped[date][key] = Number.isNaN(changeValue) ? 0 : changeValue;
         });
         return grouped;
     }
-    
+
     prepareSizeChartData(groupedData) {
         const labels = Object.keys(groupedData).sort();
         const datasets = [];
@@ -643,26 +653,26 @@ class DatabaseAggregationsManager {
         
         const databaseMaxSizes = new Map();
         Object.values(groupedData).forEach(dateData => {
-            Object.entries(dateData).forEach(([dbName, size]) => {
-                const existingMax = databaseMaxSizes.get(dbName) || 0;
-                databaseMaxSizes.set(dbName, Math.max(existingMax, size || 0));
+            Object.entries(dateData).forEach(([key, size]) => {
+                const existingMax = databaseMaxSizes.get(key) || 0;
+                databaseMaxSizes.set(key, Math.max(existingMax, size || 0));
             });
         });
-        
+
         const sortedDatabases = Array.from(databaseMaxSizes.entries())
             .sort((a, b) => b[1] - a[1])
             .slice(0, this.currentTopCount)
             .map(([name]) => name);
-        
+
         let colorIndex = 0;
-        sortedDatabases.forEach(dbName => {
+        sortedDatabases.forEach(key => {
             const data = labels.map(date => {
-                const mbValue = groupedData[date][dbName] || 0;
+                const mbValue = groupedData[date][key] || 0;
                 return mbValue / 1024;
             });
-            
+
             datasets.push({
-                label: dbName,
+                label: this.databaseLabelMap[key] || key,
                 data,
                 borderColor: colors[colorIndex % colors.length],
                 backgroundColor: colors[colorIndex % colors.length] + '10',
@@ -688,22 +698,22 @@ class DatabaseAggregationsManager {
         
         const databaseMaxChanges = new Map();
         Object.values(groupedData).forEach(dateData => {
-            Object.entries(dateData).forEach(([dbName, changeValue]) => {
+            Object.entries(dateData).forEach(([key, changeValue]) => {
                 const absValue = Math.abs(changeValue || 0);
-                const existingMax = databaseMaxChanges.get(dbName) || 0;
-                databaseMaxChanges.set(dbName, Math.max(existingMax, absValue));
+                const existingMax = databaseMaxChanges.get(key) || 0;
+                databaseMaxChanges.set(key, Math.max(existingMax, absValue));
             });
         });
-        
+
         const sortedDatabases = Array.from(databaseMaxChanges.entries())
             .sort((a, b) => b[1] - a[1])
             .slice(0, this.changeTopCount)
             .map(([name]) => name);
-        
+
         let colorIndex = 0;
-        sortedDatabases.forEach(dbName => {
+        sortedDatabases.forEach(key => {
             const data = labels.map(date => {
-                const rawValue = groupedData[date][dbName];
+                const rawValue = groupedData[date][key];
                 if (rawValue === undefined || rawValue === null) {
                     return 0;
                 }
@@ -716,7 +726,7 @@ class DatabaseAggregationsManager {
             
             const baseColor = colors[colorIndex % colors.length];
             const dataset = {
-                label: dbName,
+                label: this.databaseLabelMap[key] || key,
                 data,
                 borderColor: baseColor,
                 backgroundColor: (ctx) => {
