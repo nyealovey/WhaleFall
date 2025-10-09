@@ -132,6 +132,7 @@ def api_status() -> "Response":
 def get_system_overview() -> dict:
     """获取系统概览数据（缓存版本）"""
     try:
+        db.session.rollback()
         # 基础统计
         total_users = User.query.count()
         total_instances = Instance.query.count()
@@ -316,6 +317,7 @@ def get_chart_data(chart_type: str = "all") -> dict:
 def get_log_trend_data() -> dict:
     """获取日志趋势数据（分别显示错误和告警日志）"""
     try:
+        db.session.rollback()
         from app.models.unified_log import LogLevel, UnifiedLog
 
         # 最近7天的日志数据（东八区）
@@ -360,6 +362,7 @@ def get_log_trend_data() -> dict:
 def get_log_level_distribution() -> dict:
     """获取日志级别分布（只显示错误和告警日志）"""
     try:
+        db.session.rollback()
         from app.models.unified_log import LogLevel, UnifiedLog
 
         level_stats = (
@@ -398,6 +401,7 @@ def get_task_status_distribution() -> dict:
 def get_sync_trend_data() -> dict:
     """获取同步趋势数据"""
     try:
+        db.session.rollback()
         # 最近7天的同步数据（东八区）
         end_date = time_utils.now_china().date()
         start_date = end_date - timedelta(days=6)
