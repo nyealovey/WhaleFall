@@ -95,18 +95,31 @@ def manual_aggregate():
     try:
         data = request.get_json() or {}
         instance_id = data.get('instance_id')
-        period_type = data.get('period_type', 'daily')
-        
-        if instance_id:
-            # 计算指定实例的聚合
-            result = calculate_instance_aggregations(instance_id, period_type)
+        period_type = (data.get('period_type') or 'all').lower()
+        valid_periods = {'daily', 'weekly', 'monthly', 'quarterly'}
+
+        if instance_id is not None:
+            instance_id = int(instance_id)
+            service = DatabaseSizeAggregationService()
+            if period_type in valid_periods:
+                func_map = {
+                    'daily': service.calculate_daily_aggregations_for_instance,
+                    'weekly': service.calculate_weekly_aggregations_for_instance,
+                    'monthly': service.calculate_monthly_aggregations_for_instance,
+                    'quarterly': service.calculate_quarterly_aggregations_for_instance,
+                }
+                result = func_map[period_type](instance_id)
+            else:
+                result = calculate_instance_aggregations(instance_id)
         else:
-            # 计算所有实例的聚合
-            result = calculate_database_size_aggregations(period_type)
-        
+            if period_type in valid_periods:
+                result = calculate_database_size_aggregations(manual_run=True, periods=[period_type])
+            else:
+                result = calculate_database_size_aggregations(manual_run=True)
+
         return jsonify({
-            'success': True,
-            'message': '聚合计算任务已触发',
+            'success': result.get('success', True),
+            'message': result.get('message', '聚合计算任务已触发'),
             'data': result
         })
         
@@ -129,14 +142,17 @@ def aggregate():
     """
     try:
         data = request.get_json() or {}
-        period_type = data.get('period_type', 'daily')
-        
-        # 触发聚合计算
-        result = calculate_database_size_aggregations(period_type)
-        
+        period_type = (data.get('period_type') or 'all').lower()
+        valid_periods = {'daily', 'weekly', 'monthly', 'quarterly'}
+
+        if period_type in valid_periods:
+            result = calculate_database_size_aggregations(manual_run=True, periods=[period_type])
+        else:
+            result = calculate_database_size_aggregations(manual_run=True)
+
         return jsonify({
-            'success': True,
-            'message': '统计聚合计算任务已触发',
+            'success': result.get('success', True),
+            'message': result.get('message', '统计聚合计算任务已触发'),
             'data': result
         })
         
@@ -158,8 +174,8 @@ def aggregate_today():
         JSON: 聚合结果
     """
     try:
-        # 触发今日数据聚合
-        result = calculate_period_aggregations('daily')
+        # 触发今日数据聚合（只执行日聚合）
+        result = calculate_database_size_aggregations(manual_run=True, periods=['daily'])
         
         return jsonify({
             'success': True,
