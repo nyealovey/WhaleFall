@@ -1,13 +1,20 @@
 /**
- * 数据库统计页面脚本
+ * 数据库容量统计页面脚本
  * 基于 jQuery 3.7.1 和 Chart.js 4.4.0
  */
 
 class DatabaseAggregationsManager {
     constructor() {
         this.chart = null;
+        this.changeChart = null;
         this.currentData = [];
+        this.changeChartData = [];
         this.currentChartType = 'line';
+        this.currentTopCount = 5;
+        this.currentStatisticsPeriod = 7;
+        this.changeChartType = 'line';
+        this.changeTopCount = 5;
+        this.changeStatisticsPeriod = 7;
         this.currentFilters = {
             instance_id: null,
             db_type: null,
@@ -22,116 +29,180 @@ class DatabaseAggregationsManager {
     
     init() {
         console.log('初始化数据库统计管理器');
+        this.initializeCurrentFilters();
         this.bindEvents();
-        this.initializeDatabaseFilter();
+        this.initializeFilterOptions();
+        this.updateTimeRangeFromPeriod();
+        this.syncUIState();
         this.loadSummaryData();
         this.loadChartData();
-        this.loadTableData();
+        this.loadChangeChartData();
+    }
+    
+    initializeCurrentFilters() {
+        const dbTypeValue = $('#db_type').val();
+        const instanceValue = $('#instance').val();
+        const databaseValue = $('#database').val();
+        this.currentFilters.db_type = dbTypeValue ? dbTypeValue.toLowerCase() : null;
+        this.currentFilters.instance_id = instanceValue || null;
+        this.currentFilters.database_name = databaseValue || null;
+        this.currentFilters.period_type = $('#period_type').val() || 'daily';
+        this.currentFilters.start_date = $('#start_date').val() || null;
+        this.currentFilters.end_date = $('#end_date').val() || null;
+        if (instanceValue) {
+            $('#instance').data('selected', instanceValue);
+        }
+        if (databaseValue) {
+            $('#database').data('selected', databaseValue);
+        }
     }
     
     bindEvents() {
-        // 刷新数据按钮
         $('#refreshData').on('click', () => {
             this.refreshAllData();
         });
         
-        // 聚合计算按钮
         $('#calculateAggregations').on('click', () => {
             this.calculateAggregations();
         });
         
-        // 图表类型切换
         $('input[name="chartType"]').on('change', (e) => {
             this.currentChartType = e.target.value;
             this.renderChart(this.currentData);
         });
         
-        // 筛选按钮
-        $('#searchButton').on('click', () => {
+        $('input[name="topSelector"]').on('change', (e) => {
+            this.currentTopCount = parseInt(e.target.value, 10);
+            this.renderChart(this.currentData);
+        });
+        
+        $('input[name="statisticsPeriod"]').on('change', (e) => {
+            this.currentStatisticsPeriod = parseInt(e.target.value, 10);
+            this.updateTimeRangeFromPeriod();
+            this.loadSummaryData();
+            this.loadChartData();
+            this.loadChangeChartData();
+        });
+        
+        $('#period_type').on('change', (e) => {
+            this.currentFilters.period_type = e.target.value;
+            this.updateTimeRangeFromPeriod();
+            this.loadSummaryData();
+            this.loadChartData();
+            this.loadChangeChartData();
+        });
+        
+        $('input[name="changeChartType"]').on('change', (e) => {
+            this.changeChartType = e.target.value;
+            this.renderChangeChart(this.changeChartData);
+        });
+        
+        $('input[name="changeTopSelector"]').on('change', (e) => {
+            this.changeTopCount = parseInt(e.target.value, 10);
+            this.renderChangeChart(this.changeChartData);
+        });
+        
+        $('input[name="changeStatisticsPeriod"]').on('change', (e) => {
+            this.changeStatisticsPeriod = parseInt(e.target.value, 10);
+            this.loadChangeChartData();
+        });
+        
+        $('#searchButton, #applyFilters').on('click', () => {
             this.applyFilters();
         });
         
-        // 重置按钮
         $('#resetButton').on('click', () => {
             this.resetFilters();
         });
         
-        // 数据库类型变化时更新实例选项
         $('#db_type').on('change', async (e) => {
             const dbType = e.target.value;
-            console.log('数据库类型变化:', dbType);
             await this.updateInstanceOptions(dbType);
             this.updateFilters();
+            this.loadSummaryData();
             this.loadChartData();
+            this.loadChangeChartData();
         });
         
-        // 实例变化时更新数据库选项
         $('#instance').on('change', async (e) => {
             const instanceId = e.target.value;
             await this.updateDatabaseOptions(instanceId);
             this.updateFilters();
+            this.loadSummaryData();
             this.loadChartData();
+            this.loadChangeChartData();
         });
         
-        // 数据库变化时自动刷新
         $('#database').on('change', () => {
             this.updateFilters();
+            this.loadSummaryData();
             this.loadChartData();
+            this.loadChangeChartData();
         });
     }
     
-    /**
-     * 初始化数据库筛选器
-     */
-    initializeDatabaseFilter() {
+    initializeFilterOptions() {
+        const initialDbType = $('#db_type').val();
         const instanceSelect = $('#instance');
         const databaseSelect = $('#database');
         
-        // 初始化实例筛选器
-        instanceSelect.empty();
-        instanceSelect.append('<option value="">请先选择数据库类型</option>');
-        instanceSelect.prop('disabled', true);
-        
-        // 初始化数据库筛选器
-        databaseSelect.empty();
-        databaseSelect.append('<option value="">请先选择实例</option>');
-        databaseSelect.prop('disabled', true);
+        if (initialDbType) {
+            this.updateInstanceOptions(initialDbType).then(() => {
+                const initialInstance = this.currentFilters.instance_id || instanceSelect.data('selected');
+                if (initialInstance) {
+                    instanceSelect.val(initialInstance);
+                    this.updateDatabaseOptions(initialInstance).then(() => {
+                        const initialDatabase = this.currentFilters.database_name || databaseSelect.data('selected');
+                        if (initialDatabase) {
+                            databaseSelect.val(initialDatabase);
+                        }
+                    });
+                }
+            });
+        } else {
+            instanceSelect.empty();
+            instanceSelect.append('<option value="">请先选择数据库类型</option>');
+            instanceSelect.prop('disabled', true);
+            databaseSelect.empty();
+            databaseSelect.append('<option value="">请先选择实例</option>');
+            databaseSelect.prop('disabled', true);
+        }
     }
     
-    /**
-     * 根据选择的数据库类型更新实例选项
-     */
     async updateInstanceOptions(dbType) {
         const instanceSelect = $('#instance');
         const databaseSelect = $('#database');
+        const normalizedDbType = dbType ? dbType.toLowerCase() : null;
         
-        // 清空数据库选项
+        this.currentFilters.instance_id = null;
+        this.currentFilters.database_name = null;
+        instanceSelect.data('selected', '');
+        databaseSelect.data('selected', '');
         databaseSelect.empty();
         databaseSelect.append('<option value="">请先选择实例</option>');
         databaseSelect.prop('disabled', true);
         
-        if (!dbType) {
-            // 如果没有选择数据库类型，显示所有实例
-            instanceSelect.prop('disabled', false);
-            await this.loadInstances();
-            return;
-        }
-        
         try {
             instanceSelect.prop('disabled', false);
-            const response = await fetch(`/instances/api?db_type=${dbType}`);
+            let url = '/database_stats/api/instance-options';
+            if (normalizedDbType) {
+                url += `?db_type=${encodeURIComponent(normalizedDbType)}`;
+            }
+            const response = await fetch(url);
             const data = await response.json();
             
             if (response.ok && data.success) {
                 instanceSelect.empty();
                 instanceSelect.append('<option value="">所有实例</option>');
                 data.instances.forEach(instance => {
-                    instanceSelect.append(`<option value="${instance.id}">${instance.name} (${instance.db_type})</option>`);
+                    const option = document.createElement('option');
+                    option.value = String(instance.id);
+                    option.textContent = `${instance.name} (${instance.db_type})`;
+                    instanceSelect.append(option);
                 });
             } else {
                 instanceSelect.empty();
                 instanceSelect.append('<option value="">加载失败</option>');
-                console.error('实例加载失败:', data);
             }
         } catch (error) {
             console.error('加载实例列表时出错:', error);
@@ -140,37 +211,32 @@ class DatabaseAggregationsManager {
         }
     }
     
-    /**
-     * 根据选择的实例更新数据库选项
-     */
     async updateDatabaseOptions(instanceId) {
         const databaseSelect = $('#database');
         
         if (!instanceId) {
-            // 如果没有选择实例，清空数据库选项并禁用
             databaseSelect.empty();
-            databaseSelect.append('<option value="">请先选择实例</option>');
+            databaseSelect.append('<option value="">所有数据库</option>');
             databaseSelect.prop('disabled', true);
             return;
         }
         
         try {
-            // 启用数据库选择
             databaseSelect.prop('disabled', false);
-            
-            // 使用聚合数据获取该实例的数据库列表
-            const params = this.buildFilterParams();
-            params.set('instance_id', instanceId);
-            
-            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params}`);
+            const params = new URLSearchParams();
+            params.append('instance_id', instanceId);
+            if (this.currentFilters.db_type) {
+                params.append('db_type', this.currentFilters.db_type);
+            }
+            params.append('get_all', 'true');
+            params.append('chart_mode', 'database');
+            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
             
             if (response.ok && data.success) {
+                const databases = [...new Set((data.data || []).map(item => item.database_name))].sort();
                 databaseSelect.empty();
                 databaseSelect.append('<option value="">所有数据库</option>');
-                
-                // 从聚合数据中提取数据库列表
-                const databases = [...new Set(data.data.map(item => item.database_name))].sort();
                 databases.forEach(db => {
                     databaseSelect.append(`<option value="${db}">${db}</option>`);
                 });
@@ -185,74 +251,33 @@ class DatabaseAggregationsManager {
         }
     }
     
-    /**
-     * 加载实例列表
-     */
-    async loadInstances(dbType = null) {
-        try {
-            let url = '/instances/api';
-            if (dbType) {
-                url += `?db_type=${dbType}`;
-            }
-            
-            const response = await fetch(url);
-            const data = await response.json();
-            
-            if (response.ok) {
-                const select = $('#instance');
-                select.empty();
-                select.append('<option value="">所有实例</option>');
-                
-                data.instances.forEach(instance => {
-                    select.append(`<option value="${instance.id}">${instance.name} (${instance.db_type})</option>`);
-                });
-            }
-        } catch (error) {
-            console.error('加载实例列表时出错:', error);
-        }
-    }
-    
-    /**
-     * 更新筛选器
-     */
     updateFilters() {
-        this.currentFilters.db_type = $('#db_type').val();
-        this.currentFilters.instance_id = $('#instance').val();
-        this.currentFilters.database_name = $('#database').val();
+        const dbTypeValue = $('#db_type').val();
+        const instanceValue = $('#instance').val();
+        const databaseValue = $('#database').val();
+        this.currentFilters.db_type = dbTypeValue ? dbTypeValue.toLowerCase() : null;
+        this.currentFilters.instance_id = instanceValue || null;
+        this.currentFilters.database_name = databaseValue || null;
         this.currentFilters.period_type = $('#period_type').val();
         this.currentFilters.start_date = $('#start_date').val();
         this.currentFilters.end_date = $('#end_date').val();
     }
     
-    /**
-     * 应用筛选条件
-     */
     applyFilters() {
-        console.log('应用筛选条件');
         this.updateFilters();
-        console.log('当前筛选条件:', this.currentFilters);
-        
-        // 重新加载数据
         this.loadSummaryData();
         this.loadChartData();
-        this.loadTableData();
+        this.loadChangeChartData();
     }
     
-    /**
-     * 重置筛选条件
-     */
     resetFilters() {
-        console.log('重置筛选条件');
+        $('#db_type').val('');
+        $('#instance').val('');
+        $('#database').val('');
+        $('#period_type').val('daily');
+        $('#start_date').val('');
+        $('#end_date').val('');
         
-        // 清空所有筛选器
-        $('#instanceFilter').val('');
-        $('#dbTypeFilter').val('');
-        $('#databaseFilter').val('');
-        $('#periodTypeFilter').val('daily');
-        $('#startDateFilter').val('');
-        $('#endDateFilter').val('');
-        
-        // 重置筛选条件
         this.currentFilters = {
             instance_id: null,
             db_type: null,
@@ -262,25 +287,23 @@ class DatabaseAggregationsManager {
             end_date: null
         };
         
-        // 重新加载数据
+        this.initializeFilterOptions();
+        this.updateTimeRangeFromPeriod();
         this.loadSummaryData();
         this.loadChartData();
-        this.loadTableData();
+        this.loadChangeChartData();
     }
     
-    /**
-     * 刷新所有数据
-     */
     async refreshAllData() {
-        console.log('刷新所有数据');
         this.showLoading();
         
         try {
             await Promise.all([
                 this.loadSummaryData(),
                 this.loadChartData(),
-                this.loadTableData()
+                this.loadChangeChartData()
             ]);
+            this.syncUIState();
             this.showSuccess('数据刷新成功');
         } catch (error) {
             console.error('刷新数据失败:', error);
@@ -290,17 +313,14 @@ class DatabaseAggregationsManager {
         }
     }
     
-    /**
-     * 加载汇总数据
-     */
     async loadSummaryData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/instance_stats/api/databases/aggregations/summary?api=true&${params}`);
+            const response = await fetch(`/instance_stats/api/databases/aggregations/summary?api=true&${params.toString()}`);
             const data = await response.json();
             
             if (response.ok) {
-                this.updateSummaryCards(data);
+                this.updateSummaryCards(data.data || data);
             } else {
                 console.error('加载汇总数据失败:', data.error);
             }
@@ -309,39 +329,28 @@ class DatabaseAggregationsManager {
         }
     }
     
-    /**
-     * 更新汇总卡片
-     */
-    updateSummaryCards(data) {
-        $('#totalInstances').text(data.total_instances || 0);
-        $('#totalDatabases').text(data.total_databases || 0);
-        $('#averageSize').text(this.formatSizeFromMB(data.avg_size_mb || 0));
-        $('#maxSize').text(this.formatSizeFromMB(data.max_size_mb || 0));
+    updateSummaryCards(summaryData) {
+        $('#totalInstances').text(summaryData.total_instances || 0);
+        $('#totalDatabases').text(summaryData.total_databases || 0);
+        $('#averageSize').text(this.formatSizeFromMB(summaryData.avg_size_mb || 0));
+        $('#maxSize').text(this.formatSizeFromMB(summaryData.max_size_mb || 0));
     }
     
-    /**
-     * 加载图表数据
-     */
     async loadChartData() {
         try {
             this.showChartLoading();
-            
             const params = this.buildFilterParams();
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
-            
-            console.log('加载图表数据，参数:', params.toString());
-            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params}`);
+            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
             
-            console.log('图表数据响应:', data);
-            
             if (response.ok) {
-                this.currentData = data.data;
-                console.log('当前图表数据:', this.currentData);
-                this.renderChart(data.data);
+                this.currentData = data.data || [];
+                this.renderChart(this.currentData);
+                this.syncUIState();
             } else {
-                console.error('图表数据加载失败:', data.error);
+                console.error('加载图表数据失败:', data.error);
                 this.showError('加载图表数据失败: ' + data.error);
             }
         } catch (error) {
@@ -352,15 +361,38 @@ class DatabaseAggregationsManager {
         }
     }
     
-    /**
-     * 渲染图表
-     */
+    async loadChangeChartData() {
+        try {
+            this.showChangeChartLoading();
+            const params = this.buildFilterParams();
+            params.append('chart_mode', 'database');
+            params.append('get_all', 'true');
+            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.changeChartData = data.data || [];
+                this.renderChangeChart(this.changeChartData);
+            } else {
+                console.error('加载容量变化数据失败:', data.error);
+                this.showError('加载容量变化数据失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('加载容量变化数据时出错:', error);
+            this.showError('加载容量变化数据时出错: ' + error.message);
+        } finally {
+            this.hideChangeChartLoading();
+        }
+    }
+    
     renderChart(data) {
-        console.log('渲染数据库统计图表，数据:', data);
+        const canvas = document.getElementById('databaseChart');
+        if (!canvas) {
+            return;
+        }
         
-        const ctx = document.getElementById('databaseChart').getContext('2d');
+        const ctx = canvas.getContext('2d');
         
-        // 销毁现有图表
         if (this.chart) {
             this.chart.destroy();
         }
@@ -370,13 +402,9 @@ class DatabaseAggregationsManager {
             return;
         }
         
-        // 按日期分组数据
-        const groupedData = this.groupDataByDate(data);
+        const groupedData = this.groupSizeDataByDate(data);
+        const chartData = this.prepareSizeChartData(groupedData);
         
-        // 准备图表数据
-        const chartData = this.prepareChartData(groupedData);
-        
-        // 创建图表
         this.chart = new Chart(ctx, {
             type: this.currentChartType,
             data: chartData,
@@ -386,11 +414,11 @@ class DatabaseAggregationsManager {
                 plugins: {
                     title: {
                         display: true,
-                        text: '数据库统计趋势图'
+                        text: '容量统计趋势图'
                     },
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'right'
                     },
                     tooltip: {
                         mode: 'index',
@@ -398,7 +426,7 @@ class DatabaseAggregationsManager {
                         callbacks: {
                             label: (context) => {
                                 const label = context.dataset.label || '';
-                                const value = this.formatSizeFromMB(context.parsed.y);
+                                const value = `${context.parsed.y.toFixed(2)} GB`;
                                 return `${label}: ${value}`;
                             }
                         }
@@ -416,7 +444,7 @@ class DatabaseAggregationsManager {
                         display: true,
                         title: {
                             display: true,
-                            text: '大小 (MB)'
+                            text: '大小 (GB)'
                         },
                         beginAtZero: true
                     }
@@ -430,393 +458,276 @@ class DatabaseAggregationsManager {
         });
     }
     
-    /**
-     * 按日期分组数据
-     */
-    groupDataByDate(data) {
-        const grouped = {};
-        
-        data.forEach(item => {
-            const date = item.period_start;
-            if (!date) {
-                console.warn('数据项缺少period_start:', item);
-                return;
-            }
-            
-            if (!grouped[date]) {
-                grouped[date] = {};
-            }
-            
-            // 按数据库分组，使用avg_size_mb作为显示值
-            const dbName = item.database_name || '未知数据库';
-            if (!grouped[date][dbName]) {
-                grouped[date][dbName] = 0;
-            }
-            // 累加平均值，处理同一天多条记录的情况
-            grouped[date][dbName] += item.avg_size_mb || 0;
-        });
-        
-        console.log('分组后的数据:', grouped);
-        return grouped;
-    }
-    
-    /**
-     * 准备图表数据
-     */
-    prepareChartData(groupedData) {
-        const labels = Object.keys(groupedData).sort();
-        const datasets = [];
-        const colors = [
-            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-        ];
-        
-        // 收集所有数据库名称
-        const allDatabases = new Set();
-        Object.values(groupedData).forEach(dateData => {
-            Object.keys(dateData).forEach(dbName => {
-                allDatabases.add(dbName);
-            });
-        });
-        
-        let colorIndex = 0;
-        
-        // 为每个数据库创建数据集
-        allDatabases.forEach(dbName => {
-            const data = labels.map(date => groupedData[date][dbName] || 0);
-            
-            datasets.push({
-                label: dbName,
-                data: data,
-                borderColor: colors[colorIndex % colors.length],
-                backgroundColor: colors[colorIndex % colors.length] + '20',
-                fill: false,
-                tension: 0.1
-            });
-            
-            colorIndex++;
-        });
-        
-        return {
-            labels: labels,
-            datasets: datasets
-        };
-    }
-    
-    /**
-     * 显示空图表
-     */
-    showEmptyChart() {
-        const ctx = document.getElementById('databaseChart').getContext('2d');
-        
-        if (this.chart) {
-            this.chart.destroy();
+    renderChangeChart(data) {
+        const canvas = document.getElementById('databaseChangeChart');
+        if (!canvas) {
+            return;
         }
         
-        this.chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['暂无数据'],
-                datasets: [{
-                    label: '暂无数据',
-                    data: [0],
-                    backgroundColor: '#f8f9fa',
-                    borderColor: '#dee2e6'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: '数据库统计趋势图 - 暂无数据'
-                    }
-                }
-            }
-        });
-    }
-    
-    /**
-     * 加载表格数据
-     */
-    async loadTableData() {
-        try {
-            const params = this.buildFilterParams();
-            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params}`);
-            const data = await response.json();
-            
-            if (response.ok) {
-                this.renderTable(data.data);
-            } else {
-                console.error('加载表格数据失败:', data.error);
-                this.showError('加载表格数据失败: ' + data.error);
-            }
-        } catch (error) {
-            console.error('加载表格数据时出错:', error);
-            this.showError('加载表格数据时出错: ' + error.message);
+        const ctx = canvas.getContext('2d');
+        
+        if (this.changeChart) {
+            this.changeChart.destroy();
         }
-    }
-    
-    /**
-     * 渲染表格
-     */
-    renderTable(data) {
-        const tbody = $('#databaseTable tbody');
-        tbody.empty();
         
         if (!data || data.length === 0) {
-            tbody.append(`
-                <tr>
-                    <td colspan="9" class="text-center text-muted">
-                        <i class="fas fa-inbox me-2"></i>
-                        暂无数据
-                    </td>
-                </tr>
-            `);
+            this.showEmptyChangeChart();
             return;
         }
         
-        // 按数据库分组并计算统计
-        const databaseStats = this.calculateDatabaseStats(data);
+        const groupedData = this.groupChangeDataByDate(data);
+        const chartData = this.prepareChangeChartData(groupedData);
         
-        databaseStats.forEach(stat => {
-            const row = `
-                <tr>
-                    <td>
-                        <span class="instance-name">${stat.instance_name}</span>
-                    </td>
-                    <td>
-                        <span class="database-name">${stat.database_name}</span>
-                    </td>
-                    <td>
-                        <span class="db-type-badge ${stat.db_type.toLowerCase()}">${stat.db_type}</span>
-                    </td>
-                    <td>
-                        <span class="size-display">${this.formatSizeFromMB(stat.avg_size_mb)}</span>
-                    </td>
-                    <td>
-                        <span class="size-display">${this.formatSizeFromMB(stat.max_size_mb)}</span>
-                    </td>
-                    <td>
-                        <span class="size-display">${this.formatSizeFromMB(stat.min_size_mb)}</span>
-                    </td>
-                    <td>${stat.data_count}</td>
-                    <td>${this.formatDate(stat.last_update)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary btn-action" 
-                                onclick="window.databaseAggregationsManager.showDetail('${stat.instance_name}', '${stat.database_name}')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-            tbody.append(row);
-        });
-    }
-    
-    /**
-     * 计算数据库统计
-     */
-    calculateDatabaseStats(data) {
-        const databaseMap = {};
-        
-        data.forEach(item => {
-            const key = `${item.instance.name}_${item.database_name}`;
-            if (!databaseMap[key]) {
-                databaseMap[key] = {
-                    instance_name: item.instance.name,
-                    database_name: item.database_name,
-                    db_type: item.instance.db_type,
-                    avg_size_mb: 0,
-                    max_size_mb: 0,
-                    min_size_mb: Infinity,
-                    data_count: 0,
-                    last_update: null
-                };
-            }
-            
-            const stat = databaseMap[key];
-            stat.avg_size_mb = item.avg_size_mb;
-            stat.max_size_mb = Math.max(stat.max_size_mb, item.max_size_mb);
-            stat.min_size_mb = Math.min(stat.min_size_mb, item.min_size_mb);
-            stat.data_count = item.data_count;
-            
-            if (!stat.last_update || new Date(item.calculated_at) > new Date(stat.last_update)) {
-                stat.last_update = item.calculated_at;
-            }
-        });
-        
-        // 处理最小值为Infinity的情况
-        Object.values(databaseMap).forEach(stat => {
-            if (stat.min_size_mb === Infinity) {
-                stat.min_size_mb = 0;
-            }
-        });
-        
-        return Object.values(databaseMap).sort((a, b) => b.avg_size_mb - a.avg_size_mb);
-    }
-    
-    /**
-     * 显示详情
-     */
-    showDetail(instanceName, databaseName) {
-        console.log('显示数据库详情:', instanceName, databaseName);
-        
-        // 过滤当前数据库的数据
-        const databaseData = this.currentData.filter(item => 
-            item.instance.name === instanceName && item.database_name === databaseName
-        );
-        
-        if (databaseData.length === 0) {
-            this.showError('未找到相关数据');
+        if (!chartData || chartData.labels.length === 0 || chartData.datasets.length === 0) {
+            this.showEmptyChangeChart();
             return;
         }
         
-        // 更新模态框内容
-        this.updateDetailModal(databaseData[0], databaseData);
+        const allValues = [];
+        chartData.datasets.forEach(dataset => {
+            dataset.data.forEach(value => {
+                if (typeof value === 'number' && !Number.isNaN(value)) {
+                    allValues.push(value);
+                }
+            });
+        });
+        const minValue = allValues.length ? Math.min(...allValues, 0) : 0;
+        const maxValue = allValues.length ? Math.max(...allValues, 0) : 0;
+        const rangePadding = Math.max((maxValue - minValue) * 0.1, 1);
+        const suggestedMin = Math.min(minValue - rangePadding, 0);
+        const suggestedMax = Math.max(maxValue + rangePadding, 0);
         
-        // 显示模态框
-        $('#detailModal').modal('show');
-    }
-    
-    /**
-     * 更新详情模态框
-     */
-    updateDetailModal(sampleData, allData) {
-        $('#modalInstanceName').text(sampleData.instance.name);
-        $('#modalDatabaseName').text(sampleData.database_name);
-        $('#modalDbType').text(sampleData.instance.db_type);
-        $('#modalPeriodType').text(sampleData.period_type);
-        $('#modalPeriodRange').text(`${sampleData.period_start} 至 ${sampleData.period_end}`);
-        $('#modalDataCount').text(sampleData.data_count);
-        
-        // 计算统计信息
-        const avgSize = allData.reduce((sum, item) => sum + item.avg_size_mb, 0) / allData.length;
-        const maxSize = Math.max(...allData.map(item => item.max_size_mb));
-        const minSize = Math.min(...allData.map(item => item.min_size_mb));
-        const avgDataSize = allData.reduce((sum, item) => sum + (item.avg_data_size_mb || 0), 0) / allData.length;
-        const avgLogSize = allData.reduce((sum, item) => sum + (item.avg_log_size_mb || 0), 0) / allData.length;
-        const lastUpdate = allData.reduce((latest, item) => 
-            new Date(item.calculated_at) > new Date(latest) ? item.calculated_at : latest, 
-            allData[0].calculated_at
-        );
-        
-        $('#modalAvgSize').text(this.formatSizeFromMB(avgSize));
-        $('#modalMaxSize').text(this.formatSizeFromMB(maxSize));
-        $('#modalMinSize').text(this.formatSizeFromMB(minSize));
-        $('#modalAvgDataSize').text(this.formatSizeFromMB(avgDataSize));
-        $('#modalAvgLogSize').text(this.formatSizeFromMB(avgLogSize));
-        $('#modalLastUpdate').text(this.formatDate(lastUpdate));
-        
-        // 渲染详情图表
-        this.renderDetailChart(allData);
-    }
-    
-    /**
-     * 渲染详情图表
-     */
-    renderDetailChart(data) {
-        const ctx = document.getElementById('detailChart').getContext('2d');
-        
-        // 销毁现有图表
-        const existingChart = Chart.getChart(ctx);
-        if (existingChart) {
-            existingChart.destroy();
-        }
-        
-        const sortedData = data.sort((a, b) => new Date(a.period_start) - new Date(b.period_start));
-        
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: sortedData.map(item => item.period_start),
-                datasets: [{
-                    label: '平均大小',
-                    data: sortedData.map(item => item.avg_size_mb),
-                    borderColor: '#0d6efd',
-                    backgroundColor: '#0d6efd20',
-                    fill: false,
-                    tension: 0.1
-                }, {
-                    label: '最大大小',
-                    data: sortedData.map(item => item.max_size_mb),
-                    borderColor: '#dc3545',
-                    backgroundColor: '#dc354520',
-                    fill: false,
-                    tension: 0.1
-                }, {
-                    label: '最小大小',
-                    data: sortedData.map(item => item.min_size_mb),
-                    borderColor: '#198754',
-                    backgroundColor: '#19875420',
-                    fill: false,
-                    tension: 0.1
-                }]
-            },
+        this.changeChart = new Chart(ctx, {
+            type: this.changeChartType,
+            data: chartData,
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
                     title: {
                         display: true,
-                        text: '大小趋势图'
+                        text: '容量变化趋势图'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'right'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y;
+                                if (value === null || value === undefined || Number.isNaN(value)) {
+                                    return `${label}: 无数据`;
+                                }
+                                const formatted = `${value >= 0 ? '+' : ''}${value.toFixed(2)} GB`;
+                                return `${label}: ${formatted}`;
+                            }
+                        }
                     }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
+                    x: {
+                        display: true,
                         title: {
                             display: true,
-                            text: '大小 (MB)'
+                            text: '时间'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '变化量 (GB)'
+                        },
+                        suggestedMin,
+                        suggestedMax,
+                        grid: {
+                            color: (context) => (context.tick && context.tick.value === 0 ? '#212529' : 'rgba(0, 0, 0, 0.08)'),
+                            lineWidth: (context) => (context.tick && context.tick.value === 0 ? 2 : 1),
+                            borderDash: (context) => (context.tick && context.tick.value === 0 ? [] : [2, 2]),
+                            drawTicks: true
                         }
                     }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
                 }
             }
         });
     }
     
-    /**
-     * 聚合计算
-     */
-    async calculateAggregations() {
-        console.log('开始聚合计算');
-        
-        // 显示进度模态框
-        $('#calculationModal').modal('show');
-        
-        try {
-            const response = await fetch('/aggregations/api/aggregate-today', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                this.showSuccess('聚合计算完成');
-                // 重新加载数据
-                this.refreshAllData();
-            } else {
-                this.showError('聚合计算失败: ' + data.error);
+    groupSizeDataByDate(data) {
+        const grouped = {};
+        data.forEach(item => {
+            const date = item.period_start;
+            if (!date) {
+                return;
             }
-        } catch (error) {
-            console.error('聚合计算时出错:', error);
-            this.showError('聚合计算时出错: ' + error.message);
-        } finally {
-            $('#calculationModal').modal('hide');
-        }
+            if (!grouped[date]) {
+                grouped[date] = {};
+            }
+            const dbName = item.database_name || '未知数据库';
+            grouped[date][dbName] = item.avg_size_mb || 0;
+        });
+        return grouped;
     }
     
-    /**
-     * 构建筛选参数
-     */
+    groupChangeDataByDate(data) {
+        const grouped = {};
+        data.forEach(item => {
+            const date = item.period_start;
+            if (!date) {
+                return;
+            }
+            if (!grouped[date]) {
+                grouped[date] = {};
+            }
+            const dbName = item.database_name || '未知数据库';
+            const changeValue = Number(item.size_change_mb ?? 0);
+            grouped[date][dbName] = Number.isNaN(changeValue) ? 0 : changeValue;
+        });
+        return grouped;
+    }
+    
+    prepareSizeChartData(groupedData) {
+        const labels = Object.keys(groupedData).sort();
+        const datasets = [];
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+            '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+            '#BB8FCE', '#85C1E9', '#F8C471', '#82E0AA'
+        ];
+        
+        const databaseMaxSizes = new Map();
+        Object.values(groupedData).forEach(dateData => {
+            Object.entries(dateData).forEach(([dbName, size]) => {
+                const existingMax = databaseMaxSizes.get(dbName) || 0;
+                databaseMaxSizes.set(dbName, Math.max(existingMax, size || 0));
+            });
+        });
+        
+        const sortedDatabases = Array.from(databaseMaxSizes.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, this.currentTopCount)
+            .map(([name]) => name);
+        
+        let colorIndex = 0;
+        sortedDatabases.forEach(dbName => {
+            const data = labels.map(date => {
+                const mbValue = groupedData[date][dbName] || 0;
+                return mbValue / 1024;
+            });
+            
+            datasets.push({
+                label: dbName,
+                data,
+                borderColor: colors[colorIndex % colors.length],
+                backgroundColor: colors[colorIndex % colors.length] + '10',
+                fill: this.currentChartType === 'line' ? false : true,
+                tension: this.currentChartType === 'line' ? 0.1 : 0
+            });
+            colorIndex++;
+        });
+        
+        return { labels, datasets };
+    }
+    
+    prepareChangeChartData(groupedData) {
+        const labels = Object.keys(groupedData).sort();
+        const datasets = [];
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+            '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+            '#BB8FCE', '#85C1E9', '#F8C471', '#82E0AA'
+        ];
+        
+        const databaseMaxChanges = new Map();
+        Object.values(groupedData).forEach(dateData => {
+            Object.entries(dateData).forEach(([dbName, changeValue]) => {
+                const absValue = Math.abs(changeValue || 0);
+                const existingMax = databaseMaxChanges.get(dbName) || 0;
+                databaseMaxChanges.set(dbName, Math.max(existingMax, absValue));
+            });
+        });
+        
+        const sortedDatabases = Array.from(databaseMaxChanges.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, this.changeTopCount)
+            .map(([name]) => name);
+        
+        let colorIndex = 0;
+        sortedDatabases.forEach(dbName => {
+            const data = labels.map(date => {
+                const rawValue = groupedData[date][dbName];
+                if (rawValue === undefined || rawValue === null) {
+                    return 0;
+                }
+                const numericValue = Number(rawValue);
+                if (Number.isNaN(numericValue)) {
+                    return 0;
+                }
+                return numericValue / 1024;
+            });
+            
+            const baseColor = colors[colorIndex % colors.length];
+            const dataset = {
+                label: dbName,
+                data,
+                borderColor: baseColor,
+                backgroundColor: (ctx) => {
+                    const value = ctx.parsed?.y ?? 0;
+                    if (this.changeChartType === 'line') {
+                        return this.colorWithAlpha(baseColor, 0.1);
+                    }
+                    return value >= 0
+                        ? this.colorWithAlpha(baseColor, 0.65)
+                        : this.colorWithAlpha(baseColor, 0.35);
+                },
+                fill: this.changeChartType !== 'line',
+                tension: this.changeChartType === 'line' ? 0.3 : 0
+            };
+            
+            if (this.changeChartType === 'line') {
+                dataset.segment = {
+                    borderDash: (ctx) => {
+                        const prev = ctx.p0?.parsed?.y ?? 0;
+                        const curr = ctx.p1?.parsed?.y ?? 0;
+                        const bothPositive = prev >= 0 && curr >= 0;
+                        return bothPositive ? [] : [6, 4];
+                    },
+                    borderColor: () => baseColor
+                };
+                dataset.pointRadius = (ctx) => (Math.abs(ctx.parsed?.y ?? 0) < 0.001 ? 3 : 4);
+                dataset.pointHoverRadius = 5;
+                dataset.pointBackgroundColor = (ctx) => {
+                    const value = ctx.parsed?.y ?? 0;
+                    return value >= 0 ? this.colorWithAlpha(baseColor, 0.85) : '#ffffff';
+                };
+                dataset.pointBorderColor = baseColor;
+                dataset.pointBorderWidth = (ctx) => (ctx.parsed?.y ?? 0) >= 0 ? 1 : 2;
+            } else {
+                dataset.borderWidth = 1.5;
+                dataset.borderDash = (ctx) => ((ctx.parsed?.y ?? 0) >= 0 ? [] : [6, 4]);
+            }
+            
+            datasets.push(dataset);
+            colorIndex++;
+        });
+        
+        return { labels, datasets };
+    }
+    
     buildFilterParams() {
         const params = new URLSearchParams();
-        
         if (this.currentFilters.instance_id) {
             params.append('instance_id', this.currentFilters.instance_id);
         }
@@ -835,55 +746,163 @@ class DatabaseAggregationsManager {
         if (this.currentFilters.end_date) {
             params.append('end_date', this.currentFilters.end_date);
         }
-        
         return params;
     }
     
-    /**
-     * 显示图表加载状态
-     */
+    updateTimeRangeFromPeriod() {
+        const endDate = new Date();
+        const startDate = new Date();
+        const periodType = this.currentFilters.period_type || 'daily';
+        
+        switch (periodType) {
+            case 'daily':
+                startDate.setDate(endDate.getDate() - this.currentStatisticsPeriod);
+                break;
+            case 'weekly':
+                startDate.setDate(endDate.getDate() - (this.currentStatisticsPeriod * 7));
+                break;
+            case 'monthly':
+                startDate.setMonth(endDate.getMonth() - this.currentStatisticsPeriod);
+                break;
+            case 'quarterly':
+                startDate.setMonth(endDate.getMonth() - (this.currentStatisticsPeriod * 3));
+                break;
+            default:
+                startDate.setDate(endDate.getDate() - this.currentStatisticsPeriod);
+        }
+        
+        this.currentFilters.start_date = startDate.toISOString().split('T')[0];
+        this.currentFilters.end_date = endDate.toISOString().split('T')[0];
+    }
+    
     showChartLoading() {
         $('#chartLoading').removeClass('d-none');
     }
     
-    /**
-     * 隐藏图表加载状态
-     */
     hideChartLoading() {
         $('#chartLoading').addClass('d-none');
     }
     
-    /**
-     * 显示加载状态
-     */
-    showLoading() {
-        // 可以添加全局加载状态
+    showChangeChartLoading() {
+        $('#changeChartLoading').removeClass('d-none');
     }
     
-    /**
-     * 隐藏加载状态
-     */
-    hideLoading() {
-        // 可以添加全局加载状态
+    hideChangeChartLoading() {
+        $('#changeChartLoading').addClass('d-none');
     }
     
-    /**
-     * 显示成功消息
-     */
+    showLoading() {}
+    hideLoading() {}
+    
+    syncUIState() {
+        $(`input[name="chartType"][value="${this.currentChartType}"]`).prop('checked', true);
+        $(`input[name="topSelector"][value="${this.currentTopCount}"]`).prop('checked', true);
+        $(`input[name="statisticsPeriod"][value="${this.currentStatisticsPeriod}"]`).prop('checked', true);
+        
+        $(`input[name="changeChartType"][value="${this.changeChartType}"]`).prop('checked', true);
+        $(`input[name="changeTopSelector"][value="${this.changeTopCount}"]`).prop('checked', true);
+        $(`input[name="changeStatisticsPeriod"][value="${this.changeStatisticsPeriod}"]`).prop('checked', true);
+    }
+    
+    showEmptyChart() {
+        const canvas = document.getElementById('databaseChart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        if (this.chart) {
+            this.chart.destroy();
+        }
+        this.chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['暂无数据'],
+                datasets: [{
+                    label: '暂无数据',
+                    data: [0],
+                    backgroundColor: '#f8f9fa',
+                    borderColor: '#dee2e6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '容量统计趋势图 - 暂无数据'
+                    }
+                }
+            }
+        });
+    }
+    
+    showEmptyChangeChart() {
+        const canvas = document.getElementById('databaseChangeChart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        if (this.changeChart) {
+            this.changeChart.destroy();
+        }
+        this.changeChart = new Chart(ctx, {
+            type: this.changeChartType,
+            data: {
+                labels: ['暂无数据'],
+                datasets: [{
+                    label: '暂无数据',
+                    data: [0],
+                    backgroundColor: '#f8f9fa',
+                    borderColor: '#dee2e6',
+                    borderDash: this.changeChartType === 'line' ? [6, 4] : []
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '容量变化趋势图 - 暂无数据'
+                    }
+                }
+            }
+        });
+    }
+    
+    async calculateAggregations() {
+        $('#calculationModal').modal('show');
+        
+        try {
+            const response = await fetch('/aggregations/api/aggregate-today', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                }
+            });
+            const data = await response.json();
+            if (response.ok) {
+                this.showSuccess('聚合计算完成');
+                this.refreshAllData();
+            } else {
+                this.showError('聚合计算失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('聚合计算时出错:', error);
+            this.showError('聚合计算时出错: ' + error.message);
+        } finally {
+            $('#calculationModal').modal('hide');
+        }
+    }
+    
     showSuccess(message) {
         toastr.success(message);
     }
     
-    /**
-     * 显示错误消息
-     */
     showError(message) {
         toastr.error(message);
     }
     
-    /**
-     * 格式化大小
-     */
     formatSizeFromMB(mb) {
         if (mb === 0) return '0 B';
         if (mb < 1024) return `${mb.toFixed(2)} MB`;
@@ -891,27 +910,18 @@ class DatabaseAggregationsManager {
         return `${(mb / (1024 * 1024)).toFixed(2)} TB`;
     }
     
-    /**
-     * 格式化日期
-     */
-    formatDate(dateString) {
-        if (!dateString) return '-';
-        const date = new Date(dateString);
-        // 后端已经返回东八区时间，前端直接格式化，不进行时区转换
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    colorWithAlpha(hexColor, alpha = 1) {
+        const normalized = hexColor.startsWith('#') ? hexColor.slice(1) : hexColor;
+        if (normalized.length !== 6) {
+            return `rgba(0, 0, 0, ${alpha})`;
+        }
+        const r = parseInt(normalized.slice(0, 2), 16);
+        const g = parseInt(normalized.slice(2, 4), 16);
+        const b = parseInt(normalized.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
     
-    /**
-     * 获取CSRF令牌
-     */
     getCSRFToken() {
         return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     }
 }
-

@@ -589,6 +589,7 @@ def get_databases_aggregations_summary():
                 'success': True,
                 'data': {
                     'total_databases': 0,
+                    'total_instances': 0,
                     'total_size_mb': 0,
                     'avg_size_mb': 0,
                     'max_size_mb': 0,
@@ -598,6 +599,7 @@ def get_databases_aggregations_summary():
         
         # 计算汇总统计
         total_databases = len(set(agg.database_name for agg in aggregations))
+        total_instances = len(set(agg.instance_id for agg in aggregations))
         total_size_mb = sum(agg.avg_size_mb for agg in aggregations)
         avg_size_mb = total_size_mb / len(aggregations) if aggregations else 0
         max_size_mb = max(agg.avg_size_mb for agg in aggregations) if aggregations else 0
@@ -606,6 +608,7 @@ def get_databases_aggregations_summary():
             'success': True,
             'data': {
                 'total_databases': total_databases,
+                'total_instances': total_instances,
                 'total_size_mb': total_size_mb,
                 'avg_size_mb': avg_size_mb,
                 'max_size_mb': max_size_mb,
