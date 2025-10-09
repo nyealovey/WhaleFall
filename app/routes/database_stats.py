@@ -77,7 +77,13 @@ def database_aggregations():
     返回HTML页面
     """
     # 获取数据库类型列表
-    database_types = DatabaseTypeService.get_active_types()
+    database_types = [
+        {
+            'name': db_type.name,
+            'display_name': db_type.display_name
+        }
+        for db_type in DatabaseTypeService.get_active_types()
+    ]
     instances = Instance.query.filter_by(is_active=True).order_by(Instance.name.asc()).all()
     instances_list = [{
         'id': instance.id,
