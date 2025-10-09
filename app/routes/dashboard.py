@@ -153,6 +153,16 @@ def get_system_overview() -> dict:
 
         total_logs = UnifiedLog.query.count()
         total_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
+        log_info(
+            "dashboard_base_counts",
+            module="dashboard",
+            total_users=total_users,
+            total_instances=total_instances,
+            total_accounts=total_accounts,
+            total_logs=total_logs,
+            total_tasks=total_tasks,
+            active_tasks=active_tasks,
+        )
 
         # 获取所有活跃分类（按优先级排序）
         all_classifications = (
@@ -200,6 +210,13 @@ def get_system_overview() -> dict:
         
         # 使用数据库中的分类账户总数
         total_classified_accounts = len(all_classified_account_ids)
+        log_info(
+            "dashboard_classification_counts",
+            module="dashboard",
+            classifications=len(all_classifications),
+            total_classified_accounts=total_classified_accounts,
+            auto_classified_accounts=auto_classified_accounts,
+        )
 
         # 计算自动分类的账户数（去重）
         auto_classified_accounts = (
@@ -237,6 +254,14 @@ def get_system_overview() -> dict:
             
             if not is_locked:
                 active_accounts += 1
+
+        log_info(
+            "dashboard_active_counts",
+            module="dashboard",
+            total_accounts=len(all_accounts),
+            active_accounts=active_accounts,
+            active_instances=active_instances,
+        )
 
         # 今日日志数（东八区）
         china_today = time_utils.now_china().date()
