@@ -535,6 +535,20 @@ class InstanceAggregationsManager {
             return;
         }
         
+        const allValues = [];
+        chartData.datasets.forEach(dataset => {
+            dataset.data.forEach(value => {
+                if (typeof value === 'number' && !Number.isNaN(value)) {
+                    allValues.push(value);
+                }
+            });
+        });
+        const minValue = allValues.length ? Math.min(...allValues, 0) : 0;
+        const maxValue = allValues.length ? Math.max(...allValues, 0) : 0;
+        const rangePadding = Math.max((maxValue - minValue) * 0.1, 1);
+        const suggestedMin = Math.min(minValue - rangePadding, 0);
+        const suggestedMax = Math.max(maxValue + rangePadding, 0);
+        
         this.changeChart = new Chart(ctx, {
             type: this.changeChartType,
             data: chartData,
@@ -580,7 +594,19 @@ class InstanceAggregationsManager {
                             display: true,
                             text: '变化量 (GB)'
                         },
-                        beginAtZero: true
+                        suggestedMin,
+                        suggestedMax,
+                        grid: {
+                            color: (context) => {
+                                if (context.tick && context.tick.value === 0) {
+                                    return '#212529';
+                                }
+                                return 'rgba(0, 0, 0, 0.08)';
+                            },
+                            lineWidth: (context) => (context.tick && context.tick.value === 0 ? 2 : 1),
+                            borderDash: (context) => (context.tick && context.tick.value === 0 ? [] : [2, 2]),
+                            drawTicks: true
+                        }
                     }
                 },
                 interaction: {
@@ -740,6 +766,7 @@ class InstanceAggregationsManager {
         console.log(`容量变化TOP ${this.changeTopCount}实例:`, sortedInstances);
         
         let colorIndex = 0;
+        const manager = this;
         
         sortedInstances.forEach(instanceName => {
             const data = labels.map(date => {
@@ -755,19 +782,47 @@ class InstanceAggregationsManager {
             });
             
             const baseColor = colors[colorIndex % colors.length];
-            const backgroundColor = this.changeChartType === 'line'
-                ? `${baseColor}10`
-                : `${baseColor}66`;
-            const borderColor = baseColor;
-            
-            datasets.push({
+            const dataset = {
                 label: instanceName,
                 data: data,
-                borderColor,
-                backgroundColor,
-                fill: this.changeChartType === 'line' ? false : true,
-                tension: 0.1
-            });
+                borderColor: baseColor,
+                backgroundColor: (ctx) => {
+                    const value = ctx.parsed?.y ?? 0;
+                    if (manager.changeChartType === 'line') {
+                        return manager.colorWithAlpha(baseColor, 0.1);
+                    }
+                    return value >= 0
+                        ? manager.colorWithAlpha(baseColor, 0.65)
+                        : manager.colorWithAlpha(baseColor, 0.35);
+                },
+                fill: manager.changeChartType !== 'line',
+                tension: manager.changeChartType === 'line' ? 0.3 : 0
+            };
+            
+            if (manager.changeChartType === 'line') {
+                dataset.segment = {
+                    borderDash: (ctx) => {
+                        const prev = ctx.p0?.parsed?.y ?? 0;
+                        const curr = ctx.p1?.parsed?.y ?? 0;
+                        const bothPositive = prev >= 0 && curr >= 0;
+                        return bothPositive ? [] : [6, 4];
+                    },
+                    borderColor: () => baseColor
+                };
+                dataset.pointRadius = (ctx) => (Math.abs(ctx.parsed?.y ?? 0) < 0.001 ? 3 : 4);
+                dataset.pointHoverRadius = 5;
+                dataset.pointBackgroundColor = (ctx) => {
+                    const value = ctx.parsed?.y ?? 0;
+                    return value >= 0 ? manager.colorWithAlpha(baseColor, 0.85) : '#ffffff';
+                };
+                dataset.pointBorderColor = baseColor;
+                dataset.pointBorderWidth = (ctx) => (ctx.parsed?.y ?? 0) >= 0 ? 1 : 2;
+            } else {
+                dataset.borderWidth = 1.5;
+                dataset.borderDash = (ctx) => ((ctx.parsed?.y ?? 0) >= 0 ? [] : [6, 4]);
+            }
+            
+            datasets.push(dataset);
             
             colorIndex++;
         });
@@ -1116,6 +1171,20 @@ class InstanceAggregationsManager {
         if (mb < 1024) return `${mb.toFixed(2)} MB`;
         if (mb < 1024 * 1024) return `${(mb / 1024).toFixed(2)} GB`;
         return `${(mb / (1024 * 1024)).toFixed(2)} TB`;
+    }
+    
+    /**
+     * 将HEX颜色转换为包含透明度的RGBA
+     */
+    colorWithAlpha(hexColor, alpha = 1) {
+        const normalized = hexColor.startsWith('#') ? hexColor.slice(1) : hexColor;
+        if (normalized.length !== 6) {
+            return `rgba(0, 0, 0, ${alpha})`;
+        }
+        const r = parseInt(normalized.slice(0, 2), 16);
+        const g = parseInt(normalized.slice(2, 4), 16);
+        const b = parseInt(normalized.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
     
     /**
