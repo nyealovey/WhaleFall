@@ -3,23 +3,20 @@
 鲸落 - 系统仪表板路由
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 import psutil
 from flask import Blueprint, Response, jsonify, render_template, request
-from flask_login import current_user, login_required
-from sqlalchemy import text, distinct
+from flask_login import login_required
+from sqlalchemy import and_, distinct, func, or_, text, case
 
 from app import db
 from app.models.instance import Instance
 from app.models.current_account_sync_data import CurrentAccountSyncData
-from app.models.account_classification import ClassificationRule
 
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.user import User
-from app.utils.cache_manager import (
-    cached,
-)
+from app.utils.cache_manager import dashboard_cache
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import CHINA_TZ, time_utils
 
@@ -128,7 +125,7 @@ def api_status() -> "Response":
     return jsonify(status)
 
 
-@cached(timeout=300, key_prefix="dashboard")
+@dashboard_cache(timeout=300)
 def get_system_overview() -> dict:
     """获取系统概览数据（缓存版本）"""
     try:
@@ -136,7 +133,6 @@ def get_system_overview() -> dict:
         # 基础统计
         total_users = User.query.count()
         total_instances = Instance.query.count()
-        from sqlalchemy import text
         from app.models.account_classification import AccountClassification, AccountClassificationAssignment
         from app.models.current_account_sync_data import CurrentAccountSyncData
         from app.models.unified_log import LogLevel, UnifiedLog
@@ -164,101 +160,103 @@ def get_system_overview() -> dict:
             active_tasks=active_tasks,
         )
 
-        # 获取所有活跃分类（按优先级排序）
-        all_classifications = (
-            AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
+        # 分类统计（聚合查询，避免N+1）
+        classification_rows = (
+            db.session.query(
+                AccountClassification.name,
+                AccountClassification.color,
+                AccountClassification.priority,
+                func.count(distinct(AccountClassificationAssignment.account_id)).label("count")
+            )
+            .outerjoin(
+                AccountClassificationAssignment,
+                and_(
+                    AccountClassificationAssignment.classification_id == AccountClassification.id,
+                    AccountClassificationAssignment.is_active.is_(True)
+                )
+            )
+            .outerjoin(
+                CurrentAccountSyncData,
+                and_(
+                    CurrentAccountSyncData.id == AccountClassificationAssignment.account_id,
+                    CurrentAccountSyncData.is_deleted.is_(False)
+                )
+            )
+            .outerjoin(
+                Instance,
+                and_(
+                    Instance.id == CurrentAccountSyncData.instance_id,
+                    Instance.is_active.is_(True),
+                    Instance.deleted_at.is_(None)
+                )
+            )
+            .filter(AccountClassification.is_active.is_(True))
+            .group_by(AccountClassification.id)
+            .order_by(AccountClassification.priority.desc())
+            .all()
+        )
+        classification_stats = [
+            (name, color, priority, count or 0)
+            for name, color, priority, count in classification_rows
+        ]
+        total_classified_accounts = sum(count for _, _, _, count in classification_stats)
+
+        auto_classified_accounts = (
+            db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
+            .join(
+                CurrentAccountSyncData,
+                and_(
+                    CurrentAccountSyncData.id == AccountClassificationAssignment.account_id,
+                    CurrentAccountSyncData.is_deleted.is_(False)
+                )
+            )
+            .join(
+                Instance,
+                and_(
+                    Instance.id == CurrentAccountSyncData.instance_id,
+                    Instance.is_active.is_(True),
+                    Instance.deleted_at.is_(None)
+                )
+            )
+            .filter(
+                AccountClassificationAssignment.is_active.is_(True),
+                AccountClassificationAssignment.assignment_type == "auto"
+            )
+            .scalar()
+            or 0
         )
 
-        # 按分类统计（使用实时计算的规则匹配数量）
-        classification_stats = []
-        from app.services.account_classification_service import AccountClassificationService
-        classification_service = AccountClassificationService()
-        
-        # 用于统计总分类账户数的集合
-        # 从数据库获取已分配的账户统计，而不是实时计算
-        from app.models.account_classification import AccountClassificationAssignment
-        
-        all_classified_account_ids = set()
-        
-        for classification in all_classifications:
-            # 从分配表获取该分类的活跃账户数量
-            matched_account_ids = (
-                AccountClassificationAssignment.query
-                .filter_by(classification_id=classification.id, is_active=True)
-                .with_entities(AccountClassificationAssignment.account_id)
-                .all()
-            )
-            
-            # 提取账户ID并验证账户是否仍然有效
-            valid_account_ids = set()
-            for (account_id,) in matched_account_ids:
-                # 验证账户是否仍然存在且有效
-                account = CurrentAccountSyncData.query.filter_by(
-                    id=account_id, 
-                    is_deleted=False
-                ).join(Instance).filter(
-                    Instance.is_active == True,
-                    Instance.deleted_at.is_(None)
-                ).first()
-                
-                if account:
-                    valid_account_ids.add(account_id)
-                    all_classified_account_ids.add(account_id)
-            
-            count = len(valid_account_ids)
-            classification_stats.append((classification.name, classification.color, classification.priority, count))
-        
-        # 使用数据库中的分类账户总数
-        total_classified_accounts = len(all_classified_account_ids)
         log_info(
             "dashboard_classification_counts",
             module="dashboard",
-            classifications=len(all_classifications),
+            classifications=len(classification_stats),
             total_classified_accounts=total_classified_accounts,
             auto_classified_accounts=auto_classified_accounts,
-        )
-
-        # 计算自动分类的账户数（去重）
-        auto_classified_accounts = (
-            AccountClassificationAssignment.query.filter_by(is_active=True, assignment_type="auto")
-            .with_entities(distinct(AccountClassificationAssignment.account_id))
-            .count()
         )
 
         # 活跃实例数
         active_instances = Instance.query.filter_by(is_active=True).count()
 
-        # 活跃账户数（根据不同数据库类型使用不同的锁定判断标准）
-        all_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).all()
-        active_accounts = 0
-        
-        for account in all_accounts:
-            is_locked = False
-            
-            if account.db_type == "mysql":
-                # MySQL使用is_locked字段
-                if account.type_specific and "is_locked" in account.type_specific:
-                    is_locked = account.type_specific["is_locked"]
-            elif account.db_type == "postgresql":
-                # PostgreSQL使用can_login字段，can_login=False表示锁定
-                if account.type_specific and "can_login" in account.type_specific:
-                    is_locked = not account.type_specific["can_login"]
-            elif account.db_type == "oracle":
-                # Oracle使用account_status字段，LOCKED表示锁定
-                if account.type_specific and "account_status" in account.type_specific:
-                    is_locked = account.type_specific["account_status"] == "LOCKED"
-            elif account.db_type == "sqlserver":
-                # SQL Server使用is_locked字段
-                if account.type_specific and "is_locked" in account.type_specific:
-                    is_locked = account.type_specific["is_locked"]
-            
-            if not is_locked:
-                active_accounts += 1
+        active_accounts = (
+            db.session.query(func.count(CurrentAccountSyncData.id))
+            .join(Instance, Instance.id == CurrentAccountSyncData.instance_id)
+            .filter(
+                CurrentAccountSyncData.is_deleted.is_(False),
+                Instance.is_active.is_(True),
+                Instance.deleted_at.is_(None),
+                or_(
+                    CurrentAccountSyncData.is_active.is_(None),
+                    CurrentAccountSyncData.is_active.is_(True)
+                )
+            )
+            .scalar()
+            or 0
+        )
 
         log_info(
             "dashboard_active_counts",
             module="dashboard",
-            total_accounts=len(all_accounts),
+            total_accounts=total_accounts,
             active_accounts=active_accounts,
             active_instances=active_instances,
         )
@@ -312,23 +310,25 @@ def get_system_overview() -> dict:
         }
 
 
+@dashboard_cache(timeout=180)
 def get_chart_data(chart_type: str = "all") -> dict:
     """获取图表数据"""
     try:
+        chart_type = (chart_type or "all").lower()
         charts = {}
 
-        if chart_type in ["all", "logs"]:
+        if chart_type in {"all", "logs"}:
             # 日志趋势图（最近7天）
             charts["log_trend"] = get_log_trend_data()
 
             # 日志级别分布
             charts["log_levels"] = get_log_level_distribution()
 
-        if chart_type in ["all", "tasks"]:
+        if chart_type in {"all", "tasks"}:
             # 任务状态分布
             charts["task_status"] = get_task_status_distribution()
 
-        if chart_type in ["all", "syncs"]:
+        if chart_type in {"all", "syncs"}:
             # 同步趋势图
             charts["sync_trend"] = get_sync_trend_data()
 
@@ -338,7 +338,8 @@ def get_chart_data(chart_type: str = "all") -> dict:
         return {}
 
 
-def get_log_trend_data() -> dict:
+@dashboard_cache(timeout=300)
+def get_log_trend_data() -> list[dict[str, int | str]]:
     """获取日志趋势数据（分别显示错误和告警日志）"""
     try:
         db.session.rollback()
@@ -348,32 +349,80 @@ def get_log_trend_data() -> dict:
         china_today = time_utils.now_china().date()
         start_date = china_today - timedelta(days=6)
 
-        trend_data = []
-        for i in range(7):
-            date = start_date + timedelta(days=i)
+        date_buckets: list[tuple[date, datetime, datetime]] = []
+        for offset in range(7):
+            day = start_date + timedelta(days=offset)
+            start_dt = datetime.combine(day, datetime.min.time()).replace(tzinfo=CHINA_TZ)
+            end_dt = start_dt + timedelta(days=1)
+            start_utc = time_utils.to_utc(start_dt)
+            end_utc = time_utils.to_utc(end_dt)
+            if start_utc is None or end_utc is None:
+                continue
+            date_buckets.append((day, start_utc, end_utc))
 
-            # 计算该日期的UTC时间范围（东八区转UTC）
-            start_utc = time_utils.to_utc(datetime.combine(date, datetime.min.time()).replace(tzinfo=CHINA_TZ))
-            end_utc = time_utils.to_utc(datetime.combine(date, datetime.max.time()).replace(tzinfo=CHINA_TZ))
+        if not date_buckets:
+            return []
 
-            # 分别统计错误日志和告警日志
-            error_count = UnifiedLog.query.filter(
-                UnifiedLog.timestamp >= start_utc,
-                UnifiedLog.timestamp <= end_utc,
-                UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]),
-            ).count()
+        select_columns = []
+        labels: list[tuple[date, str, str]] = []
+        for day, start_utc, end_utc in date_buckets:
+            suffix = day.strftime("%Y%m%d")
+            error_label = f"error_{suffix}"
+            warning_label = f"warning_{suffix}"
+            select_columns.append(
+                func.sum(
+                    case(
+                        (
+                            and_(
+                                UnifiedLog.timestamp >= start_utc,
+                                UnifiedLog.timestamp < end_utc,
+                                UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]),
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label(error_label)
+            )
+            select_columns.append(
+                func.sum(
+                    case(
+                        (
+                            and_(
+                                UnifiedLog.timestamp >= start_utc,
+                                UnifiedLog.timestamp < end_utc,
+                                UnifiedLog.level == LogLevel.WARNING,
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label(warning_label)
+            )
+            labels.append((day, error_label, warning_label))
 
-            warning_count = UnifiedLog.query.filter(
-                UnifiedLog.timestamp >= start_utc,
-                UnifiedLog.timestamp <= end_utc,
-                UnifiedLog.level == LogLevel.WARNING,
-            ).count()
+        if not select_columns:
+            return []
 
+        relevant_levels = [LogLevel.ERROR, LogLevel.WARNING, LogLevel.CRITICAL]
+        query = (
+            db.session.query(*select_columns)
+            .filter(
+                UnifiedLog.timestamp >= date_buckets[0][1],
+                UnifiedLog.timestamp < date_buckets[-1][2],
+                UnifiedLog.level.in_(relevant_levels),
+            )
+        )
+        result = query.one_or_none()
+        result_mapping = result._mapping if result is not None else {}
+
+        trend_data: list[dict[str, int | str]] = []
+        for day, error_label, warning_label in labels:
             trend_data.append(
                 {
-                    "date": date.strftime("%Y-%m-%d"),
-                    "error_count": error_count,
-                    "warning_count": warning_count,
+                    "date": day.strftime("%Y-%m-%d"),
+                    "error_count": int(result_mapping.get(error_label) or 0),
+                    "warning_count": int(result_mapping.get(warning_label) or 0),
                 }
             )
 
@@ -383,7 +432,8 @@ def get_log_trend_data() -> dict:
         return []
 
 
-def get_log_level_distribution() -> dict:
+@dashboard_cache(timeout=300)
+def get_log_level_distribution() -> list[dict[str, int | str]]:
     """获取日志级别分布（只显示错误和告警日志）"""
     try:
         db.session.rollback()
@@ -402,41 +452,96 @@ def get_log_level_distribution() -> dict:
         return []
 
 
-def get_task_status_distribution() -> dict:
+@dashboard_cache(timeout=60)
+def get_task_status_distribution() -> list[dict[str, int | str]]:
     """获取任务状态分布（使用APScheduler）"""
     try:
         from app.scheduler import get_scheduler
-        
+
         scheduler = get_scheduler()
+        if scheduler is None:
+            return []
+
         jobs = scheduler.get_jobs()
-        
+
         # 统计任务状态
         status_count = {}
         for job in jobs:
             status = "active" if job.next_run_time else "inactive"
             status_count[status] = status_count.get(status, 0) + 1
-        
+
         return [{"status": status, "count": count} for status, count in status_count.items()]
     except Exception as e:
         log_error(f"获取任务状态分布失败: {e}", module="dashboard")
         return []
 
 
-def get_sync_trend_data() -> dict:
+@dashboard_cache(timeout=300)
+def get_sync_trend_data() -> list[dict[str, int | str]]:
     """获取同步趋势数据"""
     try:
         db.session.rollback()
+        from app.models.sync_session import SyncSession
+
         # 最近7天的同步数据（东八区）
         end_date = time_utils.now_china().date()
         start_date = end_date - timedelta(days=6)
 
-        trend_data = []
-        for i in range(7):
-            date = start_date + timedelta(days=i)
-            from app.models.sync_session import SyncSession
+        date_buckets: list[tuple[date, datetime, datetime]] = []
+        for offset in range(7):
+            day = start_date + timedelta(days=offset)
+            start_dt = datetime.combine(day, datetime.min.time()).replace(tzinfo=CHINA_TZ)
+            end_dt = start_dt + timedelta(days=1)
+            start_utc = time_utils.to_utc(start_dt)
+            end_utc = time_utils.to_utc(end_dt)
+            if start_utc is None or end_utc is None:
+                continue
+            date_buckets.append((day, start_utc, end_utc))
 
-            count = SyncSession.query.filter(db.func.date(SyncSession.created_at) == date).count()
-            trend_data.append({"date": date.strftime("%Y-%m-%d"), "count": count})
+        if not date_buckets:
+            return []
+
+        select_columns = []
+        labels: list[tuple[date, str]] = []
+        for day, start_utc, end_utc in date_buckets:
+            label = f"sync_{day.strftime('%Y%m%d')}"
+            select_columns.append(
+                func.sum(
+                    case(
+                        (
+                            and_(
+                                SyncSession.created_at >= start_utc,
+                                SyncSession.created_at < end_utc,
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label(label)
+            )
+            labels.append((day, label))
+
+        if not select_columns:
+            return []
+
+        result = (
+            db.session.query(*select_columns)
+            .filter(
+                SyncSession.created_at >= date_buckets[0][1],
+                SyncSession.created_at < date_buckets[-1][2],
+            )
+            .one_or_none()
+        )
+        result_mapping = result._mapping if result is not None else {}
+
+        trend_data: list[dict[str, int | str]] = []
+        for day, label in labels:
+            trend_data.append(
+                {
+                    "date": day.strftime("%Y-%m-%d"),
+                    "count": int(result_mapping.get(label) or 0),
+                }
+            )
 
         return trend_data
     except Exception as e:
@@ -444,11 +549,14 @@ def get_sync_trend_data() -> dict:
         return []
 
 
+@dashboard_cache(timeout=30)
 def get_system_status() -> dict:
     """获取系统状态"""
     try:
         # 系统资源状态
-        cpu_percent = psutil.cpu_percent(interval=1)
+        cpu_percent = psutil.cpu_percent(interval=None)
+        if cpu_percent == 0.0:
+            cpu_percent = psutil.cpu_percent(interval=0.1)
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage("/")
 
@@ -487,7 +595,7 @@ def get_system_status() -> dict:
                 "disk": {
                     "used": disk.used,
                     "total": disk.total,
-                    "percent": (disk.used / disk.total) * 100,
+                    "percent": disk.percent,
                 },
             },
             "services": {
