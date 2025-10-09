@@ -11,7 +11,7 @@
  * @param {string} options.icon - 图标类，默认为 'fas fa-eye'
  * @param {string} options.text - 按钮文本，默认为 '权限'
  * @param {string} options.title - 按钮标题，默认为 '查看权限'
- * @param {string} options.apiUrl - API URL，默认为 `/account-list/${accountId}/permissions`
+ * @param {string} options.apiUrl - API URL，默认为 `/account/api/${accountId}/permissions`
  * @param {Object} options.attributes - 额外的HTML属性
  * @returns {HTMLElement} 按钮元素
  */
@@ -21,7 +21,7 @@ function createPermissionButton(accountId, options = {}) {
         icon = 'fas fa-eye',
         text = '权限',
         title = '查看权限',
-        apiUrl = `/accounts/${accountId}/permissions`,
+        apiUrl = `/account/api/${accountId}/permissions`,
         attributes = {}
     } = options;
     

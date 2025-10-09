@@ -7,14 +7,14 @@
  * 查看账户权限
  * @param {number} accountId - 账户ID
  * @param {Object} options - 选项
- * @param {string} options.apiUrl - API URL，默认为 `/account-list/${accountId}/permissions`
+ * @param {string} options.apiUrl - API URL，默认为 `/account/api/${accountId}/permissions`
  * @param {Function} options.onSuccess - 成功回调
  * @param {Function} options.onError - 错误回调
  * @param {Function} options.onFinally - 完成回调
  */
 function viewAccountPermissions(accountId, options = {}) {
     const {
-        apiUrl = `/accounts/${accountId}/permissions`,
+        apiUrl = `/account/api/${accountId}/permissions`,
         onSuccess,
         onError,
         onFinally
@@ -105,7 +105,7 @@ function viewAccountPermissions(accountId, options = {}) {
  * @param {string} apiUrl - API URL
  * @returns {Promise} 权限数据Promise
  */
-function fetchAccountPermissions(accountId, apiUrl = `/accounts/${accountId}/permissions`) {
+function fetchAccountPermissions(accountId, apiUrl = `/account/api/${accountId}/permissions`) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
                      document.querySelector('input[name="csrf_token"]')?.value;
     
