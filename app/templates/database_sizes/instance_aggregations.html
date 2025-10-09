@@ -195,6 +195,31 @@
         </div>
     </div>
 
+    <!-- 容量变化趋势图 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-wave-square me-2"></i>
+                        容量变化趋势图
+                    </h5>
+                    <span class="text-muted small">展示日/周/月/季容量变化（GB）</span>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative">
+                        <canvas id="instanceChangeChart" style="height: 420px; width: 100%;"></canvas>
+                        <div id="changeChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 
@@ -263,4 +288,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
-

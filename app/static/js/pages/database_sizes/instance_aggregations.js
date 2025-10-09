@@ -6,7 +6,9 @@
 class InstanceAggregationsManager {
     constructor() {
         this.chart = null;
+        this.changeChart = null;
         this.currentData = [];
+        this.changeChartData = {};
         this.currentChartType = 'line';
         this.currentTopCount = 5; // 默认显示TOP5
         this.currentStatisticsPeriod = 7; // 默认7个周期
@@ -30,6 +32,7 @@ class InstanceAggregationsManager {
         this.syncUIState(); // 同步UI状态
         this.loadSummaryData();
         this.loadChartData();
+        this.loadChangeChartData();
     }
 
     initializeCurrentFilters() {
@@ -74,6 +77,7 @@ class InstanceAggregationsManager {
             this.updateTimeRangeFromPeriod();
             this.loadSummaryData(); // 更新统计卡片
             this.loadChartData();   // 更新趋势图
+            this.loadChangeChartData(); // 更新变化趋势图
         });
         
         // 统计周期选择器切换
@@ -82,6 +86,7 @@ class InstanceAggregationsManager {
             this.updateTimeRangeFromPeriod();
             this.loadSummaryData(); // 更新统计卡片
             this.loadChartData();   // 更新趋势图
+            this.loadChangeChartData(); // 更新变化趋势图
         });
         
         // 筛选按钮
@@ -103,6 +108,7 @@ class InstanceAggregationsManager {
             console.log('更新后的筛选条件:', this.currentFilters);
             this.loadSummaryData(); // 更新统计卡片
             this.loadChartData();   // 更新趋势图
+            this.loadChangeChartData(); // 更新变化趋势图
         });
         
         // 实例变化时自动刷新
@@ -110,6 +116,7 @@ class InstanceAggregationsManager {
             this.updateFilters();
             this.loadSummaryData(); // 更新统计卡片
             this.loadChartData();   // 更新趋势图
+            this.loadChangeChartData(); // 更新变化趋势图
         });
     }
     
@@ -249,6 +256,7 @@ class InstanceAggregationsManager {
         // 重新加载数据
         this.loadSummaryData();
         this.loadChartData();
+        this.loadChangeChartData();
     }
     
     /**
@@ -276,6 +284,7 @@ class InstanceAggregationsManager {
         // 重新加载数据
         this.loadSummaryData();
         this.loadChartData();
+        this.loadChangeChartData();
     }
     
     /**
@@ -288,7 +297,8 @@ class InstanceAggregationsManager {
         try {
             await Promise.all([
                 this.loadSummaryData(),
-                this.loadChartData()
+                this.loadChartData(),
+                this.loadChangeChartData()
             ]);
             this.syncUIState(); // 同步UI状态
             this.showSuccess('数据刷新成功');
@@ -368,6 +378,54 @@ class InstanceAggregationsManager {
             this.hideChartLoading();
         }
     }
+
+    /**
+     * 加载容量变化图表数据
+     */
+    async loadChangeChartData() {
+        const periodTypes = ['daily', 'weekly', 'monthly', 'quarterly'];
+        
+        try {
+            this.showChangeChartLoading();
+            
+            const fetchTasks = periodTypes.map(async (periodType) => {
+                const params = this.buildChangeChartParams(periodType);
+                console.log(`加载容量变化数据(${periodType})，参数:`, params.toString());
+                const response = await fetch(`/database_stats/api/instances/aggregations?${params}`);
+                const payload = await response.json();
+                return {
+                    periodType,
+                    ok: response.ok,
+                    payload
+                };
+            });
+            
+            const results = await Promise.all(fetchTasks);
+            const changeData = {};
+            let hasError = false;
+            
+            results.forEach(({ periodType, ok, payload }) => {
+                if (ok) {
+                    changeData[periodType] = payload.data || [];
+                } else {
+                    hasError = true;
+                    console.error(`加载容量变化数据失败(${periodType}):`, payload.error);
+                }
+            });
+            
+            this.changeChartData = changeData;
+            this.renderChangeChart(changeData);
+            
+            if (hasError) {
+                this.showError('部分容量变化数据加载失败，请查看控制台日志');
+            }
+        } catch (error) {
+            console.error('加载容量变化数据时出错:', error);
+            this.showError('加载容量变化数据时出错: ' + error.message);
+        } finally {
+            this.hideChangeChartLoading();
+        }
+    }
     
     /**
      * 渲染图表
@@ -436,6 +494,147 @@ class InstanceAggregationsManager {
                             text: '大小 (GB)'
                         },
                         beginAtZero: true
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+    }
+    
+    /**
+     * 渲染容量变化趋势图
+     */
+    renderChangeChart(changeData) {
+        const canvas = document.getElementById('instanceChangeChart');
+        if (!canvas) {
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        
+        if (this.changeChart) {
+            this.changeChart.destroy();
+        }
+        
+        const labelsSet = new Set();
+        Object.values(changeData || {}).forEach(items => {
+            (items || []).forEach(item => {
+                if (item?.period_start) {
+                    labelsSet.add(item.period_start);
+                }
+            });
+        });
+        
+        const labels = Array.from(labelsSet).sort();
+        
+        if (labels.length === 0) {
+            this.showEmptyChangeChart();
+            return;
+        }
+        
+        const periodNames = {
+            daily: '日变化',
+            weekly: '周变化',
+            monthly: '月变化',
+            quarterly: '季变化'
+        };
+        
+        const colors = {
+            daily: '#4e73df',
+            weekly: '#1cc88a',
+            monthly: '#36b9cc',
+            quarterly: '#f6c23e'
+        };
+        
+        const datasets = Object.keys(periodNames).map(periodType => {
+            const items = changeData[periodType] || [];
+            const valueMap = {};
+            
+            items.forEach(item => {
+                if (!item?.period_start) {
+                    return;
+                }
+                valueMap[item.period_start] = item.total_size_change_mb ?? null;
+            });
+            
+            const dataPoints = labels.map(label => {
+                if (!(label in valueMap) || valueMap[label] === null || valueMap[label] === undefined) {
+                    return null;
+                }
+                return (valueMap[label] || 0) / 1024;
+            });
+            
+            return {
+                label: periodNames[periodType],
+                data: dataPoints,
+                borderColor: colors[periodType],
+                backgroundColor: colors[periodType] + '33',
+                fill: false,
+                tension: 0.2,
+                spanGaps: true
+            };
+        }).filter(dataset => dataset.data.some(value => value !== null));
+        
+        if (datasets.length === 0) {
+            this.showEmptyChangeChart();
+            return;
+        }
+        
+        this.changeChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '容量变化趋势图'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'right'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y;
+                                if (value === null || value === undefined || Number.isNaN(value)) {
+                                    return `${label}: 无数据`;
+                                }
+                                return `${label}: ${value.toFixed(2)} GB`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '时间'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '变化量 (GB)'
+                        },
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (value) => `${value} GB`
+                        }
                     }
                 },
                 interaction: {
@@ -572,6 +771,50 @@ class InstanceAggregationsManager {
         });
     }
     
+    /**
+     * 显示空的容量变化图表
+     */
+    showEmptyChangeChart() {
+        const canvas = document.getElementById('instanceChangeChart');
+        if (!canvas) {
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        
+        if (this.changeChart) {
+            this.changeChart.destroy();
+        }
+        
+        this.changeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['暂无数据'],
+                datasets: [{
+                    label: '暂无数据',
+                    data: [0],
+                    backgroundColor: '#f8f9fa',
+                    borderColor: '#dee2e6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '容量变化趋势图 - 暂无数据'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    
     
     
     
@@ -676,6 +919,81 @@ class InstanceAggregationsManager {
     }
     
     /**
+     * 构建容量变化图表的筛选参数
+     */
+    buildChangeChartParams(periodType) {
+        const params = new URLSearchParams();
+        
+        if (this.currentFilters.instance_id) {
+            params.append('instance_id', this.currentFilters.instance_id);
+        }
+        if (this.currentFilters.db_type) {
+            params.append('db_type', this.currentFilters.db_type);
+        }
+        if (periodType) {
+            params.append('period_type', periodType);
+        }
+        
+        const { startDate, endDate } = this.getChangeChartDateRange(periodType);
+        if (startDate) {
+            params.append('start_date', startDate);
+        }
+        if (endDate) {
+            params.append('end_date', endDate);
+        }
+        
+        params.append('chart_mode', 'instance_change');
+        params.append('get_all', 'true');
+        return params;
+    }
+    
+    /**
+     * 获取容量变化图表的时间范围
+     */
+    getChangeChartDateRange(periodType) {
+        const hasStart = Boolean(this.currentFilters.start_date);
+        const hasEnd = Boolean(this.currentFilters.end_date);
+        const computedRange = this.calculateDateRange(periodType);
+        
+        return {
+            startDate: hasStart ? this.currentFilters.start_date : computedRange.startDate,
+            endDate: hasEnd ? this.currentFilters.end_date : computedRange.endDate
+        };
+    }
+    
+    /**
+     * 按周期类型计算时间范围
+     */
+    calculateDateRange(periodType) {
+        const today = new Date();
+        const endDate = this.currentFilters.end_date ? new Date(this.currentFilters.end_date) : today;
+        const startDate = this.currentFilters.start_date ? new Date(this.currentFilters.start_date) : new Date(endDate);
+        const periods = Math.max(1, this.currentStatisticsPeriod || 1);
+        
+        if (!this.currentFilters.start_date) {
+            switch (periodType) {
+                case 'weekly':
+                    startDate.setDate(endDate.getDate() - periods * 7);
+                    break;
+                case 'monthly':
+                    startDate.setMonth(endDate.getMonth() - periods);
+                    break;
+                case 'quarterly':
+                    startDate.setMonth(endDate.getMonth() - periods * 3);
+                    break;
+                default:
+                    startDate.setDate(endDate.getDate() - periods);
+                    break;
+            }
+        }
+        
+        return {
+            startDate: this.formatDateOnly(startDate),
+            endDate: this.formatDateOnly(endDate)
+        };
+    }
+    
+    /**
      * 显示图表加载状态
      */
     showChartLoading() {
@@ -687,6 +1005,20 @@ class InstanceAggregationsManager {
      */
     hideChartLoading() {
         $('#chartLoading').addClass('d-none');
+    }
+    
+    /**
+     * 显示容量变化图表加载状态
+     */
+    showChangeChartLoading() {
+        $('#changeChartLoading').removeClass('d-none');
+    }
+    
+    /**
+     * 隐藏容量变化图表加载状态
+     */
+    hideChangeChartLoading() {
+        $('#changeChartLoading').addClass('d-none');
     }
     
     /**
@@ -746,6 +1078,17 @@ class InstanceAggregationsManager {
         if (mb < 1024) return `${mb.toFixed(2)} MB`;
         if (mb < 1024 * 1024) return `${(mb / 1024).toFixed(2)} GB`;
         return `${(mb / (1024 * 1024)).toFixed(2)} TB`;
+    }
+    
+    /**
+     * 格式化日期（仅日期部分）
+     */
+    formatDateOnly(date) {
+        const target = date instanceof Date ? date : new Date(date);
+        const year = target.getFullYear();
+        const month = String(target.getMonth() + 1).padStart(2, '0');
+        const day = String(target.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
     
     /**
