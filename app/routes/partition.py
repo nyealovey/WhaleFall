@@ -4,7 +4,7 @@
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from flask import Blueprint, request, jsonify, render_template
 from app.utils.time_utils import time_utils
 from flask_login import login_required, current_user
@@ -264,29 +264,79 @@ def get_core_aggregation_metrics():
     返回4个核心指标：实例数总量、数据库数总量、实例日统计数量、数据库日统计数量
     """
     try:
-        from datetime import date, timedelta
-        
         # 获取查询参数
         period_type = request.args.get('period_type', 'daily')
         days = request.args.get('days', 7, type=int)
         
-        # 计算日期范围
-        end_date = date.today()
-        start_date = end_date - timedelta(days=days-1)
+        today_china = time_utils.now_china().date()
+        
+        def add_months(base_date: date, months: int) -> date:
+            month = base_date.month - 1 + months
+            year = base_date.year + month // 12
+            month = month % 12 + 1
+            return date(year, month, 1)
+        
+        def period_end(date_obj: date, months: int) -> date:
+            """返回某个起始月增加指定月数后的前一天"""
+            return add_months(date_obj, months) - timedelta(days=1)
+        
+        # 计算统计范围和聚合周期范围
+        if period_type == 'daily':
+            stats_end_date = today_china - timedelta(days=1)
+            stats_start_date = stats_end_date - timedelta(days=days - 1)
+            period_start_date = stats_start_date
+            period_end_date = stats_end_date
+            step_mode = 'daily'
+        elif period_type == 'weekly':
+            current_week_monday = today_china - timedelta(days=today_china.weekday())
+            last_week_monday = current_week_monday - timedelta(weeks=1)
+            period_end_date = last_week_monday
+            period_start_date = last_week_monday - timedelta(weeks=days - 1)
+            stats_start_date = period_start_date
+            stats_end_date = period_end_date + timedelta(days=6)
+            step_mode = 'weekly'
+        elif period_type == 'monthly':
+            current_month_start = today_china.replace(day=1)
+            last_month_start = add_months(current_month_start, -1)
+            period_end_date = last_month_start
+            period_start_date = add_months(last_month_start, -(days - 1))
+            stats_start_date = period_start_date
+            stats_end_date = period_end(period_end_date, 1)
+            step_mode = 'monthly'
+        elif period_type == 'quarterly':
+            current_quarter_month = ((today_china.month - 1) // 3) * 3 + 1
+            current_quarter_start = date(today_china.year, current_quarter_month, 1)
+            last_quarter_start = add_months(current_quarter_start, -3)
+            period_end_date = last_quarter_start
+            period_start_date = add_months(last_quarter_start, -3 * (days - 1))
+            stats_start_date = period_start_date
+            stats_end_date = period_end(period_end_date, 3)
+            step_mode = 'quarterly'
+        else:
+            stats_end_date = today_china - timedelta(days=1)
+            stats_start_date = stats_end_date - timedelta(days=days - 1)
+            period_start_date = stats_start_date
+            period_end_date = stats_end_date
+            step_mode = 'daily'
+        
+        if stats_end_date < stats_start_date:
+            stats_start_date = stats_end_date
+        if period_end_date < period_start_date:
+            period_start_date = period_end_date
         
         # 查询数据库聚合数据
         db_aggregations = DatabaseSizeAggregation.query.filter(
             DatabaseSizeAggregation.period_type == period_type,
-            DatabaseSizeAggregation.period_start >= start_date,
-            DatabaseSizeAggregation.period_start <= end_date
+            DatabaseSizeAggregation.period_start >= period_start_date,
+            DatabaseSizeAggregation.period_start <= period_end_date
         ).all()
         
         # 查询实例聚合数据
         from app.models.instance_size_aggregation import InstanceSizeAggregation
         instance_aggregations = InstanceSizeAggregation.query.filter(
             InstanceSizeAggregation.period_type == period_type,
-            InstanceSizeAggregation.period_start >= start_date,
-            InstanceSizeAggregation.period_start <= end_date
+            InstanceSizeAggregation.period_start >= period_start_date,
+            InstanceSizeAggregation.period_start <= period_end_date
         ).all()
         
         # 查询原始统计数据
@@ -294,13 +344,13 @@ def get_core_aggregation_metrics():
         from app.models.instance_size_stat import InstanceSizeStat
         
         db_stats = DatabaseSizeStat.query.filter(
-            DatabaseSizeStat.collected_date >= start_date,
-            DatabaseSizeStat.collected_date <= end_date
+            DatabaseSizeStat.collected_date >= stats_start_date,
+            DatabaseSizeStat.collected_date <= stats_end_date
         ).all()
         
         instance_stats = InstanceSizeStat.query.filter(
-            InstanceSizeStat.collected_date >= start_date,
-            InstanceSizeStat.collected_date <= end_date
+            InstanceSizeStat.collected_date >= stats_start_date,
+            InstanceSizeStat.collected_date <= stats_end_date
         ).all()
         
         # 按日期统计4个核心指标
@@ -387,18 +437,35 @@ def get_core_aggregation_metrics():
         instance_aggregation_data = []
         database_aggregation_data = []
         
-        current_date = start_date
-        while current_date <= end_date:
-            date_str = current_date.strftime('%Y-%m-%d')
-            labels.append(date_str)
-            
-            metrics = daily_metrics[date_str]
+        def append_metrics_for_key(key_date: date):
+            key_str = key_date.strftime('%Y-%m-%d')
+            labels.append(key_str)
+            metrics = daily_metrics[key_str]
             instance_count_data.append(metrics['instance_count'])
             database_count_data.append(metrics['database_count'])
             instance_aggregation_data.append(metrics['instance_aggregation_count'])
             database_aggregation_data.append(metrics['database_aggregation_count'])
-            
-            current_date += timedelta(days=1)
+        
+        if step_mode == 'daily':
+            current_date = stats_start_date
+            while current_date <= stats_end_date:
+                append_metrics_for_key(current_date)
+                current_date += timedelta(days=1)
+        elif step_mode == 'weekly':
+            current_date = period_start_date
+            while current_date <= period_end_date:
+                append_metrics_for_key(current_date)
+                current_date += timedelta(weeks=1)
+        elif step_mode == 'monthly':
+            current_date = period_start_date
+            while current_date <= period_end_date:
+                append_metrics_for_key(current_date)
+                current_date = add_months(current_date, 1)
+        elif step_mode == 'quarterly':
+            current_date = period_start_date
+            while current_date <= period_end_date:
+                append_metrics_for_key(current_date)
+                current_date = add_months(current_date, 3)
         
         # 根据统计周期确定标签
         if period_type == 'daily':
@@ -475,12 +542,16 @@ def get_core_aggregation_metrics():
             }
         ]
         
+        time_range_text = '-'
+        if labels:
+            time_range_text = f'{labels[0]} - {labels[-1]}'
+        
         return jsonify({
             'success': True,
             'labels': labels,
             'datasets': datasets,
             'dataPointCount': len(labels),
-            'timeRange': f'{start_date.strftime("%Y-%m-%d")} - {end_date.strftime("%Y-%m-%d")}',
+            'timeRange': time_range_text,
             'yAxisLabel': '数量',
             'chartTitle': f'{period_type.title()}核心指标统计',
             'periodType': period_type
@@ -498,7 +569,5 @@ def get_core_aggregation_metrics():
             'yAxisLabel': '数量',
             'chartTitle': '核心指标统计'
         }), 500
-
-
 
 
