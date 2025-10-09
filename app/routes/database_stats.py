@@ -14,6 +14,7 @@ from sqlalchemy import and_, desc, func
 from app.models.instance import Instance
 from app.models.database_size_stat import DatabaseSizeStat
 from app.utils.decorators import view_required
+from app.services.database_type_service import DatabaseTypeService
 from app import db
 
 logger = logging.getLogger(__name__)
@@ -40,8 +41,26 @@ def instance_aggregations():
             'db_type': instance.db_type
         })
     
-    return render_template('database_sizes/instance_aggregations.html', 
-                         instances_list=instances_list)
+    # 获取数据库类型列表用于筛选
+    database_types = DatabaseTypeService.get_active_types()
+
+    # 读取已选择的筛选条件以便回填
+    selected_db_type = request.args.get('db_type', '')
+    selected_instance = request.args.get('instance', '')
+    selected_period_type = request.args.get('period_type', 'daily')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    return render_template(
+        'database_sizes/instance_aggregations.html',
+        instances_list=instances_list,
+        database_types=database_types,
+        db_type=selected_db_type,
+        instance=selected_instance,
+        period_type=selected_period_type,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 @database_stats_bp.route('/database', methods=['GET'])
 @login_required
@@ -109,6 +128,38 @@ def get_instance_total_size(instance_id: int):
             'success': False,
             'error': str(e)
         }), 500
+
+
+@database_stats_bp.route('/api/instance-options', methods=['GET'])
+@login_required
+@view_required
+def get_instance_options():
+    """
+    提供实例下拉选项，支持按数据库类型过滤
+    """
+    try:
+        db_type = request.args.get('db_type')
+
+        query = Instance.query.filter(Instance.is_active.is_(True))
+        if db_type:
+            query = query.filter(Instance.db_type == db_type)
+
+        instances = query.order_by(Instance.name.asc()).all()
+
+        options = [
+            {
+                'id': instance.id,
+                'name': instance.name,
+                'db_type': instance.db_type,
+                'display_name': f"{instance.name} ({instance.db_type.upper()})",
+            }
+            for instance in instances
+        ]
+
+        return jsonify({'success': True, 'instances': options})
+    except Exception as exc:
+        logger.error("加载实例选项失败: %s", exc)
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @database_stats_bp.route('/api/instances/<int:instance_id>/database-sizes', methods=['GET'])
