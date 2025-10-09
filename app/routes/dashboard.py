@@ -300,6 +300,7 @@ def get_system_overview() -> dict:
             "logs": {"total": total_logs, "today": today_logs, "errors": today_errors},
         }
     except Exception as e:
+        db.session.rollback()
         log_error(f"获取系统概览失败: {e}", module="dashboard")
         return {
             "users": {"total": 0, "active": 0},
