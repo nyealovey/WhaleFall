@@ -375,16 +375,25 @@ class StructlogConfig:
 
     def _add_user_context(self, logger, method_name, event_dict):
         """添加用户上下文"""
-        if current_user and hasattr(current_user, "id"):
-            event_dict["current_user_id"] = current_user.id
-            event_dict["current_username"] = getattr(current_user, "username", None)
+        try:
+            if current_user and getattr(current_user, "is_authenticated", False):
+                event_dict["current_user_id"] = getattr(current_user, "id", None)
+                event_dict["current_username"] = getattr(current_user, "username", None)
+        except Exception:
+            # 避免在错误处理中再次触发数据库查询
+            pass
         return event_dict
 
     def _add_global_context(self, logger, method_name, event_dict):
         """添加全局上下文绑定"""
         # 添加应用信息
         event_dict["app_name"] = "鲸落"
-        event_dict["app_version"] = "1.1.0"
+        try:
+            from flask import current_app
+
+            event_dict["app_version"] = getattr(current_app.config, "APP_VERSION", "unknown")
+        except Exception:
+            event_dict["app_version"] = "unknown"
 
         # 添加环境信息
         if has_request_context():
