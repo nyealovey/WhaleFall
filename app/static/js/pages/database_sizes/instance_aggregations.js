@@ -126,7 +126,7 @@ class InstanceAggregationsManager {
         
         try {
             instanceSelect.prop('disabled', false);
-            const response = await fetch(`/instances/api?db_type=${dbType}`);
+            const response = await fetch(`/database_stats/api/instance-options?db_type=${encodeURIComponent(dbType)}`);
             const data = await response.json();
             
             if (response.ok && data.success) {
@@ -152,15 +152,15 @@ class InstanceAggregationsManager {
      */
     async loadInstances(dbType = null) {
         try {
-            let url = '/instances/api';
+            let url = '/database_stats/api/instance-options';
             if (dbType) {
-                url += `?db_type=${dbType}`;
+                url += `?db_type=${encodeURIComponent(dbType)}`;
             }
             
             const response = await fetch(url);
             const data = await response.json();
             
-            if (response.ok) {
+            if (response.ok && data.success) {
                 const select = $('#instance');
                 select.empty();
                 select.append('<option value="">所有实例</option>');
@@ -718,4 +718,3 @@ class InstanceAggregationsManager {
         return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     }
 }
-
