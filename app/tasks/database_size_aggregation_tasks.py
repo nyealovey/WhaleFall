@@ -5,7 +5,7 @@
 
 import logging
 from datetime import datetime, date, timedelta
-from typing import Dict, Any, List, Callable, Optional
+from typing import Dict, Any, List, Callable, Optional, Set
 from app.constants.sync_constants import SyncOperationType, SyncCategory
 from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
 from app.models.instance import Instance
@@ -329,10 +329,14 @@ def calculate_database_size_aggregations(
             records_by_instance = {record.instance_id: record for record in records}
             instance_state = _initialize_instance_state(active_instances, records_by_instance)
 
+            started_record_ids: Set[int] = set()
+            finalized_record_ids: Set[int] = set()
+
             for instance in active_instances:
                 record = records_by_instance.get(instance.id)
                 if record:
-                    sync_session_service.start_instance_sync(record.id)
+                    if sync_session_service.start_instance_sync(record.id):
+                        started_record_ids.add(record.id)
                 else:
                     sync_logger.warning(
                         "未找到实例的同步记录，跳过开始标记",
@@ -381,21 +385,23 @@ def calculate_database_size_aggregations(
                 }
 
                 if state["errors"]:
-                    sync_session_service.fail_instance_sync(
+                    if sync_session_service.fail_instance_sync(
                         record.id,
                         error_message="; ".join(state["errors"]),
                         sync_details=details,
-                    )
+                    ):
+                        finalized_record_ids.add(record.id)
                     failed_instances += 1
                 else:
-                    sync_session_service.complete_instance_sync(
+                    if sync_session_service.complete_instance_sync(
                         record.id,
                         items_synced=state["aggregations_created"],
                         items_created=0,
                         items_updated=0,
                         items_deleted=0,
                         sync_details=details,
-                    )
+                    ):
+                        finalized_record_ids.add(record.id)
                     successful_instances += 1
 
             total_database_aggregations = sum(
@@ -457,6 +463,19 @@ def calculate_database_size_aggregations(
                     db.session.rollback()
                 except Exception:  # pragma: no cover - 防御性处理
                     pass
+                # 将仍处于运行状态的实例记录标记为失败
+                leftover_ids = (
+                    locals().get("started_record_ids", set())
+                    - locals().get("finalized_record_ids", set())
+                )
+                for record_id in leftover_ids:
+                    try:
+                        sync_session_service.fail_instance_sync(
+                            record_id,
+                            error_message=f"聚合任务异常: {exc}",
+                        )
+                    except Exception:
+                        continue
                 session.status = "failed"
                 session.completed_at = time_utils.now()
                 db.session.add(session)
