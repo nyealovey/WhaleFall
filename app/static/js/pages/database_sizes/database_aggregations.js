@@ -32,6 +32,7 @@ class DatabaseAggregationsManager {
         this.initializeCurrentFilters();
         this.bindEvents();
         this.initializeFilterOptions();
+        this.ensureDatabaseTypesOptions();
         this.updateTimeRangeFromPeriod();
         this.syncUIState();
         this.loadSummaryData();
@@ -166,6 +167,39 @@ class DatabaseAggregationsManager {
             databaseSelect.empty();
             databaseSelect.append('<option value="">请先选择实例</option>');
             databaseSelect.prop('disabled', true);
+        }
+    }
+    
+    async ensureDatabaseTypesOptions() {
+        const select = $('#db_type');
+        if (!select.length) {
+            return;
+        }
+        const optionCount = select.find('option').length;
+        if (optionCount > 1) {
+            return;
+        }
+        try {
+            const response = await fetch('/database_types/api/active');
+            const result = await response.json();
+            if (response.ok && result.success) {
+                const selectedType = this.currentFilters.db_type ? this.currentFilters.db_type.toLowerCase() : '';
+                select.empty();
+                select.append('<option value="">全部类型</option>');
+                (result.data || []).forEach(item => {
+                    const value = (item.name || '').toLowerCase();
+                    const display = item.display_name || item.name || value;
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = display;
+                    if (selectedType && selectedType === value) {
+                        option.selected = true;
+                    }
+                    select.append(option);
+                });
+            }
+        } catch (error) {
+            console.error('加载数据库类型失败:', error);
         }
     }
     
