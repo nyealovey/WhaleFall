@@ -103,7 +103,8 @@ def calculate_database_size_aggregations(manual_run=False):
             
             total_processed = 0
             total_failed = 0
-            total_aggregations = 0
+            total_instance_aggregations = 0
+            total_database_aggregations = 0
             results = []
             
             # 创建聚合服务
@@ -111,6 +112,83 @@ def calculate_database_size_aggregations(manual_run=False):
             
             # 定义周期类型列表
             period_types = ['daily', 'weekly', 'monthly', 'quarterly']
+
+            # 关键字集合，用于识别“无数据”类提示
+            no_data_keywords = ['没有数据', '没有统计数据', '无数据', '无统计数据', 'no data', 'data not found']
+
+            # 先执行数据库（库级）聚合，确保库级数据分区表有内容
+            for period_type in period_types:
+                try:
+                    if period_type == 'daily':
+                        agg_result = service.calculate_daily_aggregations()
+                    elif period_type == 'weekly':
+                        agg_result = service.calculate_weekly_aggregations()
+                    elif period_type == 'monthly':
+                        agg_result = service.calculate_monthly_aggregations()
+                    elif period_type == 'quarterly':
+                        agg_result = service.calculate_quarterly_aggregations()
+                    else:
+                        continue
+
+                    status = agg_result.get('status')
+                    error_message = str(agg_result.get('error', '') or '').strip()
+                    skipped_due_to_no_data = False
+                    if status != 'success' and error_message:
+                        if any(keyword in error_message for keyword in no_data_keywords):
+                            skipped_due_to_no_data = True
+
+                    if status == 'success' or skipped_due_to_no_data:
+                        created_records = agg_result.get('total_records', 0)
+                        total_database_aggregations += created_records
+                        results.append({
+                            'scope': 'database',
+                            'period_type': period_type,
+                            'status': 'success',
+                            'created_records': created_records,
+                            'message': agg_result.get('message') or error_message or ''
+                        })
+                        if created_records > 0:
+                            sync_logger.info(
+                                f"数据库聚合完成: {period_type}",
+                                module="aggregation_sync",
+                                period_type=period_type,
+                                created_records=created_records
+                            )
+                        else:
+                            sync_logger.info(
+                                f"数据库聚合跳过（无数据）: {period_type}",
+                                module="aggregation_sync",
+                                period_type=period_type,
+                                message=agg_result.get('message', error_message or '没有统计数据')
+                            )
+                    else:
+                        results.append({
+                            'scope': 'database',
+                            'period_type': period_type,
+                            'status': 'error',
+                            'created_records': 0,
+                            'message': error_message or '未知错误'
+                        })
+                        sync_logger.error(
+                            f"数据库聚合失败: {period_type}",
+                            module="aggregation_sync",
+                            period_type=period_type,
+                            error=error_message or '未知错误'
+                        )
+                except Exception as e:
+                    results.append({
+                        'scope': 'database',
+                        'period_type': period_type,
+                        'status': 'exception',
+                        'created_records': 0,
+                        'message': str(e)
+                    })
+                    sync_logger.error(
+                        f"数据库聚合异常: {period_type}",
+                        module="aggregation_sync",
+                        period_type=period_type,
+                        error=str(e)
+                    )
             
             # 按实例逐个处理聚合任务（移除全局聚合循环，避免重复计算）
             for i, instance in enumerate(active_instances):
@@ -155,7 +233,6 @@ def calculate_database_size_aggregations(manual_run=False):
                                 
                                 # 如果服务以异常形式返回“无数据”提示，也视为成功
                                 if not is_success and error_message:
-                                    no_data_keywords = ['没有数据', '没有统计数据', '无数据', '无统计数据', 'no data', 'data not found']
                                     if any(keyword in error_message for keyword in no_data_keywords):
                                         skipped_due_to_no_data = True
                                 
@@ -226,7 +303,7 @@ def calculate_database_size_aggregations(manual_run=False):
                                 }
                             )
                             total_processed += 1
-                            total_aggregations += instance_aggregations
+                            total_instance_aggregations += instance_aggregations
                             
                             sync_logger.info(
                                 f"实例聚合完成: {instance.name}",
@@ -319,14 +396,20 @@ def calculate_database_size_aggregations(manual_run=False):
                 session_id=session.session_id,
                 total_processed=total_processed,
                 total_failed=total_failed,
-                total_aggregations=total_aggregations,
+                total_aggregations=total_instance_aggregations + total_database_aggregations,
                 manual_run=manual_run
             )
             
+            total_aggregations_created = total_instance_aggregations + total_database_aggregations
             return {
                 'success': True,
-                'message': f'统计聚合计算完成，处理了 {total_processed} 个实例，创建了 {total_aggregations} 个聚合记录',
-                'aggregations_created': total_aggregations,
+                'message': (
+                    f'统计聚合计算完成，处理了 {total_processed} 个实例，'
+                    f'创建了 {total_aggregations_created} 个聚合记录'
+                ),
+                'aggregations_created': total_aggregations_created,
+                'instance_aggregations_created': total_instance_aggregations,
+                'database_aggregations_created': total_database_aggregations,
                 'processed_instances': total_processed,
                 'failed_instances': total_failed,
                 'session_id': session.session_id,
