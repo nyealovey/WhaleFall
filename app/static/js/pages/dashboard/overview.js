@@ -1,10 +1,9 @@
 /**
  * 系统仪表板页面JavaScript
- * 处理图表初始化、自动刷新、系统状态更新等功能
+ * 处理图表初始化、系统状态更新等功能
  */
 
 // 全局变量
-let autoRefreshInterval = null;
 let logTrendChart = null;
 
 // 页面加载完成后初始化图表
@@ -15,7 +14,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // 初始化页面
 function initializePage() {
     initCharts();
-    startAutoRefresh();
     console.log('系统仪表板页面已加载');
 }
 
@@ -114,40 +112,6 @@ function refreshDashboard() {
     setTimeout(() => {
         location.reload();
     }, 1000);
-}
-
-// 切换自动刷新
-function toggleAutoRefresh() {
-    const button = document.querySelector('button[onclick="toggleAutoRefresh()"]');
-    
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-        button.innerHTML = '<i class="fas fa-clock me-2"></i>自动刷新';
-        button.classList.remove('active');
-        showDataUpdatedNotification('自动刷新已停止');
-    } else {
-        startAutoRefresh();
-        button.innerHTML = '<i class="fas fa-pause me-2"></i>停止刷新';
-        button.classList.add('active');
-        showDataUpdatedNotification('自动刷新已启动');
-    }
-}
-
-// 启动自动刷新
-function startAutoRefresh() {
-    autoRefreshInterval = setInterval(() => {
-        // 刷新系统状态
-        fetch('/dashboard/api/status')
-            .then(response => response.json())
-            .then(data => {
-                updateSystemStatus(data);
-            })
-            .catch(error => {
-                console.error('刷新系统状态失败:', error);
-                showError('刷新系统状态失败');
-            });
-    }, 30000); // 30秒刷新一次
 }
 
 // 更新系统状态
@@ -304,28 +268,5 @@ function showWarning(message) {
     }, 4000);
 }
 
-// 停止自动刷新
-function stopAutoRefresh() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-    }
-}
-
-// 页面隐藏时暂停自动刷新，显示时恢复
-document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-        stopAutoRefresh();
-    } else {
-        startAutoRefresh();
-    }
-});
-
-// 页面卸载时清理定时器
-window.addEventListener('beforeunload', function() {
-    stopAutoRefresh();
-});
-
 // 导出函数供全局使用
 window.refreshDashboard = refreshDashboard;
-window.toggleAutoRefresh = toggleAutoRefresh;
