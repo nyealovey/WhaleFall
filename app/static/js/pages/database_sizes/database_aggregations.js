@@ -32,7 +32,6 @@ class DatabaseAggregationsManager {
         this.initializeCurrentFilters();
         this.bindEvents();
         this.initializeFilterOptions();
-        this.loadDatabaseTypes();
         this.updateTimeRangeFromPeriod();
         this.syncUIState();
         this.loadSummaryData();
@@ -170,36 +169,7 @@ class DatabaseAggregationsManager {
         }
     }
     
-    async loadDatabaseTypes() {
-        const select = $('#db_type');
-        try {
-            select.prop('disabled', false);
-            const response = await fetch('/database_types/api/active');
-            const result = await response.json();
-            select.empty();
-            select.append('<option value="">全部类型</option>');
-            if (response.ok && result.success) {
-                const selectedType = this.currentFilters.db_type ? this.currentFilters.db_type.toLowerCase() : '';
-                (result.data || []).forEach(item => {
-                    const value = (item.name || '').toLowerCase();
-                    const option = document.createElement('option');
-                    option.value = value;
-                    option.textContent = item.display_name || item.name || value;
-                    if (selectedType && selectedType === value) {
-                        option.selected = true;
-                    }
-                    select.append(option);
-                });
-            } else {
-                select.append('<option value="" disabled>加载失败</option>');
-                console.error('加载数据库类型失败:', result);
-            }
-        } catch (error) {
-            console.error('加载数据库类型时出错:', error);
-            select.empty();
-            select.append('<option value="" disabled>加载失败</option>');
-        }
-    }
+    // 数据库类型选项由服务端模板渲染，此处无需额外加载
     
     async updateInstanceOptions(dbType) {
         const instanceSelect = $('#instance');
