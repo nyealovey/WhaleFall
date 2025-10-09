@@ -92,9 +92,12 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每日统计聚合...")
         
-        # 获取今天的数据（与容量同步任务保持一致，使用中国时区）
-        end_date = time_utils.now_china().date()
-        start_date = end_date  # 同一天，处理今天的数据
+        # 仅统计已经完成的日期（使用中国时区，采用昨天的数据）
+        today = time_utils.now_china().date()
+        target_date = today - timedelta(days=1)
+        
+        start_date = target_date
+        end_date = target_date
         
         return self._calculate_aggregations('daily', start_date, end_date)
     
