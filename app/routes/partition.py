@@ -129,6 +129,12 @@ def create_partition():
             partition_date = datetime.strptime(partition_date_str, '%Y-%m-%d').date()
         except ValueError:
             return jsonify({'error': '日期格式错误，请使用 YYYY-MM-DD 格式'}), 400
+
+        # 仅允许创建当前及未来的分区
+        today = time_utils.now_china().date()
+        current_month_start = today.replace(day=1)
+        if partition_date < current_month_start:
+            return jsonify({'error': '只能创建当前或未来月份的分区'}), 400
         
         service = PartitionManagementService()
         result = service.create_partition(partition_date)
@@ -569,5 +575,4 @@ def get_core_aggregation_metrics():
             'yAxisLabel': '数量',
             'chartTitle': '核心指标统计'
         }), 500
-
 

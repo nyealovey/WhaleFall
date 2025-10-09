@@ -125,15 +125,34 @@ function showCreatePartitionModal() {
     
     // 填充年份选项
     const yearSelect = document.getElementById('partitionYear');
-    const currentYear = new Date().getFullYear();
+    const monthSelect = document.getElementById('partitionMonth');
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
     yearSelect.innerHTML = '<option value="">请选择年份</option>';
     
-    for (let year = currentYear - 2; year <= currentYear + 2; year++) {
+    for (let year = currentYear; year <= currentYear + 2; year++) {
         const option = document.createElement('option');
         option.value = year;
         option.textContent = year + '年';
         yearSelect.appendChild(option);
     }
+
+    const updateMonthOptions = () => {
+        const selectedYear = parseInt(yearSelect.value, 10);
+        Array.from(monthSelect.options).forEach(option => {
+            if (!option.value) {
+                return;
+            }
+            const month = parseInt(option.value, 10);
+            option.disabled = !Number.isNaN(selectedYear) && selectedYear === currentYear && month < currentMonth;
+        });
+    };
+
+    yearSelect.removeEventListener('change', updateMonthOptions);
+    yearSelect.addEventListener('change', updateMonthOptions);
+    updateMonthOptions();
 }
 
 /**
