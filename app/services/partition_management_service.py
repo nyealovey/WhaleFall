@@ -480,26 +480,49 @@ class PartitionManagementService:
             return 'unknown'
     
     def _create_partition_indexes(self, partition_name: str, table_config: Dict[str, str]):
-        """为分区创建索引"""
+        """为分区创建索引
+        不同分区表的列结构不同，这里按具体表名精确创建索引，避免引用不存在的列。
+        """
         try:
-            if table_config['table_name'] == 'database_size_stats':
-                # 统计表索引
+            table_name = table_config['table_name']
+            indexes: list[str] = []
+
+            if table_name == 'database_size_stats':
+                # 数据库日统计分区（有 database_name/collected_date）
                 indexes = [
                     f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db ON {partition_name} (instance_id, database_name);",
                     f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date ON {partition_name} (collected_date);",
-                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date ON {partition_name} (instance_id, collected_date);"
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date ON {partition_name} (instance_id, collected_date);",
                 ]
-            else:
-                # 聚合表索引
+
+            elif table_name == 'database_size_aggregations':
+                # 数据库聚合分区（有 database_name/period_*）
                 indexes = [
                     f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db ON {partition_name} (instance_id, database_name);",
                     f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_period ON {partition_name} (period_start, period_end);",
-                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_type ON {partition_name} (period_type, period_start);"
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_type ON {partition_name} (period_type, period_start);",
                 ]
-            
+
+            elif table_name == 'instance_size_stats':
+                # 实例日统计分区（仅有 instance_id/collected_date）
+                indexes = [
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance ON {partition_name} (instance_id);",
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date ON {partition_name} (collected_date);",
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date ON {partition_name} (instance_id, collected_date);",
+                ]
+
+            elif table_name == 'instance_size_aggregations':
+                # 实例聚合分区（无 database_name，有 period_*）
+                indexes = [
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance ON {partition_name} (instance_id);",
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_period ON {partition_name} (period_start, period_end);",
+                    f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_type ON {partition_name} (period_type, period_start);",
+                ]
+
+            # 执行索引创建
             for index_sql in indexes:
                 db.session.execute(text(index_sql))
-            
+
         except Exception as e:
             logger.error(f"创建分区索引失败: {str(e)}")
             raise
