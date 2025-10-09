@@ -58,11 +58,12 @@
                         <div class="col-md-6">
                             <h6><i class="fas fa-clock text-warning me-2"></i>任务调度</h6>
                             <ul class="list-unstyled small">
-                                <li>• 定时数据同步</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-chart-line text-danger me-2"></i>监控日志</h6>
+                        <li>• 定时数据同步</li>
+                        <li>• 容量同步与回放</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="fas fa-chart-line text-danger me-2"></i>监控日志</h6>
                             <ul class="list-unstyled small">
                                 <li>• 统一日志管理</li>
                                 <li>• 操作审计记录</li>
@@ -142,6 +143,17 @@
                     <h5 class="mb-0"><i class="fas fa-history me-2"></i>更新日志</h5>
                 </div>
                 <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    <!-- 版本 1.1.1 -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-tag me-2"></i>版本 1.1.1
+                            <small class="text-muted">(2025-10-09)</small>
+                        </h6>
+                        <p class="small text-muted mb-0">
+                            新增容量同步修复脚本、数据库容量统计页面、容量趋势图交互优化以及分区与仪表板稳定性修复
+                        </p>
+                    </div>
+
                     <!-- 版本 1.1.0 -->
                     <div class="mb-4">
                         <h6 class="text-primary">
@@ -226,4 +238,3 @@
 </div>
 
 {% endblock %}
-
