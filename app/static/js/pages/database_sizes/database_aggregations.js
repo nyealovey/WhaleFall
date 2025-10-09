@@ -484,7 +484,12 @@ class DatabaseAggregationsManager {
                             display: true,
                             text: '大小 (GB)'
                         },
-                        beginAtZero: true
+                        beginAtZero: true,
+                        grid: {
+                            color: (ctx) => (ctx.tick && ctx.tick.value === 0 ? '#212529' : 'rgba(0,0,0,0.08)'),
+                            lineWidth: (ctx) => (ctx.tick && ctx.tick.value === 0 ? 2 : 1),
+                            borderDash: (ctx) => (ctx.tick && ctx.tick.value === 0 ? [] : [2, 2])
+                        }
                     }
                 },
                 interaction: {
@@ -670,13 +675,13 @@ class DatabaseAggregationsManager {
                 const mbValue = groupedData[date][key] || 0;
                 return mbValue / 1024;
             });
-
+            
             datasets.push({
                 label: this.databaseLabelMap[key] || key,
                 data,
                 borderColor: colors[colorIndex % colors.length],
-                backgroundColor: colors[colorIndex % colors.length] + '10',
-                fill: this.currentChartType === 'line' ? false : true,
+                backgroundColor: this.currentChartType === 'line' ? this.colorWithAlpha(colors[colorIndex % colors.length], 0.1) : this.colorWithAlpha(colors[colorIndex % colors.length], 0.65),
+                fill: this.currentChartType !== 'line',
                 tension: this.currentChartType === 'line' ? 0.1 : 0
             });
             colorIndex++;

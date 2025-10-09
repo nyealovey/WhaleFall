@@ -495,7 +495,12 @@ class InstanceAggregationsManager {
                             display: true,
                             text: '大小 (GB)'
                         },
-                        beginAtZero: true
+                        beginAtZero: true,
+                        grid: {
+                            color: (ctx) => (ctx.tick && ctx.tick.value === 0 ? '#212529' : 'rgba(0,0,0,0.08)'),
+                            lineWidth: (ctx) => (ctx.tick && ctx.tick.value === 0 ? 2 : 1),
+                            borderDash: (ctx) => (ctx.tick && ctx.tick.value === 0 ? [] : [2, 2])
+                        }
                     }
                 },
                 interaction: {
@@ -716,12 +721,13 @@ class InstanceAggregationsManager {
                 return mbValue / 1024; // 转换为GB
             });
             
+            const baseColor = colors[colorIndex % colors.length];
             datasets.push({
                 label: instanceName,
                 data: data,
-                borderColor: colors[colorIndex % colors.length],
-                backgroundColor: colors[colorIndex % colors.length] + '10',
-                fill: false,
+                borderColor: baseColor,
+                backgroundColor: this.currentChartType === 'line' ? this.colorWithAlpha(baseColor, 0.1) : this.colorWithAlpha(baseColor, 0.65),
+                fill: this.currentChartType !== 'line',
                 tension: 0.1,
                 hidden: false // 确保数据点可见
             });
