@@ -163,6 +163,7 @@ async function createPartition() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
             },
             body: JSON.stringify({ date: date })
         });
@@ -203,6 +204,7 @@ async function cleanupPartitions() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
             },
             body: JSON.stringify({ retention_months: parseInt(retentionMonths) })
         });
@@ -270,4 +272,8 @@ function formatSize(mb) {
     if (mb < 1024) return `${mb.toFixed(2)} MB`;
     if (mb < 1024 * 1024) return `${(mb / 1024).toFixed(2)} GB`;
     return `${(mb / (1024 * 1024)).toFixed(2)} TB`;
+}
+
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 }
