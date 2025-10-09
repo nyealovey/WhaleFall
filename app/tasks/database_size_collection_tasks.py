@@ -72,7 +72,7 @@ def collect_database_sizes():
             
             total_synced = 0
             total_failed = 0
-            total_size_mb = 0
+            total_collected_size_mb = 0
             results = []
             
             for i, instance in enumerate(active_instances):
@@ -144,7 +144,7 @@ def collect_database_sizes():
                     if databases_data and len(databases_data) > 0:
                         # 计算总大小和数据库数量
                         database_count = len(databases_data)
-                        total_size_mb = sum(db.get('size_mb', 0) for db in databases_data)
+                        instance_total_size_mb = sum(db.get('size_mb', 0) for db in databases_data)
                         
                         # 保存数据库大小数据到数据库
                         saved_count = collector.save_collected_data(databases_data)
@@ -160,7 +160,7 @@ def collect_database_sizes():
                             items_updated=0,  # 容量同步没有更新概念
                             items_deleted=0,  # 容量同步没有删除概念
                             sync_details={
-                                'total_size_mb': total_size_mb,
+                                'total_size_mb': instance_total_size_mb,
                                 'database_count': database_count,
                                 'saved_count': saved_count,
                                 'databases': databases_data
@@ -168,7 +168,7 @@ def collect_database_sizes():
                         )
                         
                         total_synced += 1
-                        total_size_mb += total_size_mb
+                        total_collected_size_mb += instance_total_size_mb
                         
                         sync_logger.info(
                             f"实例容量同步成功: {instance.name}",
@@ -176,7 +176,7 @@ def collect_database_sizes():
                             session_id=session.session_id,
                             instance_id=instance.id,
                             instance_name=instance.name,
-                            size_mb=total_size_mb,
+                            size_mb=instance_total_size_mb,
                             database_count=database_count,
                             saved_count=saved_count
                         )
@@ -185,7 +185,7 @@ def collect_database_sizes():
                             'instance_id': instance.id,
                             'instance_name': instance.name,
                             'success': True,
-                            'size_mb': total_size_mb,
+                            'size_mb': instance_total_size_mb,
                             'database_count': database_count,
                             'saved_count': saved_count,
                             'databases': databases_data
@@ -242,7 +242,7 @@ def collect_database_sizes():
                 'success': total_failed == 0,
                 'message': f'容量同步完成: 成功 {total_synced} 个，失败 {total_failed} 个',
                 'instances_processed': total_synced,
-                'total_size_mb': total_size_mb,
+                'total_size_mb': total_collected_size_mb,
                 'session_id': session.session_id,
                 'details': results
             }
@@ -254,7 +254,7 @@ def collect_database_sizes():
                 total_instances=len(active_instances),
                 successful_instances=total_synced,
                 failed_instances=total_failed,
-                total_size_mb=total_size_mb
+                total_size_mb=total_collected_size_mb
             )
             
             return result

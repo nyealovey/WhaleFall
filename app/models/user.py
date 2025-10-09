@@ -158,7 +158,7 @@ class User(UserMixin, db.Model):
             import os
             if os.getenv('FLASK_ENV') == 'development':
                 print(f"管理员用户已创建: {admin.username}")
-                print(f"密码: {password}")
+                print(f"密码: {default_password}")
             
             return admin
 
