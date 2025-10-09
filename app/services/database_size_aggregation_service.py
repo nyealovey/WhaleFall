@@ -5,7 +5,7 @@
 
 import logging
 from datetime import datetime, date, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set, Tuple
 from app.utils.time_utils import time_utils
 from sqlalchemy import func, and_, or_
 from app.models.database_size_stat import DatabaseSizeStat
@@ -14,6 +14,7 @@ from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.models.instance import Instance
 from app import db
+from app.services.partition_management_service import PartitionManagementService
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,29 @@ class DatabaseSizeAggregationService:
     
     def __init__(self):
         self.period_types = ['daily', 'weekly', 'monthly', 'quarterly']
+        self._partition_cache: Set[Tuple[int, int]] = set()
+
+    def _ensure_partition_for_date(self, target_date: date) -> None:
+        """
+        确保目标日期所在月份的分区已创建
+        """
+        month_key = (target_date.year, target_date.month)
+        if month_key in self._partition_cache:
+            return
+
+        try:
+            partition_service = PartitionManagementService()
+            partition_service.create_partition(target_date)
+            self._partition_cache.add(month_key)
+        except Exception as exc:  # pragma: no cover - 记录警告不影响主流程
+            logger.warning(
+                "创建聚合分区失败，后续可能再次尝试",
+                extra={
+                    "module": "aggregation_partition",
+                    "target_month": target_date.strftime("%Y-%m"),
+                    "error": str(exc),
+                },
+            )
     
     def calculate_all_aggregations(self) -> Dict[str, Any]:
         """
@@ -358,6 +382,8 @@ class DatabaseSizeAggregationService:
             stats: 实例大小统计数据列表
         """
         try:
+            self._ensure_partition_for_date(start_date)
+
             # 按日期分组统计数据
             daily_groups = {}
             for stat in stats:
@@ -612,6 +638,8 @@ class DatabaseSizeAggregationService:
             stats: 统计数据列表
         """
         try:
+            self._ensure_partition_for_date(start_date)
+
             # 计算基本统计
             sizes = [stat.size_mb for stat in stats]
             data_sizes = [stat.data_size_mb for stat in stats if stat.data_size_mb is not None]
