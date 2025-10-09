@@ -42,7 +42,13 @@ def instance_aggregations():
         })
     
     # 获取数据库类型列表用于筛选
-    database_types = DatabaseTypeService.get_active_types()
+    database_types = [
+        {
+            'name': db_type.name,
+            'display_name': db_type.display_name
+        }
+        for db_type in DatabaseTypeService.get_active_types()
+    ]
 
     # 读取已选择的筛选条件以便回填
     selected_db_type = request.args.get('db_type', '')
