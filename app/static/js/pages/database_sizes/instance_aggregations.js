@@ -35,7 +35,7 @@ class InstanceAggregationsManager {
     initializeCurrentFilters() {
         const dbTypeValue = $('#db_type').val();
         const instanceValue = $('#instance').val();
-        this.currentFilters.db_type = dbTypeValue || null;
+        this.currentFilters.db_type = dbTypeValue ? dbTypeValue.toLowerCase() : null;
         this.currentFilters.instance_id = instanceValue || null;
         this.currentFilters.period_type = $('#period_type').val() || 'daily';
         this.currentFilters.start_date = $('#start_date').val() || null;
@@ -148,9 +148,10 @@ class InstanceAggregationsManager {
      */
     async updateInstanceOptions(dbType) {
         const instanceSelect = $('#instance');
+        const normalizedDbType = dbType ? dbType.toLowerCase() : null;
         
         // 切换数据库类型时清空已选实例
-        if (dbType !== this.currentFilters.db_type) {
+        if (normalizedDbType !== this.currentFilters.db_type) {
             this.currentFilters.instance_id = null;
             instanceSelect.data('selected', '');
         }
@@ -158,8 +159,8 @@ class InstanceAggregationsManager {
         try {
             instanceSelect.prop('disabled', false);
             let url = '/database_stats/api/instance-options';
-            if (dbType) {
-                url += `?db_type=${encodeURIComponent(dbType)}`;
+            if (normalizedDbType) {
+                url += `?db_type=${encodeURIComponent(normalizedDbType)}`;
             }
             const response = await fetch(url);
             const data = await response.json();
@@ -194,9 +195,10 @@ class InstanceAggregationsManager {
      */
     async loadInstances(dbType = null) {
         try {
+            const normalizedDbType = dbType ? dbType.toLowerCase() : null;
             let url = '/database_stats/api/instance-options';
-            if (dbType) {
-                url += `?db_type=${encodeURIComponent(dbType)}`;
+            if (normalizedDbType) {
+                url += `?db_type=${encodeURIComponent(normalizedDbType)}`;
             }
             
             const response = await fetch(url);
@@ -229,7 +231,7 @@ class InstanceAggregationsManager {
     updateFilters() {
         const dbTypeValue = $('#db_type').val();
         const instanceValue = $('#instance').val();
-        this.currentFilters.db_type = dbTypeValue || null;
+        this.currentFilters.db_type = dbTypeValue ? dbTypeValue.toLowerCase() : null;
         this.currentFilters.instance_id = instanceValue || null;
         this.currentFilters.period_type = $('#period_type').val();
         this.currentFilters.start_date = $('#start_date').val();

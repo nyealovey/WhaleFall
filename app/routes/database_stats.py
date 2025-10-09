@@ -142,7 +142,8 @@ def get_instance_options():
 
         query = Instance.query.filter(Instance.is_active.is_(True))
         if db_type:
-            query = query.filter(Instance.db_type == db_type)
+            db_type_lower = db_type.lower()
+            query = query.filter(func.lower(Instance.db_type) == db_type_lower)
 
         instances = query.order_by(Instance.name.asc()).all()
 
