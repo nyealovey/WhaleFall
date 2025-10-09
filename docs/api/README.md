@@ -5,7 +5,7 @@
 鲸落提供完整的RESTful API接口，支持数据库实例管理、账户分类、数据同步、任务调度等核心功能。所有API接口都支持JSON格式的请求和响应。
 
 ### 基础信息
-- **API版本**: v1.1.0
+- **API版本**: v1.1.1
 - **基础URL**: `http://your-domain.com/api`
 - **认证方式**: JWT Token / Session Cookie
 - **数据格式**: JSON
@@ -495,7 +495,7 @@ GET /api/system/info
     "success": true,
     "data": {
         "app_name": "鲸落",
-        "app_version": "1.1.0",
+        "app_version": "1.1.1",
         "python_version": "3.11.0",
         "flask_version": "3.1.2",
         "uptime": "2 days, 5 hours",
@@ -517,7 +517,7 @@ GET /api/health
     "data": {
         "status": "healthy",
         "timestamp": "2025-09-25T10:00:00Z",
-        "version": "1.1.0",
+        "version": "1.1.1",
         "components": {
             "database": "healthy",
             "cache": "healthy",
@@ -651,5 +651,5 @@ response = requests.post(f"{base_url}/tags", headers=headers, json=tag_data)
 ---
 
 **最后更新**: 2025-09-25  
-**API版本**: v1.1.0  
+**API版本**: v1.1.1  
 **维护团队**: TaifishingV4 Team

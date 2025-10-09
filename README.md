@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v1.1.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-v1.1.1-blue.svg)]()
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 
 > 一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。
@@ -38,6 +38,7 @@
   - 🔄 实时任务执行 - 支持立即执行和定时执行
   - ⚙️ 任务配置 - 灵活的Cron表达式配置
   - 💾 任务持久化 - PostgreSQL数据库任务状态存储
+- 📈 **容量洞察** - 实例/数据库容量同步与趋势分析，支持 TOP 切换与周期聚合
 - 📈 **实时监控仪表板** - 系统状态和统计信息
 - 📝 **操作日志记录** - 完整的审计日志
 - 🚀 **RESTful API** - 完整的API接口

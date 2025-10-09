@@ -146,7 +146,7 @@
   "data": {
     "status": "healthy",
     "timestamp": 1703123456.789,
-    "version": "1.1.0",
+    "version": "1.1.1",
     "components": {
       "database": {
         "healthy": true,
