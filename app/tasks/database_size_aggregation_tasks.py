@@ -148,7 +148,18 @@ def calculate_database_size_aggregations(manual_run=False):
                                 else:
                                     continue
                             
-                                if period_result.get('status') == 'success':
+                                status = period_result.get('status')
+                                is_success = status == 'success'
+                                error_message = str(period_result.get('error', '') or '').strip()
+                                skipped_due_to_no_data = False
+                                
+                                # 如果服务以异常形式返回“无数据”提示，也视为成功
+                                if not is_success and error_message:
+                                    no_data_keywords = ['没有数据', '没有统计数据', '无数据', '无统计数据', 'no data', 'data not found']
+                                    if any(keyword in error_message for keyword in no_data_keywords):
+                                        skipped_due_to_no_data = True
+                                
+                                if is_success or skipped_due_to_no_data:
                                     instance_aggregations += period_result.get('total_records', 0)
                                     # 记录日志，区分有数据和无数据的情况
                                     if period_result.get('total_records', 0) > 0:
@@ -170,7 +181,7 @@ def calculate_database_size_aggregations(manual_run=False):
                                             instance_id=instance.id,
                                             instance_name=instance.name,
                                             period_type=period_type,
-                                            message=period_result.get('message', '没有统计数据')
+                                            message=period_result.get('message', error_message or '没有统计数据')
                                         )
                                 else:
                                     instance_success = False
