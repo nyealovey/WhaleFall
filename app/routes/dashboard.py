@@ -137,8 +137,6 @@ def get_system_overview() -> dict:
         total_users = User.query.count()
         total_instances = Instance.query.count()
         from sqlalchemy import text
-
-        from app import db
         from app.models.account_classification import AccountClassification, AccountClassificationAssignment
         from app.models.current_account_sync_data import CurrentAccountSyncData
         from app.models.unified_log import LogLevel, UnifiedLog
