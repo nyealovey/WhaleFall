@@ -122,9 +122,11 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每周统计聚合...")
         
-        # 获取上周的数据（使用中国时区）
-        end_date = time_utils.now_china().date()
-        start_date = end_date - timedelta(days=7)
+        # 使用完整自然周（上周周一至上周周日）
+        today = time_utils.now_china().date()
+        days_since_monday = today.weekday()
+        start_date = today - timedelta(days=days_since_monday + 7)
+        end_date = start_date + timedelta(days=6)
         
         return self._calculate_aggregations('weekly', start_date, end_date)
     
@@ -169,7 +171,11 @@ class DatabaseSizeAggregationService:
             # 上个季度是今年Q(quarter-1)
             quarter_start_month = (quarter - 2) * 3 + 1
             start_date = date(today.year, quarter_start_month, 1)
-            end_date = date(today.year, quarter_start_month + 2, 1) - timedelta(days=1)
+            end_month = quarter_start_month + 3
+            if end_month > 12:
+                end_date = date(today.year + 1, end_month - 12, 1) - timedelta(days=1)
+            else:
+                end_date = date(today.year, end_month, 1) - timedelta(days=1)
         
         return self._calculate_aggregations('quarterly', start_date, end_date)
     
@@ -1203,7 +1209,11 @@ class DatabaseSizeAggregationService:
                 year = today.year
             
             start_date = date(year, quarter_start_month, 1)
-            end_date = date(year, quarter_start_month + 2, 1) - timedelta(days=1)
+            end_month = quarter_start_month + 3
+            if end_month > 12:
+                end_date = date(year + 1, end_month - 12, 1) - timedelta(days=1)
+            else:
+                end_date = date(year, end_month, 1) - timedelta(days=1)
             
             stats = InstanceSizeStat.query.filter(
                 InstanceSizeStat.instance_id == instance_id,
