@@ -332,6 +332,24 @@ def calculate_database_size_aggregations(
             started_record_ids: Set[int] = set()
             finalized_record_ids: Set[int] = set()
 
+            service = DatabaseSizeAggregationService()
+            instance_period_funcs: dict[str, Callable[[int], Dict[str, Any]]] = {
+                "daily": service.calculate_daily_aggregations_for_instance,
+                "weekly": service.calculate_weekly_aggregations_for_instance,
+                "monthly": service.calculate_monthly_aggregations_for_instance,
+                "quarterly": service.calculate_quarterly_aggregations_for_instance,
+            }
+            database_period_funcs: dict[str, Callable[[], Dict[str, Any]]] = {
+                "daily": service.calculate_daily_aggregations,
+                "weekly": service.calculate_weekly_aggregations,
+                "monthly": service.calculate_monthly_aggregations,
+                "quarterly": service.calculate_quarterly_aggregations,
+            }
+
+            successful_instances = 0
+            failed_instances = 0
+            total_instance_aggregations = 0
+
             for instance in active_instances:
                 record = records_by_instance.get(instance.id)
                 if record:
@@ -346,66 +364,137 @@ def calculate_database_size_aggregations(
                         instance_name=instance.name,
                     )
 
-            service = DatabaseSizeAggregationService()
-            available_period_functions: dict[str, Callable[..., dict]] = {
-                "daily": run_daily_aggregation,
-                "weekly": run_weekly_aggregation,
-                "monthly": run_monthly_aggregation,
-                "quarterly": run_quarterly_aggregation,
-            }
+                period_results: dict[str, Dict[str, Any]] = {}
+                instance_errors: List[str] = []
+                aggregated_count = 0
+
+                for period_name in selected_periods:
+                    period_func = instance_period_funcs.get(period_name)
+                    if not period_func:
+                        sync_logger.warning(
+                            "未找到实例聚合函数，跳过周期",
+                            module="aggregation_sync",
+                            period=period_name,
+                            instance_id=instance.id,
+                        )
+                        continue
+
+                    try:
+                        result = period_func(instance.id)
+                    except Exception as period_exc:  # pragma: no cover - 防御性日志
+                        sync_logger.error(
+                            "实例聚合执行异常",
+                            module="aggregation_sync",
+                            period=period_name,
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            error=str(period_exc),
+                        )
+                        result = {
+                            "status": "error",
+                            "error": str(period_exc),
+                            "instance_id": instance.id,
+                            "instance_name": instance.name,
+                            "period_type": period_name,
+                        }
+
+                    status = result.get("status")
+                    if status != "success":
+                        error_msg = result.get("error") or result.get("message") or "未知错误"
+                        instance_errors.append(f"{period_name}: {error_msg}")
+                        sync_logger.error(
+                            "实例聚合失败",
+                            module="aggregation_sync",
+                            period=period_name,
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            error=error_msg,
+                        )
+                    else:
+                        sync_logger.info(
+                            "实例聚合完成",
+                            module="aggregation_sync",
+                            period=period_name,
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            total_records=result.get("total_records", 0),
+                            message=result.get("message"),
+                        )
+
+                    aggregated_count += result.get("total_records", 0) or 0
+                    period_results[period_name] = result
+
+                state = instance_state.setdefault(
+                    instance.id,
+                    {"record": record, "period_results": {}, "aggregations_created": 0, "errors": []},
+                )
+                state["period_results"] = period_results
+                state["aggregations_created"] = aggregated_count
+                state["errors"] = instance_errors
+
+                details = {
+                    "aggregations_created": aggregated_count,
+                    "aggregation_count": aggregated_count,
+                    "periods": period_results,
+                    "errors": instance_errors,
+                    "instance_id": instance.id,
+                    "instance_name": instance.name,
+                }
+
+                if record:
+                    if instance_errors:
+                        if sync_session_service.fail_instance_sync(
+                            record.id,
+                            error_message="; ".join(instance_errors),
+                            sync_details=details,
+                        ):
+                            finalized_record_ids.add(record.id)
+                        failed_instances += 1
+                    else:
+                        if sync_session_service.complete_instance_sync(
+                            record.id,
+                            items_synced=aggregated_count,
+                            items_created=0,
+                            items_updated=0,
+                            items_deleted=0,
+                            sync_details=details,
+                        ):
+                            finalized_record_ids.add(record.id)
+                        successful_instances += 1
+
+                total_instance_aggregations += aggregated_count
 
             period_summaries: List[dict[str, Any]] = []
             for period_name in selected_periods:
-                period_func = available_period_functions.get(period_name)
+                period_func = database_period_funcs.get(period_name)
                 if not period_func:
                     continue
-                summary = period_func(
-                    instances=active_instances,
-                    service=service,
-                    sync_logger=sync_logger,
-                    instance_state=instance_state,
-                )
-                period_summaries.append(summary)
-
-            successful_instances = 0
-            failed_instances = 0
-            total_instance_aggregations = 0
-
-            for instance in active_instances:
-                state = instance_state.get(instance.id)
-                record = state.get("record") if state else None
-                if not state or not record:
-                    continue
-
-                total_instance_aggregations += state["aggregations_created"]
-                details = {
-                    "aggregations_created": state["aggregations_created"],
-                    "periods": state["period_results"],
-                    "errors": state["errors"],
-                }
-
-                if state["errors"]:
-                    if sync_session_service.fail_instance_sync(
-                        record.id,
-                        error_message="; ".join(state["errors"]),
-                        sync_details=details,
-                    ):
-                        finalized_record_ids.add(record.id)
-                    failed_instances += 1
-                else:
-                    if sync_session_service.complete_instance_sync(
-                        record.id,
-                        items_synced=state["aggregations_created"],
-                        items_created=0,
-                        items_updated=0,
-                        items_deleted=0,
-                        sync_details=details,
-                    ):
-                        finalized_record_ids.add(record.id)
-                    successful_instances += 1
+                try:
+                    db_result = period_func()
+                except Exception as db_exc:  # pragma: no cover - 防御性日志
+                    sync_logger.error(
+                        "数据库级聚合执行异常",
+                        module="aggregation_sync",
+                        period=period_name,
+                        error=str(db_exc),
+                    )
+                    db_result = {
+                        "status": "error",
+                        "error": str(db_exc),
+                        "period_type": period_name,
+                    }
+                if db_result.get("status") == "success":
+                    sync_logger.info(
+                        "数据库级聚合完成",
+                        module="aggregation_sync",
+                        period=period_name,
+                        total_records=db_result.get("total_records", 0),
+                        processed_instances=db_result.get("processed_instances"),
+                    )
+                period_summaries.append(db_result)
 
             total_database_aggregations = sum(
-                summary.get("database_result", {}).get("total_records", 0) or 0
+                summary.get("total_records", 0) or summary.get("aggregations_created", 0) or 0
                 for summary in period_summaries
             )
 
