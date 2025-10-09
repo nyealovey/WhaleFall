@@ -19,6 +19,7 @@ from app.models.user import User
 from app.utils.cache_manager import dashboard_cache
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import CHINA_TZ, time_utils
+from app.scheduler import get_scheduler
 
 # 创建蓝图
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -138,14 +139,20 @@ def get_system_overview() -> dict:
         from app.models.unified_log import LogLevel, UnifiedLog
 
         # 从APScheduler获取任务统计
+        total_tasks = 0
+        active_tasks = 0
         try:
-            result = db.session.execute(text("SELECT COUNT(*) FROM apscheduler_jobs"))
-            total_tasks = result.scalar() or 0
-            result = db.session.execute(text("SELECT COUNT(*) FROM apscheduler_jobs WHERE next_run_time IS NOT NULL"))
-            active_tasks = result.scalar() or 0
-        except Exception:
-            total_tasks = 0
-            active_tasks = 0
+            scheduler = get_scheduler()
+            if scheduler:
+                jobs = scheduler.get_jobs()
+                total_tasks = len(jobs)
+                active_tasks = sum(1 for job in jobs if job.next_run_time)
+        except Exception as scheduler_error:
+            log_warning(
+                "获取任务统计失败，使用默认值",
+                module="dashboard",
+                error=str(scheduler_error),
+            )
 
         total_logs = UnifiedLog.query.count()
         total_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
