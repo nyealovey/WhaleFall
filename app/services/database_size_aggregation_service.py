@@ -156,6 +156,72 @@ class DatabaseSizeAggregationService:
         end_date = target_date
         
         return self._calculate_aggregations('daily', start_date, end_date)
+
+    def calculate_daily_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+        """
+        为指定实例计算当日的数据库级聚合
+        单实例容量同步完成后调用，避免等待全量调度任务
+        """
+        try:
+            instance = Instance.query.get(instance_id)
+            if not instance:
+                return {
+                    'status': 'error',
+                    'error': f'实例 {instance_id} 不存在'
+                }
+            if not instance.is_active:
+                return {
+                    'status': 'success',
+                    'message': f'实例 {instance.name} 未激活，跳过聚合',
+                    'processed': 0
+                }
+
+            target_date = time_utils.now_china().date()
+            stats = DatabaseSizeStat.query.filter(
+                DatabaseSizeStat.instance_id == instance_id,
+                DatabaseSizeStat.collected_date == target_date
+            ).all()
+
+            if not stats:
+                return {
+                    'status': 'success',
+                    'processed': 0,
+                    'message': f'实例 {instance.name} 在 {target_date} 没有数据库容量数据，跳过聚合'
+                }
+
+            db_groups: Dict[str, List[DatabaseSizeStat]] = {}
+            for stat in stats:
+                db_groups.setdefault(stat.database_name, []).append(stat)
+
+            processed = 0
+            for db_name, db_stats in db_groups.items():
+                self._calculate_database_aggregation(
+                    instance_id,
+                    db_name,
+                    'daily',
+                    target_date,
+                    target_date,
+                    db_stats,
+                )
+                processed += 1
+
+            return {
+                'status': 'success',
+                'processed': processed,
+                'message': f'实例 {instance.name} 的数据库聚合已更新 ({processed} 个数据库)'
+            }
+
+        except Exception as exc:  # pragma: no cover - 日志与返回
+            logger.error(
+                "计算实例 %s 的日数据库聚合失败: %s",
+                instance_id,
+                str(exc),
+                exc_info=True,
+            )
+            return {
+                'status': 'error',
+                'error': str(exc)
+            }
     
     def calculate_today_aggregations(self) -> Dict[str, Any]:
         """
