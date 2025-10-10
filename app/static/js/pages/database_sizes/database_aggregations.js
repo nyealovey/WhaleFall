@@ -119,7 +119,12 @@ class DatabaseAggregationsManager {
             this.loadChangeChartData();
             this.loadChangePercentChartData();
         });
-        
+
+        $('#database').on('change', () => {
+            $('#database').data('initialValue', '');
+            this.applyFilters();
+        });
+
         $('input[name="changeChartType"]').on('change', (e) => {
             this.changeChartType = e.target.value;
             this.renderChangeChart(this.changeChartData);
@@ -397,7 +402,7 @@ class DatabaseAggregationsManager {
         $('#instance').data('selected', this.currentFilters.instance_id || '');
         databaseSelect.data('selected', this.currentFilters.database_name ?? '');
         if (initialDatabaseValue !== undefined) {
-            databaseSelect.data('initialValue', initialDatabaseValue);
+            databaseSelect.data('initialValue', '');
         }
         this.currentFilters.period_type = $('#period_type').val();
         this.currentFilters.start_date = $('#start_date').val();
@@ -419,6 +424,7 @@ class DatabaseAggregationsManager {
         this.changePercentFilters.period_type = this.currentFilters.period_type || 'daily';
         this.loadChangePercentChartData();
         this.syncUIState();
+        $('#database').data('initialValue', '');
     }
     
     resetFilters() {
