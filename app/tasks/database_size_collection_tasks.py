@@ -332,13 +332,37 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
                     # 计算总大小和数据库数量
                     database_count = len(databases_data)
                     total_size_mb = sum(db.get('size_mb', 0) for db in databases_data)
+
+                    try:
+                        saved_count = collector.save_collected_data(databases_data)
+                    except Exception as save_error:
+                        logger.error(
+                            "保存实例 %s 的数据库容量数据失败: %s",
+                            instance.name,
+                            str(save_error),
+                            exc_info=True,
+                        )
+                        return {
+                            'success': False,
+                            'message': f'采集成功但保存数据失败: {save_error}',
+                            'error': str(save_error)
+                        }
+
+                    instance_stat_updated = collector.update_instance_total_size()
+                    if not instance_stat_updated:
+                        logger.warning(
+                            "实例 %s 容量统计更新失败，已采集但实例汇总未刷新",
+                            instance.name,
+                        )
                     
                     return {
                         'success': True,
                         'databases': databases_data,
                         'database_count': database_count,
                         'total_size_mb': total_size_mb,
-                        'message': f'成功采集 {database_count} 个数据库的大小信息'
+                        'saved_count': saved_count,
+                        'instance_stat_updated': instance_stat_updated,
+                        'message': f'成功采集并保存 {database_count} 个数据库的容量信息'
                     }
                 else:
                     return {
