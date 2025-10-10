@@ -2,22 +2,22 @@
 
 /* 数据库类型筛选按钮样式优化 */
 .btn-group .btn-outline-primary {
-    color: #0d6efd !important;
-    border-color: #0d6efd !important;
-    background-color: rgba(13, 110, 253, 0.1) !important;
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    background-color: rgba(102, 126, 234, 0.1) !important;
     font-weight: 600 !important;
 }
 
 .btn-group .btn-outline-primary:hover {
     color: #fff !important;
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
 }
 
 .btn-group .btn-primary {
-    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
 }
 
 .btn-group .btn {
@@ -27,25 +27,25 @@
 
 /* 权限按钮样式优化 */
 .btn-outline-primary.btn-sm {
-    border: 1px solid #007bff;
-    color: #007bff;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
     background-color: transparent;
     font-weight: 500;
     letter-spacing: 0.5px;
-    box-shadow: 0 1px 3px rgba(0, 123, 255, 0.1);
+    box-shadow: 0 1px 3px rgba(102, 126, 234, 0.1);
 }
 
 .btn-outline-primary.btn-sm:hover {
-    background-color: #007bff;
+    background-color: var(--primary-color);
     color: white;
-    border-color: #007bff;
+    border-color: var(--primary-color);
     transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 123, 255, 0.2);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.2);
 }
 
 .btn-outline-primary.btn-sm:active {
     transform: translateY(0);
-    box-shadow: 0 1px 3px rgba(0, 123, 255, 0.1);
+    box-shadow: 0 1px 3px rgba(102, 126, 234, 0.1);
 }
 
 .btn-outline-primary.btn-sm i {
@@ -109,18 +109,18 @@
 }
 
 .account-status-badge.active {
-    background-color: #28a745;
+    background-color: var(--success-color);
     color: white;
 }
 
 .account-status-badge.inactive {
-    background-color: #dc3545;
+    background-color: var(--danger-color);
     color: white;
 }
 
 .account-status-badge.locked {
-    background-color: #ffc107;
-    color: #212529;
+    background-color: var(--warning-color);
+    color: var(--text-color);
 }
 
 /* 数据库类型徽章 */
@@ -131,22 +131,22 @@
 }
 
 .db-type-badge.mysql {
-    background-color: #28a745;
+    background-color: var(--success-color);
     color: white;
 }
 
 .db-type-badge.postgresql {
-    background-color: #007bff;
+    background-color: var(--primary-color);
     color: white;
 }
 
 .db-type-badge.sqlserver {
-    background-color: #ffc107;
-    color: #212529;
+    background-color: var(--warning-color);
+    color: var(--text-color);
 }
 
 .db-type-badge.oracle {
-    background-color: #17a2b8;
+    background-color: var(--info-color);
     color: white;
 }
 
@@ -169,19 +169,19 @@
 }
 
 .pagination .page-link {
-    color: #007bff;
+    color: var(--primary-color);
     border-color: #dee2e6;
 }
 
 .pagination .page-link:hover {
-    color: #0056b3;
+    color: var(--secondary-color);
     background-color: #e9ecef;
     border-color: #dee2e6;
 }
 
 .pagination .page-item.active .page-link {
-    background-color: #007bff;
-    border-color: #007bff;
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
 }
 
 /* 加载状态 */
@@ -215,7 +215,7 @@
     border-radius: 0.375rem;
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
-    border-left: 4px solid #007bff;
+    border-left: 4px solid var(--primary-color);
 }
 
 .stats-info .stats-text {
@@ -250,7 +250,7 @@
 }
 
 .filter-tag .remove-tag:hover {
-    color: #dc3545;
+    color: var(--danger-color);
 }
 
 /* 响应式调整 */
@@ -358,14 +358,14 @@
 }
 
 #tagSelectorModal .tag-category-filter .btn-group .btn:hover {
-    border-color: #667eea;
-    color: #667eea;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
     background: #f8f9fa;
 }
 
 #tagSelectorModal .tag-category-filter .btn-group .btn-check:checked + .btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: #667eea;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    border-color: var(--primary-color);
     color: white;
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
