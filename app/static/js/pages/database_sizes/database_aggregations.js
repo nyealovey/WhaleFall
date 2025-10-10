@@ -1362,6 +1362,15 @@ class DatabaseAggregationsManager {
         $(`input[name="topSelector"][value="${this.currentTopCount}"]`).prop('checked', true);
         $(`input[name="statisticsPeriod"][value="${this.currentStatisticsPeriod}"]`).prop('checked', true);
         
+        const dbTypeValue = this.currentFilters.db_type || '';
+        $('#db_type').val(dbTypeValue);
+        
+        const instanceValue = this.currentFilters.instance_id ? String(this.currentFilters.instance_id) : '';
+        $('#instance').val(instanceValue);
+        
+        const databaseValue = this.currentFilters.database_name || '';
+        $('#database').val(databaseValue);
+        
         $(`input[name="changeChartType"][value="${this.changeChartType}"]`).prop('checked', true);
         $(`input[name="changeTopSelector"][value="${this.changeTopCount}"]`).prop('checked', true);
         $(`input[name="changeStatisticsPeriod"][value="${this.changeStatisticsPeriod}"]`).prop('checked', true);
