@@ -15,6 +15,12 @@ class InstanceAggregationsManager {
         this.changeChartType = 'line';
         this.changeTopCount = 5;
         this.changeStatisticsPeriod = 7;
+        this.changeFilters = {
+            start_date: null,
+            end_date: null,
+            override: false,
+            period_type: 'daily'
+        };
         this.currentFilters = {
             instance_id: null,
             db_type: null,
@@ -88,7 +94,8 @@ class InstanceAggregationsManager {
         
         // 容量变化统计周期选择器切换
         $('input[name="changeStatisticsPeriod"]').on('change', (e) => {
-            this.changeStatisticsPeriod = parseInt(e.target.value);
+            this.changeStatisticsPeriod = parseInt(e.target.value, 10);
+            this.updateChangeChartOverrideRange();
             this.loadChangeChartData();
         });
         
@@ -105,6 +112,9 @@ class InstanceAggregationsManager {
         $('#period_type').on('change', (e) => {
             this.currentFilters.period_type = e.target.value;
             this.updateTimeRangeFromPeriod();
+            if (this.changeFilters.override) {
+                this.updateChangeChartOverrideRange();
+            }
             this.loadSummaryData(); // 更新统计卡片
             this.loadChartData();   // 更新趋势图
             this.loadChangeChartData(); // 更新变化趋势图
@@ -274,6 +284,12 @@ class InstanceAggregationsManager {
         this.updateFilters();
         console.log('当前筛选条件:', this.currentFilters);
         
+        // 使用用户指定的时间范围并清除容量变化图的独立覆盖
+        this.changeFilters.start_date = this.currentFilters.start_date || null;
+        this.changeFilters.end_date = this.currentFilters.end_date || null;
+        this.changeFilters.override = false;
+        this.changeFilters.period_type = this.currentFilters.period_type || 'daily';
+        
         // 重新加载数据
         this.loadSummaryData();
         this.loadChartData();
@@ -300,6 +316,13 @@ class InstanceAggregationsManager {
             period_type: 'daily',
             start_date: null,
             end_date: null
+        };
+        this.changeStatisticsPeriod = 7;
+        this.changeFilters = {
+            start_date: null,
+            end_date: null,
+            override: false,
+            period_type: 'daily'
         };
         
         // 重新加载数据
@@ -966,6 +989,11 @@ class InstanceAggregationsManager {
         const range = this.calculateDateRange(periodType, this.currentStatisticsPeriod);
         this.currentFilters.start_date = range.startDate;
         this.currentFilters.end_date = range.endDate;
+        if (!this.changeFilters.override) {
+            this.changeFilters.start_date = range.startDate;
+            this.changeFilters.end_date = range.endDate;
+            this.changeFilters.period_type = periodType;
+        }
         
         console.log(`更新时间范围: ${this.currentStatisticsPeriod}个${periodType}周期`, {
             start_date: this.currentFilters.start_date,
@@ -1030,18 +1058,35 @@ class InstanceAggregationsManager {
      * 获取容量变化图表的时间范围
      */
     getChangeChartDateRange(periodType) {
-        const hasStart = Boolean(this.currentFilters.start_date);
-        const hasEnd = Boolean(this.currentFilters.end_date);
-        const computedRange = this.calculateDateRange(
-            periodType,
-            this.changeStatisticsPeriod,
-            { respectExistingStart: true, respectExistingEnd: true }
-        );
+        if (this.changeFilters.override) {
+            return {
+                startDate: this.changeFilters.start_date,
+                endDate: this.changeFilters.end_date
+            };
+        }
         
-        return {
-            startDate: hasStart ? this.currentFilters.start_date : computedRange.startDate,
-            endDate: hasEnd ? this.currentFilters.end_date : computedRange.endDate
-        };
+        let startDate = this.currentFilters.start_date || null;
+        let endDate = this.currentFilters.end_date || null;
+        
+        if (!startDate || !endDate) {
+            const computedRange = this.calculateDateRange(
+                periodType,
+                this.changeStatisticsPeriod,
+                { respectExistingStart: false, respectExistingEnd: false }
+            );
+            if (!startDate) {
+                startDate = computedRange.startDate;
+            }
+            if (!endDate) {
+                endDate = computedRange.endDate;
+            }
+        }
+        
+        this.changeFilters.start_date = startDate;
+        this.changeFilters.end_date = endDate;
+        this.changeFilters.period_type = periodType;
+        
+        return { startDate, endDate };
     }
     
     /**
@@ -1078,6 +1123,21 @@ class InstanceAggregationsManager {
             startDate: this.formatDateOnly(startDate),
             endDate: this.formatDateOnly(endDate)
         };
+    }
+
+    /**
+     * 更新容量变化图的独立时间范围
+     */
+    updateChangeChartOverrideRange() {
+        const periodType = this.currentFilters.period_type || 'daily';
+        const range = this.calculateDateRange(periodType, this.changeStatisticsPeriod, {
+            respectExistingStart: false,
+            respectExistingEnd: false
+        });
+        this.changeFilters.start_date = range.startDate;
+        this.changeFilters.end_date = range.endDate;
+        this.changeFilters.override = true;
+        this.changeFilters.period_type = periodType;
     }
     
     /**
