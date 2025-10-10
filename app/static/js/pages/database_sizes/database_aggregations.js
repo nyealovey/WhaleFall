@@ -21,6 +21,17 @@ class DatabaseAggregationsManager {
             override: false,
             period_type: 'daily'
         };
+        this.changePercentChart = null;
+        this.changePercentChartData = [];
+        this.changePercentChartType = 'line';
+        this.changePercentTopCount = 5;
+        this.changePercentStatisticsPeriod = 7;
+        this.changePercentFilters = {
+            start_date: null,
+            end_date: null,
+            override: false,
+            period_type: 'daily'
+        };
         this.databaseLabelMap = {};
         this.currentFilters = {
             instance_id: null,
@@ -45,6 +56,7 @@ class DatabaseAggregationsManager {
         this.loadSummaryData();
         this.loadChartData();
         this.loadChangeChartData();
+        this.loadChangePercentChartData();
     }
     
     initializeCurrentFilters() {
@@ -90,6 +102,7 @@ class DatabaseAggregationsManager {
             this.loadSummaryData();
             this.loadChartData();
             this.loadChangeChartData();
+            this.loadChangePercentChartData();
         });
         
         $('#period_type').on('change', (e) => {
@@ -98,9 +111,13 @@ class DatabaseAggregationsManager {
             if (this.changeFilters.override) {
                 this.updateChangeChartOverrideRange();
             }
+            if (this.changePercentFilters.override) {
+                this.updateChangePercentChartOverrideRange();
+            }
             this.loadSummaryData();
             this.loadChartData();
             this.loadChangeChartData();
+            this.loadChangePercentChartData();
         });
         
         $('input[name="changeChartType"]').on('change', (e) => {
@@ -119,6 +136,22 @@ class DatabaseAggregationsManager {
             this.loadChangeChartData();
         });
         
+        $('input[name="changePercentChartType"]').on('change', (e) => {
+            this.changePercentChartType = e.target.value;
+            this.renderChangePercentChart(this.changePercentChartData);
+        });
+        
+        $('input[name="changePercentTopSelector"]').on('change', (e) => {
+            this.changePercentTopCount = parseInt(e.target.value, 10);
+            this.renderChangePercentChart(this.changePercentChartData);
+        });
+        
+        $('input[name="changePercentStatisticsPeriod"]').on('change', (e) => {
+            this.changePercentStatisticsPeriod = parseInt(e.target.value, 10);
+            this.updateChangePercentChartOverrideRange();
+            this.loadChangePercentChartData();
+        });
+        
         $('#searchButton, #applyFilters').on('click', () => {
             this.applyFilters();
         });
@@ -134,6 +167,7 @@ class DatabaseAggregationsManager {
             this.loadSummaryData();
             this.loadChartData();
             this.loadChangeChartData();
+            this.loadChangePercentChartData();
         });
         
         $('#instance').on('change', async (e) => {
@@ -143,6 +177,7 @@ class DatabaseAggregationsManager {
             this.loadSummaryData();
             this.loadChartData();
             this.loadChangeChartData();
+            this.loadChangePercentChartData();
         });
         
         $('#database').on('change', () => {
@@ -150,6 +185,7 @@ class DatabaseAggregationsManager {
             this.loadSummaryData();
             this.loadChartData();
             this.loadChangeChartData();
+            this.loadChangePercentChartData();
         });
     }
     
@@ -319,6 +355,11 @@ class DatabaseAggregationsManager {
         this.loadSummaryData();
         this.loadChartData();
         this.loadChangeChartData();
+        this.changePercentFilters.start_date = this.currentFilters.start_date || null;
+        this.changePercentFilters.end_date = this.currentFilters.end_date || null;
+        this.changePercentFilters.override = false;
+        this.changePercentFilters.period_type = this.currentFilters.period_type || 'daily';
+        this.loadChangePercentChartData();
     }
     
     resetFilters() {
@@ -344,12 +385,22 @@ class DatabaseAggregationsManager {
             override: false,
             period_type: 'daily'
         };
+        this.changePercentChartType = 'line';
+        this.changePercentTopCount = 5;
+        this.changePercentStatisticsPeriod = 7;
+        this.changePercentFilters = {
+            start_date: null,
+            end_date: null,
+            override: false,
+            period_type: 'daily'
+        };
         
         this.initializeFilterOptions();
         this.updateTimeRangeFromPeriod();
         this.loadSummaryData();
         this.loadChartData();
         this.loadChangeChartData();
+        this.loadChangePercentChartData();
     }
     
     async refreshAllData() {
@@ -359,7 +410,8 @@ class DatabaseAggregationsManager {
             await Promise.all([
                 this.loadSummaryData(),
                 this.loadChartData(),
-                this.loadChangeChartData()
+                this.loadChangeChartData(),
+                this.loadChangePercentChartData()
             ]);
             this.syncUIState();
             this.showSuccess('数据刷新成功');
@@ -443,6 +495,30 @@ class DatabaseAggregationsManager {
             this.hideChangeChartLoading();
         }
     }
+
+    async loadChangePercentChartData() {
+        try {
+            this.showChangePercentChartLoading();
+            const params = this.buildChangePercentChartParams();
+            params.append('chart_mode', 'database');
+            params.append('get_all', 'true');
+            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                this.changePercentChartData = data.data || [];
+                this.renderChangePercentChart(this.changePercentChartData);
+            } else {
+                console.error('加载容量变化百分比数据失败:', data.error);
+                this.showError('加载容量变化百分比数据失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('加载容量变化百分比数据时出错:', error);
+            this.showError('加载容量变化百分比数据时出错: ' + error.message);
+        } finally {
+            this.hideChangePercentChartLoading();
+        }
+    }
     
     renderChart(data) {
         const canvas = document.getElementById('databaseChart');
@@ -510,6 +586,114 @@ class DatabaseAggregationsManager {
                             color: (ctx) => (ctx.tick && ctx.tick.value === 0 ? '#212529' : 'rgba(0,0,0,0.08)'),
                             lineWidth: (ctx) => (ctx.tick && ctx.tick.value === 0 ? 2 : 1),
                             borderDash: (ctx) => (ctx.tick && ctx.tick.value === 0 ? [] : [2, 2])
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+    }
+
+    renderChangePercentChart(data) {
+        const canvas = document.getElementById('databaseChangePercentChart');
+        if (!canvas) {
+            return;
+        }
+
+        const ctx = canvas.getContext('2d');
+
+        if (this.changePercentChart) {
+            this.changePercentChart.destroy();
+        }
+
+        if (!data || data.length === 0) {
+            this.showEmptyChangePercentChart();
+            return;
+        }
+
+        const groupedData = this.groupChangePercentDataByDate(data);
+        const chartData = this.prepareChangePercentChartData(groupedData);
+
+        if (!chartData || chartData.labels.length === 0 || chartData.datasets.length === 0) {
+            this.showEmptyChangePercentChart();
+            return;
+        }
+
+        const allValues = [];
+        chartData.datasets.forEach(dataset => {
+            dataset.data.forEach(value => {
+                if (typeof value === 'number' && !Number.isNaN(value)) {
+                    allValues.push(value);
+                }
+            });
+        });
+        const minValue = allValues.length ? Math.min(...allValues, 0) : 0;
+        const maxValue = allValues.length ? Math.max(...allValues, 0) : 0;
+        const rangePadding = Math.max((maxValue - minValue) * 0.1, 1);
+        const suggestedMin = Math.min(minValue - rangePadding, -5);
+        const suggestedMax = Math.max(maxValue + rangePadding, 5);
+
+        this.changePercentChart = new Chart(ctx, {
+            type: this.changePercentChartType,
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '容量变化趋势图 (百分比)'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'right'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y;
+                                if (value === null || value === undefined || Number.isNaN(value)) {
+                                    return `${label}: 无数据`;
+                                }
+                                const formatted = `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+                                return `${label}: ${formatted}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '时间'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '变化率 (%)'
+                        },
+                        suggestedMin,
+                        suggestedMax,
+                        grid: {
+                            color: (context) => {
+                                if (context.tick && context.tick.value === 0) {
+                                    return '#212529';
+                                }
+                                return 'rgba(0, 0, 0, 0.08)';
+                            },
+                            lineWidth: (context) => (context.tick && context.tick.value === 0 ? 2 : 1),
+                            borderDash: (context) => (context.tick && context.tick.value === 0 ? [] : [2, 2]),
+                            drawTicks: true
                         }
                     }
                 },
@@ -645,6 +829,27 @@ class DatabaseAggregationsManager {
         return grouped;
     }
 
+    groupChangePercentDataByDate(data) {
+        const grouped = {};
+        data.forEach(item => {
+            const date = item.period_start;
+            if (!date) {
+                return;
+            }
+            if (!grouped[date]) {
+                grouped[date] = {};
+            }
+            const dbName = item.database_name || '未知数据库';
+            const instanceName = item.instance?.name || '未知实例';
+            const instanceId = item.instance?.id || `unknown-${instanceName}`;
+            const key = `${instanceId}::${dbName}`;
+            this.databaseLabelMap[key] = `${dbName} (${instanceName})`;
+            const changePercent = Number(item.size_change_percent ?? 0);
+            grouped[date][key] = Number.isNaN(changePercent) ? 0 : changePercent;
+        });
+        return grouped;
+    }
+
     groupChangeDataByDate(data) {
         const grouped = {};
         data.forEach(item => {
@@ -708,6 +913,93 @@ class DatabaseAggregationsManager {
             colorIndex++;
         });
         
+        return { labels, datasets };
+    }
+
+    prepareChangePercentChartData(groupedData) {
+        const labels = Object.keys(groupedData).sort();
+        const datasets = [];
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+            '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+            '#BB8FCE', '#85C1E9', '#F8C471', '#82E0AA'
+        ];
+
+        const databaseMaxPercentChanges = new Map();
+        Object.values(groupedData).forEach(dateData => {
+            Object.entries(dateData).forEach(([key, changePercent]) => {
+                const absValue = Math.abs(changePercent || 0);
+                const existingMax = databaseMaxPercentChanges.get(key) || 0;
+                databaseMaxPercentChanges.set(key, Math.max(existingMax, absValue));
+            });
+        });
+
+        const sortedDatabases = Array.from(databaseMaxPercentChanges.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, this.changePercentTopCount)
+            .map(([name]) => name);
+
+        let colorIndex = 0;
+        sortedDatabases.forEach(key => {
+            const data = labels.map(date => {
+                const rawValue = groupedData[date][key];
+                if (rawValue === undefined || rawValue === null) {
+                    return 0;
+                }
+                const numericValue = Number(rawValue);
+                if (Number.isNaN(numericValue)) {
+                    return 0;
+                }
+                return numericValue;
+            });
+
+            const baseColor = colors[colorIndex % colors.length];
+            const dataset = {
+                label: this.databaseLabelMap[key] || key,
+                data,
+                borderColor: baseColor,
+                backgroundColor: (ctx) => {
+                    const value = ctx.parsed?.y ?? 0;
+                    if (this.changePercentChartType === 'line') {
+                        return this.colorWithAlpha(baseColor, 0.1);
+                    }
+                    return value >= 0
+                        ? this.colorWithAlpha(baseColor, 0.65)
+                        : this.colorWithAlpha(baseColor, 0.35);
+                },
+                fill: this.changePercentChartType !== 'line',
+                tension: this.changePercentChartType === 'line' ? 0.3 : 0
+            };
+
+            if (this.changePercentChartType === 'line') {
+                dataset.segment = {
+                    borderDash: (ctx) => {
+                        const prev = ctx.p0?.parsed?.y ?? 0;
+                        const curr = ctx.p1?.parsed?.y ?? 0;
+                        const bothPositive = prev >= 0 && curr >= 0;
+                        return bothPositive ? [] : [6, 4];
+                    },
+                    borderColor: () => baseColor
+                };
+                dataset.pointRadius = (ctx) => (Math.abs(ctx.parsed?.y ?? 0) < 0.001 ? 3 : 4);
+                dataset.pointHoverRadius = 5;
+                dataset.pointBackgroundColor = (ctx) => {
+                    const value = ctx.parsed?.y ?? 0;
+                    return value >= 0 ? this.colorWithAlpha(baseColor, 0.85) : '#ffffff';
+                };
+                dataset.pointBorderColor = baseColor;
+                dataset.pointBorderWidth = (ctx) => (ctx.parsed?.y ?? 0) >= 0 ? 1 : 2;
+            } else {
+                dataset.borderWidth = 1.5;
+                dataset.borderDash = (ctx) => ((ctx.parsed?.y ?? 0) >= 0 ? [] : [6, 4]);
+            }
+
+            datasets.push(dataset);
+            colorIndex++;
+        });
+
         return { labels, datasets };
     }
     
@@ -844,6 +1136,29 @@ class DatabaseAggregationsManager {
         return params;
     }
 
+    buildChangePercentChartParams() {
+        const params = new URLSearchParams();
+        if (this.currentFilters.instance_id) {
+            params.append('instance_id', this.currentFilters.instance_id);
+        }
+        if (this.currentFilters.db_type) {
+            params.append('db_type', this.currentFilters.db_type);
+        }
+        if (this.currentFilters.database_name) {
+            params.append('database_name', this.currentFilters.database_name);
+        }
+        const periodType = this.currentFilters.period_type || 'daily';
+        params.append('period_type', periodType);
+        const { startDate, endDate } = this.getChangePercentChartDateRange(periodType);
+        if (startDate) {
+            params.append('start_date', startDate);
+        }
+        if (endDate) {
+            params.append('end_date', endDate);
+        }
+        return params;
+    }
+
     getChangeChartDateRange(periodType) {
         if (this.changeFilters.override) {
             return {
@@ -868,6 +1183,34 @@ class DatabaseAggregationsManager {
         this.changeFilters.start_date = startDate;
         this.changeFilters.end_date = endDate;
         this.changeFilters.period_type = periodType;
+
+        return { startDate, endDate };
+    }
+
+    getChangePercentChartDateRange(periodType) {
+        if (this.changePercentFilters.override) {
+            return {
+                startDate: this.changePercentFilters.start_date,
+                endDate: this.changePercentFilters.end_date
+            };
+        }
+
+        let startDate = this.currentFilters.start_date || null;
+        let endDate = this.currentFilters.end_date || null;
+
+        if (!startDate || !endDate) {
+            const computedRange = this.calculateDateRange(periodType, this.changePercentStatisticsPeriod);
+            if (!startDate) {
+                startDate = computedRange.startDate;
+            }
+            if (!endDate) {
+                endDate = computedRange.endDate;
+            }
+        }
+
+        this.changePercentFilters.start_date = startDate;
+        this.changePercentFilters.end_date = endDate;
+        this.changePercentFilters.period_type = periodType;
 
         return { startDate, endDate };
     }
@@ -908,6 +1251,11 @@ class DatabaseAggregationsManager {
             this.changeFilters.end_date = this.currentFilters.end_date;
             this.changeFilters.period_type = periodType;
         }
+        if (!this.changePercentFilters.override) {
+            this.changePercentFilters.start_date = this.currentFilters.start_date;
+            this.changePercentFilters.end_date = this.currentFilters.end_date;
+            this.changePercentFilters.period_type = periodType;
+        }
     }
 
     updateChangeChartOverrideRange() {
@@ -917,6 +1265,15 @@ class DatabaseAggregationsManager {
         this.changeFilters.end_date = range.endDate;
         this.changeFilters.override = true;
         this.changeFilters.period_type = periodType;
+    }
+    
+    updateChangePercentChartOverrideRange() {
+        const periodType = this.currentFilters.period_type || 'daily';
+        const range = this.calculateDateRange(periodType, this.changePercentStatisticsPeriod);
+        this.changePercentFilters.start_date = range.startDate;
+        this.changePercentFilters.end_date = range.endDate;
+        this.changePercentFilters.override = true;
+        this.changePercentFilters.period_type = periodType;
     }
     
     showChartLoading() {
@@ -934,6 +1291,14 @@ class DatabaseAggregationsManager {
     hideChangeChartLoading() {
         $('#changeChartLoading').addClass('d-none');
     }
+
+    showChangePercentChartLoading() {
+        $('#changePercentChartLoading').removeClass('d-none');
+    }
+
+    hideChangePercentChartLoading() {
+        $('#changePercentChartLoading').addClass('d-none');
+    }
     
     showLoading() {}
     hideLoading() {}
@@ -946,6 +1311,10 @@ class DatabaseAggregationsManager {
         $(`input[name="changeChartType"][value="${this.changeChartType}"]`).prop('checked', true);
         $(`input[name="changeTopSelector"][value="${this.changeTopCount}"]`).prop('checked', true);
         $(`input[name="changeStatisticsPeriod"][value="${this.changeStatisticsPeriod}"]`).prop('checked', true);
+        
+        $(`input[name="changePercentChartType"][value="${this.changePercentChartType}"]`).prop('checked', true);
+        $(`input[name="changePercentTopSelector"][value="${this.changePercentTopCount}"]`).prop('checked', true);
+        $(`input[name="changePercentStatisticsPeriod"][value="${this.changePercentStatisticsPeriod}"]`).prop('checked', true);
     }
     
     showEmptyChart() {
@@ -1007,6 +1376,39 @@ class DatabaseAggregationsManager {
                     title: {
                         display: true,
                         text: '容量变化趋势图 - 暂无数据'
+                    }
+                }
+            }
+        });
+    }
+    
+    showEmptyChangePercentChart() {
+        const canvas = document.getElementById('databaseChangePercentChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        if (this.changePercentChart) {
+            this.changePercentChart.destroy();
+        }
+        this.changePercentChart = new Chart(ctx, {
+            type: this.changePercentChartType,
+            data: {
+                labels: ['暂无数据'],
+                datasets: [{
+                    label: '暂无数据',
+                    data: [0],
+                    backgroundColor: '#f8f9fa',
+                    borderColor: '#dee2e6',
+                    borderDash: this.changePercentChartType === 'line' ? [6, 4] : []
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '容量变化趋势图 (百分比) - 暂无数据'
                     }
                 }
             }
