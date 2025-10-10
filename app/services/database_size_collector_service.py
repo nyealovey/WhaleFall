@@ -3,7 +3,6 @@
 支持 MySQL、SQL Server、PostgreSQL、Oracle 数据库大小采集
 """
 
-import logging
 import re
 from datetime import datetime, date
 from typing import List, Dict, Any, Optional, Tuple
@@ -12,9 +11,10 @@ from app.models.instance import Instance
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance_size_stat import InstanceSizeStat
 from app.services.connection_factory import ConnectionFactory
+from app.utils.structlog_config import get_system_logger
 from app import db
 
-logger = logging.getLogger(__name__)
+logger = get_system_logger()
 
 
 class DatabaseSizeCollectorService:
@@ -115,19 +115,28 @@ class DatabaseSizeCollectorService:
                 self.logger.error("MySQL 权限测试失败：无法访问 information_schema.SCHEMATA")
                 return []
             
-            self.logger.info(f"MySQL 权限测试通过，发现 {test_result[0][0]} 个数据库")
+            self.logger.info(
+                "mysql_schema_access_verified",
+                instance=self.instance.name,
+                schema_count=test_result[0][0],
+            )
             
             tablespace_stats = self._collect_mysql_tablespace_sizes()
-            if tablespace_stats:
-                data = self._build_mysql_stats_from_tablespaces(tablespace_stats)
-                if data:
-                    self.logger.info(f"MySQL 实例 {self.instance.name} 通过表空间统计采集到 {len(data)} 个数据库")
-                    return data
-                self.logger.info("表空间统计结果为空，回退到 information_schema.tables 方式")
-            else:
-                self.logger.info("表空间统计不可用，回退到 information_schema.tables 方式")
+            if not tablespace_stats:
+                error_msg = (
+                    "MySQL 表空间统计未返回任何数据，请检查实例版本、权限或视图可用性"
+                )
+                self.logger.error(error_msg, instance=self.instance.name, main_version=self.instance.main_version)
+                raise ValueError(error_msg)
             
-            return self._collect_mysql_sizes_from_information_schema()
+            data = self._build_mysql_stats_from_tablespaces(tablespace_stats)
+            if not data:
+                error_msg = "MySQL 表空间统计返回结果无法解析，请检查数据格式"
+                self.logger.error(error_msg, instance=self.instance.name)
+                raise ValueError(error_msg)
+            
+            self.logger.info("mysql_tablespace_collection_success", instance=self.instance.name, database_count=len(data))
+            return data
             
         except Exception as e:
             self.logger.error(f"MySQL 数据库大小采集失败: {str(e)}", exc_info=True)
@@ -149,7 +158,8 @@ class DatabaseSizeCollectorService:
                 SUBSTRING_INDEX(ts.SPACE_NAME, '/', 1) AS database_name,
                 SUM(ts.FILE_SIZE) AS total_bytes
             FROM information_schema.INNODB_TABLESPACES ts
-            WHERE ts.SPACE_TYPE = 'Single'
+            WHERE ts.SPACE_NAME LIKE '%/%'
+              AND ts.SPACE_TYPE IN ('File-Per-Table', 'General')
             GROUP BY database_name
             HAVING database_name IS NOT NULL AND database_name <> ''
         """
@@ -158,7 +168,7 @@ class DatabaseSizeCollectorService:
                 SUBSTRING_INDEX(ts.NAME, '/', 1) AS database_name,
                 SUM(ts.FILE_SIZE) AS total_bytes
             FROM information_schema.INNODB_SYS_TABLESPACES ts
-            WHERE ts.SPACE_TYPE = 'Single'
+            WHERE ts.NAME LIKE '%/%'
             GROUP BY database_name
             HAVING database_name IS NOT NULL AND database_name <> ''
         """
@@ -184,7 +194,10 @@ class DatabaseSizeCollectorService:
                 result = self.db_connection.execute_query(query)
                 if result:
                     self.logger.info(
-                        f"使用 {label} 视图采集 MySQL 表空间数据，返回 {len(result)} 行"
+                        "mysql_tablespace_query_success",
+                        instance=self.instance.name,
+                        view=label,
+                        record_count=len(result),
                     )
                     records: List[Dict[str, Any]] = []
                     for row in result:
@@ -202,10 +215,18 @@ class DatabaseSizeCollectorService:
                         })
                     return records
                 else:
-                    self.logger.info(f"{label} 视图未返回任何表空间记录")
+                    self.logger.info(
+                        "mysql_tablespace_query_empty",
+                        instance=self.instance.name,
+                        view=label,
+                    )
             except Exception as e:
                 self.logger.warning(
-                    f"查询 {label} 视图获取表空间信息失败: {str(e)}", exc_info=True
+                    "mysql_tablespace_query_failed",
+                    instance=self.instance.name,
+                    view=label,
+                    error=str(e),
+                    exc_info=True,
                 )
         
         return []
@@ -247,7 +268,13 @@ class DatabaseSizeCollectorService:
                 'is_system': is_system_db
             })
             
-            self.logger.info(f"{db_type} {db_name}: 表空间总大小 {size_mb}MB")
+            self.logger.debug(
+                "mysql_database_tablespace_size",
+                instance=self.instance.name,
+                database=db_name,
+                size_mb=size_mb,
+                system_database=is_system_db,
+            )
         
         return data
     
