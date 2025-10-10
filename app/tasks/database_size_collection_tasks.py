@@ -355,6 +355,21 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
                             instance.name,
                         )
                     
+                    # 更新统计聚合，确保图表与报表同步最新容量
+                    try:
+                        from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
+
+                        aggregation_service = DatabaseSizeAggregationService()
+                        aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
+                        aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
+                    except Exception as agg_exc:  # pragma: no cover - 防御性日志
+                        logger.error(
+                            "实例 %s 容量聚合刷新失败: %s",
+                            instance.name,
+                            str(agg_exc),
+                            exc_info=True,
+                        )
+                    
                     return {
                         'success': True,
                         'databases': databases_data,
