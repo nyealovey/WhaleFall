@@ -348,6 +348,14 @@ class DatabaseAggregationsManager {
             if (this.currentFilters.db_type) {
                 params.append('db_type', this.currentFilters.db_type);
             }
+            const periodType = this.currentFilters.period_type || 'daily';
+            params.append('period_type', periodType);
+            if (this.currentFilters.start_date) {
+                params.append('start_date', this.currentFilters.start_date);
+            }
+            if (this.currentFilters.end_date) {
+                params.append('end_date', this.currentFilters.end_date);
+            }
             params.append('get_all', 'true');
             params.append('chart_mode', 'database');
             const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
