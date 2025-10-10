@@ -195,11 +195,11 @@ class DatabaseAggregationsManager {
         const databaseSelect = $('#database');
         
         if (initialDbType) {
-            this.updateInstanceOptions(initialDbType).then(() => {
+            this.updateInstanceOptions(initialDbType, { preserveInstance: true }).then(() => {
                 const initialInstance = this.currentFilters.instance_id || instanceSelect.data('selected');
                 if (initialInstance) {
                     instanceSelect.val(initialInstance);
-                    this.updateDatabaseOptions(initialInstance).then(() => {
+                    this.updateDatabaseOptions(initialInstance, { preserveDatabase: true }).then(() => {
                         const initialDatabase = this.currentFilters.database_name || databaseSelect.data('selected');
                         if (initialDatabase) {
                             databaseSelect.val(initialDatabase);
@@ -252,15 +252,23 @@ class DatabaseAggregationsManager {
     
     // 数据库类型选项由服务端模板渲染，此处无需额外加载
     
-    async updateInstanceOptions(dbType) {
+    async updateInstanceOptions(dbType, options = {}) {
+        const { preserveInstance = false } = options;
         const instanceSelect = $('#instance');
         const databaseSelect = $('#database');
         const normalizedDbType = dbType ? dbType.toLowerCase() : null;
         
-        this.currentFilters.instance_id = null;
-        this.currentFilters.database_name = null;
-        instanceSelect.data('selected', '');
-        databaseSelect.data('selected', '');
+        const storedInstance = preserveInstance
+            ? (this.currentFilters.instance_id || instanceSelect.data('selected') || '')
+            : '';
+        
+        if (!preserveInstance) {
+            this.currentFilters.instance_id = null;
+            this.currentFilters.database_name = null;
+            instanceSelect.data('selected', '');
+            databaseSelect.data('selected', '');
+        }
+        
         databaseSelect.empty();
         databaseSelect.append('<option value="">请先选择实例</option>');
         databaseSelect.prop('disabled', true);
@@ -277,12 +285,27 @@ class DatabaseAggregationsManager {
             if (response.ok && data.success) {
                 instanceSelect.empty();
                 instanceSelect.append('<option value="">所有实例</option>');
+                let matchedInstance = '';
                 data.instances.forEach(instance => {
                     const option = document.createElement('option');
                     option.value = String(instance.id);
                     option.textContent = `${instance.name} (${instance.db_type})`;
+                    if (storedInstance && String(storedInstance) === String(instance.id)) {
+                        option.selected = true;
+                        matchedInstance = String(instance.id);
+                    }
                     instanceSelect.append(option);
                 });
+                
+                if (matchedInstance) {
+                    instanceSelect.val(matchedInstance);
+                    this.currentFilters.instance_id = matchedInstance;
+                    instanceSelect.data('selected', matchedInstance);
+                } else if (preserveInstance && storedInstance) {
+                    this.currentFilters.instance_id = null;
+                    instanceSelect.data('selected', '');
+                    instanceSelect.val('');
+                }
             } else {
                 instanceSelect.empty();
                 instanceSelect.append('<option value="">加载失败</option>');
@@ -294,14 +317,28 @@ class DatabaseAggregationsManager {
         }
     }
     
-    async updateDatabaseOptions(instanceId) {
+    async updateDatabaseOptions(instanceId, options = {}) {
+        const { preserveDatabase = false } = options;
         const databaseSelect = $('#database');
         
         if (!instanceId) {
             databaseSelect.empty();
             databaseSelect.append('<option value="">所有数据库</option>');
             databaseSelect.prop('disabled', true);
+            if (!preserveDatabase) {
+                this.currentFilters.database_name = null;
+                databaseSelect.data('selected', '');
+            }
             return;
+        }
+        
+        const storedDatabase = preserveDatabase
+            ? (this.currentFilters.database_name || databaseSelect.data('selected') || '')
+            : '';
+        
+        if (!preserveDatabase) {
+            this.currentFilters.database_name = null;
+            databaseSelect.data('selected', '');
         }
         
         try {
@@ -320,9 +357,27 @@ class DatabaseAggregationsManager {
                 const databases = [...new Set((data.data || []).map(item => item.database_name))].sort();
                 databaseSelect.empty();
                 databaseSelect.append('<option value="">所有数据库</option>');
+                let matchedDatabase = '';
                 databases.forEach(db => {
-                    databaseSelect.append(`<option value="${db}">${db}</option>`);
+                    const option = document.createElement('option');
+                    option.value = db;
+                    option.textContent = db;
+                    if (storedDatabase && storedDatabase === db) {
+                        option.selected = true;
+                        matchedDatabase = db;
+                    }
+                    databaseSelect.append(option);
                 });
+                
+                if (matchedDatabase) {
+                    databaseSelect.val(matchedDatabase);
+                    this.currentFilters.database_name = matchedDatabase;
+                    databaseSelect.data('selected', matchedDatabase);
+                } else if (preserveDatabase && storedDatabase) {
+                    this.currentFilters.database_name = null;
+                    databaseSelect.data('selected', '');
+                    databaseSelect.val('');
+                }
             } else {
                 databaseSelect.empty();
                 databaseSelect.append('<option value="">加载失败</option>');
@@ -341,6 +396,8 @@ class DatabaseAggregationsManager {
         this.currentFilters.db_type = dbTypeValue ? dbTypeValue.toLowerCase() : null;
         this.currentFilters.instance_id = instanceValue || null;
         this.currentFilters.database_name = databaseValue || null;
+        $('#instance').data('selected', this.currentFilters.instance_id || '');
+        $('#database').data('selected', this.currentFilters.database_name || '');
         this.currentFilters.period_type = $('#period_type').val();
         this.currentFilters.start_date = $('#start_date').val();
         this.currentFilters.end_date = $('#end_date').val();
