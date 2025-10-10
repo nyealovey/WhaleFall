@@ -306,7 +306,7 @@ class InstanceAggregationsManager {
         // 如果已有数据库类型选中，则先加载对应实例列表
         const initialDbType = $('#db_type').val();
         if (initialDbType) {
-            this.updateInstanceOptions(initialDbType).then(() => {
+            this.updateInstanceOptions(initialDbType, { preserveSelection: true }).then(() => {
                 // 恢复已选实例
                 const initialInstance = this.currentFilters.instance_id || $('#instance').data('selected');
                 if (initialInstance) {
@@ -330,14 +330,20 @@ class InstanceAggregationsManager {
     /**
      * 根据选择的数据库类型更新实例选项
      */
-    async updateInstanceOptions(dbType) {
+    async updateInstanceOptions(dbType, options = {}) {
+        const { preserveSelection = false } = options;
         const instanceSelect = $('#instance');
         const normalizedDbType = dbType ? dbType.toLowerCase() : null;
         
-        // 切换数据库类型时清空已选实例
-        if (normalizedDbType !== this.currentFilters.db_type) {
+        const storedSelection = preserveSelection
+            ? (this.currentFilters.instance_id || instanceSelect.data('selected') || '')
+            : '';
+        
+        if (!preserveSelection) {
+            // 切换数据库类型时清空已选实例
             this.currentFilters.instance_id = null;
             instanceSelect.data('selected', '');
+            instanceSelect.val('');
         }
         
         try {
@@ -352,16 +358,24 @@ class InstanceAggregationsManager {
             if (response.ok && data.success) {
                 instanceSelect.empty();
                 instanceSelect.append('<option value="">所有实例</option>');
-                const selectedInstance = this.currentFilters.instance_id;
+                const selectedInstance = preserveSelection ? storedSelection : null;
+                let matchedInstance = null;
                 data.instances.forEach(instance => {
                     const option = document.createElement('option');
                     option.value = String(instance.id);
                     option.textContent = `${instance.name} (${instance.db_type})`;
                     if (selectedInstance && String(selectedInstance) === String(instance.id)) {
                         option.selected = true;
+                        matchedInstance = String(instance.id);
                     }
                     instanceSelect.append(option);
                 });
+                
+                if (matchedInstance) {
+                    instanceSelect.val(matchedInstance);
+                    this.currentFilters.instance_id = matchedInstance;
+                    instanceSelect.data('selected', matchedInstance);
+                }
             } else {
                 instanceSelect.empty();
                 instanceSelect.append('<option value="">加载失败</option>');
@@ -417,6 +431,7 @@ class InstanceAggregationsManager {
         const instanceValue = $('#instance').val();
         this.currentFilters.db_type = dbTypeValue ? dbTypeValue.toLowerCase() : null;
         this.currentFilters.instance_id = instanceValue || null;
+        $('#instance').data('selected', this.currentFilters.instance_id || '');
         this.currentFilters.period_type = $('#period_type').val();
         this.currentFilters.start_date = $('#start_date').val();
         this.currentFilters.end_date = $('#end_date').val();
