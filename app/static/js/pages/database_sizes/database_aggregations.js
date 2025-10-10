@@ -387,7 +387,7 @@ class DatabaseAggregationsManager {
         this.currentFilters.instance_id = instanceValue || null;
         this.currentFilters.database_name = databaseValue || null;
         $('#instance').data('selected', this.currentFilters.instance_id || '');
-        $('#database').data('selected', this.currentFilters.database_name || '');
+        $('#database').data('selected', this.currentFilters.database_name ?? '');
         this.currentFilters.period_type = $('#period_type').val();
         this.currentFilters.start_date = $('#start_date').val();
         this.currentFilters.end_date = $('#end_date').val();
