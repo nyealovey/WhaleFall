@@ -267,3 +267,261 @@
 - **`get_china_date()`**: 获取当前中国日期的 `date` 对象。
 - **`get_china_today()`**: 获取中国时区今天开始的 UTC 时间。
 - **`get_china_tomorrow()`**: 获取中国时区明天开始的 UTC 时间。
+
+---
+
+## 8. `app/services/account_classification_service.py`
+
+该文件定义了 `AccountClassificationService`，负责根据预定义的规则自动对数据库账户进行分类。该服务经过了高度优化，利用缓存、批量处理和按数据库类型进行分组来高效处理大量账户和规则。
+
+#### `AccountClassificationService` 类
+
+这是一个单例服务，封装了所有与账户分类相关的功能。
+
+##### 主要方法
+
+- **`auto_classify_accounts_optimized(self, rule_ids: list[int] | None = None, account_ids: list[int] | None = None, use_cache: bool = True) -> dict[str, Any]`**
+  - **功能**: 对一个或多个账户执行全自动分类。这是该服务的主要入口点。
+  - **参数**:
+    - `rule_ids` (可选): 要评估的特定规则 ID 列表。如果为 `None`，则使用所有活动规则。
+    - `account_ids` (可选): 要分类的特定账户 ID 列表。如果为 `None`，则对所有活动账户进行分类。
+    - `use_cache` (可选): 是否使用缓存的规则和账户数据。默认为 `True`。
+  - **返回**: 一个包含分类过程摘要的字典，包括添加的分类总数、总匹配数和失败计数。
+  - **实现细节**:
+    1. 获取并按优先级对分类规则进行排序，可以选择使用缓存。
+    2. 获取要分类的账户，可以选择使用缓存。
+    3. 按数据库类型对账户和规则进行分组，以进行优化处理。
+    4. 对每种数据库类型，调用 `_classify_accounts_by_db_type_optimized` 来执行实际的分类。
+    5. 记录详细的性能统计信息。
+
+- **`get_rule_matched_accounts_count(self, rule_id: int) -> int`**
+  - **功能**: 获取与给定规则 ID 匹配的账户数。它通过重新评估规则而不是依赖现有分配来做到这一点。
+  - **参数**: `rule_id` - 要评估的规则的 ID。
+  - **返回**: 匹配账户的数量。
+
+##### 内部优化和处理方法
+
+- **`_classify_accounts_by_db_type_optimized(self, db_type: str, accounts: list[CurrentAccountSyncData], rules: list[ClassificationRule]) -> dict[str, int]`**
+  - **功能**: 对给定数据库类型的所有账户和规则执行分类。
+  - **实现细节**:
+    1. 按优先级迭代规则。
+    2. 对每个规则，调用 `_find_accounts_matching_rule_optimized` 来查找所有匹配的账户。
+    3. 如果找到匹配项，则调用 `_add_classification_to_accounts_batch` 将分类批量分配给账户。
+    4. 记录每个规则的结果。
+
+- **`_find_accounts_matching_rule_optimized(self, rule: ClassificationRule, accounts: list[CurrentAccountSyncData]) -> list[CurrentAccountSyncData]`**
+  - **功能**: 根据规则的表达式，从账户列表中筛选出匹配的账户。
+  - **实现细节**: 对每个账户调用 `_evaluate_rule` 方法。
+
+- **`_evaluate_rule(self, account: CurrentAccountSyncData, rule: ClassificationRule) -> bool`**
+  - **功能**: 根据账户的权限评估单个规则。
+  - **实现细节**:
+    1. 检查缓存中是否有此账户和规则组合的结果。
+    2. 如果未缓存，则根据规则的 `db_type` 分派到特定于数据库的评估方法（例如 `_evaluate_mysql_rule`）。
+    3. 缓存结果以供将来使用。
+
+- **`_evaluate_mysql_rule`, `_evaluate_sqlserver_rule`, `_evaluate_postgresql_rule`, `_evaluate_oracle_rule`**
+  - **功能**: 这些方法包含用于评估特定数据库类型（MySQL、SQL Server、PostgreSQL 和 Oracle）的分类规则的逻辑。
+  - **实现细节**: 它们将规则表达式（例如，要求的权限、角色）与从 `CurrentAccountSyncData` 记录中提取的账户权限进行比较。它们支持复杂的逻辑，包括“AND”和“OR”运算符。
+
+- **`_add_classification_to_accounts_batch(self, matched_accounts: list[CurrentAccountSyncData], classification_id: int) -> int`**
+  - **功能**: 高效地将分类批量分配给一组账户。
+  - **实现细节**:
+    1. 清理这些账户的任何现有分类分配。
+    2. 使用 `bulk_insert_mappings` 批量插入新的分配记录，以最大限度地减少数据库往返次数。
+
+##### 缓存管理
+
+- **`invalidate_cache(self) -> bool`**: 清除所有与分类相关的缓存。
+- **`invalidate_db_type_cache(self, db_type: str) -> bool`**: 清除特定数据库类型的缓存。
+- **`_rules_to_cache_data`, `_rules_from_cache_data`**: 将规则对象与可缓存字典相互转换的辅助方法。
+- **`_accounts_to_cache_data`**: 将账户对象转换为可缓存字典的辅助方法。
+
+#### 全局实例
+
+- **`account_classification_service = AccountClassificationService()`**: `AccountClassificationService` 的一个全局单例实例，以便在整个应用程序中轻松访问。
+
+该服务的设计证明了对性能的深思熟虑，在适当的情况下利用缓存和批量操作来确保即使在具有大量账户和规则的环境中也能实现可扩展性。
+
+---
+
+## 9. `app/services/connection_factory.py`
+
+该文件定义了一个数据库连接工厂，它提供了一个统一的接口来创建和管理与不同类型数据库（MySQL、PostgreSQL、SQL Server 和 Oracle）的连接。它抽象了每个数据库驱动程序的具体实现细节，提供了一种干净且可扩展的方式来处理数据库连接。
+
+#### `DatabaseConnection` 抽象基类
+
+这是一个抽象基类（ABC），它定义了所有具体数据库连接类必须实现的通用接口。这确保了所有连接对象都具有一致的 API。
+
+- **`connect(self) -> bool`**: 建立数据库连接。
+- **`disconnect(self) -> None`**: 断开数据库连接。
+- **`test_connection(self) -> dict[str, Any]`**: 测试与数据库的连接并返回状态和版本信息。
+- **`execute_query(self, query: str, params: tuple | None = None) -> Any`**: 执行 SQL 查询并返回结果。
+- **`get_version(self) -> str | None`**: 获取数据库服务器的版本。
+
+#### 具体连接类
+
+为每个支持的数据库系统提供了一个具体的类，实现了 `DatabaseConnection` 接口。
+
+- **`MySQLConnection`**: 使用 `pymysql` 库连接到 MySQL 数据库。
+- **`PostgreSQLConnection`**: 使用 `psycopg` 库连接到 PostgreSQL 数据库。
+- **`SQLServerConnection`**: 使用 `pymssql` 库连接到 SQL Server。它还包括一个诊断实用程序，用于在连接失败时提供详细的错误信息。
+- **`OracleConnection`**: 使用 `oracledb` 库以“Thick”模式连接到 Oracle 数据库，这需要 Oracle Instant Client。
+
+#### `ConnectionFactory` 类
+
+这是该文件的核心，提供用于创建和管理连接的静态方法。
+
+- **`CONNECTION_CLASSES`**: 一个字典，将数据库类型字符串（例如，“mysql”）映射到它们相应的连接类。
+
+- **`create_connection(instance: Instance) -> DatabaseConnection | None`**
+  - **功能**: 根据 `Instance` 对象中指定的 `db_type` 创建并返回适当的数据库连接对象。
+  - **返回**: 一个 `DatabaseConnection` 的实例，如果数据库类型不受支持，则返回 `None`。
+
+- **`test_connection(instance: Instance) -> dict[str, Any]`**
+  - **功能**: 测试与给定 `Instance` 的数据库连接。
+  - **返回**: 一个包含测试结果的字典，包括成功状态、消息和数据库版本。
+
+- **`get_supported_types() -> list`**: 返回工厂支持的所有数据库类型的列表。
+
+- **`is_type_supported(db_type: str) -> bool`**: 检查是否支持给定的数据库类型。
+
+该工厂设计通过将连接创建逻辑集中在一个地方，简化了在整个应用程序中处理多数据库环境的过程，从而提高了代码的可维护性和可扩展性。
+
+---
+
+## 10. `app/services/database_discovery_service.py`
+
+该文件定义了 `DatabaseDiscoveryService`，它负责自动发现在给定数据库实例中可用的数据库（或模式）。该服务可以连接到不同类型的数据库，查询它们的系统目录以获取数据库列表，并将此信息与应用程序的数据库同步。
+
+#### `DatabaseDiscoveryService` 类
+
+该服务是围绕此类构建的，该类是为特定数据库实例实例化的。
+
+- **`__init__(self, instance: Instance)`**: 使用 `Instance` 对象初始化服务。
+
+- **`discover_databases(self) -> List[str]`**
+  - **功能**: 根据实例的 `db_type` 协调数据库发现过程。
+  - **实现**: 它调用特定于数据库的私有方法（例如，`_discover_mysql_databases`）来执行发现。
+  - **返回**: 发现的数据库名称列表。
+
+- **特定于数据库的发现方法**
+  - **`_discover_mysql_databases(self)`**: 执行 `SHOW DATABASES` 来获取 MySQL 数据库。
+  - **`_discover_postgresql_databases(self)`**: 查询 `pg_database` 目录来获取 PostgreSQL 数据库。
+  - **`_discover_sqlserver_databases(self)`**: 查询 `sys.databases` 目录来获取 SQL Server 数据库。
+  - **`_discover_oracle_databases(self)`**: 由于 Oracle 的体系结构，这通常只返回实例本身的名称，因为一个实例通常管理一个数据库。
+
+- **`update_database_list(self, discovered_databases: List[str]) -> Dict[str, int]`**
+  - **功能**: 将发现的数据库列表与应用程序的 `instance_databases` 表同步。
+  - **实现**:
+    1. 获取当前为实例记录的活动数据库。
+    2. 将当前列表与发现的列表进行比较，以查找新的和已删除的数据库。
+    3. 将新数据库添加到表中。
+    4. 将已删除的数据库标记为不活动。
+    5. 更新现有数据库的 `last_seen_date`。
+  - **返回**: 一个包含有关操作的统计信息的字典（找到的数据库、添加的数据库、删除的数据库）。
+
+- **`connect(self) -> bool`** 和 **`disconnect(self)`**
+  - **功能**: 使用 `DatabaseConnectionService` 管理与目标数据库实例的连接。
+
+该服务在自动维护与每个受管实例关联的数据库的准确清单方面发挥着至关重要的作用，这对于需要了解可用数据库范围的功能（例如，账户同步）至关重要。
+
+---
+
+## 11. `app/services/account_sync_service.py`
+
+该文件定义了 `AccountSyncService` 类，作为处理所有数据库实例账户同步的统一入口。
+
+- **`AccountSyncService` 类**:
+  - **`__init__(self)`**: 初始化 `AccountSyncService`，获取日志记录器和 `SyncDataManager` 实例。
+  - **`sync_accounts(self, instance, sync_type, session_id, created_by)`**: 统一的账户同步入口，根据 `sync_type`（`MANUAL_SINGLE`, `MANUAL_BATCH`, `MANUAL_TASK`, `SCHEDULED_TASK`）决定同步流程。
+    - **`_sync_single_instance(self, instance)`**: 处理手动单实例同步，不使用会话管理。
+    - **`_sync_with_session(self, instance, sync_type, created_by)`**: 处理需要新会话的批量、手动任务和定时任务同步。
+    - **`_sync_with_existing_session(self, instance, session_id)`**: 处理使用现有会话的同步。
+  - **`_update_database_version(self, instance, conn)`**: 在同步前获取并更新实例的数据库版本信息。
+  - **`_get_database_version(self, instance, connection)`**: 根据数据库类型（MySQL, PostgreSQL, SQL Server, Oracle）执行相应的查询来获取版本信息。
+
+- **`account_sync_service`**: `AccountSyncService` 的单例，供其他模块调用。
+
+### `app/services/sync_data_manager.py`
+
+该文件定义了 `SyncDataManager` 类，它充当从不同数据库类型同步帐户数据的统一管理器。它使用适配器模式将实际的同步逻辑委托给每种数据库类型的特定适配器。
+
+- **`SyncDataManager` 类**:
+  - **`__init__(self)`**: 初始化 `SyncDataManager`，创建一个将数据库类型映射到其相应同步适配器类的字典。
+  - **`sync_accounts(self, instance, connection, session_id)`**: 同步帐户的主要方法。它为给定的数据库类型检索适当的适配器，并调用其 `sync_accounts` 方法来执行同步。
+  - **`_get_adapter(self, db_type)`**: 根据数据库类型获取正确的同步适配器。
+  - **`get_supported_db_types(self)`**: 返回支持的数据库类型列表。
+  - **兼容性方法**: 包括 `sync_mysql_accounts`、`sync_postgresql_accounts` 等，用于向后兼容。
+  - **静态方法**: 包括 `get_account_latest`、`get_accounts_by_instance` 和 `get_account_changes`，用于从数据库模型中检索帐户数据，以实现向后兼容。
+
+### `app/services/sync_session_service.py`
+
+该文件定义了 `SyncSessionService` 类，负责管理同步会话和实例记录。该服务对于处理批量、基于任务和计划的同步操作至关重要，为跟踪每个同步作业的进度和结果提供了结构化的方法。
+
+- **`SyncSessionService` 类**:
+  - **`__init__(self)`**: 初始化服务及其日志记录器。
+  - **`_clean_sync_details(self, sync_details)`**: 清理 `sync_details`，将 `datetime` 对象转换为 ISO 格式字符串，以确保 JSON 可序列化。
+  - **`create_session(self, sync_type, sync_category, created_by)`**: 创建一个新的 `SyncSession` 来表示一组同步任务。
+  - **`add_instance_records(self, session_id, instance_ids, sync_category)`**: 将 `SyncInstanceRecord` 条目添加到会话中，以跟踪每个实例的状态。
+  - **`start_instance_sync(self, record_id)`**: 将 `SyncInstanceRecord` 标记为“running”。
+  - **`complete_instance_sync(self, record_id, ...)`**: 将 `SyncInstanceRecord` 标记为“completed”并记录统计信息。
+  - **`fail_instance_sync(self, record_id, error_message, ...)`**: 将 `SyncInstanceRecord` 标记为“failed”并记录错误。
+  - **`_update_session_statistics(self, session_id)`**: 更新 `SyncSession` 的聚合统计信息。
+  - **`recover_stuck_instances(self, timeout_minutes)`**: 恢复卡住的同步实例，将其标记为“failed”。
+  - **`get_session_records(self, session_id)`**: 检索会话的所有 `SyncInstanceRecord`。
+  - **`get_session_by_id(self, session_id)`**: 按 ID 检索 `SyncSession`。
+  - **`get_sessions_by_type(self, sync_type, limit)`**: 按类型检索会话。
+  - **`get_sessions_by_category(self, sync_category, limit)`**: 按类别检索会话。
+  - **`get_recent_sessions(self, limit)`**: 检索最近的会话。
+  - **`cancel_session(self, session_id)`**: 取消一个正在运行的会话。
+
+- **`sync_session_service`**: `SyncSessionService` 的全局单例实例。
+
+### `app/services/cache_manager.py`
+
+该文件定义了 `CacheManager` 类，它为应用程序提供了一个统一的缓存接口，主要利用 `Flask-Caching` 扩展来实现。这个管理器负责处理各种类型数据的缓存，包括权限、规则和账户信息，以提高性能。
+
+- **`CacheManager` 类**:
+  - **`__init__(self, cache)`**: 初始化 `CacheManager`，接收一个 `Flask-Caching` 的 `Cache` 对象作为其缓存后端。
+  - **`_generate_cache_key(self, prefix, ...)`**: 生成一致且安全的缓存键。
+  - **权限缓存**: 管理特定用户在特定数据库上的权限缓存以及单个账户的权限缓存。
+  - **规则评估缓存**: 缓存分类规则对特定账户的评估结果。
+  - **分类规则缓存**: 按数据库类型缓存分类规则。
+  - **账户缓存**: 按数据库类型缓存账户信息。
+  - **缓存失效**: 提供多种方法来精确地清除不再有效或需要更新的缓存。
+  - **`get_cache_stats(self)`**: 获取缓存后端的统计信息。
+  - **`health_check(self)`**: 执行简单的健康检查以验证缓存是否正常工作。
+
+- **全局实例和初始化**:
+  - `cache_manager`: 全局的 `CacheManager` 实例。
+  - `init_cache_manager(cache)`: 在应用程序启动时初始化全局的 `cache_manager` 实例。
+
+### `app/services/connection_test_service.py`
+
+该文件定义了 `ConnectionTestService` 类，其唯一职责是测试与数据库实例的连接。
+
+- **`ConnectionTestService` 类**:
+  - **`__init__(self)`**: 初始化服务和日志记录器。
+  - **`test_connection(self, instance)`**: 测试连接的主要方法。它使用 `ConnectionFactory` 创建连接，获取数据库版本，更新 `last_connected` 时间戳，并处理错误，包括基本的安全检查。
+  - **`_get_database_version(self, instance, connection)`**: 根据数据库类型执行特定的查询以检索版本字符串。
+
+- **`connection_test_service`**: `ConnectionTestService` 的全局单例实例。
+
+### `app/services/database_filter_manager.py`
+
+该文件定义了 `DatabaseFilterManager` 类，负责管理数据库账户同步的过滤规则。
+
+- **`DatabaseFilterManager` 类**:
+  - **`__init__(self)`**: 加载过滤规则。
+  - **`_load_filter_rules(self)`**: 从默认配置和可选的 `database_filters.yaml` 文件中加载规则。
+  - **`get_sql_filter_conditions(self, db_type, username_field)`**: 生成一个 SQL `WHERE` 子句字符串用于过滤，但不太安全。
+  - **`get_safe_sql_filter_conditions(self, db_type, username_field)`**: 生成一个安全的、参数化的 SQL `WHERE` 子句和参数，以防止 SQL 注入。
+  - **`should_include_account(self, username, db_type)`**: 检查一个账户是否应该根据规则被包含。
+  - **`_match_pattern(self, text, pattern)`**: 将 SQL `LIKE` 模式转换为正则表达式进行匹配。
+  - **`get_filter_rules(self, db_type)`**: 获取指定数据库类型或所有类型的过滤规则。
+  - **`update_filter_rules(self, db_type, rules)`**: 在内存中更新过滤规则。
+  - **`save_filter_rules_to_file(self, file_path)`**: 将规则保存到 YAML 配置文件中。
+  - **`get_filter_statistics(self, db_type)`**: 提供关于规则的统计信息。
+
+- **`database_filter_manager`**: `DatabaseFilterManager` 的全局单例实例。

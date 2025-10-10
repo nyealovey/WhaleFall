@@ -856,11 +856,12 @@ class InstanceAggregationsManager {
             
             // 按实例分组，使用实例的总容量
             const instanceName = item.instance?.name || '未知实例';
-            if (!grouped[date][instanceName]) {
-                grouped[date][instanceName] = 0;
+            if (!Object.prototype.hasOwnProperty.call(grouped[date], instanceName)) {
+                grouped[date][instanceName] = null;
             }
             // 使用total_size_mb，表示实例的总容量（直接赋值，因为每个实例每天只有一条记录）
-            grouped[date][instanceName] = item.total_size_mb || 0;
+            const sizeValue = Number(item.total_size_mb);
+            grouped[date][instanceName] = Number.isFinite(sizeValue) ? sizeValue : null;
         });
         
         console.log('分组后的数据:', grouped);
@@ -929,9 +930,15 @@ class InstanceAggregationsManager {
         
         // 为TOP N实例创建数据集
         sortedInstances.forEach(instanceName => {
+            let lastKnownValue = null;
             // 将MB转换为GB用于图表显示
             const data = labels.map(date => {
-                const mbValue = groupedData[date][instanceName] || 0;
+                const dateData = groupedData[date] || {};
+                const mbValue = dateData[instanceName];
+                if (mbValue === undefined || mbValue === null) {
+                    return lastKnownValue !== null ? lastKnownValue / 1024 : null;
+                }
+                lastKnownValue = mbValue;
                 return mbValue / 1024; // 转换为GB
             });
             
