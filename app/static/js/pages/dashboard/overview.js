@@ -23,6 +23,25 @@ function initCharts() {
     initLogTrendChart();
 }
 
+// 获取CSS变量值
+function getCssVariable(variable) {
+    return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+}
+
+// 将RGB或Hex颜色转换为带有alpha通道的RGBA字符串
+function colorWithAlpha(color, alpha) {
+    if (color.startsWith('#')) {
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    if (color.startsWith('rgb')) { // rgb(r, g, b)
+        return `rgba(${color.substring(color.indexOf('(') + 1, color.indexOf(')'))}, ${alpha})`;
+    }
+    return color; // Fallback
+}
+
 // 初始化日志趋势图
 function initLogTrendChart() {
     const ctx = document.getElementById('logTrendChart');
@@ -30,6 +49,10 @@ function initLogTrendChart() {
     
     const context = ctx.getContext('2d');
     
+    // 获取颜色
+    const dangerColor = getCssVariable('--danger-color');
+    const warningColor = getCssVariable('--warning-color');
+
     // 获取日志趋势数据
     fetch('/dashboard/api/charts?type=logs')
         .then(response => response.json())
@@ -43,15 +66,15 @@ function initLogTrendChart() {
                     datasets: [{
                         label: '错误日志',
                         data: logTrend.map(item => item.error_count),
-                        borderColor: 'rgb(220, 53, 69)',
-                        backgroundColor: 'rgba(220, 53, 69, 0.2)',
+                        borderColor: dangerColor,
+                        backgroundColor: colorWithAlpha(dangerColor, 0.2),
                         tension: 0.1,
                         fill: true
                     }, {
                         label: '告警日志',
                         data: logTrend.map(item => item.warning_count),
-                        borderColor: 'rgb(255, 193, 7)',
-                        backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                        borderColor: warningColor,
+                        backgroundColor: colorWithAlpha(warningColor, 0.2),
                         tension: 0.1,
                         fill: true
                     }]

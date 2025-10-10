@@ -307,14 +307,20 @@ function updateSelectedTagsPreview(selectedTags) {
         if (count) count.textContent = `已选择 ${selectedTags.length} 个标签`;
         
         if (chips) {
-            chips.innerHTML = selectedTags.map(tag => `
-                <span class="badge bg-${tag.color} me-1 mb-1">
-                    <i class="fas fa-tag me-1"></i>${tag.display_name}
-                    <button type="button" class="btn-close btn-close-white ms-1" 
-                            onclick="removeTagFromPreview('${tag.name}')" 
-                            style="font-size: 0.6em;"></button>
-                </span>
-            `).join('');
+            chips.innerHTML = selectedTags.map(tag => {
+                const bgColor = tag.color || 'var(--neutral-color)';
+                const textColor = isColorDark(bgColor) ? 'var(--white)' : 'var(--text-color)';
+                const btnCloseClass = isColorDark(bgColor) ? 'btn-close-white' : '';
+
+                return `
+                    <span class="badge tag-badge me-1 mb-1" style="background-color: ${bgColor}; color: ${textColor};">
+                        <i class="fas fa-tag me-1"></i>${tag.display_name}
+                        <button type="button" class="btn-close ${btnCloseClass} ms-1" 
+                                onclick="removeTagFromPreview('${tag.name}')" 
+                                style="font-size: 0.6em;"></button>
+                    </span>
+                `;
+            }).join('');
         }
         
         if (hiddenInput) {
@@ -337,6 +343,33 @@ function removeTagFromPreview(tagName) {
             updateSelectedTagsPreview(selectedTags);
         }
     }
+}
+
+// 辅助函数：判断颜色是否为深色
+function isColorDark(colorStr) {
+    if (!colorStr) return false;
+
+    // 创建一个临时元素来解析颜色
+    const tempDiv = document.createElement('div');
+    tempDiv.style.color = colorStr;
+    document.body.appendChild(tempDiv);
+
+    const rgbColor = window.getComputedStyle(tempDiv).color;
+    document.body.removeChild(tempDiv);
+
+    const rgb = rgbColor.match(/\d+/g).map(Number);
+    const r = rgb[0];
+    const g = rgb[1];
+    const b = rgb[2];
+
+    // 使用 HSP（高敏感度池）方程计算亮度
+    const hsp = Math.sqrt(
+        0.299 * (r * r) +
+        0.587 * (g * g) +
+        0.114 * (b * b)
+    );
+
+    return hsp < 127.5;
 }
 
 // 工具函数
