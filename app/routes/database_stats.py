@@ -282,6 +282,9 @@ def get_instance_database_sizes(instance_id: int):
             # 排序
             stats.sort(key=lambda x: x.collected_date, reverse=True)
             
+            total_size_mb = sum(stat.size_mb or 0 for stat in stats)
+            database_count = len(stats)
+
             # 分页
             total_count = len(stats)
             stats = stats[offset:offset + limit]
@@ -307,8 +310,10 @@ def get_instance_database_sizes(instance_id: int):
                 'success': True,
                 'data': data,
                 'total_count': total_count,
+                'database_count': database_count,
                 'limit': limit,
-                'offset': offset
+                'offset': offset,
+                'total_size_mb': total_size_mb
             })
         
         else:
