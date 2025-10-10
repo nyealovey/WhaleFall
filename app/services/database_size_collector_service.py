@@ -487,6 +487,7 @@ class DatabaseSizeCollectorService:
                     existing.data_size_mb = item['data_size_mb']
                     existing.log_size_mb = item['log_size_mb']
                     existing.collected_at = item['collected_at']
+                    existing.updated_at = item['collected_at']
                     self.logger.debug(f"更新数据库 {item['database_name']} 大小记录")
                 else:
                     # 创建新记录
@@ -498,6 +499,7 @@ class DatabaseSizeCollectorService:
                         log_size_mb=item['log_size_mb'],
                         collected_date=item['collected_date'],
                         collected_at=item['collected_at'],
+                        updated_at=item['collected_at'],
                         is_deleted=False
                     )
                     db.session.add(new_stat)

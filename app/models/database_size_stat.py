@@ -52,6 +52,9 @@ class DatabaseSizeStat(db.Model):
     created_at = Column(
         DateTime, nullable=False, default=now, comment="记录创建时间"
     )
+    updated_at = Column(
+        DateTime, nullable=False, default=now, onupdate=now, comment="记录更新时间"
+    )
 
     instance = relationship("Instance", back_populates="database_size_stats")
 
@@ -92,5 +95,6 @@ class DatabaseSizeStat(db.Model):
             'collected_at': self.collected_at.isoformat() if self.collected_at else None,
             'is_deleted': self.is_deleted,
             'deleted_at': self.deleted_at.isoformat() if self.deleted_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
