@@ -6,7 +6,7 @@
 import logging
 import re
 from datetime import datetime, date
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
 from app.models.instance import Instance
 from app.models.database_size_stat import DatabaseSizeStat
@@ -117,64 +117,191 @@ class DatabaseSizeCollectorService:
             
             self.logger.info(f"MySQL 权限测试通过，发现 {test_result[0][0]} 个数据库")
             
-            # 使用统计表方式查询所有数据库大小
-            query = """
-                SELECT
-                    s.SCHEMA_NAME AS database_name,
-                    COALESCE(ROUND(SUM(COALESCE(t.data_length, 0) + COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS total_size_mb,
-                    COALESCE(ROUND(SUM(COALESCE(t.data_length, 0)) / 1024 / 1024, 2), 0) AS data_size_mb,
-                    COALESCE(ROUND(SUM(COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS index_size_mb
-                FROM
-                    information_schema.SCHEMATA s
-                LEFT JOIN
-                    information_schema.tables t ON s.SCHEMA_NAME = t.table_schema
-                GROUP BY
-                    s.SCHEMA_NAME
-                ORDER BY
-                    total_size_mb DESC
-            """
+            tablespace_stats = self._collect_mysql_tablespace_sizes()
+            if tablespace_stats:
+                data = self._build_mysql_stats_from_tablespaces(tablespace_stats)
+                if data:
+                    self.logger.info(f"MySQL 实例 {self.instance.name} 通过表空间统计采集到 {len(data)} 个数据库")
+                    return data
+                self.logger.info("表空间统计结果为空，回退到 information_schema.tables 方式")
+            else:
+                self.logger.info("表空间统计不可用，回退到 information_schema.tables 方式")
             
-            result = self.db_connection.execute_query(query)
-            self.logger.info(f"MySQL 查询结果: {len(result) if result else 0} 行数据")
-            
-            if not result:
-                error_msg = "MySQL 未查询到任何数据库大小数据"
-                self.logger.error(error_msg)
-                raise ValueError(error_msg)
-            
-            data = []
-            for row in result:
-                db_name = row[0]
-                total_size = float(row[1] or 0)  # 总大小 = 数据大小 + 索引大小
-                data_size = float(row[2] or 0)   # 数据大小
-                index_size = float(row[3] or 0)  # 索引大小
-                
-                # 判断是否为系统数据库
-                is_system_db = db_name in ('information_schema', 'performance_schema', 'mysql', 'sys')
-                db_type = "系统数据库" if is_system_db else "用户数据库"
-                
-                # 使用中国时区统一处理日期
-                from app.utils.time_utils import time_utils
-                china_now = time_utils.now_china()
-                
-                data.append({
-                    'database_name': db_name,
-                    'size_mb': int(total_size),
-                    'data_size_mb': int(data_size),
-                    'log_size_mb': None,  # MySQL 没有单独的日志文件大小
-                    'collected_date': china_now.date(),  # 使用中国时区的日期
-                    'collected_at': time_utils.now(),  # 使用UTC时间戳
-                    'is_system': is_system_db
-                })
-                
-                self.logger.info(f"{db_type} {db_name}: 总大小 {total_size:.2f}MB, 数据 {data_size:.2f}MB, 索引 {index_size:.2f}MB")
-            
-            self.logger.info(f"MySQL 实例 {self.instance.name} 采集到 {len(data)} 个数据库")
-            return data
+            return self._collect_mysql_sizes_from_information_schema()
             
         except Exception as e:
             self.logger.error(f"MySQL 数据库大小采集失败: {str(e)}", exc_info=True)
             raise ValueError(f"MySQL 采集失败: {str(e)}")
+    
+    def _collect_mysql_tablespace_sizes(self) -> List[Dict[str, Any]]:
+        """
+        基于 InnoDB 表空间统计 MySQL 数据库大小
+        
+        Returns:
+            List[Dict[str, Any]]: [{'database_name': str, 'total_bytes': int}, ...]
+        """
+        normalized_version = (self.instance.main_version or "").strip().lower()
+        
+        # 先尝试与版本匹配的视图，不存在时回退
+        queries: List[Tuple[str, str]] = []
+        query_innodb_tablespaces = """
+            SELECT
+                SUBSTRING_INDEX(ts.SPACE_NAME, '/', 1) AS database_name,
+                SUM(ts.FILE_SIZE) AS total_bytes
+            FROM information_schema.INNODB_TABLESPACES ts
+            WHERE ts.SPACE_TYPE = 'Single'
+            GROUP BY database_name
+            HAVING database_name IS NOT NULL AND database_name <> ''
+        """
+        query_innodb_sys_tablespaces = """
+            SELECT
+                SUBSTRING_INDEX(ts.NAME, '/', 1) AS database_name,
+                SUM(ts.FILE_SIZE) AS total_bytes
+            FROM information_schema.INNODB_SYS_TABLESPACES ts
+            WHERE ts.SPACE_TYPE = 'Single'
+            GROUP BY database_name
+            HAVING database_name IS NOT NULL AND database_name <> ''
+        """
+        
+        if normalized_version.startswith("8"):
+            queries = [
+                ("INNODB_TABLESPACES", query_innodb_tablespaces),
+                ("INNODB_SYS_TABLESPACES", query_innodb_sys_tablespaces),
+            ]
+        elif normalized_version.startswith("5"):
+            queries = [
+                ("INNODB_SYS_TABLESPACES", query_innodb_sys_tablespaces),
+                ("INNODB_TABLESPACES", query_innodb_tablespaces),
+            ]
+        else:
+            queries = [
+                ("INNODB_TABLESPACES", query_innodb_tablespaces),
+                ("INNODB_SYS_TABLESPACES", query_innodb_sys_tablespaces),
+            ]
+        
+        for label, query in queries:
+            try:
+                result = self.db_connection.execute_query(query)
+                if result:
+                    self.logger.info(
+                        f"使用 {label} 视图采集 MySQL 表空间数据，返回 {len(result)} 行"
+                    )
+                    records: List[Dict[str, Any]] = []
+                    for row in result:
+                        db_name = row[0]
+                        total_bytes = row[1] if len(row) > 1 else None
+                        if not db_name or total_bytes is None:
+                            continue
+                        try:
+                            total_bytes_int = int(total_bytes)
+                        except (TypeError, ValueError):
+                            total_bytes_int = int(float(total_bytes or 0))
+                        records.append({
+                            'database_name': str(db_name),
+                            'total_bytes': max(total_bytes_int, 0)
+                        })
+                    return records
+                else:
+                    self.logger.info(f"{label} 视图未返回任何表空间记录")
+            except Exception as e:
+                self.logger.warning(
+                    f"查询 {label} 视图获取表空间信息失败: {str(e)}", exc_info=True
+                )
+        
+        return []
+    
+    def _build_mysql_stats_from_tablespaces(self, stats: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """将表空间统计结果转换为数据库大小采集结构"""
+        if not stats:
+            return []
+        
+        from app.utils.time_utils import time_utils
+        
+        system_databases = {'information_schema', 'performance_schema', 'mysql', 'sys'}
+        china_now = time_utils.now_china()
+        collected_at = time_utils.now()
+        
+        data: List[Dict[str, Any]] = []
+        for item in stats:
+            db_name = item.get('database_name')
+            total_bytes = item.get('total_bytes', 0)
+            if not db_name:
+                continue
+            
+            try:
+                total_bytes_int = int(total_bytes)
+            except (TypeError, ValueError):
+                total_bytes_int = int(float(total_bytes or 0))
+            
+            size_mb = max(total_bytes_int // (1024 * 1024), 0)
+            is_system_db = db_name in system_databases
+            db_type = "系统数据库" if is_system_db else "用户数据库"
+            
+            data.append({
+                'database_name': db_name,
+                'size_mb': size_mb,
+                'data_size_mb': size_mb,  # 表空间统计无法区分数据/索引，统一使用总量
+                'log_size_mb': None,
+                'collected_date': china_now.date(),
+                'collected_at': collected_at,
+                'is_system': is_system_db
+            })
+            
+            self.logger.info(f"{db_type} {db_name}: 表空间总大小 {size_mb}MB")
+        
+        return data
+    
+    def _collect_mysql_sizes_from_information_schema(self) -> List[Dict[str, Any]]:
+        """回退到 information_schema.tables 方式采集 MySQL 大小"""
+        query = """
+            SELECT
+                s.SCHEMA_NAME AS database_name,
+                COALESCE(ROUND(SUM(COALESCE(t.data_length, 0) + COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS total_size_mb,
+                COALESCE(ROUND(SUM(COALESCE(t.data_length, 0)) / 1024 / 1024, 2), 0) AS data_size_mb,
+                COALESCE(ROUND(SUM(COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS index_size_mb
+            FROM
+                information_schema.SCHEMATA s
+            LEFT JOIN
+                information_schema.tables t ON s.SCHEMA_NAME = t.table_schema
+            GROUP BY
+                s.SCHEMA_NAME
+            ORDER BY
+                total_size_mb DESC
+        """
+        
+        result = self.db_connection.execute_query(query)
+        self.logger.info(f"MySQL (information_schema.tables) 查询结果: {len(result) if result else 0} 行数据")
+        
+        if not result:
+            error_msg = "MySQL 未查询到任何数据库大小数据"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        from app.utils.time_utils import time_utils
+        china_now = time_utils.now_china()
+        
+        data = []
+        for row in result:
+            db_name = row[0]
+            total_size = float(row[1] or 0)
+            data_size = float(row[2] or 0)
+            
+            is_system_db = db_name in ('information_schema', 'performance_schema', 'mysql', 'sys')
+            db_type = "系统数据库" if is_system_db else "用户数据库"
+            
+            data.append({
+                'database_name': db_name,
+                'size_mb': int(total_size),
+                'data_size_mb': int(data_size),
+                'log_size_mb': None,
+                'collected_date': china_now.date(),
+                'collected_at': time_utils.now(),
+                'is_system': is_system_db
+            })
+            
+            self.logger.info(f"{db_type} {db_name}: 总大小 {total_size:.2f}MB, 数据 {data_size:.2f}MB")
+        
+        return data
     
     def _collect_sqlserver_sizes(self) -> List[Dict[str, Any]]:
         """采集 SQL Server 数据库大小"""
