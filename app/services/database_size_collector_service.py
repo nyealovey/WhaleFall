@@ -155,22 +155,16 @@ class DatabaseSizeCollectorService:
         queries: List[Tuple[str, str]] = []
         query_innodb_tablespaces = """
             SELECT
-                SUBSTRING_INDEX(ts.SPACE_NAME, '/', 1) AS database_name,
-                SUM(ts.FILE_SIZE) AS total_bytes
+                ts.SPACE_NAME,
+                ts.FILE_SIZE
             FROM information_schema.INNODB_TABLESPACES ts
-            WHERE ts.SPACE_NAME LIKE '%/%'
-              AND ts.SPACE_TYPE IN ('File-Per-Table', 'General')
-            GROUP BY database_name
-            HAVING database_name IS NOT NULL AND database_name <> ''
+            WHERE ts.SPACE_TYPE IN ('File-Per-Table', 'General')
         """
         query_innodb_sys_tablespaces = """
             SELECT
-                SUBSTRING_INDEX(ts.NAME, '/', 1) AS database_name,
-                SUM(ts.FILE_SIZE) AS total_bytes
+                ts.NAME,
+                ts.FILE_SIZE
             FROM information_schema.INNODB_SYS_TABLESPACES ts
-            WHERE ts.NAME LIKE '%/%'
-            GROUP BY database_name
-            HAVING database_name IS NOT NULL AND database_name <> ''
         """
         
         if normalized_version.startswith("8"):
@@ -189,6 +183,8 @@ class DatabaseSizeCollectorService:
                 ("INNODB_SYS_TABLESPACES", query_innodb_sys_tablespaces),
             ]
         
+        aggregated: Dict[str, int] = {}
+        
         for label, query in queries:
             try:
                 result = self.db_connection.execute_query(query)
@@ -199,21 +195,23 @@ class DatabaseSizeCollectorService:
                         view=label,
                         record_count=len(result),
                     )
-                    records: List[Dict[str, Any]] = []
                     for row in result:
-                        db_name = row[0]
+                        if not row:
+                            continue
+                        raw_name = row[0]
+                        if not raw_name or '/' not in raw_name:
+                            continue
+                        db_name = str(raw_name).split('/', 1)[0]
                         total_bytes = row[1] if len(row) > 1 else None
-                        if not db_name or total_bytes is None:
+                        if total_bytes is None:
                             continue
                         try:
                             total_bytes_int = int(total_bytes)
                         except (TypeError, ValueError):
                             total_bytes_int = int(float(total_bytes or 0))
-                        records.append({
-                            'database_name': str(db_name),
-                            'total_bytes': max(total_bytes_int, 0)
-                        })
-                    return records
+                        aggregated[db_name] = aggregated.get(db_name, 0) + max(total_bytes_int, 0)
+                    if aggregated:
+                        break
                 else:
                     self.logger.info(
                         "mysql_tablespace_query_empty",
@@ -229,7 +227,10 @@ class DatabaseSizeCollectorService:
                     exc_info=True,
                 )
         
-        return []
+        return [
+            {'database_name': name, 'total_bytes': total}
+            for name, total in aggregated.items()
+        ]
     
     def _build_mysql_stats_from_tablespaces(self, stats: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """将表空间统计结果转换为数据库大小采集结构"""
