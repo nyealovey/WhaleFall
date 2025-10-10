@@ -155,10 +155,9 @@ class DatabaseSizeCollectorService:
         queries: List[Tuple[str, str]] = []
         query_innodb_tablespaces = """
             SELECT
-                ts.SPACE_NAME,
+                ts.NAME,
                 ts.FILE_SIZE
             FROM information_schema.INNODB_TABLESPACES ts
-            WHERE ts.SPACE_TYPE IN ('File-Per-Table', 'General')
         """
         query_innodb_sys_tablespaces = """
             SELECT
@@ -199,9 +198,10 @@ class DatabaseSizeCollectorService:
                         if not row:
                             continue
                         raw_name = row[0]
-                        if not raw_name or '/' not in raw_name:
+                        if not raw_name:
                             continue
-                        db_name = str(raw_name).split('/', 1)[0]
+                        raw_name_str = str(raw_name)
+                        db_name = raw_name_str.split('/', 1)[0] if '/' in raw_name_str else raw_name_str
                         total_bytes = row[1] if len(row) > 1 else None
                         if total_bytes is None:
                             continue
