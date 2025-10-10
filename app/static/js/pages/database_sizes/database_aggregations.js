@@ -321,14 +321,16 @@ class DatabaseAggregationsManager {
             if (!preserveDatabase) {
                 this.currentFilters.database_name = null;
                 databaseSelect.data('selected', '');
+                databaseSelect.data('initialValue', '');
             }
             return;
         }
         
+        const initialAttrValue = databaseSelect.data('initialValue');
         const storedDatabase = preserveDatabase
-            ? (this.currentFilters.database_name || databaseSelect.data('selected') || '')
+            ? (this.currentFilters.database_name || databaseSelect.data('selected') || initialAttrValue || '')
             : '';
-        
+
         if (!preserveDatabase) {
             this.currentFilters.database_name = null;
             databaseSelect.data('selected', '');
@@ -363,10 +365,12 @@ class DatabaseAggregationsManager {
                     databaseSelect.val(matchedDatabase);
                     this.currentFilters.database_name = matchedDatabase;
                     databaseSelect.data('selected', matchedDatabase);
+                    databaseSelect.data('initialValue', '');
                 } else if (preserveDatabase && storedDatabase) {
                     this.currentFilters.database_name = null;
                     databaseSelect.data('selected', '');
                     databaseSelect.val('');
+                    databaseSelect.data('initialValue', '');
                 }
             } else {
                 databaseSelect.empty();
@@ -382,12 +386,19 @@ class DatabaseAggregationsManager {
     updateFilters() {
         const dbTypeValue = $('#db_type').val();
         const instanceValue = $('#instance').val();
-        const databaseValue = $('#database').val();
+        const databaseSelect = $('#database');
+        const initialDatabaseValue = databaseSelect.data('initialValue');
+        const databaseValue = (initialDatabaseValue !== undefined && initialDatabaseValue !== null && String(initialDatabaseValue).length > 0)
+            ? String(initialDatabaseValue)
+            : databaseSelect.val();
         this.currentFilters.db_type = dbTypeValue ? dbTypeValue.toLowerCase() : null;
         this.currentFilters.instance_id = instanceValue || null;
         this.currentFilters.database_name = databaseValue || null;
         $('#instance').data('selected', this.currentFilters.instance_id || '');
-        $('#database').data('selected', this.currentFilters.database_name ?? '');
+        databaseSelect.data('selected', this.currentFilters.database_name ?? '');
+        if (initialDatabaseValue !== undefined) {
+            databaseSelect.data('initialValue', initialDatabaseValue);
+        }
         this.currentFilters.period_type = $('#period_type').val();
         this.currentFilters.start_date = $('#start_date').val();
         this.currentFilters.end_date = $('#end_date').val();
