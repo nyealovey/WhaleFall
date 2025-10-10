@@ -64,473 +64,179 @@
 <div class="card">
     <div class="card-body p-2">
         {% if accounts.items %}
-        <div class="table-responsive" style="font-size: 0.9rem;">
-            <table class="table table-hover table-sm mb-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0 account-list-table">
                 <thead>
-                    <tr class="small">
-                        {% if current_db_type == 'sqlserver' %}
-                        <th style="font-size: 0.8rem;">名称</th>
-                        <th style="font-size: 0.8rem;">实例名称</th>
-                        <th style="font-size: 0.8rem;">IP地址</th>
-                        <th style="font-size: 0.8rem;">标签</th>
-                        <th style="font-size: 0.8rem;">分类</th>
-                        <th style="font-size: 0.8rem;">锁定状态</th>
-                        <th style="font-size: 0.8rem;">操作</th>
-                        {% elif current_db_type == 'mysql' %}
-                        <th style="font-size: 0.8rem;">名称</th>
-                        <th style="font-size: 0.8rem;">实例名称</th>
-                        <th style="font-size: 0.8rem;">IP地址</th>
-                        <th style="font-size: 0.8rem;">标签</th>
-                        <th style="font-size: 0.8rem;">分类</th>
-                        <th style="font-size: 0.8rem;">锁定状态</th>
-                        <th style="font-size: 0.8rem;">操作</th>
-                        {% elif current_db_type == 'oracle' %}
-                        <th style="font-size: 0.8rem;">名称</th>
-                        <th style="font-size: 0.8rem;">实例名称</th>
-                        <th style="font-size: 0.8rem;">IP地址</th>
-                        <th style="font-size: 0.8rem;">标签</th>
-                        <th style="font-size: 0.8rem;">分类</th>
-                        <th style="font-size: 0.8rem;">锁定状态</th>
-                        <th style="font-size: 0.8rem;">操作</th>
-                        {% elif current_db_type == 'postgresql' %}
-                        <th style="font-size: 0.8rem;">名称</th>
-                        <th style="font-size: 0.8rem;">实例名称</th>
-                        <th style="font-size: 0.8rem;">IP地址</th>
-                        <th style="font-size: 0.8rem;">标签</th>
-                        <th style="font-size: 0.8rem;">分类</th>
-                        <th style="font-size: 0.8rem;">锁定状态</th>
-                        <th style="font-size: 0.8rem;">操作</th>
-                        {% else %}
-                        <th style="font-size: 0.8rem;">名称</th>
-                        <th style="font-size: 0.8rem;">实例名称</th>
-                        <th style="font-size: 0.8rem;">IP地址</th>
-                        <th style="font-size: 0.8rem;">标签</th>
-                        <th style="font-size: 0.8rem;">数据库类型</th>
-                        <th style="font-size: 0.8rem;">分类</th>
-                        <th style="font-size: 0.8rem;">锁定状态</th>
-                        <th style="font-size: 0.8rem;">操作</th>
+                    <tr>
+                        <th>名称</th>
+                        <th>实例名称</th>
+                        <th>IP地址</th>
+                        <th>标签</th>
+                        {% if not current_db_type %}
+                        <th>数据库类型</th>
                         {% endif %}
+                        <th>分类</th>
+                        <th>锁定状态</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for account in accounts.items %}
-                    <tr class="small">
-                        {% if current_db_type == 'sqlserver' %}
+                    <tr>
                         <td>
                             <div class="d-flex align-items-center">
-                                <i class="fas fa-user text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <strong style="font-size: 0.85rem;">{{ account.username }}</strong>
+                                <i class="fas fa-user text-primary-color me-1"></i>
+                                <strong>{{ account.username }}</strong>
                             </div>
                         </td>
                         <td>
                             <div class="d-flex align-items-center">
-                                <i class="fas fa-database text-info me-1" style="font-size: 0.8rem;"></i>
-                                <span style="font-size: 0.8rem;">{{ account.instance.name if account.instance else '未知实例' }}</span>
+                                <i class="fas fa-database text-info-color me-1"></i>
+                                <span>{{ account.instance.name if account.instance else '未知实例' }}</span>
                             </div>
                         </td>
                         <td>
                             <div class="d-flex align-items-center">
-                                <i class="fas fa-server text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <span style="font-size: 0.8rem;">{{ account.instance.host if account.instance else '未知主机' }}</span>
+                                <i class="fas fa-server text-primary-color me-1"></i>
+                                <span>{{ account.instance.host if account.instance else '未知主机' }}</span>
                             </div>
                         </td>
                         <td>
                             {% if account.instance and account.instance.tags %}
                                 {% for tag in account.instance.tags %}
-                                    <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
+                                    <span class="badge bg-{{ tag.color }} me-1 mb-1">
                                         <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
                                     </span>
                                 {% endfor %}
                             {% else %}
-                                <span class="text-muted" style="font-size: 0.8rem;">无标签</span>
+                                <span class="text-muted">无标签</span>
                             {% endif %}
                         </td>
+                        {% if not current_db_type %}
                         <td>
-                            {% if classifications.get(account.id) %}
-                                {% for classification in classifications[account.id] %}
-                                    <span class="badge me-1 mb-1" style="font-size: 0.7rem; background-color: {{ classification.color or '#6c757d' }};">
-                                        {{ classification.name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted" style="font-size: 0.8rem;">未分类</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if not account.is_locked_display %}
-                                <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
-                            {% else %}
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <a href="javascript:void(0)" onclick="viewAccountPermissions({{ account.id }})" title="查看权限"
-                                   class="btn btn-outline-primary btn-sm"
-                                   style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-weight: 500; transition: all 0.2s ease;">
-                                    <i class="fas fa-eye me-1"></i>权限
-                                </a>
-                            </div>
-                        </td>
-                        {% elif current_db_type == 'mysql' %}
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-user text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <strong style="font-size: 0.85rem;">{{ account.username }}</strong>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-database text-info me-1" style="font-size: 0.8rem;"></i>
-                                <span style="font-size: 0.8rem;">{{ account.instance.name if account.instance else '未知实例' }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-server text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <span style="font-size: 0.8rem;">{{ account.instance.host if account.instance else '未知主机' }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            {% if account.instance and account.instance.tags %}
-                                {% for tag in account.instance.tags %}
-                                    <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
-                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted" style="font-size: 0.8rem;">无标签</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if classifications.get(account.id) %}
-                                {% for classification in classifications[account.id] %}
-                                    <span class="badge me-1 mb-1" style="font-size: 0.7rem; background-color: {{ classification.color or '#6c757d' }};">
-                                        {{ classification.name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted" style="font-size: 0.8rem;">未分类</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if not account.is_locked_display %}
-                                <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
-                            {% else %}
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <a href="javascript:void(0)" onclick="viewAccountPermissions({{ account.id }})" title="查看权限"
-                                   class="btn btn-outline-primary btn-sm"
-                                   style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-weight: 500; transition: all 0.2s ease;">
-                                    <i class="fas fa-eye me-1"></i>权限
-                                </a>
-                            </div>
-                        </td>
-                        {% elif current_db_type == 'oracle' %}
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-user text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <strong style="font-size: 0.85rem;">{{ account.username }}</strong>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-database text-info me-1" style="font-size: 0.8rem;"></i>
-                                <span style="font-size: 0.8rem;">{{ account.instance.name if account.instance else '未知实例' }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-server text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <span style="font-size: 0.8rem;">{{ account.instance.host if account.instance else '未知主机' }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            {% if account.instance and account.instance.tags %}
-                                {% for tag in account.instance.tags %}
-                                    <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
-                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted" style="font-size: 0.8rem;">无标签</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if classifications.get(account.id) %}
-                                {% for classification in classifications[account.id] %}
-                                    <span class="badge me-1 mb-1" style="font-size: 0.7rem; background-color: {{ classification.color or '#6c757d' }};">
-                                        {{ classification.name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted" style="font-size: 0.8rem;">未分类</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if not account.is_locked_display %}
-                                <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
-                            {% else %}
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <a href="javascript:void(0)" onclick="viewAccountPermissions({{ account.id }})" title="查看权限"
-                                   class="btn btn-outline-primary btn-sm"
-                                   style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-weight: 500; transition: all 0.2s ease;">
-                                    <i class="fas fa-eye me-1"></i>权限
-                                </a>
-                            </div>
-                        </td>
-                        {% elif current_db_type == 'postgresql' %}
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-user text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <strong style="font-size: 0.85rem;">{{ account.username }}</strong>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-database text-info me-1" style="font-size: 0.8rem;"></i>
-                                <span style="font-size: 0.8rem;">{{ account.instance.name if account.instance else '未知实例' }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-server text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <span style="font-size: 0.8rem;">{{ account.instance.host if account.instance else '未知主机' }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            {% if account.instance and account.instance.tags %}
-                                {% for tag in account.instance.tags %}
-                                    <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
-                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted" style="font-size: 0.8rem;">无标签</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if classifications.get(account.id) %}
-                                {% for classification in classifications[account.id] %}
-                                    <span class="badge me-1 mb-1" style="font-size: 0.7rem; background-color: {{ classification.color or '#6c757d' }};">
-                                        {{ classification.name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted" style="font-size: 0.8rem;">未分类</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if not account.is_locked_display %}
-                                <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
-                            {% else %}
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <a href="javascript:void(0)" onclick="viewAccountPermissions({{ account.id }})" title="查看权限"
-                                   class="btn btn-outline-primary btn-sm"
-                                   style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-weight: 500; transition: all 0.2s ease;">
-                                    <i class="fas fa-eye me-1"></i>权限
-                                </a>
-                            </div>
-                        </td>
-                        {% else %}
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-user text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <strong style="font-size: 0.85rem;">{{ account.username }}</strong>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-database text-info me-1" style="font-size: 0.8rem;"></i>
-                                <span style="font-size: 0.8rem;">{{ account.instance.name if account.instance else '未知实例' }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-server text-primary me-1" style="font-size: 0.8rem;"></i>
-                                <span style="font-size: 0.8rem;">{{ account.instance.host if account.instance else '未知主机' }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            {% if account.instance and account.instance.tags %}
-                                {% for tag in account.instance.tags %}
-                                    <span class="badge bg-{{ tag.color }} me-1 mb-1" style="font-size: 0.7rem;">
-                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted" style="font-size: 0.8rem;">无标签</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                                <span class="badge bg-{{ 'primary' if account.instance and account.instance.db_type == 'postgresql' else 'success' if account.instance and account.instance.db_type == 'mysql' else 'warning' if account.instance and account.instance.db_type == 'sqlserver' else 'info' if account.instance and account.instance.db_type == 'oracle' else 'secondary' }}" style="font-size: 0.7rem;">
-                                {{ account.instance.db_type.upper() if account.instance else 'UNKNOWN' }}
-                            </span>
-                        </td>
-                        <td>
-                            {% if classifications.get(account.id) %}
-                                {% for classification in classifications[account.id] %}
-                                    <span class="badge me-1 mb-1" style="font-size: 0.7rem; background-color: {{ classification.color or '#6c757d' }};">
-                                        {{ classification.name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted" style="font-size: 0.8rem;">未分类</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if not account.is_locked_display %}
-                                <span class="badge bg-success" style="font-size: 0.7rem;">正常</span>
-                            {% else %}
-                                <span class="badge bg-danger" style="font-size: 0.7rem;">已锁定</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <a href="javascript:void(0)" onclick="viewAccountPermissions({{ account.id }})" title="查看权限"
-                                   class="btn btn-outline-primary btn-sm"
-                                   style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-weight: 500; transition: all 0.2s ease;">
-                                    <i class="fas fa-eye me-1"></i>权限
-                                </a>
-                            </div>
+                            <span class="badge badge-db-type-{{ account.db_type }}">{{ account.db_type }}</span>
                         </td>
                         {% endif %}
+                        <td>
+                            {% if classifications.get(account.id) %}
+                                {% for classification in classifications[account.id] %}
+                                    <span class="badge me-1 mb-1" style="background-color: {{ classification.color or 'var(--neutral-color)' }};">
+                                        {{ classification.name }}
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">未分类</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not account.is_locked_display %}
+                                <span class="badge bg-success">正常</span>
+                            {% else %}
+                                <span class="badge bg-danger">已锁定</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="javascript:void(0)" onclick="viewAccountPermissions({{ account.id }})" title="查看权限"
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i>权限
+                                </a>
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-
-        <!-- 分页 -->
-        {% if accounts.pages > 1 %}
-        <nav aria-label="账户分页">
-            <ul class="pagination justify-content-center">
-                {% if accounts.has_prev %}
-                <li class="page-item">
-                    {% if current_db_type %}
-                    <a class="page-link" href="{{ url_for('account.list_accounts', db_type=current_db_type, page=accounts.prev_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id, tags=','.join(selected_tags)) }}">
-                        上一页
-                    </a>
-                    {% else %}
-                    <a class="page-link" href="{{ url_for('account.list_accounts', page=accounts.prev_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id, tags=','.join(selected_tags)) }}">
-                        上一页
-                    </a>
-                    {% endif %}
-                </li>
-                {% endif %}
-
-                {% for page_num in accounts.iter_pages() %}
-                    {% if page_num %}
-                        {% if page_num != accounts.page %}
-                        <li class="page-item">
-                            {% if current_db_type %}
-                            <a class="page-link" href="{{ url_for('account.list_accounts', db_type=current_db_type, page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id, tags=','.join(selected_tags)) }}">
-                                {{ page_num }}
-                            </a>
-                        {% else %}
-                            <a class="page-link" href="{{ url_for('account.list_accounts', page=page_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id, tags=','.join(selected_tags)) }}">
-                                {{ page_num }}
-                            </a>
-                            {% endif %}
-                        </li>
-                        {% else %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ page_num }}</span>
-                        </li>
-                        {% endif %}
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">…</span>
-                    </li>
-                    {% endif %}
-                {% endfor %}
-
-                {% if accounts.has_next %}
-                <li class="page-item">
-                    {% if current_db_type %}
-                        <a class="page-link" href="{{ url_for('account.list_accounts', db_type=current_db_type, page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id, tags=','.join(selected_tags)) }}">
-                            下一页
-                        </a>
-                    {% else %}
-                        <a class="page-link" href="{{ url_for('account.list_accounts', page=accounts.next_num, search=search, is_locked=is_locked, is_superuser=is_superuser, classification=classification, plugin=plugin, instance_id=instance_id, tags=','.join(selected_tags)) }}">
-                            下一页
-                        </a>
-                    {% endif %}
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
-
         {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-users fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted">暂无账户数据</h5>
-            <p class="text-muted">点击"同步所有账户"按钮从数据库实例中同步账户信息</p>
-            <button type="button" class="btn btn-primary" onclick="syncAllAccounts()">
-                <i class="fas fa-sync me-2"></i>同步账户
-            </button>
+        <div class="text-center p-5">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <p class="text-muted">没有找到匹配的账户。</p>
+            <p class="text-muted small">请尝试调整您的搜索或筛选条件。</p>
         </div>
         {% endif %}
     </div>
 </div>
+
+<!-- 分页 -->
+<div class="mt-4 d-flex justify-content-between align-items-center">
+    <div>
+        <small class="text-muted">
+            共 {{ accounts.total }} 条记录，当前显示第 {{ accounts.first }} - {{ accounts.last }} 条
+        </small>
+    </div>
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            {% if accounts.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('account.list_accounts', page=accounts.prev_num, **request.args) }}">&laquo;</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&laquo;</span>
+            </li>
+            {% endif %}
+
+            {% for page_num in accounts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+            {% if accounts.page == page_num %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+            </li>
+            {% else %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('account.list_accounts', page=page_num, **request.args) }}">{{ page_num }}</a>
+            </li>
+            {% endif %}
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">...</span>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if accounts.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('account.list_accounts', page=accounts.next_num, **request.args) }}">&raquo;</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&raquo;</span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
 </div>
-{% endblock %}
 
+</div>
 
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/pages/accounts/list.js') }}"></script>
-
-
-<!-- 权限查看模态框 -->
+<!-- 权限详情模态框 -->
 <div class="modal fade" id="permissionsModal" tabindex="-1" aria-labelledby="permissionsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="permissionsModalLabel">
-                    <i class="fas fa-shield-alt me-2"></i>
-                    <span id="permissionsModalTitle">账户权限详情</span>
-                </h5>
+                <h5 class="modal-title" id="permissionsModalLabel">账户权限详情</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="permissionsModalBody">
-                <!-- 权限内容将动态渲染 -->
-                <div class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">加载中...</span>
-                    </div>
-                    <p class="mt-2">正在加载权限信息...</p>
-                </div>
+                <!-- 权限内容将通过JS加载 -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>关闭
-                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- 标签选择器组件 -->
-<div id="list-page-tag-selector">
-    {% include 'components/tag_selector.html' %}
-</div>
-
-<!-- 统一搜索组件 -->
-<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
-<!-- 权限查看核心脚本 -->
-<script src="{{ url_for('static', filename='js/common/permission-viewer.js') }}"></script>
-<!-- 权限调试脚本 -->
-<script src="{{ url_for('static', filename='js/debug/permission-debug.js') }}"></script>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/accounts/list.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/tag_selector.js') }}"></script>
+<script>
+    function syncAllAccounts() {
+        // 实现同步所有账户的逻辑
+        console.log('Syncing all accounts...');
+        // 这里可以添加AJAX调用来触发后端同步
+    }
+</script>
 {% endblock %}

@@ -583,3 +583,33 @@
     background-color: var(--text-muted);
     animation: none;
 }
+
+.classification-icon {
+    font-size: 1.5rem;
+    opacity: 0.8;
+}
+
+/* Classification Icon Colors */
+.classification-color-特权账户 {
+    color: var(--warning-color);
+}
+
+.classification-color-风险账户 {
+    color: var(--danger-color);
+}
+
+.classification-color-敏感账户 {
+    color: var(--primary-color);
+}
+
+.classification-color-只读用户 {
+    color: var(--success-color);
+}
+
+.classification-color-普通账户 {
+    color: var(--secondary-color);
+}
+
+.classification-icon:not([class*='classification-color-']) {
+    color: var(--neutral-color);
+}
