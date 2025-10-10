@@ -180,13 +180,6 @@ class DatabaseAggregationsManager {
             this.loadChangePercentChartData();
         });
         
-        $('#database').on('change', () => {
-            this.updateFilters();
-            this.loadSummaryData();
-            this.loadChartData();
-            this.loadChangeChartData();
-            this.loadChangePercentChartData();
-        });
     }
     
     initializeFilterOptions() {
@@ -414,6 +407,7 @@ class DatabaseAggregationsManager {
         this.changePercentFilters.override = false;
         this.changePercentFilters.period_type = this.currentFilters.period_type || 'daily';
         this.loadChangePercentChartData();
+        this.syncUIState();
     }
     
     resetFilters() {
