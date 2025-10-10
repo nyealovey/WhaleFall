@@ -889,7 +889,8 @@ class DatabaseAggregationsManager {
             const instanceId = item.instance?.id || `unknown-${instanceName}`;
             const key = `${instanceId}::${dbName}`;
             this.databaseLabelMap[key] = `${dbName} (${instanceName})`;
-            grouped[date][key] = item.avg_size_mb || 0;
+            const sizeValue = Number(item.avg_size_mb);
+            grouped[date][key] = Number.isFinite(sizeValue) ? sizeValue : null;
         });
         return grouped;
     }
@@ -950,8 +951,12 @@ class DatabaseAggregationsManager {
         const databaseMaxSizes = new Map();
         Object.values(groupedData).forEach(dateData => {
             Object.entries(dateData).forEach(([key, size]) => {
+                const numericSize = Number(size);
+                if (!Number.isFinite(numericSize)) {
+                    return;
+                }
                 const existingMax = databaseMaxSizes.get(key) || 0;
-                databaseMaxSizes.set(key, Math.max(existingMax, size || 0));
+                databaseMaxSizes.set(key, Math.max(existingMax, numericSize));
             });
         });
 
@@ -962,8 +967,14 @@ class DatabaseAggregationsManager {
 
         let colorIndex = 0;
         sortedDatabases.forEach(key => {
+            let lastKnownValue = null;
             const data = labels.map(date => {
-                const mbValue = groupedData[date][key] || 0;
+                const dateData = groupedData[date] || {};
+                const mbValue = dateData[key];
+                if (mbValue === undefined || mbValue === null) {
+                    return lastKnownValue !== null ? lastKnownValue / 1024 : null;
+                }
+                lastKnownValue = mbValue;
                 return mbValue / 1024;
             });
             
