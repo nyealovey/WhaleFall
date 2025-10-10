@@ -169,7 +169,7 @@
         <ul class="pagination pagination-sm mb-0">
             {% if accounts.has_prev %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('account.list_accounts', page=accounts.prev_num, **request.args) }}">&laquo;</a>
+                <a class="page-link" href="{{ url_for('account.list_accounts', page=accounts.prev_num, **request.args.to_dict(flat=False)) }}">&laquo;</a>
             </li>
             {% else %}
             <li class="page-item disabled">
@@ -185,7 +185,7 @@
             </li>
             {% else %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('account.list_accounts', page=page_num, **request.args) }}">{{ page_num }}</a>
+                <a class="page-link" href="{{ url_for('account.list_accounts', page=page_num, **request.args.to_dict(flat=False)) }}">{{ page_num }}</a>
             </li>
             {% endif %}
             {% else %}
@@ -197,7 +197,7 @@
 
             {% if accounts.has_next %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('account.list_accounts', page=accounts.next_num, **request.args) }}">&raquo;</a>
+                <a class="page-link" href="{{ url_for('account.list_accounts', page=accounts.next_num, **request.args.to_dict(flat=False)) }}">&raquo;</a>
             </li>
             {% else %}
             <li class="page-item disabled">
