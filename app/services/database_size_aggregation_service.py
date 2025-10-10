@@ -149,9 +149,8 @@ class DatabaseSizeAggregationService:
         """
         logger.info("开始计算每日统计聚合...")
         
-        # 仅统计已经完成的日期（使用中国时区，采用昨天的数据）
-        today = time_utils.now_china().date()
-        target_date = today - timedelta(days=1)
+        # 与容量同步任务保持一致：使用中国时区的今日数据
+        target_date = time_utils.now_china().date()
         
         start_date = target_date
         end_date = target_date
@@ -1116,11 +1115,11 @@ class DatabaseSizeAggregationService:
                 return {'status': 'error', 'error': f'实例 {instance_id} 不存在'}
             
             today = time_utils.now_china().date()
-            yesterday = today - timedelta(days=1)
+            target_date = today
             
             stats = InstanceSizeStat.query.filter(
                 InstanceSizeStat.instance_id == instance_id,
-                InstanceSizeStat.collected_date == yesterday,
+                InstanceSizeStat.collected_date == target_date,
                 InstanceSizeStat.is_deleted == False
             ).all()
             
@@ -1132,11 +1131,11 @@ class DatabaseSizeAggregationService:
                     'instance_id': instance_id,
                     'instance_name': instance.name,
                     'period_type': 'daily',
-                    'period_date': yesterday.isoformat(),
-                    'message': f'实例 {instance.name} 在 {yesterday} 没有统计数据，跳过聚合'
+                    'period_date': target_date.isoformat(),
+                    'message': f'实例 {instance.name} 在 {target_date} 没有统计数据，跳过聚合'
                 }
             
-            self._calculate_instance_aggregation(instance_id, 'daily', yesterday, yesterday, stats)
+            self._calculate_instance_aggregation(instance_id, 'daily', target_date, target_date, stats)
             
             return {
                 'status': 'success',
@@ -1144,7 +1143,7 @@ class DatabaseSizeAggregationService:
                 'instance_id': instance_id,
                 'instance_name': instance.name,
                 'period_type': 'daily',
-                'period_date': yesterday.isoformat()
+                'period_date': target_date.isoformat()
             }
             
         except Exception as e:
