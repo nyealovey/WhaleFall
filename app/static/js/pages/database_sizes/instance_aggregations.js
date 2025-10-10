@@ -21,6 +21,17 @@ class InstanceAggregationsManager {
             override: false,
             period_type: 'daily'
         };
+        this.changePercentChart = null;
+        this.changePercentChartData = [];
+        this.changePercentChartType = 'line';
+        this.changePercentTopCount = 5;
+        this.changePercentStatisticsPeriod = 7;
+        this.changePercentFilters = {
+            start_date: null,
+            end_date: null,
+            override: false,
+            period_type: 'daily'
+        };
         this.currentFilters = {
             instance_id: null,
             db_type: null,
@@ -42,6 +53,7 @@ class InstanceAggregationsManager {
         this.loadSummaryData();
         this.loadChartData();
         this.loadChangeChartData();
+        this.loadChangePercentChartData();
     }
 
     initializeCurrentFilters() {
@@ -99,6 +111,25 @@ class InstanceAggregationsManager {
             this.loadChangeChartData();
         });
         
+        // 容量变化百分比图表类型切换
+        $('input[name="changePercentChartType"]').on('change', (e) => {
+            this.changePercentChartType = e.target.value;
+            this.renderChangePercentChart(this.changePercentChartData);
+        });
+        
+        // 容量变化百分比TOP选择器切换
+        $('input[name="changePercentTopSelector"]').on('change', (e) => {
+            this.changePercentTopCount = parseInt(e.target.value, 10);
+            this.renderChangePercentChart(this.changePercentChartData);
+        });
+        
+        // 容量变化百分比统计周期切换
+        $('input[name="changePercentStatisticsPeriod"]').on('change', (e) => {
+            this.changePercentStatisticsPeriod = parseInt(e.target.value, 10);
+            this.updateChangePercentChartOverrideRange();
+            this.loadChangePercentChartData();
+        });
+        
         // 统计周期选择器切换
         $('input[name="statisticsPeriod"]').on('change', (e) => {
             this.currentStatisticsPeriod = parseInt(e.target.value);
@@ -115,9 +146,13 @@ class InstanceAggregationsManager {
             if (this.changeFilters.override) {
                 this.updateChangeChartOverrideRange();
             }
+            if (this.changePercentFilters.override) {
+                this.updateChangePercentChartOverrideRange();
+            }
             this.loadSummaryData(); // 更新统计卡片
             this.loadChartData();   // 更新趋势图
             this.loadChangeChartData(); // 更新变化趋势图
+            this.loadChangePercentChartData(); // 更新百分比变化趋势图
         });
         
         // 筛选按钮
@@ -148,6 +183,117 @@ class InstanceAggregationsManager {
             this.loadSummaryData(); // 更新统计卡片
             this.loadChartData();   // 更新趋势图
             this.loadChangeChartData(); // 更新变化趋势图
+        });
+    }
+    
+    /**
+     * 渲染容量变化百分比趋势图
+     */
+    renderChangePercentChart(data) {
+        const canvas = document.getElementById('instanceChangePercentChart');
+        if (!canvas) {
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        
+        if (this.changePercentChart) {
+            this.changePercentChart.destroy();
+        }
+        
+        if (!data || data.length === 0) {
+            this.showEmptyChangePercentChart();
+            return;
+        }
+        
+        const groupedData = this.groupChangePercentDataByDate(data);
+        const chartData = this.prepareChangePercentChartData(groupedData);
+        
+        if (!chartData || chartData.labels.length === 0 || chartData.datasets.length === 0) {
+            this.showEmptyChangePercentChart();
+            return;
+        }
+        
+        const allValues = [];
+        chartData.datasets.forEach(dataset => {
+            dataset.data.forEach(value => {
+                if (typeof value === 'number' && !Number.isNaN(value)) {
+                    allValues.push(value);
+                }
+            });
+        });
+        const minValue = allValues.length ? Math.min(...allValues, 0) : 0;
+        const maxValue = allValues.length ? Math.max(...allValues, 0) : 0;
+        const rangePadding = Math.max((maxValue - minValue) * 0.1, 1);
+        const suggestedMin = Math.min(minValue - rangePadding, -5);
+        const suggestedMax = Math.max(maxValue + rangePadding, 5);
+        
+        this.changePercentChart = new Chart(ctx, {
+            type: this.changePercentChartType,
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '容量变化趋势图 (百分比)'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'right'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y;
+                                if (value === null || value === undefined || Number.isNaN(value)) {
+                                    return `${label}: 无数据`;
+                                }
+                                const formatted = `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+                                return `${label}: ${formatted}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '时间'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '变化率 (%)'
+                        },
+                        suggestedMin,
+                        suggestedMax,
+                        grid: {
+                            color: (context) => {
+                                if (context.tick && context.tick.value === 0) {
+                                    return '#212529';
+                                }
+                                return 'rgba(0, 0, 0, 0.08)';
+                            },
+                            lineWidth: (context) => (context.tick && context.tick.value === 0 ? 2 : 1),
+                            borderDash: (context) => (context.tick && context.tick.value === 0 ? [] : [2, 2]),
+                            drawTicks: true
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
         });
     }
     
@@ -289,11 +435,16 @@ class InstanceAggregationsManager {
         this.changeFilters.end_date = this.currentFilters.end_date || null;
         this.changeFilters.override = false;
         this.changeFilters.period_type = this.currentFilters.period_type || 'daily';
+        this.changePercentFilters.start_date = this.currentFilters.start_date || null;
+        this.changePercentFilters.end_date = this.currentFilters.end_date || null;
+        this.changePercentFilters.override = false;
+        this.changePercentFilters.period_type = this.currentFilters.period_type || 'daily';
         
         // 重新加载数据
         this.loadSummaryData();
         this.loadChartData();
         this.loadChangeChartData();
+        this.loadChangePercentChartData();
     }
     
     /**
@@ -324,11 +475,21 @@ class InstanceAggregationsManager {
             override: false,
             period_type: 'daily'
         };
+        this.changePercentChartType = 'line';
+        this.changePercentTopCount = 5;
+        this.changePercentStatisticsPeriod = 7;
+        this.changePercentFilters = {
+            start_date: null,
+            end_date: null,
+            override: false,
+            period_type: 'daily'
+        };
         
         // 重新加载数据
         this.loadSummaryData();
         this.loadChartData();
         this.loadChangeChartData();
+        this.loadChangePercentChartData();
     }
     
     /**
@@ -342,7 +503,8 @@ class InstanceAggregationsManager {
             await Promise.all([
                 this.loadSummaryData(),
                 this.loadChartData(),
-                this.loadChangeChartData()
+                this.loadChangeChartData(),
+                this.loadChangePercentChartData()
             ]);
             this.syncUIState(); // 同步UI状态
             this.showSuccess('数据刷新成功');
@@ -449,6 +611,35 @@ class InstanceAggregationsManager {
             this.showError('加载容量变化数据时出错: ' + error.message);
         } finally {
             this.hideChangeChartLoading();
+        }
+    }
+    
+    /**
+     * 加载容量变化百分比图表数据
+     */
+    async loadChangePercentChartData() {
+        try {
+            this.showChangePercentChartLoading();
+            
+            const params = this.buildChangePercentChartParams();
+            console.log('加载容量变化百分比图表数据，参数:', params.toString());
+            const response = await fetch(`/database_stats/api/instances/aggregations?${params}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.changePercentChartData = data.data || [];
+                console.log('容量变化百分比图表数据条目:', this.changePercentChartData.length);
+                this.renderChangePercentChart(this.changePercentChartData);
+                this.syncUIState();
+            } else {
+                console.error('容量变化百分比数据加载失败:', data.error);
+                this.showError('容量变化百分比数据加载失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('加载容量变化百分比数据时出错:', error);
+            this.showError('加载容量变化百分比数据时出错: ' + error.message);
+        } finally {
+            this.hideChangePercentChartLoading();
         }
     }
     
@@ -863,6 +1054,126 @@ class InstanceAggregationsManager {
     }
     
     /**
+     * 按日期分组容量变化百分比数据
+     */
+    groupChangePercentDataByDate(data) {
+        const grouped = {};
+        
+        data.forEach(item => {
+            const date = item.period_start;
+            if (!date) {
+                console.warn('容量变化百分比数据缺少period_start:', item);
+                return;
+            }
+            
+            if (!grouped[date]) {
+                grouped[date] = {};
+            }
+            
+            const instanceName = item.instance?.name || '未知实例';
+            const changePercent = Number(item.total_size_change_percent ?? 0);
+            grouped[date][instanceName] = Number.isNaN(changePercent) ? 0 : changePercent;
+        });
+        
+        console.log('容量变化百分比分组数据:', grouped);
+        return grouped;
+    }
+    
+    /**
+     * 准备容量变化百分比图表数据
+     */
+    prepareChangePercentChartData(groupedData) {
+        const labels = Object.keys(groupedData).sort();
+        const datasets = [];
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+            '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+            '#BB8FCE', '#85C1E9', '#F8C471', '#82E0AA'
+        ];
+        
+        const instanceMaxPercents = new Map();
+        Object.values(groupedData).forEach(dateData => {
+            Object.entries(dateData).forEach(([instanceName, percentValue]) => {
+                const absValue = Math.abs(percentValue || 0);
+                const existingMax = instanceMaxPercents.get(instanceName) || 0;
+                instanceMaxPercents.set(instanceName, Math.max(existingMax, absValue));
+            });
+        });
+        
+        const sortedInstances = Array.from(instanceMaxPercents.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, this.changePercentTopCount)
+            .map(([name]) => name);
+        
+        console.log(`容量变化百分比TOP ${this.changePercentTopCount}实例:`, sortedInstances);
+        
+        let colorIndex = 0;
+        const manager = this;
+        
+        sortedInstances.forEach(instanceName => {
+            const data = labels.map(date => {
+                const rawValue = groupedData[date][instanceName];
+                if (rawValue === undefined || rawValue === null) {
+                    return 0;
+                }
+                const numericValue = Number(rawValue);
+                if (Number.isNaN(numericValue)) {
+                    return 0;
+                }
+                return numericValue;
+            });
+            
+            const baseColor = colors[colorIndex % colors.length];
+            const dataset = {
+                label: instanceName,
+                data: data,
+                borderColor: baseColor,
+                backgroundColor: (ctx) => {
+                    const value = ctx.parsed?.y ?? 0;
+                    if (manager.changePercentChartType === 'line') {
+                        return manager.colorWithAlpha(baseColor, 0.1);
+                    }
+                    return value >= 0
+                        ? manager.colorWithAlpha(baseColor, 0.65)
+                        : manager.colorWithAlpha(baseColor, 0.35);
+                },
+                fill: manager.changePercentChartType !== 'line',
+                tension: manager.changePercentChartType === 'line' ? 0.3 : 0
+            };
+            
+            if (manager.changePercentChartType === 'line') {
+                dataset.segment = {
+                    borderDash: (ctx) => {
+                        const prev = ctx.p0?.parsed?.y ?? 0;
+                        const curr = ctx.p1?.parsed?.y ?? 0;
+                        const bothPositive = prev >= 0 && curr >= 0;
+                        return bothPositive ? [] : [6, 4];
+                    },
+                    borderColor: () => baseColor
+                };
+                dataset.pointRadius = (ctx) => (Math.abs(ctx.parsed?.y ?? 0) < 0.001 ? 3 : 4);
+                dataset.pointHoverRadius = 5;
+                dataset.pointBackgroundColor = (ctx) => {
+                    const value = ctx.parsed?.y ?? 0;
+                    return value >= 0 ? manager.colorWithAlpha(baseColor, 0.85) : '#ffffff';
+                };
+                dataset.pointBorderColor = baseColor;
+                dataset.pointBorderWidth = (ctx) => (ctx.parsed?.y ?? 0) >= 0 ? 1 : 2;
+            } else {
+                dataset.borderWidth = 1.5;
+                dataset.borderDash = (ctx) => ((ctx.parsed?.y ?? 0) >= 0 ? [] : [6, 4]);
+            }
+            
+            datasets.push(dataset);
+            colorIndex++;
+        });
+        
+        return { labels, datasets };
+    }
+    
+    /**
      * 显示空图表
      */
     showEmptyChart() {
@@ -940,6 +1251,50 @@ class InstanceAggregationsManager {
         });
     }
     
+    /**
+     * 显示空的容量变化百分比图表
+     */
+    showEmptyChangePercentChart() {
+        const canvas = document.getElementById('instanceChangePercentChart');
+        if (!canvas) {
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        
+        if (this.changePercentChart) {
+            this.changePercentChart.destroy();
+        }
+        
+        this.changePercentChart = new Chart(ctx, {
+            type: this.changePercentChartType,
+            data: {
+                labels: ['暂无数据'],
+                datasets: [{
+                    label: '暂无数据',
+                    data: [0],
+                    backgroundColor: '#f8f9fa',
+                    borderColor: '#dee2e6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '容量变化趋势图 (百分比) - 暂无数据'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    
     
     
     
@@ -993,6 +1348,11 @@ class InstanceAggregationsManager {
             this.changeFilters.start_date = range.startDate;
             this.changeFilters.end_date = range.endDate;
             this.changeFilters.period_type = periodType;
+        }
+        if (!this.changePercentFilters.override) {
+            this.changePercentFilters.start_date = range.startDate;
+            this.changePercentFilters.end_date = range.endDate;
+            this.changePercentFilters.period_type = periodType;
         }
         
         console.log(`更新时间范围: ${this.currentStatisticsPeriod}个${periodType}周期`, {
@@ -1055,6 +1415,34 @@ class InstanceAggregationsManager {
     }
     
     /**
+     * 构建容量变化百分比图表的筛选参数
+     */
+    buildChangePercentChartParams() {
+        const params = new URLSearchParams();
+        
+        if (this.currentFilters.instance_id) {
+            params.append('instance_id', this.currentFilters.instance_id);
+        }
+        if (this.currentFilters.db_type) {
+            params.append('db_type', this.currentFilters.db_type);
+        }
+        
+        const periodType = this.currentFilters.period_type || 'daily';
+        params.append('period_type', periodType);
+        
+        const { startDate, endDate } = this.getChangePercentChartDateRange(periodType);
+        if (startDate) {
+            params.append('start_date', startDate);
+        }
+        if (endDate) {
+            params.append('end_date', endDate);
+        }
+        
+        params.append('get_all', 'true');
+        return params;
+    }
+    
+    /**
      * 获取容量变化图表的时间范围
      */
     getChangeChartDateRange(periodType) {
@@ -1085,6 +1473,41 @@ class InstanceAggregationsManager {
         this.changeFilters.start_date = startDate;
         this.changeFilters.end_date = endDate;
         this.changeFilters.period_type = periodType;
+        
+        return { startDate, endDate };
+    }
+    
+    /**
+     * 获取容量变化百分比图表的时间范围
+     */
+    getChangePercentChartDateRange(periodType) {
+        if (this.changePercentFilters.override) {
+            return {
+                startDate: this.changePercentFilters.start_date,
+                endDate: this.changePercentFilters.end_date
+            };
+        }
+        
+        let startDate = this.currentFilters.start_date || null;
+        let endDate = this.currentFilters.end_date || null;
+        
+        if (!startDate || !endDate) {
+            const computedRange = this.calculateDateRange(
+                periodType,
+                this.changePercentStatisticsPeriod,
+                { respectExistingStart: false, respectExistingEnd: false }
+            );
+            if (!startDate) {
+                startDate = computedRange.startDate;
+            }
+            if (!endDate) {
+                endDate = computedRange.endDate;
+            }
+        }
+        
+        this.changePercentFilters.start_date = startDate;
+        this.changePercentFilters.end_date = endDate;
+        this.changePercentFilters.period_type = periodType;
         
         return { startDate, endDate };
     }
@@ -1141,6 +1564,21 @@ class InstanceAggregationsManager {
     }
     
     /**
+     * 更新容量变化百分比图的独立时间范围
+     */
+    updateChangePercentChartOverrideRange() {
+        const periodType = this.currentFilters.period_type || 'daily';
+        const range = this.calculateDateRange(periodType, this.changePercentStatisticsPeriod, {
+            respectExistingStart: false,
+            respectExistingEnd: false
+        });
+        this.changePercentFilters.start_date = range.startDate;
+        this.changePercentFilters.end_date = range.endDate;
+        this.changePercentFilters.override = true;
+        this.changePercentFilters.period_type = periodType;
+    }
+    
+    /**
      * 显示图表加载状态
      */
     showChartLoading() {
@@ -1166,6 +1604,20 @@ class InstanceAggregationsManager {
      */
     hideChangeChartLoading() {
         $('#changeChartLoading').addClass('d-none');
+    }
+    
+    /**
+     * 显示容量变化百分比图表加载状态
+     */
+    showChangePercentChartLoading() {
+        $('#changePercentChartLoading').removeClass('d-none');
+    }
+    
+    /**
+     * 隐藏容量变化百分比图表加载状态
+     */
+    hideChangePercentChartLoading() {
+        $('#changePercentChartLoading').addClass('d-none');
     }
     
     /**
@@ -1205,13 +1657,25 @@ class InstanceAggregationsManager {
         // 同步容量变化统计周期选择器
         $(`input[name="changeStatisticsPeriod"][value="${this.changeStatisticsPeriod}"]`).prop('checked', true);
         
+        // 同步容量变化百分比图表类型
+        $(`input[name="changePercentChartType"][value="${this.changePercentChartType}"]`).prop('checked', true);
+        
+        // 同步容量变化百分比TOP选择器
+        $(`input[name="changePercentTopSelector"][value="${this.changePercentTopCount}"]`).prop('checked', true);
+        
+        // 同步容量变化百分比统计周期选择器
+        $(`input[name="changePercentStatisticsPeriod"][value="${this.changePercentStatisticsPeriod}"]`).prop('checked', true);
+        
         console.log('UI状态已同步:', {
             chartType: this.currentChartType,
             topCount: this.currentTopCount,
             statisticsPeriod: this.currentStatisticsPeriod,
             changeChartType: this.changeChartType,
             changeTopCount: this.changeTopCount,
-            changeStatisticsPeriod: this.changeStatisticsPeriod
+            changeStatisticsPeriod: this.changeStatisticsPeriod,
+            changePercentChartType: this.changePercentChartType,
+            changePercentTopCount: this.changePercentTopCount,
+            changePercentStatisticsPeriod: this.changePercentStatisticsPeriod
         });
     }
     
