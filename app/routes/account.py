@@ -204,6 +204,9 @@ def list_accounts(db_type: str | None = None) -> str:
             }
         )
 
+    persist_query_args = request.args.to_dict(flat=False)
+    persist_query_args.pop("page", None)
+
     return render_template(
         "accounts/list.html",
         accounts=pagination,
@@ -223,6 +226,7 @@ def list_accounts(db_type: str | None = None) -> str:
         filter_options=filter_options,
         classifications=classifications,
         classifications_list=classifications_list,
+        persist_query_args=persist_query_args,
     )
 
 
@@ -787,5 +791,4 @@ def get_account_statistics() -> dict:
             "permission_stats": {},
             "accounts_with_permissions": 0,
         }
-
 
