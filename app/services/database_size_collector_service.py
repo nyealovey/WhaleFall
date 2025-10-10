@@ -227,6 +227,25 @@ class DatabaseSizeCollectorService:
                     exc_info=True,
                 )
         
+        # 确保所有数据库都包含在结果中，即使没有表空间统计数据
+        try:
+            databases_result = self.db_connection.execute_query("SHOW DATABASES")
+            if databases_result:
+                for row in databases_result:
+                    if not row:
+                        continue
+                    db_name = str(row[0])
+                    if not db_name:
+                        continue
+                    aggregated.setdefault(db_name, 0)
+        except Exception as e:
+            self.logger.warning(
+                "mysql_show_databases_failed",
+                instance=self.instance.name,
+                error=str(e),
+                exc_info=True,
+            )
+        
         return [
             {'database_name': name, 'total_bytes': total}
             for name, total in aggregated.items()

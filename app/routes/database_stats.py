@@ -693,99 +693,62 @@ def get_instances_aggregations_summary():
             start_date = start_date_obj.strftime('%Y-%m-%d')
             end_date = end_date_obj.strftime('%Y-%m-%d')
         
-        # 构建查询
-        from app.models.instance_size_aggregation import InstanceSizeAggregation
-        query = InstanceSizeAggregation.query.join(Instance)
-        
-        # 应用过滤条件
-        if instance_id:
-            query = query.filter(InstanceSizeAggregation.instance_id == instance_id)
-        if db_type:
-            query = query.filter(Instance.db_type == db_type)
-        if period_type:
-            query = query.filter(InstanceSizeAggregation.period_type == period_type)
+        # 解析日期参数
+        start_date_obj = None
+        end_date_obj = None
         if start_date:
-            query = query.filter(InstanceSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
         if end_date:
-            query = query.filter(InstanceSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
-        
-        # 获取聚合数据
-        aggregations = query.all()
-        
-        if not aggregations:
-            from app.models.instance_size_stat import InstanceSizeStat
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
 
-            stat_query = InstanceSizeStat.query.join(Instance).filter(
-                InstanceSizeStat.is_deleted.is_(False)
+        # 优先使用实例大小统计表（与容量同步实时同步）
+        from app.models.instance_size_stat import InstanceSizeStat
+
+        stat_query = InstanceSizeStat.query.join(Instance).filter(
+            InstanceSizeStat.is_deleted.is_(False)
+        )
+        if instance_id:
+            stat_query = stat_query.filter(InstanceSizeStat.instance_id == instance_id)
+        if db_type:
+            stat_query = stat_query.filter(Instance.db_type == db_type)
+        if start_date_obj:
+            stat_query = stat_query.filter(InstanceSizeStat.collected_date >= start_date_obj)
+        if end_date_obj:
+            stat_query = stat_query.filter(InstanceSizeStat.collected_date <= end_date_obj)
+
+        stats = stat_query.all()
+        latest_stats_by_instance: Dict[int, InstanceSizeStat] = {}
+        for stat in stats:
+            existing = latest_stats_by_instance.get(stat.instance_id)
+            current_ts = stat.collected_at or datetime.combine(
+                stat.collected_date, datetime.min.time()
             )
+            if not existing:
+                latest_stats_by_instance[stat.instance_id] = stat
+                continue
+            existing_ts = existing.collected_at or datetime.combine(
+                existing.collected_date, datetime.min.time()
+            )
+            if current_ts > existing_ts:
+                latest_stats_by_instance[stat.instance_id] = stat
 
-            if instance_id:
-                stat_query = stat_query.filter(InstanceSizeStat.instance_id == instance_id)
-            if db_type:
-                stat_query = stat_query.filter(Instance.db_type == db_type)
-            if start_date_obj:
-                stat_query = stat_query.filter(InstanceSizeStat.collected_date >= start_date_obj)
-            if end_date_obj:
-                stat_query = stat_query.filter(InstanceSizeStat.collected_date <= end_date_obj)
+        total_instances = len(latest_stats_by_instance)
+        total_size_mb = sum(
+            stat.total_size_mb or 0 for stat in latest_stats_by_instance.values()
+        )
+        avg_size_mb = total_size_mb / total_instances if total_instances else 0
+        max_size_mb = (
+            max(stat.total_size_mb or 0 for stat in latest_stats_by_instance.values())
+            if latest_stats_by_instance
+            else 0
+        )
 
-            stats = stat_query.all()
-
-            if not stats:
-                return jsonify({
-                    'success': True,
-                    'data': {
-                        'total_instances': 0,
-                        'total_size_mb': 0,
-                        'avg_size_mb': 0,
-                        'max_size_mb': 0,
-                        'period_type': period_type or 'all'
-                    }
-                })
-
-            latest_stats_by_instance = {}
-            for stat in stats:
-                existing = latest_stats_by_instance.get(stat.instance_id)
-                if not existing:
-                    latest_stats_by_instance[stat.instance_id] = stat
-                    continue
-
-                current_ts = stat.collected_at or datetime.combine(stat.collected_date, datetime.min.time())
-                existing_ts = existing.collected_at or datetime.combine(existing.collected_date, datetime.min.time())
-
-                if current_ts > existing_ts:
-                    latest_stats_by_instance[stat.instance_id] = stat
-
-            total_instances = len(latest_stats_by_instance)
-            total_size_mb = sum(stat.total_size_mb or 0 for stat in latest_stats_by_instance.values())
-            avg_size_mb = total_size_mb / total_instances if total_instances else 0
-            max_size_mb = max((stat.total_size_mb or 0) for stat in latest_stats_by_instance.values()) if latest_stats_by_instance else 0
-
-            return jsonify({
-                'success': True,
-                'data': {
-                    'total_instances': total_instances,
-                    'total_size_mb': total_size_mb,
-                    'avg_size_mb': avg_size_mb,
-                    'max_size_mb': max_size_mb,
-                    'period_type': period_type or 'all',
-                    'source': 'instance_size_stats'
-                }
-            })
-        
-        # 计算汇总统计
-        # 按实例分组，获取每个实例的最新记录
-        instance_latest = {}
-        for agg in aggregations:
-            instance_id = agg.instance_id
-            if instance_id not in instance_latest or agg.period_start > instance_latest[instance_id].period_start:
-                instance_latest[instance_id] = agg
-        
-        # 计算统计指标
-        total_instances = len(instance_latest)
-        total_size_mb = sum(agg.total_size_mb for agg in instance_latest.values())
-        avg_size_mb = total_size_mb / total_instances if total_instances > 0 else 0
-        max_size_mb = max(agg.total_size_mb for agg in instance_latest.values()) if instance_latest else 0
-        
         return jsonify({
             'success': True,
             'data': {
@@ -794,7 +757,7 @@ def get_instances_aggregations_summary():
                 'avg_size_mb': avg_size_mb,
                 'max_size_mb': max_size_mb,
                 'period_type': period_type or 'all',
-                'source': 'instance_size_aggregations'
+                'source': 'instance_size_stats'
             }
         })
         
