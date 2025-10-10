@@ -114,6 +114,7 @@
 | 路径 | 方法 | 描述 |
 |------|------|------|
 | `/database_stats/api/instances/<int:instance_id>/database-sizes/total` | GET | 获取指定实例的数据库总大小 |
+| `/database_stats/api/instance-options` | GET | 获取用于表单的实例选项 |
 | `/database_stats/api/instances/<int:instance_id>/database-sizes` | GET | 获取指定实例的数据库大小历史数据 |
 | `/database_stats/api/instances/<int:instance_id>/database-sizes/summary` | GET | 获取指定实例的数据库大小汇总信息 |
 | `/database_stats/api/instances/<int:instance_id>/databases` | GET | 获取指定实例的数据库列表 |
@@ -246,7 +247,7 @@
 | `/instances/api/create` | POST | 创建实例API |
 | `/instances/api/<int:instance_id>/edit` | POST | 编辑实例API |
 | `/instances/api/<int:instance_id>/delete` | POST | 删除实例 |
-| `/instances/api/<int:instance_id>/test` | GET, POST | 测试连接API（已弃用，请使用 /connections/api/test） |
+| `/instances/api/<int:instance_id>/test` | POST | 测试连接API（已弃用，请使用 /connections/api/test） |
 | `/instances/api/<int:instance_id>/accounts` | GET | 获取实例账户数据API |
 | `/instances/api/<int:instance_id>/accounts/<int:account_id>/change-history` | GET | 获取账户变更历史 |
 | `/instances/api/<int:instance_id>/accounts/<int:account_id>/permissions` | GET | 获取账户权限详情 |
