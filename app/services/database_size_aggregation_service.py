@@ -8,6 +8,7 @@ from datetime import datetime, date, timedelta
 from typing import List, Dict, Any, Optional, Set, Tuple
 from app.utils.time_utils import time_utils
 from sqlalchemy import func, and_, or_
+from sqlalchemy.exc import IntegrityError
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance_size_aggregation import InstanceSizeAggregation
@@ -30,23 +31,55 @@ class DatabaseSizeAggregationService:
         """
         确保目标日期所在月份的分区已创建
         """
+        bind = db.session.get_bind()
+        if not bind or bind.dialect.name != "postgresql":
+            return
+
         month_key = (target_date.year, target_date.month)
         if month_key in self._partition_cache:
             return
 
         try:
             partition_service = PartitionManagementService()
-            partition_service.create_partition(target_date)
-            self._partition_cache.add(month_key)
+            result = partition_service.create_partition(target_date)
+            if result.get("success"):
+                self._partition_cache.add(month_key)
+            else:
+                logger.warning(
+                    "创建聚合分区失败",
+                    extra={
+                        "module": "aggregation_partition",
+                        "target_month": target_date.strftime("%Y-%m"),
+                        "message": result.get("message"),
+                        "errors": result.get("errors"),
+                    },
+                )
         except Exception as exc:  # pragma: no cover - 记录警告不影响主流程
             logger.warning(
-                "创建聚合分区失败，后续可能再次尝试",
+                "创建聚合分区异常，后续可能再次尝试",
                 extra={
                     "module": "aggregation_partition",
                     "target_month": target_date.strftime("%Y-%m"),
                     "error": str(exc),
                 },
             )
+
+    def _commit_with_partition_retry(self, aggregation, start_date: date) -> None:
+        """
+        提交聚合记录，如因缺少分区失败则尝试创建分区后重试
+        """
+        try:
+            db.session.commit()
+        except IntegrityError as exc:
+            db.session.rollback()
+            message = str(exc.orig) if hasattr(exc, "orig") else str(exc)
+            if "no partition of relation" not in message:
+                raise
+
+            self._ensure_partition_for_date(start_date)
+
+            db.session.merge(aggregation)
+            db.session.commit()
     
     def calculate_all_aggregations(self) -> Dict[str, Any]:
         """
@@ -450,7 +483,7 @@ class DatabaseSizeAggregationService:
             if not existing:
                 db.session.add(aggregation)
             
-            db.session.commit()
+            self._commit_with_partition_retry(aggregation, start_date)
             
             logger.debug(f"实例 {instance_id} 的 {period_type} 实例聚合计算完成")
             
@@ -691,7 +724,7 @@ class DatabaseSizeAggregationService:
             if not existing:
                 db.session.add(aggregation)
             
-            db.session.commit()
+            self._commit_with_partition_retry(aggregation, start_date)
             
             logger.debug(f"数据库 {database_name} 的 {period_type} 聚合计算完成")
             
