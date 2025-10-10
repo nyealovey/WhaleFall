@@ -344,12 +344,14 @@ class DatabaseAggregationsManager {
         try {
             databaseSelect.prop('disabled', false);
             const params = new URLSearchParams();
+            params.append('latest_only', 'true');
             params.append('limit', '500');
-            const response = await fetch(`/database_stats/api/instances/${encodeURIComponent(instanceId)}/databases?${params.toString()}`);
+            const response = await fetch(`/database_stats/api/instances/${encodeURIComponent(instanceId)}/database-sizes?${params.toString()}`);
             const data = await response.json();
             
-            if (response.ok && data.success) {
-                const databases = [...new Set((data.data || []).map(item => item.database_name).filter(Boolean))].sort();
+            if (response.ok && data.success !== false) {
+                const list = data.data || data; // 兼容两种返回结构
+                const databases = [...new Set(list.map(item => item.database_name).filter(Boolean))].sort();
                 databaseSelect.empty();
                 databaseSelect.append('<option value="">所有数据库</option>');
                 let matchedDatabase = '';
