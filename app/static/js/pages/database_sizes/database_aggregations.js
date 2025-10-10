@@ -344,25 +344,12 @@ class DatabaseAggregationsManager {
         try {
             databaseSelect.prop('disabled', false);
             const params = new URLSearchParams();
-            params.append('instance_id', instanceId);
-            if (this.currentFilters.db_type) {
-                params.append('db_type', this.currentFilters.db_type);
-            }
-            const periodType = this.currentFilters.period_type || 'daily';
-            params.append('period_type', periodType);
-            if (this.currentFilters.start_date) {
-                params.append('start_date', this.currentFilters.start_date);
-            }
-            if (this.currentFilters.end_date) {
-                params.append('end_date', this.currentFilters.end_date);
-            }
-            params.append('get_all', 'true');
-            params.append('chart_mode', 'database');
-            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
+            params.append('limit', '500');
+            const response = await fetch(`/database_stats/api/instances/${encodeURIComponent(instanceId)}/databases?${params.toString()}`);
             const data = await response.json();
             
             if (response.ok && data.success) {
-                const databases = [...new Set((data.data || []).map(item => item.database_name))].sort();
+                const databases = [...new Set((data.data || []).map(item => item.database_name).filter(Boolean))].sort();
                 databaseSelect.empty();
                 databaseSelect.append('<option value="">所有数据库</option>');
                 let matchedDatabase = '';
