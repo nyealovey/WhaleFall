@@ -596,10 +596,14 @@ def get_instances_aggregations():
             query = query.filter(Instance.db_type == db_type)
         if period_type:
             query = query.filter(InstanceSizeAggregation.period_type == period_type)
+        start_date_obj = None
+        end_date_obj = None
         if start_date:
-            query = query.filter(InstanceSizeAggregation.period_start >= datetime.strptime(start_date, '%Y-%m-%d').date())
+            start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+            query = query.filter(InstanceSizeAggregation.period_start >= start_date_obj)
         if end_date:
-            query = query.filter(InstanceSizeAggregation.period_end <= datetime.strptime(end_date, '%Y-%m-%d').date())
+            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+            query = query.filter(InstanceSizeAggregation.period_end <= end_date_obj)
         
         # 排序和分页
         if get_all:
@@ -709,14 +713,62 @@ def get_instances_aggregations_summary():
         aggregations = query.all()
         
         if not aggregations:
+            from app.models.instance_size_stat import InstanceSizeStat
+
+            stat_query = InstanceSizeStat.query.join(Instance).filter(
+                InstanceSizeStat.is_deleted.is_(False)
+            )
+
+            if instance_id:
+                stat_query = stat_query.filter(InstanceSizeStat.instance_id == instance_id)
+            if db_type:
+                stat_query = stat_query.filter(Instance.db_type == db_type)
+            if start_date_obj:
+                stat_query = stat_query.filter(InstanceSizeStat.collected_date >= start_date_obj)
+            if end_date_obj:
+                stat_query = stat_query.filter(InstanceSizeStat.collected_date <= end_date_obj)
+
+            stats = stat_query.all()
+
+            if not stats:
+                return jsonify({
+                    'success': True,
+                    'data': {
+                        'total_instances': 0,
+                        'total_size_mb': 0,
+                        'avg_size_mb': 0,
+                        'max_size_mb': 0,
+                        'period_type': period_type or 'all'
+                    }
+                })
+
+            latest_stats_by_instance = {}
+            for stat in stats:
+                existing = latest_stats_by_instance.get(stat.instance_id)
+                if not existing:
+                    latest_stats_by_instance[stat.instance_id] = stat
+                    continue
+
+                current_ts = stat.collected_at or datetime.combine(stat.collected_date, datetime.min.time())
+                existing_ts = existing.collected_at or datetime.combine(existing.collected_date, datetime.min.time())
+
+                if current_ts > existing_ts:
+                    latest_stats_by_instance[stat.instance_id] = stat
+
+            total_instances = len(latest_stats_by_instance)
+            total_size_mb = sum(stat.total_size_mb or 0 for stat in latest_stats_by_instance.values())
+            avg_size_mb = total_size_mb / total_instances if total_instances else 0
+            max_size_mb = max((stat.total_size_mb or 0) for stat in latest_stats_by_instance.values()) if latest_stats_by_instance else 0
+
             return jsonify({
                 'success': True,
                 'data': {
-                    'total_instances': 0,
-                    'total_size_mb': 0,
-                    'avg_size_mb': 0,
-                    'max_size_mb': 0,
-                    'period_type': period_type or 'all'
+                    'total_instances': total_instances,
+                    'total_size_mb': total_size_mb,
+                    'avg_size_mb': avg_size_mb,
+                    'max_size_mb': max_size_mb,
+                    'period_type': period_type or 'all',
+                    'source': 'instance_size_stats'
                 }
             })
         
@@ -741,7 +793,8 @@ def get_instances_aggregations_summary():
                 'total_size_mb': total_size_mb,
                 'avg_size_mb': avg_size_mb,
                 'max_size_mb': max_size_mb,
-                'period_type': period_type or 'all'
+                'period_type': period_type or 'all',
+                'source': 'instance_size_aggregations'
             }
         })
         
