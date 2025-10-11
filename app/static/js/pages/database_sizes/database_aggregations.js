@@ -33,9 +33,11 @@ class DatabaseAggregationsManager {
             period_type: 'daily'
         };
         this.databaseLabelMap = {};
+        this.databaseIdMap = new Map();
         this.currentFilters = {
             instance_id: null,
             db_type: null,
+            database_id: null,
             database_name: null,
             period_type: 'daily',
             start_date: null,
@@ -62,10 +64,26 @@ class DatabaseAggregationsManager {
     initializeCurrentFilters() {
         const dbTypeValue = $('#db_type').val();
         const instanceValue = $('#instance').val();
-        const databaseValue = $('#database').val();
+        const databaseSelect = $('#database');
+        const initialDatabaseValue = databaseSelect.data('initialValue');
+        const databaseValue = (initialDatabaseValue !== undefined && initialDatabaseValue !== null && String(initialDatabaseValue).length > 0)
+            ? String(initialDatabaseValue)
+            : databaseSelect.val();
         this.currentFilters.db_type = dbTypeValue ? dbTypeValue.toLowerCase() : null;
         this.currentFilters.instance_id = instanceValue || null;
-        this.currentFilters.database_name = databaseValue || null;
+        this.currentFilters.database_id = databaseValue || null;
+        let databaseName = null;
+        if (databaseValue) {
+            databaseName = this.databaseIdMap.get(String(databaseValue)) || null;
+            if (!databaseName) {
+                const selectedOption = databaseSelect.find('option:selected');
+                if (selectedOption.length) {
+                    const text = selectedOption.text().trim();
+                    databaseName = text || null;
+                }
+            }
+        }
+        this.currentFilters.database_name = databaseName;
         this.currentFilters.period_type = $('#period_type').val() || 'daily';
         this.currentFilters.start_date = $('#start_date').val() || null;
         this.currentFilters.end_date = $('#end_date').val() || null;
@@ -73,7 +91,7 @@ class DatabaseAggregationsManager {
             $('#instance').data('selected', instanceValue);
         }
         if (databaseValue) {
-            $('#database').data('selected', databaseValue);
+            databaseSelect.data('selected', databaseValue);
         }
     }
     
@@ -198,7 +216,7 @@ class DatabaseAggregationsManager {
                 if (initialInstance) {
                     instanceSelect.val(initialInstance);
                     this.updateDatabaseOptions(initialInstance, { preserveDatabase: true }).then(() => {
-                        const initialDatabase = this.currentFilters.database_name || databaseSelect.data('selected');
+                        const initialDatabase = this.currentFilters.database_id || databaseSelect.data('selected') || databaseSelect.data('initialValue');
                         if (initialDatabase) {
                             databaseSelect.val(initialDatabase);
                         }
@@ -262,11 +280,14 @@ class DatabaseAggregationsManager {
         
         if (!preserveInstance) {
             this.currentFilters.instance_id = null;
+            this.currentFilters.database_id = null;
             this.currentFilters.database_name = null;
             instanceSelect.data('selected', '');
             databaseSelect.data('selected', '');
+            databaseSelect.data('initialValue', '');
+            this.databaseIdMap.clear();
         }
-        
+
         databaseSelect.empty();
         databaseSelect.append('<option value="">请先选择实例</option>');
         databaseSelect.prop('disabled', true);
@@ -324,54 +345,66 @@ class DatabaseAggregationsManager {
             databaseSelect.append('<option value="">所有数据库</option>');
             databaseSelect.prop('disabled', true);
             if (!preserveDatabase) {
+                this.currentFilters.database_id = null;
                 this.currentFilters.database_name = null;
                 databaseSelect.data('selected', '');
                 databaseSelect.data('initialValue', '');
+                this.databaseIdMap.clear();
             }
             return;
         }
-        
+
         const initialAttrValue = databaseSelect.data('initialValue');
         const storedDatabase = preserveDatabase
-            ? (this.currentFilters.database_name || databaseSelect.data('selected') || initialAttrValue || '')
+            ? (this.currentFilters.database_id || databaseSelect.data('selected') || initialAttrValue || '')
             : '';
 
         if (!preserveDatabase) {
+            this.currentFilters.database_id = null;
             this.currentFilters.database_name = null;
             databaseSelect.data('selected', '');
         }
-        
+
         try {
             databaseSelect.prop('disabled', false);
             const params = new URLSearchParams();
-            params.append('latest_only', 'true');
-            params.append('limit', '500');
-            const response = await fetch(`/database_stats/api/instances/${encodeURIComponent(instanceId)}/database-sizes?${params.toString()}`);
+            params.append('limit', '1000');
+            const response = await fetch(`/database_stats/api/instances/${encodeURIComponent(instanceId)}/databases?${params.toString()}`);
             const data = await response.json();
-            
+
             if (response.ok && data.success !== false) {
-                const list = data.data || data; // 兼容两种返回结构
-                const databases = [...new Set(list.map(item => item.database_name).filter(Boolean))].sort();
+                const list = data.data || [];
+                this.databaseIdMap.clear();
+                list.forEach(db => {
+                    if (db && db.database_name) {
+                        this.databaseIdMap.set(String(db.id), db.database_name);
+                    }
+                });
+                const databases = list
+                    .filter(item => item && item.database_name)
+                    .sort((a, b) => a.database_name.localeCompare(b.database_name));
                 databaseSelect.empty();
                 databaseSelect.append('<option value="">所有数据库</option>');
                 let matchedDatabase = '';
                 databases.forEach(db => {
                     const option = document.createElement('option');
-                    option.value = db;
-                    option.textContent = db;
-                    if (storedDatabase && storedDatabase === db) {
+                    option.value = String(db.id);
+                    option.textContent = db.database_name;
+                    if (storedDatabase && String(storedDatabase) === String(db.id)) {
                         option.selected = true;
-                        matchedDatabase = db;
+                        matchedDatabase = String(db.id);
                     }
                     databaseSelect.append(option);
                 });
-                
+
                 if (matchedDatabase) {
                     databaseSelect.val(matchedDatabase);
-                    this.currentFilters.database_name = matchedDatabase;
+                    this.currentFilters.database_id = matchedDatabase;
+                    this.currentFilters.database_name = this.databaseIdMap.get(matchedDatabase) || null;
                     databaseSelect.data('selected', matchedDatabase);
                     databaseSelect.data('initialValue', '');
                 } else if (preserveDatabase && storedDatabase) {
+                    this.currentFilters.database_id = null;
                     this.currentFilters.database_name = null;
                     databaseSelect.data('selected', '');
                     databaseSelect.val('');
@@ -398,9 +431,10 @@ class DatabaseAggregationsManager {
             : databaseSelect.val();
         this.currentFilters.db_type = dbTypeValue ? dbTypeValue.toLowerCase() : null;
         this.currentFilters.instance_id = instanceValue || null;
-        this.currentFilters.database_name = databaseValue || null;
+        this.currentFilters.database_id = databaseValue || null;
+        this.currentFilters.database_name = databaseValue ? this.databaseIdMap.get(String(databaseValue)) || null : null;
         $('#instance').data('selected', this.currentFilters.instance_id || '');
-        databaseSelect.data('selected', this.currentFilters.database_name ?? '');
+        databaseSelect.data('selected', this.currentFilters.database_id ?? '');
         if (initialDatabaseValue !== undefined) {
             databaseSelect.data('initialValue', '');
         }
@@ -438,6 +472,7 @@ class DatabaseAggregationsManager {
         this.currentFilters = {
             instance_id: null,
             db_type: null,
+            database_id: null,
             database_name: null,
             period_type: 'daily',
             start_date: null,
@@ -459,6 +494,7 @@ class DatabaseAggregationsManager {
             override: false,
             period_type: 'daily'
         };
+        this.databaseIdMap.clear();
         
         this.initializeFilterOptions();
         this.updateTimeRangeFromPeriod();
@@ -496,20 +532,7 @@ class DatabaseAggregationsManager {
             
             if (response.ok) {
                 const summaryData = data.data || data;
-                if (this.currentFilters.database_name && Array.isArray(this.filteredChartData) && this.filteredChartData.length > 0) {
-                    const totalDatabases = this.filteredChartData.length;
-                    const totalSize = this.filteredChartData.reduce((sum, item) => sum + (item.avg_size_mb || 0), 0);
-                    const maxSize = this.filteredChartData.reduce((max, item) => Math.max(max, item.max_size_mb || 0), 0);
-                    const customSummary = {
-                        total_databases: totalDatabases,
-                        total_instances: summaryData.total_instances || 0,
-                        avg_size_mb: totalDatabases ? totalSize / totalDatabases : 0,
-                        max_size_mb: maxSize
-                    };
-                    this.updateSummaryCards(customSummary);
-                } else {
-                    this.updateSummaryCards(summaryData);
-                }
+                this.updateSummaryCards(summaryData);
             } else {
                 console.error('加载汇总数据失败:', data.error);
             }
@@ -537,15 +560,7 @@ class DatabaseAggregationsManager {
             
             if (response.ok) {
                 this.databaseLabelMap = {};
-                let records = data.data || [];
-                if (this.currentFilters.database_name) {
-                    const target = String(this.currentFilters.database_name).toLowerCase();
-                    records = records.filter(item =>
-                        String(item.database_name || '').toLowerCase() === target
-                    );
-                }
-                this.currentData = records;
-                this.filteredChartData = records;
+                this.currentData = data.data || [];
                 this.renderChart(this.currentData);
                 this.syncUIState();
             } else {
@@ -571,14 +586,7 @@ class DatabaseAggregationsManager {
             const data = await response.json();
             
             if (response.ok) {
-                let records = data.data || [];
-                if (this.currentFilters.database_name) {
-                    const target = String(this.currentFilters.database_name).toLowerCase();
-                    records = records.filter(item =>
-                        String(item.database_name || '').toLowerCase() === target
-                    );
-                }
-                this.changeChartData = records;
+                this.changeChartData = data.data || [];
                 this.renderChangeChart(this.changeChartData);
             } else {
                 console.error('加载容量变化数据失败:', data.error);
@@ -603,14 +611,7 @@ class DatabaseAggregationsManager {
             const data = await response.json();
 
             if (response.ok) {
-                let records = data.data || [];
-                if (this.currentFilters.database_name) {
-                    const target = String(this.currentFilters.database_name).toLowerCase();
-                    records = records.filter(item =>
-                        String(item.database_name || '').toLowerCase() === target
-                    );
-                }
-                this.changePercentChartData = records;
+                this.changePercentChartData = data.data || [];
                 this.renderChangePercentChart(this.changePercentChartData);
             } else {
                 console.error('加载容量变化百分比数据失败:', data.error);
@@ -1213,6 +1214,9 @@ class DatabaseAggregationsManager {
         if (this.currentFilters.db_type) {
             params.append('db_type', this.currentFilters.db_type);
         }
+        if (this.currentFilters.database_id) {
+            params.append('database_id', this.currentFilters.database_id);
+        }
         if (this.currentFilters.database_name) {
             params.append('database_name', this.currentFilters.database_name);
         }
@@ -1236,6 +1240,9 @@ class DatabaseAggregationsManager {
         if (this.currentFilters.db_type) {
             params.append('db_type', this.currentFilters.db_type);
         }
+        if (this.currentFilters.database_id) {
+            params.append('database_id', this.currentFilters.database_id);
+        }
         if (this.currentFilters.database_name) {
             params.append('database_name', this.currentFilters.database_name);
         }
@@ -1258,6 +1265,9 @@ class DatabaseAggregationsManager {
         }
         if (this.currentFilters.db_type) {
             params.append('db_type', this.currentFilters.db_type);
+        }
+        if (this.currentFilters.database_id) {
+            params.append('database_id', this.currentFilters.database_id);
         }
         if (this.currentFilters.database_name) {
             params.append('database_name', this.currentFilters.database_name);
@@ -1429,7 +1439,7 @@ class DatabaseAggregationsManager {
         const instanceValue = this.currentFilters.instance_id ? String(this.currentFilters.instance_id) : '';
         $('#instance').val(instanceValue);
         
-        const databaseValue = this.currentFilters.database_name || '';
+        const databaseValue = this.currentFilters.database_id ? String(this.currentFilters.database_id) : '';
         $('#database').val(databaseValue);
         
         $(`input[name="changeChartType"][value="${this.changeChartType}"]`).prop('checked', true);

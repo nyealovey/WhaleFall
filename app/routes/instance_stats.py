@@ -468,6 +468,8 @@ def get_databases_aggregations():
         instance_id = request.args.get('instance_id', type=int)
         db_type = request.args.get('db_type')
         database_name = request.args.get('database_name')
+        database_id = request.args.get('database_id', type=int)
+        database_id = request.args.get('database_id', type=int)
         period_type = request.args.get('period_type')
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
@@ -493,6 +495,16 @@ def get_databases_aggregations():
             query = query.filter(Instance.db_type == db_type)
         if database_name:
             query = query.filter(DatabaseSizeAggregation.database_name == database_name)
+        elif database_id:
+            from app.models.instance_database import InstanceDatabase
+            db_record = InstanceDatabase.query.filter_by(id=database_id).first()
+            if db_record:
+                query = query.filter(DatabaseSizeAggregation.database_name == db_record.database_name)
+        elif database_id:
+            from app.models.instance_database import InstanceDatabase
+            db_record = InstanceDatabase.query.filter_by(id=database_id).first()
+            if db_record:
+                query = query.filter(DatabaseSizeAggregation.database_name == db_record.database_name)
         if period_type:
             query = query.filter(DatabaseSizeAggregation.period_type == period_type)
         if start_date:
@@ -591,6 +603,11 @@ def get_databases_aggregations_summary():
             query = query.filter(Instance.db_type == db_type)
         if database_name:
             query = query.filter(DatabaseSizeAggregation.database_name == database_name)
+        elif database_id:
+            from app.models.instance_database import InstanceDatabase
+            db_record = InstanceDatabase.query.filter_by(id=database_id).first()
+            if db_record:
+                query = query.filter(DatabaseSizeAggregation.database_name == db_record.database_name)
         if period_type:
             query = query.filter(DatabaseSizeAggregation.period_type == period_type)
         if start_date:
