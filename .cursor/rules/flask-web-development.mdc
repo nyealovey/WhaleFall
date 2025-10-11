@@ -176,7 +176,7 @@ alwaysApply: true
 
 #### BACKGROUND_TASKS
 
-- 使用Celery处理后台任务
+- 使用APScheduler处理后台任务
 - 实现任务队列
 - 处理任务失败
 - 实现任务监控

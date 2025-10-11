@@ -72,10 +72,6 @@ Thumbs.db
 instance/
 .webassets-cache
 
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
 # Coverage reports
 htmlcov/
 .tox/
