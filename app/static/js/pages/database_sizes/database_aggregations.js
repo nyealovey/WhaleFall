@@ -495,7 +495,21 @@ class DatabaseAggregationsManager {
             const data = await response.json();
             
             if (response.ok) {
-                this.updateSummaryCards(data.data || data);
+                const summaryData = data.data || data;
+                if (this.currentFilters.database_name && Array.isArray(this.filteredChartData) && this.filteredChartData.length > 0) {
+                    const totalDatabases = this.filteredChartData.length;
+                    const totalSize = this.filteredChartData.reduce((sum, item) => sum + (item.avg_size_mb || 0), 0);
+                    const maxSize = this.filteredChartData.reduce((max, item) => Math.max(max, item.max_size_mb || 0), 0);
+                    const customSummary = {
+                        total_databases: totalDatabases,
+                        total_instances: summaryData.total_instances || 0,
+                        avg_size_mb: totalDatabases ? totalSize / totalDatabases : 0,
+                        max_size_mb: maxSize
+                    };
+                    this.updateSummaryCards(customSummary);
+                } else {
+                    this.updateSummaryCards(summaryData);
+                }
             } else {
                 console.error('加载汇总数据失败:', data.error);
             }
@@ -517,12 +531,21 @@ class DatabaseAggregationsManager {
             const params = this.buildFilterParams();
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
+            console.log('加载图表数据参数:', params.toString());
             const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
             
             if (response.ok) {
                 this.databaseLabelMap = {};
-                this.currentData = data.data || [];
+                let records = data.data || [];
+                if (this.currentFilters.database_name) {
+                    const target = String(this.currentFilters.database_name).toLowerCase();
+                    records = records.filter(item =>
+                        String(item.database_name || '').toLowerCase() === target
+                    );
+                }
+                this.currentData = records;
+                this.filteredChartData = records;
                 this.renderChart(this.currentData);
                 this.syncUIState();
             } else {
@@ -543,11 +566,19 @@ class DatabaseAggregationsManager {
             const params = this.buildChangeChartParams();
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
+            console.log('加载容量变化参数:', params.toString());
             const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
             
             if (response.ok) {
-                this.changeChartData = data.data || [];
+                let records = data.data || [];
+                if (this.currentFilters.database_name) {
+                    const target = String(this.currentFilters.database_name).toLowerCase();
+                    records = records.filter(item =>
+                        String(item.database_name || '').toLowerCase() === target
+                    );
+                }
+                this.changeChartData = records;
                 this.renderChangeChart(this.changeChartData);
             } else {
                 console.error('加载容量变化数据失败:', data.error);
@@ -567,11 +598,19 @@ class DatabaseAggregationsManager {
             const params = this.buildChangePercentChartParams();
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
+            console.log('加载容量变化百分比参数:', params.toString());
             const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
 
             if (response.ok) {
-                this.changePercentChartData = data.data || [];
+                let records = data.data || [];
+                if (this.currentFilters.database_name) {
+                    const target = String(this.currentFilters.database_name).toLowerCase();
+                    records = records.filter(item =>
+                        String(item.database_name || '').toLowerCase() === target
+                    );
+                }
+                this.changePercentChartData = records;
                 this.renderChangePercentChart(this.changePercentChartData);
             } else {
                 console.error('加载容量变化百分比数据失败:', data.error);
