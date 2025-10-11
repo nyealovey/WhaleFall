@@ -93,7 +93,21 @@ def database_aggregations():
     
     selected_db_type = request.args.get('db_type', '')
     selected_instance = request.args.get('instance', '')
+    selected_database_id = request.args.get('database_id', '')
     selected_database = request.args.get('database', '')
+    if not selected_database_id and selected_database:
+        from app.models.instance_database import InstanceDatabase
+        instance_filter = InstanceDatabase.query.filter(InstanceDatabase.database_name == selected_database)
+        if selected_instance := request.args.get('instance'):
+            try:
+                instance_filter = instance_filter.filter(InstanceDatabase.instance_id == int(selected_instance))
+            except ValueError:
+                pass
+        db_record = instance_filter.first()
+        if db_record:
+            selected_database_id = str(db_record.id)
+    if selected_database_id:
+        selected_database = ''
     selected_period_type = request.args.get('period_type', 'daily')
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
@@ -105,6 +119,7 @@ def database_aggregations():
         databases_list=[],
         db_type=selected_db_type,
         instance=selected_instance,
+        database_id=selected_database_id,
         database=selected_database,
         period_type=selected_period_type,
         start_date=start_date,

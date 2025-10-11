@@ -55,7 +55,7 @@
                         {% if show_database_filter|default(false) %}
                         <div class="col-md-2 filter-database">
                             <label for="database" class="form-label">数据库</label>
-                            <select class="form-select unified-select" id="database" name="database" data-initial-value="{{ database|default('') }}">
+                            <select class="form-select unified-select" id="database" name="database_id" data-initial-value="{{ database_id|default(database|default('')) }}">
                                 <option value="">所有数据库</option>
                                 {% for db_name in databases_list|default([]) %}
                                 <option value="{{ db_name }}" {% if database == db_name %}selected{% endif %}>
