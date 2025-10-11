@@ -32,4 +32,4 @@
 
 ### PERFORMANCE
 - **Caching**: Use Redis for caching expensive database queries or computations.
-- **Background Tasks**: Offload long-running tasks to a Celery worker to avoid blocking web requests.
+- **Background Tasks**: Offload long-running tasks to a APScheduler worker to avoid blocking web requests.
