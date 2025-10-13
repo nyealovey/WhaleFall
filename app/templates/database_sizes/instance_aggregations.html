@@ -3,47 +3,8 @@
 {% block title %}容量统计(实例) - 数据库大小监控{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/capacity_stats/instance_aggregations.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
-<style>
-/* 实例容量统计页面样式 - 优化版本，利用Flatly主题和全局样式 */
-.instance-aggregations-page .search-filter-card {
-    margin-bottom: 0.75rem;
-    border-radius: 0;
-    box-shadow: none;
-    border: 1px solid var(--gray-300);
-}
-
-.instance-aggregations-page .unified-input,
-.instance-aggregations-page .unified-select {
-    border-radius: 0;
-    background-color: white;
-    box-shadow: none;
-}
-
-.instance-aggregations-page .unified-input:focus,
-.instance-aggregations-page .unified-select:focus {
-    box-shadow: none;
-    border-color: var(--gray-400);
-}
-
-.instance-aggregations-page .unified-search-btn,
-.instance-aggregations-page .unified-clear-btn {
-    border-radius: 0;
-    box-shadow: none;
-}
-
-#instanceChart {
-    background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-200) 100%);
-    border-radius: var(--border-radius-sm);
-    border: 1px solid var(--gray-300);
-}
-
-#chartLoading .spinner-border {
-    width: 3rem;
-    height: 3rem;
-    color: var(--primary-color);
-}
-</style>
 {% endblock %}
 
 {% block content %}

@@ -1,7 +1,44 @@
 /* 实例容量统计页面样式 - 优化版本，利用Flatly主题和全局样式 */
 
-/* 大部分样式已移至全局样式文件，利用统一设计系统 */
-/* 只保留必要的自定义样式 */
+/* 搜索过滤卡片 */
+.instance-aggregations-page .search-filter-card {
+    margin-bottom: var(--spacing-sm);
+    border-radius: 0;
+    box-shadow: none;
+    border: 1px solid var(--gray-300);
+}
 
-/* 如果需要额外的自定义样式，可以在这里添加 */
-/* 目前所有样式都已通过全局样式和内联样式实现 */
+/* 统一输入框和选择框 */
+.instance-aggregations-page .unified-input,
+.instance-aggregations-page .unified-select {
+    border-radius: 0;
+    background-color: white;
+    box-shadow: none;
+}
+
+.instance-aggregations-page .unified-input:focus,
+.instance-aggregations-page .unified-select:focus {
+    box-shadow: none;
+    border-color: var(--gray-400);
+}
+
+/* 统一按钮 */
+.instance-aggregations-page .unified-search-btn,
+.instance-aggregations-page .unified-clear-btn {
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* 图表容器 */
+#instanceChart {
+    background: var(--gradient-light);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--gray-300);
+}
+
+/* 图表加载状态 */
+#chartLoading .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    color: var(--primary-color);
+}
