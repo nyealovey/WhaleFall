@@ -261,10 +261,23 @@
 </div>
 {% endblock %}
 
+<!-- 标签选择器模态框 -->
+<div id="list-page-tag-selector">
+    {% include 'components/tag_selector.html' %}
+</div>
+
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/accounts/list.js') }}"></script>
 <script src="{{ url_for('static', filename='js/components/tag_selector.js') }}"></script>
 <script>
+    // 初始化统一搜索组件
+    let unifiedSearch;
+    document.addEventListener('DOMContentLoaded', function() {
+        unifiedSearch = new UnifiedSearch('unified-search-form');
+        window.unifiedSearch = unifiedSearch;
+    });
+
     function syncAllAccounts() {
         // 实现同步所有账户的逻辑
         console.log('Syncing all accounts...');

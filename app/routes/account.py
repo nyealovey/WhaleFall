@@ -183,7 +183,7 @@ def list_accounts(db_type: str | None = None) -> str:
             classifications[assignment.account_id].append(
                 {
                     "name": assignment.classification.name,
-                    "color": assignment.classification.color,
+                    "color": assignment.classification.color_value,  # 使用实际颜色值
                 }
             )
 
@@ -643,7 +643,7 @@ def get_account_statistics() -> dict:
             classification_stats[classification.name] = {
                 "classification_name": classification.name,
                 "account_count": assignment_count,
-                "color": classification.color,
+                "color": classification.color_value,  # 使用实际颜色值
             }
 
         # 按状态统计（根据不同数据库类型使用不同的锁定判断标准）

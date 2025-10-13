@@ -26,6 +26,15 @@ class UnifiedSearch {
             this.handleSubmit(e);
         });
 
+        // 筛选按钮事件
+        const applyBtn = this.form.querySelector('#applyFilters');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleSubmit(e);
+            });
+        }
+
         // 清除按钮事件
         const clearBtn = this.form.querySelector('.unified-clear-btn');
         if (clearBtn) {
