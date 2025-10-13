@@ -7,97 +7,106 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- 页面标题 -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="page-header">
-                <div class="container">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h2><i class="fas fa-users me-2"></i>用户管理</h2>
-                            <p class="mb-0">管理系统用户账户，包括添加、编辑、删除和权限管理</p>
-                        </div>
-                        <div>
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                                <i class="fas fa-user-plus me-2"></i>新建用户
-                            </button>
-                        </div>
-                    </div>
-                </div>
+<!-- 页面头部 -->
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-users me-2"></i>用户管理</h2>
+                <p class="mb-0">管理系统用户账户，包括添加、编辑、删除和权限管理</p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                    <i class="fas fa-user-plus me-2"></i>新建用户
+                </button>
             </div>
         </div>
     </div>
+</div>
 
-
-
-    <!-- 用户表格 -->
-    <div class="row">
-        <div class="col-12">
-            <div class="user-table">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>用户</th>
-                                <th>角色</th>
-                                <th>状态</th>
-                                <th>创建时间</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if users and users.items %}
-                                {% for user in users.items %}
-                            <tr>
-                                <td>
-                                    <div class="user-info">
-                                        <div class="user-avatar">
-                                            {{ user.username[0].upper() }}
-                                        </div>
-                                        <div class="user-details">
-                                            <div class="user-name">{{ user.username }}</div>
-                                            <div class="user-email">{{ user.email or '未设置邮箱' }}</div>
-                                        </div>
+<!-- 用户列表 -->
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-body">
+            {% if users and users.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户</th>
+                            <th>角色</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users.items %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary" title="用户ID">
+                                    #{{ user.id }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar me-3">
+                                        {{ user.username[0].upper() }}
                                     </div>
-                                </td>
-                                <td>
-                                    <span class="role-badge role-{{ user.role }}">
-                                        {{ '管理员' if user.role == 'admin' else '普通用户' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="status-badge status-{{ 'active' if user.is_active else 'inactive' }}">
-                                        {{ '活跃' if user.is_active else '停用' }}
-                                    </span>
-                                </td>
-                                <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '-' }}</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" 
-                                                onclick="editUser({{ user.id }})" title="编辑用户">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                onclick="deleteUser({{ user.id }}, '{{ user.username }}')" title="删除用户">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                    <div>
+                                        <strong>{{ user.username }}</strong>
+                                        {% if user.email %}
+                                        <br><small class="text-muted">{{ user.email }}</small>
+                                        {% else %}
+                                        <br><small class="text-muted">未设置邮箱</small>
+                                        {% endif %}
                                     </div>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center">
-                                    <div class="empty-state">
-                                        <i class="fas fa-users"></i>
-                                        <h4>暂无用户</h4>
-                                        <p>还没有任何用户，点击上方按钮添加第一个用户</p>
-                                    </div>
-                                </td>
-                            </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'primary' if user.role == 'admin' else 'info' }}">
+                                    <i class="fas fa-{{ 'crown' if user.role == 'admin' else 'user' }} me-1"></i>
+                                    {{ '管理员' if user.role == 'admin' else '普通用户' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">
+                                    <i class="fas fa-{{ 'check-circle' if user.is_active else 'times-circle' }} me-1"></i>
+                                    {{ '活跃' if user.is_active else '停用' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-muted">
+                                    {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '-' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                            onclick="editUser({{ user.id }})" title="编辑用户">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="deleteUser({{ user.id }}, '{{ user.username }}')" title="删除用户">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h4>暂无用户</h4>
+                <p>还没有任何用户，点击上方按钮添加第一个用户</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
                                     <td colspan="5" class="text-center text-muted py-4">
                                         <i class="fas fa-users me-2"></i>暂无用户数据
                                     </td>
