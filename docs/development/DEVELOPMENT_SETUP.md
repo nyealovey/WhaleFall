@@ -427,14 +427,14 @@ git commit -m "fix: 修复bug描述"
 ```bash
 # 1. 更新版本号
 # 编辑 pyproject.toml
-version = "1.1.1"
+version = "1.1.2"
 
 # 2. 更新CHANGELOG.md
 # 添加新版本说明
 
 # 3. 创建发布标签
-git tag -a v1.1.1 -m "Release version 1.1.1"
-git push origin v1.1.1
+git tag -a v1.1.2 -m "Release version 1.1.2"
+git push origin v1.1.2
 
 # 4. 创建GitHub Release
 # 在GitHub上创建Release
@@ -546,5 +546,5 @@ debugger;
 ---
 
 **最后更新**: 2025-09-25  
-**文档版本**: v1.1.1  
+**文档版本**: v1.1.2  
 **维护团队**: TaifishingV4 Team

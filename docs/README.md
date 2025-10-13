@@ -1,6 +1,6 @@
 # 鲸落 (TaifishV4) 文档中心
 
-[![Version](https://img.shields.io/badge/Version-v1.1.1-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-v1.1.2-blue.svg)]()
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
@@ -116,7 +116,7 @@
 
 ## 📈 版本历史
 
-### 当前版本: v1.1.1 (2025-10-09)
+### 当前版本: v1.1.2 (2025-10-13)
 - 修复自动分类功能BUG
 - 优化标签管理页面
 - 修复Jinja2模板语法错误
@@ -149,5 +149,5 @@
 ---
 
 **最后更新**: 2025-09-25  
-**文档版本**: v1.1.1  
+**文档版本**: v1.1.2  
 **维护团队**: TaifishingV4 Team
