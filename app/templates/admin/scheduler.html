@@ -1,0 +1,481 @@
+{% extends "base.html" %}
+
+{% block title %}定时任务管理 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/scheduler.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">定时任务管理</h1>
+                <div class="d-flex gap-2 align-items-center"></div>
+                    {% if current_user.is_admin() %}
+                    <!-- 暂时隐藏添加任务功能 -->
+                    <!-- <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addJobModal">
+                        <i class="fas fa-plus me-1"></i>添加任务
+                    </button> -->
+                    {% endif %}
+                    <!-- 重新初始化任务 -->
+                    <button id="purgeKeepBuiltinBtn" class="btn btn-outline-warning" type="button" title="删除所有现有任务，重新从配置文件加载任务">
+                        <i class="fas fa-sync-alt me-1"></i>重新初始化任务
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 调度器健康状态 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-heartbeat me-2"></i>调度器健康状态
+                    </h5>
+                    <button id="refreshHealthBtn" class="btn btn-sm btn-outline-primary" type="button">
+                        <i class="fas fa-sync-alt me-1"></i>刷新状态
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="healthStatus" class="row">
+                        <div class="col-md-3">
+                            <div class="health-item">
+                                <div class="health-label">
+                                    <i class="fas fa-heartbeat me-1"></i>整体状态
+                                </div>
+                                <div id="overallStatus" class="health-value">
+                                    <span class="badge bg-secondary">检查中...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="health-item">
+                                <div class="health-label">
+                                    <i class="fas fa-chart-line me-1"></i>健康分数
+                                </div>
+                                <div id="healthScore" class="health-value">
+                                    <span class="badge bg-secondary">--</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="health-item">
+                                <div class="health-label">
+                                    <i class="fas fa-play-circle me-1"></i>调度器运行
+                                </div>
+                                <div id="schedulerRunning" class="health-value">
+                                    <span class="badge bg-secondary">--</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="health-item">
+                                <div class="health-label">
+                                    <i class="fas fa-tasks me-1"></i>任务数量
+                                </div>
+                                <div id="totalJobs" class="health-value">
+                                    <span class="badge bg-secondary">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <div class="health-details">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="detail-item">
+                                            <span class="detail-label">
+                                                <i class="fas fa-microchip me-1"></i>线程:
+                                            </span>
+                                            <span id="threadStatus" class="detail-value">--</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="detail-item">
+                                            <span class="detail-label">
+                                                <i class="fas fa-database me-1"></i>存储:
+                                            </span>
+                                            <span id="jobstoreStatus" class="detail-value">--</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="detail-item">
+                                            <span class="detail-label">
+                                                <i class="fas fa-cogs me-1"></i>执行器:
+                                            </span>
+                                            <span id="executorStatus" class="detail-value">--</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="detail-item">
+                                            <span class="detail-label">
+                                                <i class="fas fa-clock me-1"></i>检查时间:
+                                            </span>
+                                            <span id="lastCheck" class="detail-value">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务列表 -->
+    <div class="row">
+        <div class="col-12">
+            <!-- 加载状态 -->
+            <div id="loadingRow" class="row" style="display: none;">
+                <div class="col-12">
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>加载任务中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div id="emptyRow" class="row" style="display: none;">
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="fas fa-tasks"></i>
+                        <h4>暂无任务</h4>
+                        <p>还没有任何定时任务</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 进行中的任务 -->
+            <div id="activeJobsSection" class="mb-4">
+                <div class="d-flex align-items-center mb-3">
+                    <h5 class="mb-0 me-3">
+                        <i class="fas fa-play-circle text-success me-2"></i>进行中的任务
+                    </h5>
+                    <span id="activeJobsCount" class="badge bg-success">0</span>
+                </div>
+                <div id="activeJobsContainer" class="row">
+                    <!-- 进行中的任务卡片将在这里动态生成 -->
+                </div>
+            </div>
+
+            <!-- 分割线 -->
+            <div class="border-top my-4"></div>
+
+            <!-- 已暂停的任务 -->
+            <div id="pausedJobsSection" class="mb-4">
+                <div class="d-flex align-items-center mb-3">
+                    <h5 class="mb-0 me-3">
+                        <i class="fas fa-pause-circle text-warning me-2"></i>已暂停的任务
+                    </h5>
+                    <span id="pausedJobsCount" class="badge bg-warning">0</span>
+                </div>
+                <div id="pausedJobsContainer" class="row">
+                    <!-- 已暂停的任务卡片将在这里动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加任务模态框 -->
+<div class="modal fade" id="addJobModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>添加定时任务
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addJobForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="jobName" class="form-label">任务名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="jobName" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="jobFunction" class="form-label">执行函数 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="jobFunction" name="func" required>
+                                    <option value="">请选择函数</option>
+                                    <option value="sync_accounts">同步所有账户</option>
+                                    <option value="sync_all_instances">同步所有实例</option>
+                                    <option value="cleanup_logs">清理日志</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobDescription" class="form-label">任务描述</label>
+                        <textarea class="form-control" id="jobDescription" name="description" rows="3"></textarea>
+                    </div>
+
+                    <!-- 触发器类型固定为cron，不显示选择 -->
+                    <input type="hidden" name="triggerType" value="cron">
+
+                    <!-- Cron触发器配置 -->
+                    <div id="cronConfig" class="trigger-config show">
+                        <!-- 第一行：秒、分、时、日 -->
+                        <div class="row">
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="cronSecond" class="form-label small">秒 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="cronSecond" name="cron_second" placeholder="0-59" value="0">
+                                    <small class="form-text text-muted small">0-59</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="cronMinute" class="form-label small">分钟 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="cronMinute" name="cron_minute" placeholder="0-59" value="0">
+                                    <small class="form-text text-muted small">0-59</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="cronHour" class="form-label small">小时 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="cronHour" name="cron_hour" placeholder="0-23" value="0">
+                                    <small class="form-text text-muted small">0-23</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="cronDay" class="form-label small">日 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="cronDay" name="cron_day" placeholder="1-31" value="*">
+                                    <small class="form-text text-muted small">1-31</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 第二行：月、周、年 -->
+                        <div class="row mt-2">
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="cronMonth" class="form-label small">月份 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="cronMonth" name="cron_month" placeholder="1-12" value="*">
+                                    <small class="form-text text-muted small">1-12</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="cronWeekday" class="form-label small">星期 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="cronWeekday" name="cron_weekday" placeholder="0-6" value="*">
+                                    <small class="form-text text-muted small">0-6</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="cronYear" class="form-label small">年</label>
+                                    <input type="text" class="form-control" id="cronYear" name="year" placeholder="2024" value="*">
+                                    <small class="form-text text-muted small">可选</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 第三行：预览 -->
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="form-label small">预览</label>
+                                    <input type="text" class="form-control form-control-sm" id="cronPreview" readonly placeholder="生成的Cron表达式">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 说明 -->
+                        <div class="form-group mt-1">
+                            <small class="text-muted small">
+                                <strong>说明：</strong>
+                                秒(0-59) 分钟(0-59) 小时(0-23) 日(1-31) 月份(1-12) 星期(0-6) 年(可选) | 
+                                使用 * 表示任意值，使用 , 分隔多个值，使用 - 表示范围，使用 / 表示步长
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加任务</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑任务模态框 -->
+<div class="modal fade" id="editJobModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>编辑定时任务
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editJobForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editJobId" name="job_id" />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="editJobName" class="form-label">任务名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editJobName" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="editJobFunction" class="form-label">执行函数 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editJobFunction" name="func" required>
+                                    <option value="">请选择函数</option>
+                                    <option value="sync_accounts">同步所有账户</option>
+                                    <option value="cleanup_old_logs">清理旧日志</option>
+                                    <option value="monitor_partition_health">监控分区健康状态</option>
+                                    <option value="collect_database_sizes">容量同步</option>
+                                    <option value="calculate_database_size_aggregations">统计聚合</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 触发器类型固定为cron，不显示选择 -->
+                    <input type="hidden" name="editTriggerType" value="cron">
+
+                    <!-- Cron触发器配置（编辑） -->
+                    <div id="editCronConfig" class="edit-trigger-config show">
+                        <!-- 第一行：秒、分、时、日 -->
+                        <div class="row">
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="editCronSecond" class="form-label small">秒 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editCronSecond" name="cron_second" placeholder="0-59" value="0">
+                                    <small class="form-text text-muted small">0-59</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="editCronMinute" class="form-label small">分钟 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editCronMinute" name="cron_minute" placeholder="0-59" value="0">
+                                    <small class="form-text text-muted small">0-59</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="editCronHour" class="form-label small">小时 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editCronHour" name="cron_hour" placeholder="0-23" value="0">
+                                    <small class="form-text text-muted small">0-23</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="editCronDay" class="form-label small">日 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editCronDay" name="cron_day" placeholder="1-31" value="*">
+                                    <small class="form-text text-muted small">1-31</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 第二行：月、周、年 -->
+                        <div class="row mt-2">
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="editCronMonth" class="form-label small">月份 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editCronMonth" name="cron_month" placeholder="1-12" value="*">
+                                    <small class="form-text text-muted small">1-12</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="editCronWeekday" class="form-label small">星期 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editCronWeekday" name="cron_weekday" placeholder="0-6" value="*">
+                                    <small class="form-text text-muted small">0-6</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="editCronYear" class="form-label small">年</label>
+                                    <input type="text" class="form-control" id="editCronYear" name="year" placeholder="2024" value="*">
+                                    <small class="form-text text-muted small">可选</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 第三行：预览 -->
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="form-label small">预览</label>
+                                    <input type="text" class="form-control form-control-sm" id="editCronPreview" readonly placeholder="生成的Cron表达式">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 说明 -->
+                        <div class="form-group mt-1">
+                            <small class="text-muted small">
+                                <strong>说明：</strong>
+                                秒(0-59) 分钟(0-59) 小时(0-23) 日(1-31) 月份(1-12) 星期(0-6) 年(可选) | 
+                                使用 * 表示任意值，使用 , 分隔多个值，使用 - 表示范围，使用 / 表示步长
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Interval 触发器配置（编辑） -->
+                    <div id="editIntervalConfig" class="edit-trigger-config" style="display:none;">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="editIntervalMinutes" class="form-label">间隔（分钟）</label>
+                                    <input type="number" min="0" class="form-control" id="editIntervalMinutes" name="interval_minutes" value="0">
+                                    <small class="form-text text-muted">>= 0</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="editIntervalSeconds" class="form-label">间隔（秒）</label>
+                                    <input type="number" min="0" class="form-control" id="editIntervalSeconds" name="interval_seconds" value="0">
+                                    <small class="form-text text-muted">>= 0</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group mt-2">
+                            <small class="text-muted">说明：可同时设置分钟与秒，后端将按 APScheduler 的 IntervalTrigger 进行解析。</small>
+                        </div>
+                    </div>
+
+                    <!-- Date 触发器配置（编辑） -->
+                    <div id="editDateConfig" class="edit-trigger-config" style="display:none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="editRunDate" class="form-label">运行时间</label>
+                                    <input type="datetime-local" class="form-control" id="editRunDate" name="run_date">
+                                    <small class="form-text text-muted">请选择未来时间，格式：YYYY-MM-DD HH:mm</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/admin/scheduler.js') }}"></script>
+{% endblock %}
