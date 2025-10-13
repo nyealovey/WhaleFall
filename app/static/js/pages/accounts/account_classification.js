@@ -3,9 +3,28 @@
 // 引入console工具函数
 if (typeof logErrorWithContext === 'undefined') {
     // console-utils.js not loaded, using fallback logging
-    window.logErrorWithContext = function(error, context, additionalContext) {
+    window.logErrorWithContext = function (error, context, additionalContext) {
         console.error(`错误处理: ${context}`, error, additionalContext);
     };
+}
+
+// 获取CSRF Token的工具函数
+function getCSRFToken() {
+    // 尝试从meta标签获取
+    const metaToken = document.querySelector('meta[name="csrf-token"]');
+    if (metaToken) {
+        return metaToken.getAttribute('content');
+    }
+
+    // 尝试从隐藏输入框获取
+    const inputToken = document.querySelector('input[name="csrf_token"]');
+    if (inputToken) {
+        return inputToken.value;
+    }
+
+    // 如果都没有找到，返回空字符串
+    console.warn('CSRF token not found');
+    return '';
 }
 
 // 全局变量
@@ -22,13 +41,13 @@ function getClassificationIcon(iconName, color) {
         'fa-eye': 'fas fa-eye',
         'fa-tag': 'fas fa-tag'
     };
-    
+
     const iconClass = iconMap[iconName] || 'fas fa-tag';
     return `<i class="${iconClass}" style="color: ${color || '#6c757d'};"></i>`;
 }
 
 // 页面加载时初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadClassifications();
     loadRules();
     loadClassificationsForRules(); // 为规则创建加载分类列表
@@ -39,18 +58,18 @@ document.addEventListener('DOMContentLoaded', function() {
 // 加载分类列表
 function loadClassifications() {
     fetch('/account_classification/api/classifications')
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            displayClassifications(data.classifications);
-        } else {
-            showAlert('danger', '加载分类失败: ' + data.error);
-        }
-    })
-    .catch(error => {
-        logErrorWithContext(error, '加载分类失败', { action: 'load_classifications' });
-        showAlert('danger', '加载分类失败');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayClassifications(data.classifications);
+            } else {
+                showAlert('danger', '加载分类失败: ' + data.error);
+            }
+        })
+        .catch(error => {
+            logErrorWithContext(error, '加载分类失败', { action: 'load_classifications' });
+            showAlert('danger', '加载分类失败');
+        });
 }
 
 // 显示分类列表
@@ -131,82 +150,82 @@ function createClassification() {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
-            form.reset();
-            loadClassifications();
-        } else {
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '创建分类失败');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
+                form.reset();
+                loadClassifications();
+            } else {
+                showAlert('danger', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '创建分类失败');
+        });
 }
 
 // 编辑分类
 function editClassification(id) {
     // 获取分类信息
     fetch(`/account_classification/api/classifications/${id}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const classification = data.classification;
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const classification = data.classification;
 
-            // 填充编辑表单
-            document.getElementById('editClassificationId').value = classification.id;
-            document.getElementById('editClassificationName').value = classification.name;
-            document.getElementById('editClassificationDescription').value = classification.description || '';
-            document.getElementById('editClassificationRiskLevel').value = classification.risk_level;
-            document.getElementById('editClassificationColor').value = classification.color_key || 'info';
-            document.getElementById('editClassificationPriority').value = classification.priority || 0;
-            
-            // 显示编辑模态框
-            const editModal = new bootstrap.Modal(document.getElementById('editClassificationModal'));
-            
-            // 在模态框显示后设置图标选择
-            const modalElement = document.getElementById('editClassificationModal');
-            const setIconSelection = () => {
-                const iconName = classification.icon_name || 'fa-tag';
-                
-                // 先清除所有图标选择的选中状态
-                const allIconRadios = document.querySelectorAll('input[name="editClassificationIcon"]');
-                allIconRadios.forEach(radio => {
-                    radio.checked = false;
-                });
-                
-                // 然后选中对应的图标
-                const iconRadio = document.querySelector(`input[name="editClassificationIcon"][value="${iconName}"]`);
-                if (iconRadio) {
-                    iconRadio.checked = true;
-                } else {
-                    // 如果找不到对应的图标，默认选中标签图标
-                    const defaultRadio = document.querySelector('input[name="editClassificationIcon"][value="fa-tag"]');
-                    if (defaultRadio) {
-                        defaultRadio.checked = true;
+                // 填充编辑表单
+                document.getElementById('editClassificationId').value = classification.id;
+                document.getElementById('editClassificationName').value = classification.name;
+                document.getElementById('editClassificationDescription').value = classification.description || '';
+                document.getElementById('editClassificationRiskLevel').value = classification.risk_level;
+                document.getElementById('editClassificationColor').value = classification.color_key || 'info';
+                document.getElementById('editClassificationPriority').value = classification.priority || 0;
+
+                // 显示编辑模态框
+                const editModal = new bootstrap.Modal(document.getElementById('editClassificationModal'));
+
+                // 在模态框显示后设置图标选择
+                const modalElement = document.getElementById('editClassificationModal');
+                const setIconSelection = () => {
+                    const iconName = classification.icon_name || 'fa-tag';
+
+                    // 先清除所有图标选择的选中状态
+                    const allIconRadios = document.querySelectorAll('input[name="editClassificationIcon"]');
+                    allIconRadios.forEach(radio => {
+                        radio.checked = false;
+                    });
+
+                    // 然后选中对应的图标
+                    const iconRadio = document.querySelector(`input[name="editClassificationIcon"][value="${iconName}"]`);
+                    if (iconRadio) {
+                        iconRadio.checked = true;
+                    } else {
+                        // 如果找不到对应的图标，默认选中标签图标
+                        const defaultRadio = document.querySelector('input[name="editClassificationIcon"][value="fa-tag"]');
+                        if (defaultRadio) {
+                            defaultRadio.checked = true;
+                        }
                     }
-                }
-            };
-            
-            // 监听模态框显示事件
-            modalElement.addEventListener('shown.bs.modal', setIconSelection, { once: true });
-            
-            // 延迟设置作为备用方案
-            setTimeout(setIconSelection, 100);
-            
-            editModal.show();
-        } else {
-            showAlert('danger', '获取分类信息失败: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '获取分类信息失败');
-    });
+                };
+
+                // 监听模态框显示事件
+                modalElement.addEventListener('shown.bs.modal', setIconSelection, { once: true });
+
+                // 延迟设置作为备用方案
+                setTimeout(setIconSelection, 100);
+
+                editModal.show();
+            } else {
+                showAlert('danger', '获取分类信息失败: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '获取分类信息失败');
+        });
 }
 
 // 更新分类
@@ -236,24 +255,24 @@ function updateClassification() {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', '分类更新成功');
-            bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
-            loadClassifications();
-        } else {
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '更新分类失败');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', '分类更新成功');
+                bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
+                loadClassifications();
+            } else {
+                showAlert('danger', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '更新分类失败');
+        });
 }
 
 // 删除分类
@@ -265,19 +284,19 @@ function deleteClassification(id) {
     fetch(`/account_classification/api/classifications/${id}`, {
         method: 'DELETE'
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            loadClassifications();
-        } else {
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '删除分类失败');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                loadClassifications();
+            } else {
+                showAlert('danger', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '删除分类失败');
+        });
 }
 
 // ==================== 规则管理相关函数 ====================
@@ -285,18 +304,18 @@ function deleteClassification(id) {
 // 加载规则
 function loadRules() {
     fetch('/account_classification/api/rules')
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            displayRules(data.rules_by_db_type);
-        } else {
-            showAlert('danger', '加载规则失败: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '加载规则失败');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayRules(data.rules_by_db_type);
+            } else {
+                showAlert('danger', '加载规则失败: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '加载规则失败');
+        });
 }
 
 // 根据分类名称获取对应的CSS类
@@ -418,23 +437,23 @@ function displayRules(rulesByDbType) {
 // 加载分类列表（用于规则创建）
 function loadClassificationsForRules(prefix = '') {
     return fetch('/account_classification/api/classifications')
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const elementId = prefix ? `${prefix}RuleClassification` : 'ruleClassification';
-            const select = document.getElementById(elementId);
-            if (select) {
-                select.innerHTML = '<option value="">请选择分类</option>';
-                data.classifications.forEach(classification => {
-                    const option = document.createElement('option');
-                    option.value = classification.id;
-                    option.textContent = classification.name;
-                    select.appendChild(option);
-                });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const elementId = prefix ? `${prefix}RuleClassification` : 'ruleClassification';
+                const select = document.getElementById(elementId);
+                if (select) {
+                    select.innerHTML = '<option value="">请选择分类</option>';
+                    data.classifications.forEach(classification => {
+                        const option = document.createElement('option');
+                        option.value = classification.id;
+                        option.textContent = classification.name;
+                        select.appendChild(option);
+                    });
+                }
             }
-        }
-        return data;
-    });
+            return data;
+        });
 }
 
 // 加载权限配置
@@ -458,18 +477,18 @@ function loadPermissions(prefix = '') {
     }
 
     return fetch(`/account_classification/api/permissions/${dbType}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            displayPermissionsConfig(data.permissions, prefix, dbType);
-        } else {
-            showAlert('danger', '加载权限配置失败: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error loading permissions:', error);
-        showAlert('danger', '加载权限配置失败: ' + error.message);
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayPermissionsConfig(data.permissions, prefix, dbType);
+            } else {
+                showAlert('danger', '加载权限配置失败: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading permissions:', error);
+            showAlert('danger', '加载权限配置失败: ' + error.message);
+        });
 }
 
 // 显示权限配置
@@ -612,19 +631,19 @@ function displayPermissionsConfig(permissions, prefix = '', dbType = '') {
                 <h6 class="text-primary mb-3 mt-3"><i class="fas fa-user-shield me-2"></i>角色属性</h6>
                 <div class="permission-section">
                     ${permissions.role_attributes ? permissions.role_attributes.map(attr => {
-                        // 角色属性显示名称映射（英文字段名 + 中文说明）
-                        const roleAttributeDisplayNames = {
-                            'can_super': 'can_super - 超级用户属性（rolsuper）',
-                            'can_create_db': 'can_create_db - 创建数据库属性（rolcreatedb）',
-                            'can_create_role': 'can_create_role - 创建角色属性（rolcreaterole）',
-                            'can_inherit': 'can_inherit - 继承权限属性（rolinherit）',
-                            'can_login': 'can_login - 登录属性（rolcanlogin）',
-                            'can_replicate': 'can_replicate - 复制属性（rolreplication）',
-                            'can_bypass_rls': 'can_bypass_rls - 绕过行级安全属性（rolbypassrls）',
-                            'connection_limit': 'connection_limit - 连接限制属性（rolconnlimit）'
-                        };
-                        const displayName = roleAttributeDisplayNames[attr.name] || attr.name;
-                        return `
+            // 角色属性显示名称映射（英文字段名 + 中文说明）
+            const roleAttributeDisplayNames = {
+                'can_super': 'can_super - 超级用户属性（rolsuper）',
+                'can_create_db': 'can_create_db - 创建数据库属性（rolcreatedb）',
+                'can_create_role': 'can_create_role - 创建角色属性（rolcreaterole）',
+                'can_inherit': 'can_inherit - 继承权限属性（rolinherit）',
+                'can_login': 'can_login - 登录属性（rolcanlogin）',
+                'can_replicate': 'can_replicate - 复制属性（rolreplication）',
+                'can_bypass_rls': 'can_bypass_rls - 绕过行级安全属性（rolbypassrls）',
+                'connection_limit': 'connection_limit - 连接限制属性（rolconnlimit）'
+            };
+            const displayName = roleAttributeDisplayNames[attr.name] || attr.name;
+            return `
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" value="${attr.name}" id="${prefix}role_attr_${attr.name}">
                                 <label class="form-check-label d-flex align-items-center" for="${prefix}role_attr_${attr.name}">
@@ -636,7 +655,7 @@ function displayPermissionsConfig(permissions, prefix = '', dbType = '') {
                                 </label>
                             </div>
                         `;
-                    }).join('') : '<div class="text-muted">无角色属性</div>'}
+        }).join('') : '<div class="text-muted">无角色属性</div>'}
                 </div>
             </div>
             <div class="col-md-6">
@@ -916,77 +935,77 @@ function createRule() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', '规则创建成功');
-            bootstrap.Modal.getInstance(document.getElementById('createRuleModal')).hide();
-            document.getElementById('createRuleForm').reset();
-            loadRules();
-        } else {
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '创建规则失败');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', '规则创建成功');
+                bootstrap.Modal.getInstance(document.getElementById('createRuleModal')).hide();
+                document.getElementById('createRuleForm').reset();
+                loadRules();
+            } else {
+                showAlert('danger', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '创建规则失败');
+        });
 }
 
 // 编辑规则
 function editRule(id) {
     fetch(`/account_classification/api/rules/${id}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const rule = data.rule;
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const rule = data.rule;
 
-            // 先加载分类列表，然后填充表单
-            loadClassificationsForRules('edit').then(() => {
-                // 填充编辑表单
-                document.getElementById('editRuleId').value = rule.id;
-                document.getElementById('editRuleName').value = rule.rule_name;
-                document.getElementById('editRuleClassification').value = rule.classification_id;
-                document.getElementById('editRuleDbTypeHidden').value = rule.db_type;
+                // 先加载分类列表，然后填充表单
+                loadClassificationsForRules('edit').then(() => {
+                    // 填充编辑表单
+                    document.getElementById('editRuleId').value = rule.id;
+                    document.getElementById('editRuleName').value = rule.rule_name;
+                    document.getElementById('editRuleClassification').value = rule.classification_id;
+                    document.getElementById('editRuleDbTypeHidden').value = rule.db_type;
 
-                // 设置数据库类型显示
-                document.getElementById('editRuleDbType').value = rule.db_type;
-
-                // 设置操作符
-                const ruleExpression = rule.rule_expression;
-                if (ruleExpression && ruleExpression.operator) {
-                    document.getElementById('editRuleOperator').value = ruleExpression.operator;
-                } else {
-                    document.getElementById('editRuleOperator').value = 'OR'; // 默认值
-                }
-
-                // 显示编辑模态框
-                const editModal = new bootstrap.Modal(document.getElementById('editRuleModal'));
-                editModal.show();
-
-                // 模态框显示后加载权限配置
-                document.getElementById('editRuleModal').addEventListener('shown.bs.modal', function() {
-                    // 确保数据库类型字段有值
+                    // 设置数据库类型显示
                     document.getElementById('editRuleDbType').value = rule.db_type;
 
-                    // 加载权限配置
-                    loadPermissions('edit').then(() => {
-                        setSelectedPermissions(rule.rule_expression, 'edit');
-                    });
-                }, { once: true });
-            });
-        } else {
-            showAlert('danger', '获取规则信息失败: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '获取规则信息失败');
-    });
+                    // 设置操作符
+                    const ruleExpression = rule.rule_expression;
+                    if (ruleExpression && ruleExpression.operator) {
+                        document.getElementById('editRuleOperator').value = ruleExpression.operator;
+                    } else {
+                        document.getElementById('editRuleOperator').value = 'OR'; // 默认值
+                    }
+
+                    // 显示编辑模态框
+                    const editModal = new bootstrap.Modal(document.getElementById('editRuleModal'));
+                    editModal.show();
+
+                    // 模态框显示后加载权限配置
+                    document.getElementById('editRuleModal').addEventListener('shown.bs.modal', function () {
+                        // 确保数据库类型字段有值
+                        document.getElementById('editRuleDbType').value = rule.db_type;
+
+                        // 加载权限配置
+                        loadPermissions('edit').then(() => {
+                            setSelectedPermissions(rule.rule_expression, 'edit');
+                        });
+                    }, { once: true });
+                });
+            } else {
+                showAlert('danger', '获取规则信息失败: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '获取规则信息失败');
+        });
 }
 
 // 设置选中的权限
@@ -1246,24 +1265,24 @@ function updateRule() {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', '规则更新成功');
-            bootstrap.Modal.getInstance(document.getElementById('editRuleModal')).hide();
-            loadRules();
-        } else {
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '更新规则失败');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', '规则更新成功');
+                bootstrap.Modal.getInstance(document.getElementById('editRuleModal')).hide();
+                loadRules();
+            } else {
+                showAlert('danger', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '更新规则失败');
+        });
 }
 
 // ==================== 其他功能函数 ====================
@@ -1275,20 +1294,20 @@ function viewMatchedAccounts(ruleId, page = 1, search = '') {
         per_page: 20,
         search: search
     });
-    
+
     fetch(`/account_classification/api/rules/${ruleId}/matched-accounts?${params}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            displayMatchedAccounts(data.accounts, data.rule_name, data.pagination, ruleId, search);
-        } else {
-            showAlert('danger', '获取匹配账户失败: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '获取匹配账户失败');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayMatchedAccounts(data.accounts, data.rule_name, data.pagination, ruleId, search);
+            } else {
+                showAlert('danger', '获取匹配账户失败: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '获取匹配账户失败');
+        });
 }
 
 // 显示匹配的账户
@@ -1397,12 +1416,12 @@ function displayMatchedAccounts(accounts, ruleName, pagination, ruleId, search =
 // 生成分页控件
 function generatePagination(pagination, ruleId, search) {
     const { page, pages, has_prev, has_next } = pagination;
-    
+
     let html = `
         <nav aria-label="匹配账户分页" class="mt-3">
             <ul class="pagination pagination-sm justify-content-center">
     `;
-    
+
     // 上一页按钮
     if (has_prev) {
         html += `
@@ -1419,11 +1438,11 @@ function generatePagination(pagination, ruleId, search) {
             </li>
         `;
     }
-    
+
     // 页码按钮
     const startPage = Math.max(1, page - 2);
     const endPage = Math.min(pages, page + 2);
-    
+
     if (startPage > 1) {
         html += `
             <li class="page-item">
@@ -1434,7 +1453,7 @@ function generatePagination(pagination, ruleId, search) {
             html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
         }
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
         if (i === page) {
             html += `
@@ -1450,7 +1469,7 @@ function generatePagination(pagination, ruleId, search) {
             `;
         }
     }
-    
+
     if (endPage < pages) {
         if (endPage < pages - 1) {
             html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
@@ -1461,7 +1480,7 @@ function generatePagination(pagination, ruleId, search) {
             </li>
         `;
     }
-    
+
     // 下一页按钮
     if (has_next) {
         html += `
@@ -1478,12 +1497,12 @@ function generatePagination(pagination, ruleId, search) {
             </li>
         `;
     }
-    
+
     html += `
             </ul>
         </nav>
     `;
-    
+
     return html;
 }
 
@@ -1500,9 +1519,9 @@ function clearSearch(ruleId) {
 }
 
 // 处理搜索框回车事件
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 为搜索框添加回车事件监听
-    document.addEventListener('keypress', function(e) {
+    document.addEventListener('keypress', function (e) {
         if (e.target.id === 'accountSearchInput' && e.key === 'Enter') {
             const ruleId = e.target.closest('.modal').dataset.ruleId;
             if (ruleId) {
@@ -1515,44 +1534,44 @@ document.addEventListener('DOMContentLoaded', function() {
 // 查看规则
 function viewRule(id) {
     fetch(`/account_classification/api/rules/${id}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const rule = data.rule;
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const rule = data.rule;
 
-            // 填充查看表单
-            document.getElementById('viewRuleName').textContent = rule.rule_name;
-            document.getElementById('viewRuleClassification').textContent = rule.classification_name || '未分类';
-            document.getElementById('viewRuleDbType').textContent = rule.db_type.toUpperCase();
+                // 填充查看表单
+                document.getElementById('viewRuleName').textContent = rule.rule_name;
+                document.getElementById('viewRuleClassification').textContent = rule.classification_name || '未分类';
+                document.getElementById('viewRuleDbType').textContent = rule.db_type.toUpperCase();
 
-            // 显示操作符
-            const ruleExpression = rule.rule_expression;
-            const operator = ruleExpression && ruleExpression.operator ? ruleExpression.operator : 'OR';
-            const operatorText = operator === 'AND' ? 'AND (所有条件都必须满足)' : 'OR (任一条件满足即可)';
-            document.getElementById('viewRuleOperator').textContent = operatorText;
+                // 显示操作符
+                const ruleExpression = rule.rule_expression;
+                const operator = ruleExpression && ruleExpression.operator ? ruleExpression.operator : 'OR';
+                const operatorText = operator === 'AND' ? 'AND (所有条件都必须满足)' : 'OR (任一条件满足即可)';
+                document.getElementById('viewRuleOperator').textContent = operatorText;
 
-            document.getElementById('viewRuleStatus').innerHTML = rule.is_active ?
-                '<span class="badge bg-success">启用</span>' :
-                '<span class="badge bg-secondary">禁用</span>';
-            document.getElementById('viewRuleCreatedAt').textContent = rule.created_at ?
-                new Date(rule.created_at).toLocaleString() : '-';
-            document.getElementById('viewRuleUpdatedAt').textContent = rule.updated_at ?
-                new Date(rule.updated_at).toLocaleString() : '-';
+                document.getElementById('viewRuleStatus').innerHTML = rule.is_active ?
+                    '<span class="badge bg-success">启用</span>' :
+                    '<span class="badge bg-secondary">禁用</span>';
+                document.getElementById('viewRuleCreatedAt').textContent = rule.created_at ?
+                    new Date(rule.created_at).toLocaleString() : '-';
+                document.getElementById('viewRuleUpdatedAt').textContent = rule.updated_at ?
+                    new Date(rule.updated_at).toLocaleString() : '-';
 
-            // 显示权限配置
-            displayViewPermissions(rule.rule_expression, rule.db_type);
+                // 显示权限配置
+                displayViewPermissions(rule.rule_expression, rule.db_type);
 
-            // 显示查看模态框
-            const viewModal = new bootstrap.Modal(document.getElementById('viewRuleModal'));
-            viewModal.show();
-        } else {
-            showAlert('danger', '获取规则信息失败: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '获取规则信息失败');
-    });
+                // 显示查看模态框
+                const viewModal = new bootstrap.Modal(document.getElementById('viewRuleModal'));
+                viewModal.show();
+            } else {
+                showAlert('danger', '获取规则信息失败: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '获取规则信息失败');
+        });
 }
 
 // 显示查看权限配置
@@ -1574,8 +1593,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-primary mb-2"><i class="fas fa-globe me-2"></i>全局权限</h6>
                     <div class="mb-3">
                         ${ruleExpression.global_privileges.map(perm =>
-                            `<span class="badge bg-primary me-1 mb-1">${perm}</span>`
-                        ).join('')}
+                `<span class="badge bg-primary me-1 mb-1">${perm}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1586,8 +1605,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-success mb-2"><i class="fas fa-database me-2"></i>数据库权限</h6>
                     <div class="mb-3">
                         ${ruleExpression.database_privileges.map(perm =>
-                            `<span class="badge bg-success me-1 mb-1">${perm}</span>`
-                        ).join('')}
+                `<span class="badge bg-success me-1 mb-1">${perm}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1600,8 +1619,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-info mb-2"><i class="fas fa-users me-2"></i>服务器角色</h6>
                     <div class="mb-3">
                         ${ruleExpression.server_roles.map(role =>
-                            `<span class="badge bg-info me-1 mb-1">${role}</span>`
-                        ).join('')}
+                `<span class="badge bg-info me-1 mb-1">${role}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1612,8 +1631,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-primary mb-2"><i class="fas fa-database me-2"></i>数据库角色</h6>
                     <div class="mb-3">
                         ${ruleExpression.database_roles.map(role =>
-                            `<span class="badge bg-primary me-1 mb-1">${role}</span>`
-                        ).join('')}
+                `<span class="badge bg-primary me-1 mb-1">${role}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1624,8 +1643,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-warning mb-2"><i class="fas fa-shield-alt me-2"></i>服务器权限</h6>
                     <div class="mb-3">
                         ${ruleExpression.server_permissions.map(perm =>
-                            `<span class="badge bg-warning me-1 mb-1">${perm}</span>`
-                        ).join('')}
+                `<span class="badge bg-warning me-1 mb-1">${perm}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1636,8 +1655,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-success mb-2"><i class="fas fa-key me-2"></i>数据库权限</h6>
                     <div class="mb-3">
                         ${ruleExpression.database_privileges.map(perm =>
-                            `<span class="badge bg-success me-1 mb-1">${perm}</span>`
-                        ).join('')}
+                `<span class="badge bg-success me-1 mb-1">${perm}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1650,8 +1669,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-warning mb-2"><i class="fas fa-users me-2"></i>预定义角色</h6>
                     <div class="mb-3">
                         ${ruleExpression.predefined_roles.map(role =>
-                            `<span class="badge bg-warning me-1 mb-1">${role}</span>`
-                        ).join('')}
+                `<span class="badge bg-warning me-1 mb-1">${role}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1668,15 +1687,15 @@ function displayViewPermissions(ruleExpression, dbType) {
                 'can_bypass_rls': 'can_bypass_rls - 绕过行级安全属性（rolbypassrls）',
                 'connection_limit': 'connection_limit - 连接限制属性（rolconnlimit）'
             };
-            
+
             html += `
                 <div class="col-md-6">
                     <h6 class="text-primary mb-2"><i class="fas fa-user-shield me-2"></i>角色属性</h6>
                     <div class="mb-3">
                         ${ruleExpression.role_attributes.map(attr => {
-                            const displayName = roleAttributeDisplayNames[attr] || attr;
-                            return `<span class="badge bg-primary me-1 mb-1">${displayName}</span>`;
-                        }).join('')}
+                const displayName = roleAttributeDisplayNames[attr] || attr;
+                return `<span class="badge bg-primary me-1 mb-1">${displayName}</span>`;
+            }).join('')}
                     </div>
                 </div>
             `;
@@ -1687,8 +1706,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-success mb-2"><i class="fas fa-database me-2"></i>数据库权限</h6>
                     <div class="mb-3">
                         ${ruleExpression.database_privileges.map(perm =>
-                            `<span class="badge bg-success me-1 mb-1">${perm}</span>`
-                        ).join('')}
+                `<span class="badge bg-success me-1 mb-1">${perm}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1699,8 +1718,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-info mb-2"><i class="fas fa-hdd me-2"></i>表空间权限</h6>
                     <div class="mb-3">
                         ${ruleExpression.tablespace_privileges.map(perm =>
-                            `<span class="badge bg-info me-1 mb-1">${perm}</span>`
-                        ).join('')}
+                `<span class="badge bg-info me-1 mb-1">${perm}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1713,8 +1732,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-danger mb-2"><i class="fas fa-users-cog me-2"></i>角色</h6>
                     <div class="mb-3">
                         ${ruleExpression.roles.map(role =>
-                            `<span class="badge bg-danger me-1 mb-1">${role}</span>`
-                        ).join('')}
+                `<span class="badge bg-danger me-1 mb-1">${role}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1725,8 +1744,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-primary mb-2"><i class="fas fa-shield-alt me-2"></i>系统权限</h6>
                     <div class="mb-3">
                         ${ruleExpression.system_privileges.map(perm =>
-                            `<span class="badge bg-primary me-1 mb-1">${perm}</span>`
-                        ).join('')}
+                `<span class="badge bg-primary me-1 mb-1">${perm}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1737,8 +1756,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-info mb-2"><i class="fas fa-hdd me-2"></i>表空间权限</h6>
                     <div class="mb-3">
                         ${ruleExpression.tablespace_privileges.map(perm =>
-                            `<span class="badge bg-info me-1 mb-1">${perm}</span>`
-                        ).join('')}
+                `<span class="badge bg-info me-1 mb-1">${perm}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1749,8 +1768,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                     <h6 class="text-warning mb-2"><i class="fas fa-chart-pie me-2"></i>表空间配额</h6>
                     <div class="mb-3">
                         ${ruleExpression.tablespace_quotas.map(quota =>
-                            `<span class="badge bg-warning me-1 mb-1">${quota}</span>`
-                        ).join('')}
+                `<span class="badge bg-warning me-1 mb-1">${quota}</span>`
+            ).join('')}
                     </div>
                 </div>
             `;
@@ -1762,8 +1781,8 @@ function displayViewPermissions(ruleExpression, dbType) {
                 <h6 class="text-secondary mb-2"><i class="fas fa-list me-2"></i>权限列表</h6>
                 <div class="mb-3">
                     ${ruleExpression.permissions.map(perm =>
-                        `<span class="badge bg-secondary me-1 mb-1">${perm}</span>`
-                    ).join('')}
+            `<span class="badge bg-secondary me-1 mb-1">${perm}</span>`
+        ).join('')}
                 </div>
             </div>
         `;
@@ -1782,22 +1801,22 @@ function deleteRule(id) {
     fetch(`/account_classification/rules/${id}`, {
         method: 'DELETE',
         headers: {
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRFToken': getCSRFToken()
         }
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', '规则删除成功');
-            loadRules();
-        } else {
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '删除规则失败');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', '规则删除成功');
+                loadRules();
+            } else {
+                showAlert('danger', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '删除规则失败');
+        });
 }
 
 // 自动分类所有账户
@@ -1816,47 +1835,47 @@ function autoClassifyAll() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({})
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // 记录成功日志
-            logUserAction('自动分类所有账户成功', {
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 记录成功日志
+                logUserAction('自动分类所有账户成功', {
+                    operation: 'auto_classify_all',
+                    result: 'success',
+                    message: data.message
+                });
+                showAlert('success', data.message);
+                // 分类完成后刷新页面显示最新数据
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                // 记录失败日志
+                logError('自动分类所有账户失败', {
+                    operation: 'auto_classify_all',
+                    result: 'failed',
+                    error: data.error
+                });
+                showAlert('danger', data.error);
+            }
+        })
+        .catch(error => {
+            // 记录异常日志
+            logErrorWithContext(error, '自动分类所有账户异常', {
                 operation: 'auto_classify_all',
-                result: 'success',
-                message: data.message
+                result: 'exception'
             });
-            showAlert('success', data.message);
-            // 分类完成后刷新页面显示最新数据
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-        } else {
-            // 记录失败日志
-            logError('自动分类所有账户失败', {
-                operation: 'auto_classify_all',
-                result: 'failed',
-                error: data.error
-            });
-            showAlert('danger', data.error);
-        }
-    })
-    .catch(error => {
-        // 记录异常日志
-        logErrorWithContext(error, '自动分类所有账户异常', {
-            operation: 'auto_classify_all',
-            result: 'exception'
+            showAlert('danger', '自动分类失败');
+        })
+        .finally(() => {
+            // 恢复按钮状态
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         });
-        showAlert('danger', '自动分类失败');
-    })
-    .finally(() => {
-        // 恢复按钮状态
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    });
 }
 
 // 显示提示信息
@@ -1882,19 +1901,19 @@ function showAlert(type, message) {
 // ==================== 颜色预览功能 ====================
 
 // 初始化颜色预览功能
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 创建分类的颜色预览
     const createColorSelect = document.getElementById('classificationColor');
     if (createColorSelect) {
-        createColorSelect.addEventListener('change', function() {
+        createColorSelect.addEventListener('change', function () {
             updateColorPreview('colorPreview', this);
         });
     }
-    
+
     // 编辑分类的颜色预览
     const editColorSelect = document.getElementById('editClassificationColor');
     if (editColorSelect) {
-        editColorSelect.addEventListener('change', function() {
+        editColorSelect.addEventListener('change', function () {
             updateColorPreview('editColorPreview', this);
         });
     }
@@ -1905,14 +1924,14 @@ function updateColorPreview(previewId, selectElement) {
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     const colorValue = selectedOption.dataset.color;
     const colorText = selectedOption.text;
-    
+
     const preview = document.getElementById(previewId);
     if (!preview) return;
-    
+
     if (colorValue && selectElement.value) {
         const dot = preview.querySelector('.color-preview-dot');
         const text = preview.querySelector('.color-preview-text');
-        
+
         if (dot && text) {
             dot.style.backgroundColor = colorValue;
             text.textContent = colorText;
@@ -1926,7 +1945,7 @@ function updateColorPreview(previewId, selectElement) {
 // 修改原有的创建分类函数，使用颜色键名
 function createClassification() {
     const form = document.getElementById('createClassificationForm');
-    
+
     // 验证表单
     if (!form.checkValidity()) {
         form.reportValidity();
@@ -1955,29 +1974,29 @@ function createClassification() {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', '分类创建成功');
-            bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
-            form.reset();
-            // 重置颜色预览
-            document.getElementById('colorPreview').style.display = 'none';
-            loadClassifications();
-        } else {
-            showAlert('danger', data.error || '创建分类失败');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '创建分类失败: ' + error.message);
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', '分类创建成功');
+                bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
+                form.reset();
+                // 重置颜色预览
+                document.getElementById('colorPreview').style.display = 'none';
+                loadClassifications();
+            } else {
+                showAlert('danger', data.error || '创建分类失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '创建分类失败: ' + error.message);
+        });
 }
 
 // 修改原有的更新分类函数
 function updateClassification() {
     const form = document.getElementById('editClassificationForm');
-    
+
     // 验证表单
     if (!form.checkValidity()) {
         form.reportValidity();
@@ -2007,20 +2026,20 @@ function updateClassification() {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', '分类更新成功');
-            bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
-            // 重置颜色预览
-            document.getElementById('editColorPreview').style.display = 'none';
-            loadClassifications();
-        } else {
-            showAlert('danger', data.error || '更新分类失败');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '更新分类失败: ' + error.message);
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', '分类更新成功');
+                bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
+                // 重置颜色预览
+                document.getElementById('editColorPreview').style.display = 'none';
+                loadClassifications();
+            } else {
+                showAlert('danger', data.error || '更新分类失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '更新分类失败: ' + error.message);
+        });
 }

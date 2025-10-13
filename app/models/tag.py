@@ -4,6 +4,7 @@
 
 from app import db
 from app.utils.time_utils import now
+from app.constants.colors import ThemeColors
 
 
 class Tag(db.Model):
@@ -55,6 +56,25 @@ class Tag(db.Model):
         self.sort_order = sort_order
         self.is_active = is_active
 
+    @property
+    def color_value(self):
+        """获取实际颜色值"""
+        return ThemeColors.get_color_value(self.color)
+    
+    @property
+    def color_name(self):
+        """获取颜色名称"""
+        return ThemeColors.get_color_name(self.color)
+    
+    @property
+    def css_class(self):
+        """获取CSS类名"""
+        return ThemeColors.get_css_class(self.color)
+    
+    def validate_color(self):
+        """验证颜色键是否有效"""
+        return ThemeColors.is_valid_color(self.color) if self.color else True
+
     def to_dict(self) -> dict:
         """转换为字典格式"""
         return {
@@ -63,6 +83,9 @@ class Tag(db.Model):
             "display_name": self.display_name,
             "category": self.category,
             "color": self.color,
+            "color_value": self.color_value,
+            "color_name": self.color_name,
+            "css_class": self.css_class,
             "description": self.description,
             "sort_order": self.sort_order,
             "is_active": self.is_active,
@@ -110,16 +133,7 @@ class Tag(db.Model):
     @staticmethod
     def get_color_choices() -> list:
         """获取颜色选项"""
-        return [
-            ("primary", "蓝色"),
-            ("success", "绿色"),
-            ("info", "青色"),
-            ("warning", "黄色"),
-            ("danger", "红色"),
-            ("secondary", "灰色"),
-            ("dark", "深色"),
-            ("light", "浅色"),
-        ]
+        return ThemeColors.get_color_choices()
 
     def __repr__(self) -> str:
         return f"<Tag {self.name}>"
