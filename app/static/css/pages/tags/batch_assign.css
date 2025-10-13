@@ -2,24 +2,7 @@
  * 批量分配标签页面样式
  */
 
-/* 页面头部 */
-.page-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 2rem 0;
-    margin-bottom: 2rem;
-    border-radius: 0.5rem;
-}
-
-.page-header h2 {
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
-
-.page-header p {
-    opacity: 0.9;
-    margin: 0;
-}
+/* 页面头部样式已移至全局样式 (global.css) */
 
 /* 页面容器 */
 .batch-assign-container {
