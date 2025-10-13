@@ -1,304 +1,130 @@
-/* app/static/css/pages/admin/partitions.css */
+/* 管理员分区页面样式 - 优化版本，利用Flatly主题和全局样式 */
 
-/* General Page Layout */
-.container-fluid {
-    padding-top: 20px;
-    padding-bottom: 20px;
-}
+/* 页面头部样式已移至全局样式 (global.css) */
 
-h2 {
-    color: var(--primary-color);
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-}
-
-h2 .fas {
-    color: var(--secondary-color);
-}
-
-/* Status Cards */
+/* 状态卡片 - 利用全局卡片样式 */
 .card {
     border: none;
-    border-radius: 12px;
+    border-radius: var(--border-radius-xl);
     overflow: hidden;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-md);
 }
 
 .card:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
 }
 
 .card.bg-primary {
-    background: linear-gradient(45deg, #667eea, #764ba2) !important;
+    background: var(--gradient-primary) !important;
 }
 
 .card.bg-info {
-    background: linear-gradient(45deg, #17a2b8, #20c997) !important;
+    background: var(--gradient-info) !important;
 }
 
 .card.bg-success {
-    background: linear-gradient(45deg, #28a745, #20c997) !important;
+    background: var(--gradient-success) !important;
 }
 
 .card.bg-warning {
-    background: linear-gradient(45deg, #ffc107, #fd7e14) !important;
+    background: var(--gradient-warning) !important;
 }
 
 .card-body {
-    padding: 20px;
+    padding: var(--spacing-lg);
+    text-align: center;
 }
 
 .card-title {
     font-size: 2rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-sm);
 }
 
-.card-text {
-    font-size: 0.9rem;
-    opacity: 0.9;
-    margin-bottom: 0;
-}
-
-/* Table Styling */
-.table-responsive {
-    border-radius: 8px;
-    overflow: hidden;
-}
-
+/* 分区表格样式 - 利用全局表格样式 */
 .table {
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
     margin-bottom: 0;
 }
 
 .table thead th {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
+    background-color: var(--gray-50);
+    border-bottom: 2px solid var(--gray-200);
     font-weight: 600;
-    color: #495057;
-    padding: 15px 12px;
+    color: var(--gray-700);
+    padding: var(--spacing-md);
 }
 
 .table tbody td {
-    padding: 12px;
+    padding: var(--spacing-md);
     vertical-align: middle;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .table tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: rgba(24, 188, 156, 0.05);
 }
 
-/* Status Badges */
-.badge {
+/* 分区状态徽章 */
+.partition-status {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.partition-status.active {
+    background-color: rgba(24, 188, 156, 0.1);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+
+.partition-status.inactive {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: var(--gray-600);
+    border: 1px solid var(--gray-400);
+}
+
+.partition-status.error {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+}
+
+/* 操作按钮组 */
+.action-buttons {
+    display: flex;
+    gap: var(--spacing-xs);
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
     font-size: 0.75rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.375rem;
+    min-width: auto;
+    border-radius: var(--border-radius-sm);
 }
 
-.badge.bg-success {
-    background-color: #28a745 !important;
-}
-
-.badge.bg-warning {
-    background-color: #ffc107 !important;
-    color: #000 !important;
-}
-
-.badge.bg-danger {
-    background-color: #dc3545 !important;
-}
-
-.badge.bg-info {
-    background-color: #17a2b8 !important;
-}
-
-/* Buttons */
-.btn {
-    border-radius: 8px;
-    font-weight: 500;
-    padding: 8px 16px;
-    transition: all 0.3s ease;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.btn-group .btn {
-    margin-right: 8px;
-}
-
-.btn-group .btn:last-child {
-    margin-right: 0;
-}
-
-/* Modal Styling */
-.modal-content {
-    border: none;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    border-bottom: none;
-    border-radius: 12px 12px 0 0;
-}
-
-.modal-header .btn-close {
-    filter: invert(1);
-}
-
-.modal-body {
-    padding: 25px;
-}
-
-.modal-footer {
-    border-top: 1px solid #dee2e6;
-    padding: 15px 25px;
-}
-
-/* Form Elements */
-.form-label {
-    font-weight: 500;
-    color: #343a40;
-    margin-bottom: 8px;
-}
-
-.form-control {
-    border-radius: 8px;
-    border: 1px solid #ced4da;
-    padding: 10px 15px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.form-control:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
-}
-
-.form-text {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin-top: 5px;
-}
-
-/* Alert Styling */
-.alert {
-    border: none;
-    border-radius: 8px;
-    padding: 15px 20px;
-}
-
-.alert-warning {
-    background-color: #fff3cd;
-    color: #856404;
-    border-left: 4px solid #ffc107;
-}
-
-/* Loading Spinner */
-.spinner-border {
-    width: 2rem;
-    height: 2rem;
-}
-
-/* Responsive Adjustments */
+/* 响应式调整 */
 @media (max-width: 768px) {
     .card-body {
-        padding: 15px;
+        padding: var(--spacing-md);
     }
     
     .card-title {
         font-size: 1.5rem;
     }
     
-    .btn-group {
+    .action-buttons {
         flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+    
+    .action-buttons .btn {
         width: 100%;
+        text-align: center;
     }
-    
-    .btn-group .btn {
-        margin-right: 0;
-        margin-bottom: 8px;
-        width: 100%;
-    }
-    
-    .btn-group .btn:last-child {
-        margin-bottom: 0;
-    }
-    
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-    
-    .modal-body {
-        padding: 20px;
-    }
-}
-
-@media (max-width: 576px) {
-    .container-fluid {
-        padding-top: 10px;
-        padding-bottom: 10px;
-    }
-    
-    h2 {
-        font-size: 1.5rem;
-    }
-    
-    .card-title {
-        font-size: 1.25rem;
-    }
-    
-    .table thead th,
-    .table tbody td {
-        padding: 8px 6px;
-    }
-}
-
-/* Animation for status updates */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-/* Partition status indicators */
-.partition-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.partition-status .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.partition-status .status-dot.active {
-    background-color: #28a745;
-}
-
-.partition-status .status-dot.warning {
-    background-color: #ffc107;
-}
-
-.partition-status .status-dot.danger {
-    background-color: #dc3545;
 }

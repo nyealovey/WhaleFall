@@ -1,25 +1,29 @@
-/* 实例统计页面样式 */
+/* 实例统计页面样式 - 优化版本，利用Flatly主题和全局样式 */
 
-/* 统计卡片样式 */
+/* 页面头部样式已移至全局样式 (global.css) */
+
+/* 统计卡片样式 - 利用全局卡片样式 */
 .stats-card {
-    transition: all 0.3s ease;
+    transition: var(--transition-base);
     border: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--border-radius-lg);
 }
 
 .stats-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-lg);
 }
 
 .stats-card .card-body {
-    padding: 1.5rem;
+    padding: var(--spacing-lg);
+    text-align: center;
 }
 
 .stats-number {
     font-size: 2.5rem;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
 }
 
 .stats-label {
@@ -37,60 +41,77 @@
 .chart-container {
     position: relative;
     height: 400px;
-    margin: 1rem 0;
+    margin: var(--spacing-md) 0;
+    background: white;
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .chart-container canvas {
     max-height: 100%;
 }
 
-/* 统计表格样式 */
+/* 统计表格样式 - 利用全局表格样式 */
 .stats-table {
     background: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
 }
 
 .stats-table .table {
     margin-bottom: 0;
 }
 
-.stats-table .table th {
-    background-color: #f8f9fa;
-    border-top: none;
+.stats-table .table thead th {
+    background-color: var(--gray-50);
+    border-bottom: 2px solid var(--gray-200);
     font-weight: 600;
-    color: #495057;
+    color: var(--gray-700);
+    padding: var(--spacing-md);
 }
 
-.stats-table .table td {
+.stats-table .table tbody td {
+    padding: var(--spacing-md);
     vertical-align: middle;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.stats-table .table tbody tr:hover {
+    background-color: rgba(24, 188, 156, 0.05);
 }
 
 /* 数据库类型徽章 */
 .db-type-badge {
-    font-size: 0.8em;
-    padding: 0.4em 0.8em;
-    border-radius: 0.25rem;
-}
-
-.db-type-badge.mysql {
-    background-color: #28a745;
-    color: white;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
 .db-type-badge.postgresql {
-    background-color: #007bff;
-    color: white;
+    background-color: rgba(52, 144, 220, 0.1);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+.db-type-badge.mysql {
+    background-color: rgba(24, 188, 156, 0.1);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
 }
 
 .db-type-badge.sqlserver {
-    background-color: #ffc107;
-    color: #212529;
+    background-color: rgba(243, 156, 18, 0.1);
+    color: var(--warning-color);
+    border: 1px solid var(--warning-color);
 }
 
 .db-type-badge.oracle {
-    background-color: #17a2b8;
-    color: white;
+    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
 }
 
 /* 状态指示器 */
@@ -99,155 +120,35 @@
     height: 12px;
     border-radius: 50%;
     display: inline-block;
-    margin-right: 8px;
+    margin-right: var(--spacing-sm);
 }
 
-.status-indicator.active {
-    background-color: #28a745;
-    box-shadow: 0 0 6px rgba(40, 167, 69, 0.5);
+.status-indicator.online {
+    background-color: var(--success-color);
+    box-shadow: 0 0 6px rgba(24, 188, 156, 0.5);
 }
 
-.status-indicator.inactive {
-    background-color: #dc3545;
-    box-shadow: 0 0 6px rgba(220, 53, 69, 0.5);
+.status-indicator.offline {
+    background-color: var(--danger-color);
+    box-shadow: 0 0 6px rgba(231, 76, 60, 0.5);
 }
 
-/* 刷新按钮 */
-.refresh-btn {
-    position: relative;
-    overflow: hidden;
-}
-
-.refresh-btn .spinner-border {
-    width: 1rem;
-    height: 1rem;
-}
-
-/* 空数据提示 */
-.empty-data {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: #6c757d;
-}
-
-.empty-data i {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
+.status-indicator.unknown {
+    background-color: var(--gray-500);
 }
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-    .stats-number {
-        font-size: 2rem;
+    .stats-card .card-body {
+        padding: var(--spacing-md);
     }
     
-    .stats-icon {
+    .stats-number {
         font-size: 2rem;
     }
     
     .chart-container {
         height: 300px;
-    }
-    
-    .stats-card .card-body {
-        padding: 1rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .stats-number {
-        font-size: 1.5rem;
-    }
-    
-    .stats-icon {
-        font-size: 1.5rem;
-    }
-    
-    .chart-container {
-        height: 250px;
-    }
-}
-
-/* 加载状态 */
-.loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(255, 255, 255, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-/* 动画效果 */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* 图表图例样式 */
-.chart-legend {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-top: 1rem;
-}
-
-.chart-legend-item {
-    display: flex;
-    align-items: center;
-    margin: 0.25rem 0.5rem;
-    font-size: 0.9rem;
-}
-
-.chart-legend-color {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 0.5rem;
-}
-
-/* 统计信息高亮 */
-.highlight-stat {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-.highlight-stat .stats-number {
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-/* 数据更新提示 */
-.data-updated {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: #28a745;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    z-index: 1050;
-    animation: slideInRight 0.3s ease-out;
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
+        padding: var(--spacing-sm);
     }
 }
