@@ -389,7 +389,10 @@ function displayRules(rulesByDbType) {
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
-                                                        <button class="btn matched-accounts-btn" onclick="viewMatchedAccounts(${rule.id})" title="查看匹配的账户">
+                                                        <button class="btn matched-accounts-btn" 
+                                                                onclick="viewMatchedAccounts(${rule.id})" 
+                                                                title="查看匹配的账户"
+                                                                data-count="${rule.matched_accounts_count || 0}">
                                                             <i class="fas fa-users me-1"></i>${rule.matched_accounts_count || 0} 个账户
                                                         </button>
                                                     </div>
