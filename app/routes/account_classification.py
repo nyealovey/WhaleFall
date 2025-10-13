@@ -16,6 +16,7 @@ from app.models.account_classification import (
     ClassificationRule,
 )
 from app.services.account_classification_service import AccountClassificationService
+from app.constants.colors import ThemeColors
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -33,7 +34,9 @@ account_classification_bp = Blueprint("account_classification", __name__)
 @view_required
 def index() -> str:
     """账户分类管理首页"""
-    return render_template("accounts/account_classification.html")
+    # 传递颜色选项到模板
+    color_options = ThemeColors.COLOR_MAP
+    return render_template("accounts/account_classification.html", color_options=color_options)
 
 
 @account_classification_bp.route("/rules-page")
@@ -42,6 +45,24 @@ def index() -> str:
 def rules() -> str:
     """规则管理页面"""
     return render_template("account_classification/rules.html")
+
+
+@account_classification_bp.route("/api/colors")
+@login_required
+@view_required
+def get_color_options() -> "Response":
+    """获取可用颜色选项"""
+    try:
+        return jsonify({
+            "success": True,
+            "data": {
+                "colors": ThemeColors.COLOR_MAP,
+                "choices": ThemeColors.get_color_choices()
+            }
+        })
+    except Exception as e:
+        log_error(f"获取颜色选项失败: {e}", module="account_classification")
+        return jsonify({"success": False, "error": str(e)})
 
 
 @account_classification_bp.route("/api/classifications")
@@ -96,12 +117,20 @@ def create_classification() -> "Response":
     """创建账户分类"""
     try:
         data = request.get_json()
+        
+        # 验证颜色
+        color_key = data.get("color", "info")
+        if not ThemeColors.is_valid_color(color_key):
+            return jsonify({
+                "success": False, 
+                "error": f"无效的颜色选择: {color_key}"
+            }), 400
 
         classification = AccountClassification(
             name=data["name"],
             description=data.get("description", ""),
             risk_level=data.get("risk_level", "medium"),
-            color=data.get("color", "#6c757d"),
+            color=color_key,  # 存储颜色键名
             icon_name=data.get("icon_name", "fa-tag"),
             priority=data.get("priority", 0),
             is_system=False,
@@ -110,21 +139,10 @@ def create_classification() -> "Response":
         db.session.add(classification)
         db.session.commit()
 
-        return jsonify(
-            {
-                "success": True,
-                "classification": {
-                    "id": classification.id,
-                    "name": classification.name,
-                    "description": classification.description,
-                    "risk_level": classification.risk_level,
-                    "color": classification.color,
-                    "icon_name": classification.icon_name,
-                    "priority": classification.priority,
-                    "is_system": classification.is_system,
-                },
-            }
-        )
+        return jsonify({
+            "success": True,
+            "classification": classification.to_dict()
+        })
 
     except Exception as e:
         db.session.rollback()
@@ -170,17 +188,28 @@ def update_classification(classification_id: int) -> "Response":
     try:
         classification = AccountClassification.query.get_or_404(classification_id)
         data = request.get_json()
+        
+        # 验证颜色
+        color_key = data.get("color", "info")
+        if not ThemeColors.is_valid_color(color_key):
+            return jsonify({
+                "success": False, 
+                "error": f"无效的颜色选择: {color_key}"
+            }), 400
 
         classification.name = data["name"]
         classification.description = data.get("description", "")
         classification.risk_level = data.get("risk_level", "medium")
-        classification.color = data.get("color", "#6c757d")
+        classification.color = color_key  # 存储颜色键名
         classification.icon_name = data.get("icon_name", "fa-tag")
         classification.priority = data.get("priority", 0)
 
         db.session.commit()
 
-        return jsonify({"success": True})
+        return jsonify({
+            "success": True,
+            "classification": classification.to_dict()
+        })
 
     except Exception as e:
         db.session.rollback()

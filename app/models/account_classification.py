@@ -6,6 +6,7 @@ import json
 
 from app import db
 from app.utils.time_utils import now
+from app.constants.colors import ThemeColors
 
 
 class AccountClassification(db.Model):
@@ -42,6 +43,25 @@ class AccountClassification(db.Model):
     def __repr__(self) -> str:
         return f"<AccountClassification {self.name}>"
 
+    @property
+    def color_value(self):
+        """获取实际颜色值"""
+        return ThemeColors.get_color_value(self.color)
+    
+    @property
+    def color_name(self):
+        """获取颜色名称"""
+        return ThemeColors.get_color_name(self.color)
+    
+    @property
+    def css_class(self):
+        """获取CSS类名"""
+        return ThemeColors.get_css_class(self.color)
+    
+    def validate_color(self):
+        """验证颜色键是否有效"""
+        return ThemeColors.is_valid_color(self.color) if self.color else True
+
     def to_dict(self) -> dict:
         """转换为字典"""
         return {
@@ -50,6 +70,9 @@ class AccountClassification(db.Model):
             "description": self.description,
             "risk_level": self.risk_level,
             "color": self.color,
+            "color_value": self.color_value,
+            "color_name": self.color_name,
+            "css_class": self.css_class,
             "icon_name": self.icon_name,
             "priority": self.priority,
             "is_system": self.is_system,
