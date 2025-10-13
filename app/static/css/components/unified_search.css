@@ -94,8 +94,8 @@
 }
 
 .btn.unified-clear-btn {
-    background-color: var(--gray-500) !important;
-    border: 2px solid var(--gray-500) !important;
+    background-color: var(--gray-600) !important;
+    border: 2px solid var(--gray-600) !important;
     color: white !important;
     font-weight: 600;
     border-radius: var(--border-radius-sm) !important;
@@ -110,9 +110,9 @@
 }
 
 .unified-clear-btn:hover {
-    background-color: var(--gray-600);
-    border-color: var(--gray-600);
-    color: white;
+    background-color: var(--gray-700) !important;
+    border-color: var(--gray-700) !important;
+    color: white !important;
     transform: translateY(-1px);
 }
 

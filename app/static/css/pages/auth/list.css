@@ -2,7 +2,7 @@
 
 /* 页面头部样式已移至全局样式 (global.css) */
 
-/* 用户头像 */
+/* 用户头像 - 更美观的设计 */
 .user-avatar {
     width: 40px;
     height: 40px;
@@ -14,18 +14,56 @@
     color: white;
     font-weight: bold;
     font-size: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-base);
 }
 
-/* 用户表格 - 利用全局卡片样式 */
-.user-table {
-    background: white;
+.user-avatar:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+/* 卡片样式 - 利用全局卡片样式 */
+.card {
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-md);
-    overflow: hidden;
+    border: none;
+    margin-bottom: var(--spacing-lg);
 }
 
-.user-table .table tbody tr:hover {
+.card-body {
+    padding: var(--spacing-lg);
+}
+
+/* 表格样式优化 */
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    border-bottom: 2px solid var(--gray-200);
+    font-weight: 600;
+    color: var(--gray-700);
+    background-color: var(--gray-50);
+    padding: var(--spacing-md);
+}
+
+.table tbody td {
+    padding: var(--spacing-md);
+    vertical-align: middle;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.table tbody tr:hover {
     background-color: rgba(24, 188, 156, 0.05);
+}
+
+/* 徽章样式优化 */
+.badge {
+    font-size: 0.8em;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
 }
 
 /* 操作按钮组 */
@@ -39,6 +77,61 @@
     padding: var(--spacing-xs) var(--spacing-sm);
     font-size: 0.75rem;
     min-width: auto;
+    border-radius: var(--border-radius-sm);
 }
 
-/* 页面头部响应式样式已移至全局样式 (global.css) */
+/* 空状态样式 */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xxl) var(--spacing-xl);
+    color: var(--gray-600);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--gray-300);
+    margin-bottom: var(--spacing-md);
+    animation: float 3s ease-in-out infinite;
+}
+
+.empty-state h4 {
+    color: var(--gray-700);
+    margin-bottom: var(--spacing-sm);
+}
+
+.empty-state p {
+    color: var(--gray-500);
+    margin: 0;
+}
+
+/* 浮动动画 */
+@keyframes float {
+    0%, 100% { 
+        transform: translateY(0px); 
+    }
+    50% { 
+        transform: translateY(-10px); 
+    }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .card-body {
+        padding: var(--spacing-md);
+    }
+    
+    .table thead th,
+    .table tbody td {
+        padding: var(--spacing-sm);
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
