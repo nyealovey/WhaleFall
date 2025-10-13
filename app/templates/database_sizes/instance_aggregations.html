@@ -3,7 +3,7 @@
 {% block title %}容量统计(实例) - 数据库大小监控{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/database_sizes/instance_aggregations.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/capacity_stats/instance_aggregations.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 <style>
     /* 实例统计页面特定样式 */
@@ -380,7 +380,7 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/database_sizes/instance_aggregations.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/capacity_stats/instance_aggregations.js') }}"></script>
 <script>
 // 页面加载完成后初始化实例统计页面
 document.addEventListener('DOMContentLoaded', function() {
