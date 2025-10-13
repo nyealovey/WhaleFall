@@ -3,34 +3,7 @@
 {% block title %}登录 - 鲸落{% endblock %}
 
 {% block extra_css %}
-<style>
-/* 最小化的登录页面样式 - 利用Flatly主题 */
-.login-container {
-    min-height: 100vh;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
-}
-
-.login-card {
-    border: none;
-    border-radius: 1rem;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    animation: slideInUp 0.6s ease-out;
-}
-
-@keyframes slideInUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.login-logo {
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
-    transition: transform 0.3s ease;
-}
-
-.login-logo:hover {
-    transform: scale(1.05);
-}
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth/login.css') }}">
 {% endblock %}
 
 {% block content %}
