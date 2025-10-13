@@ -1,23 +1,6 @@
 /* 标签管理页面样式 - 优化版本，利用Flatly主题和全局样式 */
 
-/* 页面头部 - 利用全局渐变 */
-.page-header {
-    background: var(--gradient-primary);
-    color: white;
-    padding: var(--spacing-xl) 0;
-    margin-bottom: var(--spacing-xl);
-    border-radius: var(--border-radius-lg);
-}
-
-.page-header h2 {
-    font-weight: 700;
-    margin-bottom: var(--spacing-sm);
-}
-
-.page-header p {
-    opacity: 0.9;
-    margin: 0;
-}
+/* 页面头部样式已移至全局样式 (global.css) */
 
 /* 表格悬停效果 */
 .table-hover tbody tr:hover {
@@ -48,14 +31,4 @@
     }
 }
 
-/* 响应式调整 */
-@media (max-width: 768px) {
-    .page-header {
-        padding: var(--spacing-lg) 0;
-        margin-bottom: var(--spacing-lg);
-    }
-    
-    .page-header h2 {
-        font-size: 1.5rem;
-    }
-}
+/* 页面头部响应式样式已移至全局样式 (global.css) */

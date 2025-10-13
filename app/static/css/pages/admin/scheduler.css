@@ -268,24 +268,7 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* 页面头部 */
-.page-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 2rem 0;
-    margin-bottom: 2rem;
-    border-radius: 0.5rem;
-}
-
-.page-header h1 {
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
-
-.page-header p {
-    opacity: 0.9;
-    margin: 0;
-}
+/* 页面头部样式已移至全局样式 (global.css) */
 
 /* 移除统计卡片相关样式（保留占位注释） */
 
@@ -635,14 +618,7 @@
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-    .page-header {
-        padding: 1.5rem 0;
-        margin-bottom: 1.5rem;
-    }
-    
-    .page-header h1 {
-        font-size: 1.5rem;
-    }
+    /* 页面头部响应式样式已移至全局样式 (global.css) */
     
     .job-info {
         padding: 1rem;
@@ -665,14 +641,7 @@
 }
 
 @media (max-width: 576px) {
-    .page-header {
-        padding: 1rem 0;
-        margin-bottom: 1rem;
-    }
-    
-    .page-header h1 {
-        font-size: 1.25rem;
-    }
+    /* 页面头部响应式样式已移至全局样式 (global.css) */
     
     .job-info {
         padding: 0.75rem;

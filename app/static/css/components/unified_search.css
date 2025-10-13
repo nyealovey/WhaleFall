@@ -1,55 +1,55 @@
-/* 统一搜索组件样式 */
+/* 统一搜索组件样式 - 优化版本，利用Flatly主题和全局样式 */
 
-/* 搜索卡片基础样式 */
+/* 搜索卡片基础样式 - 利用全局卡片样式 */
 .search-filter-card {
     background: white;
-    border-radius: 0.5rem !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin-bottom: 1.5rem;
-    border: 1px solid #e9ecef;
-    transition: all 0.3s ease;
+    border-radius: var(--border-radius-md) !important;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-lg);
+    border: 1px solid var(--gray-300);
+    transition: var(--transition-base);
     overflow: hidden;
 }
 
 .search-filter-card:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-md);
 }
 
 .search-filter-card .card-body {
-    padding: 0.75rem 1rem;
+    padding: var(--spacing-sm) var(--spacing-md);
 }
 
-/* 统一搜索表单样式 */
+/* 统一搜索表单样式 - 利用全局表单样式 */
 .unified-search-form .form-label {
     font-weight: 500;
-    color: #495057;
-    margin-bottom: 0.125rem;
+    color: var(--gray-700);
+    margin-bottom: var(--spacing-xs);
     font-size: 0.8rem;
 }
 
 .unified-search-form .unified-input,
 .unified-search-form .unified-select {
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
-    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-sm);
     font-size: 0.85rem;
     height: 2.5rem;
     min-height: 2.5rem;
-    transition: all 0.3s ease;
-    background-color: #f8f9fa;
+    transition: var(--transition-base);
+    background-color: var(--gray-100);
     line-height: 1.5;
 }
 
 .unified-search-form .unified-input:focus,
 .unified-search-form .unified-select:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 144, 220, 0.25);
     background-color: white;
     outline: none;
 }
 
 .unified-search-form .unified-input::placeholder {
-    color: #adb5bd;
+    color: var(--gray-500);
     font-style: italic;
 }
 
@@ -61,21 +61,21 @@
 
 .unified-search-form .col-md-2,
 .unified-search-form .col-md-3 {
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-sm);
 }
 
-/* 统一按钮样式 - 覆盖Bootstrap默认样式 */
+/* 统一按钮样式 - 利用全局按钮样式 */
 .btn.unified-search-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: var(--gradient-primary) !important;
     border: none !important;
     color: white !important;
     font-weight: 600;
-    border-radius: 0.375rem !important;
-    padding: 0.375rem 0.75rem !important;
+    border-radius: var(--border-radius-sm) !important;
+    padding: var(--spacing-sm) var(--spacing-md) !important;
     font-size: 0.85rem;
     height: 2.5rem !important;
     min-height: 2.5rem !important;
-    transition: all 0.3s ease;
+    transition: var(--transition-base);
     position: relative;
     overflow: hidden;
     display: flex !important;
@@ -84,8 +84,9 @@
 }
 
 .unified-search-btn:hover {
-    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: var(--shadow-md);
     color: white;
+    transform: translateY(-1px);
 }
 
 .unified-search-btn:active {
@@ -93,25 +94,26 @@
 }
 
 .btn.unified-clear-btn {
-    background-color: #6c757d !important;
-    border: 2px solid #6c757d !important;
+    background-color: var(--gray-500) !important;
+    border: 2px solid var(--gray-500) !important;
     color: white !important;
     font-weight: 600;
-    border-radius: 0.375rem !important;
-    padding: 0.375rem 0.75rem !important;
+    border-radius: var(--border-radius-sm) !important;
+    padding: var(--spacing-sm) var(--spacing-md) !important;
     font-size: 0.85rem;
     height: 2.5rem !important;
     min-height: 2.5rem !important;
-    transition: all 0.3s ease;
+    transition: var(--transition-base);
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 }
 
 .unified-clear-btn:hover {
-    background-color: #5a6268;
-    border-color: #545b62;
+    background-color: var(--gray-600);
+    border-color: var(--gray-600);
     color: white;
+    transform: translateY(-1px);
 }
 
 .unified-clear-btn:active {
@@ -125,7 +127,11 @@
 .filter-status,
 .filter-level,
 .filter-module,
-.filter-time-range {
+.filter-time-range,
+.filter-credential-type,
+.filter-category,
+.filter-sync-type,
+.filter-sync-category {
     display: none;
 }
 
@@ -134,13 +140,6 @@
 .accounts-page .filter-db-type,
 .accounts-page .filter-tags {
     display: block;
-}
-
-/* 确保筛选行使用flexbox布局以支持order属性 */
-.sync-records-page .unified-search-form .row,
-.sync-sessions-page .unified-search-form .row {
-    display: flex !important;
-    flex-wrap: wrap !important;
 }
 
 .instances-page .filter-db-type,
@@ -192,228 +191,84 @@
     order: 3;
 }
 
-/* 标签选择按钮样式 */
+/* 确保筛选行使用flexbox布局以支持order属性 */
+.sync-records-page .unified-search-form .row,
+.sync-sessions-page .unified-search-form .row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+}
+
+/* 标签选择按钮样式 - 利用全局按钮样式 */
 .tag-selector-btn {
-    border: 2px solid #e9ecef;
-    background: #f8f9fa;
-    color: #495057;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
+    border: 2px solid var(--gray-300);
+    background: var(--gray-100);
+    color: var(--gray-700);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
     font-size: 0.95rem;
-    transition: all 0.3s ease;
+    transition: var(--transition-base);
     text-align: left;
     width: 100%;
 }
 
 .tag-selector-btn:hover {
-    border-color: #667eea;
-    color: #667eea;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
     background: white;
 }
 
 .tag-selector-btn:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 144, 220, 0.25);
 }
 
 /* 已选择标签显示 */
 .selected-tags-preview {
-    margin-top: 0.5rem;
+    margin-top: var(--spacing-sm);
 }
 
 /* 已选择标签容器样式 */
 #selected-tags-chips {
-    margin-left: 8px;
+    margin-left: var(--spacing-sm);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
+    gap: var(--spacing-xs);
 }
 
-/* 标签徽章样式 - 与标签管理页面保持一致 */
+/* 标签徽章样式 - 利用全局徽章样式 */
 #selected-tags-chips .badge {
     font-size: 0.8em;
-    padding: 4px 8px;
-    border-radius: 12px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
     display: inline-flex;
     align-items: center;
-    margin-right: 4px;
-    margin-bottom: 4px;
+    margin-right: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
     position: relative;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: var(--transition-base);
 }
 
 #selected-tags-chips .badge:hover {
     transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-sm);
 }
 
-#selected-tags-chips .remove-tag {
-    margin-left: 4px;
-    font-weight: bold;
-    opacity: 0.7;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-}
-
-#selected-tags-chips .remove-tag:hover {
-    opacity: 1;
-    color: white;
-}
-
-/* 兼容旧的样式 */
-.selected-tag-chip {
-    display: inline-block;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.8rem;
-    margin-right: 0.25rem;
-    margin-bottom: 0.25rem;
-}
-
-.selected-tag-chip .remove-tag {
-    margin-left: 0.25rem;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.selected-tag-chip .remove-tag:hover {
-    color: #ffc107;
-}
-
-/* 响应式设计 */
+/* 响应式调整 */
 @media (max-width: 768px) {
-    .unified-search-form .row {
-        flex-direction: column;
+    .search-filter-card .card-body {
+        padding: var(--spacing-xs) var(--spacing-sm);
     }
     
     .unified-search-form .col-md-2,
-    .unified-search-form .col-md-3,
-    .unified-search-form .col-md-4 {
-        width: 100%;
-        margin-bottom: 1rem;
-    }
-    
-    .unified-search-form .d-grid {
-        display: flex !important;
-        gap: 0.5rem;
-    }
-    
-    .search-filter-card .card-body {
-        padding: 1rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .unified-search-form .d-grid {
-        flex-direction: column;
+    .unified-search-form .col-md-3 {
+        margin-bottom: var(--spacing-xs);
     }
     
     .unified-search-btn,
     .unified-clear-btn {
         width: 100%;
+        margin-bottom: var(--spacing-xs);
     }
-}
-
-/* 加载状态 */
-.unified-search-form.loading .unified-search-btn {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.unified-search-form.loading .unified-search-btn::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 16px;
-    height: 16px;
-    margin: -8px 0 0 -8px;
-    border: 2px solid transparent;
-    border-top: 2px solid white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* 表单验证样式 */
-.unified-search-form .is-invalid {
-    border-color: #dc3545;
-}
-
-.unified-search-form .is-invalid:focus {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-}
-
-.unified-search-form .invalid-feedback {
-    display: block;
-    width: 100%;
-    margin-top: 0.25rem;
-    font-size: 0.875rem;
-    color: #dc3545;
-}
-
-/* 确保所有表单元素高度一致 - 覆盖Bootstrap默认样式 */
-.unified-search-form .form-control.unified-input,
-.unified-search-form .form-select.unified-select {
-    height: 2.5rem !important;
-    min-height: 2.5rem !important;
-    line-height: 1.5 !important;
-}
-
-/* 强制覆盖Bootstrap样式 - 最高优先级 */
-.unified-search-form .form-control.unified-input,
-.unified-search-form .form-select.unified-select {
-    height: 2.5rem !important;
-    min-height: 2.5rem !important;
-    line-height: 1.5 !important;
-}
-
-/* 确保卡片圆角在所有情况下都生效 - 使用更高优先级的选择器 */
-.card.search-filter-card,
-.card.search-filter-card .card-body {
-    border-radius: 0.5rem !important;
-}
-
-/* 修复可能的白色背景问题 - 覆盖Bootstrap默认样式 */
-.card.search-filter-card .card-body {
-    background: white !important;
-    padding: 1rem !important;
-    border-radius: 0.5rem !important;
-}
-
-/* 强制覆盖Bootstrap样式 - 最高优先级 */
-.card.search-filter-card {
-    border-radius: 0.5rem !important;
-}
-.card.search-filter-card .card-body {
-    border-radius: 0.5rem !important;
-    background: white !important;
-    padding: 1rem !important;
-}
-
-/* 确保按钮组高度一致 */
-.unified-search-form .d-grid {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-/* 强制覆盖Bootstrap样式 - 最高优先级 */
-.btn.unified-search-btn,
-.btn.unified-clear-btn {
-    height: 2.5rem !important;
-    min-height: 2.5rem !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
 }
