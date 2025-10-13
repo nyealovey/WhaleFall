@@ -1,0 +1,316 @@
+/* 全局样式文件 - 基于Flatly主题的统一设计系统 */
+
+:root {
+    /* Flatly Theme Colors - 统一色彩系统 */
+    --primary-color: #18bc9c;
+    --secondary-color: #95a5a6;
+    --success-color: #18bc9c;
+    --danger-color: #e74c3c;
+    --warning-color: #f39c12;
+    --info-color: #3498db;
+    --dark-color: #2c3e50;
+    --light-color: #ecf0f1;
+    
+    /* 扩展色彩 */
+    --gray-100: #f8f9fa;
+    --gray-200: #e9ecef;
+    --gray-300: #dee2e6;
+    --gray-400: #ced4da;
+    --gray-500: #adb5bd;
+    --gray-600: #6c757d;
+    --gray-700: #495057;
+    --gray-800: #343a40;
+    --gray-900: #212529;
+    
+    /* 阴影系统 */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
+    
+    /* 圆角系统 */
+    --border-radius-sm: 0.375rem;
+    --border-radius-md: 0.5rem;
+    --border-radius-lg: 0.75rem;
+    --border-radius-xl: 1rem;
+    
+    /* 间距系统 */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-xxl: 3rem;
+}
+
+/* 全局基础样式 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+/* 导航栏样式 */
+.navbar {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-lg);
+    position: fixed !important;
+    top: 0; left: 0; right: 0;
+    z-index: 1030;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    color: var(--primary-color) !important;
+}
+
+.navbar-brand img {
+    transition: transform 0.3s ease;
+    border-radius: var(--border-radius-sm);
+}
+
+.navbar-brand:hover img {
+    transform: scale(1.05);
+}
+
+/* 下拉菜单样式 */
+.navbar .dropdown-menu {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    margin-top: 8px;
+    padding: 8px 0;
+}
+
+.navbar .dropdown-item {
+    padding: 10px 20px;
+    border-radius: var(--border-radius-sm);
+    margin: 2px 8px;
+    transition: all 0.3s ease;
+    color: var(--gray-800);
+}
+
+.navbar .dropdown-item:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateX(5px);
+}
+
+.navbar .dropdown-item i {
+    width: 20px;
+    text-align: center;
+}
+
+/* 主内容区域 */
+.main-content {
+    min-height: calc(100vh - 76px);
+    padding: var(--spacing-xl) 0;
+    margin-top: 76px;
+}
+
+/* 统一卡片样式 */
+.card {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* 统一按钮样式 */
+.btn {
+    border-radius: var(--border-radius-md);
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--dark-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-success {
+    background: var(--success-color);
+}
+
+.btn-danger {
+    background: var(--danger-color);
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: var(--gray-800);
+}
+
+.btn-info {
+    background: var(--info-color);
+}
+
+.btn-secondary {
+    background: var(--secondary-color);
+}
+
+/* 统一表单控件样式 */
+.form-control, .form-select {
+    border-radius: var(--border-radius-md);
+    border: 2px solid var(--gray-300);
+    transition: all 0.3s ease;
+    padding: 0.75rem 1rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(24, 188, 156, 0.25);
+}
+
+/* 统一提示框样式 */
+.alert {
+    border-radius: var(--border-radius-md);
+    border: none;
+    padding: var(--spacing-md);
+}
+
+.alert-success {
+    background-color: rgba(24, 188, 156, 0.1);
+    color: var(--success-color);
+    border-left: 4px solid var(--success-color);
+}
+
+.alert-danger {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--danger-color);
+    border-left: 4px solid var(--danger-color);
+}
+
+.alert-warning {
+    background-color: rgba(243, 156, 18, 0.1);
+    color: var(--warning-color);
+    border-left: 4px solid var(--warning-color);
+}
+
+.alert-info {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--info-color);
+    border-left: 4px solid var(--info-color);
+}
+
+/* 统一表格样式 */
+.table {
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(24, 188, 156, 0.05);
+}
+
+/* 统一徽章样式 */
+.badge {
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+}
+
+/* 统一分页样式 */
+.pagination .page-link {
+    border: 2px solid var(--gray-300);
+    color: var(--primary-color);
+    border-radius: var(--border-radius-sm);
+    margin: 0 0.125rem;
+    transition: all 0.3s ease;
+}
+
+.pagination .page-link:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* 统一模态框样式 */
+.modal-content {
+    border-radius: var(--border-radius-lg);
+    border: none;
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+    background: var(--primary-color);
+    color: white;
+    border-bottom: none;
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+}
+
+.modal-header .btn-close {
+    filter: invert(1);
+}
+
+/* 页脚样式 */
+.footer {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+    text-align: center;
+    padding: var(--spacing-md) 0;
+    margin-top: auto;
+}
+
+/* 工具类 */
+.text-primary { color: var(--primary-color) !important; }
+.text-success { color: var(--success-color) !important; }
+.text-danger { color: var(--danger-color) !important; }
+.text-warning { color: var(--warning-color) !important; }
+.text-info { color: var(--info-color) !important; }
+
+.bg-primary { background-color: var(--primary-color) !important; }
+.bg-success { background-color: var(--success-color) !important; }
+.bg-danger { background-color: var(--danger-color) !important; }
+.bg-warning { background-color: var(--warning-color) !important; }
+.bg-info { background-color: var(--info-color) !important; }
+
+/* 响应式优化 */
+@media (max-width: 991.98px) {
+    .navbar-collapse { flex-grow: 1; }
+    .navbar-nav.ms-auto { margin-left: 0 !important; margin-top: var(--spacing-md); }
+    .main-content { padding: var(--spacing-md) 0; }
+}
+
+@media (max-width: 768px) {
+    .card { margin-bottom: var(--spacing-md); }
+    .btn { width: 100%; margin-bottom: var(--spacing-sm); }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in { animation: fadeIn 0.3s ease-out; }
+.slide-in-up { animation: slideInUp 0.3s ease-out; }
