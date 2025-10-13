@@ -4,6 +4,7 @@
  */
 
 // 标签选择器类
+if (typeof window.TagSelector === 'undefined') {
 class TagSelector {
     constructor(containerId, options = {}) {
         this.containerId = containerId;
@@ -783,3 +784,4 @@ function getTagSelector() {
 window.TagSelector = TagSelector;
 window.initializeTagSelector = initializeTagSelector;
 window.getTagSelector = getTagSelector;
+}

@@ -269,13 +269,12 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/accounts/list.js') }}"></script>
-<script src="{{ url_for('static', filename='js/components/tag_selector.js') }}"></script>
 <script>
     // 初始化统一搜索组件
-    let unifiedSearch;
     document.addEventListener('DOMContentLoaded', function() {
-        unifiedSearch = new UnifiedSearch('unified-search-form');
-        window.unifiedSearch = unifiedSearch;
+        if (typeof window.unifiedSearch === 'undefined') {
+            window.unifiedSearch = new UnifiedSearch('unified-search-form');
+        }
     });
 
     function syncAllAccounts() {
