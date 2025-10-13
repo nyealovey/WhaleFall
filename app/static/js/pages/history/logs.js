@@ -323,32 +323,45 @@ function displayLogDetail(log) {
     const createdAt = window.formatTime ? window.formatTime(log.created_at, 'datetime') : log.created_at;
 
     content.innerHTML = `
-        <div class="row">
-            <div class="col-md-6">
-                <strong>时间:</strong> ${timestamp}<br>
-                <strong>级别:</strong> ${levelBadge}<br>
-                <strong>模块:</strong> ${moduleBadge}
-            </div>
-            <div class="col-md-6">
-                <strong>ID:</strong> <code>${log.id}</code><br>
-                <strong>创建时间:</strong> ${createdAt}
+        <div class="log-detail-item">
+            <div class="log-detail-label">基本信息</div>
+            <div class="log-detail-value">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>时间:</strong> ${timestamp}<br>
+                        <strong>级别:</strong> ${levelBadge}<br>
+                        <strong>模块:</strong> ${moduleBadge || '<span class="text-muted">未知</span>'}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>ID:</strong> <code>${log.id}</code><br>
+                        <strong>创建时间:</strong> ${createdAt}
+                    </div>
+                </div>
             </div>
         </div>
-        <hr>
-        <div class="mb-3">
-            <strong>消息:</strong><br>
-            <div class="alert alert-info">${log.message}</div>
+        
+        <div class="log-detail-item">
+            <div class="log-detail-label">消息内容</div>
+            <div class="log-detail-value">
+                <div class="alert alert-info mb-0">${log.message}</div>
+            </div>
         </div>
+        
         ${log.context ? `
-            <div class="mb-3">
-                <strong>上下文:</strong><br>
-                <div class="json-context">${formatJSON(log.context)}</div>
+            <div class="log-detail-item">
+                <div class="log-detail-label">上下文信息</div>
+                <div class="log-detail-value">
+                    <div class="log-json-block">${formatJSON(log.context)}</div>
+                </div>
             </div>
         ` : ''}
+        
         ${log.traceback ? `
-            <div class="mb-3">
-                <strong>堆栈追踪:</strong><br>
-                <div class="traceback-content">${log.traceback}</div>
+            <div class="log-detail-item">
+                <div class="log-detail-label">堆栈跟踪</div>
+                <div class="log-detail-value">
+                    <div class="log-traceback-block">${escapeHtml(log.traceback)}</div>
+                </div>
             </div>
         ` : ''}
     `;
@@ -377,10 +390,51 @@ function formatJSON(obj) {
         try {
             obj = JSON.parse(obj);
         } catch (e) {
-            return obj;
+            return escapeHtml(obj);
         }
     }
-    return JSON.stringify(obj, null, 2);
+    return escapeHtml(JSON.stringify(obj, null, 2));
+}
+
+// HTML转义函数
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 复制日志详情
+function copyLogDetail() {
+    const content = document.getElementById('logDetailContent');
+    if (!content) return;
+    
+    // 获取纯文本内容
+    const textContent = content.innerText;
+    
+    // 复制到剪贴板
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textContent).then(() => {
+            showSuccess('日志详情已复制到剪贴板');
+        }).catch(err => {
+            console.error('复制失败:', err);
+            showError('复制失败，请手动选择文本复制');
+        });
+    } else {
+        // 降级方案：选择文本
+        const range = document.createRange();
+        range.selectNode(content);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        
+        try {
+            document.execCommand('copy');
+            showSuccess('日志详情已复制到剪贴板');
+        } catch (err) {
+            showError('复制失败，请手动选择文本复制');
+        }
+        
+        window.getSelection().removeAllRanges();
+    }
 }
 
 // 格式化时间 - 直接使用全局函数
@@ -557,3 +611,4 @@ window.clearFilters = function () {
 window.searchLogs = searchLogs;
 window.viewLogDetail = viewLogDetail;
 window.resetFilters = resetFilters;
+window.copyLogDetail = copyLogDetail;
