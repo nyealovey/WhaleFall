@@ -953,21 +953,25 @@ function updateHealthDisplay(healthData) {
     $('#jobstoreStatus').text(healthData.jobstore_accessible ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.jobstore_accessible ? 'text-success' : 'text-danger');
     $('#executorStatus').text(healthData.executor_working ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.executor_working ? 'text-success' : 'text-danger');
     $('#lastCheck').text(healthData.last_check || '--');
-}) {
-                updateHealthDisplay(response.data);
-            } else {
-                console.error('获取健康状态失败:', response.error);
-                updateHealthDisplay({
-                    status: 'error',
-                    status_text: '检查失败',
-                    status_color: 'danger',
-                    health_score: 0
-                });
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('健康状态检查请求失败:', error);
-            updateHealthDisplay({
+}
+
+// 添加刷新健康状态按钮事件
+$(document).on('click', '#refreshHealthBtn', function() {
+    loadHealthStatus();
+});
+
+// 导出函数供全局使用
+window.loadJobs = loadJobs;
+window.enableJob = enableJob;
+window.disableJob = disableJob;
+window.runJobNow = runJobNow;
+window.editJob = editJob;
+window.deleteJob = deleteJob;
+window.viewJobLogs = viewJobLogs;
+window.addJob = addJob;
+window.showAlert = showAlert;
+window.formatTime = formatTime;
+window.loadHealthStatus = loadHealthStatus;
                 status: 'error',
                 status_text: '请求失败',
                 status_color: 'danger',
