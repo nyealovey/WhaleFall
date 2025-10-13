@@ -215,7 +215,94 @@
 }
 
 .job-card {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+    transition: all 0.15s ease-in-out;
     animation: fadeIn 0.3s ease-out;
+}
+
+.job-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.job-card.active {
+    border-left: 4px solid #18bc9c;
+}
+
+.job-card.paused {
+    border-left: 4px solid #f39c12;
+}
+
+.job-card.error {
+    border-left: 4px solid #e74c3c;
+}
+
+.job-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+}
+
+.job-description {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.job-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.job-meta-item i {
+    color: #18bc9c;
+    width: 16px;
+}
+
+.trigger-info {
+    background-color: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: #495057;
+    border-left: 3px solid #18bc9c;
+}
+
+/* 状态徽章样式 */
+.status-active {
+    background-color: #18bc9c;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-paused {
+    background-color: #f39c12;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-error {
+    background-color: #e74c3c;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
 }
 
 /* 加载状态 */
