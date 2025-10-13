@@ -49,18 +49,25 @@ UPDATE account_classifications
 SET color = 'info' 
 WHERE color IS NULL OR color = '';
 
--- 验证更新结果
+-- 验证更新结果 (简化版本，兼容更多数据库)
 SELECT 
     color,
-    COUNT(*) as count,
-    GROUP_CONCAT(name SEPARATOR ', ') as classification_names
+    COUNT(*) as count
 FROM account_classifications 
 GROUP BY color
 ORDER BY count DESC;
 
+-- 显示所有分类的颜色
+SELECT 
+    id,
+    name,
+    color,
+    description
+FROM account_classifications 
+ORDER BY color, name;
+
 -- 显示更新统计
 SELECT 
-    '更新完成' as status,
     COUNT(*) as total_classifications,
     COUNT(DISTINCT color) as unique_colors
 FROM account_classifications;
