@@ -109,3 +109,170 @@
 .classification-badge i {
     font-size: 0.75rem;
 }
+
+/* 匹配账户按钮样式 */
+.matched-accounts-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.matched-accounts-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.matched-accounts-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    color: white;
+    text-decoration: none;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+}
+
+.matched-accounts-btn:hover::before {
+    left: 100%;
+}
+
+.matched-accounts-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.matched-accounts-btn i {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* 当账户数量为0时的样式 */
+.matched-accounts-btn[data-count="0"] {
+    background: linear-gradient(135deg, var(--gray-400), var(--gray-500));
+    cursor: default;
+    pointer-events: none;
+}
+
+.matched-accounts-btn[data-count="0"]:hover {
+    transform: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 规则分类徽章样式 */
+.rule-classification-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
+    text-decoration: none;
+    margin-right: 0.25rem;
+}
+
+.rule-classification-badge.privileged {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.rule-classification-badge.sensitive {
+    background: linear-gradient(135deg, #fd7e14, #e55a00);
+}
+
+.rule-classification-badge.risk {
+    background: linear-gradient(135deg, #ffc107, #e0a800);
+}
+
+.rule-classification-badge.readonly {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+}
+
+.rule-classification-badge.normal {
+    background: linear-gradient(135deg, var(--info-color), var(--info-dark));
+}
+
+/* 数据库类型徽章样式 */
+.db-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
+    color: white;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 规则操作按钮组样式 */
+.rule-actions {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: flex-end;
+}
+
+.rule-actions .btn {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8rem;
+    border-radius: var(--border-radius-sm);
+    transition: all 0.15s ease;
+}
+
+.rule-actions .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 规则组卡片样式 */
+.rule-group-card {
+    margin-bottom: var(--spacing-md);
+}
+
+.rule-group-card .card-header {
+    background: linear-gradient(135deg, var(--light-color), #f8f9fa);
+    border-bottom: 1px solid var(--gray-300);
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.rule-group-card .card-header h5 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+}
+
+.rule-group-card .card-header .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* 规则列表样式 */
+.rule-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.rule-item {
+    position: relative;
+}
