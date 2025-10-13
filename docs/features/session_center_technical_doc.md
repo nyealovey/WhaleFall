@@ -11,7 +11,7 @@
 ### 1.2 代码定位
 - 路由：`app/routes/sync_sessions.py`（会话中心API路由）
 - 服务：`app/services/sync_session_service.py`（同步会话服务）
-- 前端：`app/templates/sync_sessions/management.html`、`app/static/js/pages/sync_sessions/management.js`
+- 前端：`app/templates/history/sync_sessions.html`、`app/static/js/pages/history/sync_sessions.js`
 - 配置：`app/__init__.py`（会话安全配置）
 
 ## 2. 架构设计

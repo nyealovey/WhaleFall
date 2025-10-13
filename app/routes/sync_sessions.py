@@ -23,14 +23,14 @@ sync_sessions_bp = Blueprint("sync_sessions", __name__)
 def index() -> str:
     """会话中心首页"""
     try:
-        return render_template("sync_sessions/management.html")
+        return render_template("history/sync_sessions.html")
     except Exception as e:
         log_error(
             f"访问会话中心页面失败: {str(e)}",
             module="sync_sessions",
             user_id=current_user.id,
         )
-        return render_template("sync_sessions/management.html", error="页面加载失败")
+        return render_template("history/sync_sessions.html", error="页面加载失败")
 
 
 @sync_sessions_bp.route("/api/sessions")

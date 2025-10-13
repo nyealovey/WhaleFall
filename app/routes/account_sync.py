@@ -614,40 +614,7 @@ def sync_details_batch() -> str | Response | tuple[Response, int]:
         return jsonify({"success": False, "error": f"获取同步详情失败: {str(e)}"}), 500
 
 
-@account_sync_bp.route("/sync-details/<sync_id>")
-@login_required
-def sync_details(sync_id: int) -> str | Response | tuple[Response, int]:
-    """同步详情页面"""
-    try:
-        record = SyncSession.query.get_or_404(sync_id)
-        # 获取会话关联的实例记录
-        instance_records = record.instance_records.all()
-        instances = [Instance.query.get(ir.instance_id) for ir in instance_records if ir.instance_id]
-
-        if request.is_json:
-            return jsonify(
-                {
-                    "success": True,
-                    "record": record.to_dict(),
-                    "instances": [inst.to_dict() for inst in instances if inst],
-                    "instance_records": [ir.to_dict() for ir in instance_records],
-                }
-            )
-
-        return render_template(
-            "accounts/sync_details.html",
-            record=record,
-            instance_records=instance_records,
-        )
-
-    except Exception as e:
-        if request.is_json:
-            return (
-                jsonify({"success": False, "error": f"获取同步详情失败: {str(e)}"}),
-                500,
-            )
-
-        flash(f"获取同步详情失败: {str(e)}", "error")
+# sync_details route removed - functionality replaced by sync_sessions API
         return redirect(url_for("account_sync.sync_records"))
 
 

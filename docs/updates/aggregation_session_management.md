@@ -37,7 +37,7 @@
 - **修改**: 在同步分类筛选中添加了`aggregation`选项
 
 #### 会话管理页面
-- **文件**: `app/static/js/pages/sync_sessions/management.js`
+- **文件**: `app/static/js/pages/history/sync_sessions.js`
 - **修改**: 更新了`getSyncCategoryText()`函数，添加了中文显示名称映射
 - **新增**: `aggregation` → `统计聚合`
 
@@ -117,4 +117,4 @@ COMMENT ON COLUMN sync_instance_records.sync_category IS '同步分类: account(
 - `app/models/sync_session.py` - 同步会话模型
 - `app/services/sync_session_service.py` - 同步会话服务
 - `app/templates/components/unified_search_form.html` - 统一搜索组件
-- `app/static/js/pages/sync_sessions/management.js` - 会话管理页面脚本
+- `app/static/js/pages/history/sync_sessions.js` - 会话管理页面脚本

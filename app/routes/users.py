@@ -46,12 +46,12 @@ def index() -> str:
         
         logger.info(f"成功获取 {users.total} 个用户")
 
-        return render_template("users/management.html", users=users)
+        return render_template("auth/list.html", users=users)
 
     except Exception as e:
         logger.error(f"加载用户管理页面失败: {str(e)}", exc_info=True)
         flash(f"获取用户列表失败: {str(e)}", "error")
-        return render_template("users/management.html", users=None, stats={})
+        return render_template("auth/list.html", users=None, stats={})
 
 
 @users_bp.route("/api/users")
