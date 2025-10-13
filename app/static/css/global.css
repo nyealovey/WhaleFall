@@ -218,7 +218,7 @@ body {
         padding: var(--spacing-lg) 0;
         margin-bottom: var(--spacing-lg);
     }
-    
+
     .page-header h1,
     .page-header h2 {
         font-size: 1.5rem;
@@ -230,7 +230,7 @@ body {
         padding: var(--spacing-md) 0;
         margin-bottom: var(--spacing-md);
     }
-    
+
     .page-header h1,
     .page-header h2 {
         font-size: 1.25rem;
