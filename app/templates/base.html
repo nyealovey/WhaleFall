@@ -1,215 +1,41 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title id="page-title">{% block title %}鲸落 - 数据同步管理平台{% endblock %}</title>
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/webp" href="{{ url_for('static', filename='img/logo.webp') }}">
     <link rel="shortcut icon" type="image/webp" href="{{ url_for('static', filename='img/logo.webp') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
-    
+
     <!-- Apple 图标 - 针对 Mac Safari 优化 -->
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
-    <link rel="apple-touch-icon-precomposed" href="{{ url_for('static', filename='img/apple-touch-icon-precomposed.png') }}">
+    <link rel="apple-touch-icon-precomposed"
+        href="{{ url_for('static', filename='img/apple-touch-icon-precomposed.png') }}">
 
     <!-- Bootstrap CSS (Flatly Theme) -->
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-flatly.min.css') }}" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" rel="stylesheet">
-
-    <style>
-        :root {
-            /* Flatly Theme Colors */
-            --primary-color: #18bc9c;
-            --secondary-color: #95a5a6;
-            --success-color: #18bc9c;
-            --danger-color: #e74c3c;
-            --warning-color: #f39c12;
-            --info-color: #3498db;
-            --dark-color: #2c3e50;
-            --light-color: #ecf0f1;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
-            min-height: 100vh;
-        }
-
-        .navbar {
-            background: rgba(255, 255, 255, 0.95) !important;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
-            position: fixed !important;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-            width: 100%;
-        }
-
-        .navbar-brand {
-            font-weight: 700;
-            color: var(--primary-color) !important;
-        }
-
-        /* Logo样式优化 */
-        .navbar-brand img {
-            transition: transform 0.3s ease;
-            background: transparent;
-        }
-
-        .navbar-brand:hover img {
-            transform: scale(1.05);
-        }
-
-        /* 确保logo在白色背景上清晰显示 */
-        .navbar-brand img {
-            background: transparent;
-            border-radius: 4px;
-        }
-
-        /* 登录页面logo样式 */
-        .card-body img {
-            background: transparent;
-            transition: transform 0.3s ease;
-            border-radius: 8px;
-        }
-
-        .card-body img:hover {
-            transform: scale(1.05);
-        }
-
-        /* 2级菜单样式 */
-        .navbar .dropdown-menu {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.95);
-            margin-top: 8px;
-            padding: 8px 0;
-            position: absolute;
-            z-index: 1050;
-        }
-
-        .navbar .dropdown-item {
-            padding: 10px 20px;
-            border-radius: 6px;
-            margin: 2px 8px;
-            transition: all 0.3s ease;
-            color: #333;
-        }
-
-        .navbar .dropdown-item:hover {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            transform: translateX(5px);
-        }
-
-        .navbar .dropdown-item i {
-            width: 20px;
-            text-align: center;
-        }
-
-        .navbar .dropdown-toggle::after {
-            margin-left: 8px;
-            transition: transform 0.3s ease;
-        }
-
-        .navbar .dropdown-toggle[aria-expanded="true"]::after {
-            transform: rotate(180deg);
-        }
-
-        /* 导航栏居中样式 */
-        .navbar-collapse {
-            flex-grow: 0;
-        }
-
-        .navbar-nav {
-            align-items: center;
-        }
-
-        /* 响应式调整 */
-        @media (max-width: 991.98px) {
-            .navbar-collapse {
-                flex-grow: 1;
-            }
-
-            .navbar-nav.ms-auto {
-                margin-left: 0 !important;
-                margin-top: 1rem;
-            }
-        }
-
-        .main-content {
-            min-height: calc(100vh - 76px);
-            padding: 2rem 0;
-            margin-top: 76px;
-        }
-
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.95);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border: none;
-            border-radius: 10px;
-            padding: 0.75rem 2rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            padding: 0.75rem 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-
-        .alert {
-            border-radius: 10px;
-            border: none;
-        }
-
-        .footer {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            color: white;
-            text-align: center;
-            padding: 1rem 0;
-            margin-top: auto;
-        }
-    </style>
+    <!-- 全局样式 -->
+    <link href="{{ url_for('static', filename='css/global.css') }}" rel="stylesheet">
 
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
-        <a class="navbar-brand" href="{{ url_for('main.index') }}">
-            <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
-            <span id="app-name">鲸落</span>
-        </a>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
+                <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2"
+                    style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+                <span id="app-name">鲸落</span>
+            </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -224,69 +50,77 @@
                         </a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="databaseDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="databaseDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-database me-1"></i>数据库管理
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="databaseDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('instances.index') }}">
-                                <i class="fas fa-server me-2"></i>实例管理
-                            </a></li>
+                                    <i class="fas fa-server me-2"></i>实例管理
+                                </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('account.list_accounts') }}">
-                                <i class="fas fa-users me-2"></i>账户管理
-                            </a></li>
+                                    <i class="fas fa-users me-2"></i>账户管理
+                                </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('account_classification.index') }}">
-                                <i class="fas fa-tags me-2"></i>账户分类管理
-                            </a></li>
+                                    <i class="fas fa-tags me-2"></i>账户分类管理
+                                </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('database_stats.instance_aggregations') }}">
-                                <i class="fas fa-chart-pie me-2"></i>容量统计(实例)
-                            </a></li>
+                                    <i class="fas fa-chart-pie me-2"></i>容量统计(实例)
+                                </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('database_stats.database_aggregations') }}">
-                                <i class="fas fa-database me-2"></i>容量统计(数据库)
-                            </a></li>
+                                    <i class="fas fa-database me-2"></i>容量统计(数据库)
+                                </a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-cog me-1"></i>统一设置
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="settingsDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('credentials.index') }}">
-                                <i class="fas fa-key me-2"></i>凭据管理
-                            </a></li>
+                                    <i class="fas fa-key me-2"></i>凭据管理
+                                </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('tags.index') }}">
-                                <i class="fas fa-tag me-2"></i>标签管理
-                            </a></li>
+                                    <i class="fas fa-tag me-2"></i>标签管理
+                                </a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="historyDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="historyDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-history me-1"></i>历史记录
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="historyDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('logs.logs_dashboard') }}">
-                                <i class="fas fa-chart-line me-2"></i>日志中心
-                            </a></li>
+                                    <i class="fas fa-chart-line me-2"></i>日志中心
+                                </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('sync_sessions.index') }}">
-                                <i class="fas fa-tasks me-2"></i>会话中心
-                            </a></li>
+                                    <i class="fas fa-tasks me-2"></i>会话中心
+                                </a></li>
                         </ul>
                     </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: #ff6b6b; font-weight: bold;">
-                            <i class="fas fa-cogs me-1"></i>{% if current_user.role == 'admin' %}管理中心{% else %}用户中心{% endif %}
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false" style="color: #ff6b6b; font-weight: bold;">
+                            <i class="fas fa-cogs me-1"></i>{% if current_user.role == 'admin' %}管理中心{% else %}用户中心{%
+                            endif %}
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-               <li><a class="dropdown-item" href="{{ url_for('users.index') }}">
-                   <i class="fas fa-users me-2"></i>用户管理{% if current_user.role != 'admin' %}（只读）{% endif %}
-               </a></li>
-               <li><a class="dropdown-item" href="{{ url_for('scheduler.index') }}">
-                   <i class="fas fa-clock me-2"></i>定时任务
-               </a></li>
-               <li><hr class="dropdown-divider"></li>
-               <li><a class="dropdown-item" href="{{ url_for('partition.partitions_page') }}">
-                   <i class="fas fa-layer-group me-2"></i>分区管理
-               </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('users.index') }}">
+                                    <i class="fas fa-users me-2"></i>用户管理{% if current_user.role != 'admin' %}（只读）{%
+                                    endif %}
+                                </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('scheduler.index') }}">
+                                    <i class="fas fa-clock me-2"></i>定时任务
+                                </a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="{{ url_for('partition.partitions_page') }}">
+                                    <i class="fas fa-layer-group me-2"></i>分区管理
+                                </a></li>
                         </ul>
                     </li>
                     {% endif %}
@@ -296,20 +130,23 @@
                 <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                            data-bs-toggle="dropdown">
                             <i class="fas fa-user me-1"></i>{{ current_user.username }}
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">
-                                <i class="fas fa-user-circle me-2"></i>个人资料
-                            </a></li>
+                                    <i class="fas fa-user-circle me-2"></i>个人资料
+                                </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}">
-                                <i class="fas fa-key me-2"></i>修改密码
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
+                                    <i class="fas fa-key me-2"></i>修改密码
+                                </a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
                             <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
-                                <i class="fas fa-sign-out-alt me-2"></i>退出登录
-                            </a></li>
+                                    <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                                </a></li>
                         </ul>
                     </li>
                     {% else %}
@@ -329,15 +166,17 @@
         <div class="container">
             <!-- 消息提示 -->
             {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+                role="alert">
+                <i
+                    class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
             {% endwith %}
 
             <!-- 页面内容 -->
@@ -411,9 +250,9 @@
         }
 
         // 页面加载完成后获取应用信息
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             loadAppInfo();
-            
+
             // 初始化Toastr配置
             if (typeof toastr !== 'undefined') {
                 toastr.options = {
@@ -439,4 +278,5 @@
 
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>
