@@ -3,9 +3,61 @@
 {% block title %}实例管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/list.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
+<style>
+/* 实例列表页面样式 - 优化版本，利用Flatly主题 */
+.instance-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid var(--primary-color);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.instance-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.status-indicator.online {
+    background-color: var(--success-color);
+    box-shadow: 0 0 6px rgba(24, 188, 156, 0.5);
+}
+
+.status-indicator.offline {
+    background-color: var(--danger-color);
+    box-shadow: 0 0 6px rgba(231, 76, 60, 0.5);
+}
+
+.status-indicator.unknown {
+    background-color: var(--secondary-color);
+}
+
+.file-upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.file-upload-area:hover {
+    border-color: var(--primary-color);
+    background-color: #f8f9fa;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(24, 188, 156, 0.05);
+}
+</style>
 {% endblock %}
 
 {% block content %}
