@@ -407,10 +407,10 @@ function escapeHtml(text) {
 function copyLogDetail() {
     const content = document.getElementById('logDetailContent');
     if (!content) return;
-    
+
     // 获取纯文本内容
     const textContent = content.innerText;
-    
+
     // 复制到剪贴板
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(textContent).then(() => {
@@ -425,14 +425,14 @@ function copyLogDetail() {
         range.selectNode(content);
         window.getSelection().removeAllRanges();
         window.getSelection().addRange(range);
-        
+
         try {
             document.execCommand('copy');
             showSuccess('日志详情已复制到剪贴板');
         } catch (err) {
             showError('复制失败，请手动选择文本复制');
         }
-        
+
         window.getSelection().removeAllRanges();
     }
 }
