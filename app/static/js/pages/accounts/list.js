@@ -8,6 +8,11 @@ let accountListTagSelector = null;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
+    // 初始化统一搜索组件
+    if (typeof UnifiedSearch !== 'undefined' && typeof window.unifiedSearch === 'undefined') {
+        window.unifiedSearch = new UnifiedSearch('unified-search-form');
+    }
+    
     // 如果TagSelector类还没有加载，等待一下
     if (typeof TagSelector === 'undefined') {
         setTimeout(() => {
@@ -23,17 +28,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
-
-// 如果DOM已经加载完成，立即初始化
-if (document.readyState !== 'loading') {
-    if (typeof TagSelector === 'undefined') {
-        setTimeout(() => {
-            initializeAccountListTagSelector();
-        }, 1000);
-    } else {
-        initializeAccountListTagSelector();
-    }
-}
 
 // 同步所有账户
 function syncAllAccounts() {
