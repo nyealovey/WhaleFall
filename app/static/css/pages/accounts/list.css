@@ -54,7 +54,7 @@
     box-shadow: var(--shadow-sm);
 }
 
-/* 账户表格样式 - 利用全局表格样式 */
+/* 账户表格样式 - 参考实例管理的美观设计 */
 .table {
     border-radius: var(--border-radius-md);
     overflow: hidden;
@@ -67,6 +67,7 @@
     font-weight: 600;
     color: var(--gray-700);
     padding: var(--spacing-md);
+    font-size: 0.9rem;
 }
 
 .table tbody td {
@@ -77,6 +78,21 @@
 
 .table tbody tr:hover {
     background-color: rgba(24, 188, 156, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+/* 表格行动画效果 */
+.table tbody tr {
+    transition: all 0.2s ease;
+}
+
+/* 操作按钮组样式 */
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: var(--border-radius-sm);
 }
 
 /* 账户状态徽章 */
