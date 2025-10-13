@@ -76,3 +76,114 @@
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
+/* 日
+志详情模态框样式 */
+.log-detail-modal .modal-content {
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xl);
+}
+
+.log-detail-modal .modal-header {
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+}
+
+.log-detail-modal .modal-header .btn-close {
+    filter: invert(1);
+}
+
+/* 日志详情内容样式 */
+.log-detail-item {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.log-detail-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.log-detail-label {
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.log-detail-value {
+    color: var(--gray-800);
+    line-height: 1.6;
+}
+
+/* 代码框样式 - 用于错误信息和堆栈跟踪 */
+.log-code-block {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
+    font-family: 'Courier New', Consolas, Monaco, monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #495057;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 0.5rem 0;
+}
+
+/* JSON代码块样式 */
+.log-json-block {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-left: 4px solid #007bff;
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
+    font-family: 'Courier New', Consolas, Monaco, monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #495057;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+    margin: 0.5rem 0;
+}
+
+/* 错误堆栈跟踪样式 */
+.log-traceback-block {
+    background-color: #fff5f5;
+    border: 1px solid #fed7d7;
+    border-left: 4px solid #e53e3e;
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
+    font-family: 'Courier New', Consolas, Monaco, monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #742a2a;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+    margin: 0.5rem 0;
+}
+
+/* 日志级别徽章在详情中的样式 */
+.log-detail-value .log-level-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 复制按钮样式 */
+.modal-footer .btn {
+    min-width: 100px;
+}

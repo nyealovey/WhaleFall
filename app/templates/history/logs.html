@@ -90,7 +90,7 @@
 
 <!-- 日志详情模态框 -->
 <div class="modal fade log-detail-modal" id="logDetailModal" tabindex="-1" aria-labelledby="logDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="logDetailModalLabel">
@@ -104,7 +104,12 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>关闭
+                </button>
+                <button type="button" class="btn btn-primary" onclick="copyLogDetail()">
+                    <i class="fas fa-copy me-2"></i>复制详情
+                </button>
             </div>
         </div>
     </div>
