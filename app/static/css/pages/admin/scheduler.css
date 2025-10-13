@@ -2,26 +2,25 @@
 
 /* 页面头部样式已移至全局样式 (global.css) */
 
-/* 调度器健康状态样式 - 利用全局设计系统 */
+/* 调度器健康状态样式 - 符合Flatly主题 */
 .health-item {
     text-align: center;
     padding: var(--spacing-sm);
     border-radius: var(--border-radius-md);
-    background: var(--gradient-light);
+    background: #ffffff;
     margin-bottom: var(--spacing-xs);
-    border: 1px solid var(--gray-300);
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition-base);
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.15s ease-in-out;
 }
 
 .health-item:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 .health-label {
-    font-size: 0.7rem;
-    color: var(--gray-600);
+    font-size: 0.75rem;
+    color: #6c757d;
     margin-bottom: var(--spacing-xs);
     font-weight: 600;
     text-transform: uppercase;
@@ -29,22 +28,22 @@
 }
 
 .health-label i {
-    color: var(--primary-color);
+    color: #18bc9c;
     font-size: 0.8rem;
 }
 
 .health-value {
-    font-size: 0.85rem;
-    font-weight: 700;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .health-details {
-    background: white;
+    background: #ffffff;
     padding: var(--spacing-sm);
     border-radius: var(--border-radius-md);
     margin-top: var(--spacing-sm);
-    border: 1px solid var(--gray-300);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .detail-item {
@@ -52,11 +51,23 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--spacing-xs) 0;
-    border-bottom: 1px solid var(--gray-200);
+    border-bottom: 1px solid #e9ecef;
 }
 
 .detail-item:last-child {
     border-bottom: none;
+}
+
+.detail-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 0.85rem;
+    color: #495057;
+    font-weight: 600;
 }
 
 /* 任务信息 */
@@ -67,7 +78,7 @@
 .job-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--gray-700);
+    color: #495057;
     margin-bottom: var(--spacing-sm);
 }
 
@@ -82,12 +93,12 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    color: var(--gray-600);
+    color: #6c757d;
     font-size: 0.9rem;
 }
 
 .job-meta-item i {
-    color: var(--primary-color);
+    color: #18bc9c;
 }
 
 /* 任务操作按钮 */
@@ -98,59 +109,61 @@
 }
 
 .job-actions .btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
     border-radius: var(--border-radius-sm);
+    font-weight: 400;
+    transition: all 0.15s ease-in-out;
 }
 
 /* 统计卡片 */
 .stats-card {
-    transition: var(--transition-base);
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-md);
-    border: none;
+    transition: box-shadow 0.15s ease-in-out;
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #dee2e6;
+    background: #ffffff;
 }
 
 .stats-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 .stats-number {
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: var(--spacing-sm);
+    color: #18bc9c;
 }
 
 .stats-label {
     font-size: 0.9rem;
-    opacity: 0.9;
+    color: #6c757d;
 }
 
 /* 任务状态徽章 */
 .job-status {
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: 0.25rem 0.5rem;
     border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .job-status.running {
-    background-color: rgba(24, 188, 156, 0.1);
-    color: var(--success-color);
-    border: 1px solid var(--success-color);
+    background-color: #18bc9c;
+    color: white;
 }
 
 .job-status.paused {
-    background-color: rgba(243, 156, 18, 0.1);
-    color: var(--warning-color);
-    border: 1px solid var(--warning-color);
+    background-color: #f39c12;
+    color: white;
 }
 
 .job-status.error {
-    background-color: rgba(231, 76, 60, 0.1);
-    color: var(--danger-color);
-    border: 1px solid var(--danger-color);
+    background-color: #e74c3c;
+    color: white;
 }
 
 /* 响应式调整 */
@@ -205,14 +218,38 @@
 }
 
 /* 加载状态 */
+.loading-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6c757d;
+}
+
 .loading-spinner {
     display: inline-block;
     width: 1rem;
     height: 1rem;
-    border: 2px solid var(--gray-300);
+    border: 2px solid #dee2e6;
     border-radius: 50%;
-    border-top-color: var(--primary-color);
+    border-top-color: #18bc9c;
     animation: spin 1s ease-in-out infinite;
+    margin-bottom: 1rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: #dee2e6;
+    margin-bottom: 1rem;
+}
+
+.empty-state h4 {
+    color: #495057;
+    margin-bottom: 0.5rem;
 }
 
 @keyframes spin {
