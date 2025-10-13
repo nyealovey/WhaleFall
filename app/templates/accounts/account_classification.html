@@ -124,7 +124,20 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="classificationColor" class="form-label">显示颜色</label>
-                                <input type="color" class="form-control form-control-color" id="classificationColor" value="#007bff">
+                                <select class="form-select" id="classificationColor" required>
+                                    <option value="">请选择颜色</option>
+                                    {% for key, info in color_options.items() %}
+                                    <option value="{{ key }}" data-color="{{ info.value }}">
+                                        {{ info.name }} - {{ info.description }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">
+                                    <div id="colorPreview" class="color-preview-container mt-2" style="display: none;">
+                                        <span class="color-preview-dot"></span>
+                                        <span class="color-preview-text"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -302,7 +315,20 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="editClassificationColor" class="form-label">显示颜色</label>
-                                <input type="color" class="form-control form-control-color" id="editClassificationColor" value="#007bff">
+                                <select class="form-select" id="editClassificationColor" required>
+                                    <option value="">请选择颜色</option>
+                                    {% for key, info in color_options.items() %}
+                                    <option value="{{ key }}" data-color="{{ info.value }}">
+                                        {{ info.name }} - {{ info.description }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">
+                                    <div id="editColorPreview" class="color-preview-container mt-2" style="display: none;">
+                                        <span class="color-preview-dot"></span>
+                                        <span class="color-preview-text"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

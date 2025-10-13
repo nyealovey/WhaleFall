@@ -1879,3 +1879,148 @@ function showAlert(type, message) {
         }
     }, 3000);
 }
+// ==================== 颜色预览功能 ====================
+
+// 初始化颜色预览功能
+document.addEventListener('DOMContentLoaded', function() {
+    // 创建分类的颜色预览
+    const createColorSelect = document.getElementById('classificationColor');
+    if (createColorSelect) {
+        createColorSelect.addEventListener('change', function() {
+            updateColorPreview('colorPreview', this);
+        });
+    }
+    
+    // 编辑分类的颜色预览
+    const editColorSelect = document.getElementById('editClassificationColor');
+    if (editColorSelect) {
+        editColorSelect.addEventListener('change', function() {
+            updateColorPreview('editColorPreview', this);
+        });
+    }
+});
+
+// 更新颜色预览
+function updateColorPreview(previewId, selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const colorValue = selectedOption.dataset.color;
+    const colorText = selectedOption.text;
+    
+    const preview = document.getElementById(previewId);
+    if (!preview) return;
+    
+    if (colorValue && selectElement.value) {
+        const dot = preview.querySelector('.color-preview-dot');
+        const text = preview.querySelector('.color-preview-text');
+        
+        if (dot && text) {
+            dot.style.backgroundColor = colorValue;
+            text.textContent = colorText;
+            preview.style.display = 'flex';
+        }
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+// 修改原有的创建分类函数，使用颜色键名
+function createClassification() {
+    const form = document.getElementById('createClassificationForm');
+    
+    // 验证表单
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const data = {
+        name: document.getElementById('classificationName').value,
+        description: document.getElementById('classificationDescription').value,
+        risk_level: document.getElementById('riskLevel').value,
+        color: document.getElementById('classificationColor').value, // 现在是颜色键名
+        priority: parseInt(document.getElementById('priority').value) || 0,
+        icon_name: document.querySelector('input[name="classificationIcon"]:checked')?.value || 'fa-tag'
+    };
+
+    // 验证必填字段
+    if (!data.name || !data.color) {
+        showAlert('danger', '请填写完整的分类信息');
+        return;
+    }
+
+    fetch('/account_classification/api/classifications', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', '分类创建成功');
+            bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
+            form.reset();
+            // 重置颜色预览
+            document.getElementById('colorPreview').style.display = 'none';
+            loadClassifications();
+        } else {
+            showAlert('danger', data.error || '创建分类失败');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', '创建分类失败: ' + error.message);
+    });
+}
+
+// 修改原有的更新分类函数
+function updateClassification() {
+    const form = document.getElementById('editClassificationForm');
+    
+    // 验证表单
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const id = document.getElementById('editClassificationId').value;
+    const data = {
+        name: document.getElementById('editClassificationName').value,
+        description: document.getElementById('editClassificationDescription').value,
+        risk_level: document.getElementById('editClassificationRiskLevel').value,
+        color: document.getElementById('editClassificationColor').value, // 现在是颜色键名
+        priority: parseInt(document.getElementById('editClassificationPriority').value) || 0,
+        icon_name: document.querySelector('input[name="editClassificationIcon"]:checked')?.value || 'fa-tag'
+    };
+
+    // 验证必填字段
+    if (!data.name || !data.color) {
+        showAlert('danger', '请填写完整的分类信息');
+        return;
+    }
+
+    fetch(`/account_classification/api/classifications/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', '分类更新成功');
+            bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
+            // 重置颜色预览
+            document.getElementById('editColorPreview').style.display = 'none';
+            loadClassifications();
+        } else {
+            showAlert('danger', data.error || '更新分类失败');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', '更新分类失败: ' + error.message);
+    });
+}
