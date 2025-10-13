@@ -1,7 +1,88 @@
 /* 会话中心页面样式 - 优化版本，利用Flatly主题和全局样式 */
 
-/* 大部分样式已移至全局样式文件，利用统一设计系统 */
-/* 只保留必要的自定义样式 */
+/* 会话卡片 - 利用全局卡片样式和状态颜色 */
+.session-card {
+    transition: var(--transition-base);
+    border-left: 4px solid var(--primary-color);
+}
 
-/* 如果需要额外的自定义样式，可以在这里添加 */
-/* 目前所有样式都已通过全局样式和内联样式实现 */
+.session-card.running {
+    border-left-color: var(--success-color);
+}
+
+.session-card.completed {
+    border-left-color: var(--info-color);
+}
+
+.session-card.failed {
+    border-left-color: var(--danger-color);
+}
+
+.session-card.cancelled {
+    border-left-color: var(--gray-500);
+}
+
+/* 进度条 - 利用全局样式 */
+.progress {
+    height: 12px;
+    border-radius: var(--border-radius-sm);
+    background-color: var(--gray-200);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.progress-bar {
+    height: 12px;
+    border-radius: var(--border-radius-sm);
+    transition: width 0.6s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar.bg-success {
+    background: var(--gradient-success);
+}
+
+.progress-bar.bg-danger {
+    background: var(--gradient-danger);
+}
+
+.progress-bar.bg-warning {
+    background: var(--gradient-warning);
+}
+
+.progress-bar.bg-secondary {
+    background: var(--gradient-secondary);
+}
+
+/* 进度条动画效果 */
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background-image: linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.2) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.2) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 20px 20px;
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    0% { background-position: 0 0; }
+    100% { background-position: 20px 0; }
+}
+
+/* 状态徽章 */
+.status-badge {
+    font-size: 0.8em;
+    padding: 0.25rem 0.5rem;
+}
