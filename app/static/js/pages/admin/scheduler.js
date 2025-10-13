@@ -29,7 +29,7 @@ function updateEditCronPreview() {
 }
 
 // 页面加载完成后初始化
-$(document).ready(function() {
+$(document).ready(function () {
     initializeSchedulerPage();
 });
 
@@ -72,19 +72,19 @@ function initializeEventHandlers() {
     updateCronPreview();
 
     // 恢复任务操作按钮事件
-    $(document).on('click', '.btn-enable-job', function() {
+    $(document).on('click', '.btn-enable-job', function () {
         const jobId = $(this).data('job-id');
         enableJob(jobId);
     });
-    $(document).on('click', '.btn-disable-job', function() {
+    $(document).on('click', '.btn-disable-job', function () {
         const jobId = $(this).data('job-id');
         disableJob(jobId);
     });
-    $(document).on('click', '.btn-run-job', function() {
+    $(document).on('click', '.btn-run-job', function () {
         const jobId = $(this).data('job-id');
         runJobNow(jobId);
     });
-    $(document).on('click', '.btn-edit-job', function() {
+    $(document).on('click', '.btn-edit-job', function () {
         const jobId = $(this).data('job-id');
         editJob(jobId);
     });
@@ -97,51 +97,51 @@ function initializeEventHandlers() {
      * - 确保任务名称和配置都是最新的
      * - 成功后刷新任务列表并给出提示
      */
-     $(document).on('click', '#purgeKeepBuiltinBtn', function() {
-         // 二次确认
+    $(document).on('click', '#purgeKeepBuiltinBtn', function () {
+        // 二次确认
         const confirmMsg = '此操作将删除所有现有任务，重新从配置文件加载任务。\n这将确保任务名称和配置都是最新的。\n确定继续吗？';
         if (!window.confirm(confirmMsg)) {
-             return;
-         }
-    // 显示加载态
-    const $btn = $(this);
-    const original = $btn.html();
-    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>重新初始化中...');
-
-    $.ajax({
-        url: '/scheduler/api/jobs/reload',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({}),
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function(resp) {
-            if (resp && resp.success) {
-                const deletedCount = (resp.data && resp.data.deleted_count) ? resp.data.deleted_count : 0;
-                const reloadedCount = (resp.data && resp.data.reloaded_count) ? resp.data.reloaded_count : 0;
-                showAlert(`重新初始化完成：删除了 ${deletedCount} 个任务，重新加载了 ${reloadedCount} 个任务`, 'success');
-                loadJobs();
-            } else {
-                showAlert('重新初始化失败: ' + (resp ? resp.message : '未知错误'), 'danger');
-            }
-        },
-        error: function(xhr) {
-            const error = xhr.responseJSON;
-            showAlert('重新初始化失败: ' + (error ? error.message : '网络或服务器错误'), 'danger');
-        },
-        complete: function() {
-            $btn.prop('disabled', false).html(original);
+            return;
         }
+        // 显示加载态
+        const $btn = $(this);
+        const original = $btn.html();
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>重新初始化中...');
+
+        $.ajax({
+            url: '/scheduler/api/jobs/reload',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({}),
+            headers: {
+                'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function (resp) {
+                if (resp && resp.success) {
+                    const deletedCount = (resp.data && resp.data.deleted_count) ? resp.data.deleted_count : 0;
+                    const reloadedCount = (resp.data && resp.data.reloaded_count) ? resp.data.reloaded_count : 0;
+                    showAlert(`重新初始化完成：删除了 ${deletedCount} 个任务，重新加载了 ${reloadedCount} 个任务`, 'success');
+                    loadJobs();
+                } else {
+                    showAlert('重新初始化失败: ' + (resp ? resp.message : '未知错误'), 'danger');
+                }
+            },
+            error: function (xhr) {
+                const error = xhr.responseJSON;
+                showAlert('重新初始化失败: ' + (error ? error.message : '网络或服务器错误'), 'danger');
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html(original);
+            }
+        });
     });
-});
 
     // 恢复表单提交事件
-    $('#addJobForm').on('submit', function(e) {
+    $('#addJobForm').on('submit', function (e) {
         e.preventDefault();
         addJob();
     });
-    $('#editJobForm').on('submit', function(e) {
+    $('#editJobForm').on('submit', function (e) {
         e.preventDefault();
         updateJob();
     });
@@ -160,7 +160,7 @@ function loadJobs() {
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
-        success: function(response) {
+        success: function (response) {
             $('#loadingRow').hide();
             if (response.success === true) {
                 console.log('Received jobs:', response.data);
@@ -171,12 +171,12 @@ function loadJobs() {
                 showAlert('加载任务失败: ' + response.message, 'danger');
             }
         },
-        error: function(xhr) {
+        error: function (xhr) {
             $('#loadingRow').hide();
             console.error('API调用失败:', xhr);
             console.error('状态码:', xhr.status);
             console.error('响应文本:', xhr.responseText);
-            
+
             if (xhr.status === 401 || xhr.status === 403 || xhr.status === 302) {
                 showAlert('请先登录或检查管理员权限', 'warning');
                 window.location.href = '/auth/login';
@@ -200,35 +200,35 @@ function displayJobs(jobs) {
     // 清空所有容器
     $('#activeJobsContainer').empty();
     $('#pausedJobsContainer').empty();
-    
+
     // 分离进行中和已暂停的任务
     const activeJobs = [];
     const pausedJobs = [];
-    
-    jobs.forEach(function(job) {
+
+    jobs.forEach(function (job) {
         if (job.state === 'STATE_RUNNING' || job.state === 'STATE_EXECUTING') {
             activeJobs.push(job);
         } else {
             pausedJobs.push(job);
         }
     });
-    
+
     // 显示进行中的任务
-    activeJobs.forEach(function(job) {
+    activeJobs.forEach(function (job) {
         const jobCard = createJobCard(job);
         $('#activeJobsContainer').append(jobCard);
     });
-    
+
     // 显示已暂停的任务
-    pausedJobs.forEach(function(job) {
+    pausedJobs.forEach(function (job) {
         const jobCard = createJobCard(job);
         $('#pausedJobsContainer').append(jobCard);
     });
-    
+
     // 更新计数
     $('#activeJobsCount').text(activeJobs.length);
     $('#pausedJobsCount').text(pausedJobs.length);
-    
+
     // 如果没有进行中的任务，显示提示
     if (activeJobs.length === 0) {
         $('#activeJobsContainer').html(`
@@ -240,7 +240,7 @@ function displayJobs(jobs) {
             </div>
         `);
     }
-    
+
     // 如果没有已暂停的任务，显示提示
     if (pausedJobs.length === 0) {
         $('#pausedJobsContainer').html(`
@@ -260,7 +260,7 @@ function createJobCard(job) {
     const statusText = getStatusText(job.state);
     const nextRunTime = job.next_run_time ? formatTime(job.next_run_time) : '未计划';
     const lastRunTime = job.last_run_time ? formatTime(job.last_run_time) : '从未运行';
-    
+
     return $(`
         <div class="col-md-6 col-lg-4">
             <div class="job-card ${statusClass}">
@@ -334,13 +334,13 @@ function getStatusText(state) {
 // 格式化触发器信息
 function formatTriggerInfo(triggerArgs) {
     if (!triggerArgs) return '无配置';
-    
+
     try {
         const args = typeof triggerArgs === 'string' ? JSON.parse(triggerArgs) : triggerArgs;
-        
+
         // 按时间顺序定义字段顺序：秒、分、时、日、月、周、年
         const fieldOrder = ['second', 'minute', 'hour', 'day', 'month', 'day_of_week', 'year'];
-        
+
         // 按指定顺序显示字段
         const orderedFields = [];
         fieldOrder.forEach(field => {
@@ -348,14 +348,14 @@ function formatTriggerInfo(triggerArgs) {
                 orderedFields.push(`${field}: ${args[field]}`);
             }
         });
-        
+
         // 显示其他未在顺序中的字段
         Object.entries(args).forEach(([key, value]) => {
             if (!fieldOrder.includes(key) && key !== 'description') {
                 orderedFields.push(`${key}: ${value}`);
             }
         });
-        
+
         return orderedFields.join('<br>');
     } catch (e) {
         return triggerArgs.toString();
@@ -403,14 +403,14 @@ function getActionButtons(job) {
 // 启用任务
 function enableJob(jobId) {
     showLoadingState($(`[data-job-id="${jobId}"].btn-enable-job`), '启用中...');
-    
+
     $.ajax({
         url: `/scheduler/api/jobs/${jobId}/resume`,
         method: 'POST',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
-        success: function(response) {
+        success: function (response) {
             if (response.success) {
                 showAlert('任务已启用', 'success');
                 loadJobs();
@@ -418,11 +418,11 @@ function enableJob(jobId) {
                 showAlert('启用失败: ' + response.message, 'danger');
             }
         },
-        error: function(xhr) {
+        error: function (xhr) {
             const error = xhr.responseJSON;
             showAlert('启用失败: ' + (error ? error.message : '未知错误'), 'danger');
         },
-        complete: function() {
+        complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-enable-job`), '启用');
         }
     });
@@ -431,14 +431,14 @@ function enableJob(jobId) {
 // 禁用任务
 function disableJob(jobId) {
     showLoadingState($(`[data-job-id="${jobId}"].btn-disable-job`), '禁用中...');
-    
+
     $.ajax({
         url: `/scheduler/api/jobs/${jobId}/pause`,
         method: 'POST',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
-        success: function(response) {
+        success: function (response) {
             if (response.success) {
                 showAlert('任务已禁用', 'success');
                 loadJobs();
@@ -446,11 +446,11 @@ function disableJob(jobId) {
                 showAlert('禁用失败: ' + response.message, 'danger');
             }
         },
-        error: function(xhr) {
+        error: function (xhr) {
             const error = xhr.responseJSON;
             showAlert('禁用失败: ' + (error ? error.message : '未知错误'), 'danger');
         },
-        complete: function() {
+        complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-disable-job`), '禁用');
         }
     });
@@ -459,14 +459,14 @@ function disableJob(jobId) {
 // 立即执行任务
 function runJobNow(jobId) {
     showLoadingState($(`[data-job-id="${jobId}"].btn-run-job`), '执行中...');
-    
+
     $.ajax({
         url: `/scheduler/api/jobs/${jobId}/run`,
         method: 'POST',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
-        success: function(response) {
+        success: function (response) {
             if (response.success) {
                 showAlert('任务已开始执行', 'success');
                 loadJobs();
@@ -474,11 +474,11 @@ function runJobNow(jobId) {
                 showAlert('执行失败: ' + response.message, 'danger');
             }
         },
-        error: function(xhr) {
+        error: function (xhr) {
             const error = xhr.responseJSON;
             showAlert('执行失败: ' + (error ? error.message : '未知错误'), 'danger');
         },
-        complete: function() {
+        complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-run-job`), '执行');
         }
     });
@@ -491,24 +491,24 @@ function editJob(jobId) {
         showAlert('任务不存在', 'danger');
         return;
     }
-    
+
     // 填充编辑表单
     $('#editJobId').val(job.id);
     $('#editJobName').val(job.name);
     $('#editJobDescription').val(job.description || '');
-    
+
     // 设置执行函数，确保与下拉框选项匹配
     const functionValue = job.func || job.name;
     $('#editJobFunction').val(functionValue);
-    
+
     // 将执行函数字段设为只读
     $('#editJobFunction').prop('disabled', true).addClass('form-control-plaintext');
-    
+
     // 触发器类型固定为cron
     const triggerType = 'cron';
     $('.edit-trigger-config').hide();
     $('#editCronConfig').show();
-    
+
     // 填充触发器参数
     try {
         const triggerArgs = typeof job.trigger_args === 'string' ? JSON.parse(job.trigger_args) : (job.trigger_args || {});
@@ -586,7 +586,7 @@ function editJob(jobId) {
     } catch (e) {
         console.error('解析触发器参数失败:', e);
     }
-    
+
     // 显示编辑模态框
     $('#editJobModal').modal('show');
 }
@@ -603,10 +603,10 @@ function updateJob() {
     }
 
     const isBuiltInJob = [
-        'sync_accounts', 
-        'cleanup_logs', 
-        'monitor_partition_health', 
-        'collect_database_sizes', 
+        'sync_accounts',
+        'cleanup_logs',
+        'monitor_partition_health',
+        'collect_database_sizes',
         'calculate_database_size_aggregations'
     ].includes(originalJob.id);
 
@@ -678,7 +678,7 @@ function updateJob() {
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
-        success: function(response) {
+        success: function (response) {
             if (response.success) {
                 showAlert('任务更新成功', 'success');
                 $('#editJobModal').modal('hide');
@@ -687,11 +687,11 @@ function updateJob() {
                 showAlert('更新失败: ' + response.message, 'danger');
             }
         },
-        error: function(xhr) {
+        error: function (xhr) {
             const error = xhr.responseJSON;
             showAlert('更新失败: ' + (error ? error.message : '未知错误'), 'danger');
         },
-        complete: function() {
+        complete: function () {
             hideLoadingState($('#editJobForm button[type="submit"]'), '保存更改');
         }
     });
@@ -704,20 +704,20 @@ function deleteJob(jobId) {
         showAlert('任务不存在', 'danger');
         return;
     }
-    
+
     if (!confirm(`确定要删除任务 "${job.name}" 吗？此操作不可撤销。`)) {
         return;
     }
-    
+
     showLoadingState($(`[data-job-id="${jobId}"].btn-delete-job`), '删除中...');
-    
+
     $.ajax({
         url: `/scheduler/api/jobs/${jobId}`,
         method: 'DELETE',
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
-        success: function(response) {
+        success: function (response) {
             if (response.success) {
                 showAlert('任务已删除', 'success');
                 loadJobs();
@@ -725,11 +725,11 @@ function deleteJob(jobId) {
                 showAlert('删除失败: ' + response.message, 'danger');
             }
         },
-        error: function(xhr) {
+        error: function (xhr) {
             const error = xhr.responseJSON;
             showAlert('删除失败: ' + (error ? error.message : '未知错误'), 'danger');
         },
-        complete: function() {
+        complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-delete-job`), '删除');
         }
     });
@@ -742,7 +742,7 @@ function viewJobLogs(jobId) {
         showAlert('任务不存在', 'danger');
         return;
     }
-    
+
     // 这里可以实现查看日志的功能
     showAlert('日志查看功能待实现', 'info');
 }
@@ -802,7 +802,7 @@ function addJob() {
         headers: {
             'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
         },
-        success: function(response) {
+        success: function (response) {
             if (response.success) {
                 showAlert('任务添加成功', 'success');
                 $('#addJobModal').modal('hide');
@@ -812,11 +812,11 @@ function addJob() {
                 showAlert('添加失败: ' + response.message, 'danger');
             }
         },
-        error: function(xhr) {
+        error: function (xhr) {
             const error = xhr.responseJSON;
             showAlert('添加失败: ' + (error ? error.message : '未知错误'), 'danger');
         },
-        complete: function() {
+        complete: function () {
             hideLoadingState($('#addJobForm button[type="submit"]'), '添加任务');
         }
     });
@@ -831,7 +831,7 @@ function showLoadingState(element, text) {
     if (typeof element === 'string') {
         element = $(element);
     }
-    
+
     if (element.length) {
         element.data('original-text', element.text());
         element.html(`<i class="fas fa-spinner fa-spin me-2"></i>${text}`);
@@ -844,7 +844,7 @@ function hideLoadingState(element, originalText) {
     if (typeof element === 'string') {
         element = $(element);
     }
-    
+
     if (element.length) {
         const text = originalText || element.data('original-text');
         element.html(text);
@@ -861,9 +861,9 @@ function showAlert(message, type) {
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     `);
-    
+
     $('.container-fluid').prepend(alertDiv);
-    
+
     setTimeout(() => {
         alertDiv.remove();
     }, 5000);
@@ -883,11 +883,11 @@ function getAlertIcon(type) {
 // 格式化时间
 function formatTime(timeString) {
     if (!timeString) return '-';
-    
+
     try {
         const date = new Date(timeString);
         if (isNaN(date.getTime())) return '-';
-        
+
         // 后端已经返回东八区时间，前端直接格式化，不进行时区转换
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -909,18 +909,18 @@ function loadHealthStatus() {
     $.ajax({
         url: '/scheduler/api/health',
         method: 'GET',
-        success: function(response) {
+        success: function (response) {
             if (response.success) {
                 updateHealthDisplay(response.data);
             } else {
                 showAlert('获取健康状态失败: ' + response.message, 'danger');
             }
         },
-        error: function(xhr) {
+        error: function (xhr) {
             console.error('健康状态API调用失败:', xhr);
             console.error('状态码:', xhr.status);
             console.error('响应文本:', xhr.responseText);
-            
+
             const error = xhr.responseJSON;
             const errorMsg = error ? error.message : `HTTP ${xhr.status}: ${xhr.statusText}`;
             showAlert('获取健康状态失败: ' + errorMsg, 'danger');
@@ -933,7 +933,7 @@ function updateHealthDisplay(healthData) {
     // 更新整体状态
     const statusBadge = $('#overallStatus');
     statusBadge.html(`<span class="badge bg-${healthData.status_color}">${healthData.status_text}</span>`);
-    
+
     // 更新健康分数
     const scoreBadge = $('#healthScore');
     let scoreColor = 'secondary';
@@ -941,13 +941,13 @@ function updateHealthDisplay(healthData) {
     else if (healthData.health_score >= 60) scoreColor = 'warning';
     else scoreColor = 'danger';
     scoreBadge.html(`<span class="badge bg-${scoreColor}">${healthData.health_score}/100</span>`);
-    
+
     // 更新调度器运行状态
     $('#schedulerRunning').html(`<span class="badge bg-${healthData.scheduler_running ? 'success' : 'danger'}">${healthData.scheduler_running ? '运行中' : '已停止'}</span>`);
-    
+
     // 更新任务数量
     $('#totalJobs').html(`<span class="badge bg-info">${healthData.total_jobs}</span>`);
-    
+
     // 更新详细状态
     $('#threadStatus').text(healthData.thread_alive ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.thread_alive ? 'text-success' : 'text-danger');
     $('#jobstoreStatus').text(healthData.jobstore_accessible ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.jobstore_accessible ? 'text-success' : 'text-danger');
@@ -956,7 +956,7 @@ function updateHealthDisplay(healthData) {
 }
 
 // 添加刷新健康状态按钮事件
-$(document).on('click', '#refreshHealthBtn', function() {
+$(document).on('click', '#refreshHealthBtn', function () {
     loadHealthStatus();
 });
 
@@ -972,14 +972,6 @@ window.addJob = addJob;
 window.showAlert = showAlert;
 window.formatTime = formatTime;
 window.loadHealthStatus = loadHealthStatus;
-                status: 'error',
-                status_text: '请求失败',
-                status_color: 'danger',
-                health_score: 0
-            });
-        }
-    });
-}
 
 function updateHealthDisplay(healthData) {
     // 更新整体状态
@@ -1007,7 +999,7 @@ function updateHealthDisplay(healthData) {
 }
 
 // 添加刷新健康状态按钮事件
-$(document).on('click', '#refreshHealthBtn', function() {
+$(document).on('click', '#refreshHealthBtn', function () {
     loadHealthStatus();
 });
 
