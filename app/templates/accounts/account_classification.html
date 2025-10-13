@@ -7,24 +7,30 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2><i class="fas fa-tags me-2"></i>账户分类管理</h2>
-            {% if current_user.role == 'admin' %}
-            <p class="text-muted mb-0">管理账户分类和规则，包括增删改查和自动分类</p>
-            {% else %}
-            <p class="text-muted mb-0">查看账户分类和规则信息（只读模式）</p>
-            {% endif %}
-        </div>
-        <div>
-            {% if current_user.role == 'admin' %}
-            <button class="btn btn-success" onclick="autoClassifyAll()">
-                <i class="fas fa-magic me-2"></i>自动分类
-            </button>
-            {% endif %}
+<!-- 页面头部 -->
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-tags me-2"></i>账户分类管理</h2>
+                {% if current_user.role == 'admin' %}
+                <p class="mb-0">管理账户分类和规则，包括增删改查和自动分类</p>
+                {% else %}
+                <p class="mb-0">查看账户分类和规则信息（只读模式）</p>
+                {% endif %}
+            </div>
+            <div>
+                {% if current_user.role == 'admin' %}
+                <button class="btn btn-light" onclick="autoClassifyAll()">
+                    <i class="fas fa-magic me-2"></i>自动分类
+                </button>
+                {% endif %}
+            </div>
         </div>
     </div>
+</div>
+
+<div class="container-fluid">
 
 
     <!-- 主要内容区域 -->
