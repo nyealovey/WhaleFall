@@ -52,14 +52,11 @@
                             <div class="mb-3">
                                 <label for="color" class="form-label">颜色</label>
                                 <select class="form-select" id="color" name="color">
-                                    <option value="primary">蓝色</option>
-                                    <option value="success">绿色</option>
-                                    <option value="info">青色</option>
-                                    <option value="warning">黄色</option>
-                                    <option value="danger">红色</option>
-                                    <option value="secondary">灰色</option>
-                                    <option value="dark">深色</option>
-                                    <option value="light">浅色</option>
+                                    {% for key, info in color_options.items() %}
+                                    <option value="{{ key }}" {% if key == 'primary' %}selected{% endif %}>
+                                        {{ info.name }} - {{ info.description }}
+                                    </option>
+                                    {% endfor %}
                                 </select>
                                 <div class="form-text">选择标签显示颜色</div>
                             </div>

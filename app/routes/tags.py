@@ -20,6 +20,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.models.tag import Tag
 from app.models.instance import Instance
+from app.constants.colors import ThemeColors
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -479,6 +480,10 @@ def create_api() -> Response:
     if isinstance(is_active, str):
         is_active = is_active in ["on", "true", "1", "yes"]
 
+    # 验证颜色
+    if not ThemeColors.is_valid_color(color):
+        return jsonify({"error": f"无效的颜色选择: {color}"}), 400
+
     # 验证标签名称唯一性
     existing_tag = Tag.query.filter_by(name=name).first()
     if existing_tag:
@@ -529,7 +534,7 @@ def create() -> str | Response:
             validation_error = validate_required_fields(request.form, required_fields)
             if validation_error:
                 flash(validation_error, "error")
-                return render_template("tags/create.html")
+                return render_template("tags/create.html", color_options=ThemeColors.COLOR_MAP)
 
             # 获取表单数据
             name = request.form.get("name", "").strip()
@@ -540,11 +545,16 @@ def create() -> str | Response:
             sort_order = request.form.get("sort_order", 0, type=int)
             is_active = request.form.get("is_active") == "on"
 
+            # 验证颜色
+            if not ThemeColors.is_valid_color(color):
+                flash(f"无效的颜色选择: {color}", "error")
+                return render_template("tags/create.html", color_options=ThemeColors.COLOR_MAP)
+
             # 检查名称是否已存在
             existing_tag = Tag.query.filter_by(name=name).first()
             if existing_tag:
                 flash(f"标签代码 '{name}' 已存在", "error")
-                return render_template("tags/create.html")
+                return render_template("tags/create.html", color_options=ThemeColors.COLOR_MAP)
 
             # 创建标签
             tag = Tag(
@@ -581,7 +591,7 @@ def create() -> str | Response:
             )
             flash(f"标签创建失败: {str(e)}", "error")
 
-    return render_template("tags/create.html")
+    return render_template("tags/create.html", color_options=ThemeColors.COLOR_MAP)
 
 
 @tags_bp.route("/api/edit/<int:tag_id>", methods=["POST"])
@@ -608,6 +618,10 @@ def edit_api(tag_id: int) -> Response:
     is_active = data.get("is_active", tag.is_active)
     if isinstance(is_active, str):
         is_active = is_active in ["on", "true", "1", "yes"]
+
+    # 验证颜色
+    if not ThemeColors.is_valid_color(color):
+        return jsonify({"error": f"无效的颜色选择: {color}"}), 400
 
     # 验证标签名称唯一性（排除当前标签）
     existing_tag = Tag.query.filter(Tag.name == name, Tag.id != tag_id).first()
@@ -659,7 +673,7 @@ def edit(tag_id: int) -> str | Response:
             validation_error = validate_required_fields(request.form, required_fields)
             if validation_error:
                 flash(validation_error, "error")
-                return render_template("tags/edit.html", tag=tag)
+                return render_template("tags/edit.html", tag=tag, color_options=ThemeColors.COLOR_MAP)
 
             # 获取表单数据
             name = request.form.get("name", "").strip()
@@ -670,6 +684,11 @@ def edit(tag_id: int) -> str | Response:
             sort_order = request.form.get("sort_order", 0, type=int)
             is_active = request.form.get("is_active") == "on"
 
+            # 验证颜色
+            if not ThemeColors.is_valid_color(color):
+                flash(f"无效的颜色选择: {color}", "error")
+                return render_template("tags/edit.html", tag=tag, color_options=ThemeColors.COLOR_MAP)
+
             # 检查名称是否已存在（排除当前记录）
             existing_tag = Tag.query.filter(
                 Tag.name == name,
@@ -677,7 +696,7 @@ def edit(tag_id: int) -> str | Response:
             ).first()
             if existing_tag:
                 flash(f"标签代码 '{name}' 已存在", "error")
-                return render_template("tags/edit.html", tag=tag)
+                return render_template("tags/edit.html", tag=tag, color_options=ThemeColors.COLOR_MAP)
 
             # 更新标签
             tag.name = name
@@ -712,7 +731,7 @@ def edit(tag_id: int) -> str | Response:
             )
             flash(f"标签更新失败: {str(e)}", "error")
 
-    return render_template("tags/edit.html", tag=tag)
+    return render_template("tags/edit.html", tag=tag, color_options=ThemeColors.COLOR_MAP)
 
 
 @tags_bp.route("/api/delete/<int:tag_id>", methods=["POST"])
