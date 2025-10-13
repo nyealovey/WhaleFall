@@ -8,7 +8,7 @@ let currentPage = 1;
 let currentFilters = {};
 
 // 页面加载时初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializePage();
     initUnifiedSearch();
 });
@@ -64,13 +64,13 @@ function updateModuleFilter(modules) {
 function loadStats() {
     // 构建查询参数，包含当前的筛选条件
     const params = new URLSearchParams();
-    
+
     // 获取当前筛选条件
     const levelEl = document.getElementById('levelFilter');
     const moduleEl = document.getElementById('moduleFilter');
     const searchEl = document.getElementById('search');
     const timeRangeEl = document.getElementById('timeRange');
-    
+
     if (levelEl && levelEl.value) params.append('level', levelEl.value);
     if (moduleEl && moduleEl.value) params.append('module', moduleEl.value);
     if (searchEl && searchEl.value) params.append('q', searchEl.value);
@@ -79,7 +79,7 @@ function loadStats() {
         const hours = getHoursFromTimeRange(timeRangeEl.value);
         if (hours) params.append('hours', hours);
     }
-    
+
     fetch(`/logs/api/stats?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
@@ -117,7 +117,7 @@ function updateStatsDisplay(stats) {
         'warningLogs': stats.warning_logs || 0,
         'modulesCount': stats.modules_count || 0
     };
-    
+
     Object.entries(elements).forEach(([id, value]) => {
         const element = document.getElementById(id);
         if (element) {
@@ -130,14 +130,14 @@ function updateStatsDisplay(stats) {
 // 搜索日志
 function searchLogs(page = 1) {
     currentPage = page;
-    
+
     // 如果currentFilters为空，从DOM元素获取（兼容旧代码）
     if (Object.keys(currentFilters).length === 0) {
         const levelFilter = document.getElementById('levelFilter');
         const moduleFilter = document.getElementById('moduleFilter');
         const searchTerm = document.getElementById('searchTerm');
         const timeRange = document.getElementById('timeRange');
-        
+
         currentFilters = {
             level: levelFilter ? levelFilter.value : '',
             module: moduleFilter ? moduleFilter.value : '',
@@ -145,12 +145,12 @@ function searchLogs(page = 1) {
             hours: timeRange ? getHoursFromTimeRange(timeRange.value) : 24
         };
     }
-    
+
     // 构建查询参数
     const params = new URLSearchParams();
     params.append('page', page);
     params.append('per_page', '50');
-    
+
     // 添加筛选条件
     if (currentFilters.level) params.append('level', currentFilters.level);
     if (currentFilters.module) params.append('module', currentFilters.module);
@@ -190,7 +190,7 @@ function showLoadingState() {
 // 显示日志列表
 function displayLogs(logs) {
     const container = document.getElementById('logsContainer');
-    
+
     if (logs.length === 0) {
         container.innerHTML = '<div class="no-logs"><i class="fas fa-search"></i><br>没有找到匹配的日志</div>';
         return;
@@ -200,7 +200,7 @@ function displayLogs(logs) {
     logs.forEach(log => {
         html += createLogEntryHTML(log);
     });
-    
+
     container.innerHTML = html;
 }
 
@@ -211,7 +211,7 @@ function createLogEntryHTML(log) {
     const moduleBadge = log.module ? `<span class="module-badge">${log.module}</span>` : '';
     const timestamp = window.formatTime ? window.formatTime(log.timestamp, 'datetime') : log.timestamp;
     const message = highlightSearchTerm(log.message, currentFilters.q);
-    
+
     return `
         <div class="log-entry ${levelClass}" onclick="viewLogDetail(${log.id})">
             ${levelBadge}
@@ -239,7 +239,7 @@ function getLevelBadgeHTML(level) {
 // 高亮搜索词
 function highlightSearchTerm(text, searchTerm) {
     if (!searchTerm) return text;
-    
+
     const regex = new RegExp(`(${searchTerm})`, 'gi');
     return text.replace(regex, '<span class="search-highlight">$1</span>');
 }
@@ -248,20 +248,20 @@ function highlightSearchTerm(text, searchTerm) {
 function displayPagination(pagination) {
     const container = document.getElementById('paginationContainer');
     if (!container) return;
-    
+
     let html = '<nav><ul class="pagination">';
-    
+
     // 上一页
     if (pagination.has_prev) {
         html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(${pagination.prev_num}); return false;">上一页</a></li>`;
     } else {
         html += `<li class="page-item disabled"><span class="page-link">上一页</span></li>`;
     }
-    
+
     // 页码
     const startPage = Math.max(1, pagination.page - 2);
     const endPage = Math.min(pagination.pages, pagination.page + 2);
-    
+
     // 第一页和省略号
     if (startPage > 1) {
         html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(1); return false;">1</a></li>`;
@@ -269,13 +269,13 @@ function displayPagination(pagination) {
             html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
         }
     }
-    
+
     // 中间页码
     for (let i = startPage; i <= endPage; i++) {
         const active = i === pagination.page ? 'active' : '';
         html += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="searchLogs(${i}); return false;">${i}</a></li>`;
     }
-    
+
     // 最后一页和省略号
     if (endPage < pagination.pages) {
         if (endPage < pagination.pages - 1) {
@@ -283,14 +283,14 @@ function displayPagination(pagination) {
         }
         html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(${pagination.pages}); return false;">${pagination.pages}</a></li>`;
     }
-    
+
     // 下一页
     if (pagination.has_next) {
         html += `<li class="page-item"><a class="page-link" href="#" onclick="searchLogs(${pagination.next_num}); return false;">下一页</a></li>`;
     } else {
         html += `<li class="page-item disabled"><span class="page-link">下一页</span></li>`;
     }
-    
+
     html += '</ul></nav>';
     container.innerHTML = html;
 }
@@ -316,12 +316,12 @@ function viewLogDetail(logId) {
 function displayLogDetail(log) {
     const content = document.getElementById('logDetailContent');
     if (!content) return;
-    
+
     const levelBadge = getLevelBadgeHTML(log.level);
     const moduleBadge = log.module ? `<span class="badge bg-secondary">${log.module}</span>` : '';
     const timestamp = window.formatTime ? window.formatTime(log.timestamp, 'datetime') : log.timestamp;
     const createdAt = window.formatTime ? window.formatTime(log.created_at, 'datetime') : log.created_at;
-    
+
     content.innerHTML = `
         <div class="row">
             <div class="col-md-6">
@@ -352,7 +352,7 @@ function displayLogDetail(log) {
             </div>
         ` : ''}
     `;
-    
+
     const modal = document.getElementById('logDetailModal');
     if (modal) {
         new bootstrap.Modal(modal).show();
@@ -392,12 +392,12 @@ function resetFilters() {
     const moduleFilter = document.getElementById('moduleFilter');
     const searchTerm = document.getElementById('searchTerm');
     const timeRange = document.getElementById('timeRange');
-    
+
     if (levelFilter) levelFilter.value = '';
     if (moduleFilter) moduleFilter.value = '';
     if (searchTerm) searchTerm.value = '';
     if (timeRange) timeRange.value = '1d';
-    
+
     searchLogs(1);
 }
 
@@ -410,12 +410,12 @@ function showError(message) {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     const container = document.querySelector('.container-fluid');
     if (container) {
         container.insertBefore(alertDiv, container.firstChild);
     }
-    
+
     setTimeout(() => {
         alertDiv.remove();
     }, 5000);
@@ -430,12 +430,12 @@ function showSuccess(message) {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     const container = document.querySelector('.container-fluid');
     if (container) {
         container.insertBefore(alertDiv, container.firstChild);
     }
-    
+
     setTimeout(() => {
         alertDiv.remove();
     }, 3000);
@@ -446,12 +446,12 @@ function initUnifiedSearch() {
     // 检查是否已经有全局的UnifiedSearch实例
     if (window.unifiedSearchInstance) {
         // 重写搜索和清除方法
-        window.unifiedSearchInstance.handleSubmit = function(e) {
+        window.unifiedSearchInstance.handleSubmit = function (e) {
             e.preventDefault();
             applyFilters();
         };
-        
-        window.unifiedSearchInstance.clearForm = function() {
+
+        window.unifiedSearchInstance.clearForm = function () {
             // 清除所有筛选条件
             const inputs = this.form.querySelectorAll('.unified-input');
             inputs.forEach(input => {
@@ -467,24 +467,24 @@ function initUnifiedSearch() {
             currentFilters = {};
             searchLogs(1);
         };
-        
+
         return;
     }
-    
+
     // 等待统一搜索组件加载完成
     if (typeof UnifiedSearch !== 'undefined') {
         const searchForm = document.querySelector('.unified-search-form');
-        
+
         if (searchForm) {
             const unifiedSearch = new UnifiedSearch(searchForm);
-            
+
             // 重写搜索和清除方法
-            unifiedSearch.handleSubmit = function(e) {
+            unifiedSearch.handleSubmit = function (e) {
                 e.preventDefault();
                 applyFilters();
             };
-            
-            unifiedSearch.clearForm = function() {
+
+            unifiedSearch.clearForm = function () {
                 // 清除所有筛选条件
                 const inputs = this.form.querySelectorAll('.unified-input');
                 inputs.forEach(input => {
@@ -514,23 +514,23 @@ function applyFilters() {
     const moduleEl = document.getElementById('moduleFilter');
     const searchEl = document.getElementById('search');
     const timeRangeEl = document.getElementById('timeRange');
-    
+
     // 获取筛选值，空字符串表示不过滤
     const level = levelEl?.value || '';
     const module = moduleEl?.value || '';
     const search = searchEl?.value || '';
     const timeRange = timeRangeEl?.value || '1d';
-    
+
     // 将时间范围转换为小时数
     const hours = getHoursFromTimeRange(timeRange);
-    
+
     currentFilters = {
         level: level,
         module: module,
         q: search,
         hours: hours || 24
     };
-    
+
     // 更新统计卡片和日志列表
     loadStats();
     searchLogs(1);
@@ -540,7 +540,7 @@ function applyFilters() {
 window.applyFilters = applyFilters;
 
 // 清除筛选条件
-window.clearFilters = function() {
+window.clearFilters = function () {
     // console.log('clearFilters: 清除所有筛选条件');
     currentFilters = {};
     // 重置时间范围为最近1天
