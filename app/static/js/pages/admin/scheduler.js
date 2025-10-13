@@ -173,12 +173,18 @@ function loadJobs() {
         },
         error: function(xhr) {
             $('#loadingRow').hide();
+            console.error('API调用失败:', xhr);
+            console.error('状态码:', xhr.status);
+            console.error('响应文本:', xhr.responseText);
+            
             if (xhr.status === 401 || xhr.status === 403 || xhr.status === 302) {
                 showAlert('请先登录或检查管理员权限', 'warning');
                 window.location.href = '/auth/login';
             } else {
                 const error = xhr.responseJSON;
-                showAlert('加载任务失败: ' + (error ? error.message : '未知错误'), 'danger');
+                const errorMsg = error ? error.message : `HTTP ${xhr.status}: ${xhr.statusText}`;
+                showAlert('加载任务失败: ' + errorMsg, 'danger');
+                console.error('详细错误:', error);
             }
         }
     });
@@ -911,8 +917,13 @@ function loadHealthStatus() {
             }
         },
         error: function(xhr) {
+            console.error('健康状态API调用失败:', xhr);
+            console.error('状态码:', xhr.status);
+            console.error('响应文本:', xhr.responseText);
+            
             const error = xhr.responseJSON;
-            showAlert('获取健康状态失败: ' + (error ? error.message : '网络错误'), 'danger');
+            const errorMsg = error ? error.message : `HTTP ${xhr.status}: ${xhr.statusText}`;
+            showAlert('获取健康状态失败: ' + errorMsg, 'danger');
         }
     });
 }
