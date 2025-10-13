@@ -2,7 +2,7 @@
 
 /* 表单区域 - 利用全局卡片样式 */
 .form-section {
-    background: white;
+    background: var(--light-color);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-md);
     padding: var(--spacing-lg);

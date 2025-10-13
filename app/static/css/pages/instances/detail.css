@@ -89,7 +89,7 @@
 /* 统计卡片 - 利用全局渐变 */
 .stats-card {
     background: var(--gradient-primary);
-    color: white;
+    color: var(--light-color);
     border: none;
 }
 

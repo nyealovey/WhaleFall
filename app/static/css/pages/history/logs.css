@@ -140,7 +140,7 @@
 .log-json-block {
     background-color: #f8f9fa;
     border: 1px solid #e9ecef;
-    border-left: 4px solid #007bff;
+    border-left: 4px solid var(--info-color);
     border-radius: var(--border-radius-md);
     padding: 1rem;
     font-family: 'Courier New', Consolas, Monaco, monospace;
@@ -156,15 +156,15 @@
 
 /* 错误堆栈跟踪样式 */
 .log-traceback-block {
-    background-color: #fff5f5;
-    border: 1px solid #fed7d7;
-    border-left: 4px solid #e53e3e;
+    background-color: rgba(231, 76, 60, 0.05);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    border-left: 4px solid var(--danger-color);
     border-radius: var(--border-radius-md);
     padding: 1rem;
     font-family: 'Courier New', Consolas, Monaco, monospace;
     font-size: 0.85rem;
     line-height: 1.4;
-    color: #742a2a;
+    color: var(--danger-color);
     white-space: pre-wrap;
     word-wrap: break-word;
     max-height: 400px;
