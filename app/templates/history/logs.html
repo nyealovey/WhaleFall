@@ -3,8 +3,67 @@
 {% block title %}日志中心{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history/logs.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
+<style>
+/* 日志页面样式 - 优化版本，利用Flatly主题和全局样式 */
+.log-level-DEBUG { color: var(--gray-600); }
+.log-level-INFO { color: var(--info-color); }
+.log-level-WARNING { color: var(--warning-color); }
+.log-level-ERROR { color: var(--danger-color); }
+.log-level-CRITICAL { color: var(--danger-color); font-weight: bold; }
+
+.log-entry {
+    border-left: 4px solid var(--gray-300);
+    padding: 4px 8px;
+    margin-bottom: 2px;
+    background: white;
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--gray-300);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+    font-size: 0.9em;
+}
+
+.log-entry:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+    background-color: var(--gray-100);
+}
+
+.log-entry.log-level-ERROR {
+    border-left-color: var(--danger-color);
+    background: rgba(231, 76, 60, 0.05);
+}
+
+.log-entry.log-level-WARNING {
+    border-left-color: var(--warning-color);
+    background: rgba(243, 156, 18, 0.05);
+}
+
+.log-entry.log-level-INFO {
+    border-left-color: var(--info-color);
+    background: rgba(52, 152, 219, 0.05);
+}
+
+.log-entry.log-level-DEBUG {
+    border-left-color: var(--gray-500);
+    background: var(--gray-100);
+}
+
+.stats-card {
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+</style>
 {% endblock %}
 
 {% block content %}
