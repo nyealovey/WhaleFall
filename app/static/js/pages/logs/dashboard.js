@@ -105,7 +105,7 @@ function getHoursFromTimeRange(timeRange) {
         case '1m':
             return 720; // 1月 (30天)
         default:
-            return null; // 全部时间，不设置hours参数
+            return 24; // 默认1天
     }
 }
 
@@ -142,7 +142,7 @@ function searchLogs(page = 1) {
             level: levelFilter ? levelFilter.value : '',
             module: moduleFilter ? moduleFilter.value : '',
             q: searchTerm ? searchTerm.value : '',
-            hours: timeRange ? parseInt(timeRange.value) || 24 : 24
+            hours: timeRange ? getHoursFromTimeRange(timeRange.value) : 24
         };
     }
     
@@ -396,7 +396,7 @@ function resetFilters() {
     if (levelFilter) levelFilter.value = '';
     if (moduleFilter) moduleFilter.value = '';
     if (searchTerm) searchTerm.value = '';
-    if (timeRange) timeRange.value = '24';
+    if (timeRange) timeRange.value = '1d';
     
     searchLogs(1);
 }

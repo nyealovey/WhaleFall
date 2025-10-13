@@ -49,6 +49,7 @@ def search_logs() -> tuple[dict, int]:
         search_term = request.args.get("q", "").strip()
         start_time = request.args.get("start_time")
         end_time = request.args.get("end_time")
+        hours = request.args.get("hours")  # 添加hours参数处理
         sort_by = request.args.get("sort_by", "timestamp")
         sort_order = request.args.get("sort_order", "desc")
 
@@ -70,8 +71,16 @@ def search_logs() -> tuple[dict, int]:
             except ValueError:
                 return error_response("Invalid end_time format", 400)
 
-        # 默认时间范围：最近24小时
-        if not start_time and not end_time:
+        # hours参数优先级高于默认时间范围
+        if hours and not start_time and not end_time:
+            try:
+                hours_int = int(hours)
+                start_time_from_hours = time_utils.now() - timedelta(hours=hours_int)
+                query = query.filter(UnifiedLog.timestamp >= start_time_from_hours)
+            except ValueError:
+                return error_response("Invalid hours format", 400)
+        elif not start_time and not end_time and not hours:
+            # 默认时间范围：最近24小时
             default_start = time_utils.now() - timedelta(hours=24)
             query = query.filter(UnifiedLog.timestamp >= default_start)
 
@@ -421,8 +430,7 @@ def get_log_stats() -> tuple[dict, int]:
             query = query.filter(
                 or_(
                     UnifiedLog.message.contains(q),
-                    UnifiedLog.module.contains(q),
-                    UnifiedLog.category.contains(q)
+                    UnifiedLog.module.contains(q)
                 )
             )
 
@@ -452,8 +460,7 @@ def get_log_stats() -> tuple[dict, int]:
             modules_query = modules_query.filter(
                 or_(
                     UnifiedLog.message.contains(q),
-                    UnifiedLog.module.contains(q),
-                    UnifiedLog.category.contains(q)
+                    UnifiedLog.module.contains(q)
                 )
             )
         

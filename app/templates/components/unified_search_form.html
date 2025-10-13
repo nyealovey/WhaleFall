@@ -216,12 +216,10 @@
                         <div class="col-md-2 filter-time-range">
                             <label for="timeRange" class="form-label">时间范围</label>
                             <select class="form-select unified-select" id="timeRange" name="time_range">
-                                <option value="7" {% if time_range == '7' or time_range == '' %}selected{% endif %}>最近7天</option>
-                                <option value="30" {% if time_range == '30' %}selected{% endif %}>最近30天</option>
-                                <option value="3" {% if time_range == '3' %}selected{% endif %}>最近3个月</option>
-                                <option value="6" {% if time_range == '6' %}selected{% endif %}>最近6个月</option>
-                                <option value="12" {% if time_range == '12' %}selected{% endif %}>最近1年</option>
-                                <option value="24" {% if time_range == '24' %}selected{% endif %}>最近2年</option>
+                                <option value="1h" {% if time_range == '1h' %}selected{% endif %}>最近1小时</option>
+                                <option value="1d" {% if time_range == '1d' or time_range == '' %}selected{% endif %}>最近1天</option>
+                                <option value="1w" {% if time_range == '1w' %}selected{% endif %}>最近1周</option>
+                                <option value="1m" {% if time_range == '1m' %}selected{% endif %}>最近1月</option>
                             </select>
                         </div>
                         {% endif %}
