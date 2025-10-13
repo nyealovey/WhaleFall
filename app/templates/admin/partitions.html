@@ -3,7 +3,7 @@
 {% block title %}分区管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/database_sizes/partitions.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/partitions.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -286,7 +286,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='js/pages/database_sizes/partitions.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/database_sizes/aggregations_chart.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/admin/partitions.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/admin/aggregations_chart.js') }}"></script>
 {% endblock %}

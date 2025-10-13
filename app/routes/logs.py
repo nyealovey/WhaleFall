@@ -30,7 +30,7 @@ logs_bp = Blueprint("logs", __name__)
 def logs_dashboard() -> str | tuple[dict, int]:
     """日志中心仪表板"""
     try:
-        return render_template("logs/dashboard.html")
+        return render_template("history/logs.html")
     except Exception as e:
         log_error("Failed to render logs dashboard", module="logs", error=str(e))
         return error_response("Failed to load logs dashboard", 500)

@@ -31,7 +31,7 @@ def partitions_page():
     """
     分区管理页面
     """
-    return render_template('database_sizes/partitions.html')
+    return render_template('admin/partitions.html')
 
 # API 路由
 @partition_bp.route('/api/info', methods=['GET'])

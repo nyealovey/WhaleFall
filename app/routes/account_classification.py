@@ -33,7 +33,7 @@ account_classification_bp = Blueprint("account_classification", __name__)
 @view_required
 def index() -> str:
     """账户分类管理首页"""
-    return render_template("account_classification/management.html")
+    return render_template("accounts/account_classification.html")
 
 
 @account_classification_bp.route("/rules-page")

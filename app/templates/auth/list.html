@@ -3,7 +3,7 @@
 {% block title %}用户管理 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/user_management/management.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth/list.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -208,7 +208,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">保存更改</button>
+                    <button type="button" class="btn btn-primary">保存更改</button>
                 </div>
             </form>
         </div>
@@ -217,5 +217,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/pages/user_management/management.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/auth/list.js') }}"></script>
 {% endblock %}

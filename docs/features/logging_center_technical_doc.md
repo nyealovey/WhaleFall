@@ -11,7 +11,7 @@
 ### 1.2 代码定位
 - 路由：`app/routes/logs.py`（日志中心API路由）
 - 模型：`app/models/unified_log.py`（统一日志数据模型）
-- 前端：`app/templates/logs/dashboard.html`、`app/static/js/pages/logs/dashboard.js`
+- 前端：`app/templates/history/logs.html`、`app/static/js/pages/history/logs.js`
 - 配置：`app/utils/logging_config.py`、`app/utils/structlog_config.py`
 
 ## 2. 架构设计

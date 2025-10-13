@@ -40,12 +40,7 @@ def chrome_devtools() -> "Response":
     return "", 204
 
 
-@main_bp.route("/admin")
-@login_required
-@admin_required
-def admin() -> str:
-    """系统管理页面"""
-    return render_template("admin/management.html")
+# Admin route removed - admin/management.html deleted
 
 
 @main_bp.route("/api/health")

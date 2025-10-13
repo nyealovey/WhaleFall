@@ -39,7 +39,7 @@ scheduler_bp = Blueprint("scheduler", __name__)
 @scheduler_view_required  # type: ignore
 def index() -> str:
     """定时任务管理页面"""
-    return render_template("scheduler/management.html")
+    return render_template("admin/scheduler.html")
 
 
 @scheduler_bp.route("/api/jobs")

@@ -34,12 +34,12 @@
 | 23 | `instances/edit.html` | `css/pages/instances/create.css` | `js/pages/instances/edit.js` | 编辑实例 | 复用创建页面样式 |
 | 24 | `instances/list.html` | `css/pages/instances/list.css` | `js/pages/instances/list.js` | 实例列表 | 包含标签选择器 |
 | 25 | `instances/statistics.html` | `css/pages/instances/statistics.css` | `js/pages/instances/statistics.js` | 实例统计 | 包含Chart.js图表 |
-| 26 | `logs/dashboard.html` | `css/pages/logs/dashboard.css` | `js/pages/logs/dashboard.js` | 日志仪表板 | 日志管理 |
+| 26 | `history/logs.html` | `css/pages/history/logs.css` | `js/pages/history/logs.js` | 日志仪表板 | 日志管理 |
 | 27 | `logs/detail.html` | 无专用CSS | 无专用JS | 日志详情 | 使用全局样式 |
 | 28 | `logs/statistics.html` | 无专用CSS | 无专用JS | 日志统计 | 使用全局样式 |
 | 29 | `macros/environment_macro.html` | 无专用CSS | 无专用JS | 环境宏 | Jinja2宏定义 |
 | 30 | `scheduler/management.html` | `css/pages/scheduler/management.css` | `js/pages/scheduler/management.js` | 任务调度 | 定时任务管理 |
-| 31 | `sync_sessions/management.html` | `css/pages/sync_sessions/management.css` | `js/pages/sync_sessions/management.js` | 同步会话 | 数据同步管理 |
+| 31 | `history/sync_sessions.html` | `css/pages/history/sync_sessions.css` | `js/pages/history/sync_sessions.js` | 同步会话 | 数据同步管理 |
 | 32 | `tags/create.html` | 无专用CSS | 无专用JS | 创建标签 | 使用全局样式 |
 | 33 | `tags/edit.html` | 无专用CSS | 无专用JS | 编辑标签 | 使用全局样式 |
 | 34 | `tags/index.html` | `css/pages/tags/index.css` | `js/pages/tags/index.js` | 标签管理 | 标签列表页面 |

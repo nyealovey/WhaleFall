@@ -3,7 +3,7 @@
 {% block title %}账户分类管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/account_classification/account_classification.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/account_classification.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -533,5 +533,5 @@
     // 设置用户角色，供JavaScript使用
     window.currentUserRole = '{{ current_user.role }}';
 </script>
-<script src="{{ url_for('static', filename='js/pages/account_classification/account_classification.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/accounts/account_classification.js') }}"></script>
 {% endblock %}

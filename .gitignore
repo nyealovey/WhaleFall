@@ -100,3 +100,6 @@ Pipfile.lock
 *.tmp
 *.temp
 cookies.txt
+
+# Frontend (temporarily disabled)
+frontend/
