@@ -413,9 +413,10 @@ class AggregationsChartManager {
         const grouped = {};
         
         data.forEach(item => {
-            const date = item.period_start;
+            // 对于周聚合、月聚合、季度聚合使用period_end，日聚合使用period_start
+            const date = (item.period_type === 'daily') ? item.period_start : item.period_end;
             if (!date) {
-                console.warn('数据项缺少period_start:', item);
+                console.warn('数据项缺少日期字段:', item);
                 return;
             }
             
@@ -453,7 +454,10 @@ class AggregationsChartManager {
             return;
         }
         
-        const dates = data.map(item => item.period_start).filter(Boolean).sort();
+        // 根据聚合类型选择合适的日期字段
+        const dates = data.map(item => {
+            return (item.period_type === 'daily') ? item.period_start : item.period_end;
+        }).filter(Boolean).sort();
         const dataPointCount = data.length;
         
         let timeRange = '-';

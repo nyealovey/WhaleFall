@@ -917,7 +917,8 @@ class DatabaseAggregationsManager {
     groupSizeDataByDate(data) {
         const grouped = {};
         data.forEach(item => {
-            const date = item.period_start;
+            // 对于周聚合、月聚合、季度聚合使用period_end，日聚合使用period_start
+            const date = (item.period_type === 'daily') ? item.period_start : item.period_end;
             if (!date) {
                 return;
             }
@@ -938,7 +939,8 @@ class DatabaseAggregationsManager {
     groupChangePercentDataByDate(data) {
         const grouped = {};
         data.forEach(item => {
-            const date = item.period_start;
+            // 对于周聚合、月聚合、季度聚合使用period_end，日聚合使用period_start
+            const date = (item.period_type === 'daily') ? item.period_start : item.period_end;
             if (!date) {
                 return;
             }
@@ -959,7 +961,8 @@ class DatabaseAggregationsManager {
     groupChangeDataByDate(data) {
         const grouped = {};
         data.forEach(item => {
-            const date = item.period_start;
+            // 对于周聚合、月聚合、季度聚合使用period_end，日聚合使用period_start
+            const date = (item.period_type === 'daily') ? item.period_start : item.period_end;
             if (!date) {
                 return;
             }
