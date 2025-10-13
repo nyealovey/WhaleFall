@@ -3,7 +3,73 @@
 {% block title %}用户管理 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth/list.css') }}">
+<style>
+/* 用户管理页面样式 - 优化版本，利用Flatly主题 */
+.page-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0.75rem;
+}
+
+.page-header h2 {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.page-header p {
+    opacity: 0.9;
+    margin: 0;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, var(--primary-color), var(--dark-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.user-table {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.user-table .table tbody tr:hover {
+    background-color: rgba(24, 188, 156, 0.05);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    min-width: auto;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        padding: 1.5rem 0;
+        margin-bottom: 1.5rem;
+    }
+    
+    .page-header h2 {
+        font-size: 1.5rem;
+    }
+}
+</style>
 {% endblock %}
 
 {% block content %}
