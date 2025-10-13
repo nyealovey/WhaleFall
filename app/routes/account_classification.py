@@ -93,7 +93,8 @@ def get_classifications() -> "Response":
                     "name": classification.name,
                     "description": classification.description,
                     "risk_level": classification.risk_level,
-                    "color": classification.color,
+                    "color": classification.color_value,  # 返回实际颜色值
+                    "color_key": classification.color,    # 保留颜色键名
                     "icon_name": classification.icon_name,
                     "priority": classification.priority,
                     "is_system": classification.is_system,
@@ -166,7 +167,9 @@ def get_classification(classification_id: int) -> "Response":
                     "name": classification.name,
                     "description": classification.description,
                     "risk_level": classification.risk_level,
-                    "color": classification.color,
+                    "color": classification.color_value,  # 返回实际颜色值
+                    "color_key": classification.color,    # 保留颜色键名用于编辑
+                    "icon_name": classification.icon_name,
                     "priority": classification.priority,
                     "is_system": classification.is_system,
                     "created_at": (classification.created_at.isoformat() if classification.created_at else None),
