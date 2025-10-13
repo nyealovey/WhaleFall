@@ -859,10 +859,10 @@ class InstanceAggregationsManager {
         const grouped = {};
         
         data.forEach(item => {
-            // 对于周聚合、月聚合、季度聚合使用period_end，日聚合使用period_start
-            const date = (item.period_type === 'daily') ? item.period_start : item.period_end;
+            // 统一使用period_end作为X轴显示日期
+            const date = item.period_end;
             if (!date) {
-                console.warn('数据项缺少日期字段:', item);
+                console.warn('数据项缺少period_end:', item);
                 return;
             }
             
@@ -891,10 +891,10 @@ class InstanceAggregationsManager {
         const grouped = {};
         
         data.forEach(item => {
-            // 对于周聚合、月聚合、季度聚合使用period_end，日聚合使用period_start
-            const date = (item.period_type === 'daily') ? item.period_start : item.period_end;
+            // 统一使用period_end作为X轴显示日期
+            const date = item.period_end;
             if (!date) {
-                console.warn('容量变化数据缺少日期字段:', item);
+                console.warn('容量变化数据缺少period_end:', item);
                 return;
             }
             
@@ -1084,10 +1084,10 @@ class InstanceAggregationsManager {
         const grouped = {};
         
         data.forEach(item => {
-            // 对于周聚合、月聚合、季度聚合使用period_end，日聚合使用period_start
-            const date = (item.period_type === 'daily') ? item.period_start : item.period_end;
+            // 统一使用period_end作为X轴显示日期
+            const date = item.period_end;
             if (!date) {
-                console.warn('容量变化百分比数据缺少日期字段:', item);
+                console.warn('容量变化百分比数据缺少period_end:', item);
                 return;
             }
             
