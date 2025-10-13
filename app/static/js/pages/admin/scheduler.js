@@ -907,6 +907,44 @@ function loadHealthStatus() {
             if (response.success) {
                 updateHealthDisplay(response.data);
             } else {
+                showAlert('获取健康状态失败: ' + response.message, 'danger');
+            }
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON;
+            showAlert('获取健康状态失败: ' + (error ? error.message : '网络错误'), 'danger');
+        }
+    });
+}
+
+// 更新健康状态显示
+function updateHealthDisplay(healthData) {
+    // 更新整体状态
+    const statusBadge = $('#overallStatus');
+    statusBadge.html(`<span class="badge bg-${healthData.status_color}">${healthData.status_text}</span>`);
+    
+    // 更新健康分数
+    const scoreBadge = $('#healthScore');
+    let scoreColor = 'secondary';
+    if (healthData.health_score >= 80) scoreColor = 'success';
+    else if (healthData.health_score >= 60) scoreColor = 'warning';
+    else scoreColor = 'danger';
+    scoreBadge.html(`<span class="badge bg-${scoreColor}">${healthData.health_score}/100</span>`);
+    
+    // 更新调度器运行状态
+    $('#schedulerRunning').html(`<span class="badge bg-${healthData.scheduler_running ? 'success' : 'danger'}">${healthData.scheduler_running ? '运行中' : '已停止'}</span>`);
+    
+    // 更新任务数量
+    $('#totalJobs').html(`<span class="badge bg-info">${healthData.total_jobs}</span>`);
+    
+    // 更新详细状态
+    $('#threadStatus').text(healthData.thread_alive ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.thread_alive ? 'text-success' : 'text-danger');
+    $('#jobstoreStatus').text(healthData.jobstore_accessible ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.jobstore_accessible ? 'text-success' : 'text-danger');
+    $('#executorStatus').text(healthData.executor_working ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.executor_working ? 'text-success' : 'text-danger');
+    $('#lastCheck').text(healthData.last_check || '--');
+}) {
+                updateHealthDisplay(response.data);
+            } else {
                 console.error('获取健康状态失败:', response.error);
                 updateHealthDisplay({
                     status: 'error',
