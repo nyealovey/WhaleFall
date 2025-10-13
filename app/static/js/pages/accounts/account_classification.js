@@ -162,7 +162,7 @@ function editClassification(id) {
             document.getElementById('editClassificationName').value = classification.name;
             document.getElementById('editClassificationDescription').value = classification.description || '';
             document.getElementById('editClassificationRiskLevel').value = classification.risk_level;
-            document.getElementById('editClassificationColor').value = classification.color || '#6c757d';
+            document.getElementById('editClassificationColor').value = classification.color_key || 'info';
             document.getElementById('editClassificationPriority').value = classification.priority || 0;
             
             // 显示编辑模态框
