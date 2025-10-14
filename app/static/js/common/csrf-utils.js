@@ -166,6 +166,25 @@ class CSRFManager {
 // 创建全局实例
 window.csrfManager = new CSRFManager();
 
+// 提供向后兼容的全局函数
+window.getCSRFToken = function() {
+    // 优先从meta标签获取（同步方式）
+    const metaToken = document.querySelector('meta[name="csrf-token"]');
+    if (metaToken) {
+        return metaToken.getAttribute('content');
+    }
+
+    // 尝试从隐藏输入框获取
+    const inputToken = document.querySelector('input[name="csrf_token"]');
+    if (inputToken) {
+        return inputToken.value;
+    }
+
+    // 如果都没有找到，返回空字符串
+    console.warn('CSRF token not found');
+    return '';
+};
+
 // 导出供模块使用
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = CSRFManager;

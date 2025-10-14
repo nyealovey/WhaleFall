@@ -10,11 +10,10 @@ class ConnectionManager {
     }
 
     /**
-     * 获取CSRF令牌
+     * 获取CSRF令牌 - 使用全局函数
      */
     getCSRFToken() {
-        const token = document.querySelector('meta[name="csrf-token"]');
-        return token ? token.getAttribute('content') : '';
+        return window.getCSRFToken();
     }
 
     /**

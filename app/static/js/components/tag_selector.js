@@ -753,10 +753,9 @@ class TagSelector {
         this.bindModalButtons();
     }
     
-    // 获取CSRF令牌
+    // 获取CSRF令牌 - 使用全局函数
     getCSRFToken() {
-        const csrfInput = document.querySelector('input[name="csrf_token"]');
-        return csrfInput ? csrfInput.value : '';
+        return window.getCSRFToken();
     }
 }
 

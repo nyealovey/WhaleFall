@@ -18,14 +18,7 @@ function sendLogToBackend(level, message, context = {}) {
     }
 }
 
-/**
- * 获取CSRF令牌
- * @returns {string} CSRF令牌
- */
-function getCSRFToken() {
-    const token = document.querySelector('meta[name="csrf-token"]');
-    return token ? token.getAttribute('content') : '';
-}
+// CSRF Token处理已统一到csrf-utils.js中
 
 /**
  * 统一的Console日志函数
@@ -184,4 +177,4 @@ window.logPerformance = logPerformance;
 window.logUserAction = logUserAction;
 window.logApiCall = logApiCall;
 window.logErrorWithContext = logErrorWithContext;
-window.getCSRFToken = getCSRFToken;
+// getCSRFToken已移至csrf-utils.js

@@ -538,7 +538,7 @@ class InstanceAggregationsManager {
         try {
             const params = this.buildFilterParams();
             console.log('加载汇总数据，参数:', params.toString());
-            const response = await fetch(`/database_stats/api/instances/aggregations/summary?${params}`);
+            const response = await fetch(`/instance_stats/api/instances/aggregations/summary?${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -576,7 +576,7 @@ class InstanceAggregationsManager {
             params.append('get_all', 'true');
             
             console.log('加载图表数据，参数:', params.toString());
-            const response = await fetch(`/database_stats/api/instances/aggregations?${params}`);
+            const response = await fetch(`/instance_stats/api/instances/aggregations?${params}`);
             const data = await response.json();
             
             console.log('图表数据响应:', data);
@@ -609,7 +609,7 @@ class InstanceAggregationsManager {
             
             const params = this.buildChangeChartParams();
             console.log('加载容量变化图表数据，参数:', params.toString());
-            const response = await fetch(`/database_stats/api/instances/aggregations?${params}`);
+            const response = await fetch(`/instance_stats/api/instances/aggregations?${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -638,7 +638,7 @@ class InstanceAggregationsManager {
             
             const params = this.buildChangePercentChartParams();
             console.log('加载容量变化百分比图表数据，参数:', params.toString());
-            const response = await fetch(`/database_stats/api/instances/aggregations?${params}`);
+            const response = await fetch(`/instance_stats/api/instances/aggregations?${params}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -1770,9 +1770,14 @@ class InstanceAggregationsManager {
     }
     
     /**
-     * 获取CSRF令牌
+     * 获取CSRF令牌 - 使用全局函数
      */
     getCSRFToken() {
+        return window.getCSRFToken();
+    }
+
+    // 原来的实现（已废弃）
+    _getCSRFTokenOld() {
         return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     }
 }

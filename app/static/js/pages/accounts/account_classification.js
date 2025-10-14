@@ -8,24 +8,7 @@ if (typeof logErrorWithContext === 'undefined') {
     };
 }
 
-// 获取CSRF Token的工具函数
-function getCSRFToken() {
-    // 尝试从meta标签获取
-    const metaToken = document.querySelector('meta[name="csrf-token"]');
-    if (metaToken) {
-        return metaToken.getAttribute('content');
-    }
-
-    // 尝试从隐藏输入框获取
-    const inputToken = document.querySelector('input[name="csrf_token"]');
-    if (inputToken) {
-        return inputToken.value;
-    }
-
-    // 如果都没有找到，返回空字符串
-    console.warn('CSRF token not found');
-    return '';
-}
+// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
 // 全局变量
 let currentClassificationId = null;

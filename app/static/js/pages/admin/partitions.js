@@ -4,7 +4,7 @@
  */
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('初始化分区管理页面...');
     loadPartitionData();
     bindEvents();
@@ -15,22 +15,22 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 function bindEvents() {
     // 创建分区按钮
-    document.getElementById('createPartitionBtn').addEventListener('click', function() {
+    document.getElementById('createPartitionBtn').addEventListener('click', function () {
         showCreatePartitionModal();
     });
-    
+
     // 清理分区按钮
-    document.getElementById('cleanupPartitionsBtn').addEventListener('click', function() {
+    document.getElementById('cleanupPartitionsBtn').addEventListener('click', function () {
         showCleanupPartitionsModal();
     });
-    
+
     // 确认创建分区
-    document.getElementById('confirmCreatePartition').addEventListener('click', function() {
+    document.getElementById('confirmCreatePartition').addEventListener('click', function () {
         createPartition();
     });
-    
+
     // 确认清理分区
-    document.getElementById('confirmCleanupPartitions').addEventListener('click', function() {
+    document.getElementById('confirmCleanupPartitions').addEventListener('click', function () {
         cleanupPartitions();
     });
 }
@@ -42,10 +42,10 @@ async function loadPartitionData() {
     try {
         console.log('开始加载分区数据...');
         showLoadingState();
-        
+
         const response = await fetch('/partition/api/info');
         const data = await response.json();
-        
+
         if (response.ok && data.success) {
             console.log('分区数据响应:', data);
             updatePartitionStats(data.data);
@@ -54,7 +54,7 @@ async function loadPartitionData() {
             console.error('加载分区数据失败:', data);
             showError('加载分区数据失败: ' + (data.error || '未知错误'));
         }
-        
+
     } catch (error) {
         console.error('加载分区数据异常:', error);
         showError('加载分区数据异常: ' + error.message);
@@ -79,7 +79,7 @@ function updatePartitionStats(data) {
 function renderPartitionTable(partitions) {
     const tbody = document.getElementById('partitionsTableBody');
     tbody.innerHTML = '';
-    
+
     if (!partitions || partitions.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -91,7 +91,7 @@ function renderPartitionTable(partitions) {
         `;
         return;
     }
-    
+
     partitions.forEach(partition => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -117,7 +117,7 @@ function renderPartitionTable(partitions) {
 function showCreatePartitionModal() {
     const modal = new bootstrap.Modal(document.getElementById('createPartitionModal'));
     modal.show();
-    
+
     // 填充年份选项
     const yearSelect = document.getElementById('partitionYear');
     const monthSelect = document.getElementById('partitionMonth');
@@ -126,7 +126,7 @@ function showCreatePartitionModal() {
     const currentMonth = now.getMonth() + 1;
 
     yearSelect.innerHTML = '<option value="">请选择年份</option>';
-    
+
     for (let year = currentYear; year <= currentYear + 2; year++) {
         const option = document.createElement('option');
         option.value = year;
@@ -164,14 +164,14 @@ function showCleanupPartitionsModal() {
 async function createPartition() {
     const year = document.getElementById('partitionYear').value;
     const month = document.getElementById('partitionMonth').value;
-    
+
     if (!year || !month) {
         alert('请选择年份和月份');
         return;
     }
-    
+
     const date = `${year}-${month.padStart(2, '0')}-01`;
-    
+
     try {
         const response = await fetch('/partition/api/create', {
             method: 'POST',
@@ -181,9 +181,9 @@ async function createPartition() {
             },
             body: JSON.stringify({ date: date })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok && data.success) {
             alert('分区创建成功');
             bootstrap.Modal.getInstance(document.getElementById('createPartitionModal')).hide();
@@ -191,7 +191,7 @@ async function createPartition() {
         } else {
             alert('分区创建失败: ' + (data.error || '未知错误'));
         }
-        
+
     } catch (error) {
         console.error('创建分区异常:', error);
         alert('创建分区异常: ' + error.message);
@@ -203,16 +203,16 @@ async function createPartition() {
  */
 async function cleanupPartitions() {
     const retentionMonths = document.getElementById('retentionMonths').value;
-    
+
     if (!retentionMonths || retentionMonths < 1) {
         alert('请输入有效的保留月数');
         return;
     }
-    
+
     if (!confirm(`确定要清理${retentionMonths}个月之前的分区吗？此操作不可恢复！`)) {
         return;
     }
-    
+
     try {
         const response = await fetch('/partition/api/cleanup', {
             method: 'POST',
@@ -222,9 +222,9 @@ async function cleanupPartitions() {
             },
             body: JSON.stringify({ retention_months: parseInt(retentionMonths) })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok && data.success) {
             alert('分区清理成功');
             bootstrap.Modal.getInstance(document.getElementById('cleanupPartitionsModal')).hide();
@@ -232,7 +232,7 @@ async function cleanupPartitions() {
         } else {
             alert('分区清理失败: ' + (data.error || '未知错误'));
         }
-        
+
     } catch (error) {
         console.error('清理分区异常:', error);
         alert('清理分区异常: ' + error.message);
@@ -304,6 +304,4 @@ function formatSize(mb) {
     return `${(mb / (1024 * 1024)).toFixed(2)} TB`;
 }
 
-function getCSRFToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-}
+// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数

@@ -273,11 +273,7 @@ function hideLoadingState(buttonId, originalText) {
     }
 }
 
-// 获取CSRF令牌
-function getCSRFToken() {
-    const token = document.querySelector('meta[name="csrf-token"]');
-    return token ? token.getAttribute('content') : '';
-}
+// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
 // 显示警告提示
 function showWarningAlert(message) {

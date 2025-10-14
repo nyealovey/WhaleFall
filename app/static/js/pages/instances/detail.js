@@ -381,9 +381,7 @@ function getInstanceName() {
     return '未知实例';
 }
 
-function getCSRFToken() {
-    return document.querySelector('input[name="csrf_token"]')?.value || '';
-}
+// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
 // 数据库容量相关函数
 function loadDatabaseSizes() {
