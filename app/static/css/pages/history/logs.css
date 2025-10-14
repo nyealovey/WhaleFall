@@ -316,9 +316,9 @@
     min-width: 100px;
 }
 
-/* 日志容器样式 - 从底部开始显示 */
+/* 日志容器样式 - 内容不足时底部对齐 */
 .logs-container {
-    min-height: 400px;
+    min-height: 400px; /* 保持最小高度，确保有足够空间 */
     max-height: 70vh; /* 最大高度为视口高度的70% */
 }
 
@@ -333,15 +333,15 @@
     flex: 1;
     overflow-y: auto; /* 只在需要时显示滚动条 */
     padding: var(--spacing-md);
-    min-height: 400px;
+    min-height: 400px; /* 保持最小高度 */
     max-height: calc(70vh - 100px); /* 减去分页和其他元素的高度 */
     display: flex;
     flex-direction: column;
 }
 
-/* 当内容不足时，从顶部开始显示 */
+/* 当内容不足时，从底部开始显示（上面有空白） */
 #logsContainer:not(.has-overflow) {
-    justify-content: flex-start;
+    justify-content: flex-end;
 }
 
 /* 日志条目容器 */
