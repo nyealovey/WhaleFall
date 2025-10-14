@@ -13,6 +13,8 @@ from flask_login import login_required, current_user
 from sqlalchemy import and_, desc, func
 from app.models.instance import Instance
 from app.models.database_size_stat import DatabaseSizeStat
+from app.models.instance_database import InstanceDatabase
+from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.utils.decorators import view_required
 from app.services.database_type_service import DatabaseTypeService
 from app import db
@@ -53,7 +55,6 @@ def database_aggregations():
     selected_database_id = request.args.get('database_id', '')
     selected_database = request.args.get('database', '')
     if not selected_database_id and selected_database:
-        from app.models.instance_database import InstanceDatabase
         instance_filter = InstanceDatabase.query.filter(InstanceDatabase.database_name == selected_database)
         if selected_instance := request.args.get('instance'):
             try:
@@ -407,8 +408,6 @@ def get_instance_databases(instance_id: int):
         offset = int(request.args.get('offset', 0))
         
         # 查询数据库列表
-        from app.models.instance_database import InstanceDatabase
-        
         query = InstanceDatabase.query.filter(
             InstanceDatabase.instance_id == instance_id
         ).order_by(InstanceDatabase.database_name)
@@ -481,7 +480,6 @@ def get_databases_aggregations():
         limit = per_page
         
         # 构建查询 - 直接查询聚合统计表
-        from app.models.database_size_aggregation import DatabaseSizeAggregation
         query = DatabaseSizeAggregation.query.join(Instance)
         
         # 应用过滤条件
@@ -586,7 +584,6 @@ def get_databases_aggregations_summary():
         end_date = request.args.get('end_date')
         
         # 构建查询
-        from app.models.database_size_aggregation import DatabaseSizeAggregation
         query = DatabaseSizeAggregation.query.join(Instance)
         
         # 应用过滤条件
