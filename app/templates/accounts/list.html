@@ -21,9 +21,6 @@
                 <a href="{{ url_for('account.statistics') }}" class="btn btn-outline-light">
                     <i class="fas fa-chart-bar me-2"></i>账户统计
                 </a>
-                <a href="{{ url_for('account.export_accounts', db_type=current_db_type, search=search, instance_id=instance_id, is_locked=is_locked, is_superuser=is_superuser, plugin=plugin, classification=classification) }}" class="btn btn-outline-light">
-                    <i class="fas fa-download me-2"></i>导出CSV
-                </a>
                 <button type="button" class="btn btn-light" onclick="syncAllAccounts()">
                     <i class="fas fa-sync me-2"></i>同步所有账户
                 </button>
@@ -77,6 +74,9 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="d-flex align-items-center">
                 <span class="text-muted">账户管理</span>
+                <a href="{{ url_for('account.export_accounts', db_type=current_db_type, search=search, instance_id=instance_id, is_locked=is_locked, is_superuser=is_superuser, plugin=plugin, classification=classification) }}" class="btn btn-outline-primary btn-sm ms-3">
+                    <i class="fas fa-download me-1"></i>导出CSV
+                </a>
             </div>
             <div class="text-muted">
                 共 {{ accounts.total }} 个账户
