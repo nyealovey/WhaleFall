@@ -6,7 +6,7 @@
 // 全局变量
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeUserManagementPage();
 });
 
@@ -23,9 +23,9 @@ function initializeUserManagementPage() {
 // 初始化添加用户表单
 function initializeAddUserForm() {
     const addUserForm = document.getElementById('addUserForm');
-    
+
     if (addUserForm) {
-        addUserForm.addEventListener('submit', function(e) {
+        addUserForm.addEventListener('submit', function (e) {
             handleAddUser(e, this);
         });
     }
@@ -34,7 +34,7 @@ function initializeAddUserForm() {
 // 处理添加用户
 function handleAddUser(event, form) {
     event.preventDefault();
-    
+
     const formData = new FormData(form);
     const data = {
         username: formData.get('username'),
@@ -42,21 +42,21 @@ function handleAddUser(event, form) {
         role: formData.get('role'),
         is_active: formData.get('is_active') === 'on'
     };
-    
+
     // 添加调试日志
     console.log('表单数据:', data);
-    
+
     // 验证表单
     if (!validateUserForm(data)) {
         console.log('表单验证失败');
         return;
     }
-    
+
     // 添加调试日志
     console.log('发送创建用户数据:', data);
-    
+
     showLoadingState(form.querySelector('button[type="submit"]'), '添加中...');
-    
+
     fetch('/users/api/users', {
         method: 'POST',
         headers: {
@@ -65,36 +65,36 @@ function handleAddUser(event, form) {
         },
         body: JSON.stringify(data)
     })
-    .then(response => {
-        console.log('响应状态:', response.status);
-        return response.json();
-    })
-    .then(data => {
-        console.log('响应数据:', data);
-        if (data.success) {
-            showAlert('success', data.message);
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
-            if (modal) modal.hide();
-            location.reload();
-        } else {
-            showAlert('error', data.message || '添加用户失败');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('error', '添加用户失败');
-    })
-    .finally(() => {
-        hideLoadingState(form.querySelector('button[type="submit"]'), '添加用户');
-    });
+        .then(response => {
+            console.log('响应状态:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('响应数据:', data);
+            if (data.success) {
+                showAlert('success', data.message);
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                if (modal) modal.hide();
+                location.reload();
+            } else {
+                showAlert('error', data.message || '添加用户失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('error', '添加用户失败');
+        })
+        .finally(() => {
+            hideLoadingState(form.querySelector('button[type="submit"]'), '添加用户');
+        });
 }
 
 // 初始化编辑用户表单
 function initializeEditUserForm() {
     const editUserForm = document.getElementById('editUserForm');
-    
+
     if (editUserForm) {
-        editUserForm.addEventListener('submit', function(e) {
+        editUserForm.addEventListener('submit', function (e) {
             handleEditUser(e, this);
         });
     }
@@ -103,7 +103,7 @@ function initializeEditUserForm() {
 // 处理编辑用户
 function handleEditUser(event, form) {
     event.preventDefault();
-    
+
     const formData = new FormData(form);
     const data = {
         user_id: parseInt(formData.get('user_id')),
@@ -111,23 +111,23 @@ function handleEditUser(event, form) {
         role: formData.get('role'),
         is_active: formData.get('is_active') === 'on'
     };
-    
+
     // 处理密码字段 - 只有非空时才包含
     const password = formData.get('password');
     if (password && password.trim() !== '') {
         data.password = password;
     }
-    
+
     // 验证表单
     if (!validateUserForm(data, true)) {
         return;
     }
-    
+
     // 添加调试日志
     console.log('发送用户更新数据:', data);
-    
+
     showLoadingState(form.querySelector('button[type="submit"]'), '保存中...');
-    
+
     fetch(`/users/api/users/${data.user_id}`, {
         method: 'PUT',
         headers: {
@@ -136,40 +136,40 @@ function handleEditUser(event, form) {
         },
         body: JSON.stringify(data)
     })
-    .then(response => {
-        console.log('响应状态:', response.status);
-        return response.json();
-    })
-    .then(data => {
-        console.log('响应数据:', data);
-        if (data.success) {
-            showAlert('success', data.message);
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
-            if (modal) modal.hide();
-            location.reload();
-        } else {
-            showAlert('error', data.message || '更新用户失败');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('error', '更新用户失败');
-    })
-    .finally(() => {
-        hideLoadingState(form.querySelector('button[type="submit"]'), '保存更改');
-    });
+        .then(response => {
+            console.log('响应状态:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('响应数据:', data);
+            if (data.success) {
+                showAlert('success', data.message);
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+                if (modal) modal.hide();
+                location.reload();
+            } else {
+                showAlert('error', data.message || '更新用户失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('error', '更新用户失败');
+        })
+        .finally(() => {
+            hideLoadingState(form.querySelector('button[type="submit"]'), '保存更改');
+        });
 }
 
 // 初始化删除用户处理器
 function initializeDeleteUserHandlers() {
     const deleteButtons = document.querySelectorAll('[onclick*="deleteUser"]');
-    
+
     deleteButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
+        button.addEventListener('click', function (e) {
             e.preventDefault();
             const userId = this.getAttribute('data-user-id');
             const username = this.getAttribute('data-username');
-            
+
             if (userId && username) {
                 confirmDeleteUser(userId, username);
             }
@@ -192,7 +192,7 @@ function deleteUser(userId, username) {
 // 执行删除用户
 function performDeleteUser(userId) {
     showLoadingState(document.querySelector(`[data-user-id="${userId}"]`), '删除中...');
-    
+
     fetch(`/users/api/users/${userId}`, {
         method: 'DELETE',
         headers: {
@@ -200,33 +200,33 @@ function performDeleteUser(userId) {
             'X-CSRFToken': getCSRFToken()
         }
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            location.reload();
-        } else {
-            showAlert('error', data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('error', '删除用户失败');
-    })
-    .finally(() => {
-        hideLoadingState(document.querySelector(`[data-user-id="${userId}"]`), '删除');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload();
+            } else {
+                showAlert('error', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('error', '删除用户失败');
+        })
+        .finally(() => {
+            hideLoadingState(document.querySelector(`[data-user-id="${userId}"]`), '删除');
+        });
 }
 
 // 初始化用户状态切换
 function initializeUserStatusToggles() {
     const statusToggles = document.querySelectorAll('.user-status-toggle input');
-    
+
     statusToggles.forEach(toggle => {
-        toggle.addEventListener('change', function() {
+        toggle.addEventListener('change', function () {
             const userId = this.getAttribute('data-user-id');
             const isActive = this.checked;
-            
+
             if (userId) {
                 toggleUserStatus(userId, isActive);
             }
@@ -247,28 +247,28 @@ function toggleUserStatus(userId, isActive) {
             is_active: isActive
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-        } else {
-            showAlert('error', data.message);
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+            } else {
+                showAlert('error', data.message);
+                // 恢复切换状态
+                const toggle = document.querySelector(`input[data-user-id="${userId}"]`);
+                if (toggle) {
+                    toggle.checked = !isActive;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('error', '状态切换失败');
             // 恢复切换状态
             const toggle = document.querySelector(`input[data-user-id="${userId}"]`);
             if (toggle) {
                 toggle.checked = !isActive;
             }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('error', '状态切换失败');
-        // 恢复切换状态
-        const toggle = document.querySelector(`input[data-user-id="${userId}"]`);
-        if (toggle) {
-            toggle.checked = !isActive;
-        }
-    });
+        });
 }
 
 
@@ -279,9 +279,9 @@ function toggleUserStatus(userId, isActive) {
 function initializeUserTable() {
     // 表格排序
     const sortableHeaders = document.querySelectorAll('th[data-sort]');
-    
+
     sortableHeaders.forEach(header => {
-        header.addEventListener('click', function() {
+        header.addEventListener('click', function () {
             const column = this.getAttribute('data-sort');
             const direction = this.getAttribute('data-direction') || 'asc';
             sortTable(column, direction);
@@ -293,59 +293,59 @@ function initializeUserTable() {
 function sortTable(column, direction) {
     const table = document.querySelector('.user-table .table');
     if (!table) return;
-    
+
     const tbody = table.querySelector('tbody');
     const rows = Array.from(tbody.querySelectorAll('tr'));
-    
+
     rows.sort((a, b) => {
         const aValue = a.querySelector(`td:nth-child(${column})`).textContent.trim();
         const bValue = b.querySelector(`td:nth-child(${column})`).textContent.trim();
-        
+
         if (direction === 'asc') {
             return aValue.localeCompare(bValue);
         } else {
             return bValue.localeCompare(aValue);
         }
     });
-    
+
     rows.forEach(row => tbody.appendChild(row));
 }
 
 // 编辑用户
 function editUser(userId) {
     fetch(`/users/api/users/${userId}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.data.user) {
-            const user = data.data.user;
-            document.getElementById('editUserId').value = user.id;
-            document.getElementById('editUsername').value = user.username;
-            document.getElementById('editPassword').value = ''; // 清空密码字段
-            document.getElementById('editRole').value = user.role;
-            document.getElementById('editIsActive').checked = user.is_active;
-            
-            const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
-            modal.show();
-        } else {
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data.user) {
+                const user = data.data.user;
+                document.getElementById('editUserId').value = user.id;
+                document.getElementById('editUsername').value = user.username;
+                document.getElementById('editPassword').value = ''; // 清空密码字段
+                document.getElementById('editRole').value = user.role;
+                document.getElementById('editIsActive').checked = user.is_active;
+
+                const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+                modal.show();
+            } else {
+                showAlert('error', '获取用户信息失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
             showAlert('error', '获取用户信息失败');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('error', '获取用户信息失败');
-    });
+        });
 }
 
 // 验证用户表单
 function validateUserForm(data, isEdit = false) {
     console.log('验证表单数据:', data, 'isEdit:', isEdit);
-    
+
     if (!data.username || data.username.trim().length < 2) {
         console.log('用户名验证失败:', data.username);
         showAlert('error', '用户名至少需要2个字符');
         return false;
     }
-    
+
     // 密码验证逻辑
     if (!isEdit) {
         // 新建用户时，密码是必需的
@@ -362,13 +362,13 @@ function validateUserForm(data, isEdit = false) {
             return false;
         }
     }
-    
+
     if (!data.role) {
         console.log('角色验证失败:', data.role);
         showAlert('error', '请选择用户角色');
         return false;
     }
-    
+
     console.log('表单验证通过');
     return true;
 }
@@ -378,7 +378,7 @@ function showLoadingState(element, text) {
     if (typeof element === 'string') {
         element = document.getElementById(element);
     }
-    
+
     if (element) {
         element.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>${text}`;
         element.disabled = true;
@@ -390,20 +390,14 @@ function hideLoadingState(element, originalText) {
     if (typeof element === 'string') {
         element = document.getElementById(element);
     }
-    
+
     if (element) {
         element.innerHTML = originalText;
         element.disabled = false;
     }
 }
 
-// 获取CSRF令牌
-function getCSRFToken() {
-    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-    const token = csrfMeta ? csrfMeta.getAttribute('content') : '';
-    console.log('CSRF Token:', token ? '已获取' : '未获取');
-    return token;
-}
+// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
 // 显示提示信息
 function showAlert(type, message) {
@@ -414,12 +408,12 @@ function showAlert(type, message) {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     const container = document.querySelector('.container');
     if (container) {
         container.insertBefore(alertDiv, container.firstChild);
     }
-    
+
     setTimeout(() => {
         alertDiv.remove();
     }, 5000);

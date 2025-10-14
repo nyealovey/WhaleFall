@@ -366,11 +366,7 @@ function isColorDark(colorStr) {
     return hsp < 127.5;
 }
 
-// 工具函数
-function getCSRFToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
-           document.querySelector('input[name="csrf_token"]')?.value || '';
-}
+// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
 // 权限调试功能
 function debugPermissionFunctions() {

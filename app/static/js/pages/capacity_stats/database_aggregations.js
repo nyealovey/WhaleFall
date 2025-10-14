@@ -527,7 +527,7 @@ class DatabaseAggregationsManager {
     async loadSummaryData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/instance_stats/api/databases/aggregations/summary?api=true&${params.toString()}`);
+            const response = await fetch(`/database_stats/api/databases/aggregations/summary?api=true&${params.toString()}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -555,7 +555,7 @@ class DatabaseAggregationsManager {
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
             console.log('加载图表数据参数:', params.toString());
-            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
+            const response = await fetch(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -582,7 +582,7 @@ class DatabaseAggregationsManager {
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
             console.log('加载容量变化参数:', params.toString());
-            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
+            const response = await fetch(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -607,7 +607,7 @@ class DatabaseAggregationsManager {
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
             console.log('加载容量变化百分比参数:', params.toString());
-            const response = await fetch(`/instance_stats/api/databases/aggregations?api=true&${params.toString()}`);
+            const response = await fetch(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
 
             if (response.ok) {
@@ -1605,6 +1605,6 @@ class DatabaseAggregationsManager {
     }
     
     getCSRFToken() {
-        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        return window.getCSRFToken();
     }
 }

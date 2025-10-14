@@ -760,8 +760,4 @@ function removeTagFromPreview(tagName) {
 // 导出到全局作用域
 window.initializeInstanceListTagSelector = initializeInstanceListTagSelector;
 
-// 工具函数
-function getCSRFToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
-           document.querySelector('input[name="csrf_token"]')?.value || '';
-}
+// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数

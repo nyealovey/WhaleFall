@@ -409,9 +409,7 @@ function getInstanceId() {
     return instanceId;
 }
 
-function getCSRFToken() {
-    return document.querySelector('input[name="csrf_token"]')?.value || '';
-}
+// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
 // 导出到全局作用域
 window.initializeInstanceEditTagSelector = initializeInstanceEditTagSelector;
