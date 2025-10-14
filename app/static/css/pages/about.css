@@ -1,5 +1,12 @@
 /* About页面样式 - 优化版本，利用Flatly主题和全局样式 */
 
+/* 页面容器优化 */
+.container-fluid {
+    min-height: calc(100vh - 200px);
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+}
+
 /* 艺术标题 */
 .artistic-title {
     font-size: 3.5rem;
