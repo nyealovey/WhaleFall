@@ -217,12 +217,12 @@ function createLogEntryHTML(log) {
             <div class="log-entry-content">
                 <span class="log-id">ID: ${log.id}</span>
                 <div class="log-main-info">
+                    <div class="log-message">${message}</div>
                     <div class="log-header">
                         ${levelBadge}
                         ${moduleBadge}
                         <span class="log-timestamp">${timestamp}</span>
                     </div>
-                    <div class="log-message">${message}</div>
                 </div>
             </div>
         </div>

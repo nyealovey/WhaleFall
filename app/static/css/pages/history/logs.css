@@ -38,7 +38,7 @@
 
 .log-entry-content {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--spacing-md);
     width: 100%;
 }
@@ -49,20 +49,14 @@
     font-family: 'Courier New', monospace;
     min-width: 80px;
     flex-shrink: 0;
-    margin-top: 2px;
 }
 
 .log-main-info {
     flex: 1;
     min-width: 0;
-}
-
-.log-header {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-xs);
-    flex-wrap: wrap;
+    justify-content: space-between;
 }
 
 .log-message {
@@ -70,6 +64,15 @@
     line-height: 1.4;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    flex: 1;
+    margin-right: var(--spacing-md);
+}
+
+.log-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
 }
 
 .log-entry:hover {

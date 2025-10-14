@@ -26,233 +26,256 @@
 
 <div class="container-fluid">
 
-<!-- 系统概览卡片 -->
-<div class="row mb-4">
-    <div class="col-md-2">
-        <div class="card stat-card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ overview.instances.total if overview and overview.instances else 0 }}</h4>
-                        <p class="card-text">数据库实例</p>
-                        <small>{{ overview.instances.active if overview and overview.instances else 0 }} 活跃</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-database fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card stat-card bg-secondary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ overview.accounts.total if overview and overview.accounts else 0 }}</h4>
-                        <p class="card-text">账户总数</p>
-                        <small>{{ overview.accounts.active if overview and overview.accounts else 0 }} 活跃</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-user-circle fa-2x"></i>
+    <!-- 系统概览卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ overview.instances.total if overview and overview.instances else 0
+                                }}</h4>
+                            <p class="card-text">数据库实例</p>
+                            <small>{{ overview.instances.active if overview and overview.instances else 0 }} 活跃</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-database fa-2x"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card stat-card classification-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <div>
-                        <h4 class="card-title">{{ overview.classified_accounts.total if overview and overview.classified_accounts else 0 }}</h4>
-                        <p class="card-text mb-1">分类账户</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-tags fa-2x text-muted"></i>
+        <div class="col-md-2">
+            <div class="card stat-card bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ overview.accounts.total if overview and overview.accounts else 0
+                                }}</h4>
+                            <p class="card-text">账户总数</p>
+                            <small>{{ overview.accounts.active if overview and overview.accounts else 0 }} 活跃</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-circle fa-2x"></i>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- 紧凑的分类图标显示 -->
-                <div class="classification-list-compact">
-                    {% if overview and overview.classified_accounts and overview.classified_accounts.classifications %}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card classification-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <div>
+                            <h4 class="card-title">{{ overview.classified_accounts.total if overview and
+                                overview.classified_accounts else 0 }}</h4>
+                            <p class="card-text mb-1">分类账户</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-tags fa-2x text-muted"></i>
+                        </div>
+                    </div>
+
+                    <!-- 紧凑的分类图标显示 -->
+                    <div class="classification-list-compact">
+                        {% if overview and overview.classified_accounts and overview.classified_accounts.classifications
+                        %}
                         {% for classification in overview.classified_accounts.classifications %}
                         <div class="classification-item-compact">
                             {% set icon_class = 'fas fa-tag' %}
-                            {% set color_class = 'classification-color-' ~ classification.name|lower|replace(' ', '-') %}
+                            {% set color_class = 'classification-color-' ~ classification.name|lower|replace(' ', '-')
+                            %}
                             {% if classification.name == '特权账户' %}
-                                {% set icon_class = 'fas fa-crown' %}
+                            {% set icon_class = 'fas fa-crown' %}
                             {% elif classification.name == '风险账户' %}
-                                {% set icon_class = 'fas fa-exclamation-triangle' %}
+                            {% set icon_class = 'fas fa-exclamation-triangle' %}
                             {% elif classification.name == '敏感账户' %}
-                                {% set icon_class = 'fas fa-shield-alt' %}
+                            {% set icon_class = 'fas fa-shield-alt' %}
                             {% elif classification.name == '只读用户' %}
-                                {% set icon_class = 'fas fa-eye' %}
+                            {% set icon_class = 'fas fa-eye' %}
                             {% elif classification.name == '普通账户' %}
-                                {% set icon_class = 'fas fa-user' %}
+                            {% set icon_class = 'fas fa-user' %}
                             {% endif %}
                             <i class="{{ icon_class }} {{ color_class }}" title="{{ classification.name }}"></i>
                             <span>{{ classification.count }}</span>
                         </div>
                         {% endfor %}
-                    {% else %}
+                        {% else %}
                         <small class="text-muted">暂无分类数据</small>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card stat-card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ overview.tasks.total if overview and overview.tasks else 0 }}</h4>
-                        <p class="card-text">定时任务</p>
-                        <small>{{ overview.tasks.active if overview and overview.tasks else 0 }} 活跃</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-tasks fa-2x"></i>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card stat-card bg-danger text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ overview.logs.today if overview and overview.logs else 0 }}</h4>
-                        <p class="card-text">今日日志</p>
-                        <small>{{ overview.logs.errors if overview and overview.logs else 0 }} 错误</small>
+        <div class="col-md-2">
+            <div class="card stat-card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ overview.capacity.total_gb if overview and overview.capacity else
+                                0 }} GB</h4>
+                            <p class="card-text">总容量</p>
+                            <small>所有实例</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-hdd fa-2x text-white-50"></i>
+                        </div>
                     </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-list-alt fa-2x"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ overview.databases.total if overview and overview.databases else 0
+                                }}</h4>
+                            <p class="card-text">数据库数</p>
+                            <small>{{ overview.databases.active if overview and overview.databases else 0 }} 活跃</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-database fa-2x text-white-50"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <!-- 图表区域 -->
-    <div class="col-lg-8">
-        <!-- 日志趋势图 -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-line me-2"></i>错误和告警日志趋势（最近7天）
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="logTrendChart"></canvas>
+    <div class="row">
+        <!-- 图表区域 -->
+        <div class="col-lg-8">
+            <!-- 日志趋势图 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>错误和告警日志趋势（最近7天）
+                    </h5>
                 </div>
-            </div>
-        </div>
-        
-    </div>
-    
-    <!-- 侧边栏 -->
-    <div class="col-lg-4">
-        <!-- 系统状态 -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-server me-2"></i>系统状态
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span>CPU使用率</span>
-                        {% set cpu_badge_class = 'danger' if status and status.system and status.system.cpu > 80 else 'warning' if status and status.system and status.system.cpu > 60 else 'success' %}
-                        <span class="badge bg-{{ cpu_badge_class }}">
-                            {{ "%.1f"|format(status.system.cpu) if status and status.system else 0 }}%
-                        </span>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="logTrendChart"></canvas>
                     </div>
-                    <div class="progress">
-                        {% set cpu_percent = status.system.cpu if status and status.system else 0 %}
-                        {% set cpu_class = 'danger' if cpu_percent > 80 else 'warning' if cpu_percent > 60 else 'success' %}
-                        <div class="progress-bar bg-{{ cpu_class }}" 
-                             style="width: {{ cpu_percent }}%"></div>
-                    </div>
-                </div>
-                
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span>内存使用率</span>
-                        {% set memory_badge_class = 'danger' if status and status.system and status.system.memory and status.system.memory.percent > 80 else 'warning' if status and status.system and status.system.memory and status.system.memory.percent > 60 else 'success' %}
-                        <span class="badge bg-{{ memory_badge_class }}">
-                            {{ "%.1f"|format(status.system.memory.percent) if status and status.system and status.system.memory else 0 }}%
-                        </span>
-                    </div>
-                    <div class="progress">
-                        {% set memory_percent = status.system.memory.percent if status and status.system and status.system.memory else 0 %}
-                        {% set memory_class = 'danger' if memory_percent > 80 else 'warning' if memory_percent > 60 else 'success' %}
-                        <div class="progress-bar bg-{{ memory_class }}" 
-                             style="width: {{ memory_percent }}%"></div>
-                    </div>
-                </div>
-                
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span>磁盘使用率</span>
-                        {% set disk_badge_class = 'danger' if status and status.system and status.system.disk and status.system.disk.percent > 80 else 'warning' if status and status.system and status.system.disk and status.system.disk.percent > 60 else 'success' %}
-                        <span class="badge bg-{{ disk_badge_class }}">
-                            {{ "%.1f"|format(status.system.disk.percent) if status and status.system and status.system.disk else 0 }}%
-                        </span>
-                    </div>
-                    <div class="progress">
-                        {% set disk_percent = status.system.disk.percent if status and status.system and status.system.disk else 0 %}
-                        {% set disk_class = 'danger' if disk_percent > 80 else 'warning' if disk_percent > 60 else 'success' %}
-                        <div class="progress-bar bg-{{ disk_class }}" 
-                             style="width: {{ disk_percent }}%"></div>
-                    </div>
-                </div>
-                
-                <hr>
-                
-                <div class="mb-2">
-                    <span class="status-indicator status-{{ status.services.database if status and status.services else 'error' }}"></span>
-                    <strong>数据库:</strong> 
-                    <span class="text-{{ 'success' if status and status.services and status.services.database == 'healthy' else 'danger' }}">
-                        {{ '正常' if status and status.services and status.services.database == 'healthy' else '异常' }}
-                    </span>
-                </div>
-                
-                <div class="mb-2">
-                    <span class="status-indicator status-{{ status.services.redis if status and status.services else 'error' }}"></span>
-                    <strong>Redis:</strong> 
-                    <span class="text-{{ 'success' if status and status.services and status.services.redis == 'healthy' else 'danger' }}">
-                        {{ '正常' if status and status.services and status.services.redis == 'healthy' else '异常' }}
-                    </span>
-                </div>
-                
-                <div class="mb-2">
-                    <span class="status-indicator status-{{ status.services.application if status and status.services else 'error' }}"></span>
-                    <strong>应用:</strong> 
-                    <span class="text-{{ 'success' if status and status.services and status.services.application == 'running' else 'danger' }}">
-                        {{ '运行中' if status and status.services and status.services.application == 'running' else '停止' }}
-                    </span>
-                </div>
-                
-                <div class="mt-3">
-                    <small class="text-muted">
-                        <i class="fas fa-clock me-1"></i>
-                        系统运行时间: {{ status.uptime if status else '未知' }}
-                    </small>
                 </div>
             </div>
-        </div>
-        
-    </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
-<script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/dashboard/overview.js') }}"></script>
-{% endblock %}
+        </div>
+
+        <!-- 侧边栏 -->
+        <div class="col-lg-4">
+            <!-- 系统状态 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-server me-2"></i>系统状态
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>CPU使用率</span>
+                            {% set cpu_badge_class = 'danger' if status and status.system and status.system.cpu > 80
+                            else 'warning' if status and status.system and status.system.cpu > 60 else 'success' %}
+                            <span class="badge bg-{{ cpu_badge_class }}">
+                                {{ "%.1f"|format(status.system.cpu) if status and status.system else 0 }}%
+                            </span>
+                        </div>
+                        <div class="progress">
+                            {% set cpu_percent = status.system.cpu if status and status.system else 0 %}
+                            {% set cpu_class = 'danger' if cpu_percent > 80 else 'warning' if cpu_percent > 60 else
+                            'success' %}
+                            <div class="progress-bar bg-{{ cpu_class }}" style="width: {{ cpu_percent }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>内存使用率</span>
+                            {% set memory_badge_class = 'danger' if status and status.system and status.system.memory
+                            and status.system.memory.percent > 80 else 'warning' if status and status.system and
+                            status.system.memory and status.system.memory.percent > 60 else 'success' %}
+                            <span class="badge bg-{{ memory_badge_class }}">
+                                {{ "%.1f"|format(status.system.memory.percent) if status and status.system and
+                                status.system.memory else 0 }}%
+                            </span>
+                        </div>
+                        <div class="progress">
+                            {% set memory_percent = status.system.memory.percent if status and status.system and
+                            status.system.memory else 0 %}
+                            {% set memory_class = 'danger' if memory_percent > 80 else 'warning' if memory_percent > 60
+                            else 'success' %}
+                            <div class="progress-bar bg-{{ memory_class }}" style="width: {{ memory_percent }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>磁盘使用率</span>
+                            {% set disk_badge_class = 'danger' if status and status.system and status.system.disk and
+                            status.system.disk.percent > 80 else 'warning' if status and status.system and
+                            status.system.disk and status.system.disk.percent > 60 else 'success' %}
+                            <span class="badge bg-{{ disk_badge_class }}">
+                                {{ "%.1f"|format(status.system.disk.percent) if status and status.system and
+                                status.system.disk else 0 }}%
+                            </span>
+                        </div>
+                        <div class="progress">
+                            {% set disk_percent = status.system.disk.percent if status and status.system and
+                            status.system.disk else 0 %}
+                            {% set disk_class = 'danger' if disk_percent > 80 else 'warning' if disk_percent > 60 else
+                            'success' %}
+                            <div class="progress-bar bg-{{ disk_class }}" style="width: {{ disk_percent }}%"></div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-2">
+                        <span
+                            class="status-indicator status-{{ status.services.database if status and status.services else 'error' }}"></span>
+                        <strong>数据库:</strong>
+                        <span
+                            class="text-{{ 'success' if status and status.services and status.services.database == 'healthy' else 'danger' }}">
+                            {{ '正常' if status and status.services and status.services.database == 'healthy' else '异常' }}
+                        </span>
+                    </div>
+
+                    <div class="mb-2">
+                        <span
+                            class="status-indicator status-{{ status.services.redis if status and status.services else 'error' }}"></span>
+                        <strong>Redis:</strong>
+                        <span
+                            class="text-{{ 'success' if status and status.services and status.services.redis == 'healthy' else 'danger' }}">
+                            {{ '正常' if status and status.services and status.services.redis == 'healthy' else '异常' }}
+                        </span>
+                    </div>
+
+                    <div class="mb-2">
+                        <span
+                            class="status-indicator status-{{ status.services.application if status and status.services else 'error' }}"></span>
+                        <strong>应用:</strong>
+                        <span
+                            class="text-{{ 'success' if status and status.services and status.services.application == 'running' else 'danger' }}">
+                            {{ '运行中' if status and status.services and status.services.application == 'running' else
+                            '停止' }}
+                        </span>
+                    </div>
+
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>
+                            系统运行时间: {{ status.uptime if status else '未知' }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block extra_js %}
+    <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/dashboard/overview.js') }}"></script>
+    {% endblock %}
