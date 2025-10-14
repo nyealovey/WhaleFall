@@ -61,49 +61,25 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card stat-card h-100 classification-card">
-            <div class="card-body d-flex flex-column">
-                <div class="d-flex justify-content-between mb-3">
+        <div class="card stat-card classification-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
                     <div>
                         <h4 class="card-title">{{ overview.classified_accounts.total if overview and overview.classified_accounts else 0 }}</h4>
                         <p class="card-text">分类账户</p>
+                        <!-- 简化的分类统计 -->
+                        <small class="text-muted">
+                            {% if overview and overview.classified_accounts and overview.classified_accounts.classifications %}
+                                {% set total_classified = overview.classified_accounts.classifications|sum(attribute='count') %}
+                                {{ overview.classified_accounts.classifications|length }} 个分类
+                            {% else %}
+                                暂无分类
+                            {% endif %}
+                        </small>
                     </div>
                     <div class="align-self-center">
                         <i class="fas fa-tags fa-2x text-muted"></i>
                     </div>
-                </div>
-                
-                <!-- 分类图标 - 所有分类显示在同一行 -->
-                <div class="classification-list d-flex justify-content-between align-items-center">
-                    {% if overview and overview.classified_accounts and overview.classified_accounts.classifications %}
-                        {% for classification in overview.classified_accounts.classifications %}
-                        <div class="d-flex align-items-center">
-                            <div class="me-1">
-                                {% set icon_class = 'fas fa-tag' %}
-                                {% set color_class = 'classification-color-' ~ classification.name|lower|replace(' ', '-') %}
-                                {% if classification.name == '特权账户' %}
-                                    {% set icon_class = 'fas fa-crown' %}
-                                {% elif classification.name == '风险账户' %}
-                                    {% set icon_class = 'fas fa-exclamation-triangle' %}
-                                {% elif classification.name == '敏感账户' %}
-                                    {% set icon_class = 'fas fa-shield-alt' %}
-                                {% elif classification.name == '只读用户' %}
-                                    {% set icon_class = 'fas fa-eye' %}
-                                {% elif classification.name == '普通账户' %}
-                                    {% set icon_class = 'fas fa-user' %}
-                                {% endif %}
-                                <i class="{{ icon_class }} classification-icon {{ color_class }}" title="{{ classification.name }}"></i>
-                            </div>
-                            <div>
-                                <span class="small">{{ classification.count }}</span>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center">
-                            <small class="text-muted">暂无分类数据</small>
-                        </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
