@@ -51,11 +51,7 @@
                 </div>
                 
                 
-                <div class="mt-4">
-                    <a href="{{ url_for('auth.change_password') }}" class="btn btn-primary">
-                        <i class="fas fa-key me-2"></i>修改密码
-                    </a>
-                </div>
+
             </div>
         </div>
     </div>
@@ -77,6 +73,9 @@
                     </a>
                     <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-info btn-sm">
                         <i class="fas fa-chart-line me-2"></i>查看统计
+                    </a>
+                    <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-lock me-2"></i>修改密码
                     </a>
                 </div>
             </div>
