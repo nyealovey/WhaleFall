@@ -1,57 +1,101 @@
 # 鲸落 (TaifishV4) 文档中心
 
-[![Version](https://img.shields.io/badge/Version-v1.1.2-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-v1.1.3-blue.svg)]()
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 
 > 鲸落是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。
 
-## 📚 文档目录
+## 📚 文档目录结构
 
-### 🏗️ 架构设计
-- [项目结构](./architecture/PROJECT_STRUCTURE.md) - 详细的项目目录结构和模块说明
-- [技术规格](./architecture/spec.md) - 系统架构设计和技术规格文档
+### 📁 api/ - API接口文档
+- `README.md` - API接口总览
+- `API_ROUTES_DOCUMENTATION.md` - 详细的API路由文档
+- `FUNCTION_DOCUMENTATION.md` - 函数接口文档
+- `connection-api-migration.md` - 连接API迁移文档
 
-### 🚀 功能特性
-- [核心功能](./features/CORE_FEATURES.md) - 系统核心功能模块介绍
-- [账户分类管理](./features/ACCOUNT_CLASSIFICATION.md) - 智能账户分类和权限管理
-- [数据同步管理](./features/DATA_SYNC_MANAGEMENT.md) - 多数据库数据同步功能
+### 📁 architecture/ - 架构设计
+- `PROJECT_STRUCTURE.md` - 项目结构说明
+- `spec.md` - 技术规格文档
+- `database_relationship_solution.md` - 数据库关系解决方案
+- `sync_capacity_refactor.md` - 同步容量重构方案
 
-### 🔧 开发指南
-- [开发环境搭建](./development/DEVELOPMENT_SETUP.md) - 本地开发环境配置指南
-- [代码规范](./development/CODING_STANDARDS.md) - 代码编写规范和最佳实践
-- [测试指南](./development/TESTING_GUIDE.md) - 单元测试和集成测试指南
+### 📁 constants/ - 常量文档
+- `README.md` - 常量使用说明
+- `CONSTANTS_DOCUMENTATION.md` - 常量定义文档
+- `usage_report.json` - 使用情况报告
 
-### 🗄️ 数据库
-- [数据库设计](./database/DATABASE_SCHEMA.md) - 数据库表结构设计
-- [数据迁移](./database/MIGRATIONS.md) - 数据库迁移和版本管理
-- [性能优化](./database/PERFORMANCE_OPTIMIZATION.md) - 数据库查询优化策略
+### 📁 database/ - 数据库文档
+- `DATABASE_DRIVERS.md` - 数据库驱动说明
+- `DATABASE_PERMISSIONS_OVERVIEW.md` - 数据库权限概览
+- `SQLSERVER_PASSWORD_POLICY_DISABLED.md` - SQL Server密码策略
 
-### 🔌 API接口
-- [API文档](./api/README.md) - RESTful API接口文档
-- [认证授权](./api/AUTHENTICATION.md) - 用户认证和权限控制
-- [错误处理](./api/ERROR_HANDLING.md) - API错误码和异常处理
+### 📁 deployment/ - 部署文档
+- `README.md` - 部署指南总览
+- `PRODUCTION_DEPLOYMENT.md` - 生产环境部署
+- `HOT_UPDATE_GUIDE.md` - 热更新指南
+- `GITIGNORE_DATABASE_FILES.md` - 数据库文件忽略配置
 
-### 🚀 部署运维
-- [生产环境部署](./deployment/PRODUCTION_DEPLOYMENT.md) - 生产环境部署指南
-- [Docker部署](./deployment/DOCKER_DEPLOYMENT.md) - 容器化部署方案
-- [监控告警](./deployment/MONITORING.md) - 系统监控和告警配置
+### 📁 development/ - 开发文档
+- `README.md` - 开发指南总览
+- `DEVELOPMENT_SETUP.md` - 开发环境搭建
+- `timezone_handling.md` - 时区处理规范
+- `unit_test_analysis_report.md` - 单元测试分析报告
+- `unit_test_summary_report.md` - 单元测试总结报告
+- `css-refactoring-plan.md` - CSS重构计划
+- `flatly-theme-integration.md` - Flatly主题集成
+- `STYLE_GUIDE.md` - 代码风格指南
 
-### 🔒 安全配置
-- [安全配置](./security/SECURITY_CONFIGURATION.md) - 系统安全配置指南
-- [权限管理](./security/PERMISSION_MANAGEMENT.md) - 用户权限和角色管理
+### 📁 features/ - 功能特性文档
+包含各个功能模块的详细技术文档，如：
+- `account_classification_technical_doc.md` - 账户分类技术文档
+- `account_sync_technical_doc.md` - 账户同步技术文档
+- `capacity_sync_technical_doc.md` - 容量同步技术文档
+- `dashboard_technical_doc.md` - 仪表板技术文档
+- `logging_center_technical_doc.md` - 日志中心技术文档
+- 等等...
 
-### 📊 项目报告
-- [项目进度](./project/todolist.md) - 项目开发进度和任务清单
-- [错误分析](./reports/PROJECT_ERRORS_ANALYSIS.md) - 项目错误分析和解决方案
-- [模板静态资源清单](./project/templates_static_inventory.md) - 模板和静态资源清单
+### 📁 fixes/ - 问题修复文档
+- `README.md` - 修复记录总览
+- `aggregation_api_parameter_fix.md` - 聚合API参数修复
+- `aggregation_logging_fix.md` - 聚合日志修复
+- `mysql_capacity_sync_fix.md` - MySQL容量同步修复
+- 等等...
 
-### 📖 用户指南
-- [快速开始](./guides/QUICK_START.md) - 系统快速入门指南
-- [用户手册](./guides/USER_MANUAL.md) - 详细的功能使用说明
-- [常见问题](./guides/FAQ.md) - 常见问题和解决方案
-- [故障排除](./guides/TROUBLESHOOTING.md) - 故障诊断和排除指南
+### 📁 guides/ - 使用指南
+- `DEVELOPMENT_SETUP.md` - 开发环境搭建指南
+- `QUICK_REFERENCE.md` - 快速参考手册
+- `UV_USAGE_GUIDE.md` - UV使用指南
+
+### 📁 project/ - 项目文档
+- `taifish.md` - 项目介绍
+- `todolist.md` - 任务清单
+- `template_css_js_mapping.md` - 模板CSS/JS映射
+- `templates_static_inventory.md` - 模板静态资源清单
+
+### 📁 refactoring/ - 重构文档
+- `csrf_cleanup_report.md` - CSRF清理报告
+- `stats_coupling_analysis.md` - 统计耦合分析
+- `frontend_api_fix_report.md` - 前端API修复报告
+- `stats_refactoring_completion.md` - 统计重构完成报告
+- `stats_refactoring_progress.md` - 统计重构进度
+- `stats_responsibility_analysis.md` - 统计职责分析
+
+### 📁 reports/ - 项目报告
+- `code_analysis_report.md` - 代码分析报告
+- `code_duplication_analysis.md` - 代码重复分析
+- `PROJECT_ERRORS_ANALYSIS.md` - 项目错误分析
+- `route_issues_analysis.md` - 路由问题分析
+
+### 📁 requirements/ - 需求文档
+- `technical_documentation_requirements.md` - 技术文档需求
+
+### 📁 security/ - 安全文档
+- `SECURITY_CONFIGURATION.md` - 安全配置指南
+
+### 📁 updates/ - 更新文档
+- `aggregation_session_management.md` - 聚合会话管理更新
 
 ## 🎯 核心功能模块
 
@@ -66,37 +110,37 @@
 - **多分类支持**: 支持账户分配到多个分类
 - **规则配置**: 支持多种数据库类型的权限规则
 
-### 3. 数据同步管理
+### 3. 容量统计功能 (v1.1.3新增)
+- **数据库容量统计**: 按数据库维度的容量分析
+- **实例容量统计**: 按实例维度的容量聚合
+- **容量趋势图表**: 可视化容量变化趋势
+- **时间范围筛选**: 支持按时间范围查看容量数据
+
+### 4. 数据同步管理
 - **增量同步**: 支持增量数据同步
 - **冲突处理**: 智能处理数据同步冲突
 - **同步监控**: 实时监控同步状态和进度
 - **回滚机制**: 支持同步失败时的数据回滚
 
-### 4. 任务调度管理
+### 5. 任务调度管理
 - **轻量级调度**: 基于APScheduler的任务调度
 - **任务持久化**: 任务状态存储在PostgreSQL数据库
 - **监控日志**: 任务执行监控和日志记录
 - **动态管理**: 支持任务的启用/禁用和立即执行
 
-### 5. 日志监控中心
+### 6. 日志监控中心
 - **统一日志**: 结构化日志记录和聚合
 - **实时监控**: 系统状态和性能监控
 - **日志分析**: 日志搜索、筛选和分析
-- **告警通知**: 异常情况自动告警
-
-### 6. 标签管理系统
-- **标签分类**: 支持标签按分类管理
-- **批量操作**: 支持批量分配和移除标签
-- **权限控制**: 基于角色的标签管理权限
-- **搜索筛选**: 强大的标签搜索和筛选功能
+- **优化显示**: 日志条目对齐优化，最新日志在顶部
 
 ## 🛠️ 技术栈
 
 ### 后端技术
 - **Web框架**: Flask 3.1.2
-- **数据库ORM**: SQLAlchemy 1.4.54
-- **任务调度**: APScheduler 3.10.4
-- **缓存**: Redis 5.0.7
+- **数据库ORM**: SQLAlchemy 2.0.43
+- **任务调度**: APScheduler 3.11.0
+- **缓存**: Redis 6.4.0+
 - **数据库**: PostgreSQL (主数据库)
 - **Python版本**: 3.11+
 
@@ -116,16 +160,16 @@
 
 ## 📈 版本历史
 
-### 当前版本: v1.1.2 (2025-10-13)
-- 修复自动分类功能BUG
-- 优化标签管理页面
-- 修复Jinja2模板语法错误
-- 解决JavaScript重复加载问题
-- 优化实例显示布局
+### 当前版本: v1.1.3 (2025-10-14)
+- ✨ 新增容量统计功能
+- 🎨 日志中心显示优化
+- 🔧 统计功能职责重新分配
+- 🛡️ CSRF Token统一处理
+- 🐛 前端API调用修复
 
 ### 历史版本
-- [v1.0.9](../CHANGELOG.md#109---2025-09-25) - 统一搜索框功能
-- [v1.0.8](../CHANGELOG.md#108---2025-09-24) - 日志中心优化
+- [v1.1.2](../CHANGELOG.md#112---2025-10-13) - 版本统一更新、样式优化
+- [v1.1.1](../CHANGELOG.md#111---2025-10-09) - 容量同步修复、数据库容量统计
 - [更多版本历史](../CHANGELOG.md)
 
 ## 🤝 贡献指南
@@ -148,6 +192,6 @@
 
 ---
 
-**最后更新**: 2025-09-25  
-**文档版本**: v1.1.2  
+**最后更新**: 2025-10-14  
+**文档版本**: v1.1.3  
 **维护团队**: TaifishingV4 Team
