@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v1.1.2-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-v1.1.3-blue.svg)]()
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 
 > 一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。
@@ -779,7 +779,14 @@ uv run pytest -v
 - [ ] 自动化运维
 - [ ] 监控告警
 
-### v1.0.1 (当前版本)
+### v1.1.3 (当前版本) ✅
+- [x] 新增容量统计功能
+- [x] 日志中心显示优化
+- [x] 统计功能职责重新分配
+- [x] CSRF Token统一处理
+- [x] 前端API调用修复
+
+### v1.2.0 (计划中)
 - [ ] 微服务架构
 - [ ] 云原生部署
 - [ ] 大数据分析
