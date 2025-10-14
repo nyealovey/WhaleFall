@@ -25,7 +25,7 @@
 /* 图表容器 */
 .chart-container {
     position: relative;
-    height: 300px;
+    height: 400px;
     padding: var(--spacing-md);
 }
 
