@@ -102,7 +102,7 @@ function renderPartitionTable(partitions) {
             <td>${partition.size || '0 B'}</td>
             <td>${partition.record_count || 0}</td>
             <td>
-                <span class="badge bg-${partition.status === 'current' ? 'success' : 'warning'}">
+                <span class="badge bg-${getStatusColor(partition.status)}">
                     ${partition.status || '未知'}
                 </span>
             </td>
@@ -276,6 +276,22 @@ function showError(message) {
             </td>
         </tr>
     `;
+}
+
+/**
+ * 根据分区状态获取对应的颜色类
+ */
+function getStatusColor(status) {
+    switch (status) {
+        case 'current':
+            return 'success';  // 绿色 - 当前分区
+        case 'past':
+            return 'secondary';  // 灰色 - 过去分区
+        case 'future':
+            return 'info';  // 蓝色 - 未来分区
+        default:
+            return 'warning';  // 橙色 - 未知状态
+    }
 }
 
 /**
