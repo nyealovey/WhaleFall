@@ -7,6 +7,14 @@
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-md);
     margin-bottom: var(--spacing-lg);
+    height: 100%;
+}
+
+.stat-card .card-body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .stat-card:hover {
@@ -56,31 +64,13 @@
     }
 }
 
-/* 分类图标 */
-.classification-icon {
-    font-size: 1.5rem;
-    opacity: 0.8;
+/* 分类账户卡片特殊样式 */
+.classification-card .card-text {
+    margin-bottom: 0.25rem;
 }
 
-/* 分类颜色 - 利用全局颜色系统 */
-.classification-color-特权账户 { 
-    color: var(--warning-color); 
-}
-
-.classification-color-风险账户 { 
-    color: var(--danger-color); 
-}
-
-.classification-color-敏感账户 { 
-    color: var(--success-color); 
-}
-
-.classification-color-只读用户 { 
-    color: var(--info-color); 
-}
-
-.classification-color-普通账户 { 
-    color: var(--gray-500); 
+.classification-card small {
+    font-size: 0.8rem;
 }
 
 /* 响应式调整 */
