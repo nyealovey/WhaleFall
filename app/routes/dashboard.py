@@ -138,23 +138,41 @@ def get_system_overview() -> dict:
         from app.models.current_account_sync_data import CurrentAccountSyncData
         from app.models.unified_log import LogLevel, UnifiedLog
 
-        # 从APScheduler获取任务统计
-        total_tasks = 0
-        active_tasks = 0
-        try:
-            scheduler = get_scheduler()
-            if scheduler:
-                jobs = scheduler.get_jobs()
-                total_tasks = len(jobs)
-                active_tasks = sum(1 for job in jobs if job.next_run_time)
-        except Exception as scheduler_error:
-            log_warning(
-                "获取任务统计失败，使用默认值",
-                module="dashboard",
-                error=str(scheduler_error),
-            )
+        # 获取容量统计
+        from app.models.database_size_stat import DatabaseSizeStat
+        from app.models.instance_size_stat import InstanceSizeStat
+        
+        # 获取最近的容量数据（最近7天）
+        recent_date = datetime.now().date() - timedelta(days=7)
+        
+        # 计算总容量（使用实例大小统计）
+        recent_instance_stats = InstanceSizeStat.query.filter(
+            InstanceSizeStat.collected_date >= recent_date
+        ).all()
+        
+        # 按实例分组，获取每个实例的最新大小
+        instance_sizes = {}
+        for stat in recent_instance_stats:
+            if stat.instance_id not in instance_sizes or stat.collected_date > instance_sizes[stat.instance_id]['date']:
+                instance_sizes[stat.instance_id] = {
+                    'size_mb': stat.total_size_mb or 0,
+                    'date': stat.collected_date
+                }
+        
+        total_capacity_gb = sum(inst['size_mb'] for inst in instance_sizes.values()) / 1024
+        
+        # 计算数据库总数
+        recent_db_stats = DatabaseSizeStat.query.filter(
+            DatabaseSizeStat.collected_date >= recent_date
+        ).all()
+        
+        # 按数据库分组，计算唯一数据库数量
+        unique_databases = set()
+        for stat in recent_db_stats:
+            unique_databases.add(f"{stat.instance_id}_{stat.database_name}")
+        
+        total_databases = len(unique_databases)
 
-        total_logs = UnifiedLog.query.count()
         total_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
         log_info(
             "dashboard_base_counts",
@@ -162,9 +180,8 @@ def get_system_overview() -> dict:
             total_users=total_users,
             total_instances=total_instances,
             total_accounts=total_accounts,
-            total_logs=total_logs,
-            total_tasks=total_tasks,
-            active_tasks=active_tasks,
+            total_capacity_gb=round(total_capacity_gb, 1),
+            total_databases=total_databases,
         )
 
         # 分类统计（聚合查询，避免N+1）
@@ -268,22 +285,11 @@ def get_system_overview() -> dict:
             active_instances=active_instances,
         )
 
-        # 今日日志数（东八区）
-        china_today = time_utils.now_china().date()
-        today_start = time_utils.to_utc(datetime.combine(china_today, datetime.min.time()).replace(tzinfo=CHINA_TZ))
-        tomorrow_start = time_utils.to_utc(
-            datetime.combine(china_today + timedelta(days=1), datetime.min.time()).replace(tzinfo=CHINA_TZ)
-        )
-        today_logs = UnifiedLog.query.filter(
-            UnifiedLog.timestamp >= today_start, UnifiedLog.timestamp < tomorrow_start
-        ).count()
-
-        # 今日错误日志数
-        today_errors = UnifiedLog.query.filter(
-            UnifiedLog.timestamp >= today_start,
-            UnifiedLog.timestamp < tomorrow_start,
-            UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]),
-        ).count()
+        # 获取最新的容量使用率（可选，用于显示使用情况）
+        capacity_usage_percent = 0
+        if total_capacity_gb > 0:
+            # 这里可以根据实际需求计算使用率，暂时设为0
+            capacity_usage_percent = 0
 
         # 最近同步数据（东八区） - 使用新的同步会话模型
 
@@ -301,8 +307,8 @@ def get_system_overview() -> dict:
                     for name, color, priority, count in classification_stats
                 ],
             },
-            "tasks": {"total": total_tasks, "active": active_tasks},
-            "logs": {"total": total_logs, "today": today_logs, "errors": today_errors},
+            "capacity": {"total_gb": round(total_capacity_gb, 1), "usage_percent": capacity_usage_percent},
+            "databases": {"total": total_databases, "active": total_databases},
         }
     except Exception as e:
         db.session.rollback()
@@ -312,8 +318,8 @@ def get_system_overview() -> dict:
             "instances": {"total": 0, "active": 0},
             "accounts": {"total": 0, "active": 0},
             "classified_accounts": {"total": 0, "auto": 0, "classifications": []},
-            "tasks": {"total": 0, "active": 0},
-            "logs": {"total": 0, "today": 0, "errors": 0},
+            "capacity": {"total_gb": 0, "usage_percent": 0},
+            "databases": {"total": 0, "active": 0},
         }
 
 
