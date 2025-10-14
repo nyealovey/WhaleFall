@@ -112,10 +112,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="card-title">{{ overview.capacity.total_gb if overview and overview.capacity else
-                                0 }} GB</h4>
+                            <h4 class="card-title">{{ (overview.capacity.total_gb / 1024) | round(0) | int if overview and overview.capacity else 0 }} TB</h4>
                             <p class="card-text">总容量</p>
-                            <small>所有实例</small>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-hdd fa-2x text-white-50"></i>
