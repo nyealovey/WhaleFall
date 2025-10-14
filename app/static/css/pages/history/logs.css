@@ -73,6 +73,7 @@
     align-items: center;
     gap: var(--spacing-sm);
     flex-shrink: 0;
+    min-height: 24px; /* 确保一致的高度 */
 }
 
 .log-entry:hover {
@@ -253,13 +254,17 @@
 .module-badge {
     background-color: var(--gray-200);
     color: var(--gray-700);
-    padding: 2px 8px;
+    padding: 4px 8px;
     border-radius: var(--border-radius-sm);
     font-size: 0.75em;
     font-weight: 500;
     min-width: 60px;
     text-align: center;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    line-height: 1;
 }
 
 .module-badge.empty {
@@ -274,17 +279,24 @@
     font-family: 'Courier New', monospace;
     white-space: nowrap;
     min-width: 140px;
+    display: flex;
+    align-items: center;
+    height: 24px;
 }
 
 /* 级别徽章样式调整 */
 .log-level-badge {
     font-size: 0.75em;
     font-weight: 600;
-    padding: 2px 8px;
+    padding: 4px 8px;
     border-radius: var(--border-radius-sm);
     min-width: 60px;
     text-align: center;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    line-height: 1;
 }
 
 /* 搜索高亮 */
