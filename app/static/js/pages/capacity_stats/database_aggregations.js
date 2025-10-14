@@ -294,7 +294,7 @@ class DatabaseAggregationsManager {
         
         try {
             instanceSelect.prop('disabled', false);
-            let url = '/database_stats/api/instance-options';
+            let url = '/instance_stats/api/instance-options';
             if (normalizedDbType) {
                 url += `?db_type=${encodeURIComponent(normalizedDbType)}`;
             }
