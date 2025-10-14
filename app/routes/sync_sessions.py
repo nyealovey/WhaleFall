@@ -43,40 +43,52 @@ def api_list_sessions() -> tuple[dict, int]:
         sync_type = request.args.get("sync_type", "")
         sync_category = request.args.get("sync_category", "")
         status = request.args.get("status", "")
-        limit = int(request.args.get("limit", 50))
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 20))
         
-        # 调试日志已移除
-
-        # 构建查询
-        sessions = sync_session_service.get_recent_sessions(limit)
+        # 获取所有会话（这里可能需要根据实际情况调整获取数量）
+        all_sessions = sync_session_service.get_recent_sessions(1000)  # 获取更多数据用于分页
 
         # 过滤结果
+        filtered_sessions = all_sessions
         if sync_type and sync_type.strip():
-            sessions = [s for s in sessions if s.sync_type == sync_type]
+            filtered_sessions = [s for s in filtered_sessions if s.sync_type == sync_type]
         if sync_category and sync_category.strip():
-            sessions = [s for s in sessions if s.sync_category == sync_category]
+            filtered_sessions = [s for s in filtered_sessions if s.sync_category == sync_category]
         if status and status.strip():
-            sessions = [s for s in sessions if s.status == status]
+            filtered_sessions = [s for s in filtered_sessions if s.status == status]
+
+        # 计算分页
+        total = len(filtered_sessions)
+        start = (page - 1) * per_page
+        end = start + per_page
+        sessions_page = filtered_sessions[start:end]
 
         # 转换为字典
-        sessions_data = [session.to_dict() for session in sessions]
+        sessions_data = [session.to_dict() for session in sessions_page]
         
-        # 过滤结果日志已移除
+        # 计算分页信息
+        total_pages = (total + per_page - 1) // per_page
+        has_prev = page > 1
+        has_next = page < total_pages
 
-        # 注释掉频繁的日志记录，减少日志噪音
-        # log_info(
-        #     "获取同步会话列表",
-        #     module="sync_sessions",
-        #     user_id=current_user.id,
-        #     session_count=len(sessions_data),
-        #     filters={
-        #         "sync_type": sync_type,
-        #         "sync_category": sync_category,
-        #         "status": status,
-        #     },
-        # )
+        pagination_info = {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "pages": total_pages,
+            "has_prev": has_prev,
+            "has_next": has_next,
+            "prev_num": page - 1 if has_prev else None,
+            "next_num": page + 1 if has_next else None
+        }
 
-        return jsonify({"success": True, "data": sessions_data, "total": len(sessions_data)})
+        return jsonify({
+            "success": True, 
+            "data": sessions_data, 
+            "total": total,
+            "pagination": pagination_info
+        })
 
     except Exception as e:
         log_error(
