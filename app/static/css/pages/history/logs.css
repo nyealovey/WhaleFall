@@ -47,7 +47,7 @@
     color: var(--gray-500);
     font-size: 0.8em;
     font-family: 'Courier New', monospace;
-    min-width: 80px;
+    width: 80px;
     flex-shrink: 0;
 }
 
@@ -74,6 +74,7 @@
     gap: var(--spacing-sm);
     flex-shrink: 0;
     min-height: 24px; /* 确保一致的高度 */
+    width: 320px; /* 固定总宽度：70px(级别) + 80px(模块) + 150px(时间) + 20px(间距) */
 }
 
 .log-entry:hover {
@@ -258,13 +259,14 @@
     border-radius: var(--border-radius-sm);
     font-size: 0.75em;
     font-weight: 500;
-    min-width: 60px;
+    width: 80px;
     text-align: center;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     height: 24px;
     line-height: 1;
+    flex-shrink: 0;
 }
 
 .module-badge.empty {
@@ -278,10 +280,11 @@
     font-size: 0.8em;
     font-family: 'Courier New', monospace;
     white-space: nowrap;
-    min-width: 140px;
+    width: 150px;
     display: flex;
     align-items: center;
     height: 24px;
+    flex-shrink: 0;
 }
 
 /* 级别徽章样式调整 */
@@ -290,13 +293,14 @@
     font-weight: 600;
     padding: 4px 8px;
     border-radius: var(--border-radius-sm);
-    min-width: 60px;
+    width: 70px;
     text-align: center;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     height: 24px;
     line-height: 1;
+    flex-shrink: 0;
 }
 
 /* 搜索高亮 */
@@ -312,12 +316,66 @@
     min-width: 100px;
 }
 
+/* 日志容器样式 - 从底部开始显示 */
+.logs-container {
+    min-height: 400px;
+    max-height: 70vh; /* 最大高度为视口高度的70% */
+}
+
+.logs-container .card-body {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#logsContainer {
+    flex: 1;
+    overflow-y: auto; /* 只在需要时显示滚动条 */
+    padding: var(--spacing-md);
+    min-height: 400px;
+    max-height: calc(70vh - 100px); /* 减去分页和其他元素的高度 */
+    display: flex;
+    flex-direction: column;
+}
+
+/* 当内容不足时，从顶部开始显示 */
+#logsContainer:not(.has-overflow) {
+    justify-content: flex-start;
+}
+
+/* 日志条目容器 */
+.logs-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+/* 加载状态和无日志状态样式 */
+.loading, .no-logs {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: var(--gray-600);
+    font-size: 1.1em;
+}
+
+.loading i, .no-logs i {
+    font-size: 2em;
+    margin-bottom: 1rem;
+    color: var(--gray-400);
+}
+
 /* 分页样式 */
 #paginationContainer {
     display: flex;
     justify-content: center;
     margin-top: var(--spacing-md);
     margin-bottom: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--gray-200);
+    background-color: var(--gray-50);
 }
 
 #paginationContainer .pagination {
