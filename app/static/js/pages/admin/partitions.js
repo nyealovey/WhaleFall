@@ -14,11 +14,6 @@ document.addEventListener('DOMContentLoaded', function() {
  * 绑定事件处理器
  */
 function bindEvents() {
-    // 刷新按钮
-    document.getElementById('refreshBtn').addEventListener('click', function() {
-        loadPartitionData();
-    });
-    
     // 创建分区按钮
     document.getElementById('createPartitionBtn').addEventListener('click', function() {
         showCreatePartitionModal();
