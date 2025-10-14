@@ -503,11 +503,11 @@ SELECT setval('database_type_configs_id_seq', (SELECT MAX(id) FROM database_type
 
 -- 插入账户分类数据
 INSERT INTO account_classifications (id, name, description, risk_level, color, icon_name, priority, is_system, is_active, created_at, updated_at) VALUES
-(2, '敏感账户', '可授权特定权限以满足业务需求，同时需严格安全控制', 'high', '#fd7e14', 'fa-tag', 80, TRUE, TRUE, '2025-09-12 00:44:16.876132', '2025-09-12 05:28:53.681826'),
-(4, '风险账户', '可用于删除库和表的操作，需特别监控以防止误删或恶意行为', 'medium', '#bf17fd', 'fa-tag', 70, TRUE, TRUE, '2025-09-12 00:44:16.876198', '2025-09-12 05:27:36.043494'),
-(5, '只读用户', NULL, 'critical', '#69dc38', 'fa-tag', 50, TRUE, TRUE, '2025-09-12 00:44:16.876219', '2025-09-12 05:29:01.826658'),
-(7, '特权账户', '用于具有高级权限的管理员或系统账户，负责管理数据库核心操作', 'critical', '#dc3545', 'fa-tag', 90, TRUE, TRUE, '2025-09-12 00:44:16.876259', '2025-09-12 05:26:04.919677'),
-(8, '普通账户', '用于日常操作的普通用户账户，权限范围有限', 'low', '#3c49fb', 'fa-tag', 60, TRUE, TRUE, '2025-09-12 00:44:16.876276', '2025-09-12 05:27:45.250653')
+(2, '敏感账户', '可授权特定权限以满足业务需求，同时需严格安全控制', 'high', '#f39c12', 'fa-tag', 80, TRUE, TRUE, '2025-09-12 00:44:16.876132', '2025-09-12 05:28:53.681826'),
+(4, '风险账户', '可用于删除库和表的操作，需特别监控以防止误删或恶意行为', 'medium', '#3498db', 'fa-tag', 70, TRUE, TRUE, '2025-09-12 00:44:16.876198', '2025-09-12 05:27:36.043494'),
+(5, '只读用户', '只能查看数据，无法进行修改操作的安全账户', 'low', '#18bc9c', 'fa-tag', 50, TRUE, TRUE, '2025-09-12 00:44:16.876219', '2025-09-12 05:29:01.826658'),
+(7, '特权账户', '用于具有高级权限的管理员或系统账户，负责管理数据库核心操作', 'critical', '#e74c3c', 'fa-tag', 90, TRUE, TRUE, '2025-09-12 00:44:16.876259', '2025-09-12 05:26:04.919677'),
+(8, '普通账户', '用于日常操作的普通用户账户，权限范围有限', 'low', '#95a5a6', 'fa-tag', 60, TRUE, TRUE, '2025-09-12 00:44:16.876276', '2025-09-12 05:27:45.250653')
 ON CONFLICT (id) DO NOTHING;
 
 -- 重置序列
@@ -538,70 +538,70 @@ SELECT setval('classification_rules_id_seq', (SELECT MAX(id) FROM classification
 
 -- 插入标签管理数据
 INSERT INTO tags (name, display_name, category, color, description, sort_order, is_active, created_at, updated_at) VALUES
--- 地区标签
+-- 地区标签 (使用不同颜色区分地区)
 ('beijing', '北京', 'location', 'primary', '北京地区', 1, TRUE, NOW(), NOW()),
-('shanghai', '上海', 'location', 'success', '上海地区', 2, TRUE, NOW(), NOW()),
-('guangzhou', '广州', 'location', 'info', '广州地区', 3, TRUE, NOW(), NOW()),
+('shanghai', '上海', 'location', 'info', '上海地区', 2, TRUE, NOW(), NOW()),
+('guangzhou', '广州', 'location', 'success', '广州地区', 3, TRUE, NOW(), NOW()),
 ('shenzhen', '深圳', 'location', 'warning', '深圳地区', 4, TRUE, NOW(), NOW()),
-('hangzhou', '杭州', 'location', 'danger', '杭州地区', 5, TRUE, NOW(), NOW()),
-('nanjing', '南京', 'location', 'secondary', '南京地区', 6, TRUE, NOW(), NOW()),
-('wuhan', '武汉', 'location', 'dark', '武汉地区', 7, TRUE, NOW(), NOW()),
-('chengdu', '成都', 'location', 'light', '成都地区', 8, TRUE, NOW(), NOW()),
+('hangzhou', '杭州', 'location', 'secondary', '杭州地区', 5, TRUE, NOW(), NOW()),
+('nanjing', '南京', 'location', 'dark', '南京地区', 6, TRUE, NOW(), NOW()),
+('wuhan', '武汉', 'location', 'primary', '武汉地区', 7, TRUE, NOW(), NOW()),
+('chengdu', '成都', 'location', 'info', '成都地区', 8, TRUE, NOW(), NOW()),
 
--- 公司类型标签
+-- 公司类型标签 (按行业特点分配颜色)
 ('tech_company', '科技公司', 'company_type', 'primary', '科技类公司', 1, TRUE, NOW(), NOW()),
-('financial', '金融机构', 'company_type', 'success', '银行、证券、保险等金融机构', 2, TRUE, NOW(), NOW()),
-('manufacturing', '制造业', 'company_type', 'info', '制造业企业', 3, TRUE, NOW(), NOW()),
-('retail', '零售业', 'company_type', 'warning', '零售行业', 4, TRUE, NOW(), NOW()),
-('healthcare', '医疗健康', 'company_type', 'danger', '医疗健康行业', 5, TRUE, NOW(), NOW()),
-('education', '教育培训', 'company_type', 'secondary', '教育培训机构', 6, TRUE, NOW(), NOW()),
+('financial', '金融机构', 'company_type', 'warning', '银行、证券、保险等金融机构', 2, TRUE, NOW(), NOW()),
+('manufacturing', '制造业', 'company_type', 'secondary', '制造业企业', 3, TRUE, NOW(), NOW()),
+('retail', '零售业', 'company_type', 'success', '零售行业', 4, TRUE, NOW(), NOW()),
+('healthcare', '医疗健康', 'company_type', 'info', '医疗健康行业', 5, TRUE, NOW(), NOW()),
+('education', '教育培训', 'company_type', 'primary', '教育培训机构', 6, TRUE, NOW(), NOW()),
 ('government', '政府机构', 'company_type', 'dark', '政府机关', 7, TRUE, NOW(), NOW()),
-('nonprofit', '非营利组织', 'company_type', 'light', '非营利性组织', 8, TRUE, NOW(), NOW()),
+('nonprofit', '非营利组织', 'company_type', 'secondary', '非营利性组织', 8, TRUE, NOW(), NOW()),
 
--- 环境标签
+-- 环境标签 (按风险级别分配颜色)
 ('production', '生产环境', 'environment', 'danger', '生产环境数据库', 1, TRUE, NOW(), NOW()),
 ('staging', '预发布环境', 'environment', 'warning', '预发布环境数据库', 2, TRUE, NOW(), NOW()),
 ('testing', '测试环境', 'environment', 'info', '测试环境数据库', 3, TRUE, NOW(), NOW()),
 ('development', '开发环境', 'environment', 'success', '开发环境数据库', 4, TRUE, NOW(), NOW()),
 ('demo', '演示环境', 'environment', 'secondary', '演示环境数据库', 5, TRUE, NOW(), NOW()),
 
--- 部门标签
+-- 部门标签 (按部门职能分配颜色)
 ('it_department', 'IT部门', 'department', 'primary', '信息技术部门', 1, TRUE, NOW(), NOW()),
-('finance_department', '财务部门', 'department', 'success', '财务部门', 2, TRUE, NOW(), NOW()),
+('finance_department', '财务部门', 'department', 'warning', '财务部门', 2, TRUE, NOW(), NOW()),
 ('hr_department', '人力资源', 'department', 'info', '人力资源部门', 3, TRUE, NOW(), NOW()),
-('marketing_department', '市场部门', 'department', 'warning', '市场营销部门', 4, TRUE, NOW(), NOW()),
+('marketing_department', '市场部门', 'department', 'success', '市场营销部门', 4, TRUE, NOW(), NOW()),
 ('sales_department', '销售部门', 'department', 'danger', '销售部门', 5, TRUE, NOW(), NOW()),
 ('operations_department', '运营部门', 'department', 'secondary', '运营部门', 6, TRUE, NOW(), NOW()),
 
--- 项目标签
-('core_system', '核心系统', 'project', 'primary', '核心业务系统', 1, TRUE, NOW(), NOW()),
-('data_warehouse', '数据仓库', 'project', 'success', '数据仓库项目', 2, TRUE, NOW(), NOW()),
+-- 项目标签 (按项目重要性分配颜色)
+('core_system', '核心系统', 'project', 'danger', '核心业务系统', 1, TRUE, NOW(), NOW()),
+('data_warehouse', '数据仓库', 'project', 'primary', '数据仓库项目', 2, TRUE, NOW(), NOW()),
 ('analytics', '数据分析', 'project', 'info', '数据分析项目', 3, TRUE, NOW(), NOW()),
-('mobile_app', '移动应用', 'project', 'warning', '移动应用项目', 4, TRUE, NOW(), NOW()),
-('web_portal', 'Web门户', 'project', 'danger', 'Web门户项目', 5, TRUE, NOW(), NOW()),
+('mobile_app', '移动应用', 'project', 'success', '移动应用项目', 4, TRUE, NOW(), NOW()),
+('web_portal', 'Web门户', 'project', 'warning', 'Web门户项目', 5, TRUE, NOW(), NOW()),
 ('api_service', 'API服务', 'project', 'secondary', 'API服务项目', 6, TRUE, NOW(), NOW()),
 
--- 虚拟化类型标签
-('virtual_machine', '虚拟机', 'virtualization', 'primary', '运行在虚拟机上的数据库', 1, TRUE, NOW(), NOW()),
+-- 虚拟化类型标签 (按技术类型分配颜色)
+('virtual_machine', '虚拟机', 'virtualization', 'info', '运行在虚拟机上的数据库', 1, TRUE, NOW(), NOW()),
 ('physical_machine', '物理机', 'virtualization', 'success', '运行在物理机上的数据库', 2, TRUE, NOW(), NOW()),
-('container', '容器', 'virtualization', 'info', '运行在容器中的数据库', 3, TRUE, NOW(), NOW()),
+('container', '容器', 'virtualization', 'primary', '运行在容器中的数据库', 3, TRUE, NOW(), NOW()),
 ('serverless', '无服务器', 'virtualization', 'warning', '无服务器架构的数据库', 4, TRUE, NOW(), NOW()),
 
--- 部署方式标签
+-- 部署方式标签 (按部署复杂度分配颜色)
 ('cloud_platform', '云平台', 'deployment', 'primary', '部署在云平台上的数据库', 1, TRUE, NOW(), NOW()),
-('self_hosted', '自建', 'deployment', 'success', '自建机房部署的数据库', 2, TRUE, NOW(), NOW()),
+('self_hosted', '自建', 'deployment', 'warning', '自建机房部署的数据库', 2, TRUE, NOW(), NOW()),
 ('hybrid', '混合云', 'deployment', 'info', '混合云部署的数据库', 3, TRUE, NOW(), NOW()),
-('edge', '边缘计算', 'deployment', 'warning', '边缘计算节点部署的数据库', 4, TRUE, NOW(), NOW()),
+('edge', '边缘计算', 'deployment', 'secondary', '边缘计算节点部署的数据库', 4, TRUE, NOW(), NOW()),
 
--- 架构类型标签
-('cluster', '群集', 'architecture', 'primary', '群集架构的数据库', 1, TRUE, NOW(), NOW()),
+-- 架构类型标签 (按架构复杂度分配颜色)
+('cluster', '群集', 'architecture', 'danger', '群集架构的数据库', 1, TRUE, NOW(), NOW()),
 ('standalone', '单机', 'architecture', 'success', '单机架构的数据库', 2, TRUE, NOW(), NOW()),
-('master_slave', '主从', 'architecture', 'info', '主从架构的数据库', 3, TRUE, NOW(), NOW()),
-('master_master', '主主', 'architecture', 'warning', '主主架构的数据库', 4, TRUE, NOW(), NOW()),
-('sharding', '分片', 'architecture', 'danger', '分片架构的数据库', 5, TRUE, NOW(), NOW()),
+('master_slave', '主从', 'architecture', 'warning', '主从架构的数据库', 3, TRUE, NOW(), NOW()),
+('master_master', '主主', 'architecture', 'info', '主主架构的数据库', 4, TRUE, NOW(), NOW()),
+('sharding', '分片', 'architecture', 'primary', '分片架构的数据库', 5, TRUE, NOW(), NOW()),
 ('replica_set', '副本集', 'architecture', 'secondary', '副本集架构的数据库', 6, TRUE, NOW(), NOW()),
 
--- 其他标签
+-- 其他标签 (按重要性和状态分配颜色)
 ('high_priority', '高优先级', 'other', 'danger', '高优先级数据库', 1, TRUE, NOW(), NOW()),
 ('backup_required', '需要备份', 'other', 'warning', '需要定期备份的数据库', 2, TRUE, NOW(), NOW()),
 ('monitoring', '监控中', 'other', 'info', '正在监控的数据库', 3, TRUE, NOW(), NOW()),
