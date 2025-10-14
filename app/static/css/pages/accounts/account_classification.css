@@ -58,7 +58,9 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}/* 颜色
+}
+
+/* 颜色
 预览样式 */
 .color-preview-container {
     display: flex;
@@ -101,7 +103,7 @@
 
 .classification-badge:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     color: white;
     text-decoration: none;
 }
@@ -110,95 +112,36 @@
     font-size: 0.75rem;
 }
 
-/* 匹配账户按钮样式 - 遵循项目样式准则 */
-.matched-accounts-btn {
+/* 账户数量徽章样式 - 遵循项目样式准则 */
+.accounts-count-badge {
     display: inline-flex;
     align-items: center;
     gap: var(--spacing-xs);
     padding: var(--spacing-sm) var(--spacing-md);
     background: var(--gradient-primary);
     color: white !important;
-    border: none;
     border-radius: var(--border-radius-md);
     font-size: var(--font-size-sm);
     font-weight: 600;
     text-decoration: none;
-    transition: var(--transition-base);
-    cursor: pointer;
-    box-shadow: var(--shadow-sm);
-    position: relative;
-    overflow: hidden;
-}
-
-.matched-accounts-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: var(--transition-slow);
-}
-
-.matched-accounts-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    color: white !important;
-    text-decoration: none;
-    background: var(--gradient-primary);
-}
-
-.matched-accounts-btn:hover::before {
-    left: 100%;
-}
-
-.matched-accounts-btn:active {
-    transform: translateY(0);
     box-shadow: var(--shadow-sm);
 }
 
-.matched-accounts-btn i {
+.accounts-count-badge i {
     font-size: var(--font-size-xs);
     opacity: 1;
     color: white !important;
 }
 
 /* 当账户数量为0时的样式 - 遵循项目样式准则 */
-.matched-accounts-btn[data-count="0"] {
+.accounts-count-badge[data-count="0"] {
     background: var(--gradient-secondary) !important;
     color: white !important;
-    cursor: default;
-    pointer-events: none;
 }
 
-.matched-accounts-btn[data-count="0"]:hover {
-    transform: none;
-    box-shadow: var(--shadow-sm);
-    color: white !important;
-}
-
-.matched-accounts-btn[data-count="0"] i {
+.accounts-count-badge[data-count="0"] i {
     color: white !important;
     opacity: 0.8;
-}
-
-/* 确保按钮文字在所有状态下都可见 - 遵循项目样式准则 */
-.matched-accounts-btn,
-.matched-accounts-btn:hover,
-.matched-accounts-btn:focus,
-.matched-accounts-btn:active,
-.matched-accounts-btn:visited {
-    color: white !important;
-    text-decoration: none !important;
-}
-
-.matched-accounts-btn *,
-.matched-accounts-btn:hover *,
-.matched-accounts-btn:focus *,
-.matched-accounts-btn:active *,
-.matched-accounts-btn:visited * {
-    color: white !important;
 }
 
 /* 规则分类徽章样式 - 遵循项目样式准则 */
