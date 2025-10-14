@@ -25,7 +25,7 @@
 /* 日志条目 */
 .log-entry {
     border-left: 4px solid var(--gray-300);
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: var(--spacing-sm);
     margin-bottom: var(--spacing-xs);
     background: white;
     border-radius: var(--border-radius-sm);
@@ -33,11 +33,43 @@
     cursor: pointer;
     transition: var(--transition-base);
     border: 1px solid var(--gray-300);
+    font-size: 0.9em;
+}
+
+.log-entry-content {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    width: 100%;
+}
+
+.log-id {
+    color: var(--gray-500);
+    font-size: 0.8em;
+    font-family: 'Courier New', monospace;
+    min-width: 80px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.log-main-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.log-header {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    min-height: 28px;
-    font-size: 0.9em;
+    margin-bottom: var(--spacing-xs);
+    flex-wrap: wrap;
+}
+
+.log-message {
+    color: var(--gray-800);
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .log-entry:hover {
@@ -181,6 +213,52 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+/* 模块徽章样式 */
+.module-badge {
+    background-color: var(--gray-200);
+    color: var(--gray-700);
+    padding: 2px 8px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75em;
+    font-weight: 500;
+    min-width: 60px;
+    text-align: center;
+    display: inline-block;
+}
+
+.module-badge.empty {
+    color: var(--gray-400);
+    background-color: var(--gray-100);
+}
+
+/* 时间戳样式 */
+.log-timestamp {
+    color: var(--gray-600);
+    font-size: 0.8em;
+    font-family: 'Courier New', monospace;
+    white-space: nowrap;
+    min-width: 140px;
+}
+
+/* 级别徽章样式调整 */
+.log-level-badge {
+    font-size: 0.75em;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--border-radius-sm);
+    min-width: 60px;
+    text-align: center;
+    display: inline-block;
+}
+
+/* 搜索高亮 */
+.search-highlight {
+    background-color: yellow;
+    color: #000;
+    padding: 1px 2px;
+    border-radius: 2px;
 }
 
 /* 复制按钮样式 */
