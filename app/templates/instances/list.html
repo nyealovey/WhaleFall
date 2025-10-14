@@ -21,11 +21,11 @@
                 <p class="mb-0">查看数据库实例信息（只读模式）</p>
                 {% endif %}
             </div>
-            <div>
-                <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-light me-2">
+            <div class="btn-group">
+                <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-light">
                     <i class="fas fa-chart-bar me-2"></i>实例统计
                 </a>
-                <a href="{{ url_for('instances.export_instances', search=search, db_type=db_type) }}" class="btn btn-outline-light me-2">
+                <a href="{{ url_for('instances.export_instances', search=search, db_type=db_type) }}" class="btn btn-outline-light">
                     <i class="fas fa-download me-2"></i>导出CSV
                 </a>
                 {% if current_user.role == 'admin' %}

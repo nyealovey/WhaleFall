@@ -17,11 +17,11 @@
                 <h2><i class="fas fa-users me-2"></i>账户管理</h2>
                 <p class="mb-0">管理数据库账户信息和权限</p>
             </div>
-            <div>
-                <a href="{{ url_for('account.statistics') }}" class="btn btn-outline-light me-2">
+            <div class="btn-group">
+                <a href="{{ url_for('account.statistics') }}" class="btn btn-outline-light">
                     <i class="fas fa-chart-bar me-2"></i>账户统计
                 </a>
-                <a href="{{ url_for('account.export_accounts', db_type=current_db_type, search=search, instance_id=instance_id, is_locked=is_locked, is_superuser=is_superuser, plugin=plugin, classification=classification) }}" class="btn btn-outline-light me-2">
+                <a href="{{ url_for('account.export_accounts', db_type=current_db_type, search=search, instance_id=instance_id, is_locked=is_locked, is_superuser=is_superuser, plugin=plugin, classification=classification) }}" class="btn btn-outline-light">
                     <i class="fas fa-download me-2"></i>导出CSV
                 </a>
                 <button type="button" class="btn btn-light" onclick="syncAllAccounts()">
