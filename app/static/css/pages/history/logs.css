@@ -187,3 +187,15 @@
 .modal-footer .btn {
     min-width: 100px;
 }
+
+/* 分页样式 */
+#paginationContainer {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+#paginationContainer .pagination {
+    margin-bottom: 0;
+}

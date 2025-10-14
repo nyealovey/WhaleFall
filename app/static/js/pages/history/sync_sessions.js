@@ -1,7 +1,7 @@
 // 会话中心页脚本（从模板抽离）
 // 依赖：bootstrap, alert-utils.js, time-utils.js
 
-(function() {
+(function () {
   // 防抖/节流等工具可后续抽到 shared/utils
 
   let currentSessions = [];
@@ -10,7 +10,7 @@
   let totalPages = 1;
   let pagination = null;
 
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     loadSessions();
     setInterval(loadSessions, 30000);
 
@@ -18,7 +18,7 @@
     initUnifiedSearch();
   });
 
-  window.loadSessions = function(page = 1) {
+  window.loadSessions = function (page = 1) {
     currentPage = page;
     const params = new URLSearchParams();
     if (currentFilters.sync_type !== undefined) params.append('sync_type', currentFilters.sync_type);
@@ -28,10 +28,10 @@
     params.append('per_page', 20);
 
     // console.log('loadSessions: 请求参数:', params.toString());
-    
+
     // 显示加载状态
     showLoadingState();
-    
+
     fetch(`/sync_sessions/api/sessions?${params.toString()}`)
       .then(r => r.json())
       .then(data => {
@@ -54,7 +54,7 @@
         hideLoadingState();
       });
   }
-  
+
   // 显示加载状态
   function showLoadingState() {
     const loading = document.getElementById('sessions-loading');
@@ -62,7 +62,7 @@
     if (loading) loading.style.display = 'block';
     if (container) container.style.display = 'none';
   }
-  
+
   // 隐藏加载状态
   function hideLoadingState() {
     const loading = document.getElementById('sessions-loading');
@@ -71,7 +71,7 @@
     if (container) container.style.display = 'block';
   }
 
-  window.renderSessions = function(sessions) {
+  window.renderSessions = function (sessions) {
     const container = document.getElementById('sessions-container');
     if (!container) return;
 
@@ -165,9 +165,9 @@
     }
 
     const { page, pages, has_prev, has_next, prev_num, next_num } = paginationData;
-    
+
     let html = '<nav aria-label="会话分页"><ul class="pagination">';
-    
+
     // 上一页
     if (has_prev) {
       html += `<li class="page-item">
@@ -178,18 +178,18 @@
     } else {
       html += '<li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-left"></i></span></li>';
     }
-    
+
     // 页码
     const startPage = Math.max(1, page - 2);
     const endPage = Math.min(pages, page + 2);
-    
+
     if (startPage > 1) {
       html += `<li class="page-item"><a class="page-link" href="#" onclick="loadSessions(1); return false;">1</a></li>`;
       if (startPage > 2) {
         html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
       }
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       if (i === page) {
         html += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
@@ -197,14 +197,14 @@
         html += `<li class="page-item"><a class="page-link" href="#" onclick="loadSessions(${i}); return false;">${i}</a></li>`;
       }
     }
-    
+
     if (endPage < pages) {
       if (endPage < pages - 1) {
         html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
       }
       html += `<li class="page-item"><a class="page-link" href="#" onclick="loadSessions(${pages}); return false;">${pages}</a></li>`;
     }
-    
+
     // 下一页
     if (has_next) {
       html += `<li class="page-item">
@@ -215,28 +215,28 @@
     } else {
       html += '<li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-right"></i></span></li>';
     }
-    
+
     html += '</ul></nav>';
-    
+
     container.innerHTML = html;
     container.style.display = 'block';
   }
 
-  window.viewSessionDetail = function(sessionId) {
+  window.viewSessionDetail = function (sessionId) {
     fetch(`/sync_sessions/api/sessions/${sessionId}`)
       .then(r => r.json())
       .then(data => data.success ? showSessionDetail(data.data) : showAlert('加载会话详情失败: ' + data.message, 'error'))
       .catch(err => { console.error('加载会话详情出错:', err); showAlert('加载会话详情出错', 'error'); });
   }
 
-  window.viewErrorLogs = function(sessionId) {
+  window.viewErrorLogs = function (sessionId) {
     fetch(`/sync_sessions/api/sessions/${sessionId}/error-logs`)
       .then(r => r.json())
       .then(data => data.success ? showErrorLogs(data.data) : showAlert('加载错误信息失败: ' + data.message, 'error'))
       .catch(err => { console.error('加载错误信息出错:', err); showAlert('加载错误信息出错', 'error'); });
   }
 
-  window.showErrorLogs = function(data) {
+  window.showErrorLogs = function (data) {
     const content = document.getElementById('error-logs-content');
     if (!content) return;
     const errorRecords = data.error_records || [];
@@ -264,7 +264,7 @@
     modal.show();
   }
 
-  window.showSessionDetail = function(session) {
+  window.showSessionDetail = function (session) {
     const content = document.getElementById('session-detail-content');
     if (!content) return;
     const records = session.instance_records || [];
@@ -323,18 +323,18 @@
     modal.show();
   }
 
-  window.cancelSession = function(sessionId) {
+  window.cancelSession = function (sessionId) {
     if (confirm('确定要取消这个同步会话吗？')) {
       fetch(`/sync_sessions/api/sessions/${sessionId}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() }
       })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) { showAlert('会话已取消', 'success'); loadSessions(); }
-        else { showAlert('取消会话失败: ' + data.message, 'error'); }
-      })
-      .catch(err => { console.error('取消会话出错:', err); showAlert('取消会话出错', 'error'); });
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) { showAlert('会话已取消', 'success'); loadSessions(); }
+          else { showAlert('取消会话失败: ' + data.message, 'error'); }
+        })
+        .catch(err => { console.error('取消会话出错:', err); showAlert('取消会话出错', 'error'); });
     }
   }
 
@@ -343,12 +343,12 @@
     // 检查是否已经有全局的UnifiedSearch实例
     if (window.unifiedSearchInstance) {
       // 重写搜索和清除方法
-      window.unifiedSearchInstance.handleSubmit = function(e) {
+      window.unifiedSearchInstance.handleSubmit = function (e) {
         e.preventDefault();
         applyFilters();
       };
-      
-      window.unifiedSearchInstance.clearForm = function() {
+
+      window.unifiedSearchInstance.clearForm = function () {
         // 清除所有筛选条件
         const inputs = this.form.querySelectorAll('.unified-input');
         inputs.forEach(input => {
@@ -364,24 +364,24 @@
         currentFilters = {};
         loadSessions();
       };
-      
+
       return;
     }
-    
+
     // 等待统一搜索组件加载完成
     if (typeof UnifiedSearch !== 'undefined') {
       const searchForm = document.querySelector('.unified-search-form');
-      
+
       if (searchForm) {
         const unifiedSearch = new UnifiedSearch(searchForm);
-        
+
         // 重写搜索和清除方法
-        unifiedSearch.handleSubmit = function(e) {
+        unifiedSearch.handleSubmit = function (e) {
           e.preventDefault();
           applyFilters();
         };
-        
-        unifiedSearch.clearForm = function() {
+
+        unifiedSearch.clearForm = function () {
           // 清除所有筛选条件
           const inputs = this.form.querySelectorAll('.unified-input');
           inputs.forEach(input => {
@@ -410,39 +410,39 @@
     const syncTypeEl = document.getElementById('sync_type');
     const syncCategoryEl = document.getElementById('sync_category');
     const statusEl = document.getElementById('status');
-    
+
     // 获取筛选值，空字符串表示不过滤
     const syncType = syncTypeEl?.value || '';
     const syncCategory = syncCategoryEl?.value || '';
     const status = statusEl?.value || '';
-    
+
     currentFilters = {
       sync_type: syncType,
       sync_category: syncCategory,
       status: status
     };
-    
+
     // 重置到第一页并加载会话数据
     loadSessions(1);
-    
+
     // 隐藏统一搜索组件的加载状态
     if (window.unifiedSearchInstance) {
       window.unifiedSearchInstance.hideLoading();
     }
   }
-  
+
   // 将函数暴露到全局作用域
   window.applyFilters = applyFilters;
 
 
 
-  window.clearFilters = function() {
+  window.clearFilters = function () {
     // console.log('clearFilters: 清除所有筛选条件');
     currentFilters = {};
     loadSessions(1);
   }
 
-  window.getProgressInfo = function(successRate, totalInstances, successfulInstances, failedInstances) {
+  window.getProgressInfo = function (successRate, totalInstances, successfulInstances, failedInstances) {
     if (totalInstances === 0) {
       return { barClass: 'bg-secondary', textClass: 'text-muted', icon: 'fas fa-question-circle', tooltip: '无实例数据' };
     }
@@ -457,41 +457,41 @@
     }
   }
 
-  window.getStatusClass = function(status) {
+  window.getStatusClass = function (status) {
     const map = { running: 'running', completed: 'completed', failed: 'failed', cancelled: 'cancelled' };
     return map[status] || '';
   }
-  window.getStatusText = function(status) { return status; }
-  window.getStatusColor = function(status) {
+  window.getStatusText = function (status) { return status; }
+  window.getStatusColor = function (status) {
     const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning' };
     return map[status] || 'secondary';
   }
-  window.getSyncTypeText = function(type) { 
+  window.getSyncTypeText = function (type) {
     const typeMap = {
       'manual_single': '手动单台',
       'manual_batch': '手动批量',
       'manual_task': '手动任务',
       'scheduled_task': '定时任务'
     };
-    return typeMap[type] || type; 
+    return typeMap[type] || type;
   }
-  window.getSyncCategoryText = function(category) { 
+  window.getSyncCategoryText = function (category) {
     const categoryMap = {
       'account': '账户同步',
-      'capacity': '容量同步', 
+      'capacity': '容量同步',
       'config': '配置同步',
       'aggregation': '统计聚合',
       'other': '其他'
     };
-    return categoryMap[category] || category; 
+    return categoryMap[category] || category;
   }
 
-  window.getDurationBadge = function(startedAt, completedAt) {
+  window.getDurationBadge = function (startedAt, completedAt) {
     if (!startedAt || !completedAt) return '<span class="text-muted">-</span>';
     const s = new Date(startedAt), e = new Date(completedAt);
     const sec = (e - s) / 1000;
     if (sec < 60) return `<span class="badge bg-info">${sec.toFixed(1)}秒</span>`;
-    if (sec < 3600) return `<span class="badge bg-info">${(sec/60).toFixed(1)}分钟</span>`;
-    return `<span class="badge bg-info">${(sec/3600).toFixed(1)}小时</span>`;
+    if (sec < 3600) return `<span class="badge bg-info">${(sec / 60).toFixed(1)}分钟</span>`;
+    return `<span class="badge bg-info">${(sec / 3600).toFixed(1)}小时</span>`;
   }
 })();

@@ -11,7 +11,7 @@ class BatchAssignManager {
         this.tags = [];
         this.instancesByDbType = {};
         this.tagsByCategory = {};
-        
+
         this.init();
     }
 
@@ -73,7 +73,7 @@ class BatchAssignManager {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const data = await response.json();
             this.instances = data.instances || [];
             this.instancesByDbType = this.groupInstancesByDbType(this.instances);
@@ -92,11 +92,11 @@ class BatchAssignManager {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const data = await response.json();
             this.tags = data.tags || [];
             this.tagsByCategory = this.groupTagsByCategory(this.tags);
-            
+
         } catch (error) {
             console.error('加载标签失败:', error);
             throw error;
@@ -115,7 +115,7 @@ class BatchAssignManager {
             }
             grouped[dbType].push(instance);
         });
-        
+
         // 对每个分组内的实例按名称排序
         Object.keys(grouped).forEach(dbType => {
             grouped[dbType].sort((a, b) => {
@@ -124,7 +124,7 @@ class BatchAssignManager {
                 return nameA.localeCompare(nameB, 'zh-CN', { numeric: true });
             });
         });
-        
+
         return grouped;
     }
 
@@ -140,7 +140,7 @@ class BatchAssignManager {
             }
             grouped[category].push(tag);
         });
-        
+
         // 对每个分组内的标签按显示名称排序
         Object.keys(grouped).forEach(category => {
             grouped[category].sort((a, b) => {
@@ -149,7 +149,7 @@ class BatchAssignManager {
                 return nameA.localeCompare(nameB, 'zh-CN', { numeric: true });
             });
         });
-        
+
         return grouped;
     }
 
@@ -159,7 +159,7 @@ class BatchAssignManager {
     renderInstances() {
         const container = document.getElementById('instancesContainer');
         const loading = document.getElementById('instancesLoading');
-        
+
         if (this.instances.length === 0) {
             container.innerHTML = this.getEmptyState('实例', 'fas fa-database');
             loading.style.display = 'none';
@@ -171,7 +171,7 @@ class BatchAssignManager {
         Object.keys(this.instancesByDbType).sort().forEach(dbType => {
             const instances = this.instancesByDbType[dbType];
             const dbTypeDisplay = this.getDbTypeDisplayName(dbType);
-            
+
             html += `
                 <div class="instance-group">
                     <div class="instance-group-header" onclick="batchAssignManager.toggleInstanceGroup('${dbType}')">
@@ -217,7 +217,7 @@ class BatchAssignManager {
         container.innerHTML = html;
         loading.style.display = 'none';
         container.style.display = 'block';
-        
+
         // 初始化滚动功能
         this.initializeScrollAreas();
     }
@@ -228,7 +228,7 @@ class BatchAssignManager {
     renderTags() {
         const container = document.getElementById('tagsContainer');
         const loading = document.getElementById('tagsLoading');
-        
+
         if (this.tags.length === 0) {
             container.innerHTML = this.getEmptyState('标签', 'fas fa-tags');
             loading.style.display = 'none';
@@ -239,7 +239,7 @@ class BatchAssignManager {
         let html = '';
         Object.keys(this.tagsByCategory).sort().forEach(category => {
             const tags = this.tagsByCategory[category];
-            
+
             html += `
                 <div class="tag-group">
                     <div class="tag-group-header" onclick="batchAssignManager.toggleTagGroup('${category}')">
@@ -283,7 +283,7 @@ class BatchAssignManager {
         container.innerHTML = html;
         loading.style.display = 'none';
         container.style.display = 'block';
-        
+
         // 初始化滚动功能
         this.initializeScrollAreas();
     }
@@ -293,20 +293,21 @@ class BatchAssignManager {
      */
     toggleInstanceGroup(dbType) {
         const content = document.getElementById(`instanceGroupContent_${dbType}`);
-        const icon = document.querySelector(`#instanceGroupContent_${dbType}`).previousElementSibling.querySelector('.instance-group-icon');
-        
+        const header = content.previousElementSibling;
+        const icon = header.querySelector('.instance-group-icon');
+
         if (content.classList.contains('show')) {
             // 如果当前分组是展开的，则收起
             content.classList.remove('show');
-            icon.style.transform = 'rotate(0deg)';
+            if (icon) icon.style.transform = 'rotate(0deg)';
         } else {
             // 先收起所有其他分组（手风琴效果）
             this.collapseAllInstanceGroups();
-            
+
             // 展开当前分组
             content.classList.add('show');
-            icon.style.transform = 'rotate(90deg)';
-            
+            if (icon) icon.style.transform = 'rotate(90deg)';
+
             // 确保内容区域可以滚动
             setTimeout(() => {
                 if (content.scrollHeight > content.clientHeight) {
@@ -322,10 +323,10 @@ class BatchAssignManager {
     collapseAllInstanceGroups() {
         Object.keys(this.instancesByDbType).forEach(dbType => {
             const content = document.getElementById(`instanceGroupContent_${dbType}`);
-            const icon = document.querySelector(`#instanceGroupContent_${dbType}`)?.previousElementSibling?.querySelector('.instance-group-icon');
-            
             if (content && content.classList.contains('show')) {
                 content.classList.remove('show');
+                const header = content.previousElementSibling;
+                const icon = header?.querySelector('.instance-group-icon');
                 if (icon) {
                     icon.style.transform = 'rotate(0deg)';
                 }
@@ -339,10 +340,10 @@ class BatchAssignManager {
     collapseAllTagGroups() {
         Object.keys(this.tagsByCategory).forEach(category => {
             const content = document.getElementById(`tagGroupContent_${category}`);
-            const icon = document.querySelector(`#tagGroupContent_${category}`)?.previousElementSibling?.querySelector('.tag-group-icon');
-            
             if (content && content.classList.contains('show')) {
                 content.classList.remove('show');
+                const header = content.previousElementSibling;
+                const icon = header?.querySelector('.tag-group-icon');
                 if (icon) {
                     icon.style.transform = 'rotate(0deg)';
                 }
@@ -355,20 +356,21 @@ class BatchAssignManager {
      */
     toggleTagGroup(category) {
         const content = document.getElementById(`tagGroupContent_${category}`);
-        const icon = document.querySelector(`#tagGroupContent_${category}`).previousElementSibling.querySelector('.tag-group-icon');
-        
+        const header = content.previousElementSibling;
+        const icon = header.querySelector('.tag-group-icon');
+
         if (content.classList.contains('show')) {
             // 如果当前分组是展开的，则收起
             content.classList.remove('show');
-            icon.style.transform = 'rotate(0deg)';
+            if (icon) icon.style.transform = 'rotate(0deg)';
         } else {
             // 先收起所有其他分组（手风琴效果）
             this.collapseAllTagGroups();
-            
+
             // 展开当前分组
             content.classList.add('show');
-            icon.style.transform = 'rotate(90deg)';
-            
+            if (icon) icon.style.transform = 'rotate(90deg)';
+
             // 确保内容区域可以滚动
             setTimeout(() => {
                 if (content.scrollHeight > content.clientHeight) {
@@ -384,7 +386,7 @@ class BatchAssignManager {
     toggleInstanceGroupSelection(dbType) {
         const groupCheckbox = document.getElementById(`instanceGroup_${dbType}`);
         const instanceCheckboxes = document.querySelectorAll(`#instanceGroupContent_${dbType} input[type="checkbox"]`);
-        
+
         instanceCheckboxes.forEach(checkbox => {
             checkbox.checked = groupCheckbox.checked;
             const instanceId = parseInt(checkbox.value);
@@ -394,7 +396,7 @@ class BatchAssignManager {
                 this.selectedInstances.delete(instanceId);
             }
         });
-        
+
         this.updateUI();
     }
 
@@ -404,7 +406,7 @@ class BatchAssignManager {
     toggleTagGroupSelection(category) {
         const groupCheckbox = document.getElementById(`tagGroup_${category}`);
         const tagCheckboxes = document.querySelectorAll(`#tagGroupContent_${category} input[type="checkbox"]`);
-        
+
         tagCheckboxes.forEach(checkbox => {
             checkbox.checked = groupCheckbox.checked;
             const tagId = parseInt(checkbox.value);
@@ -414,7 +416,7 @@ class BatchAssignManager {
                 this.selectedTags.delete(tagId);
             }
         });
-        
+
         this.updateUI();
     }
 
@@ -423,13 +425,13 @@ class BatchAssignManager {
      */
     toggleInstanceSelection(instanceId) {
         const checkbox = document.getElementById(`instance_${instanceId}`);
-        
+
         if (checkbox.checked) {
             this.selectedInstances.add(instanceId);
         } else {
             this.selectedInstances.delete(instanceId);
         }
-        
+
         this.updateGroupCheckboxState('instance');
         this.updateUI();
     }
@@ -439,13 +441,13 @@ class BatchAssignManager {
      */
     toggleTagSelection(tagId) {
         const checkbox = document.getElementById(`tag_${tagId}`);
-        
+
         if (checkbox.checked) {
             this.selectedTags.add(tagId);
         } else {
             this.selectedTags.delete(tagId);
         }
-        
+
         this.updateGroupCheckboxState('tag');
         this.updateUI();
     }
@@ -459,7 +461,7 @@ class BatchAssignManager {
                 const groupCheckbox = document.getElementById(`instanceGroup_${dbType}`);
                 const instanceCheckboxes = document.querySelectorAll(`#instanceGroupContent_${dbType} input[type="checkbox"]`);
                 const checkedCount = Array.from(instanceCheckboxes).filter(cb => cb.checked).length;
-                
+
                 groupCheckbox.checked = checkedCount === instanceCheckboxes.length;
                 groupCheckbox.indeterminate = checkedCount > 0 && checkedCount < instanceCheckboxes.length;
             });
@@ -468,7 +470,7 @@ class BatchAssignManager {
                 const groupCheckbox = document.getElementById(`tagGroup_${category}`);
                 const tagCheckboxes = document.querySelectorAll(`#tagGroupContent_${category} input[type="checkbox"]`);
                 const checkedCount = Array.from(tagCheckboxes).filter(cb => cb.checked).length;
-                
+
                 groupCheckbox.checked = checkedCount === tagCheckboxes.length;
                 groupCheckbox.indeterminate = checkedCount > 0 && checkedCount < tagCheckboxes.length;
             });
@@ -482,7 +484,7 @@ class BatchAssignManager {
         const removeModeInfo = document.getElementById('removeModeInfo');
         const tagSelectionPanel = document.getElementById('tagSelectionPanel');
         const selectedTagsSection = document.getElementById('selectedTagsSection');
-        
+
         if (this.currentMode === 'remove') {
             removeModeInfo.style.display = 'block';
             tagSelectionPanel.style.display = 'none';
@@ -520,24 +522,24 @@ class BatchAssignManager {
         const summary = document.getElementById('selectionSummary');
         const selectedInstancesList = document.getElementById('selectedInstancesList');
         const selectedTagsList = document.getElementById('selectedTagsList');
-        
+
         if (this.selectedInstances.size === 0 && this.selectedTags.size === 0) {
             summary.style.display = 'none';
             return;
         }
-        
+
         summary.style.display = 'block';
-        
+
         // 更新实例列表
         const instanceNames = Array.from(this.selectedInstances).map(id => {
             const instance = this.instances.find(i => i.id === id);
             return instance ? instance.name : `实例 ${id}`;
         });
-        
-        selectedInstancesList.innerHTML = instanceNames.map(name => 
+
+        selectedInstancesList.innerHTML = instanceNames.map(name =>
             `<span class="selected-item">${name}</span>`
         ).join('');
-        
+
         // 更新标签列表（仅在分配模式下显示）
         if (this.currentMode === 'assign') {
             const tagItems = Array.from(this.selectedTags).map(id => {
@@ -550,8 +552,8 @@ class BatchAssignManager {
                     color: 'secondary'
                 };
             });
-            
-            selectedTagsList.innerHTML = tagItems.map(tag => 
+
+            selectedTagsList.innerHTML = tagItems.map(tag =>
                 `<span class="selected-item">
                     <span class="badge bg-${tag.color} me-1">${tag.name}</span>
                 </span>`
@@ -564,11 +566,11 @@ class BatchAssignManager {
      */
     updateActionButton() {
         const button = document.getElementById('executeBatchOperation');
-        const canExecute = this.selectedInstances.size > 0 && 
-                          (this.currentMode === 'remove' || this.selectedTags.size > 0);
-        
+        const canExecute = this.selectedInstances.size > 0 &&
+            (this.currentMode === 'remove' || this.selectedTags.size > 0);
+
         button.disabled = !canExecute;
-        
+
         if (this.currentMode === 'assign') {
             button.innerHTML = '<i class="fas fa-plus me-1"></i>分配标签';
             button.className = 'btn btn-primary';
@@ -585,13 +587,13 @@ class BatchAssignManager {
         // 清空选择集合
         this.selectedInstances.clear();
         this.selectedTags.clear();
-        
+
         // 取消所有复选框
         document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
             checkbox.checked = false;
             checkbox.indeterminate = false;
         });
-        
+
         // 更新UI
         this.updateUI();
     }
@@ -604,25 +606,25 @@ class BatchAssignManager {
             this.showError('请选择至少一个实例');
             return;
         }
-        
+
         if (this.currentMode === 'assign' && this.selectedTags.size === 0) {
             this.showError('请选择至少一个标签');
             return;
         }
-        
+
         try {
             this.showProgress();
-            
+
             if (this.currentMode === 'assign') {
                 await this.performBatchAssign();
             } else {
                 await this.performBatchRemove();
             }
-            
+
             this.hideProgress();
             this.showSuccess('操作完成');
             this.clearAllSelections();
-            
+
         } catch (error) {
             this.hideProgress();
             this.showError('操作失败', error.message);
@@ -644,12 +646,12 @@ class BatchAssignManager {
                 tag_ids: Array.from(this.selectedTags)
             })
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.message || '分配失败');
         }
-        
+
         const result = await response.json();
         return result;
     }
@@ -668,12 +670,12 @@ class BatchAssignManager {
                 instance_ids: Array.from(this.selectedInstances)
             })
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.message || '移除失败');
         }
-        
+
         const result = await response.json();
         return result;
     }
@@ -685,21 +687,21 @@ class BatchAssignManager {
         const container = document.getElementById('progressContainer');
         const progressBar = container.querySelector('.progress-bar');
         const progressText = document.getElementById('progressText');
-        
+
         container.style.display = 'block';
         progressBar.style.width = '0%';
         progressText.textContent = '准备中...';
-        
+
         // 模拟进度
         let progress = 0;
         const interval = setInterval(() => {
             progress += Math.random() * 20;
             if (progress > 90) progress = 90;
-            
+
             progressBar.style.width = progress + '%';
             progressText.textContent = `处理中... ${Math.round(progress)}%`;
         }, 200);
-        
+
         this.progressInterval = interval;
     }
 
@@ -711,14 +713,14 @@ class BatchAssignManager {
             clearInterval(this.progressInterval);
             this.progressInterval = null;
         }
-        
+
         const container = document.getElementById('progressContainer');
         const progressBar = container.querySelector('.progress-bar');
         const progressText = document.getElementById('progressText');
-        
+
         progressBar.style.width = '100%';
         progressText.textContent = '完成';
-        
+
         setTimeout(() => {
             container.style.display = 'none';
         }, 1000);
@@ -750,7 +752,7 @@ class BatchAssignManager {
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         `;
-        
+
         // 插入到页面顶部
         const container = document.querySelector('.container');
         if (container) {
@@ -759,7 +761,7 @@ class BatchAssignManager {
             // 如果找不到容器，直接插入到body
             document.body.insertAdjacentHTML('afterbegin', alertHtml);
         }
-        
+
         // 自动隐藏成功消息
         if (type === 'success') {
             setTimeout(() => {
@@ -808,7 +810,7 @@ class BatchAssignManager {
                 content.style.overflowY = 'auto';
             }
         });
-        
+
         // 确保主选择区域也能正确滚动
         const selectionAreas = document.querySelectorAll('.instance-selection, .tag-selection');
         selectionAreas.forEach(area => {
@@ -828,6 +830,6 @@ class BatchAssignManager {
 }
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     window.batchAssignManager = new BatchAssignManager();
 });

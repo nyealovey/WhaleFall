@@ -19,7 +19,7 @@
                 <p class="mb-0">查看账户分类和规则信息（只读模式）</p>
                 {% endif %}
             </div>
-            <div>
+            <div class="btn-group">
                 {% if current_user.role == 'admin' %}
                 <button class="btn btn-light" onclick="autoClassifyAll()">
                     <i class="fas fa-magic me-2"></i>自动分类
