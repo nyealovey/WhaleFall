@@ -6,6 +6,9 @@
 
   let currentSessions = [];
   let currentFilters = {};
+  let currentPage = 1;
+  let totalPages = 1;
+  let pagination = null;
 
   document.addEventListener('DOMContentLoaded', function() {
     loadSessions();
@@ -15,11 +18,14 @@
     initUnifiedSearch();
   });
 
-  window.loadSessions = function() {
+  window.loadSessions = function(page = 1) {
+    currentPage = page;
     const params = new URLSearchParams();
     if (currentFilters.sync_type !== undefined) params.append('sync_type', currentFilters.sync_type);
     if (currentFilters.sync_category !== undefined) params.append('sync_category', currentFilters.sync_category);
     if (currentFilters.status !== undefined) params.append('status', currentFilters.status);
+    params.append('page', page);
+    params.append('per_page', 20);
 
     // console.log('loadSessions: 请求参数:', params.toString());
     
@@ -31,7 +37,10 @@
       .then(data => {
         if (data.success) {
           currentSessions = data.data;
+          pagination = data.pagination;
+          totalPages = pagination.pages;
           renderSessions(data.data);
+          renderPagination(pagination);
           hideLoadingState();
         } else {
           console.error('加载会话列表失败:', data.message);
@@ -145,6 +154,72 @@
       const id = e.currentTarget.getAttribute('data-id');
       cancelSession(id);
     }));
+  }
+
+  // 渲染分页控件
+  function renderPagination(paginationData) {
+    const container = document.getElementById('pagination-container');
+    if (!container || !paginationData || paginationData.pages <= 1) {
+      if (container) container.style.display = 'none';
+      return;
+    }
+
+    const { page, pages, has_prev, has_next, prev_num, next_num } = paginationData;
+    
+    let html = '<nav aria-label="会话分页"><ul class="pagination">';
+    
+    // 上一页
+    if (has_prev) {
+      html += `<li class="page-item">
+        <a class="page-link" href="#" onclick="loadSessions(${prev_num}); return false;">
+          <i class="fas fa-chevron-left"></i>
+        </a>
+      </li>`;
+    } else {
+      html += '<li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-left"></i></span></li>';
+    }
+    
+    // 页码
+    const startPage = Math.max(1, page - 2);
+    const endPage = Math.min(pages, page + 2);
+    
+    if (startPage > 1) {
+      html += `<li class="page-item"><a class="page-link" href="#" onclick="loadSessions(1); return false;">1</a></li>`;
+      if (startPage > 2) {
+        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+      }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      if (i === page) {
+        html += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+      } else {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadSessions(${i}); return false;">${i}</a></li>`;
+      }
+    }
+    
+    if (endPage < pages) {
+      if (endPage < pages - 1) {
+        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+      }
+      html += `<li class="page-item"><a class="page-link" href="#" onclick="loadSessions(${pages}); return false;">${pages}</a></li>`;
+    }
+    
+    // 下一页
+    if (has_next) {
+      html += `<li class="page-item">
+        <a class="page-link" href="#" onclick="loadSessions(${next_num}); return false;">
+          <i class="fas fa-chevron-right"></i>
+        </a>
+      </li>`;
+    } else {
+      html += '<li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-right"></i></span></li>';
+    }
+    
+    html += '</ul></nav>';
+    
+    container.innerHTML = html;
+    container.style.display = 'block';
   }
 
   window.viewSessionDetail = function(sessionId) {
@@ -347,8 +422,8 @@
       status: status
     };
     
-    // 加载会话数据
-    loadSessions();
+    // 重置到第一页并加载会话数据
+    loadSessions(1);
     
     // 隐藏统一搜索组件的加载状态
     if (window.unifiedSearchInstance) {
@@ -359,12 +434,12 @@
   // 将函数暴露到全局作用域
   window.applyFilters = applyFilters;
 
-  window.refreshData = function() { loadSessions(); }
+
 
   window.clearFilters = function() {
     // console.log('clearFilters: 清除所有筛选条件');
     currentFilters = {};
-    loadSessions();
+    loadSessions(1);
   }
 
   window.getProgressInfo = function(successRate, totalInstances, successfulInstances, failedInstances) {

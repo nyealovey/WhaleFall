@@ -16,11 +16,7 @@
                 <h2><i class="fas fa-sync-alt me-2"></i>会话中心</h2>
                 <p class="mb-0">查看和管理数据同步会话记录</p>
             </div>
-            <div>
-                <button class="btn btn-light" onclick="refreshData()">
-                    <i class="fas fa-sync me-2"></i>刷新
-                </button>
-            </div>
+
         </div>
     </div>
 </div>
@@ -61,6 +57,9 @@
                     </div>
                     <div id="sessions-container" style="display: none;">
                         <!-- 会话列表将在这里动态加载 -->
+                    </div>
+                    <div id="pagination-container" class="d-flex justify-content-center mt-4" style="display: none;">
+                        <!-- 分页控件将在这里动态加载 -->
                     </div>
                 </div>
             </div>
