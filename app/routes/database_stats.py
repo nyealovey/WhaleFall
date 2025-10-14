@@ -421,7 +421,7 @@ def get_instance_databases(instance_id: int):
             data.append({
                 'id': db.id,
                 'database_name': db.database_name,
-                'is_active': not db.is_deleted,
+                'is_active': db.is_active,
                 'first_seen_date': db.first_seen_date.isoformat() if db.first_seen_date else None,
                 'last_seen_date': db.last_seen_date.isoformat() if db.last_seen_date else None,
                 'deleted_at': db.deleted_at.isoformat() if db.deleted_at else None
