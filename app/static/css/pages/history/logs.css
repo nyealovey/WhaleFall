@@ -103,13 +103,44 @@
 }
 
 /* 统计卡片 */
-.stats-card {
+.card {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
     transition: var(--transition-base);
+    box-shadow: var(--shadow-md);
 }
 
-.stats-card:hover {
-    transform: translateY(-2px);
+.card:hover {
     box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.card.bg-primary {
+    background: var(--gradient-primary) !important;
+}
+
+.card.bg-danger {
+    background: var(--gradient-danger) !important;
+}
+
+.card.bg-warning {
+    background: var(--gradient-warning) !important;
+}
+
+.card.bg-info {
+    background: var(--gradient-info) !important;
+}
+
+.card-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+}
+
+.card-text {
+    font-size: 0.9rem;
+    opacity: 0.9;
 }
 /* 日
 志详情模态框样式 */
