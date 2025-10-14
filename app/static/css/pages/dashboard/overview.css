@@ -29,6 +29,25 @@
     padding: var(--spacing-md);
 }
 
+/* 确保图表区域和侧边栏高度一致 */
+.row .col-lg-8 .card,
+.row .col-lg-4 .card {
+    height: 100%;
+}
+
+.row .col-lg-8,
+.row .col-lg-4 {
+    display: flex;
+    flex-direction: column;
+}
+
+.row .col-lg-8 .card .card-body,
+.row .col-lg-4 .card .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
 /* 状态指示器 - 利用全局颜色系统 */
 .status-indicator {
     width: 12px;
