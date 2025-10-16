@@ -28,6 +28,30 @@ class LogType(Enum):
     DATABASE = "database"
 
 
+class ErrorCategory(Enum):
+    """错误分类枚举"""
+
+    VALIDATION = "validation"
+    BUSINESS = "business"
+    AUTHENTICATION = "authentication"
+    AUTHORIZATION = "authorization"
+    SECURITY = "security"
+    DATABASE = "database"
+    EXTERNAL = "external"
+    NETWORK = "network"
+    SYSTEM = "system"
+    UNKNOWN = "unknown"
+
+
+class ErrorSeverity(Enum):
+    """错误严重程度枚举"""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
 class UserRole(Enum):
     """用户角色枚举"""
 
@@ -214,8 +238,14 @@ class ErrorMessages:
     INTERNAL_ERROR = "服务器内部错误"
     VALIDATION_ERROR = "数据验证失败"
     PERMISSION_DENIED = "权限不足"
+    PERMISSION_REQUIRED = "需要 {permission} 权限"
     RESOURCE_NOT_FOUND = "资源不存在"
     INVALID_REQUEST = "无效的请求"
+    AUTHENTICATION_REQUIRED = "请先登录"
+    ADMIN_PERMISSION_REQUIRED = "需要管理员权限"
+    JSON_REQUIRED = "请求必须是JSON格式"
+    REQUEST_DATA_EMPTY = "请求数据不能为空"
+    MISSING_REQUIRED_FIELDS = "缺少必需字段: {fields}"
 
     # 认证错误
     INVALID_CREDENTIALS = "用户名或密码错误"

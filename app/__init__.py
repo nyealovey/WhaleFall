@@ -86,35 +86,23 @@ def create_app(config_name: str | None = None) -> Flask:  # noqa: ARG001
 
     configure_structlog(app)
 
-    # 设置全局日志级别为INFO，过滤DEBUG日志
-    import logging
-
-    from app.utils.debug_log_filter import configure_debug_filter
-
-    # 配置DEBUG日志过滤器
-    configure_debug_filter()
-
     # 设置全局日志级别
     logging.getLogger().setLevel(logging.INFO)
 
     # 注册增强的错误处理器
-    from app.utils.structlog_config import enhanced_error_handler, ErrorContext
+    from app.utils.structlog_config import ErrorContext, enhanced_error_handler
+    from app.utils.response_utils import unified_error_response
 
     app.enhanced_error_handler = enhanced_error_handler
 
     # 注册全局错误处理器
     @app.errorhandler(Exception)
-    def handle_global_exception(error: Exception) -> tuple[str, int]:
+    def handle_global_exception(error: Exception):
         """全局错误处理"""
         from flask import request
-        
-        context = ErrorContext(error, request)
-        error_response = enhanced_error_handler(error, context)
 
-        # 根据错误类型返回适当的响应
-        status_code = error.code if hasattr(error, "code") else 500
-
-        return jsonify(error_response), status_code
+        payload, status_code = unified_error_response(error, context=ErrorContext(error, request))
+        return jsonify(payload), status_code
 
     # 性能监控已移除
 

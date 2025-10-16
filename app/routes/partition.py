@@ -1,24 +1,23 @@
-"""
-分区管理 API 路由
-提供数据库表分区创建、清理、统计等功能
-"""
+"""分区管理 API 路由"""
 
-import logging
-from datetime import datetime, date, timedelta
-from flask import Blueprint, request, jsonify, render_template
-from app.utils.time_utils import time_utils
-from flask_login import login_required, current_user
-from sqlalchemy import and_, or_, func, desc, text
-from app.services.partition_management_service import PartitionManagementService
-from app.tasks.partition_management_tasks import get_partition_management_status
-from app.tasks.database_size_aggregation_tasks import cleanup_old_aggregations
-from app.models.instance import Instance
+from datetime import date, datetime, timedelta
+
+from flask import Blueprint, Response, render_template, request
+from flask_login import current_user, login_required
+from sqlalchemy import and_, desc, func, or_, text
+
+from app import db
+from app.errors import SystemError, ValidationError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
+from app.models.instance import Instance
+from app.services.partition_management_service import PartitionManagementService
+from app.tasks.database_size_aggregation_tasks import cleanup_old_aggregations
+from app.tasks.partition_management_tasks import get_partition_management_status
 from app.utils.decorators import view_required
-from app import db
-
-logger = logging.getLogger(__name__)
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
 
 # 创建蓝图
 partition_bp = Blueprint('partition', __name__)
@@ -37,71 +36,39 @@ def partitions_page():
 @partition_bp.route('/api/info', methods=['GET'])
 @login_required
 @view_required
-def get_partition_info():
-    """
-    获取分区信息API
-    
-    Returns:
-        JSON: 分区信息
-    """
-    try:
-        logger.info("开始获取分区信息")
-        service = PartitionManagementService()
-        result = service.get_partition_info()
-        logger.info(f"分区信息获取结果: {result}")
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': time_utils.now().isoformat()
-            })
-        else:
-            logger.error(f"分区信息获取失败: {result}")
-            return jsonify({
-                'success': False,
-                'error': result.get('message', '获取分区信息失败'),
-                'details': result
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"获取分区信息时出错: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': f'获取分区信息失败: {str(e)}',
-            'message': '系统内部错误'
-        }), 500
+def get_partition_info() -> Response:
+    """获取分区信息API"""
+    log_info("开始获取分区信息", module="partition", user_id=getattr(current_user, "id", None))
+    service = PartitionManagementService()
+    result = service.get_partition_info()
+    payload = {
+        'data': result,
+        'timestamp': time_utils.now().isoformat(),
+    }
+    log_info("分区信息获取成功", module="partition")
+    return jsonify_unified_success(data=payload, message="分区信息获取成功")
 
 # API 路由
 
 @partition_bp.route('/api/status', methods=['GET'])
 @login_required
 @view_required
-def get_partition_status():
-    """
-    获取分区管理状态
-    
-    Returns:
-        JSON: 分区状态
-    """
-    try:
-        result = get_partition_management_status()
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': time_utils.now().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"获取分区状态时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+def get_partition_status() -> Response:
+    """获取分区管理状态"""
+    result = get_partition_management_status()
+    if result.get('status') != 'healthy':
+        log_warning(
+            "分区状态存在告警",
+            module="partition",
+            status=result.get('status'),
+            missing_partitions=result.get('missing_partitions'),
+        )
+    payload = {
+        'data': result,
+        'timestamp': time_utils.now().isoformat(),
+    }
+    log_info("获取分区状态成功", module="partition")
+    return jsonify_unified_success(data=payload, message="分区状态获取成功")
 
 
 
@@ -109,150 +76,129 @@ def get_partition_status():
 @partition_bp.route('/api/create', methods=['POST'])
 @login_required
 @view_required
-def create_partition():
+def create_partition() -> Response:
     """
     创建分区
     
     Returns:
         JSON: 创建结果
     """
-    try:
-        data = request.get_json()
-        partition_date_str = data.get('date')
-        
-        if not partition_date_str:
-            return jsonify({'error': '缺少日期参数'}), 400
-        
-        # 解析日期
-        try:
-            from datetime import datetime
-            partition_date = datetime.strptime(partition_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            return jsonify({'error': '日期格式错误，请使用 YYYY-MM-DD 格式'}), 400
+    data = request.get_json() or {}
+    partition_date_str = data.get('date')
 
-        # 仅允许创建当前及未来的分区
-        today = time_utils.now_china().date()
-        current_month_start = today.replace(day=1)
-        if partition_date < current_month_start:
-            return jsonify({'error': '只能创建当前或未来月份的分区'}), 400
-        
-        service = PartitionManagementService()
-        result = service.create_partition(partition_date)
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': time_utils.now().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"创建分区时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+    if not partition_date_str:
+        raise ValidationError('缺少日期参数')
+
+    try:
+        partition_date = datetime.strptime(partition_date_str, '%Y-%m-%d').date()
+    except ValueError as exc:
+        raise ValidationError('日期格式错误，请使用 YYYY-MM-DD 格式') from exc
+
+    today = time_utils.now_china().date()
+    current_month_start = today.replace(day=1)
+    if partition_date < current_month_start:
+        raise ValidationError('只能创建当前或未来月份的分区')
+
+    service = PartitionManagementService()
+    result = service.create_partition(partition_date)
+
+    payload = {
+        'result': result,
+        'timestamp': time_utils.now().isoformat(),
+    }
+
+    log_info(
+        "创建分区成功",
+        module="partition",
+        partition_date=str(partition_date),
+        user_id=getattr(current_user, 'id', None),
+    )
+    return jsonify_unified_success(data=payload, message='分区创建任务已触发')
 
 
 @partition_bp.route('/api/cleanup', methods=['POST'])
 @login_required
 @view_required
-def cleanup_partitions():
+def cleanup_partitions() -> Response:
     """
     清理旧分区
     
     Returns:
         JSON: 清理结果
     """
+    data = request.get_json() or {}
+    raw_retention = data.get('retention_months', 12)
     try:
-        data = request.get_json() or {}
-        retention_months = data.get('retention_months', 12)
-        
-        service = PartitionManagementService()
-        result = service.cleanup_old_partitions(retention_months=retention_months)
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': time_utils.now().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"清理分区时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        retention_months = int(raw_retention)
+    except (TypeError, ValueError) as exc:
+        raise ValidationError('retention_months 必须为数字') from exc
+
+    service = PartitionManagementService()
+    result = service.cleanup_old_partitions(retention_months=retention_months)
+
+    payload = {
+        'result': result,
+        'timestamp': time_utils.now().isoformat(),
+    }
+
+    log_info(
+        "清理旧分区成功",
+        module="partition",
+        retention_months=retention_months,
+        user_id=getattr(current_user, 'id', None),
+    )
+    return jsonify_unified_success(data=payload, message='旧分区清理任务已触发')
 
 
 @partition_bp.route('/api/statistics', methods=['GET'])
 @login_required
 @view_required
-def get_partition_statistics():
-    """
-    获取分区统计信息
-    
-    Returns:
-        JSON: 统计信息
-    """
-    try:
-        service = PartitionManagementService()
-        result = service.get_partition_statistics()
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': time_utils.now().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"获取分区统计信息时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+def get_partition_statistics() -> Response:
+    """获取分区统计信息"""
+    service = PartitionManagementService()
+    result = service.get_partition_statistics()
+
+    payload = {
+        'data': result,
+        'timestamp': time_utils.now().isoformat(),
+    }
+
+    log_info("获取分区统计信息成功", module="partition")
+    return jsonify_unified_success(data=payload, message="分区统计信息获取成功")
 
 
 @partition_bp.route('/api/create-future', methods=['POST'])
 @login_required
 @view_required
-def create_future_partitions():
+def create_future_partitions() -> Response:
     """
     创建未来分区
     
     Returns:
         JSON: 创建结果
     """
+    data = request.get_json() or {}
+    raw_months = data.get('months_ahead', 3)
     try:
-        data = request.get_json() or {}
-        months_ahead = data.get('months_ahead', 3)
-        
-        service = PartitionManagementService()
-        result = service.create_future_partitions(months_ahead=months_ahead)
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'data': result,
-                'timestamp': time_utils.now().isoformat()
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result['message']
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"创建未来分区时出错: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        months_ahead = int(raw_months)
+    except (TypeError, ValueError) as exc:
+        raise ValidationError('months_ahead 必须为数字') from exc
+
+    service = PartitionManagementService()
+    result = service.create_future_partitions(months_ahead=months_ahead)
+
+    payload = {
+        'result': result,
+        'timestamp': time_utils.now().isoformat(),
+    }
+
+    log_info(
+        "创建未来分区成功",
+        module="partition",
+        months_ahead=months_ahead,
+        user_id=getattr(current_user, 'id', None),
+    )
+    return jsonify_unified_success(data=payload, message='未来分区创建任务已触发')
 
 
 
@@ -264,29 +210,28 @@ def create_future_partitions():
 @partition_bp.route('/api/aggregations/core-metrics', methods=['GET'])
 @login_required
 @view_required
-def get_core_aggregation_metrics():
-    """
-    获取核心聚合指标数据
-    返回4个核心指标：实例数总量、数据库数总量、实例日统计数量、数据库日统计数量
-    """
+def get_core_aggregation_metrics() -> Response:
+    """获取核心聚合指标数据"""
     try:
-        # 获取查询参数
         period_type = request.args.get('period_type', 'daily')
         days = request.args.get('days', 7, type=int)
-        
+
         today_china = time_utils.now_china().date()
-        
+
         def add_months(base_date: date, months: int) -> date:
             month = base_date.month - 1 + months
             year = base_date.year + month // 12
             month = month % 12 + 1
             return date(year, month, 1)
-        
+
         def period_end(date_obj: date, months: int) -> date:
-            """返回某个起始月增加指定月数后的前一天"""
             return add_months(date_obj, months) - timedelta(days=1)
-        
-        # 计算统计范围和聚合周期范围
+
+        valid_periods = {'daily', 'weekly', 'monthly', 'quarterly'}
+        if period_type not in valid_periods:
+            log_warning("无效的 period_type，默认使用 daily", module="partition", period_type=period_type)
+            period_type = 'daily'
+
         if period_type == 'daily':
             stats_end_date = today_china - timedelta(days=1)
             stats_start_date = stats_end_date - timedelta(days=days - 1)
@@ -309,7 +254,7 @@ def get_core_aggregation_metrics():
             stats_start_date = period_start_date
             stats_end_date = period_end(period_end_date, 1)
             step_mode = 'monthly'
-        elif period_type == 'quarterly':
+        else:  # quarterly
             current_quarter_month = ((today_china.month - 1) // 3) * 3 + 1
             current_quarter_start = date(today_china.year, current_quarter_month, 1)
             last_quarter_start = add_months(current_quarter_start, -3)
@@ -318,12 +263,6 @@ def get_core_aggregation_metrics():
             stats_start_date = period_start_date
             stats_end_date = period_end(period_end_date, 3)
             step_mode = 'quarterly'
-        else:
-            stats_end_date = today_china - timedelta(days=1)
-            stats_start_date = stats_end_date - timedelta(days=days - 1)
-            period_start_date = stats_start_date
-            period_end_date = stats_end_date
-            step_mode = 'daily'
         
         if stats_end_date < stats_start_date:
             stats_start_date = stats_end_date
@@ -552,27 +491,26 @@ def get_core_aggregation_metrics():
         if labels:
             time_range_text = f'{labels[0]} - {labels[-1]}'
         
-        return jsonify({
-            'success': True,
+        payload = {
             'labels': labels,
             'datasets': datasets,
             'dataPointCount': len(labels),
             'timeRange': time_range_text,
             'yAxisLabel': '数量',
             'chartTitle': f'{period_type.title()}核心指标统计',
-            'periodType': period_type
-        })
-        
-    except Exception as e:
-        logger.error(f"获取核心聚合指标时出错: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'labels': [],
-            'datasets': [],
-            'dataPointCount': 0,
-            'timeRange': '',
-            'yAxisLabel': '数量',
-            'chartTitle': '核心指标统计'
-        }), 500
+            'periodType': period_type,
+        }
 
+        log_info(
+            "核心聚合指标获取成功",
+            module="partition",
+            period_type=period_type,
+            points=len(labels),
+        )
+        return jsonify_unified_success(data=payload, message="核心聚合指标获取成功")
+
+    except ValidationError:
+        raise
+    except Exception as exc:
+        log_error("获取核心聚合指标失败", module="partition", error=str(exc))
+        raise SystemError("获取核心聚合指标失败") from exc

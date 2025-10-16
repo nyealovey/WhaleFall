@@ -6,20 +6,18 @@
 
 from datetime import datetime, timedelta
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
-from app.utils.decorators import admin_required
-from sqlalchemy import asc, desc, or_
+from sqlalchemy import asc, desc, distinct, or_
 
 from app import db
+from app.errors import AuthorizationError, SystemError, ValidationError
 from app.models.unified_log import LogLevel, UnifiedLog
-from app.utils.api_response import error_response, success_response
-from app.utils.structlog_config import get_logger, log_error, log_info
+from app.utils.decorators import admin_required
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
-
-# 获取日志记录器
-logger = get_logger("api")
 
 # 创建蓝图
 logs_bp = Blueprint("logs", __name__)
@@ -33,12 +31,12 @@ def logs_dashboard() -> str | tuple[dict, int]:
         return render_template("history/logs.html")
     except Exception as e:
         log_error("Failed to render logs dashboard", module="logs", error=str(e))
-        return error_response("Failed to load logs dashboard", 500)
+        raise SystemError("Failed to load logs dashboard") from e
 
 
 @logs_bp.route("/api/search", methods=["GET"])
 @login_required
-def search_logs() -> tuple[dict, int]:
+def search_logs() -> Response:
     """搜索日志API"""
     try:
         # 获取查询参数
@@ -61,15 +59,15 @@ def search_logs() -> tuple[dict, int]:
             try:
                 start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
                 query = query.filter(UnifiedLog.timestamp >= start_dt)
-            except ValueError:
-                return error_response("Invalid start_time format", 400)
+            except ValueError as exc:
+                raise ValidationError("Invalid start_time format") from exc
 
         if end_time:
             try:
                 end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
                 query = query.filter(UnifiedLog.timestamp <= end_dt)
-            except ValueError:
-                return error_response("Invalid end_time format", 400)
+            except ValueError as exc:
+                raise ValidationError("Invalid end_time format") from exc
 
         # hours参数优先级高于默认时间范围
         if hours and not start_time and not end_time:
@@ -77,8 +75,8 @@ def search_logs() -> tuple[dict, int]:
                 hours_int = int(hours)
                 start_time_from_hours = time_utils.now() - timedelta(hours=hours_int)
                 query = query.filter(UnifiedLog.timestamp >= start_time_from_hours)
-            except ValueError:
-                return error_response("Invalid hours format", 400)
+            except ValueError as exc:
+                raise ValidationError("Invalid hours format") from exc
         elif not start_time and not end_time and not hours:
             # 默认时间范围：最近24小时
             default_start = time_utils.now() - timedelta(hours=24)
@@ -89,8 +87,8 @@ def search_logs() -> tuple[dict, int]:
             try:
                 log_level = LogLevel(level.upper())
                 query = query.filter(UnifiedLog.level == log_level)
-            except ValueError:
-                return error_response("Invalid log level", 400)
+            except ValueError as exc:
+                raise ValidationError("Invalid log level") from exc
 
         # 模块过滤
         if module:
@@ -138,16 +136,16 @@ def search_logs() -> tuple[dict, int]:
             },
         }
 
-        return success_response(response_data)
+        return jsonify_unified_success(data=response_data)
 
     except Exception as e:
         log_error("Failed to search logs", module="logs", error=str(e))
-        return error_response("Failed to search logs", 500)
+        raise SystemError("Failed to search logs") from e
 
 
 @logs_bp.route("/api/statistics", methods=["GET"])
 @login_required
-def get_log_statistics() -> tuple[dict, int]:
+def get_log_statistics() -> Response:
     """获取日志统计信息API"""
     try:
         hours = int(request.args.get("hours", 24))
@@ -161,16 +159,16 @@ def get_log_statistics() -> tuple[dict, int]:
             total_logs=stats["total_logs"],
         )
 
-        return success_response(stats)
+        return jsonify_unified_success(data=stats)
 
     except Exception as e:
         log_error("Failed to get log statistics", module="logs", error=str(e))
-        return error_response("Failed to get log statistics", 500)
+        raise SystemError("Failed to get log statistics") from e
 
 
 @logs_bp.route("/api/errors", methods=["GET"])
 @login_required
-def get_error_logs() -> tuple[dict, int]:
+def get_error_logs() -> Response:
     """获取错误日志API"""
     try:
         hours = int(request.args.get("hours", 24))
@@ -180,16 +178,16 @@ def get_error_logs() -> tuple[dict, int]:
 
         logs = [log.to_dict() for log in error_logs]
 
-        return success_response({"logs": logs})
+        return jsonify_unified_success(data={"logs": logs})
 
     except Exception as e:
         log_error("Failed to get error logs", module="logs", error=str(e))
-        return error_response("Failed to get error logs", 500)
+        raise SystemError("Failed to get error logs") from e
 
 
 @logs_bp.route("/api/modules", methods=["GET"])
 @login_required
-def get_log_modules() -> tuple[dict, int]:
+def get_log_modules() -> Response:
     """获取日志模块列表API"""
     try:
         from sqlalchemy import distinct
@@ -199,16 +197,16 @@ def get_log_modules() -> tuple[dict, int]:
 
         module_list = [module.module for module in modules]
 
-        return success_response({"modules": module_list})
+        return jsonify_unified_success(data={"modules": module_list})
 
     except Exception as e:
         log_error("Failed to get log modules", module="logs", error=str(e))
-        return error_response("Failed to get log modules", 500)
+        raise SystemError("Failed to get log modules") from e
 
 
 @logs_bp.route("/api/export", methods=["GET"])
 @login_required
-def export_logs() -> tuple[dict, int]:
+def export_logs() -> Response:
     """导出日志API"""
     try:
         format_type = request.args.get("format", "json")
@@ -223,17 +221,26 @@ def export_logs() -> tuple[dict, int]:
 
         # 时间范围过滤
         if start_time:
-            start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-            query = query.filter(UnifiedLog.timestamp >= start_dt)
+            try:
+                start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+                query = query.filter(UnifiedLog.timestamp >= start_dt)
+            except ValueError as exc:
+                raise ValidationError("Invalid start_time format") from exc
 
         if end_time:
-            end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
-            query = query.filter(UnifiedLog.timestamp <= end_dt)
+            try:
+                end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+                query = query.filter(UnifiedLog.timestamp <= end_dt)
+            except ValueError as exc:
+                raise ValidationError("Invalid end_time format") from exc
 
         # 级别过滤
         if level:
-            log_level = LogLevel(level.upper())
-            query = query.filter(UnifiedLog.level == log_level)
+            try:
+                log_level = LogLevel(level.upper())
+                query = query.filter(UnifiedLog.level == log_level)
+            except ValueError as exc:
+                raise ValidationError("Invalid log level") from exc
 
         # 模块过滤
         if module:
@@ -318,7 +325,7 @@ def export_logs() -> tuple[dict, int]:
                 },
             )
 
-        return error_response("Unsupported export format", 400)
+        raise ValidationError("Unsupported export format")
 
     except Exception as e:
         log_error(
@@ -332,7 +339,7 @@ def export_logs() -> tuple[dict, int]:
             limit=limit,
             exception=e,
         )
-        return error_response("Failed to export logs", 500)
+        raise SystemError("Failed to export logs") from e
 
 
 @logs_bp.route("/api/cleanup", methods=["POST"])
@@ -343,7 +350,7 @@ def cleanup_logs() -> tuple[dict, int]:
     try:
         # 检查权限（仅管理员）
         if not current_user.is_authenticated or not getattr(current_user, "is_admin", False):
-            return error_response("Permission denied", 403)
+            raise AuthorizationError("Permission denied")
 
         days = int(request.json.get("days", 90))
 
@@ -356,16 +363,17 @@ def cleanup_logs() -> tuple[dict, int]:
             days=days,
         )
 
-        return success_response(
-            {
+        return jsonify_unified_success(
+            data={
                 "deleted_count": deleted_count,
                 "message": f"Successfully deleted {deleted_count} log entries older than {days} days",
-            }
+            },
+            message="日志清理完成",
         )
 
     except Exception as e:
         log_error("Failed to cleanup logs", module="logs", error=str(e))
-        return error_response("Failed to cleanup logs", 500)
+        raise SystemError("Failed to cleanup logs") from e
 
 
 @logs_bp.route("/api/real-time", methods=["GET"])
@@ -382,19 +390,19 @@ def get_recent_logs() -> tuple[dict, int]:
             try:
                 log_level = LogLevel(level.upper())
                 query = query.filter(UnifiedLog.level == log_level)
-            except ValueError:
-                return error_response("Invalid log level", 400)
+            except ValueError as exc:
+                raise ValidationError("Invalid log level") from exc
 
         # 获取最近的日志
         recent_logs = query.order_by(desc(UnifiedLog.timestamp)).limit(limit).all()
 
         logs = [log.to_dict() for log in recent_logs]
 
-        return success_response({"logs": logs})
+        return jsonify_unified_success(data={"logs": logs})
 
     except Exception as e:
         log_error("Failed to get recent logs", module="logs", error=str(e))
-        return error_response("Failed to get recent logs", 500)
+        raise SystemError("Failed to get recent logs") from e
 
 
 @logs_bp.route("/api/stats", methods=["GET"])
@@ -413,7 +421,10 @@ def get_log_stats() -> tuple[dict, int]:
 
         # 时间范围筛选
         if hours:
-            hours_int = int(hours)
+            try:
+                hours_int = int(hours)
+            except ValueError as exc:
+                raise ValidationError("Invalid hours format") from exc
             start_time = time_utils.now() - timedelta(hours=hours_int)
             query = query.filter(UnifiedLog.timestamp >= start_time)
 
@@ -474,11 +485,11 @@ def get_log_stats() -> tuple[dict, int]:
             "time_range_hours": int(hours) if hours else None,
         }
 
-        return success_response(stats)
+        return jsonify_unified_success(data=stats)
 
     except Exception as e:
         log_error("Failed to get log stats", module="logs", error=str(e))
-        return error_response("Failed to get log stats", 500)
+        raise SystemError("Failed to get log stats") from e
 
 
 @logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
@@ -488,8 +499,8 @@ def get_log_detail(log_id: int) -> tuple[dict, int]:
     try:
         log = UnifiedLog.query.get_or_404(log_id)
 
-        return success_response({"log": log.to_dict()})
+        return jsonify_unified_success(data={"log": log.to_dict()})
 
     except Exception as e:
         log_error("Failed to get log detail", module="logs", error=str(e), log_id=log_id)
-        return error_response("Failed to get log detail", 500)
+        raise SystemError("Failed to get log detail") from e

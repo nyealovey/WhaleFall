@@ -5,18 +5,21 @@
 
 from typing import Any
 from datetime import datetime
-from flask import Blueprint, Response, render_template, request, current_app, jsonify
+
+from flask import Blueprint, Response, current_app, render_template, request
 from flask_login import login_required  # type: ignore
 
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
+from app.errors import NotFoundError, SystemError, ValidationError
 from app.scheduler import get_scheduler
 from app.services.scheduler_health_service import scheduler_health_service
-from app.utils.api_response import APIResponse
 from app.utils.decorators import scheduler_manage_required, scheduler_view_required
-from app.utils.structlog_config import get_system_logger
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
 
 # 常量: 内置任务ID集合（统一前后端识别）
 BUILTIN_TASK_IDS: set[str] = {
@@ -26,9 +29,6 @@ BUILTIN_TASK_IDS: set[str] = {
     "collect_database_sizes", 
     "calculate_database_size_aggregations"
 }
-
-# 初始化日志记录器
-system_logger = get_system_logger()
 
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__)
@@ -50,7 +50,8 @@ def get_jobs() -> Response:
     try:
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
-            return APIResponse.error("调度器未启动", code=500)  # type: ignore
+            log_warning("调度器未启动", module="scheduler")
+            raise SystemError("调度器未启动")
         jobs = scheduler.get_jobs()
         jobs_data: list[dict[str, Any]] = []
 
@@ -97,7 +98,7 @@ def get_jobs() -> Response:
                             trigger_args['day_of_week'] = str(fields[4]) if fields[4] is not None else '*'
                             trigger_args['year'] = str(fields[0]) if fields[0] is not None else ''
                         else:
-                            system_logger.warning(f"fields列表长度不足: {len(fields)}")
+                            log_warning(f"fields列表长度不足: {len(fields)}")
                             trigger_args['second'] = '0'
                             trigger_args['minute'] = '0'
                             trigger_args['hour'] = '0'
@@ -107,7 +108,12 @@ def get_jobs() -> Response:
                             trigger_args['year'] = ''
                     else:
                         # 如果既不是字典也不是列表，使用默认值
-                        system_logger.warning(f"fields不是字典或列表类型: {type(fields)}")
+                        log_warning(
+                            "触发器字段类型异常",
+                            module="scheduler",
+                            job_id=job.id,
+                            field_type=str(type(fields)),
+                        )
                         trigger_args['second'] = '0'
                         trigger_args['minute'] = '0'
                         trigger_args['hour'] = '0'
@@ -153,9 +159,13 @@ def get_jobs() -> Response:
                 else:
                     # 对于其他类型的触发器，使用原始字符串
                     trigger_args = {"description": str(job.trigger)}
-                    
             except Exception as job_error:
-                system_logger.error(f"处理任务 {job.id} 时出错: {job_error}")
+                log_error(
+                    "处理任务触发器信息失败",
+                    module="scheduler",
+                    job_id=job.id,
+                    error=str(job_error),
+                )
                 # 使用默认值继续处理
                 trigger_type = "unknown"
                 trigger_args = {}
@@ -178,11 +188,16 @@ def get_jobs() -> Response:
                     UnifiedLog.message.like(f"%{job.name}%"),
                     UnifiedLog.timestamp >= time_utils.now_china() - timedelta(days=1)
                 ).order_by(UnifiedLog.timestamp.desc()).first()
-                
+
                 if recent_logs:
                     last_run_time = recent_logs.timestamp.isoformat()
-            except Exception as e:
-                system_logger.warning(f"获取任务 {job.id} 上次运行时间失败: {e}")
+            except Exception as lookup_error:
+                log_warning(
+                    "获取任务上次运行时间失败",
+                    module="scheduler",
+                    job_id=job.id,
+                    error=str(lookup_error),
+                )
 
             job_info = {
                 "id": job.id,
@@ -203,11 +218,12 @@ def get_jobs() -> Response:
         # 按ID排序任务列表
         jobs_data.sort(key=lambda x: x["id"])
 
-        return APIResponse.success(data=jobs_data, message="任务列表获取成功")  # type: ignore
+        log_info("获取任务列表成功", module="scheduler", job_count=len(jobs_data))
+        return jsonify_unified_success(data=jobs_data, message="任务列表获取成功")
 
-    except Exception as e:
-        system_logger.error("获取任务列表失败", module="scheduler", exception=e)
-        return APIResponse.error("获取任务列表失败: {str(e)}")  # type: ignore
+    except Exception as exc:
+        log_error("获取任务列表失败", module="scheduler", error=str(exc))
+        raise SystemError("获取任务列表失败") from exc
 
 
 @scheduler_bp.route("/api/jobs/<job_id>")
@@ -218,7 +234,7 @@ def get_job(job_id: str) -> Response:
     try:
         job = get_scheduler().get_job(job_id)  # type: ignore
         if not job:
-            return APIResponse.error("任务不存在", code=404)  # type: ignore
+            raise NotFoundError("任务不存在")
 
         job_info = {
             "id": job.id,
@@ -233,12 +249,14 @@ def get_job(job_id: str) -> Response:
             "coalesce": job.coalesce,
         }
 
-        return APIResponse.success(data=job_info, message="任务详情获取成功")  # type: ignore
+        log_info("获取任务详情成功", module="scheduler", job_id=job_id)
+        return jsonify_unified_success(data=job_info, message="任务详情获取成功")
 
-    except Exception as e:
-        error_str = str(e) if e else "未知错误"
-        system_logger.error("获取任务详情失败: %s", error_str)
-        return APIResponse.error("获取任务详情失败: {error_str}")  # type: ignore
+    except NotFoundError:
+        raise
+    except Exception as exc:
+        log_error("获取任务详情失败", module="scheduler", job_id=job_id, error=str(exc))
+        raise SystemError("获取任务详情失败") from exc
 
 
 
@@ -253,21 +271,23 @@ def disable_job(job_id: str) -> Response:
     try:
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
-            return APIResponse.error("调度器未启动", code=500)  # type: ignore
+            log_warning("调度器未启动", module="scheduler")
+            raise SystemError("调度器未启动")
 
         job = scheduler.get_job(job_id)
         if not job:
-            return APIResponse.error("任务不存在", code=404)  # type: ignore
+            raise NotFoundError("任务不存在")
 
         # 暂停任务
         scheduler.pause_job(job_id)
-        system_logger.info("任务已禁用: {job_id}", module="scheduler")
-        return APIResponse.success(data={"job_id": job_id}, message="任务已禁用")  # type: ignore
+        log_info("任务已禁用", module="scheduler", job_id=job_id)
+        return jsonify_unified_success(data={"job_id": job_id}, message="任务已禁用")
 
-    except Exception as e:
-        error_str = str(e) if e else "未知错误"
-        system_logger.error("禁用任务失败: %s", error_str)
-        return APIResponse.error(f"禁用任务失败: {error_str}")  # type: ignore
+    except NotFoundError:
+        raise
+    except Exception as exc:
+        log_error("禁用任务失败", module="scheduler", job_id=job_id, error=str(exc))
+        raise SystemError("禁用任务失败") from exc
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/enable", methods=["POST"])
@@ -278,21 +298,22 @@ def enable_job(job_id: str) -> Response:
     try:
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
-            return APIResponse.error("调度器未启动", code=500)  # type: ignore
+            log_warning("调度器未启动", module="scheduler")
+            raise SystemError("调度器未启动")
 
         job = scheduler.get_job(job_id)
         if not job:
-            return APIResponse.error("任务不存在", code=404)  # type: ignore
+            raise NotFoundError("任务不存在")
 
-        # 恢复任务
         scheduler.resume_job(job_id)
-        system_logger.info("任务已启用: {job_id}", module="scheduler")
-        return APIResponse.success(data={"job_id": job_id}, message="任务已启用")  # type: ignore
+        log_info("任务已启用", module="scheduler", job_id=job_id)
+        return jsonify_unified_success(data={"job_id": job_id}, message="任务已启用")
 
-    except Exception as e:
-        error_str = str(e) if e else "未知错误"
-        system_logger.error("启用任务失败: %s", error_str)
-        return APIResponse.error(f"启用任务失败: {error_str}")  # type: ignore
+    except NotFoundError:
+        raise
+    except Exception as exc:
+        log_error("启用任务失败", module="scheduler", job_id=job_id, error=str(exc))
+        raise SystemError("启用任务失败") from exc
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
@@ -302,13 +323,12 @@ def pause_job(job_id: str) -> Response:
     """暂停任务"""
     try:
         get_scheduler().pause_job(job_id)  # type: ignore
-        system_logger.info("任务暂停成功: {job_id}")
-        return APIResponse.success("任务暂停成功")  # type: ignore
+        log_info("任务暂停成功", module="scheduler", job_id=job_id)
+        return jsonify_unified_success(message="任务暂停成功")
 
-    except Exception as e:
-        error_str = str(e) if e else "未知错误"
-        system_logger.error("暂停任务失败: %s", error_str)
-        return APIResponse.error(f"暂停任务失败: {error_str}")  # type: ignore
+    except Exception as exc:
+        log_error("暂停任务失败", module="scheduler", job_id=job_id, error=str(exc))
+        raise SystemError("暂停任务失败") from exc
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/resume", methods=["POST"])
@@ -318,13 +338,12 @@ def resume_job(job_id: str) -> Response:
     """恢复任务"""
     try:
         get_scheduler().resume_job(job_id)  # type: ignore
-        system_logger.info("任务恢复成功: {job_id}")
-        return APIResponse.success("任务恢复成功")  # type: ignore
+        log_info("任务恢复成功", module="scheduler", job_id=job_id)
+        return jsonify_unified_success(message="任务恢复成功")
 
-    except Exception as e:
-        error_str = str(e) if e else "未知错误"
-        system_logger.error("恢复任务失败: %s", error_str)
-        return APIResponse.error(f"恢复任务失败: {error_str}")  # type: ignore
+    except Exception as exc:
+        log_error("恢复任务失败", module="scheduler", job_id=job_id, error=str(exc))
+        raise SystemError("恢复任务失败") from exc
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/run", methods=["POST"])
@@ -335,42 +354,52 @@ def run_job(job_id: str) -> Response:
     try:
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
-            return APIResponse.error("调度器未启动", code=500)  # type: ignore
+            log_warning("调度器未启动", module="scheduler")
+            raise SystemError("调度器未启动")
 
         job = scheduler.get_job(job_id)
         if not job:
-            return APIResponse.error("任务不存在", code=404)  # type: ignore
+            raise NotFoundError("任务不存在")
 
-        system_logger.info("开始立即执行任务: {job_id} - {job.name}")
+        log_info("开始立即执行任务", module="scheduler", job_id=job_id, job_name=job.name)
 
-        # 立即执行任务
         try:
-            # 对于内置任务，直接调用任务函数（它们内部有应用上下文管理）
             if job_id in BUILTIN_TASK_IDS:
-                # 对于sync_accounts和calculate_database_size_aggregations任务，手动执行时传递manual_run=True
                 if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
                     result = job.func(manual_run=True)
                 else:
                     result = job.func(*job.args, **job.kwargs)
-                system_logger.info("任务立即执行成功: {job_id} - 结果: {result}")
-                return APIResponse.success(data={"result": str(result)}, message="任务执行成功")  # type: ignore
-            # 对于自定义任务，需要手动管理应用上下文
-            from app import create_app
+            else:
+                from app import create_app
 
-            app = create_app()  # type: ignore
-            with app.app_context():
-                result = job.func(*job.args, **job.kwargs)
-                system_logger.info("任务立即执行成功: {job_id} - 结果: {result}")
-                return APIResponse.success(data={"result": str(result)}, message="任务执行成功")  # type: ignore
+                app = create_app()  # type: ignore
+                with app.app_context():
+                    result = job.func(*job.args, **job.kwargs)
+
+            log_info(
+                "任务立即执行成功",
+                module="scheduler",
+                job_id=job_id,
+                job_name=job.name,
+                result=str(result),
+            )
+            return jsonify_unified_success(data={"result": str(result)}, message="任务执行成功")
+
         except Exception as func_error:
-            error_str = str(func_error) if func_error else "未知错误"
-            system_logger.error("任务函数执行失败: %s - %s", job_id, error_str)
-            return APIResponse.error(f"任务执行失败: {error_str}")  # type: ignore
+            log_error(
+                "任务函数执行失败",
+                module="scheduler",
+                job_id=job_id,
+                job_name=job.name,
+                error=str(func_error),
+            )
+            raise SystemError("任务执行失败") from func_error
 
-    except Exception as e:
-        error_str = str(e) if e else "未知错误"
-        system_logger.error("执行任务失败: %s", error_str)
-        return APIResponse.error(f"执行任务失败: {error_str}")  # type: ignore
+    except NotFoundError:
+        raise
+    except Exception as exc:
+        log_error("执行任务失败", module="scheduler", job_id=job_id, error=str(exc))
+        raise SystemError("执行任务失败") from exc
 
 
 
@@ -394,7 +423,8 @@ def reload_jobs() -> Response:
     try:
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
-            return APIResponse.error("调度器未启动", code=500)  # type: ignore
+            log_warning("调度器未启动", module="scheduler")
+            raise SystemError("调度器未启动")
 
         # 获取现有任务列表
         existing_jobs = scheduler.get_jobs()
@@ -406,9 +436,14 @@ def reload_jobs() -> Response:
             try:
                 scheduler.remove_job(job_id)
                 deleted_count += 1
-                system_logger.info("重新加载-删除任务: %s", job_id)
+                log_info("重新加载-删除任务", module="scheduler", job_id=job_id)
             except Exception as del_err:
-                system_logger.error("重新加载-删除任务失败: %s - %s", job_id, str(del_err))
+                log_error(
+                    "重新加载-删除任务失败",
+                    module="scheduler",
+                    job_id=job_id,
+                    error=str(del_err),
+                )
 
         # 重新加载任务配置
         from app.scheduler import _reload_all_jobs
@@ -418,14 +453,14 @@ def reload_jobs() -> Response:
         reloaded_jobs = scheduler.get_jobs()
         reloaded_job_ids = [job.id for job in reloaded_jobs]
         
-        system_logger.info(
+        log_info(
             "任务重新加载完成",
             module="scheduler",
             deleted_count=deleted_count,
-            reloaded_count=len(reloaded_jobs)
+            reloaded_count=len(reloaded_jobs),
         )
 
-        return APIResponse.success(
+        return jsonify_unified_success(
             data={
                 "deleted": existing_job_ids,
                 "reloaded": reloaded_job_ids,
@@ -435,9 +470,9 @@ def reload_jobs() -> Response:
             message=f"已删除 {deleted_count} 个任务，重新加载 {len(reloaded_jobs)} 个任务"
         )
 
-    except Exception as e:
-        system_logger.error("重新加载任务失败: %s", str(e), exc_info=True)
-        return APIResponse.error(f"重新加载任务失败: {str(e)}", code=500)  # type: ignore
+    except Exception as exc:
+        log_error("重新加载任务失败", module="scheduler", error=str(exc))
+        raise SystemError("重新加载任务失败") from exc
 
 
 @scheduler_bp.route("/api/jobs/<job_id>", methods=["PUT"])
@@ -446,31 +481,32 @@ def reload_jobs() -> Response:
 def update_job_trigger(job_id: str) -> Response:
     """更新内置任务的触发器配置（仅限内置任务）"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         if not data:
-            return APIResponse.error("请求数据不能为空", code=400)  # type: ignore
+            raise ValidationError("请求数据不能为空")
 
         # 检查任务是否存在
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
-            return APIResponse.error("调度器未启动", code=500)  # type: ignore
+            log_warning("调度器未启动", module="scheduler")
+            raise SystemError("调度器未启动")
 
         job = scheduler.get_job(job_id)
         if not job:
-            return APIResponse.error("任务不存在", code=404)  # type: ignore
+            raise NotFoundError("任务不存在")
 
         # 只允许修改内置任务的触发器
         if job_id not in BUILTIN_TASK_IDS:
-            return APIResponse.error("只能修改内置任务的触发器配置", code=403)  # type: ignore
+            raise SystemError("只能修改内置任务的触发器配置", status_code=403)
 
         # 检查是否包含触发器配置
         if "trigger_type" not in data:
-            return APIResponse.error("缺少触发器类型配置", code=400)  # type: ignore
+            raise ValidationError("缺少触发器类型配置")
 
         # 构建新的触发器
         trigger = _build_trigger(data)
         if not trigger:
-            return APIResponse.error("无效的触发器配置", code=400)  # type: ignore
+            raise ValidationError("无效的触发器配置")
 
         # 更新触发器
         scheduler.modify_job(job_id, trigger=trigger)
@@ -478,15 +514,23 @@ def update_job_trigger(job_id: str) -> Response:
         # 获取更新后的任务信息
         updated_job = scheduler.get_job(job_id)
         if updated_job and hasattr(updated_job, 'next_run_time'):
-            system_logger.info("任务触发器更新后的下次执行时间: %s - %s", job_id, updated_job.next_run_time)
+            log_info(
+                "任务触发器更新后的下次执行时间",
+                module="scheduler",
+                job_id=job_id,
+                next_run_time=str(updated_job.next_run_time),
+            )
         
-        system_logger.info("内置任务触发器更新成功: %s", job_id)
-        return APIResponse.success("触发器更新成功")  # type: ignore
+        log_info("内置任务触发器更新成功", module="scheduler", job_id=job_id)
+        return jsonify_unified_success(message="触发器更新成功")
 
-    except Exception as e:
-        error_str = str(e) if e else "未知错误"
-        system_logger.error("更新任务触发器失败: %s", error_str)
-        return APIResponse.error(f"更新任务触发器失败: {error_str}")  # type: ignore
+    except NotFoundError:
+        raise
+    except ValidationError:
+        raise
+    except Exception as exc:
+        log_error("更新任务触发器失败", module="scheduler", job_id=job_id, error=str(exc))
+        raise SystemError("更新任务触发器失败") from exc
 
 
 def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | DateTrigger | None:
@@ -572,7 +616,7 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
             cron_kwargs["timezone"] = "Asia/Shanghai"
             return CronTrigger(**cron_kwargs)
         except Exception as e:  # noqa: BLE001
-            system_logger.error("CronTrigger 构建失败: %s", str(e))
+            log_error("CronTrigger 构建失败", module="scheduler", error=str(e))
             return None
 
     if trigger_type == "interval":
@@ -592,7 +636,7 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
         try:
             return IntervalTrigger(**kwargs)
         except Exception as e:  # noqa: BLE001
-            system_logger.error("IntervalTrigger 构建失败: %s", str(e))
+            log_error("IntervalTrigger 构建失败", module="scheduler", error=str(e))
             return None
 
     if trigger_type == "date":
@@ -614,7 +658,7 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
         try:
             return DateTrigger(run_date=dt)
         except Exception as e:  # noqa: BLE001
-            system_logger.error("DateTrigger 构建失败: %s", str(e))
+            log_error("DateTrigger 构建失败", module="scheduler", error=str(e))
             return None
 
     return None
@@ -627,16 +671,10 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
 @scheduler_bp.route("/api/health")
 @login_required
 @scheduler_view_required
-def get_scheduler_health():
+def get_scheduler_health() -> Response:
     """获取调度器健康状态"""
-    from app.utils.time_utils import time_utils
-    from app.utils.structlog_config import get_system_logger
-    
-    system_logger = get_system_logger()
-    
     try:
         scheduler = get_scheduler()
-
         report = scheduler_health_service.inspect(scheduler)
 
         jobstore_accessible = "jobstore_unreachable" not in report.warnings
@@ -656,8 +694,7 @@ def get_scheduler_health():
             health_score = max(0, health_score - 30)
         if report.total_jobs == 0 and report.scheduler_running and jobstore_accessible:
             health_score = max(health_score, 40)
-        
-        # 确定健康状态
+
         if health_score >= 80:
             status = "healthy"
             status_text = "健康"
@@ -671,9 +708,8 @@ def get_scheduler_health():
             status_text = "异常"
             status_color = "danger"
 
-        # 使用统一时区
         current_time = time_utils.now_china()
-        
+
         health_data = {
             "status": status,
             "status_text": status_text,
@@ -696,46 +732,21 @@ def get_scheduler_health():
                 for item in report.executors
             ],
             "warnings": report.warnings,
-            "last_check": current_time.strftime("%Y/%m/%d %H:%M:%S")
+            "last_check": current_time.strftime("%Y/%m/%d %H:%M:%S"),
         }
 
-        system_logger.info(
+        log_info(
             "调度器健康检查完成",
             module="scheduler",
             health_score=health_score,
             status=status,
             total_jobs=report.total_jobs,
             running_jobs=report.running_jobs,
-            executor_working=executor_working
+            executor_working=executor_working,
         )
 
-        return jsonify({
-            "success": True,
-            "data": health_data
-        })
+        return jsonify_unified_success(data=health_data, message="调度器健康检查完成")
 
-    except Exception as e:
-        system_logger.error(f"获取调度器健康状态失败: {e}", exc_info=True)
-        
-        # 计算部分分数，即使异常也提供有用信息
-        partial_score = 0
-        try:
-            if scheduler and scheduler.running:
-                partial_score += 30
-            if len(jobs) > 0:
-                partial_score += 25
-        except:
-            pass
-        
-        return jsonify({
-            "success": False,
-            "error": str(e),
-            "data": {
-                "status": "error",
-                "status_text": "检查失败",
-                "status_color": "danger",
-                "health_score": partial_score,
-                "last_check": time_utils.now_china().strftime("%Y/%m/%d %H:%M:%S")
-            }
-        })
-
+    except Exception as exc:
+        log_error("获取调度器健康状态失败", module="scheduler", error=str(exc))
+        raise SystemError("获取调度器健康状态失败") from exc
