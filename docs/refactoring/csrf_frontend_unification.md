@@ -1,4 +1,4 @@
-> 注意：本文件已被《统一改造执行计划》整合与编排。执行请以 `docs/refactoring/unified_refactoring_plan.md` 为准；本文件保留作专题说明与背景参考。
+
 
 # CSRF 与前端统一方案
 
