@@ -5,10 +5,12 @@
 from functools import wraps
 from typing import Any
 
-from flask import jsonify, request
+from flask import flash, redirect, request, url_for
 from flask_login import current_user
 
-from app.utils.structlog_config import get_system_logger
+from app.constants.system_constants import ErrorMessages
+from app.errors import AuthenticationError, AuthorizationError, ValidationError
+from app.utils.structlog_config import get_system_logger, should_log_debug
 
 
 def admin_required(f: Any) -> Any:  # noqa: ANN401
@@ -39,19 +41,17 @@ def admin_required(f: Any) -> Any:  # noqa: ANN401
                 failure_reason="not_authenticated",
             )
             if request.is_json:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "请先登录",
-                            "code": "UNAUTHORIZED",
-                        }
-                    ),
-                    401,
+                raise AuthenticationError(
+                    ErrorMessages.AUTHENTICATION_REQUIRED,
+                    message_key="AUTHENTICATION_REQUIRED",
+                    extra={
+                        "request_path": request.path,
+                        "request_method": request.method,
+                        "permission_type": "admin",
+                    },
                 )
-            from flask import flash, redirect, url_for
 
-            flash("请先登录", "warning")
+            flash(ErrorMessages.AUTHENTICATION_REQUIRED, "warning")
             return redirect(url_for("auth.login"))
 
         if not current_user.is_admin():
@@ -69,23 +69,22 @@ def admin_required(f: Any) -> Any:  # noqa: ANN401
                 failure_reason="insufficient_permissions",
             )
             if request.is_json:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "需要管理员权限",
-                            "code": "FORBIDDEN",
-                        }
-                    ),
-                    403,
+                raise AuthorizationError(
+                    ErrorMessages.ADMIN_PERMISSION_REQUIRED,
+                    message_key="ADMIN_PERMISSION_REQUIRED",
+                    extra={
+                        "request_path": request.path,
+                        "request_method": request.method,
+                        "permission_type": "admin",
+                        "user_role": current_user.role,
+                    },
                 )
-            from flask import flash, redirect, url_for
 
-            flash("需要管理员权限", "error")
+            flash(ErrorMessages.ADMIN_PERMISSION_REQUIRED, "error")
             return redirect(url_for("main.index"))
 
         # 只在调试模式下记录成功验证
-        if system_logger.isEnabledFor(10):  # DEBUG level
+        if should_log_debug():  # DEBUG level
             system_logger.debug(
                 "管理员权限验证通过",
                 module="decorators",
@@ -129,19 +128,17 @@ def scheduler_manage_required(f: Any) -> Any:  # noqa: ANN401
                 failure_reason="not_authenticated",
             )
             if request.is_json:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "请先登录",
-                            "code": "UNAUTHORIZED",
-                        }
-                    ),
-                    401,
+                raise AuthenticationError(
+                    ErrorMessages.AUTHENTICATION_REQUIRED,
+                    message_key="AUTHENTICATION_REQUIRED",
+                    extra={
+                        "request_path": request.path,
+                        "request_method": request.method,
+                        "permission_type": "scheduler_manage",
+                    },
                 )
-            from flask import flash, redirect, url_for
 
-            flash("请先登录", "warning")
+            flash(ErrorMessages.AUTHENTICATION_REQUIRED, "warning")
             return redirect(url_for("auth.login"))
 
         if not current_user.is_admin():
@@ -159,23 +156,22 @@ def scheduler_manage_required(f: Any) -> Any:  # noqa: ANN401
                 failure_reason="insufficient_permissions",
             )
             if request.is_json:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "需要管理员权限才能管理定时任务",
-                            "code": "FORBIDDEN",
-                        }
-                    ),
-                    403,
+                raise AuthorizationError(
+                    ErrorMessages.ADMIN_PERMISSION_REQUIRED,
+                    message_key="ADMIN_PERMISSION_REQUIRED",
+                    extra={
+                        "request_path": request.path,
+                        "request_method": request.method,
+                        "permission_type": "scheduler_manage",
+                        "user_role": current_user.role,
+                    },
                 )
-            from flask import flash, redirect, url_for
 
-            flash("需要管理员权限才能管理定时任务", "error")
+            flash(ErrorMessages.ADMIN_PERMISSION_REQUIRED, "error")
             return redirect(url_for("main.index"))
 
         # 只在调试模式下记录成功验证
-        if system_logger.isEnabledFor(10):  # DEBUG level
+        if should_log_debug():  # DEBUG level
             system_logger.debug(
                 "任务管理权限验证通过",
                 module="decorators",
@@ -219,23 +215,21 @@ def scheduler_view_required(f: Any) -> Any:  # noqa: ANN401
                 failure_reason="not_authenticated",
             )
             if request.is_json:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "请先登录",
-                            "code": "UNAUTHORIZED",
-                        }
-                    ),
-                    401,
+                raise AuthenticationError(
+                    ErrorMessages.AUTHENTICATION_REQUIRED,
+                    message_key="AUTHENTICATION_REQUIRED",
+                    extra={
+                        "request_path": request.path,
+                        "request_method": request.method,
+                        "permission_type": "scheduler_view",
+                    },
                 )
-            from flask import flash, redirect, url_for
 
-            flash("请先登录", "warning")
+            flash(ErrorMessages.AUTHENTICATION_REQUIRED, "warning")
             return redirect(url_for("auth.login"))
 
         # 只在调试模式下记录成功验证
-        if system_logger.isEnabledFor(10):  # DEBUG level
+        if should_log_debug():  # DEBUG level
             system_logger.debug(
                 "任务查看权限验证通过",
                 module="decorators",
@@ -278,23 +272,21 @@ def login_required(f: Any) -> Any:  # noqa: ANN401
                 failure_reason="not_authenticated",
             )
             if request.is_json:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "请先登录",
-                            "code": "UNAUTHORIZED",
-                        }
-                    ),
-                    401,
+                raise AuthenticationError(
+                    ErrorMessages.AUTHENTICATION_REQUIRED,
+                    message_key="AUTHENTICATION_REQUIRED",
+                    extra={
+                        "request_path": request.path,
+                        "request_method": request.method,
+                        "permission_type": "login",
+                    },
                 )
-            from flask import flash, redirect, url_for
 
-            flash("请先登录", "warning")
+            flash(ErrorMessages.AUTHENTICATION_REQUIRED, "warning")
             return redirect(url_for("auth.login"))
 
         # 只在调试模式下记录成功验证
-        if system_logger.isEnabledFor(10):  # DEBUG level
+        if should_log_debug():  # DEBUG level
             system_logger.debug(
                 "登录权限验证通过",
                 module="decorators",
@@ -323,9 +315,14 @@ def login_required_json(f: Any) -> Any:  # noqa: ANN401
     @wraps(f)
     def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
         if not current_user.is_authenticated:
-            return (
-                jsonify({"success": False, "message": "请先登录", "code": "UNAUTHORIZED"}),
-                401,
+            raise AuthenticationError(
+                ErrorMessages.AUTHENTICATION_REQUIRED,
+                message_key="AUTHENTICATION_REQUIRED",
+                extra={
+                    "request_path": request.path,
+                    "request_method": request.method,
+                    "permission_type": "login",
+                },
             )
 
         return f(*args, **kwargs)
@@ -371,42 +368,40 @@ def validate_json(required_fields: list[str] | None = None) -> Any:  # noqa: ANN
         @wraps(f)
         def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
             if not request.is_json:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "请求必须是JSON格式",
-                            "code": "INVALID_CONTENT_TYPE",
-                        }
-                    ),
-                    400,
+                raise ValidationError(
+                    ErrorMessages.JSON_REQUIRED,
+                    message_key="JSON_REQUIRED",
+                    extra={
+                        "request_path": request.path,
+                        "request_method": request.method,
+                    },
                 )
 
             data = request.get_json()
             if not data:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "请求数据不能为空",
-                            "code": "EMPTY_DATA",
-                        }
-                    ),
-                    400,
+                raise ValidationError(
+                    ErrorMessages.REQUEST_DATA_EMPTY,
+                    message_key="REQUEST_DATA_EMPTY",
+                    extra={
+                        "request_path": request.path,
+                        "request_method": request.method,
+                    },
                 )
 
             if required_fields:
                 missing_fields = [field for field in required_fields if field not in data]
                 if missing_fields:
-                    return (
-                        jsonify(
-                            {
-                                "success": False,
-                                "message": f"缺少必需字段: {', '.join(missing_fields)}",
-                                "code": "MISSING_FIELDS",
-                            }
-                        ),
-                        400,
+                    message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(
+                        fields=", ".join(missing_fields)
+                    )
+                    raise ValidationError(
+                        message,
+                        message_key="MISSING_REQUIRED_FIELDS",
+                        extra={
+                            "missing_fields": missing_fields,
+                            "request_path": request.path,
+                            "request_method": request.method,
+                        },
                     )
 
             return f(*args, **kwargs)
@@ -434,8 +429,7 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
 
             if not current_user.is_authenticated:
                 system_logger.warning(
-                    "未认证访问%s权限资源",
-                    permission,
+                    "未认证访问权限资源",
                     module="decorators",
                     user_id=None,
                     request_path=request.path,
@@ -446,26 +440,23 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
                     failure_reason="not_authenticated",
                 )
                 if request.is_json:
-                    return (
-                        jsonify(
-                            {
-                                "success": False,
-                                "message": "请先登录",
-                                "code": "UNAUTHORIZED",
-                            }
-                        ),
-                        401,
+                    raise AuthenticationError(
+                        ErrorMessages.AUTHENTICATION_REQUIRED,
+                        message_key="AUTHENTICATION_REQUIRED",
+                        extra={
+                            "request_path": request.path,
+                            "request_method": request.method,
+                            "permission_type": permission,
+                        },
                     )
-                from flask import flash, redirect, url_for
 
-                flash("请先登录", "warning")
+                flash(ErrorMessages.AUTHENTICATION_REQUIRED, "warning")
                 return redirect(url_for("auth.login"))
 
             # 检查权限
             if not has_permission(current_user, permission):
                 system_logger.warning(
-                    "权限不足访问%s权限资源",
-                    permission,
+                    "权限不足访问权限资源",
                     module="decorators",
                     user_id=current_user.id,
                     username=current_user.username,
@@ -478,26 +469,28 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
                     failure_reason="insufficient_permissions",
                 )
                 if request.is_json:
-                    return (
-                        jsonify(
-                            {
-                                "success": False,
-                                "message": f"需要{permission}权限",
-                                "code": "FORBIDDEN",
-                            }
-                        ),
-                        403,
+                    message = ErrorMessages.PERMISSION_REQUIRED.format(permission=permission)
+                    raise AuthorizationError(
+                        message,
+                        message_key="PERMISSION_REQUIRED",
+                        extra={
+                            "request_path": request.path,
+                            "request_method": request.method,
+                            "permission_type": permission,
+                            "user_role": current_user.role,
+                        },
                     )
-                from flask import flash, redirect, url_for
 
-                flash(f"需要{permission}权限", "error")
+                flash(
+                    ErrorMessages.PERMISSION_REQUIRED.format(permission=permission),
+                    "error",
+                )
                 return redirect(url_for("main.index"))
 
             # 只在调试模式下记录成功验证
-            if system_logger.isEnabledFor(10):  # DEBUG level
+            if should_log_debug():  # DEBUG level
                 system_logger.debug(
-                    "%s权限验证通过",
-                    permission,
+                    "权限验证通过",
                     module="decorators",
                     user_id=current_user.id,
                     username=current_user.username,

@@ -1,22 +1,20 @@
-"""
-实例统计 API 路由
-提供实例性能监控、连接统计、健康度分析等接口
-专注于实例层面的统计功能
-"""
+"""实例统计 API 路由"""
 
-import logging
-from datetime import datetime, date, timedelta
-from typing import List, Dict, Any, Optional
-from flask import Blueprint, request, jsonify, render_template, current_app
-from app.utils.time_utils import time_utils
-from flask_login import login_required, current_user
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+from flask import Blueprint, Response, current_app, render_template, request
+from flask_login import current_user, login_required
 from sqlalchemy import and_, desc, func, tuple_
+
+from app import db
+from app.errors import SystemError, ValidationError
 from app.models.instance import Instance
 from app.models.instance_size_stat import InstanceSizeStat
 from app.utils.decorators import view_required
-from app import db
-
-logger = logging.getLogger(__name__)
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
 
 # 创建蓝图
 instance_stats_bp = Blueprint('instance_stats', __name__)
@@ -71,7 +69,7 @@ def instance_aggregations():
 @instance_stats_bp.route('/api/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
 @login_required
 @view_required
-def get_instance_total_size(instance_id: int):
+def get_instance_total_size(instance_id: int) -> Response:
     """
     获取指定实例的数据库总大小（从InstanceSizeStat表获取）
     
@@ -92,37 +90,35 @@ def get_instance_total_size(instance_id: int):
         ).order_by(InstanceSizeStat.collected_date.desc()).first()
         
         if not latest_stat:
-            return jsonify({
-                'success': True,
+            payload = {
                 'total_size_mb': 0,
                 'database_count': 0,
-                'last_collected': None
-            })
+                'last_collected': None,
+            }
+            return jsonify_unified_success(data=payload, message="实例总大小获取成功")
         
         # 直接使用实例大小统计数据
         total_size_mb = latest_stat.total_size_mb
         database_count = latest_stat.database_count
         last_collected = latest_stat.collected_date
         
-        return jsonify({
-            'success': True,
+        payload = {
             'total_size_mb': total_size_mb,
             'database_count': database_count,
-            'last_collected': last_collected.isoformat() if last_collected else None
-        })
-        
-    except Exception as e:
-        logger.error(f"获取实例 {instance_id} 总大小失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+            'last_collected': last_collected.isoformat() if last_collected else None,
+        }
+        log_info("获取实例总大小成功", module="instance_stats", instance_id=instance_id)
+        return jsonify_unified_success(data=payload, message="实例总大小获取成功")
+
+    except Exception as exc:
+        log_error("获取实例总大小失败", module="instance_stats", instance_id=instance_id, error=str(exc))
+        raise SystemError("获取实例总大小失败") from exc
 
 
 @instance_stats_bp.route('/api/instance-options', methods=['GET'])
 @login_required
 @view_required
-def get_instance_options():
+def get_instance_options() -> Response:
     """
     提供实例下拉选项，支持按数据库类型过滤
     """
@@ -146,10 +142,11 @@ def get_instance_options():
             for instance in instances
         ]
 
-        return jsonify({'success': True, 'instances': options})
+        log_info("加载实例选项成功", module="instance_stats", count=len(options))
+        return jsonify_unified_success(data={'instances': options}, message="实例选项获取成功")
     except Exception as exc:
-        logger.error("加载实例选项失败: %s", exc)
-        return jsonify({'success': False, 'error': str(exc)}), 500
+        log_error("加载实例选项失败", module="instance_stats", error=str(exc))
+        raise SystemError("加载实例选项失败") from exc
 
 
 @instance_stats_bp.route('/api/instances/<int:instance_id>/performance', methods=['GET'])
@@ -180,20 +177,18 @@ def get_instance_performance(instance_id: int):
         ).order_by(InstanceSizeStat.collected_date).all()
         
         if not recent_stats:
-            return jsonify({
-                'success': True,
-                'data': {
-                    'instance_id': instance_id,
-                    'instance_name': instance.name,
-                    'db_type': instance.db_type,
-                    'total_size_mb': 0,
-                    'database_count': 0,
-                    'growth_rate': 0,
-                    'avg_daily_growth_mb': 0,
-                    'last_collected': None,
-                    'status': 'no_data'
-                }
-            })
+            payload = {
+                'instance_id': instance_id,
+                'instance_name': instance.name,
+                'db_type': instance.db_type,
+                'total_size_mb': 0,
+                'database_count': 0,
+                'growth_rate': 0,
+                'avg_daily_growth_mb': 0,
+                'last_collected': None,
+                'status': 'no_data',
+            }
+            return jsonify_unified_success(data={'performance': payload}, message="实例性能统计获取成功")
         
         # 计算性能指标
         total_size_mb = recent_stats[-1].total_size_mb
@@ -225,33 +220,35 @@ def get_instance_performance(instance_id: int):
         elif total_size_mb == 0:
             status = 'no_data'
         
-        return jsonify({
-            'success': True,
-            'data': {
-                'instance_id': instance_id,
-                'instance_name': instance.name,
-                'db_type': instance.db_type,
-                'total_size_mb': total_size_mb,
-                'database_count': database_count,
-                'growth_rate': growth_rate,
-                'avg_daily_growth_mb': avg_daily_growth_mb,
-                'last_collected': last_collected.isoformat() if last_collected else None,
-                'status': status
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"获取实例 {instance_id} 性能统计失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        payload = {
+            'instance_id': instance_id,
+            'instance_name': instance.name,
+            'db_type': instance.db_type,
+            'total_size_mb': total_size_mb,
+            'database_count': database_count,
+            'growth_rate': growth_rate,
+            'avg_daily_growth_mb': avg_daily_growth_mb,
+            'last_collected': last_collected.isoformat() if last_collected else None,
+            'status': status,
+        }
+
+        log_info(
+            "获取实例性能统计成功",
+            module="instance_stats",
+            instance_id=instance_id,
+            total_size_mb=total_size_mb,
+        )
+        return jsonify_unified_success(data={'performance': payload}, message="实例性能统计获取成功")
+
+    except Exception as exc:
+        log_error("获取实例性能统计失败", module="instance_stats", instance_id=instance_id, error=str(exc))
+        raise SystemError("获取实例性能统计失败") from exc
 
 
 @instance_stats_bp.route('/api/instances/<int:instance_id>/trends', methods=['GET'])
 @login_required
 @view_required
-def get_instance_trends(instance_id: int):
+def get_instance_trends(instance_id: int) -> Response:
     """
     获取指定实例的趋势数据
     
@@ -270,13 +267,12 @@ def get_instance_trends(instance_id: int):
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
-        # 计算日期范围
         if start_date and end_date:
             try:
                 start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
                 end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
-            except ValueError:
-                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+            except ValueError as exc:
+                raise ValidationError('Invalid date format. Use YYYY-MM-DD') from exc
         else:
             end_date_obj = time_utils.now_china().date()
             start_date_obj = end_date_obj - timedelta(days=days)
@@ -299,24 +295,23 @@ def get_instance_trends(instance_id: int):
                 'avg_size_mb': stat.total_size_mb / stat.database_count if stat.database_count > 0 else 0
             })
         
-        return jsonify({
-            'success': True,
-            'data': {
-                'instance_id': instance_id,
-                'instance_name': instance.name,
-                'db_type': instance.db_type,
-                'start_date': start_date_obj.isoformat(),
-                'end_date': end_date_obj.isoformat(),
-                'trends': trend_data
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"获取实例 {instance_id} 趋势数据失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        payload = {
+            'instance_id': instance_id,
+            'instance_name': instance.name,
+            'db_type': instance.db_type,
+            'start_date': start_date_obj.isoformat(),
+            'end_date': end_date_obj.isoformat(),
+            'trends': trend_data,
+        }
+
+        log_info("获取实例趋势数据成功", module="instance_stats", instance_id=instance_id, points=len(trend_data))
+        return jsonify_unified_success(data={'trends': payload}, message="实例趋势数据获取成功")
+
+    except ValidationError:
+        raise
+    except Exception as exc:
+        log_error("获取实例趋势数据失败", module="instance_stats", instance_id=instance_id, error=str(exc))
+        raise SystemError("获取实例趋势数据失败") from exc
 
 
 @instance_stats_bp.route('/api/instances/<int:instance_id>/health', methods=['GET'])

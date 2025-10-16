@@ -3,19 +3,21 @@
 专注于数据同步功能，不包含统计功能
 """
 
-import logging
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Any, Optional
-from flask import Blueprint, request, jsonify, current_app, render_template
-from app.utils.time_utils import time_utils
-from flask_login import login_required, current_user
+
+from flask import Blueprint, Response, current_app, jsonify, render_template, request
+from flask_login import current_user, login_required
 from sqlalchemy import and_, desc, func
+
+from app import db
+from app.errors import SystemError
 from app.models.instance import Instance
 from app.services.database_size_collector_service import collect_all_instances_database_sizes
 from app.utils.decorators import view_required
-from app import db
-
-logger = logging.getLogger(__name__)
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
 
 # 创建蓝图
 storage_sync_bp = Blueprint('storage_sync', __name__)
@@ -45,20 +47,21 @@ def storage_sync():
 @storage_sync_bp.route('/api/test_connection', methods=['POST'])
 @login_required
 @view_required
-def test_connection():
+def test_connection() -> Response:
     """
     测试数据库连接（已弃用，请使用 /connections/api/test）
     """
-    return jsonify({
-        'success': False,
-        'error': '此API已弃用，请使用 /connections/api/test'
-    }), 410
+    return jsonify_unified_success(
+        data={'deprecated': True},
+        message='此API已弃用，请使用 /connections/api/test',
+        status=410,
+    )
 
 
 @storage_sync_bp.route('/api/instances', methods=['GET'])
 @login_required
 @view_required
-def get_instances():
+def get_instances() -> Response:
     """
     获取实例列表
     
@@ -79,22 +82,16 @@ def get_instances():
                 'is_active': instance.is_active
             })
         
-        return jsonify({
-            'success': True,
-            'data': data
-        })
-        
-    except Exception as e:
-        logger.error(f"获取实例列表失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify_unified_success(data={'instances': data}, message='实例列表获取成功')
+
+    except Exception as exc:
+        log_error("获取实例列表失败", module="storage_sync", error=str(exc))
+        raise SystemError("获取实例列表失败") from exc
 
 
 @storage_sync_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=["POST"])
 @view_required("instance_management.instance_list.sync_capacity")
-def sync_instance_capacity(instance_id: int):
+def sync_instance_capacity(instance_id: int) -> Response:
     """
     同步指定实例的容量信息
 
@@ -106,15 +103,14 @@ def sync_instance_capacity(instance_id: int):
     """
     try:
         instance = Instance.query.get_or_404(instance_id)
-        logger.info(
+        log_info(
             "用户操作: 开始同步容量",
-            extra={
-                "operation": "sync_capacity",
-                "instance_id": instance.id,
-                "instance_name": instance.name,
-                "action": "开始同步容量",
-                "user_action": True,
-            },
+            module="storage_sync",
+            operation="sync_capacity",
+            instance_id=instance.id,
+            instance_name=instance.name,
+            action="开始同步容量",
+            user_action=True,
         )
 
         # 触发指定实例的容量同步
@@ -123,40 +119,36 @@ def sync_instance_capacity(instance_id: int):
         result = collect_specific_instance_database_sizes(instance_id)
 
         if result and result.get("success"):
-            logger.info(
+            log_info(
                 "同步实例容量成功",
-                extra={
-                    "instance_id": instance.id,
-                    "instance_name": instance.name,
-                    "action": "同步容量成功",
-                    "user_action": True,
-                },
+                module="storage_sync",
+                instance_id=instance.id,
+                instance_name=instance.name,
+                action="同步容量成功",
+                user_action=True,
             )
-            return jsonify({
-                'success': True,
-                'message': f'实例 {instance.name} 的容量同步任务已成功完成',
-                'data': result
-            })
-        else:
-            logger.warning(
-                "同步实例容量失败",
-                extra={
-                    "instance_id": instance.id,
-                    "instance_name": instance.name,
-                    "action": "同步容量失败",
-                    "user_action": True,
-                    "result": result,
-                },
+            return jsonify_unified_success(
+                data={'result': result},
+                message=f'实例 {instance.name} 的容量同步任务已成功完成',
             )
-            return jsonify({
-                'success': False,
-                'message': f'实例 {instance.name} 的容量同步失败: {result.get("message", "未知错误")}',
-                'error': result.get('error', '任务返回失败状态但没有提供错误信息。')
-            }), 400
+
+        log_warning(
+            "同步实例容量失败",
+            module="storage_sync",
+            instance_id=instance.id,
+            instance_name=instance.name,
+            action="同步容量失败",
+            user_action=True,
+            result=result,
+        )
+        error_message = result.get("message") or result.get("error") or "实例容量同步失败"
+        raise SystemError(error_message)
         
-    except Exception as e:
-        logger.error(f"同步实例 {instance_id} 容量失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+    except Exception as exc:
+        log_error(
+            "同步实例容量失败",
+            module="storage_sync",
+            instance_id=instance_id,
+            error=str(exc),
+        )
+        raise SystemError("同步实例容量失败") from exc
