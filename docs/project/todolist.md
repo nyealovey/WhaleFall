@@ -424,3 +424,33 @@
 **最后更新**: 2025-01-27
 **更新人**: 鲸落开发团队
 **项目版本**: v1.0.1 (最终版本)
+
+## ♻️ 重构任务（代码重复与功能耦合优化）
+
+### P0 高优先级
+- [ ] 引入 `@handle_errors` 装饰器并应用核心路由（责任文件：`app/utils/decorators.py`、`app/utils/structlog_config.py`、`app/routes/users.py`、`app/routes/instances.py`、`app/routes/scheduler.py`、`app/routes/logs.py`、`app/routes/database_stats.py`、`app/routes/instance_stats.py`；依赖：无）
+- [ ] 统一请求校验装饰器 `@validate(schema)`，替换路由手写校验（责任文件：`app/utils/validation.py`、`app/utils/data_validator.py`、`app/utils/decorators.py`、`app/routes/*.py`；依赖：任务「@handle_errors」）
+- [ ] 统一 CSRF 管理器并删除重复实现（责任文件：`app/static/js/common/csrf-utils.js`、`app/static/js/pages/**/*.js`；依赖：无）
+- [ ] 构建 `StatisticsService` 并迁移统计计算到服务层（责任文件：`app/services/statistics_service.py`（新增）、`app/services/database_size_aggregation_service.py`、`app/services/database_size_collector_service.py`、`app/routes/database_stats.py`、`app/routes/instance_stats.py`；依赖：`@validate(schema)`）
+
+### P1 中优先级
+- [ ] 统一缓存入口 `CacheFacade` 与键/TTL 规范（责任文件：`app/utils/cache_manager.py`、`app/services/cache_manager.py`；依赖：`StatisticsService`、`@handle_errors`）
+- [ ] 完善 `ConnectionFactory/Facade`，替换适配器内连接管理（责任文件：`app/services/connection_factory.py`、`app/utils/db_context.py`、`app/services/sync_adapters/*`；依赖：`@handle_errors`）
+- [ ] 统一查询构建与分页 DTO（责任文件：`app/utils/safe_query_builder.py`（新增）、`app/routes/logs.py`、`app/routes/instances.py`、`app/routes/credentials.py`、`app/routes/sync_sessions.py`、`app/models/unified_log.py`；依赖：`@validate(schema)`）
+- [ ] 统计 DTO/契约统一并更新前端（责任文件：`app/services/statistics_service.py`、`app/routes/*`（统计相关）、`app/static/js/pages/**/instance_aggregations.js`、`app/static/js/pages/**/database_aggregations.js`、`docs/api/README.md`；依赖：`StatisticsService`、分页 DTO）
+
+### P2 低优先级
+- [ ] 权限快照下发与前端只读渲染（责任文件：`app/models/permission_config.py`、`app/utils/decorators.py`、`app/static/js/common/permission-modal.js`、`app/static/js/common/permission-viewer.js`、`app/static/js/components/permission-button.js`；依赖：`@handle_errors`、`@validate(schema)`）
+- [ ] 标准化时间处理工具与格式常量（责任文件：`app/utils/time_utils.py`、`app/static/js/common/time-utils.js`、`app/routes/aggregations.py`、`app/services/*`；依赖：`StatisticsService`）
+- [ ] 日志上下文字段统一，移除冗余 logger 使用（责任文件：`app/utils/structlog_config.py`、清理引用 `app/utils/logging_config.py`、应用于 `app/routes/*.py`、`app/services/*.py`；依赖：`@handle_errors`）
+- [ ] 抽取 `SyncAdapter` 基类公共逻辑（责任文件：`app/services/sync_adapters/base_sync_adapter.py`（新增）、`app/services/sync_adapters/*`；依赖：`ConnectionFacade`）
+
+——
+排期建议：按 P0 → P1 → P2 顺序推进；每项完成后勾选并在提交信息中注明覆盖文件与改动摘要。
+
+### 执行前检查清单（Fail-fast）
+- [ ] 在 CI 中新增路由错误响应快照测试（覆盖 `users/instances/scheduler/logs/database_stats/instance_stats`）
+- [ ] 在 CI 中新增 `@validate(schema)` 的契约测试，含必填/类型/范围校验
+- [ ] 对 `StatisticsService` 的 3 个示例端点进行契约与分页 DTO 测试
+- [ ] 统一 CSRF 入口后，抽样页面进行 POST/PUT/DELETE 提交测试
+- [ ] 为 `ConnectionFacade` 增加失败重试与错误映射的单元测试覆盖
