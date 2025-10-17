@@ -5,6 +5,7 @@
 
 import contextlib
 import logging
+import os
 import sys
 import threading
 import time
@@ -37,6 +38,16 @@ _debug_logging_enabled = False
 
 # 全局上下文绑定
 _global_context = {}
+
+
+def _coerce_truthy(value: Any, *, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
 
 
 class SQLAlchemyLogHandler:
@@ -360,6 +371,8 @@ class StructlogConfig:
 
     def _filter_log_level(self, logger, method_name, event_dict):
         """过滤日志级别，只允许INFO及以上级别"""
+        if _debug_logging_enabled:
+            return event_dict
         # 获取日志级别
         level = event_dict.get("level", "INFO")
 
@@ -459,6 +472,14 @@ def get_logger(name: str) -> structlog.BoundLogger:
 def configure_structlog(app):
     """配置应用的结构化日志"""
     structlog_config.configure(app)
+    debug_enabled = _coerce_truthy(
+        app.config.get("STRUCTLOG_DEBUG", os.getenv("STRUCTLOG_DEBUG")),
+        default=False,
+    )
+    log_level = str(app.config.get("LOG_LEVEL", os.getenv("LOG_LEVEL", "INFO"))).upper()
+    if log_level == "DEBUG":
+        debug_enabled = True
+    set_debug_logging_enabled(enabled=debug_enabled)
 
     # 注册关闭处理器
     @app.teardown_appcontext
@@ -472,34 +493,7 @@ def set_debug_logging_enabled(*, enabled: bool) -> None:
     global _debug_logging_enabled
     _debug_logging_enabled = enabled
 
-    # 更新所有日志记录器的级别
-    if enabled:
-        logging.getLogger().setLevel(logging.DEBUG)
-        # 更新structlog配置
-        structlog.configure(
-            processors=[
-                # 1. 过滤日志级别（只允许INFO及以上级别）
-                structlog_config._filter_log_level,
-                structlog.stdlib.filter_by_level,
-                structlog.stdlib.add_logger_name,
-                structlog.stdlib.add_log_level,
-                structlog.stdlib.PositionalArgumentsFormatter(),
-                structlog.processors.TimeStamper(fmt="iso"),
-                structlog.processors.StackInfoRenderer(),
-                structlog.processors.format_exc_info,
-                structlog.processors.UnicodeDecoder(),
-                structlog_config._get_handler(),
-                structlog.processors.JSONRenderer(),
-            ],
-            context_class=dict,
-            logger_factory=structlog.stdlib.LoggerFactory(),
-            wrapper_class=structlog.stdlib.BoundLogger,
-            cache_logger_on_first_use=True,
-        )
-    else:
-        logging.getLogger().setLevel(logging.INFO)
-        # 恢复原始structlog配置
-        structlog_config.configure()
+    logging.getLogger().setLevel(logging.DEBUG if enabled else logging.INFO)
 
 
 def is_debug_logging_enabled() -> bool:

@@ -183,7 +183,7 @@
         - `app` (Flask): Flask 应用实例。
 
 - **`set_debug_logging_enabled(enabled)`**:
-    - **描述**: 动态地启用或禁用 DEBUG 级别的日志记录。
+    - **描述**: 设置调试日志开关；框架会根据 `STRUCTLOG_DEBUG` 或 `LOG_LEVEL=DEBUG` 自动调用，一般无需手动使用。
     - **参数**:
         - `enabled` (bool): 是否启用 DEBUG 日志。
 
@@ -200,7 +200,7 @@
 - **`log_critical(message, module="app", exception=None, **kwargs)`**:
     - **描述**: 记录一条严重错误级别的日志。
 - **`log_debug(message, module="app", **kwargs)`**:
-    - **描述**: 记录一条调试级别的日志（仅在启用时）。
+    - **描述**: 记录一条调试级别的日志；仅当调试开关开启或 `LOG_LEVEL=DEBUG` 时生效。
 
 ### 专用日志记录器
 
