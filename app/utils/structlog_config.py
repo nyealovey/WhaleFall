@@ -32,9 +32,6 @@ from app.utils.time_utils import time_utils
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
 user_id_var: ContextVar[int | None] = ContextVar("user_id", default=None)
 
-# 全局日志级别控制
-_debug_logging_enabled = False
-
 # 全局上下文绑定
 _global_context = {}
 
@@ -467,49 +464,9 @@ def configure_structlog(app):
             get_logger("app").error("Application error", module="system", exception=str(exception))
 
 
-def set_debug_logging_enabled(*, enabled: bool) -> None:
-    """设置DEBUG日志开关"""
-    global _debug_logging_enabled
-    _debug_logging_enabled = enabled
-
-    # 更新所有日志记录器的级别
-    if enabled:
-        logging.getLogger().setLevel(logging.DEBUG)
-        # 更新structlog配置
-        structlog.configure(
-            processors=[
-                # 1. 过滤日志级别（只允许INFO及以上级别）
-                structlog_config._filter_log_level,
-                structlog.stdlib.filter_by_level,
-                structlog.stdlib.add_logger_name,
-                structlog.stdlib.add_log_level,
-                structlog.stdlib.PositionalArgumentsFormatter(),
-                structlog.processors.TimeStamper(fmt="iso"),
-                structlog.processors.StackInfoRenderer(),
-                structlog.processors.format_exc_info,
-                structlog.processors.UnicodeDecoder(),
-                structlog_config._get_handler(),
-                structlog.processors.JSONRenderer(),
-            ],
-            context_class=dict,
-            logger_factory=structlog.stdlib.LoggerFactory(),
-            wrapper_class=structlog.stdlib.BoundLogger,
-            cache_logger_on_first_use=True,
-        )
-    else:
-        logging.getLogger().setLevel(logging.INFO)
-        # 恢复原始structlog配置
-        structlog_config.configure()
-
-
-def is_debug_logging_enabled() -> bool:
-    """检查DEBUG日志是否启用"""
-    return _debug_logging_enabled
-
-
 def should_log_debug() -> bool:
     """检查是否应该记录DEBUG日志"""
-    return _debug_logging_enabled
+    return False
 
 
 # 便捷函数
@@ -616,40 +573,6 @@ def clear_request_context() -> None:
     """清除请求上下文"""
     request_id_var.set(None)
     user_id_var.set(None)
-
-
-# 上下文管理器
-class LogContext:
-    """日志上下文管理器"""
-
-    def __init__(self, **kwargs):
-        self.context = kwargs
-        self.old_context = {}
-
-    def __enter__(self):
-        global _global_context
-        self.old_context = _global_context.copy()
-        _global_context.update(self.context)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        global _global_context
-        _global_context.clear()
-        _global_context.update(self.old_context)
-
-
-# 装饰器用于自动绑定上下文
-def with_log_context(**context):
-    """装饰器：为函数自动绑定日志上下文"""
-
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            with LogContext(**context):
-                return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 # 错误处理增强功能
@@ -895,21 +818,5 @@ def error_handler(func: Callable):
             payload = enhanced_error_handler(error, context)
             status_code = map_exception_to_status(error, default=500)
             return jsonify(payload), status_code
-
-    return wrapper
-
-
-def error_monitor(func: Callable):
-    """仅记录异常信息并继续抛出的装饰器"""
-
-    from functools import wraps
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as error:
-            enhanced_error_handler(error, ErrorContext(error))
-            raise
 
     return wrapper

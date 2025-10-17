@@ -11,7 +11,7 @@
 
 ## 2. 模块职责拆分
 - `app/utils/structlog_config.py`
-  - 只负责 structlog 初始化、logger 工厂、上下文绑定与装饰器（`log_*` / `get_*_logger` / `error_monitor` 等）。
+- 只负责 structlog 初始化、logger 工厂、上下文绑定与装饰器（`log_*` / `get_*_logger` 等）。
   - 不定义业务异常、枚举或错误响应结构；相关常量通过参数注入或从常量模块引用。
 - `app/utils/response_utils.py`（新增）
   - 提供 `unified_success_response`、`unified_error_response` 等响应构造函数，专注于 JSON 结构和默认字段。
