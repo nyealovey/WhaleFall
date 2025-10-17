@@ -7,7 +7,7 @@ from flask_login import login_required
 from sqlalchemy import and_, desc, func, or_
 
 from app import db
-from app.errors import SystemError, ValidationError
+from app.errors import SystemError, ValidationError as AppValidationError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
@@ -88,6 +88,17 @@ def get_aggregations_summary() -> Response:
 @aggregations_bp.route('/api/manual_aggregate', methods=['POST'])
 @login_required
 @view_required
+def _normalize_task_result(result: dict | None, *, context: str) -> dict:
+    if not result:
+        raise SystemError(f"{context}任务返回为空")
+    if not result.get('success', True):
+        raise SystemError(result.get('message') or f"{context}执行失败")
+    normalized = dict(result)
+    normalized.pop('success', None)
+    normalized.setdefault('status', 'completed')
+    return normalized
+
+
 def manual_aggregate() -> Response:
     """
     手动触发聚合计算
@@ -105,7 +116,7 @@ def manual_aggregate() -> Response:
             try:
                 instance_id = int(instance_id)
             except (TypeError, ValueError) as exc:
-                raise ValidationError("实例ID必须为整数") from exc
+                raise AppValidationError("实例ID必须为整数") from exc
 
             service = DatabaseSizeAggregationService()
             if period_type in valid_periods:
@@ -115,24 +126,16 @@ def manual_aggregate() -> Response:
                     'monthly': service.calculate_monthly_aggregations_for_instance,
                     'quarterly': service.calculate_quarterly_aggregations_for_instance,
                 }
-                result = func_map[period_type](instance_id)
+                raw_result = func_map[period_type](instance_id)
             else:
-                result = calculate_instance_aggregations(instance_id)
+                raw_result = calculate_instance_aggregations(instance_id)
         else:
             if period_type in valid_periods:
-                result = calculate_database_size_aggregations(manual_run=True, periods=[period_type])
+                raw_result = calculate_database_size_aggregations(manual_run=True, periods=[period_type])
             else:
-                result = calculate_database_size_aggregations(manual_run=True)
+                raw_result = calculate_database_size_aggregations(manual_run=True)
 
-        if not result.get('success', True):
-            log_warning(
-                "手动聚合任务返回失败",
-                module="aggregations",
-                period_type=period_type,
-                instance_id=instance_id,
-                result=result,
-            )
-            raise SystemError(result.get('message') or "聚合计算任务执行失败")
+        result = _normalize_task_result(raw_result, context="聚合计算")
 
         log_info(
             "手动聚合任务已触发",
@@ -146,7 +149,7 @@ def manual_aggregate() -> Response:
             message=result.get('message', '聚合计算任务已触发'),
         )
 
-    except ValidationError:
+    except AppValidationError:
         raise
     except Exception as exc:
         log_error("手动触发聚合计算失败", module="aggregations", error=str(exc))
@@ -167,19 +170,13 @@ def aggregate() -> Response:
         period_type = (data.get('period_type') or 'all').lower()
         valid_periods = {'daily', 'weekly', 'monthly', 'quarterly'}
 
-        if period_type in valid_periods:
-            result = calculate_database_size_aggregations(manual_run=True, periods=[period_type])
-        else:
-            result = calculate_database_size_aggregations(manual_run=True)
+        raw_result = (
+            calculate_database_size_aggregations(manual_run=True, periods=[period_type])
+            if period_type in valid_periods
+            else calculate_database_size_aggregations(manual_run=True)
+        )
 
-        if not result.get('success', True):
-            log_warning(
-                "统计聚合任务返回失败",
-                module="aggregations",
-                period_type=period_type,
-                result=result,
-            )
-            raise SystemError(result.get('message') or "统计聚合任务执行失败")
+        result = _normalize_task_result(raw_result, context="统计聚合")
 
         log_info("统计聚合任务已触发", module="aggregations", period_type=period_type)
 
@@ -204,15 +201,8 @@ def aggregate_today() -> Response:
     """
     try:
         # 触发今日数据聚合（只执行日聚合）
-        result = calculate_database_size_aggregations(manual_run=True, periods=['daily'])
-
-        if not result.get('success', True):
-            log_warning(
-                "今日数据聚合任务返回失败",
-                module="aggregations",
-                result=result,
-            )
-            raise SystemError(result.get('message') or "今日数据聚合任务执行失败")
+        raw_result = calculate_database_size_aggregations(manual_run=True, periods=['daily'])
+        result = _normalize_task_result(raw_result, context="今日聚合")
 
         log_info("今日数据聚合任务已触发", module="aggregations")
 

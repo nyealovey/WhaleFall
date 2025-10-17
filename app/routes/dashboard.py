@@ -6,17 +6,19 @@
 from datetime import datetime, timedelta, date
 
 import psutil
-from flask import Blueprint, Response, jsonify, render_template, request
+from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
 from sqlalchemy import and_, distinct, func, or_, text, case
 
 from app import db
+from app.constants.system_constants import SuccessMessages
 from app.models.instance import Instance
 from app.models.current_account_sync_data import CurrentAccountSyncData
 
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.user import User
 from app.utils.cache_manager import dashboard_cache
+from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import CHINA_TZ, time_utils
 from app.scheduler import get_scheduler
@@ -45,12 +47,13 @@ def index() -> str:
     # 记录操作日志（仅记录重要操作）
 
     if request.is_json:
-        return jsonify(
-            {
+        return jsonify_unified_success(
+            data={
                 "overview": overview_data,
                 "charts": chart_data,
                 "status": system_status,
-            }
+            },
+            message=SuccessMessages.OPERATION_SUCCESS,
         )
 
     return render_template(
@@ -81,7 +84,10 @@ def api_overview() -> "Response":
     #     duration_ms=duration,
     # )
 
-    return jsonify(overview)
+    return jsonify_unified_success(
+        data=overview,
+        message=SuccessMessages.OPERATION_SUCCESS,
+    )
 
 
 @dashboard_bp.route("/api/charts")
@@ -105,14 +111,20 @@ def api_charts() -> "Response":
     #     duration_ms=duration,
     # )
 
-    return jsonify(charts)
+    return jsonify_unified_success(
+        data=charts,
+        message=SuccessMessages.OPERATION_SUCCESS,
+    )
 
 
 @dashboard_bp.route("/api/activities")
 @login_required
 def api_activities() -> "Response":
     """获取最近活动API - 已废弃，返回空数据"""
-    return jsonify([])
+    return jsonify_unified_success(
+        data=[],
+        message=SuccessMessages.OPERATION_SUCCESS,
+    )
 
 
 @dashboard_bp.route("/api/status")
@@ -123,7 +135,10 @@ def api_status() -> "Response":
 
     # 移除用户查看操作的日志记录
 
-    return jsonify(status)
+    return jsonify_unified_success(
+        data=status,
+        message=SuccessMessages.OPERATION_SUCCESS,
+    )
 
 
 @dashboard_cache(timeout=300)
