@@ -1,110 +1,250 @@
-> 注意：本文件已被《统一改造执行计划》整合与编排。执行请以 `docs/refactoring/unified_refactoring_plan.md` 为准；本文件保留作专题说明与背景参考。
-
 # 请求校验与参数统一方案
 
-目标
-- 保留并统一两类校验入口：`app/utils/data_validator.py`（严格领域校验）与 `app/utils/validation.py`（通用输入校验）。
-- 使用 `app/utils/decorators.py` 中的 `validate_json(required_fields=[...])` 作为 JSON 写接口的必填字段检查入口。
-- 统一查询参数命名模式：`q`、`sort_by`、`order`、`page`、`per_page`。
+## 目标
+- 统一使用 `app/utils/data_validator.py` 进行严格的领域数据校验
+- 使用 `app/utils/decorators.py` 中的 `validate_json(required_fields=[...])` 作为 JSON 接口的必填字段检查
+- 统一查询参数命名模式：`q`、`sort_by`、`order`、`page`、`per_page`
+- 统一错误处理机制，通过异常抛出交由全局错误处理器处理
 
-现状与差异（审计结论）
-- 装饰器：`validate_json` 已实现，返回形如 `{"success": False, "message": "...", "code": "..."}` 的 JSON 响应；`login_required_json` 存在但在路由中未使用。
-- 校验器：路由中已广泛使用 `DataValidator`（如 `instances.py` 的创建/编辑/批量接口），`InputValidator` 多为通用方法，目前在路由中直接使用较少；`security.py` 的 `sanitize_form_data`、`validate_required_fields` 也被用于表单场景。
-- 错误返回：路由常见为内联 `jsonify({"error": "..."})`，全局错误处理器 `error_handler.py` 会将异常统一为 `{"error": message, "status_code": code, "timestamp": ...}`；`APIResponse` 工具存在但在路由中并不主用。
-- 查询参数：多数路由已统一使用 `page`/`per_page`（默认 10 或 20）；`logs.py` 使用 `q`、`sort_by`、`order`，其命名契合统一方案。
-- 扩展装饰器：`validate_json_types`、`validate_query` 未实现，当前仅作为规划项。
+## 当前实现状态（2025-10-17）
 
-统一参数命名
-- 搜索关键字：`q`（查询关键字）、`sort_by`、`order`（asc/desc）、`page`、`per_page`。
-- 路径参数统一命名：`<int:instance_id>`, `<int:credential_id>`, `<int:account_id>`。
-- 默认值建议：`page=1`，`per_page` 建议默认 `20`、最大 `100`（现状存在 `10/20/50` 的差异，迁移期保持兼容）。
+### 装饰器实现
+- ✅ `validate_json(required_fields=[...])` 已完整实现
+  - 检查请求是否为JSON格式
+  - 验证JSON数据是否为空
+  - 检查必填字段是否存在
+  - 失败时抛出 `ValidationError` 异常，由全局错误处理器统一处理
+- ✅ `login_required_json` 已实现，抛出 `AuthenticationError` 异常
+- ✅ 权限相关装饰器已完善，支持JSON和表单两种响应模式
 
-统一校验与返回（建议与兼容策略）
-- JSON 写接口入口统一使用 `@validate_json(required_fields=[...])`：
-  - 当 `Content-Type` 为 `application/json` 时启用；检查 JSON 体存在与必填字段。
-  - 失败返回当前实现的 JSON 结构：`{"success": False, "message": "...", "code": "..."}`（短期兼容）。
-  - 中长期目标：在校验失败时抛出 `abort(400)` 或业务异常，交由全局错误处理器统一为 `{"error": message, "status_code": 400, "timestamp": ...}`。
-- 领域校验优先使用 `DataValidator`，通用类型/范围/布尔转换可使用 `InputValidator`：
-  - 布尔转换：`InputValidator.validate_boolean(value)`。
-  - 整数范围：`InputValidator.validate_integer(value, min_val=..., max_val=...)`。
-  - 时间解析：`app/utils/time_utils.py` 的 `time_utils.to_utc(...)` 等。
+### 数据校验器实现
+- ✅ `DataValidator` 已完整实现，提供严格的领域数据校验
+  - 支持实例数据验证：`validate_instance_data()`
+  - 支持批量数据验证：`validate_batch_data()`
+  - 提供数据清理功能：`sanitize_input()`
+  - 已在 `instances.py` 路由中广泛使用
+- ❌ `InputValidator` 通用校验器未实现（文档中提到但代码中不存在）
 
-代码示例（对齐现状，并给出演进方向）
+### 错误处理机制
+- ✅ 全局错误处理器已实现，统一返回格式：`{"error": message, "status_code": code, "timestamp": ...}`
+- ✅ 自定义异常类已实现：`ValidationError`、`AuthenticationError`、`AuthorizationError`
+- ✅ 路由中已开始使用异常抛出机制替代内联JSON返回
+
+### 查询参数统一状态
+- ✅ 分页参数已基本统一：`page`、`per_page`
+- ✅ 搜索参数部分统一：`logs.py` 使用 `q`，其他路由多使用 `search`
+- ⚠️ 默认值存在差异：
+  - `per_page` 默认值：10（instances, credentials, users）、20（account, tags, sync_sessions）、50（logs）
+  - 需要统一为20，最大值100
+- ✅ 路径参数命名已规范：`<int:instance_id>`、`<int:credential_id>` 等
+
+## 统一参数命名规范
+
+### 查询参数
+- **搜索关键字**：`q`（推荐）或 `search`（兼容现有）
+- **排序参数**：`sort_by`、`order`（asc/desc）
+- **分页参数**：`page`（默认1）、`per_page`（默认20，最大100）
+- **筛选参数**：`status`、`type`、`category` 等
+
+### 路径参数
+- **实例相关**：`<int:instance_id>`
+- **凭据相关**：`<int:credential_id>`
+- **账户相关**：`<int:account_id>`
+- **用户相关**：`<int:user_id>`
+
+## 统一校验与返回机制
+
+### JSON接口校验
+- ✅ 使用 `@validate_json(required_fields=[...])` 装饰器
+  - 自动检查 `Content-Type` 为 `application/json`
+  - 验证JSON数据存在且不为空
+  - 检查必填字段完整性
+  - 失败时抛出 `ValidationError` 异常
+
+### 数据校验层次
+1. **基础校验**：`@validate_json` 装饰器（必填字段、JSON格式）
+2. **领域校验**：`DataValidator.validate_instance_data()` 等（业务规则）
+3. **数据清理**：`DataValidator.sanitize_input()` （去除空格、类型转换）
+
+### 错误处理流程
 ```python
-from flask import request, jsonify
-from app.utils.decorators import validate_json
-from app.utils.data_validator import DataValidator
-
-@validate_json(required_fields=["name", "db_type", "host", "port"])
-def create_instance_api():
-    # 进入时保证 JSON 体与必填字段存在
-    data = request.get_json() or {}
-
-    # 严格领域校验（现状做法）
-    is_valid, error_msg = DataValidator.validate_instance_data(data)
-    if not is_valid:
-        return jsonify({"error": error_msg}), 400
-
-    # TODO（演进）：统一抛出错误，交由全局错误处理器返回一致结构
-    # from flask import abort
-    # if not is_valid:
-    #     abort(400, description=error_msg)
-
-    # 通过后执行业务逻辑 ...
-    return jsonify({"message": "实例创建成功"}), 201
+# 1. 装饰器校验失败 → ValidationError → 全局错误处理器
+# 2. 业务校验失败 → ValidationError → 全局错误处理器  
+# 3. 统一返回格式：{"error": message, "status_code": 400, "timestamp": "..."}
 ```
 
-查询参数校验示例（上限兼容与统一建议）
+## 代码示例
+
+### 标准JSON接口实现（当前最佳实践）
+```python
+from flask import request
+from app.utils.decorators import validate_json, view_required
+from app.utils.data_validator import DataValidator
+from app.errors import ValidationError
+from app.utils.response_utils import jsonify_unified_success
+
+@validate_json(required_fields=["name", "db_type", "host", "port"])
+@view_required
+def create_instance_api():
+    """创建实例API - 标准实现"""
+    # 装饰器已确保JSON格式和必填字段存在
+    data = request.get_json()
+    
+    # 数据清理
+    data = DataValidator.sanitize_input(data)
+    
+    # 严格领域校验
+    is_valid, error_msg = DataValidator.validate_instance_data(data)
+    if not is_valid:
+        raise ValidationError(error_msg)  # 抛出异常，由全局错误处理器处理
+    
+    # 执行业务逻辑
+    # ... 创建实例逻辑 ...
+    
+    return jsonify_unified_success(message="实例创建成功")
+```
+
+### 查询参数处理示例
 ```python
 from flask import request
 
-def list_logs_api():
-    # 已有路由示例：logs.py
+@view_required
+def list_instances_api():
+    """实例列表API - 统一参数处理"""
+    # 分页参数（统一默认值）
     page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 50, type=int)  # 现状为 50
-    q = request.args.get("q", "").strip()
-    sort_by = request.args.get("sort_by", "timestamp")
+    per_page = min(request.args.get("per_page", 20, type=int), 100)  # 统一默认20，最大100
+    
+    # 搜索参数（兼容两种命名）
+    search = request.args.get("q", request.args.get("search", "")).strip()
+    
+    # 排序参数
+    sort_by = request.args.get("sort_by", "created_at")
     order = request.args.get("order", "desc")
-
-    # 建议：统一 per_page 上限（如 100），保留现状默认值，迁移期逐步收敛
-    per_page = min(per_page, 100)
-    # ... 继续执行业务逻辑
+    
+    # 筛选参数
+    db_type = request.args.get("db_type", "")
+    status = request.args.get("status", "")
+    
+    # 参数验证
+    if page < 1:
+        raise ValidationError("页码必须大于0")
+    if order not in ["asc", "desc"]:
+        raise ValidationError("排序方向只能是asc或desc")
+    
+    # ... 执行查询逻辑 ...
 ```
 
-校验装饰器契约（现状与规划）
-- 现状：`@validate_json(required_fields=[...])` 检查 JSON 体与必填字段，失败返回 `{"success": False, "message": "...", "code": "..."}`。
-- 规划：
-  - `@validate_json_types(types={...})`：按字段类型校验（未实现）。
-  - `@validate_query(spec={...})`：查询参数契约式校验（未实现）。
-  - 统一失败处理：抛错交由全局错误处理器输出统一结构（迁移期兼容）。
+## 校验装饰器详解
 
-data_validator 与 validation 使用建议
-- 严格领域数据走 `DataValidator`（如实例的 `name/db_type/host/port`）。
-- 通用输入走 `InputValidator`（字符串、整数、布尔、邮箱、URL 等）。
-- 表单场景可配合 `security.sanitize_form_data` 与 `validate_required_fields`。
+### 已实现的装饰器
+- ✅ `@validate_json(required_fields=[...])` - JSON数据和必填字段校验
+- ✅ `@login_required_json` - JSON API登录校验  
+- ✅ `@view_required`、`@create_required`、`@update_required`、`@delete_required` - 权限校验
+- ✅ `@admin_required` - 管理员权限校验
 
-错误返回统一（目标态）
-- 路由层不直接构造错误 JSON，统一通过抛错交由全局错误处理器：`{"error": message, "status_code": code, "timestamp": ...}`。
-- 现状兼容：保留内联 `jsonify({"error": "..."})` 的返回，逐步迁移。
+### 规划中的装饰器（未实现）
+- ❌ `@validate_json_types(types={...})` - 字段类型校验
+- ❌ `@validate_query(spec={...})` - 查询参数契约式校验
 
-迁移步骤
-1) 对 JSON 写接口补齐 `@validate_json` 装饰器（存在 JSON 请求体时）。
-2) 将分散在路由中的类型/范围校验迁移到 `DataValidator` / `InputValidator`。
-3) 统一查询参数命名与默认值（`page/per_page/q/sort_by/order`），`per_page` 上限统一为 `100`。
-4) 新增/改造错误处理路径：校验失败抛错交由全局错误处理器（逐步迁移）。
+## 数据校验器使用指南
 
-验收标准
-- 随机抽取 5 个写接口：缺少必填字段时经 `@validate_json` 拦截；领域校验失败统一返回 400。
-- 随机抽取 5 个列表接口：`page/per_page/q/sort_by/order` 命名一致；`per_page` 上限生效且默认值在迁移计划内。
-- 统一错误路径：至少 3 个接口完成从内联 JSON 到全局错误处理器的迁移（返回结构一致）。
+### DataValidator（已实现）
+- **用途**：严格的领域数据校验
+- **方法**：
+  - `validate_instance_data(data)` - 实例数据校验
+  - `validate_batch_data(data_list)` - 批量数据校验  
+  - `sanitize_input(data)` - 数据清理
+- **使用场景**：实例创建/编辑、批量导入等
 
-风险与回退
-- 风险：前端依赖旧参数默认值/错误结构；需提供迁移说明与双写兼容期。
-- 回退：保持内联 JSON 返回与装饰器当前行为，逐步切换到全局错误处理器；新增兼容层（接受旧参数别名、记录降级日志）。
+### 表单数据处理
+- 使用 `app/utils/security.py` 中的工具：
+  - `sanitize_form_data()` - 表单数据清理
+  - `validate_required_fields()` - 必填字段检查
 
-涉及代码位置
-- `app/utils/decorators.py`：`validate_json`、权限相关装饰器。
-- `app/utils/data_validator.py`、`app/utils/validation.py`：领域校验与通用校验。
-- `app/utils/security.py`：表单清理与必填校验。
-- `app/utils/error_handler.py`：统一错误响应结构与日志。
-- `app/routes/*.py`：校验与参数统一的落地位置（例如 `routes/instances.py`、`routes/logs.py`）。
+## 错误处理统一机制
+
+### 当前实现
+- ✅ 全局错误处理器统一返回格式
+- ✅ 自定义异常类支持结构化错误信息
+- ✅ 路由中使用异常抛出替代内联JSON返回
+
+### 统一错误格式
+```json
+{
+  "error": "错误描述信息",
+  "status_code": 400,
+  "timestamp": "2025-10-17T14:30:00+08:00"
+}
+```
+
+## 迁移计划
+
+### 已完成的工作 ✅
+1. **核心基础设施**
+   - `@validate_json` 装饰器完整实现
+   - `DataValidator` 领域校验器完整实现
+   - 全局错误处理器和自定义异常类
+   - `instances.py` 路由已完全迁移到新的校验机制
+
+2. **部分完成的工作** ⚠️
+   - 查询参数基本统一（`page`、`per_page`）
+   - 部分路由使用异常抛出机制
+
+### 待完成的工作 ❌
+1. **查询参数统一**
+   - 统一 `per_page` 默认值为20（当前10/20/50混用）
+   - 统一搜索参数为 `q`（当前 `search` 和 `q` 混用）
+   - 添加 `per_page` 最大值100的限制
+
+2. **装饰器应用**
+   - 为所有JSON写接口添加 `@validate_json` 装饰器
+   - 检查并补充遗漏的权限装饰器
+
+3. **错误处理迁移**
+   - 将剩余的内联 `jsonify({"error": "..."})` 替换为异常抛出
+   - 统一所有API的错误返回格式
+
+## 验收标准
+
+### 功能验收
+- [ ] 所有JSON写接口都有 `@validate_json` 装饰器保护
+- [ ] 所有列表接口使用统一的查询参数命名和默认值
+- [ ] 所有API错误都通过全局错误处理器返回统一格式
+- [ ] `DataValidator` 在所有需要领域校验的地方被正确使用
+
+### 性能验收
+- [ ] 校验逻辑不影响API响应时间
+- [ ] 错误处理不产生额外的性能开销
+
+### 兼容性验收
+- [ ] 前端现有调用不受影响
+- [ ] 错误信息对用户友好且便于调试
+
+## 风险控制
+
+### 主要风险
+1. **前端兼容性**：参数名称变更可能影响前端调用
+2. **错误格式变更**：可能影响前端错误处理逻辑
+3. **默认值变更**：可能影响分页显示效果
+
+### 缓解措施
+1. **渐进式迁移**：保持向后兼容，逐步迁移
+2. **双参数支持**：同时支持新旧参数名称
+3. **充分测试**：确保每个变更都经过测试验证
+
+## 涉及文件清单
+
+### 核心文件
+- `app/utils/decorators.py` - 校验装饰器
+- `app/utils/data_validator.py` - 数据校验器
+- `app/utils/error_handler.py` - 全局错误处理
+- `app/errors.py` - 自定义异常类
+
+### 路由文件（需要检查和统一）
+- `app/routes/instances.py` ✅ 已完成
+- `app/routes/credentials.py` ⚠️ 需要检查
+- `app/routes/account.py` ⚠️ 需要检查  
+- `app/routes/logs.py` ⚠️ 需要检查
+- `app/routes/users.py` ⚠️ 需要检查
+- 其他路由文件...
