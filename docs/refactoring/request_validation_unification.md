@@ -220,7 +220,7 @@ def _is_valid_host(
 
 ## 6. 迁移步骤
 
-### 阶段1：查询参数统一（优先级最高）
+### 阶段1：查询参数统一
 
 #### 步骤1.1：统一 per_page 默认值
 ```bash
@@ -246,23 +246,9 @@ per_page = min(request.args.get("per_page", 20, type=int), 100)
 q = request.args.get("q", request.args.get("search", "")).strip()
 ```
 
-**注意**：保持向后兼容，同时支持 `q` 和 `search` 参数。
+### 阶段2：装饰器补充
 
-### 阶段2：安全验证增强（优先级高）
-
-#### 步骤2.1：增强密码验证
-1. 修改 `app/utils/security.py` 中的 `validate_password()` 函数
-2. 更新所有调用该函数的地方，传入新参数
-3. 测试用户注册、修改密码功能
-
-#### 步骤2.2：增强IP验证
-1. 修改 `app/utils/data_validator.py` 中的 `_is_valid_host()` 方法
-2. 更新 `validate_instance_data()` 方法调用
-3. 测试实例创建、编辑功能
-
-### 阶段3：装饰器补充（优先级中）
-
-#### 步骤3.1：补充 @validate_json 装饰器
+#### 步骤2.1：补充 @validate_json 装饰器
 ```bash
 # 扫描所有 POST/PUT/DELETE 接口
 rg -n "@app.route.*methods=.*POST" app/routes/
@@ -275,7 +261,7 @@ rg -n "@app.route.*methods=.*DELETE" app/routes/
 - [ ] `required_fields` 列表是否完整
 - [ ] 是否有权限装饰器
 
-#### 步骤3.2：替换内联错误返回
+#### 步骤2.2：替换内联错误返回
 ```bash
 # 搜索内联错误返回
 rg -n 'jsonify\(\{"error"' app/routes/
@@ -293,17 +279,15 @@ if not data:
     raise ValidationError("数据不能为空")
 ```
 
-### 阶段4：测试与验证
+### 阶段3：安全验证增强
 
-#### 单元测试
-- `tests/unit/utils/test_security.py` - 测试密码强度验证
-- `tests/unit/utils/test_data_validator.py` - 测试IP地址验证
+#### 步骤3.1：增强密码验证
+1. 修改 `app/utils/security.py` 中的 `validate_password()` 函数
+2. 更新所有调用该函数的地方，传入新参数
 
-#### 集成测试
-- 测试用户注册（密码强度）
-- 测试实例创建（IP验证）
-- 测试分页功能（per_page统一）
-- 测试搜索功能（q参数兼容）
+#### 步骤3.2：增强IP验证
+1. 修改 `app/utils/data_validator.py` 中的 `_is_valid_host()` 方法
+2. 更新 `validate_instance_data()` 方法调用
 
 ## 7. 覆盖范围与检查清单
 
@@ -511,7 +495,6 @@ git push origin main
 ### 阶段3：安全增强（1-2天）
 - [ ] 增强密码验证
 - [ ] 增强IP验证
-- [ ] 测试验证
 
 ## 附录：常见问题
 
