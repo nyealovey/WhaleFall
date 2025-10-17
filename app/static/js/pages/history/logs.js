@@ -20,7 +20,6 @@ function initializePage() {
     setDefaultTimeRange();
     loadStats();
     searchLogs();
-    // console.log('日志仪表板页面已加载');
 }
 
 // 设置默认时间范围
@@ -157,7 +156,6 @@ function searchLogs(page = 1) {
     if (currentFilters.q) params.append('q', currentFilters.q);
     if (currentFilters.hours) params.append('hours', currentFilters.hours);
 
-    // console.log('searchLogs: 请求参数:', params.toString());
 
     // 显示加载状态
     showLoadingState();
@@ -602,7 +600,6 @@ window.applyFilters = applyFilters;
 
 // 清除筛选条件
 window.clearFilters = function () {
-    // console.log('clearFilters: 清除所有筛选条件');
     currentFilters = {};
     // 重置时间范围为最近1天
     const timeRangeEl = document.getElementById('timeRange');

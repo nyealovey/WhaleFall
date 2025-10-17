@@ -14,7 +14,6 @@ function initializeCreateCredentialPage() {
     initializeCredentialTypeToggle();
     initializeFormValidation();
     initializeFormSubmission();
-    console.log('创建凭据页面已加载');
 }
 
 // 初始化密码显示/隐藏切换

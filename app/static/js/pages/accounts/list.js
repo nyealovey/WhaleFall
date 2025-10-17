@@ -125,7 +125,6 @@ function validateForm() {
 // 打开标签选择器
 function openTagSelector() {
     try {
-        console.log('打开标签选择器...');
         const modalElement = document.getElementById('tagSelectorModal');
         
         if (!modalElement) {
@@ -136,12 +135,10 @@ function openTagSelector() {
         
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
-        console.log('模态框已显示');
         
         // 模态框显示后重新绑定按钮
         setTimeout(() => {
             if (accountListTagSelector) {
-                console.log('重新绑定模态框按钮');
                 accountListTagSelector.rebindModalButtons();
             } else {
                 console.warn('accountListTagSelector未初始化，无法重新绑定按钮');
@@ -370,12 +367,6 @@ function isColorDark(colorStr) {
 
 // 权限调试功能
 function debugPermissionFunctions() {
-    console.log('=== 权限功能调试信息 ===');
-    console.log('viewAccountPermissions 函数:', typeof viewAccountPermissions);
-    console.log('showPermissionsModal 函数:', typeof showPermissionsModal);
-    console.log('PermissionViewer 类:', typeof PermissionViewer);
-    console.log('PermissionModal 类:', typeof PermissionModal);
-    console.log('========================');
 }
 
 

@@ -48,7 +48,6 @@ class DatabaseAggregationsManager {
     }
     
     init() {
-        console.log('初始化数据库统计管理器');
         this.initializeCurrentFilters();
         this.bindEvents();
         this.initializeFilterOptions();
@@ -555,7 +554,6 @@ class DatabaseAggregationsManager {
             const params = this.buildFilterParams();
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
-            console.log('加载图表数据参数:', params.toString());
             const response = await fetch(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
             
@@ -583,7 +581,6 @@ class DatabaseAggregationsManager {
             const params = this.buildChangeChartParams();
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
-            console.log('加载容量变化参数:', params.toString());
             const response = await fetch(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
             
@@ -609,7 +606,6 @@ class DatabaseAggregationsManager {
             const params = this.buildChangePercentChartParams();
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
-            console.log('加载容量变化百分比参数:', params.toString());
             const response = await fetch(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
             const data = await response.json();
 

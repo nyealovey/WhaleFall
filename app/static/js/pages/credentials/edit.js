@@ -11,12 +11,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // 初始化编辑凭据页面
 function initializeEditCredentialPage() {
     try {
-        console.log('开始初始化编辑凭据页面');
         initializePasswordToggle();
         initializeCredentialTypeToggle();
         initializeFormValidation();
         initializeFormSubmission();
-        console.log('编辑凭据页面初始化完成');
     } catch (error) {
         console.error('编辑凭据页面初始化失败:', error);
     }

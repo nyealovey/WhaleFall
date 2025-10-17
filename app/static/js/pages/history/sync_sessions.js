@@ -27,7 +27,6 @@
     params.append('page', page);
     params.append('per_page', 20);
 
-    // console.log('loadSessions: 请求参数:', params.toString());
 
     // 显示加载状态
     showLoadingState();
@@ -478,7 +477,6 @@
 
 
   window.clearFilters = function () {
-    // console.log('clearFilters: 清除所有筛选条件');
     currentFilters = {};
     loadSessions(1);
   }

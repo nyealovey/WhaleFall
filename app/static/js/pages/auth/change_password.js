@@ -14,7 +14,6 @@ function initializeChangePasswordPage() {
     initializePasswordStrength();
     initializeFormValidation();
     initializeFormSubmission();
-    console.log('修改密码页面已加载');
 }
 
 // 初始化密码显示/隐藏切换

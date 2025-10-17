@@ -16,7 +16,6 @@ function initializeCredentialsListPage() {
     initializeDeleteConfirmation();
     initializeSearchForm();
     initializeStatusToggles();
-    console.log('凭据列表页面已加载');
 }
 
 // 初始化删除确认功能

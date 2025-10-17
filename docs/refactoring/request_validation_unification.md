@@ -1,81 +1,114 @@
 # 请求校验与参数统一方案
 
-## 目标
-- 统一使用 `app/utils/data_validator.py` 进行严格的领域数据校验
-- 使用 `app/utils/decorators.py` 中的 `validate_json(required_fields=[...])` 作为 JSON 接口的必填字段检查
-- 统一查询参数命名模式：`q`、`sort_by`、`order`、`page`、`per_page`
-- 统一错误处理机制，通过异常抛出交由全局错误处理器处理
+## 🎯 核心目标
 
-## 当前实现状态（2025-10-17）
+**统一现有校验机制，不新增功能**
 
-### 装饰器实现
-- ✅ `validate_json(required_fields=[...])` 已完整实现
-  - 检查请求是否为JSON格式
-  - 验证JSON数据是否为空
-  - 检查必填字段是否存在
-  - 失败时抛出 `ValidationError` 异常，由全局错误处理器统一处理
-- ✅ `login_required_json` 已实现，抛出 `AuthenticationError` 异常
-- ✅ 权限相关装饰器已完善，支持JSON和表单两种响应模式
+1. **统一数据校验**：使用现有的 `DataValidator` 进行领域数据校验
+2. **统一必填字段检查**：使用现有的 `@validate_json` 装饰器
+3. **统一查询参数**：规范化现有的参数命名和默认值
+4. **统一错误处理**：使用现有的全局错误处理器
 
-### 数据校验器实现
-- ✅ `DataValidator` 已完整实现，提供严格的领域数据校验
-  - 支持实例数据验证：`validate_instance_data()`
-  - 支持批量数据验证：`validate_batch_data()`
-  - 提供数据清理功能：`sanitize_input()`
-  - 已在 `instances.py` 路由中广泛使用
-- ❌ `InputValidator` 通用校验器未实现（文档中提到但代码中不存在）
+## 📊 现有基础设施（已实现）
 
-### 错误处理机制
-- ✅ 全局错误处理器已实现，统一返回格式：`{"error": message, "status_code": code, "timestamp": ...}`
-- ✅ 自定义异常类已实现：`ValidationError`、`AuthenticationError`、`AuthorizationError`
-- ✅ 路由中已开始使用异常抛出机制替代内联JSON返回
+### ✅ 可用的装饰器
+| 装饰器 | 功能 | 状态 |
+|--------|------|------|
+| `@validate_json(required_fields=[...])` | JSON格式和必填字段校验 | ✅ 完整实现 |
+| `@login_required_json` | JSON API登录校验 | ✅ 完整实现 |
+| `@view_required` | 查看权限校验 | ✅ 完整实现 |
+| `@create_required` | 创建权限校验 | ✅ 完整实现 |
+| `@update_required` | 更新权限校验 | ✅ 完整实现 |
+| `@delete_required` | 删除权限校验 | ✅ 完整实现 |
+| `@admin_required` | 管理员权限校验 | ✅ 完整实现 |
 
-### 查询参数统一状态
-- ✅ 分页参数已基本统一：`page`、`per_page`
-- ✅ 搜索参数部分统一：`logs.py` 使用 `q`，其他路由多使用 `search`
-- ⚠️ 默认值存在差异：
-  - `per_page` 默认值：10（instances, credentials, users）、20（account, tags, sync_sessions）、50（logs）
-  - 需要统一为20，最大值100
-- ✅ 路径参数命名已规范：`<int:instance_id>`、`<int:credential_id>` 等
+### ✅ 可用的数据校验器
+| 方法 | 功能 | 状态 |
+|------|------|------|
+| `DataValidator.validate_instance_data()` | 实例数据校验 | ✅ 完整实现 |
+| `DataValidator.validate_batch_data()` | 批量数据校验 | ✅ 完整实现 |
+| `DataValidator.sanitize_input()` | 数据清理 | ✅ 完整实现 |
 
-## 统一参数命名规范
+### ✅ 可用的错误处理
+- 全局错误处理器：统一返回格式
+- 自定义异常类：`ValidationError`、`AuthenticationError`、`AuthorizationError`
+- 异常抛出机制：替代内联JSON返回
 
-### 查询参数
-- **搜索关键字**：`q`（推荐）或 `search`（兼容现有）
-- **排序参数**：`sort_by`、`order`（asc/desc）
-- **分页参数**：`page`（默认1）、`per_page`（默认20，最大100）
-- **筛选参数**：`status`、`type`、`category` 等
+### ⚠️ 当前不一致的地方
 
-### 路径参数
-- **实例相关**：`<int:instance_id>`
-- **凭据相关**：`<int:credential_id>`
-- **账户相关**：`<int:account_id>`
-- **用户相关**：`<int:user_id>`
+#### 查询参数默认值不统一
+| 路由 | per_page 默认值 | 需要统一为 |
+|------|----------------|-----------|
+| instances, credentials, users | 10 | 20 |
+| account, tags, sync_sessions | 20 | 20 ✅ |
+| logs | 50 | 20 |
 
-## 统一校验与返回机制
+#### 搜索参数命名不统一
+| 路由 | 当前使用 | 需要统一为 |
+|------|---------|-----------|
+| logs | `q` | `q` ✅ |
+| 其他路由 | `search` | `q` |
 
-### JSON接口校验
-- ✅ 使用 `@validate_json(required_fields=[...])` 装饰器
-  - 自动检查 `Content-Type` 为 `application/json`
-  - 验证JSON数据存在且不为空
-  - 检查必填字段完整性
-  - 失败时抛出 `ValidationError` 异常
+#### 装饰器使用不完整
+- 部分JSON接口缺少 `@validate_json` 装饰器
+- 部分路由仍使用内联 `jsonify({"error": "..."})` 而非异常抛出
 
-### 数据校验层次
-1. **基础校验**：`@validate_json` 装饰器（必填字段、JSON格式）
-2. **领域校验**：`DataValidator.validate_instance_data()` 等（业务规则）
-3. **数据清理**：`DataValidator.sanitize_input()` （去除空格、类型转换）
+## 📋 统一规范（基于现有实现）
 
-### 错误处理流程
-```python
-# 1. 装饰器校验失败 → ValidationError → 全局错误处理器
-# 2. 业务校验失败 → ValidationError → 全局错误处理器  
-# 3. 统一返回格式：{"error": message, "status_code": 400, "timestamp": "..."}
+### 查询参数标准
+| 参数 | 用途 | 默认值 | 限制 |
+|------|------|--------|------|
+| `q` | 搜索关键字 | `""` | - |
+| `page` | 页码 | `1` | ≥ 1 |
+| `per_page` | 每页数量 | `20` | 1-100 |
+| `sort_by` | 排序字段 | `created_at` | - |
+| `order` | 排序方向 | `desc` | asc/desc |
+| `status` | 状态筛选 | `""` | - |
+| `type` | 类型筛选 | `""` | - |
+
+### 路径参数标准（已规范）
+- `<int:instance_id>` - 实例ID
+- `<int:credential_id>` - 凭据ID
+- `<int:account_id>` - 账户ID
+- `<int:user_id>` - 用户ID
+
+## 🔄 统一校验流程（使用现有工具）
+
+### 三层校验机制
+```
+请求 → 1️⃣ 装饰器校验 → 2️⃣ 数据清理 → 3️⃣ 领域校验 → 业务逻辑
+         ↓                ↓              ↓
+    ValidationError   sanitize_input  ValidationError
+         ↓                              ↓
+         └──────────→ 全局错误处理器 ←──┘
 ```
 
-## 代码示例
+#### 1️⃣ 装饰器校验（基础校验）
+- 使用 `@validate_json(required_fields=[...])`
+- 检查：JSON格式、必填字段存在
+- 失败：抛出 `ValidationError`
 
-### 标准JSON接口实现（当前最佳实践）
+#### 2️⃣ 数据清理
+- 使用 `DataValidator.sanitize_input(data)`
+- 处理：去除空格、类型转换、默认值
+
+#### 3️⃣ 领域校验（业务规则）
+- 使用 `DataValidator.validate_instance_data(data)`
+- 检查：业务规则、数据合法性
+- 失败：抛出 `ValidationError`
+
+### 统一错误返回格式
+```json
+{
+  "error": "错误描述信息",
+  "status_code": 400,
+  "timestamp": "2025-10-17T14:30:00+08:00"
+}
+```
+
+## 💻 标准实现模板
+
+### JSON写接口（POST/PUT/DELETE）
 ```python
 from flask import request
 from app.utils.decorators import validate_json, view_required
@@ -104,7 +137,7 @@ def create_instance_api():
     return jsonify_unified_success(message="实例创建成功")
 ```
 
-### 查询参数处理示例
+### 查询接口（GET）
 ```python
 from flask import request
 
@@ -135,116 +168,156 @@ def list_instances_api():
     # ... 执行查询逻辑 ...
 ```
 
-## 校验装饰器详解
+## 🛠️ 工具使用指南
 
-### 已实现的装饰器
-- ✅ `@validate_json(required_fields=[...])` - JSON数据和必填字段校验
-- ✅ `@login_required_json` - JSON API登录校验  
-- ✅ `@view_required`、`@create_required`、`@update_required`、`@delete_required` - 权限校验
-- ✅ `@admin_required` - 管理员权限校验
+### 装饰器使用
+```python
+# JSON接口必须使用
+@validate_json(required_fields=["name", "host"])
+@create_required
+def create_api():
+    pass
 
-### 规划中的装饰器（未实现）
-- ❌ `@validate_json_types(types={...})` - 字段类型校验
-- ❌ `@validate_query(spec={...})` - 查询参数契约式校验
-
-## 数据校验器使用指南
-
-### DataValidator（已实现）
-- **用途**：严格的领域数据校验
-- **方法**：
-  - `validate_instance_data(data)` - 实例数据校验
-  - `validate_batch_data(data_list)` - 批量数据校验  
-  - `sanitize_input(data)` - 数据清理
-- **使用场景**：实例创建/编辑、批量导入等
-
-### 表单数据处理
-- 使用 `app/utils/security.py` 中的工具：
-  - `sanitize_form_data()` - 表单数据清理
-  - `validate_required_fields()` - 必填字段检查
-
-## 错误处理统一机制
-
-### 当前实现
-- ✅ 全局错误处理器统一返回格式
-- ✅ 自定义异常类支持结构化错误信息
-- ✅ 路由中使用异常抛出替代内联JSON返回
-
-### 统一错误格式
-```json
-{
-  "error": "错误描述信息",
-  "status_code": 400,
-  "timestamp": "2025-10-17T14:30:00+08:00"
-}
+# 查询接口使用
+@view_required
+def list_api():
+    pass
 ```
 
-## 迁移计划
+### 数据校验器使用
+```python
+# 1. 数据清理
+data = DataValidator.sanitize_input(data)
 
-### 已完成的工作 ✅
-1. **核心基础设施**
-   - `@validate_json` 装饰器完整实现
-   - `DataValidator` 领域校验器完整实现
-   - 全局错误处理器和自定义异常类
-   - `instances.py` 路由已完全迁移到新的校验机制
+# 2. 领域校验
+is_valid, error_msg = DataValidator.validate_instance_data(data)
+if not is_valid:
+    raise ValidationError(error_msg)
+```
 
-2. **部分完成的工作** ⚠️
-   - 查询参数基本统一（`page`、`per_page`）
-   - 部分路由使用异常抛出机制
+### 错误处理使用
+```python
+# ❌ 不要这样做
+if not data:
+    return jsonify({"error": "数据不能为空"}), 400
 
-### 待完成的工作 ❌
-1. **查询参数统一**
-   - 统一 `per_page` 默认值为20（当前10/20/50混用）
-   - 统一搜索参数为 `q`（当前 `search` 和 `q` 混用）
-   - 添加 `per_page` 最大值100的限制
+# ✅ 应该这样做
+if not data:
+    raise ValidationError("数据不能为空")
+```
 
-2. **装饰器应用**
-   - 为所有JSON写接口添加 `@validate_json` 装饰器
-   - 检查并补充遗漏的权限装饰器
+## 📝 统一任务清单
 
-3. **错误处理迁移**
-   - 将剩余的内联 `jsonify({"error": "..."})` 替换为异常抛出
-   - 统一所有API的错误返回格式
+### 🎯 优先级1：查询参数统一（影响最大）
 
-## 验收标准
+#### 任务1.1：统一 per_page 默认值
+- [ ] `app/routes/instances.py` - 改为20
+- [ ] `app/routes/credentials.py` - 改为20
+- [ ] `app/routes/users.py` - 改为20
+- [ ] `app/routes/logs.py` - 改为20
+- [ ] 添加最大值100的限制
 
-### 功能验收
-- [ ] 所有JSON写接口都有 `@validate_json` 装饰器保护
-- [ ] 所有列表接口使用统一的查询参数命名和默认值
-- [ ] 所有API错误都通过全局错误处理器返回统一格式
-- [ ] `DataValidator` 在所有需要领域校验的地方被正确使用
+#### 任务1.2：统一搜索参数为 q
+- [ ] 检查所有使用 `search` 的路由
+- [ ] 兼容性处理：`q = request.args.get("q", request.args.get("search", ""))`
+- [ ] 逐步迁移前端调用
 
-### 性能验收
-- [ ] 校验逻辑不影响API响应时间
-- [ ] 错误处理不产生额外的性能开销
+### 🎯 优先级2：装饰器补充（提高安全性）
 
-### 兼容性验收
+#### 任务2.1：补充 @validate_json 装饰器
+- [ ] 扫描所有 POST/PUT/DELETE 接口
+- [ ] 为缺少装饰器的接口添加
+- [ ] 验证必填字段列表是否完整
+
+#### 任务2.2：补充权限装饰器
+- [ ] 检查所有API接口的权限装饰器
+- [ ] 补充遗漏的权限检查
+
+### 🎯 优先级3：错误处理统一（提高一致性）
+
+#### 任务3.1：替换内联错误返回
+- [ ] 搜索所有 `jsonify({"error": ...})`
+- [ ] 替换为 `raise ValidationError(...)`
+- [ ] 验证错误信息对用户友好
+
+#### 任务3.2：统一错误消息
+- [ ] 检查所有错误消息的措辞
+- [ ] 确保错误消息清晰、友好
+
+## ✅ 验收标准
+
+### 统一性检查
+- [ ] 所有列表接口的 `per_page` 默认值为20，最大值100
+- [ ] 所有搜索接口使用 `q` 参数（兼容 `search`）
+- [ ] 所有JSON写接口有 `@validate_json` 装饰器
+- [ ] 所有错误通过异常抛出，无内联 `jsonify({"error": ...})`
+
+### 兼容性检查
 - [ ] 前端现有调用不受影响
-- [ ] 错误信息对用户友好且便于调试
+- [ ] 错误信息清晰友好
+- [ ] 分页显示正常
 
-## 风险控制
+### 代码质量检查
+- [ ] 无重复的校验逻辑
+- [ ] 装饰器使用正确
+- [ ] 异常类型使用恰当
 
-### 主要风险
-1. **前端兼容性**：参数名称变更可能影响前端调用
-2. **错误格式变更**：可能影响前端错误处理逻辑
-3. **默认值变更**：可能影响分页显示效果
+## ⚠️ 注意事项
 
-### 缓解措施
-1. **渐进式迁移**：保持向后兼容，逐步迁移
-2. **双参数支持**：同时支持新旧参数名称
-3. **充分测试**：确保每个变更都经过测试验证
+### 兼容性优先
+```python
+# ✅ 正确：兼容新旧参数
+q = request.args.get("q", request.args.get("search", ""))
 
-## 涉及文件清单
+# ❌ 错误：直接改变参数名
+q = request.args.get("q", "")  # 会破坏现有前端调用
+```
 
-### 核心文件
-- `app/utils/decorators.py` - 校验装饰器
-- `app/utils/data_validator.py` - 数据校验器
-- `app/utils/error_handler.py` - 全局错误处理
-- `app/errors.py` - 自定义异常类
+### 渐进式迁移
+1. 先添加新参数支持，保留旧参数
+2. 通知前端更新调用
+3. 确认前端更新完成后，再移除旧参数
 
-### 路由文件（需要检查和统一）
-- `app/routes/instances.py` ✅ 已完成
-- `app/routes/credentials.py` ⚠️ 需要检查
-- `app/routes/account.py` ⚠️ 需要检查  
-- `app/routes/logs.py` ⚠️ 需要检查
-- `app/routes/users.py` ⚠️ 需要检查
-- 其他路由文件...
+### 测试验证
+- 每次修改后测试相关接口
+- 检查前端功能是否正常
+- 验证错误提示是否友好
+
+## 📁 涉及文件
+
+### 核心工具（不需要修改）
+- ✅ `app/utils/decorators.py` - 校验装饰器
+- ✅ `app/utils/data_validator.py` - 数据校验器
+- ✅ `app/utils/error_handler.py` - 全局错误处理
+- ✅ `app/errors.py` - 自定义异常类
+
+### 需要统一的路由文件
+| 文件 | per_page | 搜索参数 | 装饰器 | 错误处理 |
+|------|---------|---------|--------|---------|
+| `instances.py` | ✅ 20 | ✅ q | ✅ | ✅ |
+| `credentials.py` | ⚠️ 10 | ⚠️ search | ⚠️ | ⚠️ |
+| `account.py` | ✅ 20 | ⚠️ search | ⚠️ | ⚠️ |
+| `logs.py` | ⚠️ 50 | ✅ q | ⚠️ | ⚠️ |
+| `users.py` | ⚠️ 10 | ⚠️ search | ⚠️ | ⚠️ |
+| `tags.py` | ✅ 20 | ⚠️ search | ⚠️ | ⚠️ |
+| `sync_sessions.py` | ✅ 20 | ⚠️ search | ⚠️ | ⚠️ |
+
+## 📊 统一进度追踪
+
+### 当前状态
+- ✅ 基础设施完整：100%
+- ⚠️ 参数统一：40%
+- ⚠️ 装饰器应用：60%
+- ⚠️ 错误处理：70%
+
+### 预计工作量
+- 查询参数统一：2-3小时
+- 装饰器补充：3-4小时
+- 错误处理统一：2-3小时
+- 测试验证：2-3小时
+- **总计**：9-13小时
+
+---
+
+**文档更新时间**: 2025-10-17  
+**下次检查**: 完成统一任务后更新进度
