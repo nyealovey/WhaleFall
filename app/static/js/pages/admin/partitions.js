@@ -5,7 +5,6 @@
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('初始化分区管理页面...');
     loadPartitionData();
     bindEvents();
 });
@@ -40,14 +39,12 @@ function bindEvents() {
  */
 async function loadPartitionData() {
     try {
-        console.log('开始加载分区数据...');
         showLoadingState();
 
         const response = await fetch('/partition/api/info');
         const data = await response.json();
 
         if (response.ok && data.success) {
-            console.log('分区数据响应:', data);
             const payload = data?.data?.data ?? data?.data ?? data ?? {};
             updatePartitionStats(payload);
             renderPartitionTable(Array.isArray(payload.partitions) ? payload.partitions : []);

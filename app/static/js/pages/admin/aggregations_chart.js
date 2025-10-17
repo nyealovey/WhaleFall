@@ -28,7 +28,6 @@ class AggregationsChartManager {
     }
     
     init() {
-        console.log('初始化聚合数据图表管理器');
         this.bindEvents();
         this.loadChartData();
         this.createLegend();

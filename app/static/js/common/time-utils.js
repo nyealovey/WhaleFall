@@ -401,4 +401,3 @@ window.parseTime = TimeUtils.parseTime.bind(TimeUtils);
 // 不再提供：formatTimestamp, formatChinaTime, utcToChina 等兼容函数
 
 // 初始化完成提示
-console.log('前端时间工具已重构完成，强制统一使用 timeUtils.method() 方式');

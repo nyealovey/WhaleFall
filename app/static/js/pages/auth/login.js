@@ -13,7 +13,6 @@ function initializeLoginPage() {
     initializePasswordToggle();
     initializeFormValidation();
     initializeFormSubmission();
-    console.log('登录页面已加载');
 }
 
 // 初始化密码显示/隐藏切换

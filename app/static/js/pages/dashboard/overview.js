@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // 初始化页面
 function initializePage() {
     initCharts();
-    console.log('系统仪表板页面已加载');
 }
 
 // 初始化图表

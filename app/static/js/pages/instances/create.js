@@ -374,7 +374,6 @@ function previewInstance() {
     };
     
     // 显示预览信息
-    console.log('实例预览:', preview);
     
     return preview;
 }

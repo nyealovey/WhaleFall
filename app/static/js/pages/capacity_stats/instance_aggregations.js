@@ -44,7 +44,6 @@ class InstanceAggregationsManager {
     }
     
     init() {
-        console.log('初始化实例统计管理器');
         this.initializeCurrentFilters();
         this.bindEvents();
         this.initializeDatabaseFilter();
@@ -168,10 +167,8 @@ class InstanceAggregationsManager {
         // 数据库类型变化时更新实例选项
         $('#db_type').on('change', async (e) => {
             const dbType = e.target.value;
-            console.log('数据库类型变化:', dbType);
             await this.updateInstanceOptions(dbType);
             this.updateFilters();
-            console.log('更新后的筛选条件:', this.currentFilters);
             this.loadSummaryData(); // 更新统计卡片
             this.loadChartData();   // 更新趋势图
             this.loadChangeChartData(); // 更新变化趋势图
@@ -443,9 +440,7 @@ class InstanceAggregationsManager {
      * 应用筛选条件
      */
     applyFilters() {
-        console.log('应用筛选条件');
         this.updateFilters();
-        console.log('当前筛选条件:', this.currentFilters);
         
         // 使用用户指定的时间范围并清除容量变化图的独立覆盖
         this.changeFilters.start_date = this.currentFilters.start_date || null;
@@ -468,7 +463,6 @@ class InstanceAggregationsManager {
      * 重置筛选条件
      */
     resetFilters() {
-        console.log('重置筛选条件');
         
         // 清空所有筛选器
         $('#instance').val('');
@@ -513,7 +507,6 @@ class InstanceAggregationsManager {
      * 刷新所有数据
      */
     async refreshAllData() {
-        console.log('刷新所有数据');
         this.showLoading();
         
         try {
@@ -539,7 +532,6 @@ class InstanceAggregationsManager {
     async loadSummaryData() {
         try {
             const params = this.buildFilterParams();
-            console.log('加载汇总数据，参数:', params.toString());
             const response = await fetch(`/instance_stats/api/instances/aggregations/summary?${params}`);
             const data = await response.json();
             
@@ -559,7 +551,6 @@ class InstanceAggregationsManager {
     updateSummaryCards(data) {
         // 从统一响应体中提取 summary 数据
         const summaryData = data?.data?.summary ?? data?.data ?? data ?? {};
-        console.log('更新统计卡片数据:', summaryData);
         $('#totalInstances').text(summaryData.total_instances ?? 0);
         $('#totalDatabases').text(this.formatSizeFromMB(summaryData.total_size_mb ?? 0));
         $('#averageSize').text(this.formatSizeFromMB(summaryData.avg_size_mb ?? 0));
@@ -577,17 +568,14 @@ class InstanceAggregationsManager {
             params.append('chart_mode', 'instance');
             params.append('get_all', 'true');
             
-            console.log('加载图表数据，参数:', params.toString());
             const response = await fetch(`/instance_stats/api/instances/aggregations?${params}`);
             const data = await response.json();
             
-            console.log('图表数据响应:', data);
             
             if (response.ok) {
                 // 使用所有数据，不进行前端限制
                 const payload = data?.data?.items ?? data?.data ?? data ?? [];
                 this.currentData = Array.isArray(payload) ? payload : [];
-                console.log('当前图表数据:', this.currentData.length);
                 this.renderChart(this.currentData);
                 // 重新同步UI状态
                 this.syncUIState();
@@ -611,14 +599,12 @@ class InstanceAggregationsManager {
             this.showChangeChartLoading();
             
             const params = this.buildChangeChartParams();
-            console.log('加载容量变化图表数据，参数:', params.toString());
             const response = await fetch(`/instance_stats/api/instances/aggregations?${params}`);
             const data = await response.json();
             
             if (response.ok) {
                 const payload = data?.data?.items ?? data?.data ?? data ?? [];
                 this.changeChartData = Array.isArray(payload) ? payload : [];
-                console.log('容量变化图表数据条目:', this.changeChartData.length);
                 this.renderChangeChart(this.changeChartData);
                 this.syncUIState();
             } else {
@@ -641,14 +627,12 @@ class InstanceAggregationsManager {
             this.showChangePercentChartLoading();
             
             const params = this.buildChangePercentChartParams();
-            console.log('加载容量变化百分比图表数据，参数:', params.toString());
             const response = await fetch(`/instance_stats/api/instances/aggregations?${params}`);
             const data = await response.json();
             
             if (response.ok) {
                 const payload = data?.data?.items ?? data?.data ?? data ?? [];
                 this.changePercentChartData = Array.isArray(payload) ? payload : [];
-                console.log('容量变化百分比图表数据条目:', this.changePercentChartData.length);
                 this.renderChangePercentChart(this.changePercentChartData);
                 this.syncUIState();
             } else {
@@ -667,7 +651,6 @@ class InstanceAggregationsManager {
      * 渲染图表
      */
     renderChart(data) {
-        console.log('渲染实例统计图表，数据:', data);
         
         const ctx = document.getElementById('instanceChart').getContext('2d');
         
@@ -885,7 +868,6 @@ class InstanceAggregationsManager {
             grouped[date][instanceName] = Number.isFinite(sizeValue) ? sizeValue : null;
         });
         
-        console.log('分组后的数据:', grouped);
         return grouped;
     }
     
@@ -912,7 +894,6 @@ class InstanceAggregationsManager {
             grouped[date][instanceName] = Number.isNaN(changeValue) ? 0 : changeValue;
         });
         
-        console.log('容量变化分组数据:', grouped);
         return grouped;
     }
     
@@ -946,7 +927,6 @@ class InstanceAggregationsManager {
             .slice(0, this.currentTopCount)
             .map(([name]) => name);
         
-        console.log(`显示TOP ${this.currentTopCount}实例:`, sortedInstances);
         
         let colorIndex = 0;
         
@@ -1012,7 +992,6 @@ class InstanceAggregationsManager {
             .slice(0, this.changeTopCount)
             .map(([name]) => name);
         
-        console.log(`容量变化TOP ${this.changeTopCount}实例:`, sortedInstances);
         
         let colorIndex = 0;
         const manager = this;
@@ -1105,7 +1084,6 @@ class InstanceAggregationsManager {
             grouped[date][instanceName] = Number.isNaN(changePercent) ? 0 : changePercent;
         });
         
-        console.log('容量变化百分比分组数据:', grouped);
         return grouped;
     }
     
@@ -1137,7 +1115,6 @@ class InstanceAggregationsManager {
             .slice(0, this.changePercentTopCount)
             .map(([name]) => name);
         
-        console.log(`容量变化百分比TOP ${this.changePercentTopCount}实例:`, sortedInstances);
         
         let colorIndex = 0;
         const manager = this;
@@ -1335,7 +1312,6 @@ class InstanceAggregationsManager {
      * 聚合计算
      */
     async calculateAggregations() {
-        console.log('开始聚合计算');
         
         // 显示进度模态框
         $('#calculationModal').modal('show');

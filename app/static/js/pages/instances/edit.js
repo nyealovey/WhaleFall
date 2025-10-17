@@ -104,8 +104,6 @@ function testConnection() {
     
     const instanceId = getInstanceId();
     
-    console.log('测试连接 - 实例ID:', instanceId);
-    console.log('使用新的连接管理API');
     
     // 使用新的连接管理API
     connectionManager.testInstanceConnection(instanceId, {
@@ -404,8 +402,6 @@ function getInstanceId() {
         instanceId = urlParts[urlParts.length - 2];
     }
     
-    console.log('当前URL:', window.location.pathname);
-    console.log('解析的实例ID:', instanceId);
     return instanceId;
 }
 

@@ -280,8 +280,6 @@ function testConnection(instanceId) {
 function batchTestConnections() {
     const selectedInstances = getSelectedInstances();
     
-    console.log('选中的实例数量:', selectedInstances.length);
-    console.log('选中的实例ID:', selectedInstances);
     
     if (selectedInstances.length === 0) {
         showAlert('warning', '请先选择要测试的实例');

@@ -38,7 +38,6 @@ function initializeSchedulerPage() {
     loadJobs();
     loadHealthStatus();
     initializeEventHandlers();
-    console.log('定时任务管理页面已加载');
 }
 
 // 初始化事件处理器（移除立即执行绑定）
@@ -164,7 +163,6 @@ function loadJobs() {
         success: function (response) {
             $('#loadingRow').hide();
             if (response.success === true) {
-                console.log('Received jobs:', response.data);
                 currentJobs = response.data;
                 displayJobs(response.data);
                 // 移除: updateStats(response.data);

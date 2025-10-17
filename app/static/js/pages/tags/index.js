@@ -28,7 +28,6 @@ function initializeTagsPage() {
     initializeSearchForm();
     initializeTagActions();
     window.tagsPageInitialized = true;
-    console.log('标签管理页面已加载');
 }
 
 // 初始化事件处理器

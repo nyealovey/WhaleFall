@@ -17,7 +17,6 @@ function initializeUserManagementPage() {
     initializeDeleteUserHandlers();
     // initializeUserStatusToggles(); // 已移除状态切换功能
     initializeUserTable();
-    console.log('用户管理页面已加载');
 }
 
 // 初始化添加用户表单
@@ -44,16 +43,13 @@ function handleAddUser(event, form) {
     };
 
     // 添加调试日志
-    console.log('表单数据:', data);
 
     // 验证表单
     if (!validateUserForm(data)) {
-        console.log('表单验证失败');
         return;
     }
 
     // 添加调试日志
-    console.log('发送创建用户数据:', data);
 
     showLoadingState(form.querySelector('button[type="submit"]'), '添加中...');
 
@@ -66,11 +62,9 @@ function handleAddUser(event, form) {
         body: JSON.stringify(data)
     })
         .then(response => {
-            console.log('响应状态:', response.status);
             return response.json();
         })
         .then(data => {
-            console.log('响应数据:', data);
             if (data.success) {
                 showAlert('success', data.message);
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
@@ -124,7 +118,6 @@ function handleEditUser(event, form) {
     }
 
     // 添加调试日志
-    console.log('发送用户更新数据:', data);
 
     showLoadingState(form.querySelector('button[type="submit"]'), '保存中...');
 
@@ -137,11 +130,9 @@ function handleEditUser(event, form) {
         body: JSON.stringify(data)
     })
         .then(response => {
-            console.log('响应状态:', response.status);
             return response.json();
         })
         .then(data => {
-            console.log('响应数据:', data);
             if (data.success) {
                 showAlert('success', data.message);
                 const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
@@ -338,10 +329,8 @@ function editUser(userId) {
 
 // 验证用户表单
 function validateUserForm(data, isEdit = false) {
-    console.log('验证表单数据:', data, 'isEdit:', isEdit);
 
     if (!data.username || data.username.trim().length < 2) {
-        console.log('用户名验证失败:', data.username);
         showAlert('error', '用户名至少需要2个字符');
         return false;
     }
@@ -350,26 +339,22 @@ function validateUserForm(data, isEdit = false) {
     if (!isEdit) {
         // 新建用户时，密码是必需的
         if (!data.password || data.password.length < 6) {
-            console.log('密码验证失败:', data.password);
             showAlert('error', '密码至少需要6个字符');
             return false;
         }
     } else {
         // 编辑用户时，如果提供了密码，则验证密码长度
         if (data.password && data.password.length < 6) {
-            console.log('密码验证失败:', data.password);
             showAlert('error', '密码至少需要6个字符');
             return false;
         }
     }
 
     if (!data.role) {
-        console.log('角色验证失败:', data.role);
         showAlert('error', '请选择用户角色');
         return false;
     }
 
-    console.log('表单验证通过');
     return true;
 }
 
