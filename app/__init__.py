@@ -520,8 +520,12 @@ app = create_app()
 # 导入模型（确保模型被注册）
 from app.models import (  # noqa: F401, E402
     credential,
+    database_size_aggregation,
+    database_size_stat,
     database_type_config,
     instance,
+    instance_size_aggregation,
+    instance_size_stat,
     user,
 )
 
