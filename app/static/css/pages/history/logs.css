@@ -146,8 +146,8 @@
     font-size: 0.9rem;
     opacity: 0.9;
 }
-/* 日
-志详情模态框样式 */
+
+/* 日志详情模态框样式 */
 .log-detail-modal .modal-content {
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-xl);
