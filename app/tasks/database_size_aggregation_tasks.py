@@ -3,7 +3,7 @@
 负责计算每周、每月、每季度的统计聚合数据
 """
 
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from app import db

@@ -9,7 +9,6 @@ import sys
 import threading
 import time
 from contextvars import ContextVar
-from datetime import datetime
 from queue import Empty, Queue
 from typing import Any, Callable, Mapping
 from dataclasses import dataclass, field
@@ -74,12 +73,10 @@ class SQLAlchemyLogHandler:
                     with current_app.app_context():
                         # 确保时间戳是datetime对象，使用东八区时间
                         if isinstance(log_entry.get("timestamp"), str):
-                            from datetime import datetime
+                            from app.utils.time_utils import time_utils
 
                             try:
-                                log_entry["timestamp"] = datetime.fromisoformat(
-                                    log_entry["timestamp"].replace("Z", "+00:00")
-                                )
+                                log_entry["timestamp"] = time_utils.to_utc(log_entry["timestamp"])
                             except ValueError:
                                 log_entry["timestamp"] = time_utils.now()
 
@@ -150,8 +147,10 @@ class SQLAlchemyLogHandler:
             timestamp = event_dict.get("timestamp", time_utils.now())
             if isinstance(timestamp, str):
                 try:
-                    timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-                except ValueError:
+                    timestamp = time_utils.to_utc(timestamp)
+                except Exception:
+                    timestamp = time_utils.now()
+                if timestamp is None:
                     timestamp = time_utils.now()
 
             # 确保时间戳带时区信息
@@ -268,11 +267,13 @@ class SQLAlchemyLogHandler:
                 for log_data in self.batch_buffer:
                     # 确保时间戳是datetime对象，使用东八区时间
                     if isinstance(log_data.get("timestamp"), str):
-                        from datetime import datetime
+                        from app.utils.time_utils import time_utils
 
                         try:
-                            log_data["timestamp"] = datetime.fromisoformat(log_data["timestamp"].replace("Z", "+00:00"))
-                        except ValueError:
+                            log_data["timestamp"] = time_utils.to_utc(log_data["timestamp"])
+                        except Exception:
+                            log_data["timestamp"] = time_utils.now()
+                        if log_data["timestamp"] is None:
                             log_data["timestamp"] = time_utils.now()
 
                         # 确保时间戳带时区信息
