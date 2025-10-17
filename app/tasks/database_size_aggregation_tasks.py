@@ -3,16 +3,20 @@
 负责计算每周、每月、每季度的统计聚合数据
 """
 
-import logging
 from datetime import datetime, date, timedelta
-from typing import Dict, Any, List, Callable, Optional, Set
-from app.constants.sync_constants import SyncOperationType, SyncCategory
+from typing import Any, Callable, Dict, List, Optional, Set
+
+from app import db
+from app.config import Config
+from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
 from app.models.instance import Instance
-from app.config import Config
-from app import db
+from app.utils.structlog_config import log_error, log_info, log_warning
 
-logger = logging.getLogger(__name__)
+STATUS_COMPLETED = "completed"
+STATUS_SKIPPED = "skipped"
+STATUS_FAILED = "failed"
+TASK_MODULE = "aggregation_tasks"
 
 
 def _initialize_instance_state(instances: List["Instance"], records_by_instance: dict[int, Any]) -> dict[int, dict[str, Any]]:
@@ -35,12 +39,21 @@ def _update_instance_state(instance_state: dict[int, dict[str, Any]], instance_i
         return
 
     state["period_results"][period] = result
-    records_created = int(result.get("total_records", 0) or 0)
+    records_created = int(
+        result.get("processed_records")
+        or result.get("total_records")
+        or result.get("aggregations_created")
+        or 0
+    )
     state["aggregations_created"] += records_created
 
-    status = result.get("status", "error")
-    if status != "success":
-        error_message = result.get("error") or result.get("message") or f"{period} 聚合失败"
+    status = (result.get("status") or STATUS_FAILED).lower()
+    if status == STATUS_FAILED:
+        errors = result.get("errors")
+        if isinstance(errors, list) and errors:
+            error_message = "; ".join(str(err) for err in errors)
+        else:
+            error_message = result.get("error") or result.get("message") or f"{period} 聚合失败"
         state["errors"].append(f"{period}: {error_message}")
 
 
@@ -74,25 +87,35 @@ def _run_period_aggregation(
                 error=str(exc),
             )
             result = {
-                "status": "error",
+                "status": STATUS_FAILED,
                 "instance_id": instance.id,
                 "instance_name": instance.name,
                 "period_type": period,
-                "error": str(exc),
+                "errors": [str(exc)],
             }
 
         result.setdefault("instance_id", instance.id)
         result.setdefault("instance_name", instance.name)
         result.setdefault("period_type", period)
 
-        if result.get("status") == "success":
+        status = (result.get("status") or STATUS_FAILED).lower()
+        if status == STATUS_COMPLETED:
             sync_logger.info(
                 f"{period} 聚合完成",
                 module="aggregation_sync",
                 period=period,
                 instance_id=instance.id,
                 instance_name=instance.name,
-                total_records=result.get("total_records", 0),
+                total_records=result.get("processed_records") or result.get("total_records", 0),
+                message=result.get("message"),
+            )
+        elif status == STATUS_SKIPPED:
+            sync_logger.info(
+                f"{period} 聚合跳过",
+                module="aggregation_sync",
+                period=period,
+                instance_id=instance.id,
+                instance_name=instance.name,
                 message=result.get("message"),
             )
         else:
@@ -103,6 +126,7 @@ def _run_period_aggregation(
                 instance_id=result.get("instance_id"),
                 instance_name=result.get("instance_name"),
                 error=result.get("error") or result.get("message"),
+                errors=result.get("errors"),
             )
 
         period_summary["instance_results"].append(result)
@@ -118,12 +142,14 @@ def _run_period_aggregation(
             error=str(exc),
         )
         database_result = {
-            "status": "error",
+            "status": STATUS_FAILED,
             "period_type": period,
+            "errors": [str(exc)],
             "error": str(exc),
         }
 
-    if database_result.get("status") == "success":
+    db_status = (database_result.get("status") or STATUS_FAILED).lower()
+    if db_status == STATUS_COMPLETED:
         sync_logger.info(
             f"{period} 数据库聚合完成",
             module="aggregation_sync",
@@ -131,12 +157,20 @@ def _run_period_aggregation(
             total_records=database_result.get("total_records", 0),
             processed_instances=database_result.get("processed_instances", 0),
         )
+    elif db_status == STATUS_SKIPPED:
+        sync_logger.info(
+            f"{period} 数据库聚合跳过",
+            module="aggregation_sync",
+            period=period,
+            message=database_result.get("message"),
+        )
     else:
         sync_logger.error(
             f"{period} 数据库聚合失败",
             module="aggregation_sync",
             period=period,
             error=database_result.get("error"),
+            errors=database_result.get("errors"),
         )
 
     database_result.setdefault("period_type", period)
@@ -246,18 +280,26 @@ def calculate_database_size_aggregations(
             if not getattr(Config, "AGGREGATION_ENABLED", True):
                 sync_logger.info("数据库大小统计聚合功能已禁用", module="aggregation_sync")
                 return {
-                    "success": True,
+                    "status": STATUS_SKIPPED,
                     "message": "统计聚合功能已禁用",
-                    "aggregations_created": 0,
+                    "metrics": {
+                        "aggregations_created": 0,
+                        "processed_instances": 0,
+                    },
+                    "periods_executed": [],
                 }
 
             active_instances = Instance.query.filter_by(is_active=True).all()
             if not active_instances:
                 sync_logger.warning("没有找到活跃的数据库实例", module="aggregation_sync")
                 return {
-                    "success": True,
+                    "status": STATUS_SKIPPED,
                     "message": "没有活跃的数据库实例需要聚合",
-                    "aggregations_created": 0,
+                    "metrics": {
+                        "aggregations_created": 0,
+                        "processed_instances": 0,
+                    },
+                    "periods_executed": [],
                 }
 
             period_order = ["daily", "weekly", "monthly", "quarterly"]
@@ -279,9 +321,12 @@ def calculate_database_size_aggregations(
                     requested_periods=periods,
                 )
                 return {
-                    "success": True,
+                    "status": STATUS_SKIPPED,
                     "message": "未选择有效的聚合周期，未执行统计任务",
-                    "aggregations_created": 0,
+                    "metrics": {
+                        "aggregations_created": 0,
+                        "processed_instances": 0,
+                    },
                     "periods_executed": [],
                 }
 
@@ -391,16 +436,41 @@ def calculate_database_size_aggregations(
                             error=str(period_exc),
                         )
                         result = {
-                            "status": "error",
+                            "status": STATUS_FAILED,
+                            "errors": [str(period_exc)],
                             "error": str(period_exc),
                             "instance_id": instance.id,
                             "instance_name": instance.name,
                             "period_type": period_name,
                         }
 
-                    status = result.get("status")
-                    if status != "success":
-                        error_msg = result.get("error") or result.get("message") or "未知错误"
+                    status = (result.get("status") or STATUS_FAILED).lower()
+                    if status == STATUS_COMPLETED:
+                        sync_logger.info(
+                            "实例聚合完成",
+                            module="aggregation_sync",
+                            period=period_name,
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            total_records=result.get("processed_records") or result.get("total_records", 0),
+                            message=result.get("message"),
+                        )
+                    elif status == STATUS_SKIPPED:
+                        sync_logger.info(
+                            "实例聚合跳过",
+                            module="aggregation_sync",
+                            period=period_name,
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            message=result.get("message"),
+                        )
+                    else:
+                        error_msg = None
+                        errors = result.get("errors")
+                        if isinstance(errors, list) and errors:
+                            error_msg = "; ".join(str(err) for err in errors)
+                        if not error_msg:
+                            error_msg = result.get("error") or result.get("message") or "未知错误"
                         instance_errors.append(f"{period_name}: {error_msg}")
                         sync_logger.error(
                             "实例聚合失败",
@@ -409,19 +479,14 @@ def calculate_database_size_aggregations(
                             instance_id=instance.id,
                             instance_name=instance.name,
                             error=error_msg,
-                        )
-                    else:
-                        sync_logger.info(
-                            "实例聚合完成",
-                            module="aggregation_sync",
-                            period=period_name,
-                            instance_id=instance.id,
-                            instance_name=instance.name,
-                            total_records=result.get("total_records", 0),
-                            message=result.get("message"),
+                            errors=result.get("errors"),
                         )
 
-                    aggregated_count += result.get("total_records", 0) or 0
+                    aggregated_count += (
+                        result.get("processed_records")
+                        or result.get("total_records")
+                        or 0
+                    )
                     period_results[period_name] = result
 
                 state = instance_state.setdefault(
@@ -479,17 +544,34 @@ def calculate_database_size_aggregations(
                         error=str(db_exc),
                     )
                     db_result = {
-                        "status": "error",
+                        "status": STATUS_FAILED,
                         "error": str(db_exc),
+                        "errors": [str(db_exc)],
                         "period_type": period_name,
                     }
-                if db_result.get("status") == "success":
+                db_status = (db_result.get("status") or STATUS_FAILED).lower()
+                if db_status == STATUS_COMPLETED:
                     sync_logger.info(
                         "数据库级聚合完成",
                         module="aggregation_sync",
                         period=period_name,
                         total_records=db_result.get("total_records", 0),
                         processed_instances=db_result.get("processed_instances"),
+                    )
+                elif db_status == STATUS_SKIPPED:
+                    sync_logger.info(
+                        "数据库级聚合跳过",
+                        module="aggregation_sync",
+                        period=period_name,
+                        message=db_result.get("message"),
+                    )
+                else:
+                    sync_logger.error(
+                        "数据库级聚合失败",
+                        module="aggregation_sync",
+                        period=period_name,
+                        error=db_result.get("error"),
+                        errors=db_result.get("errors"),
                     )
                 period_summaries.append(db_result)
 
@@ -504,8 +586,11 @@ def calculate_database_size_aggregations(
             session.completed_at = time_utils.now()
             db.session.commit()
 
+            overall_status = STATUS_COMPLETED if failed_instances == 0 else STATUS_FAILED
             message = (
                 f"统计聚合完成: 成功 {successful_instances} 个实例，失败 {failed_instances} 个实例"
+                if failed_instances
+                else f"统计聚合完成，共处理 {successful_instances} 个实例"
             )
 
             sync_logger.info(
@@ -520,13 +605,8 @@ def calculate_database_size_aggregations(
             )
 
             return {
-                "success": failed_instances == 0,
+                "status": overall_status,
                 "message": message,
-                "aggregations_created": total_instance_aggregations + total_database_aggregations,
-                "instance_aggregations_created": total_instance_aggregations,
-                "database_aggregations_created": total_database_aggregations,
-                "processed_instances": successful_instances + failed_instances,
-                "failed_instances": failed_instances,
                 "session_id": session.session_id,
                 "periods_executed": selected_periods,
                 "details": {
@@ -538,6 +618,18 @@ def calculate_database_size_aggregations(
                             "period_results": state["period_results"],
                         }
                         for instance_id, state in instance_state.items()
+                    },
+                },
+                "metrics": {
+                    "instances": {
+                        "total": len(active_instances),
+                        "successful": successful_instances,
+                        "failed": failed_instances,
+                    },
+                    "records": {
+                        "instance": total_instance_aggregations,
+                        "database": total_database_aggregations,
+                        "total": total_instance_aggregations + total_database_aggregations,
                     },
                 },
             }
@@ -571,7 +663,7 @@ def calculate_database_size_aggregations(
                 db.session.commit()
 
             return {
-                "success": False,
+                "status": STATUS_FAILED,
                 "message": f"统计聚合任务执行失败: {exc}",
                 "error": str(exc),
                 "periods_executed": locals().get("selected_periods"),
@@ -593,20 +685,23 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
     app = create_app()
     with app.app_context():
         try:
-            logger.info(f"开始计算实例 {instance_id} 的统计聚合...")
-            
-            # 获取实例
+            log_info(
+                "开始计算实例统计聚合",
+                module=TASK_MODULE,
+                instance_id=instance_id,
+            )
+
             instance = Instance.query.get(instance_id)
             if not instance:
                 return {
-                    'success': False,
-                    'message': f'实例 {instance_id} 不存在'
+                    "status": STATUS_FAILED,
+                    "message": f"实例 {instance_id} 不存在",
                 }
             
             if not instance.is_active:
                 return {
-                    'success': False,
-                    'message': f'实例 {instance_id} 未激活'
+                    "status": STATUS_SKIPPED,
+                    "message": f"实例 {instance_id} 未激活",
                 }
             
             # 创建聚合服务
@@ -615,19 +710,26 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
             # 计算实例的聚合数据
             result = service.calculate_instance_aggregations(instance_id)
             
-            if result['success']:
-                logger.info(f"实例 {instance_id} 统计聚合完成: {result['message']}")
-            else:
-                logger.error(f"实例 {instance_id} 统计聚合失败: {result['message']}")
-            
+            log_info(
+                "实例统计聚合完成",
+                module=TASK_MODULE,
+                instance_id=instance_id,
+                status=result.get("status"),
+                message=result.get("message"),
+            )
             return result
             
-        except Exception as e:
-            logger.error(f"计算实例 {instance_id} 统计聚合失败: {str(e)}")
+        except Exception as exc:
+            log_error(
+                "计算实例统计聚合失败",
+                module=TASK_MODULE,
+                exception=exc,
+                instance_id=instance_id,
+            )
             return {
-                'success': False,
-                'message': f'计算实例 {instance_id} 统计聚合失败: {str(e)}',
-                'error': str(e)
+                "status": STATUS_FAILED,
+                "message": f"计算实例 {instance_id} 统计聚合失败: {exc}",
+                "error": str(exc),
             }
 
 
@@ -648,7 +750,13 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
     app = create_app()
     with app.app_context():
         try:
-            logger.info(f"开始计算 {period_type} 周期统计聚合 ({start_date} 到 {end_date})...")
+            log_info(
+                "开始计算指定周期统计聚合",
+                module=TASK_MODULE,
+                period_type=period_type,
+                start_date=start_date.isoformat(),
+                end_date=end_date.isoformat(),
+            )
             
             # 创建聚合服务
             service = DatabaseSizeAggregationService()
@@ -656,19 +764,29 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
             # 计算指定周期的聚合数据
             result = service.calculate_period_aggregations(period_type, start_date, end_date)
             
-            if result['success']:
-                logger.info(f"{period_type} 周期统计聚合完成: {result['message']}")
-            else:
-                logger.error(f"{period_type} 周期统计聚合失败: {result['message']}")
+            log_info(
+                "指定周期统计聚合完成",
+                module=TASK_MODULE,
+                period_type=period_type,
+                status=result.get("status"),
+                message=result.get("message"),
+            )
             
             return result
             
-        except Exception as e:
-            logger.error(f"计算 {period_type} 周期统计聚合失败: {str(e)}")
+        except Exception as exc:
+            log_error(
+                "计算指定周期统计聚合失败",
+                module=TASK_MODULE,
+                exception=exc,
+                period_type=period_type,
+                start_date=start_date.isoformat(),
+                end_date=end_date.isoformat(),
+            )
             return {
-                'success': False,
-                'message': f'计算 {period_type} 周期统计聚合失败: {str(e)}',
-                'error': str(e)
+                "status": STATUS_FAILED,
+                "message": f"计算 {period_type} 周期统计聚合失败: {exc}",
+                "error": str(exc),
             }
 
 
@@ -706,19 +824,23 @@ def get_aggregation_status() -> Dict[str, Any]:
             total_instances = Instance.query.filter_by(is_active=True).count()
             
             return {
-                'success': True,
-                'latest_aggregation': latest_aggregation.calculated_at.isoformat() if latest_aggregation else None,
-                'aggregation_counts': {row.period_type: row.count for row in aggregation_counts},
-                'total_instances': total_instances,
-                'check_date': today.isoformat()
+                "status": STATUS_COMPLETED,
+                "latest_aggregation": latest_aggregation.calculated_at.isoformat() if latest_aggregation else None,
+                "aggregation_counts": {row.period_type: row.count for row in aggregation_counts},
+                "total_instances": total_instances,
+                "check_date": today.isoformat(),
             }
             
-        except Exception as e:
-            logger.error(f"获取聚合状态失败: {str(e)}")
+        except Exception as exc:
+            log_error(
+                "获取聚合状态失败",
+                module=TASK_MODULE,
+                exception=exc,
+            )
             return {
-                'success': False,
-                'message': f'获取聚合状态失败: {str(e)}',
-                'error': str(e)
+                "status": STATUS_FAILED,
+                "message": f"获取聚合状态失败: {exc}",
+                "error": str(exc),
             }
 
 
@@ -741,22 +863,29 @@ def validate_aggregation_config() -> Dict[str, Any]:
         if not isinstance(aggregation_hour, int) or aggregation_hour < 0 or aggregation_hour > 23:
             config_issues.append("聚合时间配置无效，应为0-23之间的整数")
         
+        status = STATUS_COMPLETED if not config_issues else STATUS_FAILED
+        message = "聚合配置验证通过" if not config_issues else "聚合配置存在需要关注的问题"
+
         return {
-            'success': len(config_issues) == 0,
-            'message': '聚合配置验证完成',
-            'issues': config_issues,
-            'config': {
-                'enabled': getattr(Config, 'AGGREGATION_ENABLED', True),
-                'hour': aggregation_hour
-            }
+            "status": status,
+            "message": message,
+            "issues": config_issues,
+            "config": {
+                "enabled": getattr(Config, "AGGREGATION_ENABLED", True),
+                "hour": aggregation_hour,
+            },
         }
         
-    except Exception as e:
-        logger.error(f"验证聚合配置失败: {str(e)}")
+    except Exception as exc:
+        log_error(
+            "验证聚合配置失败",
+            module=TASK_MODULE,
+            exception=exc,
+        )
         return {
-            'success': False,
-            'message': f'验证聚合配置失败: {str(e)}',
-            'error': str(e)
+            "status": STATUS_FAILED,
+            "message": f"验证聚合配置失败: {exc}",
+            "error": str(exc),
         }
 
 
@@ -775,7 +904,11 @@ def cleanup_old_aggregations(retention_days: int = 365) -> Dict[str, Any]:
     app = create_app()
     with app.app_context():
         try:
-            logger.info(f"开始清理 {retention_days} 天前的聚合数据...")
+            log_info(
+                "开始清理历史聚合数据",
+                module=TASK_MODULE,
+                retention_days=retention_days,
+            )
             
             from app.models.database_size_aggregation import DatabaseSizeAggregation
             
@@ -789,20 +922,29 @@ def cleanup_old_aggregations(retention_days: int = 365) -> Dict[str, Any]:
             
             db.session.commit()
             
-            logger.info(f"清理了 {deleted_count} 条旧聚合数据")
+            log_info(
+                "旧聚合数据清理完成",
+                module=TASK_MODULE,
+                deleted_count=deleted_count,
+                cutoff_date=cutoff_date.isoformat(),
+            )
             
             return {
-                'success': True,
-                'message': f'清理了 {deleted_count} 条旧聚合数据',
-                'deleted_count': deleted_count,
-                'cutoff_date': cutoff_date.isoformat()
+                "status": STATUS_COMPLETED,
+                "message": f"清理了 {deleted_count} 条旧聚合数据",
+                "deleted_count": deleted_count,
+                "cutoff_date": cutoff_date.isoformat(),
             }
             
-        except Exception as e:
-            logger.error(f"清理旧聚合数据失败: {str(e)}")
+        except Exception as exc:
+            log_error(
+                "清理旧聚合数据失败",
+                module=TASK_MODULE,
+                exception=exc,
+            )
             db.session.rollback()
             return {
-                'success': False,
-                'message': f'清理旧聚合数据失败: {str(e)}',
-                'error': str(e)
+                "status": STATUS_FAILED,
+                "message": f"清理旧聚合数据失败: {exc}",
+                "error": str(exc),
             }

@@ -91,11 +91,11 @@ def get_aggregations_summary() -> Response:
 def _normalize_task_result(result: dict | None, *, context: str) -> dict:
     if not result:
         raise SystemError(f"{context}任务返回为空")
-    if not result.get('success', True):
-        raise SystemError(result.get('message') or f"{context}执行失败")
+    status = (result.get("status") or "completed").lower()
+    if status == "failed":
+        raise SystemError(result.get("message") or f"{context}执行失败")
     normalized = dict(result)
-    normalized.pop('success', None)
-    normalized.setdefault('status', 'completed')
+    normalized["status"] = status
     return normalized
 
 
