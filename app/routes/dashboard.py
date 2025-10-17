@@ -3,7 +3,7 @@
 鲸落 - 系统仪表板路由
 """
 
-from datetime import timedelta, date
+from datetime import datetime, timedelta, date
 
 import psutil
 from flask import Blueprint, Response, render_template, request
@@ -377,19 +377,21 @@ def get_log_trend_data() -> list[dict[str, int | str]]:
         china_today = time_utils.now_china().date()
         start_date = china_today - timedelta(days=6)
 
-        date_buckets: list[tuple[date, any, any]] = []
+        date_buckets: list[tuple[datetime, any, any]] = []
         for offset in range(7):
             day = start_date + timedelta(days=offset)
-            start_dt = time_utils.now_china().replace(
-                year=day.year, month=day.month, day=day.day,
-                hour=0, minute=0, second=0, microsecond=0
+            start_dt = datetime(
+                year=day.year,
+                month=day.month,
+                day=day.day,
+                tzinfo=CHINA_TZ,
             )
             end_dt = start_dt + timedelta(days=1)
             start_utc = time_utils.to_utc(start_dt)
             end_utc = time_utils.to_utc(end_dt)
             if start_utc is None or end_utc is None:
                 continue
-            date_buckets.append((day, start_utc, end_utc))
+            date_buckets.append((start_dt, start_utc, end_utc))
 
         if not date_buckets:
             return []
@@ -518,27 +520,29 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
         end_date = time_utils.now_china().date()
         start_date = end_date - timedelta(days=6)
 
-        date_buckets: list[tuple[date, any, any]] = []
+        date_buckets: list[tuple[datetime, any, any]] = []
         for offset in range(7):
             day = start_date + timedelta(days=offset)
-            start_dt = time_utils.now_china().replace(
-                year=day.year, month=day.month, day=day.day,
-                hour=0, minute=0, second=0, microsecond=0
+            start_dt = datetime(
+                year=day.year,
+                month=day.month,
+                day=day.day,
+                tzinfo=CHINA_TZ,
             )
             end_dt = start_dt + timedelta(days=1)
             start_utc = time_utils.to_utc(start_dt)
             end_utc = time_utils.to_utc(end_dt)
             if start_utc is None or end_utc is None:
                 continue
-            date_buckets.append((day, start_utc, end_utc))
+            date_buckets.append((start_dt, start_utc, end_utc))
 
         if not date_buckets:
             return []
 
         select_columns = []
-        labels: list[tuple[date, str]] = []
-        for day, start_utc, end_utc in date_buckets:
-            label = f"sync_{time_utils.format_china_time(day, '%Y%m%d')}"
+        labels: list[tuple[datetime, str]] = []
+        for start_dt, start_utc, end_utc in date_buckets:
+            label = f"sync_{time_utils.format_china_time(start_dt, '%Y%m%d')}"
             select_columns.append(
                 func.sum(
                     case(
@@ -553,7 +557,7 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
                     )
                 ).label(label)
             )
-            labels.append((day, label))
+            labels.append((start_dt, label))
 
         if not select_columns:
             return []
@@ -569,10 +573,10 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
         result_mapping = result._mapping if result is not None else {}
 
         trend_data: list[dict[str, int | str]] = []
-        for day, label in labels:
+        for start_dt, label in labels:
             trend_data.append(
                 {
-                    "date": time_utils.format_china_time(day, "%Y-%m-%d"),
+                    "date": time_utils.format_china_time(start_dt, "%Y-%m-%d"),
                     "count": int(result_mapping.get(label) or 0),
                 }
             )
