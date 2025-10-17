@@ -33,13 +33,21 @@
     showLoadingState();
 
     fetch(`/sync_sessions/api/sessions?${params.toString()}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          currentSessions = data.data;
-          pagination = data.pagination;
-          totalPages = pagination.pages;
-          renderSessions(data.data);
+      .then(async (response) => {
+        const data = await response.json();
+        if (response.ok && data.success) {
+          const payload = data?.data ?? {};
+          currentSessions = payload.sessions ?? payload.items ?? payload ?? [];
+          if (!Array.isArray(currentSessions)) {
+            currentSessions = [];
+          }
+          pagination = payload.pagination ?? data.pagination ?? null;
+          if (pagination) {
+            totalPages = pagination.pages ?? pagination.total_pages ?? 1;
+          } else {
+            totalPages = 1;
+          }
+          renderSessions(currentSessions);
           renderPagination(pagination);
           hideLoadingState();
         } else {
@@ -159,12 +167,22 @@
   // 渲染分页控件
   function renderPagination(paginationData) {
     const container = document.getElementById('pagination-container');
-    if (!container || !paginationData || paginationData.pages <= 1) {
+    if (!container || !paginationData) {
       if (container) container.style.display = 'none';
       return;
     }
 
-    const { page, pages, has_prev, has_next, prev_num, next_num } = paginationData;
+    const page = paginationData.page ?? paginationData.current_page ?? 1;
+    const pages = paginationData.pages ?? paginationData.total_pages ?? 1;
+    const has_prev = paginationData.has_prev ?? paginationData.has_previous ?? page > 1;
+    const has_next = paginationData.has_next ?? paginationData.has_more ?? page < pages;
+    const prev_num = paginationData.prev_num ?? paginationData.previous_page ?? (has_prev ? page - 1 : 1);
+    const next_num = paginationData.next_num ?? paginationData.next_page ?? (has_next ? page + 1 : pages);
+
+    if (pages <= 1) {
+      container.style.display = 'none';
+      return;
+    }
 
     let html = '<nav aria-label="会话分页"><ul class="pagination">';
 

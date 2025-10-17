@@ -48,8 +48,9 @@ async function loadPartitionData() {
 
         if (response.ok && data.success) {
             console.log('分区数据响应:', data);
-            updatePartitionStats(data.data);
-            renderPartitionTable(data.data.partitions || []);
+            const payload = data?.data?.data ?? data?.data ?? data ?? {};
+            updatePartitionStats(payload);
+            renderPartitionTable(Array.isArray(payload.partitions) ? payload.partitions : []);
         } else {
             console.error('加载分区数据失败:', data);
             showError('加载分区数据失败: ' + (data.error || '未知错误'));
@@ -67,9 +68,10 @@ async function loadPartitionData() {
  * 更新分区统计信息
  */
 function updatePartitionStats(data) {
-    document.getElementById('totalPartitions').textContent = data.total_partitions || 0;
-    document.getElementById('totalSize').textContent = data.total_size || '0 B';
-    document.getElementById('totalRecords').textContent = data.total_records || 0;
+    const stats = data && typeof data === 'object' ? data : {};
+    document.getElementById('totalPartitions').textContent = stats.total_partitions ?? 0;
+    document.getElementById('totalSize').textContent = stats.total_size ?? '0 B';
+    document.getElementById('totalRecords').textContent = stats.total_records ?? 0;
     document.getElementById('partitionStatus').textContent = '正常';
 }
 

@@ -257,7 +257,10 @@ class TagSelector {
             
             const data = await response.json();
             if (data.success) {
-                this.allTags = data.tags || [];
+                this.allTags = data?.data?.tags ?? data.tags ?? [];
+                if (!Array.isArray(this.allTags)) {
+                    this.allTags = [];
+                }
                 this.filteredTags = [...this.allTags];
                 this.renderTags();
                 this.updateStats();
@@ -296,17 +299,25 @@ class TagSelector {
     
     // 筛选标签
     filterTags() {
+        const normalizedCategory = this.currentCategory && this.currentCategory !== 'all'
+            ? this.currentCategory.toLowerCase()
+            : 'all';
+
         this.filteredTags = this.allTags.filter(tag => {
+            const name = (tag.name || '').toLowerCase();
+            const displayName = (tag.display_name || '').toLowerCase();
+            const description = (tag.description || '').toLowerCase();
+            const category = (tag.category || '').toLowerCase();
+
             // 搜索筛选
             const matchesSearch = !this.searchQuery || 
-                tag.name.toLowerCase().includes(this.searchQuery) ||
-                tag.display_name.toLowerCase().includes(this.searchQuery) ||
-                tag.description.toLowerCase().includes(this.searchQuery) ||
-                tag.category.toLowerCase().includes(this.searchQuery);
+                name.includes(this.searchQuery) ||
+                displayName.includes(this.searchQuery) ||
+                description.includes(this.searchQuery) ||
+                category.includes(this.searchQuery);
             
             // 分类筛选
-            const matchesCategory = this.currentCategory === 'all' || 
-                tag.category === this.currentCategory;
+            const matchesCategory = normalizedCategory === 'all' || category === normalizedCategory;
             
             return matchesSearch && matchesCategory;
         });

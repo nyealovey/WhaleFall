@@ -305,7 +305,8 @@ class DatabaseAggregationsManager {
                 instanceSelect.empty();
                 instanceSelect.append('<option value="">所有实例</option>');
                 let matchedInstance = '';
-                data.instances.forEach(instance => {
+                const instances = data?.data?.instances ?? data.instances ?? [];
+                instances.forEach(instance => {
                     const option = document.createElement('option');
                     option.value = String(instance.id);
                     option.textContent = `${instance.name} (${instance.db_type})`;
@@ -373,7 +374,7 @@ class DatabaseAggregationsManager {
             const data = await response.json();
 
             if (response.ok && data.success !== false) {
-                const list = data.data || [];
+                const list = data?.data?.databases ?? data.data ?? data ?? [];
                 this.databaseIdMap.clear();
                 list.forEach(db => {
                     if (db && db.database_name) {
@@ -531,7 +532,7 @@ class DatabaseAggregationsManager {
             const data = await response.json();
             
             if (response.ok) {
-                const summaryData = data.data || data;
+                const summaryData = data?.data?.summary ?? data?.data ?? data ?? {};
                 this.updateSummaryCards(summaryData);
             } else {
                 console.error('加载汇总数据失败:', data.error);
@@ -542,10 +543,10 @@ class DatabaseAggregationsManager {
     }
     
     updateSummaryCards(summaryData) {
-        $('#totalInstances').text(summaryData.total_instances || 0);
-        $('#totalDatabases').text(summaryData.total_databases || 0);
-        $('#averageSize').text(this.formatSizeFromMB(summaryData.avg_size_mb || 0));
-        $('#maxSize').text(this.formatSizeFromMB(summaryData.max_size_mb || 0));
+        $('#totalInstances').text(summaryData.total_instances ?? 0);
+        $('#totalDatabases').text(summaryData.total_databases ?? 0);
+        $('#averageSize').text(this.formatSizeFromMB(summaryData.avg_size_mb ?? 0));
+        $('#maxSize').text(this.formatSizeFromMB(summaryData.max_size_mb ?? 0));
     }
     
     async loadChartData() {
@@ -560,7 +561,8 @@ class DatabaseAggregationsManager {
             
             if (response.ok) {
                 this.databaseLabelMap = {};
-                this.currentData = data.data || [];
+                const payload = data?.data?.items ?? data?.data ?? data ?? [];
+                this.currentData = Array.isArray(payload) ? payload : [];
                 this.renderChart(this.currentData);
                 this.syncUIState();
             } else {
@@ -586,7 +588,8 @@ class DatabaseAggregationsManager {
             const data = await response.json();
             
             if (response.ok) {
-                this.changeChartData = data.data || [];
+                const payload = data?.data?.items ?? data?.data ?? data ?? [];
+                this.changeChartData = Array.isArray(payload) ? payload : [];
                 this.renderChangeChart(this.changeChartData);
             } else {
                 console.error('加载容量变化数据失败:', data.error);
@@ -611,7 +614,8 @@ class DatabaseAggregationsManager {
             const data = await response.json();
 
             if (response.ok) {
-                this.changePercentChartData = data.data || [];
+                const payload = data?.data?.items ?? data?.data ?? data ?? [];
+                this.changePercentChartData = Array.isArray(payload) ? payload : [];
                 this.renderChangePercentChart(this.changePercentChartData);
             } else {
                 console.error('加载容量变化百分比数据失败:', data.error);

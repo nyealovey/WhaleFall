@@ -57,7 +57,8 @@ function initLogTrendChart() {
     fetch('/dashboard/api/charts?type=logs')
         .then(response => response.json())
         .then(data => {
-            const logTrend = data.log_trend || [];
+            const payload = data?.data ?? data ?? {};
+            const logTrend = payload.log_trend ?? [];
             
             logTrendChart = new Chart(context, {
                 type: 'line',

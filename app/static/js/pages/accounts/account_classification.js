@@ -44,7 +44,8 @@ function loadClassifications() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                displayClassifications(data.classifications);
+                const classifications = data?.data?.classifications ?? data.classifications ?? [];
+                displayClassifications(Array.isArray(classifications) ? classifications : []);
             } else {
                 showAlert('danger', '加载分类失败: ' + data.error);
             }
@@ -57,15 +58,16 @@ function loadClassifications() {
 
 // 显示分类列表
 function displayClassifications(classifications) {
+    const list = Array.isArray(classifications) ? classifications : [];
     const container = document.getElementById('classificationsList');
 
-    if (classifications.length === 0) {
+    if (list.length === 0) {
         container.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-info-circle me-2"></i>暂无分类</div>';
         return;
     }
 
     let html = '';
-    classifications.forEach(classification => {
+    list.forEach(classification => {
         const riskLevelClass = {
             'low': 'success',
             'medium': 'warning',
@@ -424,11 +426,12 @@ function loadClassificationsForRules(prefix = '') {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                const classifications = data?.data?.classifications ?? data.classifications ?? [];
                 const elementId = prefix ? `${prefix}RuleClassification` : 'ruleClassification';
                 const select = document.getElementById(elementId);
                 if (select) {
                     select.innerHTML = '<option value="">请选择分类</option>';
-                    data.classifications.forEach(classification => {
+                    classifications.forEach(classification => {
                         const option = document.createElement('option');
                         option.value = classification.id;
                         option.textContent = classification.name;
