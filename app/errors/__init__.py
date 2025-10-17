@@ -92,6 +92,9 @@ class ValidationError(AppError):
     )
 
 
+AppValidationError = ValidationError
+
+
 class AuthenticationError(AppError):
     metadata = ExceptionMetadata(
         status_code=401,
@@ -194,6 +197,7 @@ def map_exception_to_status(error: Exception, default: int = 500) -> int:
 
 __all__ = [
     "AppError",
+    "AppValidationError",
     "ValidationError",
     "AuthenticationError",
     "AuthorizationError",
