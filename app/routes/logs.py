@@ -269,19 +269,8 @@ def export_logs() -> Response:
             # 写入数据
             for log in logs:
                 # 格式化时间戳（转换为东八区时间）
-                timestamp_str = ""
-                if log.timestamp:
-                    from app.utils.time_utils import utc_to_china
-
-                    china_time = utc_to_china(log.timestamp)
-                    timestamp_str = china_time.strftime("%Y-%m-%d %H:%M:%S")
-
-                created_at_str = ""
-                if log.created_at:
-                    from app.utils.time_utils import utc_to_china
-
-                    china_created_at = utc_to_china(log.created_at)
-                    created_at_str = china_created_at.strftime("%Y-%m-%d %H:%M:%S")
+                timestamp_str = time_utils.format_china_time(log.timestamp) if log.timestamp else ""
+                created_at_str = time_utils.format_china_time(log.created_at) if log.created_at else ""
 
                 # 处理上下文数据，提取关键信息
                 context_str = ""
@@ -313,7 +302,7 @@ def export_logs() -> Response:
             from flask import Response
 
             # 生成文件名
-            timestamp = time_utils.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
             filename = f"logs_export_{timestamp}.csv"
 
             return Response(

@@ -129,7 +129,7 @@ class DatabaseSizeAggregationService:
             log_debug(
                 "聚合分区已存在，使用缓存",
                 module=MODULE,
-                target_month=target_date.strftime("%Y-%m"),
+                target_month=time_utils.format_china_time(target_date, "%Y-%m"),
             )
             return
 
@@ -140,20 +140,20 @@ class DatabaseSizeAggregationService:
             log_info(
                 "聚合分区已确保存在",
                 module=MODULE,
-                target_month=target_date.strftime("%Y-%m"),
+                target_month=time_utils.format_china_time(target_date, "%Y-%m"),
             )
         except DatabaseError as exc:  # pragma: no cover - 分区创建失败只记录告警
             log_warning(
                 "创建聚合分区失败，将在后续重试",
                 module=MODULE,
-                target_month=target_date.strftime("%Y-%m"),
+                target_month=time_utils.format_china_time(target_date, "%Y-%m"),
                 error=exc.message,
             )
         except Exception as exc:  # pragma: no cover - 记录警告不影响主流程
             log_warning(
                 "创建聚合分区出现未知异常，将在后续重试",
                 module=MODULE,
-                target_month=target_date.strftime("%Y-%m"),
+                target_month=time_utils.format_china_time(target_date, "%Y-%m"),
                 exception=exc,
             )
 

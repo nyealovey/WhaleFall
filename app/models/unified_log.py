@@ -4,24 +4,14 @@
 """
 
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import Any
 
 from sqlalchemy import JSON, Column, DateTime, Index, Integer, String, Text
 from sqlalchemy import Enum as SQLEnum
 
 from app import db
-from app.utils.time_utils import now, utc_to_china
-
-
-class LogLevel(Enum):
-    """日志级别枚举"""
-
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
+from app.constants.system_constants import LogLevel
+from app.utils.time_utils import time_utils
 
 
 class UnifiedLog(db.Model):
@@ -51,7 +41,7 @@ class UnifiedLog(db.Model):
     context = Column(JSON, nullable=True)
 
     # 记录创建时间
-    created_at = Column(DateTime(timezone=True), default=now, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=time_utils.now, nullable=False)
 
     # 复合索引优化查询性能
     __table_args__ = (
@@ -66,8 +56,8 @@ class UnifiedLog(db.Model):
     def to_dict(self) -> dict[str, Any]:
         """转换为字典格式"""
         # 将UTC时间转换为东八区时间显示
-        china_timestamp = utc_to_china(self.timestamp)
-        china_created_at = utc_to_china(self.created_at) if self.created_at else None
+        china_timestamp = time_utils.to_china(self.timestamp)
+        china_created_at = time_utils.to_china(self.created_at) if self.created_at else None
 
         return {
             "id": self.id,
@@ -93,7 +83,7 @@ class UnifiedLog(db.Model):
         """创建日志条目"""
         # 确保时间戳带时区信息
         if timestamp is None:
-            timestamp = now()
+            timestamp = time_utils.now()
         elif timestamp.tzinfo is None:
             # 如果没有时区信息，假设为UTC时间
             from app.utils.time_utils import UTC_TZ
@@ -118,7 +108,7 @@ class UnifiedLog(db.Model):
         limit: int = 100,
     ) -> list["UnifiedLog"]:
         """获取最近的日志"""
-        query = cls.query.filter(cls.timestamp >= now() - timedelta(hours=hours))
+        query = cls.query.filter(cls.timestamp >= time_utils.now() - timedelta(hours=hours))
 
         if level:
             query = query.filter(cls.level == level)
@@ -133,7 +123,7 @@ class UnifiedLog(db.Model):
         """获取错误日志"""
         return (
             cls.query.filter(
-                cls.timestamp >= now() - timedelta(hours=hours),
+                cls.timestamp >= time_utils.now() - timedelta(hours=hours),
                 cls.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]),
             )
             .order_by(cls.timestamp.desc())
@@ -147,7 +137,7 @@ class UnifiedLog(db.Model):
         return (
             cls.query.filter(
                 cls.module == module,
-                cls.timestamp >= now() - timedelta(hours=hours),
+                cls.timestamp >= time_utils.now() - timedelta(hours=hours),
             )
             .order_by(cls.timestamp.desc())
             .limit(limit)
@@ -164,7 +154,7 @@ class UnifiedLog(db.Model):
         limit: int = 100,
     ) -> list["UnifiedLog"]:
         """搜索日志"""
-        query = cls.query.filter(cls.timestamp >= now() - timedelta(hours=hours))
+        query = cls.query.filter(cls.timestamp >= time_utils.now() - timedelta(hours=hours))
 
         # 全文搜索消息和上下文
         search_filter = db.or_(cls.message.like(f"%{search_term}%"), cls.context.like(f"%{search_term}%"))
@@ -183,7 +173,7 @@ class UnifiedLog(db.Model):
         """获取日志模块列表"""
         from sqlalchemy import func
 
-        start_time = now() - timedelta(hours=hours)
+        start_time = time_utils.now() - timedelta(hours=hours)
 
         # 获取不重复的模块列表，按日志数量排序
         modules = (
@@ -212,7 +202,7 @@ class UnifiedLog(db.Model):
 
         from sqlalchemy import func
 
-        start_time = now() - timedelta(hours=hours)
+        start_time = time_utils.now() - timedelta(hours=hours)
 
         # 总日志数
         total_logs = cls.query.filter(cls.timestamp >= start_time).count()
@@ -259,7 +249,7 @@ class UnifiedLog(db.Model):
     @classmethod
     def cleanup_old_logs(cls, days: int = 90) -> int:
         """清理旧日志"""
-        cutoff_date = now() - timedelta(days=days)
+        cutoff_date = time_utils.now() - timedelta(days=days)
         deleted_count = cls.query.filter(cls.timestamp < cutoff_date).delete()
         db.session.commit()
         return deleted_count

@@ -420,16 +420,7 @@ class CacheKeys:
         return f"{CacheKeys.API_PREFIX}{endpoint}:{params}"
 
 
-# 时间格式常量
-class TimeFormats:
-    """时间格式常量"""
 
-    DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-    DATE_FORMAT = "%Y-%m-%d"
-    TIME_FORMAT = "%H:%M:%S"
-    ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
-    CHINESE_DATETIME_FORMAT = "%Y年%m月%d日 %H:%M:%S"
-    CHINESE_DATE_FORMAT = "%Y年%m月%d日"
 
 
 # 分页常量
@@ -470,6 +461,6 @@ __all__ = [
     "DangerousPatterns",
     "FieldLengths",
     "CacheKeys",
-    "TimeFormats",
+
     "Pagination",
 ]

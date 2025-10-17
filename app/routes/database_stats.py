@@ -4,7 +4,7 @@
 专注于数据库层面的统计功能
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, render_template, request
@@ -113,15 +113,17 @@ def get_instance_database_sizes(instance_id: int) -> Response:
     start_date_obj: Optional[date] = None
     if start_date:
         try:
-            start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
-        except ValueError as exc:
+            parsed_dt = time_utils.to_china(start_date + 'T00:00:00')
+            start_date_obj = parsed_dt.date() if parsed_dt else None
+        except Exception as exc:
             raise ValidationError('start_date 格式错误，应为 YYYY-MM-DD') from exc
 
     end_date_obj: Optional[date] = None
     if end_date:
         try:
-            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
-        except ValueError as exc:
+            parsed_dt = time_utils.to_china(end_date + 'T00:00:00')
+            end_date_obj = parsed_dt.date() if parsed_dt else None
+        except Exception as exc:
             raise ValidationError('end_date 格式错误，应为 YYYY-MM-DD') from exc
 
     try:
@@ -471,8 +473,11 @@ def get_databases_aggregations() -> Response:
 
 def _parse_date(value: str, field: str) -> date:
     try:
-        return datetime.strptime(value, '%Y-%m-%d').date()
-    except ValueError as exc:
+        parsed_dt = time_utils.to_china(value + 'T00:00:00')
+        if parsed_dt is None:
+            raise ValueError("无法解析日期")
+        return parsed_dt.date()
+    except Exception as exc:
         raise ValidationError(f'{field} 格式错误，应为 YYYY-MM-DD') from exc
 
 

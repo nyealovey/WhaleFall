@@ -124,7 +124,7 @@ class ConstantsManager:
 
 ## 📋 报告信息
 
-- **生成时间**: {time_utils.now().strftime('%Y-%m-%d %H:%M:%S')}
+- **生成时间**: {time_utils.format_china_time(time_utils.now())}
 - **项目路径**: {self.project_root}
 - **报告类型**: 综合报告
 
@@ -255,7 +255,7 @@ class ConstantsManager:
 4. 完善文档和监控
 
 ---
-*报告生成时间: {time_utils.now().strftime('%Y-%m-%d %H:%M:%S')}*
+*报告生成时间: {time_utils.format_china_time(time_utils.now())}*
 """
         
         # 保存报告

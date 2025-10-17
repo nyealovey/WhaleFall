@@ -628,8 +628,8 @@ def get_instances_aggregations():
         if time_range and not start_date and not end_date:
             end_date_obj = time_utils.now_china()
             start_date_obj = end_date_obj - timedelta(days=int(time_range))
-            start_date = start_date_obj.strftime('%Y-%m-%d')
-            end_date = end_date_obj.strftime('%Y-%m-%d')
+            start_date = time_utils.format_china_time(start_date_obj, '%Y-%m-%d')
+            end_date = time_utils.format_china_time(end_date_obj, '%Y-%m-%d')
         
         # 分页参数
         page = request.args.get('page', 1, type=int)
@@ -745,8 +745,8 @@ def get_instances_aggregations_summary():
         if time_range and not start_date and not end_date:
             end_date_obj = time_utils.now_china()
             start_date_obj = end_date_obj - timedelta(days=int(time_range))
-            start_date = start_date_obj.strftime('%Y-%m-%d')
-            end_date = end_date_obj.strftime('%Y-%m-%d')
+            start_date = time_utils.format_china_time(start_date_obj, '%Y-%m-%d')
+            end_date = time_utils.format_china_time(end_date_obj, '%Y-%m-%d')
         
         # 解析日期参数
         start_date_obj = None

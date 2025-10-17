@@ -4,7 +4,7 @@
 """
 
 from typing import Any
-from datetime import datetime, date
+from datetime import date
 
 from sqlalchemy import func
 
@@ -37,9 +37,7 @@ class SyncSessionService:
             return None
             
         def clean_value(value):
-            if isinstance(value, datetime):
-                return value.isoformat()
-            elif isinstance(value, date):
+            if hasattr(value, 'isoformat'):  # datetime 或 date 对象
                 return value.isoformat()
             elif isinstance(value, dict):
                 return {k: clean_value(v) for k, v in value.items()}

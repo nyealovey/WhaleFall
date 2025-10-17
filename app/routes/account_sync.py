@@ -131,7 +131,7 @@ def sync_records() -> str | Response:
                 time_key = record.session_id
             else:
                 # manual_task和scheduled_task按时间分组，相同分钟的同步记录为一组
-                time_key = record.created_at.strftime("%Y-%m-%d %H:%M")
+                time_key = time_utils.format_china_time(record.created_at, "%Y-%m-%d %H:%M")
 
             # 从关联的实例记录中获取详细统计和状态
             total_accounts = 0

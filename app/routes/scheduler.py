@@ -4,7 +4,6 @@
 """
 
 from typing import Any
-from datetime import datetime
 
 from flask import Blueprint, Response, current_app, render_template, request
 from flask_login import login_required  # type: ignore
@@ -183,10 +182,11 @@ def get_jobs() -> Response:
                 from datetime import timedelta
                 
                 # 查找最近24小时内该任务的执行日志
+                from datetime import timedelta
                 recent_logs = UnifiedLog.query.filter(
                     UnifiedLog.module == "scheduler",
                     UnifiedLog.message.like(f"%{job.name}%"),
-                    UnifiedLog.timestamp >= time_utils.now_china() - timedelta(days=1)
+                    UnifiedLog.timestamp >= time_utils.now() - timedelta(days=1)
                 ).order_by(UnifiedLog.timestamp.desc()).first()
 
                 if recent_logs:
@@ -643,16 +643,12 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
         run_date = data.get("run_date")
         if not run_date:
             return None
-        from datetime import datetime
-
         dt = None
         try:
-            dt = datetime.fromisoformat(str(run_date))
+            # 使用 time_utils 解析时间
+            dt = time_utils.to_utc(str(run_date))
         except Exception:  # noqa: BLE001
-            try:
-                dt = datetime.strptime(str(run_date), "%Y-%m-%dT%H:%M")
-            except Exception:  # noqa: BLE001
-                dt = None
+            dt = None
         if dt is None:
             return None
         try:
@@ -732,7 +728,7 @@ def get_scheduler_health() -> Response:
                 for item in report.executors
             ],
             "warnings": report.warnings,
-            "last_check": current_time.strftime("%Y/%m/%d %H:%M:%S"),
+            "last_check": time_utils.format_china_time(current_time, "%Y/%m/%d %H:%M:%S"),
         }
 
         log_info(
