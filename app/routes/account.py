@@ -3,22 +3,23 @@
 鲸落 - 账户管理路由
 """
 
-import logging
 from collections import defaultdict
 from datetime import timedelta
 
-from flask import Blueprint, Response, jsonify, render_template, request
+from flask import Blueprint, Response, flash, render_template, request
 from flask_login import current_user, login_required
 
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
 )
+from app.errors import SystemError
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.account_sync_service import account_sync_service
 from app.utils.decorators import update_required, view_required
+from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
@@ -30,7 +31,7 @@ account_bp = Blueprint("account", __name__)
 @account_bp.route("/<db_type>")
 @login_required
 @view_required
-def list_accounts(db_type: str | None = None) -> str:
+def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     """账户列表页面"""
     # 获取查询参数
     page = request.args.get("page", 1, type=int)
@@ -188,8 +189,8 @@ def list_accounts(db_type: str | None = None) -> str:
             )
 
     if request.is_json:
-        return jsonify(
-            {
+        return jsonify_unified_success(
+            data={
                 "accounts": [account.to_dict() for account in pagination.items],
                 "pagination": {
                     "page": pagination.page,
@@ -201,7 +202,8 @@ def list_accounts(db_type: str | None = None) -> str:
                 },
                 "stats": stats,
                 "instances": [instance.to_dict() for instance in instances],
-            }
+            },
+            message="获取账户列表成功",
         )
 
     persist_query_args = request.args.to_dict(flat=False)
@@ -233,7 +235,7 @@ def list_accounts(db_type: str | None = None) -> str:
 @account_bp.route("/api/export")
 @login_required
 @view_required
-def export_accounts() -> "Response":
+def export_accounts() -> Response:
     """导出账户数据为CSV"""
     import csv
     import io
@@ -370,7 +372,7 @@ def export_accounts() -> "Response":
 @account_bp.route("/api/<int:account_id>/permissions")
 @login_required
 @view_required
-def get_account_permissions(account_id: int) -> "Response":
+def get_account_permissions(account_id: int) -> tuple[Response, int]:
     """获取账户权限详情"""
     try:
         account = CurrentAccountSyncData.query.get_or_404(account_id)
@@ -378,7 +380,7 @@ def get_account_permissions(account_id: int) -> "Response":
 
         # 构建权限信息
         permissions = {
-            "db_type": instance.db_type.upper(),
+            "db_type": instance.db_type.upper() if instance else "",
             "username": account.username,
             "is_superuser": account.is_superuser,
             "last_sync_time": (
@@ -386,30 +388,29 @@ def get_account_permissions(account_id: int) -> "Response":
             ),
         }
 
-        if instance.db_type == "mysql":
+        if instance and instance.db_type == "mysql":
             permissions["global_privileges"] = account.global_privileges or []
             permissions["database_privileges"] = account.database_privileges or {}
 
-        elif instance.db_type == "postgresql":
+        elif instance and instance.db_type == "postgresql":
             permissions["predefined_roles"] = account.predefined_roles or []
             permissions["role_attributes"] = account.role_attributes or {}
             permissions["database_privileges_pg"] = account.database_privileges_pg or {}
             permissions["tablespace_privileges"] = account.tablespace_privileges or {}
 
-        elif instance.db_type == "sqlserver":
+        elif instance and instance.db_type == "sqlserver":
             permissions["server_roles"] = account.server_roles or []
             permissions["server_permissions"] = account.server_permissions or []
             permissions["database_roles"] = account.database_roles or {}
             permissions["database_permissions"] = account.database_permissions or {}
 
-        elif instance.db_type == "oracle":
+        elif instance and instance.db_type == "oracle":
             permissions["oracle_roles"] = account.oracle_roles or []
             permissions["system_privileges"] = account.system_privileges or []
             permissions["tablespace_privileges_oracle"] = account.tablespace_privileges_oracle or {}
 
-        return jsonify(
-            {
-                "success": True,
+        return jsonify_unified_success(
+            data={
                 "permissions": permissions,
                 "account": {
                     "id": account.id,
@@ -417,17 +418,24 @@ def get_account_permissions(account_id: int) -> "Response":
                     "instance_name": instance.name if instance else "未知实例",
                     "db_type": instance.db_type if instance else "",
                 },
-            }
+            },
+            message="获取账户权限成功",
         )
 
-    except Exception as e:
-        return jsonify({"success": False, "error": f"获取权限失败: {str(e)}"}), 500
+    except Exception as exc:
+        log_error(
+            "获取账户权限失败",
+            module="account",
+            account_id=account_id,
+            exception=exc,
+        )
+        raise SystemError("获取账户权限失败") from exc
 
 
 @account_bp.route("/api/<int:account_id>/change-history")
 @login_required
 @view_required
-def get_account_change_history(account_id: int) -> "Response":
+def get_account_change_history(account_id: int) -> tuple[Response, int]:
     """获取账户变更历史"""
     try:
         account = CurrentAccountSyncData.query.get_or_404(account_id)
@@ -440,7 +448,7 @@ def get_account_change_history(account_id: int) -> "Response":
             AccountChangeLog.query.filter_by(
                 instance_id=account.instance_id,
                 username=account.username,
-                db_type=instance.db_type,
+                db_type=instance.db_type if instance else "",
             )
             .order_by(AccountChangeLog.change_time.desc())
             .limit(50)
@@ -462,20 +470,26 @@ def get_account_change_history(account_id: int) -> "Response":
                 }
             )
 
-        return jsonify(
-            {
-                "success": True,
+        return jsonify_unified_success(
+            data={
                 "account": {
                     "id": account.id,
                     "username": account.username,
                     "db_type": instance.db_type if instance else "",
                 },
                 "history": history,
-            }
+            },
+            message="获取账户变更历史成功",
         )
 
-    except Exception as e:
-        return jsonify({"success": False, "error": f"获取变更历史失败: {str(e)}"}), 500
+    except Exception as exc:
+        log_error(
+            "获取账户变更历史失败",
+            module="account",
+            account_id=account_id,
+            exception=exc,
+        )
+        raise SystemError("获取账户变更历史失败") from exc
 
 
 @account_bp.route("/statistics")
@@ -483,8 +497,11 @@ def get_account_change_history(account_id: int) -> "Response":
 @view_required
 def statistics() -> str:
     """账户统计页面"""
-    # 获取统计信息
-    stats = get_account_statistics()
+    try:
+        stats = get_account_statistics()
+    except SystemError:
+        stats = _empty_account_statistics()
+        flash("获取账户统计信息失败，请稍后重试", "error")
 
     # 获取最近同步记录 - 使用新的同步会话模型
     from app.models.sync_session import SyncSession
@@ -506,7 +523,7 @@ def statistics() -> str:
 @account_bp.route("/api/statistics")
 @login_required
 @view_required
-def statistics_api() -> "Response":
+def statistics_api() -> tuple[Response, int]:
     """账户统计API"""
     try:
         # 获取统计信息
@@ -520,18 +537,44 @@ def statistics_api() -> "Response":
         # 获取实例列表
         instances = Instance.query.filter_by(is_active=True).all()
 
-        return jsonify(
-            {
-                "success": True,
+        return jsonify_unified_success(
+            data={
                 "stats": stats,
                 "recent_syncs": [sync.to_dict() for sync in recent_syncs],
                 "instances": [instance.to_dict() for instance in instances],
-            }
+            },
+            message="获取账户统计信息成功",
         )
-    except Exception as e:
-        return jsonify({"success": False, "error": f"获取统计信息失败: {str(e)}"}), 500
+    except SystemError:
+        raise
+    except Exception as exc:
+        log_error(
+            "获取账户统计信息失败",
+            module="account",
+            exception=exc,
+        )
+        raise SystemError("获取账户统计信息失败") from exc
 
 
+
+
+def _empty_account_statistics() -> dict:
+    """构建账户统计信息的空状态结果"""
+    return {
+        "total_accounts": 0,
+        "active_accounts": 0,
+        "locked_accounts": 0,
+        "database_instances": 0,
+        "total_instances": 0,
+        "db_type_stats": {},
+        "instance_stats": [],
+        "classification_stats": {},
+        "superuser_accounts": 0,
+        "trend_data": [],
+        "recent_accounts": [],
+        "permission_stats": {},
+        "accounts_with_permissions": 0,
+    }
 
 
 def get_account_statistics() -> dict:
@@ -775,20 +818,5 @@ def get_account_statistics() -> dict:
         }
 
     except Exception as e:
-        logging.error("获取账户统计信息失败: %s", e)
-        return {
-            "total_accounts": 0,
-            "active_accounts": 0,
-            "locked_accounts": 0,
-            "database_instances": 0,
-            "total_instances": 0,  # 添加别名以兼容模板
-            "db_type_stats": {},
-            "instance_stats": [],
-            "classification_stats": {},
-            "superuser_accounts": 0,
-            "trend_data": [],
-            "recent_accounts": [],
-            "permission_stats": {},
-            "accounts_with_permissions": 0,
-        }
-
+        log_error("获取账户统计信息失败", module="account", exception=e)
+        raise SystemError("获取账户统计信息失败") from e

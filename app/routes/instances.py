@@ -5,41 +5,21 @@
 
 from typing import Any
 
-from flask import (
-    Blueprint,
-    Response,
-    flash,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    url_for,
-)
+from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
-
-# Account模型已废弃，使用CurrentAccountSyncData
+from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.account_sync_service import account_sync_service
-from app.utils.decorators import (
-    create_required,
-    delete_required,
-    update_required,
-    view_required,
-)
+from app.utils.decorators import create_required, delete_required, update_required, view_required
 from app.utils.data_validator import DataValidator
-from app.utils.security import (
-    sanitize_form_data,
-    validate_db_type,
-    validate_required_fields,
-)
-from app.utils.structlog_config import get_api_logger, get_system_logger, log_error, log_info, log_warning
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.security import sanitize_form_data, validate_db_type, validate_required_fields
+from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
-
-logger = get_system_logger()
 
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
@@ -134,10 +114,6 @@ def _delete_instance_related_data(instance_id: int, instance_name: str = None) -
         raise
 
 
-# 获取API日志记录器
-api_logger = get_api_logger()
-
-
 @instances_bp.route("/")
 @login_required
 @view_required
@@ -219,7 +195,7 @@ def create_api() -> Response:
     # 使用新的数据验证器进行严格验证
     is_valid, validation_error = DataValidator.validate_instance_data(data)
     if not is_valid:
-        return jsonify({"error": validation_error}), 400
+        raise ValidationError(validation_error)
 
     # 验证凭据ID（如果提供）
     if data.get("credential_id"):
@@ -227,14 +203,14 @@ def create_api() -> Response:
             credential_id = int(data.get("credential_id"))
             credential = Credential.query.get(credential_id)
             if not credential:
-                return jsonify({"error": "凭据不存在"}), 400
+                raise ValidationError("凭据不存在")
         except (ValueError, TypeError):
-            return jsonify({"error": "无效的凭据ID"}), 400
+            raise ValidationError("无效的凭据ID")
 
     # 验证实例名称唯一性
     existing_instance = Instance.query.filter_by(name=data.get("name")).first()
     if existing_instance:
-        return jsonify({"error": "实例名称已存在"}), 400
+        raise ConflictError("实例名称已存在")
 
     try:
         # 创建新实例
@@ -263,12 +239,21 @@ def create_api() -> Response:
             port=instance.port,
         )
 
-        return jsonify({"message": "实例创建成功", "instance": instance.to_dict()}), 201
+        return jsonify_unified_success(
+            data={"instance": instance.to_dict()},
+            message="实例创建成功",
+            status=201,
+        )
 
     except Exception as e:
         db.session.rollback()
-        log_error(f"创建实例失败: {e}", module="instances", exc_info=True)
-        return jsonify({"error": f"创建实例失败: {str(e)}"}), 500
+        log_error(
+            "创建实例失败",
+            module="instances",
+            user_id=getattr(current_user, "id", None),
+            exception=e,
+        )
+        raise SystemError("创建实例失败") from e
 
 
 @instances_bp.route("/create", methods=["GET", "POST"])
@@ -347,10 +332,16 @@ def create() -> str | Response:
             
             # 只记录一次标签创建结果
             if added_tags:
-                log_info(f"实例 {instance.id} 标签已创建: {', '.join(added_tags)}")
+                log_info(
+                    "实例标签已创建",
+                    module="instances",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    tags=added_tags,
+                )
 
             # 记录操作日志
-            api_logger.info(
+            log_info(
                 "创建数据库实例",
                 module="instances",
                 user_id=current_user.id,
@@ -365,7 +356,12 @@ def create() -> str | Response:
 
         except Exception as e:
             db.session.rollback()
-            log_error(f"创建实例失败: {e}", module="instances", exc_info=True)
+            log_error(
+                "创建实例失败",
+                module="instances",
+                user_id=getattr(current_user, "id", None),
+                exception=e,
+            )
 
             # 根据错误类型提供更具体的错误信息
             if "UNIQUE constraint failed" in str(e):
@@ -452,7 +448,11 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 @view_required
 def statistics() -> str:
     """实例统计页面"""
-    stats = get_instance_statistics()
+    try:
+        stats = get_instance_statistics()
+    except SystemError:
+        stats = _empty_instance_statistics()
+        flash("获取实例统计信息失败，请稍后重试", "error")
     return render_template("instances/statistics.html", stats=stats)
 
 
@@ -462,7 +462,7 @@ def statistics() -> str:
 def api_statistics() -> Response:
     """获取实例统计API"""
     stats = get_instance_statistics()
-    return jsonify(stats)
+    return jsonify_unified_success(data=stats, message="获取实例统计信息成功")
 
 
 @instances_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
@@ -479,7 +479,7 @@ def edit_api(instance_id: int) -> Response:
     # 使用新的数据验证器进行严格验证
     is_valid, validation_error = DataValidator.validate_instance_data(data)
     if not is_valid:
-        return jsonify({"error": validation_error}), 400
+        raise ValidationError(validation_error)
 
     # 验证凭据ID（如果提供）
     if data.get("credential_id"):
@@ -487,16 +487,16 @@ def edit_api(instance_id: int) -> Response:
             credential_id = int(data.get("credential_id"))
             credential = Credential.query.get(credential_id)
             if not credential:
-                return jsonify({"error": "凭据不存在"}), 400
+                raise ValidationError("凭据不存在")
         except (ValueError, TypeError):
-            return jsonify({"error": "无效的凭据ID"}), 400
+            raise ValidationError("无效的凭据ID")
 
     # 验证实例名称唯一性（排除当前实例）
     existing_instance = Instance.query.filter(
         Instance.name == data.get("name"), Instance.id != instance_id
     ).first()
     if existing_instance:
-        return jsonify({"error": "实例名称已存在"}), 400
+        raise ConflictError("实例名称已存在")
 
     try:
         # 更新实例信息
@@ -529,12 +529,21 @@ def edit_api(instance_id: int) -> Response:
             is_active=instance.is_active,
         )
 
-        return jsonify({"message": "实例更新成功", "instance": instance.to_dict()})
+        return jsonify_unified_success(
+            data={"instance": instance.to_dict()},
+            message="实例更新成功",
+        )
 
     except Exception as e:
         db.session.rollback()
-        log_error(f"更新实例失败: {e}", module="instances", exc_info=True)
-        return jsonify({"error": f"更新实例失败: {str(e)}"}), 500
+        log_error(
+            "更新实例失败",
+            module="instances",
+            user_id=getattr(current_user, "id", None),
+            instance_id=instance.id,
+            exception=e,
+        )
+        raise SystemError("更新实例失败") from e
 
 
 @instances_bp.route("/<int:instance_id>/edit", methods=["GET", "POST"])
@@ -667,7 +676,13 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
 
         except Exception as e:
             db.session.rollback()
-            log_error(f"更新实例失败: {e}", module="instances", exc_info=True)
+            log_error(
+                "更新实例失败",
+                module="instances",
+                user_id=getattr(current_user, "id", None),
+                instance_id=instance.id,
+                exception=e,
+            )
 
             # 根据错误类型提供更具体的错误信息
             if "UNIQUE constraint failed" in str(e):
@@ -708,6 +723,13 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
     """删除实例"""
     instance = Instance.query.get_or_404(instance_id)
 
+    stats = {
+        "assignment_count": 0,
+        "sync_data_count": 0,
+        "sync_record_count": 0,
+        "change_log_count": 0,
+    }
+
     try:
         # 记录操作日志
         log_info(
@@ -720,24 +742,10 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
             host=instance.host,
         )
 
-        # 第一步：删除所有关联数据
-        try:
-            stats = _delete_instance_related_data(instance.id, instance.name)
-        except Exception as e:
-            log_error(f"删除实例 {instance.name} 关联数据失败: {e}", module="instances")
-            db.session.rollback()
-            return jsonify({"error": f"删除关联数据失败: {str(e)}"}), 500
-
-        # 第二步：最后删除实例本身
-        try:
-            # 准备删除实例
-            db.session.delete(instance)
-            db.session.commit()
-            # 实例删除成功
-        except Exception as e:
-            log_error(f"删除实例 {instance.name} 失败: {e}", module="instances")
-            db.session.rollback()
-            return jsonify({"error": f"删除实例失败: {str(e)}"}), 500
+        # 删除关联数据并删除实例
+        stats = _delete_instance_related_data(instance.id, instance.name)
+        db.session.delete(instance)
+        db.session.commit()
 
         # 提取统计信息
         assignment_count = stats["assignment_count"]
@@ -747,20 +755,26 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 
         # 实例及其相关数据删除成功
 
-        return jsonify(
-            {
-                "message": "实例删除成功",
+        return jsonify_unified_success(
+            data={
                 "deleted_assignments": assignment_count,
                 "deleted_sync_data": sync_data_count,
                 "deleted_sync_records": sync_record_count,
                 "deleted_change_logs": change_log_count,
-            }
+            },
+            message="实例删除成功",
         )
 
     except Exception as e:
         db.session.rollback()
-        log_error(f"删除实例失败: {e}", module="instances")
-        return jsonify({"error": "删除实例失败，请重试"}), 500
+        log_error(
+            "删除实例失败",
+            module="instances",
+            instance_id=instance.id,
+            instance_name=instance.name,
+            exception=e,
+        )
+        raise SystemError("删除实例失败，请重试") from e
 
 
 @instances_bp.route("/api/batch-delete", methods=["POST"])
@@ -773,7 +787,7 @@ def batch_delete() -> str | Response | tuple[Response, int]:
         instance_ids = data.get("instance_ids", [])
 
         if not instance_ids:
-            return jsonify({"success": False, "error": "请选择要删除的实例"}), 400
+            raise ValidationError("请选择要删除的实例")
 
         # 检查是否有相关数据关联
         from app.models.account_change_log import AccountChangeLog
@@ -855,22 +869,22 @@ def batch_delete() -> str | Response | tuple[Response, int]:
             module="instances",
         )
 
-        return jsonify(
-            {
-                "success": True,
-                "message": f"成功删除 {deleted_count} 个实例",
+        return jsonify_unified_success(
+            data={
                 "deleted_count": deleted_count,
                 "deleted_assignments": deleted_assignments,
                 "deleted_sync_data": deleted_sync_data,
                 "deleted_sync_records": deleted_sync_records,
                 "deleted_change_logs": deleted_change_logs,
-            }
+                "instances_with_related_data": related_data_counts,
+            },
+            message=f"成功删除 {deleted_count} 个实例",
         )
 
     except Exception as e:
         db.session.rollback()
-        log_error(f"批量删除实例失败: {e}", module="instances")
-        return jsonify({"success": False, "error": f"批量删除实例失败: {str(e)}"}), 500
+        log_error("批量删除实例失败", module="instances", exception=e)
+        raise SystemError("批量删除实例失败") from e
 
 
 @instances_bp.route("/api/batch-create", methods=["POST"])
@@ -884,21 +898,21 @@ def batch_create() -> str | Response | tuple[Response, int]:
             file = request.files["file"]
             if file and file.filename.endswith(".csv"):
                 return _process_csv_file(file)
-            return jsonify({"success": False, "error": "请上传CSV格式文件"}), 400
+            raise ValidationError("请上传CSV格式文件")
 
         # 处理JSON格式（保持向后兼容）
         data = request.get_json()
         instances_data = data.get("instances", [])
 
         if not instances_data:
-            return jsonify({"success": False, "error": "请提供实例数据"}), 400
+            raise ValidationError("请提供实例数据")
 
         return _process_instances_data(instances_data)
 
     except Exception as e:
         db.session.rollback()
-        log_error(f"批量创建实例失败: {e}", module="instances")
-        return jsonify({"success": False, "error": f"批量创建实例失败: {str(e)}"}), 500
+        log_error("批量创建实例失败", module="instances", exception=e)
+        raise SystemError("批量创建实例失败") from e
 
 
 def _process_csv_file(file: Any) -> dict[str, Any] | Response | tuple[Response, int]:  # noqa: ANN401
@@ -927,12 +941,12 @@ def _process_csv_file(file: Any) -> dict[str, Any] | Response | tuple[Response, 
         return _process_instances_data(instances_data)
 
     except Exception as e:
-        return jsonify({"success": False, "error": f"CSV文件处理失败: {str(e)}"}), 400
+        raise ValidationError(f"CSV文件处理失败: {str(e)}") from e
 
 
 def _process_instances_data(
     instances_data: list[dict[str, Any]],
-) -> dict[str, Any] | Response | tuple[Response, int]:
+) -> Response:
     """处理实例数据"""
     created_count = 0
     errors = []
@@ -999,24 +1013,21 @@ def _process_instances_data(
             continue
 
     if created_count > 0:
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as exc:
+            db.session.rollback()
+            log_error("批量创建实例提交失败", module="instances", exception=exc)
+            raise SystemError("批量创建实例失败") from exc
 
+    message = f"成功创建 {created_count} 个实例"
+    payload: dict[str, Any] = {
+        "created_count": created_count,
+    }
     if errors:
-        return jsonify(
-            {
-                "success": True,
-                "message": f"成功创建 {created_count} 个实例",
-                "created_count": created_count,
-                "errors": errors,
-            }
-        )
-    return jsonify(
-        {
-            "success": True,
-            "message": f"成功创建 {created_count} 个实例",
-            "created_count": created_count,
-        }
-    )
+        payload["errors"] = errors
+
+    return jsonify_unified_success(data=payload, message=message)
 
 
 @instances_bp.route("/api/export")
@@ -1200,13 +1211,21 @@ def test_connection(instance_id: int) -> str | Response | tuple[Response, int]:
             # 更新最后连接时间
             instance.last_connected = time_utils.now()
             db.session.commit()
-            return jsonify({"message": "连接测试成功", "result": result})
-        else:
-            return jsonify({"error": "连接测试失败", "result": result}), 400
+            return jsonify_unified_success(
+                data={"result": result},
+                message="连接测试成功",
+            )
+
+        raise SystemError("连接测试失败", extra={"result": result})
 
     except Exception as e:
-        log_error(f"测试连接失败: {e}", module="instances")
-        return jsonify({"error": "连接测试失败，请重试"}), 500
+        log_error(
+            "测试连接失败",
+            module="instances",
+            instance_id=instance_id,
+            exception=e,
+        )
+        raise SystemError("连接测试失败，请重试") from e
 
 
 
@@ -1242,17 +1261,17 @@ def api_list() -> Response:
                 'is_active': instance.is_active
             })
         
-        return jsonify({
-            'success': True,
-            'instances': instances_data
-        })
+        return jsonify_unified_success(
+            data={
+                "instances": instances_data,
+                "db_type": db_type or None,
+            },
+            message="获取实例列表成功",
+        )
         
     except Exception as e:
-        log_error(f"获取实例列表失败: {e}", module="instances", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': '获取实例列表失败'
-        }), 500
+        log_error("获取实例列表失败", module="instances", exception=e)
+        raise SystemError("获取实例列表失败") from e
 
 
 @instances_bp.route("/api/<int:instance_id>")
@@ -1261,7 +1280,10 @@ def api_list() -> Response:
 def api_detail(instance_id: int) -> Response:
     """获取实例详情API"""
     instance = Instance.query.get_or_404(instance_id)
-    return jsonify(instance.to_dict())
+    return jsonify_unified_success(
+        data={"instance": instance.to_dict()},
+        message="获取实例详情成功",
+    )
 
 
 @instances_bp.route("/api/<int:instance_id>/accounts")
@@ -1320,11 +1342,19 @@ def api_get_accounts(instance_id: int) -> Response:
 
             account_data.append(account_info)
 
-        return jsonify({"success": True, "accounts": account_data})
+        return jsonify_unified_success(
+            data={"accounts": account_data},
+            message="获取实例账户数据成功",
+        )
 
     except Exception as e:
-        logger.error("获取实例账户数据失败: %s", str(e))
-        return jsonify({"success": False, "error": str(e)}), 500
+        log_error(
+            "获取实例账户数据失败",
+            module="instances",
+            instance_id=instance_id,
+            exception=e,
+        )
+        raise SystemError("获取实例账户数据失败") from e
 
 
 @instances_bp.route("/api/<int:instance_id>/test")
@@ -1339,6 +1369,19 @@ def api_test_connection(instance_id: int) -> Response | tuple[Response, int]:
     # 重定向到新的连接管理API
     from flask import redirect, url_for
     return redirect(url_for('connections.test_connection', instance_id=instance_id))
+
+
+def _empty_instance_statistics() -> dict[str, Any]:
+    """构建实例统计信息的空状态结果"""
+    return {
+        "total_instances": 0,
+        "active_instances": 0,
+        "inactive_instances": 0,
+        "db_types_count": 0,
+        "db_type_stats": [],
+        "port_stats": [],
+        "version_stats": [],
+    }
 
 
 def get_instance_statistics() -> dict[str, Any]:
@@ -1400,17 +1443,8 @@ def get_instance_statistics() -> dict[str, Any]:
         }
 
     except Exception as e:
-        log_error(f"获取实例统计失败: {e}", module="instances", exc_info=True)
-        return {
-            "total_instances": 0,
-            "active_instances": 0,
-            "inactive_instances": 0,
-            "db_types_count": 0,
-            "db_type_stats": [],
-            "port_stats": [],
-            "version_stats": [],
-            "recent_connections": [],
-        }
+        log_error("获取实例统计失败", module="instances", exception=e)
+        raise SystemError("获取实例统计失败") from e
 
 
 def get_default_version(db_type: str) -> str:
@@ -1481,23 +1515,29 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
             if account.tablespace_privileges_oracle:
                 permissions["tablespace_privileges_oracle"] = account.tablespace_privileges_oracle
 
-        response = {
-            "success": True,
-            "account": {
-                "id": account.id,
-                "username": account.username,
-                "host": getattr(account, "host", None),
-                "plugin": getattr(account, "plugin", None),
-                "db_type": instance.db_type,
+        return jsonify_unified_success(
+            data={
+                "account": {
+                    "id": account.id,
+                    "username": account.username,
+                    "host": getattr(account, "host", None),
+                    "plugin": getattr(account, "plugin", None),
+                    "db_type": instance.db_type,
+                },
+                "permissions": permissions,
             },
-            "permissions": permissions,
-        }
-
-        return jsonify(response)
+            message="获取权限详情成功",
+        )
 
     except Exception as e:
-        log_error(f"获取账户权限失败: {e}", module="instances")
-        return jsonify({"success": False, "error": f"获取权限失败: {str(e)}"}), 500
+        log_error(
+            "获取账户权限失败",
+            module="instances",
+            instance_id=instance_id,
+            account_id=account_id,
+            exception=e,
+        )
+        raise SystemError("获取权限失败") from e
 
 
 @instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
@@ -1542,20 +1582,24 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
                 }
             )
 
-        return jsonify(
-            {
-                "success": True,
+        return jsonify_unified_success(
+            data={
                 "account": {
                     "id": account.id,
                     "username": account.username,
                     "db_type": instance.db_type,
                 },
                 "history": history,
-            }
+            },
+            message="获取账户变更历史成功",
         )
 
     except Exception as e:
-        log_error(f"获取账户变更历史失败: {e}", module="instances")
-        return jsonify({"success": False, "error": f"获取变更历史失败: {str(e)}"}), 500
-
-
+        log_error(
+            "获取账户变更历史失败",
+            module="instances",
+            instance_id=instance_id,
+            account_id=account_id,
+            exception=e,
+        )
+        raise SystemError("获取变更历史失败") from e

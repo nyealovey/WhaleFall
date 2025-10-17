@@ -9,29 +9,29 @@ import psutil
 from flask import Blueprint, Response
 
 from app import cache, db
-from app.utils.api_response import APIResponse
-from app.utils.structlog_config import get_system_logger
+from app.errors import SystemError
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
 health_bp = Blueprint("health", __name__)
 
 
 @health_bp.route("/")
-def health_check() -> "Response":
+def health_check() -> Response:
     """基础健康检查"""
     try:
-        return APIResponse.success(
+        return jsonify_unified_success(
             data={"status": "healthy", "timestamp": time.time(), "version": "1.0.7"},
             message="服务运行正常",
         )
-    except Exception as e:
-        system_logger = get_system_logger()
-        system_logger.error("健康检查失败", module="health", exception=e)
-        return APIResponse.server_error("健康检查失败")
+    except Exception as exc:
+        log_error("健康检查失败", module="health", error=str(exc))
+        raise SystemError("健康检查失败") from exc
 
 
 @health_bp.route("/detailed")
-def detailed_health_check() -> "Response":
+def detailed_health_check() -> Response:
     """详细健康检查"""
     try:
         # 检查数据库连接
@@ -56,7 +56,16 @@ def detailed_health_check() -> "Response":
             else "unhealthy"
         )
 
-        return APIResponse.success(
+        log_info(
+            "详细健康检查结果",
+            module="health",
+            status=overall_status,
+            database=db_status,
+            cache=cache_status,
+            system=system_status,
+        )
+
+        return jsonify_unified_success(
             data={
                 "status": overall_status,
                 "timestamp": time.time(),
@@ -70,10 +79,9 @@ def detailed_health_check() -> "Response":
             message="详细健康检查完成",
         )
 
-    except Exception as e:
-        system_logger = get_system_logger()
-        system_logger.error("详细健康检查失败", module="health", exception=e)
-        return APIResponse.server_error("详细健康检查失败")
+    except Exception as exc:
+        log_error("详细健康检查失败", module="health", error=str(exc))
+        raise SystemError("详细健康检查失败") from exc
 
 
 def check_database_health() -> dict:
@@ -89,10 +97,9 @@ def check_database_health() -> dict:
             "response_time_ms": round(response_time, 2),
             "status": "connected",
         }
-    except Exception as e:
-        system_logger = get_system_logger()
-        system_logger.error("数据库健康检查失败", module="health", exception=e)
-        return {"healthy": False, "error": str(e), "status": "disconnected"}
+    except Exception as exc:
+        log_error("数据库健康检查失败", module="health", error=str(exc))
+        return {"healthy": False, "error": str(exc), "status": "disconnected"}
 
 
 def check_cache_health() -> dict:
@@ -108,10 +115,9 @@ def check_cache_health() -> dict:
             "response_time_ms": round(response_time, 2),
             "status": "connected" if result == "ok" else "error",
         }
-    except Exception as e:
-        system_logger = get_system_logger()
-        system_logger.error("缓存健康检查失败", module="health", exception=e)
-        return {"healthy": False, "error": str(e), "status": "disconnected"}
+    except Exception as exc:
+        log_error("缓存健康检查失败", module="health", error=str(exc))
+        return {"healthy": False, "error": str(exc), "status": "disconnected"}
 
 
 def check_system_health() -> dict:
@@ -144,14 +150,13 @@ def check_system_health() -> dict:
             "disk_percent": round(disk_percent, 2),
             "status": "healthy" if healthy else "warning",
         }
-    except Exception as e:
-        system_logger = get_system_logger()
-        system_logger.error("系统健康检查失败", module="health", exception=e)
-        return {"healthy": False, "error": str(e), "status": "error"}
+    except Exception as exc:
+        log_error("系统健康检查失败", module="health", error=str(exc))
+        return {"healthy": False, "error": str(exc), "status": "error"}
 
 
 @health_bp.route("/readiness")
-def readiness_check() -> "Response":
+def readiness_check() -> Response:
     """就绪检查 - 用于Kubernetes等容器编排"""
     try:
         # 检查关键服务是否就绪
@@ -159,21 +164,26 @@ def readiness_check() -> "Response":
         cache_ready = check_cache_health()["healthy"]
 
         if db_ready and cache_ready:
-            return APIResponse.success(data={"status": "ready"}, message="服务就绪")
-        return APIResponse.error(message="服务未就绪", code=503)
-    except Exception as e:
-        system_logger = get_system_logger()
-        system_logger.error("就绪检查失败", module="health", exception=e)
-        return APIResponse.server_error("就绪检查失败")
+            return jsonify_unified_success(data={"status": "ready"}, message="服务就绪")
+
+        log_warning(
+            "服务未就绪",
+            module="health",
+            database_ready=db_ready,
+            cache_ready=cache_ready,
+        )
+        raise SystemError("服务未就绪", status_code=503)
+    except Exception as exc:
+        log_error("就绪检查失败", module="health", error=str(exc))
+        raise SystemError("就绪检查失败") from exc
 
 
 @health_bp.route("/liveness")
-def liveness_check() -> "Response":
+def liveness_check() -> Response:
     """存活检查 - 用于Kubernetes等容器编排"""
     try:
         # 简单的存活检查
-        return APIResponse.success(data={"status": "alive"}, message="服务存活")
-    except Exception as e:
-        system_logger = get_system_logger()
-        system_logger.error("存活检查失败", module="health", exception=e)
-        return APIResponse.server_error("存活检查失败")
+        return jsonify_unified_success(data={"status": "alive"}, message="服务存活")
+    except Exception as exc:
+        log_error("存活检查失败", module="health", error=str(exc))
+        raise SystemError("存活检查失败") from exc

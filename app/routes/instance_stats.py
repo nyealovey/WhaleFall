@@ -1,25 +1,39 @@
-"""
-实例统计 API 路由
-提供实例性能监控、连接统计、健康度分析等接口
-专注于实例层面的统计功能
-"""
+"""实例统计 API 路由"""
 
-import logging
-from datetime import datetime, date, timedelta
-from typing import List, Dict, Any, Optional
-from flask import Blueprint, request, jsonify, render_template, current_app
-from app.utils.time_utils import time_utils
-from flask_login import login_required, current_user
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+from flask import Blueprint, Response, render_template, request
+from flask_login import current_user, login_required
 from sqlalchemy import and_, desc, func, tuple_
+
+from app import db
+from app.constants.system_constants import SuccessMessages
+from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
 from app.models.instance import Instance
 from app.models.instance_size_stat import InstanceSizeStat
 from app.utils.decorators import view_required
-from app import db
-
-logger = logging.getLogger(__name__)
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
 
 # 创建蓝图
 instance_stats_bp = Blueprint('instance_stats', __name__)
+
+
+def _get_instance(instance_id: int) -> Instance:
+    instance = Instance.query.filter_by(id=instance_id).first()
+    if instance is None:
+        raise NotFoundError("实例不存在")
+    return instance
+
+
+def _parse_iso_date(value: str, field_name: str) -> date:
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except ValueError as exc:
+        raise AppValidationError(f"{field_name} 格式错误，需使用 YYYY-MM-DD") from exc
+
 
 # 页面路由
 @instance_stats_bp.route('/instance', methods=['GET'])
@@ -71,7 +85,7 @@ def instance_aggregations():
 @instance_stats_bp.route('/api/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
 @login_required
 @view_required
-def get_instance_total_size(instance_id: int):
+def get_instance_total_size(instance_id: int) -> Response:
     """
     获取指定实例的数据库总大小（从InstanceSizeStat表获取）
     
@@ -83,7 +97,7 @@ def get_instance_total_size(instance_id: int):
     """
     try:
         # 验证实例是否存在
-        instance = Instance.query.get_or_404(instance_id)
+        instance = _get_instance(instance_id)
         
         # 从InstanceSizeStat表获取最新的实例大小统计数据
         latest_stat = InstanceSizeStat.query.filter(
@@ -92,37 +106,35 @@ def get_instance_total_size(instance_id: int):
         ).order_by(InstanceSizeStat.collected_date.desc()).first()
         
         if not latest_stat:
-            return jsonify({
-                'success': True,
+            payload = {
                 'total_size_mb': 0,
                 'database_count': 0,
-                'last_collected': None
-            })
+                'last_collected': None,
+            }
+            return jsonify_unified_success(data=payload, message="实例总大小获取成功")
         
         # 直接使用实例大小统计数据
         total_size_mb = latest_stat.total_size_mb
         database_count = latest_stat.database_count
         last_collected = latest_stat.collected_date
         
-        return jsonify({
-            'success': True,
+        payload = {
             'total_size_mb': total_size_mb,
             'database_count': database_count,
-            'last_collected': last_collected.isoformat() if last_collected else None
-        })
-        
-    except Exception as e:
-        logger.error(f"获取实例 {instance_id} 总大小失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+            'last_collected': last_collected.isoformat() if last_collected else None,
+        }
+        log_info("获取实例总大小成功", module="instance_stats", instance_id=instance_id)
+        return jsonify_unified_success(data=payload, message="实例总大小获取成功")
+
+    except Exception as exc:
+        log_error("获取实例总大小失败", module="instance_stats", instance_id=instance_id, error=str(exc))
+        raise SystemError("获取实例总大小失败") from exc
 
 
 @instance_stats_bp.route('/api/instance-options', methods=['GET'])
 @login_required
 @view_required
-def get_instance_options():
+def get_instance_options() -> Response:
     """
     提供实例下拉选项，支持按数据库类型过滤
     """
@@ -146,10 +158,11 @@ def get_instance_options():
             for instance in instances
         ]
 
-        return jsonify({'success': True, 'instances': options})
+        log_info("加载实例选项成功", module="instance_stats", count=len(options))
+        return jsonify_unified_success(data={'instances': options}, message="实例选项获取成功")
     except Exception as exc:
-        logger.error("加载实例选项失败: %s", exc)
-        return jsonify({'success': False, 'error': str(exc)}), 500
+        log_error("加载实例选项失败", module="instance_stats", error=str(exc))
+        raise SystemError("加载实例选项失败") from exc
 
 
 @instance_stats_bp.route('/api/instances/<int:instance_id>/performance', methods=['GET'])
@@ -167,7 +180,7 @@ def get_instance_performance(instance_id: int):
     """
     try:
         # 验证实例是否存在
-        instance = Instance.query.get_or_404(instance_id)
+        instance = _get_instance(instance_id)
         
         # 获取最近30天的数据
         thirty_days_ago = time_utils.now_china().date() - timedelta(days=30)
@@ -180,20 +193,18 @@ def get_instance_performance(instance_id: int):
         ).order_by(InstanceSizeStat.collected_date).all()
         
         if not recent_stats:
-            return jsonify({
-                'success': True,
-                'data': {
-                    'instance_id': instance_id,
-                    'instance_name': instance.name,
-                    'db_type': instance.db_type,
-                    'total_size_mb': 0,
-                    'database_count': 0,
-                    'growth_rate': 0,
-                    'avg_daily_growth_mb': 0,
-                    'last_collected': None,
-                    'status': 'no_data'
-                }
-            })
+            payload = {
+                'instance_id': instance_id,
+                'instance_name': instance.name,
+                'db_type': instance.db_type,
+                'total_size_mb': 0,
+                'database_count': 0,
+                'growth_rate': 0,
+                'avg_daily_growth_mb': 0,
+                'last_collected': None,
+                'status': 'no_data',
+            }
+            return jsonify_unified_success(data={'performance': payload}, message="实例性能统计获取成功")
         
         # 计算性能指标
         total_size_mb = recent_stats[-1].total_size_mb
@@ -225,33 +236,35 @@ def get_instance_performance(instance_id: int):
         elif total_size_mb == 0:
             status = 'no_data'
         
-        return jsonify({
-            'success': True,
-            'data': {
-                'instance_id': instance_id,
-                'instance_name': instance.name,
-                'db_type': instance.db_type,
-                'total_size_mb': total_size_mb,
-                'database_count': database_count,
-                'growth_rate': growth_rate,
-                'avg_daily_growth_mb': avg_daily_growth_mb,
-                'last_collected': last_collected.isoformat() if last_collected else None,
-                'status': status
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"获取实例 {instance_id} 性能统计失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        payload = {
+            'instance_id': instance_id,
+            'instance_name': instance.name,
+            'db_type': instance.db_type,
+            'total_size_mb': total_size_mb,
+            'database_count': database_count,
+            'growth_rate': growth_rate,
+            'avg_daily_growth_mb': avg_daily_growth_mb,
+            'last_collected': last_collected.isoformat() if last_collected else None,
+            'status': status,
+        }
+
+        log_info(
+            "获取实例性能统计成功",
+            module="instance_stats",
+            instance_id=instance_id,
+            total_size_mb=total_size_mb,
+        )
+        return jsonify_unified_success(data={'performance': payload}, message="实例性能统计获取成功")
+
+    except Exception as exc:
+        log_error("获取实例性能统计失败", module="instance_stats", instance_id=instance_id, error=str(exc))
+        raise SystemError("获取实例性能统计失败") from exc
 
 
 @instance_stats_bp.route('/api/instances/<int:instance_id>/trends', methods=['GET'])
 @login_required
 @view_required
-def get_instance_trends(instance_id: int):
+def get_instance_trends(instance_id: int) -> Response:
     """
     获取指定实例的趋势数据
     
@@ -263,20 +276,19 @@ def get_instance_trends(instance_id: int):
     """
     try:
         # 验证实例是否存在
-        instance = Instance.query.get_or_404(instance_id)
+        instance = _get_instance(instance_id)
         
         # 获取查询参数
         days = int(request.args.get('days', 30))
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
-        # 计算日期范围
         if start_date and end_date:
             try:
                 start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
                 end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
-            except ValueError:
-                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+            except ValueError as exc:
+                raise AppValidationError('日期格式错误，请使用 YYYY-MM-DD') from exc
         else:
             end_date_obj = time_utils.now_china().date()
             start_date_obj = end_date_obj - timedelta(days=days)
@@ -299,24 +311,23 @@ def get_instance_trends(instance_id: int):
                 'avg_size_mb': stat.total_size_mb / stat.database_count if stat.database_count > 0 else 0
             })
         
-        return jsonify({
-            'success': True,
-            'data': {
-                'instance_id': instance_id,
-                'instance_name': instance.name,
-                'db_type': instance.db_type,
-                'start_date': start_date_obj.isoformat(),
-                'end_date': end_date_obj.isoformat(),
-                'trends': trend_data
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"获取实例 {instance_id} 趋势数据失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        payload = {
+            'instance_id': instance_id,
+            'instance_name': instance.name,
+            'db_type': instance.db_type,
+            'start_date': start_date_obj.isoformat(),
+            'end_date': end_date_obj.isoformat(),
+            'trends': trend_data,
+        }
+
+        log_info("获取实例趋势数据成功", module="instance_stats", instance_id=instance_id, points=len(trend_data))
+        return jsonify_unified_success(data={'trends': payload}, message="实例趋势数据获取成功")
+
+    except AppValidationError:
+        raise
+    except Exception as exc:
+        log_error("获取实例趋势数据失败", module="instance_stats", instance_id=instance_id, error=str(exc))
+        raise SystemError("获取实例趋势数据失败") from exc
 
 
 @instance_stats_bp.route('/api/instances/<int:instance_id>/health', methods=['GET'])
@@ -334,7 +345,7 @@ def get_instance_health(instance_id: int):
     """
     try:
         # 验证实例是否存在
-        instance = Instance.query.get_or_404(instance_id)
+        instance = _get_instance(instance_id)
         
         # 获取最近7天的数据
         seven_days_ago = time_utils.now_china().date() - timedelta(days=7)
@@ -347,18 +358,19 @@ def get_instance_health(instance_id: int):
         ).order_by(InstanceSizeStat.collected_date).all()
         
         if not recent_stats:
-            return jsonify({
-                'success': True,
-                'data': {
-                    'instance_id': instance_id,
-                    'instance_name': instance.name,
-                    'db_type': instance.db_type,
-                    'health_score': 0,
-                    'status': 'no_data',
-                    'issues': ['no_recent_data'],
-                    'recommendations': ['检查数据采集任务是否正常运行']
-                }
-            })
+            payload = {
+                'instance_id': instance_id,
+                'instance_name': instance.name,
+                'db_type': instance.db_type,
+                'health_score': 0,
+                'status': 'no_data',
+                'issues': ['no_recent_data'],
+                'recommendations': ['检查数据采集任务是否正常运行'],
+            }
+            return jsonify_unified_success(
+                data={'health': payload},
+                message="实例健康度获取成功",
+            )
         
         # 计算健康度指标
         health_score = 100
@@ -434,27 +446,31 @@ def get_instance_health(instance_id: int):
         else:
             status = 'critical'
         
-        return jsonify({
-            'success': True,
-            'data': {
-                'instance_id': instance_id,
-                'instance_name': instance.name,
-                'db_type': instance.db_type,
-                'health_score': max(0, health_score),
-                'status': status,
-                'issues': issues,
-                'recommendations': recommendations,
-                'last_collected': last_collected.isoformat(),
-                'data_completeness': completeness
-            }
-        })
+        payload = {
+            'instance_id': instance_id,
+            'instance_name': instance.name,
+            'db_type': instance.db_type,
+            'health_score': max(0, health_score),
+            'status': status,
+            'issues': issues,
+            'recommendations': recommendations,
+            'last_collected': last_collected.isoformat(),
+            'data_completeness': completeness,
+        }
+
+        return jsonify_unified_success(
+            data={'health': payload},
+            message="实例健康度获取成功",
+        )
         
-    except Exception as e:
-        logger.error(f"获取实例 {instance_id} 健康度分析失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+    except Exception as exc:
+        log_error(
+            "获取实例健康度分析失败",
+            module="instance_stats",
+            instance_id=instance_id,
+            error=str(exc),
+        )
+        raise SystemError("获取实例健康度信息失败") from exc
 
 
 @instance_stats_bp.route('/api/instances/<int:instance_id>/capacity-forecast', methods=['GET'])
@@ -472,7 +488,7 @@ def get_instance_capacity_forecast(instance_id: int):
     """
     try:
         # 验证实例是否存在
-        instance = Instance.query.get_or_404(instance_id)
+        instance = _get_instance(instance_id)
         
         # 获取最近30天的数据
         thirty_days_ago = time_utils.now_china().date() - timedelta(days=30)
@@ -485,16 +501,17 @@ def get_instance_capacity_forecast(instance_id: int):
         ).order_by(InstanceSizeStat.collected_date).all()
         
         if len(recent_stats) < 7:  # 至少需要7天的数据
-            return jsonify({
-                'success': True,
-                'data': {
-                    'instance_id': instance_id,
-                    'instance_name': instance.name,
-                    'db_type': instance.db_type,
-                    'forecast_available': False,
-                    'message': '数据不足，无法进行预测（至少需要7天数据）'
-                }
-            })
+            payload = {
+                'instance_id': instance_id,
+                'instance_name': instance.name,
+                'db_type': instance.db_type,
+                'forecast_available': False,
+                'message': '数据不足，无法进行预测（至少需要7天数据）',
+            }
+            return jsonify_unified_success(
+                data={'forecast': payload},
+                message="实例容量预测获取成功",
+            )
         
         # 计算日增长率
         daily_growth_rates = []
@@ -506,16 +523,17 @@ def get_instance_capacity_forecast(instance_id: int):
                 daily_growth_rates.append(growth_rate)
         
         if not daily_growth_rates:
-            return jsonify({
-                'success': True,
-                'data': {
-                    'instance_id': instance_id,
-                    'instance_name': instance.name,
-                    'db_type': instance.db_type,
-                    'forecast_available': False,
-                    'message': '无法计算增长率'
-                }
-            })
+            payload = {
+                'instance_id': instance_id,
+                'instance_name': instance.name,
+                'db_type': instance.db_type,
+                'forecast_available': False,
+                'message': '无法计算增长率',
+            }
+            return jsonify_unified_success(
+                data={'forecast': payload},
+                message="实例容量预测获取成功",
+            )
         
         # 计算平均日增长率
         avg_daily_growth_rate = sum(daily_growth_rates) / len(daily_growth_rates)
@@ -542,42 +560,46 @@ def get_instance_capacity_forecast(instance_id: int):
                         'date': (time_utils.now_china().date() + timedelta(days=int(days_to_warning))).isoformat()
                     })
         
-        return jsonify({
-            'success': True,
-            'data': {
-                'instance_id': instance_id,
-                'instance_name': instance.name,
-                'db_type': instance.db_type,
-                'forecast_available': True,
-                'current_size_mb': current_size_mb,
-                'avg_daily_growth_rate': avg_daily_growth_rate,
-                'forecasts': {
-                    '30_days': {
-                        'size_mb': forecast_30_days,
-                        'size_gb': forecast_30_days / 1024,
-                        'size_tb': forecast_30_days / (1024 * 1024)
-                    },
-                    '90_days': {
-                        'size_mb': forecast_90_days,
-                        'size_gb': forecast_90_days / 1024,
-                        'size_tb': forecast_90_days / (1024 * 1024)
-                    },
-                    '180_days': {
-                        'size_mb': forecast_180_days,
-                        'size_gb': forecast_180_days / 1024,
-                        'size_tb': forecast_180_days / (1024 * 1024)
-                    }
+        payload = {
+            'instance_id': instance_id,
+            'instance_name': instance.name,
+            'db_type': instance.db_type,
+            'forecast_available': True,
+            'current_size_mb': current_size_mb,
+            'avg_daily_growth_rate': avg_daily_growth_rate,
+            'forecasts': {
+                '30_days': {
+                    'size_mb': forecast_30_days,
+                    'size_gb': forecast_30_days / 1024,
+                    'size_tb': forecast_30_days / (1024 * 1024),
                 },
-                'capacity_warnings': capacity_warnings
-            }
-        })
+                '90_days': {
+                    'size_mb': forecast_90_days,
+                    'size_gb': forecast_90_days / 1024,
+                    'size_tb': forecast_90_days / (1024 * 1024),
+                },
+                '180_days': {
+                    'size_mb': forecast_180_days,
+                    'size_gb': forecast_180_days / 1024,
+                    'size_tb': forecast_180_days / (1024 * 1024),
+                },
+            },
+            'capacity_warnings': capacity_warnings,
+        }
+
+        return jsonify_unified_success(
+            data={'forecast': payload},
+            message="实例容量预测获取成功",
+        )
         
-    except Exception as e:
-        logger.error(f"获取实例 {instance_id} 容量预测失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+    except Exception as exc:
+        log_error(
+            "获取实例容量预测失败",
+            module="instance_stats",
+            instance_id=instance_id,
+            error=str(exc),
+        )
+        raise SystemError("获取实例容量预测失败") from exc
 
 
 # 数据库聚合API已移动到 database_stats 模块中
@@ -604,8 +626,6 @@ def get_instances_aggregations():
         
         # 处理time_range参数，转换为start_date和end_date
         if time_range and not start_date and not end_date:
-            from datetime import timedelta
-            from app.utils.time_utils import time_utils
             end_date_obj = time_utils.now_china()
             start_date_obj = end_date_obj - timedelta(days=int(time_range))
             start_date = start_date_obj.strftime('%Y-%m-%d')
@@ -635,10 +655,10 @@ def get_instances_aggregations():
         start_date_obj = None
         end_date_obj = None
         if start_date:
-            start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+            start_date_obj = _parse_iso_date(start_date, 'start_date')
             query = query.filter(InstanceSizeAggregation.period_start >= start_date_obj)
         if end_date:
-            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+            end_date_obj = _parse_iso_date(end_date, 'end_date')
             query = query.filter(InstanceSizeAggregation.period_end <= end_date_obj)
         
         # 排序和分页
@@ -681,23 +701,24 @@ def get_instances_aggregations():
             agg_dict['avg_size_mb'] = agg_dict.get('total_size_mb', 0)
             data.append(agg_dict)
         
-        return jsonify({
-            'success': True,
-            'data': data,
-            'total': total,
-            'page': page,
-            'per_page': per_page,
-            'total_pages': (total + per_page - 1) // per_page,
-            'has_prev': page > 1,
-            'has_next': page < (total + per_page - 1) // per_page
-        })
+        return jsonify_unified_success(
+            data={
+                'items': data,
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': (total + per_page - 1) // per_page,
+                'has_prev': page > 1,
+                'has_next': page < (total + per_page - 1) // per_page,
+            },
+            message=SuccessMessages.OPERATION_SUCCESS,
+        )
         
-    except Exception as e:
-        logger.error(f"获取实例聚合数据时出错: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+    except AppValidationError:
+        raise
+    except Exception as exc:
+        log_error("获取实例聚合数据时出错", module="instance_stats", error=str(exc))
+        raise SystemError("获取实例聚合数据失败") from exc
 
 
 @instance_stats_bp.route('/api/instances/aggregations/summary', methods=['GET'])
@@ -722,8 +743,6 @@ def get_instances_aggregations_summary():
         
         # 处理time_range参数，转换为start_date和end_date
         if time_range and not start_date and not end_date:
-            from datetime import timedelta
-            from app.utils.time_utils import time_utils
             end_date_obj = time_utils.now_china()
             start_date_obj = end_date_obj - timedelta(days=int(time_range))
             start_date = start_date_obj.strftime('%Y-%m-%d')
@@ -733,15 +752,9 @@ def get_instances_aggregations_summary():
         start_date_obj = None
         end_date_obj = None
         if start_date:
-            try:
-                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
-            except ValueError:
-                return jsonify({'success': False, 'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+            start_date_obj = _parse_iso_date(start_date, 'start_date')
         if end_date:
-            try:
-                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
-            except ValueError:
-                return jsonify({'success': False, 'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+            end_date_obj = _parse_iso_date(end_date, 'end_date')
 
         # 优先使用实例大小统计表（与容量同步实时同步）
         stat_query = InstanceSizeStat.query.join(Instance).filter(
@@ -783,21 +796,22 @@ def get_instances_aggregations_summary():
             else 0
         )
 
-        return jsonify({
-            'success': True,
-            'data': {
-                'total_instances': total_instances,
-                'total_size_mb': total_size_mb,
-                'avg_size_mb': avg_size_mb,
-                'max_size_mb': max_size_mb,
-                'period_type': period_type or 'all',
-                'source': 'instance_size_stats'
-            }
-        })
+        summary_payload = {
+            'total_instances': total_instances,
+            'total_size_mb': total_size_mb,
+            'avg_size_mb': avg_size_mb,
+            'max_size_mb': max_size_mb,
+            'period_type': period_type or 'all',
+            'source': 'instance_size_stats',
+        }
+
+        return jsonify_unified_success(
+            data={'summary': summary_payload},
+            message=SuccessMessages.OPERATION_SUCCESS,
+        )
         
-    except Exception as e:
-        logger.error(f"获取实例聚合汇总时出错: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+    except AppValidationError:
+        raise
+    except Exception as exc:
+        log_error("获取实例聚合汇总时出错", module="instance_stats", error=str(exc))
+        raise SystemError("获取实例聚合汇总失败") from exc
