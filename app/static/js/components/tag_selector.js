@@ -182,7 +182,8 @@ class TagSelector {
 
             const data = await response.json();
             if (data.success) {
-                this.renderCategories(data.categories);
+                const categories = data.categories ?? data.data?.categories ?? [];
+                this.renderCategories(Array.isArray(categories) ? categories : []);
             } else {
                 throw new Error(data.error || 'Failed to load categories');
             }

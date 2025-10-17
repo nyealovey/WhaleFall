@@ -360,7 +360,8 @@ class InstanceAggregationsManager {
                 instanceSelect.append('<option value="">所有实例</option>');
                 const selectedInstance = preserveSelection ? storedSelection : null;
                 let matchedInstance = null;
-                data.instances.forEach(instance => {
+                const instances = data?.data?.instances ?? data.instances ?? [];
+                instances.forEach(instance => {
                     const option = document.createElement('option');
                     option.value = String(instance.id);
                     option.textContent = `${instance.name} (${instance.db_type})`;
@@ -408,7 +409,8 @@ class InstanceAggregationsManager {
                 select.append('<option value="">所有实例</option>');
                 const selectedInstance = this.currentFilters.instance_id;
                 
-                data.instances.forEach(instance => {
+                const instances = data?.data?.instances ?? data.instances ?? [];
+                instances.forEach(instance => {
                     const option = document.createElement('option');
                     option.value = String(instance.id);
                     option.textContent = `${instance.name} (${instance.db_type})`;
@@ -555,13 +557,13 @@ class InstanceAggregationsManager {
      * 更新汇总卡片
      */
     updateSummaryCards(data) {
-        // 从API响应中提取正确的数据
-        const summaryData = data.data || data;
+        // 从统一响应体中提取 summary 数据
+        const summaryData = data?.data?.summary ?? data?.data ?? data ?? {};
         console.log('更新统计卡片数据:', summaryData);
-        $('#totalInstances').text(summaryData.total_instances || 0);
-        $('#totalDatabases').text(this.formatSizeFromMB(summaryData.total_size_mb || 0));
-        $('#averageSize').text(this.formatSizeFromMB(summaryData.avg_size_mb || 0));
-        $('#maxSize').text(this.formatSizeFromMB(summaryData.max_size_mb || 0));
+        $('#totalInstances').text(summaryData.total_instances ?? 0);
+        $('#totalDatabases').text(this.formatSizeFromMB(summaryData.total_size_mb ?? 0));
+        $('#averageSize').text(this.formatSizeFromMB(summaryData.avg_size_mb ?? 0));
+        $('#maxSize').text(this.formatSizeFromMB(summaryData.max_size_mb ?? 0));
     }
     
     /**
@@ -583,7 +585,8 @@ class InstanceAggregationsManager {
             
             if (response.ok) {
                 // 使用所有数据，不进行前端限制
-                this.currentData = data.data || [];
+                const payload = data?.data?.items ?? data?.data ?? data ?? [];
+                this.currentData = Array.isArray(payload) ? payload : [];
                 console.log('当前图表数据:', this.currentData.length);
                 this.renderChart(this.currentData);
                 // 重新同步UI状态
@@ -613,7 +616,8 @@ class InstanceAggregationsManager {
             const data = await response.json();
             
             if (response.ok) {
-                this.changeChartData = data.data || [];
+                const payload = data?.data?.items ?? data?.data ?? data ?? [];
+                this.changeChartData = Array.isArray(payload) ? payload : [];
                 console.log('容量变化图表数据条目:', this.changeChartData.length);
                 this.renderChangeChart(this.changeChartData);
                 this.syncUIState();
@@ -642,7 +646,8 @@ class InstanceAggregationsManager {
             const data = await response.json();
             
             if (response.ok) {
-                this.changePercentChartData = data.data || [];
+                const payload = data?.data?.items ?? data?.data ?? data ?? [];
+                this.changePercentChartData = Array.isArray(payload) ? payload : [];
                 console.log('容量变化百分比图表数据条目:', this.changePercentChartData.length);
                 this.renderChangePercentChart(this.changePercentChartData);
                 this.syncUIState();
