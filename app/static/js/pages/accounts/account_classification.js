@@ -292,7 +292,8 @@ function loadRules() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                displayRules(data.rules_by_db_type);
+                const rulesByDbType = data?.data?.rules_by_db_type ?? data.rules_by_db_type ?? {};
+                displayRules(rulesByDbType && typeof rulesByDbType === 'object' ? rulesByDbType : {});
             } else {
                 showAlert('danger', '加载规则失败: ' + data.error);
             }
@@ -324,7 +325,9 @@ function getClassificationClass(classificationName) {
 function displayRules(rulesByDbType) {
     const container = document.getElementById('rulesList');
 
-    if (!rulesByDbType || Object.keys(rulesByDbType).length === 0) {
+    const entries = Object.entries(rulesByDbType || {});
+
+    if (entries.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-info-circle"></i>
@@ -336,7 +339,8 @@ function displayRules(rulesByDbType) {
     }
 
     let html = '';
-    for (const [dbType, rules] of Object.entries(rulesByDbType)) {
+    for (const [dbType, rulesRaw] of entries) {
+        const rules = Array.isArray(rulesRaw) ? rulesRaw : [];
         // 数据库类型图标映射
         const dbIcons = {
             'mysql': 'fas fa-database',
