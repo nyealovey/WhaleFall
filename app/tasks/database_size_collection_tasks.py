@@ -4,7 +4,7 @@
 """
 
 import logging
-from datetime import datetime, date
+from datetime import date
 from typing import Dict, Any, List
 from app.constants.sync_constants import SyncOperationType, SyncCategory
 from app.services.database_size_collector_service import collect_all_instances_database_sizes
