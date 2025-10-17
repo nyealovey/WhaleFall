@@ -11,6 +11,8 @@ from app.errors import SystemError, ValidationError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
+from app.models.instance_size_aggregation import InstanceSizeAggregation
+from app.models.instance_size_stat import InstanceSizeStat
 from app.services.partition_management_service import PartitionManagementService
 from app.tasks.database_size_aggregation_tasks import cleanup_old_aggregations
 from app.tasks.partition_management_tasks import get_partition_management_status
@@ -280,7 +282,6 @@ def get_core_aggregation_metrics() -> Response:
         ).all()
         
         # 查询实例聚合数据
-        from app.models.instance_size_aggregation import InstanceSizeAggregation
         instance_aggregations = InstanceSizeAggregation.query.filter(
             InstanceSizeAggregation.period_type == period_type,
             InstanceSizeAggregation.period_start >= period_start_date,
@@ -288,8 +289,6 @@ def get_core_aggregation_metrics() -> Response:
         ).all()
         
         # 查询原始统计数据
-        from app.models.database_size_stat import DatabaseSizeStat
-        from app.models.instance_size_stat import InstanceSizeStat
         
         db_stats = DatabaseSizeStat.query.filter(
             DatabaseSizeStat.collected_date >= stats_start_date,
@@ -312,20 +311,20 @@ def get_core_aggregation_metrics() -> Response:
         
         # 统计原始采集数据
         for stat in db_stats:
-            date_str = time_utils.format_china_time(stat.collected_date, '%Y-%m-%d')
+            date_str = stat.collected_date.isoformat()
             daily_metrics[date_str]['database_count'] += 1
         
         for stat in instance_stats:
-            date_str = time_utils.format_china_time(stat.collected_date, '%Y-%m-%d')
+            date_str = stat.collected_date.isoformat()
             daily_metrics[date_str]['instance_count'] += 1
         
         # 统计聚合数据
         for agg in db_aggregations:
-            date_str = time_utils.format_china_time(agg.period_start, '%Y-%m-%d')
+            date_str = agg.period_start.isoformat()
             daily_metrics[date_str]['database_aggregation_count'] += 1
         
         for agg in instance_aggregations:
-            date_str = time_utils.format_china_time(agg.period_start, '%Y-%m-%d')
+            date_str = agg.period_start.isoformat()
             daily_metrics[date_str]['instance_aggregation_count'] += 1
         
         # 对于周、月、季统计，需要计算平均值
@@ -349,16 +348,16 @@ def get_core_aggregation_metrics() -> Response:
                 if period_type == 'weekly':
                     # 计算周的开始日期（周一）
                     week_start = period_start - timedelta(days=period_start.weekday())
-                    period_key = time_utils.format_china_time(week_start, '%Y-%m-%d')
+                    period_key = week_start.isoformat()
                 elif period_type == 'monthly':
                     # 计算月的开始日期
                     month_start = period_start.replace(day=1)
-                    period_key = time_utils.format_china_time(month_start, '%Y-%m-%d')
+                    period_key = month_start.isoformat()
                 elif period_type == 'quarterly':
                     # 计算季度的开始日期
                     quarter_month = ((period_start.month - 1) // 3) * 3 + 1
                     quarter_start = period_start.replace(month=quarter_month, day=1)
-                    period_key = time_utils.format_china_time(quarter_start, '%Y-%m-%d')
+                    period_key = quarter_start.isoformat()
                 
                 period_metrics[period_key]['instance_count'] += metrics['instance_count']
                 period_metrics[period_key]['database_count'] += metrics['database_count']
@@ -389,7 +388,7 @@ def get_core_aggregation_metrics() -> Response:
         database_aggregation_data = []
         
         def append_metrics_for_key(key_date: date):
-            key_str = time_utils.format_china_time(key_date, '%Y-%m-%d')
+            key_str = key_date.isoformat()
             labels.append(key_str)
             metrics = daily_metrics[key_str]
             instance_count_data.append(metrics['instance_count'])
