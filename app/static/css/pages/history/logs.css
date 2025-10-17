@@ -62,8 +62,9 @@
     flex: 1;
     min-width: 0; /* 允许flex子元素收缩 */
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-md);
     overflow: hidden; /* 防止内容溢出 */
 }
 
@@ -75,19 +76,22 @@
     word-break: break-word; /* 强制长单词换行 */
     width: 100%;
     max-width: 100%; /* 防止溢出 */
-    margin-bottom: var(--spacing-xs);
+    margin-bottom: 0;
     overflow: hidden; /* 防止溢出 */
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .log-header {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
-    flex-wrap: wrap; /* 允许换行 */
+    gap: var(--spacing-sm);
+    flex-wrap: nowrap;
     min-height: 24px; /* 确保一致的高度 */
     justify-content: flex-start;
-    width: 100%; /* 使用100%而不是固定宽度 */
+    width: auto;
     max-width: 100%; /* 防止溢出 */
+    margin-left: auto;
 }
 
 .log-entry:hover {
@@ -357,7 +361,26 @@
 
 /* 当内容不足时，从底部开始显示（上面有空白） */
 #logsContainer:not(.has-overflow) {
-    justify-content: flex-end;
+    justify-content: flex-start;
+}
+
+@media (max-width: 768px) {
+    .log-main-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+    }
+
+    .log-message {
+        white-space: normal;
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .log-header {
+        margin-left: 0;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
 }
 
 /* 日志条目容器 */
