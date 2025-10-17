@@ -3,7 +3,7 @@
 """
 
 from app import db
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 from app.constants.colors import ThemeColors
 
 
@@ -20,8 +20,8 @@ class Tag(db.Model):
     description = db.Column(db.Text, nullable=True)
     sort_order = db.Column(db.Integer, default=0, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime(timezone=True), default=now)
-    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
+    created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
 
     # 关系
     instances = db.relationship("Instance", secondary="instance_tags", back_populates="tags")
@@ -144,5 +144,5 @@ instance_tags = db.Table(
     'instance_tags',
     db.Column('instance_id', db.Integer, db.ForeignKey('instances.id'), primary_key=True),
     db.Column('tag_id', db.Integer, db.ForeignKey('tags.id'), primary_key=True),
-    db.Column('created_at', db.DateTime(timezone=True), default=now),
+    db.Column('created_at', db.DateTime(timezone=True), default=time_utils.now),
 )

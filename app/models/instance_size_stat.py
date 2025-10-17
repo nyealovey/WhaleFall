@@ -5,7 +5,7 @@
 
 from datetime import date
 from app import db
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 
 
 class InstanceSizeStat(db.Model):
@@ -18,11 +18,11 @@ class InstanceSizeStat(db.Model):
     total_size_mb = db.Column(db.Integer, nullable=False, default=0, comment="实例总大小（MB）")
     database_count = db.Column(db.Integer, nullable=False, default=0, comment="数据库数量")
     collected_date = db.Column(db.Date, nullable=False, index=True, comment="采集日期")
-    collected_at = db.Column(db.DateTime(timezone=True), nullable=False, default=now, comment="采集时间")
+    collected_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, comment="采集时间")
     is_deleted = db.Column(db.Boolean, default=False, nullable=False, index=True, comment="是否已删除")
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
-    created_at = db.Column(db.DateTime(timezone=True), default=now, comment="创建时间")
-    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now, comment="更新时间")
+    created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, comment="创建时间")
+    updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now, comment="更新时间")
 
     # 关系
     instance = db.relationship("Instance", back_populates="instance_size_stats")

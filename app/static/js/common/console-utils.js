@@ -28,8 +28,8 @@ function sendLogToBackend(level, message, context = {}) {
  * @param {boolean} sendToBackend - 是否发送到后端
  */
 function logToConsole(level, message, context = {}, sendToBackend = true) {
-    // 控制台输出
-    const timestamp = new Date().toISOString();
+    // 控制台输出 - 使用统一的时间格式化（强制使用 timeUtils）
+    const timestamp = window.timeUtils ? window.timeUtils.formatDateTime(new Date()) : new Date().toISOString();
     const contextStr = Object.keys(context).length > 0 ? ` | Context: ${JSON.stringify(context)}` : '';
     const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}`;
 

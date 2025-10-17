@@ -3,7 +3,7 @@
 """
 
 from app import db
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 
 
 class AccountChangeLog(db.Model):
@@ -16,7 +16,7 @@ class AccountChangeLog(db.Model):
     db_type = db.Column(db.String(20), nullable=False, index=True)
     username = db.Column(db.String(255), nullable=False, index=True)
     change_type = db.Column(db.String(50), nullable=False)  # 'add', 'modify_privilege', 'modify_other', 'delete'
-    change_time = db.Column(db.DateTime(timezone=True), default=now, index=True)
+    change_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
     session_id = db.Column(db.String(36), nullable=True)
     status = db.Column(db.String(20), default="success")
     message = db.Column(db.Text, nullable=True)

@@ -1366,7 +1366,8 @@ class DatabaseAggregationsManager {
 
     calculateDateRange(periodType, periodsCount = this.currentStatisticsPeriod || 1) {
         const normalizedPeriod = periodType || 'daily';
-        const endDate = new Date();
+        // 使用统一的时间获取
+        const endDate = window.getChinaTime ? window.getChinaTime() : new Date();
         const startDate = new Date(endDate);
         const periods = Math.max(1, periodsCount || 1);
 
@@ -1385,8 +1386,8 @@ class DatabaseAggregationsManager {
         }
 
         return {
-            startDate: startDate.toISOString().split('T')[0],
-            endDate: endDate.toISOString().split('T')[0]
+            startDate: window.formatDate ? window.formatDate(startDate) : startDate.toISOString().split('T')[0],
+            endDate: window.formatDate ? window.formatDate(endDate) : endDate.toISOString().split('T')[0]
         };
     }
     

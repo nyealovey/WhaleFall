@@ -4,7 +4,7 @@
 
 from app import bcrypt, db
 from app.utils.password_manager import get_password_manager
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 
 
 class Credential(db.Model):
@@ -22,8 +22,8 @@ class Credential(db.Model):
     instance_ids = db.Column(db.JSON, nullable=True)
     category_id = db.Column(db.Integer, nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime(timezone=True), default=now)
-    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
+    created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     def __init__(
@@ -164,7 +164,7 @@ class Credential(db.Model):
 
     def soft_delete(self) -> None:
         """软删除凭据"""
-        self.deleted_at = now()
+        self.deleted_at = time_utils.now()
         db.session.commit()
         from app.utils.structlog_config import get_system_logger
 

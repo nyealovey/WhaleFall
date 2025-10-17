@@ -1313,10 +1313,11 @@ function viewRule(id) {
                 document.getElementById('viewRuleStatus').innerHTML = rule.is_active ?
                     '<span class="badge bg-success">启用</span>' :
                     '<span class="badge bg-secondary">禁用</span>';
+                // 使用统一的时间格式化
                 document.getElementById('viewRuleCreatedAt').textContent = rule.created_at ?
-                    new Date(rule.created_at).toLocaleString() : '-';
+                    timeUtils.formatDateTime(rule.created_at) : '-';
                 document.getElementById('viewRuleUpdatedAt').textContent = rule.updated_at ?
-                    new Date(rule.updated_at).toLocaleString() : '-';
+                    timeUtils.formatDateTime(rule.updated_at) : '-';
 
                 // 显示权限配置
                 displayViewPermissions(rule.rule_expression, rule.db_type);

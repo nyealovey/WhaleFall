@@ -4,7 +4,7 @@
 
 from app import db
 from app.models.base_sync_data import BaseSyncData
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 
 
 class CurrentAccountSyncData(BaseSyncData):
@@ -48,9 +48,9 @@ class CurrentAccountSyncData(BaseSyncData):
     type_specific = db.Column(db.JSON, nullable=True)  # 其他类型特定字段
 
     # 时间戳和状态字段
-    last_sync_time = db.Column(db.DateTime(timezone=True), default=now, index=True)
+    last_sync_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
     last_change_type = db.Column(db.String(20), default="add")  # 'add', 'modify_privilege', 'modify_other', 'delete'
-    last_change_time = db.Column(db.DateTime(timezone=True), default=now, index=True)
+    last_change_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
 
     # 删除标记（不支持恢复）
     is_deleted = db.Column(db.Boolean, default=False, index=True)

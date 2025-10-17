@@ -5,7 +5,7 @@
 
 import logging
 import os
-from datetime import datetime
+
 from logging.handlers import RotatingFileHandler
 from typing import TYPE_CHECKING, Union
 
@@ -24,7 +24,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
 from app.constants import SystemConstants
-from app.utils.time_utils import now_china
+from app.utils.time_utils import time_utils
 
 # 加载环境变量
 load_dotenv()
@@ -51,7 +51,7 @@ cors = CORS()
 csrf = CSRFProtect()
 
 # 记录应用启动时间
-app_start_time = now_china()
+app_start_time = time_utils.now_china()
 
 
 def create_app(config_name: str | None = None) -> Flask:  # noqa: ARG001

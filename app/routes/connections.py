@@ -15,6 +15,7 @@ from app.services.connection_test_service import ConnectionTestService
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
 
 # 创建蓝图
 connections_bp = Blueprint("connections", __name__)
@@ -57,10 +58,8 @@ def _test_existing_instance(instance_id: int) -> Response:
     result = connection_test_service.test_connection(instance)
 
     if result.get("success"):
-        from app.utils.time_utils import now
-
         try:
-            instance.last_connected = now()
+            instance.last_connected = time_utils.now()
             db.session.commit()
         except Exception as exc:
             db.session.rollback()
@@ -307,13 +306,11 @@ def get_connection_status(instance_id: int) -> Response:
         status = "unknown"
         if instance.last_connected:
             from datetime import datetime, timedelta
-            from app.utils.time_utils import now
-
             last_connected_time = instance.last_connected
             if isinstance(last_connected_time, str):
                 last_connected_time = datetime.fromisoformat(last_connected_time.replace("Z", "+00:00"))
 
-            delta = now() - last_connected_time
+            delta = time_utils.now() - last_connected_time
             if delta < timedelta(hours=1):
                 status = "good"
             elif delta < timedelta(days=1):

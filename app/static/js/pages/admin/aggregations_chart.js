@@ -461,8 +461,9 @@ class AggregationsChartManager {
         
         let timeRange = '-';
         if (dates.length > 0) {
-            const startDate = new Date(dates[0]).toLocaleDateString();
-            const endDate = new Date(dates[dates.length - 1]).toLocaleDateString();
+            // 使用统一的时间格式化
+            const startDate = timeUtils.formatDate(dates[0]);
+            const endDate = timeUtils.formatDate(dates[dates.length - 1]);
             timeRange = `${startDate} - ${endDate}`;
         }
         
@@ -543,8 +544,10 @@ class AggregationsChartManager {
      * 格式化日期时间
      */
     formatDateTime(dateString) {
-        if (!dateString) return '-';
-        const date = new Date(dateString);
+        // 使用统一的时间格式化
+        return timeUtils.formatDateTime(dateString);
+        if (isNaN(date.getTime())) return '-';
+        
         return date.toLocaleString('zh-CN', {
             year: 'numeric',
             month: '2-digit',

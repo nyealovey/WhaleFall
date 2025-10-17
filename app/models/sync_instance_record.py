@@ -3,7 +3,7 @@
 """
 
 from app import db
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 
 
 class SyncInstanceRecord(db.Model):
@@ -50,7 +50,7 @@ class SyncInstanceRecord(db.Model):
     # 通用字段
     error_message = db.Column(db.Text)
     sync_details = db.Column(db.JSON)
-    created_at = db.Column(db.DateTime(timezone=True), default=now)
+    created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
 
     def __init__(
         self,
@@ -97,7 +97,7 @@ class SyncInstanceRecord(db.Model):
     def start_sync(self) -> None:
         """开始同步"""
         self.status = "running"
-        self.started_at = now()
+        self.started_at = time_utils.now()
 
     def complete_sync(
         self,
@@ -109,7 +109,7 @@ class SyncInstanceRecord(db.Model):
     ) -> None:
         """完成同步"""
         self.status = "completed"
-        self.completed_at = now()
+        self.completed_at = time_utils.now()
         self.items_synced = items_synced
         self.items_created = items_created
         self.items_updated = items_updated
@@ -119,7 +119,7 @@ class SyncInstanceRecord(db.Model):
     def fail_sync(self, error_message: str, sync_details: dict | None = None) -> None:
         """同步失败"""
         self.status = "failed"
-        self.completed_at = now()
+        self.completed_at = time_utils.now()
         self.error_message = error_message
         self.sync_details = sync_details
 

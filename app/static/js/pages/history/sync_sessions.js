@@ -91,8 +91,8 @@
     const html = sessions.map(session => {
       const statusClass = getStatusClass(session.status);
       const statusText = getStatusText(session.status);
-      const startedAt = formatTime(session.started_at, 'datetime');
-      const completedAt = session.completed_at ? formatTime(session.completed_at, 'datetime') : '-';
+      const startedAt = timeUtils.formatTime(session.started_at, 'datetime');
+      const completedAt = session.completed_at ? timeUtils.formatTime(session.completed_at, 'datetime') : '-';
 
       const totalInstances = session.total_instances || 0;
       const successfulInstances = session.successful_instances || 0;
@@ -305,9 +305,17 @@
     const recordsHtml = records.map(record => {
       const statusClass = getStatusClass(record.status);
       const statusText = getStatusText(record.status);
-      const duration = record.started_at && record.completed_at ? Math.round((new Date(record.completed_at) - new Date(record.started_at)) / 1000) + '秒' : '-';
-      const startedAt = formatTime(record.started_at, 'datetime');
-      const completedAt = record.completed_at ? formatTime(record.completed_at, 'datetime') : '-';
+      // 使用统一的时间解析计算持续时间
+      let duration = '-';
+      if (record.started_at && record.completed_at) {
+          const startTime = timeUtils.parseTime(record.started_at);
+          const endTime = timeUtils.parseTime(record.completed_at);
+          if (startTime && endTime) {
+              duration = Math.round((endTime - startTime) / 1000) + '秒';
+          }
+      }
+      const startedAt = timeUtils.formatTime(record.started_at, 'datetime');
+      const completedAt = record.completed_at ? timeUtils.formatTime(record.completed_at, 'datetime') : '-';
 
       return `
         <div class="card mb-2">
@@ -340,8 +348,8 @@
         <div class="col-md-6"><strong>同步分类:</strong> ${getSyncCategoryText(safeSession.sync_category)}</div>
       </div>
       <div class="row mb-3">
-        <div class="col-md-6"><strong>开始时间:</strong> ${formatTime(safeSession.started_at, 'datetime')}</div>
-        <div class="col-md-6"><strong>完成时间:</strong> ${safeSession.completed_at ? formatTime(safeSession.completed_at, 'datetime') : '未完成'}</div>
+        <div class="col-md-6"><strong>开始时间:</strong> ${timeUtils.formatTime(safeSession.started_at, 'datetime')}</div>
+        <div class="col-md-6"><strong>完成时间:</strong> ${safeSession.completed_at ? timeUtils.formatTime(safeSession.completed_at, 'datetime') : '未完成'}</div>
       </div>
       <div class="row mb-3">
         <div class="col-md-4"><strong>总实例数:</strong> ${safeSession.total_instances ?? 0}</div>
@@ -521,7 +529,13 @@
 
   window.getDurationBadge = function (startedAt, completedAt) {
     if (!startedAt || !completedAt) return '<span class="text-muted">-</span>';
-    const s = new Date(startedAt), e = new Date(completedAt);
+    
+    // 使用统一的时间解析
+    const s = timeUtils.parseTime(startedAt);
+    const e = timeUtils.parseTime(completedAt);
+    
+    if (!s || !e) return '<span class="text-muted">-</span>';
+    
     const sec = (e - s) / 1000;
     if (sec < 60) return `<span class="badge bg-info">${sec.toFixed(1)}秒</span>`;
     if (sec < 3600) return `<span class="badge bg-info">${(sec / 60).toFixed(1)}分钟</span>`;

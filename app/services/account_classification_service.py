@@ -986,11 +986,10 @@ class AccountClassificationService:
                 
                 # 解析时间字段
                 if rule_data.get("created_at"):
-                    from datetime import datetime
-                    rule.created_at = datetime.fromisoformat(rule_data["created_at"])
+                    from app.utils.time_utils import time_utils
+                    rule.created_at = time_utils.to_utc(rule_data["created_at"])
                 if rule_data.get("updated_at"):
-                    from datetime import datetime
-                    rule.updated_at = datetime.fromisoformat(rule_data["updated_at"])
+                    rule.updated_at = time_utils.to_utc(rule_data["updated_at"])
                 
                 rules.append(rule)
             return rules

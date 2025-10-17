@@ -45,10 +45,11 @@ function initializeSchedulerPage() {
 function initializeEventHandlers() {
     // 触发器类型固定为cron，无需切换逻辑
 
-    // 设置默认日期时间
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    $('#runDate').val(now.toISOString().slice(0, 16));
+    // 设置默认日期时间 - 使用统一的时间处理
+    const now = timeUtils.getChinaTime();
+    // 转换为本地时间输入格式
+    const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    $('#runDate').val(localTime.toISOString().slice(0, 16));
 
     // Cron表达式生成和预览
     function updateCronPreview() {
@@ -570,10 +571,13 @@ function editJob(jobId) {
                 const runDateIso = triggerArgs.run_date;
                 if (runDateIso) {
                     try {
-                        const dt = new Date(runDateIso);
-                        // 调整时区偏移，生成本地时间格式的字符串
-                        dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
-                        $('#editRunDate').val(dt.toISOString().slice(0, 16));
+                        // 使用统一的时间解析
+                        const dt = timeUtils.parseTime(runDateIso);
+                        if (dt) {
+                            // 调整时区偏移，生成本地时间格式的字符串
+                            const localTime = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000);
+                            $('#editRunDate').val(localTime.toISOString().slice(0, 16));
+                        }
                     } catch (_err) {
                         console.warn('解析 run_date 失败:', _err);
                         $('#editRunDate').val('');
@@ -880,26 +884,10 @@ function getAlertIcon(type) {
     }
 }
 
-// 格式化时间
+// 格式化时间 - 使用统一的时间工具
 function formatTime(timeString) {
-    if (!timeString) return '-';
-
-    try {
-        const date = new Date(timeString);
-        if (isNaN(date.getTime())) return '-';
-
-        // 后端已经返回东八区时间，前端直接格式化，不进行时区转换
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
-    } catch (e) {
-        console.error('时间格式化错误:', e);
-        return '-';
-    }
+    // 强制使用统一的时间工具
+    return timeUtils.formatTime(timeString, 'datetime');
 }
 
 
@@ -995,7 +983,11 @@ function updateHealthDisplay(healthData) {
     $('#threadStatus').text(healthData.thread_alive ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.thread_alive ? 'text-success' : 'text-danger');
     $('#jobstoreStatus').text(healthData.jobstore_accessible ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.jobstore_accessible ? 'text-success' : 'text-danger');
     $('#executorStatus').text(healthData.executor_working ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.executor_working ? 'text-success' : 'text-danger');
-    $('#lastCheck').text(healthData.last_check ? new Date(healthData.last_check).toLocaleString() : '--');
+    // 使用统一的时间格式化
+    const lastCheckText = healthData.last_check ?
+        (window.formatDateTime ? window.formatDateTime(healthData.last_check) : new Date(healthData.last_check).toLocaleString()) :
+        '--';
+    $('#lastCheck').text(lastCheckText);
 }
 
 // 添加刷新健康状态按钮事件

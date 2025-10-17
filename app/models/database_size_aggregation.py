@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app import db
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 
 
 class DatabaseSizeAggregation(db.Model):
@@ -66,8 +66,8 @@ class DatabaseSizeAggregation(db.Model):
     growth_rate = Column(Numeric(5, 2), nullable=False, default=0, comment="增长率（%，可为负值）")
     
     # 时间字段
-    calculated_at = Column(DateTime, nullable=False, default=now, comment="计算时间")
-    created_at = Column(DateTime, nullable=False, default=now, comment="记录创建时间")
+    calculated_at = Column(DateTime(timezone=True), nullable=False, default=time_utils.now, comment="计算时间")
+    created_at = Column(DateTime(timezone=True), nullable=False, default=time_utils.now, comment="记录创建时间")
     
     instance = relationship("Instance", back_populates="database_size_aggregations")
     
