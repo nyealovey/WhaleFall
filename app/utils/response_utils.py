@@ -24,6 +24,7 @@ def unified_success_response(
 ) -> tuple[dict[str, Any], int]:
     """生成统一的成功响应载荷"""
     payload: dict[str, Any] = {
+        "success": True,
         "error": False,
         "message": message or SuccessMessages.OPERATION_SUCCESS,
         "timestamp": time_utils.now().isoformat(),
@@ -46,6 +47,7 @@ def unified_error_response(
     context = context or ErrorContext(error)
     payload = enhanced_error_handler(error, context, extra=extra)
     final_status = status_code or map_exception_to_status(error, default=500)
+    payload.setdefault("success", False)
     return payload, final_status
 
 
