@@ -189,11 +189,12 @@ class AggregationsChartManager {
             });
             
             const response = await fetch(`/partition/api/aggregations/core-metrics?${params}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.currentData = data;
-                this.renderChart(data);
-                this.updateChartStats(data);
+            const raw = await response.json();
+            if (response.ok && raw.success !== false) {
+                const payload = raw?.data ?? raw ?? {};
+                this.currentData = payload;
+                this.renderChart(payload);
+                this.updateChartStats(payload);
             } else {
                 console.error('加载图表数据失败:', response.statusText);
                 this.showError('加载图表数据失败');
