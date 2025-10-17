@@ -35,7 +35,7 @@ def test_health_check_success(client):
     assert data["message"] == "服务运行正常"
     assert data["data"]["status"] == "healthy"
     assert "timestamp" in data["data"]
-    assert data["data"]["version"] == "1.0.7"
+    assert data["data"]["version"] == "1.1.4"
 
 
 @pytest.mark.unit

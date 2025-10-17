@@ -55,7 +55,7 @@ nano .env
 ```bash
 # 应用配置
 APP_NAME=鲸落
-APP_VERSION=1.1.2
+APP_VERSION=1.1.4
 FLASK_ENV=production
 SECRET_KEY=your-secret-key-here
 
