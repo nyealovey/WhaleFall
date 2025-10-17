@@ -81,14 +81,13 @@ def api_list_sessions() -> Response:
             "next_num": page + 1 if has_next else None
         }
 
-        return jsonify_unified_success(
-            data={
-                "sessions": sessions_data,
-                "total": total,
-                "pagination": pagination_info,
-            },
+        payload, status = unified_success_response(
+            data=sessions_data,
             message="获取同步会话列表成功",
         )
+        payload["pagination"] = pagination_info
+        payload["total"] = total
+        return jsonify(payload), status
 
     except Exception as e:
         log_error(
