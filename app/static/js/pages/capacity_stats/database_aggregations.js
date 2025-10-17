@@ -561,8 +561,8 @@ class DatabaseAggregationsManager {
             
             if (response.ok) {
                 this.databaseLabelMap = {};
-                const payload = data?.data?.items ?? data?.data ?? data ?? [];
-                this.currentData = Array.isArray(payload) ? payload : [];
+                const payload = this.extractItems(data);
+                this.currentData = payload;
                 this.renderChart(this.currentData);
                 this.syncUIState();
             } else {
@@ -588,8 +588,8 @@ class DatabaseAggregationsManager {
             const data = await response.json();
             
             if (response.ok) {
-                const payload = data?.data?.items ?? data?.data ?? data ?? [];
-                this.changeChartData = Array.isArray(payload) ? payload : [];
+                const payload = this.extractItems(data);
+                this.changeChartData = payload;
                 this.renderChangeChart(this.changeChartData);
             } else {
                 console.error('加载容量变化数据失败:', data.error);
@@ -614,8 +614,8 @@ class DatabaseAggregationsManager {
             const data = await response.json();
 
             if (response.ok) {
-                const payload = data?.data?.items ?? data?.data ?? data ?? [];
-                this.changePercentChartData = Array.isArray(payload) ? payload : [];
+                const payload = this.extractItems(data);
+                this.changePercentChartData = payload;
                 this.renderChangePercentChart(this.changePercentChartData);
             } else {
                 console.error('加载容量变化百分比数据失败:', data.error);
@@ -627,6 +627,23 @@ class DatabaseAggregationsManager {
         } finally {
             this.hideChangePercentChartLoading();
         }
+    }
+
+    extractItems(rawResponse) {
+        const payload = rawResponse?.data ?? rawResponse ?? {};
+        if (Array.isArray(payload)) {
+            return payload;
+        }
+        if (Array.isArray(payload.items)) {
+            return payload.items;
+        }
+        if (Array.isArray(payload.data)) {
+            return payload.data;
+        }
+        if (Array.isArray(rawResponse?.data?.data)) {
+            return rawResponse.data.data;
+        }
+        return [];
     }
     
     renderChart(data) {
