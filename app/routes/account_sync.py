@@ -16,7 +16,7 @@ from app.constants.sync_constants import SyncOperationType, SyncCategory
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
-from app.errors import NotFoundError, SystemError, ValidationError
+from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
 from app.services.account_sync_service import account_sync_service
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import update_required, view_required
@@ -25,6 +25,29 @@ from app.utils.structlog_config import log_error, log_info, log_warning
 
 # 创建蓝图
 account_sync_bp = Blueprint("account_sync", __name__)
+
+
+def _get_instance(instance_id: int) -> Instance:
+    instance = Instance.query.filter_by(id=instance_id).first()
+    if instance is None:
+        raise NotFoundError("实例不存在")
+    return instance
+
+
+def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, dict]:
+    if not result:
+        return False, {"status": "failed", "message": f"{context}返回为空"}
+
+    normalized = dict(result)
+    is_success = bool(normalized.pop("success", True))
+    message = normalized.get("message") or normalized.get("error")
+    if not message:
+        message = f"{context}{'成功' if is_success else '失败'}"
+
+    normalized["status"] = "completed" if is_success else "failed"
+    normalized["message"] = message
+    normalized["success"] = is_success
+    return is_success, normalized
 
 
 @account_sync_bp.route("/")
@@ -355,7 +378,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                 module="account_sync",
                 user_id=current_user.id,
             )
-            raise ValidationError("没有找到活跃的数据库实例")
+            raise AppValidationError("没有找到活跃的数据库实例")
 
         # 创建同步会话
         session = sync_session_service.create_session(
@@ -399,21 +422,26 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                 )
 
                 # 使用统一的账户同步服务
-                result = account_sync_service.sync_accounts(
+                raw_result = account_sync_service.sync_accounts(
                     instance, sync_type=SyncOperationType.MANUAL_BATCH.value, session_id=session.session_id
                 )
 
-                if result["success"]:
+                is_success, normalized = _normalize_sync_result(
+                    raw_result,
+                    context=f"实例 {instance.name} 账户同步",
+                )
+
+                if is_success:
                     success_count += 1
 
                     # 完成实例同步
                     sync_session_service.complete_instance_sync(
                         record.id,
-                        items_synced=result.get("synced_count", 0),
-                        items_created=result.get("added_count", 0),
-                        items_updated=result.get("modified_count", 0),
-                        items_deleted=result.get("removed_count", 0),
-                        sync_details=result.get("details", {}),
+                        items_synced=normalized.get("synced_count", 0),
+                        items_created=normalized.get("added_count", 0),
+                        items_updated=normalized.get("modified_count", 0),
+                        items_deleted=normalized.get("removed_count", 0),
+                        sync_details=normalized.get("details", {}),
                     )
 
                     # 移除实例同步成功的日志记录，减少日志噪音
@@ -425,8 +453,8 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                     # 标记实例同步失败
                     sync_session_service.fail_instance_sync(
                         record.id,
-                        error_message=result.get("error", "同步失败"),
-                        sync_details=result.get("details", {}),
+                        error_message=normalized.get("message", "同步失败"),
+                        sync_details=normalized.get("details", {}),
                     )
 
                     log_error(
@@ -434,7 +462,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                         module="account_sync",
                         session_id=session.session_id,
                         instance_id=instance.id,
-                        error=result.get("error", "同步失败"),
+                        error=normalized.get("message", "同步失败"),
                     )
 
                     # 同步会话记录已通过sync_session_service管理，无需额外创建记录
@@ -442,9 +470,11 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                 results.append(
                     {
                         "instance_name": instance.name,
-                        "success": result["success"],
-                        "message": result.get("message", result.get("error", "未知错误")),
-                        "synced_count": result.get("synced_count", 0),
+                        "success": is_success,
+                        "status": normalized.get("status"),
+                        "message": normalized.get("message"),
+                        "synced_count": normalized.get("synced_count", 0),
+                        "details": normalized.get("details"),
                     }
                 )
 
@@ -473,6 +503,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                     {
                         "instance_name": instance.name,
                         "success": False,
+                        "status": "failed",
                         "message": f"同步失败: {str(e)}",
                         "synced_count": 0,
                     }
@@ -517,6 +548,8 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
             message=f"批量同步完成，成功 {success_count} 个实例，失败 {failed_count} 个实例",
         )
 
+    except AppValidationError:
+        raise
     except Exception as e:
         log_error(
             "同步所有账户失败",
@@ -539,10 +572,10 @@ def sync_details_batch() -> str | Response | tuple[Response, int]:
         try:
             record_ids = [int(rid) for rid in raw_ids if rid.strip()]
         except ValueError as exc:
-            raise ValidationError("记录ID必须为整数") from exc
+            raise AppValidationError("记录ID必须为整数") from exc
 
         if not record_ids:
-            raise ValidationError("没有提供记录ID")
+            raise AppValidationError("没有提供记录ID")
 
         # 获取同步记录 - 使用新的同步会话模型
         records = SyncSession.query.filter(SyncSession.id.in_(record_ids)).all()
@@ -585,6 +618,8 @@ def sync_details_batch() -> str | Response | tuple[Response, int]:
 
         return jsonify_unified_success(data={"details": details}, message="同步详情获取成功")
 
+    except AppValidationError:
+        raise
     except Exception as e:
         log_error(
             "获取同步详情失败",
@@ -617,9 +652,13 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
             host=instance.host,
         )
 
-        result = account_sync_service.sync_accounts(instance, sync_type=SyncOperationType.MANUAL_SINGLE.value)
+        raw_result = account_sync_service.sync_accounts(instance, sync_type=SyncOperationType.MANUAL_SINGLE.value)
+        is_success, normalized = _normalize_sync_result(
+            raw_result,
+            context=f"实例 {instance.name} 账户同步",
+        )
 
-        if result["success"]:
+        if is_success:
             instance.sync_count = (instance.sync_count or 0) + 1
             db.session.commit()
 
@@ -629,11 +668,14 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
                 user_id=current_user.id,
                 instance_id=instance.id,
                 instance_name=instance.name,
-                synced_count=result.get("synced_count", 0),
+                synced_count=normalized.get("synced_count", 0),
             )
 
             if is_json:
-                return jsonify_unified_success(data={"result": result}, message="账户同步成功")
+                return jsonify_unified_success(
+                    data={"result": normalized},
+                    message="账户同步成功",
+                )
 
             flash("账户同步成功！", "success")
             return redirect(url_for("instances.detail", instance_id=instance_id))
@@ -646,13 +688,13 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
             instance_name=instance.name,
             db_type=instance.db_type,
             host=instance.host,
-            error=result.get("error", "未知错误"),
+            error=normalized.get("message", "未知错误"),
         )
 
         if is_json:
-            raise SystemError(result.get("error", "账户同步失败"))
+            raise SystemError(normalized.get("message", "账户同步失败"))
 
-        flash(f"账户同步失败: {result.get('error', '未知错误')}", "error")
+        flash(f"账户同步失败: {normalized.get('message', '未知错误')}", "error")
         return redirect(url_for("instances.detail", instance_id=instance_id))
 
     except Exception as exc:

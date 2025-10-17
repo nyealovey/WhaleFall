@@ -3,24 +3,27 @@
 专注于数据同步功能，不包含统计功能
 """
 
-from datetime import datetime, date, timedelta
-from typing import List, Dict, Any, Optional
+from __future__ import annotations
 
-from flask import Blueprint, Response, current_app, jsonify, render_template, request
-from flask_login import current_user, login_required
-from sqlalchemy import and_, desc, func
+from flask import Blueprint, Response, render_template, request
+from flask_login import login_required
 
-from app import db
-from app.errors import SystemError
+from app.constants.system_constants import SuccessMessages
+from app.errors import NotFoundError, SystemError
 from app.models.instance import Instance
-from app.services.database_size_collector_service import collect_all_instances_database_sizes
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
-from app.utils.time_utils import time_utils
 
 # 创建蓝图
 storage_sync_bp = Blueprint('storage_sync', __name__)
+
+
+def _get_instance(instance_id: int) -> Instance:
+    instance = Instance.query.filter_by(id=instance_id).first()
+    if instance is None:
+        raise NotFoundError("实例不存在")
+    return instance
 
 # 页面路由 - 存储同步主页面
 @storage_sync_bp.route('/', methods=['GET'])
@@ -82,7 +85,10 @@ def get_instances() -> Response:
                 'is_active': instance.is_active
             })
         
-        return jsonify_unified_success(data={'instances': data}, message='实例列表获取成功')
+        return jsonify_unified_success(
+            data={'instances': data},
+            message=SuccessMessages.OPERATION_SUCCESS,
+        )
 
     except Exception as exc:
         log_error("获取实例列表失败", module="storage_sync", error=str(exc))
@@ -102,7 +108,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
         json: 同步结果
     """
     try:
-        instance = Instance.query.get_or_404(instance_id)
+        instance = _get_instance(instance_id)
         log_info(
             "用户操作: 开始同步容量",
             module="storage_sync",
@@ -127,8 +133,11 @@ def sync_instance_capacity(instance_id: int) -> Response:
                 action="同步容量成功",
                 user_action=True,
             )
+            normalized_result = dict(result)
+            normalized_result.pop("success", None)
+            normalized_result.setdefault("status", "completed")
             return jsonify_unified_success(
-                data={'result': result},
+                data={'result': normalized_result},
                 message=f'实例 {instance.name} 的容量同步任务已成功完成',
             )
 
@@ -144,6 +153,8 @@ def sync_instance_capacity(instance_id: int) -> Response:
         error_message = result.get("message") or result.get("error") or "实例容量同步失败"
         raise SystemError(error_message)
         
+    except NotFoundError:
+        raise
     except Exception as exc:
         log_error(
             "同步实例容量失败",

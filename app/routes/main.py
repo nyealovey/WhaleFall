@@ -3,10 +3,12 @@
 鲸落 - 主要路由
 """
 
-from flask import Blueprint, Response, jsonify, redirect, render_template, request, url_for
-from flask_login import login_required
+import time
 
-from app.utils.decorators import admin_required
+from flask import Blueprint, Response, redirect, render_template, request, url_for
+
+from app.constants.system_constants import SuccessMessages
+from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import get_china_time
 
@@ -46,8 +48,6 @@ def chrome_devtools() -> "Response":
 @main_bp.route("/api/health")
 def api_health() -> "Response":
     """健康检查"""
-    import time
-
     start_time = time.time()
     from app import db
 
@@ -84,8 +84,6 @@ def api_health() -> "Response":
     }
 
     # 记录API调用
-    import time
-
     duration = (time.time() - start_time) * 1000
     log_info(
         "健康检查API调用",
@@ -94,7 +92,10 @@ def api_health() -> "Response":
         duration_ms=duration,
     )
 
-    return jsonify(result)
+    return jsonify_unified_success(
+        data=result,
+        message=SuccessMessages.OPERATION_SUCCESS,
+    )
 
 
 def get_system_uptime() -> "str | None":
