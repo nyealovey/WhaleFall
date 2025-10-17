@@ -123,7 +123,8 @@ function showCreatePartitionModal() {
     // 填充年份选项
     const yearSelect = document.getElementById('partitionYear');
     const monthSelect = document.getElementById('partitionMonth');
-    const now = new Date();
+    // 使用统一的时间获取
+    const now = timeUtils.getChinaTime();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 

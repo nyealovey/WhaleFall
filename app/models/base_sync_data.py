@@ -6,7 +6,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapped
 
 from app import db
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 
 
 class BaseSyncData(db.Model):
@@ -22,7 +22,7 @@ class BaseSyncData(db.Model):
 
     db_type = db.Column(db.String(20), nullable=False, index=True)  # 'mysql', 'postgresql', 'sqlserver', 'oracle'
     session_id = db.Column(db.String(36), nullable=True, index=True)
-    sync_time = db.Column(db.DateTime(timezone=True), default=now, index=True)
+    sync_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
     status = db.Column(db.String(20), default="success", index=True)
     message = db.Column(db.Text, nullable=True)
     error_message = db.Column(db.Text, nullable=True)

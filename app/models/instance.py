@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING
 
 from app import db
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 from app.utils.version_parser import DatabaseVersionParser
 
 if TYPE_CHECKING:
@@ -35,8 +35,8 @@ class Instance(db.Model):
     status = db.Column(db.String(20), default="active", index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     last_connected = db.Column(db.DateTime(timezone=True), nullable=True)
-    created_at = db.Column(db.DateTime(timezone=True), default=now)
-    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
+    created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     # 关系
@@ -118,13 +118,11 @@ class Instance(db.Model):
         """
         try:
             from app.services.connection_test_service import connection_test_service
-            from app.utils.time_utils import now
-
             # 使用连接测试服务
             result = connection_test_service.test_connection(self)
 
             # 无论连接成功还是失败，都更新最后连接时间
-            self.last_connected = now()
+            self.last_connected = time_utils.now()
 
             # 如果连接成功，解析版本信息
             if result.get("success") and result.get("version"):
@@ -149,9 +147,7 @@ class Instance(db.Model):
         except Exception as e:
             # 即使出现异常，也尝试更新最后连接时间
             try:
-                from app.utils.time_utils import now
-
-                self.last_connected = now()
+                self.last_connected = time_utils.now()
                 db.session.commit()
             except Exception as update_error:
                 # 记录更新时间错误，但不影响连接测试结果
@@ -289,7 +285,7 @@ class Instance(db.Model):
 
     def soft_delete(self) -> None:
         """软删除实例"""
-        self.deleted_at = now()
+        self.deleted_at = time_utils.now()
         self.status = "deleted"
         db.session.commit()
         from app.utils.structlog_config import get_system_logger

@@ -5,7 +5,7 @@
 import uuid
 
 from app import db
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 
 
 class SyncSession(db.Model):
@@ -34,8 +34,8 @@ class SyncSession(db.Model):
     successful_instances = db.Column(db.Integer, default=0)
     failed_instances = db.Column(db.Integer, default=0)
     created_by = db.Column(db.Integer)  # 用户ID（手动同步时）
-    created_at = db.Column(db.DateTime(timezone=True), default=now)
-    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now)
+    created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
+    updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
 
     # 关系
     instance_records = db.relationship(
@@ -59,7 +59,7 @@ class SyncSession(db.Model):
         self.sync_category = sync_category
         self.total_instances = 0
         self.status = "running"
-        self.started_at = now()
+        self.started_at = time_utils.now()
 
     def to_dict(self) -> dict[str, any]:
         """转换为字典"""
@@ -96,7 +96,7 @@ class SyncSession(db.Model):
                 self.status = "failed"
             else:
                 self.status = "completed"
-            self.completed_at = now()
+            self.completed_at = time_utils.now()
 
     def get_progress_percentage(self) -> int:
         """获取同步进度百分比"""

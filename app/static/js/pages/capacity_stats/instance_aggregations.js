@@ -1550,9 +1550,10 @@ class InstanceAggregationsManager {
         const normalizedPeriodType = periodType || 'daily';
         const hasStart = Boolean(this.currentFilters.start_date) && respectExistingStart;
         const hasEnd = Boolean(this.currentFilters.end_date) && respectExistingEnd;
-        const today = new Date();
-        const endDate = hasEnd ? new Date(this.currentFilters.end_date) : today;
-        const startDate = hasStart ? new Date(this.currentFilters.start_date) : new Date(endDate);
+        // 使用统一的时间获取
+        const today = window.getChinaTime ? window.getChinaTime() : new Date();
+        const endDate = hasEnd ? (window.parseTime ? window.parseTime(this.currentFilters.end_date) : new Date(this.currentFilters.end_date)) : today;
+        const startDate = hasStart ? (window.parseTime ? window.parseTime(this.currentFilters.start_date) : new Date(this.currentFilters.start_date)) : new Date(endDate);
         const periods = Math.max(1, periodsCount || 1);
         
         if (!hasStart) {

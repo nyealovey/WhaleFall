@@ -5,7 +5,7 @@
 from flask_login import UserMixin
 
 from app import bcrypt, db
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 
 
 class User(UserMixin, db.Model):
@@ -17,7 +17,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(50), nullable=False, default="user")
-    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=now)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
     last_login = db.Column(db.DateTime(timezone=True), nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
@@ -106,7 +106,7 @@ class User(UserMixin, db.Model):
 
     def update_last_login(self) -> None:
         """更新最后登录时间"""
-        self.last_login = now()
+        self.last_login = time_utils.now()
         db.session.commit()
 
     def to_dict(self) -> dict:

@@ -10,7 +10,7 @@ from flask import Blueprint, Response, redirect, render_template, request, url_f
 from app.constants.system_constants import SuccessMessages
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_info
-from app.utils.time_utils import get_china_time
+from app.utils.time_utils import time_utils
 
 # 创建蓝图
 main_bp = Blueprint("main", __name__)
@@ -79,7 +79,7 @@ def api_health() -> "Response":
         "status": overall_status,
         "database": db_status,
         "redis": redis_status,
-        "timestamp": get_china_time().isoformat(),
+        "timestamp": time_utils.now_china().isoformat(),
         "uptime": get_system_uptime(),
     }
 
@@ -102,10 +102,8 @@ def get_system_uptime() -> "str | None":
     """获取应用运行时间"""
     try:
         from app import app_start_time
-        from app.utils.time_utils import now_china
-
         # 计算应用运行时间
-        current_time = now_china()
+        current_time = time_utils.now_china()
         uptime = current_time - app_start_time
 
         days = uptime.days

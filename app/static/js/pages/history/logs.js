@@ -223,7 +223,7 @@ function createLogEntryHTML(log) {
     const levelClass = `log-level-${log.level}`;
     const levelBadge = getLevelBadgeHTML(log.level);
     const moduleBadge = log.module ? `<span class="module-badge">${log.module}</span>` : '<span class="module-badge empty">-</span>';
-    const timestamp = window.formatTime ? window.formatTime(log.timestamp, 'datetime') : log.timestamp;
+    const timestamp = timeUtils.formatTime(log.timestamp, 'datetime');
     const message = highlightSearchTerm(log.message, currentFilters.q);
 
     return `
@@ -339,8 +339,8 @@ function displayLogDetail(log) {
 
     const levelBadge = getLevelBadgeHTML(log.level);
     const moduleBadge = log.module ? `<span class="badge bg-secondary">${log.module}</span>` : '';
-    const timestamp = window.formatTime ? window.formatTime(log.timestamp, 'datetime') : log.timestamp;
-    const createdAt = window.formatTime ? window.formatTime(log.created_at, 'datetime') : log.created_at;
+    const timestamp = timeUtils.formatTime(log.timestamp, 'datetime');
+    const createdAt = timeUtils.formatTime(log.created_at, 'datetime');
 
     content.innerHTML = `
         <div class="log-detail-item">

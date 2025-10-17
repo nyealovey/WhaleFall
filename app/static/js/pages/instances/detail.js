@@ -500,7 +500,7 @@ function displayDatabaseSizes(databases, totalSize) {
     
     databases.forEach(db => {
         const sizeGB = (db.size_mb / 1024).toFixed(3);
-        const collectedAt = db.collected_at ? formatDateTime(db.collected_at) : '未采集';
+        const collectedAt = db.collected_at ? timeUtils.formatDateTime(db.collected_at) : '未采集';
         
         const isDeleted = !db.is_active;
         const rowClass = isDeleted ? 'table-secondary' : '';

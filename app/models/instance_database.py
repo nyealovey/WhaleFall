@@ -5,7 +5,7 @@
 
 from datetime import datetime, date
 from app import db
-from app.utils.time_utils import now
+from app.utils.time_utils import time_utils
 
 
 class InstanceDatabase(db.Model):
@@ -20,8 +20,8 @@ class InstanceDatabase(db.Model):
     first_seen_date = db.Column(db.Date, nullable=False, default=date.today, comment="首次发现日期")
     last_seen_date = db.Column(db.Date, nullable=False, default=date.today, comment="最后发现日期")
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
-    created_at = db.Column(db.DateTime(timezone=True), default=now, nullable=False)
-    updated_at = db.Column(db.DateTime(timezone=True), default=now, onupdate=now, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now, nullable=False)
 
     # 关系
     instance = db.relationship("Instance", back_populates="instance_databases")
@@ -62,8 +62,8 @@ class InstanceDatabase(db.Model):
             
             if instance_db:
                 instance_db.is_active = False
-                instance_db.deleted_at = now()
-                instance_db.updated_at = now()
+                instance_db.deleted_at = time_utils.now()
+                instance_db.updated_at = time_utils.now()
                 db.session.commit()
                 return True
             return False
@@ -112,8 +112,8 @@ class InstanceDatabase(db.Model):
                 if not has_recent_data:
                     # 标记为已删除
                     instance_db.is_active = False
-                    instance_db.deleted_at = now()
-                    instance_db.updated_at = now()
+                    instance_db.deleted_at = time_utils.now()
+                    instance_db.updated_at = time_utils.now()
                     deleted_count += 1
             
             db.session.commit()
@@ -142,7 +142,7 @@ class InstanceDatabase(db.Model):
             if instance_db:
                 # 更新最后发现日期
                 instance_db.last_seen_date = collected_date
-                instance_db.updated_at = now()
+                instance_db.updated_at = time_utils.now()
                 
                 # 如果之前被标记为删除，现在重新激活
                 if not instance_db.is_active:
