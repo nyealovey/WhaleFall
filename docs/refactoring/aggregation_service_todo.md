@@ -3,14 +3,11 @@
 > 记录：`app/services/database_size_aggregation_service.py` 与 `app/tasks/database_size_aggregation_tasks.py`
 
 ## 当前状态
-- 仍使用标准库 `logging`，未接入统一的 `structlog` 日志接口。
-- 多处返回 `{"success": ...}` / `{"error": ...}` 字典，尚未切换到 `unified_success_response` / `unified_error_response` 体系。
-- 函数返回结构与同步会话 (`sync_sessions`) 以及手动聚合路由 (`app/routes/aggregations.py`) 紧密耦合，直接调整会触发连锁改动，风险较高。
+- ✅ `DatabaseSizeAggregationService` 已改用统一的 `structlog` 接口，聚合结果以 `completed / skipped / failed` 状态返回，并在关键异常场景抛出 `DatabaseError`、`NotFoundError` 等自定义异常。
+- ✅ `database_size_aggregation_tasks` 完成重写，定时任务基于新状态模型更新同步会话记录并输出结构化日志，所有结果字典移除 `success` 兼容字段。
+- ✅ `app/routes/aggregations.py` 中的手动触发端点已切换至新结果结构，去除了旧的兼容逻辑。
 
-## 后续重构建议
-1. 在 `DatabaseSizeAggregationService` 内拆分聚合结果结构，明确 `completed / skipped / failed` 等状态，并抛出自定义异常 (`DatabaseError`、`NotFoundError`)。
-2. 调整 `database_size_aggregation_tasks`，让定时任务统一解析新状态并通过统一日志接口输出，同时更新同步会话状态写入逻辑。
-3. 等服务与任务完成改造后，再更新 `aggregations` 路由、调度器及相关调用方，替换旧的 `success` 判断与日志写法。
-4. 最后补充/修正对应的单元测试与文档说明。
-
-> 备注：在完成整体重构前，请避免对上述两个文件做局部调整，以免与后续统一改造冲突。
+## 后续工作
+1. 评估是否需要补充针对聚合服务的单元测试与集成测试，覆盖 `skipped` / `failed` 场景。
+2. 观察部署后的同步日志与会话记录，确认新结构与监控告警兼容。
+3. 若前端仍引用旧字段（如 `aggregations_created`），同步更新消费逻辑或在接口文档中明确字段替换。
