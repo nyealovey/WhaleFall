@@ -243,14 +243,28 @@
   window.viewSessionDetail = function (sessionId) {
     fetch(`/sync_sessions/api/sessions/${sessionId}`)
       .then(r => r.json())
-      .then(data => data.success ? showSessionDetail(data.data) : showAlert('加载会话详情失败: ' + data.message, 'error'))
+      .then(data => {
+        if (data.success) {
+          const session = data?.data?.session ?? data.session ?? data ?? {};
+          showSessionDetail(session);
+        } else {
+          showAlert('加载会话详情失败: ' + data.message, 'error');
+        }
+      })
       .catch(err => { console.error('加载会话详情出错:', err); showAlert('加载会话详情出错', 'error'); });
   }
 
   window.viewErrorLogs = function (sessionId) {
     fetch(`/sync_sessions/api/sessions/${sessionId}/error-logs`)
       .then(r => r.json())
-      .then(data => data.success ? showErrorLogs(data.data) : showAlert('加载错误信息失败: ' + data.message, 'error'))
+      .then(data => {
+        if (data.success) {
+          const payload = data?.data ?? data ?? {};
+          showErrorLogs(payload);
+        } else {
+          showAlert('加载错误信息失败: ' + data.message, 'error');
+        }
+      })
       .catch(err => { console.error('加载错误信息出错:', err); showAlert('加载错误信息出错', 'error'); });
   }
 
@@ -285,7 +299,8 @@
   window.showSessionDetail = function (session) {
     const content = document.getElementById('session-detail-content');
     if (!content) return;
-    const records = session.instance_records || [];
+    const safeSession = session && typeof session === 'object' ? session : {};
+    const records = Array.isArray(safeSession.instance_records) ? safeSession.instance_records : [];
 
     const recordsHtml = records.map(record => {
       const statusClass = getStatusClass(record.status);
@@ -317,21 +332,21 @@
 
     content.innerHTML = `
       <div class="row mb-3">
-        <div class="col-md-6"><strong>会话ID:</strong> ${session.session_id}</div>
-        <div class="col-md-6"><strong>状态:</strong> <span class="badge bg-${getStatusColor(session.status)}">${getStatusText(session.status)}</span></div>
+        <div class="col-md-6"><strong>会话ID:</strong> ${safeSession.session_id || '未知'}</div>
+        <div class="col-md-6"><strong>状态:</strong> <span class="badge bg-${getStatusColor(safeSession.status)}">${getStatusText(safeSession.status)}</span></div>
       </div>
       <div class="row mb-3">
-        <div class="col-md-6"><strong>操作方式:</strong> ${getSyncTypeText(session.sync_type)}</div>
-        <div class="col-md-6"><strong>同步分类:</strong> ${getSyncCategoryText(session.sync_category)}</div>
+        <div class="col-md-6"><strong>操作方式:</strong> ${getSyncTypeText(safeSession.sync_type)}</div>
+        <div class="col-md-6"><strong>同步分类:</strong> ${getSyncCategoryText(safeSession.sync_category)}</div>
       </div>
       <div class="row mb-3">
-        <div class="col-md-6"><strong>开始时间:</strong> ${formatTime(session.started_at, 'datetime')}</div>
-        <div class="col-md-6"><strong>完成时间:</strong> ${session.completed_at ? formatTime(session.completed_at, 'datetime') : '未完成'}</div>
+        <div class="col-md-6"><strong>开始时间:</strong> ${formatTime(safeSession.started_at, 'datetime')}</div>
+        <div class="col-md-6"><strong>完成时间:</strong> ${safeSession.completed_at ? formatTime(safeSession.completed_at, 'datetime') : '未完成'}</div>
       </div>
       <div class="row mb-3">
-        <div class="col-md-4"><strong>总实例数:</strong> ${session.total_instances}</div>
-        <div class="col-md-4"><strong>成功:</strong> ${session.successful_instances}</div>
-        <div class="col-md-4"><strong>失败:</strong> ${session.failed_instances}</div>
+        <div class="col-md-4"><strong>总实例数:</strong> ${safeSession.total_instances ?? 0}</div>
+        <div class="col-md-4"><strong>成功:</strong> ${safeSession.successful_instances ?? 0}</div>
+        <div class="col-md-4"><strong>失败:</strong> ${safeSession.failed_instances ?? 0}</div>
       </div>
       <hr>
       <h6>实例记录</h6>
