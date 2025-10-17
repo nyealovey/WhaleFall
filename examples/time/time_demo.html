@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统一时间处理演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        
+        .demo-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        
+        .time-display {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .time-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .time-card h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        
+        .time-value {
+            font-family: monospace;
+            font-size: 14px;
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: #fdf2f2;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .success {
+            color: #27ae60;
+            background: #f0f9f0;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #27ae60;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .live-demo {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .api-demo {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-success { background: #27ae60; }
+        .status-warning { background: #f39c12; }
+        .status-error { background: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🕒 统一时间处理工具演示</h1>
+        <p style="text-align: center; color: #7f8c8d;">
+            基于 <code>timezone_and_loglevel_unification.md</code> 强制统一策略
+        </p>
+        
+        <div id="status-check" class="demo-section">
+            <h2>系统状态检查</h2>
+            <div id="timeutils-status"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>1. 基础时间格式化</h2>
+        <div class="demo-section">
+            <p>当前时间的不同格式显示：</p>
+            <div class="time-grid" id="basic-formatting">
+                <!-- 动态生成 -->
+            </div>
+            <button onclick="updateBasicFormatting()">🔄 刷新时间</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>2. 相对时间计算</h2>
+        <div class="demo-section">
+            <p>不同时间点的相对时间显示：</p>
+            <div class="time-grid" id="relative-time">
+                <!-- 动态生成 -->
+            </div>
+            <button onclick="updateRelativeTime()">🔄 更新相对时间</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>3. 实时时间更新</h2>
+        <div class="live-demo">
+            <p>实时更新的时间显示（每秒更新）：</p>
+            <div class="time-display" id="live-time">
+                <!-- 实时更新 -->
+            </div>
+            <div>
+                <button onclick="startLiveUpdate()">▶️ 开始实时更新</button>
+                <button onclick="stopLiveUpdate()">⏸️ 停止更新</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>4. API 数据时间处理</h2>
+        <div class="api-demo">
+            <p>模拟处理后端 API 返回的时间数据：</p>
+            <button onclick="simulateApiCall()">📡 模拟 API 调用</button>
+            <div id="api-result"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>5. 时间验证和错误处理</h2>
+        <div class="demo-section">
+            <p>测试各种输入的时间处理：</p>
+            <div>
+                <input type="text" id="time-input" placeholder="输入时间字符串..." style="width: 300px; padding: 8px;">
+                <button onclick="validateTimeInput()">🔍 验证时间</button>
+            </div>
+            <div id="validation-result"></div>
+            
+            <h4>预设测试用例：</h4>
+            <div>
+                <button onclick="testTimeInput('2025-01-17T10:30:00Z')">ISO 格式</button>
+                <button onclick="testTimeInput('2025-01-17 18:30:00')">标准格式</button>
+                <button onclick="testTimeInput('invalid-date')">无效输入</button>
+                <button onclick="testTimeInput('')">空字符串</button>
+                <button onclick="testTimeInput(null)">null 值</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>6. 时间范围处理</h2>
+        <div class="demo-section">
+            <p>获取不同时间范围：</p>
+            <div>
+                <button onclick="showTimeRange(1)">最近1小时</button>
+                <button onclick="showTimeRange(6)">最近6小时</button>
+                <button onclick="showTimeRange(24)">最近24小时</button>
+                <button onclick="showTimeRange(168)">最近7天</button>
+            </div>
+            <div id="time-range-result"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>7. 性能测试</h2>
+        <div class="demo-section">
+            <p>测试批量时间处理性能：</p>
+            <div>
+                <button onclick="performanceTest(100)">测试 100 个时间</button>
+                <button onclick="performanceTest(1000)">测试 1000 个时间</button>
+                <button onclick="performanceTest(5000)">测试 5000 个时间</button>
+            </div>
+            <div id="performance-result"></div>
+        </div>
+    </div>
+
+    <!-- 引入时间工具 -->
+    <script src="../../app/static/js/common/time-utils.js"></script>
+    
+    <script>
+        // 全局变量
+        let liveUpdateInterval = null;
+        
+        // 检查 timeUtils 状态
+        function checkTimeUtilsStatus() {
+            const statusEl = document.getElementById('timeutils-status');
+            
+            if (typeof timeUtils !== 'undefined') {
+                statusEl.innerHTML = `
+                    <div class="success">
+                        <span class="status-indicator status-success"></span>
+                        ✅ timeUtils 已成功加载并可用
+                    </div>
+                `;
+                return true;
+            } else {
+                statusEl.innerHTML = `
+                    <div class="error">
+                        <span class="status-indicator status-error"></span>
+                        ❌ timeUtils 未加载，请检查 time-utils.js 文件路径
+                    </div>
+                `;
+                return false;
+            }
+        }
+        
+        // 更新基础格式化演示
+        function updateBasicFormatting() {
+            if (!checkTimeUtilsStatus()) return;
+            
+            const container = document.getElementById('basic-formatting');
+            const now = new Date();
+            
+            const formats = [
+                { name: '标准日期时间', type: 'datetime' },
+                { name: '仅日期', type: 'date' },
+                { name: '仅时间', type: 'time' },
+                { name: '中文格式', type: 'chinese' }
+            ];
+            
+            container.innerHTML = formats.map(format => `
+                <div class="time-card">
+                    <h4>${format.name}</h4>
+                    <div class="time-value">${timeUtils.formatTime(now, format.type)}</div>
+                </div>
+            `).join('');
+        }
+        
+        // 更新相对时间演示
+        function updateRelativeTime() {
+            if (!checkTimeUtilsStatus()) return;
+            
+            const container = document.getElementById('relative-time');
+            const now = new Date();
+            
+            const timePoints = [
+                { name: '刚刚', time: new Date(now.getTime() - 30 * 1000) },
+                { name: '5分钟前', time: new Date(now.getTime() - 5 * 60 * 1000) },
+                { name: '2小时前', time: new Date(now.getTime() - 2 * 60 * 60 * 1000) },
+                { name: '1天前', time: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+                { name: '1周前', time: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) },
+                { name: '1个月前', time: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) }
+            ];
+            
+            container.innerHTML = timePoints.map(point => `
+                <div class="time-card">
+                    <h4>${point.name}</h4>
+                    <div class="time-value">
+                        ${timeUtils.formatRelativeTime(point.time)}<br>
+                        <small style="color: #7f8c8d;">${timeUtils.formatDateTime(point.time)}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 开始实时更新
+        function startLiveUpdate() {
+            if (!checkTimeUtilsStatus()) return;
+            
+            stopLiveUpdate(); // 先停止之前的更新
+            
+            const updateLiveTime = () => {
+                const liveTimeEl = document.getElementById('live-time');
+                const now = new Date();
+                
+                liveTimeEl.innerHTML = `
+                    <div>当前时间: ${timeUtils.formatDateTime(now)}</div>
+                    <div>相对时间: ${timeUtils.formatRelativeTime(new Date(now.getTime() - 5 * 60 * 1000))}</div>
+                    <div>智能显示: ${timeUtils.formatSmartTime(now)}</div>
+                    <div>时间戳: ${now.getTime()}</div>
+                `;
+            };
+            
+            updateLiveTime(); // 立即更新一次
+            liveUpdateInterval = setInterval(updateLiveTime, 1000);
+        }
+        
+        // 停止实时更新
+        function stopLiveUpdate() {
+            if (liveUpdateInterval) {
+                clearInterval(liveUpdateInterval);
+                liveUpdateInterval = null;
+            }
+        }
+        
+        // 模拟 API 调用
+        function simulateApiCall() {
+            if (!checkTimeUtilsStatus()) return;
+            
+            const resultEl = document.getElementById('api-result');
+            
+            // 模拟 API 响应
+            const mockResponse = {
+                success: true,
+                data: [
+                    {
+                        id: 1,
+                        name: '测试实例1',
+                        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                        updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                        last_connected: new Date(Date.now() - 30 * 60 * 1000).toISOString()
+                    },
+                    {
+                        id: 2,
+                        name: '测试实例2',
+                        created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+                        updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+                        last_connected: null
+                    }
+                ]
+            };
+            
+            // 处理时间数据
+            const processedData = mockResponse.data.map(item => ({
+                ...item,
+                created_at_formatted: timeUtils.formatDateTime(item.created_at),
+                updated_at_formatted: timeUtils.formatDateTime(item.updated_at),
+                last_connected_formatted: item.last_connected 
+                    ? timeUtils.formatDateTime(item.last_connected)
+                    : '从未连接',
+                created_at_relative: timeUtils.formatRelativeTime(item.created_at),
+                updated_at_relative: timeUtils.formatRelativeTime(item.updated_at),
+                last_connected_relative: item.last_connected
+                    ? timeUtils.formatRelativeTime(item.last_connected)
+                    : '从未连接'
+            }));
+            
+            resultEl.innerHTML = `
+                <h4>原始 API 响应：</h4>
+                <pre>${JSON.stringify(mockResponse, null, 2)}</pre>
+                
+                <h4>处理后的数据：</h4>
+                ${processedData.map(item => `
+                    <div class="time-card">
+                        <h4>${item.name} (ID: ${item.id})</h4>
+                        <div>
+                            <strong>创建时间:</strong> ${item.created_at_formatted} (${item.created_at_relative})<br>
+                            <strong>更新时间:</strong> ${item.updated_at_formatted} (${item.updated_at_relative})<br>
+                            <strong>最后连接:</strong> ${item.last_connected_formatted} (${item.last_connected_relative})
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        // 验证时间输入
+        function validateTimeInput() {
+            const input = document.getElementById('time-input').value;
+            testTimeInput(input);
+        }
+        
+        // 测试时间输入
+        function testTimeInput(input) {
+            if (!checkTimeUtilsStatus()) return;
+            
+            const resultEl = document.getElementById('validation-result');
+            
+            try {
+                const isValid = timeUtils.isValidTime(input);
+                
+                if (isValid) {
+                    const parsed = timeUtils.parseTime(input);
+                    const formatted = timeUtils.formatDateTime(parsed);
+                    const relative = timeUtils.formatRelativeTime(parsed);
+                    const smart = timeUtils.formatSmartTime(parsed);
+                    
+                    resultEl.innerHTML = `
+                        <div class="success">
+                            <h4>✅ 有效时间输入</h4>
+                            <div><strong>输入:</strong> ${input}</div>
+                            <div><strong>解析结果:</strong> ${parsed}</div>
+                            <div><strong>标准格式:</strong> ${formatted}</div>
+                            <div><strong>相对时间:</strong> ${relative}</div>
+                            <div><strong>智能显示:</strong> ${smart}</div>
+                        </div>
+                    `;
+                } else {
+                    const formatted = timeUtils.formatDateTime(input);
+                    const relative = timeUtils.formatRelativeTime(input);
+                    
+                    resultEl.innerHTML = `
+                        <div class="error">
+                            <h4>❌ 无效时间输入</h4>
+                            <div><strong>输入:</strong> ${input}</div>
+                            <div><strong>格式化结果:</strong> ${formatted}</div>
+                            <div><strong>相对时间:</strong> ${relative}</div>
+                            <div><em>注意：timeUtils 会优雅处理无效输入，返回默认值</em></div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultEl.innerHTML = `
+                    <div class="error">
+                        <h4>💥 处理错误</h4>
+                        <div><strong>输入:</strong> ${input}</div>
+                        <div><strong>错误:</strong> ${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // 显示时间范围
+        function showTimeRange(hours) {
+            if (!checkTimeUtilsStatus()) return;
+            
+            const resultEl = document.getElementById('time-range-result');
+            const range = timeUtils.getTimeRange(hours);
+            
+            resultEl.innerHTML = `
+                <div class="time-card">
+                    <h4>最近 ${hours} 小时的时间范围</h4>
+                    <div>
+                        <strong>开始时间:</strong> ${range.startFormatted}<br>
+                        <strong>结束时间:</strong> ${range.endFormatted}<br>
+                        <strong>开始日期:</strong> ${range.startDate}<br>
+                        <strong>结束日期:</strong> ${range.endDate}<br>
+                        <strong>ISO 开始:</strong> ${range.start}<br>
+                        <strong>ISO 结束:</strong> ${range.end}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 性能测试
+        function performanceTest(count) {
+            if (!checkTimeUtilsStatus()) return;
+            
+            const resultEl = document.getElementById('performance-result');
+            
+            // 生成测试数据
+            const testTimes = Array.from({ length: count }, (_, i) => 
+                new Date(Date.now() - i * 60 * 1000).toISOString()
+            );
+            
+            // 测试格式化性能
+            const start1 = performance.now();
+            const formatted = testTimes.map(time => timeUtils.formatDateTime(time));
+            const end1 = performance.now();
+            
+            // 测试相对时间性能
+            const start2 = performance.now();
+            const relatives = testTimes.map(time => timeUtils.formatRelativeTime(time));
+            const end2 = performance.now();
+            
+            // 测试验证性能
+            const start3 = performance.now();
+            const validations = testTimes.map(time => timeUtils.isValidTime(time));
+            const end3 = performance.now();
+            
+            resultEl.innerHTML = `
+                <div class="time-card">
+                    <h4>性能测试结果 (${count} 个时间)</h4>
+                    <div>
+                        <strong>格式化耗时:</strong> ${(end1 - start1).toFixed(2)} ms<br>
+                        <strong>相对时间耗时:</strong> ${(end2 - start2).toFixed(2)} ms<br>
+                        <strong>验证耗时:</strong> ${(end3 - start3).toFixed(2)} ms<br>
+                        <strong>平均每个:</strong> ${((end1 - start1) / count).toFixed(4)} ms<br>
+                        <strong>处理速度:</strong> ${Math.round(count / ((end1 - start1) / 1000))} 个/秒
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <small>
+                            <strong>示例结果:</strong><br>
+                            格式化: ${formatted.slice(0, 3).join(', ')}...<br>
+                            相对时间: ${relatives.slice(0, 3).join(', ')}...<br>
+                            验证结果: ${validations.slice(0, 10).join(', ')}...
+                        </small>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查状态
+            if (checkTimeUtilsStatus()) {
+                // 初始化演示
+                updateBasicFormatting();
+                updateRelativeTime();
+                
+                // 设置一些预设值
+                document.getElementById('time-input').value = '2025-01-17T10:30:00Z';
+            }
+        });
+        
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', function() {
+            stopLiveUpdate();
+        });
+    </script>
+</body>
+</html>
