@@ -93,7 +93,8 @@ def monitor_partition_health() -> dict[str, object]:
 
         current_date = date.today()
         next_month = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
-        next_partition_name = f"database_size_stats_{next_month.strftime('%Y_%m')}"
+        from app.utils.time_utils import time_utils
+        next_partition_name = f"database_size_stats_{time_utils.format_china_time(next_month, '%Y_%m')}"
         partitions = partition_info["partitions"]
         exists = any(part["name"] == next_partition_name for part in partitions)
 
@@ -154,7 +155,7 @@ def get_partition_management_status() -> dict[str, object]:
         required_partitions: list[str] = []
         for offset in range(3):
             month_date = (current_date.replace(day=1) + timedelta(days=offset * 32)).replace(day=1)
-            required_partitions.append(f"database_size_stats_{month_date.strftime('%Y_%m')}")
+            required_partitions.append(f"database_size_stats_{time_utils.format_china_time(month_date, '%Y_%m')}")
 
         existing_partitions = {partition["name"] for partition in partitions}
         missing_partitions = [name for name in required_partitions if name not in existing_partitions]

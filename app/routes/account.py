@@ -359,7 +359,7 @@ def export_accounts() -> Response:
 
     # 创建响应
     output.seek(0)
-    timestamp = time_utils.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
     filename = f"accounts_export_{timestamp}.csv"
 
     return Response(
@@ -384,7 +384,7 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
             "username": account.username,
             "is_superuser": account.is_superuser,
             "last_sync_time": (
-                account.last_sync_time.strftime("%Y-%m-%d %H:%M:%S") if account.last_sync_time else "未知"
+                time_utils.format_china_time(account.last_sync_time) if account.last_sync_time else "未知"
             ),
         }
 
@@ -461,7 +461,7 @@ def get_account_change_history(account_id: int) -> tuple[Response, int]:
                 {
                     "id": log.id,
                     "change_type": log.change_type,
-                    "change_time": (log.change_time.strftime("%Y-%m-%d %H:%M:%S") if log.change_time else "未知"),
+                    "change_time": (time_utils.format_china_time(log.change_time) if log.change_time else "未知"),
                     "status": log.status,
                     "message": log.message,
                     "privilege_diff": log.privilege_diff,
@@ -737,7 +737,7 @@ def get_account_statistics() -> dict:
                 CurrentAccountSyncData.is_deleted.is_(False),
             ).count()
 
-            trend_data.append({"date": date.strftime("%Y-%m-%d"), "count": count})
+            trend_data.append({"date": time_utils.format_china_time(date, "%Y-%m-%d"), "count": count})
 
         # 最近账户活动 - 获取最近同步的10个账户
         recent_accounts_query = (

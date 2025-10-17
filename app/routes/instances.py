@@ -1107,15 +1107,16 @@ def export_instances() -> Response:
                 instance.description or "",
                 instance.credential_id or "",
                 instance.sync_count or 0,
-                (instance.last_connected.strftime("%Y-%m-%d %H:%M:%S") if instance.last_connected else ""),
-                (instance.created_at.strftime("%Y-%m-%d %H:%M:%S") if instance.created_at else ""),
-                (instance.updated_at.strftime("%Y-%m-%d %H:%M:%S") if instance.updated_at else ""),
+                (time_utils.format_china_time(instance.last_connected) if instance.last_connected else ""),
+                (time_utils.format_china_time(instance.created_at) if instance.created_at else ""),
+                (time_utils.format_china_time(instance.updated_at) if instance.updated_at else ""),
             ]
         )
 
     # 创建响应
     output.seek(0)
-    timestamp = time_utils.now().strftime("%Y%m%d_%H%M%S")
+    from app.utils.time_utils import TimeFormats
+    timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
     filename = f"instances_export_{timestamp}.csv"
 
     return Response(
@@ -1478,7 +1479,7 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
             "用户名": account.username,
             "超级用户": "是" if account.is_superuser else "否",
             "最后同步时间": (
-                account.last_sync_time.strftime("%Y-%m-%d %H:%M:%S") if account.last_sync_time else "未知"
+                time_utils.format_china_time(account.last_sync_time) if account.last_sync_time else "未知"
             ),
         }
 
@@ -1573,7 +1574,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
                 {
                     "id": log.id,
                     "change_type": log.change_type,
-                    "change_time": (log.change_time.strftime("%Y-%m-%d %H:%M:%S") if log.change_time else "未知"),
+                    "change_time": (time_utils.format_china_time(log.change_time) if log.change_time else "未知"),
                     "status": log.status,
                     "message": log.message,
                     "privilege_diff": log.privilege_diff,

@@ -3,7 +3,7 @@
 鲸落 - 系统仪表板路由
 """
 
-from datetime import datetime, timedelta, date
+from datetime import timedelta, date
 
 import psutil
 from flask import Blueprint, Response, render_template, request
@@ -158,7 +158,7 @@ def get_system_overview() -> dict:
         from app.models.instance_size_stat import InstanceSizeStat
         
         # 获取最近的容量数据（最近7天）
-        recent_date = datetime.now().date() - timedelta(days=7)
+        recent_date = time_utils.now_china().date() - timedelta(days=7)
         
         # 计算总容量（使用实例大小统计）
         recent_instance_stats = InstanceSizeStat.query.filter(
@@ -377,10 +377,13 @@ def get_log_trend_data() -> list[dict[str, int | str]]:
         china_today = time_utils.now_china().date()
         start_date = china_today - timedelta(days=6)
 
-        date_buckets: list[tuple[date, datetime, datetime]] = []
+        date_buckets: list[tuple[date, any, any]] = []
         for offset in range(7):
             day = start_date + timedelta(days=offset)
-            start_dt = datetime.combine(day, datetime.min.time()).replace(tzinfo=CHINA_TZ)
+            start_dt = time_utils.now_china().replace(
+                year=day.year, month=day.month, day=day.day,
+                hour=0, minute=0, second=0, microsecond=0
+            )
             end_dt = start_dt + timedelta(days=1)
             start_utc = time_utils.to_utc(start_dt)
             end_utc = time_utils.to_utc(end_dt)
@@ -394,7 +397,7 @@ def get_log_trend_data() -> list[dict[str, int | str]]:
         select_columns = []
         labels: list[tuple[date, str, str]] = []
         for day, start_utc, end_utc in date_buckets:
-            suffix = day.strftime("%Y%m%d")
+            suffix = time_utils.format_china_time(day, "%Y%m%d")
             error_label = f"error_{suffix}"
             warning_label = f"warning_{suffix}"
             select_columns.append(
@@ -448,7 +451,7 @@ def get_log_trend_data() -> list[dict[str, int | str]]:
         for day, error_label, warning_label in labels:
             trend_data.append(
                 {
-                    "date": day.strftime("%Y-%m-%d"),
+                    "date": time_utils.format_china_time(day, "%Y-%m-%d"),
                     "error_count": int(result_mapping.get(error_label) or 0),
                     "warning_count": int(result_mapping.get(warning_label) or 0),
                 }
@@ -515,10 +518,13 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
         end_date = time_utils.now_china().date()
         start_date = end_date - timedelta(days=6)
 
-        date_buckets: list[tuple[date, datetime, datetime]] = []
+        date_buckets: list[tuple[date, any, any]] = []
         for offset in range(7):
             day = start_date + timedelta(days=offset)
-            start_dt = datetime.combine(day, datetime.min.time()).replace(tzinfo=CHINA_TZ)
+            start_dt = time_utils.now_china().replace(
+                year=day.year, month=day.month, day=day.day,
+                hour=0, minute=0, second=0, microsecond=0
+            )
             end_dt = start_dt + timedelta(days=1)
             start_utc = time_utils.to_utc(start_dt)
             end_utc = time_utils.to_utc(end_dt)
@@ -532,7 +538,7 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
         select_columns = []
         labels: list[tuple[date, str]] = []
         for day, start_utc, end_utc in date_buckets:
-            label = f"sync_{day.strftime('%Y%m%d')}"
+            label = f"sync_{time_utils.format_china_time(day, '%Y%m%d')}"
             select_columns.append(
                 func.sum(
                     case(
@@ -566,7 +572,7 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
         for day, label in labels:
             trend_data.append(
                 {
-                    "date": day.strftime("%Y-%m-%d"),
+                    "date": time_utils.format_china_time(day, "%Y-%m-%d"),
                     "count": int(result_mapping.get(label) or 0),
                 }
             )
@@ -654,10 +660,10 @@ def get_system_uptime() -> "str | None":
     """获取应用运行时间"""
     try:
         from app import app_start_time
-        from app.utils.time_utils import now_china
+
 
         # 计算应用运行时间
-        current_time = now_china()
+        current_time = time_utils.now_china()
         uptime = current_time - app_start_time
 
         days = uptime.days

@@ -10,14 +10,26 @@ from zoneinfo import ZoneInfo
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
 UTC_TZ = ZoneInfo("UTC")
 
-# 时间格式常量
+# 时间格式常量类
+class TimeFormats:
+    """时间格式常量"""
+    
+    DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+    DATE_FORMAT = "%Y-%m-%d"
+    TIME_FORMAT = "%H:%M:%S"
+    DATETIME_MS_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
+    ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+    CHINESE_DATETIME_FORMAT = "%Y年%m月%d日 %H:%M:%S"
+    CHINESE_DATE_FORMAT = "%Y年%m月%d日"
+
+# 向后兼容的时间格式字典
 TIME_FORMATS = {
-    "datetime": "%Y-%m-%d %H:%M:%S",
-    "date": "%Y-%m-%d",
-    "time": "%H:%M:%S",
-    "datetime_ms": "%Y-%m-%d %H:%M:%S.%f",
-    "iso": "%Y-%m-%dT%H:%M:%S.%fZ",
-    "display": "%Y年%m月%d日 %H:%M:%S",
+    "datetime": TimeFormats.DATETIME_FORMAT,
+    "date": TimeFormats.DATE_FORMAT,
+    "time": TimeFormats.TIME_FORMAT,
+    "datetime_ms": TimeFormats.DATETIME_MS_FORMAT,
+    "iso": TimeFormats.ISO_FORMAT,
+    "display": TimeFormats.CHINESE_DATETIME_FORMAT,
 }
 
 
@@ -82,7 +94,7 @@ class TimeUtils:
             return None
 
     @staticmethod
-    def format_china_time(dt: str | datetime | None, format_str: str = TIME_FORMATS["datetime"]) -> str:
+    def format_china_time(dt: str | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT) -> str:
         """格式化中国时间显示"""
         china_dt = TimeUtils.to_china(dt)
         if not china_dt:
@@ -94,7 +106,7 @@ class TimeUtils:
             return "-"
 
     @staticmethod
-    def format_utc_time(dt: str | datetime | None, format_str: str = TIME_FORMATS["datetime"]) -> str:
+    def format_utc_time(dt: str | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT) -> str:
         """格式化UTC时间显示"""
         utc_dt = TimeUtils.to_utc(dt)
         if not utc_dt:
@@ -178,55 +190,7 @@ class TimeUtils:
 time_utils = TimeUtils()
 
 
-# 向后兼容的快捷函数
-def now() -> datetime:
-    """获取当前UTC时间（向后兼容）"""
-    return time_utils.now()
 
-
-def now_china() -> datetime:
-    """获取当前中国时间（向后兼容）"""
-    return time_utils.now_china()
-
-
-def utc_to_china(dt: str | datetime | None) -> datetime | None:
-    """UTC时间转中国时间（向后兼容）"""
-    return time_utils.to_china(dt)
-
-
-def format_china_time(dt: str | datetime | None, format_str: str = TIME_FORMATS["datetime"]) -> str:
-    """格式化中国时间（向后兼容）"""
-    return time_utils.format_china_time(dt, format_str)
-
-
-# 从 timezone.py 迁移的函数（向后兼容）
-def get_china_time() -> datetime:
-    """获取东八区当前时间（向后兼容）"""
-    return time_utils.now_china()
-
-
-def china_to_utc(china_dt: datetime | None) -> datetime | None:
-    """将东八区时间转换为UTC时间（向后兼容）"""
-    return time_utils.to_utc(china_dt)
-
-
-def get_china_date() -> date:
-    """获取东八区当前日期（向后兼容）"""
-    return time_utils.now_china().date()
-
-
-def get_china_today() -> datetime:
-    """获取东八区今天的开始时间（UTC）（向后兼容）"""
-    china_today = time_utils.now_china().date()
-    china_start = datetime.combine(china_today, datetime.min.time()).replace(tzinfo=CHINA_TZ)
-    return china_start.astimezone(UTC_TZ)
-
-
-def get_china_tomorrow() -> datetime:
-    """获取东八区明天的开始时间（UTC）（向后兼容）"""
-    china_tomorrow = time_utils.now_china().date() + timedelta(days=1)
-    china_start = datetime.combine(china_tomorrow, datetime.min.time()).replace(tzinfo=CHINA_TZ)
-    return china_start.astimezone(UTC_TZ)
 
 
 # 常量（向后兼容）

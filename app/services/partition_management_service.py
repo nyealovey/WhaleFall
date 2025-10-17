@@ -82,7 +82,8 @@ class PartitionManagementService:
         failures: list[dict[str, Any]] = []
 
         for table_key, table_config in self.tables.items():
-            partition_name = f"{table_config['partition_prefix']}{month_start.strftime('%Y_%m')}"
+            from app.utils.time_utils import time_utils
+            partition_name = f"{table_config['partition_prefix']}{time_utils.format_china_time(month_start, '%Y_%m')}"
             if self._partition_exists(partition_name):
                 actions.append(
                     PartitionAction(
@@ -111,7 +112,7 @@ class PartitionManagementService:
                 self._create_partition_indexes(partition_name, table_config)
                 comment_sql = (
                     f"COMMENT ON TABLE {partition_name} IS "
-                    f"'{table_config['display_name']}分区表 - {month_start.strftime('%Y-%m')}';"
+                    f"'{table_config['display_name']}分区表 - {time_utils.format_china_time(month_start, '%Y-%m')}';"
                 )
                 db.session.execute(text(comment_sql))
                 actions.append(

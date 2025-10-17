@@ -1,6 +1,6 @@
 """分区管理 API 路由"""
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
@@ -90,8 +90,11 @@ def create_partition() -> Response:
         raise ValidationError('缺少日期参数')
 
     try:
-        partition_date = datetime.strptime(partition_date_str, '%Y-%m-%d').date()
-    except ValueError as exc:
+        parsed_dt = time_utils.to_china(partition_date_str + 'T00:00:00')
+        if parsed_dt is None:
+            raise ValueError("无法解析日期")
+        partition_date = parsed_dt.date()
+    except Exception as exc:
         raise ValidationError('日期格式错误，请使用 YYYY-MM-DD 格式') from exc
 
     today = time_utils.now_china().date()
@@ -309,20 +312,20 @@ def get_core_aggregation_metrics() -> Response:
         
         # 统计原始采集数据
         for stat in db_stats:
-            date_str = stat.collected_date.strftime('%Y-%m-%d')
+            date_str = time_utils.format_china_time(stat.collected_date, '%Y-%m-%d')
             daily_metrics[date_str]['database_count'] += 1
         
         for stat in instance_stats:
-            date_str = stat.collected_date.strftime('%Y-%m-%d')
+            date_str = time_utils.format_china_time(stat.collected_date, '%Y-%m-%d')
             daily_metrics[date_str]['instance_count'] += 1
         
         # 统计聚合数据
         for agg in db_aggregations:
-            date_str = agg.period_start.strftime('%Y-%m-%d')
+            date_str = time_utils.format_china_time(agg.period_start, '%Y-%m-%d')
             daily_metrics[date_str]['database_aggregation_count'] += 1
         
         for agg in instance_aggregations:
-            date_str = agg.period_start.strftime('%Y-%m-%d')
+            date_str = time_utils.format_china_time(agg.period_start, '%Y-%m-%d')
             daily_metrics[date_str]['instance_aggregation_count'] += 1
         
         # 对于周、月、季统计，需要计算平均值
@@ -338,21 +341,24 @@ def get_core_aggregation_metrics() -> Response:
             
             # 按周期分组计算平均值
             for date_str, metrics in daily_metrics.items():
-                period_start = datetime.strptime(date_str, '%Y-%m-%d').date()
+                parsed_dt = time_utils.to_china(date_str + 'T00:00:00')
+                if parsed_dt is None:
+                    continue
+                period_start = parsed_dt.date()
                 
                 if period_type == 'weekly':
                     # 计算周的开始日期（周一）
                     week_start = period_start - timedelta(days=period_start.weekday())
-                    period_key = week_start.strftime('%Y-%m-%d')
+                    period_key = time_utils.format_china_time(week_start, '%Y-%m-%d')
                 elif period_type == 'monthly':
                     # 计算月的开始日期
                     month_start = period_start.replace(day=1)
-                    period_key = month_start.strftime('%Y-%m-%d')
+                    period_key = time_utils.format_china_time(month_start, '%Y-%m-%d')
                 elif period_type == 'quarterly':
                     # 计算季度的开始日期
                     quarter_month = ((period_start.month - 1) // 3) * 3 + 1
                     quarter_start = period_start.replace(month=quarter_month, day=1)
-                    period_key = quarter_start.strftime('%Y-%m-%d')
+                    period_key = time_utils.format_china_time(quarter_start, '%Y-%m-%d')
                 
                 period_metrics[period_key]['instance_count'] += metrics['instance_count']
                 period_metrics[period_key]['database_count'] += metrics['database_count']
@@ -383,7 +389,7 @@ def get_core_aggregation_metrics() -> Response:
         database_aggregation_data = []
         
         def append_metrics_for_key(key_date: date):
-            key_str = key_date.strftime('%Y-%m-%d')
+            key_str = time_utils.format_china_time(key_date, '%Y-%m-%d')
             labels.append(key_str)
             metrics = daily_metrics[key_str]
             instance_count_data.append(metrics['instance_count'])
