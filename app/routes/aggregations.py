@@ -1,28 +1,27 @@
-"""
-聚合统计路由
-专注于核心聚合功能：聚合计算、状态管理、汇总统计
-"""
+"""聚合统计路由"""
 
-import logging
 from datetime import datetime
-from flask import Blueprint, request, jsonify, render_template
-from app.utils.time_utils import time_utils
-from flask_login import login_required, current_user
-from sqlalchemy import func, desc, and_, or_
-from app.models.instance import Instance
+
+from flask import Blueprint, Response, request
+from flask_login import login_required
+from sqlalchemy import and_, desc, func, or_
+
+from app import db
+from app.errors import SystemError, ValidationError as AppValidationError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
+from app.models.instance import Instance
 from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
 from app.tasks.database_size_aggregation_tasks import (
     calculate_database_size_aggregations,
     calculate_instance_aggregations,
     calculate_period_aggregations,
-    get_aggregation_status
+    get_aggregation_status,
 )
 from app.utils.decorators import view_required
-from app import db
-
-logger = logging.getLogger(__name__)
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
 
 # 创建蓝图
 aggregations_bp = Blueprint('aggregations', __name__)
@@ -33,7 +32,7 @@ aggregations_bp = Blueprint('aggregations', __name__)
 @aggregations_bp.route('/api/summary', methods=['GET'])
 @login_required
 @view_required
-def get_aggregations_summary():
+def get_aggregations_summary() -> Response:
     """
     获取统计聚合数据汇总统计
     
@@ -62,30 +61,45 @@ def get_aggregations_summary():
             desc(DatabaseSizeAggregation.calculated_at)
         ).first()
         
-        return jsonify({
-            'success': True,
-            'data': {
-                'total_aggregations': total_aggregations,
-                'total_instances': total_instances,
-                'total_databases': total_databases,
-                'total_size_mb': float(size_stats.total_size_mb) if size_stats.total_size_mb else 0,
-                'avg_size_mb': float(size_stats.avg_size_mb) if size_stats.avg_size_mb else 0,
-                'max_size_mb': float(size_stats.max_size_mb) if size_stats.max_size_mb else 0,
-                'last_updated': latest_aggregation.calculated_at.isoformat() if latest_aggregation else None
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"获取聚合汇总统计时出错: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        payload = {
+            'total_aggregations': total_aggregations,
+            'total_instances': total_instances,
+            'total_databases': total_databases,
+            'total_size_mb': float(size_stats.total_size_mb) if size_stats.total_size_mb else 0,
+            'avg_size_mb': float(size_stats.avg_size_mb) if size_stats.avg_size_mb else 0,
+            'max_size_mb': float(size_stats.max_size_mb) if size_stats.max_size_mb else 0,
+            'last_updated': latest_aggregation.calculated_at.isoformat() if latest_aggregation else None
+        }
+
+        log_info(
+            "获取聚合汇总统计成功",
+            module="aggregations",
+            total_aggregations=total_aggregations,
+            total_instances=total_instances,
+            total_databases=total_databases,
+        )
+
+        return jsonify_unified_success(data=payload, message="聚合汇总统计获取成功")
+
+    except Exception as exc:
+        log_error("获取聚合汇总统计失败", module="aggregations", error=str(exc))
+        raise SystemError("获取聚合汇总统计失败") from exc
 
 @aggregations_bp.route('/api/manual_aggregate', methods=['POST'])
 @login_required
 @view_required
-def manual_aggregate():
+def _normalize_task_result(result: dict | None, *, context: str) -> dict:
+    if not result:
+        raise SystemError(f"{context}任务返回为空")
+    if not result.get('success', True):
+        raise SystemError(result.get('message') or f"{context}执行失败")
+    normalized = dict(result)
+    normalized.pop('success', None)
+    normalized.setdefault('status', 'completed')
+    return normalized
+
+
+def manual_aggregate() -> Response:
     """
     手动触发聚合计算
     
@@ -99,7 +113,11 @@ def manual_aggregate():
         valid_periods = {'daily', 'weekly', 'monthly', 'quarterly'}
 
         if instance_id is not None:
-            instance_id = int(instance_id)
+            try:
+                instance_id = int(instance_id)
+            except (TypeError, ValueError) as exc:
+                raise AppValidationError("实例ID必须为整数") from exc
+
             service = DatabaseSizeAggregationService()
             if period_type in valid_periods:
                 func_map = {
@@ -108,32 +126,39 @@ def manual_aggregate():
                     'monthly': service.calculate_monthly_aggregations_for_instance,
                     'quarterly': service.calculate_quarterly_aggregations_for_instance,
                 }
-                result = func_map[period_type](instance_id)
+                raw_result = func_map[period_type](instance_id)
             else:
-                result = calculate_instance_aggregations(instance_id)
+                raw_result = calculate_instance_aggregations(instance_id)
         else:
             if period_type in valid_periods:
-                result = calculate_database_size_aggregations(manual_run=True, periods=[period_type])
+                raw_result = calculate_database_size_aggregations(manual_run=True, periods=[period_type])
             else:
-                result = calculate_database_size_aggregations(manual_run=True)
+                raw_result = calculate_database_size_aggregations(manual_run=True)
 
-        return jsonify({
-            'success': result.get('success', True),
-            'message': result.get('message', '聚合计算任务已触发'),
-            'data': result
-        })
-        
-    except Exception as e:
-        logger.error(f"手动触发聚合计算失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        result = _normalize_task_result(raw_result, context="聚合计算")
+
+        log_info(
+            "手动聚合任务已触发",
+            module="aggregations",
+            period_type=period_type,
+            instance_id=instance_id,
+        )
+
+        return jsonify_unified_success(
+            data={'result': result},
+            message=result.get('message', '聚合计算任务已触发'),
+        )
+
+    except AppValidationError:
+        raise
+    except Exception as exc:
+        log_error("手动触发聚合计算失败", module="aggregations", error=str(exc))
+        raise SystemError("手动触发聚合计算失败") from exc
 
 @aggregations_bp.route('/api/aggregate', methods=['POST'])
 @login_required
 @view_required
-def aggregate():
+def aggregate() -> Response:
     """
     手动触发统计聚合计算
     
@@ -145,28 +170,29 @@ def aggregate():
         period_type = (data.get('period_type') or 'all').lower()
         valid_periods = {'daily', 'weekly', 'monthly', 'quarterly'}
 
-        if period_type in valid_periods:
-            result = calculate_database_size_aggregations(manual_run=True, periods=[period_type])
-        else:
-            result = calculate_database_size_aggregations(manual_run=True)
+        raw_result = (
+            calculate_database_size_aggregations(manual_run=True, periods=[period_type])
+            if period_type in valid_periods
+            else calculate_database_size_aggregations(manual_run=True)
+        )
 
-        return jsonify({
-            'success': result.get('success', True),
-            'message': result.get('message', '统计聚合计算任务已触发'),
-            'data': result
-        })
-        
-    except Exception as e:
-        logger.error(f"触发统计聚合计算失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        result = _normalize_task_result(raw_result, context="统计聚合")
+
+        log_info("统计聚合任务已触发", module="aggregations", period_type=period_type)
+
+        return jsonify_unified_success(
+            data={'result': result},
+            message=result.get('message', '统计聚合计算任务已触发'),
+        )
+
+    except Exception as exc:
+        log_error("触发统计聚合计算失败", module="aggregations", error=str(exc))
+        raise SystemError("触发统计聚合计算失败") from exc
 
 @aggregations_bp.route('/api/aggregate-today', methods=['POST'])
 @login_required
 @view_required
-def aggregate_today():
+def aggregate_today() -> Response:
     """
     手动触发今日数据聚合
     
@@ -175,44 +201,35 @@ def aggregate_today():
     """
     try:
         # 触发今日数据聚合（只执行日聚合）
-        result = calculate_database_size_aggregations(manual_run=True, periods=['daily'])
-        
-        return jsonify({
-            'success': True,
-            'message': '今日数据聚合任务已触发',
-            'data': result
-        })
-        
-    except Exception as e:
-        logger.error(f"触发今日数据聚合失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        raw_result = calculate_database_size_aggregations(manual_run=True, periods=['daily'])
+        result = _normalize_task_result(raw_result, context="今日聚合")
+
+        log_info("今日数据聚合任务已触发", module="aggregations")
+
+        return jsonify_unified_success(
+            data={'result': result},
+            message='今日数据聚合任务已触发',
+        )
+
+    except Exception as exc:
+        log_error("触发今日数据聚合失败", module="aggregations", error=str(exc))
+        raise SystemError("触发今日数据聚合失败") from exc
 
 @aggregations_bp.route('/api/aggregate/status', methods=['GET'])
 @login_required
 @view_required
-def get_aggregation_status():
-    """
-    获取聚合状态信息
-    
-    Returns:
-        JSON: 聚合状态
-    """
+def get_aggregation_status_api() -> Response:
+    """获取聚合状态信息"""
     try:
-        # 获取聚合状态
-        status = get_aggregation_status()
-        
-        return jsonify({
-            'success': True,
-            'data': status,
-            'timestamp': time_utils.now().isoformat()
-        })
-        
-    except Exception as e:
-        logger.error(f"获取聚合状态失败: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        status = task_get_aggregation_status()
+        payload = {
+            'status': status,
+            'timestamp': time_utils.now().isoformat(),
+        }
+
+        log_info("获取聚合状态成功", module="aggregations", status_summary=status)
+        return jsonify_unified_success(data=payload, message="聚合状态获取成功")
+
+    except Exception as exc:
+        log_error("获取聚合状态失败", module="aggregations", error=str(exc))
+        raise SystemError("获取聚合状态失败") from exc

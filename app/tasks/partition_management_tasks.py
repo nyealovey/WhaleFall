@@ -3,181 +3,172 @@
 负责自动创建、清理和监控数据库大小统计表的分区
 """
 
-import logging
-from datetime import datetime, date, timedelta
-from app.services.partition_management_service import PartitionManagementService
+from __future__ import annotations
+
+from datetime import date, timedelta
+
 from app.config import Config
+from app.errors import AppError, DatabaseError
+from app.services.partition_management_service import PartitionManagementService
+from app.utils.response_utils import unified_error_response, unified_success_response
+from app.utils.structlog_config import log_error, log_info, log_warning
 
-logger = logging.getLogger(__name__)
+MODULE = "partition_tasks"
 
 
-def create_database_size_partitions():
+def _as_app_error(error: Exception) -> AppError:
+    """确保返回 AppError 实例，便于统一错误上下文"""
+    return error if isinstance(error, AppError) else DatabaseError(message=str(error))
+
+
+def create_database_size_partitions() -> dict[str, object]:
     """
     创建数据库大小统计表的分区
-    每天凌晨2点执行，创建未来3个月的分区
+    每天凌晨 2 点执行，创建未来 3 个月的分区
     """
+    service = PartitionManagementService()
     try:
-        logger.info("开始创建数据库大小统计表分区...")
-        
-        service = PartitionManagementService()
-        
-        # 创建未来3个月的分区
-        result = service.create_future_partitions(months_ahead=3)
-        
-        if result['success']:
-            logger.info(f"分区创建完成: {result['message']}")
-        else:
-            logger.error(f"分区创建失败: {result['message']}")
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"创建分区任务执行失败: {str(e)}")
-        return {
-            'success': False,
-            'message': f'创建分区任务执行失败: {str(e)}',
-            'error': str(e)
-        }
+        months_ahead = 3
+        log_info("开始创建数据库大小统计表分区", module=MODULE, months_ahead=months_ahead)
+        result = service.create_future_partitions(months_ahead=months_ahead)
+        log_info(
+            "分区创建任务完成",
+            module=MODULE,
+            processed_months=result.get("months_processed"),
+        )
+        payload, _ = unified_success_response(
+            data=result,
+            message="分区创建任务已完成",
+        )
+        return payload
+    except Exception as exc:
+        app_error = _as_app_error(exc)
+        log_error("分区创建任务失败", module=MODULE, exception=exc)
+        payload, _ = unified_error_response(app_error)
+        return payload
 
 
-def cleanup_database_size_partitions():
+def cleanup_database_size_partitions() -> dict[str, object]:
     """
     清理数据库大小统计表的旧分区
-    每天凌晨3点执行，清理12个月前的分区
+    每天凌晨 3 点执行，清理保留期外的分区
     """
+    service = PartitionManagementService()
     try:
-        logger.info("开始清理数据库大小统计表旧分区...")
-        
-        service = PartitionManagementService()
-        
-        # 获取保留月数配置
-        retention_months = getattr(Config, 'DATABASE_SIZE_RETENTION_MONTHS', 12)
-        
-        # 清理旧分区
+        retention_months = getattr(Config, "DATABASE_SIZE_RETENTION_MONTHS", 12)
+        log_info(
+            "开始清理旧分区",
+            module=MODULE,
+            retention_months=retention_months,
+        )
         result = service.cleanup_old_partitions(retention_months=retention_months)
-        
-        if result['success']:
-            logger.info(f"分区清理完成: {result['message']}")
-        else:
-            logger.error(f"分区清理失败: {result['message']}")
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"清理分区任务执行失败: {str(e)}")
-        return {
-            'success': False,
-            'message': f'清理分区任务执行失败: {str(e)}',
-            'error': str(e)
-        }
+        log_info(
+            "旧分区清理完成",
+            module=MODULE,
+            cutoff_date=result.get("cutoff_date"),
+            dropped=len(result.get("dropped", [])),
+        )
+        payload, _ = unified_success_response(
+            data=result,
+            message="旧分区清理任务已完成",
+        )
+        return payload
+    except Exception as exc:
+        app_error = _as_app_error(exc)
+        log_error("旧分区清理任务失败", module=MODULE, exception=exc)
+        payload, _ = unified_error_response(app_error)
+        return payload
 
 
-def monitor_partition_health():
+def monitor_partition_health() -> dict[str, object]:
     """
     监控分区健康状态
-    每小时执行一次，检查分区状态和性能
+    每小时执行一次，检查分区状态和容量
     """
+    service = PartitionManagementService()
     try:
-        logger.info("开始监控分区健康状态...")
-        
-        service = PartitionManagementService()
-        
-        # 获取分区信息
+        log_info("开始监控分区健康状态", module=MODULE)
         partition_info = service.get_partition_info()
-        
-        if not partition_info['success']:
-            logger.error(f"获取分区信息失败: {partition_info['message']}")
-            return partition_info
-        
-        # 获取分区统计
         stats = service.get_partition_statistics()
-        
-        if not stats['success']:
-            logger.error(f"获取分区统计失败: {stats['message']}")
-            return stats
-        
-        # 记录分区状态
-        logger.info(f"分区监控完成: 总分区数={stats['total_partitions']}, "
-                   f"总大小={stats['total_size']}, 总记录数={stats['total_records']}")
-        
-        # 检查是否需要创建新分区
+
         current_date = date.today()
-        next_month = current_date.replace(day=1) + timedelta(days=32)
-        next_month = next_month.replace(day=1)
-        
-        # 检查下个月的分区是否存在
-        partition_name = f"database_size_stats_{next_month.strftime('%Y_%m')}"
-        if not service._partition_exists(partition_name):
-            logger.warning(f"下个月分区 {partition_name} 不存在，尝试创建...")
-            create_result = service.create_partition(next_month)
-            if create_result['success']:
-                logger.info(f"成功创建下个月分区: {create_result['message']}")
-            else:
-                logger.error(f"创建下个月分区失败: {create_result['message']}")
-        
-        return {
-            'success': True,
-            'message': '分区健康监控完成',
-            'partition_count': stats['total_partitions'],
-            'total_size': stats['total_size'],
-            'total_records': stats['total_records']
-        }
-        
-    except Exception as e:
-        logger.error(f"分区健康监控任务执行失败: {str(e)}")
-        return {
-            'success': False,
-            'message': f'分区健康监控任务执行失败: {str(e)}',
-            'error': str(e)
-        }
+        next_month = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
+        next_partition_name = f"database_size_stats_{next_month.strftime('%Y_%m')}"
+        partitions = partition_info["partitions"]
+        exists = any(part["name"] == next_partition_name for part in partitions)
+
+        auto_creation: dict[str, object] | None = None
+        if not exists:
+            log_warning(
+                "下个月分区不存在，尝试自动创建",
+                module=MODULE,
+                partition_name=next_partition_name,
+            )
+            try:
+                creation_result = service.create_partition(next_month)
+                auto_creation = {"created": True, "result": creation_result}
+                log_info(
+                    "自动创建下个月分区成功",
+                    module=MODULE,
+                    partition_name=next_partition_name,
+                )
+            except DatabaseError as exc:
+                auto_creation = {"created": False, "message": exc.message, "extra": getattr(exc, "extra", {})}
+                log_warning(
+                    "自动创建下个月分区失败",
+                    module=MODULE,
+                    partition_name=next_partition_name,
+                    error=exc.message,
+                )
+
+        payload, _ = unified_success_response(
+            data={
+                "partition_count": stats["total_partitions"],
+                "total_size": stats["total_size"],
+                "total_records": stats["total_records"],
+                "auto_creation": auto_creation,
+            },
+            message="分区健康监控完成",
+        )
+        return payload
+    except Exception as exc:
+        app_error = _as_app_error(exc)
+        log_error("分区健康监控任务失败", module=MODULE, exception=exc)
+        payload, _ = unified_error_response(app_error)
+        return payload
 
 
-def get_partition_management_status():
+def get_partition_management_status() -> dict[str, object]:
     """
     获取分区管理状态
-    用于API接口和监控页面
+    用于 API 接口和监控页面
     """
+    service = PartitionManagementService()
     try:
-        service = PartitionManagementService()
-        
-        # 获取分区信息
         partition_info = service.get_partition_info()
-        if not partition_info['success']:
-            return partition_info
-        
-        # 获取分区统计
         stats = service.get_partition_statistics()
-        if not stats['success']:
-            return stats
-        
-        # 检查最近的分区状态
-        partitions = partition_info['partitions']
+
+        partitions = partition_info["partitions"]
         current_date = date.today()
-        
-        # 检查当前月份和未来2个月的分区
-        required_partitions = []
-        for i in range(3):
-            check_date = current_date.replace(day=1) + timedelta(days=i * 30)
-            partition_name = f"database_size_stats_{check_date.strftime('%Y_%m')}"
-            required_partitions.append(partition_name)
-        
-        existing_partitions = [p['name'] for p in partitions]
-        missing_partitions = [p for p in required_partitions if p not in existing_partitions]
-        
+
+        required_partitions: list[str] = []
+        for offset in range(3):
+            month_date = (current_date.replace(day=1) + timedelta(days=offset * 32)).replace(day=1)
+            required_partitions.append(f"database_size_stats_{month_date.strftime('%Y_%m')}")
+
+        existing_partitions = {partition["name"] for partition in partitions}
+        missing_partitions = [name for name in required_partitions if name not in existing_partitions]
+
+        status = "healthy" if not missing_partitions else "warning"
         return {
-            'success': True,
-            'status': 'healthy' if not missing_partitions else 'warning',
-            'total_partitions': stats['total_partitions'],
-            'total_size': stats['total_size'],
-            'total_records': stats['total_records'],
-            'missing_partitions': missing_partitions,
-            'partitions': partitions
+            "status": status,
+            "total_partitions": stats["total_partitions"],
+            "total_size": stats["total_size"],
+            "total_records": stats["total_records"],
+            "missing_partitions": missing_partitions,
+            "partitions": partitions,
         }
-        
-    except Exception as e:
-        logger.error(f"获取分区管理状态失败: {str(e)}")
-        return {
-            'success': False,
-            'message': f'获取分区管理状态失败: {str(e)}',
-            'error': str(e)
-        }
+    except Exception as exc:
+        app_error = _as_app_error(exc)
+        log_error("获取分区管理状态失败", module=MODULE, exception=exc)
+        raise app_error

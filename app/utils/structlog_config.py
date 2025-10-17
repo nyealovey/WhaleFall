@@ -11,13 +11,20 @@ import time
 from contextvars import ContextVar
 from datetime import datetime
 from queue import Empty, Queue
-from typing import Any
+from typing import Any, Callable, Mapping
+from dataclasses import dataclass, field
+from uuid import uuid4
+
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 import structlog
 from flask import current_app, g, has_request_context
 from flask_login import current_user
+from werkzeug.exceptions import HTTPException
 
 from app import db
+from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
+from app.errors import AppError, map_exception_to_status
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.utils.time_utils import time_utils
 
@@ -646,228 +653,263 @@ def with_log_context(**context):
 
 
 # 错误处理增强功能
-class ErrorCategory:
-    """错误分类"""
-    DATABASE = "database"
-    VALIDATION = "validation"
-    AUTHENTICATION = "authentication"
-    AUTHORIZATION = "authorization"
-    SYSTEM = "system"
-    NETWORK = "network"
-    UNKNOWN = "unknown"
 
 
-class ErrorSeverity:
-    """错误严重程度"""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
-
-
+@dataclass(slots=True)
 class ErrorContext:
     """错误上下文信息"""
-    
-    def __init__(self, error: Exception, request=None):
-        self.error = error
-        self.error_type = type(error).__name__
-        self.error_id = f"{int(time.time() * 1000)}-{id(error)}"
-        self.timestamp = time_utils.now()
-        self.request = request
-        self.url = request.url if request else None
-        self.user_id = user_id_var.get() if user_id_var.get() else None
-        self.request_id = request_id_var.get() if request_id_var.get() else None
+
+    error: Exception
+    request: Any | None = None
+    error_id: str = field(default_factory=lambda: uuid4().hex)
+    timestamp: datetime = field(default_factory=time_utils.now)
+    request_id: str | None = field(default_factory=lambda: request_id_var.get())
+    user_id: int | None = field(default_factory=lambda: user_id_var.get())
+    url: str | None = None
+    method: str | None = None
+    extra: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.request is None and has_request_context():
+            from flask import request as flask_request
+
+            self.request = flask_request
+
+        if self.request is not None:
+            self.url = getattr(self.request, "url", self.url)
+            self.method = getattr(self.request, "method", self.method)
+            self.extra.setdefault("ip_address", getattr(self.request, "remote_addr", None))
+            user_agent = getattr(self.request, "user_agent", None)
+            if user_agent:
+                self.extra.setdefault("user_agent", getattr(user_agent, "string", user_agent))
 
 
-def enhanced_error_handler(error: Exception, context: ErrorContext = None) -> dict[str, Any]:
-    """增强的错误处理器"""
-    if context is None:
-        context = ErrorContext(error)
-    
-    # 分类错误
-    error_info = _classify_error(error, context)
-    
-    # 记录错误日志
-    _log_enhanced_error(error, context, error_info)
-    
-    # 生成用户友好的错误响应
-    return _generate_error_response(error, context, error_info)
+@dataclass(slots=True)
+class ErrorMetadata:
+    """错误元信息"""
+
+    status_code: int
+    category: ErrorCategory
+    severity: ErrorSeverity
+    message_key: str
+    message: str
+    recoverable: bool
 
 
-def _classify_error(error: Exception, context: ErrorContext) -> dict[str, Any]:
-    """分类错误"""
-    error_type = type(error)
-    error_message = str(error)
-    
-    # 数据库错误
-    if "IntegrityError" in error_type.__name__ or "OperationalError" in error_type.__name__:
-        if "UNIQUE constraint failed" in error_message:
-            return {
-                "category": ErrorCategory.VALIDATION,
-                "severity": ErrorSeverity.MEDIUM,
-                "user_message": "数据已存在，请检查唯一性约束",
-                "technical_message": error_message,
-            }
-        elif "FOREIGN KEY constraint failed" in error_message:
-            return {
-                "category": ErrorCategory.VALIDATION,
-                "severity": ErrorSeverity.MEDIUM,
-                "user_message": "外键约束失败，请检查关联数据",
-                "technical_message": error_message,
-            }
-        else:
-            return {
-                "category": ErrorCategory.DATABASE,
-                "severity": ErrorSeverity.HIGH,
-                "user_message": "数据库操作失败",
-                "technical_message": error_message,
-            }
-    
-    # 连接错误
-    elif "connection" in error_message.lower() or "timeout" in error_message.lower():
-        return {
-            "category": ErrorCategory.NETWORK,
-            "severity": ErrorSeverity.HIGH,
-            "user_message": "网络连接问题，请稍后重试",
-            "technical_message": error_message,
-        }
-    
-    # 权限错误
-    elif "permission" in error_message.lower() or "access" in error_message.lower():
-        return {
-            "category": ErrorCategory.AUTHORIZATION,
-            "severity": ErrorSeverity.MEDIUM,
-            "user_message": "权限不足，请联系管理员",
-            "technical_message": error_message,
-        }
-    
-    # 验证错误
-    elif "validation" in error_message.lower() or "invalid" in error_message.lower():
-        return {
-            "category": ErrorCategory.VALIDATION,
-            "severity": ErrorSeverity.LOW,
-            "user_message": "输入数据验证失败",
-            "technical_message": error_message,
-        }
-    
-    # 默认错误
-    else:
-        return {
-            "category": ErrorCategory.UNKNOWN,
-            "severity": ErrorSeverity.HIGH,
-            "user_message": "系统内部错误",
-            "technical_message": error_message,
-        }
+def enhanced_error_handler(
+    error: Exception,
+    context: ErrorContext | None = None,
+    *,
+    extra: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """增强错误处理器，负责统一结构、分类与日志记录"""
+    context = context or ErrorContext(error)
+    metadata = _derive_error_metadata(error)
 
+    public_context = _build_public_context(context)
+    extra_payload: dict[str, Any] = {}
+    if extra:
+        extra_payload.update(extra)
 
-def _log_enhanced_error(error: Exception, context: ErrorContext, error_info: dict[str, Any]) -> None:
-    """记录增强的错误日志"""
-    logger = get_logger("error_handler")
-    
-    # 根据严重程度选择日志级别
-    severity = error_info.get("severity", ErrorSeverity.HIGH)
-    if severity == ErrorSeverity.CRITICAL:
-        log_critical(
-            f"严重错误: {error_info.get('user_message', '未知错误')}",
-            module="error_handler",
-            error_id=context.error_id,
-            error_type=context.error_type,
-            category=error_info.get("category"),
-            severity=severity,
-            user_id=context.user_id,
-            request_id=context.request_id,
-            url=context.url,
-            technical_message=error_info.get("technical_message"),
-            exception=error,
-        )
-    elif severity == ErrorSeverity.HIGH:
-        log_error(
-            f"高级错误: {error_info.get('user_message', '未知错误')}",
-            module="error_handler",
-            error_id=context.error_id,
-            error_type=context.error_type,
-            category=error_info.get("category"),
-            severity=severity,
-            user_id=context.user_id,
-            request_id=context.request_id,
-            url=context.url,
-            technical_message=error_info.get("technical_message"),
-            exception=error,
-        )
-    else:
-        log_warning(
-            f"错误: {error_info.get('user_message', '未知错误')}",
-            module="error_handler",
-            error_id=context.error_id,
-            error_type=context.error_type,
-            category=error_info.get("category"),
-            severity=severity,
-            user_id=context.user_id,
-            request_id=context.request_id,
-            url=context.url,
-            technical_message=error_info.get("technical_message"),
-            exception=error,
-        )
-
-
-def _generate_error_response(error: Exception, context: ErrorContext, error_info: dict[str, Any]) -> dict[str, Any]:
-    """生成错误响应"""
-    return {
+    payload: dict[str, Any] = {
         "error": True,
         "error_id": context.error_id,
-        "category": error_info.get("category", ErrorCategory.UNKNOWN),
-        "severity": error_info.get("severity", ErrorSeverity.HIGH),
-        "message": error_info.get("user_message", "系统内部错误"),
+        "category": metadata.category.value,
+        "severity": metadata.severity.value,
+        "message_code": metadata.message_key,
+        "message": metadata.message,
         "timestamp": context.timestamp.isoformat(),
-        "recoverable": error_info.get("severity") in [ErrorSeverity.LOW, ErrorSeverity.MEDIUM],
-        "suggestions": _get_error_suggestions(error_info.get("category")),
+        "recoverable": metadata.recoverable,
+        "suggestions": _get_error_suggestions(metadata.category),
+        "context": public_context,
     }
 
+    if extra_payload:
+        payload["extra"] = extra_payload
 
-def _get_error_suggestions(category: str) -> list[str]:
-    """获取错误建议"""
+    _log_enhanced_error(error, metadata, payload)
+    return payload
+
+
+def _derive_error_metadata(error: Exception) -> ErrorMetadata:
+    """根据异常类型推导错误元信息"""
+    if isinstance(error, AppError):
+        return ErrorMetadata(
+            status_code=error.status_code,
+            category=error.category,
+            severity=error.severity,
+            message_key=error.message_key,
+            message=error.message,
+            recoverable=error.recoverable,
+        )
+
+    if isinstance(error, HTTPException):
+        status_code = int(getattr(error, "code", 500) or 500)
+        message = getattr(error, "description", ErrorMessages.INTERNAL_ERROR)
+        message_key = "INTERNAL_ERROR" if status_code >= 500 else "INVALID_REQUEST"
+        severity = ErrorSeverity.HIGH if status_code >= 500 else ErrorSeverity.MEDIUM
+        category = ErrorCategory.SYSTEM if status_code >= 500 else ErrorCategory.BUSINESS
+        return ErrorMetadata(
+            status_code=status_code,
+            category=category,
+            severity=severity,
+            message_key=message_key,
+            message=message,
+            recoverable=severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM),
+        )
+
+    if isinstance(error, IntegrityError):
+        message_key = "CONSTRAINT_VIOLATION"
+        message = getattr(ErrorMessages, message_key, ErrorMessages.INTERNAL_ERROR)
+        return ErrorMetadata(
+            status_code=400,
+            category=ErrorCategory.DATABASE,
+            severity=ErrorSeverity.MEDIUM,
+            message_key=message_key,
+            message=message,
+            recoverable=True,
+        )
+
+    if isinstance(error, SQLAlchemyError):
+        message_key = "DATABASE_QUERY_ERROR"
+        message = getattr(ErrorMessages, message_key, ErrorMessages.DATABASE_QUERY_ERROR)
+        return ErrorMetadata(
+            status_code=500,
+            category=ErrorCategory.DATABASE,
+            severity=ErrorSeverity.HIGH,
+            message_key=message_key,
+            message=message,
+            recoverable=False,
+        )
+
+    message_lower = str(error).lower()
+    if "timeout" in message_lower or "connection" in message_lower:
+        message_key = "DATABASE_TIMEOUT"
+        message = getattr(ErrorMessages, message_key, ErrorMessages.DATABASE_TIMEOUT)
+        return ErrorMetadata(
+            status_code=504,
+            category=ErrorCategory.NETWORK,
+            severity=ErrorSeverity.HIGH,
+            message_key=message_key,
+            message=message,
+            recoverable=False,
+        )
+
+    if "permission" in message_lower or "forbidden" in message_lower or "denied" in message_lower:
+        message_key = "PERMISSION_DENIED"
+        message = getattr(ErrorMessages, message_key, ErrorMessages.PERMISSION_DENIED)
+        return ErrorMetadata(
+            status_code=403,
+            category=ErrorCategory.AUTHORIZATION,
+            severity=ErrorSeverity.MEDIUM,
+            message_key=message_key,
+            message=message,
+            recoverable=False,
+        )
+
+    if "validation" in message_lower or "invalid" in message_lower:
+        message_key = "VALIDATION_ERROR"
+        message = getattr(ErrorMessages, message_key, ErrorMessages.VALIDATION_ERROR)
+        return ErrorMetadata(
+            status_code=400,
+            category=ErrorCategory.VALIDATION,
+            severity=ErrorSeverity.LOW,
+            message_key=message_key,
+            message=message,
+            recoverable=True,
+        )
+
+    return ErrorMetadata(
+        status_code=500,
+        category=ErrorCategory.SYSTEM,
+        severity=ErrorSeverity.HIGH,
+        message_key="INTERNAL_ERROR",
+        message=ErrorMessages.INTERNAL_ERROR,
+        recoverable=False,
+    )
+
+
+def _build_public_context(context: ErrorContext) -> dict[str, Any]:
+    """整理公共上下文字段，避免暴露敏感信息"""
+    payload: dict[str, Any] = {
+        "request_id": context.request_id,
+        "user_id": context.user_id,
+    }
+    if context.url:
+        payload["url"] = context.url
+    if context.method:
+        payload["method"] = context.method
+    if context.extra:
+        payload["meta"] = {key: value for key, value in context.extra.items() if value is not None}
+    return payload
+
+
+def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict[str, Any]) -> None:
+    """根据严重度输出统一结构化日志"""
+    log_kwargs = {
+        "module": "error_handler",
+        "error_id": payload["error_id"],
+        "category": payload["category"],
+        "severity": payload["severity"],
+        "context": payload.get("context"),
+    }
+    if "extra" in payload:
+        log_kwargs["extra"] = payload["extra"]
+
+    if metadata.severity == ErrorSeverity.CRITICAL:
+        log_critical(payload["message"], exception=error, **log_kwargs)
+    elif metadata.severity == ErrorSeverity.HIGH:
+        log_error(payload["message"], exception=error, **log_kwargs)
+    else:
+        log_warning(payload["message"], exception=error, **log_kwargs)
+
+
+def _get_error_suggestions(category: ErrorCategory) -> list[str]:
+    """根据错误分类给出建议"""
     suggestions_map = {
-        ErrorCategory.DATABASE: ["检查数据库连接", "联系管理员"],
-        ErrorCategory.VALIDATION: ["检查输入数据", "查看错误详情"],
-        ErrorCategory.AUTHENTICATION: ["重新登录", "检查凭据"],
-        ErrorCategory.AUTHORIZATION: ["联系管理员", "检查权限"],
+        ErrorCategory.VALIDATION: ["检查输入数据", "根据提示修正请求参数"],
+        ErrorCategory.BUSINESS: ["确认业务规则", "联系管理员核对数据"],
+        ErrorCategory.AUTHENTICATION: ["重新登录", "验证凭据有效性"],
+        ErrorCategory.AUTHORIZATION: ["检查权限配置", "联系管理员"],
+        ErrorCategory.SECURITY: ["稍后重试", "联系管理员"],
+        ErrorCategory.DATABASE: ["检查数据库连接", "联系数据库管理员"],
+        ErrorCategory.EXTERNAL: ["确认第三方服务状态", "稍后重试"],
         ErrorCategory.NETWORK: ["检查网络连接", "稍后重试"],
         ErrorCategory.SYSTEM: ["联系管理员", "查看错误日志"],
-        ErrorCategory.UNKNOWN: ["联系管理员", "查看错误日志"],
     }
     return suggestions_map.get(category, ["联系管理员", "查看错误日志"])
 
 
-# 错误处理装饰器
-def error_handler(func):
-    """错误处理装饰器"""
+def error_handler(func: Callable):
+    """将异常转换为统一错误响应的装饰器"""
+
+    from functools import wraps
+    from flask import jsonify
+
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception as error:
             context = ErrorContext(error)
-            error_response = enhanced_error_handler(error, context)
-            
-            # 根据错误严重程度决定是否返回错误响应
-            if error_response.get("severity") in [ErrorSeverity.CRITICAL, ErrorSeverity.HIGH]:
-                # 对于严重错误，返回错误响应
-                from flask import jsonify
-                return jsonify(error_response), 500
-            else:
-                # 对于轻微错误，记录日志但继续执行
-                return func(*args, **kwargs)
-    
+            payload = enhanced_error_handler(error, context)
+            status_code = map_exception_to_status(error, default=500)
+            return jsonify(payload), status_code
+
     return wrapper
 
 
-def error_monitor(func):
-    """错误监控装饰器"""
+def error_monitor(func: Callable):
+    """仅记录异常信息并继续抛出的装饰器"""
+
+    from functools import wraps
+
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception as error:
-            context = ErrorContext(error)
-            enhanced_error_handler(error, context)
-            raise  # 重新抛出异常
-    
+            enhanced_error_handler(error, ErrorContext(error))
+            raise
+
     return wrapper

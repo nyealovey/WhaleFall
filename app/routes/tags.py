@@ -3,34 +3,24 @@
 鲸落 - 标签管理路由
 """
 
-from typing import Any
-
-from flask import (
-    Blueprint,
-    Response,
-    flash,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    url_for,
-)
+from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
-from app.models.tag import Tag
 from app.models.instance import Instance
+from app.models.tag import Tag
 from app.constants.colors import ThemeColors
+from app.constants.system_constants import ErrorMessages
+from app.errors import ConflictError, NotFoundError, ValidationError
 from app.utils.decorators import (
     create_required,
     delete_required,
     update_required,
     view_required,
 )
-from app.utils.security import sanitize_form_data, validate_required_fields
-from app.utils.structlog_config import get_api_logger, get_system_logger, log_error, log_info
-
-logger = get_system_logger()
+from app.utils.security import validate_required_fields
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
 tags_bp = Blueprint("tags", __name__)
@@ -39,355 +29,389 @@ tags_bp = Blueprint("tags", __name__)
 @tags_bp.route("/api/batch_assign_tags", methods=["POST"])
 @login_required
 @create_required
-def batch_assign_tags() -> Response:
+def batch_assign_tags() -> tuple[Response, int]:
     """批量分配标签给实例"""
+    data = request.get_json(silent=True) or {}
+    if not data:
+        raise ValidationError(
+            ErrorMessages.REQUEST_DATA_EMPTY,
+            message_key="REQUEST_DATA_EMPTY",
+            extra={"permission_type": "create", "route": "tags.batch_assign_tags"},
+        )
+
+    instance_ids_raw = data.get("instance_ids", [])
+    tag_ids_raw = data.get("tag_ids", [])
+
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "请求数据为空"}), 400
-            
-        instance_ids = data.get("instance_ids", [])
-        tag_ids = data.get("tag_ids", [])
-        
-        # 确保ID是整数类型
-        try:
-            instance_ids = [int(id) for id in instance_ids]
-            tag_ids = [int(id) for id in tag_ids]
-        except (ValueError, TypeError) as e:
-            return jsonify({"success": False, "error": f"ID格式错误: {str(e)}"}), 400
+        instance_ids = [int(item) for item in instance_ids_raw]
+        tag_ids = [int(item) for item in tag_ids_raw]
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(
+            f"ID格式错误: {exc}",
+            message_key="INVALID_REQUEST",
+            extra={"instance_ids": instance_ids_raw, "tag_ids": tag_ids_raw},
+        ) from exc
 
-        if not instance_ids or not tag_ids:
-            return jsonify({"success": False, "error": "实例ID和标签ID不能为空"}), 400
-
-        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-        tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
-
-        if not instances:
-            return jsonify({"success": False, "error": "未找到任何实例"}), 404
-        if not tags:
-            return jsonify({"success": False, "error": "未找到任何标签"}), 404
-
-        # 记录分配前的状态
-        log_info(
-            "开始批量分配标签",
-            module="tags",
-            instance_ids=instance_ids,
-            tag_ids=tag_ids,
-            found_instances=len(instances),
-            found_tags=len(tags),
-            user_id=current_user.id,
+    if not instance_ids or not tag_ids:
+        missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(
+            fields="instance_ids, tag_ids"
+        )
+        raise ValidationError(
+            missing_message,
+            message_key="MISSING_REQUIRED_FIELDS",
+            extra={"instance_ids": instance_ids, "tag_ids": tag_ids},
         )
 
-        # 分配标签
-        assigned_count = 0
-        for instance in instances:
-            for tag in tags:
-                if tag not in instance.tags:
-                    instance.tags.append(tag)
-                    assigned_count += 1
+    instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+    tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
 
+    if not instances:
+        raise NotFoundError(
+            "未找到任何实例",
+            extra={"instance_ids": instance_ids},
+        )
+    if not tags:
+        raise NotFoundError(
+            "未找到任何标签",
+            extra={"tag_ids": tag_ids},
+        )
+
+    log_info(
+        "开始批量分配标签",
+        module="tags",
+        instance_ids=instance_ids,
+        tag_ids=tag_ids,
+        found_instances=len(instances),
+        found_tags=len(tags),
+        user_id=current_user.id,
+    )
+
+    assigned_count = 0
+    for instance in instances:
+        for tag in tags:
+            if tag not in instance.tags:
+                instance.tags.append(tag)
+                assigned_count += 1
+
+    try:
         db.session.commit()
-
-        log_info(
-            "批量分配标签成功",
-            module="tags",
-            instance_ids=instance_ids,
-            tag_ids=tag_ids,
-            assigned_count=assigned_count,
-            user_id=current_user.id,
-        )
-
-        return jsonify({
-            "success": True, 
-            "message": f"标签批量分配成功，共分配 {assigned_count} 个标签关系"
-        })
-
-    except Exception as e:
+    except Exception as exc:
         db.session.rollback()
         log_error(
             "批量分配标签失败",
             module="tags",
-            error=str(e),
-            error_type=type(e).__name__,
             user_id=current_user.id,
+            instance_ids=instance_ids,
+            tag_ids=tag_ids,
+            exception=exc,
         )
-        return jsonify({"success": False, "error": f"批量分配失败: {str(e)}"}), 500
+        raise
+
+    log_info(
+        "批量分配标签成功",
+        module="tags",
+        instance_ids=instance_ids,
+        tag_ids=tag_ids,
+        assigned_count=assigned_count,
+        user_id=current_user.id,
+    )
+
+    return jsonify_unified_success(
+        data={
+            "assigned_count": assigned_count,
+            "instance_ids": instance_ids,
+            "tag_ids": tag_ids,
+        },
+        message=f"标签批量分配成功，共分配 {assigned_count} 个标签关系",
+    )
 
 
 @tags_bp.route("/api/batch_remove_tags", methods=["POST"])
 @login_required
 @create_required
-def batch_remove_tags() -> Response:
+def batch_remove_tags() -> tuple[Response, int]:
     """批量移除实例的标签"""
+    data = request.get_json(silent=True) or {}
+    if not data:
+        raise ValidationError(
+            ErrorMessages.REQUEST_DATA_EMPTY,
+            message_key="REQUEST_DATA_EMPTY",
+            extra={"permission_type": "create", "route": "tags.batch_remove_tags"},
+        )
+
+    instance_ids_raw = data.get("instance_ids", [])
+    tag_ids_raw = data.get("tag_ids", [])
+
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "请求数据为空"}), 400
-            
-        instance_ids = data.get("instance_ids", [])
-        tag_ids = data.get("tag_ids", [])
-        
-        # 确保ID是整数类型
-        try:
-            instance_ids = [int(id) for id in instance_ids]
-            tag_ids = [int(id) for id in tag_ids]
-        except (ValueError, TypeError) as e:
-            return jsonify({"success": False, "error": f"ID格式错误: {str(e)}"}), 400
+        instance_ids = [int(item) for item in instance_ids_raw]
+        tag_ids = [int(item) for item in tag_ids_raw]
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(
+            f"ID格式错误: {exc}",
+            message_key="INVALID_REQUEST",
+            extra={"instance_ids": instance_ids_raw, "tag_ids": tag_ids_raw},
+        ) from exc
 
-        if not instance_ids or not tag_ids:
-            return jsonify({"success": False, "error": "实例ID和标签ID不能为空"}), 400
-
-        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-        tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
-
-        if not instances:
-            return jsonify({"success": False, "error": "未找到任何实例"}), 404
-        if not tags:
-            return jsonify({"success": False, "error": "未找到任何标签"}), 404
-
-        # 记录移除前的状态
-        log_info(
-            "开始批量移除标签",
-            module="tags",
-            instance_ids=instance_ids,
-            tag_ids=tag_ids,
-            found_instances=len(instances),
-            found_tags=len(tags),
-            user_id=current_user.id,
+    if not instance_ids or not tag_ids:
+        missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(
+            fields="instance_ids, tag_ids"
+        )
+        raise ValidationError(
+            missing_message,
+            message_key="MISSING_REQUIRED_FIELDS",
+            extra={"instance_ids": instance_ids, "tag_ids": tag_ids},
         )
 
-        # 移除标签
-        removed_count = 0
-        for instance in instances:
-            for tag in tags:
-                if tag in instance.tags:
-                    instance.tags.remove(tag)
-                    removed_count += 1
+    instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+    tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
 
+    if not instances:
+        raise NotFoundError(
+            "未找到任何实例",
+            extra={"instance_ids": instance_ids},
+        )
+    if not tags:
+        raise NotFoundError(
+            "未找到任何标签",
+            extra={"tag_ids": tag_ids},
+        )
+
+    log_info(
+        "开始批量移除标签",
+        module="tags",
+        instance_ids=instance_ids,
+        tag_ids=tag_ids,
+        found_instances=len(instances),
+        found_tags=len(tags),
+        user_id=current_user.id,
+    )
+
+    removed_count = 0
+    for instance in instances:
+        for tag in tags:
+            if tag in instance.tags:
+                instance.tags.remove(tag)
+                removed_count += 1
+
+    try:
         db.session.commit()
-
-        log_info(
-            "批量移除标签成功",
-            module="tags",
-            instance_ids=instance_ids,
-            tag_ids=tag_ids,
-            removed_count=removed_count,
-            user_id=current_user.id,
-        )
-
-        return jsonify({
-            "success": True, 
-            "message": f"标签批量移除成功，共移除 {removed_count} 个标签关系"
-        })
-
-    except Exception as e:
+    except Exception as exc:
         db.session.rollback()
         log_error(
             "批量移除标签失败",
             module="tags",
-            error=str(e),
-            error_type=type(e).__name__,
             user_id=current_user.id,
+            instance_ids=instance_ids,
+            tag_ids=tag_ids,
+            exception=exc,
         )
-        return jsonify({"success": False, "error": f"批量移除失败: {str(e)}"}), 500
+        raise
+
+    log_info(
+        "批量移除标签成功",
+        module="tags",
+        instance_ids=instance_ids,
+        tag_ids=tag_ids,
+        removed_count=removed_count,
+        user_id=current_user.id,
+    )
+
+    return jsonify_unified_success(
+        data={
+            "removed_count": removed_count,
+            "instance_ids": instance_ids,
+            "tag_ids": tag_ids,
+        },
+        message=f"标签批量移除成功，共移除 {removed_count} 个标签关系",
+    )
 
 
 @tags_bp.route("/api/instance_tags", methods=["POST"])
 @login_required
 @view_required
-def api_instance_tags() -> Response:
+def api_instance_tags() -> tuple[Response, int]:
     """获取实例的已关联标签API"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "请求数据为空"}), 400
-            
-        instance_ids = data.get("instance_ids", [])
-        
-        # 确保ID是整数类型
-        try:
-            instance_ids = [int(id) for id in instance_ids]
-        except (ValueError, TypeError) as e:
-            return jsonify({"success": False, "error": f"ID格式错误: {str(e)}"}), 400
-
-        if not instance_ids:
-            return jsonify({"success": False, "error": "实例ID不能为空"}), 400
-
-        # 获取这些实例的所有已关联标签
-        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-        if not instances:
-            return jsonify({"success": False, "error": "未找到任何实例"}), 404
-
-        # 收集所有已关联的标签
-        all_tags = set()
-        for instance in instances:
-            all_tags.update(instance.tags)
-
-        tags_data = [tag.to_dict() for tag in all_tags]
-        
-        # 获取分类名称映射
-        category_choices = Tag.get_category_choices()
-        category_names = dict(category_choices)
-        
-        return jsonify({
-            "success": True, 
-            "tags": tags_data,
-            "category_names": category_names
-        })
-    except Exception as e:
-        log_error(
-            "获取实例已关联标签失败",
-            module="tags",
-            error=str(e),
-            user_id=current_user.id,
+    data = request.get_json(silent=True) or {}
+    if not data:
+        raise ValidationError(
+            ErrorMessages.REQUEST_DATA_EMPTY,
+            message_key="REQUEST_DATA_EMPTY",
+            extra={"route": "tags.api_instance_tags"},
         )
-        return jsonify({"success": False, "error": str(e)}), 500
+
+    instance_ids_raw = data.get("instance_ids", [])
+
+    try:
+        instance_ids = [int(item) for item in instance_ids_raw]
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(
+            f"ID格式错误: {exc}",
+            message_key="INVALID_REQUEST",
+            extra={"instance_ids": instance_ids_raw},
+        ) from exc
+
+    if not instance_ids:
+        missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids")
+        raise ValidationError(
+            missing_message,
+            message_key="MISSING_REQUIRED_FIELDS",
+            extra={"instance_ids": instance_ids},
+        )
+
+    instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+    if not instances:
+        raise NotFoundError(
+            "未找到任何实例",
+            extra={"instance_ids": instance_ids},
+        )
+
+    all_tags = set()
+    for instance in instances:
+        all_tags.update(instance.tags)
+
+    tags_data = [tag.to_dict() for tag in all_tags]
+    category_choices = Tag.get_category_choices()
+    category_names = dict(category_choices)
+
+    return jsonify_unified_success(
+        data={
+            "tags": tags_data,
+            "category_names": category_names,
+            "instance_ids": instance_ids,
+        }
+    )
 
 
 @tags_bp.route("/api/batch_remove_all_tags", methods=["POST"])
 @login_required
 @create_required
-def batch_remove_all_tags() -> Response:
+def batch_remove_all_tags() -> tuple[Response, int]:
     """批量移除实例的所有标签"""
+    data = request.get_json(silent=True) or {}
+    if not data:
+        raise ValidationError(
+            ErrorMessages.REQUEST_DATA_EMPTY,
+            message_key="REQUEST_DATA_EMPTY",
+            extra={"permission_type": "create", "route": "tags.batch_remove_all_tags"},
+        )
+
+    instance_ids_raw = data.get("instance_ids", [])
+
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "请求数据为空"}), 400
-            
-        instance_ids = data.get("instance_ids", [])
-        
-        # 确保ID是整数类型
-        try:
-            instance_ids = [int(id) for id in instance_ids]
-        except (ValueError, TypeError) as e:
-            return jsonify({"success": False, "error": f"ID格式错误: {str(e)}"}), 400
+        instance_ids = [int(item) for item in instance_ids_raw]
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(
+            f"ID格式错误: {exc}",
+            message_key="INVALID_REQUEST",
+            extra={"instance_ids": instance_ids_raw},
+        ) from exc
 
-        if not instance_ids:
-            return jsonify({"success": False, "error": "实例ID不能为空"}), 400
+    if not instance_ids:
+        missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids")
+        raise ValidationError(
+            missing_message,
+            message_key="MISSING_REQUIRED_FIELDS",
+            extra={"instance_ids": instance_ids},
+        )
 
-        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-        if not instances:
-            return jsonify({"success": False, "error": "未找到任何实例"}), 404
+    instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+    if not instances:
+        raise NotFoundError(
+            "未找到任何实例",
+            extra={"instance_ids": instance_ids},
+        )
 
-        # 记录移除前的状态
-        total_removed = 0
-        for instance in instances:
-            try:
-                # 获取当前标签数量（使用all()方法获取实际列表）
-                current_tags = instance.tags.all()
-                tag_count = len(current_tags)
-                log_info(
-                    f"实例 {instance.name} 当前有 {tag_count} 个标签",
-                    module="tags",
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    tag_count=tag_count,
-                    user_id=current_user.id,
-                )
-                
-                # 清空所有标签 - 使用remove方法逐个移除
-                for tag in current_tags:
-                    instance.tags.remove(tag)
-                
-                total_removed += tag_count
-                
-                log_info(
-                    f"实例 {instance.name} 标签已清空",
-                    module="tags",
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    user_id=current_user.id,
-                )
-            except Exception as instance_error:
-                log_error(
-                    f"清空实例 {instance.name} 标签失败",
-                    module="tags",
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    error=str(instance_error),
-                    error_type=type(instance_error).__name__,
-                    user_id=current_user.id,
-                )
-                raise instance_error
-
-        db.session.commit()
-
+    total_removed = 0
+    for instance in instances:
+        current_tags = list(instance.tags.all())
+        tag_count = len(current_tags)
         log_info(
-            "批量移除所有标签成功",
+            "实例标签统计",
             module="tags",
-            instance_ids=instance_ids,
-            removed_count=total_removed,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            tag_count=tag_count,
             user_id=current_user.id,
         )
 
-        return jsonify({
-            "success": True, 
-            "message": f"批量移除成功，共移除 {total_removed} 个标签关系"
-        })
+        for tag in current_tags:
+            instance.tags.remove(tag)
+        total_removed += tag_count
 
-    except Exception as e:
+        log_info(
+            "实例标签已清空",
+            module="tags",
+            instance_id=instance.id,
+            instance_name=instance.name,
+            user_id=current_user.id,
+        )
+
+    try:
+        db.session.commit()
+    except Exception as exc:
         db.session.rollback()
         log_error(
             "批量移除所有标签失败",
             module="tags",
-            error=str(e),
-            error_type=type(e).__name__,
             user_id=current_user.id,
+            instance_ids=instance_ids,
+            exception=exc,
         )
-        return jsonify({"success": False, "error": f"批量移除失败: {str(e)}"}), 500
+        raise
+
+    log_info(
+        "批量移除所有标签成功",
+        module="tags",
+        instance_ids=instance_ids,
+        removed_count=total_removed,
+        user_id=current_user.id,
+    )
+
+    return jsonify_unified_success(
+        data={
+            "removed_count": total_removed,
+            "instance_ids": instance_ids,
+        },
+        message=f"批量移除成功，共移除 {total_removed} 个标签关系",
+    )
 
 
 @tags_bp.route("/api/instances")
 @login_required
 @view_required
-def api_instances() -> Response:
+def api_instances() -> tuple[Response, int]:
     """获取所有实例列表API"""
-    try:
-        instances = Instance.query.all()
-        instances_data = [{
+    instances = Instance.query.all()
+    instances_data = [
+        {
             "id": instance.id,
             "name": instance.name,
             "host": instance.host,
             "port": instance.port,
             "db_type": instance.db_type,
-        } for instance in instances]
-        return jsonify({"success": True, "instances": instances_data})
-    except Exception as e:
-        log_error(
-            "获取实例列表失败",
-            module="tags",
-            error=str(e),
-            user_id=current_user.id,
-        )
-        return jsonify({"success": False, "error": str(e)}), 500
+        }
+        for instance in instances
+    ]
+    return jsonify_unified_success(data={"instances": instances_data})
 
 
 @tags_bp.route("/api/all_tags")
 @login_required
 @view_required
-def api_all_tags() -> Response:
+def api_all_tags() -> tuple[Response, int]:
     """获取所有标签列表API (包括非活跃标签)"""
-    try:
-        tags = Tag.query.all()
-        tags_data = [tag.to_dict() for tag in tags]
-        
-        # 获取分类名称映射
-        category_choices = Tag.get_category_choices()
-        category_names = dict(category_choices)
-        
-        return jsonify({
-            "success": True, 
+    tags = Tag.query.all()
+    tags_data = [tag.to_dict() for tag in tags]
+
+    category_choices = Tag.get_category_choices()
+    category_names = dict(category_choices)
+
+    return jsonify_unified_success(
+        data={
             "tags": tags_data,
-            "category_names": category_names
-        })
-    except Exception as e:
-        log_error(
-            "获取所有标签列表失败",
-            module="tags",
-            error=str(e),
-            user_id=current_user.id,
-        )
-        return jsonify({"success": False, "error": str(e)}), 500
+            "category_names": category_names,
+        }
+    )
 
 
 @tags_bp.route("/batch_assign")
@@ -459,67 +483,105 @@ def index() -> str:
 @tags_bp.route("/api/create", methods=["POST"])
 @login_required
 @create_required
-def create_api() -> Response:
+def create_api() -> tuple[Response, int]:
     """创建标签API"""
-    data = request.get_json() if request.is_json else request.form
+    data = request.get_json(silent=True) if request.is_json else request.form
 
     # 验证必填字段
     required_fields = ["name", "display_name", "category"]
     validation_error = validate_required_fields(data, required_fields)
     if validation_error:
-        return jsonify({"error": validation_error}), 400
+        raise ValidationError(
+            validation_error,
+            message_key="VALIDATION_ERROR",
+            extra={"fields": required_fields},
+        )
 
     # 获取表单数据
-    name = data.get("name", "").strip()
-    display_name = data.get("display_name", "").strip()
-    category = data.get("category", "").strip()
-    color = data.get("color", "primary").strip()
-    description = data.get("description", "").strip()
-    sort_order = data.get("sort_order", 0, type=int)
-    is_active = data.get("is_active", True)
-    if isinstance(is_active, str):
-        is_active = is_active in ["on", "true", "1", "yes"]
+    name = (data.get("name") or "").strip()
+    display_name = (data.get("display_name") or "").strip()
+    category = (data.get("category") or "").strip()
+    color = (data.get("color") or "primary").strip()
+    description = (data.get("description") or "").strip()
+
+    if request.is_json:
+        sort_raw = data.get("sort_order", 0)
+        try:
+            sort_order = int(sort_raw)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError(
+                f"排序值格式错误: {exc}",
+                message_key="INVALID_REQUEST",
+                extra={"sort_order": sort_raw},
+            ) from exc
+        is_active_raw = data.get("is_active", True)
+    else:
+        sort_order = data.get("sort_order", type=int) or 0
+        is_active_raw = data.get("is_active", "on")
+
+    if isinstance(is_active_raw, str):
+        is_active = is_active_raw.lower() in {"on", "true", "1", "yes"}
+    else:
+        is_active = bool(is_active_raw)
 
     # 验证颜色
     if not ThemeColors.is_valid_color(color):
-        return jsonify({"error": f"无效的颜色选择: {color}"}), 400
+        raise ValidationError(
+            f"无效的颜色选择: {color}",
+            message_key="INVALID_REQUEST",
+            extra={"color": color},
+        )
 
     # 验证标签名称唯一性
     existing_tag = Tag.query.filter_by(name=name).first()
     if existing_tag:
-        return jsonify({"error": "标签名称已存在"}), 400
-
-    try:
-        # 创建新标签
-        tag = Tag(
-            name=name,
-            display_name=display_name,
-            category=category,
-            color=color,
-            description=description,
-            sort_order=sort_order,
-            is_active=is_active,
+        raise ConflictError(
+            "标签名称已存在",
+            extra={"name": name},
         )
 
-        db.session.add(tag)
-        db.session.commit()
+    tag = Tag(
+        name=name,
+        display_name=display_name,
+        category=category,
+        color=color,
+        description=description,
+        sort_order=sort_order,
+        is_active=is_active,
+    )
 
-        # 记录操作日志
-        log_info(
-            "创建标签",
+    db.session.add(tag)
+    try:
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        log_error(
+            "创建标签失败",
             module="tags",
             user_id=current_user.id,
-            tag_id=tag.id,
-            tag_name=tag.name,
-            category=tag.category,
+            payload={
+                "name": name,
+                "display_name": display_name,
+                "category": category,
+            },
+            exception=exc,
         )
+        raise
 
-        return jsonify({"message": "标签创建成功", "tag": tag.to_dict()}), 201
+    log_info(
+        "创建标签成功",
+        module="tags",
+        user_id=current_user.id,
+        tag_id=tag.id,
+        tag_name=tag.name,
+        category=tag.category,
+    )
 
-    except Exception as e:
-        db.session.rollback()
-        log_error(f"创建标签失败: {e}", module="tags", exc_info=True)
-        return jsonify({"error": f"创建标签失败: {str(e)}"}), 500
+    return jsonify_unified_success(
+        data={"tag": tag.to_dict()},
+        message="标签创建成功",
+        status=201,
+    )
 
 
 @tags_bp.route("/create", methods=["GET", "POST"])
@@ -597,66 +659,106 @@ def create() -> str | Response:
 @tags_bp.route("/api/edit/<int:tag_id>", methods=["POST"])
 @login_required
 @update_required
-def edit_api(tag_id: int) -> Response:
+def edit_api(tag_id: int) -> tuple[Response, int]:
     """编辑标签API"""
     tag = Tag.query.get_or_404(tag_id)
-    data = request.get_json() if request.is_json else request.form
+    data = request.get_json(silent=True) if request.is_json else request.form
 
     # 验证必填字段
     required_fields = ["name", "display_name", "category"]
     validation_error = validate_required_fields(data, required_fields)
     if validation_error:
-        return jsonify({"error": validation_error}), 400
+        raise ValidationError(
+            validation_error,
+            message_key="VALIDATION_ERROR",
+            extra={"fields": required_fields, "tag_id": tag_id},
+        )
 
     # 获取表单数据
-    name = data.get("name", "").strip()
-    display_name = data.get("display_name", "").strip()
-    category = data.get("category", "").strip()
-    color = data.get("color", "primary").strip()
-    description = data.get("description", "").strip()
-    sort_order = data.get("sort_order", 0, type=int)
-    is_active = data.get("is_active", tag.is_active)
-    if isinstance(is_active, str):
-        is_active = is_active in ["on", "true", "1", "yes"]
+    name = (data.get("name") or "").strip()
+    display_name = (data.get("display_name") or "").strip()
+    category = (data.get("category") or "").strip()
+    color = (data.get("color") or "primary").strip()
+    description = (data.get("description") or "").strip()
+
+    if request.is_json:
+        sort_raw = data.get("sort_order", tag.sort_order)
+        try:
+            sort_order = int(sort_raw)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError(
+                f"排序值格式错误: {exc}",
+                message_key="INVALID_REQUEST",
+                extra={"sort_order": sort_raw},
+            ) from exc
+        is_active_raw = data.get("is_active", tag.is_active)
+    else:
+        sort_order = data.get("sort_order", type=int)
+        sort_order = sort_order if sort_order is not None else tag.sort_order
+        is_active_raw = data.get("is_active", "on" if tag.is_active else "off")
+
+    if isinstance(is_active_raw, str):
+        is_active = is_active_raw.lower() in {"on", "true", "1", "yes"}
+    else:
+        is_active = bool(is_active_raw)
 
     # 验证颜色
     if not ThemeColors.is_valid_color(color):
-        return jsonify({"error": f"无效的颜色选择: {color}"}), 400
+        raise ValidationError(
+            f"无效的颜色选择: {color}",
+            message_key="INVALID_REQUEST",
+            extra={"color": color},
+        )
 
     # 验证标签名称唯一性（排除当前标签）
     existing_tag = Tag.query.filter(Tag.name == name, Tag.id != tag_id).first()
     if existing_tag:
-        return jsonify({"error": "标签名称已存在"}), 400
+        raise ConflictError(
+            "标签名称已存在",
+            extra={"name": name, "tag_id": tag_id},
+        )
+
+    # 更新标签信息
+    tag.name = name
+    tag.display_name = display_name
+    tag.category = category
+    tag.color = color
+    tag.description = description
+    tag.sort_order = sort_order
+    tag.is_active = is_active
 
     try:
-        # 更新标签信息
-        tag.name = name
-        tag.display_name = display_name
-        tag.category = category
-        tag.color = color
-        tag.description = description
-        tag.sort_order = sort_order
-        tag.is_active = is_active
-
         db.session.commit()
-
-        # 记录操作日志
-        log_info(
-            "更新标签",
+    except Exception as exc:
+        db.session.rollback()
+        log_error(
+            "更新标签失败",
             module="tags",
             user_id=current_user.id,
             tag_id=tag.id,
-            tag_name=tag.name,
-            category=tag.category,
-            is_active=tag.is_active,
+            payload={
+                "name": name,
+                "display_name": display_name,
+                "category": category,
+            },
+            exception=exc,
         )
+        raise
 
-        return jsonify({"message": "标签更新成功", "tag": tag.to_dict()})
+    log_info(
+        "更新标签",
+        module="tags",
+        user_id=current_user.id,
+        tag_id=tag.id,
+        tag_name=tag.name,
+        category=tag.category,
+        is_active=tag.is_active,
+    )
 
-    except Exception as e:
-        db.session.rollback()
-        log_error(f"更新标签失败: {e}", module="tags", exc_info=True)
-        return jsonify({"error": f"更新标签失败: {str(e)}"}), 500
+    return jsonify_unified_success(
+        data={"tag": tag.to_dict()},
+        message="标签更新成功",
+    )
 
 
 @tags_bp.route("/edit/<int:tag_id>", methods=["GET", "POST"])
@@ -785,83 +887,46 @@ def delete(tag_id: int) -> Response:
 @tags_bp.route("/api/tags")
 @login_required
 @view_required
-def api_tags() -> Response:
+def api_tags() -> tuple[Response, int]:
     """获取标签列表API"""
-    try:
-        category = request.args.get("category", "", type=str)
-        if category:
-            tags = Tag.get_tags_by_category(category)
-        else:
-            tags = Tag.get_active_tags()
-        
-        tags_data = [tag.to_dict() for tag in tags]
+    category = request.args.get("category", "", type=str)
+    if category:
+        tags = Tag.get_tags_by_category(category)
+    else:
+        tags = Tag.get_active_tags()
 
-        return jsonify({
-            "success": True,
+    tags_data = [tag.to_dict() for tag in tags]
+
+    return jsonify_unified_success(
+        data={
             "tags": tags_data,
-        })
-
-    except Exception as e:
-        log_error(
-            "获取标签列表失败",
-            module="tags",
-            error=str(e),
-        )
-        return jsonify({
-            "success": False,
-            "error": str(e),
-        }), 500
+            "category": category or None,
+        }
+    )
 
 
 @tags_bp.route("/api/categories")
 @login_required
 @view_required
-def api_categories() -> Response:
+def api_categories() -> tuple[Response, int]:
     """获取标签分类列表API"""
-    try:
-        categories = Tag.get_category_choices()
-        return jsonify({
-            "success": True,
-            "categories": categories,
-        })
-    except Exception as e:
-        log_error(
-            "获取标签分类列表失败",
-            module="tags",
-            error=str(e),
-        )
-        return jsonify({
-            "success": False,
-            "error": str(e),
-        }), 500
+    categories = Tag.get_category_choices()
+    return jsonify_unified_success(data={"categories": categories})
 
 
 @tags_bp.route("/api/tags/<tag_name>")
 @login_required
 @view_required
-def api_tag_detail(tag_name: str) -> Response:
+def api_tag_detail(tag_name: str) -> tuple[Response, int]:
     """获取标签详情API"""
-    try:
-        tag = Tag.get_tag_by_name(tag_name)
-        if not tag:
-            return jsonify({
-                "success": False,
-                "error": "标签不存在",
-            }), 404
-
-        return jsonify({
-            "success": True,
-            "tag": tag.to_dict(),
-        })
-
-    except Exception as e:
-        log_error(
-            "获取标签详情失败",
-            module="tags",
-            tag_name=tag_name,
-            error=str(e),
+    tag = Tag.get_tag_by_name(tag_name)
+    if not tag:
+        raise NotFoundError(
+            "标签不存在",
+            extra={"tag_name": tag_name},
         )
-        return jsonify({
-            "success": False,
-            "error": str(e),
-        }), 500
+
+    return jsonify_unified_success(
+        data={"tag": tag.to_dict()},
+        message="获取标签详情成功",
+    )
