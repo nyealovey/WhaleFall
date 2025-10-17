@@ -427,7 +427,7 @@ git commit -m "fix: 修复bug描述"
 ```bash
 # 1. 更新版本号
 # 编辑 pyproject.toml
-version = "1.1.2"
+version = "1.1.4"
 
 # 2. 更新CHANGELOG.md
 # 添加新版本说明
