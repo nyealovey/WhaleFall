@@ -149,7 +149,7 @@ function searchLogs(page = 1) {
     // 构建查询参数
     const params = new URLSearchParams();
     params.append('page', page);
-    params.append('per_page', '50');
+    params.append('per_page', '20');
 
     // 添加筛选条件
     if (currentFilters.level) params.append('level', currentFilters.level);
@@ -184,7 +184,6 @@ function showLoadingState() {
     const container = document.getElementById('logsContainer');
     if (container) {
         container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i>搜索中...</div>';
-        container.classList.remove('has-overflow');
     }
 }
 
@@ -194,7 +193,6 @@ function displayLogs(logs) {
 
     if (logs.length === 0) {
         container.innerHTML = '<div class="no-logs"><i class="fas fa-search"></i><br>没有找到匹配的日志</div>';
-        container.classList.remove('has-overflow');
         return;
     }
 
@@ -205,17 +203,6 @@ function displayLogs(logs) {
     html += '</div>';
 
     container.innerHTML = html;
-    
-    // 检查是否有溢出，用于CSS样式控制
-    setTimeout(() => {
-        if (container.scrollHeight > container.clientHeight) {
-            container.classList.add('has-overflow');
-            // 如果有溢出，保持在顶部显示最新日志
-            container.scrollTop = 0;
-        } else {
-            container.classList.remove('has-overflow');
-        }
-    }, 100);
 }
 
 // 创建日志条目HTML
