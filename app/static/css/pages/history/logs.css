@@ -34,6 +34,10 @@
     transition: var(--transition-base);
     border: 1px solid var(--gray-300);
     font-size: 0.9em;
+    width: 100%; /* 确保不超出父容器 */
+    max-width: 100%; /* 防止溢出 */
+    box-sizing: border-box; /* 包含padding和border在宽度内 */
+    overflow: hidden; /* 防止内容溢出 */
 }
 
 .log-entry-content {
@@ -41,6 +45,8 @@
     align-items: flex-start;
     gap: var(--spacing-md);
     width: 100%;
+    max-width: 100%; /* 防止溢出 */
+    overflow: hidden; /* 防止内容溢出 */
 }
 
 .log-id {
@@ -54,10 +60,11 @@
 
 .log-main-info {
     flex: 1;
-    min-width: 0;
+    min-width: 0; /* 允许flex子元素收缩 */
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
+    overflow: hidden; /* 防止内容溢出 */
 }
 
 .log-message {
@@ -65,18 +72,22 @@
     line-height: 1.4;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    word-break: break-word; /* 强制长单词换行 */
     width: 100%;
+    max-width: 100%; /* 防止溢出 */
     margin-bottom: var(--spacing-xs);
+    overflow: hidden; /* 防止溢出 */
 }
 
 .log-header {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
-    flex-shrink: 0;
+    flex-wrap: wrap; /* 允许换行 */
     min-height: 24px; /* 确保一致的高度 */
     justify-content: flex-start;
-    min-width: 400px; /* 确保有足够的宽度 */
+    width: 100%; /* 使用100%而不是固定宽度 */
+    max-width: 100%; /* 防止溢出 */
 }
 
 .log-entry:hover {
@@ -322,6 +333,7 @@
 .logs-container {
     min-height: 400px; /* 保持最小高度，确保有足够空间 */
     max-height: 70vh; /* 最大高度为视口高度的70% */
+    overflow: hidden; /* 防止溢出 */
 }
 
 .logs-container .card-body {
@@ -329,11 +341,13 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    overflow: hidden; /* 防止溢出 */
 }
 
 #logsContainer {
     flex: 1;
     overflow-y: auto; /* 只在需要时显示滚动条 */
+    overflow-x: hidden; /* 防止横向溢出 */
     padding: var(--spacing-md);
     min-height: 400px; /* 保持最小高度 */
     max-height: calc(70vh - 100px); /* 减去分页和其他元素的高度 */
@@ -350,6 +364,8 @@
 .logs-wrapper {
     display: flex;
     flex-direction: column;
+    width: 100%; /* 确保不超出父容器 */
+    max-width: 100%; /* 防止溢出 */
 }
 
 /* 加载状态和无日志状态样式 */
