@@ -20,6 +20,7 @@ from app.errors import SystemError, ValidationError
 from app.utils.decorators import (
     create_required,
     delete_required,
+    require_csrf,
     update_required,
     view_required,
 )
@@ -112,6 +113,7 @@ def get_classifications() -> tuple[Response, int]:
 @account_classification_bp.route("/api/classifications", methods=["POST"])
 @login_required
 @create_required
+@require_csrf
 def create_classification() -> tuple[Response, int]:
     """创建账户分类"""
     data = request.get_json() or {}
@@ -177,6 +179,7 @@ def get_classification(classification_id: int) -> tuple[Response, int]:
 @account_classification_bp.route("/api/classifications/<int:classification_id>", methods=["PUT"])
 @login_required
 @update_required
+@require_csrf
 def update_classification(classification_id: int) -> tuple[Response, int]:
     """更新账户分类"""
     classification = AccountClassification.query.get_or_404(classification_id)
@@ -215,6 +218,7 @@ def update_classification(classification_id: int) -> tuple[Response, int]:
 @account_classification_bp.route("/api/classifications/<int:classification_id>", methods=["DELETE"])
 @login_required
 @delete_required
+@require_csrf
 def delete_classification(classification_id: int) -> tuple[Response, int]:
     """删除账户分类"""
     classification = AccountClassification.query.get_or_404(classification_id)
@@ -327,6 +331,7 @@ def list_rules() -> tuple[Response, int]:
 @account_classification_bp.route("/api/rules", methods=["POST"])
 @login_required
 @create_required
+@require_csrf
 def create_rule() -> tuple[Response, int]:
     """创建分类规则"""
     data = request.get_json() or {}
@@ -409,6 +414,7 @@ def get_rule(rule_id: int) -> tuple[Response, int]:
 @account_classification_bp.route("/api/rules/<int:rule_id>", methods=["PUT"])
 @login_required
 @update_required
+@require_csrf
 def update_rule(rule_id: int) -> tuple[Response, int]:
     """更新分类规则"""
     rule = ClassificationRule.query.get_or_404(rule_id)
@@ -560,6 +566,7 @@ def get_matched_accounts(rule_id: int) -> tuple[Response, int]:
 @account_classification_bp.route("/api/rules/<int:rule_id>", methods=["DELETE"])
 @login_required
 @delete_required
+@require_csrf
 def delete_rule(rule_id: int) -> tuple[Response, int]:
     """删除分类规则"""
     rule = ClassificationRule.query.get_or_404(rule_id)
@@ -584,6 +591,7 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
 @account_classification_bp.route("/api/auto-classify", methods=["POST"])
 @login_required
 @update_required
+@require_csrf
 def auto_classify() -> tuple[Response, int]:
     """自动分类账户 - 使用优化后的服务"""
     instance_id = None
@@ -683,6 +691,7 @@ def get_assignments() -> tuple[Response, int]:
 @account_classification_bp.route("/api/assignments/<int:assignment_id>", methods=["DELETE"])
 @login_required
 @delete_required
+@require_csrf
 def remove_assignment(assignment_id: int) -> tuple[Response, int]:
     """移除账户分类分配"""
     assignment = AccountClassificationAssignment.query.get_or_404(assignment_id)

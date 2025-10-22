@@ -1560,7 +1560,7 @@ wheels = [
 
 [[package]]
 name = "whalefallingv4"
-version = "1.1.2"
+version = "1.1.4"
 source = { editable = "." }
 dependencies = [
     { name = "apscheduler" },
@@ -1615,6 +1615,7 @@ dev = [
     { name = "isort" },
     { name = "mypy" },
     { name = "pre-commit" },
+    { name = "pytest" },
     { name = "ruff" },
     { name = "types-pyyaml" },
 ]
@@ -1670,6 +1671,7 @@ dev = [
     { name = "isort", specifier = ">=6.0.1" },
     { name = "mypy", specifier = ">=1.18.1" },
     { name = "pre-commit", specifier = ">=4.3.0" },
+    { name = "pytest", specifier = ">=8.4.2" },
     { name = "ruff", specifier = ">=0.13.0" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20250822" },
 ]

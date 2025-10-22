@@ -18,7 +18,7 @@ from app.tasks.database_size_aggregation_tasks import (
     calculate_period_aggregations,
     get_aggregation_status,
 )
-from app.utils.decorators import view_required
+from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
@@ -85,9 +85,6 @@ def get_aggregations_summary() -> Response:
         log_error("获取聚合汇总统计失败", module="aggregations", error=str(exc))
         raise SystemError("获取聚合汇总统计失败") from exc
 
-@aggregations_bp.route('/api/manual_aggregate', methods=['POST'])
-@login_required
-@view_required
 def _normalize_task_result(result: dict | None, *, context: str) -> dict:
     if not result:
         raise SystemError(f"{context}任务返回为空")
@@ -99,6 +96,10 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
     return normalized
 
 
+@aggregations_bp.route('/api/manual_aggregate', methods=['POST'])
+@login_required
+@view_required
+@require_csrf
 def manual_aggregate() -> Response:
     """
     手动触发聚合计算
@@ -158,6 +159,7 @@ def manual_aggregate() -> Response:
 @aggregations_bp.route('/api/aggregate', methods=['POST'])
 @login_required
 @view_required
+@require_csrf
 def aggregate() -> Response:
     """
     手动触发统计聚合计算
@@ -192,6 +194,7 @@ def aggregate() -> Response:
 @aggregations_bp.route('/api/aggregate-today', methods=['POST'])
 @login_required
 @view_required
+@require_csrf
 def aggregate_today() -> Response:
     """
     手动触发今日数据聚合

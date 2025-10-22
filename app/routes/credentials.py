@@ -20,6 +20,7 @@ from app.models.instance import Instance
 from app.utils.decorators import (
     create_required,
     delete_required,
+    require_csrf,
     update_required,
     view_required,
 )
@@ -295,6 +296,7 @@ def index() -> str:
 @credentials_bp.route("/api/create", methods=["POST"])
 @login_required
 @create_required
+@require_csrf
 def create_api() -> "Response":
     """创建凭据API"""
     payload = _parse_payload()
@@ -309,6 +311,7 @@ def create_api() -> "Response":
 @credentials_bp.route("/create", methods=["GET", "POST"])
 @login_required
 @create_required
+@require_csrf
 def create() -> "str | Response":
     """创建凭据"""
     if request.method == "POST":
@@ -346,6 +349,7 @@ def create() -> "str | Response":
 @credentials_bp.route("/api/<int:credential_id>/edit", methods=["POST"])
 @login_required
 @update_required
+@require_csrf
 def edit_api(credential_id: int) -> "Response":
     """编辑凭据API"""
     credential = _get_credential_or_error(credential_id)
@@ -360,6 +364,7 @@ def edit_api(credential_id: int) -> "Response":
 @credentials_bp.route("/<int:credential_id>/edit", methods=["GET", "POST"])
 @login_required
 @update_required
+@require_csrf
 def edit(credential_id: int) -> "str | Response":
     """编辑凭据"""
     credential = Credential.query.get_or_404(credential_id)
@@ -401,6 +406,7 @@ def edit(credential_id: int) -> "str | Response":
 @credentials_bp.route("/api/credentials/<int:credential_id>/toggle", methods=["POST"])
 @login_required
 @update_required
+@require_csrf
 def toggle(credential_id: int) -> "Response":
     """启用/禁用凭据"""
     credential = _get_credential_or_error(credential_id)
@@ -444,6 +450,7 @@ def toggle(credential_id: int) -> "Response":
 @credentials_bp.route("/api/credentials/<int:credential_id>/delete", methods=["POST"])
 @login_required
 @delete_required
+@require_csrf
 def delete(credential_id: int) -> "Response":
     """删除凭据"""
     credential = _get_credential_or_error(credential_id)

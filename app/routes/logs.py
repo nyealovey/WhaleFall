@@ -14,7 +14,7 @@ from sqlalchemy import asc, desc, distinct, or_
 from app import db
 from app.errors import AuthorizationError, SystemError, ValidationError
 from app.models.unified_log import LogLevel, UnifiedLog
-from app.utils.decorators import admin_required
+from app.utils.decorators import admin_required, require_csrf
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
@@ -334,6 +334,7 @@ def export_logs() -> Response:
 @logs_bp.route("/api/cleanup", methods=["POST"])
 @login_required
 @admin_required
+@require_csrf
 def cleanup_logs() -> tuple[dict, int]:
     """清理旧日志API"""
     try:

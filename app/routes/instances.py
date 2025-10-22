@@ -14,7 +14,7 @@ from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.account_sync_service import account_sync_service
-from app.utils.decorators import create_required, delete_required, update_required, view_required
+from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.data_validator import (
     DataValidator,
     sanitize_form_data,
@@ -189,6 +189,7 @@ def index() -> str:
 @instances_bp.route("/api/create", methods=["POST"])
 @login_required
 @create_required
+@require_csrf
 def create_api() -> Response:
     """创建实例API"""
     data = request.get_json() if request.is_json else request.form
@@ -263,6 +264,7 @@ def create_api() -> Response:
 @instances_bp.route("/create", methods=["GET", "POST"])
 @login_required
 @create_required
+@require_csrf
 def create() -> str | Response:
     """创建实例页面"""
     # 获取凭据列表
@@ -472,6 +474,7 @@ def api_statistics() -> Response:
 @instances_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
 @login_required
 @update_required
+@require_csrf
 def edit_api(instance_id: int) -> Response:
     """编辑实例API"""
     instance = Instance.query.get_or_404(instance_id)
@@ -553,6 +556,7 @@ def edit_api(instance_id: int) -> Response:
 @instances_bp.route("/<int:instance_id>/edit", methods=["GET", "POST"])
 @login_required
 @update_required
+@require_csrf
 def edit(instance_id: int) -> str | Response | tuple[Response, int]:
     """编辑实例"""
     instance = Instance.query.get_or_404(instance_id)
@@ -723,6 +727,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
 @instances_bp.route("/api/<int:instance_id>/delete", methods=["POST"])
 @login_required
 @delete_required
+@require_csrf
 def delete(instance_id: int) -> str | Response | tuple[Response, int]:
     """删除实例"""
     instance = Instance.query.get_or_404(instance_id)
@@ -784,6 +789,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 @instances_bp.route("/api/batch-delete", methods=["POST"])
 @login_required
 @delete_required
+@require_csrf
 def batch_delete() -> str | Response | tuple[Response, int]:
     """批量删除实例"""
     try:
@@ -894,6 +900,7 @@ def batch_delete() -> str | Response | tuple[Response, int]:
 @instances_bp.route("/api/batch-create", methods=["POST"])
 @login_required
 @create_required
+@require_csrf
 def batch_create() -> str | Response | tuple[Response, int]:
     """批量创建实例"""
     try:
@@ -1204,6 +1211,7 @@ def download_template() -> Response:
 @instances_bp.route("/api/<int:instance_id>/test", methods=["POST"])
 @login_required
 @view_required
+@require_csrf
 def test_connection(instance_id: int) -> str | Response | tuple[Response, int]:
     """测试数据库连接"""
     instance = Instance.query.get_or_404(instance_id)

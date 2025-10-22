@@ -1,99 +1,165 @@
-
-
-# CSRF 与前端统一方案
-
-目标
-- 为所有有状态写操作（POST/PUT/PATCH/DELETE）统一一套 CSRF 校验模式。
-- 保持一个轮子：后端统一使用 `Flask-WTF CSRFProtect` + 统一装饰器；前端统一使用 `X-CSRFToken` 头传递令牌。
-- 提供清晰的落地步骤，避免多处各玩一套。
-
-后端统一方案
-- 全局启用：继续在 `app/__init__.py` 初始化 `CSRFProtect`，并在 CORS 中允许 `X-CSRFToken`。
-- 令牌发放：统一使用 `/api/csrf-token` 接口提供令牌；前端缓存于 Cookie 或内存。
-- 写操作校验：为所有 JSON 写操作统一使用 `@require_json_csrf`（示例装饰器见下），表单写操作沿用 Flask-WTF 自带 CSRF。
- - 错误返回样式：统一为增强错误结构（`enhanced_error_handler` 输出，包含 `error_id/category/severity/message/timestamp` 等字段）。
-
-示例装饰器（后端）
-```python
-# app/utils/security_csrf.py
-from functools import wraps
-from flask import request
-from flask_wtf.csrf import validate_csrf, CSRFError
-
-def require_json_csrf(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        # 统一从 Header 读取 X-CSRFToken
-        token = request.headers.get("X-CSRFToken")
-        if not token:
-            # 缺少令牌，交由全局错误处理器统一输出
-            raise CSRFError("CSRF_MISSING")
-        try:
-            validate_csrf(token)
-        except CSRFError:
-            # 校验失败，交由全局错误处理器统一输出
-            raise
-        return f(*args, **kwargs)
-    return wrapper
-```
-
-前端统一方案
-- 令牌获取：应用启动或登录成功后请求一次 `/api/csrf-token`；统一使用 `app/static/js/common/csrf-utils.js` 的 `window.csrfManager` 管理令牌。
-- Fetch 封装：写操作自动注入 `X-CSRFToken` 头，可使用 `csrfManager.addTokenToRequest` 或内置 `post/put/delete` 方法。
-```js
-// app/static/js/common/csrf-fetch.js（示例）
-async function csrfFetch(url, options = {}) {
-  const method = (options.method || 'GET').toUpperCase();
-  const needCsrf = ['POST','PUT','PATCH','DELETE'].includes(method);
-  const finalOptions = needCsrf ? await window.csrfManager.addTokenToRequest(options) : options;
-  return fetch(url, finalOptions);
-}
-
-// 使用示例：
-// 1) 通用写操作
-await csrfFetch('/api/tags/batch', { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
-// 2) 便捷方法
-await window.csrfManager.post('/api/tags/batch', payload);
-```
-
-落地步骤
-1) 路由治理：为所有 `/api/*` 的写操作统一加 `@require_json_csrf`；`auth.py` 现有逻辑保持不变但迁移到统一装饰器。
-2) 响应统一：CSRF 失败由全局错误处理器输出增强错误结构（`enhanced_error_handler`）。
-3) 前端改造：接入统一的 `csrf-utils.js`；登录后立即获取并缓存令牌。
-4) 文档与测试：补充端到端用例（成功、缺失、错误令牌）。
-
-兼容性与豁免
-- 内部健康检查或只读 GET 接口无需 CSRF；如需豁免，明确标注并在统一清单维护。
-- 第三方回调（Webhook）如不支持 CSRF，应转为签名校验，不混用 CSRF 与签名两套轮子。
-
-统一校验清单（示例）
-- 已统一：`auth.login`, `auth.logout`, `credentials.create/edit/toggle/delete`, `instances.create/edit/delete`, `scheduler.job control`, `tags.create/edit/delete/batch`。
-- 待统一：个别历史接口（如 `storage_sync` 旧版、早期 `cache` 清理端点），按模块逐步补齐。
+# CSRF 校验与前端令牌交互统一方案
 
 ## 目标
-- 统一 CSRF 获取与注入流程：页面加载获取令牌、表单隐藏字段、AJAX `X-CSRFToken` 头。
-- 明确需要 CSRF 的路由列表（页面与 API），并在文档中维护。
-- 对 CSRF 失败进行统一错误提示与恢复建议（重新获取令牌）。
+- **后端**：所有需要 CSRF 的 JSON 写操作使用同一套校验逻辑，避免在各路由中手写 `validate_csrf`。
+- **前端**：写操作默认复用统一的 `csrfManager`，不再在页面脚本中手动拼 `X-CSRFToken`。
+- **文档与测试**：给出清晰的改造顺序和验收清单，减少重复实现与遗漏。
 
-## 现状
-- CSRF 初始化在 `app/__init__.py`；API 提供 `/api/csrf-token`（`auth.py`）。
-- 前端已在 `app/templates/base.html` 注入 `<meta name="csrf-token" content="{{ csrf_token() }}">`；统一工具位于 `app/static/js/common/csrf-utils.js`。
+---
 
-## 风险
-- 令牌传递不统一导致偶发 403 或绕过风险。
-- Cookie `SameSite` 策略与跨站场景处理不一致。
+## 现状速览（2025-10）
 
-## 优先级与改进
-- P0：统一前端集成与路由清单；文档与示例代码齐备。
-- P1：Cookie 安全策略文档化（`SameSite=Strict/Lax`），跨域场景建议。
-- P2：CSRF 失败统一响应与前端处理模式。
+| 组件 | 现状 | 问题 |
+|------|------|------|
+| `app/__init__.py` | 全局初始化 `CSRFProtect`，CORS 允许 `X-CSRFToken` | ✅ |
+| `app/routes/auth.py` | 提供 `/api/csrf-token` 接口；部分接口内部直接 `validate_csrf` | ❌ 仅局部使用，其他 API 未统一 |
+| 其他后端路由 | 未显式校验 CSRF（默认依赖表单 CSRF 或完全缺失） | ❌ JSON 写操作缺少统一入口 |
+| `app/static/js/common/csrf-utils.js` | 提供 `window.csrfManager`、`getCSRFToken` 等工具 | ✅ 可作为唯一入口 |
+| 各页面脚本 | 仍存在大量 `$('meta[name="csrf-token"]').attr('content')` 等手工注入 | ❌ 与 `csrf-utils` 重复 |
+| 模板 | `base.html` 注入 `<meta name="csrf-token" ...>`，提供 `window.getCSRFToken` fallback | ✅ |
 
-## 产出与检查清单
-- 前端示例代码片段（表单/AJAX）；路由清单与排除项。
-- 错误提示与恢复交互建议。
+> 结论：后端缺统一装饰器，前端工具存在但使用方式不一致 —— 需要一次聚合清理。
 
-## 涉及代码位置
-- 后端：`app/__init__.py`（CSRFProtect/CORS 初始化）
-- 后端：`app/utils/security_csrf.py`（统一 JSON 写操作的 CSRF 装饰器）
-- 后端：`app/routes/*.py`（所有写操作路由）
-- 前端：`app/static/js/common/csrf-utils.js`（统一令牌管理与请求注入）、`app/templates/base.html`（令牌注入）
+---
+
+## 统一方案设计
+
+### 1. 后端：新增通用装饰器
+
+在 `app/utils/decorators.py` 中新增 `require_csrf`，集中处理 JSON/表单写操作并复用现有日志逻辑：
+
+```python
+from flask_wtf.csrf import CSRFError, validate_csrf
+
+CSRF_HEADER = "X-CSRFToken"
+SAFE_CSRF_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+
+def _extract_csrf_token() -> str | None:
+    token = request.headers.get(CSRF_HEADER)
+    if token:
+        return token
+
+    if request.is_json:
+        payload = request.get_json(silent=True)
+        if isinstance(payload, dict):
+            token = payload.get("csrf_token")
+            if token:
+                return token
+
+    return request.form.get("csrf_token")
+
+
+def require_csrf(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if request.method.upper() in SAFE_CSRF_METHODS:
+            return view(*args, **kwargs)
+
+        token = _extract_csrf_token()
+        if not token:
+            raise AuthorizationError("缺少 CSRF 令牌", message_key="CSRF_MISSING")
+
+        try:
+            validate_csrf(token)
+        except CSRFError as exc:
+            raise AuthorizationError("CSRF 令牌无效，请刷新后重试", message_key="CSRF_INVALID") from exc
+
+        return view(*args, **kwargs)
+
+    return wrapped
+```
+
+使用方式：
+```python
+from app.utils.decorators import require_csrf
+
+@blueprint.route("/api/examples", methods=["POST"])
+@login_required
+@require_csrf
+def create_example():
+    ...
+```
+
+- JSON 写操作 → 统一走 `_extract_csrf_token()`，避免各路由重复 `request.headers.get(...)`。
+- 表单写操作 → 仍支持 `csrf_token` 隐藏字段，兼容 Flask-WTF。
+- 错误处理 → 统一抛 `AuthorizationError`，全局错误处理器已能输出结构化响应。
+
+### 2. 前端：唯一入口 `csrfManager`
+
+`app/static/js/common/csrf-utils.js` 已提供：
+- `csrfManager.getToken()` / `window.getCSRFToken()` 获取缓存令牌
+- `csrfManager.addTokenToRequest(options)`
+- `csrfManager.post|put|delete`
+
+统一要求：
+1. 写操作统一使用 `csrfManager` 或包装后的 `csrfFetch`。
+2. 清理页面脚本中手动 `$('meta[name="csrf-token"]').attr('content')` 逻辑。
+3. 保留 `<meta name="csrf-token">` 作为后备来源，供 `csrf-utils.js` 初始读取。
+
+示例封装（可选）：
+```js
+// app/static/js/common/csrf-fetch.js
+export async function csrfFetch(url, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    return fetch(url, options);
+  }
+
+  const finalOptions = await window.csrfManager.addTokenToRequest({
+    credentials: "include",
+    ...options,
+  });
+
+  return fetch(url, finalOptions);
+}
+```
+
+---
+
+## 落地步骤
+
+1. **建立后端装饰器**
+   - [x] 在 `app/utils/decorators.py` 中实现/完善 `require_csrf`。
+   - [x] 在 `app/routes/auth.py` 等现有手动校验处替换为装饰器。
+   - [x] 扫描写接口（POST/PUT/PATCH/DELETE），逐步加装饰器。
+   - [ ] 在路由豁免清单记录无需 CSRF 的接口（健康检查、开放 WebHook 等；**调度器控制接口属于敏感写操作，不应豁免**）。
+
+2. **统一前端调用**
+   - [ ] 以 `app/static/js/common/csrf-utils.js` 为基础，为所有写操作封装统一入口。
+   - [ ] 清理页面脚本，改用 `csrfManager` 或 `csrfFetch`。
+   - [ ] 登录/刷新流程中确保调用 `/api/csrf-token`，更新 `csrf-utils.js` 的缓存逻辑。
+
+3. **统一错误处理**
+   - [ ] 全局错误处理器（`app/errors`）确认能识别 `AuthorizationError` 并返回统一结构。
+   - [ ] 前端在统一请求封装里处理 `403/CSRF_INVALID`，提示用户刷新令牌。
+
+4. **验收清单**
+   - [x] `rg -n "validate_csrf" app/routes/` → 仅保留装饰器内部使用。
+   - [ ] `rg -n "meta\\[name=\"csrf-token\"\\]" app/static/js` → 确认页面脚本不再直接读取。
+   - [ ] 手动验证：令牌缺失、令牌过期、跨页跳转、登录/登出流程。
+   - [ ] 更新文档 & 编写基础测试（单元 + 集成）。
+
+---
+
+## 兼容与豁免策略
+
+- **后台任务/健康检查**：GET/只读接口无需 CSRF。
+- **第三方回调**：使用签名验证（HMAC 等），不要混用 CSRF。
+- **跨域场景**：在统一封装中明确 `credentials` 策略；文档说明 `SameSite` 策略和需要手动处理的场景。
+
+---
+
+## 参考代码位置
+
+- 后端初始化：`app/__init__.py` (`CSRFProtect`, CORS header)
+- 令牌接口：`app/routes/auth.py:get_csrf_token`
+- 统一装饰器：`app/utils/decorators.py` (`require_csrf`)
+- 前端工具：`app/static/js/common/csrf-utils.js`
+- 模板注入：`app/templates/base.html` (`meta[name="csrf-token"]`)
+
+---
+
+通过这次统一：
+1. 后端不再散落 `validate_csrf` 调用；
+2. 前端写操作全部走一个入口；
+3. 文档、测试与豁免清单一体化维护，减少踩坑与重复编码。

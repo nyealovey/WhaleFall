@@ -15,6 +15,7 @@ from app.errors import ConflictError, NotFoundError, ValidationError
 from app.utils.decorators import (
     create_required,
     delete_required,
+    require_csrf,
     update_required,
     view_required,
 )
@@ -29,6 +30,7 @@ tags_bp = Blueprint("tags", __name__)
 @tags_bp.route("/api/batch_assign_tags", methods=["POST"])
 @login_required
 @create_required
+@require_csrf
 def batch_assign_tags() -> tuple[Response, int]:
     """批量分配标签给实例"""
     data = request.get_json(silent=True) or {}
@@ -129,6 +131,7 @@ def batch_assign_tags() -> tuple[Response, int]:
 @tags_bp.route("/api/batch_remove_tags", methods=["POST"])
 @login_required
 @create_required
+@require_csrf
 def batch_remove_tags() -> tuple[Response, int]:
     """批量移除实例的标签"""
     data = request.get_json(silent=True) or {}
@@ -229,6 +232,7 @@ def batch_remove_tags() -> tuple[Response, int]:
 @tags_bp.route("/api/instance_tags", methods=["POST"])
 @login_required
 @view_required
+@require_csrf
 def api_instance_tags() -> tuple[Response, int]:
     """获取实例的已关联标签API"""
     data = request.get_json(silent=True) or {}
@@ -285,6 +289,7 @@ def api_instance_tags() -> tuple[Response, int]:
 @tags_bp.route("/api/batch_remove_all_tags", methods=["POST"])
 @login_required
 @create_required
+@require_csrf
 def batch_remove_all_tags() -> tuple[Response, int]:
     """批量移除实例的所有标签"""
     data = request.get_json(silent=True) or {}
@@ -483,6 +488,7 @@ def index() -> str:
 @tags_bp.route("/api/create", methods=["POST"])
 @login_required
 @create_required
+@require_csrf
 def create_api() -> tuple[Response, int]:
     """创建标签API"""
     data = request.get_json(silent=True) if request.is_json else request.form
@@ -587,6 +593,7 @@ def create_api() -> tuple[Response, int]:
 @tags_bp.route("/create", methods=["GET", "POST"])
 @login_required
 @create_required
+@require_csrf
 def create() -> str | Response:
     """创建标签"""
     if request.method == "POST":
@@ -659,6 +666,7 @@ def create() -> str | Response:
 @tags_bp.route("/api/edit/<int:tag_id>", methods=["POST"])
 @login_required
 @update_required
+@require_csrf
 def edit_api(tag_id: int) -> tuple[Response, int]:
     """编辑标签API"""
     tag = Tag.query.get_or_404(tag_id)
@@ -764,6 +772,7 @@ def edit_api(tag_id: int) -> tuple[Response, int]:
 @tags_bp.route("/edit/<int:tag_id>", methods=["GET", "POST"])
 @login_required
 @update_required
+@require_csrf
 def edit(tag_id: int) -> str | Response:
     """编辑标签"""
     tag = Tag.query.get_or_404(tag_id)
@@ -839,6 +848,7 @@ def edit(tag_id: int) -> str | Response:
 @tags_bp.route("/api/delete/<int:tag_id>", methods=["POST"])
 @login_required
 @delete_required
+@require_csrf
 def delete(tag_id: int) -> Response:
     """删除标签"""
     try:
