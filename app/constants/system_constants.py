@@ -141,8 +141,8 @@ class SystemConstants:
     # 速率限制常量
     RATE_LIMIT_REQUESTS = 1000
     RATE_LIMIT_WINDOW = 300  # 5分钟
-    LOGIN_RATE_LIMIT = 999999  # 取消登录速率限制
-    LOGIN_RATE_WINDOW = 300
+    LOGIN_RATE_LIMIT = 10  # 每窗口最多尝试次数
+    LOGIN_RATE_WINDOW = 60  # 1分钟
 
     # 日志常量
     LOG_MAX_SIZE = 10 * 1024 * 1024  # 10MB
@@ -253,6 +253,7 @@ class ErrorMessages:
     TOKEN_INVALID = "无效的令牌"  # noqa: S105 - 这是错误消息，不是密码
     ACCOUNT_DISABLED = "账户已被禁用"
     ACCOUNT_LOCKED = "账户已被锁定"
+    RATE_LIMIT_EXCEEDED = "请求过于频繁，请稍后再试"
 
     # 数据库错误
     DATABASE_CONNECTION_ERROR = "数据库连接失败"

@@ -23,7 +23,7 @@ from app.errors import (
 )
 from app.models.user import User
 from app.utils.decorators import require_csrf
-from app.utils.rate_limiter import password_reset_rate_limit
+from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 from app.utils.data_validator import validate_password
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.structlog_config import get_auth_logger
@@ -37,6 +37,7 @@ auth_logger = get_auth_logger()
 
 @auth_bp.route("/api/login", methods=["POST"])
 @require_csrf
+@login_rate_limit
 def login_api() -> "Response":
     """用户登录API"""
     # 添加调试日志
@@ -119,6 +120,7 @@ def login_api() -> "Response":
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@login_rate_limit
 @require_csrf
 def login() -> "str | Response":
     """用户登录页面"""

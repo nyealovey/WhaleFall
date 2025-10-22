@@ -6,10 +6,14 @@ import time
 from collections.abc import Callable
 from functools import wraps
 
-from flask import jsonify, request
+from flask import flash, redirect, request, url_for
 from flask_caching import Cache
 
+from app.constants.system_constants import ErrorMessages
+from app.utils.response_utils import jsonify_unified_error_message
 from app.utils.structlog_config import get_system_logger
+
+SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 
 class RateLimiter:
@@ -169,67 +173,6 @@ class RateLimiter:
 rate_limiter = RateLimiter()
 
 
-def rate_limit(
-    limit: int,
-    window: int = 60,
-    per: str = "ip",
-    identifier_func: Callable | None = None,
-):
-    """
-    速率限制装饰器
-
-    Args:
-        limit: 限制次数
-        window: 时间窗口（秒）
-        per: 限制类型（'ip' 或 'user'）
-        identifier_func: 自定义标识符函数
-    """
-
-    def rate_limit_decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            # 获取标识符
-            if identifier_func:
-                identifier = identifier_func()
-            elif per == "user":
-                from flask_login import current_user
-
-                identifier = str(current_user.id) if current_user.is_authenticated else request.remote_addr
-            else:
-                identifier = request.remote_addr
-
-            # 检查速率限制
-            result = rate_limiter.is_allowed(identifier, f.__name__, limit, window)
-
-            if not result["allowed"]:
-                response = jsonify(
-                    {
-                        "error": "请求过于频繁",
-                        "message": f"每分钟最多允许 {limit} 次请求",
-                        "retry_after": result["retry_after"],
-                    }
-                )
-                response.status_code = 429
-                response.headers["Retry-After"] = str(result["retry_after"])
-                response.headers["X-RateLimit-Limit"] = str(limit)
-                response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
-                response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
-                return response
-
-            # 添加速率限制头
-            response = f(*args, **kwargs)
-            if hasattr(response, "headers"):
-                response.headers["X-RateLimit-Limit"] = str(limit)
-                response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
-                response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
-
-            return response
-
-        return decorated_function
-
-    return rate_limit_decorator
-
-
 def login_rate_limit(func=None, *, limit: int = None, window: int = None):
     """登录速率限制"""
     from app.constants import SystemConstants
@@ -238,22 +181,70 @@ def login_rate_limit(func=None, *, limit: int = None, window: int = None):
         limit = SystemConstants.LOGIN_RATE_LIMIT
     if window is None:
         window = SystemConstants.LOGIN_RATE_WINDOW
+
+    def decorator(f: Callable) -> Callable:
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            if request.method.upper() in SAFE_METHODS:
+                return f(*args, **kwargs)
+
+            endpoint = "login_attempts"
+            identifier = request.remote_addr or "unknown"
+            system_logger = get_system_logger()
+
+            result = rate_limiter.is_allowed(identifier, endpoint, limit, window)
+
+            if not result["allowed"]:
+                system_logger.warning(
+                    "登录被速率限制",
+                    module="rate_limiter",
+                    identifier=identifier,
+                    endpoint=endpoint,
+                    retry_after=result["retry_after"],
+                )
+                extra = {
+                    "identifier": identifier,
+                    "endpoint": endpoint,
+                    "retry_after": result["retry_after"],
+                    "limit": limit,
+                    "remaining": result["remaining"],
+                    "reset_time": result["reset_time"],
+                }
+
+                if request.is_json:
+                    response, status = jsonify_unified_error_message(
+                        ErrorMessages.RATE_LIMIT_EXCEEDED,
+                        status_code=429,
+                        message_key="RATE_LIMIT_EXCEEDED",
+                        extra=extra,
+                    )
+                    response.headers["Retry-After"] = str(result["retry_after"])
+                    response.headers["X-RateLimit-Limit"] = str(limit)
+                    response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
+                    response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
+                    return response, status
+
+                flash(ErrorMessages.RATE_LIMIT_EXCEEDED, "error")
+                response = redirect(url_for("auth.login"))
+                response.status_code = 429
+                response.headers["Retry-After"] = str(result["retry_after"])
+                response.headers["X-RateLimit-Limit"] = str(limit)
+                response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
+                response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
+                return response
+
+            response = f(*args, **kwargs)
+            if hasattr(response, "headers"):
+                response.headers["X-RateLimit-Limit"] = str(limit)
+                response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
+                response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
+            return response
+
+        return wrapped
+
     if func is None:
-        return lambda f: rate_limit(limit, window, per="ip")(f)
-    return rate_limit(limit, window, per="ip")(func)
-
-
-def api_rate_limit(func=None, *, limit: int = None, window: int = None):
-    """API速率限制"""
-    from app.constants import SystemConstants
-
-    if limit is None:
-        limit = SystemConstants.RATE_LIMIT_REQUESTS
-    if window is None:
-        window = SystemConstants.RATE_LIMIT_WINDOW
-    if func is None:
-        return lambda f: rate_limit(limit, window, per="user")(f)
-    return rate_limit(limit, window, per="user")(func)
+        return decorator
+    return decorator(func)
 
 
 def password_reset_rate_limit(func=None, *, limit: int = None, window: int = None):
@@ -265,28 +256,8 @@ def password_reset_rate_limit(func=None, *, limit: int = None, window: int = Non
         window = SystemConstants.SESSION_LIFETIME  # 1小时
     """密码重置速率限制"""
     if func is None:
-        return lambda f: rate_limit(limit, window, per="ip")(f)
-    return rate_limit(limit, window, per="ip")(func)
-
-
-def registration_rate_limit(func=None, *, limit: int = None, window: int = None):
-    from app.constants import SystemConstants
-
-    if limit is None:
-        limit = 3  # 注册限制
-    if window is None:
-        window = SystemConstants.SESSION_LIFETIME  # 1小时
-    """注册速率限制"""
-    if func is None:
-        return lambda f: rate_limit(limit, window, per="ip")(f)
-    return rate_limit(limit, window, per="ip")(func)
-
-
-def task_execution_rate_limit(func=None, *, limit: int = 10, window: int = 60):
-    """任务执行速率限制"""
-    if func is None:
-        return lambda f: rate_limit(limit, window, per="user")(f)
-    return rate_limit(limit, window, per="user")(func)
+        return login_rate_limit(limit=limit, window=window)
+    return login_rate_limit(func, limit=limit, window=window)
 
 
 # 初始化速率限制器
@@ -298,25 +269,9 @@ def init_rate_limiter(cache: Cache = None):
     system_logger.info("速率限制器初始化完成", module="rate_limiter")
 
 
-# 获取速率限制状态
-def get_rate_limit_status(identifier: str, endpoint: str, limit: int, window: int) -> dict[str, any]:
-    """获取速率限制状态"""
-    return rate_limiter.is_allowed(identifier, endpoint, limit, window)
-
-
-# 清理过期的速率限制记录
-def cleanup_rate_limits():
-    """清理过期的速率限制记录"""
-    if rate_limiter.cache:
-        # 缓存会自动清理过期键
-        pass
-    else:
-        # 清理内存中的过期记录
-        current_time = int(time.time())
-        for key in list(rate_limiter.memory_store.keys()):
-            timestamps = rate_limiter.memory_store[key]
-            # 保留最近1小时的记录
-            rate_limiter.memory_store[key] = [ts for ts in timestamps if ts > current_time - 3600]
-            # 如果列表为空，删除键
-            if not rate_limiter.memory_store[key]:
-                del rate_limiter.memory_store[key]
+__all__ = [
+    "rate_limiter",
+    "login_rate_limit",
+    "password_reset_rate_limit",
+    "init_rate_limiter",
+]
