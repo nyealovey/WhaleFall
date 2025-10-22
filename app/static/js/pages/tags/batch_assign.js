@@ -744,33 +744,8 @@ class BatchAssignManager {
      * 显示警告消息
      */
     showAlert(message, type, details = null) {
-        const alertHtml = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-                ${message}
-                ${details ? `<br><small>${details}</small>` : ''}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-
-        // 插入到页面顶部
-        const container = document.querySelector('.container');
-        if (container) {
-            container.insertAdjacentHTML('afterbegin', alertHtml);
-        } else {
-            // 如果找不到容器，直接插入到body
-            document.body.insertAdjacentHTML('afterbegin', alertHtml);
-        }
-
-        // 自动隐藏成功消息
-        if (type === 'success') {
-            setTimeout(() => {
-                const alert = document.querySelector('.alert-success');
-                if (alert) {
-                    alert.remove();
-                }
-            }, 3000);
-        }
+        const text = details ? `${message}\n${details}` : message;
+        notify.alert(type, text);
     }
 
     /**

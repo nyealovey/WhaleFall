@@ -197,52 +197,11 @@ function showWarningAlert(message) {
 
 // 显示错误提示
 function showErrorAlert(message) {
-    if (typeof window.showErrorAlert === 'function') {
-        window.showErrorAlert(message);
-    } else {
-        // 备用提示方法
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-        alertDiv.innerHTML = `
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        const form = document.getElementById('loginForm');
-        if (form) {
-            form.insertBefore(alertDiv, form.firstChild);
-        }
-        
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
-    }
+    notify.error(message);
 }
 
-// 显示成功提示
 function showSuccessAlert(message) {
-    if (typeof window.showSuccessAlert === 'function') {
-        window.showSuccessAlert(message);
-    } else {
-        // 备用提示方法
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-success alert-dismissible fade show';
-        alertDiv.innerHTML = `
-            <i class="fas fa-check-circle me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        const form = document.getElementById('loginForm');
-        if (form) {
-            form.insertBefore(alertDiv, form.firstChild);
-        }
-        
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 3000);
-    }
+    notify.success(message);
 }
 
 // 密码强度检查

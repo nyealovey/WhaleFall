@@ -47,18 +47,18 @@ function syncAllAccounts() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('success', data.message);
+            notify.success( data.message);
             // 同步完成后刷新页面显示最新数据
             setTimeout(() => {
                 location.reload();
             }, 2000);
         } else if (data.error) {
-            showAlert('danger', data.error);
+            notify.error( data.error);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('danger', '同步失败');
+        notify.error( '同步失败');
     })
     .finally(() => {
         btn.innerHTML = originalText;
@@ -73,7 +73,7 @@ function syncAllInstances() {
 
 // 查看账户详情
 function viewAccount(accountId) {
-    showAlert('info', `查看账户 ${accountId} 的详情`);
+    notify.info(`查看账户 ${accountId} 的详情`);
 }
 
 // 显示账户统计
@@ -83,36 +83,6 @@ function showAccountStatistics() {
 }
 
 // 显示提示信息
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${getAlertIcon(type)} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-
-    const container = document.querySelector('.container');
-    if (container) {
-        container.insertBefore(alertDiv, container.firstChild);
-    }
-
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 5000);
-}
-
-// 获取提示图标
-function getAlertIcon(type) {
-    const icons = {
-        'success': 'check-circle',
-        'info': 'info-circle',
-        'warning': 'exclamation-triangle',
-        'danger': 'exclamation-triangle'
-    };
-    return icons[type] || 'info-circle';
-}
-
 // 表单验证
 function validateForm() {
     const form = document.getElementById('account-search-form');
@@ -129,7 +99,7 @@ function openTagSelector() {
         
         if (!modalElement) {
             console.error('模态框元素未找到');
-            showAlert('danger', '标签选择器模态框未找到，请刷新页面重试');
+            notify.error( '标签选择器模态框未找到，请刷新页面重试');
             return;
         }
         
@@ -147,7 +117,7 @@ function openTagSelector() {
         
     } catch (error) {
         console.error('打开标签选择器时出错:', error);
-        showAlert('danger', '打开标签选择器失败: ' + error.message);
+        notify.error( '打开标签选择器失败: ' + error.message);
     }
 }
 
@@ -211,7 +181,7 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
             }, 100);
         } catch (error) {
             console.error('初始化标签选择器组件时出错:', error);
-            showAlert('danger', '标签选择器初始化失败: ' + error.message);
+            notify.error( '标签选择器初始化失败: ' + error.message);
         }
     }
 }
@@ -250,7 +220,7 @@ function setupTagSelectorEvents() {
                 }, 100);
             } catch (error) {
                 console.error('打开标签选择器时出错:', error);
-                showAlert('danger', '打开标签选择器失败: ' + error.message);
+                notify.error( '打开标签选择器失败: ' + error.message);
             }
         });
     }
@@ -380,7 +350,6 @@ window.syncAllAccounts = syncAllAccounts;
 window.syncAllInstances = syncAllInstances;
 window.viewAccount = viewAccount;
 window.showAccountStatistics = showAccountStatistics;
-window.showAlert = showAlert;
 window.validateForm = validateForm;
 window.debugPermissionFunctions = debugPermissionFunctions;
 window.openTagSelector = openTagSelector;

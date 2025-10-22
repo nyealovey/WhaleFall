@@ -231,28 +231,28 @@ function handleFormSubmission(event, form) {
 function validateForm(name, credentialType, dbType, username, password) {
     // 基本验证
     if (!name || !credentialType || !username || !password) {
-        showAlert('warning', '所有必填字段都不能为空');
+        notify.warning('所有必填字段都不能为空');
         return false;
     }
 
     if (name.length < 2) {
-        showAlert('warning', '凭据名称至少需要2个字符');
+        notify.warning('凭据名称至少需要2个字符');
         return false;
     }
 
     if (username.length < 2) {
-        showAlert('warning', '用户名至少需要2个字符');
+        notify.warning('用户名至少需要2个字符');
         return false;
     }
 
     if (password.length < 6) {
-        showAlert('warning', '密码至少需要6个字符');
+        notify.warning('密码至少需要6个字符');
         return false;
     }
 
     // 数据库类型验证
     if (credentialType === 'database' && !dbType) {
-        showAlert('warning', '请选择数据库类型');
+        notify.warning('请选择数据库类型');
         return false;
     }
 
@@ -277,39 +277,16 @@ function hideLoadingState(form) {
     }
 }
 
-// 显示提示信息
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    const container = document.querySelector('.container');
-    if (container) {
-        container.insertBefore(alertDiv, container.firstChild);
-    }
-    
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 5000);
-}
-
-// 显示成功提示
 function showSuccessAlert(message) {
-    showAlert('success', message);
+    notify.success(message);
 }
 
-// 显示警告提示
 function showWarningAlert(message) {
-    showAlert('warning', message);
+    notify.warning(message);
 }
 
-// 显示错误提示
 function showErrorAlert(message) {
-    showAlert('danger', message);
+    notify.error(message);
 }
 
 // 密码强度检查
@@ -412,7 +389,6 @@ initializeKeyboardShortcuts();
 // 导出函数供全局使用
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.validateForm = validateForm;
-window.showAlert = showAlert;
 window.showSuccessAlert = showSuccessAlert;
 window.showWarningAlert = showWarningAlert;
 window.showErrorAlert = showErrorAlert;

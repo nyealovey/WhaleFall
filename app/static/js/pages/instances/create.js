@@ -179,7 +179,7 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
             }, 100);
         } catch (error) {
             console.error('初始化标签选择器组件时出错:', error);
-            showAlert('danger', '标签选择器初始化失败: ' + error.message);
+            notify.error('标签选择器初始化失败: ' + error.message);
         }
     }
 }
@@ -218,7 +218,7 @@ function setupTagSelectorEvents() {
                 }, 100);
             } catch (error) {
                 console.error('打开标签选择器时出错:', error);
-                showAlert('danger', '打开标签选择器失败: ' + error.message);
+                notify.error('打开标签选择器失败: ' + error.message);
             }
         });
     }
@@ -296,25 +296,6 @@ function removeTagFromPreview(tagName) {
 }
 
 // 显示提示信息
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    const container = document.querySelector('.container');
-    if (container) {
-        container.insertBefore(alertDiv, container.firstChild);
-    }
-    
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 5000);
-}
-
 // 表单验证
 function validateForm() {
     const form = document.getElementById('instanceForm');

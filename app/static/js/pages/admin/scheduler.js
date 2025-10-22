@@ -120,15 +120,15 @@ function initializeEventHandlers() {
                 if (resp && resp.success) {
                     const deletedCount = (resp.data && resp.data.deleted_count) ? resp.data.deleted_count : 0;
                     const reloadedCount = (resp.data && resp.data.reloaded_count) ? resp.data.reloaded_count : 0;
-                    showAlert(`重新初始化完成：删除了 ${deletedCount} 个任务，重新加载了 ${reloadedCount} 个任务`, 'success');
+                    notify.success(`重新初始化完成：删除了 ${deletedCount} 个任务，重新加载了 ${reloadedCount} 个任务`, 'success');
                     loadJobs();
                 } else {
-                    showAlert('重新初始化失败: ' + (resp ? resp.message : '未知错误'), 'danger');
+                    notify.error('重新初始化失败: ' + (resp ? resp.message : '未知错误'));
                 }
             },
             error: function (xhr) {
                 const error = xhr.responseJSON;
-                showAlert('重新初始化失败: ' + (error ? error.message : '网络或服务器错误'), 'danger');
+                notify.error('重新初始化失败: ' + (error ? error.message : '网络或服务器错误'));
             },
             complete: function () {
                 $btn.prop('disabled', false).html(original);
@@ -167,7 +167,7 @@ function loadJobs() {
                 displayJobs(response.data);
                 // 移除: updateStats(response.data);
             } else {
-                showAlert('加载任务失败: ' + response.message, 'danger');
+                notify.error('加载任务失败: ' + response.message);
             }
         },
         error: function (xhr) {
@@ -177,12 +177,12 @@ function loadJobs() {
             console.error('响应文本:', xhr.responseText);
 
             if (xhr.status === 401 || xhr.status === 403 || xhr.status === 302) {
-                showAlert('请先登录或检查管理员权限', 'warning');
+                notify.warning('请先登录或检查管理员权限');
                 window.location.href = '/auth/login';
             } else {
                 const error = xhr.responseJSON;
                 const errorMsg = error ? error.message : `HTTP ${xhr.status}: ${xhr.statusText}`;
-                showAlert('加载任务失败: ' + errorMsg, 'danger');
+                notify.error('加载任务失败: ' + errorMsg);
                 console.error('详细错误:', error);
             }
         }
@@ -411,15 +411,15 @@ function enableJob(jobId) {
         },
         success: function (response) {
             if (response.success) {
-                showAlert('任务已启用', 'success');
+                notify.success('任务已启用');
                 loadJobs();
             } else {
-                showAlert('启用失败: ' + response.message, 'danger');
+                notify.error('启用失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            showAlert('启用失败: ' + (error ? error.message : '未知错误'), 'danger');
+            notify.error('启用失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-enable-job`), '启用');
@@ -439,15 +439,15 @@ function disableJob(jobId) {
         },
         success: function (response) {
             if (response.success) {
-                showAlert('任务已禁用', 'success');
+                notify.success('任务已禁用');
                 loadJobs();
             } else {
-                showAlert('禁用失败: ' + response.message, 'danger');
+                notify.error('禁用失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            showAlert('禁用失败: ' + (error ? error.message : '未知错误'), 'danger');
+            notify.error('禁用失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-disable-job`), '禁用');
@@ -467,15 +467,15 @@ function runJobNow(jobId) {
         },
         success: function (response) {
             if (response.success) {
-                showAlert('任务已开始执行', 'success');
+                notify.success('任务已开始执行');
                 loadJobs();
             } else {
-                showAlert('执行失败: ' + response.message, 'danger');
+                notify.error('执行失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            showAlert('执行失败: ' + (error ? error.message : '未知错误'), 'danger');
+            notify.error('执行失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-run-job`), '执行');
@@ -487,7 +487,7 @@ function runJobNow(jobId) {
 function editJob(jobId) {
     const job = currentJobs.find(j => j.id === jobId);
     if (!job) {
-        showAlert('任务不存在', 'danger');
+        notify.error('任务不存在');
         return;
     }
 
@@ -600,7 +600,7 @@ function updateJob() {
     const originalJob = currentJobs.find(j => j.id === jobId);
 
     if (!originalJob) {
-        showAlert('任务不存在', 'danger');
+        notify.error('任务不存在');
         return;
     }
 
@@ -682,16 +682,16 @@ function updateJob() {
         },
         success: function (response) {
             if (response.success) {
-                showAlert('任务更新成功', 'success');
+                notify.success('任务更新成功');
                 $('#editJobModal').modal('hide');
                 loadJobs();
             } else {
-                showAlert('更新失败: ' + response.message, 'danger');
+                notify.error('更新失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            showAlert('更新失败: ' + (error ? error.message : '未知错误'), 'danger');
+            notify.error('更新失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($('#editJobForm button[type="submit"]'), '保存更改');
@@ -703,7 +703,7 @@ function updateJob() {
 function deleteJob(jobId) {
     const job = currentJobs.find(j => j.id === jobId);
     if (!job) {
-        showAlert('任务不存在', 'danger');
+        notify.error('任务不存在');
         return;
     }
 
@@ -721,15 +721,15 @@ function deleteJob(jobId) {
         },
         success: function (response) {
             if (response.success) {
-                showAlert('任务已删除', 'success');
+                notify.success('任务已删除');
                 loadJobs();
             } else {
-                showAlert('删除失败: ' + response.message, 'danger');
+                notify.error('删除失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            showAlert('删除失败: ' + (error ? error.message : '未知错误'), 'danger');
+            notify.error('删除失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-delete-job`), '删除');
@@ -741,12 +741,12 @@ function deleteJob(jobId) {
 function viewJobLogs(jobId) {
     const job = currentJobs.find(j => j.id === jobId);
     if (!job) {
-        showAlert('任务不存在', 'danger');
+        notify.error('任务不存在');
         return;
     }
 
     // 这里可以实现查看日志的功能
-    showAlert('日志查看功能待实现', 'info');
+    notify.info('日志查看功能待实现');
 }
 
 // 添加任务
@@ -806,17 +806,17 @@ function addJob() {
         },
         success: function (response) {
             if (response.success) {
-                showAlert('任务添加成功', 'success');
+                notify.success('任务添加成功');
                 $('#addJobModal').modal('hide');
                 form.reset();
                 loadJobs();
             } else {
-                showAlert('添加失败: ' + response.message, 'danger');
+                notify.error('添加失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            showAlert('添加失败: ' + (error ? error.message : '未知错误'), 'danger');
+            notify.error('添加失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($('#addJobForm button[type="submit"]'), '添加任务');
@@ -854,33 +854,6 @@ function hideLoadingState(element, originalText) {
     }
 }
 
-// 显示提示信息
-function showAlert(message, type) {
-    const alertDiv = $(`
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            <i class="fas fa-${getAlertIcon(type)} me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `);
-
-    $('.container-fluid').prepend(alertDiv);
-
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 5000);
-}
-
-// 获取提示图标
-function getAlertIcon(type) {
-    switch (type) {
-        case 'success': return 'check-circle';
-        case 'danger': return 'exclamation-triangle';
-        case 'warning': return 'exclamation-triangle';
-        case 'info': return 'info-circle';
-        default: return 'info-circle';
-    }
-}
 
 // 格式化时间 - 使用统一的时间工具
 function formatTime(timeString) {
@@ -899,7 +872,7 @@ function loadHealthStatus() {
             if (response.success) {
                 updateHealthDisplay(response.data);
             } else {
-                showAlert('获取健康状态失败: ' + response.message, 'danger');
+                notify.error('获取健康状态失败: ' + response.message);
             }
         },
         error: function (xhr) {
@@ -909,7 +882,7 @@ function loadHealthStatus() {
 
             const error = xhr.responseJSON;
             const errorMsg = error ? error.message : `HTTP ${xhr.status}: ${xhr.statusText}`;
-            showAlert('获取健康状态失败: ' + errorMsg, 'danger');
+            notify.error('获取健康状态失败: ' + errorMsg);
         }
     });
 }
@@ -955,7 +928,6 @@ window.editJob = editJob;
 window.deleteJob = deleteJob;
 window.viewJobLogs = viewJobLogs;
 window.addJob = addJob;
-window.showAlert = showAlert;
 window.formatTime = formatTime;
 window.loadHealthStatus = loadHealthStatus;
 
@@ -1002,6 +974,5 @@ window.editJob = editJob;
 window.deleteJob = deleteJob;
 window.viewJobLogs = viewJobLogs;
 window.addJob = addJob;
-window.showAlert = showAlert;
 window.formatTime = formatTime;
 window.loadHealthStatus = loadHealthStatus;
