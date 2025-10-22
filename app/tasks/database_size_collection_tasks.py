@@ -3,16 +3,14 @@
 负责每日自动采集所有数据库实例的大小信息
 """
 
-import logging
 from datetime import date
-from typing import Dict, Any, List
-from app.constants.sync_constants import SyncOperationType, SyncCategory
-from app.services.database_size_collector_service import collect_all_instances_database_sizes
-from app.models.instance import Instance
-from app.config import Config
-from app import db
+from typing import Any, Dict, List
 
-logger = logging.getLogger(__name__)
+from app import db
+from app.config import Config
+from app.constants.sync_constants import SyncCategory, SyncOperationType
+from app.models.instance import Instance
+from app.utils.structlog_config import get_sync_logger
 
 
 def collect_database_sizes():
@@ -23,8 +21,6 @@ def collect_database_sizes():
     from app import create_app
     from app.services.sync_session_service import sync_session_service
     from app.utils.time_utils import time_utils
-    from app.utils.structlog_config import get_sync_logger
-    
     # 创建Flask应用上下文，确保数据库操作正常
     app = create_app()
     with app.app_context():
@@ -298,7 +294,12 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
     app = create_app()
     with app.app_context():
         try:
-            logger.info(f"开始采集实例 {instance_id} 的数据库大小...")
+            sync_logger = get_sync_logger()
+            sync_logger.info(
+                "开始采集实例数据库大小",
+                module="capacity_sync",
+                instance_id=instance_id,
+            )
             
             # 获取实例信息
             instance = Instance.query.get(instance_id)
@@ -336,10 +337,12 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
                     try:
                         saved_count = collector.save_collected_data(databases_data)
                     except Exception as save_error:
-                        logger.error(
-                            "保存实例 %s 的数据库容量数据失败: %s",
-                            instance.name,
-                            str(save_error),
+                        sync_logger.error(
+                            "保存实例容量数据失败",
+                            module="capacity_sync",
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            error=str(save_error),
                             exc_info=True,
                         )
                         return {
@@ -350,9 +353,11 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
 
                     instance_stat_updated = collector.update_instance_total_size()
                     if not instance_stat_updated:
-                        logger.warning(
-                            "实例 %s 容量统计更新失败，已采集但实例汇总未刷新",
-                            instance.name,
+                        sync_logger.warning(
+                            "实例容量统计更新失败",
+                            module="capacity_sync",
+                            instance_id=instance.id,
+                            instance_name=instance.name,
                         )
                     
                     # 更新统计聚合，确保图表与报表同步最新容量
@@ -363,10 +368,12 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
                         aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
                         aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
                     except Exception as agg_exc:  # pragma: no cover - 防御性日志
-                        logger.error(
-                            "实例 %s 容量聚合刷新失败: %s",
-                            instance.name,
-                            str(agg_exc),
+                        sync_logger.error(
+                            "实例容量聚合刷新失败",
+                            module="capacity_sync",
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            error=str(agg_exc),
                             exc_info=True,
                         )
                     
@@ -387,9 +394,15 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
             finally:
                 # 确保关闭连接
                 collector.disconnect()
-                
+
         except Exception as e:
-            logger.error(f"采集实例 {instance_id} 数据库大小失败: {str(e)}", exc_info=True)
+            sync_logger.error(
+                "采集实例数据库大小失败",
+                module="capacity_sync",
+                instance_id=instance_id,
+                error=str(e),
+                exc_info=True,
+            )
             return {
                 'success': False,
                 'message': f'采集失败: {str(e)}',
@@ -412,8 +425,13 @@ def collect_database_sizes_by_type(db_type: str) -> Dict[str, Any]:
     # 创建Flask应用上下文
     app = create_app()
     with app.app_context():
+        sync_logger = get_sync_logger()
         try:
-            logger.info(f"开始采集 {db_type} 类型数据库的大小...")
+            sync_logger.info(
+                "开始按照数据库类型采集容量",
+                module="capacity_sync",
+                db_type=db_type,
+            )
             
             # 获取指定类型的活跃实例
             instances = Instance.query.filter_by(
@@ -428,7 +446,12 @@ def collect_database_sizes_by_type(db_type: str) -> Dict[str, Any]:
                     'instances_processed': 0
                 }
             
-            logger.info(f"找到 {len(instances)} 个 {db_type} 类型实例")
+            sync_logger.info(
+                "找到活跃实例",
+                module="capacity_sync",
+                db_type=db_type,
+                instance_count=len(instances),
+            )
             
             total_processed = 0
             total_size_mb = 0
@@ -454,7 +477,13 @@ def collect_database_sizes_by_type(db_type: str) -> Dict[str, Any]:
             }
             
         except Exception as e:
-            logger.error(f"采集 {db_type} 类型数据库大小失败: {str(e)}", exc_info=True)
+            sync_logger.error(
+                "按类型采集数据库容量失败",
+                module="capacity_sync",
+                db_type=db_type,
+                error=str(e),
+                exc_info=True,
+            )
             return {
                 'success': False,
                 'message': f'采集失败: {str(e)}',
@@ -499,7 +528,13 @@ def get_collection_status() -> Dict[str, Any]:
             }
             
         except Exception as e:
-            logger.error(f"获取采集状态失败: {str(e)}", exc_info=True)
+            sync_logger = get_sync_logger()
+            sync_logger.error(
+                "获取容量采集状态失败",
+                module="capacity_sync",
+                error=str(e),
+                exc_info=True,
+            )
             return {
                 'success': False,
                 'message': f'获取状态失败: {str(e)}',
@@ -534,7 +569,13 @@ def validate_collection_config() -> Dict[str, Any]:
         }
         
     except Exception as e:
-        logger.error(f"配置验证失败: {str(e)}", exc_info=True)
+        sync_logger = get_sync_logger()
+        sync_logger.error(
+            "容量采集配置验证失败",
+            module="capacity_sync",
+            error=str(e),
+            exc_info=True,
+        )
         return {
             'success': False,
             'message': f'配置验证失败: {str(e)}',

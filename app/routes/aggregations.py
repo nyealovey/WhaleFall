@@ -12,12 +12,6 @@ from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
 from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
-from app.tasks.database_size_aggregation_tasks import (
-    calculate_database_size_aggregations,
-    calculate_instance_aggregations,
-    calculate_period_aggregations,
-    get_aggregation_status,
-)
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
@@ -113,13 +107,14 @@ def manual_aggregate() -> Response:
         period_type = (data.get('period_type') or 'all').lower()
         valid_periods = {'daily', 'weekly', 'monthly', 'quarterly'}
 
+        service = DatabaseSizeAggregationService()
+
         if instance_id is not None:
             try:
                 instance_id = int(instance_id)
             except (TypeError, ValueError) as exc:
                 raise AppValidationError("实例ID必须为整数") from exc
 
-            service = DatabaseSizeAggregationService()
             if period_type in valid_periods:
                 func_map = {
                     'daily': service.calculate_daily_aggregations_for_instance,
@@ -129,12 +124,18 @@ def manual_aggregate() -> Response:
                 }
                 raw_result = func_map[period_type](instance_id)
             else:
-                raw_result = calculate_instance_aggregations(instance_id)
+                raw_result = service.calculate_instance_aggregations(instance_id)
         else:
+            period_map = {
+                'daily': service.calculate_daily_aggregations,
+                'weekly': service.calculate_weekly_aggregations,
+                'monthly': service.calculate_monthly_aggregations,
+                'quarterly': service.calculate_quarterly_aggregations,
+            }
             if period_type in valid_periods:
-                raw_result = calculate_database_size_aggregations(manual_run=True, periods=[period_type])
+                raw_result = period_map[period_type]()
             else:
-                raw_result = calculate_database_size_aggregations(manual_run=True)
+                raw_result = service.calculate_all_aggregations()
 
         result = _normalize_task_result(raw_result, context="聚合计算")
 
@@ -172,11 +173,18 @@ def aggregate() -> Response:
         period_type = (data.get('period_type') or 'all').lower()
         valid_periods = {'daily', 'weekly', 'monthly', 'quarterly'}
 
-        raw_result = (
-            calculate_database_size_aggregations(manual_run=True, periods=[period_type])
-            if period_type in valid_periods
-            else calculate_database_size_aggregations(manual_run=True)
-        )
+        service = DatabaseSizeAggregationService()
+        period_map = {
+            'daily': service.calculate_daily_aggregations,
+            'weekly': service.calculate_weekly_aggregations,
+            'monthly': service.calculate_monthly_aggregations,
+            'quarterly': service.calculate_quarterly_aggregations,
+        }
+
+        if period_type in valid_periods:
+            raw_result = period_map[period_type]()
+        else:
+            raw_result = service.calculate_all_aggregations()
 
         result = _normalize_task_result(raw_result, context="统计聚合")
 
@@ -204,7 +212,8 @@ def aggregate_today() -> Response:
     """
     try:
         # 触发今日数据聚合（只执行日聚合）
-        raw_result = calculate_database_size_aggregations(manual_run=True, periods=['daily'])
+        service = DatabaseSizeAggregationService()
+        raw_result = service.calculate_daily_aggregations()
         result = _normalize_task_result(raw_result, context="今日聚合")
 
         log_info("今日数据聚合任务已触发", module="aggregations")
