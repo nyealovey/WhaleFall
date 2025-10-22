@@ -237,7 +237,8 @@ def _load_tasks_from_config(force: bool = False) -> None:
     """从配置文件加载任务"""
     import yaml
 
-    from app.tasks.legacy_tasks import cleanup_old_logs, sync_accounts
+    from app.tasks.log_cleanup_tasks import cleanup_old_logs
+    from app.tasks.account_sync_tasks import sync_accounts
     from app.tasks.partition_management_tasks import (
         create_database_size_partitions,
         cleanup_database_size_partitions,
@@ -396,7 +397,8 @@ def _load_tasks_from_config(force: bool = False) -> None:
 
 def _add_hardcoded_default_jobs() -> None:
     """添加硬编码的默认任务（备用方案）"""
-    from app.tasks.legacy_tasks import cleanup_old_logs, sync_accounts
+    from app.tasks.log_cleanup_tasks import cleanup_old_logs
+    from app.tasks.account_sync_tasks import sync_accounts
     from app.tasks.database_size_collection_tasks import collect_database_sizes
     from app.tasks.database_size_aggregation_tasks import calculate_database_size_aggregations
     from app.tasks.partition_management_tasks import monitor_partition_health

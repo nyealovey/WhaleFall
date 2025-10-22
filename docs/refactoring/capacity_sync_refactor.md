@@ -8,7 +8,7 @@
 
 ## 现状
 - 代码位置：
-  - 定时任务：`app/scheduler.py` 与 `app/tasks/legacy_tasks.py`（可能包含历史同步逻辑）。
+  - 定时任务：`app/scheduler.py` 与 `app/tasks/account_sync_tasks.py`、`app/tasks/log_cleanup_tasks.py`。
   - 统计与聚合：`app/routes/aggregations.py`、`app/routes/dashboard.py` 提供相关接口与展示。
   - 会话与同步：`app/models/sync_session.py`（用于记录会话/同步过程）。
 - 采集方式：不同数据库类型的采集接口差异较大，缺少统一输出契约与断点续传策略。
