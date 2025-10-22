@@ -3,7 +3,9 @@
 提供严格的数据验证功能，防止无效数据进入系统
 """
 
+import html
 import re
+from collections.abc import Mapping
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
@@ -16,7 +18,10 @@ class DataValidator:
     """数据验证器"""
     
     # 支持的数据库类型
-    SUPPORTED_DB_TYPES = ["mysql", "postgresql", "sqlserver", "oracle"]
+    SUPPORTED_DB_TYPES = ["mysql", "postgresql", "sqlserver", "oracle", "sqlite"]
+
+    # 支持的凭据类型
+    SUPPORTED_CREDENTIAL_TYPES = ["database", "ssh", "windows", "api", "ldap"]
     
     # 端口号范围
     MIN_PORT = 1
@@ -233,6 +238,29 @@ class DataValidator:
         return valid_data, errors
     
     @classmethod
+    def sanitize_string(cls, value: Any) -> str:
+        """
+        清理字符串，移除潜在的危险内容
+
+        Args:
+            value: 原始值
+
+        Returns:
+            清理后的字符串
+        """
+        if value is None:
+            return ""
+
+        string_value = str(value)
+        escaped = html.escape(string_value)
+
+        dangerous_patterns = ["<script", "</script", "javascript:", "onload=", "onerror="]
+        for pattern in dangerous_patterns:
+            escaped = escaped.replace(pattern, "")
+
+        return escaped.strip()
+
+    @classmethod
     def sanitize_input(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         清理输入数据
@@ -245,9 +273,8 @@ class DataValidator:
         """
         sanitized = {}
         
-        for key, value in data.items():
+        for key, value in (data or {}).items():
             if isinstance(value, str):
-                # 去除首尾空格
                 sanitized[key] = value.strip()
             elif isinstance(value, (int, float, bool)):
                 sanitized[key] = value
@@ -258,3 +285,164 @@ class DataValidator:
                 sanitized[key] = str(value).strip()
         
         return sanitized
+
+    @classmethod
+    def sanitize_form_data(cls, data: Mapping[str, Any]) -> Dict[str, Any]:
+        """
+        清理表单提交的数据结构
+
+        Args:
+            data: 表单或JSON数据
+
+        Returns:
+            清理后的数据
+        """
+        sanitized: Dict[str, Any] = {}
+        for key, value in (data or {}).items():
+            if isinstance(value, str):
+                sanitized[key] = cls.sanitize_string(value)
+            elif isinstance(value, (int, float, bool)):
+                sanitized[key] = value
+            elif value is None:
+                sanitized[key] = None
+            else:
+                sanitized[key] = cls.sanitize_string(str(value))
+        return sanitized
+
+    @staticmethod
+    def validate_required_fields(data: Mapping[str, Any], required_fields: List[str]) -> Optional[str]:
+        """
+        验证必填字段是否存在
+
+        Args:
+            data: 数据字典
+            required_fields: 必填字段列表
+
+        Returns:
+            错误信息或 None
+        """
+        for field in required_fields:
+            value = data.get(field) if hasattr(data, "get") else None
+            if value is None or (isinstance(value, str) and not value.strip()):
+                return f"{field}不能为空"
+        return None
+
+    @classmethod
+    def validate_db_type(cls, db_type: Any) -> Optional[str]:
+        """
+        验证数据库类型是否受支持
+
+        Args:
+            db_type: 待验证的数据库类型
+
+        Returns:
+            错误信息或 None
+        """
+        if db_type in (None, ""):
+            return None
+
+        if not isinstance(db_type, str):
+            return "数据库类型必须是字符串"
+
+        normalized = db_type.strip().lower()
+        if not normalized:
+            return "数据库类型不能为空"
+
+        if normalized not in cls.SUPPORTED_DB_TYPES:
+            return f"不支持的数据库类型: {db_type}"
+
+        return None
+
+    @classmethod
+    def validate_credential_type(cls, credential_type: Any) -> Optional[str]:
+        """
+        验证凭据类型
+
+        Args:
+            credential_type: 凭据类型
+
+        Returns:
+            错误信息或 None
+        """
+        if credential_type in (None, ""):
+            return None
+
+        if not isinstance(credential_type, str):
+            return "凭据类型必须是字符串"
+
+        normalized = credential_type.strip().lower()
+        if not normalized:
+            return "凭据类型不能为空"
+
+        if normalized not in cls.SUPPORTED_CREDENTIAL_TYPES:
+            return f"不支持的凭据类型: {credential_type}"
+
+        return None
+
+    @staticmethod
+    def validate_username(username: Any) -> Optional[str]:
+        """
+        验证用户名格式
+        """
+        if not username:
+            return "用户名不能为空"
+
+        if not isinstance(username, str):
+            return "用户名必须是字符串"
+
+        normalized = username.strip()
+        if len(normalized) < 3:
+            return "用户名长度至少3个字符"
+
+        if len(normalized) > 50:
+            return "用户名长度不能超过50个字符"
+
+        if not re.match(r"^[a-zA-Z0-9_.-]+$", normalized):
+            return "用户名只能包含字母、数字、下划线、连字符和点"
+
+        return None
+
+    @staticmethod
+    def validate_password(password: Any) -> Optional[str]:
+        """
+        验证密码强度
+        """
+        if not password:
+            return "密码不能为空"
+
+        if not isinstance(password, str):
+            return "密码必须是字符串"
+
+        if len(password) < 6:
+            return "密码长度至少6个字符"
+
+        if len(password) > 128:
+            return "密码长度不能超过128个字符"
+
+        return None
+
+
+# 兼容旧的函数式调用方式 ----------------------------------------------------
+
+def sanitize_form_data(data: Mapping[str, Any]) -> Dict[str, Any]:
+    return DataValidator.sanitize_form_data(data)
+
+
+def validate_required_fields(data: Mapping[str, Any], required_fields: List[str]) -> Optional[str]:
+    return DataValidator.validate_required_fields(data, required_fields)
+
+
+def validate_db_type(db_type: Any) -> Optional[str]:
+    return DataValidator.validate_db_type(db_type)
+
+
+def validate_credential_type(credential_type: Any) -> Optional[str]:
+    return DataValidator.validate_credential_type(credential_type)
+
+
+def validate_username(username: Any) -> Optional[str]:
+    return DataValidator.validate_username(username)
+
+
+def validate_password(password: Any) -> Optional[str]:
+    return DataValidator.validate_password(password)

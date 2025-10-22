@@ -18,7 +18,7 @@ from app.utils.decorators import (
     update_required,
     view_required,
 )
-from app.utils.security import validate_required_fields
+from app.utils.data_validator import validate_required_fields
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 

@@ -128,8 +128,7 @@ services/
 utils/
 ├── __init__.py
 ├── decorators.py           # 装饰器
-├── security.py             # 安全工具
-├── validators.py           # 验证器
+├── data_validator.py       # 数据与安全验证工具
 ├── formatters.py           # 格式化工具
 ├── helpers.py              # 辅助函数
 ├── exceptions.py           # 自定义异常

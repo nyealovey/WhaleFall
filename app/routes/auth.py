@@ -27,6 +27,7 @@ from app.models.user import User
 from app.utils.rate_limiter import (
     password_reset_rate_limit,
 )
+from app.utils.data_validator import validate_password
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.structlog_config import get_auth_logger
 

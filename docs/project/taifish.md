@@ -54,8 +54,7 @@
 ### 工具类 (app/utils/)
 - `app/utils/api_response.py` - API响应标准化
 - `app/utils/timezone.py` - 时区处理工具
-- `app/utils/security.py` - 安全工具
-- `app/utils/validation.py` - 数据验证工具
+- `app/utils/data_validator.py` - 数据与安全验证工具
 - `app/utils/cache_manager.py` - 缓存管理
 
 ## 脚本文件 (scripts/)
