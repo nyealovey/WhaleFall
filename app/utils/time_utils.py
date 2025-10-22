@@ -3,7 +3,7 @@
 基于Python 3.9+的zoneinfo模块，提供一致的时间处理功能
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 # 时区配置
@@ -47,7 +47,7 @@ class TimeUtils:
         return datetime.now(CHINA_TZ)
 
     @staticmethod
-    def to_china(dt: str | datetime | None) -> datetime | None:
+    def to_china(dt: str | date | datetime | None) -> datetime | None:
         """将时间转换为中国时区"""
         if not dt:
             return None
@@ -58,6 +58,8 @@ class TimeUtils:
                 if dt.endswith("Z"):
                     dt = dt[:-1] + "+00:00"
                 dt = datetime.fromisoformat(dt)
+            elif isinstance(dt, date) and not isinstance(dt, datetime):
+                dt = datetime.combine(dt, datetime.min.time())
 
             if dt.tzinfo is None:
                 # 如果没有时区信息，假设为UTC
@@ -71,7 +73,7 @@ class TimeUtils:
             return None
 
     @staticmethod
-    def to_utc(dt: str | datetime | None) -> datetime | None:
+    def to_utc(dt: str | date | datetime | None) -> datetime | None:
         """将时间转换为UTC时区"""
         if not dt:
             return None
@@ -81,6 +83,8 @@ class TimeUtils:
                 if dt.endswith("Z"):
                     dt = dt[:-1] + "+00:00"
                 dt = datetime.fromisoformat(dt)
+            elif isinstance(dt, date) and not isinstance(dt, datetime):
+                dt = datetime.combine(dt, datetime.min.time())
 
             if dt.tzinfo is None:
                 # 如果没有时区信息，假设为中国时间
@@ -94,7 +98,9 @@ class TimeUtils:
             return None
 
     @staticmethod
-    def format_china_time(dt: str | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT) -> str:
+    def format_china_time(
+        dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT
+    ) -> str:
         """格式化中国时间显示"""
         china_dt = TimeUtils.to_china(dt)
         if not china_dt:
@@ -106,7 +112,7 @@ class TimeUtils:
             return "-"
 
     @staticmethod
-    def format_utc_time(dt: str | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT) -> str:
+    def format_utc_time(dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT) -> str:
         """格式化UTC时间显示"""
         utc_dt = TimeUtils.to_utc(dt)
         if not utc_dt:
@@ -118,7 +124,7 @@ class TimeUtils:
             return "-"
 
     @staticmethod
-    def get_relative_time(dt: str | datetime | None) -> str:
+    def get_relative_time(dt: str | date | datetime | None) -> str:
         """获取相对时间描述"""
         china_dt = TimeUtils.to_china(dt)
         if not china_dt:
@@ -143,7 +149,7 @@ class TimeUtils:
             return "-"
 
     @staticmethod
-    def is_today(dt: str | datetime | None) -> bool:
+    def is_today(dt: str | date | datetime | None) -> bool:
         """判断是否为今天"""
         china_dt = TimeUtils.to_china(dt)
         if not china_dt:
@@ -171,7 +177,7 @@ class TimeUtils:
         }
 
     @staticmethod
-    def to_json_serializable(dt: str | datetime | None) -> str | None:
+    def to_json_serializable(dt: str | date | datetime | None) -> str | None:
         """转换为JSON可序列化的ISO格式"""
         if not dt:
             return None
@@ -180,6 +186,8 @@ class TimeUtils:
             if isinstance(dt, str):
                 return dt
             if isinstance(dt, datetime):
+                return dt.isoformat()
+            if isinstance(dt, date):
                 return dt.isoformat()
             return None
         except (ValueError, TypeError):
