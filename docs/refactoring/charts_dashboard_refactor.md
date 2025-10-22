@@ -109,7 +109,7 @@ def api_dashboard_metrics():
 
 ## 权限与防护
 - 鉴权：仪表盘接口默认 `login_required`；管理视图（含全局统计）使用 `admin_required`。
-- 速率限制：对高频接口使用 `rate_limiter.rate_limit`，返回标准限制头并在超限时用 `APIResponse.error_response(..., code=429)`。
+- 速率限制：对高频接口使用 `login_rate_limit` 等装饰器（见 `app/utils/rate_limiter.py`），并输出统一的限制响应。
 
 ## 前端接入与交互规范
 - 请求层：统一使用一个数据获取器模块（如 `dashboardData.ts/js`），封装参数与错误处理。
@@ -128,7 +128,7 @@ def api_dashboard_metrics():
 ## 迁移步骤
 1) 在 `app/routes/dashboard.py` 增加统一接口 `/api/dashboard/metrics` 与 `/api/dashboard/overview`，按数据契约输出。
 2) 将现有散落接口迁移到统一命名与参数规范，并统一响应到 `APIResponse`。
-3) 接入 `cache_manager`，关键接口加入短 TTL 缓存；高频接口加 `rate_limiter`。
+3) 接入 `cache_manager`，关键接口加入短 TTL 缓存；高频接口按需加速率限制。
 4) 更新 `app/templates/dashboard/*` 与 `app/static/js/**`，统一状态与数据解析。
 5) 清单化模块内图表与数据来源，删除重复实现与不一致契约。
 

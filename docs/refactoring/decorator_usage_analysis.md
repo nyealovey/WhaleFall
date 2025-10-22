@@ -32,7 +32,7 @@
 
 - `@login_required_json`：与 `@login_required` 功能重复。
 - `@validate_json`：改为在路由内部执行 JSON/必填字段检测（参见 `examples/validation/standard_api_templates.py`）。
-- `@rate_limit`：空实现，统一改用 `app/utils/rate_limiter.py` 中的工厂函数。
+- 统一使用 `app/utils/rate_limiter.py` 中的速率限制装饰器（如 `login_rate_limit`）。
 
 ## 4. 建议的请求验证模式
 
