@@ -6,7 +6,7 @@
 
 from flask import Blueprint, request
 from app import db
-from app.utils.decorators import validate_json, create_required, update_required, delete_required, view_required
+from app.utils.decorators import create_required, update_required, delete_required, view_required
 from app.utils.data_validator import DataValidator
 from app.utils.response_utils import jsonify_unified_success
 from app.errors import ValidationError, NotFoundError
@@ -20,19 +20,24 @@ blueprint = Blueprint("resource", __name__)
 # ============================================================================
 
 @blueprint.route("/api/resources", methods=["POST"])
-@validate_json(required_fields=["name", "host", "port"])
 @create_required
 def create_resource():
     """
     创建资源接口模板
     
     装饰器顺序：
-    1. @validate_json - 验证JSON格式和必填字段
-    2. @create_required - 验证创建权限
+    1. @create_required - 验证创建权限
     """
-    # 1. 获取数据（已经过 @validate_json 验证）
-    data = request.get_json()
-    
+    # 1. 获取并验证原始数据
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        raise ValidationError("请求数据必须是 JSON 对象")
+
+    required_fields = ["name", "host", "port"]
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        raise ValidationError(f"缺少必填字段: {', '.join(missing_fields)}")
+
     # 2. 清理输入
     data = DataValidator.sanitize_input(data)
     
@@ -117,7 +122,6 @@ def list_resources():
 # ============================================================================
 
 @blueprint.route("/api/resources/<int:resource_id>", methods=["PUT"])
-@validate_json(required_fields=["name"])
 @update_required
 def update_resource(resource_id: int):
     """
@@ -134,7 +138,12 @@ def update_resource(resource_id: int):
     #     raise NotFoundError("资源不存在")
     
     # 2. 获取并清理数据
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        raise ValidationError("请求数据必须是 JSON 对象")
+    if "name" not in data:
+        raise ValidationError("缺少必填字段: name")
+
     data = DataValidator.sanitize_input(data)
     
     # 3. 验证数据
@@ -189,7 +198,6 @@ def delete_resource(resource_id: int):
 # ============================================================================
 
 @blueprint.route("/api/resources/batch", methods=["POST"])
-@validate_json(required_fields=["ids", "action"])
 @update_required
 def batch_operation():
     """
@@ -201,9 +209,17 @@ def batch_operation():
     - 返回详细的操作统计
     """
     # 1. 获取数据
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        raise ValidationError("请求数据必须是 JSON 对象")
+
+    required_fields = ["ids", "action"]
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        raise ValidationError(f"缺少必填字段: {', '.join(missing_fields)}")
+
     ids = data.get("ids", [])
-    action = data.get("action")
+    action = str(data.get("action", "")).strip()
     
     # 2. 验证参数
     if not isinstance(ids, list) or not ids:
@@ -259,7 +275,7 @@ def bad_example_create():
     3. 不安全的类型转换
     4. 没有数据清理
     """
-    # ❌ 缺少 @validate_json 装饰器
+    # ❌ 未验证 JSON 类型和必填字段
     data = request.get_json()
     
     # ❌ 内联错误返回

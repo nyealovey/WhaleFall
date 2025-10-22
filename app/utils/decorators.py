@@ -9,7 +9,7 @@ from flask import flash, redirect, request, url_for
 from flask_login import current_user
 
 from app.constants.system_constants import ErrorMessages
-from app.errors import AuthenticationError, AuthorizationError, ValidationError
+from app.errors import AuthenticationError, AuthorizationError
 from app.utils.structlog_config import get_system_logger, should_log_debug
 
 
@@ -154,116 +154,6 @@ def login_required(f: Any) -> Any:  # noqa: ANN401
         return f(*args, **kwargs)
 
     return decorated_function
-
-
-def login_required_json(f: Any) -> Any:  # noqa: ANN401
-    """
-    JSON API登录装饰器
-
-    Args:
-        f: 被装饰的函数
-
-    Returns:
-        装饰后的函数
-    """
-
-    @wraps(f)
-    def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
-        if not current_user.is_authenticated:
-            raise AuthenticationError(
-                ErrorMessages.AUTHENTICATION_REQUIRED,
-                message_key="AUTHENTICATION_REQUIRED",
-                extra={
-                    "request_path": request.path,
-                    "request_method": request.method,
-                    "permission_type": "login",
-                },
-            )
-
-        return f(*args, **kwargs)
-
-    return decorated_function
-
-
-def rate_limit(requests_per_minute: int = 60) -> Any:  # noqa: ANN401
-    """
-    速率限制装饰器
-
-    Args:
-        requests_per_minute: 每分钟请求次数限制
-
-    Returns:
-        装饰器函数
-    """
-
-    def decorator(f: Any) -> Any:  # noqa: ANN401
-        @wraps(f)
-        def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
-            # 这里可以集成速率限制逻辑
-            # 目前只是简单实现
-            return f(*args, **kwargs)
-
-        return decorated_function
-
-    return decorator
-
-
-def validate_json(required_fields: list[str] | None = None) -> Any:  # noqa: ANN401
-    """
-    JSON数据验证装饰器
-
-    Args:
-        required_fields: 必需字段列表
-
-    Returns:
-        装饰器函数
-    """
-
-    def decorator(f: Any) -> Any:  # noqa: ANN401
-        @wraps(f)
-        def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
-            if not request.is_json:
-                raise ValidationError(
-                    ErrorMessages.JSON_REQUIRED,
-                    message_key="JSON_REQUIRED",
-                    extra={
-                        "request_path": request.path,
-                        "request_method": request.method,
-                    },
-                )
-
-            data = request.get_json()
-            if not data:
-                raise ValidationError(
-                    ErrorMessages.REQUEST_DATA_EMPTY,
-                    message_key="REQUEST_DATA_EMPTY",
-                    extra={
-                        "request_path": request.path,
-                        "request_method": request.method,
-                    },
-                )
-
-            if required_fields:
-                missing_fields = [field for field in required_fields if field not in data]
-                if missing_fields:
-                    message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(
-                        fields=", ".join(missing_fields)
-                    )
-                    raise ValidationError(
-                        message,
-                        message_key="MISSING_REQUIRED_FIELDS",
-                        extra={
-                            "missing_fields": missing_fields,
-                            "request_path": request.path,
-                            "request_method": request.method,
-                        },
-                    )
-
-            return f(*args, **kwargs)
-
-        return decorated_function
-
-    return decorator
 
 
 def permission_required(permission: str) -> Any:  # noqa: ANN401

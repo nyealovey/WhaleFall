@@ -23,7 +23,7 @@ from app.utils.decorators import (
     update_required,
     view_required,
 )
-from app.utils.security import (
+from app.utils.data_validator import (
     sanitize_form_data,
     validate_credential_type,
     validate_db_type,

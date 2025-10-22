@@ -14,27 +14,20 @@
 │                    请求验证体系                          │
 ├─────────────────────────────────────────────────────────┤
 │ 1️⃣ 装饰器层 (decorators.py)                            │
-│    - @validate_json          ✅ JSON格式和必填字段      │
 │    - @login_required         ✅ 登录验证                │
 │    - @admin_required         ✅ 管理员权限              │
 │    - @permission_required    ✅ 通用权限验证            │
 │    - @view/create/update/delete_required ✅ CRUD权限    │
+│    - @scheduler_view/manage_required ✅ 调度权限        │
 ├─────────────────────────────────────────────────────────┤
 │ 2️⃣ 数据验证层 (data_validator.py)                      │
 │    - validate_instance_data  ✅ 实例数据验证            │
 │    - validate_batch_data     ✅ 批量数据验证            │
-│    - sanitize_input          ✅ 数据清理                │
-├─────────────────────────────────────────────────────────┤
-│ 3️⃣ 输入验证层 (validation.py)                          │
-│    - validate_string         ✅ 字符串验证              │
-│    - validate_integer        ✅ 整数验证                │
-│    - validate_boolean        ✅ 布尔值验证              │
-│    - validate_email          ✅ 邮箱验证                │
-│    - validate_url            ✅ URL验证                 │
+│    - sanitize_input/form_data ✅ 数据与表单清理        │
+│    - validate_required_fields ✅ 必填字段检查           │
 │    - validate_db_type        ✅ 数据库类型验证          │
-│    - validate_pagination     ✅ 分页参数验证            │
-│    - sanitize_html           ✅ HTML清理                │
-│    - validate_sql_query      ✅ SQL安全检查             │
+│    - validate_credential_type ✅ 凭据类型验证          │
+│    - validate_username/password ✅ 凭据账号校验        │
 ├─────────────────────────────────────────────────────────┤
 │ 4️⃣ 异常处理层 (errors/__init__.py)                     │
 │    - ValidationError         ✅ 验证错误                │
@@ -79,20 +72,25 @@ def list_api():
 **问题**: 可能接收到错误类型的数据
 
 ```python
-# ❌ 当前做法：只检查字段存在
-@validate_json(required_fields=["name", "port"])
-def create_api():
-    data = request.get_json()
-    # port 可能是字符串 "abc"，需要手动验证类型
-    
-# ✅ 理想做法：同时验证类型
-@validate_json_schema({
-    "name": {"type": str, "required": True, "min_length": 1},
-    "port": {"type": int, "required": True, "min": 1, "max": 65535}
-})
-def create_api():
-    # 数据已经类型验证完成
-    pass
+# ❌ 当前做法：只判断字段存在
+data = request.get_json()
+if "port" not in data:
+    raise ValidationError("缺少端口")
+# port 可能是字符串 "abc"
+
+# ✅ 推荐做法：结合必填字段与 DataValidator
+data = request.get_json(silent=True)
+if not isinstance(data, dict):
+    raise ValidationError("请求数据必须是 JSON 对象")
+
+required_fields = ["name", "port"]
+missing = [field for field in required_fields if field not in data]
+if missing:
+    raise ValidationError(f"缺少字段: {', '.join(missing)}")
+
+is_valid, error = DataValidator.validate_instance_data(data)
+if not is_valid:
+    raise ValidationError(error)
 ```
 
 **建议**: ⚠️ **可选新增**，但当前 `DataValidator` 已经覆盖了这个功能
@@ -198,18 +196,15 @@ def api():
 
 | 验证场景 | 覆盖度 | 说明 |
 |---------|--------|------|
-| JSON格式验证 | ✅ 100% | `@validate_json` |
-| 必填字段验证 | ✅ 100% | `@validate_json(required_fields)` |
+| JSON格式验证 | ⚠️ 依赖手动 | 路由内部使用 `request.get_json(silent=True)` + 判空 |
+| 必填字段验证 | ⚠️ 依赖手动 | 必填字段在各路由中自行校验 |
 | 登录验证 | ✅ 100% | `@login_required` |
 | 权限验证 | ✅ 100% | `@permission_required` 系列 |
 | 实例数据验证 | ✅ 100% | `DataValidator.validate_instance_data` |
-| 字符串验证 | ✅ 100% | `InputValidator.validate_string` |
-| 整数验证 | ✅ 100% | `InputValidator.validate_integer` |
-| 邮箱验证 | ✅ 100% | `InputValidator.validate_email` |
-| URL验证 | ✅ 100% | `InputValidator.validate_url` |
-| 分页验证 | ✅ 100% | `InputValidator.validate_pagination` |
-| HTML清理 | ✅ 100% | `InputValidator.sanitize_html` |
-| SQL安全检查 | ✅ 100% | `InputValidator.validate_sql_query` |
+| URL验证 | ❌ 未覆盖 | 旧版 `InputValidator` 已移除，需按需补充 |
+| 分页验证 | ⚠️ 依赖手动 | 通过 `request.args.get(..., type=...)` 处理 |
+| HTML清理 | ⚠️ 部分覆盖 | 可使用 `bleach` 或领域逻辑按需处理 |
+| SQL安全检查 | ⚠️ 部分覆盖 | 建议统一使用查询构建器或参数化语句 |
 | 异常处理 | ✅ 100% | 完整的异常类体系 |
 
 ### 缺少覆盖的验证场景
@@ -418,22 +413,20 @@ def validate_query_params(**param_specs):
 ## 📦 验证体系整合建议
 
 ### 当前问题
-你有4个验证相关文件，功能有重叠：
-- `app/utils/data_validator.py` - 领域数据验证
-- `app/utils/validation.py` - 通用输入验证
-- `app/utils/security.py` - 安全验证
-- `app/utils/decorators.py` - 装饰器验证
+此前存在多个验证相关文件，功能有重叠：
+- `app/utils/data_validator.py` - 领域与通用数据验证
+- `app/utils/decorators.py` - 装饰器验证（权限）
+- `app/utils/validation.py` - （已删除）通用输入验证
 
 ### 整合方案
 
 #### 选项1：保持现状 ✅ 推荐
-**优点**: 不需要改动，风险最小  
-**缺点**: 功能分散，有重复
+**优点**: 已通过合并安全验证逻辑至 `data_validator.py` 减少冗余，风险最小  
+**缺点**: JSON/必填字段校验依赖路由手动实现
 
 **建议**: 
-- 只增强 `security.py` 的密码验证
-- 只增强 `data_validator.py` 的IP验证
-- 保持其他文件不变
+- 继续增强 `data_validator.py` 的密码/IP 校验
+- 在代码评审流程中检查路由的 JSON 校验逻辑
 
 #### 选项2：创建统一验证器
 **优点**: 功能集中，易于维护  
@@ -457,7 +450,7 @@ def validate_query_params(**param_specs):
 
 **具体实施**:
 ```python
-# 1. 在 security.py 中增强密码验证
+# 1. 在 data_validator.py 中增强密码验证
 def validate_password(
     password: str,
     min_length: int = 8,  # 提高到8
