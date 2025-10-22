@@ -257,7 +257,6 @@ def _load_tasks_from_config(force: bool = False) -> None:
         calculate_period_aggregations,
         get_aggregation_status,
         validate_aggregation_config,
-        cleanup_old_aggregations
     )
 
     # 如果不是强制模式，检查是否已有任务
@@ -324,8 +323,6 @@ def _load_tasks_from_config(force: bool = False) -> None:
                 func = get_aggregation_status
             elif function_name == "validate_aggregation_config":
                 func = validate_aggregation_config
-            elif function_name == "cleanup_old_aggregations":
-                func = cleanup_old_aggregations
             else:
                 logger.warning("未知的任务函数: %s", function_name)
                 continue

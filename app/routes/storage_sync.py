@@ -5,12 +5,16 @@
 
 from __future__ import annotations
 
+from typing import Any, Dict
+
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
 
 from app.constants.system_constants import SuccessMessages
 from app.errors import NotFoundError, SystemError
 from app.models.instance import Instance
+from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.services.database_size_collector_service import DatabaseSizeCollectorService
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
@@ -24,6 +28,71 @@ def _get_instance(instance_id: int) -> Instance:
     if instance is None:
         raise NotFoundError("实例不存在")
     return instance
+
+
+def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
+    collector = DatabaseSizeCollectorService(instance)
+
+    if not collector.connect():
+        return {
+            'success': False,
+            'message': f'无法连接到实例 {instance.name}',
+        }
+
+    try:
+        databases_data = collector.collect_database_sizes()
+        if not databases_data:
+            return {
+                'success': False,
+                'message': '未采集到任何数据库大小数据',
+            }
+
+        database_count = len(databases_data)
+        total_size_mb = sum(db.get('size_mb', 0) for db in databases_data)
+
+        try:
+            saved_count = collector.save_collected_data(databases_data)
+        except Exception as exc:  # noqa: BLE001
+            log_error(
+                "保存数据库容量数据失败",
+                module="storage_sync",
+                instance_id=instance.id,
+                instance_name=instance.name,
+                error=str(exc),
+                exc_info=True,
+            )
+            return {
+                'success': False,
+                'message': f'采集成功但保存数据失败: {exc}',
+                'error': str(exc),
+            }
+
+        instance_stat_updated = collector.update_instance_total_size()
+
+        try:
+            aggregation_service = DatabaseSizeAggregationService()
+            aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
+            aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(
+                "容量聚合刷新失败",
+                module="storage_sync",
+                instance_id=instance.id,
+                instance_name=instance.name,
+                error=str(exc),
+            )
+
+        return {
+            'success': True,
+            'databases': databases_data,
+            'database_count': database_count,
+            'total_size_mb': total_size_mb,
+            'saved_count': saved_count,
+            'instance_stat_updated': instance_stat_updated,
+            'message': f'成功采集并保存 {database_count} 个数据库的容量信息',
+        }
+    finally:
+        collector.disconnect()
 
 # 页面路由 - 存储同步主页面
 @storage_sync_bp.route('/', methods=['GET'])
@@ -121,10 +190,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
             user_action=True,
         )
 
-        # 触发指定实例的容量同步
-        # 运行时导入以避免潜在的加载顺序问题
-        from app.tasks.database_size_collection_tasks import collect_specific_instance_database_sizes
-        result = collect_specific_instance_database_sizes(instance_id)
+        result = _collect_instance_capacity(instance)
 
         if result and result.get("success"):
             log_info(

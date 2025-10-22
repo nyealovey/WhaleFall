@@ -14,8 +14,6 @@ from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.services.partition_management_service import PartitionManagementService
-from app.tasks.database_size_aggregation_tasks import cleanup_old_aggregations
-from app.tasks.partition_management_tasks import get_partition_management_status
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
@@ -52,12 +50,45 @@ def get_partition_info() -> Response:
 
 # API 路由
 
+def _build_partition_status(service: PartitionManagementService) -> dict[str, object]:
+    partition_info = service.get_partition_info()
+    stats = service.get_partition_statistics()
+
+    current_date = date.today()
+    required_partitions: list[str] = []
+    for offset in range(3):
+        month_date = (current_date.replace(day=1) + timedelta(days=offset * 32)).replace(day=1)
+        required_partitions.append(
+            f"database_size_stats_{time_utils.format_china_time(month_date, '%Y_%m')}"
+        )
+
+    existing_partitions = {partition["name"] for partition in partition_info["partitions"]}
+    missing_partitions = [name for name in required_partitions if name not in existing_partitions]
+
+    status = "healthy" if not missing_partitions else "warning"
+    return {
+        "status": status,
+        "total_partitions": stats["total_partitions"],
+        "total_size": stats["total_size"],
+        "total_records": stats["total_records"],
+        "missing_partitions": missing_partitions,
+        "partitions": partition_info["partitions"],
+    }
+
+
 @partition_bp.route('/api/status', methods=['GET'])
 @login_required
 @view_required
 def get_partition_status() -> Response:
     """获取分区管理状态"""
-    result = get_partition_management_status()
+
+    service = PartitionManagementService()
+    try:
+        result = _build_partition_status(service)
+    except Exception as exc:  # noqa: BLE001
+        log_error("获取分区管理状态失败", module="partition", exception=exc)
+        raise SystemError("获取分区管理状态失败") from exc
+
     if result.get('status') != 'healthy':
         log_warning(
             "分区状态存在告警",
@@ -65,6 +96,7 @@ def get_partition_status() -> Response:
             status=result.get('status'),
             missing_partitions=result.get('missing_partitions'),
         )
+
     payload = {
         'data': result,
         'timestamp': time_utils.now().isoformat(),

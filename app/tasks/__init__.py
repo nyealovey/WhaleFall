@@ -21,7 +21,6 @@ from .database_size_aggregation_tasks import (
     calculate_period_aggregations,
     get_aggregation_status,
     validate_aggregation_config,
-    cleanup_old_aggregations
 )
 
 from .partition_management_tasks import (
@@ -49,7 +48,6 @@ __all__ = [
     'calculate_period_aggregations',
     'get_aggregation_status',
     'validate_aggregation_config',
-    'cleanup_old_aggregations',
     
     # 分区管理任务
     'create_database_size_partitions',
