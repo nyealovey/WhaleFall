@@ -16,7 +16,7 @@ from app.models.instance_size_stat import InstanceSizeStat
 from app.services.partition_management_service import PartitionManagementService
 from app.tasks.database_size_aggregation_tasks import cleanup_old_aggregations
 from app.tasks.partition_management_tasks import get_partition_management_status
-from app.utils.decorators import view_required
+from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
@@ -78,6 +78,7 @@ def get_partition_status() -> Response:
 @partition_bp.route('/api/create', methods=['POST'])
 @login_required
 @view_required
+@require_csrf
 def create_partition() -> Response:
     """
     创建分区
@@ -124,6 +125,7 @@ def create_partition() -> Response:
 @partition_bp.route('/api/cleanup', methods=['POST'])
 @login_required
 @view_required
+@require_csrf
 def cleanup_partitions() -> Response:
     """
     清理旧分区
@@ -175,6 +177,7 @@ def get_partition_statistics() -> Response:
 @partition_bp.route('/api/create-future', methods=['POST'])
 @login_required
 @view_required
+@require_csrf
 def create_future_partitions() -> Response:
     """
     创建未来分区

@@ -7,7 +7,7 @@
 from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
 
-from app.utils.decorators import admin_required, update_required, view_required
+from app.utils.decorators import admin_required, require_csrf, update_required, view_required
 
 from app.models import Instance
 from app.services.cache_manager import cache_manager
@@ -52,6 +52,7 @@ def check_cache_health() -> Response:
 @cache_bp.route("/api/clear/user", methods=["POST"])
 @login_required
 @admin_required
+@require_csrf
 def clear_user_cache() -> Response:
     """清除用户缓存"""
     data = request.get_json() or {}
@@ -91,6 +92,7 @@ def clear_user_cache() -> Response:
 @cache_bp.route("/api/clear/instance", methods=["POST"])
 @login_required
 @admin_required
+@require_csrf
 def clear_instance_cache() -> Response:
     """清除实例缓存"""
     data = request.get_json() or {}
@@ -128,6 +130,7 @@ def clear_instance_cache() -> Response:
 @cache_bp.route("/api/clear/all", methods=["POST"])
 @login_required
 @admin_required
+@require_csrf
 def clear_all_cache() -> Response:
     """清除所有缓存"""
     try:
@@ -163,6 +166,7 @@ def clear_all_cache() -> Response:
 @cache_bp.route("/api/classification/clear", methods=["POST"])
 @login_required
 @update_required
+@require_csrf
 def clear_classification_cache() -> Response:
     """清除分类相关缓存"""
     service = AccountClassificationService()
@@ -186,6 +190,7 @@ def clear_classification_cache() -> Response:
 @cache_bp.route("/api/classification/clear/<db_type>", methods=["POST"])
 @login_required
 @update_required
+@require_csrf
 def clear_db_type_cache(db_type: str) -> Response:
     """清除特定数据库类型的缓存"""
     valid_db_types = {"mysql", "postgresql", "sqlserver", "oracle"}

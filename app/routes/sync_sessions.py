@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 
 from app.errors import NotFoundError, SystemError
 from app.services.sync_session_service import sync_session_service
-from app.utils.decorators import view_required
+from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 
@@ -139,6 +139,7 @@ def api_get_session_detail(session_id: str) -> Response:
 @sync_sessions_bp.route("/api/sessions/<session_id>/cancel", methods=["POST"])
 @login_required
 @view_required
+@require_csrf
 def api_cancel_session(session_id: str) -> Response:
     """取消同步会话 API"""
     try:

@@ -11,8 +11,6 @@ from flask_jwt_extended import (
     jwt_required,
 )
 from flask_login import current_user, login_required, login_user, logout_user
-from flask_wtf.csrf import validate_csrf
-from wtforms import ValidationError as WTFormsValidationError
 
 from app import db
 from app.constants.system_constants import ErrorMessages, SuccessMessages
@@ -24,9 +22,8 @@ from app.errors import (
     ValidationError as AppValidationError,
 )
 from app.models.user import User
-from app.utils.rate_limiter import (
-    password_reset_rate_limit,
-)
+from app.utils.decorators import require_csrf
+from app.utils.rate_limiter import password_reset_rate_limit
 from app.utils.data_validator import validate_password
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.structlog_config import get_auth_logger
@@ -39,6 +36,7 @@ auth_logger = get_auth_logger()
 
 
 @auth_bp.route("/api/login", methods=["POST"])
+@require_csrf
 def login_api() -> "Response":
     """用户登录API"""
     # 添加调试日志
@@ -121,6 +119,7 @@ def login_api() -> "Response":
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@require_csrf
 def login() -> "str | Response":
     """用户登录页面"""
     if request.method == "POST":
@@ -190,6 +189,7 @@ def login() -> "str | Response":
 
 @auth_bp.route("/api/logout", methods=["GET", "POST"])
 @login_required
+@require_csrf
 def logout() -> "Response":
     """用户登出"""
     # 记录登出日志
@@ -237,25 +237,9 @@ def profile() -> "str | Response":
 @auth_bp.route("/api/change-password", methods=["POST"])
 @login_required
 @password_reset_rate_limit
+@require_csrf
 def change_password_api() -> "Response":
     """修改密码API"""
-    # 验证CSRF令牌
-    csrf_token = request.headers.get("X-CSRFToken")
-    if not csrf_token:
-        raise AppValidationError(message="缺少CSRF令牌")
-
-    try:
-        validate_csrf(csrf_token)
-    except WTFormsValidationError as exc:
-        auth_logger.warning(
-            "API CSRF令牌验证失败",
-            user_id=current_user.id,
-            username=current_user.username,
-            ip_address=request.remote_addr,
-            error=str(exc),
-        )
-        raise AuthorizationError(message="CSRF令牌验证失败")
-
     data = request.get_json(silent=True) if request.is_json else request.form
     data = data or {}
     old_password = data.get("old_password")
@@ -316,36 +300,10 @@ def change_password_api() -> "Response":
 @auth_bp.route("/change-password", methods=["GET", "POST"])
 @login_required
 @password_reset_rate_limit
+@require_csrf
 def change_password() -> "str | Response":
     """修改密码页面"""
     if request.method == "POST":
-        # 验证CSRF令牌
-        try:
-            if not request.is_json:
-                # 对于表单请求，验证CSRF令牌
-                validate_csrf(request.form.get("csrf_token"))
-            else:
-                # 对于JSON请求，验证CSRF令牌
-                csrf_token = request.headers.get("X-CSRFToken")
-                if not csrf_token:
-                    if request.is_json:
-                        return jsonify_unified_error_message("缺少CSRF令牌", status_code=400)
-                    flash("缺少CSRF令牌", "error")
-                    return render_template("auth/change_password.html")
-                validate_csrf(csrf_token)
-        except WTFormsValidationError as e:
-            auth_logger.warning(
-                "CSRF令牌验证失败",
-                user_id=current_user.id,
-                username=current_user.username,
-                ip_address=request.remote_addr,
-                error=str(e)
-            )
-            if request.is_json:
-                return jsonify_unified_error_message("CSRF令牌验证失败", status_code=400)
-            flash("CSRF令牌验证失败", "error")
-            return render_template("auth/change_password.html")
-        
         old_password = request.form.get("old_password")
         new_password = request.form.get("new_password")
         confirm_password = request.form.get("confirm_password")
@@ -393,6 +351,7 @@ def get_csrf_token() -> "Response":
 
 
 @auth_bp.route("/api/refresh", methods=["POST"])
+@require_csrf
 @jwt_required(refresh=True)
 def refresh() -> "Response":
     """刷新JWT token"""

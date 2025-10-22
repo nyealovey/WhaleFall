@@ -11,7 +11,7 @@ from flask_login import login_required
 from app.constants.system_constants import SuccessMessages
 from app.errors import NotFoundError, SystemError
 from app.models.instance import Instance
-from app.utils.decorators import view_required
+from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 
@@ -50,6 +50,7 @@ def storage_sync():
 @storage_sync_bp.route('/api/test_connection', methods=['POST'])
 @login_required
 @view_required
+@require_csrf
 def test_connection() -> Response:
     """
     测试数据库连接（已弃用，请使用 /connections/api/test）
@@ -97,6 +98,7 @@ def get_instances() -> Response:
 
 @storage_sync_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=["POST"])
 @view_required("instance_management.instance_list.sync_capacity")
+@require_csrf
 def sync_instance_capacity(instance_id: int) -> Response:
     """
     同步指定实例的容量信息

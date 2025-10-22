@@ -15,7 +15,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.scheduler import get_scheduler
 from app.services.scheduler_health_service import scheduler_health_service
-from app.utils.decorators import scheduler_manage_required, scheduler_view_required
+from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
@@ -266,6 +266,7 @@ def get_job(job_id: str) -> Response:
 @scheduler_bp.route("/api/jobs/<job_id>/disable", methods=["POST"])
 @login_required  # type: ignore
 @scheduler_manage_required  # type: ignore
+@require_csrf
 def disable_job(job_id: str) -> Response:
     """禁用定时任务"""
     try:
@@ -293,6 +294,7 @@ def disable_job(job_id: str) -> Response:
 @scheduler_bp.route("/api/jobs/<job_id>/enable", methods=["POST"])
 @login_required  # type: ignore
 @scheduler_manage_required  # type: ignore
+@require_csrf
 def enable_job(job_id: str) -> Response:
     """启用定时任务"""
     try:
@@ -319,6 +321,7 @@ def enable_job(job_id: str) -> Response:
 @scheduler_bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
 @login_required  # type: ignore
 @scheduler_manage_required  # type: ignore
+@require_csrf
 def pause_job(job_id: str) -> Response:
     """暂停任务"""
     try:
@@ -334,6 +337,7 @@ def pause_job(job_id: str) -> Response:
 @scheduler_bp.route("/api/jobs/<job_id>/resume", methods=["POST"])
 @login_required  # type: ignore
 @scheduler_manage_required  # type: ignore
+@require_csrf
 def resume_job(job_id: str) -> Response:
     """恢复任务"""
     try:
@@ -349,6 +353,7 @@ def resume_job(job_id: str) -> Response:
 @scheduler_bp.route("/api/jobs/<job_id>/run", methods=["POST"])
 @login_required  # type: ignore
 @scheduler_manage_required  # type: ignore
+@require_csrf
 def run_job(job_id: str) -> Response:
     """立即执行任务"""
     try:
@@ -409,6 +414,7 @@ def run_job(job_id: str) -> Response:
 @scheduler_bp.route("/api/jobs/reload", methods=["POST"])
 @login_required  # type: ignore
 @scheduler_manage_required  # type: ignore
+@require_csrf
 def reload_jobs() -> Response:
     """重新加载所有任务配置
     
@@ -478,6 +484,7 @@ def reload_jobs() -> Response:
 @scheduler_bp.route("/api/jobs/<job_id>", methods=["PUT"])
 @login_required  # type: ignore
 @scheduler_manage_required  # type: ignore
+@require_csrf
 def update_job_trigger(job_id: str) -> Response:
     """更新内置任务的触发器配置（仅限内置任务）"""
     try:

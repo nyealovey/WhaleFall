@@ -19,7 +19,7 @@ from app.models.sync_session import SyncSession
 from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
 from app.services.account_sync_service import account_sync_service
 from app.services.sync_session_service import sync_session_service
-from app.utils.decorators import update_required, view_required
+from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 
@@ -362,6 +362,7 @@ def sync_records() -> str | Response:
 @account_sync_bp.route("/api/sync-all", methods=["POST"])
 @login_required
 @update_required
+@require_csrf
 def sync_all_accounts() -> str | Response | tuple[Response, int]:
     """同步所有实例的账户（使用新的会话管理架构）"""
     from app.services.sync_session_service import sync_session_service
@@ -636,6 +637,7 @@ def sync_details_batch() -> str | Response | tuple[Response, int]:
 @account_sync_bp.route("/api/instances/<int:instance_id>/sync", methods=["POST"])
 @login_required
 @update_required
+@require_csrf
 def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response, int]:
     """同步指定实例的账户信息"""
     instance = Instance.query.get_or_404(instance_id)

@@ -14,6 +14,7 @@ from app.models.user import User
 from app.utils.decorators import (
     create_required,
     delete_required,
+    require_csrf,
     update_required,
     view_required,
 )
@@ -130,6 +131,7 @@ def api_get_user(user_id: int) -> tuple[Response, int]:
 @users_bp.route("/api/users", methods=["POST"])
 @login_required
 @create_required
+@require_csrf
 def api_create_user() -> tuple[Response, int]:
     """创建用户API"""
     data = request.get_json() or {}
@@ -205,6 +207,7 @@ def api_create_user() -> tuple[Response, int]:
 @users_bp.route("/api/users/<int:user_id>", methods=["PUT"])
 @login_required
 @update_required
+@require_csrf
 def api_update_user(user_id: int) -> tuple[Response, int]:
     """更新用户API"""
     user = User.query.get_or_404(user_id)
@@ -282,6 +285,7 @@ def api_update_user(user_id: int) -> tuple[Response, int]:
 @users_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
 @login_required
 @delete_required
+@require_csrf
 def api_delete_user(user_id: int) -> tuple[Response, int]:
     """删除用户API"""
     user = User.query.get_or_404(user_id)
@@ -338,6 +342,7 @@ def api_delete_user(user_id: int) -> tuple[Response, int]:
 @users_bp.route("/api/users/<int:user_id>/toggle-status", methods=["POST"])
 @login_required
 @update_required
+@require_csrf
 def api_toggle_user_status(user_id: int) -> tuple[Response, int]:
     """切换用户状态API"""
     user = User.query.get_or_404(user_id)

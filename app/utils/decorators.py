@@ -3,15 +3,18 @@
 """
 
 from functools import wraps
-from typing import Any
+from typing import Any, Optional
 
 from flask import flash, redirect, request, url_for
 from flask_login import current_user
+from flask_wtf.csrf import CSRFError, validate_csrf
 
 from app.constants.system_constants import ErrorMessages
 from app.errors import AuthenticationError, AuthorizationError
 from app.utils.structlog_config import get_system_logger, should_log_debug
 
+CSRF_HEADER = "X-CSRFToken"
+SAFE_CSRF_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 def admin_required(f: Any) -> Any:  # noqa: ANN401
     """
@@ -248,6 +251,76 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
         return decorated_function
 
     return decorator
+
+
+def _extract_csrf_token() -> Optional[str]:
+    """从请求中提取 CSRF 令牌."""
+    token = request.headers.get(CSRF_HEADER)
+    if token:
+        return token
+
+    if request.is_json:
+        payload = request.get_json(silent=True)
+        if isinstance(payload, dict):
+            token = payload.get("csrf_token")
+            if token:
+                return token
+
+    return request.form.get("csrf_token")
+
+
+def require_csrf(f: Any) -> Any:  # noqa: ANN401
+    """统一的 CSRF 校验装饰器."""
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
+        if request.method.upper() in SAFE_CSRF_METHODS:
+            return f(*args, **kwargs)
+
+        system_logger = get_system_logger()
+        token = _extract_csrf_token()
+        if not token:
+            system_logger.warning(
+                "CSRF 令牌缺失",
+                module="decorators",
+                request_path=request.path,
+                request_method=request.method,
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get("User-Agent", ""),
+            )
+            raise AuthorizationError(
+                "缺少 CSRF 令牌",
+                message_key="CSRF_MISSING",
+                extra={
+                    "request_path": request.path,
+                    "request_method": request.method,
+                },
+            )
+
+        try:
+            validate_csrf(token)
+        except CSRFError as exc:
+            system_logger.warning(
+                "CSRF 令牌校验失败",
+                module="decorators",
+                request_path=request.path,
+                request_method=request.method,
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get("User-Agent", ""),
+                exception=str(exc),
+            )
+            raise AuthorizationError(
+                "CSRF 令牌无效，请刷新后重试",
+                message_key="CSRF_INVALID",
+                extra={
+                    "request_path": request.path,
+                    "request_method": request.method,
+                },
+            ) from exc
+
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 
 def has_permission(user: Any, permission: str) -> bool:

@@ -12,7 +12,7 @@ from app.errors import NotFoundError, SystemError, ValidationError
 from app.models import Instance
 from app.services.connection_factory import ConnectionFactory
 from app.services.connection_test_service import ConnectionTestService
-from app.utils.decorators import view_required
+from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
@@ -27,6 +27,7 @@ connection_test_service = ConnectionTestService()
 @connections_bp.route("/api/test", methods=["POST"])
 @login_required
 @view_required
+@require_csrf
 def test_connection() -> Response:
     """
     测试数据库连接API
@@ -163,6 +164,7 @@ def get_supported_types() -> Response:
 @connections_bp.route("/api/validate-params", methods=["POST"])
 @login_required
 @view_required
+@require_csrf
 def validate_connection_params() -> Response:
     """验证连接参数"""
     data = request.get_json()
@@ -206,6 +208,7 @@ def validate_connection_params() -> Response:
 @connections_bp.route("/api/batch-test", methods=["POST"])
 @login_required
 @view_required
+@require_csrf
 def batch_test_connections() -> Response:
     """批量测试连接"""
     data = request.get_json() or {}
