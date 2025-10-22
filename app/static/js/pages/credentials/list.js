@@ -46,15 +46,15 @@ function handleDeleteConfirmation() {
         .then(response => response.json())
         .then(data => {
             if (data.message) {
-                showAlert('success', data.message);
+                notify.success(data.message);
                 setTimeout(() => location.reload(), 1000);
             } else if (data.error) {
-                showAlert('danger', data.error);
+                notify.error(data.error);
             }
         })
         .catch(error => {
             console.error('删除凭据失败:', error);
-            showAlert('danger', '删除失败，请稍后重试');
+            notify.error('删除失败，请稍后重试');
         })
         .finally(() => {
             hideLoadingState('confirmDelete', '确认删除');
@@ -81,7 +81,7 @@ function handleSearchSubmit(event, form) {
     // 基本验证
     if (searchInput && searchInput.value.trim().length > 0 && searchInput.value.trim().length < 2) {
         event.preventDefault();
-        showAlert('warning', '搜索关键词至少需要2个字符');
+        notify.warning('搜索关键词至少需要2个字符');
         return false;
     }
     
@@ -131,15 +131,15 @@ function toggleCredentialStatus(credentialId, isActive, button) {
     .then(response => response.json())
     .then(data => {
         if (data.message) {
-            showAlert('success', data.message);
+            notify.success(data.message);
             setTimeout(() => location.reload(), 1000);
         } else if (data.error) {
-            showAlert('danger', data.error);
+            notify.error(data.error);
         }
     })
     .catch(error => {
         console.error('切换凭据状态失败:', error);
-        showAlert('danger', '操作失败，请稍后重试');
+        notify.error('操作失败，请稍后重试');
     })
     .finally(() => {
         hideLoadingState(button, originalHtml);
@@ -186,43 +186,6 @@ function hideLoadingState(element, originalText) {
         element.innerHTML = originalText;
         element.disabled = false;
     }
-}
-
-// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
-
-// 显示提示信息
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    const container = document.querySelector('.container');
-    if (container) {
-        container.insertBefore(alertDiv, container.firstChild);
-    }
-    
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 5000);
-}
-
-// 显示成功提示
-function showSuccessAlert(message) {
-    showAlert('success', message);
-}
-
-// 显示警告提示
-function showWarningAlert(message) {
-    showAlert('warning', message);
-}
-
-// 显示错误提示
-function showErrorAlert(message) {
-    showAlert('danger', message);
 }
 
 // 搜索功能
@@ -349,7 +312,3 @@ window.clearSearch = clearSearch;
 window.exportCredentials = exportCredentials;
 window.sortTable = sortTable;
 window.filterTable = filterTable;
-window.showAlert = showAlert;
-window.showSuccessAlert = showSuccessAlert;
-window.showWarningAlert = showWarningAlert;
-window.showErrorAlert = showErrorAlert;

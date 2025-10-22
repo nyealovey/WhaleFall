@@ -691,30 +691,7 @@ class TagSelector {
     
     // 显示提示
     showAlert(type, message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
-        alertDiv.innerHTML = `
-            <i class="fas fa-${this.getAlertIcon(type)} me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        this.container.insertBefore(alertDiv, this.container.firstChild);
-        
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
-    }
-    
-    // 获取提示图标
-    getAlertIcon(type) {
-        switch (type) {
-            case 'success': return 'check-circle';
-            case 'danger': return 'exclamation-triangle';
-            case 'warning': return 'exclamation-triangle';
-            case 'info': return 'info-circle';
-            default: return 'info-circle';
-        }
+        notify.alert(type, message, { container: '.container-fluid' });
     }
     
     // 获取空状态HTML

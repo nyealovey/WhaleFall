@@ -41,9 +41,7 @@ function showPermissionsModal(permissions, account) {
     } catch (error) {
         console.error('showPermissionsModal 函数执行出错:', error);
         console.error('错误堆栈:', error.stack);
-        if (window.showAlert) {
-            window.showAlert('danger', '显示权限信息时发生错误: ' + error.message);
-        }
+        notify.error('获取权限信息失败，请稍后重试', { title: '错误' });
     }
 }
 

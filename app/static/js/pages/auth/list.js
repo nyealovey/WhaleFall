@@ -66,17 +66,17 @@ function handleAddUser(event, form) {
         })
         .then(data => {
             if (data.success) {
-                showAlert('success', data.message);
+                notify.success( data.message);
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
                 if (modal) modal.hide();
                 location.reload();
             } else {
-                showAlert('error', data.message || '添加用户失败');
+                notify.error( data.message || '添加用户失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showAlert('error', '添加用户失败');
+            notify.error( '添加用户失败');
         })
         .finally(() => {
             hideLoadingState(form.querySelector('button[type="submit"]'), '添加用户');
@@ -134,17 +134,17 @@ function handleEditUser(event, form) {
         })
         .then(data => {
             if (data.success) {
-                showAlert('success', data.message);
+                notify.success( data.message);
                 const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
                 if (modal) modal.hide();
                 location.reload();
             } else {
-                showAlert('error', data.message || '更新用户失败');
+                notify.error( data.message || '更新用户失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showAlert('error', '更新用户失败');
+            notify.error( '更新用户失败');
         })
         .finally(() => {
             hideLoadingState(form.querySelector('button[type="submit"]'), '保存更改');
@@ -194,15 +194,15 @@ function performDeleteUser(userId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showAlert('success', data.message);
+                notify.success( data.message);
                 location.reload();
             } else {
-                showAlert('error', data.message);
+                notify.error( data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showAlert('error', '删除用户失败');
+            notify.error( '删除用户失败');
         })
         .finally(() => {
             hideLoadingState(document.querySelector(`[data-user-id="${userId}"]`), '删除');
@@ -241,9 +241,9 @@ function toggleUserStatus(userId, isActive) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showAlert('success', data.message);
+                notify.success( data.message);
             } else {
-                showAlert('error', data.message);
+                notify.error( data.message);
                 // 恢复切换状态
                 const toggle = document.querySelector(`input[data-user-id="${userId}"]`);
                 if (toggle) {
@@ -253,7 +253,7 @@ function toggleUserStatus(userId, isActive) {
         })
         .catch(error => {
             console.error('Error:', error);
-            showAlert('error', '状态切换失败');
+            notify.error( '状态切换失败');
             // 恢复切换状态
             const toggle = document.querySelector(`input[data-user-id="${userId}"]`);
             if (toggle) {
@@ -318,12 +318,12 @@ function editUser(userId) {
                 const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
                 modal.show();
             } else {
-                showAlert('error', '获取用户信息失败');
+                notify.error( '获取用户信息失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showAlert('error', '获取用户信息失败');
+            notify.error( '获取用户信息失败');
         });
 }
 
@@ -331,7 +331,7 @@ function editUser(userId) {
 function validateUserForm(data, isEdit = false) {
 
     if (!data.username || data.username.trim().length < 2) {
-        showAlert('error', '用户名至少需要2个字符');
+        notify.error( '用户名至少需要2个字符');
         return false;
     }
 
@@ -339,19 +339,19 @@ function validateUserForm(data, isEdit = false) {
     if (!isEdit) {
         // 新建用户时，密码是必需的
         if (!data.password || data.password.length < 6) {
-            showAlert('error', '密码至少需要6个字符');
+            notify.error( '密码至少需要6个字符');
             return false;
         }
     } else {
         // 编辑用户时，如果提供了密码，则验证密码长度
         if (data.password && data.password.length < 6) {
-            showAlert('error', '密码至少需要6个字符');
+            notify.error( '密码至少需要6个字符');
             return false;
         }
     }
 
     if (!data.role) {
-        showAlert('error', '请选择用户角色');
+        notify.error( '请选择用户角色');
         return false;
     }
 
@@ -384,39 +384,16 @@ function hideLoadingState(element, originalText) {
 
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
-// 显示提示信息
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-
-    const container = document.querySelector('.container');
-    if (container) {
-        container.insertBefore(alertDiv, container.firstChild);
-    }
-
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 5000);
-}
-
-// 显示成功提示
 function showSuccessAlert(message) {
-    showAlert('success', message);
+    notify.success(message);
 }
 
-// 显示警告提示
 function showWarningAlert(message) {
-    showAlert('warning', message);
+    notify.warning(message);
 }
 
-// 显示错误提示
 function showErrorAlert(message) {
-    showAlert('error', message);
+    notify.error(message);
 }
 
 
@@ -432,7 +409,6 @@ window.deleteUser = deleteUser;
 window.confirmDeleteUser = confirmDeleteUser;
 window.toggleUserStatus = toggleUserStatus;
 window.exportUsers = exportUsers;
-window.showAlert = showAlert;
 window.showSuccessAlert = showSuccessAlert;
 window.showWarningAlert = showWarningAlert;
 window.showErrorAlert = showErrorAlert;

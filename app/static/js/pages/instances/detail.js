@@ -112,7 +112,7 @@ function syncAccounts() {
                 result: 'success',
                 message: data.message
             });
-            showAlert('success', data.message);
+            notify.success(data.message);
         } else if (data.error) {
             // 记录失败日志
             logError('同步账户失败', {
@@ -122,7 +122,7 @@ function syncAccounts() {
                 result: 'failed',
                 error: data.error
             });
-            showAlert('danger', data.error);
+            notify.error(data.error);
         }
     })
     .catch(error => {
@@ -133,7 +133,7 @@ function syncAccounts() {
             instance_name: getInstanceName(),
             result: 'exception'
         });
-        showAlert('danger', '同步失败');
+        notify.error('同步失败');
     })
     .finally(() => {
         syncBtn.innerHTML = originalText;
@@ -199,7 +199,7 @@ function syncCapacity(instanceId, instanceName) {
                 result: 'success',
                 message: data.message || '容量同步成功'
             });
-            showAlert('success', data.message || '容量同步成功');
+            notify.success(data.message || '容量同步成功');
             
             // 刷新数据库容量显示
             setTimeout(() => {
@@ -214,7 +214,7 @@ function syncCapacity(instanceId, instanceName) {
                 result: 'failed',
                 error: data.error
             });
-            showAlert('danger', data.error);
+            notify.error(data.error);
         }
     })
     .catch(error => {
@@ -225,7 +225,7 @@ function syncCapacity(instanceId, instanceName) {
             instance_name: instanceName,
             result: 'exception'
         });
-        showAlert('danger', '同步容量失败: ' + (error.message || '未知错误'));
+        notify.error('同步容量失败: ' + (error.message || '未知错误'));
     })
     .finally(() => {
         syncBtn.innerHTML = originalText;
@@ -335,35 +335,6 @@ function toggleDeletedAccounts() {
 }
 
 // 显示提示信息
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    
-    // 安全地创建HTML内容，避免XSS攻击
-    const icon = document.createElement('i');
-    icon.className = `fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2`;
-    
-    const messageSpan = document.createElement('span');
-    messageSpan.textContent = message;
-    
-    const closeButton = document.createElement('button');
-    closeButton.type = 'button';
-    closeButton.className = 'btn-close';
-    closeButton.setAttribute('data-bs-dismiss', 'alert');
-    
-    alertDiv.appendChild(icon);
-    alertDiv.appendChild(messageSpan);
-    alertDiv.appendChild(closeButton);
-
-    const container = document.querySelector('.container');
-    if (container) {
-        container.insertBefore(alertDiv, container.firstChild);
-    }
-
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 5000);
-}
 
 // 工具函数
 function getInstanceId() {

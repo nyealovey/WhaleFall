@@ -60,11 +60,7 @@ function viewAccountPermissions(accountId, options = {}) {
             }
         } else {
             const errorMsg = data.error || '获取权限信息失败';
-            if (window.showAlert) {
-                window.showAlert('danger', errorMsg);
-            } else {
-                console.error(errorMsg);
-            }
+            notify.error(errorMsg);
             
             // 调用错误回调
             if (onError) {
@@ -74,11 +70,7 @@ function viewAccountPermissions(accountId, options = {}) {
     })
     .catch(error => {
         const errorMsg = '获取权限信息失败';
-        if (window.showAlert) {
-            window.showAlert('danger', errorMsg);
-        } else {
-            console.error(errorMsg, error);
-        }
+        notify.error(errorMsg);
         
         // 调用错误回调
         if (onError) {

@@ -2,6 +2,9 @@
 // 依赖：bootstrap, alert-utils.js, time-utils.js
 
 (function () {
+  function notifyAlert(message, type = 'info') {
+    notify.alert(type, message);
+  }
   // 防抖/节流等工具可后续抽到 shared/utils
 
   let currentSessions = [];
@@ -51,13 +54,13 @@
           hideLoadingState();
         } else {
           console.error('加载会话列表失败:', data.message);
-          showAlert('加载会话列表失败: ' + data.message, 'error');
+          notifyAlert('加载会话列表失败: ' + data.message, 'error');
           hideLoadingState();
         }
       })
       .catch(err => {
         console.error('加载会话列表出错:', err);
-        showAlert('加载会话列表出错', 'error');
+        notifyAlert('加载会话列表出错', 'error');
         hideLoadingState();
       });
   }
@@ -247,10 +250,10 @@
           const session = data?.data?.session ?? data.session ?? data ?? {};
           showSessionDetail(session);
         } else {
-          showAlert('加载会话详情失败: ' + data.message, 'error');
+          notifyAlert('加载会话详情失败: ' + data.message, 'error');
         }
       })
-      .catch(err => { console.error('加载会话详情出错:', err); showAlert('加载会话详情出错', 'error'); });
+      .catch(err => { console.error('加载会话详情出错:', err); notifyAlert('加载会话详情出错', 'error'); });
   }
 
   window.viewErrorLogs = function (sessionId) {
@@ -261,10 +264,10 @@
           const payload = data?.data ?? data ?? {};
           showErrorLogs(payload);
         } else {
-          showAlert('加载错误信息失败: ' + data.message, 'error');
+          notifyAlert('加载错误信息失败: ' + data.message, 'error');
         }
       })
-      .catch(err => { console.error('加载错误信息出错:', err); showAlert('加载错误信息出错', 'error'); });
+      .catch(err => { console.error('加载错误信息出错:', err); notifyAlert('加载错误信息出错', 'error'); });
   }
 
   window.showErrorLogs = function (data) {
@@ -371,10 +374,10 @@
       })
         .then(r => r.json())
         .then(data => {
-          if (data.success) { showAlert('会话已取消', 'success'); loadSessions(); }
-          else { showAlert('取消会话失败: ' + data.message, 'error'); }
+          if (data.success) { notifyAlert('会话已取消', 'success'); loadSessions(); }
+          else { notifyAlert('取消会话失败: ' + data.message, 'error'); }
         })
-        .catch(err => { console.error('取消会话出错:', err); showAlert('取消会话出错', 'error'); });
+        .catch(err => { console.error('取消会话出错:', err); notifyAlert('取消会话出错', 'error'); });
     }
   }
 

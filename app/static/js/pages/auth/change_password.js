@@ -291,77 +291,17 @@ function hideLoadingState(form) {
 
 // 显示警告提示
 function showWarningAlert(message, title = '警告') {
-    if (typeof window.showWarningAlert === 'function') {
-        window.showWarningAlert(message, title, { form: 'change_password' });
-    } else {
-        // 备用提示方法
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-warning alert-dismissible fade show';
-        alertDiv.innerHTML = `
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>${title}:</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        const form = document.getElementById('changePasswordForm');
-        if (form) {
-            form.insertBefore(alertDiv, form.firstChild);
-        }
-        
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
-    }
+    notify.warning(message, { title });
 }
 
 // 显示错误提示
 function showErrorAlert(message, title = '错误') {
-    if (typeof window.showErrorAlert === 'function') {
-        window.showErrorAlert(message, title, { form: 'change_password' });
-    } else {
-        // 备用提示方法
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-        alertDiv.innerHTML = `
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>${title}:</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        const form = document.getElementById('changePasswordForm');
-        if (form) {
-            form.insertBefore(alertDiv, form.firstChild);
-        }
-        
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
-    }
+    notify.error(message, { title });
 }
 
 // 显示成功提示
 function showSuccessAlert(message, title = '成功') {
-    if (typeof window.showSuccessAlert === 'function') {
-        window.showSuccessAlert(message, title, { form: 'change_password' });
-    } else {
-        // 备用提示方法
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-success alert-dismissible fade show';
-        alertDiv.innerHTML = `
-            <i class="fas fa-check-circle me-2"></i>
-            <strong>${title}:</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        const form = document.getElementById('changePasswordForm');
-        if (form) {
-            form.insertBefore(alertDiv, form.firstChild);
-        }
-        
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 3000);
-    }
+    notify.success(message, { title });
 }
 
 // 密码要求检查

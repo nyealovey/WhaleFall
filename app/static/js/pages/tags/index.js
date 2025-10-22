@@ -276,47 +276,20 @@ function hideLoadingState(buttonId, originalText) {
 
 // 显示警告提示
 function showWarningAlert(message) {
-    showAlert(message, 'warning');
+    notify.warning(message);
 }
 
-// 显示成功提示
 function showSuccessAlert(message) {
-    showAlert(message, 'success');
+    notify.success(message);
 }
 
-// 显示错误提示
 function showErrorAlert(message) {
-    showAlert(message, 'danger');
-}
-
-// 显示提示
-function showAlert(message, type) {
-    // 创建提示元素
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    // 插入到页面顶部
-    const container = document.querySelector('.container-fluid');
-    if (container) {
-        container.insertBefore(alertDiv, container.firstChild);
-        
-        // 自动隐藏
-        setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
-            }
-        }, 5000);
-    }
+    notify.error(message);
 }
 
 // 导出函数到全局作用域
 window.clearSearch = clearSearch;
 window.exportTags = exportTags;
-window.showAlert = showAlert;
 window.showSuccessAlert = showSuccessAlert;
 window.showWarningAlert = showWarningAlert;
 window.showErrorAlert = showErrorAlert;
