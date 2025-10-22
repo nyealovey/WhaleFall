@@ -439,3 +439,13 @@ def delete_required(f: Any = None, *, permission: str = "delete") -> Any:  # noq
     if callable(f):
         return decorator(f)
     return decorator
+
+
+def scheduler_view_required(f: Any) -> Any:  # noqa: ANN401
+    """定时任务查看权限装饰器."""
+    return permission_required("scheduler.view")(f)
+
+
+def scheduler_manage_required(f: Any) -> Any:  # noqa: ANN401
+    """定时任务管理权限装饰器."""
+    return permission_required("scheduler.manage")(f)
