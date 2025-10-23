@@ -381,12 +381,21 @@ function loadDatabaseSizes() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.data && Array.isArray(data.data)) {
+        const payload = data && typeof data === 'object'
+            ? (data.data && typeof data.data === 'object' ? data.data : data)
+            : {};
+
+        const databases = Array.isArray(payload)
+            ? payload
+            : (Array.isArray(payload?.databases) ? payload.databases : null);
+
+        if (databases) {
             // 使用API返回的总容量信息
-            const totalSize = data.total_size_mb || 0;
-            displayDatabaseSizes(data.data, totalSize);
+            const totalSize = Number(payload?.total_size_mb ?? payload?.total_size ?? 0) || 0;
+            displayDatabaseSizes(databases, totalSize);
         } else {
-            displayDatabaseSizesError(data.error || '加载失败');
+            const errorMsg = data?.error || data?.message || '加载失败';
+            displayDatabaseSizesError(errorMsg);
         }
     })
     .catch(error => {

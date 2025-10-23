@@ -594,11 +594,8 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
 @require_csrf
 def auto_classify() -> tuple[Response, int]:
     """自动分类账户 - 使用优化后的服务"""
-    instance_id = None
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     instance_id = data.get("instance_id")
-    if instance_id is None:
-        raise ValidationError("缺少参数 instance_id")
 
     use_optimized = data.get("use_optimized", True)
 
