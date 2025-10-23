@@ -255,14 +255,19 @@ function viewAccountChangeHistory(accountId) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
+        const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
+            ? data.data
+            : data;
+        const history = Array.isArray(payload?.history) ? payload.history : null;
+
+        if (data && data.success) {
             // 显示变更历史模态框
             const modal = new bootstrap.Modal(document.getElementById('historyModal'));
             const historyContent = document.getElementById('historyContent');
 
-            if (data.history && data.history.length > 0) {
+            if (history && history.length > 0) {
                 let html = '<div class="timeline">';
-                data.history.forEach(change => {
+                history.forEach(change => {
                     html += `
                         <div class="timeline-item">
                             <div class="timeline-marker bg-primary"></div>
@@ -293,7 +298,8 @@ function viewAccountChangeHistory(accountId) {
 
             modal.show();
         } else {
-            console.error('获取变更历史失败:', data.error);
+            console.error('获取变更历史失败:', data?.error || data?.message);
+            notify.error(data?.error || data?.message || '获取变更历史失败');
         }
     })
     .catch(error => {
