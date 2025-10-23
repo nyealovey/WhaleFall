@@ -206,41 +206,6 @@ def get_partition_statistics() -> Response:
     return jsonify_unified_success(data=payload, message="分区统计信息获取成功")
 
 
-@partition_bp.route('/api/create-future', methods=['POST'])
-@login_required
-@view_required
-@require_csrf
-def create_future_partitions() -> Response:
-    """
-    创建未来分区
-    
-    Returns:
-        JSON: 创建结果
-    """
-    data = request.get_json() or {}
-    raw_months = data.get('months_ahead', 3)
-    try:
-        months_ahead = int(raw_months)
-    except (TypeError, ValueError) as exc:
-        raise ValidationError('months_ahead 必须为数字') from exc
-
-    service = PartitionManagementService()
-    result = service.create_future_partitions(months_ahead=months_ahead)
-
-    payload = {
-        'result': result,
-        'timestamp': time_utils.now().isoformat(),
-    }
-
-    log_info(
-        "创建未来分区成功",
-        module="partition",
-        months_ahead=months_ahead,
-        user_id=getattr(current_user, 'id', None),
-    )
-    return jsonify_unified_success(data=payload, message='未来分区创建任务已触发')
-
-
 
 
 
