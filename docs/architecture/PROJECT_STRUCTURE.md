@@ -75,11 +75,14 @@ routes/
 ├── auth.py                 # 认证路由
 ├── admin.py                # 管理路由
 ├── dashboard.py            # 仪表板路由
-├── instances.py            # 实例管理路由
+├── instances.py            # 实例管理路由（基础信息）
+├── instances_accounts.py   # 实例账户相关路由
+├── instances_capacity.py   # 实例容量与统计路由
 ├── credentials.py          # 凭据管理路由
 ├── tags.py                 # 标签管理路由
 ├── account_classification.py # 账户分类路由
-├── account.py              # 账户管理路由（包含统计功能）
+├── account.py              # 账户管理路由
+├── account_stat.py         # 账户统计路由
 ├── account_sync.py         # 账户同步路由
 ├── sync_sessions.py        # 同步会话路由
 ├── logs.py                 # 日志管理路由
@@ -112,7 +115,7 @@ services/
 │   └── database_filter_manager.py
 ├── capacity_sync_adapters/ # 容量同步适配器
 │   ├── __init__.py
-│   └── database_size_collector_service.py
+│   └── capacity_sync_service.py
 └── account_sync_adapters/  # 账户同步适配器
     ├── __init__.py
     ├── base_sync_adapter.py
