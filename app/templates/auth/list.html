@@ -28,7 +28,7 @@
 <div class="container-fluid">
     <div class="card">
         <div class="card-body">
-            {% if users and users.items %}
+            {% if users %}
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
@@ -42,7 +42,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for user in users.items %}
+                        {% for user in users %}
                         <tr>
                             <td>
                                 <span class="badge bg-secondary" title="用户ID">
@@ -106,16 +106,6 @@
         </div>
     </div>
 
-    <!-- 分页 -->
-    {% if pagination %}
-    <div class="row mt-4">
-        <div class="col-12">
-            <nav aria-label="用户分页">
-                {{ pagination.links }}
-            </nav>
-        </div>
-    </div>
-    {% endif %}
 </div>
 
 <!-- 添加用户模态框 -->

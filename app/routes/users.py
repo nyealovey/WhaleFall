@@ -37,26 +37,12 @@ def index() -> str:
             user_id=current_user.id if current_user.is_authenticated else None,
         )
 
-        # 获取分页参数
-        page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("per_page", 10, type=int)
-        log_info(
-            "用户管理页面分页参数",
-            module="users",
-            user_id=current_user.id if current_user.is_authenticated else None,
-            page=page,
-            per_page=per_page,
-        )
-
-        # 分页查询
-        users = User.query.order_by(User.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        users = User.query.order_by(User.created_at.desc()).all()
         log_info(
             "成功获取用户列表",
             module="users",
             user_id=current_user.id if current_user.is_authenticated else None,
-            total=users.total,
-            page=users.page,
-            per_page=users.per_page,
+            total=len(users),
         )
 
         return render_template("auth/list.html", users=users)
@@ -67,8 +53,6 @@ def index() -> str:
             module="users",
             exception=e,
             user_id=current_user.id if current_user.is_authenticated else None,
-            page=request.args.get("page", type=int),
-            per_page=request.args.get("per_page", type=int),
         )
         flash(f"获取用户列表失败: {str(e)}", "error")
         return render_template("auth/list.html", users=None, stats={})

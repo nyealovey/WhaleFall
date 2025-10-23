@@ -56,7 +56,6 @@
 | 路径 | 方法 | 描述 |
 |------|------|------|
 | `/account_classification/` | GET | 账户分类管理首页 |
-| `/account_classification/rules-page` | GET | 规则管理页面 |
 
 ### API 接口
 | 路径 | 方法 | 描述 |
@@ -66,7 +65,6 @@
 | `/account_classification/api/rules/filter` | GET | 获取分类规则 |
 | `/account_classification/api/rules` | GET, POST | 规则列表和创建 |
 | `/account_classification/api/rules/<int:id>` | GET, PUT, DELETE | 单个规则操作 |
-| `/account_classification/api/rules/<int:id>/matched-accounts` | GET | 获取规则匹配的账户 |
 | `/account_classification/api/auto-classify` | POST | 自动分类账户 |
 | `/account_classification/api/assignments` | GET | 获取账户分类分配 |
 | `/account_classification/api/assignments/<int:id>` | DELETE | 移除账户分类分配 |
@@ -273,8 +271,6 @@
 | `/logs/api/errors` | GET | 获取错误日志 API |
 | `/logs/api/modules` | GET | 获取日志模块列表 API |
 | `/logs/api/export` | GET | 导出日志 API |
-| `/logs/api/cleanup` | POST | 清理旧日志 API |
-| `/logs/api/real-time` | GET | 获取实时日志 API |
 | `/logs/api/stats` | GET | 获取日志统计信息 API |
 | `/logs/api/detail/<int:id>` | GET | 获取日志详情 API |
 
@@ -330,8 +326,6 @@
 |------|------|------|
 | `/scheduler/api/jobs` | GET | 获取所有定时任务 |
 | `/scheduler/api/jobs/<job_id>` | GET | 获取指定任务详情 |
-| `/scheduler/api/jobs/<job_id>/disable` | POST | 禁用定时任务 |
-| `/scheduler/api/jobs/<job_id>/enable` | POST | 启用定时任务 |
 | `/scheduler/api/jobs/<job_id>/pause` | POST | 暂停任务 |
 | `/scheduler/api/jobs/<job_id>/resume` | POST | 恢复任务 |
 | `/scheduler/api/jobs/<job_id>/run` | POST | 立即执行任务 |
@@ -343,16 +337,9 @@
 
 ## 18. 存储同步模块 (storage_sync.py)
 
-### 页面路由
-| 路径 | 方法 | 描述 |
-|------|------|------|
-| `/storage_sync/` | GET | 存储同步主页面 |
-
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/storage_sync/api/test_connection` | POST | 测试数据库连接（已弃用，请使用 /connections/api/test） |
-| `/storage_sync/api/instances` | GET | 获取实例列表 |
 | `/storage_sync/api/instances/<int:id>/sync-capacity` | POST | 同步指定实例的数据库容量信息 |
 | `/storage_sync/api/instances/<int:id>/databases` | GET | 获取指定实例的数据库列表 |
 
@@ -436,7 +423,6 @@
 | 路径 | 方法 | 描述 |
 |------|------|------|
 | `/account_sync/api/sync-all` | POST | 同步所有实例的账户 |
-| `/account_sync/api/sync-details-batch` | GET | 获取批量同步详情 |
 | `/account_sync/api/instances/<int:id>/sync` | POST | 同步指定实例的账户信息 |
 
 ---

@@ -74,8 +74,8 @@ class BatchAssignManager {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            const data = await response.json();
-            this.instances = data.instances || [];
+            const { data: payload } = await response.json();
+            this.instances = Array.isArray(payload?.instances) ? payload.instances : [];
             this.instancesByDbType = this.groupInstancesByDbType(this.instances);
         } catch (error) {
             console.error('加载实例失败:', error);
@@ -93,8 +93,8 @@ class BatchAssignManager {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            const data = await response.json();
-            this.tags = data.tags || [];
+            const { data: payload } = await response.json();
+            this.tags = Array.isArray(payload?.tags) ? payload.tags : [];
             this.tagsByCategory = this.groupTagsByCategory(this.tags);
 
         } catch (error) {
