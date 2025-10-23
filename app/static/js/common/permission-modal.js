@@ -11,8 +11,20 @@
 function showPermissionsModal(permissions, account) {
 
     try {
+        if (!account || typeof account !== 'object') {
+            console.error('showPermissionsModal 需要有效的 account 参数');
+            notify.error('无法获取账户信息，请稍后重试', { title: '错误' });
+            return;
+        }
+
+        if (!permissions || typeof permissions !== 'object') {
+            console.error('showPermissionsModal 需要有效的 permissions 参数');
+            notify.error('无法获取权限信息，请稍后重试', { title: '错误' });
+            return;
+        }
+
         // 获取数据库类型
-        const dbType = account.db_type;
+        const dbType = account.db_type || (account.instance_name ? account.instance_name : 'unknown');
 
         // 检查权限对象的所有属性
 
