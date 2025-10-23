@@ -365,6 +365,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.health import health_bp
     from app.routes.instances import instances_bp
     from app.routes.tags import tags_bp
+    from app.routes.files import files_bp
 
     # 注册日志管理蓝图
     from app.routes.logs import logs_bp
@@ -424,6 +425,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(connections_bp, url_prefix='/connections')
     app.register_blueprint(database_stats_bp, url_prefix='/database_stats')
     app.register_blueprint(instance_stats_bp, url_prefix='/instance_stats')
+    app.register_blueprint(files_bp)
 
     # 初始化定时任务调度器
     from app.scheduler import init_scheduler

@@ -45,7 +45,6 @@
 |------|------|------|
 | `/account/api/export` | GET | 导出账户数据为 CSV |
 | `/account/api/<int:account_id>/permissions` | GET | 获取账户权限详情 |
-| `/account/api/<int:account_id>/change-history` | GET | 获取账户变更历史 |
 | `/account/api/statistics` | GET | 账户统计 API |
 
 ---
@@ -220,8 +219,6 @@
 |------|------|------|
 | `/health/` | GET | 基础健康检查 |
 | `/health/detailed` | GET | 详细健康检查 |
-| `/health/readiness` | GET | 就绪检查（Kubernetes 用） |
-| `/health/liveness` | GET | 存活检查（Kubernetes 用） |
 
 ---
 
@@ -245,7 +242,6 @@
 | `/instances/api/create` | POST | 创建实例API |
 | `/instances/api/<int:instance_id>/edit` | POST | 编辑实例API |
 | `/instances/api/<int:instance_id>/delete` | POST | 删除实例 |
-| `/instances/api/<int:instance_id>/test` | POST | 测试连接API（已弃用，请使用 /connections/api/test） |
 | `/instances/api/<int:instance_id>/accounts` | GET | 获取实例账户数据API |
 | `/instances/api/<int:instance_id>/accounts/<int:account_id>/change-history` | GET | 获取账户变更历史 |
 | `/instances/api/<int:instance_id>/accounts/<int:account_id>/permissions` | GET | 获取账户权限详情 |
@@ -309,7 +305,6 @@
 | `/partition/api/create` | POST | 创建分区 |
 | `/partition/api/cleanup` | POST | 清理旧分区 |
 | `/partition/api/statistics` | GET | 获取分区统计信息 |
-| `/partition/api/create-future` | POST | 创建未来分区 |
 | `/partition/api/aggregations/core-metrics` | GET | 获取核心指标数据 |
 
 ---
@@ -359,7 +354,6 @@
 | `/sync_sessions/api/sessions/<session_id>` | GET | 获取同步会话详情 API |
 | `/sync_sessions/api/sessions/<session_id>/cancel` | POST | 取消同步会话 API |
 | `/sync_sessions/api/sessions/<session_id>/error-logs` | GET | 获取同步会话错误日志 API |
-| `/sync_sessions/api/statistics` | GET | 获取同步统计信息 API |
 
 ---
 
@@ -485,7 +479,7 @@ connectionManager.batchTestConnections([1,2,3], {
 | 前缀模式 | 示例 | 使用模块 |
 |----------|------|----------|
 | `/api/` | `/auth/api/csrf-token` | auth, dashboard, logs 等 |
-| 无前缀 | `/health/health/liveness` | health 等 |
+| 无前缀 | `/health/` | health |
 | 混合使用 | `/instances/api/statistics` 和 `/instances/statistics` | instances, aggregations 等 |
 
 ### 建议改进
@@ -496,8 +490,7 @@ connectionManager.batchTestConnections([1,2,3], {
 5. **语义化方法**: 避免使用 GET 执行有副作用的操作（如登出），建议限制为 POST
 6. **路径去冗余**: 避免重复片段，如 `/aggregations/api/instance/api`，建议统一到 `/aggregations/api/instance`
 7. **资源层级一致性**: 类似 `/instances/api/instances/<id>` 建议调整为 `/instances/api/<id>`，保持层级简洁一致
-8. **健康检查路径规范**: 将 `/health/health/readiness` 与 `/health/health/liveness` 规范为 `/health/readiness` 与 `/health/liveness`
-9. **CSRF 策略明确**: 仅对确需跨域或非表单请求的接口豁免 CSRF，例如 `/instances/api/test-connection`
+9. **CSRF 策略明确**: 仅对确需跨域或非表单请求的接口豁免 CSRF，例如 `/connections/api/test`
 10. **限流与防护**: 对登录等敏感接口（`/auth/api/login`）增加限流与强校验，防止暴力尝试
 
 ### 连接管理API迁移状态
@@ -698,7 +691,6 @@ connectionManager.batchTestConnections([1,2,3], {
 - ✅ 清理代码冗余，提高维护性
 
 ### v1.2.1 更新内容 (2025-09-30)
-- ✅ 修复健康检查模块API路径错误（readiness和liveness路径）
 - ✅ 补充分区管理模块缺失的API路径（core-metrics和chart）
 - ✅ 修复实例管理模块API路径重复定义问题
 - ✅ 修复账户管理模块API路径重复定义问题

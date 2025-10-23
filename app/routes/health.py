@@ -153,37 +153,3 @@ def check_system_health() -> dict:
     except Exception as exc:
         log_error("系统健康检查失败", module="health", error=str(exc))
         return {"healthy": False, "error": str(exc), "status": "error"}
-
-
-@health_bp.route("/readiness")
-def readiness_check() -> Response:
-    """就绪检查 - 用于Kubernetes等容器编排"""
-    try:
-        # 检查关键服务是否就绪
-        db_ready = check_database_health()["healthy"]
-        cache_ready = check_cache_health()["healthy"]
-
-        if db_ready and cache_ready:
-            return jsonify_unified_success(data={"status": "ready"}, message="服务就绪")
-
-        log_warning(
-            "服务未就绪",
-            module="health",
-            database_ready=db_ready,
-            cache_ready=cache_ready,
-        )
-        raise SystemError("服务未就绪", status_code=503)
-    except Exception as exc:
-        log_error("就绪检查失败", module="health", error=str(exc))
-        raise SystemError("就绪检查失败") from exc
-
-
-@health_bp.route("/liveness")
-def liveness_check() -> Response:
-    """存活检查 - 用于Kubernetes等容器编排"""
-    try:
-        # 简单的存活检查
-        return jsonify_unified_success(data={"status": "alive"}, message="服务存活")
-    except Exception as exc:
-        log_error("存活检查失败", module="health", error=str(exc))
-        raise SystemError("存活检查失败") from exc

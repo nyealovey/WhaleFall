@@ -71,7 +71,7 @@
                 <button type="button" class="btn btn-outline-info btn-sm" id="batchTestBtn" onclick="batchTestConnections()">
                     <i class="fas fa-plug me-1"></i>批量测试连接
                 </button>
-                <a href="{{ url_for('instances.export_instances', search=search, db_type=db_type) }}" class="btn btn-outline-primary btn-sm ms-2">
+                <a href="{{ url_for('files.export_instances', search=search, db_type=db_type) }}" class="btn btn-outline-primary btn-sm ms-2">
                     <i class="fas fa-download me-1"></i>导出CSV
                 </a>
                 {% else %}
