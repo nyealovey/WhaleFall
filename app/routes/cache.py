@@ -11,7 +11,7 @@ from app.utils.decorators import admin_required, require_csrf, update_required, 
 
 from app.models import Instance
 from app.services.cache_manager import cache_manager
-from app.services.sync_adapters.sqlserver_sync_adapter import SQLServerSyncAdapter
+from app.services.account_sync_adapters.sqlserver_sync_adapter import SQLServerSyncAdapter
 from app.services.account_classification_service import AccountClassificationService
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.utils.response_utils import jsonify_unified_success

@@ -17,7 +17,7 @@ from app.errors import SystemError
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.services.account_sync_service import account_sync_service
+from app.services.account_sync_adapters.account_sync_service import account_sync_service
 from app.utils.decorators import update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info

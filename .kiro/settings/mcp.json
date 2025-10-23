@@ -1,0 +1,57 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "chrome-devtools-mcp",
+      "args": [
+        "--executablePath=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "--headless",
+        "--isolated"
+      ],
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "disabled": false
+    },
+    "postgres-local": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://whalefall_read:wta9dhk!awq5CDP9cvd@10.10.66.45:5432/whalefall_prod?sslmode=disable"
+      ],
+      "disabled": false
+    },
+    "filesystem": {
+      "command": "mcp-server-filesystem",
+      "args": [
+        "/Users/apple/Taifish/TaifishingV4"
+      ],
+      "disabled": false
+    },
+    "sequential-thinking": {
+      "command": "mcp-server-sequential-thinking",
+      "args": [],
+      "disabled": false,
+      "autoApprove": [
+        "sequentialthinking"
+      ]
+    },
+    "memory": {
+      "command": "mcp-server-memory",
+      "args": [],
+      "disabled": false
+    },
+    "mult-fetch": {
+      "command": "mult-fetch-mcp-server",
+      "args": [],
+      "disabled": false
+    },
+    "context7": {
+      "command": "context7-mcp",
+      "args": [
+        "--transport",
+        "stdio"
+      ],
+      "disabled": false
+    }
+  }
+}

@@ -117,7 +117,7 @@ class Instance(db.Model):
             dict: 连接测试结果
         """
         try:
-            from app.services.connection_test_service import connection_test_service
+            from app.services.connection_adapters.connection_test_service import connection_test_service
             # 使用连接测试服务
             result = connection_test_service.test_connection(self)
 
@@ -156,81 +156,6 @@ class Instance(db.Model):
                 get_system_logger().warning("更新时间失败: %s", update_error)
 
             return {"status": "error", "message": f"连接测试失败: {str(e)}"}
-
-    def _test_sql_server_connection(self) -> dict:
-        """测试SQL Server连接"""
-        import pymssql
-
-        try:
-            conn = pymssql.connect(
-                server=self.host,
-                port=self.port,
-                user=self.credential.username if self.credential else "",
-                password=self.credential.password if self.credential else "",
-                database="master",
-            )
-            conn.close()
-            return {"status": "success", "message": "SQL Server连接成功"}
-        except Exception as e:
-            return {"status": "error", "message": f"SQL Server连接失败: {str(e)}"}
-
-    def _test_mysql_connection(self) -> dict:
-        """测试MySQL连接"""
-        import pymysql
-
-        try:
-            conn = pymysql.connect(
-                host=self.host,
-                port=self.port,
-                user=self.credential.username if self.credential else "",
-                password=self.credential.password if self.credential else "",
-                database="mysql",
-            )
-            conn.close()
-            return {"status": "success", "message": "MySQL连接成功"}
-        except Exception as e:
-            return {"status": "error", "message": f"MySQL连接失败: {str(e)}"}
-
-    def _test_oracle_connection(self) -> dict:
-        """测试Oracle连接"""
-        import oracledb
-
-        try:
-            dsn = f"{self.host}:{self.port}/ORCL"
-
-            # 优先使用Thick模式连接（适用于所有Oracle版本，包括11g）
-            try:
-                # 初始化Thick模式（需要Oracle Instant Client）
-                oracledb.init_oracle_client()
-                conn = oracledb.connect(
-                    user=self.credential.username if self.credential else "",
-                    password=self.credential.password if self.credential else "",
-                    dsn=dsn,
-                )
-                conn.close()
-                return {"status": "success", "message": "Oracle连接成功 (Thick模式)"}
-            except oracledb.DatabaseError as e:
-                # 如果Thick模式失败，尝试Thin模式（适用于Oracle 12c+）
-                if "DPI-1047" in str(e) or "Oracle Client library" in str(e):
-                    # Thick模式失败，尝试Thin模式
-                    try:
-                        conn = oracledb.connect(
-                            user=self.credential.username if self.credential else "",
-                            password=(self.credential.password if self.credential else ""),
-                            dsn=dsn,
-                        )
-                        conn.close()
-                        return {
-                            "status": "success",
-                            "message": "Oracle连接成功 (Thin模式)",
-                        }
-                    except oracledb.DatabaseError:
-                        # 如果Thin模式也失败，抛出原始错误
-                        raise e from None
-                else:
-                    raise
-        except Exception as e:
-            return {"status": "error", "message": f"Oracle连接失败: {str(e)}"}
 
     def to_dict(self, *, include_password: bool = False) -> dict:
         """

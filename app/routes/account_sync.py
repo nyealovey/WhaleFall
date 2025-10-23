@@ -17,7 +17,7 @@ from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
-from app.services.account_sync_service import account_sync_service
+from app.services.account_sync_adapters.account_sync_service import account_sync_service
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success

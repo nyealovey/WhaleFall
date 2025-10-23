@@ -10,8 +10,8 @@ from flask_login import login_required
 from app import db
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models import Instance
-from app.services.connection_factory import ConnectionFactory
-from app.services.connection_test_service import ConnectionTestService
+from app.services.connection_adapters.connection_factory import ConnectionFactory
+from app.services.connection_adapters.connection_test_service import ConnectionTestService
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning

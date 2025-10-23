@@ -13,7 +13,7 @@ from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.services.account_sync_service import account_sync_service
+from app.services.account_sync_adapters.account_sync_service import account_sync_service
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.data_validator import (
     DataValidator,
@@ -412,9 +412,9 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
     include_deleted = request.args.get("include_deleted", "true").lower() == "true"  # 默认包含已删除账户
 
     # 获取账户数据 - 使用新的优化同步模型
-    from app.services.sync_data_manager import SyncDataManager
+    from app.services.account_sync_adapters.account_data_manager import AccountDataManager
 
-    sync_accounts = SyncDataManager.get_accounts_by_instance(instance_id, include_deleted=include_deleted)
+    sync_accounts = AccountDataManager.get_accounts_by_instance(instance_id, include_deleted=include_deleted)
 
     # 转换数据格式以适配模板
     accounts = []
@@ -1311,9 +1311,9 @@ def api_get_accounts(instance_id: int) -> Response:
 
     try:
         # 获取账户数据
-        from app.services.sync_data_manager import SyncDataManager
+        from app.services.account_sync_adapters.account_data_manager import AccountDataManager
 
-        accounts = SyncDataManager.get_accounts_by_instance(instance_id, include_deleted=include_deleted)
+        accounts = AccountDataManager.get_accounts_by_instance(instance_id, include_deleted=include_deleted)
 
         # 转换为前端需要的格式
         account_data = []
