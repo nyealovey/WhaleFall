@@ -46,20 +46,24 @@ function viewAccountPermissions(accountId, options = {}) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
+        const responsePayload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
+            ? data.data
+            : data;
+
+        if (data && data.success) {
             // 调用权限模态框显示
             if (window.showPermissionsModal) {
-                window.showPermissionsModal(data.permissions, data.account);
+                window.showPermissionsModal(responsePayload?.permissions, responsePayload?.account);
             } else {
                 console.error('showPermissionsModal 函数未定义');
             }
             
             // 调用成功回调
             if (onSuccess) {
-                onSuccess(data);
+                onSuccess(responsePayload);
             }
         } else {
-            const errorMsg = data.error || '获取权限信息失败';
+            const errorMsg = data?.error || data?.message || '获取权限信息失败';
             notify.error(errorMsg);
             
             // 调用错误回调
@@ -114,11 +118,11 @@ function fetchAccountPermissions(accountId, apiUrl = `/account/api/${accountId}/
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            return data;
-        } else {
-            throw new Error(data.error || '获取权限信息失败');
+        if (data && data.success) {
+            const responsePayload = (data.data && typeof data.data === 'object') ? data.data : data;
+            return responsePayload;
         }
+        throw new Error(data?.error || data?.message || '获取权限信息失败');
     });
 }
 
