@@ -204,12 +204,12 @@ function editClassification(id) {
 
                 editModal.show();
             } else {
-                notify.error(, '获取分类信息失败: ' + data.error);
+                notify.error('获取分类信息失败: ' + (data.error || '未知错误'));
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '获取分类信息失败');
+            notify.error('获取分类信息失败');
         });
 }
 
@@ -223,7 +223,7 @@ function updateClassification() {
     const priority = parseInt(document.getElementById('editClassificationPriority').value) || 0;
 
     if (!name.trim()) {
-        notify.warning(, '请输入分类名称');
+        notify.warning('请输入分类名称');
         return;
     }
 
@@ -247,16 +247,16 @@ function updateClassification() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                notify.success(, '分类更新成功');
+                notify.success('分类更新成功');
                 bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
                 loadClassifications();
             } else {
-                notify.error(, data.error);
+                notify.error(data.error || '分类更新失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '更新分类失败');
+            notify.error('更新分类失败');
         });
 }
 
@@ -272,15 +272,15 @@ function deleteClassification(id) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                notify.success(, data.message);
+                notify.success(data.message || '分类删除成功');
                 loadClassifications();
             } else {
-                notify.error(, data.error);
+                notify.error(data.error || '删除分类失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '删除分类失败');
+            notify.error('删除分类失败');
         });
 }
 
@@ -295,12 +295,12 @@ function loadRules() {
                 const rulesByDbType = data?.data?.rules_by_db_type ?? data.rules_by_db_type ?? {};
                 displayRules(rulesByDbType && typeof rulesByDbType === 'object' ? rulesByDbType : {});
             } else {
-                notify.error(, '加载规则失败: ' + data.error);
+                notify.error('加载规则失败: ' + (data.error || '未知错误'));
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '加载规则失败');
+            notify.error('加载规则失败');
         });
 }
 
@@ -473,12 +473,12 @@ function loadPermissions(prefix = '') {
             if (data.success) {
                 displayPermissionsConfig(data.permissions, prefix, dbType);
             } else {
-                notify.error(, '加载权限配置失败: ' + data.error);
+                notify.error('加载权限配置失败: ' + (data.error || '未知错误'));
             }
         })
         .catch(error => {
             console.error('Error loading permissions:', error);
-            notify.error(, '加载权限配置失败: ' + error.message);
+            notify.error('加载权限配置失败: ' + (error.message || '未知错误'));
         });
 }
 
@@ -786,7 +786,7 @@ function createRule() {
     const operator = document.getElementById('ruleOperator').value;
 
     if (!classificationId || !ruleName || !dbType || !operator) {
-        notify.warning(, '请填写所有必填字段');
+        notify.warning('请填写所有必填字段');
         return;
     }
 
@@ -798,7 +798,7 @@ function createRule() {
     });
 
     if (selectedPermissions.length === 0) {
-        notify.warning(, '请至少选择一个权限');
+        notify.warning('请至少选择一个权限');
         return;
     }
 
@@ -933,17 +933,17 @@ function createRule() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                notify.success(, '规则创建成功');
+                notify.success('规则创建成功');
                 bootstrap.Modal.getInstance(document.getElementById('createRuleModal')).hide();
                 document.getElementById('createRuleForm').reset();
                 loadRules();
             } else {
-                notify.error(, data.error);
+                notify.error(data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '创建规则失败');
+            notify.error('创建规则失败');
         });
 }
 
@@ -990,12 +990,12 @@ function editRule(id) {
                     }, { once: true });
                 });
             } else {
-                notify.error(, '获取规则信息失败: ' + data.error);
+                notify.error('获取规则信息失败: ' + data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '获取规则信息失败');
+            notify.error('获取规则信息失败');
         });
 }
 
@@ -1114,17 +1114,17 @@ function updateRule() {
     const operator = document.getElementById('editRuleOperator').value;
 
     if (!ruleName) {
-        notify.warning(, '请输入规则名称');
+        notify.warning('请输入规则名称');
         return;
     }
 
     if (!classificationId) {
-        notify.warning(, '请选择分类');
+        notify.warning('请选择分类');
         return;
     }
 
     if (!operator) {
-        notify.warning(, '请选择匹配逻辑');
+        notify.warning('请选择匹配逻辑');
         return;
     }
 
@@ -1136,7 +1136,7 @@ function updateRule() {
     });
 
     if (selectedPermissions.length === 0) {
-        notify.warning(, '请至少选择一个权限');
+        notify.warning('请至少选择一个权限');
         return;
     }
 
@@ -1263,16 +1263,16 @@ function updateRule() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                notify.success(, '规则更新成功');
+                notify.success('规则更新成功');
                 bootstrap.Modal.getInstance(document.getElementById('editRuleModal')).hide();
                 loadRules();
             } else {
-                notify.error(, data.error);
+                notify.error(data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '更新规则失败');
+            notify.error('更新规则失败');
         });
 }
 
@@ -1326,12 +1326,12 @@ function viewRule(id) {
                 const viewModal = new bootstrap.Modal(document.getElementById('viewRuleModal'));
                 viewModal.show();
             } else {
-                notify.error(, '获取规则信息失败: ' + data.error);
+                notify.error('获取规则信息失败: ' + data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '获取规则信息失败');
+            notify.error('获取规则信息失败');
         });
 }
 
@@ -1568,15 +1568,15 @@ function deleteRule(id) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                notify.success(, '规则删除成功');
+                notify.success('规则删除成功');
                 loadRules();
             } else {
-                notify.error(, data.error);
+                notify.error(data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '删除规则失败');
+            notify.error('删除规则失败');
         });
 }
 
@@ -1609,7 +1609,7 @@ function autoClassifyAll() {
                     result: 'success',
                     message: data.message
                 });
-                notify.success(, data.message);
+                notify.success(data.message);
                 // 分类完成后刷新页面显示最新数据
                 setTimeout(() => {
                     location.reload();
@@ -1621,7 +1621,7 @@ function autoClassifyAll() {
                     result: 'failed',
                     error: data.error
                 });
-                notify.error(, data.error);
+                notify.error(data.error);
             }
         })
         .catch(error => {
@@ -1630,7 +1630,7 @@ function autoClassifyAll() {
                 operation: 'auto_classify_all',
                 result: 'exception'
             });
-            notify.error(, '自动分类失败');
+            notify.error('自动分类失败');
         })
         .finally(() => {
             // 恢复按钮状态
@@ -1705,7 +1705,7 @@ function createClassification() {
 
     // 验证必填字段
     if (!data.name || !data.color) {
-        notify.error(, '请填写完整的分类信息');
+        notify.error('请填写完整的分类信息');
         return;
     }
 
@@ -1719,19 +1719,19 @@ function createClassification() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                notify.success(, '分类创建成功');
+                notify.success('分类创建成功');
                 bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
                 form.reset();
                 // 重置颜色预览
                 document.getElementById('colorPreview').style.display = 'none';
                 loadClassifications();
             } else {
-                notify.error(, data.error || '创建分类失败');
+                notify.error(data.error || '创建分类失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '创建分类失败: ' + error.message);
+            notify.error('创建分类失败: ' + (error.message || '未知错误'));
         });
 }
 
@@ -1757,7 +1757,7 @@ function updateClassification() {
 
     // 验证必填字段
     if (!data.name || !data.color) {
-        notify.error(, '请填写完整的分类信息');
+        notify.error('请填写完整的分类信息');
         return;
     }
 
@@ -1771,17 +1771,17 @@ function updateClassification() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                notify.success(, '分类更新成功');
+                notify.success('分类更新成功');
                 bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
                 // 重置颜色预览
                 document.getElementById('editColorPreview').style.display = 'none';
                 loadClassifications();
             } else {
-                notify.error(, data.error || '更新分类失败');
+                notify.error(data.error || '更新分类失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '更新分类失败: ' + error.message);
+            notify.error('更新分类失败: ' + (error.message || '未知错误'));
         });
 }
