@@ -14,7 +14,7 @@ from app.constants.system_constants import SuccessMessages
 from app.errors import NotFoundError, SystemError
 from app.models.instance import Instance
 from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
-from app.services.database_size_collector_service import DatabaseSizeCollectorService
+from app.services.capacity_sync_adapters.database_size_collector_service import DatabaseSizeCollectorService
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning

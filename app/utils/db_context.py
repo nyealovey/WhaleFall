@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from typing import Any
 
 from app.models.instance import Instance
-from app.services.connection_factory import ConnectionFactory
+from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()

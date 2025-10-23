@@ -100,20 +100,20 @@ services/
 ├── sync_session_service.py # 同步会话服务
 ├── sync_data_manager.py    # 同步数据管理
 ├── database_type_service.py # 数据库类型服务
-├── connection_test_service.py # 连接测试服务
-├── connection_factory.py   # 连接工厂
 ├── cache_manager.py        # 缓存管理器
-├── database_filter_manager.py # 数据库过滤器管理
 ├── account_classification_service.py # 优化账户分类服务
 ├── classification_batch_service.py # 分类批次服务
-├── database_filters/       # 数据库过滤器
+├── connection_adapters/    # 连接适配器
 │   ├── __init__.py
-│   ├── base_filter.py
-│   ├── mysql_filter.py
-│   ├── postgresql_filter.py
-│   ├── sqlserver_filter.py
-│   └── oracle_filter.py
-└── sync_adapters/          # 同步适配器
+│   ├── connection_factory.py
+│   └── connection_test_service.py
+├── account_sync_filters/   # 账户同步过滤器
+│   ├── __init__.py
+│   └── database_filter_manager.py
+├── capacity_sync_adapters/ # 容量同步适配器
+│   ├── __init__.py
+│   └── database_size_collector_service.py
+└── account_sync_adapters/  # 账户同步适配器
     ├── __init__.py
     ├── base_sync_adapter.py
     ├── mysql_sync_adapter.py
@@ -241,7 +241,7 @@ templates/
 
 ```
 config/
-├── database_filters.yaml   # 数据库过滤器配置
+├── account_filters.yaml    # 账户过滤规则配置
 ├── scheduler_tasks.yaml    # 调度器任务配置
 └── sqlserver_sync_performance.yaml # SQL Server同步性能配置
 ```

@@ -90,7 +90,9 @@ def collect_database_sizes():
                     )
                     
                     # 调用数据库大小采集服务
-                    from app.services.database_size_collector_service import DatabaseSizeCollectorService
+                    from app.services.capacity_sync_adapters.database_size_collector_service import (
+                        DatabaseSizeCollectorService,
+                    )
                     
                     collector = DatabaseSizeCollectorService(instance)
                     
@@ -288,7 +290,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
         Dict[str, Any]: 采集结果
     """
     from app import create_app
-    from app.services.database_size_collector_service import DatabaseSizeCollectorService
+    from app.services.capacity_sync_adapters.database_size_collector_service import DatabaseSizeCollectorService
     
     # 创建Flask应用上下文
     app = create_app()
@@ -558,7 +560,9 @@ def validate_collection_config() -> Dict[str, Any]:
         }
         
         # 检查服务可用性
-        from app.services.database_size_collector_service import DatabaseSizeCollectorService
+        from app.services.capacity_sync_adapters.database_size_collector_service import (
+            DatabaseSizeCollectorService,
+        )
         service = DatabaseSizeCollectorService()
         
         return {
