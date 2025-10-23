@@ -47,12 +47,12 @@ function loadClassifications() {
                 const classifications = data?.data?.classifications ?? data.classifications ?? [];
                 displayClassifications(Array.isArray(classifications) ? classifications : []);
             } else {
-                notify.error(, '加载分类失败: ' + data.error);
+                notify.error('加载分类失败: ' + (data.error || '未知错误'));
             }
         })
         .catch(error => {
             logErrorWithContext(error, '加载分类失败', { action: 'load_classifications' });
-            notify.error(, '加载分类失败');
+            notify.error('加载分类失败');
         });
 }
 
