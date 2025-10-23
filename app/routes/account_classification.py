@@ -41,14 +41,6 @@ def index() -> str:
     return render_template("accounts/account_classification.html", color_options=color_options)
 
 
-@account_classification_bp.route("/rules-page")
-@login_required
-@view_required
-def rules() -> str:
-    """规则管理页面"""
-    return render_template("account_classification/rules.html")
-
-
 @account_classification_bp.route("/api/colors")
 @login_required
 @view_required
@@ -460,108 +452,6 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
         )
 
     return jsonify_unified_success(message="分类规则更新成功")
-
-
-@account_classification_bp.route("/api/rules/<int:rule_id>/matched-accounts", methods=["GET"])
-@login_required
-@view_required
-def get_matched_accounts(rule_id: int) -> tuple[Response, int]:
-    """获取规则匹配的账户（从数据库获取，支持分页）"""
-    rule = ClassificationRule.query.get_or_404(rule_id)
-
-    page = request.args.get("page", 1, type=int)
-    per_page = min(request.args.get("per_page", 20, type=int), 100)
-    search = request.args.get("search", "", type=str)
-
-    from app.models.current_account_sync_data import CurrentAccountSyncData
-    from app.models.instance import Instance
-    from app.models.account_classification import AccountClassificationAssignment
-
-    try:
-        query = (
-            db.session.query(CurrentAccountSyncData, Instance)
-            .join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
-            .join(
-                AccountClassificationAssignment,
-                AccountClassificationAssignment.account_id == CurrentAccountSyncData.id,
-            )
-            .filter(
-                AccountClassificationAssignment.classification_id == rule.classification_id,
-                AccountClassificationAssignment.is_active.is_(True),
-                Instance.db_type == rule.db_type,
-                CurrentAccountSyncData.is_deleted.is_(False),
-                Instance.is_active.is_(True),
-                Instance.deleted_at.is_(None),
-            )
-        )
-
-        if search:
-            search_lower = f"%{search.lower()}%"
-            query = query.filter(
-                db.or_(
-                    CurrentAccountSyncData.username.ilike(search_lower),
-                    Instance.name.ilike(search_lower),
-                    Instance.host.ilike(search_lower),
-                )
-            )
-
-        total = query.count()
-        offset = (page - 1) * per_page
-        results = query.offset(offset).limit(per_page).all()
-    except Exception as exc:
-        log_error(f"获取匹配账户失败: {exc}", module="account_classification", rule_id=rule_id)
-        raise SystemError("获取匹配账户失败") from exc
-
-    matched_accounts: list[dict[str, object]] = []
-    for account, instance in results:
-        assignments = (
-            AccountClassificationAssignment.query.filter_by(account_id=account.id, is_active=True)
-            .join(AccountClassification, AccountClassificationAssignment.classification_id == AccountClassification.id)
-            .all()
-        )
-
-        account_classifications = [
-            {
-                "id": assignment.classification.id,
-                "name": assignment.classification.name,
-                "color": assignment.classification.color,
-            }
-            for assignment in assignments
-        ]
-
-        matched_accounts.append(
-            {
-                "id": account.id,
-                "username": account.username,
-                "display_name": account.username,
-                "instance_name": instance.name,
-                "instance_host": instance.host,
-                "instance_environment": instance.environment or "unknown",
-                "db_type": rule.db_type,
-                "is_locked": account.is_locked_display,
-                "classifications": account_classifications,
-            }
-        )
-
-    total_pages = (total + per_page - 1) // per_page
-    pagination = {
-        "page": page,
-        "per_page": per_page,
-        "total": total,
-        "pages": total_pages,
-        "has_next": page < total_pages,
-        "has_prev": page > 1,
-    }
-
-    return jsonify_unified_success(
-        data={
-            "accounts": matched_accounts,
-            "rule_name": rule.rule_name,
-            "pagination": pagination,
-        },
-        message="规则匹配账户获取成功",
-    )
-
 
 @account_classification_bp.route("/api/rules/<int:rule_id>", methods=["DELETE"])
 @login_required

@@ -263,61 +263,6 @@ def get_job(job_id: str) -> Response:
 
 
 
-@scheduler_bp.route("/api/jobs/<job_id>/disable", methods=["POST"])
-@login_required  # type: ignore
-@scheduler_manage_required  # type: ignore
-@require_csrf
-def disable_job(job_id: str) -> Response:
-    """禁用定时任务"""
-    try:
-        scheduler = get_scheduler()  # type: ignore
-        if not scheduler.running:
-            log_warning("调度器未启动", module="scheduler")
-            raise SystemError("调度器未启动")
-
-        job = scheduler.get_job(job_id)
-        if not job:
-            raise NotFoundError("任务不存在")
-
-        # 暂停任务
-        scheduler.pause_job(job_id)
-        log_info("任务已禁用", module="scheduler", job_id=job_id)
-        return jsonify_unified_success(data={"job_id": job_id}, message="任务已禁用")
-
-    except NotFoundError:
-        raise
-    except Exception as exc:
-        log_error("禁用任务失败", module="scheduler", job_id=job_id, error=str(exc))
-        raise SystemError("禁用任务失败") from exc
-
-
-@scheduler_bp.route("/api/jobs/<job_id>/enable", methods=["POST"])
-@login_required  # type: ignore
-@scheduler_manage_required  # type: ignore
-@require_csrf
-def enable_job(job_id: str) -> Response:
-    """启用定时任务"""
-    try:
-        scheduler = get_scheduler()  # type: ignore
-        if not scheduler.running:
-            log_warning("调度器未启动", module="scheduler")
-            raise SystemError("调度器未启动")
-
-        job = scheduler.get_job(job_id)
-        if not job:
-            raise NotFoundError("任务不存在")
-
-        scheduler.resume_job(job_id)
-        log_info("任务已启用", module="scheduler", job_id=job_id)
-        return jsonify_unified_success(data={"job_id": job_id}, message="任务已启用")
-
-    except NotFoundError:
-        raise
-    except Exception as exc:
-        log_error("启用任务失败", module="scheduler", job_id=job_id, error=str(exc))
-        raise SystemError("启用任务失败") from exc
-
-
 @scheduler_bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
 @login_required  # type: ignore
 @scheduler_manage_required  # type: ignore
