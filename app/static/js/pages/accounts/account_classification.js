@@ -138,17 +138,17 @@ function createClassification() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                notify.success(, data.message);
+                notify.success(data.message || '分类创建成功');
                 bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
                 form.reset();
                 loadClassifications();
             } else {
-                notify.error(, data.error);
+                notify.error(data.error || '创建分类失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error(, '创建分类失败');
+            notify.error('创建分类失败');
         });
 }
 
