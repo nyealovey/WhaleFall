@@ -19,7 +19,7 @@ function testConnection() {
     const originalText = testBtn.innerHTML;
 
     // 记录操作开始日志
-    logUserAction('开始测试连接', {
+    console.info('开始测试连接', {
         operation: 'test_connection',
         instance_id: getInstanceId(),
         instance_name: getInstanceName()
@@ -32,7 +32,7 @@ function testConnection() {
     connectionManager.testInstanceConnection(getInstanceId(), {
         onSuccess: (data) => {
             // 记录成功日志
-            logUserAction('测试连接成功', {
+            console.info('测试连接成功', {
                 operation: 'test_connection',
                 instance_id: getInstanceId(),
                 instance_name: getInstanceName(),
@@ -52,7 +52,7 @@ function testConnection() {
         },
         onError: (error) => {
             // 记录失败日志
-            logError('测试连接失败', {
+            console.error('测试连接失败', {
                 operation: 'test_connection',
                 instance_id: getInstanceId(),
                 instance_name: getInstanceName(),
@@ -82,7 +82,7 @@ function syncAccounts() {
     const originalText = syncBtn.innerHTML;
 
     // 记录操作开始日志
-    logUserAction('开始同步账户', {
+    console.info('开始同步账户', {
         operation: 'sync_accounts',
         instance_id: getInstanceId(),
         instance_name: getInstanceName()
@@ -105,7 +105,7 @@ function syncAccounts() {
     .then(data => {
         if (data.message) {
             // 记录成功日志
-            logUserAction('同步账户成功', {
+            console.info('同步账户成功', {
                 operation: 'sync_accounts',
                 instance_id: getInstanceId(),
                 instance_name: getInstanceName(),
@@ -115,7 +115,7 @@ function syncAccounts() {
             notify.success(data.message);
         } else if (data.error) {
             // 记录失败日志
-            logError('同步账户失败', {
+            console.error('同步账户失败', {
                 operation: 'sync_accounts',
                 instance_id: getInstanceId(),
                 instance_name: getInstanceName(),
@@ -127,7 +127,7 @@ function syncAccounts() {
     })
     .catch(error => {
         // 记录异常日志
-        logErrorWithContext(error, '同步账户异常', {
+        console.error('同步账户异常', error, {
             operation: 'sync_accounts',
             instance_id: getInstanceId(),
             instance_name: getInstanceName(),
@@ -147,7 +147,7 @@ function syncCapacity(instanceId, instanceName) {
     const originalText = syncBtn.innerHTML;
 
     // 记录操作开始日志
-    logUserAction('开始同步容量', {
+    console.info('开始同步容量', {
         operation: 'sync_capacity',
         instance_id: instanceId,
         instance_name: instanceName
@@ -192,7 +192,7 @@ function syncCapacity(instanceId, instanceName) {
     .then(data => {
         if (data.success) {
             // 记录成功日志
-            logUserAction('同步容量成功', {
+            console.info('同步容量成功', {
                 operation: 'sync_capacity',
                 instance_id: instanceId,
                 instance_name: instanceName,
@@ -207,7 +207,7 @@ function syncCapacity(instanceId, instanceName) {
             }, 1000);
         } else if (data.error) {
             // 记录失败日志
-            logError('同步容量失败', {
+            console.error('同步容量失败', {
                 operation: 'sync_capacity',
                 instance_id: instanceId,
                 instance_name: instanceName,
@@ -219,7 +219,7 @@ function syncCapacity(instanceId, instanceName) {
     })
     .catch(error => {
         // 记录异常日志
-        logErrorWithContext(error, '同步容量异常', {
+        console.error('同步容量异常', error, {
             operation: 'sync_capacity',
             instance_id: instanceId,
             instance_name: instanceName,
