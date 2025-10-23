@@ -3,7 +3,7 @@
 提供容量相关采集与发现服务的封装
 """
 
-from .database_size_collector_service import DatabaseSizeCollectorService
+from .capacity_sync_service import DatabaseSizeCollectorService
 
 __all__ = [
     "DatabaseSizeCollectorService",

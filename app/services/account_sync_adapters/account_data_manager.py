@@ -128,42 +128,6 @@ class AccountDataManager:
         """
         return list(self._adapters.keys())
 
-    # 兼容性方法 - 为了不破坏现有代码
-    def sync_mysql_accounts(self, instance: Any, connection: Any, session_id: str) -> dict[str, Any]:  # noqa: ANN401
-        """MySQL账户同步 - 兼容性方法"""
-        return self.sync_accounts(instance, connection, session_id)
-
-    def sync_postgresql_accounts(
-        self, instance: Any, connection: Any, session_id: str
-    ) -> dict[str, Any]:  # noqa: ANN401
-        """PostgreSQL账户同步 - 兼容性方法"""
-        return self.sync_accounts(instance, connection, session_id)
-
-    def sync_sqlserver_accounts(
-        self, instance: Any, connection: Any, session_id: str
-    ) -> dict[str, Any]:  # noqa: ANN401
-        """SQL Server账户同步 - 兼容性方法"""
-        return self.sync_accounts(instance, connection, session_id)
-
-    def sync_oracle_accounts(self, instance: Any, connection: Any, session_id: str) -> dict[str, Any]:  # noqa: ANN401
-        """Oracle账户同步 - 兼容性方法"""
-        return self.sync_accounts(instance, connection, session_id)
-
-    # 静态方法保持兼容性
-    @staticmethod
-    def get_account_latest(
-        db_type: str, instance_id: int, username: str | None = None, *, include_deleted: bool = False
-    ) -> Any:
-        """获取账户最新状态 - 兼容性方法"""
-        from app.models.current_account_sync_data import CurrentAccountSyncData
-
-        query = CurrentAccountSyncData.query.filter_by(instance_id=instance_id, db_type=db_type)
-        if username:
-            query = query.filter_by(username=username)
-        if not include_deleted:
-            query = query.filter_by(is_deleted=False)
-        return query.order_by(CurrentAccountSyncData.sync_time.desc()).first()
-
     @staticmethod
     def get_accounts_by_instance(instance_id: int, *, include_deleted: bool = False) -> list[Any]:  # noqa: ANN401
         """获取实例的所有账户 - 兼容性方法"""
@@ -173,14 +137,3 @@ class AccountDataManager:
         if not include_deleted:
             query = query.filter_by(is_deleted=False)
         return query.order_by(CurrentAccountSyncData.username.asc()).all()
-
-    @staticmethod
-    def get_account_changes(instance_id: int, db_type: str, username: str) -> list[Any]:  # noqa: ANN401
-        """获取账户变更历史 - 兼容性方法"""
-        from app.models.account_change_log import AccountChangeLog
-
-        return (
-            AccountChangeLog.query.filter_by(instance_id=instance_id, db_type=db_type, username=username)
-            .order_by(AccountChangeLog.change_time.desc())
-            .all()
-        )
