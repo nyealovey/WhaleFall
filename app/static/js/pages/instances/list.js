@@ -336,7 +336,7 @@ function syncCapacity(instanceId, instanceName) {
     }
 
     // 记录操作开始日志
-    logUserAction('开始同步实例容量', {
+    console.info('开始同步实例容量', {
         operation: 'sync_instance_capacity',
         instance_id: instanceId,
         instance_name: instanceName
@@ -350,7 +350,7 @@ function syncCapacity(instanceId, instanceName) {
     .then(data => {
         if (data.success) {
             // 记录成功日志
-            logUserAction('同步实例容量成功', {
+            console.info('同步实例容量成功', {
                 operation: 'sync_instance_capacity',
                 instance_id: instanceId,
                 instance_name: instanceName,
@@ -367,7 +367,7 @@ function syncCapacity(instanceId, instanceName) {
             }, 1500);
         } else {
             // 记录失败日志
-            logError('同步实例容量失败', {
+            console.error('同步实例容量失败', {
                 operation: 'sync_instance_capacity',
                 instance_id: instanceId,
                 instance_name: instanceName,
@@ -379,7 +379,7 @@ function syncCapacity(instanceId, instanceName) {
     })
     .catch(error => {
         // 记录异常日志
-        logErrorWithContext(error, '同步实例容量异常', {
+        console.error('同步实例容量异常', error, {
             operation: 'sync_instance_capacity',
             instance_id: instanceId,
             instance_name: instanceName,
@@ -450,7 +450,7 @@ function batchDelete() {
     }
 
     // 记录操作开始日志
-    logUserAction('开始批量删除实例', {
+    console.info('开始批量删除实例', {
         operation: 'batch_delete_instances',
         instance_count: instanceIds.length,
         instance_ids: instanceIds
@@ -476,7 +476,7 @@ function batchDelete() {
     .then(data => {
         if (data.success) {
             // 记录成功日志
-            logUserAction('批量删除实例成功', {
+            console.info('批量删除实例成功', {
                 operation: 'batch_delete_instances',
                 instance_count: instanceIds.length,
                 instance_ids: instanceIds,
@@ -487,7 +487,7 @@ function batchDelete() {
             setTimeout(() => location.reload(), 1000);
         } else {
             // 记录失败日志
-            logError('批量删除实例失败', {
+            console.error('批量删除实例失败', {
                 operation: 'batch_delete_instances',
                 instance_count: instanceIds.length,
                 instance_ids: instanceIds,
@@ -499,7 +499,7 @@ function batchDelete() {
     })
     .catch(error => {
         // 记录异常日志
-        logErrorWithContext(error, '批量删除实例异常', {
+        console.error('批量删除实例异常', error, {
             operation: 'batch_delete_instances',
             instance_count: instanceIds.length,
             instance_ids: instanceIds,

@@ -1590,7 +1590,7 @@ function autoClassifyAll() {
     btn.disabled = true;
 
     // 记录操作开始日志
-    logUserAction('开始自动分类所有账户', { operation: 'auto_classify_all' });
+    console.info('开始自动分类所有账户', { operation: 'auto_classify_all' });
 
     fetch('/account_classification/api/auto-classify', {
         method: 'POST',
@@ -1604,7 +1604,7 @@ function autoClassifyAll() {
         .then(data => {
             if (data.success) {
                 // 记录成功日志
-                logUserAction('自动分类所有账户成功', {
+                console.info('自动分类所有账户成功', {
                     operation: 'auto_classify_all',
                     result: 'success',
                     message: data.message
@@ -1616,7 +1616,7 @@ function autoClassifyAll() {
                 }, 2000);
             } else {
                 // 记录失败日志
-                logError('自动分类所有账户失败', {
+                console.error('自动分类所有账户失败', {
                     operation: 'auto_classify_all',
                     result: 'failed',
                     error: data.error
