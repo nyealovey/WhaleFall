@@ -5,20 +5,28 @@
 from datetime import date
 from typing import Any, Dict, Optional
 
-from flask import Response, request
-from flask_login import login_required
+from flask import Response, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
 from sqlalchemy import text
 
 from app import db
-from app.errors import SystemError, ValidationError
+from app.errors import ConflictError, SystemError, ValidationError
 from app.models.database_size_stat import DatabaseSizeStat
+from app.models.credential import Credential
 from app.models.instance import Instance
+from app.models.tag import Tag
 from app.routes.database_stats import database_stats_bp
 from app.routes.instances import instances_bp
 from app.services.account_sync_adapters.account_data_manager import AccountDataManager
-from app.utils.decorators import view_required
+from app.utils.data_validator import (
+    DataValidator,
+    sanitize_form_data,
+    validate_db_type,
+    validate_required_fields,
+)
+from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error
+from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 
