@@ -78,7 +78,7 @@ fi
 
 # 测试 50x 页面（通过访问不存在的后端）
 log_info "测试 50x 错误页面..."
-if curl -s -o /dev/null -w "%{http_code}" http://localhost/health 2>/dev/null | grep -q "503\|502"; then
+if curl -s -o /dev/null -w "%{http_code}" http://localhost/health/api/basic 2>/dev/null | grep -q "503\|502"; then
     log_success "50x 错误页面测试通过"
 else
     log_warning "50x 错误页面测试失败，Flask 应用可能正在运行"
