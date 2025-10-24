@@ -361,7 +361,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.database_types import database_types_bp
     from app.routes.storage_sync import storage_sync_bp
     from app.routes.aggregations import aggregations_bp
-    from app.routes.health import health_bp, api_health
+    from app.routes.health import health_bp
     from app.routes.instances import instances_bp
     from app.routes.tags import tags_bp
     from app.routes.tags_batch import tags_batch_bp
@@ -414,7 +414,6 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(tags_batch_bp, url_prefix='/tags')
     app.register_blueprint(logs_bp, url_prefix='/logs')
     app.register_blueprint(health_bp, url_prefix='/health')
-    app.add_url_rule('/api/health', view_func=api_health)
     app.register_blueprint(cache_bp, url_prefix='/cache')
     app.register_blueprint(database_types_bp, url_prefix='/database_types')
     app.register_blueprint(storage_sync_bp, url_prefix='/storage_sync')

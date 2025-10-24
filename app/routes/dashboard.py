@@ -23,6 +23,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import CHINA_TZ, time_utils
 from app.scheduler import get_scheduler
+from app.routes.health import check_database_health, check_cache_health
 
 # 创建蓝图
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -599,29 +600,11 @@ def get_system_status() -> dict:
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage("/")
 
-        # 数据库状态
-        db_status = "healthy"
-        try:
-            db.session.execute(text("SELECT 1"))
-        except Exception:
-            db_status = "error"
+        db_status_info = check_database_health()
+        db_status = "healthy" if db_status_info.get("healthy") else "error"
 
-        # Redis状态（通过缓存检查）
-        redis_status = "healthy"
-        try:
-            from flask import current_app
-            from app.services.cache_manager import cache_manager
-
-            if cache_manager and cache_manager.health_check():
-                redis_status = "healthy"
-            else:
-                redis_status = "error"
-        except Exception as e:
-            log_warning(f"Redis连接检查失败: {e}", module="dashboard")
-            redis_status = "error"
-
-        # 应用状态
-        app_status = "running"
+        cache_status_info = check_cache_health()
+        redis_status = "healthy" if cache_status_info.get("healthy") else "error"
 
         return {
             "system": {
@@ -640,7 +623,6 @@ def get_system_status() -> dict:
             "services": {
                 "database": db_status,
                 "redis": redis_status,
-                "application": app_status,
             },
             "uptime": get_system_uptime(),
         }

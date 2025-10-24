@@ -132,7 +132,6 @@
 | 路径 | 方法 | 描述 |
 |------|------|------|
 | `/cache/api/stats` | GET | 获取缓存统计信息 |
-| `/cache/api/health` | GET | 检查缓存健康状态 |
 | `/cache/api/clear/user` | POST | 清除用户缓存 |
 | `/cache/api/clear/instance` | POST | 清除实例缓存 |
 | `/cache/api/clear/all` | POST | 清除所有缓存 |
@@ -205,7 +204,9 @@
 |------|------|------|
 | `/health/api/basic` | GET | 基础健康检查 |
 | `/health/api/detailed` | GET | 详细健康检查 |
-| `/health/api/health` | GET | 健康检查 API（同时保留 `/api/health` 兼容路径） |
+| `/health/api/health` | GET | 健康检查 API |
+| `/health/api/cache` | GET | 缓存服务健康检查 |
+| `/health/api/scheduler` | GET | 调度器健康检查 |
 
 ---
 
@@ -312,7 +313,6 @@
 | `/scheduler/api/jobs/<job_id>/run` | POST | 立即执行任务 |
 | `/scheduler/api/jobs/reload` | POST | 重新加载所有任务配置 |
 | `/scheduler/api/jobs/<job_id>` | PUT | 更新内置任务的触发器配置 |
-| `/scheduler/api/health` | GET | 获取调度器健康状态 |
 
 ---
 

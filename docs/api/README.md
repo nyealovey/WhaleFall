@@ -507,7 +507,7 @@ GET /api/system/info
 
 ### 健康检查
 ```http
-GET /api/health
+GET /health/api/health
 ```
 
 **响应示例**:

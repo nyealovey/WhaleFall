@@ -34,21 +34,6 @@ def get_cache_stats() -> Response:
     return jsonify_unified_success(data={"stats": stats}, message="缓存统计获取成功")
 
 
-@cache_bp.route("/api/health", methods=["GET"])
-@login_required
-def check_cache_health() -> Response:
-    """检查缓存健康状态"""
-    try:
-        is_healthy = cache_manager.health_check()
-    except Exception as exc:
-        log_error(f"缓存健康检查失败: {exc}", module="cache")
-        raise SystemError("缓存健康检查失败") from exc
-
-    status_text = "正常" if is_healthy else "异常"
-    data = {"healthy": is_healthy, "status": status_text}
-    return jsonify_unified_success(data=data, message="缓存健康检查完成")
-
-
 @cache_bp.route("/api/clear/user", methods=["POST"])
 @login_required
 @admin_required

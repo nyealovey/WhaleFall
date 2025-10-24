@@ -111,7 +111,7 @@ docker exec -it <container_id> /bin/bash
 
 - **应用首页**: http://localhost:5001
 - **登录页面**: http://localhost:5001/auth/login
-- **API文档**: http://localhost:5001/api/health
+- **API文档**: http://localhost:5001/health/api/health
 - **管理后台**: http://localhost:5001/admin
 
 ## 👤 默认账户
@@ -207,7 +207,7 @@ DATABASE_URL=mysql://user:password@localhost:3306/whalefall
 - `POST /tasks/execute-all` - 批量执行任务
 
 ### 健康检查
-- `GET /api/health` - 系统健康检查
+- `GET /health/api/health` - 系统健康检查
 
 ## 🐛 常见问题
 

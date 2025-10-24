@@ -404,7 +404,7 @@ nano /home/whalefalling/health_check.sh
 ```bash
 #!/bin/bash
 # 健康检查脚本
-curl -f http://localhost:5000/api/health || exit 1
+curl -f http://localhost:5000/health/api/health || exit 1
 ```
 
 ```bash
