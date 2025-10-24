@@ -764,59 +764,6 @@ def api_detail(instance_id: int) -> Response:
         message="获取实例详情成功",
     )
 
-@instances_bp.route("/<int:instance_id>")
-@login_required
-@view_required
-def detail(instance_id: int) -> str | Response | tuple[Response, int]:
-    """实例详情"""
-    instance = Instance.query.get_or_404(instance_id)
-    
-    # 确保标签关系被加载
-    instance.tags  # 触发标签关系的加载
-
-    # 获取查询参数
-    include_deleted = request.args.get("include_deleted", "true").lower() == "true"  # 默认包含已删除账户
-
-    # 获取账户数据 - 使用新的优化同步模型
-    from app.services.account_sync_adapters.account_data_manager import AccountDataManager
-
-    sync_accounts = AccountDataManager.get_accounts_by_instance(instance_id, include_deleted=include_deleted)
-
-    # 转换数据格式以适配模板
-    accounts = []
-    for sync_account in sync_accounts:
-        # 从type_specific字段获取额外信息
-        type_specific = sync_account.type_specific or {}
-
-        account_data = {
-            "id": sync_account.id,
-            "username": sync_account.username,
-            "host": type_specific.get("host", "%"),
-            "plugin": type_specific.get("plugin", ""),
-            "account_type": sync_account.db_type,
-            "is_locked": sync_account.is_locked_display,  # 使用计算字段
-            "is_active": not sync_account.is_deleted,
-            "account_created_at": type_specific.get("account_created_at"),
-            "last_sync_time": sync_account.last_sync_time,
-            "is_superuser": sync_account.is_superuser,
-            "last_change_type": sync_account.last_change_type,
-            "last_change_time": sync_account.last_change_time,
-            "type_specific": sync_account.type_specific,
-            "is_deleted": sync_account.is_deleted,
-            "deleted_time": sync_account.deleted_time,
-            # 添加权限数据
-            "server_roles": sync_account.server_roles or [],
-            "server_permissions": sync_account.server_permissions or [],
-            "database_roles": sync_account.database_roles or {},
-            "database_permissions": sync_account.database_permissions or {},
-        }
-        accounts.append(account_data)
-
-    return render_template("instances/detail.html", instance=instance, accounts=accounts)
-
-
-
-
 
 @instances_bp.route("/api/<int:instance_id>/accounts")
 @login_required
