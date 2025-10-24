@@ -98,7 +98,7 @@ wait_for_flask() {
     # 使用 --noproxy 确保curl不使用代理检查本地服务
     local count=0
     while [ $count -lt 30 ]; do
-        if curl --noproxy localhost,127.0.0.1,::1 -f http://localhost/health > /dev/null 2>&1; then
+        if curl --noproxy localhost,127.0.0.1,::1 -f http://localhost/health/api/basic > /dev/null 2>&1; then
             break
         fi
         sleep 5
@@ -122,7 +122,7 @@ show_complete_status() {
     echo ""
     log_info "访问地址:"
     echo "  - 应用首页: http://localhost"
-    echo "  - 健康检查: http://localhost/health"
+    echo "  - 健康检查: http://localhost/health/api/basic"
     echo "  - 静态文件: http://localhost/static/"
     
     echo ""
