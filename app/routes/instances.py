@@ -907,13 +907,6 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         raise SystemError("获取权限失败") from exc
 
 
-@instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
-@login_required
-@view_required
-def get_account_change_history(instance_id: int, account_id: int) -> Response:
-    """获取账户变更历史"""
-    instance = Instance.query.get_or_404(instance_id)
-
     from app.models.current_account_sync_data import CurrentAccountSyncData
 
     account = CurrentAccountSyncData.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
@@ -976,4 +969,4 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
 
 # 注册额外路由模块
 from . import instances_detail  # noqa: E402
-from . import instances_capacity  # noqa: E402
+from . import instances_stats  # noqa: E402
