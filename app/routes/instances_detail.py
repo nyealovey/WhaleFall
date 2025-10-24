@@ -80,6 +80,67 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 
     return render_template("instances/detail.html", instance=instance, accounts=accounts)
 
+@instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
+@login_required
+@view_required
+def get_account_change_history(instance_id: int, account_id: int) -> Response:
+    """获取账户变更历史"""
+    instance = Instance.query.get_or_404(instance_id)
+
+    from app.models.current_account_sync_data import CurrentAccountSyncData
+
+    account = CurrentAccountSyncData.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
+
+    try:
+        from app.models.account_change_log import AccountChangeLog
+
+        change_logs = (
+            AccountChangeLog.query.filter_by(
+                instance_id=instance_id,
+                username=account.username,
+                db_type=instance.db_type,
+            )
+            .order_by(AccountChangeLog.change_time.desc())
+            .limit(50)
+            .all()
+        )
+
+        history = []
+        for log in change_logs:
+            history.append(
+                {
+                    "id": log.id,
+                    "change_type": log.change_type,
+                    "change_time": (time_utils.format_china_time(log.change_time) if log.change_time else "未知"),
+                    "status": log.status,
+                    "message": log.message,
+                    "privilege_diff": log.privilege_diff,
+                    "other_diff": log.other_diff,
+                    "session_id": log.session_id,
+                }
+            )
+
+        return jsonify_unified_success(
+            data={
+                "account": {
+                    "id": account.id,
+                    "username": account.username,
+                    "db_type": instance.db_type,
+                },
+                "history": history,
+            },
+            message="获取账户变更历史成功",
+        )
+
+    except Exception as exc:  # noqa: BLE001
+        log_error(
+            "获取账户变更历史失败",
+            module="instances",
+            instance_id=instance_id,
+            account_id=account_id,
+            exception=exc,
+        )
+        raise SystemError("获取变更历史失败") from exc
 
 @instances_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
 @login_required

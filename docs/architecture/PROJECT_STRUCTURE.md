@@ -77,7 +77,7 @@ routes/
 ├── dashboard.py            # 仪表板路由
 ├── instances.py            # 实例管理路由（基础信息）
 ├── instances_detail.py   # 实例详情相关路由（账户、容量等）
-├── instances_capacity.py   # 实例容量与统计路由
+├── instances_stats.py   # 实例容量与统计路由
 ├── credentials.py          # 凭据管理路由
 ├── tags.py                 # 标签管理路由
 ├── account_classification.py # 账户分类路由
