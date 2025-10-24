@@ -112,7 +112,7 @@ make prod backup    # 备份数据
 
 ### 健康检查
 ```bash
-curl -f http://localhost/health
+curl -f http://localhost/health/api/basic
 ```
 
 ### 日志管理

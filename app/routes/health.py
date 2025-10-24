@@ -6,18 +6,20 @@
 import time
 
 import psutil
-from flask import Blueprint, Response
+from flask import Blueprint, Response, request
 
 from app import cache, db
+from app.constants.system_constants import SuccessMessages
 from app.errors import SystemError
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
+from app.utils.time_utils import time_utils
 
 # 创建蓝图
 health_bp = Blueprint("health", __name__)
 
 
-@health_bp.route("/")
+@health_bp.route("/api/basic")
 def health_check() -> Response:
     """基础健康检查"""
     try:
@@ -30,7 +32,7 @@ def health_check() -> Response:
         raise SystemError("健康检查失败") from exc
 
 
-@health_bp.route("/detailed")
+@health_bp.route("/api/detailed")
 def detailed_health_check() -> Response:
     """详细健康检查"""
     try:
@@ -82,6 +84,55 @@ def detailed_health_check() -> Response:
     except Exception as exc:
         log_error("详细健康检查失败", module="health", error=str(exc))
         raise SystemError("详细健康检查失败") from exc
+
+
+@health_bp.route("/api/health")
+def api_health() -> Response:
+    """健康检查（供外部监控使用）"""
+    start_time = time.time()
+
+    # 检查数据库状态
+    db_status = "connected"
+    try:
+        from sqlalchemy import text
+
+        db.session.execute(text("SELECT 1"))
+    except Exception:
+        db_status = "error"
+
+    # 检查Redis状态
+    redis_status = "connected"
+    try:
+        from app.services.cache_manager import cache_manager
+
+        if cache_manager and cache_manager.health_check():
+            redis_status = "connected"
+        else:
+            redis_status = "error"
+    except Exception:
+        redis_status = "error"
+
+    overall_status = "healthy" if db_status == "connected" and redis_status == "connected" else "unhealthy"
+    result = {
+        "status": overall_status,
+        "database": db_status,
+        "redis": redis_status,
+        "timestamp": time_utils.now_china().isoformat(),
+        "uptime": get_system_uptime(),
+    }
+
+    duration = (time.time() - start_time) * 1000
+    log_info(
+        "健康检查API调用",
+        module="health",
+        ip_address=request.remote_addr,
+        duration_ms=duration,
+    )
+
+    return jsonify_unified_success(
+        data=result,
+        message=SuccessMessages.OPERATION_SUCCESS,
+    )
 
 
 def check_database_health() -> dict:
@@ -153,3 +204,20 @@ def check_system_health() -> dict:
     except Exception as exc:
         log_error("系统健康检查失败", module="health", error=str(exc))
         return {"healthy": False, "error": str(exc), "status": "error"}
+
+
+def get_system_uptime() -> "str | None":
+    """获取应用运行时间"""
+    try:
+        from app import app_start_time
+
+        current_time = time_utils.now_china()
+        uptime = current_time - app_start_time
+
+        days = uptime.days
+        hours, remainder = divmod(uptime.seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
+
+        return f"{days}天 {hours}小时 {minutes}分钟"
+    except Exception:
+        return "未知"

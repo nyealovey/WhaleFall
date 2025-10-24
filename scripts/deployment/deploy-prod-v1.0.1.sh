@@ -341,7 +341,7 @@ wait_for_services() {
     log_info "等待Flask应用启动..."
     count=0
     while [ $count -lt 60 ]; do
-        if curl -f http://localhost/health > /dev/null 2>&1; then
+        if curl -f http://localhost/health/api/basic > /dev/null 2>&1; then
             break
         fi
         sleep 5
@@ -485,7 +485,7 @@ test_flask_application() {
     # 测试Flask应用直接访问
     log_info "测试Flask应用直接访问..."
     local flask_response
-    flask_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall curl -s http://localhost:5001/health 2>/dev/null)
+    flask_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall curl -s http://localhost:5001/health/api/health 2>/dev/null)
     
     if echo "$flask_response" | grep -q -E "(healthy|success)"; then
         log_success "Flask应用直接访问测试成功"
@@ -551,7 +551,7 @@ test_nginx_proxy() {
     # 测试Nginx代理健康检查
     log_info "测试Nginx代理健康检查..."
     local nginx_health_response
-    nginx_health_response=$(curl -s http://localhost/health 2>/dev/null)
+    nginx_health_response=$(curl -s http://localhost/health/api/basic 2>/dev/null)
     
     if echo "$nginx_health_response" | grep -q -E "(healthy|success)"; then
         log_success "Nginx代理健康检查测试成功"
@@ -602,7 +602,7 @@ verify_flask_database_connection() {
     log_info "等待Flask应用完全启动..."
     local count=0
     while [ $count -lt 30 ]; do
-        if curl -f http://localhost/health > /dev/null 2>&1; then
+        if curl -f http://localhost/health/api/basic > /dev/null 2>&1; then
             break
         fi
         sleep 5
@@ -642,7 +642,7 @@ verify_flask_database_connection() {
     # 验证Flask应用数据库连接
     log_info "验证Flask应用数据库连接..."
     local db_test_response
-    db_test_response=$(curl -s http://localhost/health 2>/dev/null)
+    db_test_response=$(curl -s http://localhost/health/api/basic 2>/dev/null)
     
     # 检查响应是否包含healthy或success
     if echo "$db_test_response" | grep -q -E "(healthy|success)"; then
@@ -655,7 +655,7 @@ verify_flask_database_connection() {
         # 尝试直接访问Flask应用端口
         log_info "尝试直接访问Flask应用端口5001..."
         local flask_response
-        flask_response=$(curl -s http://localhost:5001/health 2>/dev/null)
+        flask_response=$(curl -s http://localhost:5001/health/api/health 2>/dev/null)
         if echo "$flask_response" | grep -q -E "(healthy|success)"; then
             log_success "Flask应用直接访问成功"
             log_info "Flask响应: $flask_response"
@@ -681,7 +681,7 @@ verify_deployment() {
     # 健康检查（直接访问Flask应用）
     log_info "执行健康检查..."
     local health_response
-    health_response=$(curl -s http://localhost:5001/health)
+    health_response=$(curl -s http://localhost:5001/health/api/health)
     
     if echo "$health_response" | grep -q "healthy"; then
         log_success "健康检查通过"
@@ -717,7 +717,7 @@ show_deployment_info() {
     echo ""
     echo -e "${BLUE}🌐 访问地址：${NC}"
     echo "  - 应用首页: http://localhost"
-    echo "  - 健康检查: http://localhost/health"
+    echo "  - 健康检查: http://localhost/health/api/basic"
     echo "  - 静态文件: http://localhost/static/"
     echo ""
     echo -e "${BLUE}🔧 管理命令：${NC}"

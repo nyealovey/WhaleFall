@@ -3,17 +3,18 @@
 鲸落 - 主要路由
 """
 
-import time
+from flask import Blueprint, Response, redirect, render_template, url_for
 
-from flask import Blueprint, Response, redirect, render_template, request, url_for
-
-from app.constants.system_constants import SuccessMessages
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_info
-from app.utils.time_utils import time_utils
 
 # 创建蓝图
 main_bp = Blueprint("main", __name__)
+
+
+@main_bp.route("/admin/api/app-info", methods=["GET"])
+def app_info() -> tuple[Response, int]:
+    """获取应用信息（供前端展示应用名称等）"""
+    return jsonify_unified_success(data={"app_name": "鲸落", "app_version": "1.1.2"})
 
 
 @main_bp.route("/")
@@ -43,73 +44,3 @@ def chrome_devtools() -> "Response":
 
 
 # Admin route removed - admin/management.html deleted
-
-
-@main_bp.route("/api/health")
-def api_health() -> "Response":
-    """健康检查"""
-    start_time = time.time()
-    from app import db
-
-    # 检查数据库状态
-    db_status = "connected"
-    try:
-        from sqlalchemy import text
-
-        db.session.execute(text("SELECT 1"))
-    except Exception:
-        db_status = "error"
-
-    # 检查Redis状态（通过缓存检查）
-    redis_status = "connected"
-    try:
-        from app.services.cache_manager import cache_manager
-
-        if cache_manager and cache_manager.health_check():
-            redis_status = "connected"
-        else:
-            redis_status = "error"
-    except Exception:
-        redis_status = "error"
-
-    # 整体状态
-    overall_status = "healthy" if db_status == "connected" and redis_status == "connected" else "unhealthy"
-
-    result = {
-        "status": overall_status,
-        "database": db_status,
-        "redis": redis_status,
-        "timestamp": time_utils.now_china().isoformat(),
-        "uptime": get_system_uptime(),
-    }
-
-    # 记录API调用
-    duration = (time.time() - start_time) * 1000
-    log_info(
-        "健康检查API调用",
-        module="main",
-        ip_address=request.remote_addr,
-        duration_ms=duration,
-    )
-
-    return jsonify_unified_success(
-        data=result,
-        message=SuccessMessages.OPERATION_SUCCESS,
-    )
-
-
-def get_system_uptime() -> "str | None":
-    """获取应用运行时间"""
-    try:
-        from app import app_start_time
-        # 计算应用运行时间
-        current_time = time_utils.now_china()
-        uptime = current_time - app_start_time
-
-        days = uptime.days
-        hours, remainder = divmod(uptime.seconds, 3600)
-        minutes, _ = divmod(remainder, 60)
-
-        return f"{days}天 {hours}小时 {minutes}分钟"
-    except Exception:
-        return "未知"
