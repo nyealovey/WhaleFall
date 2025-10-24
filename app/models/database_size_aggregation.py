@@ -56,14 +56,14 @@ class DatabaseSizeAggregation(db.Model):
     
     # 增量/减量统计字段
     size_change_mb = Column(BigInteger, nullable=False, default=0, comment="总大小变化量（MB，可为负值）")
-    size_change_percent = Column(Numeric(5, 2), nullable=False, default=0, comment="总大小变化百分比（%，可为负值）")
+    size_change_percent = Column(Numeric(10, 2), nullable=False, default=0, comment="总大小变化百分比（%，可为负值）")
     data_size_change_mb = Column(BigInteger, nullable=True, comment="数据大小变化量（MB，可为负值）")
-    data_size_change_percent = Column(Numeric(5, 2), nullable=True, comment="数据大小变化百分比（%，可为负值）")
+    data_size_change_percent = Column(Numeric(10, 2), nullable=True, comment="数据大小变化百分比（%，可为负值）")
     log_size_change_mb = Column(BigInteger, nullable=True, comment="日志大小变化量（MB，可为负值）")
-    log_size_change_percent = Column(Numeric(5, 2), nullable=True, comment="日志大小变化百分比（%，可为负值）")
+    log_size_change_percent = Column(Numeric(10, 2), nullable=True, comment="日志大小变化百分比（%，可为负值）")
     
     # 增长率字段
-    growth_rate = Column(Numeric(5, 2), nullable=False, default=0, comment="增长率（%，可为负值）")
+    growth_rate = Column(Numeric(10, 2), nullable=False, default=0, comment="增长率（%，可为负值）")
     
     # 时间字段
     calculated_at = Column(DateTime(timezone=True), nullable=False, default=time_utils.now, comment="计算时间")

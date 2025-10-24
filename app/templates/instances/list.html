@@ -292,7 +292,7 @@
                         <input type="file" class="form-control" id="csvFile" accept=".csv" onchange="handleFileSelect(event)">
                         <div class="form-text">
                             请上传CSV格式文件，或
-                            <a href="{{ url_for('instances.download_template') }}" class="text-decoration-none">
+                            <a href="{{ url_for('files.download_instances_template') }}" class="text-decoration-none">
                                 <i class="fas fa-download me-1"></i>下载模板文件
                             </a>
                         </div>
