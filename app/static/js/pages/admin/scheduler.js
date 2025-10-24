@@ -866,7 +866,7 @@ function formatTime(timeString) {
 // 健康状态检查功能
 function loadHealthStatus() {
     $.ajax({
-        url: '/scheduler/api/health',
+        url: '/health/api/scheduler',
         method: 'GET',
         success: function (response) {
             if (response.success) {

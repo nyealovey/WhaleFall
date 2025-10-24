@@ -7,12 +7,17 @@ import time
 
 import psutil
 from flask import Blueprint, Response, request
+from flask_login import login_required
 
 from app import cache, db
 from app.constants.system_constants import SuccessMessages
 from app.errors import SystemError
+from app.scheduler import get_scheduler
+from app.services.cache_manager import cache_manager
+from app.services.scheduler_health_service import scheduler_health_service
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
+from app.utils.decorators import scheduler_view_required
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -103,8 +108,6 @@ def api_health() -> Response:
     # 检查Redis状态
     redis_status = "connected"
     try:
-        from app.services.cache_manager import cache_manager
-
         if cache_manager and cache_manager.health_check():
             redis_status = "connected"
         else:
@@ -133,6 +136,104 @@ def api_health() -> Response:
         data=result,
         message=SuccessMessages.OPERATION_SUCCESS,
     )
+
+
+@health_bp.route("/api/cache")
+@login_required
+def api_cache_health() -> Response:
+    """缓存服务健康检查"""
+    try:
+        is_healthy = cache_manager.health_check()
+    except Exception as exc:
+        log_error("缓存健康检查失败", module="cache", error=str(exc))
+        raise SystemError("缓存健康检查失败") from exc
+
+    status_text = "正常" if is_healthy else "异常"
+    data = {"healthy": is_healthy, "status": status_text}
+    return jsonify_unified_success(data=data, message="缓存健康检查完成")
+
+
+@health_bp.route("/api/scheduler")
+@login_required
+@scheduler_view_required
+def api_scheduler_health() -> Response:
+    """调度器健康检查"""
+    try:
+        scheduler = get_scheduler()
+        report = scheduler_health_service.inspect(scheduler)
+
+        jobstore_accessible = "jobstore_unreachable" not in report.warnings
+        executor_working = report.executor_working
+
+        health_score = 0
+        if report.scheduler_running:
+            health_score += 35
+        if jobstore_accessible:
+            health_score += 25
+        if executor_working:
+            health_score += 25
+        if report.total_jobs > 0:
+            health_score += 15
+
+        if report.total_jobs > 0 and not executor_working:
+            health_score = max(0, health_score - 30)
+        if report.total_jobs == 0 and report.scheduler_running and jobstore_accessible:
+            health_score = max(health_score, 40)
+
+        if health_score >= 80:
+            status = "healthy"
+            status_text = "健康"
+            status_color = "success"
+        elif health_score >= 60:
+            status = "warning"
+            status_text = "警告"
+            status_color = "warning"
+        else:
+            status = "error"
+            status_text = "异常"
+            status_color = "danger"
+
+        current_time = time_utils.now_china()
+        health_data = {
+            "status": status,
+            "status_text": status_text,
+            "status_color": status_color,
+            "health_score": health_score,
+            "scheduler_running": report.scheduler_running,
+            "thread_alive": report.scheduler_running,
+            "jobstore_accessible": jobstore_accessible,
+            "executor_working": executor_working,
+            "total_jobs": report.total_jobs,
+            "running_jobs": report.running_jobs,
+            "paused_jobs": report.paused_jobs,
+            "executor_details": [
+                {
+                    "name": item.name,
+                    "class_name": item.class_name,
+                    "healthy": item.healthy,
+                    "details": item.details,
+                }
+                for item in report.executors
+            ],
+            "warnings": report.warnings,
+            "last_check": time_utils.format_china_time(current_time, "%Y/%m/%d %H:%M:%S"),
+        }
+
+        log_info(
+            "调度器健康检查完成",
+            module="scheduler",
+            health_score=health_score,
+            status=status,
+            total_jobs=report.total_jobs,
+            running_jobs=report.running_jobs,
+            executor_working=executor_working,
+        )
+
+        return jsonify_unified_success(data=health_data, message="调度器健康检查完成")
+
+    except Exception as exc:
+        log_error("获取调度器健康状态失败", module="scheduler", error=str(exc))
+        raise SystemError("获取调度器健康状态失败") from exc
 
 
 def check_database_health() -> dict:
