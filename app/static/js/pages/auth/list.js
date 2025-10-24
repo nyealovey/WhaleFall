@@ -15,7 +15,6 @@ function initializeUserManagementPage() {
     initializeAddUserForm();
     initializeEditUserForm();
     initializeDeleteUserHandlers();
-    // initializeUserStatusToggles(); // 已移除状态切换功能
     initializeUserTable();
 }
 
@@ -209,63 +208,6 @@ function performDeleteUser(userId) {
         });
 }
 
-// 初始化用户状态切换
-function initializeUserStatusToggles() {
-    const statusToggles = document.querySelectorAll('.user-status-toggle input');
-
-    statusToggles.forEach(toggle => {
-        toggle.addEventListener('change', function () {
-            const userId = this.getAttribute('data-user-id');
-            const isActive = this.checked;
-
-            if (userId) {
-                toggleUserStatus(userId, isActive);
-            }
-        });
-    });
-}
-
-// 切换用户状态
-function toggleUserStatus(userId, isActive) {
-    fetch(`/users/api/users/${userId}/toggle-status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify({
-            user_id: userId,
-            is_active: isActive
-        })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                notify.success( data.message);
-            } else {
-                notify.error( data.message);
-                // 恢复切换状态
-                const toggle = document.querySelector(`input[data-user-id="${userId}"]`);
-                if (toggle) {
-                    toggle.checked = !isActive;
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            notify.error( '状态切换失败');
-            // 恢复切换状态
-            const toggle = document.querySelector(`input[data-user-id="${userId}"]`);
-            if (toggle) {
-                toggle.checked = !isActive;
-            }
-        });
-}
-
-
-
-
-
 // 初始化用户表格
 function initializeUserTable() {
     // 表格排序
@@ -407,7 +349,6 @@ function exportUsers(format = 'csv') {
 window.editUser = editUser;
 window.deleteUser = deleteUser;
 window.confirmDeleteUser = confirmDeleteUser;
-window.toggleUserStatus = toggleUserStatus;
 window.exportUsers = exportUsers;
 window.showSuccessAlert = showSuccessAlert;
 window.showWarningAlert = showWarningAlert;

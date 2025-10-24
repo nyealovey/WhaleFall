@@ -17,6 +17,7 @@ from app.models.current_account_sync_data import CurrentAccountSyncData
 
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.user import User
+from app.routes.health import get_system_uptime
 from app.utils.cache_manager import dashboard_cache
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
@@ -658,22 +659,3 @@ def get_system_status() -> dict:
             },
             "uptime": "unknown",
         }
-
-
-def get_system_uptime() -> "str | None":
-    """获取应用运行时间"""
-    try:
-        from app import app_start_time
-
-
-        # 计算应用运行时间
-        current_time = time_utils.now_china()
-        uptime = current_time - app_start_time
-
-        days = uptime.days
-        hours, remainder = divmod(uptime.seconds, 3600)
-        minutes, _ = divmod(remainder, 60)
-
-        return f"{days}天 {hours}小时 {minutes}分钟"
-    except Exception:
-        return "未知"

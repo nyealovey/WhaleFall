@@ -116,7 +116,7 @@ docker compose -f docker-compose.prod.yml logs whalefall
 
 ```bash
 # 手动检查健康状态
-curl http://localhost:5001/health
+curl http://localhost:5001/health/api/basic
 
 # 检查应用日志
 docker compose -f docker-compose.prod.yml logs whalefall --tail 50
@@ -157,7 +157,7 @@ docker stats whalefall_app_prod
 docker compose -f docker-compose.prod.yml logs -f whalefall
 
 # 检查健康状态
-curl http://localhost:5001/health
+curl http://localhost:5001/health/api/basic
 ```
 
 ## 🔧 高级用法

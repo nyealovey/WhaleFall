@@ -73,7 +73,6 @@ routes/
 ├── __init__.py
 ├── main.py                 # 主页面路由
 ├── auth.py                 # 认证路由
-├── admin.py                # 管理路由
 ├── dashboard.py            # 仪表板路由
 ├── instances.py            # 实例管理路由（基础信息）
 ├── instances_detail.py   # 实例详情相关路由（账户、容量等）
