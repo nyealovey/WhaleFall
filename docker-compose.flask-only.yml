@@ -39,7 +39,7 @@ services:
     network_mode: "host"
     # 健康检查
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "curl", "-f", "http://localhost/health/api/basic"]
       interval: 30s
       timeout: 10s
       retries: 3

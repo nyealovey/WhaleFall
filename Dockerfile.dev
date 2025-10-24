@@ -120,7 +120,7 @@ EXPOSE 80
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/health || exit 1
+    CMD curl -f http://localhost/health/api/basic || exit 1
 
 # 开发环境启动命令
 CMD ["/usr/local/bin/start-dev-services.sh"]

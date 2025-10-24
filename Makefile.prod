@@ -132,7 +132,7 @@ shell:
 health:
 	@echo "🏥 健康检查..."
 	@echo "检查应用健康状态..."
-	@curl -s http://localhost/health || echo "❌ 应用健康检查失败"
+	@curl -s http://localhost/health/api/basic || echo "❌ 应用健康检查失败"
 	@echo "检查PostgreSQL连接..."
 	@docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U $$(grep POSTGRES_USER .env | cut -d'=' -f2) -d $$(grep POSTGRES_DB .env | cut -d'=' -f2) || echo "❌ PostgreSQL连接失败"
 	@echo "检查Redis连接..."

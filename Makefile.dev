@@ -121,7 +121,7 @@ shell:
 health:
 	@echo "🏥 健康检查..."
 	@echo "检查应用健康状态..."
-	@curl -s http://localhost/health || echo "❌ 应用健康检查失败"
+	@curl -s http://localhost/health/api/basic || echo "❌ 应用健康检查失败"
 	@echo "检查PostgreSQL连接..."
 	@docker-compose -f docker-compose.dev.yml exec postgres pg_isready -U whalefall_user -d whalefall_dev || echo "❌ PostgreSQL连接失败"
 	@echo "检查Redis连接..."
