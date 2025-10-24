@@ -365,6 +365,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.health import health_bp
     from app.routes.instances import instances_bp
     from app.routes.tags import tags_bp
+    from app.routes.tags_batch import tags_batch_bp
     from app.routes.files import files_bp
 
     # 注册日志管理蓝图
@@ -411,6 +412,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(account_bp, url_prefix='/account')
     app.register_blueprint(account_sync_bp, url_prefix='/account_sync')
     app.register_blueprint(tags_bp, url_prefix='/tags')
+    app.register_blueprint(tags_batch_bp, url_prefix='/tags')
     app.register_blueprint(logs_bp, url_prefix='/logs')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(health_bp, url_prefix='/health')
