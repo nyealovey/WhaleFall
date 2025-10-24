@@ -692,12 +692,12 @@ CREATE TABLE IF NOT EXISTS database_size_aggregations (
     max_log_size_mb BIGINT,
     min_log_size_mb BIGINT,
     size_change_mb BIGINT DEFAULT 0 NOT NULL,
-    size_change_percent NUMERIC(5, 2) DEFAULT 0 NOT NULL,
+    size_change_percent NUMERIC(10, 2) DEFAULT 0 NOT NULL,
     data_size_change_mb BIGINT,
-    data_size_change_percent NUMERIC(5, 2),
+    data_size_change_percent NUMERIC(10, 2),
     log_size_change_mb BIGINT,
-    log_size_change_percent NUMERIC(5, 2),
-    growth_rate NUMERIC(5, 2) DEFAULT 0 NOT NULL,
+    log_size_change_percent NUMERIC(10, 2),
+    growth_rate NUMERIC(10, 2) DEFAULT 0 NOT NULL,
     calculated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
 ) PARTITION BY RANGE (period_start);
