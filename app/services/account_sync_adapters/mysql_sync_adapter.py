@@ -262,23 +262,6 @@ class MySQLSyncAdapter(BaseSyncAdapter):
                 "CREATE ROUTINE", "ALTER ROUTINE", "EVENT", "TRIGGER", "USAGE"
             ]
 
-    def _extract_database_name(self, grant_statement: str) -> str:
-        """从GRANT语句中提取数据库名（已由新的解析逻辑取代）"""
-        # 此方法保留以防万一，但新的解析逻辑不再直接调用它
-        match = re.search(r"ON `(.+?)`\.", grant_statement, re.IGNORECASE)
-        if match:
-            return match.group(1).replace("``", "`")
-        return ""
-
-    def _extract_privileges_from_grant(self, grant_statement: str) -> list[str]:
-        """从GRANT语句中提取权限列表（已由新的解析逻辑取代）"""
-        # 此方法保留以防万一，但新的解析逻辑不再直接调用它
-        try:
-            grant_part = grant_statement.upper().split(" ON ")[0].replace("GRANT ", "").strip()
-            return self._extract_privileges_from_string(grant_part)
-        except Exception:
-            return []
-
     def extract_permissions(self, account_data: dict[str, Any]) -> dict[str, Any]:
         """从账户数据中提取权限信息"""
         return account_data.get("permissions", {})
