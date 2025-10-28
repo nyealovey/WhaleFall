@@ -6,8 +6,8 @@
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
-from app.models.account_classification import (
 from app.constants import DatabaseType
+from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
 )
