@@ -5,13 +5,11 @@ from .colors import ThemeColors
 
 # 导入所有系统常量
 from .system_constants import (
-    DefaultConfig,
     ErrorCategory,
     ErrorMessages,
     ErrorSeverity,
     LogLevel,
     SuccessMessages,
-    SystemConstants,
 )
 
 # 导出所有常量
@@ -21,10 +19,8 @@ __all__ = [
     
     # 系统常量
     'LogLevel',
-    'SystemConstants',
-    'DefaultConfig',
-    'ErrorMessages',
-    'SuccessMessages',
     'ErrorCategory',
     'ErrorSeverity',
+    'ErrorMessages',
+    'SuccessMessages',
 ]
