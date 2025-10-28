@@ -91,17 +91,7 @@ function syncAccounts() {
     syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
     syncBtn.disabled = true;
 
-    // 获取CSRF token
-    const csrfToken = getCSRFToken();
-
-    fetch(`/account_sync/api/instances/${getInstanceId()}/sync`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(response => response.json())
+    http.post(`/account_sync/api/instances/${getInstanceId()}/sync`)
     .then(data => {
         if (data.message) {
             // 记录成功日志
@@ -156,38 +146,7 @@ function syncCapacity(instanceId, instanceName) {
     syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
     syncBtn.disabled = true;
 
-    // 获取CSRF token
-    const csrfToken = getCSRFToken();
-
-        fetch(`/storage_sync/api/instances/${instanceId}/sync-capacity`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            // 尝试获取详细的错误信息
-            return response.text().then(text => {
-                let errorMessage;
-                try {
-                    const errorData = JSON.parse(text);
-                    errorMessage = errorData.error || errorData.message || `HTTP错误: ${response.status}`;
-                } catch (e) {
-                    errorMessage = `HTTP错误: ${response.status} - ${text}`;
-                }
-                
-                if (response.status === 401 || response.status === 403) {
-                    throw new Error('认证失败，请重新登录');
-                } else if (response.status === 404) {
-                    throw new Error('API接口不存在');
-                } else {
-                    throw new Error(errorMessage);
-                }
-            });
-        }
-        return response.json();
+    http.post(`/storage_sync/api/instances/${instanceId}/sync-capacity`)
     })
     .then(data => {
         if (data.success) {
@@ -243,17 +202,7 @@ function viewInstanceAccountPermissions(accountId) {
 
 // 查看账户变更历史
 function viewAccountChangeHistory(accountId) {
-    // 查看变更历史
-    const csrfToken = getCSRFToken();
-
-    fetch(`/instances/api/${getInstanceId()}/accounts/${accountId}/change-history`, {
-        method: 'GET',
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
+    http.get(`/instances/api/${getInstanceId()}/accounts/${accountId}/change-history`)
     .then(data => {
         const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
             ? data.data
@@ -377,14 +326,7 @@ function loadDatabaseSizes() {
         </div>
     `;
     
-    fetch(`/database_stats/api/instances/${instanceId}/database-sizes?latest_only=true`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-    .then(response => response.json())
+    http.get(`/database_stats/api/instances/${instanceId}/database-sizes?latest_only=true`)
     .then(data => {
         const payload = data && typeof data === 'object'
             ? (data.data && typeof data.data === 'object' ? data.data : data)
