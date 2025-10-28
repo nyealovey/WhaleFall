@@ -12,8 +12,8 @@ from .system_constants import (
     SuccessMessages,
 )
 
-# 导入HTTP状态码常量
-from .http_status import HttpStatus
+# 导入HTTP状态码常量（使用Python标准库）
+from http import HTTPStatus as HttpStatus
 
 # 导入时间常量
 from .time_constants import TimeConstants
