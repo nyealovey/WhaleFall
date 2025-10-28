@@ -157,8 +157,7 @@ function stopAutoRefresh() {
 
 // 刷新统计数据
 function refreshStatistics() {
-    fetch('/instances/api/statistics')
-        .then(response => response.json())
+    http.get('/instances/api/statistics')
         .then(data => {
             // 更新统计数据显示
             updateStatistics(data);
