@@ -304,8 +304,7 @@ class UnifiedSearch {
 
     loadTagsForDisplay(selectedTagNames, container) {
         // 加载标签数据以获取颜色信息
-        fetch('/tags/api/tags')
-            .then(response => response.json())
+        http.get('/tags/api/tags')
             .then(data => {
                 if (data.success && data.tags) {
                     const tags = data.tags;
@@ -447,8 +446,7 @@ class UnifiedSearch {
 
     loadTags() {
         // 加载标签数据
-        fetch('/tags/api/tags')
-            .then(response => response.json())
+        http.get('/tags/api/tags')
             .then(data => {
                 if (data.success) {
                     this.renderTags(data.tags || []);
