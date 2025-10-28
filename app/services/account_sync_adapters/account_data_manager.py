@@ -119,15 +119,6 @@ class AccountDataManager:
             )
         return adapter
 
-    def get_supported_db_types(self) -> list[str]:
-        """
-        获取支持的数据库类型列表
-
-        Returns:
-            List[str]: 支持的数据库类型
-        """
-        return list(self._adapters.keys())
-
     @staticmethod
     def get_accounts_by_instance(instance_id: int, *, include_deleted: bool = False) -> list[Any]:  # noqa: ANN401
         """获取实例的所有账户 - 兼容性方法"""
