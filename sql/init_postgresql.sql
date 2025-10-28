@@ -439,22 +439,7 @@ CREATE TABLE IF NOT EXISTS apscheduler_jobs (
 CREATE INDEX IF NOT EXISTS ix_apscheduler_jobs_next_run_time ON apscheduler_jobs(next_run_time);
 
 -- ============================================================================
--- 14. 全局参数模块
--- ============================================================================
-
--- 全局参数表
-CREATE TABLE IF NOT EXISTS global_params (
-    id SERIAL PRIMARY KEY,
-    key VARCHAR(255) UNIQUE NOT NULL,
-    value TEXT NOT NULL,
-    description TEXT,
-    param_type VARCHAR(50) NOT NULL DEFAULT 'string',
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- ============================================================================
--- 15. 创建触发器函数
+-- 14. 创建触发器函数
 -- ============================================================================
 
 -- 创建updated_at字段自动更新触发器函数
