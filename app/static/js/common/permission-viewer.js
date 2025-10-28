@@ -36,15 +36,7 @@ function viewAccountPermissions(accountId, options = {}) {
         button.disabled = true;
     }
     
-    fetch(finalApiUrl, {
-        method: 'GET',
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json'
-        },
-        credentials: 'same-origin'  // 包含认证cookie
-    })
-    .then(response => response.json())
+    http.get(finalApiUrl)
     .then(data => {
         const responsePayload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
             ? data.data
@@ -108,15 +100,7 @@ function fetchAccountPermissions(accountId, apiUrl = `/account/api/${accountId}/
     // 如果apiUrl包含模板字符串，则替换为实际的accountId
     const finalApiUrl = apiUrl.replace('${accountId}', accountId);
     
-    return fetch(finalApiUrl, {
-        method: 'GET',
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json'
-        },
-        credentials: 'same-origin'  // 包含认证cookie
-    })
-    .then(response => response.json())
+    return http.get(finalApiUrl)
     .then(data => {
         if (data && data.success) {
             const responsePayload = (data.data && typeof data.data === 'object') ? data.data : data;
