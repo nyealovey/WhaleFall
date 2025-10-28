@@ -37,14 +37,7 @@ function syncAllAccounts() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
     btn.disabled = true;
 
-    fetch('/account_sync/api/sync-all', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-    .then(response => response.json())
+    http.post('/account_sync/api/sync-all')
     .then(data => {
         if (data.success) {
             notify.success( data.message);
