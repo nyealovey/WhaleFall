@@ -4,7 +4,7 @@
  */
 
 // 页面加载完成，不自动测试连接
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 页面加载完成，等待用户手动测试连接
     // 默认隐藏已删除账户（复选框未勾选状态）
     const checkbox = document.getElementById('showDeletedAccounts');
@@ -92,43 +92,43 @@ function syncAccounts() {
     syncBtn.disabled = true;
 
     http.post(`/account_sync/api/instances/${getInstanceId()}/sync`)
-    .then(data => {
-        if (data.message) {
-            // 记录成功日志
-            console.info('同步账户成功', {
+        .then(data => {
+            if (data.message) {
+                // 记录成功日志
+                console.info('同步账户成功', {
+                    operation: 'sync_accounts',
+                    instance_id: getInstanceId(),
+                    instance_name: getInstanceName(),
+                    result: 'success',
+                    message: data.message
+                });
+                notify.success(data.message);
+            } else if (data.error) {
+                // 记录失败日志
+                console.error('同步账户失败', {
+                    operation: 'sync_accounts',
+                    instance_id: getInstanceId(),
+                    instance_name: getInstanceName(),
+                    result: 'failed',
+                    error: data.error
+                });
+                notify.error(data.error);
+            }
+        })
+        .catch(error => {
+            // 记录异常日志
+            console.error('同步账户异常', error, {
                 operation: 'sync_accounts',
                 instance_id: getInstanceId(),
                 instance_name: getInstanceName(),
-                result: 'success',
-                message: data.message
+                result: 'exception'
             });
-            notify.success(data.message);
-        } else if (data.error) {
-            // 记录失败日志
-            console.error('同步账户失败', {
-                operation: 'sync_accounts',
-                instance_id: getInstanceId(),
-                instance_name: getInstanceName(),
-                result: 'failed',
-                error: data.error
-            });
-            notify.error(data.error);
-        }
-    })
-    .catch(error => {
-        // 记录异常日志
-        console.error('同步账户异常', error, {
-            operation: 'sync_accounts',
-            instance_id: getInstanceId(),
-            instance_name: getInstanceName(),
-            result: 'exception'
+            notify.error('同步失败');
+        })
+        .finally(() => {
+            syncBtn.innerHTML = originalText;
+            syncBtn.disabled = false;
         });
-        notify.error('同步失败');
-    })
-    .finally(() => {
-        syncBtn.innerHTML = originalText;
-        syncBtn.disabled = false;
-    });
 }
 
 // 同步容量
@@ -147,49 +147,48 @@ function syncCapacity(instanceId, instanceName) {
     syncBtn.disabled = true;
 
     http.post(`/storage_sync/api/instances/${instanceId}/sync-capacity`)
-    })
-    .then(data => {
-        if (data.success) {
-            // 记录成功日志
-            console.info('同步容量成功', {
+        .then(data => {
+            if (data.success) {
+                // 记录成功日志
+                console.info('同步容量成功', {
+                    operation: 'sync_capacity',
+                    instance_id: instanceId,
+                    instance_name: instanceName,
+                    result: 'success',
+                    message: data.message || '容量同步成功'
+                });
+                notify.success(data.message || '容量同步成功');
+
+                // 刷新数据库容量显示
+                setTimeout(() => {
+                    loadDatabaseSizes();
+                }, 1000);
+            } else if (data.error) {
+                // 记录失败日志
+                console.error('同步容量失败', {
+                    operation: 'sync_capacity',
+                    instance_id: instanceId,
+                    instance_name: instanceName,
+                    result: 'failed',
+                    error: data.error
+                });
+                notify.error(data.error);
+            }
+        })
+        .catch(error => {
+            // 记录异常日志
+            console.error('同步容量异常', error, {
                 operation: 'sync_capacity',
                 instance_id: instanceId,
                 instance_name: instanceName,
-                result: 'success',
-                message: data.message || '容量同步成功'
+                result: 'exception'
             });
-            notify.success(data.message || '容量同步成功');
-            
-            // 刷新数据库容量显示
-            setTimeout(() => {
-                loadDatabaseSizes();
-            }, 1000);
-        } else if (data.error) {
-            // 记录失败日志
-            console.error('同步容量失败', {
-                operation: 'sync_capacity',
-                instance_id: instanceId,
-                instance_name: instanceName,
-                result: 'failed',
-                error: data.error
-            });
-            notify.error(data.error);
-        }
-    })
-    .catch(error => {
-        // 记录异常日志
-        console.error('同步容量异常', error, {
-            operation: 'sync_capacity',
-            instance_id: instanceId,
-            instance_name: instanceName,
-            result: 'exception'
+            notify.error('同步容量失败: ' + (error.message || '未知错误'));
+        })
+        .finally(() => {
+            syncBtn.innerHTML = originalText;
+            syncBtn.disabled = false;
         });
-        notify.error('同步容量失败: ' + (error.message || '未知错误'));
-    })
-    .finally(() => {
-        syncBtn.innerHTML = originalText;
-        syncBtn.disabled = false;
-    });
 }
 
 // 查看实例账户权限
@@ -203,21 +202,21 @@ function viewInstanceAccountPermissions(accountId) {
 // 查看账户变更历史
 function viewAccountChangeHistory(accountId) {
     http.get(`/instances/api/${getInstanceId()}/accounts/${accountId}/change-history`)
-    .then(data => {
-        const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
-            ? data.data
-            : data;
-        const history = Array.isArray(payload?.history) ? payload.history : null;
+        .then(data => {
+            const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
+                ? data.data
+                : data;
+            const history = Array.isArray(payload?.history) ? payload.history : null;
 
-        if (data && data.success) {
-            // 显示变更历史模态框
-            const modal = new bootstrap.Modal(document.getElementById('historyModal'));
-            const historyContent = document.getElementById('historyContent');
+            if (data && data.success) {
+                // 显示变更历史模态框
+                const modal = new bootstrap.Modal(document.getElementById('historyModal'));
+                const historyContent = document.getElementById('historyContent');
 
-            if (history && history.length > 0) {
-                let html = '<div class="timeline">';
-                history.forEach(change => {
-                    html += `
+                if (history && history.length > 0) {
+                    let html = '<div class="timeline">';
+                    history.forEach(change => {
+                        html += `
                         <div class="timeline-item">
                             <div class="timeline-marker bg-primary"></div>
                             <div class="timeline-content">
@@ -227,33 +226,33 @@ function viewAccountChangeHistory(accountId) {
                             </div>
                         </div>
                     `;
-                });
-                html += '</div>';
-                // 安全地设置HTML内容，避免XSS攻击
-                historyContent.innerHTML = '';
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = html;
-                while (tempDiv.firstChild) {
-                    historyContent.appendChild(tempDiv.firstChild);
+                    });
+                    html += '</div>';
+                    // 安全地设置HTML内容，避免XSS攻击
+                    historyContent.innerHTML = '';
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    while (tempDiv.firstChild) {
+                        historyContent.appendChild(tempDiv.firstChild);
+                    }
+                } else {
+                    // 安全地设置HTML内容，避免XSS攻击
+                    const p = document.createElement('p');
+                    p.className = 'text-muted';
+                    p.textContent = '暂无变更记录';
+                    historyContent.innerHTML = '';
+                    historyContent.appendChild(p);
                 }
-            } else {
-                // 安全地设置HTML内容，避免XSS攻击
-                const p = document.createElement('p');
-                p.className = 'text-muted';
-                p.textContent = '暂无变更记录';
-                historyContent.innerHTML = '';
-                historyContent.appendChild(p);
-            }
 
-            modal.show();
-        } else {
-            console.error('获取变更历史失败:', data?.error || data?.message);
-            notify.error(data?.error || data?.message || '获取变更历史失败');
-        }
-    })
-    .catch(error => {
-        console.error('获取变更历史失败:', error.message || error);
-    });
+                modal.show();
+            } else {
+                console.error('获取变更历史失败:', data?.error || data?.message);
+                notify.error(data?.error || data?.message || '获取变更历史失败');
+            }
+        })
+        .catch(error => {
+            console.error('获取变更历史失败:', error.message || error);
+        });
 }
 
 // 切换已删除账户显示
@@ -261,12 +260,12 @@ function toggleDeletedAccounts() {
     const checkbox = document.getElementById('showDeletedAccounts');
     const accountRows = document.querySelectorAll('.account-row');
     const accountCount = document.getElementById('accountCount');
-    
+
     let visibleCount = 0;
-    
+
     accountRows.forEach(row => {
         const isDeleted = row.getAttribute('data-is-deleted') === 'true';
-        
+
         if (checkbox.checked) {
             // 显示所有账户（包括已删除的）
             row.style.display = '';
@@ -281,7 +280,7 @@ function toggleDeletedAccounts() {
             }
         }
     });
-    
+
     // 更新账户计数
     if (accountCount) {
         accountCount.textContent = `共 ${visibleCount} 个账户`;
@@ -312,12 +311,12 @@ function getInstanceName() {
 function loadDatabaseSizes() {
     const instanceId = getInstanceId();
     const contentDiv = document.getElementById('databaseSizesContent');
-    
+
     if (!contentDiv) {
         console.error('找不到数据库容量内容容器');
         return;
     }
-    
+
     // 显示加载状态
     contentDiv.innerHTML = `
         <div class="text-center py-4">
@@ -325,35 +324,35 @@ function loadDatabaseSizes() {
             <p class="text-muted">正在加载数据库容量信息...</p>
         </div>
     `;
-    
+
     http.get(`/database_stats/api/instances/${instanceId}/database-sizes?latest_only=true`)
-    .then(data => {
-        const payload = data && typeof data === 'object'
-            ? (data.data && typeof data.data === 'object' ? data.data : data)
-            : {};
+        .then(data => {
+            const payload = data && typeof data === 'object'
+                ? (data.data && typeof data.data === 'object' ? data.data : data)
+                : {};
 
-        const databases = Array.isArray(payload)
-            ? payload
-            : (Array.isArray(payload?.databases) ? payload.databases : null);
+            const databases = Array.isArray(payload)
+                ? payload
+                : (Array.isArray(payload?.databases) ? payload.databases : null);
 
-        if (databases) {
-            // 使用API返回的总容量信息
-            const totalSize = Number(payload?.total_size_mb ?? payload?.total_size ?? 0) || 0;
-            displayDatabaseSizes(databases, totalSize);
-        } else {
-            const errorMsg = data?.error || data?.message || '加载失败';
-            displayDatabaseSizesError(errorMsg);
-        }
-    })
-    .catch(error => {
-        console.error('加载数据库容量信息失败:', error);
-        displayDatabaseSizesError('网络错误，请稍后重试');
-    });
+            if (databases) {
+                // 使用API返回的总容量信息
+                const totalSize = Number(payload?.total_size_mb ?? payload?.total_size ?? 0) || 0;
+                displayDatabaseSizes(databases, totalSize);
+            } else {
+                const errorMsg = data?.error || data?.message || '加载失败';
+                displayDatabaseSizesError(errorMsg);
+            }
+        })
+        .catch(error => {
+            console.error('加载数据库容量信息失败:', error);
+            displayDatabaseSizesError('网络错误，请稍后重试');
+        });
 }
 
 function displayDatabaseSizes(databases, totalSize) {
     const contentDiv = document.getElementById('databaseSizesContent');
-    
+
     if (!databases || databases.length === 0) {
         contentDiv.innerHTML = `
             <div class="text-center py-4">
@@ -364,17 +363,17 @@ function displayDatabaseSizes(databases, totalSize) {
         `;
         return;
     }
-    
+
     // 计算总容量显示
     const totalSizeGB = (totalSize / 1024).toFixed(3);
-    
+
     // 按数据库大小从大到小排序
     databases.sort((a, b) => (b.size_mb || 0) - (a.size_mb || 0));
-    
+
     // 统计已删除和在线数据库数量
     const deletedCount = databases.filter(db => !db.is_active).length;
     const onlineCount = databases.length - deletedCount;
-    
+
     let html = `
         <div class="row mb-3">
             <div class="col-md-4">
@@ -424,20 +423,20 @@ function displayDatabaseSizes(databases, totalSize) {
                 </thead>
                 <tbody>
     `;
-    
+
     databases.forEach(db => {
         const sizeGB = (db.size_mb / 1024).toFixed(3);
         const collectedAt = db.collected_at ? timeUtils.formatDateTime(db.collected_at) : '未采集';
-        
+
         const isDeleted = !db.is_active;
         const rowClass = isDeleted ? 'table-secondary' : '';
         const iconClass = isDeleted ? 'text-muted' : 'text-primary';
         const textClass = isDeleted ? 'text-muted' : '';
-        
+
         // 根据总大小判断颜色
         let sizeBadgeClass = 'badge bg-success'; // 默认绿色
         const sizeGBValue = parseFloat(sizeGB);
-        
+
         if (sizeGBValue >= 1000) {
             sizeBadgeClass = 'badge bg-danger'; // 红色 - 大于1000GB
         } else if (sizeGBValue >= 100) {
@@ -447,12 +446,12 @@ function displayDatabaseSizes(databases, totalSize) {
         } else {
             sizeBadgeClass = 'badge bg-success'; // 绿色 - 小于10GB
         }
-        
+
         // 状态列显示
-        const statusBadge = isDeleted ? 
-            '<span class="badge bg-danger">已删除</span>' : 
+        const statusBadge = isDeleted ?
+            '<span class="badge bg-danger">已删除</span>' :
             '<span class="badge bg-success">在线</span>';
-        
+
         html += `
             <tr class="${rowClass}" data-deleted="${isDeleted}">
                 <td>
@@ -475,13 +474,13 @@ function displayDatabaseSizes(databases, totalSize) {
             </tr>
         `;
     });
-    
+
     html += `
                 </tbody>
             </table>
         </div>
     `;
-    
+
     contentDiv.innerHTML = html;
 }
 
@@ -507,7 +506,7 @@ function refreshDatabaseSizes() {
 function toggleDeletedDatabases() {
     const checkbox = document.getElementById('showDeletedDatabases');
     const rows = document.querySelectorAll('#databaseSizesContent tbody tr[data-deleted]');
-    
+
     rows.forEach(row => {
         const isDeleted = row.getAttribute('data-deleted') === 'true';
         if (isDeleted) {
@@ -517,7 +516,7 @@ function toggleDeletedDatabases() {
 }
 
 // 页面加载完成后自动加载数据库容量信息
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 延迟加载，确保页面完全渲染
     setTimeout(loadDatabaseSizes, 500);
 });
