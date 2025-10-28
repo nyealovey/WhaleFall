@@ -41,10 +41,9 @@ async function loadPartitionData() {
     try {
         showLoadingState();
 
-        const response = await fetch('/partition/api/info');
-        const data = await response.json();
+        const data = await http.get('/partition/api/info');
 
-        if (response.ok && data.success) {
+        if (data.success) {
             const payload = data?.data?.data ?? data?.data ?? data ?? {};
             updatePartitionStats(payload);
             renderPartitionTable(Array.isArray(payload.partitions) ? payload.partitions : []);
@@ -173,18 +172,9 @@ async function createPartition() {
     const date = `${year}-${month.padStart(2, '0')}-01`;
 
     try {
-        const response = await fetch('/partition/api/create', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({ date: date })
-        });
+        const data = await http.post('/partition/api/create', { date: date });
 
-        const data = await response.json();
-
-        if (response.ok && data.success) {
+        if (data.success) {
             alert('分区创建成功');
             bootstrap.Modal.getInstance(document.getElementById('createPartitionModal')).hide();
             loadPartitionData();
@@ -214,18 +204,9 @@ async function cleanupPartitions() {
     }
 
     try {
-        const response = await fetch('/partition/api/cleanup', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({ retention_months: parseInt(retentionMonths) })
-        });
+        const data = await http.post('/partition/api/cleanup', { retention_months: parseInt(retentionMonths) });
 
-        const data = await response.json();
-
-        if (response.ok && data.success) {
+        if (data.success) {
             alert('分区清理成功');
             bootstrap.Modal.getInstance(document.getElementById('cleanupPartitionsModal')).hide();
             loadPartitionData();
