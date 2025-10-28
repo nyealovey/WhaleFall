@@ -32,18 +32,9 @@ function initializeDeleteConfirmation() {
 // 处理删除确认
 function handleDeleteConfirmation() {
     if (deleteCredentialId) {
-        const csrfToken = getCSRFToken();
-        
         showLoadingState('confirmDelete', '删除中...');
         
-        fetch(`/credentials/api/credentials/${deleteCredentialId}/delete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            }
-        })
-        .then(response => response.json())
+        http.post(`/credentials/api/credentials/${deleteCredentialId}/delete`)
         .then(data => {
             if (data.message) {
                 notify.success(data.message);
@@ -118,17 +109,7 @@ function toggleCredentialStatus(credentialId, isActive, button) {
     showLoadingState(button, '处理中...');
     button.disabled = true;
     
-    const csrfToken = getCSRFToken();
-    
-    fetch(`/credentials/api/credentials/${credentialId}/toggle`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({ is_active: !isActive })
-    })
-    .then(response => response.json())
+    http.post(`/credentials/api/credentials/${credentialId}/toggle`, { is_active: !isActive })
     .then(data => {
         if (data.message) {
             notify.success(data.message);
