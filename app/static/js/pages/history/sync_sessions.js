@@ -34,10 +34,9 @@
     // 显示加载状态
     showLoadingState();
 
-    fetch(`/sync_sessions/api/sessions?${params.toString()}`)
-      .then(async (response) => {
-        const data = await response.json();
-        if (response.ok && data.success) {
+    http.get(`/sync_sessions/api/sessions?${params.toString()}`)
+      .then(data => {
+        if (data.success) {
           const payload = data?.data ?? {};
           currentSessions = payload.sessions ?? payload.items ?? payload ?? [];
           if (!Array.isArray(currentSessions)) {
@@ -243,8 +242,7 @@
   }
 
   window.viewSessionDetail = function (sessionId) {
-    fetch(`/sync_sessions/api/sessions/${sessionId}`)
-      .then(r => r.json())
+    http.get(`/sync_sessions/api/sessions/${sessionId}`)
       .then(data => {
         if (data.success) {
           const session = data?.data?.session ?? data.session ?? data ?? {};
@@ -257,8 +255,7 @@
   }
 
   window.viewErrorLogs = function (sessionId) {
-    fetch(`/sync_sessions/api/sessions/${sessionId}/error-logs`)
-      .then(r => r.json())
+    http.get(`/sync_sessions/api/sessions/${sessionId}/error-logs`)
       .then(data => {
         if (data.success) {
           const payload = data?.data ?? data ?? {};
@@ -368,11 +365,7 @@
 
   window.cancelSession = function (sessionId) {
     if (confirm('确定要取消这个同步会话吗？')) {
-      fetch(`/sync_sessions/api/sessions/${sessionId}/cancel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() }
-      })
-        .then(r => r.json())
+      http.post(`/sync_sessions/api/sessions/${sessionId}/cancel`)
         .then(data => {
           if (data.success) { notifyAlert('会话已取消', 'success'); loadSessions(); }
           else { notifyAlert('取消会话失败: ' + data.message, 'error'); }
