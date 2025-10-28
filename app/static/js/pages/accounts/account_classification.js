@@ -150,7 +150,7 @@ function editClassification(id) {
     http.get(`/account_classification/api/classifications/${id}`)
         .then(data => {
             if (data.success) {
-                const classification = data.classification;
+                const classification = data?.data?.classification ?? data.classification;
 
                 // 填充编辑表单
                 document.getElementById('editClassificationId').value = classification.id;
@@ -448,7 +448,7 @@ function loadPermissions(prefix = '') {
     return http.get(`/account_classification/api/permissions/${dbType}`)
         .then(data => {
             if (data.success) {
-                displayPermissionsConfig(data.permissions, prefix, dbType);
+                displayPermissionsConfig(data?.data?.permissions ?? data.permissions, prefix, dbType);
             } else {
                 notify.error('加载权限配置失败: ' + (data.error || '未知错误'));
             }
