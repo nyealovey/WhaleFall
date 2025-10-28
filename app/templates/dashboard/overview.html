@@ -264,5 +264,7 @@
 
     {% block extra_js %}
     <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
+    <!-- Axios 配置 -->
+    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
     <script src="{{ url_for('static', filename='js/pages/dashboard/overview.js') }}"></script>
     {% endblock %}
