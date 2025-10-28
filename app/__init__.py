@@ -254,7 +254,8 @@ def configure_session_security(app: Flask) -> None:
         app: Flask应用实例
     """
     # 从环境变量读取会话超时时间，默认为1小时
-    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", SystemConstants.SESSION_LIFETIME))
+    from app.config import Config
+    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", Config.SESSION_LIFETIME))
     
     # 会话配置
     app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime  # 会话超时时间
@@ -308,7 +309,7 @@ def initialize_extensions(app: Flask) -> None:
     # 会话安全配置
     login_manager.session_protection = "basic"  # 基础会话保护
     # 从环境变量读取会话超时时间，默认为1小时
-    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", SystemConstants.SESSION_LIFETIME))
+    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", Config.SESSION_LIFETIME))
     login_manager.remember_cookie_duration = session_lifetime  # 记住我功能过期时间
     login_manager.remember_cookie_secure = not app.debug  # 生产环境使用HTTPS
     login_manager.remember_cookie_httponly = True  # 防止XSS攻击

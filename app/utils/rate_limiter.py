@@ -147,12 +147,12 @@ rate_limiter = RateLimiter()
 
 def login_rate_limit(func=None, *, limit: int = None, window: int = None):
     """登录速率限制"""
-    from app.constants import SystemConstants
+    from app.config import Config
 
     if limit is None:
-        limit = SystemConstants.LOGIN_RATE_LIMIT
+        limit = Config.LOGIN_RATE_LIMIT
     if window is None:
-        window = SystemConstants.LOGIN_RATE_WINDOW
+        window = Config.LOGIN_RATE_WINDOW
 
     def decorator(f: Callable) -> Callable:
         @wraps(f)
@@ -220,12 +220,12 @@ def login_rate_limit(func=None, *, limit: int = None, window: int = None):
 
 
 def password_reset_rate_limit(func=None, *, limit: int = None, window: int = None):
-    from app.constants import SystemConstants
+    from app.config import Config
 
     if limit is None:
         limit = 3  # 密码重置限制
     if window is None:
-        window = SystemConstants.SESSION_LIFETIME  # 1小时
+        window = Config.SESSION_LIFETIME  # 1小时
     """密码重置速率限制"""
     if func is None:
         return login_rate_limit(limit=limit, window=window)
