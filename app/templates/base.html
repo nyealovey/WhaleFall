@@ -208,6 +208,9 @@
 
     <!-- 通用工具组件 -->
 
+    <!-- Axios 库（必须在 config.js 之前加载） -->
+    <script src="{{ url_for('static', filename='vendor/axios/axios.min.js') }}"></script>
+    
     <!-- Axios 配置（必须在其他JS之前加载） -->
     <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/csrf-utils.js') }}"></script>
