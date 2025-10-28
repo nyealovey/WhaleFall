@@ -303,8 +303,7 @@ function viewAccountChangeHistory(accountId) {
         }
     })
     .catch(error => {
-        console.error('获取变更历史失败:', error);
-        console.error('获取变更历史失败:', error.message);
+        console.error('获取变更历史失败:', error.message || error);
     });
 }
 

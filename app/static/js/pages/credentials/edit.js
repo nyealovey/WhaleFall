@@ -357,35 +357,6 @@ function updatePasswordStrength(password) {
     strengthText.textContent = feedback;
 }
 
-// 键盘快捷键
-function initializeKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+Enter 快速提交
-        if (e.ctrlKey && e.key === 'Enter') {
-            const form = document.getElementById('credentialForm');
-            if (form) {
-                form.submit();
-            }
-        }
-        
-        // Escape 重置表单
-        if (e.key === 'Escape') {
-            const form = document.getElementById('credentialForm');
-            if (form) {
-                form.reset();
-                // 清除验证状态
-                const inputs = form.querySelectorAll('.is-valid, .is-invalid');
-                inputs.forEach(input => {
-                    input.classList.remove('is-valid', 'is-invalid');
-                });
-            }
-        }
-    });
-}
-
-// 初始化键盘快捷键
-initializeKeyboardShortcuts();
-
 // 导出函数供全局使用
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.validateForm = validateForm;

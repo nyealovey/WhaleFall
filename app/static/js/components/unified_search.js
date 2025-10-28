@@ -363,10 +363,6 @@ class UnifiedSearch {
             
         } else {
             console.error('openTagSelector: 标签选择器模态框未找到');
-            console.error('openTagSelector: 当前页面DOM状态:');
-            console.error('- 所有模态框:', document.querySelectorAll('.modal'));
-            console.error('- 所有ID包含tag的元素:', document.querySelectorAll('[id*="tag"]'));
-            
             // 如果没有标签选择器，显示提示
             alert('标签选择功能暂不可用');
         }

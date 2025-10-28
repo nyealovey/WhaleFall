@@ -91,10 +91,6 @@ class TagSelector {
         
         if (attempt >= maxAttempts) {
             console.error('TagSelector: Failed to bind modal buttons after', maxAttempts, 'attempts');
-            console.error('TagSelector: 最终状态检查:');
-            console.error('- 确认按钮:', this.container.querySelector('#confirm-selection-btn') ? '存在' : '不存在');
-            console.error('- 取消按钮:', this.container.querySelector('#cancel-selection-btn') ? '存在' : '不存在');
-            console.error('- 模态框:', this.container.closest('.modal') ? '存在' : '不存在');
             return;
         }
         

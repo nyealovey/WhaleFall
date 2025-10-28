@@ -1360,11 +1360,6 @@ class InstanceAggregationsManager {
             this.changePercentFilters.end_date = range.endDate;
             this.changePercentFilters.period_type = periodType;
         }
-        
-        console.log(`更新时间范围: ${this.currentStatisticsPeriod}个${periodType}周期`, {
-            start_date: this.currentFilters.start_date,
-            end_date: this.currentFilters.end_date
-        });
     }
     
     /**
@@ -1673,17 +1668,6 @@ class InstanceAggregationsManager {
         // 同步容量变化百分比统计周期选择器
         $(`input[name="changePercentStatisticsPeriod"][value="${this.changePercentStatisticsPeriod}"]`).prop('checked', true);
         
-        console.log('UI状态已同步:', {
-            chartType: this.currentChartType,
-            topCount: this.currentTopCount,
-            statisticsPeriod: this.currentStatisticsPeriod,
-            changeChartType: this.changeChartType,
-            changeTopCount: this.changeTopCount,
-            changeStatisticsPeriod: this.changeStatisticsPeriod,
-            changePercentChartType: this.changePercentChartType,
-            changePercentTopCount: this.changePercentTopCount,
-            changePercentStatisticsPeriod: this.changePercentStatisticsPeriod
-        });
     }
     
     /**
