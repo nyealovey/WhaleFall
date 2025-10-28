@@ -220,32 +220,6 @@ function exportCredentials(format = 'csv') {
     window.open(url, '_blank');
 }
 
-// 键盘快捷键
-function initializeKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+F 聚焦搜索框
-        if (e.ctrlKey && e.key === 'f') {
-            e.preventDefault();
-            const searchInput = document.querySelector('input[name="search"]');
-            if (searchInput) {
-                searchInput.focus();
-            }
-        }
-        
-        // Escape 清除搜索
-        if (e.key === 'Escape') {
-            const searchInput = document.querySelector('input[name="search"]');
-            if (searchInput && searchInput.value) {
-                searchInput.value = '';
-                clearSearch();
-            }
-        }
-    });
-}
-
-// 初始化键盘快捷键
-initializeKeyboardShortcuts();
-
 // 表格排序
 function sortTable(column, direction = 'asc') {
     const table = document.querySelector('.credentials-table .table');

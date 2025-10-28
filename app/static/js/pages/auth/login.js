@@ -276,35 +276,6 @@ function detectAutoFill() {
     });
 }
 
-// 键盘快捷键
-function initializeKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+Enter 快速登录
-        if (e.ctrlKey && e.key === 'Enter') {
-            const form = document.getElementById('loginForm');
-            if (form) {
-                form.submit();
-            }
-        }
-        
-        // Escape 清除表单
-        if (e.key === 'Escape') {
-            const form = document.getElementById('loginForm');
-            if (form) {
-                form.reset();
-                // 清除验证状态
-                const inputs = form.querySelectorAll('.is-valid, .is-invalid');
-                inputs.forEach(input => {
-                    input.classList.remove('is-valid', 'is-invalid');
-                });
-            }
-        }
-    });
-}
-
-// 初始化键盘快捷键
-initializeKeyboardShortcuts();
-
 // 检测自动填充
 detectAutoFill();
 

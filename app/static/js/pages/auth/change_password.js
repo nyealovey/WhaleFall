@@ -336,37 +336,6 @@ function updatePasswordRequirements(password) {
     requirementsContainer.innerHTML = html;
 }
 
-// 键盘快捷键
-function initializeKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+Enter 快速提交
-        if (e.ctrlKey && e.key === 'Enter') {
-            const form = document.getElementById('changePasswordForm');
-            if (form) {
-                form.submit();
-            }
-        }
-        
-        // Escape 清除表单
-        if (e.key === 'Escape') {
-            const form = document.getElementById('changePasswordForm');
-            if (form) {
-                form.reset();
-                // 清除验证状态
-                const inputs = form.querySelectorAll('.is-valid, .is-invalid');
-                inputs.forEach(input => {
-                    input.classList.remove('is-valid', 'is-invalid');
-                });
-                // 重置密码强度
-                updatePasswordStrength({ strength: 0, feedback: '请输入密码' });
-            }
-        }
-    });
-}
-
-// 初始化键盘快捷键
-initializeKeyboardShortcuts();
-
 // 导出函数供全局使用
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.validateForm = validateForm;
