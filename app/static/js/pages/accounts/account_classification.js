@@ -921,7 +921,7 @@ function editRule(id) {
     http.get(`/account_classification/api/rules/${id}`)
         .then(data => {
             if (data.success) {
-                const rule = data.rule;
+                const rule = data.data.rule;
 
                 // 先加载分类列表，然后填充表单
                 loadClassificationsForRules('edit').then(() => {
@@ -1256,7 +1256,7 @@ function viewRule(id) {
     http.get(`/account_classification/api/rules/${id}`)
         .then(data => {
             if (data.success) {
-                const rule = data.rule;
+                const rule = data.data.rule;
 
                 // 填充查看表单
                 document.getElementById('viewRuleName').textContent = rule.rule_name;
