@@ -242,9 +242,8 @@ class DatabaseAggregationsManager {
             return;
         }
         try {
-            const response = await fetch('/database_types/api/active');
-            const result = await response.json();
-            if (response.ok && result.success) {
+            const data = await http.get('/database_types/api/active');
+            if (data.success !== false && result.success) {
                 const selectedType = this.currentFilters.db_type ? this.currentFilters.db_type.toLowerCase() : '';
                 select.empty();
                 select.append('<option value="">全部类型</option>');
@@ -297,10 +296,9 @@ class DatabaseAggregationsManager {
             if (normalizedDbType) {
                 url += `?db_type=${encodeURIComponent(normalizedDbType)}`;
             }
-            const response = await fetch(url);
-            const data = await response.json();
+            const data = await http.get(url);
             
-            if (response.ok && data.success) {
+            if (data.success !== false && data.success) {
                 instanceSelect.empty();
                 instanceSelect.append('<option value="">所有实例</option>');
                 let matchedInstance = '';
@@ -369,10 +367,9 @@ class DatabaseAggregationsManager {
             databaseSelect.prop('disabled', false);
             const params = new URLSearchParams();
             params.append('limit', '1000');
-            const response = await fetch(`/database_stats/api/instances/${encodeURIComponent(instanceId)}/databases?${params.toString()}`);
-            const data = await response.json();
+            const data = await http.get(`/database_stats/api/instances/${encodeURIComponent(instanceId)}/databases?${params.toString()}`);
 
-            if (response.ok && data.success !== false) {
+            if (data.success !== false && data.success !== false) {
                 const list = data?.data?.databases ?? data.data ?? data ?? [];
                 this.databaseIdMap.clear();
                 list.forEach(db => {
@@ -527,10 +524,9 @@ class DatabaseAggregationsManager {
     async loadSummaryData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/database_stats/api/databases/aggregations/summary?api=true&${params.toString()}`);
-            const data = await response.json();
+            const data = await http.get(`/database_stats/api/databases/aggregations/summary?api=true&${params.toString()}`);
             
-            if (response.ok) {
+            if (data.success !== false) {
                 const summaryData = data?.data?.summary ?? data?.data ?? data ?? {};
                 this.updateSummaryCards(summaryData);
             } else {
@@ -554,10 +550,9 @@ class DatabaseAggregationsManager {
             const params = this.buildFilterParams();
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
-            const response = await fetch(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
-            const data = await response.json();
+            const data = await http.get(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
             
-            if (response.ok) {
+            if (data.success !== false) {
                 this.databaseLabelMap = {};
                 const payload = this.extractItems(data);
                 this.currentData = payload;
@@ -581,10 +576,9 @@ class DatabaseAggregationsManager {
             const params = this.buildChangeChartParams();
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
-            const response = await fetch(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
-            const data = await response.json();
+            const data = await http.get(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
             
-            if (response.ok) {
+            if (data.success !== false) {
                 const payload = this.extractItems(data);
                 this.changeChartData = payload;
                 this.renderChangeChart(this.changeChartData);
@@ -606,10 +600,9 @@ class DatabaseAggregationsManager {
             const params = this.buildChangePercentChartParams();
             params.append('chart_mode', 'database');
             params.append('get_all', 'true');
-            const response = await fetch(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
-            const data = await response.json();
+            const data = await http.get(`/database_stats/api/databases/aggregations?api=true&${params.toString()}`);
 
-            if (response.ok) {
+            if (data.success !== false) {
                 const payload = this.extractItems(data);
                 this.changePercentChartData = payload;
                 this.renderChangePercentChart(this.changePercentChartData);
@@ -1574,15 +1567,8 @@ class DatabaseAggregationsManager {
         $('#calculationModal').modal('show');
         
         try {
-            const response = await fetch('/aggregations/api/aggregate-today', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
-                }
-            });
-            const data = await response.json();
-            if (response.ok) {
+            const data = await http.post('/aggregations/api/aggregate-today');
+            if (data.success !== false) {
                 this.showSuccess('聚合计算完成');
                 this.refreshAllData();
             } else {
