@@ -349,10 +349,9 @@ class InstanceAggregationsManager {
             if (normalizedDbType) {
                 url += `?db_type=${encodeURIComponent(normalizedDbType)}`;
             }
-            const response = await fetch(url);
-            const data = await response.json();
+            const data = await http.get(url);
             
-            if (response.ok && data.success) {
+            if (data.success !== false && data.success) {
                 instanceSelect.empty();
                 instanceSelect.append('<option value="">所有实例</option>');
                 const selectedInstance = preserveSelection ? storedSelection : null;
@@ -397,10 +396,9 @@ class InstanceAggregationsManager {
                 url += `?db_type=${encodeURIComponent(normalizedDbType)}`;
             }
             
-            const response = await fetch(url);
-            const data = await response.json();
+            const data = await http.get(url);
             
-            if (response.ok && data.success) {
+            if (data.success !== false && data.success) {
                 const select = $('#instance');
                 select.empty();
                 select.append('<option value="">所有实例</option>');
@@ -532,10 +530,9 @@ class InstanceAggregationsManager {
     async loadSummaryData() {
         try {
             const params = this.buildFilterParams();
-            const response = await fetch(`/instance_stats/api/instances/aggregations/summary?${params}`);
-            const data = await response.json();
+            const data = await http.get(`/instance_stats/api/instances/aggregations/summary?${params}`);
             
-            if (response.ok) {
+            if (data.success !== false) {
                 this.updateSummaryCards(data);
             } else {
                 console.error('加载汇总数据失败:', data.error);
@@ -568,11 +565,10 @@ class InstanceAggregationsManager {
             params.append('chart_mode', 'instance');
             params.append('get_all', 'true');
             
-            const response = await fetch(`/instance_stats/api/instances/aggregations?${params}`);
-            const data = await response.json();
+            const data = await http.get(`/instance_stats/api/instances/aggregations?${params}`);
             
             
-            if (response.ok) {
+            if (data.success !== false) {
                 // 使用所有数据，不进行前端限制
                 const payload = data?.data?.items ?? data?.data ?? data ?? [];
                 this.currentData = Array.isArray(payload) ? payload : [];
@@ -599,10 +595,9 @@ class InstanceAggregationsManager {
             this.showChangeChartLoading();
             
             const params = this.buildChangeChartParams();
-            const response = await fetch(`/instance_stats/api/instances/aggregations?${params}`);
-            const data = await response.json();
+            const data = await http.get(`/instance_stats/api/instances/aggregations?${params}`);
             
-            if (response.ok) {
+            if (data.success !== false) {
                 const payload = data?.data?.items ?? data?.data ?? data ?? [];
                 this.changeChartData = Array.isArray(payload) ? payload : [];
                 this.renderChangeChart(this.changeChartData);
@@ -627,10 +622,9 @@ class InstanceAggregationsManager {
             this.showChangePercentChartLoading();
             
             const params = this.buildChangePercentChartParams();
-            const response = await fetch(`/instance_stats/api/instances/aggregations?${params}`);
-            const data = await response.json();
+            const data = await http.get(`/instance_stats/api/instances/aggregations?${params}`);
             
-            if (response.ok) {
+            if (data.success !== false) {
                 const payload = data?.data?.items ?? data?.data ?? data ?? [];
                 this.changePercentChartData = Array.isArray(payload) ? payload : [];
                 this.renderChangePercentChart(this.changePercentChartData);
@@ -1317,17 +1311,9 @@ class InstanceAggregationsManager {
         $('#calculationModal').modal('show');
         
         try {
-            const response = await fetch('/aggregations/api/aggregate-today', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
-                }
-            });
+            const data = await http.post('/aggregations/api/aggregate-today');
             
-            const data = await response.json();
-            
-            if (response.ok) {
+            if (data.success !== false) {
                 this.showSuccess('聚合计算完成');
                 // 重新加载数据
                 this.refreshAllData();
