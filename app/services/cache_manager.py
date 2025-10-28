@@ -12,6 +12,7 @@ from typing import Any
 
 from flask_caching import Cache
 
+from app.config import Config
 from app.utils.structlog_config import get_logger
 
 logger = get_logger("cache_manager")
