@@ -69,12 +69,7 @@ class BatchAssignManager {
      */
     async loadInstances() {
         try {
-            const response = await fetch('/tags/api/instances');
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const { data: payload } = await response.json();
+            const { data: payload } = await http.get('/tags/api/instances');
             this.instances = Array.isArray(payload?.instances) ? payload.instances : [];
             this.instancesByDbType = this.groupInstancesByDbType(this.instances);
         } catch (error) {
@@ -88,12 +83,7 @@ class BatchAssignManager {
      */
     async loadTags() {
         try {
-            const response = await fetch('/tags/api/all_tags');
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const { data: payload } = await response.json();
+            const { data: payload } = await http.get('/tags/api/all_tags');
             this.tags = Array.isArray(payload?.tags) ? payload.tags : [];
             this.tagsByCategory = this.groupTagsByCategory(this.tags);
 
@@ -635,24 +625,10 @@ class BatchAssignManager {
      * 执行批量分配
      */
     async performBatchAssign() {
-        const response = await fetch('/tags/api/batch_assign_tags', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': this.getCSRFToken()
-            },
-            body: JSON.stringify({
-                instance_ids: Array.from(this.selectedInstances),
-                tag_ids: Array.from(this.selectedTags)
-            })
+        const result = await http.post('/tags/api/batch_assign_tags', {
+            instance_ids: Array.from(this.selectedInstances),
+            tag_ids: Array.from(this.selectedTags)
         });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || '分配失败');
-        }
-
-        const result = await response.json();
         return result;
     }
 
@@ -660,23 +636,12 @@ class BatchAssignManager {
      * 执行批量移除
      */
     async performBatchRemove() {
-        const response = await fetch('/tags/api/batch_remove_all_tags', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': this.getCSRFToken()
-            },
-            body: JSON.stringify({
-                instance_ids: Array.from(this.selectedInstances)
-            })
+        const result = await http.post('/tags/api/batch_remove_all_tags', {
+            instance_ids: Array.from(this.selectedInstances)
         });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || '移除失败');
+        if (!result.success) {
+            throw new Error(result.message || '移除失败');
         }
-
-        const result = await response.json();
         return result;
     }
 
