@@ -448,7 +448,7 @@ def update_job_trigger(job_id: str) -> Response:
 
         # 只允许修改内置任务的触发器
         if job_id not in BUILTIN_TASK_IDS:
-            raise SystemError("只能修改内置任务的触发器配置", status_code=403)
+            raise SystemError("只能修改内置任务的触发器配置", status_code=HttpStatus.FORBIDDEN)
 
         # 检查是否包含触发器配置
         if "trigger_type" not in data:

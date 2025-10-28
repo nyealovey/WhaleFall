@@ -33,14 +33,14 @@ def about() -> str:
 def favicon() -> "Response":
     """提供favicon.ico文件"""
     # 返回一个空的响应，避免404错误
-    return "", 204
+    return "", HttpStatus.NO_CONTENT
 
 
 @main_bp.route("/.well-known/appspecific/com.chrome.devtools.json")
 def chrome_devtools() -> "Response":
     """处理Chrome开发者工具的请求"""
     # 返回一个空的响应，避免404错误
-    return "", 204
+    return "", HttpStatus.NO_CONTENT
 
 
 # Admin route removed - admin/management.html deleted

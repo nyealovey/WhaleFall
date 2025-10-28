@@ -304,7 +304,7 @@ def create_api() -> "Response":
     return jsonify_unified_success(
         data={"credential": credential.to_dict()},
         message=SuccessMessages.DATA_SAVED,
-        status=201,
+        status=HttpStatus.CREATED,
     )
 
 
@@ -333,7 +333,7 @@ def create() -> "str | Response":
             return jsonify_unified_success(
                 data={"credential": credential.to_dict()},
                 message=SuccessMessages.DATA_SAVED,
-                status=201,
+                status=HttpStatus.CREATED,
             )
 
         flash("凭据创建成功！", "success")

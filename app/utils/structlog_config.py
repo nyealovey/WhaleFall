@@ -23,6 +23,7 @@ from flask_login import current_user
 from werkzeug.exceptions import HTTPException
 
 from app import db
+from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
 from app.errors import AppError, map_exception_to_status
 from app.models.unified_log import LogLevel, UnifiedLog
@@ -638,11 +639,11 @@ def _derive_error_metadata(error: Exception) -> ErrorMetadata:
         )
 
     if isinstance(error, HTTPException):
-        status_code = int(getattr(error, "code", 500) or 500)
+        status_code = int(getattr(error, "code", HttpStatus.INTERNAL_SERVER_ERROR) or HttpStatus.INTERNAL_SERVER_ERROR)
         message = getattr(error, "description", ErrorMessages.INTERNAL_ERROR)
-        message_key = "INTERNAL_ERROR" if status_code >= 500 else "INVALID_REQUEST"
-        severity = ErrorSeverity.HIGH if status_code >= 500 else ErrorSeverity.MEDIUM
-        category = ErrorCategory.SYSTEM if status_code >= 500 else ErrorCategory.BUSINESS
+        message_key = "INTERNAL_ERROR" if status_code >= HttpStatus.INTERNAL_SERVER_ERROR else "INVALID_REQUEST"
+        severity = ErrorSeverity.HIGH if status_code >= HttpStatus.INTERNAL_SERVER_ERROR else ErrorSeverity.MEDIUM
+        category = ErrorCategory.SYSTEM if status_code >= HttpStatus.INTERNAL_SERVER_ERROR else ErrorCategory.BUSINESS
         return ErrorMetadata(
             status_code=status_code,
             category=category,

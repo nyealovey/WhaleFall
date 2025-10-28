@@ -174,7 +174,7 @@ def create_api() -> tuple[Response, int]:
     return jsonify_unified_success(
         data={"tag": tag.to_dict()},
         message="标签创建成功",
-        status=201,
+        status=HttpStatus.CREATED,
     )
 
 

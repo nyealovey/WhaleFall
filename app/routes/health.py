@@ -10,6 +10,7 @@ from flask import Blueprint, Response, request
 from flask_login import login_required
 
 from app import cache, db
+from app.constants import TimeConstants
 from app.constants.system_constants import SuccessMessages
 from app.errors import SystemError
 from app.scheduler import get_scheduler
@@ -316,7 +317,7 @@ def get_system_uptime() -> "str | None":
         uptime = current_time - app_start_time
 
         days = uptime.days
-        hours, remainder = divmod(uptime.seconds, 3600)
+        hours, remainder = divmod(uptime.seconds, TimeConstants.ONE_HOUR)
         minutes, _ = divmod(remainder, 60)
 
         return f"{days}天 {hours}小时 {minutes}分钟"

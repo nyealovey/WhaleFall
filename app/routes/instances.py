@@ -9,6 +9,7 @@ from flask import Blueprint, Response, flash, redirect, render_template, request
 from flask_login import current_user, login_required
 
 from app import db
+from app.constants import HttpStatus
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -246,7 +247,7 @@ def create_api() -> Response:
         return jsonify_unified_success(
             data={"instance": instance.to_dict()},
             message="实例创建成功",
-            status=201,
+            status=HttpStatus.CREATED,
         )
 
     except Exception as e:
