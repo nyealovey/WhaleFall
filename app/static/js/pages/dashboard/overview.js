@@ -53,8 +53,7 @@ function initLogTrendChart() {
     const warningColor = getCssVariable('--warning-color');
 
     // 获取日志趋势数据
-    fetch('/dashboard/api/charts?type=logs')
-        .then(response => response.json())
+    http.get('/dashboard/api/charts?type=logs')
         .then(data => {
             const payload = data?.data ?? data ?? {};
             const logTrend = payload.log_trend ?? [];
