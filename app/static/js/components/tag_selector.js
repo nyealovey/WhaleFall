@@ -164,19 +164,7 @@ class TagSelector {
     // 加载分类数据
     async loadCategories() {
         try {
-            const response = await fetch('/tags/api/categories', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data = await response.json();
+            const data = await http.get('/tags/api/categories');
             if (data.success) {
                 const categories = data.categories ?? data.data?.categories ?? [];
                 this.renderCategories(Array.isArray(categories) ? categories : []);
@@ -239,19 +227,7 @@ class TagSelector {
         try {
             this.showLoading();
             
-            const response = await fetch('/tags/api/tags', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to load tags');
-            }
-            
-            const data = await response.json();
+            const data = await http.get('/tags/api/tags');
             if (data.success) {
                 this.allTags = data?.data?.tags ?? data.tags ?? [];
                 if (!Array.isArray(this.allTags)) {
