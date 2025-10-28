@@ -5,23 +5,13 @@ from .colors import ThemeColors
 
 # 导入所有系统常量
 from .system_constants import (
-    LogLevel,
-    LogType,
-    UserRole,
-    TaskStatus,
-    InstanceStatus,
-    DatabaseType,
-    TaskType,
-    SyncType,
-    SystemConstants,
     DefaultConfig,
+    ErrorCategory,
     ErrorMessages,
+    ErrorSeverity,
+    LogLevel,
     SuccessMessages,
-    RegexPatterns,
-    DangerousPatterns,
-    FieldLengths,
-    CacheKeys,
-    Pagination,
+    SystemConstants,
 )
 
 # 导出所有常量
@@ -31,20 +21,10 @@ __all__ = [
     
     # 系统常量
     'LogLevel',
-    'LogType',
-    'UserRole',
-    'TaskStatus',
-    'InstanceStatus',
-    'DatabaseType',
-    'TaskType',
-    'SyncType',
     'SystemConstants',
     'DefaultConfig',
     'ErrorMessages',
     'SuccessMessages',
-    'RegexPatterns',
-    'DangerousPatterns',
-    'FieldLengths',
-    'CacheKeys',
-    'Pagination',
+    'ErrorCategory',
+    'ErrorSeverity',
 ]
