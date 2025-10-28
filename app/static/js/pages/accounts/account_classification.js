@@ -40,8 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // 加载分类列表
 function loadClassifications() {
-    fetch('/account_classification/api/classifications')
-        .then(response => response.json())
+    http.get('/account_classification/api/classifications')
         .then(data => {
             if (data.success) {
                 const classifications = data?.data?.classifications ?? data.classifications ?? [];
@@ -128,14 +127,7 @@ function createClassification() {
         icon_name: document.querySelector('input[name="classificationIcon"]:checked').value
     };
 
-    fetch('/account_classification/api/classifications', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-        .then(response => response.json())
+    http.post('/account_classification/api/classifications', data)
         .then(data => {
             if (data.success) {
                 notify.success(data.message || '分类创建成功');
@@ -155,8 +147,7 @@ function createClassification() {
 // 编辑分类
 function editClassification(id) {
     // 获取分类信息
-    fetch(`/account_classification/api/classifications/${id}`)
-        .then(response => response.json())
+    http.get(`/account_classification/api/classifications/${id}`)
         .then(data => {
             if (data.success) {
                 const classification = data.classification;
@@ -236,15 +227,7 @@ function updateClassification() {
         icon_name: document.querySelector('input[name="editClassificationIcon"]:checked').value
     };
 
-    fetch(`/account_classification/api/classifications/${id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify(data)
-    })
-        .then(response => response.json())
+    http.put(`/account_classification/api/classifications/${id}`, data)
         .then(data => {
             if (data.success) {
                 notify.success('分类更新成功');
@@ -266,10 +249,7 @@ function deleteClassification(id) {
         return;
     }
 
-    fetch(`/account_classification/api/classifications/${id}`, {
-        method: 'DELETE'
-    })
-        .then(response => response.json())
+    http.delete(`/account_classification/api/classifications/${id}`)
         .then(data => {
             if (data.success) {
                 notify.success(data.message || '分类删除成功');
@@ -288,8 +268,7 @@ function deleteClassification(id) {
 
 // 加载规则
 function loadRules() {
-    fetch('/account_classification/api/rules')
-        .then(response => response.json())
+    http.get('/account_classification/api/rules')
         .then(data => {
             if (data.success) {
                 const rulesByDbType = data?.data?.rules_by_db_type ?? data.rules_by_db_type ?? {};
@@ -426,8 +405,7 @@ function displayRules(rulesByDbType) {
 
 // 加载分类列表（用于规则创建）
 function loadClassificationsForRules(prefix = '') {
-    return fetch('/account_classification/api/classifications')
-        .then(response => response.json())
+    return http.get('/account_classification/api/classifications')
         .then(data => {
             if (data.success) {
                 const classifications = data?.data?.classifications ?? data.classifications ?? [];
@@ -467,8 +445,7 @@ function loadPermissions(prefix = '') {
         return Promise.resolve();
     }
 
-    return fetch(`/account_classification/api/permissions/${dbType}`)
-        .then(response => response.json())
+    return http.get(`/account_classification/api/permissions/${dbType}`)
         .then(data => {
             if (data.success) {
                 displayPermissionsConfig(data.permissions, prefix, dbType);
@@ -922,15 +899,7 @@ function createRule() {
         rule_expression: ruleExpression
     };
 
-    fetch('/account_classification/api/rules', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify(data)
-    })
-        .then(response => response.json())
+    http.post('/account_classification/api/rules', data)
         .then(data => {
             if (data.success) {
                 notify.success('规则创建成功');
@@ -949,8 +918,7 @@ function createRule() {
 
 // 编辑规则
 function editRule(id) {
-    fetch(`/account_classification/api/rules/${id}`)
-        .then(response => response.json())
+    http.get(`/account_classification/api/rules/${id}`)
         .then(data => {
             if (data.success) {
                 const rule = data.rule;
@@ -1252,15 +1220,7 @@ function updateRule() {
         rule_expression: ruleExpression
     };
 
-    fetch(`/account_classification/api/rules/${ruleId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify(data)
-    })
-        .then(response => response.json())
+    http.put(`/account_classification/api/rules/${ruleId}`, data)
         .then(data => {
             if (data.success) {
                 notify.success('规则更新成功');
@@ -1293,8 +1253,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // 查看规则
 function viewRule(id) {
-    fetch(`/account_classification/api/rules/${id}`)
-        .then(response => response.json())
+    http.get(`/account_classification/api/rules/${id}`)
         .then(data => {
             if (data.success) {
                 const rule = data.rule;
@@ -1559,13 +1518,7 @@ function deleteRule(id) {
         return;
     }
 
-    fetch(`/account_classification/rules/${id}`, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-        .then(response => response.json())
+    http.delete(`/account_classification/rules/${id}`)
         .then(data => {
             if (data.success) {
                 notify.success('规则删除成功');
@@ -1592,15 +1545,7 @@ function autoClassifyAll() {
     // 记录操作开始日志
     console.info('开始自动分类所有账户', { operation: 'auto_classify_all' });
 
-    fetch('/account_classification/api/auto-classify', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify({})
-    })
-        .then(response => response.json())
+    http.post('/account_classification/api/auto-classify', {})
         .then(data => {
             if (data.success) {
                 // 记录成功日志
@@ -1709,14 +1654,7 @@ function createClassification() {
         return;
     }
 
-    fetch('/account_classification/api/classifications', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-        .then(response => response.json())
+    http.post('/account_classification/api/classifications', data)
         .then(data => {
             if (data.success) {
                 notify.success('分类创建成功');
@@ -1761,14 +1699,7 @@ function updateClassification() {
         return;
     }
 
-    fetch(`/account_classification/api/classifications/${id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-        .then(response => response.json())
+    http.put(`/account_classification/api/classifications/${id}`, data)
         .then(data => {
             if (data.success) {
                 notify.success('分类更新成功');
