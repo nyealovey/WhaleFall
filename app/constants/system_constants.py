@@ -17,17 +17,6 @@ class LogLevel(Enum):
     CRITICAL = "CRITICAL"
 
 
-class LogType(Enum):
-    """日志类型枚举"""
-
-    OPERATION = "operation"
-    SYSTEM = "system"
-    ERROR = "error"
-    SECURITY = "security"
-    API = "api"
-    DATABASE = "database"
-
-
 class ErrorCategory(Enum):
     """错误分类枚举"""
 
@@ -50,63 +39,6 @@ class ErrorSeverity(Enum):
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
-
-
-class UserRole(Enum):
-    """用户角色枚举"""
-
-    ADMIN = "admin"
-    USER = "user"
-    VIEWER = "viewer"
-
-
-class TaskStatus(Enum):
-    """任务状态枚举"""
-
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
-
-
-class InstanceStatus(Enum):
-    """实例状态枚举"""
-
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    ERROR = "error"
-    MAINTENANCE = "maintenance"
-
-
-class DatabaseType(Enum):
-    """数据库类型枚举"""
-
-    MYSQL = "mysql"
-    POSTGRESQL = "postgresql"
-    SQLSERVER = "sqlserver"
-    ORACLE = "oracle"
-    SQLITE = "sqlite"
-
-
-class TaskType(Enum):
-    """任务类型枚举"""
-
-    SYNC_ACCOUNTS = "sync_accounts"
-    SYNC_VERSION = "sync_version"
-    SYNC_SIZE = "sync_size"
-    CUSTOM = "custom"
-    BACKUP = "backup"
-    RESTORE = "restore"
-
-
-class SyncType(Enum):
-    """同步操作方式枚举"""
-
-    MANUAL_SINGLE = "manual_single"  # 手动单台
-    MANUAL_BATCH = "manual_batch"  # 手动批量
-    MANUAL_TASK = "manual_task"  # 手动任务
-    SCHEDULED_TASK = "scheduled_task"  # 定时任务
 
 
 # 系统常量
@@ -299,169 +231,13 @@ class SuccessMessages:
     SYNC_COMPLETED = "同步完成"
 
 
-# 正则表达式常量
-class RegexPatterns:
-    """正则表达式常量"""
-
-    # 用户名模式
-    USERNAME_PATTERN = r"^[a-zA-Z0-9_]{3,20}$"
-
-    # 邮箱模式
-    EMAIL_PATTERN = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-
-    # 密码模式（至少8位，包含大小写字母和数字）
-    PASSWORD_PATTERN = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$"  # noqa: S105 - 这是正则表达式模式，不是密码
-
-    # IP地址模式
-    IP_PATTERN = r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-
-    # 数据库连接字符串模式
-    DATABASE_URL_PATTERN = r"^(mysql|postgresql|sqlite|oracle|mssql)://.*$"
-
-    # 端口号模式
-    PORT_PATTERN = r"^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
-
-
-# 危险字符模式
-class DangerousPatterns:
-    """危险字符模式"""
-
-    XSS_PATTERNS = [
-        r"<script[^>]*>.*?</script>",
-        r"javascript:",
-        r"vbscript:",
-        r"on\w+\s*=",
-        r"<iframe[^>]*>",
-        r"<object[^>]*>",
-        r"<embed[^>]*>",
-        r"<link[^>]*>",
-        r"<meta[^>]*>",
-        r"<style[^>]*>",
-    ]
-
-    SQL_INJECTION_PATTERNS = [
-        r"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)",
-        r"(\b(OR|AND)\b\s+\d+\s*=\s*\d+)",
-        r"(\b(OR|AND)\b\s+\'\w+\'\s*=\s*\'\w+\')",
-        r"(\b(OR|AND)\b\s+\w+\s*=\s*\w+)",
-    ]
-
-    PATH_TRAVERSAL_PATTERNS = [
-        r"\.\./",
-        r"\.\.\\",
-        r"%2e%2e%2f",
-        r"%2e%2e%5c",
-    ]
-
-
-# 数据库字段长度常量
-class FieldLengths:
-    """数据库字段长度常量"""
-
-    # 用户相关
-    USERNAME_MAX_LENGTH = 255
-    PASSWORD_HASH_LENGTH = 255
-    ROLE_MAX_LENGTH = 50
-
-    # 实例相关
-    INSTANCE_NAME_MAX_LENGTH = 255
-    INSTANCE_TYPE_MAX_LENGTH = 50
-    HOST_MAX_LENGTH = 255
-    PORT_MAX_LENGTH = 10
-    DATABASE_NAME_MAX_LENGTH = 255
-
-    # 凭据相关
-    CREDENTIAL_NAME_MAX_LENGTH = 255
-    PASSWORD_MAX_LENGTH = 255
-
-    # 日志相关
-    LOG_LEVEL_MAX_LENGTH = 20
-    LOG_TYPE_MAX_LENGTH = 50
-    MODULE_MAX_LENGTH = 100
-    IP_ADDRESS_MAX_LENGTH = 45
-
-    # 任务相关
-    TASK_NAME_MAX_LENGTH = 255
-    TASK_TYPE_MAX_LENGTH = 50
-    STATUS_MAX_LENGTH = 20
-
-    # 参数相关
-    PARAM_NAME_MAX_LENGTH = 255
-    PARAM_TYPE_MAX_LENGTH = 50
-    CATEGORY_MAX_LENGTH = 100
-
-
-# 缓存键前缀
-class CacheKeys:
-    """缓存键前缀"""
-
-    USER_PREFIX = "user:"
-    INSTANCE_PREFIX = "instance:"
-    CREDENTIAL_PREFIX = "credential:"
-    TASK_PREFIX = "task:"
-    LOG_PREFIX = "log:"
-    DASHBOARD_PREFIX = "dashboard:"
-    API_PREFIX = "api:"
-    HEALTH_PREFIX = "health:"
-
-    @staticmethod
-    def user_key(user_id: int) -> str:
-        return f"{CacheKeys.USER_PREFIX}{user_id}"
-
-    @staticmethod
-    def instance_key(instance_id: int) -> str:
-        return f"{CacheKeys.INSTANCE_PREFIX}{instance_id}"
-
-    @staticmethod
-    def dashboard_key(key: str) -> str:
-        return f"{CacheKeys.DASHBOARD_PREFIX}{key}"
-
-    @staticmethod
-    def api_key(endpoint: str, params: str = "") -> str:
-        return f"{CacheKeys.API_PREFIX}{endpoint}:{params}"
-
-
-
-
-
-# 分页常量
-class Pagination:
-    """分页常量"""
-
-    DEFAULT_PAGE = 1
-    DEFAULT_PER_PAGE = SystemConstants.DEFAULT_PAGE_SIZE
-    MAX_PER_PAGE = SystemConstants.MAX_PAGE_SIZE
-    MIN_PER_PAGE = SystemConstants.MIN_PAGE_SIZE
-
-    @staticmethod
-    def validate_page(page: int) -> int:
-        """验证页码"""
-        return max(1, page)
-
-    @staticmethod
-    def validate_per_page(per_page: int) -> int:
-        """验证每页数量"""
-        return max(Pagination.MIN_PER_PAGE, min(per_page, Pagination.MAX_PER_PAGE))
-
-
 # 导出所有常量
 __all__ = [
     "LogLevel",
-    "LogType",
-    "UserRole",
-    "TaskStatus",
-    "InstanceStatus",
-    "DatabaseType",
-    "TaskType",
-    "SyncType",
     "SystemConstants",
     "DefaultConfig",
     "ErrorMessages",
     "SuccessMessages",
-    "RegexPatterns",
-    "DangerousPatterns",
-    "FieldLengths",
-    "CacheKeys",
-
-    "Pagination",
+    "ErrorCategory",
+    "ErrorSeverity",
 ]
