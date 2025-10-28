@@ -842,59 +842,48 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
     account = CurrentAccountSyncData.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
     try:
+        # 构建权限信息（与账户管理页面保持一致的数据结构）
         permissions = {
-            "数据库类型": instance.db_type.upper(),
-            "用户名": account.username,
-            "超级用户": "是" if account.is_superuser else "否",
-            "最后同步时间": (
+            "db_type": instance.db_type.upper() if instance else "",
+            "username": account.username,
+            "is_superuser": account.is_superuser,
+            "last_sync_time": (
                 time_utils.format_china_time(account.last_sync_time) if account.last_sync_time else "未知"
             ),
         }
 
         if instance.db_type == DatabaseType.MYSQL:
-            if account.global_privileges:
-                permissions["global_privileges"] = account.global_privileges
-            if account.database_privileges:
-                permissions["database_privileges"] = account.database_privileges
+            permissions["global_privileges"] = account.global_privileges or []
+            permissions["database_privileges"] = account.database_privileges or {}
 
         elif instance.db_type == DatabaseType.POSTGRESQL:
-            if account.predefined_roles:
-                permissions["predefined_roles"] = account.predefined_roles
-            if account.role_attributes:
-                permissions["role_attributes"] = account.role_attributes
-            if account.database_privileges_pg:
-                permissions["database_privileges_pg"] = account.database_privileges_pg
+            permissions["predefined_roles"] = account.predefined_roles or []
+            permissions["role_attributes"] = account.role_attributes or {}
+            permissions["database_privileges_pg"] = account.database_privileges_pg or {}
+            permissions["tablespace_privileges"] = account.tablespace_privileges or {}
 
         elif instance.db_type == DatabaseType.SQLSERVER:
-            if account.server_roles:
-                permissions["server_roles"] = account.server_roles
-            if account.server_permissions:
-                permissions["server_permissions"] = account.server_permissions
-            if account.database_roles:
-                permissions["database_roles"] = account.database_roles
-            if account.database_permissions:
-                permissions["database_permissions"] = account.database_permissions
+            permissions["server_roles"] = account.server_roles or []
+            permissions["server_permissions"] = account.server_permissions or []
+            permissions["database_roles"] = account.database_roles or {}
+            permissions["database_permissions"] = account.database_permissions or {}
 
         elif instance.db_type == DatabaseType.ORACLE:
-            if account.oracle_roles:
-                permissions["oracle_roles"] = account.oracle_roles
-            if account.system_privileges:
-                permissions["system_privileges"] = account.system_privileges
-            if account.tablespace_privileges_oracle:
-                permissions["tablespace_privileges_oracle"] = account.tablespace_privileges_oracle
+            permissions["oracle_roles"] = account.oracle_roles or []
+            permissions["system_privileges"] = account.system_privileges or []
+            permissions["tablespace_privileges_oracle"] = account.tablespace_privileges_oracle or {}
 
         return jsonify_unified_success(
             data={
+                "permissions": permissions,
                 "account": {
                     "id": account.id,
                     "username": account.username,
-                    "host": getattr(account, "host", None),
-                    "plugin": getattr(account, "plugin", None),
-                    "db_type": instance.db_type,
+                    "instance_name": instance.name if instance else "未知实例",
+                    "db_type": instance.db_type if instance else "",
                 },
-                "permissions": permissions,
             },
-            message="获取权限详情成功",
+            message="获取账户权限成功",
         )
 
     except Exception as exc:  # noqa: BLE001
