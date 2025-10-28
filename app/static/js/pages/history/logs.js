@@ -32,7 +32,7 @@ function setDefaultTimeRange() {
 
 // 加载模块列表
 function loadModules() {
-    window.http.get('/logs/api/modules')
+    http.get('/logs/api/modules')
         .then(data => {
             if (data.success) {
                 updateModuleFilter(data.data.modules);
@@ -77,7 +77,7 @@ function loadStats() {
         if (hours) params.append('hours', hours);
     }
 
-    window.http.get(`/logs/api/stats?${params.toString()}`)
+    http.get(`/logs/api/stats?${params.toString()}`)
         .then(data => {
             if (data.success) {
                 updateStatsDisplay(data.data);
@@ -157,7 +157,7 @@ function searchLogs(page = 1) {
     showLoadingState();
 
     // 发送请求
-    window.http.get(`/logs/api/search?${params}`)
+    http.get(`/logs/api/search?${params}`)
         .then(data => {
             if (data.success) {
                 displayLogs(data.data.logs);
@@ -297,7 +297,7 @@ function displayPagination(pagination) {
 
 // 查看日志详情
 function viewLogDetail(logId) {
-    window.http.get(`/logs/api/detail/${logId}`)
+    http.get(`/logs/api/detail/${logId}`)
         .then(data => {
             if (data.success) {
                 displayLogDetail(data.data.log);
