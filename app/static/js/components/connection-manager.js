@@ -151,7 +151,6 @@ class ConnectionManager {
         try {
             return await http.get(`${this.baseUrl}/status/${instanceId}`);
 
-            return await response.json();
         } catch (error) {
             return {
                 success: false,
