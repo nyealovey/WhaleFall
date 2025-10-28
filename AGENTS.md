@@ -1,29 +1,19 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `app/` contains Flask services split into `api/`, `routes/`, `models/`, `utils/`, `tasks/`, and `scheduler.py`; client assets live under `templates/` and `static/`.
-- `tests/` mirrors runtime modules via `unit/` and `integration/`, sharing fixtures through `tests/conftest.py`.
-- Tooling scripts stay in `scripts/` (e.g., `scripts/dev/start-dev-db.sh`, `scripts/validate_env.sh`), while migrations, seed data, and docs reside in `migrations/`, `sql/`, and `docs/` respectively.
-- Environment presets live at the repo root (`env.development`, `env.production`), and keep secrets in `.env` outside version control.
+The Flask services live in `app/`, split into focused modules: `api/` for service endpoints, `routes/` for blueprints, `models/` for ORM entities, `utils/` for shared helpers, `tasks/` for async jobs, and `scheduler.py` for scheduled runs. Client templates and static assets stay in `templates/` and `static/`. Tests mirror this layout under `tests/unit/` and `tests/integration/`, reusing fixtures from `tests/conftest.py`. Supporting assets belong in `scripts/`, `migrations/`, `sql/`, and `docs/`. Environment presets such as `env.development` sit at the repo root; keep secrets in an untracked `.env`.
 
 ## Build, Test, and Development Commands
-- `make install` installs Python dependencies (`uv sync` preferred; falls back to `pip install -r requirements.txt`).
-- `make dev start` launches the PostgreSQL + Redis stack; follow with `make dev start-flask` to run the app and `make dev stop` to tear it down.
-- `make test` (or `make dev test`) executes pytest; pass `pytest -k expression` or `-m marker` for targeted runs.
-- `make quality` runs `ruff` and `mypy`, and `make format` applies `black` + `isort`.
+Run `make install` to sync Python dependencies (prefers `uv sync`, falls back to `pip install -r requirements.txt`). Use `make dev start` to boot the PostgreSQL + Redis stack, `make dev start-flask` to launch the API, and `make dev stop` to tear everything down. For validation, `make test` (or `make dev test`) executes pytest; filter suites with `pytest -k pattern` or `-m unit`. Quality gates run via `make quality`, while `make format` applies `black` and `isort`.
 
 ## Coding Style & Naming Conventions
-- Use 4-space indentation and keep lines ≤120 characters; run `make format` before pushing.
-- Treat `app` as first-party in imports; rely on `black`, `isort`, and `ruff` to enforce style.
-- Name modules, functions, and variables in `snake_case`; classes in `CapWords`; align Flask blueprint names with their route modules.
-- Use structured logging utilities instead of `print`.
+Follow 4-space indentation and keep lines within 120 characters. Treat `app` as a first-party import root and rely on `black`, `isort`, and `ruff` for formatting and linting. Use `snake_case` for modules, functions, and variables, `CapWords` for classes, and align blueprint names with their route modules. Prefer structured logging helpers over `print`.
 
 ## Testing Guidelines
-- Mark tests with `@pytest.mark.unit`, `integration`, or `slow` to enable `pytest -m "unit"` style filters.
-- Run integration suites against the Docker stack (`make dev start`), and ensure tests clean up external state.
-- For critical areas, run `pytest --cov=app --cov-report=term-missing` and keep fixtures reusable within `tests/conftest.py`.
+Annotate tests with `@pytest.mark.unit`, `integration`, or `slow` so contributors can run `pytest -m "unit"` selectively. Execute integration tests against the Docker stack after `make dev start`, and ensure fixtures leave external systems clean. For critical code paths, target `pytest --cov=app --cov-report=term-missing` to watch coverage gaps.
 
 ## Commit & Pull Request Guidelines
-- Follow commit prefixes like `fix:`, `feat:`, `refactor:` or concise Chinese verbs; keep subjects under 72 characters.
-- Reference relevant issues, note verification steps (e.g., `make test`, manual flows), and add UI screenshots for template changes.
-- Document configuration updates in the PR body, keep `.env`, `instance/`, and other secrets local, and update `nginx/` configs when exposing new ports or APIs.
+Commit subjects follow prefixes such as `fix:`, `feat:`, `refactor:`, or concise Chinese verbs, staying under 72 characters. Reference related issues, document verification steps (e.g., `make test`, manual flows), and attach UI screenshots for template changes. In PR descriptions, highlight configuration updates, note any new ports or APIs, and keep `.env`, `instance/`, and other secrets out of version control.
+
+## Security & Configuration Tips
+Load environment variables from local `.env` files rather than committing secrets. When modifying ingress or service topology, update `nginx/` configs alongside application changes. Confirm that migrations in `migrations/` and SQL data in `sql/` match the environments referenced in `env.production` before deploying.

@@ -140,34 +140,6 @@ class RateLimiter:
             "retry_after": 0,
         }
 
-    def get_remaining(self, identifier: str, endpoint: str, limit: int, window: int) -> int:
-        """获取剩余请求次数"""
-        try:
-            result = self.is_allowed(identifier, endpoint, limit, window)
-            return result["remaining"]
-        except Exception as e:
-            system_logger = get_system_logger()
-            system_logger.warning("获取剩余请求次数失败", module="rate_limiter", exception=e)
-            return limit  # 出错时返回最大限制
-
-    def reset(self, identifier: str, endpoint: str):
-        """重置速率限制"""
-        if self.cache:
-            try:
-                key = self._get_key(identifier, endpoint)
-                self.cache.delete(key)
-            except Exception as e:
-                system_logger = get_system_logger()
-                system_logger.warning("缓存重置速率限制失败", module="rate_limiter", exception=e)
-                # 降级到内存模式
-                key = self._get_memory_key(identifier, endpoint)
-                if key in self.memory_store:
-                    del self.memory_store[key]
-        else:
-            key = self._get_memory_key(identifier, endpoint)
-            if key in self.memory_store:
-                del self.memory_store[key]
-
 
 # 全局速率限制器实例
 rate_limiter = RateLimiter()
