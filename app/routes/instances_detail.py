@@ -11,7 +11,7 @@ from sqlalchemy import text
 
 from app import db
 from app.errors import ConflictError, SystemError, ValidationError
-from app.constants import TaskStatus
+from app.constants import TaskStatus, FlashCategory, HttpMethod
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -233,7 +233,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
     """编辑实例"""
     instance = Instance.query.get_or_404(instance_id)
 
-    if request.method == "POST":
+    if request.method == HttpMethod.POST:
         data = request.form
 
         # 清理输入数据
@@ -243,13 +243,13 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
         required_fields = ["name", "db_type", "host", "port"]
         validation_error = validate_required_fields(data, required_fields)
         if validation_error:
-            flash(validation_error, "error")
+            flash(validation_error, FlashCategory.ERROR)
             return render_template("instances/edit.html", instance=instance)
 
         # 验证数据库类型
         db_type_error = validate_db_type(data.get("db_type"))
         if db_type_error:
-            flash(db_type_error, "error")
+            flash(db_type_error, FlashCategory.ERROR)
             return render_template("instances/edit.html", instance=instance)
 
 
@@ -261,7 +261,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
                 raise ValueError(error_msg)
         except (ValueError, TypeError):
             error_msg = "端口号必须是1-65535之间的整数"
-            flash(error_msg, "error")
+            flash(error_msg, FlashCategory.ERROR)
             return render_template("instances/edit.html", instance=instance)
 
         # 验证凭据ID
@@ -274,14 +274,14 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
                     raise ValueError(error_msg)
             except (ValueError, TypeError):
                 error_msg = "无效的凭据ID"
-                flash(error_msg, "error")
+                flash(error_msg, FlashCategory.ERROR)
                 return render_template("instances/edit.html", instance=instance)
 
         # 验证实例名称唯一性（排除当前实例）
         existing_instance = Instance.query.filter(Instance.name == data.get("name"), Instance.id != instance_id).first()
         if existing_instance:
             error_msg = "实例名称已存在"
-            flash(error_msg, "error")
+            flash(error_msg, FlashCategory.ERROR)
             return render_template("instances/edit.html", instance=instance)
 
         try:
@@ -351,7 +351,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
                 },
             )
 
-            flash("实例更新成功！", "success")
+            flash("实例更新成功！", FlashCategory.SUCCESS)
             return redirect(url_for("instances.detail", instance_id=instance_id))
 
         except Exception as e:
@@ -374,7 +374,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
             else:
                 error_msg = f"更新实例失败: {str(e)}"
 
-            flash(error_msg, "error")
+            flash(error_msg, FlashCategory.ERROR)
 
     # GET请求，显示编辑表单
     credentials = Credential.query.filter_by(is_active=True).all()

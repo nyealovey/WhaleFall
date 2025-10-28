@@ -9,7 +9,7 @@ from typing import Optional
 
 from app import db
 from app.constants.system_constants import SuccessMessages
-from app.constants import TaskStatus
+from app.constants import TaskStatus, FlashCategory, HttpMethod
 from app.errors import (
     AppValidationError,
     ConflictError,
@@ -315,19 +315,19 @@ def create_api() -> "Response":
 @require_csrf
 def create() -> "str | Response":
     """创建凭据"""
-    if request.method == "POST":
+    if request.method == HttpMethod.POST:
         payload = _parse_payload()
         try:
             credential = _create_credential_record(payload)
         except (AppValidationError, ConflictError) as exc:
             if request.is_json:
                 raise
-            flash(exc.message, "error")
+            flash(exc.message, FlashCategory.ERROR)
             return render_template("credentials/create.html")
         except DatabaseError as exc:
             if request.is_json:
                 raise
-            flash(exc.message, "error")
+            flash(exc.message, FlashCategory.ERROR)
             return render_template("credentials/create.html")
 
         if request.is_json:
@@ -337,7 +337,7 @@ def create() -> "str | Response":
                 status=HttpStatus.CREATED,
             )
 
-        flash("凭据创建成功！", "success")
+        flash("凭据创建成功！", FlashCategory.SUCCESS)
         return redirect(url_for("credentials.index"))
 
     # GET请求，显示创建表单
@@ -370,19 +370,19 @@ def edit(credential_id: int) -> "str | Response":
     """编辑凭据"""
     credential = Credential.query.get_or_404(credential_id)
 
-    if request.method == "POST":
+    if request.method == HttpMethod.POST:
         payload = _parse_payload()
         try:
             credential = _update_credential_record(credential, payload)
         except (AppValidationError, ConflictError) as exc:
             if request.is_json:
                 raise
-            flash(exc.message, "error")
+            flash(exc.message, FlashCategory.ERROR)
             return render_template("credentials/edit.html", credential=credential)
         except DatabaseError as exc:
             if request.is_json:
                 raise
-            flash(exc.message, "error")
+            flash(exc.message, FlashCategory.ERROR)
             return render_template("credentials/edit.html", credential=credential)
 
         if request.is_json:
@@ -391,7 +391,7 @@ def edit(credential_id: int) -> "str | Response":
                 message=SuccessMessages.DATA_UPDATED,
             )
 
-        flash("凭据更新成功！", "success")
+        flash("凭据更新成功！", FlashCategory.SUCCESS)
         return redirect(url_for("credentials.index"))
 
     # GET请求，显示编辑表单
@@ -424,7 +424,7 @@ def toggle(credential_id: int) -> "Response":
     except DatabaseError as exc:
         if request.is_json:
             raise
-        flash(exc.message, "error")
+        flash(exc.message, FlashCategory.ERROR)
         return redirect(url_for("credentials.index"))
 
     log_info(
@@ -444,7 +444,7 @@ def toggle(credential_id: int) -> "Response":
             message=message,
         )
 
-    flash(message, "success")
+    flash(message, FlashCategory.SUCCESS)
     return redirect(url_for("credentials.index"))
 
 
@@ -468,7 +468,7 @@ def delete(credential_id: int) -> "Response":
     except DatabaseError as exc:
         if request.is_json:
             raise
-        flash(exc.message, "error")
+        flash(exc.message, FlashCategory.ERROR)
         return redirect(url_for("credentials.index"))
 
     log_info(
@@ -486,7 +486,7 @@ def delete(credential_id: int) -> "Response":
             message=SuccessMessages.DATA_DELETED,
         )
 
-    flash("凭据删除成功！", "success")
+    flash("凭据删除成功！", FlashCategory.SUCCESS)
     return redirect(url_for("credentials.index"))
 
 

@@ -9,7 +9,7 @@ from flask import Blueprint, Response, flash, redirect, render_template, request
 from flask_login import current_user, login_required
 
 from app import db
-from app.constants import HttpStatus, TaskStatus
+from app.constants import HttpStatus, TaskStatus, FlashCategory, HttpMethod
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -270,7 +270,7 @@ def create() -> str | Response:
     # 获取凭据列表
     credentials = Credential.query.filter_by(is_active=True).all()
 
-    if request.method == "POST":
+    if request.method == HttpMethod.POST:
         data = request.form
 
         # 清理输入数据
@@ -279,7 +279,7 @@ def create() -> str | Response:
         # 使用新的数据验证器进行严格验证
         is_valid, validation_error = DataValidator.validate_instance_data(data)
         if not is_valid:
-            flash(validation_error, "error")
+            flash(validation_error, FlashCategory.ERROR)
             return render_template("instances/create.html", credentials=credentials)
 
         # 验证凭据ID（如果提供）
@@ -289,18 +289,18 @@ def create() -> str | Response:
                 credential = Credential.query.get(credential_id)
                 if not credential:
                     error_msg = "凭据不存在"
-                    flash(error_msg, "error")
+                    flash(error_msg, FlashCategory.ERROR)
                     return render_template("instances/create.html", credentials=credentials)
             except (ValueError, TypeError):
                 error_msg = "无效的凭据ID"
-                flash(error_msg, "error")
+                flash(error_msg, FlashCategory.ERROR)
                 return render_template("instances/create.html", credentials=credentials)
 
         # 验证实例名称唯一性
         existing_instance = Instance.query.filter_by(name=data.get("name")).first()
         if existing_instance:
             error_msg = "实例名称已存在"
-            flash(error_msg, "error")
+            flash(error_msg, FlashCategory.ERROR)
             return render_template("instances/create.html", credentials=credentials)
 
         try:
@@ -357,7 +357,7 @@ def create() -> str | Response:
                 host=instance.host,
             )
 
-            flash("实例创建成功！", "success")
+            flash("实例创建成功！", FlashCategory.SUCCESS)
             return redirect(url_for("instances.index"))
 
         except Exception as e:
@@ -379,7 +379,7 @@ def create() -> str | Response:
             else:
                 error_msg = f"创建实例失败: {str(e)}"
 
-            flash(error_msg, "error")
+            flash(error_msg, FlashCategory.ERROR)
 
     # GET请求，显示创建表单
     credentials = Credential.query.filter_by(is_active=True).all()

@@ -10,11 +10,11 @@ from flask_login import current_user
 from flask_wtf.csrf import CSRFError, validate_csrf
 
 from app.constants.system_constants import ErrorMessages
-from app.constants import TaskStatus, UserRole
+from app.constants import TaskStatus, UserRole, FlashCategory, HttpHeaders
 from app.errors import AuthenticationError, AuthorizationError
 from app.utils.structlog_config import get_system_logger, should_log_debug
 
-CSRF_HEADER = "X-CSRFToken"
+CSRF_HEADER = HttpHeaders.X_CSRF_TOKEN
 SAFE_CSRF_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 def admin_required(f: Any) -> Any:  # noqa: ANN401
@@ -40,7 +40,7 @@ def admin_required(f: Any) -> Any:  # noqa: ANN401
                 request_path=request.path,
                 request_method=request.method,
                 ip_address=request.remote_addr,
-                user_agent=request.headers.get("User-Agent", ""),
+                user_agent=request.headers.get(HttpHeaders.USER_AGENT, ""),
                 permission_type="admin",
                 failure_reason="not_authenticated",
             )
@@ -55,7 +55,7 @@ def admin_required(f: Any) -> Any:  # noqa: ANN401
                     },
                 )
 
-            flash(ErrorMessages.AUTHENTICATION_REQUIRED, "warning")
+            flash(ErrorMessages.AUTHENTICATION_REQUIRED, FlashCategory.WARNING)
             return redirect(url_for("auth.login"))
 
         if not current_user.is_admin():
@@ -68,7 +68,7 @@ def admin_required(f: Any) -> Any:  # noqa: ANN401
                 request_path=request.path,
                 request_method=request.method,
                 ip_address=request.remote_addr,
-                user_agent=request.headers.get("User-Agent", ""),
+                user_agent=request.headers.get(HttpHeaders.USER_AGENT, ""),
                 permission_type="admin",
                 failure_reason="insufficient_permissions",
             )
@@ -84,7 +84,7 @@ def admin_required(f: Any) -> Any:  # noqa: ANN401
                     },
                 )
 
-            flash(ErrorMessages.ADMIN_PERMISSION_REQUIRED, "error")
+            flash(ErrorMessages.ADMIN_PERMISSION_REQUIRED, FlashCategory.ERROR)
             return redirect(url_for("main.index"))
 
         # 只在调试模式下记录成功验证
@@ -126,7 +126,7 @@ def login_required(f: Any) -> Any:  # noqa: ANN401
                 request_path=request.path,
                 request_method=request.method,
                 ip_address=request.remote_addr,
-                user_agent=request.headers.get("User-Agent", ""),
+                user_agent=request.headers.get(HttpHeaders.USER_AGENT, ""),
                 permission_type="login",
                 failure_reason="not_authenticated",
             )
@@ -141,7 +141,7 @@ def login_required(f: Any) -> Any:  # noqa: ANN401
                     },
                 )
 
-            flash(ErrorMessages.AUTHENTICATION_REQUIRED, "warning")
+            flash(ErrorMessages.AUTHENTICATION_REQUIRED, FlashCategory.WARNING)
             return redirect(url_for("auth.login"))
 
         # 只在调试模式下记录成功验证
@@ -184,7 +184,7 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
                     request_path=request.path,
                     request_method=request.method,
                     ip_address=request.remote_addr,
-                    user_agent=request.headers.get("User-Agent", ""),
+                    user_agent=request.headers.get(HttpHeaders.USER_AGENT, ""),
                     permission_type=permission,
                     failure_reason="not_authenticated",
                 )
@@ -199,7 +199,7 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
                         },
                     )
 
-                flash(ErrorMessages.AUTHENTICATION_REQUIRED, "warning")
+                flash(ErrorMessages.AUTHENTICATION_REQUIRED, FlashCategory.WARNING)
                 return redirect(url_for("auth.login"))
 
             # 检查权限
@@ -213,7 +213,7 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
                     request_path=request.path,
                     request_method=request.method,
                     ip_address=request.remote_addr,
-                    user_agent=request.headers.get("User-Agent", ""),
+                    user_agent=request.headers.get(HttpHeaders.USER_AGENT, ""),
                     permission_type=permission,
                     failure_reason="insufficient_permissions",
                 )
@@ -287,7 +287,7 @@ def require_csrf(f: Any) -> Any:  # noqa: ANN401
                 request_path=request.path,
                 request_method=request.method,
                 ip_address=request.remote_addr,
-                user_agent=request.headers.get("User-Agent", ""),
+                user_agent=request.headers.get(HttpHeaders.USER_AGENT, ""),
             )
             raise AuthorizationError(
                 "缺少 CSRF 令牌",
@@ -307,7 +307,7 @@ def require_csrf(f: Any) -> Any:  # noqa: ANN401
                 request_path=request.path,
                 request_method=request.method,
                 ip_address=request.remote_addr,
-                user_agent=request.headers.get("User-Agent", ""),
+                user_agent=request.headers.get(HttpHeaders.USER_AGENT, ""),
                 exception=str(exc),
             )
             raise AuthorizationError(

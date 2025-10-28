@@ -13,7 +13,7 @@ from flask_jwt_extended import (
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app import db
-from app.constants import TimeConstants, TaskStatus, UserRole
+from app.constants import TimeConstants, TaskStatus, UserRole, FlashCategory, HttpHeaders, HttpMethod
 from app.constants.system_constants import ErrorMessages, SuccessMessages
 from app.errors import (
     AuthenticationError,
@@ -78,7 +78,7 @@ def login_api() -> "Response":
                 user_id=user.id,
                 username=user.username,
                 ip_address=request.remote_addr,
-                user_agent=request.headers.get("User-Agent"),
+                user_agent=request.headers.get(HttpHeaders.USER_AGENT),
             )
 
             # API登录，返回JWT token
@@ -125,7 +125,7 @@ def login_api() -> "Response":
 @require_csrf
 def login() -> "str | Response":
     """用户登录页面"""
-    if request.method == "POST":
+    if request.method == HttpMethod.POST:
         # 添加调试日志
         auth_logger.info(
             "收到登录请求",
@@ -145,7 +145,7 @@ def login() -> "str | Response":
                 username=username,
                 ip_address=request.remote_addr,
             )
-            flash("用户名和密码不能为空", "error")
+            flash("用户名和密码不能为空", FlashCategory.ERROR)
             return render_template("auth/login.html")
 
         # 查找用户
@@ -163,11 +163,11 @@ def login() -> "str | Response":
                     user_id=user.id,
                     username=user.username,
                     ip_address=request.remote_addr,
-                    user_agent=request.headers.get("User-Agent"),
+                    user_agent=request.headers.get(HttpHeaders.USER_AGENT),
                 )
 
                 # 页面登录，重定向到首页
-                flash("登录成功！", "success")
+                flash("登录成功！", FlashCategory.SUCCESS)
                 next_page = request.args.get("next")
                 return redirect(next_page) if next_page else redirect(url_for("dashboard.index"))
             auth_logger.warning(
@@ -176,14 +176,14 @@ def login() -> "str | Response":
                 user_id=user.id,
                 ip_address=request.remote_addr,
             )
-            flash("账户已被禁用", "error")
+            flash("账户已被禁用", FlashCategory.ERROR)
         else:
             auth_logger.warning(
                 "页面登录失败：用户名或密码错误",
                 username=username,
                 ip_address=request.remote_addr,
             )
-            flash("用户名或密码错误", "error")
+            flash("用户名或密码错误", FlashCategory.ERROR)
 
     # GET请求，显示登录页面
 
@@ -201,7 +201,7 @@ def logout() -> "Response":
         user_id=current_user.id,
         username=current_user.username,
         ip_address=request.remote_addr,
-        user_agent=request.headers.get("User-Agent"),
+        user_agent=request.headers.get(HttpHeaders.USER_AGENT),
     )
 
     logout_user()
@@ -209,7 +209,7 @@ def logout() -> "Response":
     if request.is_json:
         return jsonify_unified_success(message=SuccessMessages.LOGOUT_SUCCESS)
 
-    flash("已成功登出", "info")
+    flash("已成功登出", FlashCategory.INFO)
     return redirect(url_for("auth.login"))
 
 
@@ -306,23 +306,23 @@ def change_password_api() -> "Response":
 @require_csrf
 def change_password() -> "str | Response":
     """修改密码页面"""
-    if request.method == "POST":
+    if request.method == HttpMethod.POST:
         old_password = request.form.get("old_password")
         new_password = request.form.get("new_password")
         confirm_password = request.form.get("confirm_password")
 
         # 验证输入
         if not old_password or not new_password:
-            flash("所有字段都不能为空", "error")
+            flash("所有字段都不能为空", FlashCategory.ERROR)
             return render_template("auth/change_password.html")
 
         if new_password != confirm_password:
-            flash("两次输入的新密码不一致", "error")
+            flash("两次输入的新密码不一致", FlashCategory.ERROR)
             return render_template("auth/change_password.html")
 
         # 验证旧密码
         if not current_user.check_password(old_password):
-            flash("旧密码错误", "error")
+            flash("旧密码错误", FlashCategory.ERROR)
             return render_template("auth/change_password.html")
 
         # 更新密码
@@ -330,12 +330,12 @@ def change_password() -> "str | Response":
             current_user.set_password(new_password)
             db.session.commit()
 
-            flash("密码修改成功！", "success")
+            flash("密码修改成功！", FlashCategory.SUCCESS)
             return redirect(url_for("auth.profile"))
 
         except Exception:
             db.session.rollback()
-            flash("密码修改失败，请重试", "error")
+            flash("密码修改失败，请重试", FlashCategory.ERROR)
 
     # GET请求，显示修改密码页面
 

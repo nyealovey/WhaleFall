@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
+from app.constants import HttpHeaders
 from flask_bcrypt import Bcrypt
 from flask_caching import Cache
 from flask_cors import CORS
@@ -208,13 +209,13 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     def detect_protocol():
         """动态检测请求协议"""
         # 优先检查 X-Forwarded-Proto 头（Nginx 代理设置）
-        if request.headers.get('X-Forwarded-Proto') == 'https':
+        if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == 'https':
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 检查 Flask 的 is_secure 属性
         elif request.is_secure:
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 检查 X-Forwarded-Ssl 头
-        elif request.headers.get('X-Forwarded-Ssl') == 'on':
+        elif request.headers.get(HttpHeaders.X_FORWARDED_SSL) == 'on':
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 其他情况保持默认值
 
@@ -329,7 +330,7 @@ def initialize_extensions(app: Flask) -> None:
             r"/api/*": {
                 "origins": allowed_origins,
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                "allow_headers": ["Content-Type", "Authorization", "X-CSRFToken"],
+                "allow_headers": [HttpHeaders.CONTENT_TYPE, HttpHeaders.AUTHORIZATION, HttpHeaders.X_CSRF_TOKEN],
                 "supports_credentials": True,
             }
         },

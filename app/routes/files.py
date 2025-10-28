@@ -17,7 +17,7 @@ from sqlalchemy import desc
 
 from app import db
 from app.errors import SystemError, ValidationError
-from app.constants import DatabaseType
+from app.constants import DatabaseType, HttpHeaders
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -346,7 +346,7 @@ def export_logs() -> Response:
                 mimetype="text/csv; charset=utf-8",
                 headers={
                     "Content-Disposition": f"attachment; filename={filename}",
-                    "Content-Type": "text/csv; charset=utf-8",
+                    HttpHeaders.CONTENT_TYPE: "text/csv; charset=utf-8",
                 },
             )
 
@@ -390,7 +390,7 @@ def download_instances_template() -> Response:
             mimetype="text/csv; charset=utf-8",
             headers={
                 "Content-Disposition": "attachment; filename=instances_import_template.csv",
-                "Content-Type": "text/csv; charset=utf-8",
+                HttpHeaders.CONTENT_TYPE: "text/csv; charset=utf-8",
             },
         )
     except Exception as exc:  # noqa: BLE001
