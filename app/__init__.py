@@ -24,7 +24,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
-from app.constants import SystemConstants
+from app.config import Config
 from app.utils.time_utils import time_utils
 
 # 加载环境变量
