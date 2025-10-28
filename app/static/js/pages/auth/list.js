@@ -52,17 +52,7 @@ function handleAddUser(event, form) {
 
     showLoadingState(form.querySelector('button[type="submit"]'), '添加中...');
 
-    fetch('/users/api/users', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify(data)
-    })
-        .then(response => {
-            return response.json();
-        })
+    http.post('/users/api/users', data)
         .then(data => {
             if (data.success) {
                 notify.success( data.message);
@@ -120,17 +110,7 @@ function handleEditUser(event, form) {
 
     showLoadingState(form.querySelector('button[type="submit"]'), '保存中...');
 
-    fetch(`/users/api/users/${data.user_id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify(data)
-    })
-        .then(response => {
-            return response.json();
-        })
+    http.put(`/users/api/users/${data.user_id}`, data)
         .then(data => {
             if (data.success) {
                 notify.success( data.message);
@@ -183,14 +163,7 @@ function deleteUser(userId, username) {
 function performDeleteUser(userId) {
     showLoadingState(document.querySelector(`[data-user-id="${userId}"]`), '删除中...');
 
-    fetch(`/users/api/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-        .then(response => response.json())
+    http.delete(`/users/api/users/${userId}`)
         .then(data => {
             if (data.success) {
                 notify.success( data.message);
@@ -246,8 +219,7 @@ function sortTable(column, direction) {
 
 // 编辑用户
 function editUser(userId) {
-    fetch(`/users/api/users/${userId}`)
-        .then(response => response.json())
+    http.get(`/users/api/users/${userId}`)
         .then(data => {
             if (data.success && data.data.user) {
                 const user = data.data.user;
