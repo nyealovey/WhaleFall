@@ -184,7 +184,7 @@ def api_create_user() -> tuple[Response, int]:
     return jsonify_unified_success(
         data={"user": user.to_dict()},
         message="用户创建成功",
-        status=201,
+        status=HttpStatus.CREATED,
     )
 
 

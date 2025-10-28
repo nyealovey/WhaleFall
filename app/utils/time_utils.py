@@ -4,6 +4,8 @@
 """
 
 from datetime import UTC, date, datetime
+
+from app.constants import TimeConstants
 from zoneinfo import ZoneInfo
 
 # 时区配置
@@ -136,11 +138,11 @@ class TimeUtils:
 
             if diff.total_seconds() < 60:
                 return "刚刚"
-            if diff.total_seconds() < 3600:
+            if diff.total_seconds() < TimeConstants.ONE_HOUR:
                 minutes = int(diff.total_seconds() / 60)
                 return f"{minutes}分钟前"
-            if diff.total_seconds() < 86400:
-                hours = int(diff.total_seconds() / 3600)
+            if diff.total_seconds() < TimeConstants.ONE_DAY:
+                hours = int(diff.total_seconds() / TimeConstants.ONE_HOUR)
                 return f"{hours}小时前"
             if diff.days < 7:
                 return f"{diff.days}天前"

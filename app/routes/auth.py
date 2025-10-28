@@ -13,6 +13,7 @@ from flask_jwt_extended import (
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app import db
+from app.constants import TimeConstants
 from app.constants.system_constants import ErrorMessages, SuccessMessages
 from app.errors import (
     AuthenticationError,
@@ -363,7 +364,7 @@ def refresh() -> "Response":
         data={
             "access_token": access_token,
             "token_type": "Bearer",
-            "expires_in": 3600,
+            "expires_in": TimeConstants.ONE_HOUR,
         },
         message=SuccessMessages.OPERATION_SUCCESS,
     )

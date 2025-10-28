@@ -140,7 +140,7 @@ def create_classification() -> tuple[Response, int]:
     return jsonify_unified_success(
         data={"classification": classification.to_dict()},
         message="账户分类创建成功",
-        status=201,
+        status=HttpStatus.CREATED,
     )
 
 
@@ -372,7 +372,7 @@ def create_rule() -> tuple[Response, int]:
     return jsonify_unified_success(
         data={"rule_id": rule.id},
         message="分类规则创建成功",
-        status=201,
+        status=HttpStatus.CREATED,
     )
 
 

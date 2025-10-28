@@ -21,7 +21,7 @@ class CacheManager:
 
     def __init__(self, cache: Cache = None) -> None:
         self.cache = cache
-        self.default_ttl = 7 * 24 * 3600  # 7天，按用户要求
+        self.default_ttl = Config.CACHE_DEFAULT_TTL  # 7天，按用户要求
 
     def _generate_cache_key(self, prefix: str, instance_id: int, username: str, db_name: str = None) -> str:
         """生成缓存键"""
@@ -92,7 +92,7 @@ class CacheManager:
                 "account_id": account_id,
             }
 
-            ttl = ttl or (24 * 3600)  # 规则评估缓存1天
+            ttl = ttl or Config.CACHE_RULE_EVALUATION_TTL  # 规则评估缓存1天
             self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug("规则评估缓存已设置: rule_id=%s, account_id=%s", rule_id, account_id, cache_key=cache_key, ttl=ttl)
             return True
@@ -134,7 +134,7 @@ class CacheManager:
                 "count": len(rules),
             }
 
-            ttl = ttl or (2 * 3600)  # 规则缓存2小时
+            ttl = ttl or Config.CACHE_RULE_TTL  # 规则缓存2小时
             self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug("分类规则缓存已设置", cache_key=cache_key, ttl=ttl, count=len(rules))
             return True
@@ -239,7 +239,7 @@ class CacheManager:
                 "db_type": db_type,
             }
 
-            ttl = ttl or (2 * 3600)  # 规则缓存2小时
+            ttl = ttl or Config.CACHE_RULE_TTL  # 规则缓存2小时
             self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug("数据库类型规则缓存已设置: %s", db_type, cache_key=cache_key, ttl=ttl, count=len(rules))
             return True
@@ -290,7 +290,7 @@ class CacheManager:
                 "db_type": db_type,
             }
 
-            ttl = ttl or (1 * 3600)  # 账户缓存1小时
+            ttl = ttl or Config.CACHE_ACCOUNT_TTL  # 账户缓存1小时
             self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug("数据库类型账户缓存已设置: %s", db_type, cache_key=cache_key, ttl=ttl, count=len(accounts))
             return True

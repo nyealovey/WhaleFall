@@ -10,6 +10,7 @@ from typing import Any, Mapping
 
 from werkzeug.exceptions import HTTPException
 
+from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
 
 
@@ -85,7 +86,7 @@ class AppError(Exception):
 
 class ValidationError(AppError):
     metadata = ExceptionMetadata(
-        status_code=400,
+        status_code=HttpStatus.BAD_REQUEST,
         category=ErrorCategory.VALIDATION,
         severity=ErrorSeverity.LOW,
         default_message_key="VALIDATION_ERROR",
@@ -97,7 +98,7 @@ AppValidationError = ValidationError
 
 class AuthenticationError(AppError):
     metadata = ExceptionMetadata(
-        status_code=401,
+        status_code=HttpStatus.UNAUTHORIZED,
         category=ErrorCategory.AUTHENTICATION,
         severity=ErrorSeverity.MEDIUM,
         default_message_key="INVALID_CREDENTIALS",
@@ -106,7 +107,7 @@ class AuthenticationError(AppError):
 
 class AuthorizationError(AppError):
     metadata = ExceptionMetadata(
-        status_code=403,
+        status_code=HttpStatus.FORBIDDEN,
         category=ErrorCategory.AUTHORIZATION,
         severity=ErrorSeverity.MEDIUM,
         default_message_key="PERMISSION_DENIED",
@@ -115,7 +116,7 @@ class AuthorizationError(AppError):
 
 class NotFoundError(AppError):
     metadata = ExceptionMetadata(
-        status_code=404,
+        status_code=HttpStatus.NOT_FOUND,
         category=ErrorCategory.BUSINESS,
         severity=ErrorSeverity.LOW,
         default_message_key="RESOURCE_NOT_FOUND",
@@ -124,7 +125,7 @@ class NotFoundError(AppError):
 
 class ConflictError(AppError):
     metadata = ExceptionMetadata(
-        status_code=409,
+        status_code=HttpStatus.CONFLICT,
         category=ErrorCategory.BUSINESS,
         severity=ErrorSeverity.MEDIUM,
         default_message_key="CONSTRAINT_VIOLATION",
@@ -133,7 +134,7 @@ class ConflictError(AppError):
 
 class RateLimitError(AppError):
     metadata = ExceptionMetadata(
-        status_code=429,
+        status_code=HttpStatus.TOO_MANY_REQUESTS,
         category=ErrorCategory.SECURITY,
         severity=ErrorSeverity.MEDIUM,
         default_message_key="RATE_LIMIT_EXCEEDED" if hasattr(ErrorMessages, "RATE_LIMIT_EXCEEDED") else "INVALID_REQUEST",
@@ -142,7 +143,7 @@ class RateLimitError(AppError):
 
 class ExternalServiceError(AppError):
     metadata = ExceptionMetadata(
-        status_code=502,
+        status_code=HttpStatus.BAD_GATEWAY,
         category=ErrorCategory.EXTERNAL,
         severity=ErrorSeverity.HIGH,
         default_message_key="TASK_EXECUTION_FAILED",
@@ -151,7 +152,7 @@ class ExternalServiceError(AppError):
 
 class DatabaseError(AppError):
     metadata = ExceptionMetadata(
-        status_code=500,
+        status_code=HttpStatus.INTERNAL_SERVER_ERROR,
         category=ErrorCategory.DATABASE,
         severity=ErrorSeverity.HIGH,
         default_message_key="DATABASE_QUERY_ERROR",
@@ -160,7 +161,7 @@ class DatabaseError(AppError):
 
 class SystemError(AppError):
     metadata = ExceptionMetadata(
-        status_code=500,
+        status_code=HttpStatus.INTERNAL_SERVER_ERROR,
         category=ErrorCategory.SYSTEM,
         severity=ErrorSeverity.HIGH,
         default_message_key="INTERNAL_ERROR",
@@ -180,7 +181,7 @@ EXCEPTION_STATUS_MAP: dict[type[BaseException], int] = {
 }
 
 
-def map_exception_to_status(error: Exception, default: int = 500) -> int:
+def map_exception_to_status(error: Exception, default: int = HttpStatus.INTERNAL_SERVER_ERROR) -> int:
     """根据异常类型推导 HTTP 状态码"""
     if isinstance(error, AppError):
         return error.status_code

@@ -9,6 +9,7 @@ from typing import Any, Mapping
 
 from flask import jsonify
 
+from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorSeverity, SuccessMessages
 from app.errors import AppError, map_exception_to_status
 from app.utils.structlog_config import ErrorContext, enhanced_error_handler
@@ -19,7 +20,7 @@ def unified_success_response(
     data: Any | None = None,
     message: str | None = None,
     *,
-    status: int = 200,
+    status: int = HttpStatus.OK,
     meta: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
     """生成统一的成功响应载荷"""
@@ -46,7 +47,7 @@ def unified_error_response(
     """生成统一的错误响应载荷"""
     context = context or ErrorContext(error)
     payload = enhanced_error_handler(error, context, extra=extra)
-    final_status = status_code or map_exception_to_status(error, default=500)
+    final_status = status_code or map_exception_to_status(error, default=HttpStatus.INTERNAL_SERVER_ERROR)
     payload.setdefault("success", False)
     return payload, final_status
 
@@ -66,7 +67,7 @@ def jsonify_unified_error(*args, **kwargs):
 def jsonify_unified_error_message(
     message: str,
     *,
-    status_code: int = 400,
+    status_code: int = HttpStatus.BAD_REQUEST,
     message_key: str = "INVALID_REQUEST",
     category: ErrorCategory | None = None,
     severity: ErrorSeverity | None = None,

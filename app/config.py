@@ -124,6 +124,14 @@ class Config:
     ORACLE_PASSWORD = os.getenv("ORACLE_PASSWORD", "")
 
     # ============================================================================
+    # 缓存TTL配置（秒）
+    # ============================================================================
+    CACHE_DEFAULT_TTL = int(os.getenv("CACHE_DEFAULT_TTL", str(7 * 24 * 3600)))  # 7天
+    CACHE_RULE_EVALUATION_TTL = int(os.getenv("CACHE_RULE_EVALUATION_TTL", str(24 * 3600)))  # 1天  
+    CACHE_RULE_TTL = int(os.getenv("CACHE_RULE_TTL", str(2 * 3600)))  # 2小时
+    CACHE_ACCOUNT_TTL = int(os.getenv("CACHE_ACCOUNT_TTL", str(1 * 3600)))  # 1小时
+
+    # ============================================================================
     # 任务配置
     # ============================================================================
     # 数据库大小监控配置
