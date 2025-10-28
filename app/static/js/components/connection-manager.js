@@ -24,19 +24,10 @@ class ConnectionManager {
      */
     async testInstanceConnection(instanceId, options = {}) {
         try {
-            const response = await fetch(`${this.baseUrl}/test`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.csrfToken
-                },
-                body: JSON.stringify({
-                    instance_id: instanceId,
-                    ...options
-                })
+            const result = await http.post(`${this.baseUrl}/test`, {
+                instance_id: instanceId,
+                ...options
             });
-
-            const result = await response.json();
             
             if (options.onSuccess && result.success) {
                 options.onSuccess(result);
@@ -67,16 +58,7 @@ class ConnectionManager {
      */
     async testNewConnection(connectionParams, options = {}) {
         try {
-            const response = await fetch(`${this.baseUrl}/test`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.csrfToken
-                },
-                body: JSON.stringify(connectionParams)
-            });
-
-            const result = await response.json();
+            const result = await http.post(`${this.baseUrl}/test`, connectionParams);
             
             if (options.onSuccess && result.success) {
                 options.onSuccess(result);
@@ -105,14 +87,7 @@ class ConnectionManager {
      */
     async getSupportedTypes() {
         try {
-            const response = await fetch(`${this.baseUrl}/supported-types`, {
-                method: 'GET',
-                headers: {
-                    'X-CSRFToken': this.csrfToken
-                }
-            });
-
-            const result = await response.json();
+            const result = await http.get(`${this.baseUrl}/supported-types`);
             return result.success ? result.data : [];
         } catch (error) {
             console.error('获取支持的数据库类型失败:', error);
@@ -127,16 +102,7 @@ class ConnectionManager {
      */
     async validateConnectionParams(params) {
         try {
-            const response = await fetch(`${this.baseUrl}/validate-params`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.csrfToken
-                },
-                body: JSON.stringify(params)
-            });
-
-            return await response.json();
+            return await http.post(`${this.baseUrl}/validate-params`, params);
         } catch (error) {
             return {
                 success: false,
@@ -153,18 +119,9 @@ class ConnectionManager {
      */
     async batchTestConnections(instanceIds, options = {}) {
         try {
-            const response = await fetch(`${this.baseUrl}/batch-test`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.csrfToken
-                },
-                body: JSON.stringify({
-                    instance_ids: instanceIds
-                })
+            const result = await http.post(`${this.baseUrl}/batch-test`, {
+                instance_ids: instanceIds
             });
-
-            const result = await response.json();
             
             if (options.onProgress) {
                 options.onProgress(result);
@@ -192,12 +149,7 @@ class ConnectionManager {
      */
     async getConnectionStatus(instanceId) {
         try {
-            const response = await fetch(`${this.baseUrl}/status/${instanceId}`, {
-                method: 'GET',
-                headers: {
-                    'X-CSRFToken': this.csrfToken
-                }
-            });
+            return await http.get(`${this.baseUrl}/status/${instanceId}`);
 
             return await response.json();
         } catch (error) {
