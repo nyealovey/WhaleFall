@@ -207,6 +207,9 @@
     <script src="{{ url_for('static', filename='vendor/toastr/toastr.min.js') }}"></script>
 
     <!-- 通用工具组件 -->
+
+    <!-- Axios 配置（必须在其他JS之前加载） -->
+    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/csrf-utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/notify.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/time-utils.js') }}"></script>
