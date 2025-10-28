@@ -539,13 +539,9 @@
 {% endblock %}
 
 {% block extra_js %}
-    <!-- Axios 配置 -->
-    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
 <script>
     // 设置用户角色，供JavaScript使用
     window.currentUserRole = '{{ current_user.role }}';
 </script>
-    <!-- Axios 配置 -->
-    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/accounts/account_classification.js') }}"></script>
 {% endblock %}
