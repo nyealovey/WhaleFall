@@ -243,8 +243,8 @@ class SyncInstanceRecord(db.Model):
     
     def get_sync_category_display(self) -> str:
         """获取同步分类的显示名称"""
-        from app.utils.sync_utils import SyncUtils
-        return SyncUtils.get_category_display(self.sync_category)
+        from app.constants.sync_constants import SyncConstants
+        return SyncConstants.get_category_display(self.sync_category)
     
     def get_failure_reason(self) -> str | None:
         """获取失败原因"""

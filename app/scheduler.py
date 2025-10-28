@@ -165,25 +165,6 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
         return None
 
 
-def start_scheduler() -> None:
-    """启动调度器（用于supervisor）"""
-    from app import create_app
-    
-    app = create_app()
-    with app.app_context():
-        init_scheduler(app)
-        logger.info("调度器已启动，等待任务执行...")
-        
-        # 保持进程运行
-        import time
-        try:
-            while True:
-                time.sleep(60)  # 每分钟检查一次
-        except KeyboardInterrupt:
-            logger.info("调度器收到停止信号")
-            scheduler.stop()
-
-
 def _load_existing_jobs() -> None:
     """从数据库加载现有任务"""
     try:
@@ -461,16 +442,3 @@ def _add_hardcoded_default_jobs() -> None:
         logger.info("添加硬编码任务: 监控分区健康状态")
     except Exception as e:
         logger.warning("任务已存在，跳过创建: monitor_partition_health - %s", str(e))
-
-
-# 装饰器：用于标记任务函数
-def scheduled_task(job_id: str | None = None, name: str | None = None) -> Any:  # noqa: ANN401
-    """定时任务装饰器"""
-
-    def decorator(func: Any) -> Any:  # noqa: ANN401
-        func._is_scheduled_task = True  # noqa: SLF001
-        func._job_id = job_id or func.__name__  # noqa: SLF001
-        func._job_name = name or func.__name__  # noqa: SLF001
-        return func
-
-    return decorator

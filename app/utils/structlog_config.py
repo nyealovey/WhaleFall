@@ -546,37 +546,6 @@ def get_task_logger() -> structlog.BoundLogger:
     return get_logger("task")
 
 
-# 上下文绑定功能
-def bind_context(**kwargs) -> None:
-    """绑定全局上下文变量"""
-    global _global_context
-    _global_context.update(kwargs)
-
-
-def clear_context() -> None:
-    """清除全局上下文变量"""
-    global _global_context
-    _global_context.clear()
-
-
-def get_context() -> dict[str, Any]:
-    """获取当前全局上下文"""
-    return _global_context.copy()
-
-
-def bind_request_context(request_id: str, user_id: int | None = None) -> None:
-    """绑定请求上下文"""
-    request_id_var.set(request_id)
-    if user_id:
-        user_id_var.set(user_id)
-
-
-def clear_request_context() -> None:
-    """清除请求上下文"""
-    request_id_var.set(None)
-    user_id_var.set(None)
-
-
 # 错误处理增强功能
 
 
