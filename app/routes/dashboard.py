@@ -12,6 +12,7 @@ from sqlalchemy import and_, distinct, func, or_, text, case
 
 from app import db
 from app.constants.system_constants import SuccessMessages
+from app.constants import TaskStatus
 from app.models.instance import Instance
 from app.models.current_account_sync_data import CurrentAccountSyncData
 

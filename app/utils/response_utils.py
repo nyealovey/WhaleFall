@@ -9,7 +9,7 @@ from typing import Any, Mapping
 
 from flask import jsonify
 
-from app.constants import HttpStatus
+from app.constants import HttpStatus, TaskStatus
 from app.constants.system_constants import ErrorCategory, ErrorSeverity, SuccessMessages
 from app.errors import AppError, map_exception_to_status
 from app.utils.structlog_config import ErrorContext, enhanced_error_handler

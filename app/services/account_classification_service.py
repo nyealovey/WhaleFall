@@ -8,6 +8,7 @@ from typing import Any
 
 from app import db
 from app.models.account_classification import (
+from app.constants import TaskStatus
     AccountClassification,
     AccountClassificationAssignment,
     ClassificationRule,

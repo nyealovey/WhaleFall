@@ -6,6 +6,7 @@ from typing import Any
 
 from app import create_app, db
 from app.constants.sync_constants import SyncCategory, SyncOperationType
+from app.constants import SyncStatus, TaskStatus
 from app.models.instance import Instance
 from app.services.account_sync_adapters.account_sync_service import account_sync_service
 from app.services.sync_session_service import sync_session_service

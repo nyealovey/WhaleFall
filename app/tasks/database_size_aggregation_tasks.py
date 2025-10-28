@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Set
 
 from app import db
 from app.config import Config
+from app.constants import SyncStatus, TaskStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
 from app.models.instance import Instance

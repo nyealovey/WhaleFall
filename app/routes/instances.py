@@ -9,7 +9,7 @@ from flask import Blueprint, Response, flash, redirect, render_template, request
 from flask_login import current_user, login_required
 
 from app import db
-from app.constants import HttpStatus
+from app.constants import HttpStatus, TaskStatus
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -796,11 +796,11 @@ def api_get_accounts(instance_id: int) -> Response:
                 "database_permissions": account.database_permissions or {},
             }
 
-            if instance.db_type == "mysql":
+            if instance.db_type == DatabaseType.MYSQL:
                 account_info.update({"host": type_specific.get("host", "%"), "plugin": type_specific.get("plugin", "")})
-            elif instance.db_type == "sqlserver":
+            elif instance.db_type == DatabaseType.SQLSERVER:
                 account_info.update({"password_change_time": type_specific.get("password_change_time")})
-            elif instance.db_type == "oracle":
+            elif instance.db_type == DatabaseType.ORACLE:
                 account_info.update(
                     {
                         "oracle_id": type_specific.get("oracle_id"),
@@ -851,13 +851,13 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
             ),
         }
 
-        if instance.db_type == "mysql":
+        if instance.db_type == DatabaseType.MYSQL:
             if account.global_privileges:
                 permissions["global_privileges"] = account.global_privileges
             if account.database_privileges:
                 permissions["database_privileges"] = account.database_privileges
 
-        elif instance.db_type == "postgresql":
+        elif instance.db_type == DatabaseType.POSTGRESQL:
             if account.predefined_roles:
                 permissions["predefined_roles"] = account.predefined_roles
             if account.role_attributes:
@@ -865,7 +865,7 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
             if account.database_privileges_pg:
                 permissions["database_privileges_pg"] = account.database_privileges_pg
 
-        elif instance.db_type == "sqlserver":
+        elif instance.db_type == DatabaseType.SQLSERVER:
             if account.server_roles:
                 permissions["server_roles"] = account.server_roles
             if account.server_permissions:
@@ -875,7 +875,7 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
             if account.database_permissions:
                 permissions["database_permissions"] = account.database_permissions
 
-        elif instance.db_type == "oracle":
+        elif instance.db_type == DatabaseType.ORACLE:
             if account.oracle_roles:
                 permissions["oracle_roles"] = account.oracle_roles
             if account.system_privileges:

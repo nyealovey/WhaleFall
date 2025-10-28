@@ -9,6 +9,7 @@ from flask_login import login_required
 
 from app import db
 from app.errors import NotFoundError, SystemError, ValidationError
+from app.constants import SyncStatus, TaskStatus
 from app.models import Instance
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService

@@ -79,28 +79,28 @@ class DatabaseVersionParser:
             return "未知"
 
         # 按数据库类型提取主版本
-        if db_type == "mysql":
+        if db_type == DatabaseType.MYSQL:
             # MySQL: 8.0.32 -> 8.0
             parts = version.split(".")
             if len(parts) >= 2:
                 return f"{parts[0]}.{parts[1]}"
             return version
 
-        if db_type == "postgresql":
+        if db_type == DatabaseType.POSTGRESQL:
             # PostgreSQL: 13.4 -> 13.4
             parts = version.split(".")
             if len(parts) >= 2:
                 return f"{parts[0]}.{parts[1]}"
             return version
 
-        if db_type == "sqlserver":
+        if db_type == DatabaseType.SQLSERVER:
             # SQL Server: 14.0.3465.1 -> 14.0
             parts = version.split(".")
             if len(parts) >= 2:
                 return f"{parts[0]}.{parts[1]}"
             return version
 
-        if db_type == "oracle":
+        if db_type == DatabaseType.ORACLE:
             # Oracle: 11.2.0.1.0 -> 11.2
             parts = version.split(".")
             if len(parts) >= 2:

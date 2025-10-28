@@ -10,6 +10,7 @@ from sqlalchemy import func
 
 from app import db
 from app.models.instance import Instance
+from app.constants import SyncStatus
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.utils.structlog_config import get_sync_logger, get_system_logger
@@ -437,7 +438,7 @@ class SyncSessionService:
             if not session:
                 return False
 
-            if session.status == "running":
+            if session.status == SyncStatus.RUNNING:
                 session.status = "cancelled"
                 session.completed_at = time_utils.now()
                 session.updated_at = time_utils.now()

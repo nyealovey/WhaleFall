@@ -6,6 +6,7 @@ from flask_login import UserMixin
 
 from app import bcrypt, db
 from app.utils.time_utils import time_utils
+from app.constants import UserRole
 
 
 class User(UserMixin, db.Model):
@@ -79,7 +80,7 @@ class User(UserMixin, db.Model):
         Returns:
             bool: 是否为管理员
         """
-        return self.role == "admin"
+        return self.role == UserRole.ADMIN
 
     def has_permission(self, permission: str) -> bool:
         """
@@ -96,9 +97,9 @@ class User(UserMixin, db.Model):
             return True
 
         # 根据角色判断权限
-        if self.role == "admin":
+        if self.role == UserRole.ADMIN:
             return True
-        if self.role == "user":
+        if self.role == UserRole.USER:
             # 普通用户只有查看权限
             return permission == "view"
         # 其他角色默认无权限
@@ -141,7 +142,7 @@ class User(UserMixin, db.Model):
                 alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
                 default_password = ''.join(secrets.choice(alphabet) for _ in range(12))
             
-            admin = User(username="admin", password=default_password, role="admin")
+            admin = User(username="admin", password=default_password, role=UserRole.ADMIN)
             db.session.add(admin)
             db.session.commit()
             from app.utils.structlog_config import get_system_logger

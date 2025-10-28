@@ -23,7 +23,7 @@ from flask_login import current_user
 from werkzeug.exceptions import HTTPException
 
 from app import db
-from app.constants import HttpStatus
+from app.constants import HttpStatus, TaskStatus
 from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
 from app.errors import AppError, map_exception_to_status
 from app.models.unified_log import LogLevel, UnifiedLog

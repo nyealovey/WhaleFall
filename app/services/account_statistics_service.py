@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.errors import SystemError
+from app.constants import DatabaseType
 from app.models.account_classification import AccountClassification, AccountClassificationAssignment
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
@@ -17,13 +18,13 @@ from app.utils.structlog_config import log_error
 
 def _is_account_locked(account: CurrentAccountSyncData, db_type: str) -> bool:
     """根据数据库类型判断账户是否锁定"""
-    if db_type == "mysql":
+    if db_type == DatabaseType.MYSQL:
         return bool(account.type_specific and account.type_specific.get("is_locked"))
-    if db_type == "postgresql":
+    if db_type == DatabaseType.POSTGRESQL:
         return bool(account.type_specific and not account.type_specific.get("can_login", True))
-    if db_type == "oracle":
+    if db_type == DatabaseType.ORACLE:
         return bool(account.type_specific and account.type_specific.get("account_status") == "LOCKED")
-    if db_type == "sqlserver":
+    if db_type == DatabaseType.SQLSERVER:
         return bool(account.type_specific and account.type_specific.get("is_locked"))
     return False
 

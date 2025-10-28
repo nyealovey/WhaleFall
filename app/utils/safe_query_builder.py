@@ -29,7 +29,7 @@ class SafeQueryBuilder:
         self.conditions: list[str] = []
 
         # 根据数据库类型选择参数存储方式
-        if self.db_type == "oracle":
+        if self.db_type == DatabaseType.ORACLE:
             self.parameters: dict[str, Any] = {}
             self._param_counter = 0
         else:
@@ -46,7 +46,7 @@ class SafeQueryBuilder:
         Returns:
             SafeQueryBuilder: 返回自身以支持链式调用
         """
-        if self.db_type == "oracle":
+        if self.db_type == DatabaseType.ORACLE:
             # Oracle使用命名参数，需要转换占位符
             oracle_condition = condition
             param_dict = {}
@@ -78,14 +78,14 @@ class SafeQueryBuilder:
         Returns:
             str: 占位符字符串
         """
-        if self.db_type == "oracle":
+        if self.db_type == DatabaseType.ORACLE:
             placeholders = []
             for _ in range(count):
                 param_name = f"param_{self._param_counter}"
                 self._param_counter += 1
                 placeholders.append(f":{param_name}")
             return ", ".join(placeholders)
-        if self.db_type == "sqlserver":
+        if self.db_type == DatabaseType.SQLSERVER:
             # SQL Server使用%s占位符
             return ", ".join(["%s"] * count)
         # MySQL, PostgreSQL使用%s
@@ -103,7 +103,7 @@ class SafeQueryBuilder:
             SafeQueryBuilder: 返回自身以支持链式调用
         """
         if values:
-            if self.db_type == "oracle":
+            if self.db_type == DatabaseType.ORACLE:
                 placeholders = []
                 param_dict = {}
                 for value in values:
@@ -134,7 +134,7 @@ class SafeQueryBuilder:
             SafeQueryBuilder: 返回自身以支持链式调用
         """
         if values:
-            if self.db_type == "oracle":
+            if self.db_type == DatabaseType.ORACLE:
                 placeholders = []
                 param_dict = {}
                 for value in values:
@@ -164,7 +164,7 @@ class SafeQueryBuilder:
         Returns:
             SafeQueryBuilder: 返回自身以支持链式调用
         """
-        if self.db_type == "oracle":
+        if self.db_type == DatabaseType.ORACLE:
             param_name = f"param_{self._param_counter}"
             self._param_counter += 1
             condition = f"{field} LIKE :{param_name}"
@@ -187,7 +187,7 @@ class SafeQueryBuilder:
         Returns:
             SafeQueryBuilder: 返回自身以支持链式调用
         """
-        if self.db_type == "oracle":
+        if self.db_type == DatabaseType.ORACLE:
             param_name = f"param_{self._param_counter}"
             self._param_counter += 1
             condition = f"{field} NOT LIKE :{param_name}"
@@ -209,13 +209,13 @@ class SafeQueryBuilder:
             - Oracle: (WHERE子句, 参数字典)
         """
         if not self.conditions:
-            if self.db_type == "oracle":
+            if self.db_type == DatabaseType.ORACLE:
                 return "1=1", {}
             return "1=1", []
 
         where_clause = " AND ".join(self.conditions)
 
-        if self.db_type == "oracle":
+        if self.db_type == DatabaseType.ORACLE:
             return where_clause, self.parameters.copy()
         return where_clause, self.parameters.copy()
 
@@ -239,7 +239,7 @@ class SafeQueryBuilder:
         # 处理排除用户
         if values:
             # PostgreSQL特殊处理：保留postgres用户
-            if self.db_type == "postgresql" and "postgres" in values:
+            if self.db_type == DatabaseType.POSTGRESQL and "postgres" in values:
                 filtered_values = [v for v in values if v != "postgres"]
                 if filtered_values:
                     self.add_not_in_condition(field, filtered_values)
@@ -249,7 +249,7 @@ class SafeQueryBuilder:
         # 处理排除模式
         for pattern in patterns:
             # PostgreSQL特殊处理：pg_%模式不排除postgres用户
-            if self.db_type == "postgresql" and pattern == "pg_%":
+            if self.db_type == DatabaseType.POSTGRESQL and pattern == "pg_%":
                 self.add_condition(f"({field} NOT LIKE %s OR {field} = %s)", pattern, "postgres")
             else:
                 self.add_not_like_condition(field, pattern)
@@ -259,7 +259,7 @@ class SafeQueryBuilder:
     def reset(self) -> "SafeQueryBuilder":
         """重置构建器"""
         self.conditions.clear()
-        if self.db_type == "oracle":
+        if self.db_type == DatabaseType.ORACLE:
             self.parameters.clear()
             self._param_counter = 0
         else:

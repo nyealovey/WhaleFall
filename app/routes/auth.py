@@ -13,7 +13,7 @@ from flask_jwt_extended import (
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app import db
-from app.constants import TimeConstants
+from app.constants import TimeConstants, TaskStatus, UserRole
 from app.constants.system_constants import ErrorMessages, SuccessMessages
 from app.errors import (
     AuthenticationError,
