@@ -187,9 +187,8 @@ class AggregationsChartManager {
                 days: 7
             });
             
-            const response = await fetch(`/partition/api/aggregations/core-metrics?${params}`);
-            const raw = await response.json();
-            if (response.ok && raw.success !== false) {
+            const raw = await http.get(`/partition/api/aggregations/core-metrics?${params}`);
+            if (raw.success !== false) {
                 const payload = raw?.data ?? raw ?? {};
                 this.currentData = payload;
                 this.renderChart(payload);
