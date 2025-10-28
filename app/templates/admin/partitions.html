@@ -260,7 +260,13 @@
 {% endblock %}
 
 {% block extra_js %}
+    <!-- Axios 配置 -->
+    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
+    <!-- Axios 配置 -->
+    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/admin/partitions.js') }}"></script>
+    <!-- Axios 配置 -->
+    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/admin/aggregations_chart.js') }}"></script>
 {% endblock %}
