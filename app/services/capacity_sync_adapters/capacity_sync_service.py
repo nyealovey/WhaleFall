@@ -8,6 +8,7 @@ from datetime import datetime, date
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
 from app.models.instance import Instance
+from app.constants import TaskStatus
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance_size_stat import InstanceSizeStat
 from app.services.connection_adapters.connection_factory import ConnectionFactory

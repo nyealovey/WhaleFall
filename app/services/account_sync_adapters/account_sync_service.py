@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from app import db
 from app.constants.sync_constants import SyncOperationType, SyncCategory
+from app.constants import TaskStatus
 from app.models import Instance
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.account_sync_adapters.account_data_manager import AccountDataManager

@@ -10,6 +10,7 @@ from flask_login import current_user
 from flask_wtf.csrf import CSRFError, validate_csrf
 
 from app.constants.system_constants import ErrorMessages
+from app.constants import TaskStatus, UserRole
 from app.errors import AuthenticationError, AuthorizationError
 from app.utils.structlog_config import get_system_logger, should_log_debug
 
@@ -337,7 +338,7 @@ def has_permission(user: Any, permission: str) -> bool:
         return False
 
     # 管理员拥有所有权限
-    if user.role == "admin":
+    if user.role == UserRole.ADMIN:
         return True
 
     # 模拟从数据库或配置中加载的用户权限

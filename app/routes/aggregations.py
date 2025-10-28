@@ -8,6 +8,7 @@ from sqlalchemy import and_, desc, func, or_
 
 from app import db
 from app.errors import SystemError, ValidationError as AppValidationError
+from app.constants import SyncStatus
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
@@ -83,7 +84,7 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
     if not result:
         raise SystemError(f"{context}任务返回为空")
     status = (result.get("status") or "completed").lower()
-    if status == "failed":
+    if status == SyncStatus.FAILED:
         raise SystemError(result.get("message") or f"{context}执行失败")
     normalized = dict(result)
     normalized["status"] = status

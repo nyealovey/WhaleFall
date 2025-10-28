@@ -9,6 +9,7 @@ from flask_login import login_required
 
 from app import db
 from app.errors import SystemError
+from app.constants import TaskStatus
 from app.models.instance import Instance
 from app.routes.instances import instances_bp
 from app.utils.decorators import view_required

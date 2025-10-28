@@ -4,6 +4,7 @@
 
 from app import db
 from app.utils.time_utils import time_utils
+from app.constants import SyncStatus
 
 
 class SyncInstanceRecord(db.Model):
@@ -148,7 +149,7 @@ class SyncInstanceRecord(db.Model):
     
     def is_successful(self) -> bool:
         """判断同步是否成功"""
-        if self.status != "completed" or self.error_message:
+        if self.status != SyncStatus.COMPLETED or self.error_message:
             return False
         
         # 根据同步分类判断是否有实际数据
@@ -156,7 +157,7 @@ class SyncInstanceRecord(db.Model):
     
     def is_failed(self) -> bool:
         """判断同步是否失败"""
-        return self.status == "failed" or bool(self.error_message) or not self._has_meaningful_data()
+        return self.status == SyncStatus.FAILED or bool(self.error_message) or not self._has_meaningful_data()
     
     def _has_meaningful_data(self) -> bool:
         """根据同步分类判断是否有有意义的数据"""
@@ -251,7 +252,7 @@ class SyncInstanceRecord(db.Model):
         if self.error_message:
             return self.error_message
         
-        if self.status == "failed":
+        if self.status == SyncStatus.FAILED:
             return "同步状态标记为失败"
         
         if not self._has_meaningful_data():
@@ -319,7 +320,7 @@ class SyncInstanceRecord(db.Model):
         """获取失败的同步记录"""
         return (
             SyncInstanceRecord.query.filter(
-                SyncInstanceRecord.status == "failed"
+                SyncInstanceRecord.status == SyncStatus.FAILED
             )
             .order_by(SyncInstanceRecord.created_at.desc())
             .limit(limit)
@@ -331,7 +332,7 @@ class SyncInstanceRecord(db.Model):
         """获取成功的同步记录（使用新的成功判断逻辑）"""
         all_records = (
             SyncInstanceRecord.query.filter(
-                SyncInstanceRecord.status == "completed",
+                SyncInstanceRecord.status == SyncStatus.COMPLETED,
                 SyncInstanceRecord.error_message.is_(None)
             )
             .order_by(SyncInstanceRecord.created_at.desc())

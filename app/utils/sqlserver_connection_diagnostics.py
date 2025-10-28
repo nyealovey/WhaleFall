@@ -8,6 +8,7 @@ import time
 from typing import Any, Dict, List
 
 from app.utils.structlog_config import get_sync_logger
+from app.constants import UserRole
 
 
 class SQLServerConnectionDiagnostics:

@@ -10,6 +10,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.models.account_classification import (
+from app.constants import TaskStatus
     AccountClassification,
     AccountClassificationAssignment,
     ClassificationRule,

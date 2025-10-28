@@ -4,6 +4,7 @@
 
 from app import db
 from app.models.base_sync_data import BaseSyncData
+from app.constants import DatabaseType
 from app.utils.time_utils import time_utils
 
 
@@ -95,13 +96,13 @@ class CurrentAccountSyncData(BaseSyncData):
 
     def get_permissions_by_db_type(self) -> dict:
         """根据数据库类型获取权限信息"""
-        if self.db_type == "mysql":
+        if self.db_type == DatabaseType.MYSQL:
             return {
                 "global_privileges": self.global_privileges,
                 "database_privileges": self.database_privileges,
                 "type_specific": self.type_specific,
             }
-        if self.db_type == "postgresql":
+        if self.db_type == DatabaseType.POSTGRESQL:
             return {
                 "predefined_roles": self.predefined_roles,
                 "role_attributes": self.role_attributes,
@@ -109,7 +110,7 @@ class CurrentAccountSyncData(BaseSyncData):
                 "tablespace_privileges": self.tablespace_privileges,
                 "type_specific": self.type_specific,
             }
-        if self.db_type == "sqlserver":
+        if self.db_type == DatabaseType.SQLSERVER:
             return {
                 "server_roles": self.server_roles,
                 "server_permissions": self.server_permissions,
@@ -117,7 +118,7 @@ class CurrentAccountSyncData(BaseSyncData):
                 "database_permissions": self.database_permissions,
                 "type_specific": self.type_specific,
             }
-        if self.db_type == "oracle":
+        if self.db_type == DatabaseType.ORACLE:
             return {
                 "oracle_roles": self.oracle_roles,
                 "system_privileges": self.system_privileges,
@@ -129,22 +130,22 @@ class CurrentAccountSyncData(BaseSyncData):
     def get_can_grant_status(self) -> bool:
         """获取账户是否有授权权限"""
         try:
-            if self.db_type == "mysql":
+            if self.db_type == DatabaseType.MYSQL:
                 # MySQL中检查是否有GRANT权限
                 global_privileges = self.global_privileges or []
                 for perm in global_privileges:
                     if isinstance(perm, dict) and perm.get("privilege") == "GRANT" and perm.get("granted", False):
                         return True
                 return False
-            if self.db_type == "postgresql":
+            if self.db_type == DatabaseType.POSTGRESQL:
                 # PostgreSQL中检查是否有CREATEROLE属性
                 role_attributes = self.role_attributes or []
                 return "CREATEROLE" in role_attributes
-            if self.db_type == "sqlserver":
+            if self.db_type == DatabaseType.SQLSERVER:
                 # SQL Server中检查是否有sysadmin角色
                 server_roles = self.server_roles or []
                 return "sysadmin" in server_roles
-            if self.db_type == "oracle":
+            if self.db_type == DatabaseType.ORACLE:
                 # Oracle中检查是否有GRANT ANY PRIVILEGE权限
                 system_privileges = self.system_privileges or []
                 return "GRANT ANY PRIVILEGE" in system_privileges
@@ -159,19 +160,19 @@ class CurrentAccountSyncData(BaseSyncData):
             return False
 
         try:
-            if self.db_type == "mysql":
+            if self.db_type == DatabaseType.MYSQL:
                 # MySQL: 检查 account_locked 字段
                 return self.type_specific.get("is_locked", False)
 
-            if self.db_type == "postgresql":
+            if self.db_type == DatabaseType.POSTGRESQL:
                 # PostgreSQL: 检查 can_login 属性（反向）
                 return not self.type_specific.get("can_login", True)
 
-            if self.db_type == "sqlserver":
+            if self.db_type == DatabaseType.SQLSERVER:
                 # SQL Server: 检查 is_disabled 字段
                 return self.type_specific.get("is_disabled", False)
 
-            if self.db_type == "oracle":
+            if self.db_type == DatabaseType.ORACLE:
                 # Oracle: 检查 account_status 字段
                 account_status = self.type_specific.get("account_status", "OPEN")
                 return account_status.upper() != "OPEN"

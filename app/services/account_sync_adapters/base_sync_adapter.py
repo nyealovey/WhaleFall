@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from app.models import Instance
+from app.constants import TaskStatus
 from app.utils.database_batch_manager import DatabaseBatchManager
 from app.utils.structlog_config import get_sync_logger
 

@@ -11,6 +11,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from app.errors import DatabaseError, NotFoundError, ValidationError
+from app.constants import DatabaseType, SyncStatus
 from app.utils.structlog_config import log_debug, log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 from sqlalchemy import func, and_, or_
@@ -121,7 +122,7 @@ class DatabaseSizeAggregationService:
         确保目标日期所在月份的分区已创建
         """
         bind = db.session.get_bind()
-        if not bind or bind.dialect.name != "postgresql":
+        if not bind or bind.dialect.name != DatabaseType.POSTGRESQL:
             return
 
         month_key = (target_date.year, target_date.month)

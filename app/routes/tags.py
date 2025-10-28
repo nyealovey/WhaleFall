@@ -8,6 +8,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.models.tag import Tag
+from app.constants import TaskStatus
 from app.constants.colors import ThemeColors
 from app.errors import ConflictError, ValidationError
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required

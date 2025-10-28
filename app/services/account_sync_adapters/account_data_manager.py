@@ -6,6 +6,7 @@
 from typing import Any
 
 from app.models import Instance
+from app.constants import DatabaseType, TaskStatus
 from app.services.account_sync_adapters.mysql_sync_adapter import MySQLSyncAdapter
 from app.services.account_sync_adapters.oracle_sync_adapter import OracleSyncAdapter
 from app.services.account_sync_adapters.postgresql_sync_adapter import PostgreSQLSyncAdapter

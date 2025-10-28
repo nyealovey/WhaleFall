@@ -5,6 +5,7 @@
 from typing import Any
 
 from app.models import Instance
+from app.constants import DatabaseType, TaskStatus
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_sync_logger
 
@@ -124,16 +125,16 @@ class ConnectionTestService:
             版本信息字符串
         """
         try:
-            if instance.db_type == "mysql":
+            if instance.db_type == DatabaseType.MYSQL:
                 result = connection.execute_query("SELECT VERSION()")
                 return result[0][0] if result else "未知版本"
-            if instance.db_type == "postgresql":
+            if instance.db_type == DatabaseType.POSTGRESQL:
                 result = connection.execute_query("SELECT version()")
                 return result[0][0] if result else "未知版本"
-            if instance.db_type == "sqlserver":
+            if instance.db_type == DatabaseType.SQLSERVER:
                 result = connection.execute_query("SELECT @@VERSION")
                 return result[0][0] if result else "未知版本"
-            if instance.db_type == "oracle":
+            if instance.db_type == DatabaseType.ORACLE:
                 result = connection.execute_query("SELECT * FROM v$version WHERE rownum = 1")
                 return result[0][0] if result else "未知版本"
             return "未知数据库类型"

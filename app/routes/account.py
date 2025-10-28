@@ -7,6 +7,7 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
 from app.models.account_classification import (
+from app.constants import DatabaseType
     AccountClassification,
     AccountClassificationAssignment,
 )
@@ -248,23 +249,23 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
             ),
         }
 
-        if instance and instance.db_type == "mysql":
+        if instance and instance.db_type == DatabaseType.MYSQL:
             permissions["global_privileges"] = account.global_privileges or []
             permissions["database_privileges"] = account.database_privileges or {}
 
-        elif instance and instance.db_type == "postgresql":
+        elif instance and instance.db_type == DatabaseType.POSTGRESQL:
             permissions["predefined_roles"] = account.predefined_roles or []
             permissions["role_attributes"] = account.role_attributes or {}
             permissions["database_privileges_pg"] = account.database_privileges_pg or {}
             permissions["tablespace_privileges"] = account.tablespace_privileges or {}
 
-        elif instance and instance.db_type == "sqlserver":
+        elif instance and instance.db_type == DatabaseType.SQLSERVER:
             permissions["server_roles"] = account.server_roles or []
             permissions["server_permissions"] = account.server_permissions or []
             permissions["database_roles"] = account.database_roles or {}
             permissions["database_permissions"] = account.database_permissions or {}
 
-        elif instance and instance.db_type == "oracle":
+        elif instance and instance.db_type == DatabaseType.ORACLE:
             permissions["oracle_roles"] = account.oracle_roles or []
             permissions["system_privileges"] = account.system_privileges or []
             permissions["tablespace_privileges_oracle"] = account.tablespace_privileges_oracle or {}

@@ -17,6 +17,7 @@ from sqlalchemy import desc
 
 from app import db
 from app.errors import SystemError, ValidationError
+from app.constants import DatabaseType
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -119,7 +120,7 @@ def export_accounts() -> Response:
                 is_locked_flag = account.is_locked_display
 
             if is_locked_flag:
-                lock_status = "已禁用" if instance and instance.db_type == "sqlserver" else "已锁定"
+                lock_status = "已禁用" if instance and instance.db_type == DatabaseType.SQLSERVER else "已锁定"
             else:
                 lock_status = "正常"
 

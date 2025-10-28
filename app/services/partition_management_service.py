@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.errors import DatabaseError
+from app.constants import TaskStatus
 from app.utils.structlog_config import log_error, log_info, log_warning
 
 MODULE = "partition_service"

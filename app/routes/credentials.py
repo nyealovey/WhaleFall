@@ -9,6 +9,7 @@ from typing import Optional
 
 from app import db
 from app.constants.system_constants import SuccessMessages
+from app.constants import TaskStatus
 from app.errors import (
     AppValidationError,
     ConflictError,

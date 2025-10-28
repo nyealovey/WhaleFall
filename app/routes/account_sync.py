@@ -8,6 +8,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.constants.sync_constants import SyncOperationType, SyncCategory
+from app.constants import SyncStatus, TaskStatus
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession

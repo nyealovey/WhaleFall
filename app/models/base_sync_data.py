@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped
 
 from app import db
 from app.utils.time_utils import time_utils
+from app.constants import TaskStatus
 
 
 class BaseSyncData(db.Model):

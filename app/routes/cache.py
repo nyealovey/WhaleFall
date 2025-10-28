@@ -8,6 +8,7 @@ from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
 
 from app.utils.decorators import admin_required, require_csrf, update_required, view_required
+from app.constants import DatabaseType, TaskStatus
 
 from app.models import Instance
 from app.services.cache_manager import cache_manager
@@ -52,7 +53,7 @@ def clear_user_cache() -> Response:
         raise NotFoundError("实例不存在")
 
     try:
-        if instance.db_type == "sqlserver":
+        if instance.db_type == DatabaseType.SQLSERVER:
             adapter = SQLServerSyncAdapter()
             success = adapter.clear_user_cache(instance, username)
         else:
@@ -91,7 +92,7 @@ def clear_instance_cache() -> Response:
         raise NotFoundError("实例不存在")
 
     try:
-        if instance.db_type == "sqlserver":
+        if instance.db_type == DatabaseType.SQLSERVER:
             adapter = SQLServerSyncAdapter()
             success = adapter.clear_instance_cache(instance)
         else:
@@ -127,7 +128,7 @@ def clear_all_cache() -> Response:
     cleared_count = 0
     for instance in instances:
         try:
-            if instance.db_type == "sqlserver":
+            if instance.db_type == DatabaseType.SQLSERVER:
                 adapter = SQLServerSyncAdapter()
                 if adapter.clear_instance_cache(instance):
                     cleared_count += 1

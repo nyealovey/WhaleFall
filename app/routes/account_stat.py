@@ -6,6 +6,7 @@ from flask import Response, flash, render_template, request
 from flask_login import login_required
 
 from app.errors import SystemError
+from app.constants import TaskStatus
 from app.models.instance import Instance
 from app.routes.account import account_bp
 from app.services.account_statistics_service import (

@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from app.models.instance import Instance
+from app.constants import TaskStatus
 from app.utils.database_type_utils import DatabaseTypeUtils
 from app.utils.structlog_config import get_db_logger, log_error
 from app.utils.version_parser import DatabaseVersionParser

@@ -7,6 +7,7 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
 from app.errors import NotFoundError, SystemError
+from app.constants import SyncStatus
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -180,7 +181,7 @@ def api_get_error_logs(session_id: str) -> Response:
         records = sync_session_service.get_session_records(session_id)
 
         # 筛选出失败的记录
-        error_records = [record for record in records if record.status == "failed"]
+        error_records = [record for record in records if record.status == SyncStatus.FAILED]
 
         # 转换为字典格式
         error_records_data = [record.to_dict() for record in error_records]

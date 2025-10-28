@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 
 from app import db
 from app.config import Config
+from app.constants import SyncStatus, TaskStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.models.instance import Instance
 from app.utils.structlog_config import get_sync_logger

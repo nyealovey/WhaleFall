@@ -10,6 +10,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.errors import ConflictError, ValidationError
+from app.constants import TaskStatus, UserRole
 from app.models.user import User
 from app.utils.decorators import (
     create_required,
@@ -286,8 +287,8 @@ def api_delete_user(user_id: int) -> tuple[Response, int]:
         )
         raise ValidationError("不能删除自己的账户")
 
-    if user.role == "admin":
-        admin_count = User.query.filter_by(role="admin").count()
+    if user.role == UserRole.ADMIN:
+        admin_count = User.query.filter_by(role=UserRole.ADMIN).count()
         if admin_count <= 1:
             log_error(
                 "删除用户失败: 不能删除最后一个管理员账户",
@@ -330,8 +331,8 @@ def api_get_stats() -> tuple[Response, int]:
     """获取用户统计信息API"""
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
-    admin_users = User.query.filter_by(role="admin").count()
-    user_users = User.query.filter_by(role="user").count()
+    admin_users = User.query.filter_by(role=UserRole.ADMIN).count()
+    user_users = User.query.filter_by(role=UserRole.USER).count()
 
     data = {
         "total": total_users,
