@@ -382,21 +382,6 @@ class DatabaseSizeAggregationService:
         )
         return summary.to_dict()
     
-    def calculate_today_aggregations(self) -> Dict[str, Any]:
-        """
-        计算今日统计聚合（手动触发用，处理今天的数据）
-        
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-        """
-        log_info("开始计算今日统计聚合", module=MODULE)
-        
-        # 获取今天的数据进行聚合（使用中国时区）
-        end_date = time_utils.now_china().date()
-        start_date = end_date  # 同一天，处理今天的数据
-        
-        return self._calculate_aggregations('daily', start_date, end_date)
-    
     def calculate_weekly_aggregations(self) -> Dict[str, Any]:
         """
         计算每周统计聚合
@@ -473,21 +458,6 @@ class DatabaseSizeAggregationService:
         log_info("开始计算每日实例统计聚合", module=MODULE)
         
         # 获取今天的数据（与容量同步任务保持一致，使用中国时区）
-        end_date = time_utils.now_china().date()
-        start_date = end_date  # 同一天，处理今天的数据
-        
-        return self._calculate_instance_aggregations('daily', start_date, end_date)
-    
-    def calculate_today_instance_aggregations(self) -> Dict[str, Any]:
-        """
-        计算今日实例统计聚合（手动触发用，处理今天的数据）
-        
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-        """
-        log_info("开始计算今日实例统计聚合", module=MODULE)
-        
-        # 获取今天的数据进行聚合（使用中国时区）
         end_date = time_utils.now_china().date()
         start_date = end_date  # 同一天，处理今天的数据
         
@@ -1340,117 +1310,6 @@ class DatabaseSizeAggregationService:
         aggregations = query.order_by(InstanceSizeAggregation.period_start.desc()).all()
         
         return [self._format_instance_aggregation(agg) for agg in aggregations]
-    
-    def get_trends_analysis(self, instance_id: int, period_type: str, 
-                           months: int = 12) -> Dict[str, Any]:
-        """
-        获取趋势分析数据
-        
-        Args:
-            instance_id: 实例ID
-            period_type: 统计周期类型
-            months: 返回最近几个月的数据
-            
-        Returns:
-            Dict[str, Any]: 趋势分析数据
-        """
-        try:
-            # 计算开始日期（使用中国时区）
-            end_date = time_utils.now_china().date()
-            start_date = end_date - timedelta(days=months * 30)
-            
-            # 获取聚合数据
-            aggregations = self.get_aggregations(instance_id, period_type, start_date, end_date)
-            
-            if not aggregations:
-                return {
-                    'trends': [],
-                    'summary': {
-                        'total_growth_rate': 0,
-                        'largest_database': None,
-                        'fastest_growing': None
-                    }
-                }
-            
-            # 按周期分组
-            trends = {}
-            for agg in aggregations:
-                period = agg['period_start'][:7]  # YYYY-MM
-                if period not in trends:
-                    trends[period] = {
-                        'period': period,
-                        'total_size_mb': 0,
-                        'databases': []
-                    }
-                
-                trends[period]['total_size_mb'] += agg['statistics']['avg_size_mb']
-                trends[period]['databases'].append({
-                    'database_name': agg['database_name'],
-                    'avg_size_mb': agg['statistics']['avg_size_mb'],
-                    'growth_rate': 0  # 需要计算
-                })
-            
-            # 计算增长率
-            periods = sorted(trends.keys())
-            for i, period in enumerate(periods):
-                if i > 0:
-                    prev_period = periods[i-1]
-                    for db in trends[period]['databases']:
-                        prev_db = next((d for d in trends[prev_period]['databases'] 
-                                      if d['database_name'] == db['database_name']), None)
-                        if prev_db:
-                            growth_rate = ((db['avg_size_mb'] - prev_db['avg_size_mb']) / 
-                                         prev_db['avg_size_mb'] * 100) if prev_db['avg_size_mb'] > 0 else 0
-                            db['growth_rate'] = round(growth_rate, 2)
-            
-            # 计算总体统计
-            total_growth_rate = 0
-            largest_database = None
-            fastest_growing = None
-            max_size = 0
-            max_growth = 0
-            
-            for period_data in trends.values():
-                for db in period_data['databases']:
-                    if db['avg_size_mb'] > max_size:
-                        max_size = db['avg_size_mb']
-                        largest_database = db['database_name']
-                    
-                    if abs(db['growth_rate']) > max_growth:
-                        max_growth = abs(db['growth_rate'])
-                        fastest_growing = db['database_name']
-            
-            # 计算总体增长率（简化计算）
-            if len(periods) > 1:
-                first_period = trends[periods[0]]['total_size_mb']
-                last_period = trends[periods[-1]]['total_size_mb']
-                total_growth_rate = ((last_period - first_period) / first_period * 100) if first_period > 0 else 0
-            
-            return {
-                'trends': list(trends.values()),
-                'summary': {
-                    'total_growth_rate': round(total_growth_rate, 2),
-                    'largest_database': largest_database,
-                    'fastest_growing': fastest_growing
-                }
-            }
-            
-        except Exception as exc:
-            log_error(
-                "获取趋势分析数据失败",
-                module=MODULE,
-                exception=exc,
-                instance_id=instance_id,
-                period_type=period_type,
-            )
-            return {
-                'trends': [],
-                'summary': {
-                    'total_growth_rate': 0,
-                    'largest_database': None,
-                    'fastest_growing': None
-                }
-            }
     
     def _format_aggregation(self, aggregation: DatabaseSizeAggregation) -> Dict[str, Any]:
         """

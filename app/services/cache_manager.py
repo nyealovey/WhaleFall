@@ -31,65 +31,6 @@ class CacheManager:
         key_hash = hashlib.sha256(key_data.encode()).hexdigest()
         return f"whalefall:{key_hash}"
 
-    def get_database_permissions_cache(
-        self, instance_id: int, username: str, db_name: str
-    ) -> tuple[list[str], list[str]] | None:
-        """获取数据库权限缓存"""
-        try:
-            if not self.cache:
-                return None
-                
-            cache_key = self._generate_cache_key("db_perms", instance_id, username, db_name)
-            cached_data = self.cache.get(cache_key)
-
-            if cached_data:
-                data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
-                roles = data.get("roles", [])
-                permissions = data.get("permissions", [])
-                logger.debug("缓存命中: %s@%s", username, db_name, cache_key=cache_key)
-                return roles, permissions
-
-            return None
-
-        except Exception as e:
-            logger.warning("获取缓存失败: %s@%s", username, db_name, error=str(e))
-            return None
-
-    def set_database_permissions_cache(
-        self, instance_id: int, username: str, db_name: str, roles: list[str], permissions: list[str], ttl: int = None
-    ) -> bool:
-        """设置数据库权限缓存"""
-        try:
-            if not self.cache:
-                return False
-                
-            cache_key = self._generate_cache_key("db_perms", instance_id, username, db_name)
-            cache_data = {
-                "roles": roles,
-                "permissions": permissions,
-                "cached_at": time_utils.now().isoformat(),
-                "instance_id": instance_id,
-                "username": username,
-                "db_name": db_name,
-            }
-
-            ttl = ttl or self.default_ttl
-            self.cache.set(cache_key, cache_data, timeout=ttl)
-            logger.debug("缓存已设置: %s@%s", username, db_name, cache_key=cache_key, ttl=ttl)
-            return True
-
-        except Exception as e:
-            logger.warning("设置缓存失败: %s@%s", username, db_name, error=str(e))
-            return False
-
-    def get_all_database_permissions_cache(
-        self, instance_id: int, username: str
-    ) -> dict[str, tuple[list[str], list[str]]] | None:
-        """获取用户所有数据库权限缓存"""
-        # Flask-Caching不支持模式匹配，简化实现
-        # 这里返回None，让调用方直接查询数据库
-        return None
-
     def invalidate_user_cache(self, instance_id: int, username: str) -> bool:
         """清除用户的所有缓存"""
         # Flask-Caching不支持模式匹配，简化实现
@@ -116,48 +57,6 @@ class CacheManager:
             return {"status": "connected", "info": "No detailed info available"}
         except Exception as e:
             return {"status": "error", "error": str(e)}
-
-    def get_account_permissions_cache(self, account_id: int) -> dict[str, Any] | None:
-        """获取账户权限缓存"""
-        try:
-            if not self.cache:
-                return None
-                
-            cache_key = self._generate_cache_key("account_perms", account_id, "", "")
-            cached_data = self.cache.get(cache_key)
-
-            if cached_data:
-                data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
-                logger.debug("账户权限缓存命中: account_id=%s", account_id, cache_key=cache_key)
-                return data
-
-            return None
-
-        except Exception as e:
-            logger.warning("获取账户权限缓存失败: account_id=%s", account_id, error=str(e))
-            return None
-
-    def set_account_permissions_cache(self, account_id: int, permissions: dict[str, Any], ttl: int = None) -> bool:
-        """设置账户权限缓存"""
-        try:
-            if not self.cache:
-                return False
-                
-            cache_key = self._generate_cache_key("account_perms", account_id, "", "")
-            cache_data = {
-                "permissions": permissions,
-                "cached_at": time_utils.now().isoformat(),
-                "account_id": account_id,
-            }
-
-            ttl = ttl or self.default_ttl
-            self.cache.set(cache_key, cache_data, timeout=ttl)
-            logger.debug("账户权限缓存已设置: account_id=%s", account_id, cache_key=cache_key, ttl=ttl)
-            return True
-
-        except Exception as e:
-            logger.warning("设置账户权限缓存失败: account_id=%s", account_id, error=str(e))
-            return False
 
     def get_rule_evaluation_cache(self, rule_id: int, account_id: int) -> bool | None:
         """获取规则评估缓存"""
@@ -281,21 +180,6 @@ class CacheManager:
 
         except Exception as e:
             logger.warning("清除分类缓存失败", error=str(e))
-            return False
-
-    def invalidate_rule_evaluation_cache(self, rule_id: int, account_id: int) -> bool:
-        """清除特定规则评估缓存"""
-        try:
-            if not self.cache:
-                return True
-                
-            cache_key = self._generate_cache_key("rule_eval", rule_id, account_id, "")
-            self.cache.delete(cache_key)
-            logger.debug("规则评估缓存已清除: rule_id=%s, account_id=%s", rule_id, account_id, cache_key=cache_key)
-            return True
-
-        except Exception as e:
-            logger.warning("清除规则评估缓存失败: rule_id=%s, account_id=%s", rule_id, account_id, error=str(e))
             return False
 
     def invalidate_all_rule_evaluation_cache(self) -> bool:
