@@ -186,18 +186,7 @@ async function performBatchDelete(tagIds) {
     try {
         showLoadingState('batchDelete', '删除中...');
         
-        const response = await fetch('/tags/api/batch_delete', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({
-                tag_ids: tagIds
-            })
-        });
-        
-        const data = await response.json();
+        const data = await http.post('/tags/api/batch_delete', { tag_ids: tagIds });
         
         if (data.success) {
             showSuccessAlert(data.message);
