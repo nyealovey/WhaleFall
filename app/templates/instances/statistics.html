@@ -264,15 +264,9 @@
 
 {% block extra_js %}
 <!-- Chart.js -->
-    <!-- Axios 配置 -->
-    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
-    <!-- Axios 配置 -->
-    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/instances/statistics.js') }}"></script>
 <!-- 将版本统计数据传递给JavaScript -->
-    <!-- Axios 配置 -->
-    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
 <script>
     window.versionStats = {{ stats.version_stats | tojson }};
 </script>
