@@ -27,6 +27,15 @@ from .status_types import InstanceStatus, JobStatus, SyncStatus, TaskStatus
 # 导入用户角色常量
 from .user_roles import UserRole
 
+# 导入Flash类别常量
+from .flash_categories import FlashCategory
+
+# 导入HTTP头常量
+from .http_headers import HttpHeaders
+
+# 导入HTTP方法常量
+from .http_methods import HttpMethod
+
 # 导出所有常量
 __all__ = [
     # 颜色常量
@@ -56,4 +65,13 @@ __all__ = [
     
     # 用户角色
     'UserRole',
+    
+    # Flash类别
+    'FlashCategory',
+    
+    # HTTP头
+    'HttpHeaders',
+    
+    # HTTP方法
+    'HttpMethod',
 ]

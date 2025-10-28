@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.constants.sync_constants import SyncOperationType, SyncCategory
-from app.constants import SyncStatus, TaskStatus
+from app.constants import SyncStatus, TaskStatus, FlashCategory
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
@@ -298,7 +298,7 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
                     message="账户同步成功",
                 )
 
-            flash("账户同步成功！", "success")
+            flash("账户同步成功！", FlashCategory.SUCCESS)
             return redirect(url_for("instances.detail", instance_id=instance_id))
 
         log_error(
@@ -334,5 +334,5 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
         if is_json:
             raise SystemError("账户同步失败，请重试") from exc
 
-        flash("账户同步失败，请重试", "error")
+        flash("账户同步失败，请重试", FlashCategory.ERROR)
         return redirect(url_for("instances.detail", instance_id=instance_id))

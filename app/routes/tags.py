@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.models.tag import Tag
-from app.constants import TaskStatus
+from app.constants import TaskStatus, FlashCategory, HttpMethod
 from app.constants.colors import ThemeColors
 from app.errors import ConflictError, ValidationError
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
@@ -185,13 +185,13 @@ def create_api() -> tuple[Response, int]:
 @require_csrf
 def create() -> str | Response:
     """创建标签"""
-    if request.method == "POST":
+    if request.method == HttpMethod.POST:
         try:
             # 验证必填字段
             required_fields = ["name", "display_name", "category"]
             validation_error = validate_required_fields(request.form, required_fields)
             if validation_error:
-                flash(validation_error, "error")
+                flash(validation_error, FlashCategory.ERROR)
                 return render_template("tags/create.html", color_options=ThemeColors.COLOR_MAP)
 
             # 获取表单数据
@@ -205,13 +205,13 @@ def create() -> str | Response:
 
             # 验证颜色
             if not ThemeColors.is_valid_color(color):
-                flash(f"无效的颜色选择: {color}", "error")
+                flash(f"无效的颜色选择: {color}", FlashCategory.ERROR)
                 return render_template("tags/create.html", color_options=ThemeColors.COLOR_MAP)
 
             # 检查名称是否已存在
             existing_tag = Tag.query.filter_by(name=name).first()
             if existing_tag:
-                flash(f"标签代码 '{name}' 已存在", "error")
+                flash(f"标签代码 '{name}' 已存在", FlashCategory.ERROR)
                 return render_template("tags/create.html", color_options=ThemeColors.COLOR_MAP)
 
             # 创建标签
@@ -237,7 +237,7 @@ def create() -> str | Response:
                 category=tag.category,
             )
 
-            flash("标签创建成功", "success")
+            flash("标签创建成功", FlashCategory.SUCCESS)
             return redirect(url_for("tags.index"))
 
         except Exception as e:
@@ -247,7 +247,7 @@ def create() -> str | Response:
                 module="tags",
                 error=str(e),
             )
-            flash(f"标签创建失败: {str(e)}", "error")
+            flash(f"标签创建失败: {str(e)}", FlashCategory.ERROR)
 
     return render_template("tags/create.html", color_options=ThemeColors.COLOR_MAP)
 
@@ -366,13 +366,13 @@ def edit(tag_id: int) -> str | Response:
     """编辑标签"""
     tag = Tag.query.get_or_404(tag_id)
 
-    if request.method == "POST":
+    if request.method == HttpMethod.POST:
         try:
             # 验证必填字段
             required_fields = ["name", "display_name", "category"]
             validation_error = validate_required_fields(request.form, required_fields)
             if validation_error:
-                flash(validation_error, "error")
+                flash(validation_error, FlashCategory.ERROR)
                 return render_template("tags/edit.html", tag=tag, color_options=ThemeColors.COLOR_MAP)
 
             # 获取表单数据
@@ -386,7 +386,7 @@ def edit(tag_id: int) -> str | Response:
 
             # 验证颜色
             if not ThemeColors.is_valid_color(color):
-                flash(f"无效的颜色选择: {color}", "error")
+                flash(f"无效的颜色选择: {color}", FlashCategory.ERROR)
                 return render_template("tags/edit.html", tag=tag, color_options=ThemeColors.COLOR_MAP)
 
             # 检查名称是否已存在（排除当前记录）
@@ -395,7 +395,7 @@ def edit(tag_id: int) -> str | Response:
                 Tag.id != tag_id
             ).first()
             if existing_tag:
-                flash(f"标签代码 '{name}' 已存在", "error")
+                flash(f"标签代码 '{name}' 已存在", FlashCategory.ERROR)
                 return render_template("tags/edit.html", tag=tag, color_options=ThemeColors.COLOR_MAP)
 
             # 更新标签
@@ -418,7 +418,7 @@ def edit(tag_id: int) -> str | Response:
                 category=tag.category,
             )
 
-            flash("标签更新成功", "success")
+            flash("标签更新成功", FlashCategory.SUCCESS)
             return redirect(url_for("tags.index"))
 
         except Exception as e:
@@ -429,7 +429,7 @@ def edit(tag_id: int) -> str | Response:
                 tag_id=tag_id,
                 error=str(e),
             )
-            flash(f"标签更新失败: {str(e)}", "error")
+            flash(f"标签更新失败: {str(e)}", FlashCategory.ERROR)
 
     return render_template("tags/edit.html", tag=tag, color_options=ThemeColors.COLOR_MAP)
 
@@ -446,7 +446,7 @@ def delete(tag_id: int) -> Response:
         # 检查是否有实例使用此标签
         instance_count = len(tag.instances)
         if instance_count > 0:
-            flash(f"无法删除标签 '{tag.display_name}'，还有 {instance_count} 个实例正在使用", "error")
+            flash(f"无法删除标签 '{tag.display_name}'，还有 {instance_count} 个实例正在使用", FlashCategory.ERROR)
             return redirect(url_for("tags.index"))
 
         # 硬删除标签 - 先删除关联关系，再删除标签
@@ -468,7 +468,7 @@ def delete(tag_id: int) -> Response:
             display_name=tag.display_name,
         )
 
-        flash("标签删除成功", "success")
+        flash("标签删除成功", FlashCategory.SUCCESS)
         return redirect(url_for("tags.index"))
 
     except Exception as e:
@@ -479,7 +479,7 @@ def delete(tag_id: int) -> Response:
             tag_id=tag_id,
             error=str(e),
         )
-        flash(f"标签删除失败: {str(e)}", "error")
+        flash(f"标签删除失败: {str(e)}", FlashCategory.ERROR)
         return redirect(url_for("tags.index"))
 
 

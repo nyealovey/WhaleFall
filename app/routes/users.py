@@ -10,7 +10,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.errors import ConflictError, ValidationError
-from app.constants import TaskStatus, UserRole
+from app.constants import TaskStatus, UserRole, FlashCategory
 from app.models.user import User
 from app.utils.decorators import (
     create_required,
@@ -55,7 +55,7 @@ def index() -> str:
             exception=e,
             user_id=current_user.id if current_user.is_authenticated else None,
         )
-        flash(f"获取用户列表失败: {str(e)}", "error")
+        flash(f"获取用户列表失败: {str(e)}", FlashCategory.ERROR)
         return render_template("auth/list.html", users=None, stats={})
 
 

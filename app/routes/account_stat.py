@@ -6,7 +6,7 @@ from flask import Response, flash, render_template, request
 from flask_login import login_required
 
 from app.errors import SystemError
-from app.constants import TaskStatus
+from app.constants import TaskStatus, FlashCategory
 from app.models.instance import Instance
 from app.routes.account import account_bp
 from app.services.account_statistics_service import (
@@ -30,7 +30,7 @@ def statistics() -> str:
         stats = build_aggregated_statistics()
     except SystemError:
         stats = empty_statistics()
-        flash("获取账户统计信息失败，请稍后重试", "error")
+        flash("获取账户统计信息失败，请稍后重试", FlashCategory.ERROR)
 
     from app.models.sync_session import SyncSession
 

@@ -7,7 +7,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.constants.system_constants import ErrorMessages
-from app.constants import TaskStatus, UserRole
+from app.constants import TaskStatus, UserRole, FlashCategory
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -395,7 +395,7 @@ def api_all_tags() -> tuple[Response, int]:
 def batch_assign() -> str:
     """批量分配标签页面"""
     if current_user.role != UserRole.ADMIN:
-        flash("您没有权限访问此页面", "error")
+        flash("您没有权限访问此页面", FlashCategory.ERROR)
         return redirect(url_for("tags.index"))
 
     return render_template("tags/batch_assign.html")

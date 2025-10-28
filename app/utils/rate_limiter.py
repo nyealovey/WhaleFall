@@ -10,7 +10,7 @@ from flask import flash, redirect, request, url_for
 from flask_caching import Cache
 
 from app.constants.system_constants import ErrorMessages
-from app.constants import TaskStatus
+from app.constants import TaskStatus, FlashCategory
 from app.utils.response_utils import jsonify_unified_error_message
 from app.utils.structlog_config import get_system_logger
 
@@ -197,7 +197,7 @@ def login_rate_limit(func=None, *, limit: int = None, window: int = None):
                     response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
                     return response, status
 
-                flash(ErrorMessages.RATE_LIMIT_EXCEEDED, "error")
+                flash(ErrorMessages.RATE_LIMIT_EXCEEDED, FlashCategory.ERROR)
                 response = redirect(url_for("auth.login"))
                 response.status_code = 429
                 response.headers["Retry-After"] = str(result["retry_after"])
