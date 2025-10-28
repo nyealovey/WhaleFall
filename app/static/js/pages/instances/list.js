@@ -54,25 +54,14 @@ async function loadInstanceTotalSizes() {
             if (!instanceId) continue;
             
             try {
-                const response = await fetch(`/database_stats/api/instances/${instanceId}/database-sizes/total`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken()
-                    }
-                });
+                const data = await http.get(`/database_stats/api/instances/${instanceId}/database-sizes/total`);
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.total_size_mb !== undefined) {
-                        // API返回的是MB，需要转换为字节再格式化
-                        const totalSizeBytes = data.total_size_mb * 1024 * 1024;
-                        element.innerHTML = `<small class="text-success">${formatSize(totalSizeBytes)}</small>`;
-                    } else {
-                        element.innerHTML = '<small class="text-muted">暂无数据</small>';
-                    }
+                if (data.success && data.total_size_mb !== undefined) {
+                    // API返回的是MB，需要转换为字节再格式化
+                    const totalSizeBytes = data.total_size_mb * 1024 * 1024;
+                    element.innerHTML = `<small class="text-success">${formatSize(totalSizeBytes)}</small>`;
                 } else {
-                    element.innerHTML = '<small class="text-muted">加载失败</small>';
+                    element.innerHTML = '<small class="text-muted">暂无数据</small>';
                 }
             } catch (error) {
                 console.error(`加载实例 ${instanceId} 总大小失败:`, error);
@@ -324,17 +313,6 @@ function syncCapacity(instanceId, instanceName) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     btn.disabled = true;
 
-    // 获取CSRF token
-    const csrfToken = getCSRFToken();
-
-    const headers = {
-        'Content-Type': 'application/json',
-    };
-
-    if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken;
-    }
-
     // 记录操作开始日志
     console.info('开始同步实例容量', {
         operation: 'sync_instance_capacity',
@@ -342,11 +320,7 @@ function syncCapacity(instanceId, instanceName) {
         instance_name: instanceName
     });
 
-    fetch(`/storage_sync/api/instances/${instanceId}/sync-capacity`, {
-        method: 'POST',
-        headers: headers
-    })
-    .then(response => response.json())
+    http.post(`/storage_sync/api/instances/${instanceId}/sync-capacity`)
     .then(data => {
         if (data.success) {
             // 记录成功日志
@@ -462,17 +436,7 @@ function batchDelete() {
     btn.textContent = '删除中...';
     btn.disabled = true;
 
-    const csrfToken = getCSRFToken();
-
-    fetch('/instances/api/batch-delete', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({ instance_ids: instanceIds })
-    })
-    .then(response => response.json())
+    http.post('/instances/api/batch-delete', { instance_ids: instanceIds })
     .then(data => {
         if (data.success) {
             // 记录成功日志
@@ -584,16 +548,11 @@ function submitFileUpload() {
     btn.textContent = '创建中...';
     btn.disabled = true;
 
-    const csrfToken = getCSRFToken();
-
-    fetch('/instances/api/batch-create', {
-        method: 'POST',
+    http.post('/instances/api/batch-create', formData, {
         headers: {
-            'X-CSRFToken': csrfToken
-        },
-        body: formData
+            'Content-Type': 'multipart/form-data'
+        }
     })
-    .then(response => response.json())
     .then(data => {
         if (data.success) {
             notify.success(data.message);
@@ -644,17 +603,7 @@ function submitJsonInput() {
         btn.textContent = '创建中...';
         btn.disabled = true;
 
-        const csrfToken = getCSRFToken();
-
-        fetch('/instances/api/batch-create', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({ instances: instances })
-        })
-        .then(response => response.json())
+        http.post('/instances/api/batch-create', { instances: instances })
         .then(data => {
             if (data.success) {
                 notify.success(data.message);
