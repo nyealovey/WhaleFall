@@ -32,8 +32,7 @@ function setDefaultTimeRange() {
 
 // 加载模块列表
 function loadModules() {
-    fetch('/logs/api/modules')
-        .then(response => response.json())
+    http.get('/logs/api/modules')
         .then(data => {
             if (data.success) {
                 updateModuleFilter(data.data.modules);
@@ -41,7 +40,6 @@ function loadModules() {
         })
         .catch(error => {
             console.error('Error loading modules:', error);
-            showError('加载模块列表失败');
         });
 }
 
@@ -79,8 +77,7 @@ function loadStats() {
         if (hours) params.append('hours', hours);
     }
 
-    fetch(`/logs/api/stats?${params.toString()}`)
-        .then(response => response.json())
+    http.get(`/logs/api/stats?${params.toString()}`)
         .then(data => {
             if (data.success) {
                 updateStatsDisplay(data.data);
@@ -88,7 +85,6 @@ function loadStats() {
         })
         .catch(error => {
             console.error('Error loading stats:', error);
-            showError('加载统计信息失败');
         });
 }
 
@@ -161,8 +157,7 @@ function searchLogs(page = 1) {
     showLoadingState();
 
     // 发送请求
-    fetch(`/logs/api/search?${params}`)
-        .then(response => response.json())
+    http.get(`/logs/api/search?${params}`)
         .then(data => {
             if (data.success) {
                 displayLogs(data.data.logs);
@@ -302,8 +297,7 @@ function displayPagination(pagination) {
 
 // 查看日志详情
 function viewLogDetail(logId) {
-    fetch(`/logs/api/detail/${logId}`)
-        .then(response => response.json())
+    http.get(`/logs/api/detail/${logId}`)
         .then(data => {
             if (data.success) {
                 displayLogDetail(data.data.log);
