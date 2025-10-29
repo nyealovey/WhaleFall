@@ -37,15 +37,15 @@ function handleDeleteConfirmation() {
         http.post(`/credentials/api/credentials/${deleteCredentialId}/delete`)
         .then(data => {
             if (data.message) {
-                notify.success(data.message);
+                toast.success(data.message);
                 setTimeout(() => location.reload(), 1000);
             } else if (data.error) {
-                notify.error(data.error);
+                toast.error(data.error);
             }
         })
         .catch(error => {
             console.error('删除凭据失败:', error);
-            notify.error('删除失败，请稍后重试');
+            toast.error('删除失败，请稍后重试');
         })
         .finally(() => {
             hideLoadingState('confirmDelete', '确认删除');
@@ -72,7 +72,7 @@ function handleSearchSubmit(event, form) {
     // 基本验证
     if (searchInput && searchInput.value.trim().length > 0 && searchInput.value.trim().length < 2) {
         event.preventDefault();
-        notify.warning('搜索关键词至少需要2个字符');
+        toast.warning('搜索关键词至少需要2个字符');
         return false;
     }
     
@@ -112,15 +112,15 @@ function toggleCredentialStatus(credentialId, isActive, button) {
     http.post(`/credentials/api/credentials/${credentialId}/toggle`, { is_active: !isActive })
     .then(data => {
         if (data.message) {
-            notify.success(data.message);
+            toast.success(data.message);
             setTimeout(() => location.reload(), 1000);
         } else if (data.error) {
-            notify.error(data.error);
+            toast.error(data.error);
         }
     })
     .catch(error => {
         console.error('切换凭据状态失败:', error);
-        notify.error('操作失败，请稍后重试');
+        toast.error('操作失败，请稍后重试');
     })
     .finally(() => {
         hideLoadingState(button, originalHtml);

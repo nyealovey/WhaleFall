@@ -13,13 +13,13 @@ function showPermissionsModal(permissions, account) {
     try {
         if (!account || typeof account !== 'object') {
             console.error('showPermissionsModal 需要有效的 account 参数');
-            notify.error('无法获取账户信息，请稍后重试', { title: '错误' });
+            toast.error('无法获取账户信息，请稍后重试', { title: '错误' });
             return;
         }
 
         if (!permissions || typeof permissions !== 'object') {
             console.error('showPermissionsModal 需要有效的 permissions 参数');
-            notify.error('无法获取权限信息，请稍后重试', { title: '错误' });
+            toast.error('无法获取权限信息，请稍后重试', { title: '错误' });
             return;
         }
 
@@ -53,7 +53,7 @@ function showPermissionsModal(permissions, account) {
     } catch (error) {
         console.error('showPermissionsModal 函数执行出错:', error);
         console.error('错误堆栈:', error.stack);
-        notify.error('获取权限信息失败，请稍后重试', { title: '错误' });
+        toast.error('获取权限信息失败，请稍后重试', { title: '错误' });
     }
 }
 

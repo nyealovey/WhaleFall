@@ -55,17 +55,17 @@ function handleAddUser(event, form) {
     http.post('/users/api/users', data)
         .then(data => {
             if (data.success) {
-                notify.success( data.message);
+                toast.success( data.message);
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
                 if (modal) modal.hide();
                 location.reload();
             } else {
-                notify.error( data.message || '添加用户失败');
+                toast.error( data.message || '添加用户失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error( '添加用户失败');
+            toast.error( '添加用户失败');
         })
         .finally(() => {
             hideLoadingState(form.querySelector('button[type="submit"]'), '添加用户');
@@ -113,17 +113,17 @@ function handleEditUser(event, form) {
     http.put(`/users/api/users/${data.user_id}`, data)
         .then(data => {
             if (data.success) {
-                notify.success( data.message);
+                toast.success( data.message);
                 const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
                 if (modal) modal.hide();
                 location.reload();
             } else {
-                notify.error( data.message || '更新用户失败');
+                toast.error( data.message || '更新用户失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error( '更新用户失败');
+            toast.error( '更新用户失败');
         })
         .finally(() => {
             hideLoadingState(form.querySelector('button[type="submit"]'), '保存更改');
@@ -166,15 +166,15 @@ function performDeleteUser(userId) {
     http.delete(`/users/api/users/${userId}`)
         .then(data => {
             if (data.success) {
-                notify.success( data.message);
+                toast.success( data.message);
                 location.reload();
             } else {
-                notify.error( data.message);
+                toast.error( data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error( '删除用户失败');
+            toast.error( '删除用户失败');
         })
         .finally(() => {
             hideLoadingState(document.querySelector(`[data-user-id="${userId}"]`), '删除');
@@ -232,12 +232,12 @@ function editUser(userId) {
                 const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
                 modal.show();
             } else {
-                notify.error( '获取用户信息失败');
+                toast.error( '获取用户信息失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error( '获取用户信息失败');
+            toast.error( '获取用户信息失败');
         });
 }
 
@@ -245,7 +245,7 @@ function editUser(userId) {
 function validateUserForm(data, isEdit = false) {
 
     if (!data.username || data.username.trim().length < 2) {
-        notify.error( '用户名至少需要2个字符');
+        toast.error( '用户名至少需要2个字符');
         return false;
     }
 
@@ -253,19 +253,19 @@ function validateUserForm(data, isEdit = false) {
     if (!isEdit) {
         // 新建用户时，密码是必需的
         if (!data.password || data.password.length < 6) {
-            notify.error( '密码至少需要6个字符');
+            toast.error( '密码至少需要6个字符');
             return false;
         }
     } else {
         // 编辑用户时，如果提供了密码，则验证密码长度
         if (data.password && data.password.length < 6) {
-            notify.error( '密码至少需要6个字符');
+            toast.error( '密码至少需要6个字符');
             return false;
         }
     }
 
     if (!data.role) {
-        notify.error( '请选择用户角色');
+        toast.error( '请选择用户角色');
         return false;
     }
 
@@ -298,19 +298,6 @@ function hideLoadingState(element, originalText) {
 
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
-function showSuccessAlert(message) {
-    notify.success(message);
-}
-
-function showWarningAlert(message) {
-    notify.warning(message);
-}
-
-function showErrorAlert(message) {
-    notify.error(message);
-}
-
-
 // 导出用户数据
 function exportUsers(format = 'csv') {
     const url = `${window.location.pathname}?export=${format}`;
@@ -322,6 +309,3 @@ window.editUser = editUser;
 window.deleteUser = deleteUser;
 window.confirmDeleteUser = confirmDeleteUser;
 window.exportUsers = exportUsers;
-window.showSuccessAlert = showSuccessAlert;
-window.showWarningAlert = showWarningAlert;
-window.showErrorAlert = showErrorAlert;

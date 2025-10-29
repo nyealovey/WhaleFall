@@ -40,18 +40,18 @@ function syncAllAccounts() {
     http.post('/account_sync/api/sync-all')
     .then(data => {
         if (data.success) {
-            notify.success( data.message);
+            toast.success( data.message);
             // 同步完成后刷新页面显示最新数据
             setTimeout(() => {
                 location.reload();
             }, 2000);
         } else if (data.error) {
-            notify.error( data.error);
+            toast.error( data.error);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        notify.error( '同步失败');
+        toast.error( '同步失败');
     })
     .finally(() => {
         btn.innerHTML = originalText;
@@ -66,7 +66,7 @@ function syncAllInstances() {
 
 // 查看账户详情
 function viewAccount(accountId) {
-    notify.info(`查看账户 ${accountId} 的详情`);
+    toast.info(`查看账户 ${accountId} 的详情`);
 }
 
 // 显示账户统计
@@ -92,7 +92,7 @@ function openTagSelector() {
         
         if (!modalElement) {
             console.error('模态框元素未找到');
-            notify.error( '标签选择器模态框未找到，请刷新页面重试');
+            toast.error( '标签选择器模态框未找到，请刷新页面重试');
             return;
         }
         
@@ -110,7 +110,7 @@ function openTagSelector() {
         
     } catch (error) {
         console.error('打开标签选择器时出错:', error);
-        notify.error( '打开标签选择器失败: ' + error.message);
+        toast.error( '打开标签选择器失败: ' + error.message);
     }
 }
 
@@ -174,7 +174,7 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
             }, 100);
         } catch (error) {
             console.error('初始化标签选择器组件时出错:', error);
-            notify.error( '标签选择器初始化失败: ' + error.message);
+            toast.error( '标签选择器初始化失败: ' + error.message);
         }
     }
 }
@@ -213,7 +213,7 @@ function setupTagSelectorEvents() {
                 }, 100);
             } catch (error) {
                 console.error('打开标签选择器时出错:', error);
-                notify.error( '打开标签选择器失败: ' + error.message);
+                toast.error( '打开标签选择器失败: ' + error.message);
             }
         });
     }

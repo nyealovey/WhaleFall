@@ -135,17 +135,17 @@ function handleFormSubmission(event, form) {
 // 验证表单
 function validateForm(username, password) {
     if (!username || !password) {
-        showWarningAlert('请输入用户名和密码');
+        toast.warning('请输入用户名和密码');
         return false;
     }
 
     if (username.length < 3) {
-        showWarningAlert('用户名至少需要3个字符');
+        toast.warning('用户名至少需要3个字符');
         return false;
     }
 
     if (password.length < 6) {
-        showWarningAlert('密码至少需要6个字符');
+        toast.warning('密码至少需要6个字符');
         return false;
     }
 
@@ -168,40 +168,6 @@ function hideLoadingState(form) {
         submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>登录';
         submitBtn.disabled = false;
     }
-}
-
-// 显示警告提示
-function showWarningAlert(message) {
-    if (typeof window.showWarningAlert === 'function') {
-        window.showWarningAlert(message);
-    } else {
-        // 备用提示方法
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-warning alert-dismissible fade show';
-        alertDiv.innerHTML = `
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        const form = document.getElementById('loginForm');
-        if (form) {
-            form.insertBefore(alertDiv, form.firstChild);
-        }
-        
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
-    }
-}
-
-// 显示错误提示
-function showErrorAlert(message) {
-    notify.error(message);
-}
-
-function showSuccessAlert(message) {
-    notify.success(message);
 }
 
 // 密码强度检查
@@ -282,6 +248,3 @@ detectAutoFill();
 // 导出函数供全局使用
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.validateForm = validateForm;
-window.showWarningAlert = showWarningAlert;
-window.showErrorAlert = showErrorAlert;
-window.showSuccessAlert = showSuccessAlert;

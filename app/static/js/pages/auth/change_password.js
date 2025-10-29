@@ -242,29 +242,29 @@ function handleFormSubmission(event, form) {
 function validateForm(oldPassword, newPassword, confirmPassword) {
     // 基本验证
     if (!oldPassword || !newPassword || !confirmPassword) {
-        showWarningAlert('所有字段都不能为空', '验证失败');
+        toast.warning('所有字段都不能为空', { title: '验证失败' });
         return false;
     }
 
     if (newPassword.length < 6) {
-        showWarningAlert('新密码至少需要6个字符', '密码强度不足');
+        toast.warning('新密码至少需要6个字符', { title: '密码强度不足' });
         return false;
     }
 
     if (newPassword !== confirmPassword) {
-        showWarningAlert('两次输入的新密码不一致', '密码不匹配');
+        toast.warning('两次输入的新密码不一致', { title: '密码不匹配' });
         return false;
     }
 
     if (oldPassword === newPassword) {
-        showWarningAlert('新密码不能与当前密码相同', '密码重复');
+        toast.warning('新密码不能与当前密码相同', { title: '密码重复' });
         return false;
     }
 
     // 密码强度验证
     const strength = getPasswordStrength(newPassword);
     if (strength.strength < 2) {
-        showWarningAlert('密码强度太弱，请使用更复杂的密码', '密码强度不足');
+        toast.warning('密码强度太弱，请使用更复杂的密码', { title: '密码强度不足' });
         return false;
     }
 
@@ -287,21 +287,6 @@ function hideLoadingState(form) {
         submitBtn.innerHTML = '<i class="fas fa-key me-2"></i>更新密码';
         submitBtn.disabled = false;
     }
-}
-
-// 显示警告提示
-function showWarningAlert(message, title = '警告') {
-    notify.warning(message, { title });
-}
-
-// 显示错误提示
-function showErrorAlert(message, title = '错误') {
-    notify.error(message, { title });
-}
-
-// 显示成功提示
-function showSuccessAlert(message, title = '成功') {
-    notify.success(message, { title });
 }
 
 // 密码要求检查
@@ -339,6 +324,3 @@ function updatePasswordRequirements(password) {
 // 导出函数供全局使用
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.validateForm = validateForm;
-window.showWarningAlert = showWarningAlert;
-window.showErrorAlert = showErrorAlert;
-window.showSuccessAlert = showSuccessAlert;

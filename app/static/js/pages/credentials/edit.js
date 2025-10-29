@@ -231,28 +231,28 @@ function handleFormSubmission(event, form) {
 function validateForm(name, credentialType, dbType, username, password) {
     // 基本验证
     if (!name || !credentialType || !username || !password) {
-        notify.warning('所有必填字段都不能为空');
+        toast.warning('所有必填字段都不能为空');
         return false;
     }
 
     if (name.length < 2) {
-        notify.warning('凭据名称至少需要2个字符');
+        toast.warning('凭据名称至少需要2个字符');
         return false;
     }
 
     if (username.length < 2) {
-        notify.warning('用户名至少需要2个字符');
+        toast.warning('用户名至少需要2个字符');
         return false;
     }
 
     if (password.length < 6) {
-        notify.warning('密码至少需要6个字符');
+        toast.warning('密码至少需要6个字符');
         return false;
     }
 
     // 数据库类型验证
     if (credentialType === 'database' && !dbType) {
-        notify.warning('请选择数据库类型');
+        toast.warning('请选择数据库类型');
         return false;
     }
 
@@ -275,18 +275,6 @@ function hideLoadingState(form) {
         submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>保存更改';
         submitBtn.disabled = false;
     }
-}
-
-function showSuccessAlert(message) {
-    notify.success(message);
-}
-
-function showWarningAlert(message) {
-    notify.warning(message);
-}
-
-function showErrorAlert(message) {
-    notify.error(message);
 }
 
 // 密码强度检查
@@ -360,6 +348,3 @@ function updatePasswordStrength(password) {
 // 导出函数供全局使用
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.validateForm = validateForm;
-window.showSuccessAlert = showSuccessAlert;
-window.showWarningAlert = showWarningAlert;
-window.showErrorAlert = showErrorAlert;
