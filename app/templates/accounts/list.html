@@ -1,11 +1,11 @@
 {% extends "base.html" %}
+{% from 'components/filters/macros.html' import filter_card, search_input, classification_filter, tag_selector_filter %}
 
 {% block title %}账户管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/list.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -33,17 +33,11 @@
 
     <!-- 搜索和筛选 -->
     <div class="accounts-page">
-        {% set show_db_type_filter = false %}
-        {% set show_classification_filter = true %}
-        {% set show_credential_type_filter = false %}
-        {% set show_tag_category_filter = false %}
-        {% set show_status_filter = false %}
-        {% set show_level_filter = false %}
-        {% set show_module_filter = false %}
-        {% set show_time_range_filter = false %}
-        {% set show_tag_filter = true %}
-        {% set form_action = url_for('account.list_accounts') %}
-        {% include 'components/unified_search_form.html' %}
+        {% call filter_card(form_id='account-filter-form', action=request.path) %}
+            {{ search_input(value=search, placeholder='搜索账户 / 实例') }}
+            {{ classification_filter(classification_options, classification) }}
+            {{ tag_selector_filter(tag_options, selected_tags, field_id='account-tag-selector') }}
+        {% endcall %}
     </div>
 
 
@@ -55,10 +49,10 @@
                    class="btn {% if not current_db_type %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}">
                     <i class="fas fa-database me-1"></i>全部
                 </a>
-                {% for db_type in filter_options.db_types %}
+                {% for db_type in database_type_options %}
                 <a href="{{ url_for('account.list_accounts', db_type=db_type.value) }}"
                    class="btn {% if current_db_type == db_type.value %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}">
-                    <i class="fas fa-{{ 'mysql' if db_type.value == 'mysql' else 'database' if db_type.value == 'postgresql' else 'server' if db_type.value == 'sqlserver' else 'database' }} me-1"></i>
+                    <i class="fas {{ db_type.icon }} me-1"></i>
                     {{ db_type.label }}
                 </a>
                 {% endfor %}
@@ -256,18 +250,22 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
             </div>
-        </div>
-    </div>
+</div>
+</div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<!-- 标签选择器组件 -->
 <div id="list-page-tag-selector">
     {% include 'components/tag_selector.html' %}
 </div>
 
-<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
+{% block extra_js %}
 <script src="{{ url_for('static', filename='js/pages/accounts/list.js') }}"></script>
-
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (window.FilterUtils) {
+        FilterUtils.registerFilterForm('#account-filter-form');
+    }
+});
+</script>
 {% endblock %}

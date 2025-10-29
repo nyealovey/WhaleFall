@@ -211,7 +211,8 @@ templates/
 ├── account_classification/ # 账户分类模板
 │   └── account_classification.html
 └── components/             # 组件模板
-    ├── unified_search_form.html
+    ├── filters/            # 统一筛选宏
+    │   └── macros.html
     └── tag_selector.html
 ```
 

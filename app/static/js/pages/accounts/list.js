@@ -8,11 +8,6 @@ let accountListTagSelector = null;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 初始化统一搜索组件
-    if (typeof UnifiedSearch !== 'undefined' && typeof window.unifiedSearch === 'undefined') {
-        window.unifiedSearch = new UnifiedSearch('unified-search-form');
-    }
-    
     // 如果TagSelector类还没有加载，等待一下
     if (typeof TagSelector === 'undefined') {
         setTimeout(() => {

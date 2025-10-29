@@ -15,6 +15,8 @@ from app.utils.decorators import create_required, delete_required, require_csrf,
 from app.utils.data_validator import validate_required_fields
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
+from app.config.filter_options import STATUS_ACTIVE_OPTIONS
+from app.utils.filter_data import get_tag_categories
 
 # 创建蓝图
 tags_bp = Blueprint("tags", __name__)
@@ -29,7 +31,8 @@ def index() -> str:
     per_page = request.args.get("per_page", 20, type=int)
     search = request.args.get("search", "", type=str)
     category = request.args.get("category", "", type=str)
-    status = request.args.get("status", "all", type=str)
+    status_param = request.args.get("status", "all", type=str)
+    status_filter = status_param if status_param not in {"", "all"} else ""
 
     # 构建查询
     query = Tag.query
@@ -46,9 +49,9 @@ def index() -> str:
     if category:
         query = query.filter(Tag.category == category)
 
-    if status == "active":
+    if status_filter == "active":
         query = query.filter_by(is_active=True)
-    elif status == "inactive":
+    elif status_filter == "inactive":
         query = query.filter_by(is_active=False)
     # 移除软删除相关逻辑，因为现在使用硬删除
 
@@ -61,16 +64,17 @@ def index() -> str:
     )
 
     # 获取分类选项
-    categories = Tag.get_category_choices()
+    category_options = [{"value": "", "label": "全部分类"}] + get_tag_categories()
+    status_options = STATUS_ACTIVE_OPTIONS
 
     return render_template(
         "tags/index.html",
         tags=tags,
         search=search,
-        search_value=search,
         category=category,
-        status=status,
-        categories=categories,
+        status=status_param,
+        category_options=category_options,
+        status_options=status_options,
     )
 
 

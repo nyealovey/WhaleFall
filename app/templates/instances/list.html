@@ -1,11 +1,11 @@
 {% extends "base.html" %}
+{% from 'components/filters/macros.html' import filter_card, search_input, db_type_filter, status_active_filter, tag_selector_filter %}
 
 {% block title %}实例管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/list.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -37,16 +37,12 @@
 
     <!-- 搜索和筛选 -->
     <div class="instances-page">
-        {% set show_db_type_filter = true %}
-        {% set show_classification_filter = false %}
-        {% set show_credential_type_filter = false %}
-        {% set show_tag_category_filter = false %}
-        {% set show_status_filter = true %}
-        {% set show_level_filter = false %}
-        {% set show_module_filter = false %}
-        {% set show_time_range_filter = false %}
-        {% set show_tag_filter = true %}
-        {% include 'components/unified_search_form.html' %}
+        {% call filter_card(form_id='instance-filter-form', action=url_for('instances.index')) %}
+            {{ search_input(value=search) }}
+            {{ db_type_filter(database_type_options, db_type) }}
+            {{ status_active_filter(status_options, status) }}
+            {{ tag_selector_filter(tag_options, selected_tags) }}
+        {% endcall %}
     </div>
 
 <!-- 批量测试进度显示 -->
@@ -116,7 +112,7 @@
                             </div>
                         </td>
                         <td>
-                            {% set db_type_config = database_types | selectattr('name', 'equalto', instance.db_type) | first %}
+                            {% set db_type_config = database_type_map.get(instance.db_type) %}
                             {% if db_type_config %}
                             <span class="badge bg-{{ db_type_config.color }}">
                                 <i class="fas {{ db_type_config.icon }} me-1"></i>{{ db_type_config.display_name }}
@@ -354,19 +350,24 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                 <button type="button" class="btn btn-primary" onclick="submitBatchCreate()">创建实例</button>
             </div>
-        </div>
-    </div>
+</div>
+</div>
 </div>
 {% endblock %}
 
 
-{% block extra_js %}
-<!-- 标签选择器组件 -->
 <div id="list-page-tag-selector">
     {% include 'components/tag_selector.html' %}
 </div>
 
-<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/instances/list.js') }}"></script>
 
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/instances/list.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (window.FilterUtils) {
+        FilterUtils.registerFilterForm('#instance-filter-form');
+    }
+});
+</script>
 {% endblock %}

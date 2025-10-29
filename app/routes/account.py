@@ -7,6 +7,7 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
 from app.constants import DatabaseType
+from app.config.filter_options import DATABASE_TYPES
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -20,6 +21,7 @@ from app.utils.decorators import update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
+from app.utils.filter_data import get_active_tag_options, get_classification_options
 
 # 创建蓝图
 account_bp = Blueprint("account", __name__)
@@ -40,7 +42,13 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     is_superuser = request.args.get("is_superuser")
     plugin = request.args.get("plugin", "").strip()
     tags = [tag for tag in request.args.getlist("tags") if tag.strip()]
-    classification = request.args.get("classification", "").strip()
+    if not tags:
+        raw_tags = request.args.get("tags", "")
+        if raw_tags:
+            tags = [tag.strip() for tag in raw_tags.split(",") if tag.strip()]
+    classification_param = request.args.get("classification", "").strip()
+    classification_filter = classification_param if classification_param not in {"", "all"} else ""
+    classification = classification_param
 
     # 构建查询
     query = CurrentAccountSyncData.query.filter_by(is_deleted=False)
@@ -97,12 +105,12 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     # 标签过滤逻辑
 
     # 分类过滤 - 使用分配表查询（现在分配表数据是准确的）
-    if classification and classification != "all":
+    if classification_filter:
         from app.models.account_classification import AccountClassification, AccountClassificationAssignment
 
         try:
             # 将字符串转换为整数
-            classification_id = int(classification)
+            classification_id = int(classification_filter)
             
             # 通过分类分配表进行过滤
             query = (
@@ -115,7 +123,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
             log_error(
                 "分类ID转换失败",
                 module="account",
-                classification=classification,
+                classification=classification_filter,
                 error=str(e),
             )
             # 如果转换失败，忽略分类过滤
@@ -127,13 +135,6 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     # 分页
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
-    # 获取实例列表用于过滤
-    instances = Instance.query.filter_by(is_active=True).all()
-    
-    # 获取分类列表用于筛选
-    from app.models.account_classification import AccountClassification
-    classifications_list = AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc(), AccountClassification.name.asc()).all()
-
     # 获取统计信息
     stats = {
         "total": CurrentAccountSyncData.query.filter_by(is_deleted=False).count(),
@@ -143,27 +144,18 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
         "sqlserver": CurrentAccountSyncData.query.filter_by(db_type="sqlserver", is_deleted=False).count(),
     }
 
-    # 获取实际的分类选项
-    from app.models.account_classification import AccountClassification
-
-    classification_list = (
-        AccountClassification.query.filter_by(is_active=True).order_by(AccountClassification.priority.desc()).all()
-    )
-
-    # 构建过滤选项
-    filter_options = {
-        "db_types": [
-            {"value": "mysql", "label": "MySQL"},
-            {"value": "postgresql", "label": "PostgreSQL"},
-            {"value": "oracle", "label": "Oracle"},
-            {"value": "sqlserver", "label": "SQL Server"},
-        ],
-        "classifications": [
-            {"value": "all", "label": "全部分类"},
-        ]
-        + [{"value": str(c.id), "label": c.name} for c in classification_list],
-        "all_tags": Tag.query.all(),
-    }
+    instances = Instance.query.filter_by(is_active=True).all()
+    classification_options = [{"value": "all", "label": "全部分类"}] + get_classification_options()
+    tag_options = get_active_tag_options()
+    database_type_options = [
+        {
+            "value": item["name"],
+            "label": item["display_name"],
+            "icon": item.get("icon", "fa-database"),
+            "color": item.get("color", "primary"),
+        }
+        for item in DATABASE_TYPES
+    ]
 
     # 获取账户分类信息
     from app.models.account_classification import AccountClassificationAssignment
@@ -200,6 +192,11 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
                 },
                 "stats": stats,
                 "instances": [instance.to_dict() for instance in instances],
+                "filter_options": {
+                    "db_types": database_type_options,
+                    "classifications": classification_options,
+                    "tags": tag_options,
+                },
             },
             message="获取账户列表成功",
         )
@@ -214,7 +211,6 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
         db_type=db_type or "all",
         current_db_type=db_type,
         search=search,
-        search_value=search,
         instance_id=instance_id,
         is_locked=is_locked,
         is_superuser=is_superuser,
@@ -223,9 +219,10 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
         classification=classification,
         instances=instances,
         stats=stats,
-        filter_options=filter_options,
+        database_type_options=database_type_options,
+        classification_options=classification_options,
+        tag_options=tag_options,
         classifications=classifications,
-        classifications_list=classifications_list,
         persist_query_args=persist_query_args,
     )
 

@@ -18,6 +18,8 @@ from app.utils.decorators import admin_required, require_csrf
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
+from app.config.filter_options import LOG_LEVELS, TIME_RANGES
+from app.utils.filter_data import get_log_modules
 
 # 创建蓝图
 logs_bp = Blueprint("logs", __name__)
@@ -28,7 +30,14 @@ logs_bp = Blueprint("logs", __name__)
 def logs_dashboard() -> str | tuple[dict, int]:
     """日志中心仪表板"""
     try:
-        return render_template("history/logs.html")
+        module_values = get_log_modules()
+        module_options = [{"value": value, "label": value} for value in module_values]
+        return render_template(
+            "history/logs.html",
+            log_level_options=LOG_LEVELS,
+            module_options=module_options,
+            time_range_options=TIME_RANGES,
+        )
     except Exception as e:
         log_error("Failed to render logs dashboard", module="logs", error=str(e))
         raise SystemError("Failed to load logs dashboard") from e

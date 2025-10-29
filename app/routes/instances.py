@@ -15,6 +15,8 @@ from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
+from app.config.filter_options import STATUS_ACTIVE_OPTIONS
+from app.utils.filter_data import get_active_tag_options
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.data_validator import (
     DataValidator,
@@ -128,9 +130,12 @@ def index() -> str:
     per_page = request.args.get("per_page", 10, type=int)
     search = request.args.get("search", "", type=str)
     db_type = request.args.get("db_type", "", type=str)
-    status = request.args.get("status", "", type=str)
-    tags_str = request.args.get("tags", "")
-    tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
+    status_param = request.args.get("status", "", type=str)
+    status_filter = status_param if status_param not in {"", "all"} else ""
+    tags = request.args.getlist("tags")
+    if not tags:
+        tags_str = request.args.get("tags", "")
+        tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
 
     # 构建查询
     query = Instance.query
@@ -147,10 +152,10 @@ def index() -> str:
     if db_type:
         query = query.filter(Instance.db_type == db_type)
     
-    if status:
-        if status == 'active':
+    if status_filter:
+        if status_filter == 'active':
             query = query.filter(Instance.is_active == True)
-        elif status == 'inactive':
+        elif status_filter == 'inactive':
             query = query.filter(Instance.is_active == False)
 
     # 标签筛选
@@ -166,22 +171,40 @@ def index() -> str:
     # 获取数据库类型配置
     from app.services.database_type_service import DatabaseTypeService
 
-    database_types = DatabaseTypeService.get_active_types()
+    database_type_configs = DatabaseTypeService.get_active_types()
+    database_type_options = [
+        {
+            "value": config.name,
+            "label": config.display_name,
+            "icon": config.icon or "fa-database",
+            "color": config.color or "primary",
+        }
+        for config in database_type_configs
+    ]
+    database_type_map = {
+        config.name: {
+            "display_name": config.display_name,
+            "icon": config.icon or "fa-database",
+            "color": config.color or "primary",
+        }
+        for config in database_type_configs
+    }
 
-    # 获取所有标签用于筛选
-    all_tags = Tag.get_active_tags()
+    tag_options = get_active_tag_options()
     
     return render_template(
         "instances/list.html",
         instances=instances,
         credentials=credentials,
-        database_types=database_types,
-        all_tags=all_tags,
+        database_type_options=database_type_options,
+        database_type_map=database_type_map,
+        tag_options=tag_options,
+        status_options=STATUS_ACTIVE_OPTIONS,
         selected_tags=tags,
         search=search,
         search_value=search,
         db_type=db_type,
-        status=status,
+        status=status_param,
     )
 
 

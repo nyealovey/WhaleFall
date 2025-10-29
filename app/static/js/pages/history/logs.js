@@ -10,7 +10,7 @@ let currentFilters = {};
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function () {
     initializePage();
-    initUnifiedSearch();
+    setupFilterForm();
 });
 
 // 初始化页面
@@ -22,11 +22,58 @@ function initializePage() {
     searchLogs();
 }
 
+function setupFilterForm() {
+    if (!window.FilterUtils) {
+        return;
+    }
+    const entry = FilterUtils.registerFilterForm('#logs-filter-form', {
+        onSubmit: () => {
+            currentPage = 1;
+            applyFilters();
+        },
+        onClear: () => {
+            currentFilters = {};
+            clearFilters();
+        },
+    });
+
+    const form = entry?.element || document.getElementById('logs-filter-form');
+    if (!form) {
+        return;
+    }
+
+    const searchInput = form.querySelector('#search');
+    if (searchInput) {
+        searchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                applyFilters();
+            }
+        });
+    }
+
+    form.querySelectorAll('select').forEach((select) => {
+        select.addEventListener('change', () => {
+            applyFilters();
+        });
+    });
+}
+
 // 设置默认时间范围
 function setDefaultTimeRange() {
     const timeRangeSelect = document.getElementById('timeRange');
-    if (timeRangeSelect && !timeRangeSelect.value) {
-        timeRangeSelect.value = '1d';
+    if (!timeRangeSelect) {
+        return;
+    }
+
+    const defaultValue = '1d';
+    if (timeRangeSelect.tomselect) {
+        const currentValue = timeRangeSelect.tomselect.getValue();
+        if (!currentValue) {
+            timeRangeSelect.tomselect.setValue(defaultValue, true);
+        }
+    } else if (!timeRangeSelect.value) {
+        timeRangeSelect.value = defaultValue;
     }
 }
 
@@ -46,9 +93,29 @@ function loadModules() {
 // 更新模块筛选器
 function updateModuleFilter(modules) {
     const moduleSelect = document.getElementById('moduleFilter');
-    if (moduleSelect) {
+    if (!moduleSelect) {
+        return;
+    }
+
+    const options = modules || [];
+
+    if (moduleSelect.tomselect) {
+        const ts = moduleSelect.tomselect;
+        const currentValue = ts.getValue();
+        ts.clearOptions();
+        ts.addOption({ value: '', text: '全部模块' });
+        options.forEach((module) => {
+            ts.addOption({ value: module, text: module });
+        });
+        ts.refreshOptions(false);
+        if (currentValue && options.includes(currentValue)) {
+            ts.setValue(currentValue, true);
+        } else {
+            ts.setValue('', true);
+        }
+    } else {
         moduleSelect.innerHTML = '<option value="">全部模块</option>';
-        modules.forEach(module => {
+        options.forEach((module) => {
             const option = document.createElement('option');
             option.value = module;
             option.textContent = module;
@@ -443,13 +510,33 @@ function copyLogDetail() {
 function resetFilters() {
     const levelFilter = document.getElementById('levelFilter');
     const moduleFilter = document.getElementById('moduleFilter');
-    const searchTerm = document.getElementById('searchTerm');
+    const searchTerm = document.getElementById('search');
     const timeRange = document.getElementById('timeRange');
 
-    if (levelFilter) levelFilter.value = '';
-    if (moduleFilter) moduleFilter.value = '';
-    if (searchTerm) searchTerm.value = '';
-    if (timeRange) timeRange.value = '1d';
+    if (levelFilter) {
+        if (levelFilter.tomselect) {
+            levelFilter.tomselect.clear(true);
+        } else {
+            levelFilter.value = '';
+        }
+    }
+    if (moduleFilter) {
+        if (moduleFilter.tomselect) {
+            moduleFilter.tomselect.clear(true);
+        } else {
+            moduleFilter.value = '';
+        }
+    }
+    if (searchTerm) {
+        searchTerm.value = '';
+    }
+    if (timeRange) {
+        if (timeRange.tomselect) {
+            timeRange.tomselect.setValue('1d', true);
+        } else {
+            timeRange.value = '1d';
+        }
+    }
 
     searchLogs(1);
 }
@@ -462,72 +549,6 @@ function showError(message) {
 // 显示成功信息
 function showSuccess(message) {
     toast.success(message);
-}
-
-// 初始化统一搜索组件
-function initUnifiedSearch() {
-    // 检查是否已经有全局的UnifiedSearch实例
-    if (window.unifiedSearchInstance) {
-        // 重写搜索和清除方法
-        window.unifiedSearchInstance.handleSubmit = function (e) {
-            e.preventDefault();
-            applyFilters();
-        };
-
-        window.unifiedSearchInstance.clearForm = function () {
-            // 清除所有筛选条件
-            const inputs = this.form.querySelectorAll('.unified-input');
-            inputs.forEach(input => {
-                input.value = '';
-            });
-
-            const selects = this.form.querySelectorAll('.unified-select');
-            selects.forEach(select => {
-                select.selectedIndex = 0;
-            });
-
-            // 刷新数据
-            currentFilters = {};
-            searchLogs(1);
-        };
-
-        return;
-    }
-
-    // 等待统一搜索组件加载完成
-    if (typeof UnifiedSearch !== 'undefined') {
-        const searchForm = document.querySelector('.unified-search-form');
-
-        if (searchForm) {
-            const unifiedSearch = new UnifiedSearch(searchForm);
-
-            // 重写搜索和清除方法
-            unifiedSearch.handleSubmit = function (e) {
-                e.preventDefault();
-                applyFilters();
-            };
-
-            unifiedSearch.clearForm = function () {
-                // 清除所有筛选条件
-                const inputs = this.form.querySelectorAll('.unified-input');
-                inputs.forEach(input => {
-                    input.value = '';
-                });
-
-                const selects = this.form.querySelectorAll('.unified-select');
-                selects.forEach(select => {
-                    select.selectedIndex = 0;
-                });
-
-                // 刷新数据
-                currentFilters = {};
-                searchLogs(1);
-            };
-        }
-    } else {
-        // 如果统一搜索组件未加载，使用传统方式
-        setTimeout(initUnifiedSearch, 100);
-    }
 }
 
 // 应用筛选条件
@@ -554,6 +575,7 @@ function applyFilters() {
         hours: hours || 24
     };
 
+    currentPage = 1;
     // 更新统计卡片和日志列表
     loadStats();
     searchLogs(1);
@@ -568,7 +590,11 @@ window.clearFilters = function () {
     // 重置时间范围为最近1天
     const timeRangeEl = document.getElementById('timeRange');
     if (timeRangeEl) {
-        timeRangeEl.value = '1d';
+        if (timeRangeEl.tomselect) {
+            timeRangeEl.tomselect.setValue('1d', true);
+        } else {
+            timeRangeEl.value = '1d';
+        }
     }
     // 更新统计卡片和日志列表
     loadStats();

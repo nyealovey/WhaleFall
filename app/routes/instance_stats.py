@@ -16,6 +16,8 @@ from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
+from app.config.filter_options import DATABASE_TYPES, PERIOD_TYPES
+from app.utils.filter_data import get_instance_options
 
 # 创建蓝图
 instance_stats_bp = Blueprint('instance_stats', __name__)
@@ -44,37 +46,40 @@ def instance_aggregations():
     实例统计聚合页面（实例统计层面）
     返回HTML页面
     """
-    # 获取实例列表用于筛选
-    instances = Instance.query.filter_by(is_active=True).order_by(Instance.id).all()
-    instances_list = []
-    for instance in instances:
-        instances_list.append({
-            'id': instance.id,
-            'name': instance.name,
-            'db_type': instance.db_type
-        })
-    
-    # 获取数据库类型列表用于筛选
-    from app.services.database_type_service import DatabaseTypeService
-    database_types = [
-        {
-            'name': db_type.name,
-            'display_name': db_type.display_name
-        }
-        for db_type in DatabaseTypeService.get_active_types()
-    ]
-
     # 读取已选择的筛选条件以便回填
     selected_db_type = request.args.get('db_type', '')
     selected_instance = request.args.get('instance', '')
     selected_period_type = request.args.get('period_type', 'daily')
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
+
+    from app.services.database_type_service import DatabaseTypeService
+    database_type_configs = DatabaseTypeService.get_active_types()
+    if database_type_configs:
+        database_type_options = [
+            {
+                'value': config.name,
+                'label': config.display_name,
+            }
+            for config in database_type_configs
+        ]
+    else:
+        database_type_options = [
+            {
+                'value': item['name'],
+                'label': item['display_name'],
+            }
+            for item in DATABASE_TYPES
+        ]
+
+    instance_options = get_instance_options(selected_db_type or None) if selected_db_type else []
+
     
     return render_template(
         'database_sizes/instance_aggregations.html',
-        instances_list=instances_list,
-        database_types=database_types,
+        instance_options=instance_options,
+        database_type_options=database_type_options,
+        period_type_options=PERIOD_TYPES,
         db_type=selected_db_type,
         instance=selected_instance,
         period_type=selected_period_type,

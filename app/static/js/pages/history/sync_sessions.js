@@ -17,9 +17,35 @@
     loadSessions();
     setInterval(loadSessions, 30000);
 
-    // 初始化统一搜索组件
-    initUnifiedSearch();
+    setupFilterForm();
   });
+
+  function setupFilterForm() {
+    if (!window.FilterUtils) {
+      return;
+    }
+
+    const entry = FilterUtils.registerFilterForm('#sync-sessions-filter-form', {
+      onSubmit: () => {
+        applyFilters();
+      },
+      onClear: () => {
+        currentFilters = {};
+        loadSessions(1);
+      },
+    });
+
+    const form = entry?.element || document.getElementById('sync-sessions-filter-form');
+    if (!form) {
+      return;
+    }
+
+    form.querySelectorAll('select').forEach((select) => {
+      select.addEventListener('change', () => {
+        applyFilters();
+      });
+    });
+  }
 
   window.loadSessions = function (page = 1) {
     currentPage = page;
@@ -374,72 +400,6 @@
     }
   }
 
-  // 初始化统一搜索组件
-  function initUnifiedSearch() {
-    // 检查是否已经有全局的UnifiedSearch实例
-    if (window.unifiedSearchInstance) {
-      // 重写搜索和清除方法
-      window.unifiedSearchInstance.handleSubmit = function (e) {
-        e.preventDefault();
-        applyFilters();
-      };
-
-      window.unifiedSearchInstance.clearForm = function () {
-        // 清除所有筛选条件
-        const inputs = this.form.querySelectorAll('.unified-input');
-        inputs.forEach(input => {
-          input.value = '';
-        });
-
-        const selects = this.form.querySelectorAll('.unified-select');
-        selects.forEach(select => {
-          select.selectedIndex = 0;
-        });
-
-        // 刷新数据
-        currentFilters = {};
-        loadSessions();
-      };
-
-      return;
-    }
-
-    // 等待统一搜索组件加载完成
-    if (typeof UnifiedSearch !== 'undefined') {
-      const searchForm = document.querySelector('.unified-search-form');
-
-      if (searchForm) {
-        const unifiedSearch = new UnifiedSearch(searchForm);
-
-        // 重写搜索和清除方法
-        unifiedSearch.handleSubmit = function (e) {
-          e.preventDefault();
-          applyFilters();
-        };
-
-        unifiedSearch.clearForm = function () {
-          // 清除所有筛选条件
-          const inputs = this.form.querySelectorAll('.unified-input');
-          inputs.forEach(input => {
-            input.value = '';
-          });
-
-          const selects = this.form.querySelectorAll('.unified-select');
-          selects.forEach(select => {
-            select.selectedIndex = 0;
-          });
-
-          // 刷新数据
-          currentFilters = {};
-          loadSessions();
-        };
-      }
-    } else {
-      // 如果统一搜索组件未加载，使用传统方式
-      setTimeout(initUnifiedSearch, 100);
-    }
-  }
-
   // 应用筛选条件
   function applyFilters() {
     // 从统一搜索组件获取筛选条件
@@ -452,19 +412,16 @@
     const syncCategory = syncCategoryEl?.value || '';
     const status = statusEl?.value || '';
 
-    currentFilters = {
-      sync_type: syncType,
-      sync_category: syncCategory,
-      status: status
-    };
+  currentFilters = {
+    sync_type: syncType,
+    sync_category: syncCategory,
+    status: status
+  };
 
+    currentPage = 1;
     // 重置到第一页并加载会话数据
     loadSessions(1);
 
-    // 隐藏统一搜索组件的加载状态
-    if (window.unifiedSearchInstance) {
-      window.unifiedSearchInstance.hideLoading();
-    }
   }
 
   // 将函数暴露到全局作用域

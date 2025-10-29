@@ -1,10 +1,10 @@
 {% extends "base.html" %}
+{% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, period_type_filter %}
 
 {% block title %}容量统计(实例) - 数据库大小监控{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/capacity_stats/instance_aggregations.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -28,27 +28,21 @@
         </div>
     </div>
 
-    <!-- 统一搜索筛选 -->
+    <!-- 筛选区域 -->
     <div class="mb-4">
-        <div class="instance-aggregations-page">
-            {% set show_search_input = false %}
-            {% set search_button_text = '筛选' %}
-            {% set show_instance_filter = true %}
-            {% set show_period_type_filter = true %}
-            {% set show_database_filter = false %}
-            {% set show_time_range_filter = false %}
-            {% set show_db_type_filter = true %}
-            {% set show_classification_filter = false %}
-            {% set show_credential_type_filter = false %}
-            {% set show_tag_category_filter = false %}
-            {% set show_status_filter = false %}
-            {% set show_level_filter = false %}
-            {% set show_module_filter = false %}
-            {% set show_tag_filter = false %}
-            {% set show_sync_type_filter = false %}
-            {% set show_sync_category_filter = false %}
-            {% include 'components/unified_search_form.html' %}
-        </div>
+        {% call filter_card(form_id='instance-aggregations-filter-form', action=url_for('instance_stats.instance_aggregations')) %}
+            {{ db_type_filter(database_type_options, db_type, use_tom_select=False) }}
+            {{ instance_filter(instance_options, instance, disabled=(not db_type), use_tom_select=False) }}
+            {{ period_type_filter(period_type_options, period_type, use_tom_select=False) }}
+            <div class="col-12 col-lg-2 col-xl-2">
+                <label for="start_date" class="form-label">开始日期</label>
+                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+            </div>
+            <div class="col-12 col-lg-2 col-xl-2">
+                <label for="end_date" class="form-label">结束日期</label>
+                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+            </div>
+        {% endcall %}
     </div>
 
     <!-- 统计概览 -->
@@ -330,38 +324,62 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/capacity_stats/instance_aggregations.js') }}"></script>
 <script>
-// 页面加载完成后初始化实例统计页面
-document.addEventListener('DOMContentLoaded', function() {
-    // 等待Chart.js和统一搜索组件加载完成
+document.addEventListener('DOMContentLoaded', function () {
     function initManager() {
-        if (typeof Chart !== 'undefined' && typeof InstanceAggregationsManager !== 'undefined' && typeof UnifiedSearch !== 'undefined') {
-            // 初始化统一搜索组件
-            window.unifiedSearch = new UnifiedSearch('unified-search-form');
-            
-            // 初始化实例统计管理器
-            window.instanceAggregationsManager = new InstanceAggregationsManager();
-            
-            // 为统一搜索组件提供筛选函数
-            window.applyFilters = function() {
-                if (window.instanceAggregationsManager) {
+        if (typeof Chart === 'undefined' || typeof InstanceAggregationsManager === 'undefined') {
+            setTimeout(initManager, 100);
+            return;
+        }
+
+        window.instanceAggregationsManager = new InstanceAggregationsManager();
+
+        if (window.FilterUtils) {
+            const entry = FilterUtils.registerFilterForm('#instance-aggregations-filter-form', {
+                onSubmit: () => {
                     window.instanceAggregationsManager.applyFilters();
-                }
-            };
-            
-            window.clearFilters = function() {
-                if (window.instanceAggregationsManager) {
+                },
+                onClear: () => {
                     window.instanceAggregationsManager.resetFilters();
                 }
-            };
-        } else {
-            // 如果依赖还没加载完成，等待100ms后重试
-            setTimeout(initManager, 100);
+            });
+
+            const form = entry?.element || document.getElementById('instance-aggregations-filter-form');
+            if (form) {
+                const dbTypeSelect = form.querySelector('#db_type');
+                if (dbTypeSelect) {
+                    dbTypeSelect.addEventListener('change', (event) => {
+                        window.instanceAggregationsManager.updateInstanceOptions(event.target.value, { preserveSelection: false })
+                            .then(() => {
+                                window.instanceAggregationsManager.applyFilters();
+                            });
+                    });
+                }
+
+                const instanceSelect = form.querySelector('#instance');
+                if (instanceSelect) {
+                    instanceSelect.addEventListener('change', () => {
+                        window.instanceAggregationsManager.applyFilters();
+                    });
+                }
+
+                const periodSelect = form.querySelector('#period_type');
+                if (periodSelect) {
+                    periodSelect.addEventListener('change', () => {
+                        window.instanceAggregationsManager.applyFilters();
+                    });
+                }
+
+                form.querySelectorAll('#start_date, #end_date').forEach((input) => {
+                    input.addEventListener('change', () => {
+                        window.instanceAggregationsManager.applyFilters();
+                    });
+                });
+            }
         }
     }
-    
+
     initManager();
 });
 </script>

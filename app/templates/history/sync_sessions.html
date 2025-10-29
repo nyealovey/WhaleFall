@@ -1,10 +1,10 @@
 {% extends "base.html" %}
+{% from 'components/filters/macros.html' import filter_card, sync_type_filter, sync_category_filter, status_sync_filter %}
 
 {% block title %}会话中心 - 鲸落{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history/sync_sessions.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -26,21 +26,11 @@
 
             <!-- 搜索和筛选 -->
             <div class="sync-sessions-page">
-                {% set show_search_input = false %}
-                {% set search_button_text = '筛选' %}
-                {% set status_filter_type = 'sync_session' %}
-                {% set show_db_type_filter = false %}
-                {% set show_classification_filter = false %}
-                {% set show_credential_type_filter = false %}
-                {% set show_tag_category_filter = false %}
-                {% set show_status_filter = true %}
-                {% set show_level_filter = false %}
-                {% set show_module_filter = false %}
-                {% set show_time_range_filter = false %}
-                {% set show_tag_filter = false %}
-                {% set show_sync_type_filter = true %}
-                {% set show_sync_category_filter = true %}
-                {% include 'components/unified_search_form.html' %}
+                {% call filter_card(form_id='sync-sessions-filter-form', action=url_for('sync_sessions.index')) %}
+                    {{ sync_type_filter(sync_type_options, '', col_class='col-12 col-lg-3 col-xl-3') }}
+                    {{ sync_category_filter(sync_category_options, '', col_class='col-12 col-lg-3 col-xl-3') }}
+                    {{ status_sync_filter(status_options, '', col_class='col-12 col-lg-3 col-xl-3') }}
+                {% endcall %}
             </div>
 
             <!-- 会话列表 -->
@@ -111,6 +101,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/history/sync_sessions.js') }}"></script>
 {% endblock %}
