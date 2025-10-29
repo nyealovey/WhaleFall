@@ -62,7 +62,7 @@ function setupFilterForm() {
 
 // 设置默认时间范围
 function setDefaultTimeRange() {
-    const timeRangeSelect = document.getElementById('timeRange');
+    const timeRangeSelect = document.getElementById('time_range');
     if (!timeRangeSelect) {
         return;
     }
@@ -93,12 +93,13 @@ function loadModules() {
 
 // 更新模块筛选器
 function updateModuleFilter(modules) {
-    const moduleSelect = document.getElementById('moduleFilter');
+    const moduleSelect = document.getElementById('module');
     if (!moduleSelect) {
         return;
     }
 
     const options = modules || [];
+    const previousValue = moduleSelect.value;
 
     if (moduleSelect.tomselect) {
         const ts = moduleSelect.tomselect;
@@ -122,6 +123,9 @@ function updateModuleFilter(modules) {
             option.textContent = module;
             moduleSelect.appendChild(option);
         });
+        if (previousValue && options.includes(previousValue)) {
+            moduleSelect.value = previousValue;
+        }
     }
 }
 
@@ -131,10 +135,10 @@ function loadStats() {
     const params = new URLSearchParams();
 
     // 获取当前筛选条件
-    const levelEl = document.getElementById('levelFilter');
-    const moduleEl = document.getElementById('moduleFilter');
+    const levelEl = document.getElementById('level');
+    const moduleEl = document.getElementById('module');
     const searchEl = document.getElementById('search');
-    const timeRangeEl = document.getElementById('timeRange');
+    const timeRangeEl = document.getElementById('time_range');
 
     if (levelEl && levelEl.value) params.append('level', levelEl.value);
     if (moduleEl && moduleEl.value) params.append('module', moduleEl.value);
@@ -196,15 +200,15 @@ function searchLogs(page = 1) {
 
     // 如果currentFilters为空，从DOM元素获取（兼容旧代码）
     if (Object.keys(currentFilters).length === 0) {
-        const levelFilter = document.getElementById('levelFilter');
-        const moduleFilter = document.getElementById('moduleFilter');
-        const searchTerm = document.getElementById('searchTerm');
-        const timeRange = document.getElementById('timeRange');
+        const levelFilter = document.getElementById('level');
+        const moduleFilter = document.getElementById('module');
+        const searchInput = document.getElementById('search');
+        const timeRange = document.getElementById('time_range');
 
         currentFilters = {
             level: levelFilter ? levelFilter.value : '',
             module: moduleFilter ? moduleFilter.value : '',
-            q: searchTerm ? searchTerm.value : '',
+            q: searchInput ? searchInput.value : '',
             hours: timeRange ? getHoursFromTimeRange(timeRange.value) : 24
         };
     }
@@ -509,10 +513,10 @@ function copyLogDetail() {
 
 // 重置筛选器
 function resetFilters() {
-    const levelFilter = document.getElementById('levelFilter');
-    const moduleFilter = document.getElementById('moduleFilter');
-    const searchTerm = document.getElementById('search');
-    const timeRange = document.getElementById('timeRange');
+    const levelFilter = document.getElementById('level');
+    const moduleFilter = document.getElementById('module');
+    const searchInput = document.getElementById('search');
+    const timeRange = document.getElementById('time_range');
 
     if (levelFilter) {
         if (levelFilter.tomselect) {
@@ -528,8 +532,8 @@ function resetFilters() {
             moduleFilter.value = '';
         }
     }
-    if (searchTerm) {
-        searchTerm.value = '';
+    if (searchInput) {
+        searchInput.value = '';
     }
     if (timeRange) {
         if (timeRange.tomselect) {
@@ -555,10 +559,10 @@ function showSuccess(message) {
 // 应用筛选条件
 function applyFilters() {
     // 从统一搜索组件获取筛选条件
-    const levelEl = document.getElementById('levelFilter');
-    const moduleEl = document.getElementById('moduleFilter');
+    const levelEl = document.getElementById('level');
+    const moduleEl = document.getElementById('module');
     const searchEl = document.getElementById('search');
-    const timeRangeEl = document.getElementById('timeRange');
+    const timeRangeEl = document.getElementById('time_range');
 
     // 获取筛选值，空字符串表示不过滤
     const level = levelEl?.value || '';
@@ -589,7 +593,7 @@ window.applyFilters = applyFilters;
 window.clearFilters = function () {
     currentFilters = {};
     // 重置时间范围为最近1天
-    const timeRangeEl = document.getElementById('timeRange');
+    const timeRangeEl = document.getElementById('time_range');
     if (timeRangeEl) {
         if (timeRangeEl.tomselect) {
             timeRangeEl.tomselect.setValue('1d', true);
