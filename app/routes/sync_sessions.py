@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 
 from app.errors import NotFoundError, SystemError
 from app.constants import SyncStatus
-from app.config.filter_options import SYNC_TYPES, SYNC_CATEGORIES, STATUS_SYNC_OPTIONS
+from app.constants.filter_options import SYNC_TYPES, SYNC_CATEGORIES, STATUS_SYNC_OPTIONS
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -212,4 +212,3 @@ def api_get_error_logs(session_id: str) -> Response:
             session_id=session_id,
         )
         raise SystemError("获取错误日志失败") from e
-

@@ -15,7 +15,7 @@ from app.utils.decorators import create_required, delete_required, require_csrf,
 from app.utils.data_validator import validate_required_fields
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
-from app.config.filter_options import STATUS_ACTIVE_OPTIONS
+from app.constants.filter_options import STATUS_ACTIVE_OPTIONS
 from app.utils.filter_data import get_tag_categories
 
 # 创建蓝图
