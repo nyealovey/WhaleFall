@@ -15,7 +15,7 @@ from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.config.filter_options import STATUS_ACTIVE_OPTIONS
+from app.constants.filter_options import STATUS_ACTIVE_OPTIONS
 from app.utils.filter_data import get_active_tag_options
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.data_validator import (

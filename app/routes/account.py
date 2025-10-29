@@ -7,7 +7,7 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
 from app.constants import DatabaseType
-from app.config.filter_options import DATABASE_TYPES
+from app.constants.filter_options import DATABASE_TYPES
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
