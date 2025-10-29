@@ -324,6 +324,9 @@
       initTomSelect(element, config);
     });
     document.querySelectorAll("form.filter-form").forEach((form) => {
+      if (form.dataset.filterAuto === "false") {
+        return;
+      }
       registerFilterForm(form);
     });
   });
