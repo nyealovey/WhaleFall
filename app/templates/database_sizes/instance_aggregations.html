@@ -342,7 +342,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 onClear: () => {
                     window.instanceAggregationsManager.resetFilters();
-                }
+                },
+                autoSubmitOnChange: false,
             });
 
             const form = entry?.element || document.getElementById('instance-aggregations-filter-form');

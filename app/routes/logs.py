@@ -19,7 +19,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 from app.constants.filter_options import LOG_LEVELS, TIME_RANGES
-from app.utils.filter_data import get_log_modules
+from app.utils.filter_data import get_log_modules as load_log_modules
 
 # 创建蓝图
 logs_bp = Blueprint("logs", __name__)
@@ -30,7 +30,7 @@ logs_bp = Blueprint("logs", __name__)
 def logs_dashboard() -> str | tuple[dict, int]:
     """日志中心仪表板"""
     try:
-        module_values = get_log_modules()
+        module_values = load_log_modules()
         module_options = [{"value": value, "label": value} for value in module_values]
         return render_template(
             "history/logs.html",
@@ -196,7 +196,7 @@ def get_error_logs() -> Response:
 
 @logs_bp.route("/api/modules", methods=["GET"])
 @login_required
-def get_log_modules() -> Response:
+def get_log_modules_api() -> Response:
     """获取日志模块列表API"""
     try:
         from sqlalchemy import distinct

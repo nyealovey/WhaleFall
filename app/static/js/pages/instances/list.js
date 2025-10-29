@@ -185,6 +185,18 @@ function setupTagSelectorEvents() {
             const selectedTags = event.detail.selectedTags;
             updateSelectedTagsPreview(selectedTags);
             closeTagSelector();
+            if (window.FilterUtils) {
+                FilterUtils.submitForm('#instance-filter-form', event);
+            } else {
+                const form = document.getElementById('instance-filter-form');
+                if (form) {
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                }
+            }
         });
 
         // 监听TagSelector的取消事件

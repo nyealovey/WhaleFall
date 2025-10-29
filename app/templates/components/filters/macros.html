@@ -27,12 +27,21 @@
            class="form-control"
            id="{{ field_id }}"
            name="{{ field_name }}"
+           data-auto-submit
            value="{{ value }}"
            placeholder="{{ placeholder }}">
 </div>
 {%- endmacro %}
 
 {% macro select_filter(label, field_id, field_name, options, current_value='', placeholder='', col_class='col-12 col-lg-2 col-xl-2', allow_empty=True, multiple=False, use_tom_select=False) -%}
+{% set option_list = options or [] %}
+{% set ns = namespace(has_builtin_all=False) %}
+{% for option in option_list %}
+    {% set opt_value = option.get('value') %}
+    {% if opt_value in ('', None, 'all', 'ALL') %}
+        {% set ns.has_builtin_all = True %}
+    {% endif %}
+{% endfor %}
 <div class="{{ col_class }}">
     <label for="{{ field_id }}" class="form-label">{{ label }}</label>
     <select id="{{ field_id }}"
@@ -41,10 +50,10 @@
             {% if multiple %}multiple{% endif %}
             {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
             {% if use_tom_select %}data-tom-select{% endif %}>
-        {% if allow_empty %}
+        {% if allow_empty and not ns.has_builtin_all %}
         <option value="">{{ placeholder or '全部' }}</option>
         {% endif %}
-        {% for option in options or [] %}
+        {% for option in option_list %}
         {% set value = option['value'] %}
         {% set label_text = option['label'] %}
         {% set color = option.get('color') %}

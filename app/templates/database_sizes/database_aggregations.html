@@ -346,7 +346,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 onClear: () => {
                     window.databaseAggregationsManager.resetFilters();
-                }
+                },
+                autoSubmitOnChange: false,
             });
 
             const form = entry?.element || document.getElementById('database-aggregations-filter-form');
