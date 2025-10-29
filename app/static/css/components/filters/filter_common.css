@@ -5,10 +5,16 @@
     box-shadow: var(--shadow-sm);
     margin-bottom: var(--spacing-lg);
     transition: var(--transition-base);
+    position: relative;
 }
 
 .card.filter-card {
     overflow: visible; /* keep Tom Select dropdowns visible above card boundaries */
+}
+
+.filter-card .ts-dropdown,
+.ts-dropdown {
+    z-index: 2000; /* ensure dropdown renders above adjacent cards */
 }
 
 .filter-card:hover {
