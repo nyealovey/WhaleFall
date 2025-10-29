@@ -97,6 +97,8 @@
         schedulerCronRequired: 'Cron 字段不能为空',
         schedulerCronInvalid: 'Cron 字段仅支持数字、*、?、/、-、, 等合法字符',
         schedulerCronYearInvalid: '年份仅支持数字、*、?、/、-、, 等合法字符',
+        batchAssignInstances: '请至少选择一个实例',
+        batchAssignTags: '请至少选择一个标签',
         startTimeBeforeEnd: '开始时间不能晚于结束时间',
         endTimeAfterStart: '结束时间不能早于开始时间',
         confirmPassword: '请再次输入新密码',
@@ -256,6 +258,30 @@
         ],
     };
 
+    var batchAssignRules = {
+        instances: [
+            helpers.custom(function () {
+                if (window.batchAssignManager && window.batchAssignManager.selectedInstances) {
+                    return window.batchAssignManager.selectedInstances.size > 0;
+                }
+                return false;
+            }, messages.batchAssignInstances),
+        ],
+        tags: [
+            helpers.custom(function (value, fields) {
+                var modeField = fields['#batchModeField'];
+                var mode = modeField ? modeField.elem.value : 'assign';
+                if (mode === 'remove') {
+                    return true;
+                }
+                if (window.batchAssignManager && window.batchAssignManager.selectedTags) {
+                    return window.batchAssignManager.selectedTags.size > 0;
+                }
+                return value != null && String(value).trim().length > 0;
+            }, messages.batchAssignTags),
+        ],
+    };
+
     var tagRules = {
         name: [
             helpers.required(messages.tagCode),
@@ -297,6 +323,7 @@
         classificationRule: classificationRuleRules,
         scheduler: schedulerRules,
         unifiedSearch: unifiedSearchRules,
+        batchAssign: batchAssignRules,
         tag: tagRules,
     });
 })(window);

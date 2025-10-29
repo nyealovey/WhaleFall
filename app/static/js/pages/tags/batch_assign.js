@@ -11,6 +11,8 @@ class BatchAssignManager {
         this.tags = [];
         this.instancesByDbType = {};
         this.tagsByCategory = {};
+        this.form = document.getElementById('batchAssignForm');
+        this.validator = null;
 
         this.init();
     }
@@ -20,8 +22,10 @@ class BatchAssignManager {
      */
     init() {
         this.bindEvents();
+        this.initializeValidator();
         this.loadData();
         this.updateModeDisplay();
+        this.updateHiddenFields();
     }
 
     /**
@@ -42,10 +46,43 @@ class BatchAssignManager {
             this.clearAllSelections();
         });
 
-        // 执行操作
-        document.getElementById('executeBatchOperation').addEventListener('click', () => {
-            this.executeBatchOperation();
-        });
+        if (this.form) {
+            this.form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                if (this.validator && this.validator.instance && typeof this.validator.instance.revalidate === 'function') {
+                    this.validator.instance.revalidate();
+                } else {
+                    this.executeBatchOperation();
+                }
+            });
+        }
+    }
+
+    initializeValidator() {
+        if (typeof FormValidator === 'undefined' || typeof ValidationRules === 'undefined') {
+            console.warn('FormValidator 或 ValidationRules 未加载，批量分配表单跳过校验初始化');
+            return;
+        }
+
+        if (!this.form) {
+            return;
+        }
+
+        this.validator = FormValidator.create('#batchAssignForm');
+        if (!this.validator) {
+            return;
+        }
+
+        this.validator
+            .useRules('#selectedInstancesInput', ValidationRules.batchAssign.instances)
+            .useRules('#selectedTagsInput', ValidationRules.batchAssign.tags)
+            .onSuccess((event) => {
+                event.preventDefault();
+                this.executeBatchOperation();
+            })
+            .onFail(() => {
+                toast.error('请检查实例和标签选择后再执行操作');
+            });
     }
 
     /**
@@ -484,6 +521,15 @@ class BatchAssignManager {
             tagSelectionPanel.style.display = 'block';
             selectedTagsSection.style.display = 'block';
         }
+
+        const modeField = document.getElementById('batchModeField');
+        if (modeField) {
+            modeField.value = this.currentMode;
+        }
+
+        if (this.validator) {
+            this.validator.revalidateField('#selectedTagsInput');
+        }
     }
 
     /**
@@ -492,7 +538,26 @@ class BatchAssignManager {
     updateUI() {
         this.updateCounts();
         this.updateSelectionSummary();
+        this.updateHiddenFields();
         this.updateActionButton();
+    }
+
+    updateHiddenFields() {
+        const instancesInput = document.getElementById('selectedInstancesInput');
+        const tagsInput = document.getElementById('selectedTagsInput');
+
+        if (instancesInput) {
+            instancesInput.value = Array.from(this.selectedInstances).join(',');
+        }
+
+        if (tagsInput) {
+            tagsInput.value = Array.from(this.selectedTags).join(',');
+        }
+
+        if (this.validator) {
+            this.validator.revalidateField('#selectedInstancesInput');
+            this.validator.revalidateField('#selectedTagsInput');
+        }
     }
 
     /**
@@ -586,6 +651,10 @@ class BatchAssignManager {
 
         // 更新UI
         this.updateUI();
+
+        if (this.validator && this.validator.instance) {
+            this.validator.instance.refresh();
+        }
     }
 
     /**
