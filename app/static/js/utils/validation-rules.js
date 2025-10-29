@@ -82,6 +82,15 @@
         tagDisplayNameLength: '显示名称至少需要 2 个字符',
         tagCategory: '请选择标签分类',
         tagSortOrder: '排序顺序必须是大于等于 0 的整数',
+        classificationName: '分类名称不能为空',
+        classificationNameLength: '分类名称至少需要 2 个字符',
+        classificationColor: '请选择显示颜色',
+        classificationPriority: '优先级必须是 0-100 之间的整数',
+        classificationRuleName: '规则名称不能为空',
+        classificationRuleNameLength: '规则名称至少需要 2 个字符',
+        classificationRuleClassification: '请选择分类',
+        classificationRuleDbType: '请选择数据库类型',
+        classificationRuleOperator: '请选择匹配逻辑',
         confirmPassword: '请再次输入新密码',
     };
 
@@ -156,6 +165,33 @@
         credential: [helpers.required(messages.credential)],
     };
 
+    var classificationRules = {
+        name: [
+            helpers.required(messages.classificationName),
+            helpers.minLength(2, messages.classificationNameLength),
+        ],
+        color: [helpers.required(messages.classificationColor)],
+        priority: [
+            helpers.custom(function (value) {
+                if (value == null || String(value).trim() === '') {
+                    return true;
+                }
+                var num = Number(value);
+                return Number.isInteger(num) && num >= 0 && num <= 100;
+            }, messages.classificationPriority),
+        ],
+    };
+
+    var classificationRuleRules = {
+        classification: [helpers.required(messages.classificationRuleClassification)],
+        name: [
+            helpers.required(messages.classificationRuleName),
+            helpers.minLength(2, messages.classificationRuleNameLength),
+        ],
+        dbType: [helpers.required(messages.classificationRuleDbType)],
+        operator: [helpers.required(messages.classificationRuleOperator)],
+    };
+
     var tagRules = {
         name: [
             helpers.required(messages.tagCode),
@@ -193,6 +229,8 @@
         credential: credentialRules,
         auth: authRules,
         instance: instanceRules,
+        classification: classificationRules,
+        classificationRule: classificationRuleRules,
         tag: tagRules,
     });
 })(window);
