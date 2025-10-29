@@ -75,16 +75,6 @@ function showAccountStatistics() {
     window.location.href = '/account-static/';
 }
 
-// 显示提示信息
-// 表单验证
-function validateForm() {
-    const form = document.getElementById('account-search-form');
-    if (!form) return true;
-
-    // 可以添加具体的验证逻辑
-    return true;
-}
-
 // 打开标签选择器
 function openTagSelector() {
     try {
@@ -343,7 +333,6 @@ window.syncAllAccounts = syncAllAccounts;
 window.syncAllInstances = syncAllInstances;
 window.viewAccount = viewAccount;
 window.showAccountStatistics = showAccountStatistics;
-window.validateForm = validateForm;
 window.debugPermissionFunctions = debugPermissionFunctions;
 window.openTagSelector = openTagSelector;
 window.closeTagSelector = closeTagSelector;
