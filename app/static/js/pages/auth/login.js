@@ -1,33 +1,31 @@
 /**
- * 登录页面JavaScript
- * 处理密码显示/隐藏、表单验证、登录提交等功能
+ * 登录页面 JavaScript
+ * 统一使用 Just-Validate 进行表单验证。
  */
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
+let loginFormValidator = null;
+
+document.addEventListener('DOMContentLoaded', function () {
     initializeLoginPage();
 });
 
-// 初始化登录页面
 function initializeLoginPage() {
     initializePasswordToggle();
     initializeFormValidation();
-    initializeFormSubmission();
+    initializePasswordStrengthWatcher();
 }
 
-// 初始化密码显示/隐藏切换
 function initializePasswordToggle() {
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
 
     if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', function() {
+        togglePassword.addEventListener('click', function () {
             togglePasswordVisibility(passwordInput, this);
         });
     }
 }
 
-// 切换密码可见性
 function togglePasswordVisibility(passwordInput, toggleButton) {
     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
     passwordInput.setAttribute('type', type);
@@ -38,121 +36,47 @@ function togglePasswordVisibility(passwordInput, toggleButton) {
         icon.classList.toggle('fa-eye-slash');
     }
 
-    // 更新按钮标题
-    const title = type === 'password' ? '显示密码' : '隐藏密码';
-    toggleButton.setAttribute('title', title);
+    toggleButton.setAttribute('title', type === 'password' ? '显示密码' : '隐藏密码');
 }
 
-// 初始化表单验证
 function initializeFormValidation() {
-    const usernameInput = document.getElementById('username');
+    if (!window.FormValidator || !window.ValidationRules) {
+        console.error('表单校验模块未正确加载');
+        return;
+    }
+
+    loginFormValidator = window.FormValidator.create('#loginForm');
+    if (!loginFormValidator) {
+        return;
+    }
+
+    loginFormValidator
+        .useRules('#username', window.ValidationRules.auth.login.username)
+        .useRules('#password', window.ValidationRules.auth.login.password)
+        .onSuccess(function (event) {
+            const form = event.target;
+            showLoadingState(form);
+            form.submit();
+        })
+        .onFail(function () {
+            toast.error('请输入正确的用户名和密码');
+        });
+}
+
+function initializePasswordStrengthWatcher() {
     const passwordInput = document.getElementById('password');
 
-    if (usernameInput) {
-        usernameInput.addEventListener('blur', function() {
-            validateUsername(this);
-        });
+    if (!passwordInput) {
+        return;
     }
 
-    if (passwordInput) {
-        passwordInput.addEventListener('input', function() {
-            validatePassword(this);
-        });
-    }
+    passwordInput.addEventListener('input', function () {
+        updatePasswordStrength(this.value);
+    });
+
+    updatePasswordStrength(passwordInput.value || '');
 }
 
-// 验证用户名
-function validateUsername(input) {
-    const value = input.value.trim();
-    const isValid = value.length >= 3;
-
-    updateFieldValidation(input, isValid, '用户名至少需要3个字符');
-    return isValid;
-}
-
-// 验证密码
-function validatePassword(input) {
-    const value = input.value;
-    const isValid = value.length >= 6;
-
-    updateFieldValidation(input, isValid, '密码至少需要6个字符');
-    return isValid;
-}
-
-// 更新字段验证状态
-function updateFieldValidation(input, isValid, message) {
-    const feedback = input.parentNode.querySelector('.invalid-feedback') || 
-                    input.parentNode.querySelector('.valid-feedback');
-    
-    if (isValid) {
-        input.classList.remove('is-invalid');
-        input.classList.add('is-valid');
-        if (feedback) {
-            feedback.textContent = '';
-            feedback.style.display = 'none';
-        }
-    } else {
-        input.classList.remove('is-valid');
-        input.classList.add('is-invalid');
-        if (feedback) {
-            feedback.textContent = message;
-            feedback.style.display = 'block';
-        }
-    }
-}
-
-// 初始化表单提交
-function initializeFormSubmission() {
-    const loginForm = document.getElementById('loginForm');
-    
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            handleFormSubmission(e, this);
-        });
-    }
-}
-
-// 处理表单提交
-function handleFormSubmission(event, form) {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-
-    // 验证表单
-    if (!validateForm(username, password)) {
-        event.preventDefault();
-        return false;
-    }
-
-    // 显示加载状态
-    showLoadingState(form);
-    
-    // 如果登录失败，恢复按钮状态
-    setTimeout(() => {
-        hideLoadingState(form);
-    }, 3000);
-}
-
-// 验证表单
-function validateForm(username, password) {
-    if (!username || !password) {
-        toast.warning('请输入用户名和密码');
-        return false;
-    }
-
-    if (username.length < 3) {
-        toast.warning('用户名至少需要3个字符');
-        return false;
-    }
-
-    if (password.length < 6) {
-        toast.warning('密码至少需要6个字符');
-        return false;
-    }
-
-    return true;
-}
-
-// 显示加载状态
 function showLoadingState(form) {
     const submitBtn = form.querySelector('button[type="submit"]');
     if (submitBtn) {
@@ -161,7 +85,6 @@ function showLoadingState(form) {
     }
 }
 
-// 隐藏加载状态
 function hideLoadingState(form) {
     const submitBtn = form.querySelector('button[type="submit"]');
     if (submitBtn) {
@@ -170,10 +93,9 @@ function hideLoadingState(form) {
     }
 }
 
-// 密码强度检查
 function checkPasswordStrength(password) {
-    let strength = 0;
-    let feedback = '';
+    var strength = 0;
+    var feedback = '';
 
     if (password.length >= 6) strength++;
     if (password.length >= 8) strength++;
@@ -192,59 +114,35 @@ function checkPasswordStrength(password) {
         feedback = '密码强度：强';
     }
 
-    return { strength, feedback };
+    return { strength: strength, feedback: feedback };
 }
 
-// 更新密码强度指示器
 function updatePasswordStrength(password) {
     const strengthBar = document.querySelector('.password-strength-bar');
     const strengthText = document.querySelector('.password-strength-text');
-    
-    if (!strengthBar) return;
 
-    const { strength, feedback } = checkPasswordStrength(password);
-    
-    // 更新强度条
+    if (!strengthBar) {
+        return;
+    }
+
+    const result = checkPasswordStrength(password);
+
     strengthBar.className = 'password-strength-bar';
-    if (strength < 2) {
+    if (result.strength < 2) {
         strengthBar.classList.add('weak');
-    } else if (strength < 4) {
+    } else if (result.strength < 4) {
         strengthBar.classList.add('fair');
-    } else if (strength < 6) {
+    } else if (result.strength < 6) {
         strengthBar.classList.add('good');
     } else {
         strengthBar.classList.add('strong');
     }
 
-    // 更新强度文本
     if (strengthText) {
-        strengthText.textContent = feedback;
+        strengthText.textContent = result.feedback;
     }
 }
 
-// 自动填充检测
-function detectAutoFill() {
-    const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
-    
-    inputs.forEach(input => {
-        // 检测自动填充
-        setTimeout(() => {
-            if (input.value) {
-                input.classList.add('auto-filled');
-                // 触发验证
-                if (input.type === 'password') {
-                    validatePassword(input);
-                } else if (input.id === 'username') {
-                    validateUsername(input);
-                }
-            }
-        }, 100);
-    });
-}
-
-// 检测自动填充
-detectAutoFill();
-
-// 导出函数供全局使用
 window.togglePasswordVisibility = togglePasswordVisibility;
-window.validateForm = validateForm;
+window.hideLoadingState = hideLoadingState;
+window.updatePasswordStrength = updatePasswordStrength;
