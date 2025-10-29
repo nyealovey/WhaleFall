@@ -91,6 +91,8 @@
         classificationRuleClassification: '请选择分类',
         classificationRuleDbType: '请选择数据库类型',
         classificationRuleOperator: '请选择匹配逻辑',
+        startTimeBeforeEnd: '开始时间不能晚于结束时间',
+        endTimeAfterStart: '结束时间不能早于开始时间',
         confirmPassword: '请再次输入新密码',
     };
 
@@ -192,6 +194,29 @@
         operator: [helpers.required(messages.classificationRuleOperator)],
     };
 
+    var unifiedSearchRules = {
+        startTime: [
+            helpers.custom(function (value, fields) {
+                var endField = fields['#end_time'];
+                var endValue = endField ? endField.elem.value : '';
+                if (!value || !endValue) {
+                    return true;
+                }
+                return new Date(value) <= new Date(endValue);
+            }, messages.startTimeBeforeEnd),
+        ],
+        endTime: [
+            helpers.custom(function (value, fields) {
+                var startField = fields['#start_time'];
+                var startValue = startField ? startField.elem.value : '';
+                if (!startValue || !value) {
+                    return true;
+                }
+                return new Date(startValue) <= new Date(value);
+            }, messages.endTimeAfterStart),
+        ],
+    };
+
     var tagRules = {
         name: [
             helpers.required(messages.tagCode),
@@ -231,6 +256,7 @@
         instance: instanceRules,
         classification: classificationRules,
         classificationRule: classificationRuleRules,
+        unifiedSearch: unifiedSearchRules,
         tag: tagRules,
     });
 })(window);
