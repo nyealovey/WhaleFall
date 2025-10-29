@@ -1,14 +1,13 @@
 /**
- * 创建实例页面JavaScript
- * 处理表单验证、数据库类型切换、标签选择等功能
+ * 创建实例页面 JavaScript
+ * 统一使用 Just-Validate 进行表单验证，并保持标签选择器等交互。
  */
 
-// 全局变量
 let createPageTagSelector = null;
+let instanceCreateValidator = null;
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 如果TagSelector类还没有加载，等待一下
+document.addEventListener('DOMContentLoaded', function () {
+    // 同步或延迟初始化标签选择器
     if (typeof TagSelector === 'undefined') {
         setTimeout(() => {
             initializeInstanceCreateTagSelector();
@@ -22,51 +21,123 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('initializeInstanceCreateTagSelector 调用失败:', error);
         }
     }
-    
+
     initializeForm();
 });
 
-// 初始化表单
+// 初始化表单及其校验
 function initializeForm() {
+    initializeFormValidation();
+
     const dbTypeSelect = document.getElementById('db_type');
     if (dbTypeSelect) {
-        dbTypeSelect.addEventListener('change', handleDbTypeChange);
+        dbTypeSelect.addEventListener('change', function () {
+            handleDbTypeChange(this);
+            if (instanceCreateValidator) {
+                instanceCreateValidator.revalidateField('#db_type');
+                instanceCreateValidator.revalidateField('#port');
+            }
+        });
+
+        if (dbTypeSelect.value) {
+            handleDbTypeChange(dbTypeSelect);
+        }
     }
 
-    const instanceForm = document.getElementById('instanceForm');
-    if (instanceForm) {
-        instanceForm.addEventListener('submit', handleFormSubmit);
+    const nameInput = document.getElementById('name');
+    if (nameInput) {
+        nameInput.addEventListener('blur', function () {
+            if (instanceCreateValidator) {
+                instanceCreateValidator.revalidateField('#name');
+            }
+        });
+    }
+
+    const hostInput = document.getElementById('host');
+    if (hostInput) {
+        hostInput.addEventListener('blur', function () {
+            if (instanceCreateValidator) {
+                instanceCreateValidator.revalidateField('#host');
+            }
+        });
+    }
+
+    const portInput = document.getElementById('port');
+    if (portInput) {
+        portInput.addEventListener('input', function () {
+            if (instanceCreateValidator) {
+                instanceCreateValidator.revalidateField('#port');
+            }
+        });
+    }
+
+    const credentialSelect = document.getElementById('credential_id');
+    if (credentialSelect) {
+        credentialSelect.addEventListener('change', function () {
+            if (instanceCreateValidator) {
+                instanceCreateValidator.revalidateField('#credential_id');
+            }
+        });
     }
 }
 
+function initializeFormValidation() {
+    if (!window.FormValidator || !window.ValidationRules) {
+        console.error('表单校验模块未正确加载');
+        return;
+    }
+
+    instanceCreateValidator = window.FormValidator.create('#instanceForm');
+    if (!instanceCreateValidator) {
+        return;
+    }
+
+    instanceCreateValidator
+        .useRules('#name', window.ValidationRules.instance.name)
+        .useRules('#db_type', window.ValidationRules.instance.dbType)
+        .useRules('#host', window.ValidationRules.instance.host)
+        .useRules('#port', window.ValidationRules.instance.port)
+        .useRules('#credential_id', window.ValidationRules.instance.credential)
+        .onSuccess(function (event) {
+            const form = event.target;
+            showLoadingState(form, '创建中...');
+            form.submit();
+        })
+        .onFail(function () {
+            toast.error('请检查实例表单填写');
+        });
+}
+
 // 处理数据库类型变化
-function handleDbTypeChange() {
+function handleDbTypeChange(selectElement) {
+    const select = selectElement || document.getElementById('db_type');
+    if (!select) {
+        return;
+    }
+
     const portInput = document.getElementById('port');
     const databaseNameInput = document.getElementById('database_name');
     const oracleSidRow = document.getElementById('oracle-sid-row');
-    const selectedOption = this.options[this.selectedIndex];
-    const dbType = this.value;
-    
-    // 使用动态的默认端口
-    if (selectedOption && selectedOption.dataset.port) {
+    const selectedOption = select.options[select.selectedIndex];
+    const dbType = select.value;
+
+    if (selectedOption && selectedOption.dataset.port && portInput) {
         portInput.value = selectedOption.dataset.port;
     }
-    
-    // 设置默认数据库名称
-    if (!databaseNameInput.value) {
+
+    if (databaseNameInput && !databaseNameInput.value) {
         const defaultDatabaseNames = {
-            'mysql': 'mysql',
-            'postgresql': 'postgres',
-            'sqlserver': 'master',
-            'oracle': 'orcl'
+            mysql: 'mysql',
+            postgresql: 'postgres',
+            sqlserver: 'master',
+            oracle: 'orcl',
         };
-        
+
         if (defaultDatabaseNames[dbType]) {
             databaseNameInput.value = defaultDatabaseNames[dbType];
         }
     }
-    
-    // 控制Oracle SID字段的显示
+
     if (oracleSidRow) {
         if (dbType === 'oracle') {
             oracleSidRow.style.display = 'block';
@@ -78,26 +149,27 @@ function handleDbTypeChange() {
     }
 }
 
-// 处理表单提交
-function handleFormSubmit(e) {
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    
-    // 显示加载状态
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>创建中...';
-    submitBtn.disabled = true;
-    
-    // 如果创建失败，恢复按钮状态
-    setTimeout(() => {
-        submitBtn.innerHTML = originalText;
+function showLoadingState(form, text) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.dataset.originalText = submitBtn.dataset.originalText || submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>' + text;
+        submitBtn.disabled = true;
+    }
+}
+
+function restoreLoadingState(form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn && submitBtn.dataset.originalText) {
+        submitBtn.innerHTML = submitBtn.dataset.originalText;
         submitBtn.disabled = false;
-    }, 5000);
+    }
 }
 
 /**
- * 打开标签选择器模态框
- * @function openTagSelector
+ * 以下为标签选择器及辅助方法实现
  */
+
 function openTagSelector() {
     const modalElement = document.getElementById('tagSelectorModal');
     if (!modalElement) {
@@ -107,19 +179,25 @@ function openTagSelector() {
 
     const modal = new bootstrap.Modal(modalElement);
 
-    // 确保在模态框显示后再初始化，避免DOM查找问题
-    modalElement.addEventListener('shown.bs.modal', function () {
-        if (!getTagSelector()) {
-            const selector = initializeTagSelector({
-                onSelectionChange: updateSelectedTagsPreview
-            });
-        }
-    }, { once: true });
+    modalElement.addEventListener(
+        'shown.bs.modal',
+        function () {
+            if (!getTagSelector()) {
+                const selector = initializeTagSelector({
+                    onSelectionChange: updateSelectedTagsPreview,
+                });
+                if (selector && createPageTagSelector) {
+                    const selectedTags = createPageTagSelector.getSelectedTags();
+                    updateSelectedTagsPreview(selectedTags);
+                }
+            }
+        },
+        { once: true }
+    );
 
     modal.show();
 }
 
-// 关闭标签选择器
 function closeTagSelector() {
     const modal = bootstrap.Modal.getInstance(document.getElementById('tagSelectorModal'));
     if (modal) {
@@ -127,23 +205,19 @@ function closeTagSelector() {
     }
 }
 
-// 初始化标签选择器
 function initializeInstanceCreateTagSelector() {
     try {
-        // 查找容器元素
         const createPageSelector = document.getElementById('create-page-tag-selector');
 
         if (createPageSelector) {
             const modalElement = createPageSelector.querySelector('#tagSelectorModal');
 
             if (modalElement) {
-                // 在模态框内部查找容器元素
                 const containerElement = modalElement.querySelector('#tag-selector-container');
 
                 if (containerElement) {
                     initializeTagSelectorComponent(modalElement, containerElement);
                 } else {
-                    // 等待标签选择器组件加载完成
                     setTimeout(() => {
                         const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
 
@@ -159,19 +233,16 @@ function initializeInstanceCreateTagSelector() {
     }
 }
 
-// 初始化标签选择器组件
 function initializeTagSelectorComponent(modalElement, containerElement) {
     if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
         try {
-            // 初始化标签选择器
             createPageTagSelector = new TagSelector('tag-selector-container', {
                 allowMultiple: true,
                 allowCreate: true,
                 allowSearch: true,
-                allowCategoryFilter: true
+                allowCategoryFilter: true,
             });
 
-            // 等待TagSelector完全初始化
             setTimeout(() => {
                 if (createPageTagSelector && createPageTagSelector.container) {
                     setupTagSelectorEvents();
@@ -184,33 +255,27 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
     }
 }
 
-// 设置标签选择器事件
 function setupTagSelectorEvents() {
     if (!createPageTagSelector) {
         return;
     }
 
-    // 绑定打开标签选择器按钮
     const openBtn = document.getElementById('open-tag-selector-btn');
 
     if (openBtn) {
-        // 移除之前的事件监听器（如果有）
         openBtn.removeEventListener('click', openTagSelector);
 
-        // 添加新的事件监听器
-        openBtn.addEventListener('click', function(e) {
+        openBtn.addEventListener('click', function (e) {
             e.preventDefault();
 
             try {
                 if (typeof openTagSelector === 'function') {
                     openTagSelector();
                 } else {
-                    // 直接显示模态框作为备用方案
                     const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
                     modal.show();
                 }
 
-                // 模态框显示后重新绑定按钮
                 setTimeout(() => {
                     if (createPageTagSelector) {
                         createPageTagSelector.rebindModalButtons();
@@ -223,58 +288,46 @@ function setupTagSelectorEvents() {
         });
     }
 
-    // 监听TagSelector的确认事件
     if (createPageTagSelector.container) {
-        createPageTagSelector.container.addEventListener('tagSelectionConfirmed', function(event) {
+        createPageTagSelector.container.addEventListener('tagSelectionConfirmed', function (event) {
             const selectedTags = event.detail.selectedTags;
             updateSelectedTagsPreview(selectedTags);
             closeTagSelector();
         });
 
-        // 监听TagSelector的取消事件
-        createPageTagSelector.container.addEventListener('tagSelectionCancelled', function(event) {
+        createPageTagSelector.container.addEventListener('tagSelectionCancelled', function () {
             closeTagSelector();
         });
     }
 }
 
-// 确认标签选择
-function confirmTagSelection() {
-    if (createPageTagSelector) {
-        // 直接调用标签选择器的确认方法
-        createPageTagSelector.confirmSelection();
-        
-        // 获取选中的标签并更新预览
-        const selectedTags = createPageTagSelector.getSelectedTags();
-        updateSelectedTagsPreview(selectedTags);
-        closeTagSelector();
-    }
-}
-
-// 更新选中标签预览
 function updateSelectedTagsPreview(selectedTags) {
     const preview = document.getElementById('selected-tags-preview');
     const count = document.getElementById('selected-tags-count');
     const chips = document.getElementById('selected-tags-chips');
     const hiddenInput = document.getElementById('selected-tag-names');
-    
+
     if (selectedTags.length > 0) {
         if (preview) preview.style.display = 'block';
         if (count) count.textContent = `已选择 ${selectedTags.length} 个标签`;
-        
+
         if (chips) {
-            chips.innerHTML = selectedTags.map(tag => `
+            chips.innerHTML = selectedTags
+                .map(
+                    (tag) => `
                 <span class="badge bg-${tag.color} me-1 mb-1">
                     <i class="fas fa-tag me-1"></i>${tag.display_name}
                     <button type="button" class="btn-close btn-close-white ms-1" 
                             onclick="removeTagFromPreview('${tag.name}')" 
                             style="font-size: 0.6em;"></button>
                 </span>
-            `).join('');
+            `
+                )
+                .join('');
         }
-        
+
         if (hiddenInput) {
-            hiddenInput.value = selectedTags.map(tag => tag.name).join(',');
+            hiddenInput.value = selectedTags.map((tag) => tag.name).join(',');
         }
     } else {
         if (preview) preview.style.display = 'none';
@@ -283,10 +336,9 @@ function updateSelectedTagsPreview(selectedTags) {
     }
 }
 
-// 从预览中移除标签
 function removeTagFromPreview(tagName) {
     if (createPageTagSelector) {
-        const tag = createPageTagSelector.availableTags.find(t => t.name === tagName);
+        const tag = createPageTagSelector.availableTags.find((t) => t.name === tagName);
         if (tag) {
             createPageTagSelector.toggleTag(tag.id);
             const selectedTags = createPageTagSelector.getSelectedTags();
@@ -295,55 +347,31 @@ function removeTagFromPreview(tagName) {
     }
 }
 
-// 显示提示信息
-// 表单验证
-function validateForm() {
-    const form = document.getElementById('instanceForm');
-    const requiredFields = form.querySelectorAll('[required]');
-    let isValid = true;
-    
-    requiredFields.forEach(field => {
-        if (!field.value.trim()) {
-            field.classList.add('is-invalid');
-            isValid = false;
-        } else {
-            field.classList.remove('is-invalid');
-            field.classList.add('is-valid');
-        }
-    });
-    
-    return isValid;
-}
-
-// 重置表单
 function resetForm() {
     const form = document.getElementById('instanceForm');
     form.reset();
-    
-    // 清除验证状态
-    const fields = form.querySelectorAll('.is-valid, .is-invalid');
-    fields.forEach(field => {
-        field.classList.remove('is-valid', 'is-invalid');
-    });
-    
-    // 隐藏Oracle SID字段
+
+    restoreLoadingState(form);
+
     const oracleSidRow = document.getElementById('oracle-sid-row');
     if (oracleSidRow) {
         oracleSidRow.style.display = 'none';
     }
-    
-    // 清空标签选择
+
     if (createPageTagSelector) {
         createPageTagSelector.clearSelection();
         updateSelectedTagsPreview([]);
     }
+
+    if (instanceCreateValidator) {
+        instanceCreateValidator.revalidate();
+    }
 }
 
-// 预览实例信息
 function previewInstance() {
     const form = document.getElementById('instanceForm');
     const formData = new FormData(form);
-    
+
     const preview = {
         name: formData.get('name'),
         db_type: formData.get('db_type'),
@@ -351,13 +379,12 @@ function previewInstance() {
         port: formData.get('port'),
         database_name: formData.get('database_name'),
         oracle_sid: formData.get('oracle_sid'),
-        description: formData.get('description')
+        description: formData.get('description'),
     };
-    
-    // 显示预览信息
-    
+
     return preview;
 }
 
-// 导出到全局作用域
 window.initializeInstanceCreateTagSelector = initializeInstanceCreateTagSelector;
+window.previewInstance = previewInstance;
+window.resetForm = resetForm;

@@ -1,14 +1,12 @@
 /**
- * 编辑实例页面JavaScript
- * 处理表单验证、数据库类型切换、标签选择、连接测试等功能
+ * 编辑实例页面 JavaScript
+ * 使用 Just-Validate 统一表单验证，同时保留标签选择与连接测试等能力。
  */
 
-// 全局变量
 let editPageTagSelector = null;
+let instanceEditValidator = null;
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 如果TagSelector类还没有加载，等待一下
+document.addEventListener('DOMContentLoaded', function () {
     if (typeof TagSelector === 'undefined') {
         setTimeout(() => {
             initializeInstanceEditTagSelector();
@@ -22,51 +20,121 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('initializeInstanceEditTagSelector 调用失败:', error);
         }
     }
-    
+
     initializeForm();
 });
 
-// 初始化表单
 function initializeForm() {
+    initializeFormValidation();
+
     const dbTypeSelect = document.getElementById('db_type');
     if (dbTypeSelect) {
-        dbTypeSelect.addEventListener('change', handleDbTypeChange);
+        dbTypeSelect.addEventListener('change', function () {
+            handleDbTypeChange(this);
+            if (instanceEditValidator) {
+                instanceEditValidator.revalidateField('#db_type');
+                instanceEditValidator.revalidateField('#port');
+            }
+        });
+
+        if (dbTypeSelect.value) {
+            handleDbTypeChange(dbTypeSelect);
+        }
     }
 
-    const instanceForm = document.getElementById('instanceForm');
-    if (instanceForm) {
-        instanceForm.addEventListener('submit', handleFormSubmit);
+    const nameInput = document.getElementById('name');
+    if (nameInput) {
+        nameInput.addEventListener('blur', function () {
+            if (instanceEditValidator) {
+                instanceEditValidator.revalidateField('#name');
+            }
+        });
+    }
+
+    const hostInput = document.getElementById('host');
+    if (hostInput) {
+        hostInput.addEventListener('blur', function () {
+            if (instanceEditValidator) {
+                instanceEditValidator.revalidateField('#host');
+            }
+        });
+    }
+
+    const portInput = document.getElementById('port');
+    if (portInput) {
+        portInput.addEventListener('input', function () {
+            if (instanceEditValidator) {
+                instanceEditValidator.revalidateField('#port');
+            }
+        });
+    }
+
+    const credentialSelect = document.getElementById('credential_id');
+    if (credentialSelect) {
+        credentialSelect.addEventListener('change', function () {
+            if (instanceEditValidator) {
+                instanceEditValidator.revalidateField('#credential_id');
+            }
+        });
     }
 }
 
-// 处理数据库类型变化
-function handleDbTypeChange() {
+function initializeFormValidation() {
+    if (!window.FormValidator || !window.ValidationRules) {
+        console.error('表单校验模块未正确加载');
+        return;
+    }
+
+    instanceEditValidator = window.FormValidator.create('#instanceForm');
+    if (!instanceEditValidator) {
+        return;
+    }
+
+    instanceEditValidator
+        .useRules('#name', window.ValidationRules.instance.name)
+        .useRules('#db_type', window.ValidationRules.instance.dbType)
+        .useRules('#host', window.ValidationRules.instance.host)
+        .useRules('#port', window.ValidationRules.instance.port)
+        .useRules('#credential_id', window.ValidationRules.instance.credential)
+        .onSuccess(function (event) {
+            const form = event.target;
+            showLoadingState(form, '保存中...');
+            form.submit();
+        })
+        .onFail(function () {
+            toast.error('请检查实例表单填写');
+        });
+}
+
+function handleDbTypeChange(selectElement) {
+    const select = selectElement || document.getElementById('db_type');
+    if (!select) {
+        return;
+    }
+
     const portInput = document.getElementById('port');
     const databaseNameInput = document.getElementById('database_name');
     const oracleSidRow = document.getElementById('oracle-sid-row');
-    const selectedOption = this.options[this.selectedIndex];
-    const dbType = this.value;
-    
-    // 使用动态的默认端口
-    if (selectedOption && selectedOption.dataset.port) {
+    const selectedOption = select.options[select.selectedIndex];
+    const dbType = select.value;
+
+    if (selectedOption && selectedOption.dataset.port && portInput) {
         portInput.value = selectedOption.dataset.port;
     }
-    
-    // 设置默认数据库名称（仅在字段为空时设置）
-    if (!databaseNameInput.value) {
+
+    if (databaseNameInput && !databaseNameInput.value) {
         const defaultDatabaseNames = {
-            'mysql': 'mysql',
-            'postgresql': 'postgres',
-            'sqlserver': 'master',
-            'oracle': 'orcl'
+            mysql: 'mysql',
+            postgresql: 'postgres',
+            sqlserver: 'master',
+            oracle: 'orcl',
         };
-        
+
         if (defaultDatabaseNames[dbType]) {
             databaseNameInput.value = defaultDatabaseNames[dbType];
         }
     }
-    
-    // 控制Oracle SID字段的显示
+
     if (oracleSidRow) {
         if (dbType === 'oracle') {
             oracleSidRow.style.display = 'block';
@@ -78,59 +146,58 @@ function handleDbTypeChange() {
     }
 }
 
-// 处理表单提交
-function handleFormSubmit(e) {
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    
-    // 显示加载状态
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>保存中...';
-    submitBtn.disabled = true;
-    
-    // 如果保存失败，恢复按钮状态
-    setTimeout(() => {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }, 5000);
+function showLoadingState(form, text) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.dataset.originalText = submitBtn.dataset.originalText || submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>' + text;
+        submitBtn.disabled = true;
+    }
 }
 
-// 测试连接功能 - 使用新的连接管理API
-function testConnection() {
-    const testBtn = event.target;
+function restoreLoadingState(form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn && submitBtn.dataset.originalText) {
+        submitBtn.innerHTML = submitBtn.dataset.originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+function testConnection(evt) {
+    const eventObj = evt || window.event || null;
+    const testBtn =
+        (eventObj && eventObj.currentTarget) ||
+        (eventObj && eventObj.target) ||
+        document.querySelector('button[onclick*="testConnection"]');
+    if (!testBtn) {
+        return;
+    }
+
     const originalText = testBtn.innerHTML;
-    
     testBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>测试中...';
     testBtn.disabled = true;
-    
+
     const instanceId = getInstanceId();
-    
-    
-    // 使用新的连接管理API
-    connectionManager.testInstanceConnection(instanceId, {
-        onSuccess: (data) => {
-            const resultDiv = document.getElementById('testResult');
-            
-            // 使用连接管理组件的显示方法
-            connectionManager.showTestResult(data, 'testResultContent');
-            resultDiv.style.display = 'block';
-        },
-        onError: (error) => {
-            const resultDiv = document.getElementById('testResult');
-            
-            // 使用连接管理组件的显示方法
-            connectionManager.showTestResult(error, 'testResultContent');
-            resultDiv.style.display = 'block';
-        }
-    }).finally(() => {
-        testBtn.innerHTML = originalText;
-        testBtn.disabled = false;
-    });
+
+    connectionManager
+        .testInstanceConnection(instanceId, {
+            onSuccess: (data) => {
+                const resultDiv = document.getElementById('testResult');
+                connectionManager.showTestResult(data, 'testResultContent');
+                resultDiv.style.display = 'block';
+            },
+            onError: (error) => {
+                const resultDiv = document.getElementById('testResult');
+                connectionManager.showTestResult(error, 'testResultContent');
+                resultDiv.style.display = 'block';
+            },
+        })
+        .finally(() => {
+            testBtn.innerHTML = originalText;
+            testBtn.disabled = false;
+        });
 }
 
-/**
- * 打开标签选择器模态框
- * @function openTagSelector
- */
 function openTagSelector() {
     const modalElement = document.getElementById('tagSelectorModal');
     if (!modalElement) {
@@ -140,24 +207,25 @@ function openTagSelector() {
 
     const modal = new bootstrap.Modal(modalElement);
 
-    // 确保在模态框显示后再初始化，避免DOM查找问题
-    modalElement.addEventListener('shown.bs.modal', function () {
-        if (!getTagSelector()) {
-            const selector = initializeTagSelector({
-                onSelectionChange: updateSelectedTagsPreview
-            });
-            // 编辑页面需要设置已有的标签
-            const currentTags = getCurrentTags();
-            if (selector && currentTags.length > 0) {
-                selector.setSelectedTags(currentTags);
+    modalElement.addEventListener(
+        'shown.bs.modal',
+        function () {
+            if (!getTagSelector()) {
+                const selector = initializeTagSelector({
+                    onSelectionChange: updateSelectedTagsPreview,
+                });
+                const currentTags = getCurrentTagNames();
+                if (selector && currentTags.length > 0) {
+                    selector.setSelectedTags(currentTags);
+                }
             }
-        }
-    }, { once: true });
+        },
+        { once: true }
+    );
 
     modal.show();
 }
 
-// 关闭标签选择器
 function closeTagSelector() {
     const modal = bootstrap.Modal.getInstance(document.getElementById('tagSelectorModal'));
     if (modal) {
@@ -165,23 +233,19 @@ function closeTagSelector() {
     }
 }
 
-// 初始化标签选择器
 function initializeInstanceEditTagSelector() {
     try {
-        // 查找容器元素
         const editPageSelector = document.getElementById('edit-page-tag-selector');
 
         if (editPageSelector) {
             const modalElement = editPageSelector.querySelector('#tagSelectorModal');
 
             if (modalElement) {
-                // 在模态框内部查找容器元素
                 const containerElement = modalElement.querySelector('#tag-selector-container');
 
                 if (containerElement) {
                     initializeTagSelectorComponent(modalElement, containerElement);
                 } else {
-                    // 等待标签选择器组件加载完成
                     setTimeout(() => {
                         const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
 
@@ -197,36 +261,29 @@ function initializeInstanceEditTagSelector() {
     }
 }
 
-// 初始化标签选择器组件
 function initializeTagSelectorComponent(modalElement, containerElement) {
     if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
         try {
-            // 获取当前实例的标签
             const currentTagNames = getCurrentTagNames();
-            
-            // 初始化标签选择器
+
             editPageTagSelector = new TagSelector('tag-selector-container', {
                 allowMultiple: true,
                 allowCreate: true,
                 allowSearch: true,
-                allowCategoryFilter: true
+                allowCategoryFilter: true,
             });
 
-            // 等待TagSelector完全初始化
             setTimeout(() => {
                 if (editPageTagSelector && editPageTagSelector.container) {
                     setupTagSelectorEvents();
-                    
-                    // 设置当前选中的标签
+
                     if (currentTagNames.length > 0) {
-                        // 等待标签加载完成后再设置选中状态
                         setTimeout(() => {
-                            const allTags = editPageTagSelector.allTags;
+                            const allTags = editPageTagSelector.allTags || [];
                             const currentTagIds = allTags
-                                .filter(tag => currentTagNames.includes(tag.name))
-                                .map(tag => tag.id);
+                                .filter((tag) => currentTagNames.includes(tag.name))
+                                .map((tag) => tag.id);
                             editPageTagSelector.setSelectedTags(currentTagIds);
-                            // 更新预览显示
                             updateSelectedTagsPreview(editPageTagSelector.getSelectedTags());
                         }, 200);
                     }
@@ -239,33 +296,27 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
     }
 }
 
-// 设置标签选择器事件
 function setupTagSelectorEvents() {
     if (!editPageTagSelector) {
         return;
     }
 
-    // 绑定打开标签选择器按钮
     const openBtn = document.getElementById('open-tag-selector-btn');
 
     if (openBtn) {
-        // 移除之前的事件监听器（如果有）
         openBtn.removeEventListener('click', openTagSelector);
 
-        // 添加新的事件监听器
-        openBtn.addEventListener('click', function(e) {
+        openBtn.addEventListener('click', function (e) {
             e.preventDefault();
 
             try {
                 if (typeof openTagSelector === 'function') {
                     openTagSelector();
                 } else {
-                    // 直接显示模态框作为备用方案
                     const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
                     modal.show();
                 }
 
-                // 模态框显示后重新绑定按钮
                 setTimeout(() => {
                     if (editPageTagSelector) {
                         editPageTagSelector.rebindModalButtons();
@@ -278,79 +329,81 @@ function setupTagSelectorEvents() {
         });
     }
 
-    // 监听TagSelector的确认事件
     if (editPageTagSelector.container) {
-        editPageTagSelector.container.addEventListener('tagSelectionConfirmed', function(event) {
+        editPageTagSelector.container.addEventListener('tagSelectionConfirmed', function (event) {
             const selectedTags = event.detail.selectedTags;
             updateSelectedTagsPreview(selectedTags);
             closeTagSelector();
         });
 
-        // 监听TagSelector的取消事件
-        editPageTagSelector.container.addEventListener('tagSelectionCancelled', function(event) {
+        editPageTagSelector.container.addEventListener('tagSelectionCancelled', function () {
             closeTagSelector();
         });
     }
 }
 
-// 获取当前标签名称
 function getCurrentTagNames() {
-    // 从页面中获取当前标签名称
     const tagNamesElement = document.querySelector('[data-current-tags]');
     if (tagNamesElement) {
         try {
-            return JSON.parse(tagNamesElement.dataset.currentTags);
+            const value = tagNamesElement.dataset.currentTags;
+            if (!value) {
+                return [];
+            }
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+            return [];
         } catch (error) {
             console.error('解析当前标签失败:', error);
             return [];
         }
     }
-    
-    // 如果没有data属性，尝试从全局变量获取
-    if (typeof window.currentTagNames !== 'undefined') {
+
+    if (Array.isArray(window.currentTagNames)) {
         return window.currentTagNames;
     }
-    
+
     return [];
 }
 
-// 确认标签选择
 function confirmTagSelection() {
     if (editPageTagSelector) {
-        // 直接调用标签选择器的确认方法
         editPageTagSelector.confirmSelection();
-        
-        // 获取选中的标签并更新预览
         const selectedTags = editPageTagSelector.getSelectedTags();
         updateSelectedTagsPreview(selectedTags);
         closeTagSelector();
     }
 }
 
-// 更新选中标签预览
 function updateSelectedTagsPreview(selectedTags) {
     const preview = document.getElementById('selected-tags-preview');
     const count = document.getElementById('selected-tags-count');
     const chips = document.getElementById('selected-tags-chips');
     const hiddenInput = document.getElementById('selected-tag-names');
-    
+
     if (selectedTags.length > 0) {
         if (preview) preview.style.display = 'block';
         if (count) count.textContent = `已选择 ${selectedTags.length} 个标签`;
-        
+
         if (chips) {
-            chips.innerHTML = selectedTags.map(tag => `
+            chips.innerHTML = selectedTags
+                .map(
+                    (tag) => `
                 <span class="badge bg-${tag.color} me-1 mb-1">
                     <i class="fas fa-tag me-1"></i>${tag.display_name}
                     <button type="button" class="btn-close btn-close-white ms-1" 
                             onclick="removeTagFromPreview('${tag.name}')" 
                             style="font-size: 0.6em;"></button>
                 </span>
-            `).join('');
+            `
+                )
+                .join('');
         }
-        
+
         if (hiddenInput) {
-            hiddenInput.value = selectedTags.map(tag => tag.name).join(',');
+            hiddenInput.value = selectedTags.map((tag) => tag.name).join(',');
         }
     } else {
         if (preview) preview.style.display = 'none';
@@ -359,10 +412,9 @@ function updateSelectedTagsPreview(selectedTags) {
     }
 }
 
-// 从预览中移除标签
 function removeTagFromPreview(tagName) {
     if (editPageTagSelector) {
-        const tag = editPageTagSelector.availableTags.find(t => t.name === tagName);
+        const tag = editPageTagSelector.availableTags.find((t) => t.name === tagName);
         if (tag) {
             editPageTagSelector.toggleTag(tag.id);
             const selectedTags = editPageTagSelector.getSelectedTags();
@@ -371,21 +423,18 @@ function removeTagFromPreview(tagName) {
     }
 }
 
-// 工具函数
 function getInstanceId() {
-    // 从页面URL中获取实例ID
     const urlParts = window.location.pathname.split('/');
     let instanceId = urlParts[urlParts.length - 1];
-    
-    // 如果最后一部分是'edit'，则取倒数第二部分
+
     if (instanceId === 'edit') {
         instanceId = urlParts[urlParts.length - 2];
     }
-    
+
     return instanceId;
 }
 
-// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
-
-// 导出到全局作用域
 window.initializeInstanceEditTagSelector = initializeInstanceEditTagSelector;
+window.confirmTagSelection = confirmTagSelection;
+window.removeTagFromPreview = removeTagFromPreview;
+window.testConnection = testConnection;
