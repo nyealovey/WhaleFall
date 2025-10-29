@@ -102,7 +102,7 @@ function syncAccounts() {
                     result: 'success',
                     message: data.message
                 });
-                notify.success(data.message);
+                toast.success(data.message);
             } else if (data.error) {
                 // 记录失败日志
                 console.error('同步账户失败', {
@@ -112,7 +112,7 @@ function syncAccounts() {
                     result: 'failed',
                     error: data.error
                 });
-                notify.error(data.error);
+                toast.error(data.error);
             }
         })
         .catch(error => {
@@ -123,7 +123,7 @@ function syncAccounts() {
                 instance_name: getInstanceName(),
                 result: 'exception'
             });
-            notify.error('同步失败');
+            toast.error('同步失败');
         })
         .finally(() => {
             syncBtn.innerHTML = originalText;
@@ -157,7 +157,7 @@ function syncCapacity(instanceId, instanceName) {
                     result: 'success',
                     message: data.message || '容量同步成功'
                 });
-                notify.success(data.message || '容量同步成功');
+                toast.success(data.message || '容量同步成功');
 
                 // 刷新数据库容量显示
                 setTimeout(() => {
@@ -172,7 +172,7 @@ function syncCapacity(instanceId, instanceName) {
                     result: 'failed',
                     error: data.error
                 });
-                notify.error(data.error);
+                toast.error(data.error);
             }
         })
         .catch(error => {
@@ -183,7 +183,7 @@ function syncCapacity(instanceId, instanceName) {
                 instance_name: instanceName,
                 result: 'exception'
             });
-            notify.error('同步容量失败: ' + (error.message || '未知错误'));
+            toast.error('同步容量失败: ' + (error.message || '未知错误'));
         })
         .finally(() => {
             syncBtn.innerHTML = originalText;
@@ -247,7 +247,7 @@ function viewAccountChangeHistory(accountId) {
                 modal.show();
             } else {
                 console.error('获取变更历史失败:', data?.error || data?.message);
-                notify.error(data?.error || data?.message || '获取变更历史失败');
+                toast.error(data?.error || data?.message || '获取变更历史失败');
             }
         })
         .catch(error => {

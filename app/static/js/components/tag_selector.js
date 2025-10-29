@@ -663,7 +663,7 @@ class TagSelector {
     
     // 显示提示
     showAlert(type, message) {
-        notify.alert(type, message, { container: '.container-fluid' });
+        toast.show(type, message, { container: '.container-fluid' });
     }
     
     // 获取空状态HTML

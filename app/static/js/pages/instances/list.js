@@ -135,7 +135,7 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
             }, 100);
         } catch (error) {
             console.error('初始化标签选择器组件时出错:', error);
-            notify.error('标签选择器初始化失败: ' + error.message);
+            toast.error('标签选择器初始化失败: ' + error.message);
         }
     }
 }
@@ -174,7 +174,7 @@ function setupTagSelectorEvents() {
                 }, 100);
             } catch (error) {
                 console.error('打开标签选择器时出错:', error);
-                notify.error('打开标签选择器失败: ' + error.message);
+                toast.error('打开标签选择器失败: ' + error.message);
             }
         });
     }
@@ -254,10 +254,10 @@ function testConnection(instanceId) {
     // 使用新的连接管理API
     connectionManager.testInstanceConnection(instanceId, {
         onSuccess: (data) => {
-            notify.success(data.message || '连接测试成功');
+            toast.success(data.message || '连接测试成功');
         },
         onError: (error) => {
-            notify.error(error.error || '连接测试失败');
+            toast.error(error.error || '连接测试失败');
         }
     }).finally(() => {
         btn.innerHTML = originalHtml;
@@ -271,12 +271,12 @@ function batchTestConnections() {
     
     
     if (selectedInstances.length === 0) {
-        notify.warning('请先选择要测试的实例');
+        toast.warning('请先选择要测试的实例');
         return;
     }
     
     if (selectedInstances.length > 50) {
-        notify.warning('批量测试最多支持50个实例');
+        toast.warning('批量测试最多支持50个实例');
         return;
     }
     
@@ -294,7 +294,7 @@ function batchTestConnections() {
             }
         },
         onError: (error) => {
-            notify.error(error.error || '批量测试失败');
+            toast.error(error.error || '批量测试失败');
         }
     });
 }
@@ -333,7 +333,7 @@ function syncCapacity(instanceId, instanceName) {
                 data: data.data
             });
             
-            notify.success(data.message);
+            toast.success(data.message);
             
             // 刷新页面以更新容量显示
             setTimeout(() => {
@@ -348,7 +348,7 @@ function syncCapacity(instanceId, instanceName) {
                 result: 'failed',
                 error: data.error
             });
-            notify.error(data.error);
+            toast.error(data.error);
         }
     })
     .catch(error => {
@@ -359,7 +359,7 @@ function syncCapacity(instanceId, instanceName) {
             instance_name: instanceName,
             result: 'exception'
         });
-        notify.error('同步容量失败');
+        toast.error('同步容量失败');
     })
     .finally(() => {
         btn.innerHTML = originalHtml;
@@ -415,7 +415,7 @@ function batchDelete() {
     const instanceIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
 
     if (instanceIds.length === 0) {
-        notify.warning('请选择要删除的实例');
+        toast.warning('请选择要删除的实例');
         return;
     }
 
@@ -447,7 +447,7 @@ function batchDelete() {
                 result: 'success',
                 message: data.message
             });
-            notify.success(data.message);
+            toast.success(data.message);
             setTimeout(() => location.reload(), 1000);
         } else {
             // 记录失败日志
@@ -458,7 +458,7 @@ function batchDelete() {
                 result: 'failed',
                 error: data.error
             });
-            notify.error(data.error);
+            toast.error(data.error);
         }
     })
     .catch(error => {
@@ -469,7 +469,7 @@ function batchDelete() {
             instance_ids: instanceIds,
             result: 'exception'
         });
-        notify.error('批量删除失败');
+        toast.error('批量删除失败');
     })
     .finally(() => {
         btn.textContent = originalText;
@@ -500,7 +500,7 @@ function handleFileSelect(event) {
     if (file) {
         // 验证文件类型
         if (!file.name.toLowerCase().endsWith('.csv')) {
-            notify.warning('请选择CSV格式文件');
+            toast.warning('请选择CSV格式文件');
             event.target.value = '';
             return;
         }
@@ -535,7 +535,7 @@ function submitFileUpload() {
     const file = fileInput.files[0];
 
     if (!file) {
-        notify.warning('请选择CSV文件');
+        toast.warning('请选择CSV文件');
         return;
     }
 
@@ -555,20 +555,20 @@ function submitFileUpload() {
     })
     .then(data => {
         if (data.success) {
-            notify.success(data.message);
+            toast.success(data.message);
             if (data.errors && data.errors.length > 0) {
-                notify.warning(`部分实例创建失败：\n${data.errors.join('\n')}`);
+                toast.warning(`部分实例创建失败：\n${data.errors.join('\n')}`);
             }
             // 关闭模态框
             const modal = bootstrap.Modal.getInstance(document.getElementById('batchCreateModal'));
             if (modal) modal.hide();
             setTimeout(() => location.reload(), 1000);
         } else {
-            notify.error(data.error);
+            toast.error(data.error);
         }
     })
     .catch(error => {
-        notify.error('批量创建失败');
+        toast.error('批量创建失败');
     })
     .finally(() => {
         btn.textContent = originalText;
@@ -580,7 +580,7 @@ function submitJsonInput() {
     const dataText = document.getElementById('batchInstancesData').value.trim();
 
     if (!dataText) {
-        notify.warning('请输入实例数据');
+        toast.warning('请输入实例数据');
         return;
     }
 
@@ -588,12 +588,12 @@ function submitJsonInput() {
         const instances = JSON.parse(dataText);
 
         if (!Array.isArray(instances)) {
-            notify.warning('实例数据必须是数组格式');
+            toast.warning('实例数据必须是数组格式');
             return;
         }
 
         if (instances.length === 0) {
-            notify.warning('至少需要提供一个实例');
+            toast.warning('至少需要提供一个实例');
             return;
         }
 
@@ -606,20 +606,20 @@ function submitJsonInput() {
         http.post('/instances/api/batch-create', { instances: instances })
         .then(data => {
             if (data.success) {
-                notify.success(data.message);
+                toast.success(data.message);
                 if (data.errors && data.errors.length > 0) {
-                    notify.warning(`部分实例创建失败：\n${data.errors.join('\n')}`);
+                    toast.warning(`部分实例创建失败：\n${data.errors.join('\n')}`);
                 }
                 // 关闭模态框
                 const modal = bootstrap.Modal.getInstance(document.getElementById('batchCreateModal'));
                 if (modal) modal.hide();
                 setTimeout(() => location.reload(), 1000);
             } else {
-                notify.error(data.error);
+                toast.error(data.error);
             }
         })
         .catch(error => {
-            notify.error('批量创建失败');
+            toast.error('批量创建失败');
         })
         .finally(() => {
             btn.textContent = originalText;
@@ -627,7 +627,7 @@ function submitJsonInput() {
         });
 
     } catch (error) {
-        notify.error('JSON格式错误，请检查输入数据');
+        toast.error('JSON格式错误，请检查输入数据');
     }
 }
 

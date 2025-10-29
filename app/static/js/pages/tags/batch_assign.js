@@ -710,7 +710,8 @@ class BatchAssignManager {
      */
     showAlert(message, type, details = null) {
         const text = details ? `${message}\n${details}` : message;
-        notify.alert(type, text);
+        const normalizedType = type === 'danger' ? 'error' : type;
+        toast.show(normalizedType, text);
     }
 
     /**

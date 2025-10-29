@@ -3,7 +3,7 @@
 
 (function () {
   function notifyAlert(message, type = 'info') {
-    notify.alert(type, message);
+    toast.show(type, message);
   }
   // 防抖/节流等工具可后续抽到 shared/utils
 

@@ -79,56 +79,10 @@ if (typeof axios === 'undefined') {
         return confirm(message);
     };
 
-    // 全局通知函数（如果有 toastr 库）
-    if (typeof toastr !== 'undefined') {
-        toastr.options = {
-            closeButton: true,
-            progressBar: true,
-            positionClass: 'toast-top-right',
-            timeOut: 3000
-        };
-
-        window.showSuccess = function(message) {
-            toastr.success(message);
-        };
-
-        window.showError = function(message) {
-            toastr.error(message);
-        };
-
-        window.showWarning = function(message) {
-            toastr.warning(message);
-        };
-
-        window.showInfo = function(message) {
-            toastr.info(message);
-        };
-    } else {
-        // 降级方案：使用 alert
-        window.showSuccess = function(message) {
-            alert('成功: ' + message);
-        };
-
-        window.showError = function(message) {
-            alert('错误: ' + message);
-        };
-
-        window.showWarning = function(message) {
-            alert('警告: ' + message);
-        };
-
-        window.showInfo = function(message) {
-            alert('提示: ' + message);
-        };
-    }
-
     console.log('=================================');
     console.log('前端库配置加载完成');
     console.log('可用对象:');
     console.log('  - http (Axios 实例)');
     console.log('  - confirmDelete()');
-    console.log('  - showSuccess()');
-    console.log('  - showError()');
-    console.log('  - showWarning()');
     console.log('=================================');
 }

@@ -56,7 +56,7 @@ function viewAccountPermissions(accountId, options = {}) {
             }
         } else {
             const errorMsg = data?.error || data?.message || '获取权限信息失败';
-            notify.error(errorMsg);
+            toast.error(errorMsg);
             
             // 调用错误回调
             if (onError) {
@@ -66,7 +66,7 @@ function viewAccountPermissions(accountId, options = {}) {
     })
     .catch(error => {
         const errorMsg = '获取权限信息失败';
-        notify.error(errorMsg);
+        toast.error(errorMsg);
         
         // 调用错误回调
         if (onError) {

@@ -46,12 +46,12 @@ function loadClassifications() {
                 const classifications = data?.data?.classifications ?? data.classifications ?? [];
                 displayClassifications(Array.isArray(classifications) ? classifications : []);
             } else {
-                notify.error('加载分类失败: ' + (data.error || '未知错误'));
+                toast.error('加载分类失败: ' + (data.error || '未知错误'));
             }
         })
         .catch(error => {
             logErrorWithContext(error, '加载分类失败', { action: 'load_classifications' });
-            notify.error('加载分类失败');
+            toast.error('加载分类失败');
         });
 }
 
@@ -130,17 +130,17 @@ function createClassification() {
     http.post('/account_classification/api/classifications', data)
         .then(data => {
             if (data.success) {
-                notify.success(data.message || '分类创建成功');
+                toast.success(data.message || '分类创建成功');
                 bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
                 form.reset();
                 loadClassifications();
             } else {
-                notify.error(data.error || '创建分类失败');
+                toast.error(data.error || '创建分类失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('创建分类失败');
+            toast.error('创建分类失败');
         });
 }
 
@@ -195,12 +195,12 @@ function editClassification(id) {
 
                 editModal.show();
             } else {
-                notify.error('获取分类信息失败: ' + (data.error || '未知错误'));
+                toast.error('获取分类信息失败: ' + (data.error || '未知错误'));
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('获取分类信息失败');
+            toast.error('获取分类信息失败');
         });
 }
 
@@ -214,7 +214,7 @@ function updateClassification() {
     const priority = parseInt(document.getElementById('editClassificationPriority').value) || 0;
 
     if (!name.trim()) {
-        notify.warning('请输入分类名称');
+        toast.warning('请输入分类名称');
         return;
     }
 
@@ -230,16 +230,16 @@ function updateClassification() {
     http.put(`/account_classification/api/classifications/${id}`, data)
         .then(data => {
             if (data.success) {
-                notify.success('分类更新成功');
+                toast.success('分类更新成功');
                 bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
                 loadClassifications();
             } else {
-                notify.error(data.error || '分类更新失败');
+                toast.error(data.error || '分类更新失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('更新分类失败');
+            toast.error('更新分类失败');
         });
 }
 
@@ -252,15 +252,15 @@ function deleteClassification(id) {
     http.delete(`/account_classification/api/classifications/${id}`)
         .then(data => {
             if (data.success) {
-                notify.success(data.message || '分类删除成功');
+                toast.success(data.message || '分类删除成功');
                 loadClassifications();
             } else {
-                notify.error(data.error || '删除分类失败');
+                toast.error(data.error || '删除分类失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('删除分类失败');
+            toast.error('删除分类失败');
         });
 }
 
@@ -274,12 +274,12 @@ function loadRules() {
                 const rulesByDbType = data?.data?.rules_by_db_type ?? data.rules_by_db_type ?? {};
                 displayRules(rulesByDbType && typeof rulesByDbType === 'object' ? rulesByDbType : {});
             } else {
-                notify.error('加载规则失败: ' + (data.error || '未知错误'));
+                toast.error('加载规则失败: ' + (data.error || '未知错误'));
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('加载规则失败');
+            toast.error('加载规则失败');
         });
 }
 
@@ -450,12 +450,12 @@ function loadPermissions(prefix = '') {
             if (data.success) {
                 displayPermissionsConfig(data?.data?.permissions ?? data.permissions, prefix, dbType);
             } else {
-                notify.error('加载权限配置失败: ' + (data.error || '未知错误'));
+                toast.error('加载权限配置失败: ' + (data.error || '未知错误'));
             }
         })
         .catch(error => {
             console.error('Error loading permissions:', error);
-            notify.error('加载权限配置失败: ' + (error.message || '未知错误'));
+            toast.error('加载权限配置失败: ' + (error.message || '未知错误'));
         });
 }
 
@@ -763,7 +763,7 @@ function createRule() {
     const operator = document.getElementById('ruleOperator').value;
 
     if (!classificationId || !ruleName || !dbType || !operator) {
-        notify.warning('请填写所有必填字段');
+        toast.warning('请填写所有必填字段');
         return;
     }
 
@@ -775,7 +775,7 @@ function createRule() {
     });
 
     if (selectedPermissions.length === 0) {
-        notify.warning('请至少选择一个权限');
+        toast.warning('请至少选择一个权限');
         return;
     }
 
@@ -902,17 +902,17 @@ function createRule() {
     http.post('/account_classification/api/rules', data)
         .then(data => {
             if (data.success) {
-                notify.success('规则创建成功');
+                toast.success('规则创建成功');
                 bootstrap.Modal.getInstance(document.getElementById('createRuleModal')).hide();
                 document.getElementById('createRuleForm').reset();
                 loadRules();
             } else {
-                notify.error(data.error);
+                toast.error(data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('创建规则失败');
+            toast.error('创建规则失败');
         });
 }
 
@@ -958,12 +958,12 @@ function editRule(id) {
                     }, { once: true });
                 });
             } else {
-                notify.error('获取规则信息失败: ' + data.error);
+                toast.error('获取规则信息失败: ' + data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('获取规则信息失败');
+            toast.error('获取规则信息失败');
         });
 }
 
@@ -1082,17 +1082,17 @@ function updateRule() {
     const operator = document.getElementById('editRuleOperator').value;
 
     if (!ruleName) {
-        notify.warning('请输入规则名称');
+        toast.warning('请输入规则名称');
         return;
     }
 
     if (!classificationId) {
-        notify.warning('请选择分类');
+        toast.warning('请选择分类');
         return;
     }
 
     if (!operator) {
-        notify.warning('请选择匹配逻辑');
+        toast.warning('请选择匹配逻辑');
         return;
     }
 
@@ -1104,7 +1104,7 @@ function updateRule() {
     });
 
     if (selectedPermissions.length === 0) {
-        notify.warning('请至少选择一个权限');
+        toast.warning('请至少选择一个权限');
         return;
     }
 
@@ -1223,16 +1223,16 @@ function updateRule() {
     http.put(`/account_classification/api/rules/${ruleId}`, data)
         .then(data => {
             if (data.success) {
-                notify.success('规则更新成功');
+                toast.success('规则更新成功');
                 bootstrap.Modal.getInstance(document.getElementById('editRuleModal')).hide();
                 loadRules();
             } else {
-                notify.error(data.error);
+                toast.error(data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('更新规则失败');
+            toast.error('更新规则失败');
         });
 }
 
@@ -1285,12 +1285,12 @@ function viewRule(id) {
                 const viewModal = new bootstrap.Modal(document.getElementById('viewRuleModal'));
                 viewModal.show();
             } else {
-                notify.error('获取规则信息失败: ' + data.error);
+                toast.error('获取规则信息失败: ' + data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('获取规则信息失败');
+            toast.error('获取规则信息失败');
         });
 }
 
@@ -1521,15 +1521,15 @@ function deleteRule(id) {
     http.delete(`/account_classification/rules/${id}`)
         .then(data => {
             if (data.success) {
-                notify.success('规则删除成功');
+                toast.success('规则删除成功');
                 loadRules();
             } else {
-                notify.error(data.error);
+                toast.error(data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('删除规则失败');
+            toast.error('删除规则失败');
         });
 }
 
@@ -1554,7 +1554,7 @@ function autoClassifyAll() {
                     result: 'success',
                     message: data.message
                 });
-                notify.success(data.message);
+                toast.success(data.message);
                 // 分类完成后刷新页面显示最新数据
                 setTimeout(() => {
                     location.reload();
@@ -1566,7 +1566,7 @@ function autoClassifyAll() {
                     result: 'failed',
                     error: data.error
                 });
-                notify.error(data.error);
+                toast.error(data.error);
             }
         })
         .catch(error => {
@@ -1575,7 +1575,7 @@ function autoClassifyAll() {
                 operation: 'auto_classify_all',
                 result: 'exception'
             });
-            notify.error('自动分类失败');
+            toast.error('自动分类失败');
         })
         .finally(() => {
             // 恢复按钮状态
@@ -1650,26 +1650,26 @@ function createClassification() {
 
     // 验证必填字段
     if (!data.name || !data.color) {
-        notify.error('请填写完整的分类信息');
+        toast.error('请填写完整的分类信息');
         return;
     }
 
     http.post('/account_classification/api/classifications', data)
         .then(data => {
             if (data.success) {
-                notify.success('分类创建成功');
+                toast.success('分类创建成功');
                 bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
                 form.reset();
                 // 重置颜色预览
                 document.getElementById('colorPreview').style.display = 'none';
                 loadClassifications();
             } else {
-                notify.error(data.error || '创建分类失败');
+                toast.error(data.error || '创建分类失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('创建分类失败: ' + (error.message || '未知错误'));
+            toast.error('创建分类失败: ' + (error.message || '未知错误'));
         });
 }
 
@@ -1695,24 +1695,24 @@ function updateClassification() {
 
     // 验证必填字段
     if (!data.name || !data.color) {
-        notify.error('请填写完整的分类信息');
+        toast.error('请填写完整的分类信息');
         return;
     }
 
     http.put(`/account_classification/api/classifications/${id}`, data)
         .then(data => {
             if (data.success) {
-                notify.success('分类更新成功');
+                toast.success('分类更新成功');
                 bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
                 // 重置颜色预览
                 document.getElementById('editColorPreview').style.display = 'none';
                 loadClassifications();
             } else {
-                notify.error(data.error || '更新分类失败');
+                toast.error(data.error || '更新分类失败');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notify.error('更新分类失败: ' + (error.message || '未知错误'));
+            toast.error('更新分类失败: ' + (error.message || '未知错误'));
         });
 }

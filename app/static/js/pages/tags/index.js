@@ -168,7 +168,7 @@ function updateBatchActions() {
 function handleBatchDelete() {
     const selectedCheckboxes = document.querySelectorAll('input[name="tag_ids"]:checked');
     if (selectedCheckboxes.length === 0) {
-        showWarningAlert('请选择要删除的标签');
+        toast.warning('请选择要删除的标签');
         return;
     }
     
@@ -189,17 +189,17 @@ async function performBatchDelete(tagIds) {
         const data = await http.post('/tags/api/batch_delete', { tag_ids: tagIds });
         
         if (data.success) {
-            showSuccessAlert(data.message);
+            toast.success(data.message);
             // 刷新页面
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         } else {
-            showErrorAlert(`批量删除失败: ${data.error}`);
+            toast.error(`批量删除失败: ${data.error}`);
         }
     } catch (error) {
         console.error('Error during batch delete:', error);
-        showErrorAlert('批量删除失败，请检查网络或服务器日志。');
+        toast.error('批量删除失败，请检查网络或服务器日志。');
     } finally {
         hideLoadingState('batchDelete', '批量删除');
     }
@@ -209,7 +209,7 @@ async function performBatchDelete(tagIds) {
 function handleBatchExport() {
     const selectedCheckboxes = document.querySelectorAll('input[name="tag_ids"]:checked');
     if (selectedCheckboxes.length === 0) {
-        showWarningAlert('请选择要导出的标签');
+        toast.warning('请选择要导出的标签');
         return;
     }
     
@@ -263,22 +263,6 @@ function hideLoadingState(buttonId, originalText) {
 
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
-// 显示警告提示
-function showWarningAlert(message) {
-    notify.warning(message);
-}
-
-function showSuccessAlert(message) {
-    notify.success(message);
-}
-
-function showErrorAlert(message) {
-    notify.error(message);
-}
-
 // 导出函数到全局作用域
 window.clearSearch = clearSearch;
 window.exportTags = exportTags;
-window.showSuccessAlert = showSuccessAlert;
-window.showWarningAlert = showWarningAlert;
-window.showErrorAlert = showErrorAlert;

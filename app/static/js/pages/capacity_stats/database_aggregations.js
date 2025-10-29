@@ -1583,11 +1583,11 @@ class DatabaseAggregationsManager {
     }
     
     showSuccess(message) {
-        toastr.success(message);
+        toast.success(message);
     }
     
     showError(message) {
-        toastr.error(message);
+        toast.error(message);
     }
     
     formatSizeFromMB(mb) {

@@ -120,15 +120,15 @@ function initializeEventHandlers() {
                 if (resp && resp.success) {
                     const deletedCount = (resp.data && resp.data.deleted_count) ? resp.data.deleted_count : 0;
                     const reloadedCount = (resp.data && resp.data.reloaded_count) ? resp.data.reloaded_count : 0;
-                    notify.success(`重新初始化完成：删除了 ${deletedCount} 个任务，重新加载了 ${reloadedCount} 个任务`, 'success');
+                    toast.success(`重新初始化完成：删除了 ${deletedCount} 个任务，重新加载了 ${reloadedCount} 个任务`, 'success');
                     loadJobs();
                 } else {
-                    notify.error('重新初始化失败: ' + (resp ? resp.message : '未知错误'));
+                    toast.error('重新初始化失败: ' + (resp ? resp.message : '未知错误'));
                 }
             },
             error: function (xhr) {
                 const error = xhr.responseJSON;
-                notify.error('重新初始化失败: ' + (error ? error.message : '网络或服务器错误'));
+                toast.error('重新初始化失败: ' + (error ? error.message : '网络或服务器错误'));
             },
             complete: function () {
                 $btn.prop('disabled', false).html(original);
@@ -167,7 +167,7 @@ function loadJobs() {
                 displayJobs(response.data);
                 // 移除: updateStats(response.data);
             } else {
-                notify.error('加载任务失败: ' + response.message);
+                toast.error('加载任务失败: ' + response.message);
             }
         },
         error: function (xhr) {
@@ -177,12 +177,12 @@ function loadJobs() {
             console.error('响应文本:', xhr.responseText);
 
             if (xhr.status === 401 || xhr.status === 403 || xhr.status === 302) {
-                notify.warning('请先登录或检查管理员权限');
+                toast.warning('请先登录或检查管理员权限');
                 window.location.href = '/auth/login';
             } else {
                 const error = xhr.responseJSON;
                 const errorMsg = error ? error.message : `HTTP ${xhr.status}: ${xhr.statusText}`;
-                notify.error('加载任务失败: ' + errorMsg);
+                toast.error('加载任务失败: ' + errorMsg);
                 console.error('详细错误:', error);
             }
         }
@@ -411,15 +411,15 @@ function enableJob(jobId) {
         },
         success: function (response) {
             if (response.success) {
-                notify.success('任务已启用');
+                toast.success('任务已启用');
                 loadJobs();
             } else {
-                notify.error('启用失败: ' + response.message);
+                toast.error('启用失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            notify.error('启用失败: ' + (error ? error.message : '未知错误'));
+            toast.error('启用失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-enable-job`), '启用');
@@ -439,15 +439,15 @@ function disableJob(jobId) {
         },
         success: function (response) {
             if (response.success) {
-                notify.success('任务已禁用');
+                toast.success('任务已禁用');
                 loadJobs();
             } else {
-                notify.error('禁用失败: ' + response.message);
+                toast.error('禁用失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            notify.error('禁用失败: ' + (error ? error.message : '未知错误'));
+            toast.error('禁用失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-disable-job`), '禁用');
@@ -467,15 +467,15 @@ function runJobNow(jobId) {
         },
         success: function (response) {
             if (response.success) {
-                notify.success('任务已开始执行');
+                toast.success('任务已开始执行');
                 loadJobs();
             } else {
-                notify.error('执行失败: ' + response.message);
+                toast.error('执行失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            notify.error('执行失败: ' + (error ? error.message : '未知错误'));
+            toast.error('执行失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-run-job`), '执行');
@@ -487,7 +487,7 @@ function runJobNow(jobId) {
 function editJob(jobId) {
     const job = currentJobs.find(j => j.id === jobId);
     if (!job) {
-        notify.error('任务不存在');
+        toast.error('任务不存在');
         return;
     }
 
@@ -600,7 +600,7 @@ function updateJob() {
     const originalJob = currentJobs.find(j => j.id === jobId);
 
     if (!originalJob) {
-        notify.error('任务不存在');
+        toast.error('任务不存在');
         return;
     }
 
@@ -682,16 +682,16 @@ function updateJob() {
         },
         success: function (response) {
             if (response.success) {
-                notify.success('任务更新成功');
+                toast.success('任务更新成功');
                 $('#editJobModal').modal('hide');
                 loadJobs();
             } else {
-                notify.error('更新失败: ' + response.message);
+                toast.error('更新失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            notify.error('更新失败: ' + (error ? error.message : '未知错误'));
+            toast.error('更新失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($('#editJobForm button[type="submit"]'), '保存更改');
@@ -703,7 +703,7 @@ function updateJob() {
 function deleteJob(jobId) {
     const job = currentJobs.find(j => j.id === jobId);
     if (!job) {
-        notify.error('任务不存在');
+        toast.error('任务不存在');
         return;
     }
 
@@ -721,15 +721,15 @@ function deleteJob(jobId) {
         },
         success: function (response) {
             if (response.success) {
-                notify.success('任务已删除');
+                toast.success('任务已删除');
                 loadJobs();
             } else {
-                notify.error('删除失败: ' + response.message);
+                toast.error('删除失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            notify.error('删除失败: ' + (error ? error.message : '未知错误'));
+            toast.error('删除失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-delete-job`), '删除');
@@ -741,12 +741,12 @@ function deleteJob(jobId) {
 function viewJobLogs(jobId) {
     const job = currentJobs.find(j => j.id === jobId);
     if (!job) {
-        notify.error('任务不存在');
+        toast.error('任务不存在');
         return;
     }
 
     // 这里可以实现查看日志的功能
-    notify.info('日志查看功能待实现');
+    toast.info('日志查看功能待实现');
 }
 
 // 添加任务
@@ -806,17 +806,17 @@ function addJob() {
         },
         success: function (response) {
             if (response.success) {
-                notify.success('任务添加成功');
+                toast.success('任务添加成功');
                 $('#addJobModal').modal('hide');
                 form.reset();
                 loadJobs();
             } else {
-                notify.error('添加失败: ' + response.message);
+                toast.error('添加失败: ' + response.message);
             }
         },
         error: function (xhr) {
             const error = xhr.responseJSON;
-            notify.error('添加失败: ' + (error ? error.message : '未知错误'));
+            toast.error('添加失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
             hideLoadingState($('#addJobForm button[type="submit"]'), '添加任务');
@@ -872,7 +872,7 @@ function loadHealthStatus() {
             if (response.success) {
                 updateHealthDisplay(response.data);
             } else {
-                notify.error('获取健康状态失败: ' + response.message);
+                toast.error('获取健康状态失败: ' + response.message);
             }
         },
         error: function (xhr) {
@@ -882,7 +882,7 @@ function loadHealthStatus() {
 
             const error = xhr.responseJSON;
             const errorMsg = error ? error.message : `HTTP ${xhr.status}: ${xhr.statusText}`;
-            notify.error('获取健康状态失败: ' + errorMsg);
+            toast.error('获取健康状态失败: ' + errorMsg);
         }
     });
 }

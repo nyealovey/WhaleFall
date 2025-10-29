@@ -234,7 +234,7 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
             }, 100);
         } catch (error) {
             console.error('初始化标签选择器组件时出错:', error);
-            notify.error('标签选择器初始化失败: ' + error.message);
+            toast.error('标签选择器初始化失败: ' + error.message);
         }
     }
 }
@@ -273,7 +273,7 @@ function setupTagSelectorEvents() {
                 }, 100);
             } catch (error) {
                 console.error('打开标签选择器时出错:', error);
-                notify.error('打开标签选择器失败: ' + error.message);
+                toast.error('打开标签选择器失败: ' + error.message);
             }
         });
     }

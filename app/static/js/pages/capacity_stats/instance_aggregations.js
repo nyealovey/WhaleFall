@@ -1660,14 +1660,14 @@ class InstanceAggregationsManager {
      * 显示成功消息
      */
     showSuccess(message) {
-        toastr.success(message);
+        toast.success(message);
     }
     
     /**
      * 显示错误消息
      */
     showError(message) {
-        toastr.error(message);
+        toast.error(message);
     }
     
     /**
