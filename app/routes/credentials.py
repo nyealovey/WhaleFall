@@ -302,11 +302,6 @@ def index() -> str:
                     "has_next": credentials.has_next,
                     "has_prev": credentials.has_prev,
                 },
-            },
-            message=SuccessMessages.OPERATION_SUCCESS,
-        )
-
-                },
                 "filter_options": {
                     "credential_types": credential_type_options,
                     "db_types": db_type_options,

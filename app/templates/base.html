@@ -26,7 +26,7 @@
     <!-- 全局样式 -->
     <link href="{{ url_for('static', filename='css/global.css') }}" rel="stylesheet">
     <!-- Tom Select 样式 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select/tom-select.bootstrap5.min.css') }}">
     <!-- 筛选组件通用样式 -->
     <link href="{{ url_for('static', filename='css/components/filters/filter_common.css') }}" rel="stylesheet">
 
@@ -220,7 +220,7 @@
     <script src="{{ url_for('static', filename='js/common/csrf-utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/time-utils.js') }}"></script>
     <!-- Tom Select -->
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="{{ url_for('static', filename='vendor/tom-select/tom-select.complete.min.js') }}"></script>
     <!-- 筛选组件通用脚本 -->
     <script src="{{ url_for('static', filename='js/components/filters/filter_utils.js') }}"></script>
 
