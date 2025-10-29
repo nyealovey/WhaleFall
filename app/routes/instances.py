@@ -10,6 +10,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.constants import HttpStatus, TaskStatus, FlashCategory, HttpMethod
+from app.constants.database_types import DatabaseType
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -896,6 +897,13 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         )
         raise SystemError("获取权限失败") from exc
 
+
+@instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
+@login_required
+@view_required
+def get_account_change_history(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
+    """获取账户变更历史"""
+    instance = Instance.query.get_or_404(instance_id)
 
     from app.models.current_account_sync_data import CurrentAccountSyncData
 
