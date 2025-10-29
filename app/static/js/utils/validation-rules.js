@@ -71,6 +71,18 @@
         loginUsername: '用户名至少需要 3 个字符',
         credentialType: '请选择凭据类型',
         credentialDbType: '请选择数据库类型',
+        instanceName: '实例名称不能为空',
+        host: '主机地址不能为空',
+        port: '端口号必须在 1-65535 之间',
+        credential: '请选择凭据',
+        tagCode: '标签代码不能为空',
+        tagCodeLength: '标签代码至少需要 2 个字符',
+        tagCodeFormat: '标签代码仅支持字母、数字、下划线或中划线',
+        tagDisplayName: '显示名称不能为空',
+        tagDisplayNameLength: '显示名称至少需要 2 个字符',
+        tagCategory: '请选择标签分类',
+        tagSortOrder: '排序顺序必须是大于等于 0 的整数',
+        confirmPassword: '请再次输入新密码',
     };
 
     var credentialRules = {
@@ -111,6 +123,68 @@
                 helpers.minLength(6, messages.passwordLength),
             ],
         },
+        changePassword: {
+            oldPassword: [helpers.required('请输入当前密码')],
+            newPassword: [
+                helpers.required('请输入新密码'),
+                helpers.minLength(6, messages.passwordLength),
+            ],
+            confirmPassword: [
+                helpers.required(messages.confirmPassword),
+                helpers.custom(function (value, fields) {
+                    var newPasswordField = fields['#new_password'];
+                    var newPassword = newPasswordField ? newPasswordField.elem.value : '';
+                    return value === newPassword;
+                }, '两次输入的新密码不一致'),
+            ],
+        },
+    };
+
+    var instanceRules = {
+        name: [
+            helpers.required(messages.instanceName),
+            helpers.minLength(2, '实例名称至少需要2个字符'),
+        ],
+        dbType: [helpers.required('请选择数据库类型')],
+        host: [helpers.required(messages.host)],
+        port: [
+            helpers.required(messages.port),
+            helpers.number(messages.port),
+            helpers.minNumber(1, messages.port),
+            helpers.maxNumber(65535, messages.port),
+        ],
+        credential: [helpers.required(messages.credential)],
+    };
+
+    var tagRules = {
+        name: [
+            helpers.required(messages.tagCode),
+            helpers.minLength(2, messages.tagCodeLength),
+            helpers.custom(function (value) {
+                if (value == null) {
+                    return false;
+                }
+                const normalized = String(value).trim();
+                if (!normalized) {
+                    return false;
+                }
+                return /^[A-Za-z0-9_-]+$/.test(normalized);
+            }, messages.tagCodeFormat),
+        ],
+        displayName: [
+            helpers.required(messages.tagDisplayName),
+            helpers.minLength(2, messages.tagDisplayNameLength),
+        ],
+        category: [helpers.required(messages.tagCategory)],
+        sortOrder: [
+            helpers.custom(function (value) {
+                if (value == null || String(value).trim() === '') {
+                    return true;
+                }
+                const num = Number(value);
+                return Number.isInteger(num) && num >= 0;
+            }, messages.tagSortOrder),
+        ],
     };
 
     global.ValidationRules = Object.assign({}, global.ValidationRules, {
@@ -118,5 +192,7 @@
         messages: messages,
         credential: credentialRules,
         auth: authRules,
+        instance: instanceRules,
+        tag: tagRules,
     });
 })(window);
