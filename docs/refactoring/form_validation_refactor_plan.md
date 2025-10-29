@@ -71,7 +71,7 @@ app/static/js/
 | --- | --- | --- |
 | P0 | `credentials/create.js`、`credentials/edit.js`、`auth/login.js` | 高频入口，重复逻辑最多 |
 | P1 | `instances/create.js`、`instances/edit.js`、`auth/change_password.js` | 规则较多，适合作为工具库验证的试金石 |
-| P2 | `accounts/account_classification.js`、`admin/scheduler.js`、`unified_search.js` | 待梳理的复杂表单 |
+| P2 | `accounts/account_classification.js`、`admin/scheduler.js`、`unified_search.js`、`tags/batch_assign.js` | 待梳理的复杂表单 |
 | P3 | 低频或查询类表单 | 依赖上阶段经验，逐步统一 |
 
 > 每个阶段结束后更新基线脚本和文档，确保后续页面按新套路实现。
