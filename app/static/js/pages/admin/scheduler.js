@@ -5,6 +5,8 @@
 
 // 全局变量
 let currentJobs = [];
+let addJobValidator = null;
+let editJobValidator = null;
 
 // 全局函数
 /**
@@ -38,6 +40,7 @@ function initializeSchedulerPage() {
     loadJobs();
     loadHealthStatus();
     initializeEventHandlers();
+    initializeSchedulerValidators();
 }
 
 // 初始化事件处理器（移除立即执行绑定）
@@ -136,15 +139,96 @@ function initializeEventHandlers() {
         });
     });
 
-    // 恢复表单提交事件
+    // 恢复表单提交事件（交给 FormValidator 控制）
     $('#addJobForm').on('submit', function (e) {
         e.preventDefault();
-        addJob();
+        if (addJobValidator && addJobValidator.instance && typeof addJobValidator.instance.revalidate === 'function') {
+            addJobValidator.instance.revalidate();
+        } else {
+            addJob(e.target);
+        }
     });
     $('#editJobForm').on('submit', function (e) {
         e.preventDefault();
-        updateJob();
+        if (editJobValidator && editJobValidator.instance && typeof editJobValidator.instance.revalidate === 'function') {
+            editJobValidator.instance.revalidate();
+        } else {
+            updateJob(e.target);
+        }
     });
+}
+
+function initializeSchedulerValidators() {
+    if (typeof FormValidator === 'undefined' || typeof ValidationRules === 'undefined') {
+        console.warn('FormValidator 或 ValidationRules 未加载，跳过定时任务表单校验初始化');
+        return;
+    }
+
+    const addForm = document.getElementById('addJobForm');
+    if (addForm) {
+        addJobValidator = FormValidator.create('#addJobForm');
+        addJobValidator
+            .useRules('#jobName', ValidationRules.scheduler.jobName)
+            .useRules('#jobFunction', ValidationRules.scheduler.jobFunction)
+            .useRules('#cronSecond', ValidationRules.scheduler.cronField)
+            .useRules('#cronMinute', ValidationRules.scheduler.cronField)
+            .useRules('#cronHour', ValidationRules.scheduler.cronField)
+            .useRules('#cronDay', ValidationRules.scheduler.cronField)
+            .useRules('#cronMonth', ValidationRules.scheduler.cronField)
+            .useRules('#cronWeekday', ValidationRules.scheduler.cronField)
+            .useRules('#cronYear', ValidationRules.scheduler.cronYear)
+            .onSuccess(function (event) {
+                event.preventDefault();
+                addJob(event.target);
+            })
+            .onFail(function () {
+                toast.error('请检查任务信息填写');
+            });
+
+        ['#jobName', '#jobFunction', '#cronSecond', '#cronMinute', '#cronHour', '#cronDay', '#cronMonth', '#cronWeekday', '#cronYear'].forEach(function (selector) {
+            const field = addForm.querySelector(selector);
+            if (!field) {
+                return;
+            }
+            const eventType = selector === '#jobFunction' ? 'change' : 'input';
+            field.addEventListener(eventType, function () {
+                addJobValidator.revalidateField(selector);
+            });
+        });
+    }
+
+    const editForm = document.getElementById('editJobForm');
+    if (editForm) {
+        editJobValidator = FormValidator.create('#editJobForm');
+        editJobValidator
+            .useRules('#editJobName', ValidationRules.scheduler.jobName)
+            .useRules('#editJobFunction', ValidationRules.scheduler.jobFunction)
+            .useRules('#editCronSecond', ValidationRules.scheduler.cronField)
+            .useRules('#editCronMinute', ValidationRules.scheduler.cronField)
+            .useRules('#editCronHour', ValidationRules.scheduler.cronField)
+            .useRules('#editCronDay', ValidationRules.scheduler.cronField)
+            .useRules('#editCronMonth', ValidationRules.scheduler.cronField)
+            .useRules('#editCronWeekday', ValidationRules.scheduler.cronField)
+            .useRules('#editCronYear', ValidationRules.scheduler.cronYear)
+            .onSuccess(function (event) {
+                event.preventDefault();
+                updateJob(event.target);
+            })
+            .onFail(function () {
+                toast.error('请检查任务信息填写');
+            });
+
+        ['#editJobName', '#editJobFunction', '#editCronSecond', '#editCronMinute', '#editCronHour', '#editCronDay', '#editCronMonth', '#editCronWeekday', '#editCronYear'].forEach(function (selector) {
+            const field = editForm.querySelector(selector);
+            if (!field) {
+                return;
+            }
+            const eventType = selector === '#editJobFunction' ? 'change' : 'input';
+            field.addEventListener(eventType, function () {
+                editJobValidator.revalidateField(selector);
+            });
+        });
+    }
 }
 
 // 加载任务列表（移除统计更新）
@@ -594,8 +678,13 @@ function editJob(jobId) {
 }
 
 // 更新任务
-function updateJob() {
-    const formData = new FormData($('#editJobForm')[0]);
+function updateJob(form) {
+    const formElement = form instanceof HTMLFormElement ? form : $('#editJobForm')[0];
+    if (!formElement) {
+        return;
+    }
+
+    const formData = new FormData(formElement);
     const jobId = formData.get('job_id');
     const originalJob = currentJobs.find(j => j.id === jobId);
 
@@ -616,13 +705,13 @@ function updateJob() {
     data.trigger_type = 'cron';  // 固定为cron触发器
 
     if (data.trigger_type === 'cron') {
-        const second = $('#editCronSecond').val() || '0';
+        const second = formData.get('cron_second') || '0';
         const minute = data.cron_minute || '0';
         const hour = data.cron_hour || '0';
         const day = data.cron_day || '*';
         const month = data.cron_month || '*';
         const weekday = data.cron_weekday || '*';
-        const year = $('#editCronYear').val() || '';
+        const year = (formData.get('year') || '').toString();
         const base = `${second} ${minute} ${hour} ${day} ${month} ${weekday}`;
         data.cron_expression = year && year.trim() !== '' ? `${base} ${year}` : base;
         // 同时附带单字段，便于后端直接取用
@@ -638,14 +727,14 @@ function updateJob() {
         // 仅发送 interval 所需字段（按后端字段名 minutes/seconds）
         data = {
             trigger_type: 'interval',
-            minutes: $('#editIntervalMinutes').val(),
-            seconds: $('#editIntervalSeconds').val()
+            minutes: formElement.querySelector('#editIntervalMinutes')?.value || '',
+            seconds: formElement.querySelector('#editIntervalSeconds')?.value || ''
         };
     } else if (data.trigger_type === 'date') {
         // 仅发送 date 所需字段
         data = {
             trigger_type: 'date',
-            run_date: $('#editRunDate').val()
+            run_date: formElement.querySelector('#editRunDate')?.value || ''
         };
     }
 
@@ -665,12 +754,14 @@ function updateJob() {
         }
     } else {
         payload = data;
-        if (!$('#editJobFunction').is(':disabled')) {
-            payload.func = $('#editJobFunction').val();
+        const editFuncField = formElement.querySelector('#editJobFunction');
+        if (editFuncField && !editFuncField.disabled) {
+            payload.func = editFuncField.value;
         }
     }
 
-    showLoadingState($('#editJobForm button[type="submit"]'), '保存中...');
+    const submitButton = $(formElement).find('button[type="submit"]');
+    showLoadingState(submitButton, '保存中...');
 
     $.ajax({
         url: `/scheduler/api/jobs/${jobId}`,
@@ -685,6 +776,9 @@ function updateJob() {
                 toast.success('任务更新成功');
                 $('#editJobModal').modal('hide');
                 loadJobs();
+                if (editJobValidator && editJobValidator.instance) {
+                    editJobValidator.instance.refresh();
+                }
             } else {
                 toast.error('更新失败: ' + response.message);
             }
@@ -694,7 +788,7 @@ function updateJob() {
             toast.error('更新失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
-            hideLoadingState($('#editJobForm button[type="submit"]'), '保存更改');
+            hideLoadingState(submitButton, '保存更改');
         }
     });
 }
@@ -750,7 +844,7 @@ function viewJobLogs(jobId) {
 }
 
 // 添加任务
-function addJob() {
+function addJob(form) {
     /**
      * 新增任务提交逻辑（基于后端 “按函数创建任务” 接口）
      * 1. 读取表单数据
@@ -758,8 +852,12 @@ function addJob() {
      * 3. 若为 cron 触发器则生成 cron_expression 并附带单字段
      * 4. 调用后端 /scheduler/api/jobs/by-func 接口进行创建
      */
-    const form = $('#addJobForm')[0];
-    const formData = new FormData(form);
+    const formElement = form instanceof HTMLFormElement ? form : $('#addJobForm')[0];
+    if (!formElement) {
+        return;
+    }
+
+    const formData = new FormData(formElement);
 
     // 前端单选名称为 triggerType，这里转换为后端所需的 trigger_type
     const triggerType = formData.get('triggerType') || 'cron';
@@ -794,7 +892,8 @@ function addJob() {
     }
 
     // 加载中态
-    showLoadingState($('#addJobForm button[type="submit"]'), '添加中...');
+    const submitButton = $(formElement).find('button[type="submit"]');
+    showLoadingState(submitButton, '添加中...');
 
     $.ajax({
         url: '/scheduler/api/jobs/by-func',
@@ -808,7 +907,10 @@ function addJob() {
             if (response.success) {
                 toast.success('任务添加成功');
                 $('#addJobModal').modal('hide');
-                form.reset();
+                formElement.reset();
+                if (addJobValidator && addJobValidator.instance) {
+                    addJobValidator.instance.refresh();
+                }
                 loadJobs();
             } else {
                 toast.error('添加失败: ' + response.message);
@@ -819,7 +921,7 @@ function addJob() {
             toast.error('添加失败: ' + (error ? error.message : '未知错误'));
         },
         complete: function () {
-            hideLoadingState($('#addJobForm button[type="submit"]'), '添加任务');
+            hideLoadingState(submitButton, '添加任务');
         }
     });
 }

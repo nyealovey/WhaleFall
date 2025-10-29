@@ -91,6 +91,12 @@
         classificationRuleClassification: '请选择分类',
         classificationRuleDbType: '请选择数据库类型',
         classificationRuleOperator: '请选择匹配逻辑',
+        schedulerJobName: '任务名称不能为空',
+        schedulerJobNameLength: '任务名称至少需要 2 个字符',
+        schedulerJobFunction: '请选择执行函数',
+        schedulerCronRequired: 'Cron 字段不能为空',
+        schedulerCronInvalid: 'Cron 字段仅支持数字、*、?、/、-、, 等合法字符',
+        schedulerCronYearInvalid: '年份仅支持数字、*、?、/、-、, 等合法字符',
         startTimeBeforeEnd: '开始时间不能晚于结束时间',
         endTimeAfterStart: '结束时间不能早于开始时间',
         confirmPassword: '请再次输入新密码',
@@ -194,6 +200,39 @@
         operator: [helpers.required(messages.classificationRuleOperator)],
     };
 
+    function isValidCronField(value) {
+        if (value == null) {
+            return false;
+        }
+        var trimmed = String(value).trim();
+        if (!trimmed) {
+            return false;
+        }
+        return /^[A-Za-z0-9*/?,\-]+$/.test(trimmed);
+    }
+
+    var schedulerRules = {
+        jobName: [
+            helpers.required(messages.schedulerJobName),
+            helpers.minLength(2, messages.schedulerJobNameLength),
+        ],
+        jobFunction: [helpers.required(messages.schedulerJobFunction)],
+        cronField: [
+            helpers.required(messages.schedulerCronRequired),
+            helpers.custom(function (value) {
+                return isValidCronField(value);
+            }, messages.schedulerCronInvalid),
+        ],
+        cronYear: [
+            helpers.custom(function (value) {
+                if (value == null || String(value).trim() === '') {
+                    return true;
+                }
+                return isValidCronField(value);
+            }, messages.schedulerCronYearInvalid),
+        ],
+    };
+
     var unifiedSearchRules = {
         startTime: [
             helpers.custom(function (value, fields) {
@@ -256,6 +295,7 @@
         instance: instanceRules,
         classification: classificationRules,
         classificationRule: classificationRuleRules,
+        scheduler: schedulerRules,
         unifiedSearch: unifiedSearchRules,
         tag: tagRules,
     });
