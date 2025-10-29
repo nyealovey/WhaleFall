@@ -35,6 +35,7 @@ function setupFilterForm() {
             currentFilters = {};
             clearFilters();
         },
+        autoSubmitOnChange: false,
     });
 
     const form = entry?.element || document.getElementById('logs-filter-form');

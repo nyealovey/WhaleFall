@@ -33,6 +33,7 @@
         currentFilters = {};
         loadSessions(1);
       },
+      autoSubmitOnChange: false,
     });
 
     const form = entry?.element || document.getElementById('sync-sessions-filter-form');
