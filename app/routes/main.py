@@ -3,6 +3,8 @@
 鲸落 - 主要路由
 """
 
+from http import HTTPStatus
+
 from flask import Blueprint, Response, redirect, render_template, url_for
 
 from app.utils.response_utils import jsonify_unified_success
@@ -33,14 +35,14 @@ def about() -> str:
 def favicon() -> "Response":
     """提供favicon.ico文件"""
     # 返回一个空的响应，避免404错误
-    return "", HttpStatus.NO_CONTENT
+    return "", HTTPStatus.NO_CONTENT
 
 
 @main_bp.route("/.well-known/appspecific/com.chrome.devtools.json")
 def chrome_devtools() -> "Response":
     """处理Chrome开发者工具的请求"""
     # 返回一个空的响应，避免404错误
-    return "", HttpStatus.NO_CONTENT
+    return "", HTTPStatus.NO_CONTENT
 
 
 # Admin route removed - admin/management.html deleted
