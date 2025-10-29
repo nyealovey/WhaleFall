@@ -153,23 +153,65 @@
 
 {% macro tag_selector_filter(options, selected=None, field_name='tags', field_id='tag-selector', col_class='col-12 col-lg-4 col-xl-4', placeholder='选择标签', allow_clear=True) -%}
 {% set selected_values = selected or [] %}
-<div class="{{ col_class }}">
-    <label for="{{ field_id }}" class="form-label">标签筛选</label>
-    <select id="{{ field_id }}"
-            name="{{ field_name }}"
-            class="form-select"
-            placeholder="{{ placeholder }}"
-            data-tom-select
-            multiple>
-        {% for option in options or [] %}
-        <option value="{{ option['value'] }}"
-                {% if option['value'] in selected_values %}selected{% endif %}
-                data-color="{{ option.get('color') }}"
-                data-category="{{ option.get('category') }}">
-            {{ option['label'] }}
-        </option>
-        {% endfor %}
-    </select>
+{% set ns = namespace(selected_details=[]) %}
+{% for option in options or [] %}
+    {% if option['value'] in selected_values %}
+        {% set _ = ns.selected_details.append(option) %}
+    {% endif %}
+{% endfor %}
+<div class="{{ col_class }}" id="{{ field_id }}-container">
+    <label class="form-label" for="open-tag-filter-btn">标签筛选</label>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button type="button"
+                class="btn btn-outline-primary flex-grow-1 flex-lg-grow-0"
+                id="open-tag-filter-btn">
+            <i class="fas fa-tags me-2"></i>{{ placeholder }}
+        </button>
+        <span class="text-muted" id="selected-tags-count">
+            {% if selected_values %}
+                已选择 {{ selected_values|length }} 个标签
+            {% else %}
+                未选择标签
+            {% endif %}
+        </span>
+    </div>
+    <div id="selected-tags-preview" class="mt-2"{% if not selected_values %} style="display: none;"{% endif %}>
+        <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
+            {% for tag in ns.selected_details %}
+            {% set tag_value = tag['value'] %}
+            {% set tag_label = tag['label'] %}
+            {% set color = tag.get('color') %}
+            {% set color_value = color or '' %}
+            {% if color_value.startswith('bg-') %}
+                {% set normalized_color = color_value[3:] %}
+            {% else %}
+                {% set normalized_color = color_value %}
+            {% endif %}
+            {% set is_bootstrap_color = normalized_color and not normalized_color.startswith('#') and ' ' not in normalized_color %}
+            {% set badge_classes = 'badge me-1 mb-1' %}
+            {% if is_bootstrap_color %}
+                {% set badge_classes = badge_classes ~ ' bg-' ~ normalized_color %}
+            {% else %}
+                {% set badge_classes = badge_classes ~ ' bg-secondary' %}
+            {% endif %}
+            {% set style_attr = '' %}
+            {% if color_value and not is_bootstrap_color %}
+                {% set style_attr = 'background-color: ' ~ color_value ~ '; color: #fff;' %}
+            {% endif %}
+            <span class="{{ badge_classes }}"{% if style_attr %} style="{{ style_attr }}"{% endif %}>
+                <i class="fas fa-tag me-1"></i>{{ tag_label }}
+                <button type="button"
+                        class="btn-close btn-close-white ms-1"
+                        style="font-size: 0.6em;"
+                        onclick="removeTagFromPreview({{ tag_value|tojson }});"></button>
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    <input type="hidden"
+           id="selected-tag-names"
+           name="{{ field_name }}"
+           value="{{ selected_values|join(',') }}">
     {% if not options %}
     <p class="filter-empty-hint mt-1 mb-0">暂无可用标签，请先在标签管理中创建。</p>
     {% endif %}

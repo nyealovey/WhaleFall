@@ -7,6 +7,10 @@
     transition: var(--transition-base);
 }
 
+.card.filter-card {
+    overflow: visible; /* keep Tom Select dropdowns visible above card boundaries */
+}
+
 .filter-card:hover {
     box-shadow: var(--shadow-md);
 }
