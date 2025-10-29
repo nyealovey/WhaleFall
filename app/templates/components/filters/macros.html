@@ -1,7 +1,12 @@
-{% macro filter_card(form_id='filter-form', action='', method='GET', submit_label='筛选', clear_label='清除', extra_classes='') -%}
+{% macro filter_card(form_id='filter-form', action='', method='GET', submit_label='筛选', clear_label='清除', extra_classes='', auto_register=True) -%}
 <div class="card filter-card {{ extra_classes }}">
     <div class="card-body">
-        <form id="{{ form_id }}" method="{{ method }}" action="{{ action }}" class="filter-form" novalidate>
+        <form id="{{ form_id }}"
+              method="{{ method }}"
+              action="{{ action }}"
+              class="filter-form"
+              data-filter-auto="{{ 'true' if auto_register else 'false' }}"
+              novalidate>
             <div class="row g-3 align-items-end">
                 {{ caller() }}
                 <div class="col-12 col-xl-2">
