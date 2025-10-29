@@ -13,6 +13,9 @@ if (typeof logErrorWithContext === 'undefined') {
 // 全局变量
 let currentClassificationId = null;
 let currentDbType = null;
+let createClassificationValidator = null;
+let editClassificationValidator = null;
+let createRuleValidator = null;
 
 // 获取分类图标
 function getClassificationIcon(iconName, color) {
@@ -34,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadClassifications();
     loadRules();
     loadClassificationsForRules(); // 为规则创建加载分类列表
+    initializeClassificationFormValidators();
 });
 
 // ==================== 分类管理相关函数 ====================
@@ -755,17 +759,23 @@ function displayPermissionsConfig(permissions, prefix = '', dbType = '') {
 
 // ==================== 规则CRUD操作 ====================
 
-// 创建规则
 function createRule() {
-    const classificationId = document.getElementById('ruleClassification').value;
-    const ruleName = document.getElementById('ruleName').value;
-    const dbType = document.getElementById('ruleDbType').value;
-    const operator = document.getElementById('ruleOperator').value;
-
-    if (!classificationId || !ruleName || !dbType || !operator) {
-        toast.warning('请填写所有必填字段');
+    if (createRuleValidator && createRuleValidator.instance) {
+        createRuleValidator.instance.revalidate();
         return;
     }
+
+    const form = document.getElementById('createRuleForm');
+    if (form) {
+        submitCreateRule(form);
+    }
+}
+
+function submitCreateRule(form) {
+    const classificationId = form.querySelector('#ruleClassification')?.value;
+    const ruleName = form.querySelector('#ruleName')?.value;
+    const dbType = form.querySelector('#ruleDbType')?.value;
+    const operator = form.querySelector('#ruleOperator')?.value;
 
     // 收集选中的权限
     const selectedPermissions = [];
@@ -900,14 +910,17 @@ function createRule() {
     };
 
     http.post('/account_classification/api/rules', data)
-        .then(data => {
-            if (data.success) {
+        .then(response => {
+            if (response.success) {
                 toast.success('规则创建成功');
                 bootstrap.Modal.getInstance(document.getElementById('createRuleModal')).hide();
                 document.getElementById('createRuleForm').reset();
+                if (createRuleValidator && createRuleValidator.instance) {
+                    createRuleValidator.instance.refresh();
+                }
                 loadRules();
             } else {
-                toast.error(data.error);
+                toast.error(response.error || '规则创建失败');
             }
         })
         .catch(error => {
@@ -1629,42 +1642,173 @@ function updateColorPreview(previewId, selectElement) {
     }
 }
 
-// 修改原有的创建分类函数，使用颜色键名
-function createClassification() {
-    const form = document.getElementById('createClassificationForm');
-
-    // 验证表单
-    if (!form.checkValidity()) {
-        form.reportValidity();
+function initializeClassificationFormValidators() {
+    if (!window.FormValidator || !window.ValidationRules) {
+        console.error('表单校验模块未正确加载');
         return;
     }
 
+    const createForm = document.getElementById('createClassificationForm');
+    if (createForm) {
+        createClassificationValidator = FormValidator.create('#createClassificationForm');
+        createClassificationValidator
+            .useRules('#classificationName', ValidationRules.classification.name)
+            .useRules('#classificationColor', ValidationRules.classification.color)
+            .useRules('#priority', ValidationRules.classification.priority)
+            .onSuccess(function (event) {
+                submitCreateClassification(event.target);
+            })
+            .onFail(function () {
+                toast.error('请检查分类信息填写');
+            });
+
+        const nameInput = createForm.querySelector('#classificationName');
+        if (nameInput) {
+            nameInput.addEventListener('blur', function () {
+                createClassificationValidator.revalidateField('#classificationName');
+            });
+        }
+        const colorSelect = createForm.querySelector('#classificationColor');
+        if (colorSelect) {
+            colorSelect.addEventListener('change', function () {
+                createClassificationValidator.revalidateField('#classificationColor');
+            });
+        }
+        const priorityInput = createForm.querySelector('#priority');
+        if (priorityInput) {
+            priorityInput.addEventListener('input', function () {
+                createClassificationValidator.revalidateField('#priority');
+            });
+        }
+    }
+
+    const editForm = document.getElementById('editClassificationForm');
+    if (editForm) {
+        editClassificationValidator = FormValidator.create('#editClassificationForm');
+        editClassificationValidator
+            .useRules('#editClassificationName', ValidationRules.classification.name)
+            .useRules('#editClassificationColor', ValidationRules.classification.color)
+            .useRules('#editClassificationPriority', ValidationRules.classification.priority)
+            .onSuccess(function (event) {
+                submitUpdateClassification(event.target);
+            })
+            .onFail(function () {
+                toast.error('请检查分类信息填写');
+            });
+
+        const editNameInput = editForm.querySelector('#editClassificationName');
+        if (editNameInput) {
+            editNameInput.addEventListener('blur', function () {
+                editClassificationValidator.revalidateField('#editClassificationName');
+            });
+        }
+        const editColorSelect = editForm.querySelector('#editClassificationColor');
+        if (editColorSelect) {
+            editColorSelect.addEventListener('change', function () {
+                editClassificationValidator.revalidateField('#editClassificationColor');
+            });
+        }
+        const editPriorityInput = editForm.querySelector('#editClassificationPriority');
+        if (editPriorityInput) {
+            editPriorityInput.addEventListener('input', function () {
+                editClassificationValidator.revalidateField('#editClassificationPriority');
+            });
+        }
+    }
+
+    const ruleForm = document.getElementById('createRuleForm');
+    if (ruleForm) {
+        createRuleValidator = FormValidator.create('#createRuleForm');
+        createRuleValidator
+            .useRules('#ruleClassification', ValidationRules.classificationRule.classification)
+            .useRules('#ruleName', ValidationRules.classificationRule.name)
+            .useRules('#ruleDbType', ValidationRules.classificationRule.dbType)
+            .useRules('#ruleOperator', ValidationRules.classificationRule.operator)
+            .onSuccess(function (event) {
+                submitCreateRule(event.target);
+            })
+            .onFail(function () {
+                toast.error('请检查规则信息填写');
+            });
+
+        const classificationSelect = ruleForm.querySelector('#ruleClassification');
+        if (classificationSelect) {
+            classificationSelect.addEventListener('change', function () {
+                createRuleValidator.revalidateField('#ruleClassification');
+            });
+        }
+        const ruleNameInput = ruleForm.querySelector('#ruleName');
+        if (ruleNameInput) {
+            ruleNameInput.addEventListener('blur', function () {
+                createRuleValidator.revalidateField('#ruleName');
+            });
+        }
+        const dbTypeSelect = ruleForm.querySelector('#ruleDbType');
+        if (dbTypeSelect) {
+            dbTypeSelect.addEventListener('change', function () {
+                createRuleValidator.revalidateField('#ruleDbType');
+            });
+        }
+        const operatorSelect = ruleForm.querySelector('#ruleOperator');
+        if (operatorSelect) {
+            operatorSelect.addEventListener('change', function () {
+                createRuleValidator.revalidateField('#ruleOperator');
+            });
+        }
+    }
+}
+
+function createClassification() {
+    if (createClassificationValidator && createClassificationValidator.instance) {
+        createClassificationValidator.instance.revalidate();
+        return;
+    }
+
+    const form = document.getElementById('createClassificationForm');
+    if (form) {
+        submitCreateClassification(form);
+    }
+}
+
+function submitCreateClassification(form) {
+    const nameInput = form.querySelector('#classificationName');
+    const colorSelect = form.querySelector('#classificationColor');
+    const priorityInput = form.querySelector('#priority');
+    const descriptionInput = form.querySelector('#classificationDescription');
+    const riskLevelSelect = form.querySelector('#riskLevel');
+    const iconRadio = form.querySelector('input[name="classificationIcon"]:checked');
+
     const data = {
-        name: document.getElementById('classificationName').value,
-        description: document.getElementById('classificationDescription').value,
-        risk_level: document.getElementById('riskLevel').value,
-        color: document.getElementById('classificationColor').value, // 现在是颜色键名
-        priority: parseInt(document.getElementById('priority').value) || 0,
-        icon_name: document.querySelector('input[name="classificationIcon"]:checked')?.value || 'fa-tag'
+        name: nameInput ? nameInput.value.trim() : '',
+        description: descriptionInput ? descriptionInput.value.trim() : '',
+        risk_level: riskLevelSelect ? riskLevelSelect.value : 'medium',
+        color: colorSelect ? colorSelect.value : '',
+        priority: priorityInput && priorityInput.value !== '' ? parseInt(priorityInput.value, 10) || 0 : 0,
+        icon_name: iconRadio ? iconRadio.value : 'fa-tag',
     };
 
-    // 验证必填字段
     if (!data.name || !data.color) {
         toast.error('请填写完整的分类信息');
         return;
     }
 
     http.post('/account_classification/api/classifications', data)
-        .then(data => {
-            if (data.success) {
+        .then(response => {
+            if (response.success) {
                 toast.success('分类创建成功');
                 bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
                 form.reset();
                 // 重置颜色预览
-                document.getElementById('colorPreview').style.display = 'none';
+                const createColorPreview = document.getElementById('colorPreview');
+                if (createColorPreview) {
+                    createColorPreview.style.display = 'none';
+                }
                 loadClassifications();
+                if (createClassificationValidator && createClassificationValidator.instance) {
+                    createClassificationValidator.instance.refresh();
+                }
             } else {
-                toast.error(data.error || '创建分类失败');
+                toast.error(response.error || '创建分类失败');
             }
         })
         .catch(error => {
@@ -1673,42 +1817,59 @@ function createClassification() {
         });
 }
 
-// 修改原有的更新分类函数
 function updateClassification() {
-    const form = document.getElementById('editClassificationForm');
-
-    // 验证表单
-    if (!form.checkValidity()) {
-        form.reportValidity();
+    if (editClassificationValidator && editClassificationValidator.instance) {
+        editClassificationValidator.instance.revalidate();
         return;
     }
 
-    const id = document.getElementById('editClassificationId').value;
+    const form = document.getElementById('editClassificationForm');
+    if (form) {
+        submitUpdateClassification(form);
+    }
+}
+
+function submitUpdateClassification(form) {
+    const idInput = form.querySelector('#editClassificationId');
+    const nameInput = form.querySelector('#editClassificationName');
+    const colorSelect = form.querySelector('#editClassificationColor');
+    const priorityInput = form.querySelector('#editClassificationPriority');
+    const descriptionInput = form.querySelector('#editClassificationDescription');
+    const riskLevelSelect = form.querySelector('#editClassificationRiskLevel');
+    const iconRadio = form.querySelector('input[name="editClassificationIcon"]:checked');
+
     const data = {
-        name: document.getElementById('editClassificationName').value,
-        description: document.getElementById('editClassificationDescription').value,
-        risk_level: document.getElementById('editClassificationRiskLevel').value,
-        color: document.getElementById('editClassificationColor').value, // 现在是颜色键名
-        priority: parseInt(document.getElementById('editClassificationPriority').value) || 0,
-        icon_name: document.querySelector('input[name="editClassificationIcon"]:checked')?.value || 'fa-tag'
+        name: nameInput ? nameInput.value.trim() : '',
+        description: descriptionInput ? descriptionInput.value.trim() : '',
+        risk_level: riskLevelSelect ? riskLevelSelect.value : 'medium',
+        color: colorSelect ? colorSelect.value : '',
+        priority: priorityInput && priorityInput.value !== '' ? parseInt(priorityInput.value, 10) || 0 : 0,
+        icon_name: iconRadio ? iconRadio.value : 'fa-tag',
     };
 
-    // 验证必填字段
     if (!data.name || !data.color) {
         toast.error('请填写完整的分类信息');
         return;
     }
 
+    const id = idInput ? idInput.value : '';
+
     http.put(`/account_classification/api/classifications/${id}`, data)
-        .then(data => {
-            if (data.success) {
+        .then(response => {
+            if (response.success) {
                 toast.success('分类更新成功');
                 bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
                 // 重置颜色预览
-                document.getElementById('editColorPreview').style.display = 'none';
+                const editColorPreview = document.getElementById('editColorPreview');
+                if (editColorPreview) {
+                    editColorPreview.style.display = 'none';
+                }
                 loadClassifications();
+                if (editClassificationValidator && editClassificationValidator.instance) {
+                    editClassificationValidator.instance.refresh();
+                }
             } else {
-                toast.error(data.error || '更新分类失败');
+                toast.error(response.error || '更新分类失败');
             }
         })
         .catch(error => {
