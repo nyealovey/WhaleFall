@@ -7,6 +7,8 @@ class UnifiedSearch {
     constructor(formId = 'unified-search-form') {
         this.formId = formId;
         this.form = document.getElementById(formId);
+        this.validator = null;
+        this.timeRangeValidationRegistered = false;
         this.init();
     }
 
@@ -15,7 +17,7 @@ class UnifiedSearch {
         
         this.bindEvents();
         this.initTagSelector();
-        this.initFormValidation();
+        this.setupValidator();
         this.restoreFormState();
     }
 
@@ -23,7 +25,7 @@ class UnifiedSearch {
         // 表单提交事件
         this.form.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.handleSubmit(e);
+            this.triggerValidation();
         });
 
         // 筛选按钮事件
@@ -31,7 +33,7 @@ class UnifiedSearch {
         if (applyBtn) {
             applyBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                this.handleSubmit(e);
+                this.triggerValidation();
             });
         }
 
@@ -49,7 +51,7 @@ class UnifiedSearch {
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    this.handleSubmit();
+                    this.triggerValidation();
                 }
             });
             
@@ -88,14 +90,68 @@ class UnifiedSearch {
         this.updateSelectedTagsDisplay();
     }
 
-    initFormValidation() {
-        // 实时验证
-        const inputs = this.form.querySelectorAll('.unified-input, .unified-select');
-        inputs.forEach(input => {
-            input.addEventListener('blur', () => {
-                this.validateField(input);
-            });
+    setupValidator() {
+        if (!window.FormValidator) {
+            console.warn('FormValidator 未加载，统一搜索将跳过内置验证');
+            return;
+        }
+
+        this.validator = FormValidator.create(`#${this.formId}`);
+        if (!this.validator) {
+            return;
+        }
+
+        this.validator.onSuccess((event) => {
+            event.preventDefault();
+            this.handleSubmit();
+        }).onFail(() => {
+            toast.error('请检查筛选条件后再试');
         });
+
+        const selectableFields = this.form.querySelectorAll('.unified-input[required], .unified-select[required]');
+        selectableFields.forEach((field) => {
+            if (!field.id) {
+                return;
+            }
+            this.validator.addField(`#${field.id}`, [
+                {
+                    rule: 'required',
+                    errorMessage: '此字段为必填项',
+                },
+            ]);
+        });
+
+        this.registerTimeRangeValidation();
+    }
+
+    triggerValidation() {
+        if (this.validator && this.validator.instance && typeof this.validator.instance.revalidate === 'function') {
+            this.validator.instance.revalidate();
+        } else {
+            this.handleSubmit();
+        }
+    }
+
+    registerTimeRangeValidation() {
+        if (!this.validator || this.timeRangeValidationRegistered) {
+            return;
+        }
+
+        const startInput = this.form.querySelector('#start_time');
+        const endInput = this.form.querySelector('#end_time');
+        if (!startInput || !endInput) {
+            return;
+        }
+
+        if (window.ValidationRules && window.ValidationRules.unifiedSearch) {
+            this.validator.addField('#start_time', window.ValidationRules.unifiedSearch.startTime);
+            this.validator.addField('#end_time', window.ValidationRules.unifiedSearch.endTime);
+        } else {
+            this.validator.addField('#start_time', []);
+            this.validator.addField('#end_time', []);
+        }
+
+        this.timeRangeValidationRegistered = true;
     }
 
     restoreFormState() {
@@ -141,23 +197,18 @@ class UnifiedSearch {
     }
 
     handleSubmit(e) {
-        if (this.validateForm()) {
-            this.showLoading();
-            
-            // 根据页面路径判断使用哪种方法
-            const currentPath = window.location.pathname;
-            
-            if (this.isJsDynamicPage(currentPath)) {
-                // JavaScript动态页面：检查是否有自定义的筛选处理函数
-                if (typeof window.applyFilters === 'function') {
-                    window.applyFilters();
-                } else {
-                    this.submitWithUrlRedirect();
-                }
+        this.showLoading();
+
+        const currentPath = window.location.pathname;
+
+        if (this.isJsDynamicPage(currentPath)) {
+            if (typeof window.applyFilters === 'function') {
+                window.applyFilters();
             } else {
-                // 传统表格页面：直接使用URL跳转
                 this.submitWithUrlRedirect();
             }
+        } else {
+            this.submitWithUrlRedirect();
         }
     }
     
@@ -248,8 +299,9 @@ class UnifiedSearch {
         // 清除标签选择
         this.clearSelectedTags();
 
-        // 移除验证样式
-        this.clearValidationStyles();
+        if (this.validator && this.validator.instance && typeof this.validator.instance.refresh === 'function') {
+            this.validator.instance.refresh();
+        }
 
         // 根据页面路径判断使用哪种方法
         const currentPath = window.location.pathname;
@@ -672,98 +724,25 @@ class UnifiedSearch {
                     </div>
                 `;
                 timeRangeContainer.appendChild(customTimeRange);
+
+                const startInput = customTimeRange.querySelector('#start_time');
+                const endInput = customTimeRange.querySelector('#end_time');
+                if (startInput) {
+                    startInput.addEventListener('change', () => {
+                        this.validator?.revalidateField?.('#start_time');
+                        this.validator?.revalidateField?.('#end_time');
+                    });
+                }
+                if (endInput) {
+                    endInput.addEventListener('change', () => {
+                        this.validator?.revalidateField?.('#start_time');
+                        this.validator?.revalidateField?.('#end_time');
+                    });
+                }
             }
             customTimeRange.style.display = 'block';
+            this.registerTimeRangeValidation();
         }
-    }
-
-    validateForm() {
-        let isValid = true;
-        const inputs = this.form.querySelectorAll('.unified-input, .unified-select');
-        
-        inputs.forEach(input => {
-            if (!this.validateField(input)) {
-                isValid = false;
-            }
-        });
-
-        return isValid;
-    }
-
-    validateField(field) {
-        const value = field.value.trim();
-        let isValid = true;
-        let errorMessage = '';
-
-        // 必填字段验证
-        if (field.hasAttribute('required') && !value) {
-            isValid = false;
-            errorMessage = '此字段为必填项';
-        }
-
-        // 长度验证
-        const minLength = field.getAttribute('minlength');
-        const maxLength = field.getAttribute('maxlength');
-        
-        if (minLength && value.length < parseInt(minLength)) {
-            isValid = false;
-            errorMessage = `至少需要 ${minLength} 个字符`;
-        }
-        
-        if (maxLength && value.length > parseInt(maxLength)) {
-            isValid = false;
-            errorMessage = `最多允许 ${maxLength} 个字符`;
-        }
-
-        // 邮箱验证
-        if (field.type === 'email' && value) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(value)) {
-                isValid = false;
-                errorMessage = '请输入有效的邮箱地址';
-            }
-        }
-
-        // 更新字段样式
-        this.updateFieldValidation(field, isValid, errorMessage);
-
-        return isValid;
-    }
-
-    updateFieldValidation(field, isValid, errorMessage) {
-        // 移除之前的验证样式
-        field.classList.remove('is-valid', 'is-invalid');
-        
-        // 移除之前的错误消息
-        const existingFeedback = field.parentNode.querySelector('.invalid-feedback');
-        if (existingFeedback) {
-            existingFeedback.remove();
-        }
-
-        if (isValid) {
-            field.classList.add('is-valid');
-        } else {
-            field.classList.add('is-invalid');
-            
-            // 添加错误消息
-            if (errorMessage) {
-                const feedback = document.createElement('div');
-                feedback.className = 'invalid-feedback';
-                feedback.textContent = errorMessage;
-                field.parentNode.appendChild(feedback);
-            }
-        }
-    }
-
-    clearValidationStyles() {
-        const fields = this.form.querySelectorAll('.unified-input, .unified-select');
-        fields.forEach(field => {
-            field.classList.remove('is-valid', 'is-invalid');
-            const feedback = field.parentNode.querySelector('.invalid-feedback');
-            if (feedback) {
-                feedback.remove();
-            }
-        });
     }
 
     showLoading() {
