@@ -2,10 +2,6 @@
   "use strict";
 
   const DEFAULT_TOM_SELECT_CONFIG = {
-    plugins: {
-      remove_button: { title: "移除" },
-      clear_button: { title: "清除已选" },
-    },
     create: false,
     allowEmptyOption: true,
     persist: false,
@@ -57,7 +53,30 @@
     if (element.tomselect) {
       return element.tomselect;
     }
-    const options = Object.assign({}, DEFAULT_TOM_SELECT_CONFIG, config || {});
+    const userConfig = config || {};
+    const options = Object.assign({}, DEFAULT_TOM_SELECT_CONFIG, userConfig);
+
+    const defaultRender = DEFAULT_TOM_SELECT_CONFIG.render || {};
+    const customRender = userConfig.render || {};
+    const renderConfig = Object.assign({}, defaultRender, customRender);
+    if (!element.multiple && !customRender.item) {
+      renderConfig.item = function (data, escape) {
+        return `<div>${escape(data.text)}</div>`;
+      };
+    }
+    options.render = renderConfig;
+
+    const mergedPlugins = Object.assign({}, userConfig.plugins || {});
+    if (element.multiple) {
+      mergedPlugins.remove_button = mergedPlugins.remove_button || { title: "移除" };
+      mergedPlugins.clear_button = mergedPlugins.clear_button || { title: "清除已选" };
+    }
+    if (Object.keys(mergedPlugins).length > 0) {
+      options.plugins = mergedPlugins;
+    } else {
+      delete options.plugins;
+    }
+
     const instance = new TomSelect(element, options);
     return instance;
   }
