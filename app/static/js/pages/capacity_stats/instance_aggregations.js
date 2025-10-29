@@ -154,11 +154,6 @@ class InstanceAggregationsManager {
             this.loadChangePercentChartData(); // 更新百分比变化趋势图
         });
         
-        // 筛选按钮
-        $('#searchButton, #applyFilters').on('click', () => {
-            this.applyFilters();
-        });
-        
         // 重置按钮
         $('#resetButton').on('click', () => {
             this.resetFilters();
@@ -331,18 +326,25 @@ class InstanceAggregationsManager {
         const { preserveSelection = false } = options;
         const instanceSelect = $('#instance');
         const normalizedDbType = dbType ? dbType.toLowerCase() : null;
-        
+
         const storedSelection = preserveSelection
             ? (this.currentFilters.instance_id || instanceSelect.data('selected') || '')
             : '';
-        
+
         if (!preserveSelection) {
             // 切换数据库类型时清空已选实例
             this.currentFilters.instance_id = null;
             instanceSelect.data('selected', '');
             instanceSelect.val('');
         }
-        
+
+        if (!normalizedDbType) {
+            instanceSelect.empty();
+            instanceSelect.append('<option value="">请先选择数据库类型</option>');
+            instanceSelect.prop('disabled', true);
+            return;
+        }
+
         try {
             instanceSelect.prop('disabled', false);
             let url = '/instance_stats/api/instance-options';
@@ -455,6 +457,8 @@ class InstanceAggregationsManager {
         this.loadChartData();
         this.loadChangeChartData();
         this.loadChangePercentChartData();
+
+        this.initializeDatabaseFilter();
     }
     
     /**

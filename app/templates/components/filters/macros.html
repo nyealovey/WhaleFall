@@ -1,0 +1,177 @@
+{% macro filter_card(form_id='filter-form', action='', method='GET', submit_label='筛选', clear_label='清除', extra_classes='') -%}
+<div class="card filter-card {{ extra_classes }}">
+    <div class="card-body">
+        <form id="{{ form_id }}" method="{{ method }}" action="{{ action }}" class="filter-form" novalidate>
+            <div class="row g-3 align-items-end">
+                {{ caller() }}
+                <div class="col-12 col-xl-2">
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary w-100" data-filter-submit>
+                            <i class="fas fa-filter me-1"></i>{{ submit_label }}
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary w-100" data-filter-clear>
+                            <i class="fas fa-times me-1"></i>{{ clear_label }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{%- endmacro %}
+
+{% macro search_input(label='搜索', field_id='search', field_name='search', placeholder='搜索关键词', value='', col_class='col-12 col-lg-3 col-xl-3') -%}
+<div class="{{ col_class }}">
+    <label for="{{ field_id }}" class="form-label">{{ label }}</label>
+    <input type="text"
+           class="form-control"
+           id="{{ field_id }}"
+           name="{{ field_name }}"
+           value="{{ value }}"
+           placeholder="{{ placeholder }}">
+</div>
+{%- endmacro %}
+
+{% macro select_filter(label, field_id, field_name, options, current_value='', placeholder='', col_class='col-12 col-lg-2 col-xl-2', allow_empty=True, multiple=False, use_tom_select=True) -%}
+<div class="{{ col_class }}">
+    <label for="{{ field_id }}" class="form-label">{{ label }}</label>
+    <select id="{{ field_id }}"
+            name="{{ field_name }}"
+            class="form-select"
+            {% if multiple %}multiple{% endif %}
+            {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+            {% if use_tom_select %}data-tom-select{% endif %}>
+        {% if allow_empty %}
+        <option value="">{{ placeholder or '全部' }}</option>
+        {% endif %}
+        {% for option in options or [] %}
+        {% set value = option['value'] %}
+        {% set label_text = option['label'] %}
+        {% set color = option.get('color') %}
+        {% set category = option.get('category') %}
+        <option value="{{ value }}"
+                {% if multiple %}
+                    {% if value in (current_value or []) %}selected{% endif %}
+                {% else %}
+                    {% if value == current_value %}selected{% endif %}
+                {% endif %}
+                {% if color %}data-color="{{ color }}"{% endif %}
+                {% if category %}data-category="{{ category }}"{% endif %}>
+            {{ label_text }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{%- endmacro %}
+
+{% macro db_type_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('数据库类型', 'db_type', 'db_type', options, current_value, '全部类型', col_class, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro status_active_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro status_sync_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro credential_type_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('凭据类型', 'credential_type', 'credential_type', options, current_value, '全部类型', col_class, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro classification_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('账户分类', 'classification', 'classification', options, current_value, '全部分类', col_class, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro tag_category_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('标签分类', 'category', 'category', options, current_value, '全部分类', col_class, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro log_level_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('日志级别', 'level', 'level', options, current_value, '全部级别', col_class, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro module_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('模块', 'module', 'module', options, current_value, '全部模块', col_class, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro time_range_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('时间范围', 'time_range', 'time_range', options, current_value, '选择时间范围', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro sync_type_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('操作方式', 'sync_type', 'sync_type', options, current_value, '全部方式', col_class, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro sync_category_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('分类', 'sync_category', 'sync_category', options, current_value, '全部分类', col_class, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro period_type_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', use_tom_select=True) -%}
+    {{ select_filter('统计周期', 'period_type', 'period_type', options, current_value, '选择周期', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
+{%- endmacro %}
+
+{% macro instance_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', disabled=False, use_tom_select=True) -%}
+<div class="{{ col_class }}">
+    <label for="instance" class="form-label">实例</label>
+    <select id="instance"
+            name="instance"
+            class="form-select"
+            {% if use_tom_select %}data-tom-select{% endif %}
+            {% if disabled %}disabled{% endif %}>
+        <option value="">所有实例</option>
+        {% for option in options or [] %}
+        <option value="{{ option['value'] }}"
+                {% if option['value'] == current_value %}selected{% endif %}
+                data-db-type="{{ option['db_type'] }}">
+            {{ option['label'] }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{%- endmacro %}
+
+{% macro database_filter(options, current_value='', col_class='col-12 col-lg-2 col-xl-2', disabled=False) -%}
+<div class="{{ col_class }}">
+    <label for="database" class="form-label">数据库</label>
+    <select id="database"
+            name="database_id"
+            class="form-select"
+            data-tom-select
+            {% if disabled %}disabled{% endif %}>
+        <option value="">所有数据库</option>
+        {% for option in options or [] %}
+        <option value="{{ option['value'] }}"
+                {% if option['value'] == current_value %}selected{% endif %}>
+            {{ option['label'] }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{%- endmacro %}
+
+{% macro tag_selector_filter(options, selected=None, field_name='tags', field_id='tag-selector', col_class='col-12 col-lg-4 col-xl-4', placeholder='选择标签', allow_clear=True) -%}
+{% set selected_values = selected or [] %}
+<div class="{{ col_class }}">
+    <label for="{{ field_id }}" class="form-label">标签筛选</label>
+    <select id="{{ field_id }}"
+            name="{{ field_name }}"
+            class="form-select"
+            placeholder="{{ placeholder }}"
+            data-tom-select
+            multiple>
+        {% for option in options or [] %}
+        <option value="{{ option['value'] }}"
+                {% if option['value'] in selected_values %}selected{% endif %}
+                data-color="{{ option.get('color') }}"
+                data-category="{{ option.get('category') }}">
+            {{ option['label'] }}
+        </option>
+        {% endfor %}
+    </select>
+    {% if not options %}
+    <p class="filter-empty-hint mt-1 mb-0">暂无可用标签，请先在标签管理中创建。</p>
+    {% endif %}
+</div>
+{%- endmacro %}

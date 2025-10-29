@@ -1,10 +1,10 @@
 {% extends "base.html" %}
+{% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, database_filter, period_type_filter %}
 
 {% block title %}容量统计(数据库) - 数据库大小监控{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/capacity_stats/database_aggregations.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -30,27 +30,22 @@
 
 <div class="container-fluid">
 
-    <!-- 统一搜索筛选 -->
+    <!-- 筛选区域 -->
     <div class="mb-4">
-        <div class="database-aggregations-page">
-            {% set show_search_input = false %}
-            {% set search_button_text = '筛选' %}
-            {% set show_instance_filter = true %}
-            {% set show_period_type_filter = true %}
-            {% set show_database_filter = true %}
-            {% set show_time_range_filter = false %}
-            {% set show_db_type_filter = true %}
-            {% set show_classification_filter = false %}
-            {% set show_credential_type_filter = false %}
-            {% set show_tag_category_filter = false %}
-            {% set show_status_filter = false %}
-            {% set show_level_filter = false %}
-            {% set show_module_filter = false %}
-            {% set show_tag_filter = false %}
-            {% set show_sync_type_filter = false %}
-            {% set show_sync_category_filter = false %}
-            {% include 'components/unified_search_form.html' %}
-        </div>
+        {% call filter_card(form_id='database-aggregations-filter-form', action=url_for('database_stats.database_aggregations')) %}
+            {{ db_type_filter(database_type_options, db_type, use_tom_select=False) }}
+            {{ instance_filter(instance_options, instance, disabled=(not db_type), use_tom_select=False) }}
+            {{ database_filter(database_options, database_id, disabled=(not instance), use_tom_select=False) }}
+            {{ period_type_filter(period_type_options, period_type, use_tom_select=False) }}
+            <div class="col-12 col-lg-2 col-xl-2">
+                <label for="start_date" class="form-label">开始日期</label>
+                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+            </div>
+            <div class="col-12 col-lg-2 col-xl-2">
+                <label for="end_date" class="form-label">结束日期</label>
+                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+            </div>
+        {% endcall %}
     </div>
 
     <!-- 统计概览 -->
@@ -333,28 +328,75 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/capacity_stats/database_aggregations.js') }}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     function initManager() {
-        if (typeof Chart !== 'undefined' && typeof DatabaseAggregationsManager !== 'undefined' && typeof UnifiedSearch !== 'undefined') {
-            window.unifiedSearch = new UnifiedSearch('unified-search-form');
-            window.databaseAggregationsManager = new DatabaseAggregationsManager();
-            window.applyFilters = function() {
-                if (window.databaseAggregationsManager) {
+        if (typeof Chart === 'undefined' || typeof DatabaseAggregationsManager === 'undefined') {
+            setTimeout(initManager, 100);
+            return;
+        }
+
+        window.databaseAggregationsManager = new DatabaseAggregationsManager();
+
+        if (window.FilterUtils) {
+            const entry = FilterUtils.registerFilterForm('#database-aggregations-filter-form', {
+                onSubmit: () => {
                     window.databaseAggregationsManager.applyFilters();
-                }
-            };
-            window.clearFilters = function() {
-                if (window.databaseAggregationsManager) {
+                },
+                onClear: () => {
                     window.databaseAggregationsManager.resetFilters();
                 }
-            };
-        } else {
-            setTimeout(initManager, 100);
+            });
+
+            const form = entry?.element || document.getElementById('database-aggregations-filter-form');
+            if (form) {
+                const dbTypeSelect = form.querySelector('#db_type');
+                if (dbTypeSelect) {
+                    dbTypeSelect.addEventListener('change', (event) => {
+                        window.databaseAggregationsManager.updateInstanceOptions(event.target.value, { preserveInstance: false })
+                            .then(() => {
+                                window.databaseAggregationsManager.applyFilters();
+                            });
+                    });
+                }
+
+                const instanceSelect = form.querySelector('#instance');
+                if (instanceSelect) {
+                    instanceSelect.addEventListener('change', (event) => {
+                        window.databaseAggregationsManager.updateDatabaseOptions(event.target.value, { preserveDatabase: false })
+                            .then(() => {
+                                window.databaseAggregationsManager.applyFilters();
+                            });
+                    });
+                }
+
+                const databaseSelect = form.querySelector('#database');
+                if (databaseSelect) {
+                    databaseSelect.addEventListener('change', () => {
+                        if (window.jQuery) {
+                            window.jQuery(databaseSelect).data('initialValue', '');
+                        }
+                        window.databaseAggregationsManager.applyFilters();
+                    });
+                }
+
+                const periodSelect = form.querySelector('#period_type');
+                if (periodSelect) {
+                    periodSelect.addEventListener('change', () => {
+                        window.databaseAggregationsManager.applyFilters();
+                    });
+                }
+
+                form.querySelectorAll('#start_date, #end_date').forEach((input) => {
+                    input.addEventListener('change', () => {
+                        window.databaseAggregationsManager.applyFilters();
+                    });
+                });
+            }
         }
     }
+
     initManager();
 });
 </script>

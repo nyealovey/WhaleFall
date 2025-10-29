@@ -137,11 +137,6 @@ class DatabaseAggregationsManager {
             this.loadChangePercentChartData();
         });
 
-        $('#database').on('change', () => {
-            $('#database').data('initialValue', '');
-            this.applyFilters();
-        });
-
         $('input[name="changeChartType"]').on('change', (e) => {
             this.changeChartType = e.target.value;
             this.renderChangeChart(this.changeChartData);
@@ -173,35 +168,6 @@ class DatabaseAggregationsManager {
             this.updateChangePercentChartOverrideRange();
             this.loadChangePercentChartData();
         });
-        
-        $('#searchButton, #applyFilters').on('click', () => {
-            this.applyFilters();
-        });
-        
-        $('#resetButton').on('click', () => {
-            this.resetFilters();
-        });
-        
-        $('#db_type').on('change', async (e) => {
-            const dbType = e.target.value;
-            await this.updateInstanceOptions(dbType);
-            this.updateFilters();
-            this.loadSummaryData();
-            this.loadChartData();
-            this.loadChangeChartData();
-            this.loadChangePercentChartData();
-        });
-        
-        $('#instance').on('change', async (e) => {
-            const instanceId = e.target.value;
-            await this.updateDatabaseOptions(instanceId);
-            this.updateFilters();
-            this.loadSummaryData();
-            this.loadChartData();
-            this.loadChangeChartData();
-            this.loadChangePercentChartData();
-        });
-        
     }
     
     initializeFilterOptions() {
@@ -290,6 +256,16 @@ class DatabaseAggregationsManager {
         databaseSelect.append('<option value="">请先选择实例</option>');
         databaseSelect.prop('disabled', true);
         
+        if (!normalizedDbType) {
+            instanceSelect.empty();
+            instanceSelect.append('<option value="">请先选择数据库类型</option>');
+            instanceSelect.prop('disabled', true);
+            databaseSelect.empty();
+            databaseSelect.append('<option value="">请先选择实例</option>');
+            databaseSelect.prop('disabled', true);
+            return;
+        }
+
         try {
             instanceSelect.prop('disabled', false);
             let url = '/instance_stats/api/instance-options';

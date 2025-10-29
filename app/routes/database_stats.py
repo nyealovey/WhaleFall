@@ -22,6 +22,8 @@ from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
+from app.config.filter_options import DATABASE_TYPES, PERIOD_TYPES
+from app.utils.filter_data import get_instance_options, get_database_options
 
 # 创建蓝图
 database_stats_bp = Blueprint('database_stats', __name__)
@@ -37,20 +39,23 @@ def database_aggregations():
     数据库统计聚合页面（数据库统计层面）
     返回HTML页面
     """
-    # 获取数据库类型列表
-    database_types = [
-        {
-            'name': db_type.name,
-            'display_name': db_type.display_name
-        }
-        for db_type in DatabaseTypeService.get_active_types()
-    ]
-    instances = Instance.query.filter_by(is_active=True).order_by(Instance.name.asc()).all()
-    instances_list = [{
-        'id': instance.id,
-        'name': instance.name,
-        'db_type': instance.db_type
-    } for instance in instances]
+    database_type_configs = DatabaseTypeService.get_active_types()
+    if database_type_configs:
+        database_type_options = [
+            {
+                'value': config.name,
+                'label': config.display_name,
+            }
+            for config in database_type_configs
+        ]
+    else:
+        database_type_options = [
+            {
+                'value': item['name'],
+                'label': item['display_name'],
+            }
+            for item in DATABASE_TYPES
+        ]
     
     selected_db_type = request.args.get('db_type', '')
     selected_instance = request.args.get('instance', '')
@@ -71,12 +76,20 @@ def database_aggregations():
     selected_period_type = request.args.get('period_type', 'daily')
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
+
+    instance_options = get_instance_options(selected_db_type or None) if selected_db_type else []
+    try:
+        instance_id_int = int(selected_instance) if selected_instance else None
+    except ValueError:
+        instance_id_int = None
+    database_options = get_database_options(instance_id_int) if instance_id_int else []
     
     return render_template(
         'database_sizes/database_aggregations.html',
-        database_types=database_types,
-        instances_list=instances_list,
-        databases_list=[],
+        database_type_options=database_type_options,
+        instance_options=instance_options,
+        database_options=database_options,
+        period_type_options=PERIOD_TYPES,
         db_type=selected_db_type,
         instance=selected_instance,
         database_id=selected_database_id,

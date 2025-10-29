@@ -1,10 +1,10 @@
 {% extends "base.html" %}
+{% from 'components/filters/macros.html' import filter_card, search_input, tag_category_filter, status_active_filter %}
 
 {% block title %}标签管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tags/index.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -36,16 +36,11 @@
 
     <!-- 搜索和筛选 -->
     <div class="tags-page">
-        {% set show_db_type_filter = false %}
-        {% set show_classification_filter = false %}
-        {% set show_credential_type_filter = false %}
-        {% set show_tag_category_filter = true %}
-        {% set show_status_filter = true %}
-        {% set show_level_filter = false %}
-        {% set show_module_filter = false %}
-        {% set show_time_range_filter = false %}
-        {% set show_tag_filter = false %}
-        {% include 'components/unified_search_form.html' %}
+        {% call filter_card(form_id='tag-filter-form', action=url_for('tags.index')) %}
+            {{ search_input(value=search, placeholder='搜索标签名称或描述') }}
+            {{ tag_category_filter(category_options, category, col_class='col-12 col-lg-3 col-xl-3') }}
+            {{ status_active_filter(status_options, status, col_class='col-12 col-lg-2 col-xl-2') }}
+        {% endcall %}
     </div>
 
 <!-- 标签列表 -->
@@ -193,6 +188,12 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/tags/index.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (window.FilterUtils) {
+        FilterUtils.registerFilterForm('#tag-filter-form');
+    }
+});
+</script>
 {% endblock %}

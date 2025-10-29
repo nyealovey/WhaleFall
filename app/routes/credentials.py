@@ -10,6 +10,11 @@ from typing import Optional
 from app import db
 from app.constants.system_constants import SuccessMessages
 from app.constants import TaskStatus, FlashCategory, HttpMethod
+from app.config.filter_options import (
+    CREDENTIAL_TYPES,
+    DATABASE_TYPES,
+    STATUS_ACTIVE_OPTIONS,
+)
 from app.errors import (
     AppValidationError,
     ConflictError,
@@ -35,6 +40,7 @@ from app.utils.data_validator import (
 )
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
+from app.utils.filter_data import get_active_tag_options
 
 # 创建蓝图
 credentials_bp = Blueprint("credentials", __name__)
@@ -198,11 +204,17 @@ def index() -> str:
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 10, type=int)
     search = request.args.get("search", "", type=str)
-    credential_type = request.args.get("credential_type", "", type=str)
-    db_type = request.args.get("db_type", "", type=str)
-    status = request.args.get("status", "", type=str)
-    tags_str = request.args.get("tags", "", type=str)
-    tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
+    credential_type_param = request.args.get("credential_type", "", type=str)
+    credential_type_filter = credential_type_param if credential_type_param not in {"", "all"} else ""
+    db_type_param = request.args.get("db_type", "", type=str)
+    db_type_filter = db_type_param if db_type_param not in {"", "all"} else ""
+    status_param = request.args.get("status", "", type=str)
+    status_filter = status_param if status_param not in {"", "all"} else ""
+    tags = [tag for tag in request.args.getlist("tags") if tag.strip()]
+    if not tags:
+        tags_str = request.args.get("tags", "", type=str)
+        if tags_str:
+            tags = [tag.strip() for tag in tags_str.split(",") if tag.strip()]
 
     # 构建查询，包含实例数量统计
     query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
@@ -218,16 +230,16 @@ def index() -> str:
             )
         )
 
-    if credential_type:
-        query = query.filter(Credential.credential_type == credential_type)
+    if credential_type_filter:
+        query = query.filter(Credential.credential_type == credential_type_filter)
     
-    if db_type:
-        query = query.filter(Credential.db_type == db_type)
+    if db_type_filter:
+        query = query.filter(Credential.db_type == db_type_filter)
     
-    if status:
-        if status == 'active':
+    if status_filter:
+        if status_filter == 'active':
             query = query.filter(Credential.is_active == True)
-        elif status == 'inactive':
+        elif status_filter == 'inactive':
             query = query.filter(Credential.is_active == False)
     
     # 标签筛选
@@ -265,6 +277,19 @@ def index() -> str:
         },
     )()
 
+    credential_type_options = [{"value": "all", "label": "全部类型"}] + CREDENTIAL_TYPES
+    db_type_options = [
+        {
+            "value": item["name"],
+            "label": item["display_name"],
+            "icon": item.get("icon", "fa-database"),
+            "color": item.get("color", "primary"),
+        }
+        for item in DATABASE_TYPES
+    ]
+    status_options = STATUS_ACTIVE_OPTIONS
+    tag_options = get_active_tag_options()
+
     if request.is_json:
         return jsonify_unified_success(
             data={
@@ -281,16 +306,29 @@ def index() -> str:
             message=SuccessMessages.OPERATION_SUCCESS,
         )
 
+                },
+                "filter_options": {
+                    "credential_types": credential_type_options,
+                    "db_types": db_type_options,
+                    "status": status_options,
+                    "tags": tag_options,
+                },
+            },
+            message=SuccessMessages.OPERATION_SUCCESS,
+        )
+
     return render_template(
         "credentials/list.html",
         credentials=credentials,
         search=search,
-        search_value=search,
-        credential_type=credential_type,
-        db_type=db_type,
-        status=status,
-        tags=tags,
+        credential_type=credential_type_param,
+        db_type=db_type_param,
+        status=status_param,
         selected_tags=tags,
+        credential_type_options=credential_type_options,
+        db_type_options=db_type_options,
+        status_options=status_options,
+        tag_options=tag_options,
     )
 
 

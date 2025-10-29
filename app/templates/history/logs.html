@@ -1,10 +1,10 @@
 {% extends "base.html" %}
+{% from 'components/filters/macros.html' import filter_card, search_input, log_level_filter, module_filter, time_range_filter %}
 
 {% block title %}日志中心{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history/logs.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/unified_search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -88,16 +88,12 @@
 
     <!-- 搜索和筛选 -->
     <div class="logs-page">
-        {% set search_field_id = 'searchTerm' %}
-        {% set search_placeholder = '输入搜索关键词' %}
-        {% set show_db_type_filter = false %}
-        {% set show_classification_filter = false %}
-        {% set show_status_filter = false %}
-        {% set show_tag_filter = false %}
-        {% set show_time_range_filter = true %}
-        {% set show_module_filter = true %}
-        {% set show_level_filter = true %}
-        {% include 'components/unified_search_form.html' %}
+        {% call filter_card(form_id='logs-filter-form', action=url_for('logs.logs_dashboard')) %}
+            {{ search_input(placeholder='输入搜索关键词') }}
+            {{ log_level_filter(log_level_options) }}
+            {{ module_filter(module_options) }}
+            {{ time_range_filter(time_range_options, '1d') }}
+        {% endcall %}
     </div>
 
     <!-- 日志列表 -->
@@ -145,6 +141,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/components/unified_search.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/history/logs.js') }}"></script>
 {% endblock %}
