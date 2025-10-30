@@ -234,6 +234,12 @@
     async loadSummaryData() {
       try {
         const params = this.buildCommonParams();
+        const range = calculateDateRange(
+          this.state.filters.periodType,
+          this.state.charts.trend.periods
+        );
+        params.start_date = range.startDate;
+        params.end_date = range.endDate;
         const summary = await DataSource.fetchSummary(this.config.api, params);
         SummaryCards.updateCards(summary, this.config.summaryCards || []);
       } catch (error) {
@@ -365,6 +371,7 @@
         this.state.filters.periodType,
         this.state.charts.trend.periods
       );
+      params.start_date = range.startDate;
       params.end_date = range.endDate;
       return params;
     }
@@ -375,6 +382,7 @@
         this.state.filters.periodType,
         this.state.charts.change.periods
       );
+      params.start_date = range.startDate;
       params.end_date = range.endDate;
       params.get_all = "true";
       return params;
@@ -386,6 +394,7 @@
         this.state.filters.periodType,
         this.state.charts.percent.periods
       );
+      params.start_date = range.startDate;
       params.end_date = range.endDate;
       params.get_all = "true";
       return params;

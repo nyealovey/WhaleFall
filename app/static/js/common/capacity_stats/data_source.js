@@ -59,15 +59,26 @@
   }
 
   function unwrapItems(response) {
-    return (
-      response?.data?.items ??
-      response?.data?.list ??
-      response?.data ??
-      response?.items ??
-      response?.list ??
-      response ??
-      []
-    );
+    const candidates = [
+      response?.data?.items,
+      response?.data?.list,
+      response?.data?.data,
+      response?.data,
+      response?.items,
+      response?.list,
+      response,
+    ];
+
+    for (const value of candidates) {
+      if (Array.isArray(value)) {
+        return value;
+      }
+      if (value && Array.isArray(value.data)) {
+        return value.data;
+      }
+    }
+
+    return [];
   }
 
   function unwrapSummary(response) {
