@@ -86,10 +86,18 @@ function displayClassifications(classifications) {
                             <div class="me-2">
                                 ${getClassificationIcon(classification.icon_name, classification.color)}
                             </div>
-                            <span class="badge bg-${riskLevelClass} me-2" style="background-color: ${classification.color || '#6c757d'} !important;">
-                                ${classification.name}
+                            <span class="position-relative d-inline-block me-2">
+                                <span class="badge bg-${riskLevelClass}" style="background-color: ${classification.color || '#6c757d'} !important;">
+                                    ${classification.name}
+                                </span>
+                                ${classification.rules_count > 0 ? `
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm">
+                                        ${classification.rules_count}
+                                        <span class="visually-hidden">匹配规则数量</span>
+                                    </span>
+                                ` : ''}
                             </span>
-                            <small class="text-muted">${classification.rules_count > 0 ? classification.rules_count + ' 规则' : '无匹配'}</small>
+                            ${classification.rules_count > 0 ? '' : '<small class="text-muted">无匹配</small>'}
                         </div>
                         <div class="btn-group btn-group-sm">
                             ${window.currentUserRole === 'admin' ? `
@@ -451,8 +459,8 @@ function loadPermissions(prefix = '') {
 // ==================== 规则CRUD操作 ====================
 
 function createRule() {
-    if (createRuleValidator && createRuleValidator.instance) {
-        createRuleValidator.instance.revalidate();
+    if (createRuleValidator) {
+        createRuleValidator.revalidate();
         return;
     }
 
@@ -911,8 +919,8 @@ function initializeClassificationFormValidators() {
 }
 
 function createClassification() {
-    if (createClassificationValidator && createClassificationValidator.instance) {
-        createClassificationValidator.instance.revalidate();
+    if (createClassificationValidator) {
+        createClassificationValidator.revalidate();
         return;
     }
 
