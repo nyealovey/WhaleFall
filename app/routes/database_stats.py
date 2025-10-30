@@ -450,28 +450,74 @@ def _fetch_database_aggregation_summary(
     start_date: Optional[date],
     end_date: Optional[date],
 ) -> Dict[str, Any]:
-    query = DatabaseSizeAggregation.query.join(Instance)
+    filters = []
 
     if instance_id:
-        query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
+        filters.append(DatabaseSizeAggregation.instance_id == instance_id)
     if db_type:
-        query = query.filter(Instance.db_type == db_type)
-    if database_name:
-        query = query.filter(DatabaseSizeAggregation.database_name == database_name)
-    elif database_id:
+        filters.append(Instance.db_type == db_type)
+    resolved_database_name = database_name
+    if not resolved_database_name and database_id:
         from app.models.instance_database import InstanceDatabase
 
         db_record = InstanceDatabase.query.filter_by(id=database_id).first()
         if db_record:
-            query = query.filter(DatabaseSizeAggregation.database_name == db_record.database_name)
+            resolved_database_name = db_record.database_name
+    if resolved_database_name:
+        filters.append(DatabaseSizeAggregation.database_name == resolved_database_name)
     if period_type:
-        query = query.filter(DatabaseSizeAggregation.period_type == period_type)
+        filters.append(DatabaseSizeAggregation.period_type == period_type)
     if start_date:
-        query = query.filter(DatabaseSizeAggregation.period_start >= start_date)
+        filters.append(DatabaseSizeAggregation.period_end >= start_date)
     if end_date:
-        query = query.filter(DatabaseSizeAggregation.period_end <= end_date)
+        filters.append(DatabaseSizeAggregation.period_end <= end_date)
 
-    aggregations = query.all()
+    latest_entries_query = (
+        db.session.query(
+            DatabaseSizeAggregation.instance_id.label("instance_id"),
+            DatabaseSizeAggregation.database_name.label("database_name"),
+            DatabaseSizeAggregation.period_type.label("period_type"),
+            func.max(DatabaseSizeAggregation.period_end).label("latest_period_end"),
+        )
+        .join(Instance)
+        .filter(*filters)
+        .group_by(
+            DatabaseSizeAggregation.instance_id,
+            DatabaseSizeAggregation.database_name,
+            DatabaseSizeAggregation.period_type,
+        )
+    )
+
+    latest_entries = latest_entries_query.all()
+
+    if not latest_entries:
+        return {
+            'total_databases': 0,
+            'total_instances': 0,
+            'total_size_mb': 0,
+            'avg_size_mb': 0,
+            'average_size_mb': 0,
+            'max_size_mb': 0,
+            'growth_rate': 0,
+        }
+
+    from sqlalchemy import tuple_
+
+    lookup_values = [
+        (entry.instance_id, entry.database_name, entry.period_type, entry.latest_period_end)
+        for entry in latest_entries
+    ]
+
+    aggregations = (
+        DatabaseSizeAggregation.query.filter(
+            tuple_(
+                DatabaseSizeAggregation.instance_id,
+                DatabaseSizeAggregation.database_name,
+                DatabaseSizeAggregation.period_type,
+                DatabaseSizeAggregation.period_end,
+            ).in_(lookup_values)
+        ).all()
+    )
 
     if not aggregations:
         return {
@@ -484,19 +530,13 @@ def _fetch_database_aggregation_summary(
             'growth_rate': 0,
         }
 
-    total_databases = len({(agg.instance_id, agg.database_name) for agg in aggregations})
-    total_instances = len({agg.instance_id for agg in aggregations})
+    total_databases = len({(entry.instance_id, entry.database_name) for entry in latest_entries})
+    total_instances = len({entry.instance_id for entry in latest_entries})
     total_size_mb = sum(agg.avg_size_mb for agg in aggregations)
     average_size_mb = total_size_mb / total_databases if total_databases else 0
     max_size_mb = max((agg.max_size_mb or 0) for agg in aggregations)
 
     growth_rate = 0.0
-    if len(aggregations) >= 2:
-        sorted_agg = sorted(aggregations, key=lambda x: x.period_end)
-        latest = sorted_agg[-1]
-        previous = sorted_agg[-2]
-        if previous.avg_size_mb and previous.avg_size_mb > 0:
-            growth_rate = ((latest.avg_size_mb - previous.avg_size_mb) / previous.avg_size_mb) * 100
 
     return {
         'total_databases': total_databases,
