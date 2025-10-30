@@ -107,8 +107,6 @@
 
     cacheElements() {
       return {
-        searchInput: this.root.querySelector('[data-role="search-input"]'),
-        clearSearch: this.root.querySelector('[data-role="clear-search"]'),
         categoryGroup: this.root.querySelector('[data-role="category-group"]'),
         categoryLoading: this.root.querySelector(
           '[data-role="category-loading"]',
@@ -145,20 +143,8 @@
     }
 
     bindEvents() {
-      const { searchInput, clearSearch, categoryGroup, tagList, selectedList } =
+      const { categoryGroup, tagList, selectedList } =
         this.elements;
-
-      if (searchInput) {
-        searchInput.addEventListener("input", (event) => {
-          this.handleSearch(event.target.value);
-        });
-      }
-
-      if (clearSearch) {
-        clearSearch.addEventListener("click", () => {
-          this.clearSearch();
-        });
-      }
 
       if (categoryGroup) {
         categoryGroup.addEventListener("change", (event) => {
@@ -248,7 +234,6 @@
       }
 
       group.innerHTML = "";
-      group.classList.add("btn-group", "btn-group-sm", "flex-wrap");
 
       const list = Array.isArray(categories)
         ? categories
@@ -407,24 +392,11 @@
     renderEmptyState() {
       return `
         <div class="no-data text-center text-muted py-5">
-          <i class="fas fa-search fa-2x mb-2"></i>
-          <div class="fw-semibold mb-1">未找到匹配的标签</div>
-          <p class="mb-0">尝试调整搜索关键词或切换标签分类</p>
+          <i class="fas fa-tags fa-2x mb-2"></i>
+          <div class="fw-semibold mb-1">暂无可显示的标签</div>
+          <p class="mb-0">尝试切换不同的标签分类</p>
         </div>
       `;
-    }
-
-    handleSearch(query) {
-      this.state.search = (query || "").trim().toLowerCase();
-      this.filterTags();
-    }
-
-    clearSearch() {
-      this.state.search = "";
-      if (this.elements.searchInput) {
-        this.elements.searchInput.value = "";
-      }
-      this.filterTags();
     }
 
     handleCategory(value) {

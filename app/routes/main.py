@@ -5,7 +5,9 @@
 
 from http import HTTPStatus
 
-from flask import Blueprint, Response, redirect, render_template, url_for
+import os
+
+from flask import Blueprint, Response, current_app, redirect, render_template, request, send_from_directory, url_for
 
 from app.utils.response_utils import jsonify_unified_success
 
@@ -36,6 +38,15 @@ def favicon() -> "Response":
     """提供favicon.ico文件"""
     # 返回一个空的响应，避免404错误
     return "", HTTPStatus.NO_CONTENT
+
+
+@main_bp.route("/apple-touch-icon.png")
+@main_bp.route("/apple-touch-icon-precomposed.png")
+def apple_touch_icon() -> Response:
+    """提供 Apple Touch Icon，避免 Safari 等设备请求 404"""
+    icon_name = "apple-touch-icon-precomposed.png" if "precomposed" in request.path else "apple-touch-icon.png"
+    icon_path = os.path.join(current_app.static_folder, "img")
+    return send_from_directory(icon_path, icon_name)
 
 
 @main_bp.route("/.well-known/appspecific/com.chrome.devtools.json")
