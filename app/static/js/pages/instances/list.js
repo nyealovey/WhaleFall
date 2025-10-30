@@ -124,7 +124,8 @@ function initializeTagSelectorComponent(modalElement, containerElement) {
                 allowMultiple: true,
                 allowCreate: true,
                 allowSearch: true,
-                allowCategoryFilter: true
+                allowCategoryFilter: true,
+                modalElement: modalElement
             });
 
             // 等待TagSelector完全初始化
