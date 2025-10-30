@@ -1,5 +1,5 @@
 // 会话中心页脚本（从模板抽离）
-// 依赖：bootstrap, alert-utils.js, time-utils.js
+// 依赖：bootstrap, toast.js, time-utils.js
 
 (function () {
   function notifyAlert(message, type = 'info') {
