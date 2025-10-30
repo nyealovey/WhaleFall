@@ -75,8 +75,8 @@
         percent: "size_change_percent",
       },
       summaryCards: [
-        { selector: "#totalInstances", field: "total_instances", formatter: "number" },
         { selector: "#totalDatabases", field: "total_databases", formatter: "number" },
+        { selector: "#totalCapacity", field: "total_size_mb", formatter: "sizeFromMB" },
         { selector: "#averageSize", field: "avg_size_mb", formatter: "sizeFromMB" },
         { selector: "#maxSize", field: "max_size_mb", formatter: "sizeFromMB" },
       ],
