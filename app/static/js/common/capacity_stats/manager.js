@@ -88,7 +88,6 @@
           percent: false,
         },
       };
-      this.state.filters.dbType = this.normalizeDbType(this.state.filters.dbType);
 
       this.dataStore = {
         trend: [],
@@ -103,13 +102,6 @@
       };
 
       this.initialize();
-    }
-
-    normalizeDbType(value) {
-      if (!value) {
-        return "";
-      }
-      return String(value).toLowerCase();
     }
 
     async initialize() {
@@ -444,7 +436,7 @@
 
     async handleDbTypeChange(event) {
       const value = event?.target?.value || "";
-      this.state.filters.dbType = this.normalizeDbType(value);
+      this.state.filters.dbType = value;
       this.state.filters.instanceId = "";
       Filters.syncSelectValue("#instance", "");
 
@@ -588,7 +580,7 @@
 
     async applyFilters() {
       const latest = Filters.readInitialFilters(this.config);
-      this.state.filters.dbType = this.normalizeDbType(latest.dbType);
+      this.state.filters.dbType = latest.dbType || "";
       this.state.filters.instanceId = latest.instanceId || "";
       this.state.filters.databaseId = latest.databaseId || "";
       this.state.filters.databaseName = latest.databaseName || null;
