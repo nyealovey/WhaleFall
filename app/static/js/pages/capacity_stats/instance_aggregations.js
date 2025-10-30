@@ -16,7 +16,6 @@ class InstanceAggregationsManager {
         this.changeTopCount = 5;
         this.changeStatisticsPeriod = 7;
         this.changeFilters = {
-            start_date: null,
             end_date: null,
             override: false,
             period_type: 'daily'
@@ -27,7 +26,6 @@ class InstanceAggregationsManager {
         this.changePercentTopCount = 5;
         this.changePercentStatisticsPeriod = 7;
         this.changePercentFilters = {
-            start_date: null,
             end_date: null,
             override: false,
             period_type: 'daily'
@@ -36,7 +34,6 @@ class InstanceAggregationsManager {
             instance_id: null,
             db_type: null,
             period_type: 'daily',
-            start_date: null,
             end_date: null
         };
         
@@ -61,8 +58,6 @@ class InstanceAggregationsManager {
         this.currentFilters.db_type = dbTypeValue ? dbTypeValue.toLowerCase() : null;
         this.currentFilters.instance_id = instanceValue || null;
         this.currentFilters.period_type = $('#period_type').val() || 'daily';
-        this.currentFilters.start_date = $('#start_date').val() || null;
-        this.currentFilters.end_date = $('#end_date').val() || null;
         if (instanceValue) {
             $('#instance').data('selected', instanceValue);
         }
@@ -432,9 +427,7 @@ class InstanceAggregationsManager {
         this.currentFilters.instance_id = instanceValue || null;
         $('#instance').data('selected', this.currentFilters.instance_id || '');
         this.currentFilters.period_type = $('#period_type').val();
-        this.currentFilters.start_date = $('#start_date').val();
-        this.currentFilters.end_date = $('#end_date').val();
-    }
+        }
     
     /**
      * 应用筛选条件
@@ -443,11 +436,9 @@ class InstanceAggregationsManager {
         this.updateFilters();
         
         // 使用用户指定的时间范围并清除容量变化图的独立覆盖
-        this.changeFilters.start_date = this.currentFilters.start_date || null;
         this.changeFilters.end_date = this.currentFilters.end_date || null;
         this.changeFilters.override = false;
         this.changeFilters.period_type = this.currentFilters.period_type || 'daily';
-        this.changePercentFilters.start_date = this.currentFilters.start_date || null;
         this.changePercentFilters.end_date = this.currentFilters.end_date || null;
         this.changePercentFilters.override = false;
         this.changePercentFilters.period_type = this.currentFilters.period_type || 'daily';
@@ -478,12 +469,10 @@ class InstanceAggregationsManager {
             instance_id: null,
             db_type: null,
             period_type: 'daily',
-            start_date: null,
             end_date: null
         };
         this.changeStatisticsPeriod = 7;
         this.changeFilters = {
-            start_date: null,
             end_date: null,
             override: false,
             period_type: 'daily'
@@ -492,7 +481,6 @@ class InstanceAggregationsManager {
         this.changePercentTopCount = 5;
         this.changePercentStatisticsPeriod = 7;
         this.changePercentFilters = {
-            start_date: null,
             end_date: null,
             override: false,
             period_type: 'daily'
@@ -1338,15 +1326,12 @@ class InstanceAggregationsManager {
     updateTimeRangeFromPeriod() {
         const periodType = this.currentFilters.period_type || 'daily';
         const range = this.calculateDateRange(periodType, this.currentStatisticsPeriod);
-        this.currentFilters.start_date = range.startDate;
         this.currentFilters.end_date = range.endDate;
         if (!this.changeFilters.override) {
-            this.changeFilters.start_date = range.startDate;
             this.changeFilters.end_date = range.endDate;
             this.changeFilters.period_type = periodType;
         }
         if (!this.changePercentFilters.override) {
-            this.changePercentFilters.start_date = range.startDate;
             this.changePercentFilters.end_date = range.endDate;
             this.changePercentFilters.period_type = periodType;
         }
@@ -1368,8 +1353,7 @@ class InstanceAggregationsManager {
             params.append('period_type', this.currentFilters.period_type);
         }
         if (this.currentFilters.start_date) {
-            params.append('start_date', this.currentFilters.start_date);
-        }
+            }
         if (this.currentFilters.end_date) {
             params.append('end_date', this.currentFilters.end_date);
         }
@@ -1395,8 +1379,7 @@ class InstanceAggregationsManager {
         
         const { startDate, endDate } = this.getChangeChartDateRange(periodType);
         if (startDate) {
-            params.append('start_date', startDate);
-        }
+            }
         if (endDate) {
             params.append('end_date', endDate);
         }
@@ -1423,8 +1406,7 @@ class InstanceAggregationsManager {
         
         const { startDate, endDate } = this.getChangePercentChartDateRange(periodType);
         if (startDate) {
-            params.append('start_date', startDate);
-        }
+            }
         if (endDate) {
             params.append('end_date', endDate);
         }
@@ -1461,7 +1443,6 @@ class InstanceAggregationsManager {
             }
         }
         
-        this.changeFilters.start_date = startDate;
         this.changeFilters.end_date = endDate;
         this.changeFilters.period_type = periodType;
         
@@ -1496,7 +1477,6 @@ class InstanceAggregationsManager {
             }
         }
         
-        this.changePercentFilters.start_date = startDate;
         this.changePercentFilters.end_date = endDate;
         this.changePercentFilters.period_type = periodType;
         
@@ -1549,7 +1529,6 @@ class InstanceAggregationsManager {
             respectExistingStart: false,
             respectExistingEnd: false
         });
-        this.changeFilters.start_date = range.startDate;
         this.changeFilters.end_date = range.endDate;
         this.changeFilters.override = true;
         this.changeFilters.period_type = periodType;
@@ -1564,7 +1543,6 @@ class InstanceAggregationsManager {
             respectExistingStart: false,
             respectExistingEnd: false
         });
-        this.changePercentFilters.start_date = range.startDate;
         this.changePercentFilters.end_date = range.endDate;
         this.changePercentFilters.override = true;
         this.changePercentFilters.period_type = periodType;

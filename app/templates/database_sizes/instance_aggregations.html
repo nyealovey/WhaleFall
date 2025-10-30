@@ -34,14 +34,6 @@
             {{ db_type_filter(database_type_options, db_type, use_tom_select=False) }}
             {{ instance_filter(instance_options, instance, disabled=(not db_type), use_tom_select=False) }}
             {{ period_type_filter(period_type_options, period_type, use_tom_select=False) }}
-            <div class="col-12 col-lg-2 col-xl-2">
-                <label for="start_date" class="form-label">开始日期</label>
-                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
-            </div>
-            <div class="col-12 col-lg-2 col-xl-2">
-                <label for="end_date" class="form-label">结束日期</label>
-                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
-            </div>
         {% endcall %}
     </div>
 

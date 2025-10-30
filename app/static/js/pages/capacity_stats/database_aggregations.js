@@ -16,7 +16,6 @@ class DatabaseAggregationsManager {
         this.changeTopCount = 5;
         this.changeStatisticsPeriod = 7;
         this.changeFilters = {
-            start_date: null,
             end_date: null,
             override: false,
             period_type: 'daily'
@@ -27,7 +26,6 @@ class DatabaseAggregationsManager {
         this.changePercentTopCount = 5;
         this.changePercentStatisticsPeriod = 7;
         this.changePercentFilters = {
-            start_date: null,
             end_date: null,
             override: false,
             period_type: 'daily'
@@ -40,7 +38,6 @@ class DatabaseAggregationsManager {
             database_id: null,
             database_name: null,
             period_type: 'daily',
-            start_date: null,
             end_date: null
         };
         
@@ -84,8 +81,6 @@ class DatabaseAggregationsManager {
         }
         this.currentFilters.database_name = databaseName;
         this.currentFilters.period_type = $('#period_type').val() || 'daily';
-        this.currentFilters.start_date = $('#start_date').val() || null;
-        this.currentFilters.end_date = $('#end_date').val() || null;
         if (instanceValue) {
             $('#instance').data('selected', instanceValue);
         }
@@ -412,20 +407,16 @@ class DatabaseAggregationsManager {
             databaseSelect.data('initialValue', '');
         }
         this.currentFilters.period_type = $('#period_type').val();
-        this.currentFilters.start_date = $('#start_date').val();
-        this.currentFilters.end_date = $('#end_date').val();
-    }
+        }
     
     applyFilters() {
         this.updateFilters();
-        this.changeFilters.start_date = this.currentFilters.start_date || null;
         this.changeFilters.end_date = this.currentFilters.end_date || null;
         this.changeFilters.override = false;
         this.changeFilters.period_type = this.currentFilters.period_type || 'daily';
         this.loadSummaryData();
         this.loadChartData();
         this.loadChangeChartData();
-        this.changePercentFilters.start_date = this.currentFilters.start_date || null;
         this.changePercentFilters.end_date = this.currentFilters.end_date || null;
         this.changePercentFilters.override = false;
         this.changePercentFilters.period_type = this.currentFilters.period_type || 'daily';
@@ -448,12 +439,10 @@ class DatabaseAggregationsManager {
             database_id: null,
             database_name: null,
             period_type: 'daily',
-            start_date: null,
             end_date: null
         };
         this.changeStatisticsPeriod = 7;
         this.changeFilters = {
-            start_date: null,
             end_date: null,
             override: false,
             period_type: 'daily'
@@ -462,7 +451,6 @@ class DatabaseAggregationsManager {
         this.changePercentTopCount = 5;
         this.changePercentStatisticsPeriod = 7;
         this.changePercentFilters = {
-            start_date: null,
             end_date: null,
             override: false,
             period_type: 'daily'
@@ -1213,8 +1201,7 @@ class DatabaseAggregationsManager {
             params.append('period_type', this.currentFilters.period_type);
         }
         if (this.currentFilters.start_date) {
-            params.append('start_date', this.currentFilters.start_date);
-        }
+            }
         if (this.currentFilters.end_date) {
             params.append('end_date', this.currentFilters.end_date);
         }
@@ -1239,8 +1226,7 @@ class DatabaseAggregationsManager {
         params.append('period_type', periodType);
         const { startDate, endDate } = this.getChangeChartDateRange(periodType);
         if (startDate) {
-            params.append('start_date', startDate);
-        }
+            }
         if (endDate) {
             params.append('end_date', endDate);
         }
@@ -1265,8 +1251,7 @@ class DatabaseAggregationsManager {
         params.append('period_type', periodType);
         const { startDate, endDate } = this.getChangePercentChartDateRange(periodType);
         if (startDate) {
-            params.append('start_date', startDate);
-        }
+            }
         if (endDate) {
             params.append('end_date', endDate);
         }
@@ -1294,7 +1279,6 @@ class DatabaseAggregationsManager {
             }
         }
 
-        this.changeFilters.start_date = startDate;
         this.changeFilters.end_date = endDate;
         this.changeFilters.period_type = periodType;
 
@@ -1322,7 +1306,6 @@ class DatabaseAggregationsManager {
             }
         }
 
-        this.changePercentFilters.start_date = startDate;
         this.changePercentFilters.end_date = endDate;
         this.changePercentFilters.period_type = periodType;
 
@@ -1359,15 +1342,12 @@ class DatabaseAggregationsManager {
     updateTimeRangeFromPeriod() {
         const periodType = this.currentFilters.period_type || 'daily';
         const range = this.calculateDateRange(periodType, this.currentStatisticsPeriod);
-        this.currentFilters.start_date = range.startDate;
         this.currentFilters.end_date = range.endDate;
         if (!this.changeFilters.override) {
-            this.changeFilters.start_date = this.currentFilters.start_date;
             this.changeFilters.end_date = this.currentFilters.end_date;
             this.changeFilters.period_type = periodType;
         }
         if (!this.changePercentFilters.override) {
-            this.changePercentFilters.start_date = this.currentFilters.start_date;
             this.changePercentFilters.end_date = this.currentFilters.end_date;
             this.changePercentFilters.period_type = periodType;
         }
@@ -1376,7 +1356,6 @@ class DatabaseAggregationsManager {
     updateChangeChartOverrideRange() {
         const periodType = this.currentFilters.period_type || 'daily';
         const range = this.calculateDateRange(periodType, this.changeStatisticsPeriod);
-        this.changeFilters.start_date = range.startDate;
         this.changeFilters.end_date = range.endDate;
         this.changeFilters.override = true;
         this.changeFilters.period_type = periodType;
@@ -1385,7 +1364,6 @@ class DatabaseAggregationsManager {
     updateChangePercentChartOverrideRange() {
         const periodType = this.currentFilters.period_type || 'daily';
         const range = this.calculateDateRange(periodType, this.changePercentStatisticsPeriod);
-        this.changePercentFilters.start_date = range.startDate;
         this.changePercentFilters.end_date = range.endDate;
         this.changePercentFilters.override = true;
         this.changePercentFilters.period_type = periodType;
