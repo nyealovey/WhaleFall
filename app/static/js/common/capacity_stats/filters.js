@@ -33,7 +33,7 @@
     const databaseSelect = getElement("#database");
     const databaseId = databaseSelect ? databaseSelect.value || "" : "";
     let databaseName = null;
-    if (databaseSelect) {
+    if (databaseSelect && databaseId) {
       const option = databaseSelect.options[databaseSelect.selectedIndex];
       if (option && option.textContent) {
         databaseName = option.textContent.trim();
