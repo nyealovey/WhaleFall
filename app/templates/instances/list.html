@@ -273,7 +273,7 @@
                         <input type="file" class="form-control" id="csvFile" accept=".csv" onchange="handleFileSelect(event)">
                         <div class="form-text">
                             请上传CSV格式文件，或
-                            <a href="{{ url_for('files.download_instances_template') }}" class="text-decoration-none">
+                            <a href="/instances/api/template/download" class="text-decoration-none">
                                 <i class="fas fa-download me-1"></i>下载模板文件
                             </a>
                         </div>
@@ -315,6 +315,9 @@
 
 
 {% block extra_js %}
+<div id="list-page-tag-selector">
+    {% include 'components/tag_selector.html' %}
+</div>
 <script src="{{ url_for('static', filename='js/pages/instances/list.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -323,7 +326,4 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-<div id="list-page-tag-selector">
-    {% include 'components/tag_selector.html' %}
-</div>
 {% endblock %}
