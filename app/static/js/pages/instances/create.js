@@ -3,25 +3,10 @@
  * 统一使用 Just-Validate 进行表单验证，并保持标签选择器等交互。
  */
 
-let createPageTagSelector = null;
 let instanceCreateValidator = null;
 
 document.addEventListener('DOMContentLoaded', function () {
-    // 同步或延迟初始化标签选择器
-    if (typeof TagSelector === 'undefined') {
-        setTimeout(() => {
-            initializeInstanceCreateTagSelector();
-        }, 500);
-    } else {
-        try {
-            if (typeof initializeInstanceCreateTagSelector === 'function') {
-                initializeInstanceCreateTagSelector();
-            }
-        } catch (error) {
-            console.error('initializeInstanceCreateTagSelector 调用失败:', error);
-        }
-    }
-
+    initializeTagSelector();
     initializeForm();
 });
 
@@ -169,182 +154,22 @@ function restoreLoadingState(form) {
 /**
  * 以下为标签选择器及辅助方法实现
  */
-
-function openTagSelector() {
-    const modalElement = document.getElementById('tagSelectorModal');
-    if (!modalElement) {
-        console.error('Tag selector modal not found');
+function initializeTagSelector() {
+    if (!window.TagSelectorHelper) {
+        console.warn('TagSelectorHelper 未加载，跳过标签选择器初始化');
         return;
     }
 
-    const modal = new bootstrap.Modal(modalElement);
-
-    modalElement.addEventListener(
-        'shown.bs.modal',
-        function () {
-            if (!getTagSelector()) {
-                const selector = initializeTagSelector({
-                    onSelectionChange: updateSelectedTagsPreview,
-                });
-                if (selector && createPageTagSelector) {
-                    const selectedTags = createPageTagSelector.getSelectedTags();
-                    updateSelectedTagsPreview(selectedTags);
-                }
-            }
-        },
-        { once: true }
-    );
-
-    modal.show();
-}
-
-function closeTagSelector() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('tagSelectorModal'));
-    if (modal) {
-        modal.hide();
-    }
-}
-
-function initializeInstanceCreateTagSelector() {
-    try {
-        const createPageSelector = document.getElementById('create-page-tag-selector');
-
-        if (createPageSelector) {
-            const modalElement = createPageSelector.querySelector('#tagSelectorModal');
-
-            if (modalElement) {
-                const containerElement = modalElement.querySelector('#tag-selector-container');
-
-                if (containerElement) {
-                    initializeTagSelectorComponent(modalElement, containerElement);
-                } else {
-                    setTimeout(() => {
-                        const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
-
-                        if (delayedContainerElement) {
-                            initializeTagSelectorComponent(modalElement, delayedContainerElement);
-                        }
-                    }, 1000);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('initializeInstanceCreateTagSelector 函数执行出错:', error);
-    }
-}
-
-function initializeTagSelectorComponent(modalElement, containerElement) {
-    if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
-        try {
-            createPageTagSelector = new TagSelector('tag-selector-container', {
-                allowMultiple: true,
-                allowCreate: true,
-                allowSearch: true,
-                allowCategoryFilter: true,
-            });
-
-            setTimeout(() => {
-                if (createPageTagSelector && createPageTagSelector.container) {
-                    setupTagSelectorEvents();
-                }
-            }, 100);
-        } catch (error) {
-            console.error('初始化标签选择器组件时出错:', error);
-            toast.error('标签选择器初始化失败: ' + error.message);
-        }
-    }
-}
-
-function setupTagSelectorEvents() {
-    if (!createPageTagSelector) {
-        return;
-    }
-
-    const openBtn = document.getElementById('open-tag-selector-btn');
-
-    if (openBtn) {
-        openBtn.removeEventListener('click', openTagSelector);
-
-        openBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-
-            try {
-                if (typeof openTagSelector === 'function') {
-                    openTagSelector();
-                } else {
-                    const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
-                    modal.show();
-                }
-
-                setTimeout(() => {
-                    if (createPageTagSelector) {
-                        createPageTagSelector.rebindModalButtons();
-                    }
-                }, 100);
-            } catch (error) {
-                console.error('打开标签选择器时出错:', error);
-                toast.error('打开标签选择器失败: ' + error.message);
-            }
-        });
-    }
-
-    if (createPageTagSelector.container) {
-        createPageTagSelector.container.addEventListener('tagSelectionConfirmed', function (event) {
-            const selectedTags = event.detail.selectedTags;
-            updateSelectedTagsPreview(selectedTags);
-            closeTagSelector();
-        });
-
-        createPageTagSelector.container.addEventListener('tagSelectionCancelled', function () {
-            closeTagSelector();
-        });
-    }
-}
-
-function updateSelectedTagsPreview(selectedTags) {
-    const preview = document.getElementById('selected-tags-preview');
-    const count = document.getElementById('selected-tags-count');
-    const chips = document.getElementById('selected-tags-chips');
-    const hiddenInput = document.getElementById('selected-tag-names');
-
-    if (selectedTags.length > 0) {
-        if (preview) preview.style.display = 'block';
-        if (count) count.textContent = `已选择 ${selectedTags.length} 个标签`;
-
-        if (chips) {
-            chips.innerHTML = selectedTags
-                .map(
-                    (tag) => `
-                <span class="badge bg-${tag.color} me-1 mb-1">
-                    <i class="fas fa-tag me-1"></i>${tag.display_name}
-                    <button type="button" class="btn-close btn-close-white ms-1" 
-                            onclick="removeTagFromPreview('${tag.name}')" 
-                            style="font-size: 0.6em;"></button>
-                </span>
-            `
-                )
-                .join('');
-        }
-
-        if (hiddenInput) {
-            hiddenInput.value = selectedTags.map((tag) => tag.name).join(',');
-        }
-    } else {
-        if (preview) preview.style.display = 'none';
-        if (count) count.textContent = '未选择标签';
-        if (hiddenInput) hiddenInput.value = '';
-    }
-}
-
-function removeTagFromPreview(tagName) {
-    if (createPageTagSelector) {
-        const tag = createPageTagSelector.availableTags.find((t) => t.name === tagName);
-        if (tag) {
-            createPageTagSelector.toggleTag(tag.id);
-            const selectedTags = createPageTagSelector.getSelectedTags();
-            updateSelectedTagsPreview(selectedTags);
-        }
-    }
+    TagSelectorHelper.setupForForm({
+        modalSelector: '#tagSelectorModal',
+        rootSelector: '[data-tag-selector]',
+        openButtonSelector: '#open-tag-selector-btn',
+        previewSelector: '#selected-tags-preview',
+        countSelector: '#selected-tags-count',
+        chipsSelector: '#selected-tags-chips',
+        hiddenInputSelector: '#selected-tag-names',
+        hiddenValueKey: 'name',
+    });
 }
 
 function resetForm() {
@@ -358,9 +183,19 @@ function resetForm() {
         oracleSidRow.style.display = 'none';
     }
 
-    if (createPageTagSelector) {
-        createPageTagSelector.clearSelection();
-        updateSelectedTagsPreview([]);
+    const preview = document.getElementById('selected-tags-preview');
+    const count = document.getElementById('selected-tags-count');
+    const chips = document.getElementById('selected-tags-chips');
+    const hiddenInput = document.getElementById('selected-tag-names');
+
+    if (preview) preview.style.display = 'none';
+    if (count) count.textContent = '未选择标签';
+    if (chips) chips.innerHTML = '';
+    if (hiddenInput) hiddenInput.value = '';
+
+    const selectorInstance = window.tagSelectorManager?.get('[data-tag-selector]');
+    if (selectorInstance && typeof selectorInstance.clearSelection === 'function') {
+        selectorInstance.clearSelection({ silent: true });
     }
 
     if (instanceCreateValidator) {
@@ -385,6 +220,5 @@ function previewInstance() {
     return preview;
 }
 
-window.initializeInstanceCreateTagSelector = initializeInstanceCreateTagSelector;
 window.previewInstance = previewInstance;
 window.resetForm = resetForm;

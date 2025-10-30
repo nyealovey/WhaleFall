@@ -1,749 +1,1093 @@
-/**
- * 标签选择器组件JavaScript
- * 提供标签搜索、筛选、选择、管理等功能
- */
+(function (window, document) {
+  "use strict";
 
-// 标签选择器类
-if (typeof window.TagSelector === 'undefined') {
-class TagSelector {
-    constructor(containerId, options = {}) {
-        this.containerId = containerId;
-        this.container = document.getElementById(containerId);
-        this.options = {
-            allowMultiple: true,
-            showSearch: true,
-            showCategories: true,
-            showStats: true,
-            maxSelections: null,
-            onSelectionChange: null,
-            onTagAdd: null,
-            onTagRemove: null,
-            ...options
-        };
-        this.modalElement = this.options.modalElement || null;
-        
-        this.selectedTags = new Set();
-        this.allTags = [];
-        this.filteredTags = [];
-        this.currentCategory = 'all';
-        this.searchQuery = '';
-        
-        this.init();
-    }
-    
-    // 初始化标签选择器
-    init() {
-        if (!this.container) {
-            console.error('TagSelector: Container not found');
-            return;
-        }
-        
-        this.setupEventListeners();
-        this.loadTags();
-        this.loadCategories();
-    }
-    
-    // 设置事件监听器
-    setupEventListeners() {
-        // 搜索输入
-        const searchInput = this.container.querySelector('#tag-search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.handleSearch(e.target.value);
-            });
-        }
-        
-        // 清除搜索
-        const clearSearchBtn = this.container.querySelector('#clear-search-btn');
-        if (clearSearchBtn) {
-            clearSearchBtn.addEventListener('click', () => {
-                this.clearSearch();
-            });
-        }
-        
-        // 延迟绑定模态框按钮事件
-        this.setupModalButtons();
-    }
+  const DEFAULT_ENDPOINTS = {
+    tags: "/tags/api/tags",
+    categories: "/tags/api/categories",
+  };
 
-    getModalElement() {
-        if (this.modalElement && document.body.contains(this.modalElement)) {
-            return this.modalElement;
-        }
-        if (this.container) {
-            const modal = this.container.closest('.modal');
-            if (modal) {
-                this.modalElement = modal;
-                return modal;
-            }
-        }
-        return null;
+  const EVENT_NAMES = {
+    change: "tagSelectionChange",
+    confirm: "tagSelectionConfirmed",
+    cancel: "tagSelectionCanceled",
+  };
+
+  let instanceCounter = 0;
+
+  function toElement(target) {
+    if (!target) {
+      return null;
     }
-    
-    // 设置模态框按钮事件
-    setupModalButtons() {
-        
-        // 立即尝试绑定
-        this.bindModalButtons();
-        
-        // 如果立即绑定失败，使用延迟绑定（最多重试3次）
-        if (!this.areButtonsBound()) {
-            this.retryButtonBinding(0);
-        }
-        
-        // 监听模态框显示事件，确保在模态框完全显示后绑定按钮
-        const modalElement = this.getModalElement();
-        if (modalElement) {
-            modalElement.addEventListener('shown.bs.modal', () => {
-                this.bindModalButtons();
-            });
-        }
+    if (target instanceof Element) {
+      return target;
     }
-    
-    // 重试按钮绑定（最多3次）
-    retryButtonBinding(attempt) {
-        const maxAttempts = 3;
-        const delays = [500, 1000, 2000]; // 递增延迟
-        
-        if (attempt >= maxAttempts) {
-            console.error('TagSelector: Failed to bind modal buttons after', maxAttempts, 'attempts');
-            return;
-        }
-        
-        setTimeout(() => {
-            
-            // 检查DOM状态
-            this.bindModalButtons();
-            
-            if (!this.areButtonsBound() && attempt < maxAttempts - 1) {
-                this.retryButtonBinding(attempt + 1);
-            } else if (this.areButtonsBound()) {
-            }
-        }, delays[attempt] || 2000);
+    if (typeof target === "string") {
+      return document.querySelector(target);
     }
-    
-    // 检查按钮是否已绑定
-    areButtonsBound() {
-        const modalElement = this.getModalElement();
-        if (!modalElement) return false;
-        
-        const confirmBtn = modalElement.querySelector('#confirm-selection-btn');
-        const cancelBtn = modalElement.querySelector('#cancel-selection-btn');
-        return confirmBtn && confirmBtn.hasAttribute('data-bound') && 
-               cancelBtn && cancelBtn.hasAttribute('data-bound');
+    return null;
+  }
+
+  function ensureHttp() {
+    if (!window.http || typeof window.http.get !== "function") {
+      throw new Error("window.http 未初始化，无法加载标签数据");
     }
-    
-    // 绑定模态框按钮
-    bindModalButtons() {
-        
-        // 查找模态框元素（按钮在模态框的footer中，不在container中）
-        const modalElement = this.getModalElement();
-        
-        if (!modalElement) {
-            console.error('TagSelector: 模态框元素未找到，无法绑定按钮');
-            return;
-        }
-        
-        // 确认按钮
-        const confirmBtn = modalElement.querySelector('#confirm-selection-btn');
-        
-        if (confirmBtn && !confirmBtn.hasAttribute('data-bound')) {
-            confirmBtn.addEventListener('click', () => {
-                this.confirmSelection();
-            });
-            confirmBtn.setAttribute('data-bound', 'true');
-        } else if (confirmBtn) {
-        } else {
-            console.warn('TagSelector: 确认按钮未找到，可能DOM未完全加载');
-        }
-        
-        // 取消按钮
-        const cancelBtn = modalElement.querySelector('#cancel-selection-btn');
-        
-        if (cancelBtn && !cancelBtn.hasAttribute('data-bound')) {
-            cancelBtn.addEventListener('click', () => {
-                this.cancelSelection();
-            });
-            cancelBtn.setAttribute('data-bound', 'true');
-        } else if (cancelBtn) {
-        } else {
-            console.warn('TagSelector: 取消按钮未找到，可能DOM未完全加载');
-        }
-        
+  }
+
+  function formatNumber(value) {
+    return Number(value || 0).toLocaleString();
+  }
+
+  function resolveBadge(tag) {
+    const color = tag?.color || "";
+    if (color.startsWith("bg-")) {
+      return { className: `badge rounded-pill ${color}`, style: "" };
+    }
+    if (color.startsWith("#")) {
+      return {
+        className: "badge rounded-pill",
+        style: `background-color: ${color}; color: #fff;`,
+        variant: "custom",
+      };
+    }
+    return {
+      className: "badge rounded-pill bg-secondary",
+      style: "",
+    };
+  }
+
+  class TagSelector {
+    constructor(root, options = {}) {
+      this.root = toElement(root);
+      if (!this.root) {
+        console.error("TagSelector: 容器未找到");
+        return;
+      }
+
+      this.options = {
+        allowMultiple: true,
+        maxSelections: null,
+        endpoints: { ...DEFAULT_ENDPOINTS, ...(options.endpoints || {}) },
+        onSelectionChange: null,
+        onConfirm: null,
+        onCancel: null,
+        hiddenValueKey: "name",
+        ...options,
+      };
+
+      this.id =
+        this.root.dataset.tagSelectorId ||
+        `tag-selector-${++instanceCounter}`;
+      this.root.dataset.tagSelectorId = this.id;
+
+      this.modal =
+        toElement(options.modalElement) ||
+        this.root.closest("[data-tag-selector-modal]") ||
+        null;
+
+      this.elements = this.cacheElements();
+
+      this.state = {
+        allTags: [],
+        filteredTags: [],
+        selectedIds: new Set(),
+        category: "all",
+        search: "",
+        stats: {
+          total: 0,
+          selected: 0,
+          active: 0,
+          filtered: 0,
+        },
+      };
+
+      this.pendingSelection = null;
+      this.ignoreNextCancel = false;
+      this.readyPromise = this.initialize();
     }
 
-    // 加载分类数据
-    async loadCategories() {
-        try {
-            const data = await http.get('/tags/api/categories');
-            if (data.success) {
-                const categories = data.categories ?? data.data?.categories ?? [];
-                this.renderCategories(Array.isArray(categories) ? categories : []);
-            } else {
-                throw new Error(data.error || 'Failed to load categories');
-            }
-        } catch (error) {
-            console.error('Error loading categories:', error);
-            this.renderCategoriesError(error.message);
-        }
+    cacheElements() {
+      return {
+        searchInput: this.root.querySelector('[data-role="search-input"]'),
+        clearSearch: this.root.querySelector('[data-role="clear-search"]'),
+        categoryGroup: this.root.querySelector('[data-role="category-group"]'),
+        categoryLoading: this.root.querySelector(
+          '[data-role="category-loading"]',
+        ),
+        statsWrapper: this.root.querySelector('[data-role="stats"]'),
+        statTotal: this.root.querySelector('[data-role="stat-total"]'),
+        statSelected: this.root.querySelector('[data-role="stat-selected"]'),
+        statActive: this.root.querySelector('[data-role="stat-active"]'),
+        statFiltered: this.root.querySelector('[data-role="stat-filtered"]'),
+        tagList: this.root.querySelector('[data-role="tag-list"]'),
+        selectedContainer: this.root.querySelector(
+          '[data-role="selected-container"]',
+        ),
+        selectedList: this.root.querySelector('[data-role="selected-list"]'),
+        selectedEmpty: this.root.querySelector('[data-role="selected-empty"]'),
+      };
     }
 
-    // 渲染分类筛选器
-    renderCategories(categories) {
-        const container = this.container.querySelector('#tag-category-filter-container');
-        if (!container) return;
+    async initialize() {
+      this.bindEvents();
+      this.bindModalLifecycle();
 
-        let html = `
-            <input type="radio" class="btn-check" name="category-filter" id="category-all" value="all" checked>
-            <label class="btn btn-outline-secondary" for="category-all">全部</label>
-        `;
+      await Promise.all([this.loadCategories(), this.loadTags()]);
 
-        categories.forEach(([value, displayName]) => {
-            html += `
-                <input type="radio" class="btn-check" name="category-filter" id="category-${value}" value="${value}">
-                <label class="btn btn-outline-secondary" for="category-${value}">${displayName}</label>
-            `;
-        });
-
-        container.innerHTML = html;
-
-        const categoryFilters = container.querySelectorAll('input[name="category-filter"]');
-        categoryFilters.forEach(filter => {
-            filter.addEventListener('change', (e) => {
-                this.handleCategoryFilter(e.target.value);
-            });
-        });
-    }
-
-    // 渲染分类加载错误
-    renderCategoriesError(errorMessage) {
-        const container = this.container.querySelector('#tag-category-filter-container');
-        if (!container) return;
-
-        container.innerHTML = `
-            <div class="alert alert-warning d-flex align-items-center" role="alert">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <div>
-                    <strong>分类加载失败:</strong> ${errorMessage}
-                    <button class="btn btn-sm btn-outline-warning ms-2" onclick="location.reload()">
-                        <i class="fas fa-refresh me-1"></i>重试
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-    
-    // 加载标签数据
-    async loadTags() {
-        try {
-            this.showLoading();
-            
-            const data = await http.get('/tags/api/tags');
-            if (data.success) {
-                this.allTags = data?.data?.tags ?? data.tags ?? [];
-                if (!Array.isArray(this.allTags)) {
-                    this.allTags = [];
-                }
-                this.filteredTags = [...this.allTags];
-                this.renderTags();
-                this.updateStats();
-            } else {
-                throw new Error(data.message || 'Failed to load tags');
-            }
-        } catch (error) {
-            console.error('Error loading tags:', error);
-            this.showError('加载标签失败: ' + error.message);
-        } finally {
-            this.hideLoading();
-        }
-    }
-    
-    // 处理搜索
-    handleSearch(query) {
-        this.searchQuery = query.toLowerCase();
-        this.filterTags();
-    }
-    
-    // 清除搜索
-    clearSearch() {
-        const searchInput = this.container.querySelector('#tag-search-input');
-        if (searchInput) {
-            searchInput.value = '';
-        }
-        this.searchQuery = '';
-        this.filterTags();
-    }
-    
-    // 处理分类筛选
-    handleCategoryFilter(category) {
-        this.currentCategory = category;
-        this.filterTags();
-    }
-    
-    // 筛选标签
-    filterTags() {
-        const normalizedCategory = this.currentCategory && this.currentCategory !== 'all'
-            ? this.currentCategory.toLowerCase()
-            : 'all';
-
-        this.filteredTags = this.allTags.filter(tag => {
-            const name = (tag.name || '').toLowerCase();
-            const displayName = (tag.display_name || '').toLowerCase();
-            const description = (tag.description || '').toLowerCase();
-            const category = (tag.category || '').toLowerCase();
-
-            // 搜索筛选
-            const matchesSearch = !this.searchQuery || 
-                name.includes(this.searchQuery) ||
-                displayName.includes(this.searchQuery) ||
-                description.includes(this.searchQuery) ||
-                category.includes(this.searchQuery);
-            
-            // 分类筛选
-            const matchesCategory = normalizedCategory === 'all' || category === normalizedCategory;
-            
-            return matchesSearch && matchesCategory;
-        });
-        
-        this.renderTags();
+      if (this.pendingSelection) {
+        this.selectBy(this.pendingSelection.values, this.pendingSelection.key);
+        this.pendingSelection = null;
+      } else {
+        this.updateSelectedDisplay();
         this.updateStats();
+      }
+
+      return this;
     }
-    
-    // 渲染标签列表
-    renderTags() {
-        const tagListContainer = this.container.querySelector('#tag-list-container');
-        if (!tagListContainer) return;
-        
-        if (this.filteredTags.length === 0) {
-            tagListContainer.innerHTML = this.getEmptyStateHTML();
+
+    bindEvents() {
+      const { searchInput, clearSearch, categoryGroup, tagList, selectedList } =
+        this.elements;
+
+      if (searchInput) {
+        searchInput.addEventListener("input", (event) => {
+          this.handleSearch(event.target.value);
+        });
+      }
+
+      if (clearSearch) {
+        clearSearch.addEventListener("click", () => {
+          this.clearSearch();
+        });
+      }
+
+      if (categoryGroup) {
+        categoryGroup.addEventListener("change", (event) => {
+          const radio = event.target.closest('input[type="radio"]');
+          if (radio) {
+            this.handleCategory(radio.value);
+          }
+        });
+      }
+
+      if (tagList) {
+        tagList.addEventListener("click", (event) => {
+          const item = event.target.closest("[data-tag-id]");
+          if (!item || item.classList.contains("disabled")) {
             return;
-        }
-        
-        const tagsHTML = this.filteredTags.map(tag => this.getTagItemHTML(tag)).join('');
-        tagListContainer.innerHTML = tagsHTML;
-        
-        // 添加点击事件
-        this.attachTagItemEvents();
-    }
-    
-    // 获取标签项HTML
-    getTagItemHTML(tag) {
-        const isSelected = this.selectedTags.has(tag.id);
-        const isDisabled = !tag.is_active;
-        
-        return `
-            <div class="tag-item ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}" 
-                 data-tag-id="${tag.id}">
-                <div class="tag-info">
-                    <div class="tag-details">
-                        <span class="badge bg-${tag.color || 'primary'} tag-display-badge">
-                            ${this.highlightSearch(tag.display_name)}
-                        </span>
-                        <span class="tag-description">${tag.description || ''}</span>
-                        <span class="badge bg-secondary tag-category-badge">${this.getCategoryDisplayName(tag.category)}</span>
-                    </div>
-                </div>
-                <div class="tag-actions">
-                    ${this.getTagActionButton(tag, isSelected, isDisabled)}
-                </div>
-            </div>
-        `;
-    }
-    
-    // 获取标签操作按钮
-    getTagActionButton(tag, isSelected, isDisabled) {
-        if (isDisabled) {
-            return '<span class="text-muted">已停用</span>';
-        }
-        
-        if (isSelected) {
-            return `
-                <button class="tag-action-btn remove" data-tag-id="${tag.id}" title="移除标签">
-                    <i class="fas fa-minus"></i>
-                </button>
-            `;
-        } else {
-            return `
-                <button class="tag-action-btn add" data-tag-id="${tag.id}" title="添加标签">
-                    <i class="fas fa-plus"></i>
-                </button>
-            `;
-        }
-    }
-    
-    // 附加标签项事件
-    attachTagItemEvents() {
-        const tagItems = this.container.querySelectorAll('.tag-item');
-        tagItems.forEach(item => {
-            const tagId = parseInt(item.dataset.tagId);
-            const isDisabled = item.classList.contains('disabled');
-            
-            if (!isDisabled) {
-                item.addEventListener('click', (e) => {
-                    if (!e.target.closest('.tag-action-btn')) {
-                        this.toggleTagSelection(tagId);
-                    }
-                });
-            }
+          }
+          const tagId = Number(item.dataset.tagId);
+          if (Number.isFinite(tagId)) {
+            this.toggleTag(tagId);
+          }
         });
-        
-        const actionButtons = this.container.querySelectorAll('.tag-action-btn');
-        actionButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const tagId = parseInt(button.dataset.tagId);
-                this.toggleTagSelection(tagId);
-            });
-        });
-    }
-    
-    // 切换标签选择状态
-    toggleTagSelection(tagId) {
-        if (this.selectedTags.has(tagId)) {
+      }
+
+      if (selectedList) {
+        selectedList.addEventListener("click", (event) => {
+          const removeBtn = event.target.closest(
+            "[data-role=\"chip-remove\"]",
+          );
+          if (!removeBtn) {
+            return;
+          }
+          const tagId = Number(removeBtn.dataset.tagId);
+          if (Number.isFinite(tagId)) {
             this.removeTag(tagId);
-        } else {
-            this.addTag(tagId);
-        }
+          }
+        });
+      }
     }
-    
-    // 添加标签
+
+    bindModalLifecycle() {
+      if (!this.modal) {
+        return;
+      }
+      this.modal.addEventListener("hidden.bs.modal", () => {
+        if (this.ignoreNextCancel) {
+          this.ignoreNextCancel = false;
+          return;
+        }
+        this.emitCancel({
+          reason: "modal-hidden",
+          hideModal: false,
+        });
+      });
+    }
+
+    async loadCategories() {
+      const { categoryGroup, categoryLoading } = this.elements;
+      if (!categoryGroup) {
+        return;
+      }
+
+      try {
+        ensureHttp();
+        const response = await window.http.get(
+          this.options.endpoints.categories,
+        );
+        const categories =
+          response?.categories ??
+          response?.data?.categories ??
+          response?.data ??
+          [];
+        this.renderCategories(Array.isArray(categories) ? categories : []);
+      } catch (error) {
+        console.error("TagSelector: 加载分类失败", error);
+        this.renderCategories([], error);
+      } finally {
+        if (categoryLoading) {
+          categoryLoading.remove();
+        }
+      }
+    }
+
+    renderCategories(categories, error) {
+      const group = this.elements.categoryGroup;
+      if (!group) {
+        return;
+      }
+
+      group.innerHTML = "";
+      group.classList.add("btn-group", "btn-group-sm", "flex-wrap");
+
+      const list = Array.isArray(categories)
+        ? categories
+        : [];
+
+      const finalItems = [
+        { value: "all", label: "全部" },
+        ...list.map((item) => ({
+          value: Array.isArray(item) ? item[0] : item?.value ?? item?.name,
+          label: Array.isArray(item) ? item[1] : item?.label ?? item?.display_name ?? item?.value ?? "未命名",
+        })),
+      ];
+
+      const fragment = document.createDocumentFragment();
+      finalItems.forEach(({ value, label }, index) => {
+        const normalizedValue =
+          (value ?? "all").toString().toLowerCase() || "all";
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = `${this.id}-category`;
+        input.className = "btn-check";
+        input.id = `${this.id}-category-${normalizedValue}`;
+        input.value = normalizedValue;
+        if (index === 0) {
+          input.checked = true;
+        }
+
+        const button = document.createElement("label");
+        button.className = "btn btn-outline-secondary";
+        button.setAttribute("for", input.id);
+        button.textContent = label;
+
+        fragment.appendChild(input);
+        fragment.appendChild(button);
+      });
+
+      group.appendChild(fragment);
+
+      if (error) {
+        const alert = document.createElement("div");
+        alert.className = "alert alert-warning w-100 mt-2 d-flex align-items-center gap-2";
+        alert.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>分类加载失败：${error.message || "未知错误"}</span>`;
+        group.appendChild(alert);
+      }
+    }
+
+    async loadTags() {
+      const { tagList } = this.elements;
+      if (tagList) {
+        tagList.innerHTML = this.renderLoadingState();
+      }
+
+      try {
+        ensureHttp();
+        const response = await window.http.get(this.options.endpoints.tags);
+        const tags =
+          response?.data?.tags ??
+          response?.tags ??
+          response?.data ??
+          [];
+        this.state.allTags = Array.isArray(tags) ? tags : [];
+        this.state.filteredTags = [...this.state.allTags];
+        this.updateStats();
+        this.renderTagList();
+        this.updateSelectedDisplay();
+      } catch (error) {
+        console.error("TagSelector: 加载标签失败", error);
+        if (tagList) {
+          tagList.innerHTML = this.renderErrorState(
+            error.message || "标签数据加载失败",
+          );
+        }
+      }
+    }
+
+    renderTagList() {
+      const { tagList } = this.elements;
+      if (!tagList) {
+        return;
+      }
+
+      if (!this.state.filteredTags.length) {
+        tagList.innerHTML = this.renderEmptyState();
+        return;
+      }
+
+      const html = this.state.filteredTags
+        .map((tag) => this.renderTagItem(tag))
+        .join("");
+      tagList.innerHTML = html;
+    }
+
+    renderTagItem(tag) {
+      const isSelected = this.state.selectedIds.has(tag.id);
+      const isDisabled = tag.is_active === false;
+      const badge = resolveBadge(tag);
+
+      const categoryName = tag.category
+        ? this.getCategoryDisplayName(tag.category)
+        : "未分类";
+      const iconClass = isDisabled
+        ? "fas fa-ban text-muted"
+        : isSelected
+        ? "fas fa-check-circle text-primary"
+        : "fas fa-plus-circle text-muted";
+
+      const description = tag.description || "未填写描述";
+
+      return `
+        <button type="button"
+                class="list-group-item list-group-item-action d-flex align-items-start justify-content-between gap-3 ${isSelected ? "active" : ""} ${isDisabled ? "disabled" : ""}"
+                data-tag-id="${tag.id}">
+          <div class="flex-grow-1 text-start">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+              <span class="${badge.className}" ${badge.style ? `style="${badge.style}"` : ""}>
+                <i class="fas fa-tag me-1"></i>${this.highlightSearch(tag.display_name || tag.name || `标签#${tag.id}`)}
+              </span>
+              <span class="badge bg-light text-muted text-uppercase fw-normal">${categoryName}</span>
+              ${isDisabled ? '<span class="badge bg-secondary">已停用</span>' : ""}
+            </div>
+            <div class="tag-meta">
+              ${this.highlightSearch(description)}
+            </div>
+          </div>
+          <div class="tag-actions d-flex align-items-center">
+            <i class="${iconClass}"></i>
+          </div>
+        </button>
+      `;
+    }
+
+    renderLoadingState() {
+      return `
+        <div class="text-center text-muted py-5">
+          <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">加载中...</span>
+          </div>
+          <div>正在加载标签...</div>
+        </div>
+      `;
+    }
+
+    renderErrorState(message) {
+      return `
+        <div class="no-data text-center text-muted py-5">
+          <i class="fas fa-exclamation-circle fa-2x mb-2 text-warning"></i>
+          <div class="fw-semibold mb-1">加载失败</div>
+          <p class="mb-3">${message}</p>
+          <button type="button" class="btn btn-outline-primary btn-sm" data-role="retry-load">
+            <i class="fas fa-redo me-1"></i>重新加载
+          </button>
+        </div>
+      `;
+    }
+
+    renderEmptyState() {
+      return `
+        <div class="no-data text-center text-muted py-5">
+          <i class="fas fa-search fa-2x mb-2"></i>
+          <div class="fw-semibold mb-1">未找到匹配的标签</div>
+          <p class="mb-0">尝试调整搜索关键词或切换标签分类</p>
+        </div>
+      `;
+    }
+
+    handleSearch(query) {
+      this.state.search = (query || "").trim().toLowerCase();
+      this.filterTags();
+    }
+
+    clearSearch() {
+      this.state.search = "";
+      if (this.elements.searchInput) {
+        this.elements.searchInput.value = "";
+      }
+      this.filterTags();
+    }
+
+    handleCategory(value) {
+      this.state.category = (value || "all").toLowerCase();
+      this.filterTags();
+    }
+
+    filterTags() {
+      const category = this.state.category;
+      const query = this.state.search;
+
+      this.state.filteredTags = this.state.allTags.filter((tag) => {
+        const tagCategory = (tag.category || "").toLowerCase();
+        const matchesCategory =
+          category === "all" || tagCategory === category;
+
+        if (!matchesCategory) {
+          return false;
+        }
+
+        if (!query) {
+          return true;
+        }
+
+        const name = (tag.name || "").toLowerCase();
+        const displayName = (tag.display_name || "").toLowerCase();
+        const description = (tag.description || "").toLowerCase();
+
+        return (
+          name.includes(query) ||
+          displayName.includes(query) ||
+          description.includes(query) ||
+          tagCategory.includes(query)
+        );
+      });
+
+      this.renderTagList();
+      this.updateStats();
+    }
+
+    toggleTag(tagId) {
+      if (this.state.selectedIds.has(tagId)) {
+        this.removeTag(tagId);
+      } else {
+        this.addTag(tagId);
+      }
+    }
+
     addTag(tagId) {
-        if (this.options.maxSelections && this.selectedTags.size >= this.options.maxSelections) {
-            this.showAlert('warning', `最多只能选择 ${this.options.maxSelections} 个标签`);
-            return;
-        }
-        
-        const tag = this.allTags.find(t => t.id === tagId);
-        if (!tag) return;
-        
-        this.selectedTags.add(tagId);
-        this.updateSelectedTagsDisplay();
-        this.updateTagItemState(tagId, true);
-        this.updateStats();
-        
-        if (this.options.onTagAdd) {
-            this.options.onTagAdd(tag);
-        }
-        
-        if (this.options.onSelectionChange) {
-            this.options.onSelectionChange(this.getSelectedTags());
-        }
+      if (!this.options.allowMultiple && this.state.selectedIds.size) {
+        this.state.selectedIds.clear();
+      }
+
+      if (
+        this.options.maxSelections &&
+        this.state.selectedIds.size >= this.options.maxSelections
+      ) {
+        toast?.warning?.(
+          `最多只能选择 ${this.options.maxSelections} 个标签`,
+        );
+        return;
+      }
+
+      const tag = this.state.allTags.find((item) => item.id === tagId);
+      if (!tag) {
+        return;
+      }
+
+      this.state.selectedIds.add(tagId);
+      this.updateSelectedDisplay();
+      this.renderTagList();
+      this.updateStats();
+      this.notifySelectionChange(tag, "add");
     }
-    
-    // 移除标签
+
     removeTag(tagId) {
-        const tag = this.allTags.find(t => t.id === tagId);
-        if (!tag) return;
-        
-        this.selectedTags.delete(tagId);
-        this.updateSelectedTagsDisplay();
-        this.updateTagItemState(tagId, false);
-        this.updateStats();
-        
-        if (this.options.onTagRemove) {
-            this.options.onTagRemove(tag);
-        }
-        
-        if (this.options.onSelectionChange) {
-            this.options.onSelectionChange(this.getSelectedTags());
-        }
+      if (!this.state.selectedIds.has(tagId)) {
+        return;
+      }
+
+      const tag = this.state.allTags.find((item) => item.id === tagId);
+
+      this.state.selectedIds.delete(tagId);
+      this.updateSelectedDisplay();
+      this.renderTagList();
+      this.updateStats();
+      this.notifySelectionChange(tag, "remove");
     }
-    
-    // 更新已选择标签显示
-    updateSelectedTagsDisplay() {
-        const selectedTagsList = this.container.querySelector('#selected-tags-list');
-        const noTagsPlaceholder = this.container.querySelector('#no-tags-placeholder');
-        
-        if (!selectedTagsList || !noTagsPlaceholder) return;
-        
-        if (this.selectedTags.size === 0) {
-            selectedTagsList.innerHTML = '';
-            noTagsPlaceholder.style.display = 'block';
-        } else {
-            noTagsPlaceholder.style.display = 'none';
-            const selectedTagsHTML = Array.from(this.selectedTags).map(tagId => {
-                const tag = this.allTags.find(t => t.id === tagId);
-                return tag ? this.getSelectedTagHTML(tag) : '';
-            }).join('');
-            selectedTagsList.innerHTML = selectedTagsHTML;
-            
-            // 添加移除事件
-            this.attachSelectedTagEvents();
-        }
+
+    clearSelection({ silent = false } = {}) {
+      if (!this.state.selectedIds.size) {
+        return;
+      }
+      this.state.selectedIds.clear();
+      this.updateSelectedDisplay();
+      this.renderTagList();
+      this.updateStats();
+      if (!silent) {
+        this.notifySelectionChange(null, "clear");
+      }
     }
-    
-    // 获取已选择标签HTML
-    getSelectedTagHTML(tag) {
-        return `
-            <div class="selected-tag" data-tag-id="${tag.id}">
-                <span class="badge bg-${tag.color || 'primary'} selected-tag-badge">
-                    ${tag.display_name}
-                </span>
-                <button class="remove-tag" data-tag-id="${tag.id}" title="移除标签">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
+
+    updateSelectedDisplay() {
+      const { selectedList, selectedEmpty } = this.elements;
+      if (!selectedList || !selectedEmpty) {
+        return;
+      }
+
+      if (!this.state.selectedIds.size) {
+        selectedList.innerHTML = "";
+        selectedEmpty.hidden = false;
+        return;
+      }
+
+      selectedEmpty.hidden = true;
+      const chips = Array.from(this.state.selectedIds)
+        .map((id) => {
+          const tag = this.state.allTags.find((item) => item.id === id);
+          if (!tag) {
+            return "";
+          }
+          const badge = resolveBadge(tag);
+          return `
+            <span class="tag-chip ${badge.className}" ${badge.style ? `style="${badge.style}"` : ""} data-role="selected-chip" data-tag-id="${tag.id}" ${badge.variant ? `data-variant="${badge.variant}"` : ""}>
+              <span><i class="fas fa-tag me-1"></i>${tag.display_name || tag.name}</span>
+              <button type="button" class="btn-close btn-close-white" aria-label="移除标签" data-role="chip-remove" data-tag-id="${tag.id}"></button>
+            </span>
+          `;
+        })
+        .join("");
+
+      selectedList.innerHTML = chips;
     }
-    
-    // 附加已选择标签事件
-    attachSelectedTagEvents() {
-        const removeButtons = this.container.querySelectorAll('.remove-tag');
-        removeButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const tagId = parseInt(button.dataset.tagId);
-                this.removeTag(tagId);
-            });
-        });
-    }
-    
-    // 更新标签项状态
-    updateTagItemState(tagId, isSelected) {
-        const tagItem = this.container.querySelector(`[data-tag-id="${tagId}"]`);
-        if (!tagItem) return;
-        
-        if (isSelected) {
-            tagItem.classList.add('selected');
-            const actionButton = tagItem.querySelector('.tag-action-btn');
-            if (actionButton) {
-                actionButton.className = 'tag-action-btn remove';
-                actionButton.innerHTML = '<i class="fas fa-minus"></i>';
-                actionButton.title = '移除标签';
-            }
-        } else {
-            tagItem.classList.remove('selected');
-            const actionButton = tagItem.querySelector('.tag-action-btn');
-            if (actionButton) {
-                actionButton.className = 'tag-action-btn add';
-                actionButton.innerHTML = '<i class="fas fa-plus"></i>';
-                actionButton.title = '添加标签';
-            }
-        }
-    }
-    
-    // 更新统计信息
+
     updateStats() {
-        if (!this.options.showStats) return;
-        
-        const totalTags = this.allTags.length;
-        const selectedTags = this.selectedTags.size;
-        const activeTags = this.allTags.filter(tag => tag.is_active).length;
-        const filteredTags = this.filteredTags.length;
-        
-        this.updateStatItem('total-tags', totalTags);
-        this.updateStatItem('selected-tags', selectedTags);
-        this.updateStatItem('active-tags', activeTags);
-        this.updateStatItem('filtered-tags', filteredTags);
+      if (!this.elements.statsWrapper) {
+        return;
+      }
+
+      const total = this.state.allTags.length;
+      const selected = this.state.selectedIds.size;
+      const active = this.state.allTags.filter((tag) => tag.is_active !== false)
+        .length;
+      const filtered = this.state.filteredTags.length;
+
+      this.state.stats = { total, selected, active, filtered };
+
+      this.elements.statTotal.textContent = formatNumber(total);
+      this.elements.statSelected.textContent = formatNumber(selected);
+      this.elements.statActive.textContent = formatNumber(active);
+      this.elements.statFiltered.textContent = formatNumber(filtered);
+
+      this.elements.statsWrapper.hidden = false;
     }
-    
-    // 更新统计项
-    updateStatItem(statId, value) {
-        const statElement = this.container.querySelector(`#${statId}`);
-        if (statElement) {
-            statElement.textContent = value;
-        }
+
+    notifySelectionChange(tag, type) {
+      const detail = {
+        type: type || "update",
+        tag,
+        selectedIds: Array.from(this.state.selectedIds),
+        selectedTags: this.getSelectedTags(),
+      };
+
+      this.dispatch(EVENT_NAMES.change, detail);
+
+      if (typeof this.options.onSelectionChange === "function") {
+        this.options.onSelectionChange(detail.selectedTags, detail);
+      }
     }
-    
-    // 确认选择
+
+    dispatch(eventName, detail) {
+      const event = new CustomEvent(eventName, {
+        bubbles: true,
+        detail,
+      });
+      this.root.dispatchEvent(event);
+    }
+
     confirmSelection() {
-        const selectedTags = this.getSelectedTags();
-        
-        // 触发确认事件
-        const confirmEvent = new CustomEvent('tagSelectionConfirmed', {
-            detail: { selectedTags }
-        });
-        this.container.dispatchEvent(confirmEvent);
-        
-        // 调用统一搜索组件的确认方法
-        if (window.unifiedSearch && typeof window.unifiedSearch.confirmTagSelection === 'function') {
-            window.unifiedSearch.confirmTagSelection();
-        } else {
-            // 直接关闭模态框
-            const modal = bootstrap.Modal.getInstance(this.container.closest('.modal'));
-            if (modal) {
-                modal.hide();
-            } else {
-                console.error('找不到模态框实例');
-            }
-        }
-    }
-    
-    // 取消选择
-    cancelSelection() {
-        
-        // 触发取消事件
-        const cancelEvent = new CustomEvent('tagSelectionCancelled', {
-            detail: { selectedTags: this.getSelectedTags() }
-        });
-        this.container.dispatchEvent(cancelEvent);
-        
-        // 调用统一搜索组件的取消方法
-        if (window.unifiedSearch && typeof window.unifiedSearch.cancelTagSelection === 'function') {
-            window.unifiedSearch.cancelTagSelection();
-        } else {
-            // 直接关闭模态框
-            const modal = bootstrap.Modal.getInstance(this.container.closest('.modal'));
-            if (modal) {
-                modal.hide();
-            }
-        }
-    }
-    
-    // 获取已选择的标签
-    getSelectedTags() {
-        return Array.from(this.selectedTags).map(tagId => 
-            this.allTags.find(tag => tag.id === tagId)
-        ).filter(tag => tag);
-    }
-    
-    // 设置已选择的标签
-    setSelectedTags(tagIds) {
-        this.selectedTags.clear();
-        tagIds.forEach(tagId => {
-            if (this.allTags.find(tag => tag.id === tagId)) {
-                this.selectedTags.add(tagId);
-            }
-        });
-        this.updateSelectedTagsDisplay();
-        this.updateStats();
-    }
-    
-    // 清空选择
-    clearSelection() {
-        this.selectedTags.clear();
-        this.updateSelectedTagsDisplay();
-        this.updateStats();
-    }
-    
-    // 搜索高亮
-    highlightSearch(text) {
-        if (!this.searchQuery) return text;
-        
-        const regex = new RegExp(`(${this.searchQuery})`, 'gi');
-        return text.replace(regex, '<span class="search-highlight">$1</span>');
-    }
-    
-    // 获取分类名称
-    getCategoryName(category) {
-        const categoryNames = {
-            'department': '部门',
-            'company_type': '公司类型',
-            'environment': '环境',
-            'custom': '自定义'
-        };
-        return categoryNames[category] || category;
-    }
-    
-    // 获取分类显示名称
-    getCategoryDisplayName(category) {
-        const categoryNames = {
-            'architecture': '架构',
-            'company_type': '公司',
-            'department': '部门',
-            'deployment': '部署',
-            'environment': '环境',
-            'region': '地区',
-            'project': '项目',
-            'virtualization': '虚拟化',
-            'other': '其他'
-        };
-        return categoryNames[category] || category;
-    }
-    
-    // 显示加载状态
-    showLoading() {
-        const tagListContainer = this.container.querySelector('#tag-list-container');
-        if (tagListContainer) {
-            tagListContainer.innerHTML = this.getLoadingHTML();
-        }
-    }
-    
-    // 隐藏加载状态
-    hideLoading() {
-        // 加载状态会在renderTags中被替换
-    }
-    
-    // 显示错误
-    showError(message) {
-        const tagListContainer = this.container.querySelector('#tag-list-container');
-        if (tagListContainer) {
-            tagListContainer.innerHTML = this.getErrorHTML(message);
-        }
-    }
-    
-    // 显示提示
-    showAlert(type, message) {
-        toast.show(type, message, { container: '.container-fluid' });
-    }
-    
-    // 获取空状态HTML
-    getEmptyStateHTML() {
-        return `
-            <div class="empty-state">
-                <i class="fas fa-search"></i>
-                <h5>未找到标签</h5>
-                <p>没有找到符合条件的标签，请尝试调整搜索条件</p>
-            </div>
-        `;
-    }
-    
-    // 获取加载状态HTML
-    getLoadingHTML() {
-        return `
-            <div class="loading-state">
-                <div class="loading-spinner"></div>
-                <p>加载标签中...</p>
-            </div>
-        `;
-    }
-    
-    // 获取错误状态HTML
-    getErrorHTML(message) {
-        return `
-            <div class="empty-state">
-                <i class="fas fa-exclamation-triangle"></i>
-                <h5>加载失败</h5>
-                <p>${message}</p>
-                <button class="btn btn-primary btn-sm" onclick="location.reload()">
-                    <i class="fas fa-refresh me-1"></i>重新加载
-                </button>
-            </div>
-        `;
-    }
-    
-    // 重新绑定模态框按钮（供外部调用）
-    rebindModalButtons() {
-        this.bindModalButtons();
-    }
-    
-    // 获取CSRF令牌 - 使用全局函数
-    getCSRFToken() {
-        return window.getCSRFToken();
-    }
-}
+      const detail = {
+        selectedIds: Array.from(this.state.selectedIds),
+        selectedTags: this.getSelectedTags(),
+      };
 
-// 全局标签选择器实例
-let globalTagSelector = null;
+      this.dispatch(EVENT_NAMES.confirm, detail);
 
-// 初始化标签选择器
-function initializeTagSelector(options = {}) {
-    const container = document.getElementById('tag-selector-container');
-    if (!container) {
-        console.error('TagSelector container not found');
+      if (typeof this.options.onConfirm === "function") {
+        this.options.onConfirm(detail);
+      }
+
+      const modalInstance = this.getModalInstance();
+      if (modalInstance) {
+        this.ignoreNextCancel = true;
+        modalInstance.hide();
+      }
+    }
+
+    cancelSelection(options = {}) {
+      this.emitCancel({ reason: "cancel-button", ...options });
+    }
+
+    emitCancel({ reason = "cancel", hideModal = true } = {}) {
+      const detail = {
+        reason,
+        selectedIds: Array.from(this.state.selectedIds),
+        selectedTags: this.getSelectedTags(),
+      };
+
+      this.dispatch(EVENT_NAMES.cancel, detail);
+
+      if (typeof this.options.onCancel === "function") {
+        this.options.onCancel(detail);
+      }
+
+      if (hideModal) {
+        const modalInstance = this.getModalInstance();
+        if (modalInstance) {
+          this.ignoreNextCancel = true;
+          modalInstance.hide();
+        }
+      }
+    }
+
+    getModalInstance() {
+      if (!this.modal || typeof bootstrap?.Modal !== "function") {
         return null;
+      }
+      return (
+        bootstrap.Modal.getInstance(this.modal) ||
+        new bootstrap.Modal(this.modal)
+      );
     }
-    
-    globalTagSelector = new TagSelector('tag-selector-container', options);
-    return globalTagSelector;
-}
 
-// 获取全局标签选择器实例
-function getTagSelector() {
-    return globalTagSelector;
-}
+    getSelectedTags() {
+      const selected = Array.from(this.state.selectedIds);
+      return selected
+        .map((id) => this.state.allTags.find((tag) => tag.id === id))
+        .filter(Boolean);
+    }
 
-// 导出函数供全局使用
-window.TagSelector = TagSelector;
-window.initializeTagSelector = initializeTagSelector;
-window.getTagSelector = getTagSelector;
-}
+    ready() {
+      return this.readyPromise;
+    }
+
+    selectBy(values, key = "id") {
+      const normalized = Array.isArray(values)
+        ? values
+        : typeof values === "string"
+        ? values
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : [];
+
+      if (!this.state.allTags.length) {
+        this.pendingSelection = { values: normalized, key };
+        return;
+      }
+
+      const compareKey = (tag) => {
+        if (key === "id") {
+          return String(tag.id);
+        }
+        return String(tag?.[key] ?? tag?.name ?? "");
+      };
+
+      const valueSet = new Set(normalized.map((value) => String(value)));
+
+      this.state.selectedIds.clear();
+      this.state.allTags.forEach((tag) => {
+        if (valueSet.has(compareKey(tag))) {
+          this.state.selectedIds.add(tag.id);
+        }
+      });
+
+      this.updateSelectedDisplay();
+      this.renderTagList();
+      this.updateStats();
+      this.notifySelectionChange(null, "sync");
+    }
+
+    getCategoryDisplayName(category) {
+      const mapping = {
+        architecture: "架构",
+        company_type: "公司",
+        department: "部门",
+        deployment: "部署",
+        environment: "环境",
+        region: "地区",
+        project: "项目",
+        virtualization: "虚拟化",
+        other: "其他",
+      };
+      return mapping[category] || category || "未分类";
+    }
+
+    highlightSearch(text) {
+      const value = text || "";
+      if (!this.state.search) {
+        return value;
+      }
+      const safe = value.replace(
+        new RegExp(`(${this.escapeRegExp(this.state.search)})`, "gi"),
+        '<span class="search-highlight">$1</span>',
+      );
+      return safe;
+    }
+
+    escapeRegExp(input) {
+      return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+  }
+
+  class TagSelectorManager {
+    constructor() {
+      this.instances = new Map();
+      this.isReady = false;
+      this.queue = [];
+
+      document.addEventListener("DOMContentLoaded", () => {
+        this.markReady();
+      });
+    }
+
+    markReady() {
+      this.isReady = true;
+      this.queue.splice(0).forEach((callback) => {
+        try {
+          callback();
+        } catch (error) {
+          console.error("TagSelectorManager: whenReady 回调执行失败", error);
+        }
+      });
+    }
+
+    whenReady(callback) {
+      if (this.isReady) {
+        callback();
+      } else {
+        this.queue.push(callback);
+      }
+    }
+
+    create(target, options = {}) {
+      const element = toElement(target);
+      if (!element) {
+        console.error("TagSelectorManager.create: 未找到容器", target);
+        return null;
+      }
+
+      const existing = this.get(element);
+      if (existing) {
+        return existing;
+      }
+
+      const instance = new TagSelector(element, options);
+      if (!instance || !instance.id) {
+        return null;
+      }
+      this.instances.set(instance.id, instance);
+      return instance;
+    }
+
+    get(target) {
+      if (!target) {
+        return null;
+      }
+
+      if (typeof target === "string" && this.instances.has(target)) {
+        return this.instances.get(target);
+      }
+
+      const element = toElement(target);
+      if (!element) {
+        return null;
+      }
+
+      const id = element.dataset.tagSelectorId;
+      if (id && this.instances.has(id)) {
+        return this.instances.get(id);
+      }
+
+      return null;
+    }
+  }
+
+  const manager = new TagSelectorManager();
+
+  const TagSelectorHelper = {
+    setupForForm(options = {}) {
+      const {
+        modalSelector = "#tagSelectorModal",
+        rootSelector = "[data-tag-selector]",
+        openButtonSelector = "#open-tag-selector-btn",
+        previewSelector = "#selected-tags-preview",
+        countSelector = "#selected-tags-count",
+        chipsSelector = "#selected-tags-chips",
+        hiddenInputSelector = "#selected-tag-names",
+        initialValues = [],
+        valueKey = "name",
+        hiddenValueKey = "name",
+        onConfirm = null,
+      } = options;
+
+      manager.whenReady(() => {
+        const modal = toElement(modalSelector);
+        const root = modal
+          ? modal.querySelector(rootSelector)
+          : toElement(rootSelector);
+
+        if (!root) {
+          console.error("TagSelectorHelper.setupForForm: 未找到标签选择器容器");
+          return;
+        }
+
+        const ensureInstance = () => {
+          let instance = manager.get(root);
+          if (!instance) {
+            instance = manager.create(root, {
+              hiddenValueKey,
+              onSelectionChange: (tags) => {
+                this.updatePreview(tags, {
+                  previewSelector,
+                  countSelector,
+                  chipsSelector,
+                  hiddenInputSelector,
+                  hiddenValueKey,
+                }, instance);
+              },
+              onConfirm: (detail) => {
+                this.updatePreview(detail.selectedTags, {
+                  previewSelector,
+                  countSelector,
+                  chipsSelector,
+                  hiddenInputSelector,
+                  hiddenValueKey,
+                }, instance);
+                if (typeof onConfirm === "function") {
+                  onConfirm(detail);
+                }
+              },
+            });
+          }
+          return instance;
+        };
+
+        const openButton = toElement(openButtonSelector);
+        if (openButton && modal?.id) {
+          openButton.setAttribute("data-bs-toggle", "modal");
+          openButton.setAttribute("data-bs-target", `#${modal.id}`);
+          openButton.addEventListener("click", () => {
+            ensureInstance();
+          });
+        }
+
+        if (modal) {
+          modal.addEventListener("show.bs.modal", () => {
+            ensureInstance();
+          });
+        }
+
+        const instance = ensureInstance();
+        if (instance) {
+          instance.ready().then(() => {
+            if (initialValues && initialValues.length) {
+              instance.selectBy(initialValues, valueKey);
+            }
+            this.updatePreview(instance.getSelectedTags(), {
+              previewSelector,
+              countSelector,
+              chipsSelector,
+              hiddenInputSelector,
+              hiddenValueKey,
+            }, instance, { silent: true });
+          });
+        }
+      });
+    },
+
+    setupForFilter(options = {}) {
+      const {
+        modalSelector = "#tagSelectorModal",
+        rootSelector = "[data-tag-selector]",
+        openButtonSelector = "#open-tag-filter-btn",
+        formSelector = null,
+        hiddenInputSelector = "#selected-tag-names",
+        valueKey = "name",
+        onConfirm = null,
+      } = options;
+
+      manager.whenReady(() => {
+        const modal = toElement(modalSelector);
+        const root = modal
+          ? modal.querySelector(rootSelector)
+          : toElement(rootSelector);
+
+        if (!root) {
+          console.error("TagSelectorHelper.setupForFilter: 未找到标签选择器容器");
+          return;
+        }
+
+        const ensureInstance = () => {
+          let instance = manager.get(root);
+          if (!instance) {
+            instance = manager.create(root, {
+              onConfirm: (detail) => {
+                const hiddenInput = toElement(hiddenInputSelector);
+                if (hiddenInput) {
+                  hiddenInput.value = detail.selectedTags
+                    .map((tag) => tag[valueKey] ?? tag.name)
+                    .join(",");
+                }
+                if (typeof onConfirm === "function") {
+                  onConfirm(detail);
+                }
+                if (formSelector) {
+                  const form = toElement(formSelector);
+                  form?.submit();
+                }
+              },
+            });
+          }
+          return instance;
+        };
+
+        const openButton = toElement(openButtonSelector);
+        if (openButton && modal?.id) {
+          openButton.setAttribute("data-bs-toggle", "modal");
+          openButton.setAttribute("data-bs-target", `#${modal.id}`);
+          openButton.addEventListener("click", () => {
+            ensureInstance();
+          });
+        }
+
+        if (modal) {
+          modal.addEventListener("show.bs.modal", () => {
+            ensureInstance();
+          });
+        }
+
+        const instance = ensureInstance();
+        if (instance) {
+          const hiddenInput = toElement(hiddenInputSelector);
+          const initialValues = hiddenInput?.value
+            ? hiddenInput.value.split(",").map((value) => value.trim())
+            : [];
+          instance.ready().then(() => {
+            if (initialValues.length) {
+              instance.selectBy(initialValues, valueKey);
+            }
+          });
+        }
+      });
+    },
+
+    updatePreview(tags, selectors, instance, options = {}) {
+      const {
+        previewSelector,
+        countSelector,
+        chipsSelector,
+        hiddenInputSelector,
+        hiddenValueKey = "name",
+      } = selectors || {};
+
+      const preview = toElement(previewSelector);
+      const count = toElement(countSelector);
+      const chips = toElement(chipsSelector);
+      const hiddenInput = toElement(hiddenInputSelector);
+
+      if (!tags || !Array.isArray(tags)) {
+        return;
+      }
+
+      if (preview) {
+        preview.style.display = tags.length ? "block" : "none";
+      }
+
+      if (count) {
+        count.textContent = tags.length
+          ? `已选择 ${tags.length} 个标签`
+          : "未选择标签";
+      }
+
+      if (hiddenInput) {
+        hiddenInput.value = tags
+          .map((tag) => tag[hiddenValueKey] ?? tag.name ?? tag.id)
+          .join(",");
+      }
+
+      if (chips) {
+        if (!tags.length) {
+          chips.innerHTML = "";
+        } else {
+          chips.innerHTML = tags
+            .map((tag) => {
+              const badge = resolveBadge(tag);
+              return `
+                <span class="badge rounded-pill d-inline-flex align-items-center gap-2 ${badge.className}" ${badge.style ? `style="${badge.style}"` : ""} data-role="external-chip" data-tag-id="${tag.id}">
+                  <span><i class="fas fa-tag me-1"></i>${tag.display_name || tag.name}</span>
+                  ${
+                    instance
+                      ? `<button type="button" class="btn-close btn-close-white" aria-label="移除标签" data-role="external-chip-remove" data-tag-id="${tag.id}"></button>`
+                      : ""
+                  }
+                </span>
+              `;
+            })
+            .join("");
+
+          if (instance) {
+            chips.querySelectorAll("[data-role=\"external-chip-remove\"]").forEach((button) => {
+              button.addEventListener("click", (event) => {
+                event.preventDefault();
+                const tagId = Number(button.dataset.tagId);
+                if (Number.isFinite(tagId)) {
+                  instance.removeTag(tagId);
+                  this.updatePreview(
+                    instance.getSelectedTags(),
+                    selectors,
+                    instance,
+                    { silent: true },
+                  );
+                }
+              });
+            });
+          }
+        }
+      }
+
+      if (!options.silent && instance) {
+        instance.notifySelectionChange(null, "preview-update");
+      }
+    },
+  };
+
+  document.addEventListener("click", (event) => {
+    const action = event.target.closest("[data-tag-selector-action]");
+    if (!action) {
+      return;
+    }
+    const modal = action.closest("[data-tag-selector-modal]");
+    if (!modal) {
+      return;
+    }
+    const root = modal.querySelector("[data-tag-selector]");
+    if (!root) {
+      return;
+    }
+    const instance = manager.get(root);
+    if (!instance) {
+      return;
+    }
+
+    const mode = action.getAttribute("data-tag-selector-action");
+    if (mode === "confirm") {
+      event.preventDefault();
+      instance.confirmSelection();
+    } else if (mode === "cancel") {
+      event.preventDefault();
+      instance.cancelSelection();
+    }
+  });
+
+  window.tagSelectorManager = manager;
+  window.TagSelectorHelper = TagSelectorHelper;
+})(window, document);

@@ -3,33 +3,10 @@
  * 处理账户同步、权限查看、标签选择等功能
  */
 
-// 全局变量
-let accountListTagSelector = null;
-
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    attemptInitializeAccountTagSelector();
+    initializeTagFilter();
 });
-
-function attemptInitializeAccountTagSelector(attempt = 0) {
-    const maxAttempts = 10;
-    const modalElement = document.getElementById('tagSelectorModal');
-
-    if (typeof TagSelector === 'undefined' || !modalElement) {
-        if (attempt < maxAttempts) {
-            setTimeout(() => attemptInitializeAccountTagSelector(attempt + 1), 200);
-        } else {
-            console.error('TagSelector 未能初始化: 组件脚本或模态框缺失');
-        }
-        return;
-    }
-
-    try {
-        initializeAccountListTagSelector();
-    } catch (error) {
-        console.error('initializeAccountListTagSelector 调用失败:', error);
-    }
-}
 
 // 同步所有账户
 function syncAllAccounts() {
@@ -77,232 +54,38 @@ function showAccountStatistics() {
     window.location.href = '/account-static/';
 }
 
-// 打开标签选择器
-function openTagSelector() {
-    try {
-        const modalElement = document.getElementById('tagSelectorModal');
-        
-        if (!modalElement) {
-            console.error('模态框元素未找到');
-            toast.error( '标签选择器模态框未找到，请刷新页面重试');
-            return;
-        }
-        
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
-        
-        // 模态框显示后重新绑定按钮
-        setTimeout(() => {
-            if (accountListTagSelector) {
-                accountListTagSelector.rebindModalButtons();
-            } else {
-                console.warn('accountListTagSelector未初始化，无法重新绑定按钮');
-            }
-        }, 100);
-        
-    } catch (error) {
-        console.error('打开标签选择器时出错:', error);
-        toast.error( '打开标签选择器失败: ' + error.message);
-    }
-}
-
-// 关闭标签选择器
-function closeTagSelector() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('tagSelectorModal'));
-    if (modal) {
-        modal.hide();
-    }
-}
-
-// 初始化标签选择器
-function initializeAccountListTagSelector() {
-    try {
-        // 查找容器元素
-        const listPageSelector = document.getElementById('list-page-tag-selector');
-
-        if (listPageSelector) {
-            const modalElement = listPageSelector.querySelector('#tagSelectorModal');
-
-            if (modalElement) {
-                // 在模态框内部查找容器元素
-                const containerElement = modalElement.querySelector('#tag-selector-container');
-
-                if (containerElement) {
-                    initializeTagSelectorComponent(modalElement, containerElement);
-                } else {
-                    // 等待标签选择器组件加载完成
-                    setTimeout(() => {
-                        const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
-
-                        if (delayedContainerElement) {
-                            initializeTagSelectorComponent(modalElement, delayedContainerElement);
-                        }
-                    }, 1000);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('initializeAccountListTagSelector 函数执行出错:', error);
-    }
-}
-
-// 初始化标签选择器组件
-function initializeTagSelectorComponent(modalElement, containerElement) {
-    if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
-        try {
-            // 初始化标签选择器
-            accountListTagSelector = new TagSelector('tag-selector-container', {
-                allowMultiple: true,
-                allowCreate: true,
-                allowSearch: true,
-                allowCategoryFilter: true,
-                modalElement: modalElement
-            });
-
-            // 等待TagSelector完全初始化
-            setTimeout(() => {
-                if (accountListTagSelector && accountListTagSelector.container) {
-                    setupTagSelectorEvents();
-                }
-            }, 100);
-        } catch (error) {
-            console.error('初始化标签选择器组件时出错:', error);
-            toast.error( '标签选择器初始化失败: ' + error.message);
-        }
-    }
-}
-
-// 设置标签选择器事件
-function setupTagSelectorEvents() {
-    if (!accountListTagSelector) {
+function initializeTagFilter() {
+    if (!window.TagSelectorHelper) {
+        console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
         return;
     }
 
-    // 绑定打开标签选择器按钮
-    const openBtn = document.getElementById('open-tag-filter-btn');
-
-    if (openBtn) {
-        // 移除之前的事件监听器（如果有）
-        openBtn.removeEventListener('click', openTagSelector);
-
-        // 添加新的事件监听器
-        openBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            try {
-                if (typeof openTagSelector === 'function') {
-                    openTagSelector();
-                } else {
-                    // 直接显示模态框作为备用方案
-                    const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
-                    modal.show();
-                }
-
-                // 模态框显示后重新绑定按钮
-                setTimeout(() => {
-                    if (accountListTagSelector) {
-                        accountListTagSelector.rebindModalButtons();
-                    }
-                }, 100);
-            } catch (error) {
-                console.error('打开标签选择器时出错:', error);
-                toast.error( '打开标签选择器失败: ' + error.message);
-            }
-        });
-    }
-
-    // 监听TagSelector的确认事件
-    if (accountListTagSelector.container) {
-        accountListTagSelector.container.addEventListener('tagSelectionConfirmed', function(event) {
-            const selectedTags = event.detail.selectedTags;
-            updateSelectedTagsPreview(selectedTags);
-            closeTagSelector();
-            if (window.FilterUtils) {
-                FilterUtils.submitForm('#account-filter-form', event);
-            } else {
-                const form = document.getElementById('account-filter-form');
-                if (form) {
-                    if (typeof form.requestSubmit === 'function') {
-                        form.requestSubmit();
-                    } else {
-                        form.submit();
-                    }
-                }
-            }
-        });
-
-        // 监听TagSelector的取消事件
-        accountListTagSelector.container.addEventListener('tagSelectionCancelled', function(event) {
-            closeTagSelector();
-        });
-    }
-
-    // 预填充已选择的标签
-    const selectedTagNames = document.getElementById('selected-tag-names');
-    if (selectedTagNames && selectedTagNames.value) {
-        setTimeout(() => {
-            if (accountListTagSelector) {
-                const tagNames = selectedTagNames.value.split(',').filter(name => name.trim());
-                // 这里需要根据标签名称找到对应的ID，暂时跳过
-            }
-        }, 500);
-    }
-}
-
-// 确认标签选择 - 已改为使用事件系统，此函数保留用于向后兼容
-function confirmTagSelection() {
-    // 这个函数现在由TagSelector的事件系统处理
-}
-
-// 更新选中标签预览
-function updateSelectedTagsPreview(selectedTags) {
-    const preview = document.getElementById('selected-tags-preview');
-    const count = document.getElementById('selected-tags-count');
-    const chips = document.getElementById('selected-tags-chips');
     const hiddenInput = document.getElementById('selected-tag-names');
-    
-    if (selectedTags.length > 0) {
-        if (preview) preview.style.display = 'block';
-        if (count) count.textContent = `已选择 ${selectedTags.length} 个标签`;
-        
-        if (chips) {
-            chips.innerHTML = selectedTags.map(tag => {
-                const bgColor = tag.color || 'var(--neutral-color)';
-                const textColor = isColorDark(bgColor) ? 'var(--white)' : 'var(--text-color)';
-                const btnCloseClass = isColorDark(bgColor) ? 'btn-close-white' : '';
+    const initialValues = hiddenInput?.value
+        ? hiddenInput.value.split(',').map((value) => value.trim()).filter(Boolean)
+        : [];
 
-                return `
-                    <span class="badge tag-badge me-1 mb-1" style="background-color: ${bgColor}; color: ${textColor};">
-                        <i class="fas fa-tag me-1"></i>${tag.display_name}
-                        <button type="button" class="btn-close ${btnCloseClass} ms-1" 
-                                onclick="removeTagFromPreview('${tag.name}')" 
-                                style="font-size: 0.6em;"></button>
-                    </span>
-                `;
-            }).join('');
-        }
-        
-        if (hiddenInput) {
-            hiddenInput.value = selectedTags.map(tag => tag.name).join(',');
-        }
-    } else {
-        if (preview) preview.style.display = 'none';
-        if (count) count.textContent = '未选择标签';
-        if (hiddenInput) hiddenInput.value = '';
-    }
-}
-
-// 从预览中移除标签
-function removeTagFromPreview(tagName) {
-    if (accountListTagSelector) {
-        const allTags = Array.isArray(accountListTagSelector.allTags) ? accountListTagSelector.allTags : [];
-        const tag = allTags.find(t => t.name === tagName);
-        if (tag) {
-            accountListTagSelector.toggleTagSelection(tag.id);
-            const selectedTags = accountListTagSelector.getSelectedTags();
-            updateSelectedTagsPreview(selectedTags);
-        }
-    }
+    TagSelectorHelper.setupForForm({
+        modalSelector: '#tagSelectorModal',
+        rootSelector: '[data-tag-selector]',
+        openButtonSelector: '#open-tag-filter-btn',
+        previewSelector: '#selected-tags-preview',
+        countSelector: '#selected-tags-count',
+        chipsSelector: '#selected-tags-chips',
+        hiddenInputSelector: '#selected-tag-names',
+        hiddenValueKey: 'name',
+        initialValues,
+        onConfirm: () => {
+            const form = document.getElementById('account-filter-form');
+            if (form) {
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                } else {
+                    form.submit();
+                }
+            }
+        },
+    });
 }
 
 // 辅助函数：判断颜色是否为深色
@@ -350,6 +133,3 @@ window.syncAllInstances = syncAllInstances;
 window.viewAccount = viewAccount;
 window.showAccountStatistics = showAccountStatistics;
 window.debugPermissionFunctions = debugPermissionFunctions;
-window.openTagSelector = openTagSelector;
-window.closeTagSelector = closeTagSelector;
-window.confirmTagSelection = confirmTagSelection;

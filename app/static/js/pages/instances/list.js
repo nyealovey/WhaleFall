@@ -3,52 +3,15 @@
  * 处理实例的连接测试、批量操作等功能
  */
 
-// 全局变量
-let listPageTagSelector = null;
-
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    attemptInitializeTagSelector();
+    initializeTagFilter();
     setupEventListeners();
     loadInstanceTotalSizes();
     
     // 初始化批量操作按钮状态
     updateBatchButtons();
 });
-
-function attemptInitializeTagSelector(attempt = 0) {
-    const maxAttempts = 10;
-    const modalElement = document.getElementById('tagSelectorModal');
-
-    if (typeof TagSelector === 'undefined' || !modalElement) {
-        if (attempt < maxAttempts) {
-            setTimeout(() => attemptInitializeTagSelector(attempt + 1), 200);
-        } else {
-            console.error('TagSelector 未能初始化: 组件脚本或模态框缺失');
-        }
-        return;
-    }
-
-    try {
-        initializeInstanceListTagSelector();
-    } catch (error) {
-        console.error('initializeInstanceListTagSelector 调用失败:', error);
-    }
-}
-
-// 打开标签选择器
-function openTagSelector() {
-    const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
-    modal.show();
-}
-
-// 关闭标签选择器
-function closeTagSelector() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('tagSelectorModal'));
-    if (modal) {
-        modal.hide();
-    }
-}
 
 // 加载实例总大小
 async function loadInstanceTotalSizes() {
@@ -89,141 +52,41 @@ function formatSize(bytes) {
     return gb.toFixed(3) + ' GB';
 }
 
-// 初始化标签选择器
-function initializeInstanceListTagSelector() {
-    try {
-        // 查找容器元素
-        const listPageSelector = document.getElementById('list-page-tag-selector');
-
-        if (listPageSelector) {
-            const modalElement = listPageSelector.querySelector('#tagSelectorModal');
-
-            if (modalElement) {
-                // 在模态框内部查找容器元素
-                const containerElement = modalElement.querySelector('#tag-selector-container');
-
-                if (containerElement) {
-                    initializeTagSelectorComponent(modalElement, containerElement);
-                } else {
-                    // 等待标签选择器组件加载完成
-                    setTimeout(() => {
-                        const delayedContainerElement = modalElement.querySelector('#tag-selector-container');
-
-                        if (delayedContainerElement) {
-                            initializeTagSelectorComponent(modalElement, delayedContainerElement);
-                        }
-                    }, 1000);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('initializeInstanceListTagSelector 函数执行出错:', error);
-    }
-}
-
-// 初始化标签选择器组件
-function initializeTagSelectorComponent(modalElement, containerElement) {
-    if (typeof TagSelector !== 'undefined' && modalElement && containerElement) {
-        try {
-            // 初始化标签选择器
-            listPageTagSelector = new TagSelector('tag-selector-container', {
-                allowMultiple: true,
-                allowCreate: true,
-                allowSearch: true,
-                allowCategoryFilter: true,
-                modalElement: modalElement
-            });
-
-            // 等待TagSelector完全初始化
-            setTimeout(() => {
-                if (listPageTagSelector && listPageTagSelector.container) {
-                    setupTagSelectorEvents();
-                }
-            }, 100);
-        } catch (error) {
-            console.error('初始化标签选择器组件时出错:', error);
-            toast.error('标签选择器初始化失败: ' + error.message);
-        }
-    }
-}
-
-// 设置标签选择器事件
-function setupTagSelectorEvents() {
-    if (!listPageTagSelector) {
+function initializeTagFilter() {
+    if (!window.TagSelectorHelper) {
+        console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
         return;
     }
 
-    // 绑定打开标签选择器按钮
-    const openBtn = document.getElementById('open-tag-filter-btn');
+    const hiddenInput = document.getElementById('selected-tag-names');
+    const initialValues = hiddenInput?.value
+        ? hiddenInput.value.split(',').map((value) => value.trim()).filter(Boolean)
+        : [];
 
-    if (openBtn) {
-        // 移除之前的事件监听器（如果有）
-        openBtn.removeEventListener('click', openTagSelector);
-
-        // 添加新的事件监听器
-        openBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            try {
-                if (typeof openTagSelector === 'function') {
-                    openTagSelector();
+    TagSelectorHelper.setupForForm({
+        modalSelector: '#tagSelectorModal',
+        rootSelector: '[data-tag-selector]',
+        openButtonSelector: '#open-tag-filter-btn',
+        previewSelector: '#selected-tags-preview',
+        countSelector: '#selected-tags-count',
+        chipsSelector: '#selected-tags-chips',
+        hiddenInputSelector: '#selected-tag-names',
+        hiddenValueKey: 'name',
+        initialValues,
+        onConfirm: () => {
+            const form = document.getElementById('instance-filter-form');
+            if (form) {
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
                 } else {
-                    // 直接显示模态框作为备用方案
-                    const modal = new bootstrap.Modal(document.getElementById('tagSelectorModal'));
-                    modal.show();
-                }
-
-                // 模态框显示后重新绑定按钮
-                setTimeout(() => {
-                    if (listPageTagSelector) {
-                        listPageTagSelector.rebindModalButtons();
-                    }
-                }, 100);
-            } catch (error) {
-                console.error('打开标签选择器时出错:', error);
-                toast.error('打开标签选择器失败: ' + error.message);
-            }
-        });
-    }
-
-    // 监听TagSelector的确认事件
-    if (listPageTagSelector.container) {
-        listPageTagSelector.container.addEventListener('tagSelectionConfirmed', function(event) {
-            const selectedTags = event.detail.selectedTags;
-            updateSelectedTagsPreview(selectedTags);
-            closeTagSelector();
-            if (window.FilterUtils) {
-                FilterUtils.submitForm('#instance-filter-form', event);
-            } else {
-                const form = document.getElementById('instance-filter-form');
-                if (form) {
-                    if (typeof form.requestSubmit === 'function') {
-                        form.requestSubmit();
-                    } else {
-                        form.submit();
-                    }
+                    form.submit();
                 }
             }
-        });
-
-        // 监听TagSelector的取消事件
-        listPageTagSelector.container.addEventListener('tagSelectionCancelled', function(event) {
-            closeTagSelector();
-        });
-    }
-
-    // 预填充已选择的标签
-    const selectedTagNames = document.getElementById('selected-tag-names');
-    if (selectedTagNames && selectedTagNames.value) {
-        setTimeout(() => {
-            if (listPageTagSelector) {
-                const tagNames = selectedTagNames.value.split(',').filter(name => name.trim());
-                // 这里需要根据标签名称找到对应的ID，暂时跳过
-            }
-        }, 500);
-    }
+        },
+    });
 }
 
+// 初始化标签选择器
 // 设置事件监听器
 function setupEventListeners() {
     // 批量操作相关
@@ -562,62 +425,6 @@ function submitFileUpload() {
 }
 
 // 标签选择器相关功能
-function confirmTagSelection() {
-    if (listPageTagSelector) {
-        // 直接调用标签选择器的确认方法
-        listPageTagSelector.confirmSelection();
-        
-        // 获取选中的标签并更新预览
-        const selectedTags = listPageTagSelector.getSelectedTags();
-        updateSelectedTagsPreview(selectedTags);
-        closeTagSelector();
-    }
-}
-
-function updateSelectedTagsPreview(selectedTags) {
-    const preview = document.getElementById('selected-tags-preview');
-    const count = document.getElementById('selected-tags-count');
-    const chips = document.getElementById('selected-tags-chips');
-    const hiddenInput = document.getElementById('selected-tag-names');
-    
-    if (selectedTags.length > 0) {
-        if (preview) preview.style.display = 'block';
-        if (count) count.textContent = `已选择 ${selectedTags.length} 个标签`;
-        
-        if (chips) {
-            chips.innerHTML = selectedTags.map(tag => `
-                <span class="badge bg-${tag.color} me-1 mb-1">
-                    <i class="fas fa-tag me-1"></i>${tag.display_name}
-                    <button type="button" class="btn-close btn-close-white ms-1" 
-                            onclick="removeTagFromPreview('${tag.name}')" 
-                            style="font-size: 0.6em;"></button>
-                </span>
-            `).join('');
-        }
-        
-        if (hiddenInput) {
-            hiddenInput.value = selectedTags.map(tag => tag.name).join(',');
-        }
-    } else {
-        if (preview) preview.style.display = 'none';
-        if (count) count.textContent = '未选择标签';
-        if (hiddenInput) hiddenInput.value = '';
-    }
-}
-
-function removeTagFromPreview(tagName) {
-    if (listPageTagSelector) {
-        const allTags = Array.isArray(listPageTagSelector.allTags) ? listPageTagSelector.allTags : [];
-        const tag = allTags.find(t => t.name === tagName);
-        if (tag) {
-            listPageTagSelector.toggleTagSelection(tag.id);
-            const selectedTags = listPageTagSelector.getSelectedTags();
-            updateSelectedTagsPreview(selectedTags);
-        }
-    }
-}
-
 // 导出到全局作用域
-window.initializeInstanceListTagSelector = initializeInstanceListTagSelector;
 
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数

@@ -1,269 +1,213 @@
-# 鲸落 - 脚本工具目录
+# 代码统计脚本
 
-本目录包含鲸落项目的各种脚本工具，按功能分类组织。
+本目录包含用于统计项目代码的工具脚本。
 
-## 📁 目录结构
+## 文件说明
 
-```
-scripts/
-├── deployment/          # 部署相关脚本
-├── ssl/                # SSL证书管理脚本
-├── local/              # 本地开发脚本
-├── quality/            # 代码质量检查脚本
-├── database/           # 数据库管理脚本
-└── README.md           # 本说明文档
-```
+- `analyze_code.py` - Python统计脚本（功能完整）
+- `quick_stats.sh` - Shell快速统计脚本
+- `README.md` - 本说明文档
 
-## 🚀 部署脚本 (deployment/)
+## 快速开始
 
-### 核心部署脚本
-- `deploy-base.sh` - 基础环境部署脚本（PostgreSQL、Redis、Nginx）
-- `deploy-flask.sh` - Flask应用部署脚本
-- `start-all.sh` - 启动所有服务
-- `stop-all.sh` - 停止所有服务
-- `update-version.sh` - 版本更新和回滚脚本
-- `test-deployment.sh` - 部署方案测试脚本
+### 1. Python脚本（推荐）
 
-### 使用方法
 ```bash
-# 部署基础环境
-./scripts/deployment/deploy-base.sh
+# 基础统计
+python3 scripts/analyze_code.py
 
-# 部署Flask应用
-./scripts/deployment/deploy-flask.sh
+# 分析指定目录
+python3 scripts/analyze_code.py app
 
-# 启动所有服务
-./scripts/deployment/start-all.sh
-
-# 停止所有服务
-./scripts/deployment/stop-all.sh
-
-# 更新版本
-./scripts/deployment/update-version.sh 4.1.0
-
-# 测试部署
-./scripts/deployment/test-deployment.sh
+# 生成完整报告
+python3 scripts/analyze_code.py app \
+    --json docs/reports/stats.json \
+    --markdown docs/reports/code_stats.md \
+    --top 30
 ```
 
-## 🔐 SSL证书管理脚本 (ssl/)
+### 2. Shell脚本（快速）
 
-### SSL证书脚本
-- `generate-ssl-cert.sh` - 生成自签名SSL证书
-- `ssl-manager.sh` - SSL证书管理工具
-- `ssl-backup.sh` - SSL证书备份和恢复
-- `update-external-ssl.sh` - 更新外部SSL证书
-- `verify-ssl-cert.sh` - 验证SSL证书
-
-### 使用方法
 ```bash
-# 生成SSL证书
-./scripts/ssl/generate-ssl-cert.sh
+# 快速统计
+./scripts/quick_stats.sh
 
-# 管理SSL证书
-./scripts/ssl/ssl-manager.sh help
-
-# 备份SSL证书
-./scripts/ssl/ssl-backup.sh backup
-
-# 更新外部证书
-./scripts/ssl/update-external-ssl.sh -c cert.pem -k key.pem
-
-# 验证SSL证书
-./scripts/ssl/verify-ssl-cert.sh -c cert.pem -k key.pem
+# 指定目录
+./scripts/quick_stats.sh app
 ```
 
-## 🏠 本地开发脚本 (local/)
+## 使用示例
 
-### 本地开发脚本
-- `start-local-nginx.sh` - 启动本地Nginx代理
-- `test-local-nginx.sh` - 测试本地Nginx功能
+### 基础统计
 
-### 使用方法
 ```bash
-# 启动本地Nginx
-./scripts/local/start-local-nginx.sh
+$ python3 scripts/analyze_code.py app
+正在分析目录: app
+排除模式: vendor, __pycache__, .git
 
-# 测试本地Nginx
-./scripts/local/test-local-nginx.sh
+============================================================
+代码统计摘要
+============================================================
+总文件数: 214
+总代码行数: 57,808
+
+按文件类型统计:
+------------------------------------------------------------
+.py         108 个文件    31,568 行   54.6%
+.js          43 个文件    14,964 行   25.9%
+.html        33 个文件     7,233 行   12.5%
+.css         28 个文件     3,852 行    6.7%
+.yaml         2 个文件       191 行    0.3%
 ```
 
-## 📊 代码质量检查脚本 (quality/)
+### 导出报告
 
-### 质量检查脚本
-- `quality_check.py` - 完整代码质量检查
-- `quick_check.py` - 快速代码质量检查
-
-### 使用方法
 ```bash
-# 完整质量检查
-uv run python scripts/quality/quality_check.py
+# 导出JSON
+python3 scripts/analyze_code.py app --json stats.json
 
-# 快速质量检查
-uv run python scripts/quality/quick_check.py
+# 导出Markdown
+python3 scripts/analyze_code.py app --markdown report.md
 
-# 或使用Makefile
-make quality
-make quality-full
+# 同时导出
+python3 scripts/analyze_code.py app --json stats.json --markdown report.md
 ```
 
-## 🗄️ 数据库管理脚本 (database/)
+### 自定义排除目录
 
-### 数据库脚本
-- `export_permission_configs.py` - 导出权限配置数据
-- `reset_admin_password.py` - 重置管理员密码
-- `show_admin_password.py` - 显示管理员密码
-- `init_database.sh` - 完整数据库初始化脚本（使用Docker）
-- `quick_init.sh` - 快速数据库初始化脚本（使用Docker）
-
-### 使用方法
 ```bash
-# 导出权限配置
-uv run python scripts/database/export_permission_configs.py
-
-# 重置管理员密码
-uv run python scripts/database/reset_admin_password.py
-
-# 显示管理员密码
-uv run python scripts/database/show_admin_password.py
-
-# 快速初始化数据库（推荐）
-DB_PASSWORD=your_password ./scripts/database/quick_init.sh
-
-# 完整初始化数据库
-DB_PASSWORD=your_password ./scripts/database/init_database.sh
-
-# 使用Docker直接导入
-docker exec -i whalefall_postgres_dev psql -U whalefall_user -d whalefall_dev < sql/init_postgresql.sql
+python3 scripts/analyze_code.py app \
+    --exclude vendor __pycache__ .git node_modules migrations
 ```
 
-## 🛠️ 快速使用指南
+### 显示更多最大文件
 
-### 1. 生产环境部署
 ```bash
-# 一键部署所有服务
-make all
-
-# 分步部署
-make base    # 部署基础环境
-make flask   # 部署Flask应用
+# 显示前50个最大文件
+python3 scripts/analyze_code.py app --top 50
 ```
 
-### 2. 服务管理
+## 参数说明
+
+### analyze_code.py
+
+```
+usage: analyze_code.py [-h] [--exclude EXCLUDE [EXCLUDE ...]] 
+                       [--json JSON] [--markdown MARKDOWN] 
+                       [--top TOP] [directory]
+
+参数:
+  directory             要分析的目录 (默认: app)
+  --exclude            要排除的目录模式 (默认: vendor __pycache__ .git)
+  --json JSON          导出JSON文件路径
+  --markdown MARKDOWN  导出Markdown报告路径
+  --top TOP            显示前N个最大文件 (默认: 20)
+```
+
+### quick_stats.sh
+
 ```bash
-# 启动服务
-make start
+./scripts/quick_stats.sh [目录]
 
-# 停止服务
-make stop
-
-# 查看状态
-make status
-
-# 查看日志
-make logs
+参数:
+  目录    要分析的目录 (默认: app)
 ```
 
-### 3. 版本更新
+## 常见用法
+
+### 1. 日常快速查看
+
 ```bash
-# 更新版本
-make update
-
-# 回滚版本
-make rollback
-
-# 备份数据
-make backup
+./scripts/quick_stats.sh
 ```
 
-### 4. 代码质量
+### 2. 生成详细报告
+
 ```bash
-# 快速检查
-make quality
-
-# 完整检查
-make quality-full
-
-# 自动修复
-make fix-code
+python3 scripts/analyze_code.py app \
+    --markdown docs/reports/code_analysis_$(date +%Y%m%d).md \
+    --top 50
 ```
 
-## 📋 脚本分类说明
+### 3. 定期统计（添加到crontab）
 
-### 部署脚本 (deployment/)
-- 用于生产环境部署和管理
-- 包含基础环境和Flask应用的部署
-- 支持版本更新和回滚
-
-### SSL证书管理 (ssl/)
-- 用于SSL证书的生成、管理和验证
-- 支持自签名证书和外部证书
-- 提供备份和恢复功能
-
-### 本地开发 (local/)
-- 用于本地开发环境
-- 包含Nginx代理和测试工具
-- 便于开发调试
-
-### 代码质量 (quality/)
-- 用于代码质量检查和修复
-- 集成多种检查工具
-- 支持自动修复
-
-### 数据库管理 (database/)
-- 用于数据库相关操作
-- 包含权限配置导出
-- 提供用户管理功能
-
-## ⚠️ 注意事项
-
-1. **权限设置**: 确保脚本有执行权限
-   ```bash
-   chmod +x scripts/**/*.sh
-   ```
-
-2. **环境要求**: 部分脚本需要特定环境
-   - Docker和Docker Compose
-   - Python 3.13+
-   - uv包管理器
-
-3. **路径依赖**: 脚本需要在项目根目录运行
-
-4. **配置检查**: 运行前确保配置文件正确
-
-## 🔧 故障排除
-
-### 常见问题
-
-1. **权限错误**
-   ```bash
-   chmod +x scripts/**/*.sh
-   ```
-
-2. **路径错误**
-   ```bash
-   # 确保在项目根目录运行
-   pwd
-   # 应该显示: /path/to/TaifishingV4
-   ```
-
-3. **依赖缺失**
-   ```bash
-   # 安装依赖
-   uv sync
-   ```
-
-### 获取帮助
 ```bash
-# 查看Makefile帮助
-make help
-
-# 查看脚本帮助
-./scripts/deployment/deploy-base.sh --help
-./scripts/ssl/ssl-manager.sh help
+# 每天凌晨2点生成报告
+0 2 * * * cd /path/to/project && python3 scripts/analyze_code.py app --markdown docs/reports/daily_stats.md
 ```
 
----
+### 4. Git提交前统计
 
-**维护者**: TaifishingV4 Team  
-**最后更新**: 2024-12-19  
-**版本**: v1.0.0
+在 `.git/hooks/pre-commit` 中添加：
+
+```bash
+#!/bin/bash
+python3 scripts/analyze_code.py app --markdown docs/reports/code_stats.md
+git add docs/reports/code_stats.md
+```
+
+## 输出格式
+
+### JSON格式
+
+```json
+{
+  "files_by_dir": {
+    "routes": [
+      {
+        "name": "routes/instances.py",
+        "lines": 926,
+        "ext": ".py"
+      }
+    ]
+  },
+  "total_files": 214,
+  "total_lines": 57808,
+  "stats_by_ext": {
+    ".py": {
+      "count": 108,
+      "lines": 31568
+    }
+  }
+}
+```
+
+### Markdown格式
+
+生成的Markdown报告包含：
+- 总体统计
+- 按文件类型统计（表格）
+- 按目录统计（详细列表）
+
+## 注意事项
+
+1. **排除目录**: 默认排除 vendor、__pycache__、.git
+2. **文件类型**: 支持 .py、.js、.css、.html、.yaml、.yml
+3. **编码**: 使用UTF-8编码读取文件
+4. **权限**: 确保脚本有执行权限（chmod +x）
+
+## 故障排除
+
+### 问题：脚本无法执行
+
+```bash
+# 赋予执行权限
+chmod +x scripts/analyze_code.py
+chmod +x scripts/quick_stats.sh
+```
+
+### 问题：统计结果不准确
+
+检查是否正确排除了第三方库目录：
+
+```bash
+python3 scripts/analyze_code.py app --exclude vendor node_modules __pycache__
+```
+
+### 问题：找不到某些文件
+
+确保文件扩展名在支持列表中，或修改脚本添加新的扩展名。
+
+## 更多信息
+
+详细文档请参考：`docs/scripts/code_statistics_guide.md`

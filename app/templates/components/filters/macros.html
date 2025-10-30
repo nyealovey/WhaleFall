@@ -178,7 +178,9 @@
     <div class="d-flex align-items-center gap-2 flex-wrap">
         <button type="button"
                 class="btn btn-outline-primary flex-grow-1 flex-lg-grow-0"
-                id="open-tag-filter-btn">
+                id="open-tag-filter-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#tagSelectorModal">
             <i class="fas fa-tags me-2"></i>{{ placeholder }}
         </button>
         <span class="text-muted" id="selected-tags-count">
@@ -212,12 +214,16 @@
             {% if color_value and not is_bootstrap_color %}
                 {% set style_attr = 'background-color: ' ~ color_value ~ '; color: #fff;' %}
             {% endif %}
-            <span class="{{ badge_classes }}"{% if style_attr %} style="{{ style_attr }}"{% endif %}>
+            <span class="{{ badge_classes }}"
+                  {% if style_attr %}style="{{ style_attr }}"{% endif %}
+                  data-role="external-chip"
+                  data-tag-id="{{ tag_value }}">
                 <i class="fas fa-tag me-1"></i>{{ tag_label }}
                 <button type="button"
                         class="btn-close btn-close-white ms-1"
                         style="font-size: 0.6em;"
-                        onclick="removeTagFromPreview({{ tag_value|tojson }});"></button>
+                        data-role="external-chip-remove"
+                        data-tag-id="{{ tag_value }}"></button>
             </span>
             {% endfor %}
         </div>

@@ -1,223 +1,82 @@
-/* 标签选择器组件样式 - 优化版本，利用Flatly主题和全局样式 */
-
-/* 模态框溢出修复 */
-#tagSelectorModal .modal-body {
-    overflow-y: auto;
-    max-height: 75vh;
+:root {
+  --tag-selector-min-selected-height: 4.5rem;
 }
 
-/* 标签选择器容器 */
-.tag-selector-container {
-    font-family: var(--font-family-base);
-    max-width: 100%;
-    margin: 0 auto;
+[data-tag-selector-modal] .modal-body {
+  padding-bottom: 0;
 }
 
-/* 已选择标签区域 */
-.selected-tags-area {
-    margin-bottom: var(--spacing-lg);
+[data-tag-selector] {
+  font-size: 0.95rem;
 }
 
-.selected-tags-display {
-    min-height: 60px;
-    border: 2px solid var(--gray-300);
-    border-radius: var(--border-radius-md);
-    background: var(--gradient-light);
-    padding: var(--spacing-md);
-    transition: var(--transition-base);
+[data-tag-selector] [data-role="selected-container"] {
+  min-height: var(--tag-selector-min-selected-height);
 }
 
-.selected-tags-display:hover {
-    border-color: var(--primary-color);
-    box-shadow: 0 2px 8px rgba(52, 144, 220, 0.1);
+[data-tag-selector] .tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background-color: var(--bs-primary-bg-subtle, #e9f3ff);
+  color: var(--bs-primary, #0d6efd);
 }
 
-.selected-tags-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-sm);
-    align-items: center;
+[data-tag-selector] .tag-chip .btn-close {
+  width: 0.85rem;
+  height: 0.85rem;
 }
 
-.selected-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-xs);
-    border-radius: var(--border-radius-md);
-    transition: var(--transition-base);
-    animation: slideInUp 0.3s ease-out;
+[data-tag-selector] .tag-chip .btn-close:hover {
+  opacity: 1;
 }
 
-/* 滑入动画 */
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+[data-tag-selector] .tag-chip[data-variant="custom"] {
+  color: #fff;
 }
 
-/* 标签徽章样式 - 利用全局徽章样式 */
-.tag-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
-    font-weight: 600;
-    transition: var(--transition-base);
-    cursor: pointer;
+[data-tag-selector] .tag-selector__list .list-group-item {
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.tag-badge:hover {
-    transform: scale(1.05);
-    box-shadow: var(--shadow-sm);
+[data-tag-selector] .tag-selector__list .list-group-item.active,
+[data-tag-selector] .tag-selector__list .list-group-item.active:hover {
+  background-color: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.12));
+  border-color: var(--bs-primary-border-subtle, rgba(13, 110, 253, 0.2));
 }
 
-.tag-badge .remove-tag {
-    cursor: pointer;
-    margin-left: var(--spacing-xs);
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
+[data-tag-selector] .tag-selector__list .list-group-item.disabled,
+[data-tag-selector] .tag-selector__list .list-group-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
-.tag-badge .remove-tag:hover {
-    opacity: 1;
+[data-tag-selector] .tag-selector__list .tag-meta {
+  font-size: 0.82rem;
+  color: var(--bs-secondary-color);
 }
 
-/* 标签搜索 */
-.tag-search {
-    margin-bottom: var(--spacing-lg);
+[data-tag-selector] .tag-selector__list .tag-meta .badge {
+  font-size: 0.75rem;
 }
 
-.tag-search input {
-    border: 2px solid var(--gray-300);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: 0.9rem;
-    transition: var(--transition-base);
+[data-tag-selector] .tag-selector__list .tag-actions i {
+  font-size: 1.1rem;
 }
 
-.tag-search input:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(52, 144, 220, 0.25);
-    outline: none;
+[data-tag-selector] .tag-selector__list .list-group-item:not(.disabled):hover {
+  box-shadow: var(--bs-box-shadow-sm);
 }
 
-/* 标签网格 */
-.tags-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--spacing-md);
-    max-height: 400px;
-    overflow-y: auto;
-    padding: var(--spacing-sm);
-    border: 1px solid var(--gray-300);
-    border-radius: var(--border-radius-md);
-    background: var(--gray-50);
+[data-tag-selector] .tag-selector__list .no-data {
+  padding: 2.5rem 1.5rem;
 }
 
-.tag-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    border: 1px solid var(--gray-300);
-    border-radius: var(--border-radius-md);
-    background: white;
-    cursor: pointer;
-    transition: var(--transition-base);
-}
-
-.tag-item:hover {
-    border-color: var(--primary-color);
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
-}
-
-.tag-item.selected {
-    border-color: var(--primary-color);
-    background-color: rgba(52, 144, 220, 0.1);
-}
-
-.tag-item input[type="checkbox"] {
-    margin-right: var(--spacing-sm);
-}
-
-.tag-item-info {
-    flex: 1;
-}
-
-.tag-item-name {
-    font-weight: 600;
-    color: var(--dark-color);
-    margin-bottom: var(--spacing-xs);
-}
-
-.tag-item-meta {
-    font-size: 0.8rem;
-    color: var(--gray-600);
-}
-
-/* 空状态 */
-.empty-tags {
-    text-align: center;
-    padding: var(--spacing-xl);
-    color: var(--gray-600);
-}
-
-.empty-tags i {
-    font-size: 3rem;
-    color: var(--gray-300);
-    margin-bottom: var(--spacing-md);
-}
-
-/* 操作按钮 */
-.tag-selector-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: var(--spacing-lg);
-    padding-top: var(--spacing-lg);
-    border-top: 1px solid var(--gray-300);
-}
-
-.tag-selector-actions .btn {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    border-radius: var(--border-radius-md);
-    font-weight: 600;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-    .tags-grid {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-sm);
-    }
-    
-    .tag-selector-actions {
-        flex-direction: column;
-        gap: var(--spacing-sm);
-    }
-    
-    .tag-selector-actions .btn {
-        width: 100%;
-    }
-}
-
-/* 加载状态 */
-.tags-loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: var(--spacing-xl);
-}
-
-.tags-loading .spinner-border {
-    color: var(--primary-color);
+[data-tag-selector] .search-highlight {
+  background-color: var(--bs-warning-bg-subtle, rgba(255, 193, 7, 0.25));
+  border-radius: 0.2rem;
+  padding: 0 0.15rem;
 }
