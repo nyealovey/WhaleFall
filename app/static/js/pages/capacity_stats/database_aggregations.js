@@ -31,6 +31,18 @@
       labelExtractor,
       supportsDatabaseFilter: true,
       includeDatabaseName: true,
+      selectors: {
+        charts: {
+          trend: "#databaseChart",
+          change: "#databaseChangeChart",
+          percent: "#databaseChangePercentChart",
+        },
+        loaders: {
+          trend: "#chartLoading",
+          change: "#changeChartLoading",
+          percent: "#changePercentChartLoading",
+        },
+      },
       api: {
         summaryEndpoint: "/database_stats/api/databases/aggregations/summary",
         trendEndpoint: "/database_stats/api/databases/aggregations",
