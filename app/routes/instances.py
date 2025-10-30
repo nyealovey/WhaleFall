@@ -132,10 +132,12 @@ def index() -> str:
     db_type = request.args.get("db_type", "", type=str)
     status_param = request.args.get("status", "", type=str)
     status_filter = status_param if status_param not in {"", "all"} else ""
-    tags = request.args.getlist("tags")
-    if not tags:
+    tags_raw = request.args.getlist("tags")
+    if tags_raw:
+        tags = [tag.strip() for tag in tags_raw if tag.strip()]
+    else:
         tags_str = request.args.get("tags", "")
-        tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
+        tags = [tag.strip() for tag in tags_str.split(",") if tag.strip()]
 
     # 构建查询
     query = Instance.query
