@@ -134,10 +134,19 @@
     element.value = value ?? "";
   }
 
+  function setDisabled(selector, disabled) {
+    const element = getElement(selector);
+    if (!element) {
+      return;
+    }
+    element.disabled = Boolean(disabled);
+  }
+
   window.CapacityStatsFilters = {
     readInitialFilters,
     readChartState,
     updateSelectOptions,
     syncSelectValue,
+    setDisabled,
   };
 })(window);
