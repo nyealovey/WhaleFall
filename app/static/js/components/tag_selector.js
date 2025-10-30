@@ -1026,9 +1026,7 @@
         }
       }
 
-      if (!options.silent && instance) {
-        instance.notifySelectionChange(null, "preview-update");
-      }
+      // 更新预览不触发二次变更
     },
   };
 
