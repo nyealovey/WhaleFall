@@ -543,5 +543,6 @@
     // 设置用户角色，供JavaScript使用
     window.currentUserRole = '{{ current_user.role }}';
 </script>
+<script src="{{ url_for('static', filename='js/common/permission_policy_center.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/accounts/account_classification.js') }}"></script>
 {% endblock %}
