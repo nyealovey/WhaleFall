@@ -8,27 +8,33 @@ let listPageTagSelector = null;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 如果TagSelector类还没有加载，等待一下
-    if (typeof TagSelector === 'undefined') {
-        setTimeout(() => {
-            initializeInstanceListTagSelector();
-        }, 500);
-    } else {
-        try {
-            if (typeof initializeInstanceListTagSelector === 'function') {
-                initializeInstanceListTagSelector();
-            }
-        } catch (error) {
-            console.error('initializeInstanceListTagSelector 调用失败:', error);
-        }
-    }
-    
+    attemptInitializeTagSelector();
     setupEventListeners();
     loadInstanceTotalSizes();
     
     // 初始化批量操作按钮状态
     updateBatchButtons();
 });
+
+function attemptInitializeTagSelector(attempt = 0) {
+    const maxAttempts = 10;
+    const modalElement = document.getElementById('tagSelectorModal');
+
+    if (typeof TagSelector === 'undefined' || !modalElement) {
+        if (attempt < maxAttempts) {
+            setTimeout(() => attemptInitializeTagSelector(attempt + 1), 200);
+        } else {
+            console.error('TagSelector 未能初始化: 组件脚本或模态框缺失');
+        }
+        return;
+    }
+
+    try {
+        initializeInstanceListTagSelector();
+    } catch (error) {
+        console.error('initializeInstanceListTagSelector 调用失败:', error);
+    }
+}
 
 // 打开标签选择器
 function openTagSelector() {
