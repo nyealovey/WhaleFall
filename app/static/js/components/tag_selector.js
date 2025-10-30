@@ -20,6 +20,7 @@ class TagSelector {
             onTagRemove: null,
             ...options
         };
+        this.modalElement = this.options.modalElement || null;
         
         this.selectedTags = new Set();
         this.allTags = [];
@@ -63,6 +64,20 @@ class TagSelector {
         // 延迟绑定模态框按钮事件
         this.setupModalButtons();
     }
+
+    getModalElement() {
+        if (this.modalElement && document.body.contains(this.modalElement)) {
+            return this.modalElement;
+        }
+        if (this.container) {
+            const modal = this.container.closest('.modal');
+            if (modal) {
+                this.modalElement = modal;
+                return modal;
+            }
+        }
+        return null;
+    }
     
     // 设置模态框按钮事件
     setupModalButtons() {
@@ -76,7 +91,7 @@ class TagSelector {
         }
         
         // 监听模态框显示事件，确保在模态框完全显示后绑定按钮
-        const modalElement = this.container.closest('.modal');
+        const modalElement = this.getModalElement();
         if (modalElement) {
             modalElement.addEventListener('shown.bs.modal', () => {
                 this.bindModalButtons();
@@ -97,11 +112,6 @@ class TagSelector {
         setTimeout(() => {
             
             // 检查DOM状态
-            const confirmBtn = this.container.querySelector('#confirm-selection-btn');
-            const cancelBtn = this.container.querySelector('#cancel-selection-btn');
-            const modal = this.container.closest('.modal');
-            
-            
             this.bindModalButtons();
             
             if (!this.areButtonsBound() && attempt < maxAttempts - 1) {
@@ -113,7 +123,7 @@ class TagSelector {
     
     // 检查按钮是否已绑定
     areButtonsBound() {
-        const modalElement = this.container.closest('.modal');
+        const modalElement = this.getModalElement();
         if (!modalElement) return false;
         
         const confirmBtn = modalElement.querySelector('#confirm-selection-btn');
@@ -126,7 +136,7 @@ class TagSelector {
     bindModalButtons() {
         
         // 查找模态框元素（按钮在模态框的footer中，不在container中）
-        const modalElement = this.container.closest('.modal');
+        const modalElement = this.getModalElement();
         
         if (!modalElement) {
             console.error('TagSelector: 模态框元素未找到，无法绑定按钮');
