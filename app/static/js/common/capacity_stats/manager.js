@@ -350,7 +350,7 @@
       if (this.config.supportsDatabaseFilter && filters.databaseId) {
         params.database_id = filters.databaseId;
       }
-      if (this.config.includeDatabaseName && filters.databaseName) {
+      if (this.config.includeDatabaseName && filters.databaseName && filters.databaseId) {
         params.database_name = filters.databaseName;
       }
       params.period_type = filters.periodType || "daily";
