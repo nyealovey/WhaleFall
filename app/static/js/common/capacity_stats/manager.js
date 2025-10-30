@@ -439,11 +439,13 @@
       this.state.filters.dbType = value;
       this.state.filters.instanceId = "";
       Filters.syncSelectValue("#instance", "");
+      Filters.setDisabled("#instance", true);
 
       if (this.config.supportsDatabaseFilter) {
         this.state.filters.databaseId = "";
         this.state.filters.databaseName = null;
         Filters.syncSelectValue("#database", "");
+        Filters.setDisabled("#database", true);
       }
 
       await this.refreshInstanceOptions({ preserveSelection: false });
@@ -460,6 +462,7 @@
         this.state.filters.databaseId = "";
         this.state.filters.databaseName = null;
         Filters.syncSelectValue("#database", "");
+        Filters.setDisabled("#database", true);
         await this.refreshDatabaseOptions(value, { preserveSelection: false });
       }
       await this.refreshAll();
@@ -509,8 +512,10 @@
             return dbType ? `${name} (${dbType})` : name;
           },
         });
+        Filters.setDisabled("#instance", !this.state.filters.dbType);
       } catch (error) {
         this.notifyError(`加载实例列表失败: ${error.message}`);
+        Filters.setDisabled("#instance", true);
       }
     }
 
@@ -525,6 +530,7 @@
           allowEmpty: true,
           items: [],
         });
+        Filters.setDisabled("#database", true);
         return;
       }
       const params = {
@@ -547,8 +553,10 @@
           getOptionValue: (item) => item?.id,
           getOptionLabel: (item) => item?.database_name || "未知数据库",
         });
+        Filters.setDisabled("#database", !instanceId);
       } catch (error) {
         this.notifyError(`加载数据库列表失败: ${error.message}`);
+        Filters.setDisabled("#database", true);
       }
     }
 
@@ -568,8 +576,10 @@
       };
       Filters.syncSelectValue("#db_type", "");
       Filters.syncSelectValue("#instance", "");
+      Filters.setDisabled("#instance", true);
       if (this.config.supportsDatabaseFilter) {
         Filters.syncSelectValue("#database", "");
+        Filters.setDisabled("#database", true);
       }
       Filters.syncSelectValue("#period_type", "daily");
       this.state.overrides.change = false;
@@ -585,6 +595,10 @@
       this.state.filters.databaseId = latest.databaseId || "";
       this.state.filters.databaseName = latest.databaseName || null;
       this.state.filters.periodType = latest.periodType || "daily";
+      Filters.setDisabled("#instance", !this.state.filters.dbType);
+      if (this.config.supportsDatabaseFilter) {
+        Filters.setDisabled("#database", !this.state.filters.instanceId);
+      }
       await this.refreshAll();
     }
 
