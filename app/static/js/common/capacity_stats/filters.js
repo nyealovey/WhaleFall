@@ -42,7 +42,7 @@
     const periodType = readSelectValue("#period_type") || "daily";
 
     return {
-      dbType: dbType ? dbType.toLowerCase() : "",
+      dbType: dbType || "",
       instanceId,
       databaseId,
       databaseName,
