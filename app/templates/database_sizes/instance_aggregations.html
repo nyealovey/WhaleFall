@@ -316,64 +316,11 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity_stats/data_source.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity_stats/transformers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity_stats/summary_cards.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity_stats/filters.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity_stats/chart_renderer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity_stats/manager.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/capacity_stats/instance_aggregations.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    function initManager() {
-        if (typeof Chart === 'undefined' || typeof InstanceAggregationsManager === 'undefined') {
-            setTimeout(initManager, 100);
-            return;
-        }
-
-        window.instanceAggregationsManager = new InstanceAggregationsManager();
-
-        if (window.FilterUtils) {
-            const entry = FilterUtils.registerFilterForm('#instance-aggregations-filter-form', {
-                onSubmit: () => {
-                    window.instanceAggregationsManager.applyFilters();
-                },
-                onClear: () => {
-                    window.instanceAggregationsManager.resetFilters();
-                },
-                autoSubmitOnChange: false,
-            });
-
-            const form = entry?.element || document.getElementById('instance-aggregations-filter-form');
-            if (form) {
-                const dbTypeSelect = form.querySelector('#db_type');
-                if (dbTypeSelect) {
-                    dbTypeSelect.addEventListener('change', (event) => {
-                        window.instanceAggregationsManager.updateInstanceOptions(event.target.value, { preserveSelection: false })
-                            .then(() => {
-                                window.instanceAggregationsManager.applyFilters();
-                            });
-                    });
-                }
-
-                const instanceSelect = form.querySelector('#instance');
-                if (instanceSelect) {
-                    instanceSelect.addEventListener('change', () => {
-                        window.instanceAggregationsManager.applyFilters();
-                    });
-                }
-
-                const periodSelect = form.querySelector('#period_type');
-                if (periodSelect) {
-                    periodSelect.addEventListener('change', () => {
-                        window.instanceAggregationsManager.applyFilters();
-                    });
-                }
-
-                form.querySelectorAll('#start_date, #end_date').forEach((input) => {
-                    input.addEventListener('change', () => {
-                        window.instanceAggregationsManager.applyFilters();
-                    });
-                });
-            }
-        }
-    }
-
-    initManager();
-});
-</script>
 {% endblock %}
