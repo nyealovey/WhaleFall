@@ -266,21 +266,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
             </div>
             <div class="modal-body">
-                <!-- 上传方式选择 -->
-                <div class="mb-4">
-                    <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="uploadMethod" id="fileUpload" value="file" checked>
-                        <label class="btn btn-outline-primary" for="fileUpload">
-                            <i class="fas fa-upload me-2"></i>CSV文件上传
-                        </label>
-
-                        <input type="radio" class="btn-check" name="uploadMethod" id="jsonInput" value="json">
-                        <label class="btn btn-outline-secondary" for="jsonInput">
-                            <i class="fas fa-code me-2"></i>JSON输入
-                        </label>
-                    </div>
-                </div>
-
                 <!-- CSV文件上传区域 -->
                 <div id="fileUploadArea" class="upload-method">
                     <div class="mb-3">
@@ -309,41 +294,14 @@
                     </div>
                 </div>
 
-                <!-- JSON输入区域 -->
-                <div id="jsonInputArea" class="upload-method" style="display: none;">
-                    <div class="mb-3">
-                        <label class="form-label">实例数据 (JSON格式)</label>
-                        <textarea class="form-control" id="batchInstancesData" rows="10"
-                                  placeholder='[
-  {
-    "name": "mysql-prod-01",
-    "db_type": "mysql",
-    "host": "192.168.1.100",
-    "port": 3306,
-    "database_name": "mysql",
-    "description": "生产环境MySQL主库",
-    "credential_id": 1
-  }
-]'></textarea>
-                        <div class="form-text">
-                            请按照JSON格式输入实例数据，每行一个实例对象。必填字段：name, db_type, host, port
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 字段说明 -->
-                <div class="row">
-                    <div class="col-md-6">
-                    </div>
-                    <div class="col-md-6">
-                        <h6>数据库类型：</h6>
-                        <ul class="list-unstyled">
-                            <li><span class="badge bg-primary me-2">postgresql</span>PostgreSQL</li>
-                            <li><span class="badge bg-success me-2">mysql</span>MySQL</li>
-                            <li><span class="badge bg-warning me-2">sqlserver</span>SQL Server</li>
-                            <li><span class="badge bg-info me-2">oracle</span>Oracle</li>
-                        </ul>
-                    </div>
+                <div class="mt-4">
+                    <h6>数据库类型：</h6>
+                    <ul class="list-unstyled">
+                        <li><span class="badge bg-primary me-2">postgresql</span>PostgreSQL</li>
+                        <li><span class="badge bg-success me-2">mysql</span>MySQL</li>
+                        <li><span class="badge bg-warning me-2">sqlserver</span>SQL Server</li>
+                        <li><span class="badge bg-info me-2">oracle</span>Oracle</li>
+                    </ul>
                 </div>
             </div>
             <div class="modal-footer">
@@ -357,9 +315,6 @@
 
 
 {% block extra_js %}
-<div id="list-page-tag-selector">
-    {% include 'components/tag_selector.html' %}
-</div>
 <script src="{{ url_for('static', filename='js/pages/instances/list.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -368,4 +323,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+<div id="list-page-tag-selector">
+    {% include 'components/tag_selector.html' %}
+</div>
 {% endblock %}
