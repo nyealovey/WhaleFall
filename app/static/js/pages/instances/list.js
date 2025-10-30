@@ -230,29 +230,6 @@ function setupEventListeners() {
         checkbox.addEventListener('change', updateBatchButtons);
     });
 
-    // 上传方式切换
-    const fileUploadRadio = document.getElementById('fileUpload');
-    const jsonInputRadio = document.getElementById('jsonInput');
-    const fileUploadArea = document.getElementById('fileUploadArea');
-    const jsonInputArea = document.getElementById('jsonInputArea');
-
-    if (fileUploadRadio && fileUploadArea) {
-        fileUploadRadio.addEventListener('change', function() {
-            if (this.checked) {
-                fileUploadArea.style.display = 'block';
-                if (jsonInputArea) jsonInputArea.style.display = 'none';
-            }
-        });
-    }
-
-    if (jsonInputRadio && jsonInputArea) {
-        jsonInputRadio.addEventListener('change', function() {
-            if (this.checked) {
-                if (fileUploadArea) fileUploadArea.style.display = 'none';
-                jsonInputArea.style.display = 'block';
-            }
-        });
-    }
 }
 
 // 测试连接 - 使用新的连接管理API
@@ -493,16 +470,11 @@ function batchDelete() {
 function showBatchCreateModal() {
     // 重置表单
     const csvFileInput = document.getElementById('csvFile');
-    const batchInstancesDataInput = document.getElementById('batchInstancesData');
-    const fileUploadRadio = document.getElementById('fileUpload');
-    const fileUploadArea = document.getElementById('fileUploadArea');
-    const jsonInputArea = document.getElementById('jsonInputArea');
-
-    if (csvFileInput) csvFileInput.value = '';
-    if (batchInstancesDataInput) batchInstancesDataInput.value = '';
-    if (fileUploadRadio) fileUploadRadio.checked = true;
-    if (fileUploadArea) fileUploadArea.style.display = 'block';
-    if (jsonInputArea) jsonInputArea.style.display = 'none';
+    if (csvFileInput) {
+        csvFileInput.value = '';
+        const info = csvFileInput.parentNode.querySelector('.file-info');
+        if (info) info.remove();
+    }
 
     new bootstrap.Modal(document.getElementById('batchCreateModal')).show();
 }
@@ -533,13 +505,7 @@ function handleFileSelect(event) {
 }
 
 function submitBatchCreate() {
-    const uploadMethod = document.querySelector('input[name="uploadMethod"]:checked');
-    
-    if (uploadMethod && uploadMethod.value === 'file') {
-        submitFileUpload();
-    } else {
-        submitJsonInput();
-    }
+    submitFileUpload();
 }
 
 function submitFileUpload() {
@@ -588,61 +554,6 @@ function submitFileUpload() {
     });
 }
 
-function submitJsonInput() {
-    const dataText = document.getElementById('batchInstancesData').value.trim();
-
-    if (!dataText) {
-        toast.warning('请输入实例数据');
-        return;
-    }
-
-    try {
-        const instances = JSON.parse(dataText);
-
-        if (!Array.isArray(instances)) {
-            toast.warning('实例数据必须是数组格式');
-            return;
-        }
-
-        if (instances.length === 0) {
-            toast.warning('至少需要提供一个实例');
-            return;
-        }
-
-        const btn = document.querySelector('#batchCreateModal .btn-primary');
-        const originalText = btn.textContent;
-
-        btn.textContent = '创建中...';
-        btn.disabled = true;
-
-        http.post('/instances/api/batch-create', { instances: instances })
-        .then(data => {
-            if (data.success) {
-                toast.success(data.message);
-                if (data.errors && data.errors.length > 0) {
-                    toast.warning(`部分实例创建失败：\n${data.errors.join('\n')}`);
-                }
-                // 关闭模态框
-                const modal = bootstrap.Modal.getInstance(document.getElementById('batchCreateModal'));
-                if (modal) modal.hide();
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                toast.error(data.error);
-            }
-        })
-        .catch(error => {
-            toast.error('批量创建失败');
-        })
-        .finally(() => {
-            btn.textContent = originalText;
-            btn.disabled = false;
-        });
-
-    } catch (error) {
-        toast.error('JSON格式错误，请检查输入数据');
-    }
-}
-
 // 标签选择器相关功能
 function confirmTagSelection() {
     if (listPageTagSelector) {
@@ -689,9 +600,10 @@ function updateSelectedTagsPreview(selectedTags) {
 
 function removeTagFromPreview(tagName) {
     if (listPageTagSelector) {
-        const tag = listPageTagSelector.availableTags.find(t => t.name === tagName);
+        const allTags = Array.isArray(listPageTagSelector.allTags) ? listPageTagSelector.allTags : [];
+        const tag = allTags.find(t => t.name === tagName);
         if (tag) {
-            listPageTagSelector.toggleTag(tag.id);
+            listPageTagSelector.toggleTagSelection(tag.id);
             const selectedTags = listPageTagSelector.getSelectedTags();
             updateSelectedTagsPreview(selectedTags);
         }

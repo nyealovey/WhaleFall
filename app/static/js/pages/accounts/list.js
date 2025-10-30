@@ -287,9 +287,10 @@ function updateSelectedTagsPreview(selectedTags) {
 // 从预览中移除标签
 function removeTagFromPreview(tagName) {
     if (accountListTagSelector) {
-        const tag = accountListTagSelector.availableTags.find(t => t.name === tagName);
+        const allTags = Array.isArray(accountListTagSelector.allTags) ? accountListTagSelector.allTags : [];
+        const tag = allTags.find(t => t.name === tagName);
         if (tag) {
-            accountListTagSelector.toggleTag(tag.id);
+            accountListTagSelector.toggleTagSelection(tag.id);
             const selectedTags = accountListTagSelector.getSelectedTags();
             updateSelectedTagsPreview(selectedTags);
         }
