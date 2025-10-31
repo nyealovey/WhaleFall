@@ -14,7 +14,7 @@ from app.constants.system_constants import SuccessMessages
 from app.constants import SyncStatus, TaskStatus
 from app.errors import NotFoundError, SystemError
 from app.models.instance import Instance
-from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.services.aggregation.database_size_aggregation_service import DatabaseSizeAggregationService
 from app.services.capacity_sync_adapters.capacity_sync_service import DatabaseSizeCollectorService
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success

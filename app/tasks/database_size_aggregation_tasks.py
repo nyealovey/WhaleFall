@@ -10,7 +10,7 @@ from app import db
 from app.config import Config
 from app.constants import SyncStatus, TaskStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.services.aggregation.database_size_aggregation_service import DatabaseSizeAggregationService
 from app.models.instance import Instance
 from app.utils.structlog_config import log_error, log_info, log_warning
 
@@ -888,5 +888,4 @@ def validate_aggregation_config() -> Dict[str, Any]:
             "message": f"验证聚合配置失败: {exc}",
             "error": str(exc),
         }
-
 
