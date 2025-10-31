@@ -229,6 +229,24 @@ class DatabaseSizeAggregationService:
         start_date, end_date = self.period_calculator.get_current_period("daily")
         return self.database_runner.aggregate_period("daily", start_date, end_date)
 
+    def aggregate_current_period(self, period_type: str = "daily") -> Dict[str, Any]:
+        """计算当前周期（含今日）统计聚合"""
+        normalized = (period_type or "").lower()
+        if normalized not in self.period_types:
+            raise ValidationError(
+                message="不支持的聚合周期",
+                extra={"period_type": period_type},
+            )
+        start_date, end_date = self.period_calculator.get_current_period(normalized)
+        log_info(
+            "开始计算当前周期统计聚合",
+            module=MODULE,
+            period_type=normalized,
+            start_date=start_date.isoformat(),
+            end_date=end_date.isoformat(),
+        )
+        return self.database_runner.aggregate_period(normalized, start_date, end_date)
+
     def calculate_daily_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
         """
         为指定实例计算当日的数据库级聚合

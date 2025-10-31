@@ -126,8 +126,8 @@
     return unwrapItems(response);
   }
 
-  async function calculateToday(url) {
-    await post(url, {});
+  async function calculateCurrent(url, payload) {
+    await post(url, payload || {});
   }
 
   async function fetchInstances(url, params) {
@@ -155,7 +155,7 @@
     fetchTrend,
     fetchChange,
     fetchPercentChange,
-    calculateToday,
+    calculateCurrent,
     fetchInstances,
     fetchDatabases,
   };

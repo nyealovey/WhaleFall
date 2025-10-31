@@ -80,7 +80,7 @@
 | `/aggregations/api/summary` | GET | 获取统计聚合数据汇总 |
 | `/aggregations/api/manual_aggregate` | POST | 手动触发聚合计算 |
 | `/aggregations/api/aggregate` | POST | 手动触发统计聚合计算 |
-| `/aggregations/api/aggregate-today` | POST | 手动触发今日数据聚合 |
+| `/aggregations/api/aggregate-current` | POST | 手动触发当前周期数据聚合（可选 JSON：`{"period_type": "daily|weekly|monthly|quarterly"}`） |
 | `/aggregations/api/aggregate/status` | GET | 获取聚合状态信息 |
 
 ---
