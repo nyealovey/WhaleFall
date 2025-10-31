@@ -277,6 +277,9 @@ def aggregate_current() -> Response:
             record = records_by_instance.get(instance.id)
             if not record:
                 return
+            if record.id not in started_record_ids:
+                if sync_session_service.start_instance_sync(record.id):
+                    started_record_ids.add(record.id)
             status = (payload.get("status") or AggregationStatus.FAILED.value).lower()
             processed = int(payload.get("processed_records") or 0)
             details = {
@@ -302,6 +305,9 @@ def aggregate_current() -> Response:
             record = records_by_instance.get(instance.id)
             if not record:
                 return
+            if record.id not in started_record_ids:
+                if sync_session_service.start_instance_sync(record.id):
+                    started_record_ids.add(record.id)
             error_message = payload.get("error") or payload.get("message") or "聚合失败"
             details = {
                 "period_type": period_type,
@@ -313,10 +319,6 @@ def aggregate_current() -> Response:
             }
             sync_session_service.fail_instance_sync(record.id, error_message, sync_details=details)
             finalized_record_ids.add(record.id)
-
-        for record in records_by_instance.values():
-            if sync_session_service.start_instance_sync(record.id):
-                started_record_ids.add(record.id)
 
         progress_callbacks: dict[str, dict[str, Callable[..., None]]] = {}
         if scope == "database":
