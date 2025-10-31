@@ -321,13 +321,13 @@ def aggregate_current() -> Response:
             finalized_record_ids.add(record.id)
 
         progress_callbacks: dict[str, dict[str, Callable[..., None]]] = {}
-        if scope == "database":
+        if scope in {"database", "all"}:
             progress_callbacks["database"] = {
                 "on_start": _start_callback,
                 "on_complete": _complete_callback,
                 "on_error": _error_callback,
             }
-        else:
+        if scope in {"instance", "all"}:
             progress_callbacks["instance"] = {
                 "on_start": _start_callback,
                 "on_complete": _complete_callback,
