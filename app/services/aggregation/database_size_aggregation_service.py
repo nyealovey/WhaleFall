@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.constants import DatabaseType, SyncStatus
@@ -229,7 +229,12 @@ class DatabaseSizeAggregationService:
         start_date, end_date = self.period_calculator.get_current_period("daily")
         return self.database_runner.aggregate_period("daily", start_date, end_date)
 
-    def aggregate_current_period(self, period_type: str = "daily") -> Dict[str, Any]:
+    def aggregate_current_period(
+        self,
+        period_type: str = "daily",
+        *,
+        progress_callbacks: dict[str, dict[str, Callable[..., None]]] | None = None,
+    ) -> Dict[str, Any]:
         """计算当前周期（含今日）统计聚合"""
         normalized = (period_type or "").lower()
         if normalized not in self.period_types:
@@ -245,15 +250,24 @@ class DatabaseSizeAggregationService:
             start_date=start_date.isoformat(),
             end_date=end_date.isoformat(),
         )
+        callbacks = progress_callbacks or {}
+        db_callbacks = callbacks.get("database", {})
+        instance_callbacks = callbacks.get("instance", {})
         database_result = self.database_runner.aggregate_period(
             normalized,
             start_date,
             end_date,
+            on_instance_start=db_callbacks.get("on_start"),
+            on_instance_complete=db_callbacks.get("on_complete"),
+            on_instance_error=db_callbacks.get("on_error"),
         )
         instance_result = self.instance_runner.aggregate_period(
             normalized,
             start_date,
             end_date,
+            on_instance_start=instance_callbacks.get("on_start"),
+            on_instance_complete=instance_callbacks.get("on_complete"),
+            on_instance_error=instance_callbacks.get("on_error"),
         )
 
         statuses = {
