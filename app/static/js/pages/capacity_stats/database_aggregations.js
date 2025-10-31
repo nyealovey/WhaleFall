@@ -31,6 +31,7 @@
       labelExtractor,
       supportsDatabaseFilter: true,
       includeDatabaseName: true,
+      scope: "database",
       selectors: {
         charts: {
           trend: "#databaseChart",

@@ -37,6 +37,7 @@
     },
     includeDatabaseName: false,
     supportsDatabaseFilter: false,
+    scope: "instance",
   };
 
   const PERIOD_TEXT = {
@@ -69,29 +70,91 @@
     return date.toISOString().split("T")[0];
   }
 
+  function getCurrentPeriodRange(baseDate, periodType) {
+    const normalized = (periodType || "daily").toLowerCase();
+    const current = new Date(baseDate);
+    current.setHours(12, 0, 0, 0);
+
+    const start = new Date(current);
+    const end = new Date(current);
+
+    switch (normalized) {
+      case "weekly": {
+        const day = current.getDay(); // Sunday = 0
+        const offsetToMonday = (day + 6) % 7;
+        start.setDate(start.getDate() - offsetToMonday);
+        end.setDate(start.getDate() + 6);
+        break;
+      }
+      case "monthly": {
+        start.setDate(1);
+        end.setMonth(start.getMonth() + 1, 0);
+        break;
+      }
+      case "quarterly": {
+        const quarter = Math.floor(start.getMonth() / 3);
+        const quarterStartMonth = quarter * 3;
+        start.setMonth(quarterStartMonth, 1);
+        end.setMonth(quarterStartMonth + 3, 0);
+        break;
+      }
+      default:
+        break;
+    }
+
+    start.setHours(12, 0, 0, 0);
+    end.setHours(12, 0, 0, 0);
+
+    return { start, end };
+  }
+
   function calculateDateRange(periodType, periods) {
     const normalizedPeriod = (periodType || "daily").toLowerCase();
     const count = Math.max(1, Number(periods) || 1);
-    const endDate = new Date();
-    const startDate = new Date(endDate);
+    const today = new Date();
+    const { start: currentStart, end: currentEnd } = getCurrentPeriodRange(
+      today,
+      normalizedPeriod
+    );
+
+    const startDate = new Date(currentStart);
+    startDate.setHours(12, 0, 0, 0);
 
     switch (normalizedPeriod) {
-      case "weekly":
-        startDate.setDate(endDate.getDate() - count * 7);
+      case "weekly": {
+        const deltaWeeks = (count - 1) * 7;
+        if (deltaWeeks > 0) {
+          startDate.setDate(startDate.getDate() - deltaWeeks);
+        }
         break;
-      case "monthly":
-        startDate.setMonth(endDate.getMonth() - count);
+      }
+      case "monthly": {
+        if (count > 1) {
+          startDate.setMonth(startDate.getMonth() - (count - 1));
+        }
+        startDate.setDate(1);
         break;
-      case "quarterly":
-        startDate.setMonth(endDate.getMonth() - count * 3);
+      }
+      case "quarterly": {
+        if (count > 1) {
+          startDate.setMonth(startDate.getMonth() - (count - 1) * 3);
+        }
+        startDate.setDate(1);
         break;
-      default:
-        startDate.setDate(endDate.getDate() - count);
+      }
+      default: {
+        const deltaDays = count - 1;
+        if (deltaDays > 0) {
+          startDate.setDate(startDate.getDate() - deltaDays);
+        }
+      }
     }
+
+    currentEnd.setHours(12, 0, 0, 0);
 
     return {
       startDate: formatDate(startDate),
-      endDate: formatDate(endDate),
+      endDate: formatDate(currentEnd),
     };
   }
 
@@ -459,6 +522,7 @@
       try {
         await DataSource.calculateCurrent(this.config.api.calculateEndpoint, {
           period_type: periodType,
+          scope: this.config.scope || "instance",
         });
         this.notifySuccess("聚合计算完成");
         await this.refreshAll();
