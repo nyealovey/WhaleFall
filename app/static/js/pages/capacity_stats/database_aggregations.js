@@ -66,7 +66,7 @@
           chart_mode: "database",
           get_all: "true",
         },
-        calculateEndpoint: "/aggregations/api/aggregate-today",
+        calculateEndpoint: "/aggregations/api/aggregate-current",
         instanceOptionsEndpoint: "/instance_stats/api/instance-options",
         databaseOptionsEndpoint: "/database_stats/api/instances",
       },

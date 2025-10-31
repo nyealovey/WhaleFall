@@ -200,33 +200,44 @@ def aggregate() -> Response:
         log_error("触发统计聚合计算失败", module="aggregations", error=str(exc))
         raise SystemError("触发统计聚合计算失败") from exc
 
-@aggregations_bp.route('/api/aggregate-today', methods=['POST'])
+@aggregations_bp.route('/api/aggregate-current', methods=['POST'])
 @login_required
 @view_required
 @require_csrf
-def aggregate_today() -> Response:
+def aggregate_current() -> Response:
     """
-    手动触发今日数据聚合
+    手动触发当前周期数据聚合
     
     Returns:
         JSON: 聚合结果
     """
     try:
-        # 触发今日数据聚合（只执行日聚合）
-        service = DatabaseSizeAggregationService()
-        raw_result = service.calculate_daily_aggregations()
-        result = _normalize_task_result(raw_result, context="今日聚合")
+        payload = request.get_json(silent=True) or {}
+        period_type = (payload.get("period_type") or "daily").lower()
 
-        log_info("今日数据聚合任务已触发", module="aggregations")
+        # 当前周期聚合（按请求周期，含今日）
+        service = DatabaseSizeAggregationService()
+        raw_result = service.aggregate_current_period(period_type=period_type)
+        result = _normalize_task_result(raw_result, context=f"{period_type} 当前周期聚合")
+
+        log_info(
+            "当前周期数据聚合任务已触发",
+            module="aggregations",
+            period_type=period_type,
+        )
 
         return jsonify_unified_success(
             data={'result': result},
-            message='今日数据聚合任务已触发',
+            message='当前周期数据聚合任务已触发',
         )
 
     except Exception as exc:
-        log_error("触发今日数据聚合失败", module="aggregations", error=str(exc))
-        raise SystemError("触发今日数据聚合失败") from exc
+        log_error(
+            "触发当前周期数据聚合失败",
+            module="aggregations",
+            error=str(exc),
+        )
+        raise SystemError("触发当前周期数据聚合失败") from exc
 
 @aggregations_bp.route('/api/aggregate/status', methods=['GET'])
 @login_required

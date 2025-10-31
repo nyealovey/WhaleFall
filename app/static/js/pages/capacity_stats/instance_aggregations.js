@@ -41,7 +41,7 @@
         percentDefaults: {
           get_all: "true",
         },
-        calculateEndpoint: "/aggregations/api/aggregate-today",
+        calculateEndpoint: "/aggregations/api/aggregate-current",
         instanceOptionsEndpoint: "/instance_stats/api/instance-options",
       },
       summaryCards: [

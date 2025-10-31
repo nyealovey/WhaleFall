@@ -10,9 +10,15 @@ from typing import Any
 
 from app.models.instance import Instance
 from app.constants import TaskStatus
-from app.utils.database_type_utils import DatabaseTypeUtils
+from app.services.database_type_service import DatabaseTypeService
 from app.utils.structlog_config import get_db_logger, log_error
 from app.utils.version_parser import DatabaseVersionParser
+
+
+def _get_default_schema(db_type: str) -> str:
+    """Resolve default schema for a given database type without touching utils layer."""
+    config = DatabaseTypeService.get_type_by_name(db_type)
+    return config.default_schema if config and config.default_schema else ""
 
 
 class DatabaseConnection(ABC):
@@ -59,9 +65,7 @@ class MySQLConnection(DatabaseConnection):
             self.connection = pymysql.connect(
                 host=self.instance.host,
                 port=self.instance.port,
-                database=self.instance.database_name
-                or DatabaseTypeUtils.get_database_type_config("mysql").default_schema
-                or "",
+                database=self.instance.database_name or _get_default_schema("mysql"),
                 user=(self.instance.credential.username if self.instance.credential else ""),
                 password=password,
                 charset="utf8mb4",
@@ -157,9 +161,7 @@ class PostgreSQLConnection(DatabaseConnection):
             self.connection = psycopg.connect(
                 host=self.instance.host,
                 port=self.instance.port,
-                dbname=self.instance.database_name
-                or DatabaseTypeUtils.get_database_type_config("postgresql").default_schema
-                or "postgres",
+                dbname=self.instance.database_name or _get_default_schema("postgresql") or "postgres",
                 user=(self.instance.credential.username if self.instance.credential else ""),
                 password=password,
                 connect_timeout=20,  # 20秒连接超时
@@ -250,11 +252,7 @@ class SQLServerConnection(DatabaseConnection):
         password = self.instance.credential.get_plain_password() if self.instance.credential else ""
         username = self.instance.credential.username if self.instance.credential else ""
 
-        database_name = (
-            self.instance.database_name
-            or DatabaseTypeUtils.get_database_type_config("sqlserver").default_schema
-            or "master"
-        )
+        database_name = self.instance.database_name or _get_default_schema("sqlserver") or "master"
 
         # 只使用pymssql连接
         try:
@@ -408,11 +406,7 @@ class OracleConnection(DatabaseConnection):
             password = self.instance.credential.get_plain_password() if self.instance.credential else ""
 
             # 构建连接字符串
-            database_name = (
-                self.instance.database_name
-                or DatabaseTypeUtils.get_database_type_config("oracle").default_schema
-                or "ORCL"
-            )
+            database_name = self.instance.database_name or _get_default_schema("oracle") or "ORCL"
 
             # 优先使用服务名格式，因为大多数现代Oracle配置都使用服务名
             if "." in database_name:

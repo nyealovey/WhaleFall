@@ -39,6 +39,29 @@
     supportsDatabaseFilter: false,
   };
 
+  const PERIOD_TEXT = {
+    daily: {
+      title: "统计当前日",
+      message: "正在统计当前日容量，请稍候...",
+    },
+    weekly: {
+      title: "统计当前周",
+      message: "正在统计当前周容量，请稍候...",
+    },
+    monthly: {
+      title: "统计当前月",
+      message: "正在统计当前月容量，请稍候...",
+    },
+    quarterly: {
+      title: "统计当前季度",
+      message: "正在统计当前季度容量，请稍候...",
+    },
+    default: {
+      title: "统计当前周期",
+      message: "正在统计当前周期，请稍候...",
+    },
+  };
+
   function formatDate(date) {
     if (window.formatDate) {
       return window.formatDate(date);
@@ -407,7 +430,19 @@
     async handleCalculateToday() {
       const modalElement = document.getElementById("calculationModal");
       let modalInstance = null;
+      const periodType = (this.state.filters.periodType || "daily").toLowerCase();
+      const textConfig = PERIOD_TEXT[periodType] || PERIOD_TEXT.default;
+
       if (modalElement) {
+        const titleNode = modalElement.querySelector(".calculation-modal-title-text");
+        if (titleNode) {
+          titleNode.textContent = textConfig.title;
+        }
+        const messageNode = modalElement.querySelector(".calculation-modal-message");
+        if (messageNode) {
+          messageNode.textContent = textConfig.message;
+        }
+
         if (window.bootstrap?.Modal) {
           modalInstance = window.bootstrap.Modal.getOrCreateInstance(modalElement);
           modalInstance.show();
@@ -422,7 +457,9 @@
       }
 
       try {
-        await DataSource.calculateToday(this.config.api.calculateEndpoint);
+        await DataSource.calculateCurrent(this.config.api.calculateEndpoint, {
+          period_type: periodType,
+        });
         this.notifySuccess("聚合计算完成");
         await this.refreshAll();
       } catch (error) {
