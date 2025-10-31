@@ -431,7 +431,7 @@
 - [ ] 引入 `@handle_errors` 装饰器并应用核心路由（责任文件：`app/utils/decorators.py`、`app/utils/structlog_config.py`、`app/routes/users.py`、`app/routes/instances.py`、`app/routes/scheduler.py`、`app/routes/logs.py`、`app/routes/database_stats.py`、`app/routes/instance_stats.py`；依赖：无）
 - [ ] 统一请求校验装饰器 `@validate(schema)`，替换路由手写校验（责任文件：`app/utils/validation.py`、`app/utils/data_validator.py`、`app/utils/decorators.py`、`app/routes/*.py`；依赖：任务「@handle_errors」）
 - [ ] 统一 CSRF 管理器并删除重复实现（责任文件：`app/static/js/common/csrf-utils.js`、`app/static/js/pages/**/*.js`；依赖：无）
-- [ ] 构建 `StatisticsService` 并迁移统计计算到服务层（责任文件：`app/services/statistics_service.py`（新增）、`app/services/database_size_aggregation_service.py`、`app/services/capacity_sync_adapters/capacity_sync_service.py`、`app/routes/database_stats.py`、`app/routes/instance_stats.py`；依赖：`@validate(schema)`）
+- [ ] 构建 `StatisticsService` 并迁移统计计算到服务层（责任文件：`app/services/statistics_service.py`（新增）、`app/services/aggregation/database_size_aggregation_service.py`、`app/services/capacity_sync_adapters/capacity_sync_service.py`、`app/routes/database_stats.py`、`app/routes/instance_stats.py`；依赖：`@validate(schema)`）
 
 ### P1 中优先级
 - [ ] 统一缓存入口 `CacheFacade` 与键/TTL 规范（责任文件：`app/utils/cache_manager.py`、`app/services/cache_manager.py`；依赖：`StatisticsService`、`@handle_errors`）

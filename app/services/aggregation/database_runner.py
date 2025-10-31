@@ -1,0 +1,388 @@
+"""
+Database-level aggregation runner.
+"""
+
+from __future__ import annotations
+
+from collections import defaultdict
+from datetime import date
+from typing import Any, Callable, Dict, Iterable, List, Tuple
+
+from sqlalchemy.exc import SQLAlchemyError
+
+from app import db
+from app.errors import DatabaseError
+from app.models.database_size_aggregation import DatabaseSizeAggregation
+from app.models.database_size_stat import DatabaseSizeStat
+from app.models.instance import Instance
+from app.services.aggregation.calculator import PeriodCalculator
+from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
+from app.utils.structlog_config import log_debug, log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
+
+
+class DatabaseAggregationRunner:
+    """负责数据库级聚合的执行。"""
+
+    def __init__(
+        self,
+        *,
+        ensure_partition_for_date: Callable[[date], None],
+        commit_with_partition_retry: Callable[[DatabaseSizeAggregation, date], None],
+        period_calculator: PeriodCalculator,
+        module: str,
+    ) -> None:
+        self._ensure_partition_for_date = ensure_partition_for_date
+        self._commit_with_partition_retry = commit_with_partition_retry
+        self._period_calculator = period_calculator
+        self._module = module
+
+    def aggregate_period(self, period_type: str, start_date: date, end_date: date) -> Dict[str, Any]:
+        """聚合所有激活实例在指定周期内的数据库统计。"""
+        instances = Instance.query.filter_by(is_active=True).all()
+        summary = PeriodSummary(
+            period_type=period_type,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        for instance in instances:
+            try:
+                stats = self._query_database_stats(instance.id, start_date, end_date)
+                if not stats:
+                    summary.skipped_instances += 1
+                    log_warning(
+                        "实例在周期内没有数据库容量数据，跳过聚合",
+                        module=self._module,
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        period_type=period_type,
+                        start_date=start_date.isoformat(),
+                        end_date=end_date.isoformat(),
+                    )
+                    continue
+
+                grouped = self._group_by_database(stats)
+                for database_name, db_stats in grouped.items():
+                    self._persist_database_aggregation(
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        database_name=database_name,
+                        period_type=period_type,
+                        start_date=start_date,
+                        end_date=end_date,
+                        stats=db_stats,
+                    )
+                    summary.total_records += 1
+
+                summary.processed_instances += 1
+                log_debug(
+                    "实例数据库聚合计算完成",
+                    module=self._module,
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    period_type=period_type,
+                    database_count=len(grouped),
+                )
+            except Exception as exc:  # pragma: no cover - 防御性日志
+                db.session.rollback()
+                summary.failed_instances += 1
+                summary.errors.append(f"实例 {instance.name} 聚合失败: {exc}")
+                log_error(
+                    "实例数据库聚合执行失败",
+                    module=self._module,
+                    exception=exc,
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    period_type=period_type,
+                )
+
+        total_instances = len(instances)
+        if summary.status is AggregationStatus.COMPLETED:
+            summary.message = (
+                f"{period_type} 聚合完成：处理 {summary.processed_instances}/{total_instances} 个实例"
+            )
+        elif summary.status is AggregationStatus.SKIPPED:
+            summary.message = f"{period_type} 聚合没有可处理的数据"
+        else:
+            summary.message = (
+                f"{period_type} 聚合完成，{summary.failed_instances} 个实例失败"
+            )
+
+        return {
+            **summary.to_dict(),
+            "total_instances": total_instances,
+        }
+
+    def aggregate_daily_for_instance(self, instance: Instance, target_date: date) -> InstanceSummary:
+        """为指定实例计算当天数据库级聚合。"""
+        stats = DatabaseSizeStat.query.filter(
+            DatabaseSizeStat.instance_id == instance.id,
+            DatabaseSizeStat.collected_date == target_date,
+        ).all()
+
+        if not stats:
+            log_warning(
+                "实例在目标日期没有数据库容量数据，跳过聚合",
+                module=self._module,
+                instance_id=instance.id,
+                instance_name=instance.name,
+                period_type="daily",
+                date=target_date.isoformat(),
+            )
+            return InstanceSummary(
+                instance_id=instance.id,
+                instance_name=instance.name,
+                period_type="daily",
+                message=f"实例 {instance.name} 在 {target_date} 没有数据库容量数据，跳过聚合",
+            )
+
+        grouped = self._group_by_database(stats)
+        processed = 0
+        for database_name, db_stats in grouped.items():
+            self._persist_database_aggregation(
+                instance_id=instance.id,
+                instance_name=instance.name,
+                database_name=database_name,
+                period_type="daily",
+                start_date=target_date,
+                end_date=target_date,
+                stats=db_stats,
+            )
+            processed += 1
+
+        log_info(
+            "实例日数据库聚合已更新",
+            module=self._module,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            processed_databases=processed,
+        )
+        return InstanceSummary(
+            instance_id=instance.id,
+            instance_name=instance.name,
+            period_type="daily",
+            processed_records=processed,
+            message=f"实例 {instance.name} 的数据库聚合已更新 ({processed} 个数据库)",
+        )
+
+    def _query_database_stats(self, instance_id: int, start_date: date, end_date: date) -> List[DatabaseSizeStat]:
+        return DatabaseSizeStat.query.filter(
+            DatabaseSizeStat.instance_id == instance_id,
+            DatabaseSizeStat.collected_date >= start_date,
+            DatabaseSizeStat.collected_date <= end_date,
+        ).all()
+
+    def _group_by_database(self, stats: Iterable[DatabaseSizeStat]) -> Dict[str, List[DatabaseSizeStat]]:
+        grouped: Dict[str, List[DatabaseSizeStat]] = defaultdict(list)
+        for stat in stats:
+            grouped[stat.database_name].append(stat)
+        return grouped
+
+    def _persist_database_aggregation(
+        self,
+        *,
+        instance_id: int,
+        instance_name: str | None,
+        database_name: str,
+        period_type: str,
+        start_date: date,
+        end_date: date,
+        stats: List[DatabaseSizeStat],
+    ) -> None:
+        try:
+            self._ensure_partition_for_date(start_date)
+
+            sizes = [stat.size_mb for stat in stats]
+            data_sizes = [stat.data_size_mb for stat in stats if stat.data_size_mb is not None]
+
+            aggregation = DatabaseSizeAggregation.query.filter(
+                DatabaseSizeAggregation.instance_id == instance_id,
+                DatabaseSizeAggregation.database_name == database_name,
+                DatabaseSizeAggregation.period_type == period_type,
+                DatabaseSizeAggregation.period_start == start_date,
+            ).first()
+
+            if aggregation is None:
+                aggregation = DatabaseSizeAggregation(
+                    instance_id=instance_id,
+                    database_name=database_name,
+                    period_type=period_type,
+                    period_start=start_date,
+                    period_end=end_date,
+                )
+
+            aggregation.avg_size_mb = int(sum(sizes) / len(sizes))
+            aggregation.max_size_mb = max(sizes)
+            aggregation.min_size_mb = min(sizes)
+            aggregation.data_count = len(stats)
+
+            if data_sizes:
+                aggregation.avg_data_size_mb = int(sum(data_sizes) / len(data_sizes))
+                aggregation.max_data_size_mb = max(data_sizes)
+                aggregation.min_data_size_mb = min(data_sizes)
+            else:
+                aggregation.avg_data_size_mb = None
+                aggregation.max_data_size_mb = None
+                aggregation.min_data_size_mb = None
+
+            aggregation.avg_log_size_mb = None
+            aggregation.max_log_size_mb = None
+            aggregation.min_log_size_mb = None
+
+            self._apply_change_statistics(
+                aggregation=aggregation,
+                instance_id=instance_id,
+                database_name=database_name,
+                period_type=period_type,
+                start_date=start_date,
+                end_date=end_date,
+            )
+
+            aggregation.calculated_at = time_utils.now()
+
+            if aggregation.id is None:
+                db.session.add(aggregation)
+
+            self._commit_with_partition_retry(aggregation, start_date)
+
+            log_debug(
+                "数据库聚合数据保存完成",
+                module=self._module,
+                instance_id=instance_id,
+                instance_name=instance_name,
+                database_name=database_name,
+                period_type=period_type,
+                start_date=start_date.isoformat(),
+                end_date=end_date.isoformat(),
+            )
+        except DatabaseError:
+            raise
+        except SQLAlchemyError as exc:  # pragma: no cover - defensive logging
+            db.session.rollback()
+            log_error(
+                "计算数据库聚合失败",
+                module=self._module,
+                exception=exc,
+                instance_id=instance_id,
+                instance_name=instance_name,
+                database_name=database_name,
+                period_type=period_type,
+            )
+            raise DatabaseError(
+                message="数据库聚合计算失败",
+                extra={
+                    "instance_id": instance_id,
+                    "database_name": database_name,
+                    "period_type": period_type,
+                    "start_date": start_date.isoformat(),
+                    "end_date": end_date.isoformat(),
+                },
+            ) from exc
+        except Exception as exc:  # pragma: no cover - 防御性日志
+            db.session.rollback()
+            log_error(
+                "数据库聚合出现未知异常",
+                module=self._module,
+                exception=exc,
+                instance_id=instance_id,
+                instance_name=instance_name,
+                database_name=database_name,
+                period_type=period_type,
+            )
+            raise DatabaseError(
+                message="数据库聚合计算失败",
+                extra={
+                    "instance_id": instance_id,
+                    "database_name": database_name,
+                    "period_type": period_type,
+                    "start_date": start_date.isoformat(),
+                    "end_date": end_date.isoformat(),
+                },
+            ) from exc
+
+    def _apply_change_statistics(
+        self,
+        *,
+        aggregation: DatabaseSizeAggregation,
+        instance_id: int,
+        database_name: str,
+        period_type: str,
+        start_date: date,
+        end_date: date,
+    ) -> None:
+        try:
+            prev_start, prev_end = self._period_calculator.get_previous_period(
+                period_type, start_date, end_date
+            )
+
+            prev_stats = DatabaseSizeStat.query.filter(
+                DatabaseSizeStat.instance_id == instance_id,
+                DatabaseSizeStat.database_name == database_name,
+                DatabaseSizeStat.collected_date >= prev_start,
+                DatabaseSizeStat.collected_date <= prev_end,
+            ).all()
+
+            if not prev_stats:
+                aggregation.size_change_mb = 0
+                aggregation.size_change_percent = 0
+                aggregation.data_size_change_mb = 0
+                aggregation.data_size_change_percent = 0
+                aggregation.log_size_change_mb = 0
+                aggregation.log_size_change_percent = 0
+                aggregation.trend_direction = "stable"
+                aggregation.growth_rate = 0
+                return
+
+            prev_sizes = [stat.size_mb for stat in prev_stats]
+            prev_avg_size = sum(prev_sizes) / len(prev_sizes)
+
+            prev_data_sizes = [
+                stat.data_size_mb for stat in prev_stats if stat.data_size_mb is not None
+            ]
+            prev_avg_data_size = (
+                sum(prev_data_sizes) / len(prev_data_sizes) if prev_data_sizes else None
+            )
+
+            size_change_mb = aggregation.avg_size_mb - prev_avg_size
+            aggregation.size_change_mb = int(size_change_mb)
+            aggregation.size_change_percent = round(
+                (size_change_mb / prev_avg_size * 100) if prev_avg_size > 0 else 0,
+                2,
+            )
+
+            if prev_avg_data_size is not None and aggregation.avg_data_size_mb is not None:
+                data_size_change_mb = aggregation.avg_data_size_mb - prev_avg_data_size
+                aggregation.data_size_change_mb = int(data_size_change_mb)
+                aggregation.data_size_change_percent = round(
+                    (data_size_change_mb / prev_avg_data_size * 100)
+                    if prev_avg_data_size > 0
+                    else 0,
+                    2,
+                )
+            else:
+                aggregation.data_size_change_mb = 0
+                aggregation.data_size_change_percent = 0
+
+            aggregation.log_size_change_mb = None
+            aggregation.log_size_change_percent = None
+            aggregation.growth_rate = aggregation.size_change_percent
+        except Exception as exc:  # pragma: no cover - 防御性日志
+            log_error(
+                "计算数据库增量统计失败，使用默认值",
+                module=self._module,
+                exception=exc,
+                instance_id=instance_id,
+                database_name=database_name,
+                period_type=period_type,
+            )
+            aggregation.size_change_mb = 0
+            aggregation.size_change_percent = 0
+            aggregation.data_size_change_mb = 0
+            aggregation.data_size_change_percent = 0
+            aggregation.log_size_change_mb = 0
+            aggregation.log_size_change_percent = 0
+            aggregation.growth_rate = 0
+
+
+__all__ = ["DatabaseAggregationRunner"]

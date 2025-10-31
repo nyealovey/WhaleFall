@@ -12,7 +12,7 @@ from app.constants import SyncStatus
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
-from app.services.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.services.aggregation.database_size_aggregation_service import DatabaseSizeAggregationService
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
