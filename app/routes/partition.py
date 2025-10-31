@@ -238,33 +238,30 @@ def get_core_aggregation_metrics() -> Response:
             period_type = 'daily'
 
         if period_type == 'daily':
-            stats_end_date = today_china - timedelta(days=1)
+            stats_end_date = today_china
             stats_start_date = stats_end_date - timedelta(days=days - 1)
             period_start_date = stats_start_date
             period_end_date = stats_end_date
             step_mode = 'daily'
         elif period_type == 'weekly':
             current_week_monday = today_china - timedelta(days=today_china.weekday())
-            last_week_monday = current_week_monday - timedelta(weeks=1)
-            period_end_date = last_week_monday
-            period_start_date = last_week_monday - timedelta(weeks=days - 1)
+            period_end_date = current_week_monday
+            period_start_date = current_week_monday - timedelta(weeks=days - 1)
             stats_start_date = period_start_date
             stats_end_date = period_end_date + timedelta(days=6)
             step_mode = 'weekly'
         elif period_type == 'monthly':
             current_month_start = today_china.replace(day=1)
-            last_month_start = add_months(current_month_start, -1)
-            period_end_date = last_month_start
-            period_start_date = add_months(last_month_start, -(days - 1))
+            period_end_date = current_month_start
+            period_start_date = add_months(current_month_start, -(days - 1))
             stats_start_date = period_start_date
             stats_end_date = period_end(period_end_date, 1)
             step_mode = 'monthly'
         else:  # quarterly
             current_quarter_month = ((today_china.month - 1) // 3) * 3 + 1
             current_quarter_start = date(today_china.year, current_quarter_month, 1)
-            last_quarter_start = add_months(current_quarter_start, -3)
-            period_end_date = last_quarter_start
-            period_start_date = add_months(last_quarter_start, -3 * (days - 1))
+            period_end_date = current_quarter_start
+            period_start_date = add_months(current_quarter_start, -3 * (days - 1))
             stats_start_date = period_start_date
             stats_end_date = period_end(period_end_date, 3)
             step_mode = 'quarterly'
@@ -387,9 +384,21 @@ def get_core_aggregation_metrics() -> Response:
         instance_aggregation_data = []
         database_aggregation_data = []
         
+        def get_label_date(key_date: date) -> date:
+            if step_mode == 'daily':
+                return key_date
+            if step_mode == 'weekly':
+                return key_date + timedelta(days=6)
+            if step_mode == 'monthly':
+                return period_end(key_date, 1)
+            if step_mode == 'quarterly':
+                return period_end(key_date, 3)
+            return key_date
+
         def append_metrics_for_key(key_date: date):
             key_str = key_date.isoformat()
-            labels.append(key_str)
+            display_date = get_label_date(key_date).isoformat()
+            labels.append(display_date)
             metrics = daily_metrics[key_str]
             instance_count_data.append(metrics['instance_count'])
             database_count_data.append(metrics['database_count'])
