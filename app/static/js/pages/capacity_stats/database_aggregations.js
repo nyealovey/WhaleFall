@@ -45,10 +45,10 @@
         },
       },
       api: {
-        summaryEndpoint: "/database_stats/api/databases/aggregations/summary",
-        trendEndpoint: "/database_stats/api/databases/aggregations",
-        changeEndpoint: "/database_stats/api/databases/aggregations",
-        percentEndpoint: "/database_stats/api/databases/aggregations",
+        summaryEndpoint: "/databases/api/databases/aggregations/summary",
+        trendEndpoint: "/databases/api/databases/aggregations",
+        changeEndpoint: "/databases/api/databases/aggregations",
+        percentEndpoint: "/databases/api/databases/aggregations",
         summaryDefaults: {
           api: "true",
         },
@@ -69,7 +69,7 @@
         },
         calculateEndpoint: "/aggregations/api/aggregate-current",
         instanceOptionsEndpoint: "/instance_stats/api/instance-options",
-        databaseOptionsEndpoint: "/database_stats/api/instances",
+        databaseOptionsEndpoint: "/databases/api/instances",
       },
       fields: {
         change: "size_change_mb",

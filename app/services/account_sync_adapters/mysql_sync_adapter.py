@@ -351,7 +351,7 @@ class MySQLSyncAdapter(BaseSyncAdapter):
         
         # 清除该账户的规则评估缓存，确保权限更新后规则重新评估
         try:
-            from app.services.cache_manager import cache_manager
+            from app.services.cache_service import cache_manager
             if cache_manager:
                 cache_manager.invalidate_account_cache(account.id)
                 self.sync_logger.debug("已清除账户规则评估缓存: %s", account.username)

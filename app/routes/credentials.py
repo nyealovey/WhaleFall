@@ -40,7 +40,7 @@ from app.utils.data_validator import (
 )
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
-from app.utils.filter_data import get_active_tag_options
+from app.utils.query_filter_utils import get_active_tag_options
 
 # 创建蓝图
 credentials_bp = Blueprint("credentials", __name__)

@@ -153,4 +153,4 @@ class SQLServerConnectionDiagnostics:
 
 
 # 创建全局实例
-sqlserver_diagnostics = SQLServerConnectionDiagnostics()
+sqlserver_connection_utils = SQLServerConnectionDiagnostics()

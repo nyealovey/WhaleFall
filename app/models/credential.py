@@ -3,7 +3,7 @@
 """
 
 from app import bcrypt, db
-from app.utils.password_manager import get_password_manager
+from app.utils.password_crypto_utils import get_password_manager
 from app.utils.time_utils import time_utils
 
 

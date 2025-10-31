@@ -14,7 +14,7 @@ from app.constants import TimeConstants, TaskStatus
 from app.constants.system_constants import SuccessMessages
 from app.errors import SystemError
 from app.scheduler import get_scheduler
-from app.services.cache_manager import cache_manager
+from app.services.cache_service import cache_manager
 from app.services.scheduler_health_service import scheduler_health_service
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info

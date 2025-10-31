@@ -74,9 +74,10 @@ routes/
 ├── main.py                 # 主页面路由
 ├── auth.py                 # 认证路由
 ├── dashboard.py            # 仪表板路由
-├── instances.py            # 实例管理路由（基础信息）
-├── instances_detail.py   # 实例详情相关路由（账户、容量等）
-├── instances_stats.py   # 实例容量与统计路由
+├── instance.py            # 实例管理路由（基础信息）
+├── instance_detail.py   # 实例详情相关路由（账户、容量等）
+├── instance_statistics.py   # 实例容量与统计路由
+├── instance_stats.py      # 实例聚合统计页面与API
 ├── credentials.py          # 凭据管理路由
 ├── tags.py                 # 标签管理路由
 ├── account_classification.py # 账户分类路由
@@ -88,7 +89,7 @@ routes/
 ├── scheduler.py            # 任务调度路由
 ├── cache.py               # 缓存管理路由
 ├── database_types.py       # 数据库类型路由
-├── storage_sync.py         # 存储同步路由
+├── storage.py              # 存储同步路由
 ├── users.py                # 用户管理路由
 └── health.py               # 健康检查路由
 ```
@@ -102,7 +103,7 @@ services/
 ├── sync_session_service.py # 同步会话服务
 ├── sync_data_manager.py    # 同步数据管理
 ├── database_type_service.py # 数据库类型服务
-├── cache_manager.py        # 缓存管理器
+├── cache_service.py        # 缓存管理器
 ├── account_classification_service.py # 优化账户分类服务
 ├── classification_batch_service.py # 分类批次服务
 ├── connection_adapters/    # 连接适配器

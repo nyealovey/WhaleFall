@@ -2,7 +2,7 @@
 统一搜索筛选器配置
 
 将所有纯枚举/常量型筛选项集中到此处，避免分散定义造成维护困难。
-动态数据请使用 ``app.utils.filter_data`` 中的查询方法。
+动态数据请使用 ``app.utils.query_filter_utils`` 中的查询方法。
 """
 
 from __future__ import annotations

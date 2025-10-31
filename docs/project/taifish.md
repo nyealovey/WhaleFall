@@ -37,7 +37,7 @@
 ### 路由控制器 (app/routes/)
 - `app/routes/auth.py` - 用户认证路由
 - `app/routes/dashboard.py` - 仪表盘路由
-- `app/routes/instances.py` - 数据库实例管理路由
+- `app/routes/instance.py` - 数据库实例管理路由
 - `app/routes/credentials.py` - 凭据管理路由
 - `app/routes/accounts.py` - 账户管理路由
 - `app/routes/account_classification.py` - 账户分类管理路由
@@ -55,7 +55,7 @@
 - `app/utils/api_response.py` - API响应标准化
 - `app/utils/timezone.py` - 时区处理工具
 - `app/utils/data_validator.py` - 数据与安全验证工具
-- `app/utils/cache_manager.py` - 缓存管理
+- `app/utils/cache_utils.py` - 缓存管理
 
 ## 脚本文件 (scripts/)
 

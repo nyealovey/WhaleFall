@@ -9,6 +9,6 @@ from . import (  # noqa: F401, E402
     auth,
     credentials,
     dashboard,
-    instances,
+    instance,
     main,
 )

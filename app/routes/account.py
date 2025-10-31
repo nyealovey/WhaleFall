@@ -16,12 +16,12 @@ from app.errors import SystemError
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.services.account_sync_adapters.account_sync_service import account_sync_service
+from app.services.account_sync_service import account_sync_service
 from app.utils.decorators import update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
-from app.utils.filter_data import get_active_tag_options, get_classification_options
+from app.utils.query_filter_utils import get_active_tag_options, get_classification_options
 
 # 创建蓝图
 account_bp = Blueprint("account", __name__)

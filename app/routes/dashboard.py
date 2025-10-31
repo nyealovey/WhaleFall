@@ -19,7 +19,7 @@ from app.models.current_account_sync_data import CurrentAccountSyncData
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.user import User
 from app.routes.health import get_system_uptime
-from app.utils.cache_manager import dashboard_cache
+from app.utils.cache_utils import dashboard_cache
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import CHINA_TZ, time_utils

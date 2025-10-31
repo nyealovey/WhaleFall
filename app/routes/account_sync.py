@@ -13,7 +13,7 @@ from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
-from app.services.account_sync_adapters.account_sync_service import account_sync_service
+from app.services.account_sync_service import account_sync_service
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -299,7 +299,7 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
                 )
 
             flash("账户同步成功！", FlashCategory.SUCCESS)
-            return redirect(url_for("instances.detail", instance_id=instance_id))
+            return redirect(url_for("instance.detail", instance_id=instance_id))
 
         log_error(
             "实例账户同步失败",
@@ -316,7 +316,7 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
             raise SystemError(normalized.get("message", "账户同步失败"))
 
         flash(f"账户同步失败: {normalized.get('message', '未知错误')}", "error")
-        return redirect(url_for("instances.detail", instance_id=instance_id))
+        return redirect(url_for("instance.detail", instance_id=instance_id))
 
     except Exception as exc:
         log_error(f"同步实例账户失败: {exc}", module="account_sync", instance_id=instance.id)
@@ -335,4 +335,4 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
             raise SystemError("账户同步失败，请重试") from exc
 
         flash("账户同步失败，请重试", FlashCategory.ERROR)
-        return redirect(url_for("instances.detail", instance_id=instance_id))
+        return redirect(url_for("instance.detail", instance_id=instance_id))
