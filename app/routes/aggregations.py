@@ -1,7 +1,7 @@
 """聚合统计路由"""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
@@ -111,6 +111,10 @@ def manual_aggregate() -> Response:
         instance_id = data.get('instance_id')
         period_type = (data.get('period_type') or 'all').lower()
         valid_periods = {'daily', 'weekly', 'monthly', 'quarterly'}
+        scope = (data.get('scope') or 'instance').lower()
+        valid_scopes = {'instance', 'database'}
+        if scope not in valid_scopes:
+            raise AppValidationError("scope 参数仅支持 instance 或 database")
 
         service = DatabaseSizeAggregationService()
 
@@ -121,14 +125,24 @@ def manual_aggregate() -> Response:
                 raise AppValidationError("实例ID必须为整数") from exc
 
             if period_type in valid_periods:
-                func_map = {
-                    'daily': service.calculate_daily_aggregations_for_instance,
-                    'weekly': service.calculate_weekly_aggregations_for_instance,
-                    'monthly': service.calculate_monthly_aggregations_for_instance,
-                    'quarterly': service.calculate_quarterly_aggregations_for_instance,
-                }
+                if scope == 'database':
+                    func_map = {
+                        'daily': service.calculate_daily_database_aggregations_for_instance,
+                        'weekly': service.calculate_weekly_database_aggregations_for_instance,
+                        'monthly': service.calculate_monthly_database_aggregations_for_instance,
+                        'quarterly': service.calculate_quarterly_database_aggregations_for_instance,
+                    }
+                else:
+                    func_map = {
+                        'daily': service.calculate_daily_aggregations_for_instance,
+                        'weekly': service.calculate_weekly_aggregations_for_instance,
+                        'monthly': service.calculate_monthly_aggregations_for_instance,
+                        'quarterly': service.calculate_quarterly_aggregations_for_instance,
+                    }
                 raw_result = func_map[period_type](instance_id)
             else:
+                if scope == 'database':
+                    raise AppValidationError("scope=database 时必须指定具体周期类型")
                 raw_result = service.calculate_instance_aggregations(instance_id)
         else:
             period_map = {
@@ -143,6 +157,7 @@ def manual_aggregate() -> Response:
                 raw_result = service.calculate_all_aggregations()
 
         result = _normalize_task_result(raw_result, context="聚合计算")
+        result["scope"] = scope
 
         log_info(
             "手动聚合任务已触发",
@@ -223,6 +238,10 @@ def aggregate_current() -> Response:
     try:
         payload = request.get_json(silent=True) or {}
         period_type = (payload.get("period_type") or "daily").lower()
+        scope = (payload.get("scope") or "all").lower()
+        valid_scopes = {"instance", "database", "all"}
+        if scope not in valid_scopes:
+            raise AppValidationError("scope 参数仅支持 instance、database 或 all")
 
         # 当前周期聚合（按请求周期，含今日），并接入同步会话中心
         service = DatabaseSizeAggregationService()
@@ -266,6 +285,7 @@ def aggregate_current() -> Response:
                 "period_end": end_date.isoformat(),
                 "aggregation_result": payload,
                 "aggregation_count": processed,
+                "scope": scope,
             }
             if status == AggregationStatus.FAILED.value:
                 error_message = payload.get("error") or payload.get("message") or "聚合失败"
@@ -289,6 +309,7 @@ def aggregate_current() -> Response:
                 "period_end": end_date.isoformat(),
                 "aggregation_result": payload,
                 "aggregation_count": 0,
+                "scope": scope,
             }
             sync_session_service.fail_instance_sync(record.id, error_message, sync_details=details)
             finalized_record_ids.add(record.id)
@@ -297,17 +318,24 @@ def aggregate_current() -> Response:
             if sync_session_service.start_instance_sync(record.id):
                 started_record_ids.add(record.id)
 
-        progress_callbacks = {
-            "instance": {
+        progress_callbacks: dict[str, dict[str, Callable[..., None]]] = {}
+        if scope == "database":
+            progress_callbacks["database"] = {
                 "on_start": _start_callback,
                 "on_complete": _complete_callback,
                 "on_error": _error_callback,
             }
-        }
+        else:
+            progress_callbacks["instance"] = {
+                "on_start": _start_callback,
+                "on_complete": _complete_callback,
+                "on_error": _error_callback,
+            }
 
         try:
             raw_result = service.aggregate_current_period(
                 period_type=period_type,
+                scope=scope,
                 progress_callbacks=progress_callbacks,
             )
         except Exception as exc:
@@ -321,6 +349,7 @@ def aggregate_current() -> Response:
                             "period_start": start_date.isoformat(),
                             "period_end": end_date.isoformat(),
                             "aggregation_result": {"status": AggregationStatus.FAILED.value, "error": str(exc)},
+                            "scope": scope,
                         },
                     )
             current_session = sync_session_service.get_session_by_id(session.session_id)
@@ -353,6 +382,7 @@ def aggregate_current() -> Response:
                         "period_end": end_date.isoformat(),
                         "aggregation_result": {"status": "unknown"},
                         "aggregation_count": 0,
+                        "scope": scope,
                     },
                 )
 
@@ -363,6 +393,7 @@ def aggregate_current() -> Response:
             raw_result.setdefault("session", {"session_id": session.session_id})
 
         result = _normalize_task_result(raw_result, context=f"{period_type} 当前周期聚合")
+        result["scope"] = scope
 
         session_info = result.get("session") or {}
         log_info(
@@ -377,6 +408,8 @@ def aggregate_current() -> Response:
             message='当前周期数据聚合任务已触发',
         )
 
+    except AppValidationError:
+        raise
     except Exception as exc:
         session_id = None
         if session is not None:

@@ -178,27 +178,44 @@ class DatabaseAggregationRunner:
             "total_instances": total_instances,
         }
 
-    def aggregate_daily_for_instance(self, instance: Instance, target_date: date) -> InstanceSummary:
-        """为指定实例计算当天数据库级聚合。"""
-        stats = DatabaseSizeStat.query.filter(
-            DatabaseSizeStat.instance_id == instance.id,
-            DatabaseSizeStat.collected_date == target_date,
-        ).all()
+    def aggregate_database_period(
+        self,
+        instance: Instance,
+        *,
+        period_type: str,
+        start_date: date,
+        end_date: date,
+    ) -> InstanceSummary:
+        """为指定实例计算指定周期的数据库级聚合。"""
+        stats = self._query_database_stats(instance.id, start_date, end_date)
+
+        extra_details = {
+            "period_type": period_type,
+            "period_start": start_date.isoformat(),
+            "period_end": end_date.isoformat(),
+        }
+        if start_date == end_date:
+            extra_details["period_date"] = start_date.isoformat()
 
         if not stats:
             log_warning(
-                "实例在目标日期没有数据库容量数据，跳过聚合",
+                "实例在指定周期没有数据库容量数据，跳过聚合",
                 module=self._module,
                 instance_id=instance.id,
                 instance_name=instance.name,
-                period_type="daily",
-                date=target_date.isoformat(),
+                period_type=period_type,
+                start_date=start_date.isoformat(),
+                end_date=end_date.isoformat(),
             )
             return InstanceSummary(
                 instance_id=instance.id,
                 instance_name=instance.name,
-                period_type="daily",
-                message=f"实例 {instance.name} 在 {target_date} 没有数据库容量数据，跳过聚合",
+                period_type=period_type,
+                message=(
+                    f"实例 {instance.name} 在 {start_date} 至 {end_date} "
+                    "没有数据库容量数据，跳过聚合"
+                ),
+                extra=extra_details,
             )
 
         grouped = self._group_by_database(stats)
@@ -208,26 +225,42 @@ class DatabaseAggregationRunner:
                 instance_id=instance.id,
                 instance_name=instance.name,
                 database_name=database_name,
-                period_type="daily",
-                start_date=target_date,
-                end_date=target_date,
+                period_type=period_type,
+                start_date=start_date,
+                end_date=end_date,
                 stats=db_stats,
             )
             processed += 1
 
         log_info(
-            "实例日数据库聚合已更新",
+            "实例数据库周期聚合已更新",
             module=self._module,
             instance_id=instance.id,
             instance_name=instance.name,
+            period_type=period_type,
+            start_date=start_date.isoformat(),
+            end_date=end_date.isoformat(),
             processed_databases=processed,
         )
         return InstanceSummary(
             instance_id=instance.id,
             instance_name=instance.name,
-            period_type="daily",
+            period_type=period_type,
             processed_records=processed,
-            message=f"实例 {instance.name} 的数据库聚合已更新 ({processed} 个数据库)",
+            message=(
+                f"实例 {instance.name} 的 {period_type} 数据库聚合已更新 "
+                f"({processed} 个数据库)"
+            ),
+            extra=extra_details,
+        )
+
+    def aggregate_daily_for_instance(self, instance: Instance, target_date: date) -> InstanceSummary:
+        """为指定实例计算当天数据库级聚合。"""
+        return self.aggregate_database_period(
+            instance,
+            period_type="daily",
+            start_date=target_date,
+            end_date=target_date,
         )
 
     def _query_database_stats(self, instance_id: int, start_date: date, end_date: date) -> List[DatabaseSizeStat]:
