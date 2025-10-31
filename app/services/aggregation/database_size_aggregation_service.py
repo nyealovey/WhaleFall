@@ -245,7 +245,40 @@ class DatabaseSizeAggregationService:
             start_date=start_date.isoformat(),
             end_date=end_date.isoformat(),
         )
-        return self.database_runner.aggregate_period(normalized, start_date, end_date)
+        database_result = self.database_runner.aggregate_period(
+            normalized,
+            start_date,
+            end_date,
+        )
+        instance_result = self.instance_runner.aggregate_period(
+            normalized,
+            start_date,
+            end_date,
+        )
+
+        statuses = {
+            (database_result.get("status") or AggregationStatus.FAILED.value).lower(),
+            (instance_result.get("status") or AggregationStatus.FAILED.value).lower(),
+        }
+        if AggregationStatus.FAILED.value in statuses:
+            overall_status = AggregationStatus.FAILED
+            message = "当前周期聚合完成，但存在失败的子任务"
+        elif statuses == {AggregationStatus.SKIPPED.value}:
+            overall_status = AggregationStatus.SKIPPED
+            message = "当前周期没有可处理的数据"
+        else:
+            overall_status = AggregationStatus.COMPLETED
+            message = "当前周期聚合完成"
+
+        return {
+            "status": overall_status.value,
+            "message": message,
+            "period_type": normalized,
+            "period_start": start_date.isoformat(),
+            "period_end": end_date.isoformat(),
+            "database_summary": database_result,
+            "instance_summary": instance_result,
+        }
 
     def calculate_daily_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
         """

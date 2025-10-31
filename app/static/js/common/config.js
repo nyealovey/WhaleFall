@@ -10,7 +10,7 @@ if (typeof axios === 'undefined') {
     // 创建 Axios 实例（全局变量）
     var http = axios.create({
         baseURL: '/',
-        timeout: 30000,
+        timeout: 120000,
         headers: {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
