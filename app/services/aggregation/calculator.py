@@ -59,7 +59,11 @@ class PeriodCalculator:
         return start_date, end_date
 
     def get_current_period(self, period_type: str) -> Tuple[date, date]:
-        """获取当前周期(包含至今天)的起止日期。"""
+        """
+        获取当前周期的自然起止日期。
+
+        注意：period_end 指向该周期的自然结束日，可能晚于今天。
+        """
         normalized = self._normalize(period_type)
         today = self.today()
 
@@ -67,14 +71,20 @@ class PeriodCalculator:
             return today, today
         if normalized == "weekly":
             start_date = today - timedelta(days=today.weekday())
-            return start_date, today
+            end_date = start_date + timedelta(days=6)
+            return start_date, end_date
         if normalized == "monthly":
             start_date = date(today.year, today.month, 1)
-            return start_date, today
+            end_day = monthrange(today.year, today.month)[1]
+            end_date = date(today.year, today.month, end_day)
+            return start_date, end_date
         # quarterly
         quarter_start_month = ((today.month - 1) // 3) * 3 + 1
         start_date = date(today.year, quarter_start_month, 1)
-        return start_date, today
+        end_month = quarter_start_month + 2
+        end_day = monthrange(today.year, end_month)[1]
+        end_date = date(today.year, end_month, end_day)
+        return start_date, end_date
 
     def get_previous_period(self, period_type: str, start_date: date, end_date: date) -> Tuple[date, date]:
         """根据当前周期起止日期推算上一周期范围。"""

@@ -1,609 +1,132 @@
-# 当前周期 period_end 修正重构文档
+# 当前周期 `period_end` 语义修复方案
 
-## 执行摘要
+## 0. 执行摘要
 
-### 核心问题
+- **问题**：`PeriodCalculator.get_current_period()` 将 `period_end` 固定为“今天”，与历史周期（自然结束日）不一致，导致前端查询不到当前周期记录、同一周期数据每天变化。
+- **目标**：让当前周期的 `period_end` 回归“自然结束日”（可能是未来时间），与历史周期保持一致语义。
+- **关键调整**：
+  1. 修改 `get_current_period()` 返回自然周期（周日 / 月末 / 季末）。
+  2. 更新依赖当前周期的 API 与前端查询，允许 `period_end` 是未来日期。
+  3. 迁移既有聚合数据，将当前周期的 `period_end` 批量修正。
 
-当前周期的 `period_end` 设置为"今天"，导致：
-1. ❌ 语义不一致：历史周期是自然结束日期，当前周期是今天
-2. ❌ 数据不稳定：每天点击"统计当前周期"，`period_end` 都在变化
-3. ❌ 查询困难：前端查询时 `end_date = 今天`，无法查到 `period_end` 为未来日期的数据
-
-### 解决方案
-
-修改 `get_current_period()` 返回完整周期（`period_end` 为自然结束日期，可能是未来）：
-- 周统计：`period_end = 本周日`（可能是未来）
-- 月统计：`period_end = 本月最后一天`
-- 季度统计：`period_end = 本季度最后一天`
-
-### 关键收益
-
-- ✅ **语义一致**：所有周期使用相同的逻辑
-- ✅ **数据稳定**：`period_end` 固定，不会每天变化
-- ✅ **查询正确**：前端能正确查询到当前周期数据
-
-### 工作量
-
-- 预计时间：**3.5 小时**
-- 风险等级：**低**
-- 向后兼容：**需要数据迁移**
+预计工作量约 **4 小时**（含迁移脚本与测试），风险等级 **中低**。
 
 ---
 
-## 1. 问题分析
+## 1. 背景与现状
 
-### 1.1 当前实现
+| 周期 | `get_last_period()` | `get_current_period()`（现状） |
+|------|---------------------|--------------------------------|
+| weekly | 自然周（周一至周日） | 周一至“今天” |
+| monthly | 自然月 | 月初至“今天” |
+| quarterly | 自然季 | 季初至“今天” |
 
-**后端** `app/services/aggregation/calculator.py`：
-
-```python
-def get_current_period(self, period_type: str) -> Tuple[date, date]:
-    """获取当前周期(包含至今天)的起止日期"""
-    today = self.today()
-    
-    if period_type == "daily":
-        return today, today
-    
-    if period_type == "weekly":
-        start_date = today - timedelta(days=today.weekday())  # 本周一
-        return start_date, today  # ❌ 结束日期是今天
-    
-    if period_type == "monthly":
-        start_date = date(today.year, today.month, 1)  # 本月1日
-        return start_date, today  # ❌ 结束日期是今天
-    
-    if period_type == "quarterly":
-        quarter_start_month = ((today.month - 1) // 3) * 3 + 1
-        start_date = date(today.year, quarter_start_month, 1)
-        return start_date, today  # ❌ 结束日期是今天
-```
-
-### 1.2 问题示例
-
-**假设今天是 2024-10-31（周四）**：
-
-| 周期类型 | period_start | period_end | 问题 |
-|---------|--------------|------------|------|
-| 当前周 | 2024-10-28 (周一) | 2024-10-31 (今天) | ❌ 应该是 2024-11-03 (周日) |
-| 当前月 | 2024-10-01 (1日) | 2024-10-31 (今天) | ✅ 正好是月末 |
-| 上周 | 2024-10-21 (周一) | 2024-10-27 (周日) | ✅ 完整周期 |
-
-### 1.3 导致的问题
-
-**问题1：语义不一致**
-
-```sql
--- 数据库中的数据
-SELECT period_type, period_start, period_end FROM database_size_aggregations;
-
--- 结果：
--- weekly | 2024-10-21 | 2024-10-27  -- 上周（周日）
--- weekly | 2024-10-28 | 2024-10-31  -- 当前周（周四）❌ 不一致
-```
-
-**问题2：数据不稳定**
-
-每天点击"统计当前周期"：
-- 周一：`period_end = 2024-10-28`
-- 周二：`period_end = 2024-10-29`
-- 周三：`period_end = 2024-10-30`
-- 周四：`period_end = 2024-10-31`
-
-同一个周期，`period_end` 每天都在变化！
-
-**问题3：前端查询被过滤**
-
-前端查询逻辑：
-```javascript
-params.end_date = "2024-10-31";  // 今天
-```
-
-后端查询：
-```python
-query.filter(DatabaseSizeAggregation.period_end <= end_date)
-```
-
-如果 `period_end = 2024-11-03`（周日，未来）：
-- `2024-11-03 > 2024-10-31` ❌ **被过滤掉了！**
+### 已观察的问题
+1. **语义冲突**：同一 `period_type` 在历史与当前两个维度上含义不同。
+2. **数据抖动**：每天触发“统计当前周期”，同一记录的 `period_end` 都会更新为当天日期。
+3. **查询缺口**：前端以 `end_date=today` 过滤，无法拿到 `period_end > today` 的记录。
 
 ---
 
-## 2. 解决方案
+## 2. 目标状态
 
-### 2.1 修改后端 `get_current_period()`
+| 周期 | 新的 `get_current_period()` | 备注 |
+|------|-----------------------------|------|
+| weekly | 本周一 ～ 本周日（可能未来） | 与历史周一致 |
+| monthly | 本月 1 日 ～ 本月最后一天 | 与历史月一致 |
+| quarterly | 本季度首日 ～ 季末日 | 与历史季一致 |
 
-**文件**：`app/services/aggregation/calculator.py`
-
-```python
-def get_current_period(self, period_type: str) -> Tuple[date, date]:
-    """
-    获取当前周期的完整起止日期
-    
-    注意：period_end 是周期的自然结束日期，可能是未来日期
-    例如：今天是周四，本周的 period_end 是周日（未来）
-    """
-    normalized = self._normalize(period_type)
-    today = self.today()
-    
-    if normalized == "daily":
-        return today, today
-    
-    if normalized == "weekly":
-        # 本周一
-        start_date = today - timedelta(days=today.weekday())
-        # 本周日（可能是未来）
-        end_date = start_date + timedelta(days=6)
-        return start_date, end_date
-    
-    if normalized == "monthly":
-        # 本月1日
-        start_date = date(today.year, today.month, 1)
-        # 本月最后一天
-        end_day = monthrange(today.year, today.month)[1]
-        end_date = date(today.year, today.month, end_day)
-        return start_date, end_date
-    
-    if normalized == "quarterly":
-        # 本季度第一个月
-        quarter_start_month = ((today.month - 1) // 3) * 3 + 1
-        start_date = date(today.year, quarter_start_month, 1)
-        # 本季度最后一天
-        end_month = quarter_start_month + 2
-        end_day = monthrange(today.year, end_month)[1]
-        end_date = date(today.year, end_month, end_day)
-        return start_date, end_date
-```
-
-### 2.2 修改前端查询逻辑
-
-**文件**：`app/static/js/common/capacity_stats/manager.js`
-
-#### 修改1：添加计算当前周期结束日期的函数
-
-```javascript
-/**
- * 计算当前周期的自然结束日期（可能是未来）
- */
-function getCurrentPeriodEnd(periodType) {
-  const today = new Date();
-  const normalizedPeriod = (periodType || "daily").toLowerCase();
-  
-  switch (normalizedPeriod) {
-    case "daily":
-      return today;
-    
-    case "weekly":
-      // 本周日
-      const dayOfWeek = today.getDay();
-      const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
-      const sunday = new Date(today);
-      sunday.setDate(today.getDate() + daysUntilSunday);
-      return sunday;
-    
-    case "monthly":
-      // 本月最后一天
-      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      return lastDay;
-    
-    case "quarterly":
-      // 本季度最后一天
-      const currentMonth = today.getMonth();
-      const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
-      const quarterEndMonth = quarterStartMonth + 2;
-      const quarterEnd = new Date(today.getFullYear(), quarterEndMonth + 1, 0);
-      return quarterEnd;
-    
-    default:
-      return today;
-  }
-}
-```
-
-#### 修改2：修改 `calculateDateRange` 函数
-
-```javascript
-function calculateDateRange(periodType, periods) {
-  const normalizedPeriod = (periodType || "daily").toLowerCase();
-  const count = Math.max(1, Number(periods) || 1);
-  
-  // 结束日期：当前周期的自然结束日期（可能是未来）
-  const endDate = getCurrentPeriodEnd(normalizedPeriod);
-  
-  // 开始日期：向前推N个周期
-  const startDate = new Date(endDate);
-  
-  switch (normalizedPeriod) {
-    case "weekly":
-      startDate.setDate(endDate.getDate() - count * 7);
-      break;
-    case "monthly":
-      startDate.setMonth(endDate.getMonth() - count);
-      break;
-    case "quarterly":
-      startDate.setMonth(endDate.getMonth() - count * 3);
-      break;
-    default:  // daily
-      startDate.setDate(endDate.getDate() - count);
-  }
-  
-  return {
-    startDate: formatDate(startDate),
-    endDate: formatDate(endDate),
-  };
-}
-```
-
-### 2.3 数据迁移
-
-**文件**：`migrations/versions/fix_current_period_end.py`
-
-```python
-"""修正当前周期的 period_end
-
-Revision ID: fix_current_period_end
-Revises: previous_revision
-Create Date: 2024-10-31
-"""
-
-from alembic import op
-import sqlalchemy as sa
-from datetime import date, timedelta
-from calendar import monthrange
-
-
-def upgrade():
-    # 更新周统计的 period_end
-    op.execute("""
-        UPDATE database_size_aggregations
-        SET period_end = period_start + INTERVAL '6 days'
-        WHERE period_type = 'weekly'
-          AND period_end != period_start + INTERVAL '6 days'
-    """)
-    
-    op.execute("""
-        UPDATE instance_size_aggregations
-        SET period_end = period_start + INTERVAL '6 days'
-        WHERE period_type = 'weekly'
-          AND period_end != period_start + INTERVAL '6 days'
-    """)
-    
-    # 更新月统计的 period_end
-    op.execute("""
-        UPDATE database_size_aggregations
-        SET period_end = (
-            DATE_TRUNC('month', period_start) + INTERVAL '1 month' - INTERVAL '1 day'
-        )::date
-        WHERE period_type = 'monthly'
-          AND period_end != (
-              DATE_TRUNC('month', period_start) + INTERVAL '1 month' - INTERVAL '1 day'
-          )::date
-    """)
-    
-    op.execute("""
-        UPDATE instance_size_aggregations
-        SET period_end = (
-            DATE_TRUNC('month', period_start) + INTERVAL '1 month' - INTERVAL '1 day'
-        )::date
-        WHERE period_type = 'monthly'
-          AND period_end != (
-              DATE_TRUNC('month', period_start) + INTERVAL '1 month' - INTERVAL '1 day'
-          )::date
-    """)
-    
-    # 更新季度统计的 period_end
-    op.execute("""
-        UPDATE database_size_aggregations
-        SET period_end = (
-            DATE_TRUNC('quarter', period_start) + INTERVAL '3 months' - INTERVAL '1 day'
-        )::date
-        WHERE period_type = 'quarterly'
-          AND period_end != (
-              DATE_TRUNC('quarter', period_start) + INTERVAL '3 months' - INTERVAL '1 day'
-          )::date
-    """)
-    
-    op.execute("""
-        UPDATE instance_size_aggregations
-        SET period_end = (
-            DATE_TRUNC('quarter', period_start) + INTERVAL '3 months' - INTERVAL '1 day'
-        )::date
-        WHERE period_type = 'quarterly'
-          AND period_end != (
-              DATE_TRUNC('quarter', period_start) + INTERVAL '3 months' - INTERVAL '1 day'
-          )::date
-    """)
-
-
-def downgrade():
-    # 回滚：将 period_end 改回今天（不推荐）
-    pass
-```
+后端与前端统一理解：**`period_end` 表示该周期的自然结束日期，可能尚未到达。**
 
 ---
 
-## 3. 代码对比
+## 3. 实施方案
 
-### 3.1 后端对比
+### 3.1 后端逻辑调整
+- **文件**：`app/services/aggregation/calculator.py`
+- **改动**：
+  - 重写 `get_current_period()`，各周期均返回自然结束日；
+  - 给 docstring 补充“可能是未来日期”的说明；
+  - 保持 `get_last_period()` / `get_previous_period()` 不变。
+- **影响范围**：
+  - `DatabaseSizeAggregationService.aggregate_current_period()` 等所有“当前周期”调用路径；
+  - 依赖 `PeriodCalculator` 的其他服务自动继承新行为。
 
-**重构前**：
-```python
-def get_current_period(self, period_type: str):
-    if period_type == "weekly":
-        start_date = today - timedelta(days=today.weekday())
-        return start_date, today  # ❌ 今天
-```
+### 3.2 API 与服务层
+- 复核当前周期 API（如 `/api/aggregate-current`）的响应体，确认新增的 `period_end` 语义无需额外字段即可告知调用方。
+- 调整任何基于“今天”写死过滤条件的查询逻辑（例如 `<= today`），改为根据返回的 `period_end` 进行比较或直接接受未来日期。
+- 若有缓存标识等衍生逻辑，也需改为使用自然结束日期。
 
-**重构后**：
-```python
-def get_current_period(self, period_type: str):
-    if period_type == "weekly":
-        start_date = today - timedelta(days=today.weekday())
-        end_date = start_date + timedelta(days=6)  # ✅ 周日（可能是未来）
-        return start_date, end_date
-```
+### 3.3 前端与调用方
+- “统计当前周期”按钮在调用 API 时直接使用后端返回的 `period_start/end`，避免自行裁剪。
+- 查询接口（列表、图表）允许 `period_end` 大于“今天”；若需要筛选“已结束周期”，应显式以 `period_end <= today` 作为条件，而非默认行为。
+- 更新使用说明或客户端文档，提示 `period_end` 可能是未来日期。
 
-### 3.2 前端对比
-
-**重构前**：
-```javascript
-function calculateDateRange(periodType, periods) {
-    const endDate = new Date();  // ❌ 今天
-    // ...
-}
-```
-
-**重构后**：
-```javascript
-function calculateDateRange(periodType, periods) {
-    const endDate = getCurrentPeriodEnd(periodType);  // ✅ 周期结束日期（可能是未来）
-    // ...
-}
-```
-
-### 3.3 数据对比
-
-**重构前**（今天是 2024-10-31 周四）：
-```sql
--- 当前周
-period_start: 2024-10-28 (周一)
-period_end:   2024-10-31 (今天) ❌
-```
-
-**重构后**：
-```sql
--- 当前周
-period_start: 2024-10-28 (周一)
-period_end:   2024-11-03 (周日) ✅
-```
+### 3.4 数据迁移
+- **脚本思路**：
+  1. 找出 `period_end = CURRENT_DATE` 且 `period_type` 为 `weekly/monthly/quarterly` 的记录；
+  2. 根据 `period_type` 与 `period_start` 计算其自然结束日；
+  3. 批量更新 `period_end` 和 `updated_at`；
+  4. 对比更新前后的记录数与 hash 校验，确保无遗漏。
+- **执行顺序**：先在预发环境验证（含回归查询结果），再在生产执行。
+- **回滚准备**：保留迁移前的 `period_end` 快照，必要时恢复。
 
 ---
 
-## 4. 实施步骤
+## 4. 验证计划
 
-### 步骤1：修改后端（1小时）
-
-1. 修改 `app/services/aggregation/calculator.py`
-2. 运行单元测试验证
-
-```bash
-make test -k test_period_calculator
-```
-
-### 步骤2：修改前端（1小时）
-
-1. 在 `app/static/js/common/capacity_stats/manager.js` 中添加 `getCurrentPeriodEnd()` 函数
-2. 修改 `calculateDateRange()` 函数
-3. 在浏览器中测试
-
-### 步骤3：数据迁移（0.5小时）
-
-1. 创建迁移脚本
-2. 在测试环境执行
-3. 验证数据正确性
-
-```bash
-# 创建迁移
-flask db revision -m "fix_current_period_end"
-
-# 执行迁移
-flask db upgrade
-
-# 验证
-psql -d database_name -c "
-SELECT period_type, period_start, period_end, 
-       period_end - period_start as duration
-FROM database_size_aggregations
-WHERE period_type = 'weekly'
-ORDER BY period_start DESC
-LIMIT 10;
-"
-```
-
-### 步骤4：测试验证（1小时）
-
-1. 点击"统计当前周期"按钮
-2. 检查数据库中的 `period_end`
-3. 刷新页面，检查图表是否显示
-4. 切换不同周期类型测试
+| 项目 | 验证点 |
+|------|--------|
+| 单元测试 | `PeriodCalculator.get_current_period()` 覆盖各周期、闰月、跨年场景 |
+| 集成测试 | 手动触发 `/api/aggregate-current`，确认返回 `period_end` 为自然结束日，并且数据库写入稳定 |
+| 回归测试 | 历史周期接口不受影响；查询带 `period_end > today` 时仍能拿到当前周期数据 |
+| 数据检查 | 迁移后抽样核对多条记录的 `period_end` 是否正确，确认不存在重复或缺失 |
 
 ---
 
-## 5. 验证方法
+## 5. 风险与缓解
 
-### 5.1 后端验证
-
-```python
-# 测试脚本
-from app.services.aggregation.calculator import PeriodCalculator
-from datetime import date
-
-calc = PeriodCalculator()
-
-# 假设今天是 2024-10-31（周四）
-start, end = calc.get_current_period("weekly")
-print(f"当前周: {start} 到 {end}")
-# 期望输出: 当前周: 2024-10-28 到 2024-11-03
-
-assert end.weekday() == 6, "周日应该是周末"
-assert end > date.today(), "period_end 应该是未来日期"
-```
-
-### 5.2 前端验证
-
-```javascript
-// 在浏览器控制台
-const periodEnd = getCurrentPeriodEnd("weekly");
-console.log("当前周结束日期:", periodEnd);
-// 期望：本周日的日期
-
-const range = calculateDateRange("weekly", 7);
-console.log("查询范围:", range);
-// 期望：startDate 是7周前，endDate 是本周日
-```
-
-### 5.3 数据验证
-
-```sql
--- 检查当前周期数据
-SELECT 
-    period_type,
-    period_start,
-    period_end,
-    EXTRACT(DOW FROM period_end) as day_of_week,  -- 0=周日
-    period_end - period_start as duration
-FROM database_size_aggregations
-WHERE period_type = 'weekly'
-  AND period_start >= CURRENT_DATE - INTERVAL '2 weeks'
-ORDER BY period_start DESC;
-
--- 期望结果：
--- weekly | 2024-10-28 | 2024-11-03 | 0 | 6  -- 当前周（周日）
--- weekly | 2024-10-21 | 2024-10-27 | 0 | 6  -- 上周（周日）
-```
+| 风险 | 影响 | 缓解措施 |
+|------|------|----------|
+| 迁移脚本更新错误 | 高 | 先做 dry-run，逐批提交；生成差异报告 |
+| 前端漏改过滤逻辑 | 中 | 提供调试脚本及 QA 用例，验证“当前周期”视图 |
+| 第三方调用方未同步 | 中 | 发布前邮件/公告通知，注明 `period_end` 变更 |
+| 时区差异导致自然结束日不一致 | 低 | 确保所有计算使用 `time_utils.now_china()` |
 
 ---
 
-## 6. 影响分析
+## 6. 回滚策略
 
-### 6.1 受影响的组件
-
-| 组件 | 影响类型 | 说明 |
-|------|---------|------|
-| `PeriodCalculator` | 修改逻辑 | `get_current_period()` 返回值变化 |
-| 前端查询逻辑 | 修改逻辑 | `calculateDateRange()` 计算方式变化 |
-| 数据库数据 | 需要迁移 | 更新现有的 `period_end` |
-| API 端点 | 无影响 | 接口不变 |
-| 定时任务 | 无影响 | 使用 `get_last_period()` |
-
-### 6.2 向后兼容性
-
-⚠️ **需要数据迁移**：
-- 现有的当前周期数据需要更新 `period_end`
-- 迁移后，旧的查询逻辑可能查不到数据
-
-✅ **API 兼容**：
-- 所有 API 接口保持不变
-- 返回值格式不变
-
-### 6.3 性能影响
-
-✅ **无性能影响**：
-- 只是修改日期计算逻辑
-- 查询条件不变
-- 不增加额外查询
+1. **代码**：通过 `git revert` 回退 `PeriodCalculator` 及相关调用改动。
+2. **数据**：迁移前备份（或导出）受影响记录；回滚时根据备份恢复 `period_end` 与 `updated_at`。
+3. **前端**：若上线后暂时无法同步调整，可临时在查询层加入 fallback（`min(period_end, today)`），但必须在最终修复后移除。
 
 ---
 
-## 7. 风险评估
+## 7. 时间评估
 
-| 风险 | 影响 | 概率 | 缓解措施 |
-|------|------|------|----------|
-| 数据迁移失败 | 高 | 低 | 先在测试环境验证，准备回滚脚本 |
-| 前端查询错误 | 中 | 低 | 充分测试，灰度发布 |
-| 时区问题 | 中 | 低 | 确保前后端使用相同时区 |
-| 旧数据不一致 | 低 | 中 | 数据迁移脚本处理 |
-
----
-
-## 8. 回滚方案
-
-### 代码回滚
-
-```bash
-# 回退到重构前的版本
-git revert <commit-hash>
-```
-
-### 数据回滚
-
-```sql
--- 将 period_end 改回今天（不推荐，会导致数据不一致）
-UPDATE database_size_aggregations
-SET period_end = CURRENT_DATE
-WHERE period_type IN ('weekly', 'monthly', 'quarterly')
-  AND period_end > CURRENT_DATE;
-```
+| 任务 | 预计耗时 |
+|------|----------|
+| 代码改动与单元测试 | 1.5 h |
+| 数据迁移脚本 & 预发验证 | 1.0 h |
+| 前端/查询逻辑梳理与回归 | 1.0 h |
+| 预留缓冲（沟通、灰度观察） | 0.5 h |
 
 ---
 
-## 9. 验收标准
+## 8. 附录：示例对比
 
-### 功能验收
+假设今天为 2024-10-31（周四）：
 
-- [ ] 后端 `get_current_period()` 返回正确的周期结束日期
-- [ ] 前端查询参数包含正确的 `end_date`
-- [ ] 数据库中的 `period_end` 已更新
-- [ ] 图表正确显示当前周期数据
-- [ ] 所有周期类型（daily/weekly/monthly/quarterly）都正常工作
-
-### 数据验收
-
-- [ ] 周统计的 `period_end` 是周日
-- [ ] 月统计的 `period_end` 是月末
-- [ ] 季度统计的 `period_end` 是季末
-- [ ] 历史数据未受影响
-
-### 测试验收
-
-- [ ] 单元测试通过
-- [ ] 集成测试通过
-- [ ] 手动测试通过
-- [ ] 回归测试通过
+| 周期 | 旧实现结果 | 新实现结果 | 说明 |
+|------|------------|------------|------|
+| weekly | `2024-10-28` ～ `2024-10-31` | `2024-10-28` ～ `2024-11-03` | 周日是未来日期 |
+| monthly | `2024-10-01` ～ `2024-10-31` | 不变 | 10 月末恰好是今天 |
+| quarterly | `2024-10-01` ～ `2024-10-31` | `2024-10-01` ～ `2024-12-31` | 季度自然结束日 |
 
 ---
 
-## 10. 总结
-
-### 问题总结
-
-**核心问题**：当前周期的 `period_end` 设置为"今天"，导致语义不一致、数据不稳定、查询困难。
-
-### 解决方案总结
-
-**修改 `get_current_period()` 返回完整周期**：
-- `period_end` 改为周期的自然结束日期（可能是未来）
-- 前端查询时 `end_date` 也使用周期结束日期
-- 数据迁移更新现有数据
-
-### 预期收益
-
-- ✅ **语义一致**：所有周期使用相同的逻辑
-- ✅ **数据稳定**：`period_end` 固定，不会每天变化
-- ✅ **查询正确**：前端能正确查询到当前周期数据
-- ✅ **易于理解**：当前周期和历史周期没有区别
-
-### 核心价值
-
-**统一的周期表示**：
-```
-所有周期（历史和当前）都使用相同的表示方式：
-- period_start: 周期开始日期
-- period_end: 周期自然结束日期（可能是未来）
-```
-
----
-
-**文档版本**: 1.0  
-**创建日期**: 2024-10-31  
-**作者**: Kiro AI Assistant  
-**审核状态**: 待审核
+**文档版本**: 2.0  
+**最后更新**: 2024-11-02  
+**作者**: Codex  
+**状态**: 待审核

@@ -25,6 +25,7 @@
 
     window.instanceCapacityStatsManager = new window.CapacityStats.Manager({
       labelExtractor,
+      scope: "instance",
       api: {
         summaryEndpoint: "/instance_stats/api/instances/aggregations/summary",
         trendEndpoint: "/instance_stats/api/instances/aggregations",
