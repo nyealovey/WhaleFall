@@ -306,8 +306,8 @@ class SQLServerConnection(DatabaseConnection):
             error_message = str(e)
             
             # 使用诊断工具分析错误
-            from app.utils.sqlserver_connection_diagnostics import sqlserver_diagnostics
-            diagnosis = sqlserver_diagnostics.diagnose_connection_error(
+            from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
+            diagnosis = sqlserver_connection_utils.diagnose_connection_error(
                 error_message, self.instance.host, self.instance.port
             )
             

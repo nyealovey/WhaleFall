@@ -22,11 +22,11 @@
                 {% endif %}
             </div>
             <div class="btn-group">
-                <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-light">
+                <a href="{{ url_for('instance.statistics') }}" class="btn btn-outline-light">
                     <i class="fas fa-chart-bar me-2"></i>实例统计
                 </a>
                 {% if current_user.role == 'admin' %}
-                <a href="{{ url_for('instances.create') }}" class="btn btn-light">
+                <a href="{{ url_for('instance.create') }}" class="btn btn-light">
                     <i class="fas fa-plus me-2"></i>添加实例
                 </a>
                 {% endif %}
@@ -37,7 +37,7 @@
 
     <!-- 搜索和筛选 -->
     <div class="instances-page">
-        {% call filter_card(form_id='instance-filter-form', action=url_for('instances.index')) %}
+        {% call filter_card(form_id='instance-filter-form', action=url_for('instance.index')) %}
             {{ search_input(value=search) }}
             {{ db_type_filter(database_type_options, db_type) }}
             {{ status_active_filter(status_options, status) }}
@@ -159,11 +159,11 @@
                         <td>
                             {% if current_user.role == 'admin' %}
                             <div class="btn-group btn-group-sm" role="group">
-                                <a href="{{ url_for('instances.detail', instance_id=instance.id) }}"
+                                <a href="{{ url_for('instance.detail', instance_id=instance.id) }}"
                                    class="btn btn-outline-primary" title="查看详情">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ url_for('instances.edit', instance_id=instance.id) }}"
+                                <a href="{{ url_for('instance.edit', instance_id=instance.id) }}"
                                    class="btn btn-outline-warning" title="编辑">
                                     <i class="fas fa-edit"></i>
                                 </a>
@@ -174,7 +174,7 @@
                             </div>
                             {% else %}
                             <div class="btn-group btn-group-sm" role="group">
-                                <a href="{{ url_for('instances.detail', instance_id=instance.id) }}"
+                                <a href="{{ url_for('instance.detail', instance_id=instance.id) }}"
                                    class="btn btn-outline-primary" title="查看详情">
                                     <i class="fas fa-eye"></i>
                                 </a>
@@ -200,7 +200,7 @@
             <ul class="pagination justify-content-center">
                 {% if instances.has_prev %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('instances.index', page=instances.prev_num, search=search, db_type=db_type, status=status, tags=','.join(selected_tags)) }}">
+                    <a class="page-link" href="{{ url_for('instance.index', page=instances.prev_num, search=search, db_type=db_type, status=status, tags=','.join(selected_tags)) }}">
                         上一页
                     </a>
                 </li>
@@ -210,7 +210,7 @@
                     {% if page_num %}
                         {% if page_num != instances.page %}
                         <li class="page-item">
-                            <a class="page-link" href="{{ url_for('instances.index', page=page_num, search=search, db_type=db_type, status=status, tags=','.join(selected_tags)) }}">
+                            <a class="page-link" href="{{ url_for('instance.index', page=page_num, search=search, db_type=db_type, status=status, tags=','.join(selected_tags)) }}">
                                 {{ page_num }}
                             </a>
                         </li>
@@ -228,7 +228,7 @@
 
                 {% if instances.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('instances.index', page=instances.next_num, search=search, db_type=db_type, status=status, tags=','.join(selected_tags)) }}">
+                    <a class="page-link" href="{{ url_for('instance.index', page=instances.next_num, search=search, db_type=db_type, status=status, tags=','.join(selected_tags)) }}">
                         下一页
                     </a>
                 </li>
@@ -243,7 +243,7 @@
             <h5 class="text-muted">暂无数据库实例</h5>
             {% if current_user.role == 'admin' %}
             <p class="text-muted">点击"添加实例"按钮创建第一个数据库实例</p>
-            <a href="{{ url_for('instances.create') }}" class="btn btn-primary">
+            <a href="{{ url_for('instance.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>添加实例
             </a>
             {% else %}

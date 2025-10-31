@@ -1,7 +1,4 @@
-"""
-鲸落 - 缓存管理器
-提供统一的缓存接口，支持Flask-Caching缓存操作
-"""
+"""鲸落 - 缓存服务，提供统一的 Flask-Caching 接口。"""
 
 import hashlib
 import json
@@ -15,11 +12,11 @@ from flask_caching import Cache
 from app.config import Config
 from app.utils.structlog_config import get_logger
 
-logger = get_logger("cache_manager")
+logger = get_logger("cache_service")
 
 
-class CacheManager:
-    """缓存管理器"""
+class CacheService:
+    """缓存服务"""
 
     def __init__(self, cache: Cache = None) -> None:
         self.cache = cache
@@ -359,12 +356,20 @@ class CacheManager:
 
 
 
-# 全局缓存管理器实例
-cache_manager = None
+# 全局缓存服务实例
+cache_service: CacheService | None = None
+cache_manager: CacheService | None = None  # 向后兼容
 
 
-def init_cache_manager(cache: Cache) -> None:
-    """初始化缓存管理器"""
-    global cache_manager
-    cache_manager = CacheManager(cache)
-    logger.info("缓存管理器初始化完成")
+def init_cache_service(cache: Cache) -> CacheService:
+    """初始化缓存服务"""
+    global cache_service, cache_manager
+    cache_service = CacheService(cache)
+    cache_manager = cache_service
+    logger.info("缓存服务初始化完成")
+    return cache_service
+
+
+def init_cache_manager(cache: Cache) -> CacheService:
+    """兼容旧入口，内部调用新的初始化方法"""
+    return init_cache_service(cache)

@@ -15,7 +15,7 @@ from app.models.account_classification import (
 )
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
-from app.services.cache_manager import cache_manager
+from app.services.cache_service import cache_manager
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 

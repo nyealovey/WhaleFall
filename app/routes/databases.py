@@ -23,15 +23,13 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 from app.constants.filter_options import DATABASE_TYPES, PERIOD_TYPES
-from app.utils.filter_data import get_instance_options, get_database_options
+from app.utils.query_filter_utils import get_instance_options, get_database_options
 
 # 创建蓝图
-database_stats_bp = Blueprint('database_stats', __name__)
+databases_bp = Blueprint('databases', __name__)
 
-# 页面路由
-# 实例统计页面已移动到 instance_stats 模块中
 
-@database_stats_bp.route('/database', methods=['GET'])
+@databases_bp.route('/', methods=['GET'])
 @login_required
 @view_required
 def database_aggregations():
@@ -99,13 +97,9 @@ def database_aggregations():
         end_date=end_date
     )
 
-# 实例总大小API已移动到 instance_stats 模块中
 
 
-# 实例选项API已移动到 instance_stats 模块中
-
-
-@database_stats_bp.route('/api/instances/<int:instance_id>/database-sizes/summary', methods=['GET'])
+@databases_bp.route('/api/instances/<int:instance_id>/database-sizes/summary', methods=['GET'])
 @login_required
 @view_required
 def get_instance_database_summary(instance_id: int) -> Response:
@@ -117,7 +111,7 @@ def get_instance_database_summary(instance_id: int) -> Response:
     except Exception as exc:
         log_error(
             "获取实例数据库汇总信息失败",
-            module="database_stats",
+            module="databases",
             instance_id=instance_id,
             error=str(exc),
         )
@@ -197,7 +191,7 @@ def _build_instance_database_summary(instance_id: int) -> Dict[str, Any]:
     }
 
 
-@database_stats_bp.route('/api/instances/<int:instance_id>/databases', methods=['GET'])
+@databases_bp.route('/api/instances/<int:instance_id>/databases', methods=['GET'])
 @login_required
 @view_required
 def get_instance_databases(instance_id: int) -> Response:
@@ -217,7 +211,7 @@ def get_instance_databases(instance_id: int) -> Response:
     except Exception as exc:
         log_error(
             "获取实例数据库列表失败",
-            module="database_stats",
+            module="databases",
             instance_id=instance_id,
             error=str(exc),
         )
@@ -245,12 +239,7 @@ def get_instance_databases(instance_id: int) -> Response:
     return jsonify_unified_success(data=payload, message="实例数据库列表获取成功")
 
 
-# 实例聚合API已移动到 instance_stats 模块中
-
-
-# 实例聚合汇总API已移动到 instance_stats 模块中
-
-@database_stats_bp.route('/api/databases/aggregations', methods=['GET'])
+@databases_bp.route('/api/databases/aggregations', methods=['GET'])
 @login_required
 @view_required
 def get_databases_aggregations() -> Response:
@@ -295,7 +284,7 @@ def get_databases_aggregations() -> Response:
     except Exception as exc:
         log_error(
             "获取数据库统计聚合数据失败",
-            module="database_stats",
+            module="databases",
             error=str(exc),
         )
         raise SystemError("获取数据库统计聚合数据失败") from exc
@@ -401,7 +390,7 @@ def _fetch_database_aggregations(
     }
 
 
-@database_stats_bp.route('/api/databases/aggregations/summary', methods=['GET'])
+@databases_bp.route('/api/databases/aggregations/summary', methods=['GET'])
 @login_required
 @view_required
 def get_databases_aggregations_summary() -> Response:
@@ -432,7 +421,7 @@ def get_databases_aggregations_summary() -> Response:
     except Exception as exc:
         log_error(
             "获取数据库统计聚合汇总信息失败",
-            module="database_stats",
+            module="databases",
             error=str(exc),
         )
         raise SystemError("获取数据库统计聚合汇总信息失败") from exc

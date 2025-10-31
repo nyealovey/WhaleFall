@@ -17,7 +17,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 from app.constants.filter_options import DATABASE_TYPES, PERIOD_TYPES
-from app.utils.filter_data import get_instance_options
+from app.utils.query_filter_utils import get_instance_options
 
 # 创建蓝图
 instance_stats_bp = Blueprint('instance_stats', __name__)
@@ -169,8 +169,6 @@ def get_instance_options() -> Response:
         log_error("加载实例选项失败", module="instance_stats", error=str(exc))
         raise SystemError("加载实例选项失败") from exc
 
-
-# 数据库聚合API已移动到 database_stats 模块中
 
 @instance_stats_bp.route('/api/instances/aggregations', methods=['GET'])
 @login_required

@@ -84,31 +84,33 @@
 
 ---
 
-## 5. 数据库统计模块 (database_stats.py) - 数据库层面统计
+## 5. 数据库统计模块 (databases.py) - 数据库层面统计
 
 ### 页面路由
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/database_stats/instance` | GET | 实例统计聚合页面（数据库统计层面） |
-| `/database_stats/database` | GET | 数据库统计聚合页面（数据库统计层面） |
+| `/databases/instance` | GET | 实例统计聚合页面（数据库统计层面） |
+| `/databases/database` | GET | 数据库统计聚合页面（数据库统计层面） |
 
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/database_stats/api/instances/<int:instance_id>/database-sizes/total` | GET | 获取指定实例的数据库总大小 |
-| `/database_stats/api/instance-options` | GET | 获取用于表单的实例选项 |
-| `/database_stats/api/instances/<int:instance_id>/database-sizes` | GET | 获取指定实例的数据库大小历史数据 |
-| `/database_stats/api/instances/<int:instance_id>/database-sizes/summary` | GET | 获取指定实例的数据库大小汇总信息 |
-| `/database_stats/api/instances/<int:instance_id>/databases` | GET | 获取指定实例的数据库列表 |
-| `/database_stats/api/instances/aggregations` | GET | 获取实例聚合数据（数据库统计层面） |
-| `/database_stats/api/instances/aggregations/summary` | GET | 获取实例聚合汇总信息（数据库统计层面） |
+| `/databases/api/instances/<int:instance_id>/database-sizes/total` | GET | 获取指定实例的数据库总大小 |
+| `/databases/api/instance-options` | GET | 获取用于表单的实例选项 |
+| `/databases/api/instances/<int:instance_id>/database-sizes` | GET | 获取指定实例的数据库大小历史数据 |
+| `/databases/api/instances/<int:instance_id>/database-sizes/summary` | GET | 获取指定实例的数据库大小汇总信息 |
+| `/databases/api/instances/<int:instance_id>/databases` | GET | 获取指定实例的数据库列表 |
+| `/databases/api/instances/aggregations` | GET | 获取实例聚合数据（数据库统计层面） |
+| `/databases/api/instances/aggregations/summary` | GET | 获取实例聚合汇总信息（数据库统计层面） |
 
 ---
 
 ## 6. 实例统计模块 (instance_stats.py) - 实例层面统计
 
 ### 页面路由
-*此模块专注于实例层面统计，不包含页面路由*
+| 路径 | 方法 | 描述 |
+|------|------|------|
+| `/instance_stats/instance` | GET | 实例统计聚合页面（实例统计层面） |
 
 ### API 接口
 | 路径 | 方法 | 描述 |
@@ -209,7 +211,7 @@
 
 ---
 
-## 12. 实例管理模块 (instances.py)
+## 12. 实例管理模块 (instance.py)
 
 ### 页面路由
 | 路径 | 方法 | 描述 |
@@ -315,13 +317,13 @@
 
 ---
 
-## 17. 存储同步模块 (storage_sync.py)
+## 17. 存储同步模块 (storage.py)
 
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/storage_sync/api/instances/<int:id>/sync-capacity` | POST | 同步指定实例的数据库容量信息 |
-| `/storage_sync/api/instances/<int:id>/databases` | GET | 获取指定实例的数据库列表 |
+| `/storage/api/instances/<int:id>/sync-capacity` | POST | 同步指定实例的数据库容量信息 |
+| `/storage/api/instances/<int:id>/databases` | GET | 获取指定实例的数据库列表 |
 
 ---
 
@@ -464,7 +466,7 @@ connectionManager.batchTestConnections([1,2,3], {
 |----------|------|----------|
 | `/api/` | `/auth/api/csrf-token` | auth, dashboard, logs 等 |
 | `/module/api/` | `/health/api/basic` | health |
-| 混合使用 | `/instances/api/statistics` 和 `/instances/statistics` | instances, aggregations 等 |
+| 混合使用 | `/instances/api/statistics` 和 `/instances/statistics` | instance, aggregations 等 |
 
 ### 建议改进
 1. **统一 API 前缀**: 建议所有 API 使用 `/api/v1/` 前缀

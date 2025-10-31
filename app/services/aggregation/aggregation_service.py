@@ -19,8 +19,8 @@ from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance import Instance
 from app import db
 from app.services.aggregation.calculator import PeriodCalculator
-from app.services.aggregation.database_runner import DatabaseAggregationRunner
-from app.services.aggregation.instance_runner import InstanceAggregationRunner
+from app.services.aggregation.database_aggregation_runner import DatabaseAggregationRunner
+from app.services.aggregation.instance_aggregation_runner import InstanceAggregationRunner
 from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
 
 

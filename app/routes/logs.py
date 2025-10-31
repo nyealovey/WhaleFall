@@ -19,7 +19,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 from app.constants.filter_options import LOG_LEVELS, TIME_RANGES
-from app.utils.filter_data import get_log_modules as load_log_modules
+from app.utils.query_filter_utils import get_log_modules as load_log_modules
 
 # 创建蓝图
 logs_bp = Blueprint("logs", __name__)

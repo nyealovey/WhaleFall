@@ -8,7 +8,7 @@ from app import create_app, db
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.constants import SyncStatus, TaskStatus
 from app.models.instance import Instance
-from app.services.account_sync_adapters.account_sync_service import account_sync_service
+from app.services.account_sync_service import account_sync_service
 from app.services.sync_session_service import sync_session_service
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils

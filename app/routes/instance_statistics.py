@@ -11,13 +11,13 @@ from app import db
 from app.errors import SystemError
 from app.constants import TaskStatus, FlashCategory
 from app.models.instance import Instance
-from app.routes.instances import instances_bp
+from app.routes.instance import instance_bp
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error
 
 
-@instances_bp.route("/statistics")
+@instance_bp.route("/statistics")
 @login_required
 @view_required
 def statistics() -> str:
@@ -30,7 +30,7 @@ def statistics() -> str:
     return render_template("instances/statistics.html", stats=stats)
 
 
-@instances_bp.route("/api/statistics")
+@instance_bp.route("/api/statistics")
 @login_required
 @view_required
 def api_statistics() -> Response:

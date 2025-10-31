@@ -20,7 +20,7 @@
 - **状态**: ✅ **正常工作**
 
 ### 1.2 容量统计(数据库)页面
-- **路由**: `/database_stats/database_aggregations`
+- **路由**: `/databases/database_aggregations`
 - **模板**: `app/templates/database_sizes/database_aggregations.html`
 - **脚本**: `app/static/js/pages/capacity_stats/database_aggregations.js`
 - **聚合维度**: `scope: "database"`
@@ -103,13 +103,13 @@ window.databaseCapacityStatsManager = new window.CapacityStats.Manager({
   includeDatabaseName: true,
   scope: "database",  // ✅ 明确指定scope
   api: {
-    summaryEndpoint: "/database_stats/api/databases/aggregations/summary",
-    trendEndpoint: "/database_stats/api/databases/aggregations",
-    changeEndpoint: "/database_stats/api/databases/aggregations",
-    percentEndpoint: "/database_stats/api/databases/aggregations",
+    summaryEndpoint: "/databases/api/databases/aggregations/summary",
+    trendEndpoint: "/databases/api/databases/aggregations",
+    changeEndpoint: "/databases/api/databases/aggregations",
+    percentEndpoint: "/databases/api/databases/aggregations",
     calculateEndpoint: "/aggregations/api/aggregate-current",  // ✅ 统一API
     instanceOptionsEndpoint: "/instance_stats/api/instance-options",
-    databaseOptionsEndpoint: "/database_stats/api/instances",
+    databaseOptionsEndpoint: "/databases/api/instances",
   },
   // ... 其他配置
 });
@@ -579,7 +579,7 @@ async handleCalculateToday() {
    - ✅ 数据刷新正确
 
 #### 测试用例2: 数据库页面聚合
-1. 访问 `/database_stats/database_aggregations`
+1. 访问 `/databases/database_aggregations`
 2. 选择周期类型（日/周/月/季度）
 3. 点击"统计当前周期"
 4. 验证：

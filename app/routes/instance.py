@@ -16,7 +16,7 @@ from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.constants.filter_options import STATUS_ACTIVE_OPTIONS
-from app.utils.filter_data import get_active_tag_options
+from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.data_validator import (
     DataValidator,
@@ -29,7 +29,7 @@ from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
-instances_bp = Blueprint("instances", __name__)
+instance_bp = Blueprint("instance", __name__)
 
 
 def _delete_instance_related_data(instance_id: int, instance_name: str = None) -> dict:
@@ -121,7 +121,7 @@ def _delete_instance_related_data(instance_id: int, instance_name: str = None) -
         raise
 
 
-@instances_bp.route("/")
+@instance_bp.route("/")
 @login_required
 @view_required
 def index() -> str:
@@ -212,7 +212,7 @@ def index() -> str:
 
 
 
-@instances_bp.route("/api/create", methods=["POST"])
+@instance_bp.route("/api/create", methods=["POST"])
 @login_required
 @create_required
 @require_csrf
@@ -287,7 +287,7 @@ def create_api() -> Response:
         raise SystemError("创建实例失败") from e
 
 
-@instances_bp.route("/create", methods=["GET", "POST"])
+@instance_bp.route("/create", methods=["GET", "POST"])
 @login_required
 @create_required
 @require_csrf
@@ -384,7 +384,7 @@ def create() -> str | Response:
             )
 
             flash("实例创建成功！", FlashCategory.SUCCESS)
-            return redirect(url_for("instances.index"))
+            return redirect(url_for("instance.index"))
 
         except Exception as e:
             db.session.rollback()
@@ -422,7 +422,7 @@ def create() -> str | Response:
 
 
 
-@instances_bp.route("/api/<int:instance_id>/delete", methods=["POST"])
+@instance_bp.route("/api/<int:instance_id>/delete", methods=["POST"])
 @login_required
 @delete_required
 @require_csrf
@@ -479,7 +479,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
         raise SystemError("删除实例失败，请重试") from e
 
 
-@instances_bp.route("/api/batch-delete", methods=["POST"])
+@instance_bp.route("/api/batch-delete", methods=["POST"])
 @login_required
 @delete_required
 @require_csrf
@@ -590,7 +590,7 @@ def batch_delete() -> str | Response | tuple[Response, int]:
         raise SystemError("批量删除实例失败") from e
 
 
-@instances_bp.route("/api/batch-create", methods=["POST"])
+@instance_bp.route("/api/batch-create", methods=["POST"])
 @login_required
 @create_required
 @require_csrf
@@ -736,7 +736,7 @@ def _process_instances_data(
 
 
 # API路由
-@instances_bp.route("/api")
+@instance_bp.route("/api")
 @login_required
 @view_required
 def api_list() -> Response:
@@ -780,7 +780,7 @@ def api_list() -> Response:
 
 
 
-@instances_bp.route("/api/<int:instance_id>")
+@instance_bp.route("/api/<int:instance_id>")
 @login_required
 @view_required
 def api_detail(instance_id: int) -> Response:
@@ -792,7 +792,7 @@ def api_detail(instance_id: int) -> Response:
     )
 
 
-@instances_bp.route("/api/<int:instance_id>/accounts")
+@instance_bp.route("/api/<int:instance_id>/accounts")
 @login_required
 @view_required
 def api_get_accounts(instance_id: int) -> Response:
@@ -856,7 +856,7 @@ def api_get_accounts(instance_id: int) -> Response:
         raise SystemError("获取实例账户数据失败") from exc
 
 
-@instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
+@instance_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
 @login_required
 @view_required
 def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
@@ -924,5 +924,5 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
 
 
 # 注册额外路由模块
-from . import instances_detail  # noqa: E402
-from . import instances_stats  # noqa: E402
+from . import instance_detail  # noqa: E402
+from . import instance_statistics  # noqa: E402

@@ -16,8 +16,8 @@ from app.models.database_size_stat import DatabaseSizeStat
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.routes.database_stats import database_stats_bp
-from app.routes.instances import instances_bp
+from app.routes.databases import databases_bp
+from app.routes.instance import instance_bp
 from app.services.account_sync_adapters.account_data_manager import AccountDataManager
 from app.utils.data_validator import (
     DataValidator,
@@ -31,7 +31,7 @@ from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 
-@instances_bp.route("/<int:instance_id>")
+@instance_bp.route("/<int:instance_id>")
 @login_required
 @view_required
 def detail(instance_id: int) -> str | Response | tuple[Response, int]:
@@ -81,7 +81,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 
     return render_template("instances/detail.html", instance=instance, accounts=accounts)
 
-@instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
+@instance_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
 @login_required
 @view_required
 def get_account_change_history(instance_id: int, account_id: int) -> Response:
@@ -143,7 +143,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
         )
         raise SystemError("获取变更历史失败") from exc
 
-@instances_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
+@instance_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
 @login_required
 @update_required
 @require_csrf
@@ -225,7 +225,7 @@ def edit_api(instance_id: int) -> Response:
         raise SystemError("更新实例失败") from e
 
 
-@instances_bp.route("/<int:instance_id>/edit", methods=["GET", "POST"])
+@instance_bp.route("/<int:instance_id>/edit", methods=["GET", "POST"])
 @login_required
 @update_required
 @require_csrf
@@ -352,7 +352,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
             )
 
             flash("实例更新成功！", FlashCategory.SUCCESS)
-            return redirect(url_for("instances.detail", instance_id=instance_id))
+            return redirect(url_for("instance.detail", instance_id=instance_id))
 
         except Exception as e:
             db.session.rollback()
@@ -398,7 +398,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
 
 
 
-@database_stats_bp.route("/api/instances/<int:instance_id>/database-sizes", methods=["GET"])
+@databases_bp.route("/api/instances/<int:instance_id>/database-sizes", methods=["GET"])
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int) -> Response:
@@ -444,7 +444,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
     except Exception as exc:
         log_error(
             "获取实例数据库大小历史数据失败",
-            module="database_stats",
+            module="databases",
             instance_id=instance_id,
             error=str(exc),
         )
