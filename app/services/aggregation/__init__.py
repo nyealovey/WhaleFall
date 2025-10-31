@@ -2,6 +2,6 @@
 Aggregation service package.
 """
 
-from app.services.aggregation.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.services.aggregation.aggregation_service import AggregationService
 
-__all__ = ["DatabaseSizeAggregationService"]
+__all__ = ["AggregationService"]

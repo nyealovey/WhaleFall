@@ -10,7 +10,7 @@ from app import db
 from app.config import Config
 from app.constants import SyncStatus, TaskStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.services.aggregation.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.services.aggregation.aggregation_service import AggregationService
 from app.models.instance import Instance
 from app.utils.structlog_config import log_error, log_info, log_warning
 
@@ -62,7 +62,7 @@ def _run_period_aggregation(
     *,
     period: str,
     instances: List["Instance"],
-    service: DatabaseSizeAggregationService,
+    service: AggregationService,
     instance_func: Callable[[int], Dict[str, Any]],
     database_func: Callable[[], Dict[str, Any]],
     sync_logger,
@@ -182,7 +182,7 @@ def _run_period_aggregation(
 def run_daily_aggregation(
     *,
     instances: List["Instance"],
-    service: DatabaseSizeAggregationService,
+    service: AggregationService,
     sync_logger,
     instance_state: dict[int, dict[str, Any]],
 ) -> dict[str, Any]:
@@ -201,7 +201,7 @@ def run_daily_aggregation(
 def run_weekly_aggregation(
     *,
     instances: List["Instance"],
-    service: DatabaseSizeAggregationService,
+    service: AggregationService,
     sync_logger,
     instance_state: dict[int, dict[str, Any]],
 ) -> dict[str, Any]:
@@ -220,7 +220,7 @@ def run_weekly_aggregation(
 def run_monthly_aggregation(
     *,
     instances: List["Instance"],
-    service: DatabaseSizeAggregationService,
+    service: AggregationService,
     sync_logger,
     instance_state: dict[int, dict[str, Any]],
 ) -> dict[str, Any]:
@@ -239,7 +239,7 @@ def run_monthly_aggregation(
 def run_quarterly_aggregation(
     *,
     instances: List["Instance"],
-    service: DatabaseSizeAggregationService,
+    service: AggregationService,
     sync_logger,
     instance_state: dict[int, dict[str, Any]],
 ) -> dict[str, Any]:
@@ -378,7 +378,7 @@ def calculate_database_size_aggregations(
             started_record_ids: Set[int] = set()
             finalized_record_ids: Set[int] = set()
 
-            service = DatabaseSizeAggregationService()
+            service = AggregationService()
             instance_period_funcs: dict[str, Callable[[int], Dict[str, Any]]] = {
                 "daily": service.calculate_daily_aggregations_for_instance,
                 "weekly": service.calculate_weekly_aggregations_for_instance,
@@ -706,7 +706,7 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
                 }
             
             # 创建聚合服务
-            service = DatabaseSizeAggregationService()
+            service = AggregationService()
             
             # 计算实例的聚合数据
             result = service.calculate_instance_aggregations(instance_id)
@@ -760,7 +760,7 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
             )
             
             # 创建聚合服务
-            service = DatabaseSizeAggregationService()
+            service = AggregationService()
             
             # 计算指定周期的聚合数据
             result = service.calculate_period_aggregations(period_type, start_date, end_date)
@@ -888,4 +888,3 @@ def validate_aggregation_config() -> Dict[str, Any]:
             "message": f"验证聚合配置失败: {exc}",
             "error": str(exc),
         }
-

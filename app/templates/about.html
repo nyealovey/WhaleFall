@@ -24,8 +24,8 @@
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        鲸落是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。
-                        支持PostgreSQL、MySQL、SQL Server、Oracle等主流数据库，为数据库管理员提供统一的管理平台。
+                        鲸落是一套面向 DBA 的数据库资源管理平台，围绕实例、账户、容量与任务调度等日常运维场景提供统一入口。
+                        1.2.0 版本完成聚合服务的全面重构与冗余代码清理，让容量统计与同步会话流程更加稳定、可扩展。
                     </p>
                 </div>
             </div>
@@ -64,12 +64,12 @@
                             </ul>
                         </div>
                         <div class="col-md-6">
-                            <h6><i class="fas fa-chart-line text-danger me-2"></i>监控日志</h6>
+                            <h6><i class="fas fa-chart-line text-danger me-2"></i>监控与聚合</h6>
                             <ul class="list-unstyled small">
-                                <li>• 统一日志管理</li>
-                                <li>• 操作审计记录</li>
-                                <li>• 日志搜索和过滤</li>
-                                <li>• 日志导出功能</li>
+                                <li>• 统一日志与审计中心</li>
+                                <li>• 聚合服务（AggregationService）提供实例/数据库周期统计</li>
+                                <li>• 同步会话追踪 scope（instance/database）维度</li>
+                                <li>• 手动/定时聚合流程串行化与进度可视化</li>
                             </ul>
                         </div>
                     </div>
@@ -144,6 +144,18 @@
                     <h5 class="mb-0"><i class="fas fa-history me-2"></i>更新日志</h5>
                 </div>
                 <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    <!-- 版本 1.2.0 -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-tag me-2"></i>版本 1.2.0
+                            <small class="text-muted">(2025-10-31)</small>
+                        </h6>
+                        <p class="small text-muted mb-0">
+                            彻底清理冗余代码；
+                            重构大部分业务。
+                        </p>
+                    </div>
+
                     <!-- 版本 1.1.4 -->
                     <div class="mb-4">
                         <h6 class="text-primary">

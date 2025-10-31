@@ -365,9 +365,9 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
                     
                     # 更新统计聚合，确保图表与报表同步最新容量
                     try:
-                        from app.services.aggregation.database_size_aggregation_service import DatabaseSizeAggregationService
+                        from app.services.aggregation.aggregation_service import AggregationService
 
-                        aggregation_service = DatabaseSizeAggregationService()
+                        aggregation_service = AggregationService()
                         aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
                         aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
                     except Exception as agg_exc:  # pragma: no cover - 防御性日志

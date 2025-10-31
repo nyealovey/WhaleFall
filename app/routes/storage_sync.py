@@ -14,7 +14,7 @@ from app.constants.system_constants import SuccessMessages
 from app.constants import SyncStatus, TaskStatus
 from app.errors import NotFoundError, SystemError
 from app.models.instance import Instance
-from app.services.aggregation.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.services.aggregation.aggregation_service import AggregationService
 from app.services.capacity_sync_adapters.capacity_sync_service import DatabaseSizeCollectorService
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -71,7 +71,7 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
         instance_stat_updated = collector.update_instance_total_size()
 
         try:
-            aggregation_service = DatabaseSizeAggregationService()
+            aggregation_service = AggregationService()
             aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
             aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
         except Exception as exc:  # noqa: BLE001
