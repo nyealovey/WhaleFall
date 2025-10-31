@@ -6,11 +6,11 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 from app.errors import DatabaseError, NotFoundError, ValidationError
-from app.constants import DatabaseType, SyncStatus
-from app.utils.structlog_config import log_debug, log_error, log_info, log_warning
+from app.constants import SyncStatus
+from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 from sqlalchemy import func, and_, or_
 from sqlalchemy.exc import IntegrityError
@@ -18,7 +18,6 @@ from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance import Instance
 from app import db
-from app.services.partition_management_service import PartitionManagementService
 from app.services.aggregation.calculator import PeriodCalculator
 from app.services.aggregation.database_runner import DatabaseAggregationRunner
 from app.services.aggregation.instance_runner import InstanceAggregationRunner
@@ -33,7 +32,6 @@ class DatabaseSizeAggregationService:
     
     def __init__(self):
         self.period_types = ['daily', 'weekly', 'monthly', 'quarterly']
-        self._partition_cache: Set[Tuple[int, int]] = set()
         self.period_calculator = PeriodCalculator()
         self.database_runner = DatabaseAggregationRunner(
             ensure_partition_for_date=self._ensure_partition_for_date,
@@ -58,89 +56,38 @@ class DatabaseSizeAggregationService:
         return instance
 
     def _ensure_partition_for_date(self, target_date: date) -> None:
-        """
-        确保目标日期所在月份的分区已创建
-        """
-        bind = db.session.get_bind()
-        if not bind or bind.dialect.name != DatabaseType.POSTGRESQL:
-            return
-
-        month_key = (target_date.year, target_date.month)
-        if month_key in self._partition_cache:
-            log_debug(
-                "聚合分区已存在，使用缓存",
-                module=MODULE,
-                target_month=time_utils.format_china_time(target_date, "%Y-%m"),
-            )
-            return
-
-        try:
-            partition_service = PartitionManagementService()
-            partition_service.create_partition(target_date)
-            self._partition_cache.add(month_key)
-            log_info(
-                "聚合分区已确保存在",
-                module=MODULE,
-                target_month=time_utils.format_china_time(target_date, "%Y-%m"),
-            )
-        except DatabaseError as exc:  # pragma: no cover - 分区创建失败只记录告警
-            log_warning(
-                "创建聚合分区失败，将在后续重试",
-                module=MODULE,
-                target_month=time_utils.format_china_time(target_date, "%Y-%m"),
-                error=exc.message,
-            )
-        except Exception as exc:  # pragma: no cover - 记录警告不影响主流程
-            log_warning(
-                "创建聚合分区出现未知异常，将在后续重试",
-                module=MODULE,
-                target_month=time_utils.format_china_time(target_date, "%Y-%m"),
-                exception=exc,
-            )
+        """保留接口，当前环境无需分区预处理。"""
+        return None
 
     def _commit_with_partition_retry(self, aggregation, start_date: date) -> None:
-        """
-        提交聚合记录，如因缺少分区失败则尝试创建分区后重试
-        """
+        """提交聚合记录，移除分区重试逻辑。"""
         try:
             db.session.commit()
         except IntegrityError as exc:
             db.session.rollback()
             message = str(exc.orig) if hasattr(exc, "orig") else str(exc)
-            if "no partition of relation" not in message:
-                log_error(
-                    "提交聚合结果失败",
-                    module=MODULE,
-                    exception=exc,
-                    start_date=start_date.isoformat(),
-                )
-                raise DatabaseError(
-                    message="提交聚合结果失败",
-                    extra={"start_date": start_date.isoformat()},
-                ) from exc
-
-            log_warning(
-                "聚合提交缺少分区，尝试自动创建",
+            log_error(
+                "提交聚合结果失败",
                 module=MODULE,
+                exception=exc,
                 start_date=start_date.isoformat(),
             )
-            self._ensure_partition_for_date(start_date)
-
-            db.session.merge(aggregation)
-            try:
-                db.session.commit()
-            except Exception as retry_exc:  # pragma: no cover - 防御性捕获
-                db.session.rollback()
-                log_error(
-                    "分区创建后提交聚合结果仍失败",
-                    module=MODULE,
-                    exception=retry_exc,
-                    start_date=start_date.isoformat(),
-                )
-                raise DatabaseError(
-                    message="聚合结果提交失败",
-                    extra={"start_date": start_date.isoformat()},
-                ) from retry_exc
+            raise DatabaseError(
+                message="提交聚合结果失败",
+                extra={"start_date": start_date.isoformat(), "error": message},
+            ) from exc
+        except Exception as exc:  # pragma: no cover - 防御性捕获
+            db.session.rollback()
+            log_error(
+                "提交聚合结果出现未知异常",
+                module=MODULE,
+                exception=exc,
+                start_date=start_date.isoformat(),
+            )
+            raise DatabaseError(
+                message="提交聚合结果失败",
+                extra={"start_date": start_date.isoformat(), "error": str(exc)},
+            ) from exc
     
     def calculate_all_aggregations(self) -> Dict[str, Any]:
         """
@@ -339,36 +286,6 @@ class DatabaseSizeAggregationService:
             "instance_summary": instance_result,
         }
 
-    def calculate_daily_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """
-        为指定实例计算当日的数据库级聚合
-        单实例容量同步完成后调用，避免等待全量调度任务
-        """
-        instance = self._get_instance_or_raise(instance_id)
-        if not instance.is_active:
-            log_info(
-                "实例未激活，跳过日数据库聚合",
-                module=MODULE,
-                instance_id=instance.id,
-                instance_name=instance.name,
-            )
-            summary = InstanceSummary(
-                instance_id=instance.id,
-                instance_name=instance.name,
-                period_type="daily",
-                message=f"实例 {instance.name} 未激活，跳过聚合",
-            )
-            return summary.to_dict()
-
-        start_date, end_date = self.period_calculator.get_current_period("daily")
-        summary = self.database_runner.aggregate_database_period(
-            instance,
-            period_type="daily",
-            start_date=start_date,
-            end_date=end_date,
-        )
-        return summary.to_dict()
-    
     def calculate_weekly_aggregations(self) -> Dict[str, Any]:
         """
         计算每周统计聚合
@@ -407,6 +324,36 @@ class DatabaseSizeAggregationService:
         # 获取上个季度的数据（使用中国时区）
         start_date, end_date = self.period_calculator.get_last_period("quarterly")
         return self.database_runner.aggregate_period("quarterly", start_date, end_date)
+
+    def calculate_daily_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+        """
+        为指定实例计算当日的数据库级聚合
+        单实例容量同步完成后调用，避免等待全量调度任务
+        """
+        instance = self._get_instance_or_raise(instance_id)
+        if not instance.is_active:
+            log_info(
+                "实例未激活，跳过日数据库聚合",
+                module=MODULE,
+                instance_id=instance.id,
+                instance_name=instance.name,
+            )
+            summary = InstanceSummary(
+                instance_id=instance.id,
+                instance_name=instance.name,
+                period_type="daily",
+                message=f"实例 {instance.name} 未激活，跳过聚合",
+            )
+            return summary.to_dict()
+
+        start_date, end_date = self.period_calculator.get_current_period("daily")
+        summary = self.database_runner.aggregate_database_period(
+            instance,
+            period_type="daily",
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return summary.to_dict()
 
     def calculate_weekly_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
         """为指定实例计算周数据库级聚合"""
@@ -488,7 +435,7 @@ class DatabaseSizeAggregationService:
             end_date=end_date,
         )
         return summary.to_dict()
-    
+
     def calculate_daily_instance_aggregations(self) -> Dict[str, Any]:
         """
         计算每日实例统计聚合（定时任务用，处理今天的数据）
@@ -615,6 +562,54 @@ class DatabaseSizeAggregationService:
                 "skipped_periods": skipped_periods,
             },
         }
+
+    def calculate_daily_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+        """为指定实例计算日统计聚合"""
+        instance = self._get_instance_or_raise(instance_id)
+        start_date, end_date = self.period_calculator.get_current_period("daily")
+        summary = self.instance_runner.aggregate_instance_period(
+            instance,
+            period_type="daily",
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return summary.to_dict()
+
+    def calculate_weekly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+        """为指定实例计算周统计聚合"""
+        instance = self._get_instance_or_raise(instance_id)
+        start_date, end_date = self.period_calculator.get_last_period("weekly")
+        summary = self.instance_runner.aggregate_instance_period(
+            instance,
+            period_type="weekly",
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return summary.to_dict()
+
+    def calculate_monthly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+        """为指定实例计算月统计聚合"""
+        instance = self._get_instance_or_raise(instance_id)
+        start_date, end_date = self.period_calculator.get_last_period("monthly")
+        summary = self.instance_runner.aggregate_instance_period(
+            instance,
+            period_type="monthly",
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return summary.to_dict()
+
+    def calculate_quarterly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+        """为指定实例计算季度统计聚合"""
+        instance = self._get_instance_or_raise(instance_id)
+        start_date, end_date = self.period_calculator.get_last_period("quarterly")
+        summary = self.instance_runner.aggregate_instance_period(
+            instance,
+            period_type="quarterly",
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return summary.to_dict()
 
     def calculate_period_aggregations(self, period_type: str, start_date: date, end_date: date) -> Dict[str, Any]:
         """计算指定周期的聚合数据"""
@@ -779,75 +774,3 @@ class DatabaseSizeAggregationService:
             'calculated_at': aggregation.calculated_at.isoformat() if aggregation.calculated_at else None,
             'created_at': aggregation.created_at.isoformat() if aggregation.created_at else None
         }
-
-    def calculate_daily_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """为指定实例计算日统计聚合"""
-        instance = Instance.query.get(instance_id)
-        if not instance:
-            raise NotFoundError(
-                message="实例不存在",
-                extra={"instance_id": instance_id},
-            )
-
-        start_date, end_date = self.period_calculator.get_current_period("daily")
-        summary = self.instance_runner.aggregate_instance_period(
-            instance,
-            period_type="daily",
-            start_date=start_date,
-            end_date=end_date,
-        )
-        return summary.to_dict()
-    
-    def calculate_weekly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """为指定实例计算周统计聚合"""
-        instance = Instance.query.get(instance_id)
-        if not instance:
-            raise NotFoundError(
-                message="实例不存在",
-                extra={"instance_id": instance_id},
-            )
-
-        start_date, end_date = self.period_calculator.get_last_period("weekly")
-        summary = self.instance_runner.aggregate_instance_period(
-            instance,
-            period_type="weekly",
-            start_date=start_date,
-            end_date=end_date,
-        )
-        return summary.to_dict()
-    
-    def calculate_monthly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """为指定实例计算月统计聚合"""
-        instance = Instance.query.get(instance_id)
-        if not instance:
-            raise NotFoundError(
-                message="实例不存在",
-                extra={"instance_id": instance_id},
-            )
-
-        start_date, end_date = self.period_calculator.get_last_period("monthly")
-        summary = self.instance_runner.aggregate_instance_period(
-            instance,
-            period_type="monthly",
-            start_date=start_date,
-            end_date=end_date,
-        )
-        return summary.to_dict()
-    
-    def calculate_quarterly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """为指定实例计算季度统计聚合"""
-        instance = Instance.query.get(instance_id)
-        if not instance:
-            raise NotFoundError(
-                message="实例不存在",
-                extra={"instance_id": instance_id},
-            )
-
-        start_date, end_date = self.period_calculator.get_last_period("quarterly")
-        summary = self.instance_runner.aggregate_instance_period(
-            instance,
-            period_type="quarterly",
-            start_date=start_date,
-            end_date=end_date,
-        )
-        return summary.to_dict()
