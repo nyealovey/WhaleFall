@@ -1,11 +1,18 @@
 # 鲸落 (TaifishV4) 文档中心
 
-[![Version](https://img.shields.io/badge/Version-v1.1.3-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-v1.2.0-blue.svg)]()
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 
-> 鲸落是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户管理、任务调度、日志监控等功能。
+> 鲸落是一个基于 Flask 的数据库资源管理平台，围绕实例、账户、容量与任务调度等日常运维场景提供一站式支持。
+
+## 🚀 v1.2.0 亮点
+
+- **AggregationService 落地**：聚合服务命名与目录统一，方便后续扩展更多统计维度。
+- **同步会话增强**：新增 `scope` 标记，手动聚合的进度与定时任务保持一致，UI 即时反映实例/数据库维度。
+- **容量统计体验升级**：前端使用自然周期结束日，手动聚合时自动补齐回调，解决此前“running/pending”卡住的问题。
+- **版本资料同步**：README、部署脚本、数据库初始化脚本及页面页脚更新为 v1.2.0。
 
 ## 📚 文档目录结构
 
@@ -160,14 +167,13 @@
 
 ## 📈 版本历史
 
-### 当前版本: v1.1.3 (2025-10-14)
-- ✨ 新增容量统计功能
-- 🎨 日志中心显示优化
-- 🔧 统计功能职责重新分配
-- 🛡️ CSRF Token统一处理
-- 🐛 前端API调用修复
+### 当前版本: v1.2.0 (2025-10-31)
+- 🔧 聚合服务重命名为 `AggregationService`，提升模块职责清晰度
+- 🔄 统一“统计当前周期”实例/数据库回调逻辑，修复手动聚合卡死问题
+- 🗂️ 同步会话记录新增 scope 信息，便于区分聚合维度
 
 ### 历史版本
+- [v1.2.0](../CHANGELOG.md#120---2025-10-31) - 聚合服务重构与同步会话改进
 - [v1.1.2](../CHANGELOG.md#112---2025-10-13) - 版本统一更新、样式优化
 - [v1.1.1](../CHANGELOG.md#111---2025-10-09) - 容量同步修复、数据库容量统计
 - [更多版本历史](../CHANGELOG.md)
@@ -192,6 +198,6 @@
 
 ---
 
-**最后更新**: 2025-10-14  
-**文档版本**: v1.1.3  
+**最后更新**: 2025-10-31  
+**文档版本**: v1.2.0  
 **维护团队**: TaifishingV4 Team

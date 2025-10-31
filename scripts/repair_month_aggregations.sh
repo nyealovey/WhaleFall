@@ -33,7 +33,7 @@ from calendar import monthrange
 from app import create_app, db
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance_size_aggregation import InstanceSizeAggregation
-from app.services.aggregation.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.services.aggregation.aggregation_service import AggregationService
 
 year = int(os.environ["AGG_REPAIR_YEAR"])
 month = int(os.environ["AGG_REPAIR_MONTH"])
@@ -41,7 +41,7 @@ month = int(os.environ["AGG_REPAIR_MONTH"])
 app = create_app()
 app.app_context().push()
 
-service = DatabaseSizeAggregationService()
+service = AggregationService()
 
 start_date = date(year, month, 1)
 end_date = date(year, month, monthrange(year, month)[1])

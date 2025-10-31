@@ -1,6 +1,6 @@
 """
-数据库大小统计聚合服务
-支持每周、每月、每季度的统计聚合计算
+聚合服务
+支持数据库级与实例级的周期聚合计算
 """
 
 from __future__ import annotations
@@ -24,11 +24,11 @@ from app.services.aggregation.instance_runner import InstanceAggregationRunner
 from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
 
 
-MODULE = "database_size_aggregation_service"
+MODULE = "aggregation_service"
 
 
-class DatabaseSizeAggregationService:
-    """数据库大小统计聚合服务"""
+class AggregationService:
+    """聚合服务"""
     
     def __init__(self):
         self.period_types = ['daily', 'weekly', 'monthly', 'quarterly']

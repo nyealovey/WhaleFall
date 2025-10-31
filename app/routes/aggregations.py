@@ -14,7 +14,7 @@ from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
-from app.services.aggregation.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, view_required
@@ -116,7 +116,7 @@ def manual_aggregate() -> Response:
         if scope not in valid_scopes:
             raise AppValidationError("scope 参数仅支持 instance 或 database")
 
-        service = DatabaseSizeAggregationService()
+        service = AggregationService()
 
         if instance_id is not None:
             try:
@@ -193,7 +193,7 @@ def aggregate() -> Response:
         period_type = (data.get('period_type') or 'all').lower()
         valid_periods = {'daily', 'weekly', 'monthly', 'quarterly'}
 
-        service = DatabaseSizeAggregationService()
+        service = AggregationService()
         period_map = {
             'daily': service.calculate_daily_aggregations,
             'weekly': service.calculate_weekly_aggregations,
@@ -244,7 +244,7 @@ def aggregate_current() -> Response:
             raise AppValidationError("scope 参数仅支持 instance、database 或 all")
 
         # 当前周期聚合（按请求周期，含今日），并接入同步会话中心
-        service = DatabaseSizeAggregationService()
+        service = AggregationService()
         start_date, end_date = service.period_calculator.get_current_period(period_type)
 
         active_instances = Instance.query.filter_by(is_active=True).all()
