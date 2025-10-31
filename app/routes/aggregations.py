@@ -1,18 +1,22 @@
 """聚合统计路由"""
 
 from datetime import datetime
+from typing import Any
 
 from flask import Blueprint, Response, request
-from flask_login import login_required
+from flask_login import current_user, login_required
 from sqlalchemy import and_, desc, func, or_
 
 from app import db
 from app.errors import SystemError, ValidationError as AppValidationError
 from app.constants import SyncStatus
+from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
 from app.services.aggregation.database_size_aggregation_service import DatabaseSizeAggregationService
+from app.services.aggregation.results import AggregationStatus
+from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
@@ -211,19 +215,157 @@ def aggregate_current() -> Response:
     Returns:
         JSON: 聚合结果
     """
+    session = None
+    records_by_instance: dict[int, Any] = {}
+    started_record_ids: set[int] = set()
+    finalized_record_ids: set[int] = set()
+
     try:
         payload = request.get_json(silent=True) or {}
         period_type = (payload.get("period_type") or "daily").lower()
 
-        # 当前周期聚合（按请求周期，含今日）
+        # 当前周期聚合（按请求周期，含今日），并接入同步会话中心
         service = DatabaseSizeAggregationService()
-        raw_result = service.aggregate_current_period(period_type=period_type)
+        start_date, end_date = service.period_calculator.get_current_period(period_type)
+
+        active_instances = Instance.query.filter_by(is_active=True).all()
+        created_by = current_user.id if current_user.is_authenticated else None
+
+        session = sync_session_service.create_session(
+            sync_type=SyncOperationType.MANUAL_TASK.value,
+            sync_category=SyncCategory.AGGREGATION.value,
+            created_by=created_by,
+        )
+        session.total_instances = len(active_instances)
+        db.session.add(session)
+        db.session.commit()
+
+        records = sync_session_service.add_instance_records(
+            session.session_id,
+            [inst.id for inst in active_instances],
+            sync_category=SyncCategory.AGGREGATION.value,
+        )
+        records_by_instance = {record.instance_id: record for record in records}
+
+        def _start_callback(instance: Instance) -> None:
+            record = records_by_instance.get(instance.id)
+            if not record or record.id in started_record_ids:
+                return
+            if sync_session_service.start_instance_sync(record.id):
+                started_record_ids.add(record.id)
+
+        def _complete_callback(instance: Instance, payload: dict[str, Any]) -> None:
+            record = records_by_instance.get(instance.id)
+            if not record:
+                return
+            status = (payload.get("status") or AggregationStatus.FAILED.value).lower()
+            processed = int(payload.get("processed_records") or 0)
+            details = {
+                "period_type": period_type,
+                "period_start": start_date.isoformat(),
+                "period_end": end_date.isoformat(),
+                "aggregation_result": payload,
+                "aggregation_count": processed,
+            }
+            if status == AggregationStatus.FAILED.value:
+                error_message = payload.get("error") or payload.get("message") or "聚合失败"
+                sync_session_service.fail_instance_sync(record.id, error_message, sync_details=details)
+            else:
+                sync_session_service.complete_instance_sync(
+                    record.id,
+                    items_synced=processed,
+                    sync_details=details,
+                )
+            finalized_record_ids.add(record.id)
+
+        def _error_callback(instance: Instance, payload: dict[str, Any]) -> None:
+            record = records_by_instance.get(instance.id)
+            if not record:
+                return
+            error_message = payload.get("error") or payload.get("message") or "聚合失败"
+            details = {
+                "period_type": period_type,
+                "period_start": start_date.isoformat(),
+                "period_end": end_date.isoformat(),
+                "aggregation_result": payload,
+                "aggregation_count": 0,
+            }
+            sync_session_service.fail_instance_sync(record.id, error_message, sync_details=details)
+            finalized_record_ids.add(record.id)
+
+        progress_callbacks = {
+            "instance": {
+                "on_start": _start_callback,
+                "on_complete": _complete_callback,
+                "on_error": _error_callback,
+            }
+        }
+
+        try:
+            raw_result = service.aggregate_current_period(
+                period_type=period_type,
+                progress_callbacks=progress_callbacks,
+            )
+        except Exception as exc:
+            for record in records_by_instance.values():
+                if record.id not in finalized_record_ids:
+                    sync_session_service.fail_instance_sync(
+                        record.id,
+                        error_message=f"当前周期聚合异常: {exc}",
+                        sync_details={
+                            "period_type": period_type,
+                            "period_start": start_date.isoformat(),
+                            "period_end": end_date.isoformat(),
+                            "aggregation_result": {"status": AggregationStatus.FAILED.value, "error": str(exc)},
+                        },
+                    )
+            current_session = sync_session_service.get_session_by_id(session.session_id)
+            if current_session:
+                current_session.status = "failed"
+                current_session.completed_at = time_utils.now()
+                db.session.add(current_session)
+                db.session.commit()
+            raise
+
+        # 如果没有活跃实例，直接把会话标记为完成
+        if session.total_instances == 0:
+            refreshed_session = sync_session_service.get_session_by_id(session.session_id)
+            if refreshed_session:
+                refreshed_session.status = "completed"
+                refreshed_session.completed_at = time_utils.now()
+                db.session.add(refreshed_session)
+                db.session.commit()
+
+        if records_by_instance and len(finalized_record_ids) < len(records_by_instance):
+            for record in records_by_instance.values():
+                if record.id in finalized_record_ids:
+                    continue
+                sync_session_service.fail_instance_sync(
+                    record.id,
+                    error_message="聚合结果缺失",
+                    sync_details={
+                        "period_type": period_type,
+                        "period_start": start_date.isoformat(),
+                        "period_end": end_date.isoformat(),
+                        "aggregation_result": {"status": "unknown"},
+                        "aggregation_count": 0,
+                    },
+                )
+
+        refreshed_session = sync_session_service.get_session_by_id(session.session_id)
+        if refreshed_session:
+            raw_result.setdefault("session", refreshed_session.to_dict())
+        else:
+            raw_result.setdefault("session", {"session_id": session.session_id})
+
         result = _normalize_task_result(raw_result, context=f"{period_type} 当前周期聚合")
 
+        session_info = result.get("session") or {}
         log_info(
             "当前周期数据聚合任务已触发",
             module="aggregations",
             period_type=period_type,
+            session_id=session_info.get("session_id"),
         )
 
         return jsonify_unified_success(
@@ -232,10 +374,14 @@ def aggregate_current() -> Response:
         )
 
     except Exception as exc:
+        session_id = None
+        if session is not None:
+            session_id = getattr(session, "session_id", None)
         log_error(
             "触发当前周期数据聚合失败",
             module="aggregations",
             error=str(exc),
+            session_id=session_id,
         )
         raise SystemError("触发当前周期数据聚合失败") from exc
 

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date
-from typing import Any, Callable, Dict, Iterable, List, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -37,7 +37,29 @@ class DatabaseAggregationRunner:
         self._period_calculator = period_calculator
         self._module = module
 
-    def aggregate_period(self, period_type: str, start_date: date, end_date: date) -> Dict[str, Any]:
+    def _invoke_callback(self, callback: Optional[Callable[..., None]], *args) -> None:
+        if callback is None:
+            return
+        try:
+            callback(*args)
+        except Exception as exc:  # pragma: no cover - 防御性处理
+            log_warning(
+                "聚合回调执行失败",
+                module=self._module,
+                callback=getattr(callback, "__name__", repr(callback)),
+                error=str(exc),
+            )
+
+    def aggregate_period(
+        self,
+        period_type: str,
+        start_date: date,
+        end_date: date,
+        *,
+        on_instance_start: Callable[[Instance], None] | None = None,
+        on_instance_complete: Callable[[Instance, dict[str, Any]], None] | None = None,
+        on_instance_error: Callable[[Instance, dict[str, Any]], None] | None = None,
+    ) -> Dict[str, Any]:
         """聚合所有激活实例在指定周期内的数据库统计。"""
         instances = Instance.query.filter_by(is_active=True).all()
         summary = PeriodSummary(
@@ -47,6 +69,7 @@ class DatabaseAggregationRunner:
         )
 
         for instance in instances:
+            self._invoke_callback(on_instance_start, instance)
             try:
                 stats = self._query_database_stats(instance.id, start_date, end_date)
                 if not stats:
@@ -60,6 +83,21 @@ class DatabaseAggregationRunner:
                         start_date=start_date.isoformat(),
                         end_date=end_date.isoformat(),
                     )
+                    result_payload = {
+                        "status": AggregationStatus.SKIPPED.value,
+                        "processed_records": 0,
+                        "message": (
+                            f"实例 {instance.name} 在 {start_date.isoformat()} 至 {end_date.isoformat()} "
+                            f"没有数据库容量数据，跳过聚合"
+                        ),
+                        "errors": [],
+                        "period_type": period_type,
+                        "period_start": start_date.isoformat(),
+                        "period_end": end_date.isoformat(),
+                        "instance_id": instance.id,
+                        "instance_name": instance.name,
+                    }
+                    self._invoke_callback(on_instance_complete, instance, result_payload)
                     continue
 
                 grouped = self._group_by_database(stats)
@@ -84,6 +122,21 @@ class DatabaseAggregationRunner:
                     period_type=period_type,
                     database_count=len(grouped),
                 )
+                result_payload = {
+                    "status": AggregationStatus.COMPLETED.value,
+                    "processed_records": len(grouped),
+                    "message": (
+                        f"实例 {instance.name} 的 {period_type} 数据库聚合完成 "
+                        f"(处理 {len(grouped)} 个数据库)"
+                    ),
+                    "errors": [],
+                    "period_type": period_type,
+                    "period_start": start_date.isoformat(),
+                    "period_end": end_date.isoformat(),
+                    "instance_id": instance.id,
+                    "instance_name": instance.name,
+                }
+                self._invoke_callback(on_instance_complete, instance, result_payload)
             except Exception as exc:  # pragma: no cover - 防御性日志
                 db.session.rollback()
                 summary.failed_instances += 1
@@ -96,6 +149,17 @@ class DatabaseAggregationRunner:
                     instance_name=instance.name,
                     period_type=period_type,
                 )
+                error_payload = {
+                    "status": AggregationStatus.FAILED.value,
+                    "error": str(exc),
+                    "errors": [str(exc)],
+                    "period_type": period_type,
+                    "period_start": start_date.isoformat(),
+                    "period_end": end_date.isoformat(),
+                    "instance_id": instance.id,
+                    "instance_name": instance.name,
+                }
+                self._invoke_callback(on_instance_error, instance, error_payload)
 
         total_instances = len(instances)
         if summary.status is AggregationStatus.COMPLETED:
