@@ -421,22 +421,3 @@ def aggregate_current() -> Response:
             session_id=session_id,
         )
         raise SystemError("触发当前周期数据聚合失败") from exc
-
-@aggregations_bp.route('/api/aggregate/status', methods=['GET'])
-@login_required
-@view_required
-def get_aggregation_status_api() -> Response:
-    """获取聚合状态信息"""
-    try:
-        status = task_get_aggregation_status()
-        payload = {
-            'status': status,
-            'timestamp': time_utils.now().isoformat(),
-        }
-
-        log_info("获取聚合状态成功", module="aggregations", status_summary=status)
-        return jsonify_unified_success(data=payload, message="聚合状态获取成功")
-
-    except Exception as exc:
-        log_error("获取聚合状态失败", module="aggregations", error=str(exc))
-        raise SystemError("获取聚合状态失败") from exc
