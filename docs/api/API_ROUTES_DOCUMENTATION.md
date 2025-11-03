@@ -43,7 +43,7 @@
 ### API 接口
 | 路径 | 方法 | 描述 |
 |------|------|------|
-| `/account/api/export` | GET | 导出账户数据为 CSV |
+| `/files/api/account-export` | GET | 导出账户数据为 CSV |
 | `/account/api/<int:account_id>/permissions` | GET | 获取账户权限详情 |
 | `/account/api/statistics` | GET | 账户统计 API |
 
@@ -236,8 +236,8 @@
 | `/instances/api/<int:instance_id>/accounts/<int:account_id>/permissions` | GET | 获取账户权限详情 |
 | `/instances/api/batch-delete` | POST | 批量删除实例 |
 | `/instances/api/batch-create` | POST | 批量创建实例 |
-| `/instances/api/export` | GET | 导出实例数据为CSV |
-| `/instances/api/template/download` | GET | 下载CSV模板 |
+| `/files/api/instance-export` | GET | 导出实例数据为CSV |
+| `/files/api/template-download` | GET | 下载CSV模板 |
 
 ---
 
@@ -255,7 +255,7 @@
 | `/logs/api/statistics` | GET | 获取日志统计信息 API |
 | `/logs/api/errors` | GET | 获取错误日志 API |
 | `/logs/api/modules` | GET | 获取日志模块列表 API |
-| `/logs/api/export` | GET | 导出日志 API |
+| `/files/api/log-export` | GET | 导出日志 API |
 | `/logs/api/stats` | GET | 获取日志统计信息 API |
 | `/logs/api/detail/<int:id>` | GET | 获取日志详情 API |
 

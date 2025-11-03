@@ -110,15 +110,11 @@ services/
 │   ├── __init__.py
 │   ├── connection_factory.py
 │   └── connection_test_service.py
-├── account_sync_filters/   # 账户同步过滤器
-│   ├── __init__.py
-│   └── database_filter_manager.py
-├── capacity_sync_adapters/ # 容量同步适配器
-│   ├── __init__.py
-│   └── capacity_sync_service.py
+
 └── account_sync_adapters/  # 账户同步适配器
     ├── __init__.py
     ├── base_sync_adapter.py
+    ├── account_sync_filters.py  # 账户同步过滤器
     ├── mysql_sync_adapter.py
     ├── postgresql_sync_adapter.py
     ├── sqlserver_sync_adapter.py

@@ -16,7 +16,7 @@ from app.models.database_size_stat import DatabaseSizeStat
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.routes.databases import databases_bp
+from app.routes.database_aggr import database_aggr_bp
 from app.routes.instance import instance_bp
 from app.services.account_sync_adapters.account_data_manager import AccountDataManager
 from app.utils.data_validator import (
@@ -398,7 +398,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
 
 
 
-@databases_bp.route("/api/instances/<int:instance_id>/database-sizes", methods=["GET"])
+@database_aggr_bp.route("/api/instances/<int:instance_id>/database-sizes", methods=["GET"])
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int) -> Response:
@@ -444,7 +444,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
     except Exception as exc:
         log_error(
             "获取实例数据库大小历史数据失败",
-            module="databases",
+            module="database_aggr",
             instance_id=instance_id,
             error=str(exc),
         )

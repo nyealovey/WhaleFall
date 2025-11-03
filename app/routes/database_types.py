@@ -40,14 +40,3 @@ def api_active() -> Response:
         raise SystemError("获取启用数据库类型失败") from exc
 
 
-@database_types_bp.route("/api/form-options")
-@login_required
-def api_form_options() -> Response:
-    """API: 获取用于表单的数据库类型选项"""
-    try:
-        options = DatabaseTypeService.get_database_types_for_form()
-        log_info("获取数据库类型表单选项成功", module="database_types", count=len(options))
-        return jsonify_unified_success(data={"options": options}, message="数据库类型表单选项获取成功")
-    except Exception as exc:
-        log_error("获取数据库类型表单选项失败", module="database_types", error=str(exc))
-        raise SystemError("获取数据库类型表单选项失败") from exc

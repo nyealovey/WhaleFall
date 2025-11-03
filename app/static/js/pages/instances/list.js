@@ -23,7 +23,7 @@ async function loadInstanceTotalSizes() {
             if (!instanceId) continue;
             
             try {
-                const data = await http.get(`/databases/api/instance/${instanceId}/database-sizes/total`);
+                const data = await http.get(`/database_aggr/api/instances/${instanceId}/database-sizes/total`);
                 
                 if (data.success && data.total_size_mb !== undefined) {
                     // API返回的是MB，需要转换为字节再格式化
@@ -179,7 +179,7 @@ function syncCapacity(instanceId, instanceName) {
         instance_name: instanceName
     });
 
-    http.post(`/storage/api/instances/${instanceId}/sync-capacity`)
+    http.post(`/capacity/api/instances/${instanceId}/sync-capacity`)
     .then(data => {
         if (data.success) {
             // 记录成功日志

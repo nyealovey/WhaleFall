@@ -27,10 +27,10 @@
       labelExtractor,
       scope: "instance",
       api: {
-        summaryEndpoint: "/instance_stats/api/instances/aggregations/summary",
-        trendEndpoint: "/instance_stats/api/instances/aggregations",
-        changeEndpoint: "/instance_stats/api/instances/aggregations",
-        percentEndpoint: "/instance_stats/api/instances/aggregations",
+        summaryEndpoint: "/instance_aggr/api/instances/aggregations/summary",
+        trendEndpoint: "/instance_aggr/api/instances/aggregations",
+        changeEndpoint: "/instance_aggr/api/instances/aggregations",
+        percentEndpoint: "/instance_aggr/api/instances/aggregations",
         summaryDefaults: {},
         trendDefaults: {
           chart_mode: "instance",
@@ -43,7 +43,7 @@
           get_all: "true",
         },
         calculateEndpoint: "/aggregations/api/aggregate-current",
-        instanceOptionsEndpoint: "/instance_stats/api/instance-options",
+        instanceOptionsEndpoint: "/api/instances-options",
       },
       summaryCards: [
         { selector: "#totalInstances", field: "total_instances", formatter: "number" },

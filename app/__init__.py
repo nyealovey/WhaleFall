@@ -358,10 +358,11 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.account_sync import account_sync_bp
     from app.routes.auth import auth_bp
     from app.routes.cache import cache_bp
+    from app.routes.common_api import common_api_bp
     from app.routes.credentials import credentials_bp
     from app.routes.dashboard import dashboard_bp
     from app.routes.database_types import database_types_bp
-    from app.routes.storage import storage_bp
+    from app.routes.capacity import capacity_bp
     from app.routes.aggregations import aggregations_bp
     from app.routes.health import health_bp
     from app.routes.instance import instance_bp
@@ -400,12 +401,13 @@ def register_blueprints(app: Flask) -> None:
     
     # 注册连接管理蓝图
     from app.routes.connections import connections_bp
-    from app.routes.databases import databases_bp
-    from app.routes.instance_stats import instance_stats_bp
+    from app.routes.database_aggr import database_aggr_bp
+    from app.routes.instance_aggr import instance_aggr_bp
 
     # 注册所有蓝图到Flask应用
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(common_api_bp)  # 通用 API（无前缀）
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
     app.register_blueprint(instance_bp, url_prefix='/instances')
     app.register_blueprint(credentials_bp, url_prefix='/credentials')
@@ -418,15 +420,15 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(health_bp, url_prefix='/health')
     app.register_blueprint(cache_bp, url_prefix='/cache')
     app.register_blueprint(database_types_bp, url_prefix='/database_types')
-    app.register_blueprint(storage_bp, url_prefix='/storage')
+    app.register_blueprint(capacity_bp, url_prefix='/capacity')
     app.register_blueprint(aggregations_bp, url_prefix='/aggregations')
     app.register_blueprint(partition_bp, url_prefix='/partition')
     app.register_blueprint(users_bp, url_prefix='/users')
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
     app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')
     app.register_blueprint(connections_bp, url_prefix='/connections')
-    app.register_blueprint(databases_bp, url_prefix='/databases')
-    app.register_blueprint(instance_stats_bp, url_prefix='/instance_stats')
+    app.register_blueprint(database_aggr_bp, url_prefix='/database_aggr')
+    app.register_blueprint(instance_aggr_bp, url_prefix='/instance_aggr')
     app.register_blueprint(files_bp)
 
     # 初始化定时任务调度器
