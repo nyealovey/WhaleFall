@@ -8,7 +8,7 @@ from typing import Any
 from app.models import Instance
 from app.constants import DatabaseType
 from app.models.current_account_sync_data import CurrentAccountSyncData
-from app.services.account_sync_filters.database_filter_manager import DatabaseFilterManager
+from app.services.account_sync_adapters.account_sync_filters import DatabaseFilterManager
 from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.time_utils import time_utils
 

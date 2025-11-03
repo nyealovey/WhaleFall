@@ -146,7 +146,7 @@ function syncCapacity(instanceId, instanceName) {
     syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
     syncBtn.disabled = true;
 
-    http.post(`/storage/api/instances/${instanceId}/sync-capacity`)
+    http.post(`/capacity/api/instances/${instanceId}/sync-capacity`)
         .then(data => {
             if (data.success) {
                 // 记录成功日志
@@ -325,7 +325,7 @@ function loadDatabaseSizes() {
         </div>
     `;
 
-    http.get(`/databases/api/instance/${instanceId}/database-sizes?latest_only=true`)
+    http.get(`/database_aggr/api/instances/${instanceId}/database-sizes?latest_only=true`)
         .then(data => {
             const payload = data && typeof data === 'object'
                 ? (data.data && typeof data.data === 'object' ? data.data : data)

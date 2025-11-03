@@ -635,11 +635,12 @@
         return;
       }
       const params = {
+        instance_id: instanceId,
         limit: 1000,
       };
       try {
         const databases = await DataSource.fetchDatabases(
-          `${endpoint}/${encodeURIComponent(instanceId)}/databases`,
+          endpoint,
           params
         );
         Filters.updateSelectOptions("#database", {

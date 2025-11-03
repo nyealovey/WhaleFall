@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, render_template, request
-from flask_login import current_user, login_required
+from flask_login import login_required
 from sqlalchemy import and_, desc, func, tuple_
 
 from app import db
@@ -14,13 +14,13 @@ from app.models.instance import Instance
 from app.models.instance_size_stat import InstanceSizeStat
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 from app.constants.filter_options import DATABASE_TYPES, PERIOD_TYPES
 from app.utils.query_filter_utils import get_instance_options
 
 # 创建蓝图
-instance_stats_bp = Blueprint('instance_stats', __name__)
+instance_aggr_bp = Blueprint('instance_aggr', __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
@@ -38,7 +38,7 @@ def _parse_iso_date(value: str, field_name: str) -> date:
 
 
 # 页面路由
-@instance_stats_bp.route('/instance', methods=['GET'])
+@instance_aggr_bp.route('/instance', methods=['GET'])
 @login_required
 @view_required
 def instance_aggregations():
@@ -76,7 +76,7 @@ def instance_aggregations():
 
     
     return render_template(
-        'database_sizes/instance_aggregations.html',
+        'statistics/instance_aggregations.html',
         instance_options=instance_options,
         database_type_options=database_type_options,
         period_type_options=PERIOD_TYPES,
@@ -87,90 +87,8 @@ def instance_aggregations():
         end_date=end_date,
     )
 
-@instance_stats_bp.route('/api/instances/<int:instance_id>/database-sizes/total', methods=['GET'])
-@login_required
-@view_required
-def get_instance_total_size(instance_id: int) -> Response:
-    """
-    获取指定实例的数据库总大小（从InstanceSizeStat表获取）
-    
-    Args:
-        instance_id: 实例ID
-        
-    Returns:
-        JSON: 实例总大小信息
-    """
-    try:
-        # 验证实例是否存在
-        instance = _get_instance(instance_id)
-        
-        # 从InstanceSizeStat表获取最新的实例大小统计数据
-        latest_stat = InstanceSizeStat.query.filter(
-            InstanceSizeStat.instance_id == instance_id,
-            InstanceSizeStat.is_deleted == False
-        ).order_by(InstanceSizeStat.collected_date.desc()).first()
-        
-        if not latest_stat:
-            payload = {
-                'total_size_mb': 0,
-                'database_count': 0,
-                'last_collected': None,
-            }
-            return jsonify_unified_success(data=payload, message="实例总大小获取成功")
-        
-        # 直接使用实例大小统计数据
-        total_size_mb = latest_stat.total_size_mb
-        database_count = latest_stat.database_count
-        last_collected = latest_stat.collected_date
-        
-        payload = {
-            'total_size_mb': total_size_mb,
-            'database_count': database_count,
-            'last_collected': last_collected.isoformat() if last_collected else None,
-        }
-        log_info("获取实例总大小成功", module="instance_stats", instance_id=instance_id)
-        return jsonify_unified_success(data=payload, message="实例总大小获取成功")
 
-    except Exception as exc:
-        log_error("获取实例总大小失败", module="instance_stats", instance_id=instance_id, error=str(exc))
-        raise SystemError("获取实例总大小失败") from exc
-
-
-@instance_stats_bp.route('/api/instance-options', methods=['GET'])
-@login_required
-@view_required
-def get_instance_options() -> Response:
-    """
-    提供实例下拉选项，支持按数据库类型过滤
-    """
-    try:
-        db_type = request.args.get('db_type')
-
-        query = Instance.query.filter(Instance.is_active.is_(True))
-        if db_type:
-            db_type_lower = db_type.lower()
-            query = query.filter(func.lower(Instance.db_type) == db_type_lower)
-
-        instances = query.order_by(Instance.name.asc()).all()
-
-        options = [
-            {
-                'id': instance.id,
-                'name': instance.name,
-                'db_type': instance.db_type,
-                'display_name': f"{instance.name} ({instance.db_type.upper()})",
-            }
-            for instance in instances
-        ]
-
-        log_info("加载实例选项成功", module="instance_stats", count=len(options))
-        return jsonify_unified_success(data={'instances': options}, message="实例选项获取成功")
-    except Exception as exc:
-        log_error("加载实例选项失败", module="instance_stats", error=str(exc))
-        raise SystemError("加载实例选项失败") from exc
-
-
-@instance_stats_bp.route('/api/instances/aggregations', methods=['GET'])
+@instance_aggr_bp.route('/api/instances/aggregations', methods=['GET'])
 @login_required
 @view_required
 def get_instances_aggregations():
@@ -283,11 +201,11 @@ def get_instances_aggregations():
     except AppValidationError:
         raise
     except Exception as exc:
-        log_error("获取实例聚合数据时出错", module="instance_stats", error=str(exc))
+        log_error("获取实例聚合数据时出错", module="instance_aggr", error=str(exc))
         raise SystemError("获取实例聚合数据失败") from exc
 
 
-@instance_stats_bp.route('/api/instances/aggregations/summary', methods=['GET'])
+@instance_aggr_bp.route('/api/instances/aggregations/summary', methods=['GET'])
 @login_required
 @view_required
 def get_instances_aggregations_summary():
@@ -379,5 +297,5 @@ def get_instances_aggregations_summary():
     except AppValidationError:
         raise
     except Exception as exc:
-        log_error("获取实例聚合汇总时出错", module="instance_stats", error=str(exc))
+        log_error("获取实例聚合汇总时出错", module="instance_aggr", error=str(exc))
         raise SystemError("获取实例聚合汇总失败") from exc

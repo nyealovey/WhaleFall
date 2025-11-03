@@ -30,7 +30,7 @@
 
     <!-- 筛选区域 -->
     <div class="mb-4">
-        {% call filter_card(form_id='instance-aggregations-filter-form', action=url_for('instance_stats.instance_aggregations'), auto_register=False) %}
+        {% call filter_card(form_id='instance-aggregations-filter-form', action=url_for('instance_aggr.instance_aggregations'), auto_register=False) %}
             {{ db_type_filter(database_type_options, db_type, use_tom_select=False) }}
             {{ instance_filter(instance_options, instance, disabled=(not db_type), use_tom_select=False) }}
             {{ period_type_filter(period_type_options, period_type, use_tom_select=False) }}

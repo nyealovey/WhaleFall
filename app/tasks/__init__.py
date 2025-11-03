@@ -6,8 +6,8 @@
 from .log_cleanup_tasks import cleanup_old_logs
 from .account_sync_tasks import sync_accounts
 
-# 导入数据库大小监控相关任务
-from .database_size_collection_tasks import (
+# 导入容量监控相关任务
+from .capacity_collection_tasks import (
     collect_database_sizes,
     collect_specific_instance_database_sizes,
     collect_database_sizes_by_type,
@@ -15,7 +15,7 @@ from .database_size_collection_tasks import (
     validate_collection_config
 )
 
-from .database_size_aggregation_tasks import (
+from .capacity_aggregation_tasks import (
     calculate_database_size_aggregations,
     calculate_instance_aggregations,
     calculate_period_aggregations,

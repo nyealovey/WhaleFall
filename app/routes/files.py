@@ -31,7 +31,7 @@ from flask import send_file
 files_bp = Blueprint("files", __name__)
 
 
-@files_bp.route("/account/api/export")
+@files_bp.route("/api/account-export")
 @login_required
 @view_required
 def export_accounts() -> Response:
@@ -154,7 +154,7 @@ def export_accounts() -> Response:
         raise SystemError("导出账户失败") from exc
 
 
-@files_bp.route("/instances/api/export")
+@files_bp.route("/api/instance-export")
 @login_required
 @view_required
 def export_instances() -> Response:
@@ -239,7 +239,7 @@ def export_instances() -> Response:
         raise SystemError("导出实例失败") from exc
 
 
-@files_bp.route("/logs/api/export", methods=["GET"])
+@files_bp.route("/api/log-export", methods=["GET"])
 @login_required
 def export_logs() -> Response:
     """导出日志API"""
@@ -364,7 +364,7 @@ def export_logs() -> Response:
         raise SystemError("导出日志失败") from exc
 
 
-@files_bp.route("/instances/api/template/download")
+@files_bp.route("/api/template-download")
 @login_required
 @view_required
 def download_instances_template() -> Response:

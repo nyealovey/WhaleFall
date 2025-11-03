@@ -225,14 +225,14 @@ def _load_tasks_from_config(force: bool = False) -> None:
         cleanup_database_size_partitions,
         monitor_partition_health
     )
-    from app.tasks.database_size_collection_tasks import (
+    from app.tasks.capacity_collection_tasks import (
         collect_database_sizes,
         collect_specific_instance_database_sizes,
         collect_database_sizes_by_type,
         get_collection_status,
         validate_collection_config
     )
-    from app.tasks.database_size_aggregation_tasks import (
+    from app.tasks.capacity_aggregation_tasks import (
         calculate_database_size_aggregations,
         calculate_instance_aggregations,
         calculate_period_aggregations,
@@ -377,8 +377,8 @@ def _add_hardcoded_default_jobs() -> None:
     """添加硬编码的默认任务（备用方案）"""
     from app.tasks.log_cleanup_tasks import cleanup_old_logs
     from app.tasks.account_sync_tasks import sync_accounts
-    from app.tasks.database_size_collection_tasks import collect_database_sizes
-    from app.tasks.database_size_aggregation_tasks import calculate_database_size_aggregations
+    from app.tasks.capacity_collection_tasks import collect_database_sizes
+    from app.tasks.capacity_aggregation_tasks import calculate_database_size_aggregations
     from app.tasks.partition_management_tasks import monitor_partition_health
 
     # 清理旧日志 - 每天凌晨2点执行

@@ -26,10 +26,10 @@ from app.constants.filter_options import DATABASE_TYPES, PERIOD_TYPES
 from app.utils.query_filter_utils import get_instance_options, get_database_options
 
 # 创建蓝图
-databases_bp = Blueprint('databases', __name__)
+database_aggr_bp = Blueprint('database_aggr', __name__)
 
 
-@databases_bp.route('/', methods=['GET'])
+@database_aggr_bp.route('/', methods=['GET'])
 @login_required
 @view_required
 def database_aggregations():
@@ -83,7 +83,7 @@ def database_aggregations():
     database_options = get_database_options(instance_id_int) if instance_id_int else []
     
     return render_template(
-        'database_sizes/database_aggregations.html',
+        'statistics/database_aggregations.html',
         database_type_options=database_type_options,
         instance_options=instance_options,
         database_options=database_options,
@@ -98,148 +98,7 @@ def database_aggregations():
     )
 
 
-
-@databases_bp.route('/api/instances/<int:instance_id>/database-sizes/summary', methods=['GET'])
-@login_required
-@view_required
-def get_instance_database_summary(instance_id: int) -> Response:
-    """获取指定实例的数据库大小汇总信息"""
-    instance = Instance.query.get_or_404(instance_id)
-
-    try:
-        summary_payload = _build_instance_database_summary(instance_id)
-    except Exception as exc:
-        log_error(
-            "获取实例数据库汇总信息失败",
-            module="databases",
-            instance_id=instance_id,
-            error=str(exc),
-        )
-        raise SystemError("获取数据库大小汇总信息失败") from exc
-
-    payload = {
-        'data': summary_payload,
-        'instance': {
-            'id': instance.id,
-            'name': instance.name,
-            'db_type': instance.db_type,
-        },
-    }
-
-    return jsonify_unified_success(data=payload, message="数据库大小汇总获取成功")
-
-
-def _build_instance_database_summary(instance_id: int) -> Dict[str, Any]:
-    thirty_days_ago = time_utils.now_china().date() - timedelta(days=30)
-
-    recent_stats = DatabaseSizeStat.query.filter(
-        DatabaseSizeStat.instance_id == instance_id,
-        DatabaseSizeStat.collected_date >= thirty_days_ago,
-    ).all()
-
-    if not recent_stats:
-        return {
-            'total_databases': 0,
-            'total_size_mb': 0,
-            'average_size_mb': 0,
-            'largest_database': None,
-            'growth_rate': 0,
-            'last_collected': None,
-        }
-
-    db_stats: Dict[str, List[DatabaseSizeStat]] = {}
-    for stat in recent_stats:
-        db_stats.setdefault(stat.database_name, []).append(stat)
-
-    latest_db_sizes = {
-        db_name: max(stats, key=lambda x: x.collected_date).size_mb
-        for db_name, stats in db_stats.items()
-    }
-
-    total_databases = len(latest_db_sizes)
-    total_size_mb = sum(latest_db_sizes.values())
-    average_size_mb = total_size_mb / total_databases if total_databases else 0
-
-    largest_database = None
-    if latest_db_sizes:
-        largest_db_name = max(latest_db_sizes, key=latest_db_sizes.get)
-        largest_database = {
-            'name': largest_db_name,
-            'size_mb': latest_db_sizes[largest_db_name],
-        }
-
-    growth_rate = 0.0
-    if len(recent_stats) >= 2:
-        sorted_stats = sorted(recent_stats, key=lambda x: x.collected_date)
-        oldest_date = sorted_stats[0].collected_date
-        thirty_days_ago_stats = [s for s in recent_stats if s.collected_date <= oldest_date + timedelta(days=1)]
-        if thirty_days_ago_stats:
-            old_total = sum(s.size_mb for s in thirty_days_ago_stats)
-            new_total = sum(s.size_mb for s in recent_stats)
-            if old_total > 0:
-                growth_rate = ((new_total - old_total) / old_total) * 100
-
-    last_collected = max(recent_stats, key=lambda x: x.collected_date).collected_date
-
-    return {
-        'total_databases': total_databases,
-        'total_size_mb': total_size_mb,
-        'average_size_mb': average_size_mb,
-        'largest_database': largest_database,
-        'growth_rate': growth_rate,
-        'last_collected': last_collected.isoformat() if last_collected else None,
-    }
-
-
-@databases_bp.route('/api/instances/<int:instance_id>/databases', methods=['GET'])
-@login_required
-@view_required
-def get_instance_databases(instance_id: int) -> Response:
-    """获取指定实例的数据库列表"""
-    Instance.query.get_or_404(instance_id)
-
-    try:
-        limit = int(request.args.get('limit', 100))
-        offset = int(request.args.get('offset', 0))
-    except ValueError as exc:
-        raise ValidationError('limit/offset 必须为整数') from exc
-
-    try:
-        query = InstanceDatabase.query.filter(InstanceDatabase.instance_id == instance_id).order_by(InstanceDatabase.database_name)
-        total_count = query.count()
-        databases = query.offset(offset).limit(limit).all()
-    except Exception as exc:
-        log_error(
-            "获取实例数据库列表失败",
-            module="databases",
-            instance_id=instance_id,
-            error=str(exc),
-        )
-        raise SystemError("获取实例数据库列表失败") from exc
-
-    data = [
-        {
-            'id': db.id,
-            'database_name': db.database_name,
-            'is_active': db.is_active,
-            'first_seen_date': db.first_seen_date.isoformat() if db.first_seen_date else None,
-            'last_seen_date': db.last_seen_date.isoformat() if db.last_seen_date else None,
-            'deleted_at': db.deleted_at.isoformat() if db.deleted_at else None,
-        }
-        for db in databases
-    ]
-
-    payload = {
-        'databases': data,
-        'total_count': total_count,
-        'limit': limit,
-        'offset': offset,
-    }
-
-    return jsonify_unified_success(data=payload, message="实例数据库列表获取成功")
-
-
-@databases_bp.route('/api/databases/aggregations', methods=['GET'])
+@database_aggr_bp.route('/api/databases/aggregations', methods=['GET'])
 @login_required
 @view_required
 def get_databases_aggregations() -> Response:
@@ -284,7 +143,7 @@ def get_databases_aggregations() -> Response:
     except Exception as exc:
         log_error(
             "获取数据库统计聚合数据失败",
-            module="databases",
+            module="database_aggr",
             error=str(exc),
         )
         raise SystemError("获取数据库统计聚合数据失败") from exc
@@ -390,7 +249,7 @@ def _fetch_database_aggregations(
     }
 
 
-@databases_bp.route('/api/databases/aggregations/summary', methods=['GET'])
+@database_aggr_bp.route('/api/databases/aggregations/summary', methods=['GET'])
 @login_required
 @view_required
 def get_databases_aggregations_summary() -> Response:
@@ -421,7 +280,7 @@ def get_databases_aggregations_summary() -> Response:
     except Exception as exc:
         log_error(
             "获取数据库统计聚合汇总信息失败",
-            module="databases",
+            module="database_aggr",
             error=str(exc),
         )
         raise SystemError("获取数据库统计聚合汇总信息失败") from exc
