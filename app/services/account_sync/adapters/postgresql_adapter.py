@@ -20,25 +20,25 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
         try:
             where_clause, params = self._build_filter_conditions()
-            roles_sql = f"
-                SELECT
-                    rolname as username,
-                    rolsuper as is_superuser,
-                    rolcreaterole as can_create_role,
-                    rolcreatedb as can_create_db,
-                    rolreplication as can_replicate,
-                    rolbypassrls as can_bypass_rls,
-                    rolcanlogin as can_login,
-                    rolinherit as can_inherit,
-                    CASE
-                        WHEN rolvaliduntil = 'infinity'::timestamp THEN NULL
-                        WHEN rolvaliduntil = '-infinity'::timestamp THEN NULL
-                        ELSE rolvaliduntil
-                    END as valid_until
-                FROM pg_roles
-                WHERE {where_clause}
-                ORDER BY rolname
-            "
+            roles_sql = (
+                "SELECT "
+                "    rolname as username, "
+                "    rolsuper as is_superuser, "
+                "    rolcreaterole as can_create_role, "
+                "    rolcreatedb as can_create_db, "
+                "    rolreplication as can_replicate, "
+                "    rolbypassrls as can_bypass_rls, "
+                "    rolcanlogin as can_login, "
+                "    rolinherit as can_inherit, "
+                "    CASE "
+                "        WHEN rolvaliduntil = 'infinity'::timestamp THEN NULL "
+                "        WHEN rolvaliduntil = '-infinity'::timestamp THEN NULL "
+                "        ELSE rolvaliduntil "
+                "    END as valid_until "
+                "FROM pg_roles "
+                f"WHERE {where_clause} "
+                "ORDER BY rolname"
+            )
             rows = connection.execute_query(roles_sql, params)
             accounts: List[Dict[str, Any]] = []
             for row in rows:

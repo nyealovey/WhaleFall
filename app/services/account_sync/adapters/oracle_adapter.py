@@ -71,11 +71,11 @@ class OracleAccountAdapter(BaseAccountAdapter):
         exclude_users = filter_rules.get("exclude_users", [])
         placeholders = ",".join([":{}".format(i) for i in range(1, len(exclude_users) + 1)]) or "''"
 
-        sql = f"
-            SELECT username, account_status, default_tablespace
-            FROM dba_users
-            WHERE username NOT IN ({placeholders})
-        "
+        sql = (
+            "SELECT username, account_status, default_tablespace "
+            "FROM dba_users "
+            f"WHERE username NOT IN ({placeholders})"
+        )
         params = {f":{i+1}": user for i, user in enumerate(exclude_users)}
         rows = connection.execute_query(sql, params)
         results: List[Dict[str, Any]] = []
