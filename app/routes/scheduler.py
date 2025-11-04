@@ -324,7 +324,7 @@ def run_job(job_id: str) -> Response:
                 job.func,
                 trigger=DateTrigger(run_date=time_utils.now()),
                 args=job.args,
-                kwargs=manual_kwargs,
+                kwargs=manual_kwargs if manual_kwargs else job.kwargs,
                 id=manual_job_id,
                 replace_existing=False,
                 coalesce=False,
