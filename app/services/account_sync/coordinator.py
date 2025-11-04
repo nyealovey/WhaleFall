@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List, Optional
 from app.models.instance import Instance
 from app.services.account_sync.adapters.factory import get_account_adapter
 from app.services.account_sync.inventory_manager import AccountInventoryManager
-from app.services.account_sync.permission_manager import AccountPermissionManager
+from app.services.account_sync.permission_manager import AccountPermissionManager, PermissionSyncError
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_sync_logger
 
@@ -209,6 +209,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 "updated": 0,
                 "skipped": len(remote_accounts),
                 "message": "未检测到活跃账户，跳过权限同步",
+                "errors": [],
             }
             self.logger.info(
                 "account_sync_collection_skipped_no_active_accounts",
@@ -220,18 +221,35 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             )
             return collection_summary
 
-        summary, _ = self._permission_manager.synchronize(
-            self.instance,
-            remote_accounts,
-            active_accounts,
-            session_id=session_id,
-        )
+        try:
+            summary = self._permission_manager.synchronize(
+                self.instance,
+                remote_accounts,
+                active_accounts,
+                session_id=session_id,
+            )
+        except PermissionSyncError as exc:
+            error_summary = exc.summary
+            self.logger.error(
+                "account_sync_collection_failed",
+                module=MODULE,
+                phase="collection",
+                instance_id=self.instance.id,
+                instance_name=self.instance.name,
+                errors=error_summary.get("errors"),
+                session_id=session_id,
+                message=error_summary.get("message"),
+            )
+            raise
+
         collection_summary = {
             "status": "completed",
             "created": summary.get("created", 0),
             "updated": summary.get("updated", 0),
             "skipped": summary.get("skipped", 0),
             "processed_records": summary.get("processed_records", summary.get("created", 0) + summary.get("updated", 0)),
+            "errors": summary.get("errors", []),
+            "message": summary.get("message"),
         }
         self.logger.info(
             "account_sync_collection_completed",
