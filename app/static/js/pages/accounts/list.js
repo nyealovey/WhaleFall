@@ -19,18 +19,17 @@ function syncAllAccounts() {
     http.post('/account_sync/api/sync-all')
     .then(data => {
         if (data.success) {
-            toast.success( data.message);
-            // 同步完成后刷新页面显示最新数据
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
+            toast.success(data.message || '批量同步任务已启动');
+            if (data.data?.manual_job_id) {
+                toast.info(`任务线程: ${data.data.manual_job_id}`);
+            }
         } else if (data.error) {
-            toast.error( data.error);
+            toast.error(data.error);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        toast.error( '同步失败');
+        toast.error('同步失败');
     })
     .finally(() => {
         btn.innerHTML = originalText;
