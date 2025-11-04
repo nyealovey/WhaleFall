@@ -83,12 +83,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 IS_SRVROLEMEMBER('sysadmin', sp.name) AS is_sysadmin
             FROM sys.server_principals sp
             WHERE sp.type IN ('S', 'U', 'G')
-              AND sp.name NOT IN ({placeholders})
         """
-        placeholders = ",".join(["?"] * (len(exclude_users) or 1))
-        sql = sql.replace("{placeholders}", placeholders)
-        params = exclude_users or [""]
-        rows = connection.execute_query(sql, params)
+        params: list[Any] = []
+        if exclude_users:
+            placeholders = ", ".join(["%s"] * len(exclude_users))
+            sql += f" AND sp.name NOT IN ({placeholders})"
+            params.extend(exclude_users)
+        rows = connection.execute_query(sql, tuple(params) if params else None)
 
         results: List[Dict[str, Any]] = []
         for row in rows:
@@ -121,7 +122,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             FROM sys.server_role_members rm
             JOIN sys.server_principals role ON rm.role_principal_id = role.principal_id
             JOIN sys.server_principals member ON rm.member_principal_id = member.principal_id
-            WHERE member.name = ?
+            WHERE member.name = %s
         """
         rows = connection.execute_query(sql, (login_name,))
         return [row[0] for row in rows if row and row[0]]
@@ -131,7 +132,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             SELECT DISTINCT permission_name
             FROM sys.server_permissions perm
             JOIN sys.server_principals sp ON perm.grantee_principal_id = sp.principal_id
-            WHERE sp.name = ?
+            WHERE sp.name = %s
         """
         rows = connection.execute_query(sql, (login_name,))
         return [row[0] for row in rows if row and row[0]]
@@ -142,7 +143,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             FROM sys.server_principals sp
             JOIN sys.database_principals mp ON mp.sid = sp.sid
             JOIN sys.databases dp ON dp.owner_sid = mp.sid
-            WHERE sp.name = ?
+            WHERE sp.name = %s
         """
         rows = connection.execute_query(sql, (login_name,))
         db_roles: Dict[str, List[str]] = {}
@@ -155,15 +156,22 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return db_roles
 
     def _get_database_permissions(self, connection: Any, login_name: str) -> Dict[str, List[str]]:
-        sql = """
-            EXEC sp_msforeachdb N'
-                SELECT ''?'' AS database_name, perm.permission_name
-                FROM ?.sys.database_permissions perm
-                JOIN ?.sys.database_principals dp ON perm.grantee_principal_id = dp.principal_id
-                WHERE dp.name = ?
-            '
-        """
-        rows = connection.execute_query(sql, (login_name,))
+        rows: List[tuple[Any, Any]] = []
+        databases = connection.execute_query("SELECT name FROM sys.databases")
+        for db_name_tuple in databases:
+            database = db_name_tuple[0]
+            if not database:
+                continue
+            safe_db_name = database.replace("]", "]]")
+            quoted_db = f"[{safe_db_name}]"
+            sql = f"""
+                SELECT '{database}' AS database_name, perm.permission_name
+                FROM {quoted_db}.sys.database_permissions perm
+                JOIN {quoted_db}.sys.database_principals dp ON perm.grantee_principal_id = dp.principal_id
+                WHERE dp.name = %s
+            """
+            db_rows = connection.execute_query(sql, (login_name,))
+            rows.extend(db_rows)
         db_perms: Dict[str, List[str]] = {}
         for row in rows:
             database = row[0]
