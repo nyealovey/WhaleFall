@@ -3,6 +3,8 @@
 鲸落 - 账户同步记录路由
 """
 
+import threading
+
 from flask import Blueprint, Response, flash, redirect, request, url_for
 from flask_login import current_user, login_required
 
@@ -51,16 +53,12 @@ def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, 
 @update_required
 @require_csrf
 def sync_all_accounts() -> str | Response | tuple[Response, int]:
-    """同步所有实例的账户（使用新的会话管理架构）"""
-    from app.services.sync_session_service import sync_session_service
-
+    """触发后台批量同步所有实例的账户信息"""
     try:
-        log_info("开始同步所有账户", module="account_sync", user_id=current_user.id)
+        log_info("触发批量账户同步", module="account_sync", user_id=current_user.id)
 
-        # 获取所有活跃实例
-        instances = Instance.query.filter_by(is_active=True).all()
-
-        if not instances:
+        active_instance_count = Instance.query.filter_by(is_active=True).count()
+        if active_instance_count == 0:
             log_warning(
                 "没有找到活跃的数据库实例",
                 module="account_sync",
@@ -68,195 +66,51 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
             )
             raise AppValidationError("没有找到活跃的数据库实例")
 
-        # 创建同步会话
-        session = sync_session_service.create_session(
-            sync_type=SyncOperationType.MANUAL_BATCH.value,
-            sync_category=SyncCategory.ACCOUNT.value,
-            created_by=current_user.id,
-        )
+        created_by = getattr(current_user, "id", None)
 
-        log_info(
-            "创建手动批量同步会话",
-            module="account_sync",
-            session_id=session.session_id,
-            user_id=current_user.id,
-            instance_count=len(instances),
-        )
-
-        # 添加实例记录
-        instance_ids = [inst.id for inst in instances]
-        records = sync_session_service.add_instance_records(session.session_id, instance_ids)
-        session.total_instances = len(instances)
-
-        success_count = 0
-        failed_count = 0
-        results = []
-
-        for instance in instances:
-            # 找到对应的记录
-            record = next((r for r in records if r.instance_id == instance.id), None)
-            if not record:
-                continue
+        def _run_sync_task(captured_created_by: int | None) -> None:
+            from app.tasks.account_sync_tasks import sync_accounts
 
             try:
-                # 开始实例同步
-                sync_session_service.start_instance_sync(record.id)
-
-                log_info(
-                    f"开始同步实例: {instance.name}",
-                    module="account_sync",
-                    session_id=session.session_id,
-                    instance_id=instance.id,
-                )
-
-                # 使用统一的账户同步服务
-                raw_result = account_sync_service.sync_accounts(
-                    instance, sync_type=SyncOperationType.MANUAL_BATCH.value, session_id=session.session_id
-                )
-
-                is_success, normalized = _normalize_sync_result(
-                    raw_result,
-                    context=f"实例 {instance.name} 账户同步",
-                )
-
-                if is_success:
-                    success_count += 1
-
-                    # 完成实例同步
-                    details = normalized.get("details", {})
-                    inventory = details.get("inventory", {})
-                    collection = details.get("collection", {})
-                    processed_records = collection.get("processed_records", 0)
-                    if collection.get("status") == "skipped":
-                        processed_records = 0
-                    sync_session_service.complete_instance_sync(
-                        record.id,
-                        items_synced=processed_records,
-                        items_created=inventory.get("created", 0),
-                        items_updated=collection.get("updated", 0),
-                        items_deleted=inventory.get("deactivated", 0),
-                        sync_details=details,
-                    )
-
-                    # 移除实例同步成功的日志记录，减少日志噪音
-
-                    # 同步会话记录已通过sync_session_service管理，无需额外创建记录
-                else:
-                    failed_count += 1
-
-                    # 标记实例同步失败
-                    sync_session_service.fail_instance_sync(
-                        record.id,
-                        error_message=normalized.get("message", "同步失败"),
-                        sync_details=normalized.get("details", {}),
-                    )
-
-                    log_error(
-                        f"实例同步失败: {instance.name}",
-                        module="account_sync",
-                        session_id=session.session_id,
-                        instance_id=instance.id,
-                        error=normalized.get("message", "同步失败"),
-                    )
-
-                    # 同步会话记录已通过sync_session_service管理，无需额外创建记录
-
-                results.append(
-                    {
-                        "instance_name": instance.name,
-                        "success": is_success,
-                        "status": normalized.get("status"),
-                        "message": normalized.get("message"),
-                        "synced_count": normalized.get("synced_count", 0),
-                        "details": normalized.get("details"),
-                    }
-                )
-
-            except Exception as e:
-                failed_count += 1
-
-                # 标记实例同步失败
-                if record:
-                    sync_session_service.fail_instance_sync(
-                        record.id,
-                        error_message=str(e),
-                        sync_details={"exception": str(e)},
-                    )
-
+                sync_accounts(manual_run=True, created_by=captured_created_by)
+            except Exception as exc:  # pragma: no cover - 后台线程日志
                 log_error(
-                    f"实例同步异常: {instance.name}",
+                    "后台批量账户同步失败",
                     module="account_sync",
-                    session_id=session.session_id,
-                    instance_id=instance.id,
-                    error=str(e),
+                    error=str(exc),
                 )
 
-                # 同步会话记录已通过sync_session_service管理，无需额外创建记录
-
-                results.append(
-                    {
-                        "instance_name": instance.name,
-                        "success": False,
-                        "status": "failed",
-                        "message": f"同步失败: {str(e)}",
-                        "synced_count": 0,
-                    }
-                )
-
-        # 完成同步会话
-        session.update_statistics(succeeded_instances=success_count, failed_instances=failed_count)
-        db.session.commit()
-
-        # 记录同步完成日志
-        log_info(
-            f"批量同步完成: 成功 {success_count} 个实例，失败 {failed_count} 个实例",
-            module="account_sync",
-            session_id=session.session_id,
-            user_id=current_user.id,
-            total_instances=len(instances),
-            success_count=success_count,
-            failed_count=failed_count,
-            session_status=session.status,
+        thread = threading.Thread(
+            target=_run_sync_task,
+            args=(created_by,),
+            name="sync_accounts_manual_batch",
+            daemon=True,
         )
+        thread.start()
 
-        # 记录操作日志
         log_info(
-            "批量同步账户完成",
+            "批量账户同步任务已在后台启动",
             module="account_sync",
-            operation_type="BATCH_SYNC_ACCOUNTS_COMPLETE",
-            session_id=session.session_id,
             user_id=current_user.id,
-            total_instances=len(instances),
-            success_count=success_count,
-            failed_count=failed_count,
-            results=results,
+            active_instance_count=active_instance_count,
+            thread_name=thread.name,
         )
 
         return jsonify_unified_success(
-            data={
-                "total_instances": len(instances),
-                "success_count": success_count,
-                "failed_count": failed_count,
-                "results": results,
-            },
-            message=f"批量同步完成，成功 {success_count} 个实例，失败 {failed_count} 个实例",
+            message="批量账户同步任务已在后台启动，请稍后在会话中心查看进度。",
+            data={"manual_job_id": thread.name},
         )
 
     except AppValidationError:
         raise
-    except Exception as e:
+    except Exception as exc:  # noqa: BLE001
         log_error(
-            "同步所有账户失败",
+            "触发批量账户同步失败",
             module="account_sync",
-            operation="sync_all_accounts",
             user_id=current_user.id if current_user else None,
-            exception=str(e),
+            error=str(exc),
         )
-        db.session.rollback()
-
-        raise SystemError(f"批量同步失败: {str(e)}") from e
-
-# sync_details route removed - functionality replaced by sync_sessions API
+        raise SystemError("批量同步任务触发失败，请稍后重试") from exc
 
 
 @account_sync_bp.route("/api/instances/<int:instance_id>/sync", methods=["POST"])
