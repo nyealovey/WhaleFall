@@ -99,7 +99,6 @@ CREATE TABLE IF NOT EXISTS instances (
     database_version VARCHAR(1000),
     main_version VARCHAR(20),
     detailed_version VARCHAR(50),
-    environment VARCHAR(20) NOT NULL DEFAULT 'production',
     sync_count INTEGER NOT NULL DEFAULT 0,
     credential_id INTEGER REFERENCES credentials(id),
     description TEXT,
@@ -115,7 +114,6 @@ CREATE TABLE IF NOT EXISTS instances (
 CREATE UNIQUE INDEX IF NOT EXISTS ix_instances_name ON instances(name);
 CREATE INDEX IF NOT EXISTS ix_instances_status ON instances(status);
 CREATE INDEX IF NOT EXISTS ix_instances_db_type ON instances(db_type);
-CREATE INDEX IF NOT EXISTS ix_instances_environment ON instances(environment);
 
 -- ============================================================================
 -- 5. 标签管理模块
@@ -153,16 +151,11 @@ CREATE TABLE IF NOT EXISTS instance_tags (
 
 -- 基础同步数据表（抽象基类，不直接创建）
 -- 账户当前状态同步数据表
-CREATE TABLE IF NOT EXISTS current_account_sync_data (
+CREATE TABLE IF NOT EXISTS account_permission (
     id SERIAL PRIMARY KEY,
     instance_id INTEGER NOT NULL REFERENCES instances(id),
     instance_account_id INTEGER NOT NULL REFERENCES instance_accounts(id),
     db_type VARCHAR(20) NOT NULL,
-    session_id VARCHAR(36),
-    sync_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    status VARCHAR(20) DEFAULT 'success',
-    message TEXT,
-    error_message TEXT,
     username VARCHAR(255) NOT NULL,
     is_superuser BOOLEAN DEFAULT FALSE,
     
@@ -197,12 +190,11 @@ CREATE TABLE IF NOT EXISTS current_account_sync_data (
 );
 
 -- 账户同步数据表索引
-CREATE UNIQUE INDEX IF NOT EXISTS uq_current_account_sync ON current_account_sync_data(instance_id, db_type, username);
-CREATE INDEX IF NOT EXISTS idx_instance_dbtype ON current_account_sync_data(instance_id, db_type);
-CREATE INDEX IF NOT EXISTS idx_username ON current_account_sync_data(username);
-CREATE INDEX IF NOT EXISTS idx_session_id ON current_account_sync_data(session_id);
-CREATE INDEX IF NOT EXISTS idx_last_sync_time ON current_account_sync_data(last_sync_time);
-CREATE INDEX IF NOT EXISTS idx_last_change_time ON current_account_sync_data(last_change_time);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_account_permission ON account_permission(instance_id, db_type, username);
+CREATE INDEX IF NOT EXISTS idx_account_permission_instance_dbtype ON account_permission(instance_id, db_type);
+CREATE INDEX IF NOT EXISTS idx_account_permission_username ON account_permission(username);
+CREATE INDEX IF NOT EXISTS idx_account_permission_last_sync_time ON account_permission(last_sync_time);
+CREATE INDEX IF NOT EXISTS idx_account_permission_last_change_time ON account_permission(last_change_time);
 
 -- ============================================================================
 -- 7. 账户分类管理模块
@@ -238,7 +230,7 @@ CREATE TABLE IF NOT EXISTS classification_rules (
 -- 账户分类分配表
 CREATE TABLE IF NOT EXISTS account_classification_assignments (
     id SERIAL PRIMARY KEY,
-    account_id INTEGER NOT NULL REFERENCES current_account_sync_data(id),
+    account_id INTEGER NOT NULL REFERENCES account_permission(id),
     classification_id INTEGER NOT NULL REFERENCES account_classifications(id),
     assigned_by INTEGER REFERENCES users(id),
     assignment_type VARCHAR(20) NOT NULL DEFAULT 'auto',

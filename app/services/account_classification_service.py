@@ -13,7 +13,7 @@ from app.models.account_classification import (
     AccountClassificationAssignment,
     ClassificationRule,
 )
-from app.models.current_account_sync_data import CurrentAccountSyncData
+from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.services.cache_service import cache_manager
 from app.utils.structlog_config import log_error, log_info
@@ -131,14 +131,14 @@ class AccountClassificationService:
             log_error(f"获取规则失败: {e}", module="account_classification")
             return []
 
-    def _get_accounts_to_classify(self, instance_id: int = None) -> list[CurrentAccountSyncData]:
+    def _get_accounts_to_classify(self, instance_id: int = None) -> list[AccountPermission]:
         """获取需要分类的账户"""
         try:
             from app.models.instance_account import InstanceAccount
 
             query = (
-                CurrentAccountSyncData.query.join(Instance)
-                .join(InstanceAccount, CurrentAccountSyncData.instance_account)
+                AccountPermission.query.join(Instance)
+                .join(InstanceAccount, AccountPermission.instance_account)
                 .filter(
                     Instance.is_active.is_(True),
                     Instance.deleted_at.is_(None),
@@ -147,14 +147,14 @@ class AccountClassificationService:
             )
 
             if instance_id:
-                query = query.filter(CurrentAccountSyncData.instance_id == instance_id)
+                query = query.filter(AccountPermission.instance_id == instance_id)
 
             return query.all()
         except Exception as e:
             log_error(f"获取账户失败: {e}", module="account_classification")
             return []
 
-    def _group_accounts_by_db_type(self, accounts: list[CurrentAccountSyncData]) -> dict[str, list[CurrentAccountSyncData]]:
+    def _group_accounts_by_db_type(self, accounts: list[AccountPermission]) -> dict[str, list[AccountPermission]]:
         """按数据库类型分组账户（优化性能，带缓存）"""
         try:
             grouped = {}
@@ -240,7 +240,7 @@ class AccountClassificationService:
             return {}
 
     def _classify_accounts_by_db_type_optimized(
-        self, accounts: list[CurrentAccountSyncData], rules: list[ClassificationRule]
+        self, accounts: list[AccountPermission], rules: list[ClassificationRule]
     ) -> dict[str, Any]:
         """按数据库类型优化分类（阶段1优化）"""
         try:
@@ -351,7 +351,7 @@ class AccountClassificationService:
             raise
 
     def _classify_single_db_type(
-        self, accounts: list[CurrentAccountSyncData], rules: list[ClassificationRule], db_type: str
+        self, accounts: list[AccountPermission], rules: list[ClassificationRule], db_type: str
     ) -> dict[str, Any]:
         """处理单个数据库类型的分类"""
         try:
@@ -405,8 +405,8 @@ class AccountClassificationService:
             raise
 
     def _find_accounts_matching_rule_optimized(
-        self, rule: ClassificationRule, accounts: list[CurrentAccountSyncData], db_type: str
-    ) -> list[CurrentAccountSyncData]:
+        self, rule: ClassificationRule, accounts: list[AccountPermission], db_type: str
+    ) -> list[AccountPermission]:
         """优化的规则匹配方法（按数据库类型过滤）"""
         try:
             # 预过滤：只处理匹配数据库类型的账户
@@ -444,7 +444,7 @@ class AccountClassificationService:
             log_error(f"查找匹配规则账户失败: {e}", module="account_classification")
             return []
 
-    def _evaluate_rule(self, account: CurrentAccountSyncData, rule: ClassificationRule) -> bool:
+    def _evaluate_rule(self, account: AccountPermission, rule: ClassificationRule) -> bool:
         """评估规则是否匹配账户（带缓存）"""
         try:
             # 尝试从缓存获取规则评估结果
@@ -482,7 +482,7 @@ class AccountClassificationService:
             log_error(f"评估规则失败: {e}", module="account_classification")
             return False
 
-    def _evaluate_mysql_rule(self, account: CurrentAccountSyncData, rule_expression: dict) -> bool:
+    def _evaluate_mysql_rule(self, account: AccountPermission, rule_expression: dict) -> bool:
         """评估MySQL规则"""
         try:
             permissions = account.get_permissions_by_db_type()
@@ -570,7 +570,7 @@ class AccountClassificationService:
             log_error(f"评估MySQL规则失败: {e}", module="account_classification")
             return False
 
-    def _evaluate_sqlserver_rule(self, account: CurrentAccountSyncData, rule_expression: dict) -> bool:
+    def _evaluate_sqlserver_rule(self, account: AccountPermission, rule_expression: dict) -> bool:
         """评估SQL Server规则"""
         try:
             permissions = account.get_permissions_by_db_type()
@@ -661,7 +661,7 @@ class AccountClassificationService:
             log_error(f"评估SQL Server规则失败: {e}", module="account_classification")
             return False
 
-    def _evaluate_postgresql_rule(self, account: CurrentAccountSyncData, rule_expression: dict) -> bool:
+    def _evaluate_postgresql_rule(self, account: AccountPermission, rule_expression: dict) -> bool:
         """评估PostgreSQL规则"""
         try:
             permissions = account.get_permissions_by_db_type()
@@ -738,7 +738,7 @@ class AccountClassificationService:
             log_error(f"评估PostgreSQL规则失败: {e}", module="account_classification")
             return False
 
-    def _evaluate_oracle_rule(self, account: CurrentAccountSyncData, rule_expression: dict) -> bool:
+    def _evaluate_oracle_rule(self, account: AccountPermission, rule_expression: dict) -> bool:
         """评估Oracle规则"""
         try:
             permissions = account.get_permissions_by_db_type()
@@ -822,7 +822,7 @@ class AccountClassificationService:
 
 
     def _add_classification_to_accounts_batch(
-        self, matched_accounts: list[CurrentAccountSyncData], classification_id: int
+        self, matched_accounts: list[AccountPermission], classification_id: int
     ) -> int:
         """批量添加分类到账户 - 只保留最新的分配记录"""
         try:
@@ -997,7 +997,7 @@ class AccountClassificationService:
             log_error(f"从缓存数据创建规则失败: {e}", module="account_classification")
             return []
 
-    def _accounts_to_cache_data(self, accounts: list[CurrentAccountSyncData]) -> list[dict[str, Any]]:
+    def _accounts_to_cache_data(self, accounts: list[AccountPermission]) -> list[dict[str, Any]]:
         """将账户对象转换为缓存数据"""
         try:
             accounts_data = []
@@ -1012,8 +1012,7 @@ class AccountClassificationService:
                     "instance_host": account.instance.host if account.instance else None,
                     "db_type": account.instance.db_type if account.instance else None,
                     "permissions": account.get_permissions_by_db_type(),
-                    "roles": [],  # CurrentAccountSyncData没有roles字段
-                    "sync_time": account.sync_time.isoformat() if account.sync_time else None,
+                    "roles": [],  # AccountPermission没有roles字段
                     "last_sync_time": account.last_sync_time.isoformat() if account.last_sync_time else None,
                     "last_change_time": account.last_change_time.isoformat() if account.last_change_time else None,
                 }
@@ -1055,7 +1054,7 @@ class AccountClassificationService:
         """获取规则匹配的账户数量（重新评估规则）"""
         try:
             from app.models.account_classification import ClassificationRule
-            from app.models.current_account_sync_data import CurrentAccountSyncData
+            from app.models.account_permission import AccountPermission
 
             # 获取规则
             rule = ClassificationRule.query.get(rule_id)
@@ -1064,8 +1063,8 @@ class AccountClassificationService:
 
             # 获取所有活跃的账户
             accounts = (
-                CurrentAccountSyncData.query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
-                .join(InstanceAccount, CurrentAccountSyncData.instance_account)
+                AccountPermission.query.join(Instance, AccountPermission.instance_id == Instance.id)
+                .join(InstanceAccount, AccountPermission.instance_account)
                 .filter(
                     Instance.is_active.is_(True),
                     Instance.deleted_at.is_(None),

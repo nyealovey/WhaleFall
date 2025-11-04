@@ -134,28 +134,28 @@ CREATE INDEX ix_instance_accounts_last_seen ON instance_accounts(last_seen_at);
 - 增加 `instance_account_id` 外键，指向 `instance_accounts.id`，以便权限表与库存表解耦。
 - 保留 `instance_id + db_type + username` 唯一约束的同时，逐步过渡到以 `instance_account_id` 为主键引用（迁移可分阶段进行：先新增列并回填，再收缩旧约束）。
 - 阶段二权限同步完成后，更新 `CurrentAccountSyncData` 相关字段，同时刷新 `InstanceAccount.last_seen_at`、`InstanceAccount.is_active` 等状态，保持两个模型的同步。
-- 迁移脚本需要处理现有数据：为每条 `current_account_sync_data` 生成对应的 `instance_account` 记录，并填充新外键。
+- 迁移脚本需要处理现有数据：为每条 `account_permission` 生成对应的 `instance_account` 记录，并填充新外键。
 - 精简字段：`is_active`、`is_deleted`、`deleted_time` 等账户存在性相关字段迁移至 `InstanceAccount`；`CurrentAccountSyncData` 可保留权限快照及变更追踪字段（如 `last_sync_time`、`last_change_type`、`last_change_time`），确保职责单一。
 
 参考 PostgreSQL 迁移片段：
 
 ```sql
-ALTER TABLE current_account_sync_data
+ALTER TABLE account_permission
     ADD COLUMN instance_account_id INTEGER;
 
-UPDATE current_account_sync_data AS casd
+UPDATE account_permission AS casd
 SET instance_account_id = ia.id
 FROM instance_accounts AS ia
 WHERE ia.instance_id = casd.instance_id
   AND ia.db_type = casd.db_type
   AND ia.username = casd.username;
 
-ALTER TABLE current_account_sync_data
+ALTER TABLE account_permission
     ALTER COLUMN instance_account_id SET NOT NULL,
     ADD CONSTRAINT fk_current_account_instance_account
         FOREIGN KEY (instance_account_id) REFERENCES instance_accounts(id);
 
-ALTER TABLE current_account_sync_data
+ALTER TABLE account_permission
     DROP COLUMN is_active,
     DROP COLUMN is_deleted,
     DROP COLUMN deleted_time;

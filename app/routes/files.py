@@ -18,7 +18,7 @@ from sqlalchemy import desc
 from app import db
 from app.errors import SystemError, ValidationError
 from app.constants import DatabaseType, HttpHeaders
-from app.models.current_account_sync_data import CurrentAccountSyncData
+from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.models.unified_log import LogLevel, UnifiedLog
@@ -48,19 +48,19 @@ def export_accounts() -> Response:
         from app.models.instance_account import InstanceAccount
 
         # 构建查询
-        query = CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
+        query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
 
         if db_type and db_type != "all":
-            query = query.filter(CurrentAccountSyncData.db_type == db_type)
+            query = query.filter(AccountPermission.db_type == db_type)
 
         if instance_id:
-            query = query.filter(CurrentAccountSyncData.instance_id == instance_id)
+            query = query.filter(AccountPermission.instance_id == instance_id)
 
         if search:
-            query = query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
+            query = query.join(Instance, AccountPermission.instance_id == Instance.id)
             query = query.filter(
                 db.or_(
-                    CurrentAccountSyncData.username.contains(search),
+                    AccountPermission.username.contains(search),
                     Instance.name.contains(search),
                     Instance.host.contains(search),
                 )
@@ -75,7 +75,7 @@ def export_accounts() -> Response:
             query = query.filter(InstanceAccount.is_active.is_(True))
 
         if is_superuser is not None:
-            query = query.filter(CurrentAccountSyncData.is_superuser == (is_superuser == "true"))
+            query = query.filter(AccountPermission.is_superuser == (is_superuser == "true"))
 
         if tags:
             try:
@@ -87,7 +87,7 @@ def export_accounts() -> Response:
                     error=str(exc),
                 )
 
-        query = query.order_by(CurrentAccountSyncData.username.asc())
+        query = query.order_by(AccountPermission.username.asc())
         accounts = query.all()
 
         from app.models.account_classification import AccountClassificationAssignment

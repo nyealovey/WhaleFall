@@ -4,7 +4,8 @@
 
 from app import db  # noqa: F401
 
-# Account模型已废弃，使用CurrentAccountSyncData
+# 账户相关模型
+from .account_permission import AccountPermission
 from .account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -34,11 +35,9 @@ __all__ = [
     "User",
     "Instance",
     "Credential",
-    # "Account",  # 已废弃，使用CurrentAccountSyncData
-    # 移除Task导出，只使用APScheduler管理任务
-    # 移除SyncData导出
     "SyncSession",
     "SyncInstanceRecord",
+    "AccountPermission",
     "AccountClassification",
     "ClassificationRule",
     "AccountClassificationAssignment",

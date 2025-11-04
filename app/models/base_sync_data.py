@@ -6,8 +6,6 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapped
 
 from app import db
-from app.utils.time_utils import time_utils
-from app.constants import TaskStatus
 
 
 class BaseSyncData(db.Model):
@@ -22,11 +20,6 @@ class BaseSyncData(db.Model):
         return db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
 
     db_type = db.Column(db.String(20), nullable=False, index=True)  # 'mysql', 'postgresql', 'sqlserver', 'oracle'
-    session_id = db.Column(db.String(36), nullable=True, index=True)
-    sync_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
-    status = db.Column(db.String(20), default="success", index=True)
-    message = db.Column(db.Text, nullable=True)
-    error_message = db.Column(db.Text, nullable=True)
 
     # 关联实例 - 在子类中定义
 
@@ -36,9 +29,4 @@ class BaseSyncData(db.Model):
             "id": self.id,
             "instance_id": self.instance_id,
             "db_type": self.db_type,
-            "session_id": self.session_id,
-            "sync_time": self.sync_time.isoformat() if self.sync_time else None,
-            "status": self.status,
-            "message": self.message,
-            "error_message": self.error_message,
         }

@@ -132,7 +132,7 @@ class AccountClassificationAssignment(db.Model):
     __tablename__ = "account_classification_assignments"
 
     id = db.Column(db.Integer, primary_key=True)
-    account_id = db.Column(db.Integer, db.ForeignKey("current_account_sync_data.id"), nullable=False)
+    account_id = db.Column(db.Integer, db.ForeignKey("account_permission.id"), nullable=False)
     classification_id = db.Column(db.Integer, db.ForeignKey("account_classifications.id"), nullable=False)
     assigned_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)  # 分配人
     assignment_type = db.Column(db.String(20), nullable=False, default="auto")  # auto, manual

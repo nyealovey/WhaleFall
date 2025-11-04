@@ -1,6 +1,4 @@
-"""
-鲸落 - 账户当前状态同步数据模型
-"""
+"""鲸落 - 账户权限快照数据模型"""
 
 from app import db
 from app.models.base_sync_data import BaseSyncData
@@ -8,15 +6,15 @@ from app.constants import DatabaseType
 from app.utils.time_utils import time_utils
 
 
-class CurrentAccountSyncData(BaseSyncData):
-    """账户当前状态表（支持复杂权限结构）"""
+class AccountPermission(BaseSyncData):
+    """账户权限快照（支持复杂权限结构）"""
 
-    __tablename__ = "current_account_sync_data"
+    __tablename__ = "account_permission"
 
     __table_args__ = (
-        db.UniqueConstraint("instance_id", "db_type", "username", name="uq_current_account_sync"),
-        db.Index("idx_instance_dbtype", "instance_id", "db_type"),
-        db.Index("idx_username", "username"),
+        db.UniqueConstraint("instance_id", "db_type", "username", name="uq_account_permission"),
+        db.Index("idx_account_permission_instance_dbtype", "instance_id", "db_type"),
+        db.Index("idx_account_permission_username", "username"),
     )
 
     instance_account_id = db.Column(db.Integer, db.ForeignKey("instance_accounts.id"), nullable=False, index=True)
@@ -49,16 +47,19 @@ class CurrentAccountSyncData(BaseSyncData):
 
     # 时间戳和状态字段
     last_sync_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
-    last_change_type = db.Column(db.String(20), default="add")  # 'add', 'modify_privilege', 'modify_other', 'delete'
+    last_change_type = db.Column(db.String(20), default="add")
     last_change_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
 
     # 删除标记（不支持恢复）
     # 关联实例与账户
-    instance = db.relationship("Instance", backref="current_account_sync_data")
-    instance_account = db.relationship("InstanceAccount", backref=db.backref("current_sync", uselist=False))
+    instance = db.relationship("Instance", backref="account_permissions")
+    instance_account = db.relationship(
+        "InstanceAccount",
+        backref=db.backref("current_sync", uselist=False),
+    )
 
     def __repr__(self) -> str:
-        return f"<CurrentAccountSyncData {self.username}@{self.db_type}>"
+        return f"<AccountPermission {self.username}@{self.db_type}>"
 
     def to_dict(self) -> dict:
         """转换为字典"""
