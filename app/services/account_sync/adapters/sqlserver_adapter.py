@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
@@ -84,6 +84,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         if not target_usernames:
             return accounts
 
+        db_permissions_map = self._get_database_permissions_bulk(connection, list(target_usernames))
         processed = 0
         for account in accounts:
             username = account.get("username")
@@ -91,7 +92,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 continue
             processed += 1
             try:
-                permissions = self._get_login_permissions(connection, username)
+                permissions = self._get_login_permissions(
+                    connection,
+                    username,
+                    precomputed_db_permissions=db_permissions_map,
+                )
                 permissions.setdefault("type_specific", {})["is_disabled"] = account.get("attributes", {}).get(
                     "is_disabled", account.get("is_disabled", False)
                 )
@@ -154,12 +159,22 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             )
         return results
 
-    def _get_login_permissions(self, connection: Any, login_name: str) -> Dict[str, Any]:
+    def _get_login_permissions(
+        self,
+        connection: Any,
+        login_name: str,
+        *,
+        precomputed_db_permissions: Dict[str, Dict[str, List[str]]] | None = None,
+    ) -> Dict[str, Any]:
         permissions = {
             "server_roles": self._get_server_roles(connection, login_name),
             "server_permissions": self._get_server_permissions(connection, login_name),
             "database_roles": self._get_database_roles(connection, login_name),
-            "database_permissions": self._get_database_permissions(connection, login_name),
+            "database_permissions": (
+                precomputed_db_permissions.get(login_name)
+                if precomputed_db_permissions
+                else self._get_database_permissions(connection, login_name)
+            ),
             "type_specific": {},
         }
         return permissions
@@ -268,6 +283,91 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 continue
             db_perms.setdefault(database, []).append(permission)
         return db_perms
+
+    def _get_database_permissions_bulk(
+        self,
+        connection: Any,
+        usernames: Sequence[str],
+    ) -> Dict[str, Dict[str, List[str]]]:
+        usernames = sorted({name for name in usernames if name})
+        if not usernames:
+            return {}
+
+        placeholders = ", ".join(["(%s)"] * len(usernames))
+        sql = f"""
+            IF OBJECT_ID('tempdb..#login_filter') IS NOT NULL
+                DROP TABLE #login_filter;
+
+            CREATE TABLE #login_filter (
+                username NVARCHAR(256) PRIMARY KEY
+            );
+
+            INSERT INTO #login_filter (username)
+            VALUES {placeholders};
+
+            IF OBJECT_ID('tempdb..#perm_table') IS NOT NULL
+                DROP TABLE #perm_table;
+
+            CREATE TABLE #perm_table (
+                login_name NVARCHAR(256),
+                database_name NVARCHAR(128),
+                permission_name NVARCHAR(128)
+            );
+
+            DECLARE @db NVARCHAR(128);
+            DECLARE db_cursor CURSOR FAST_FORWARD FOR
+                SELECT name FROM sys.databases WHERE state_desc = 'ONLINE';
+
+            OPEN db_cursor;
+            FETCH NEXT FROM db_cursor INTO @db;
+
+            WHILE @@FETCH_STATUS = 0
+            BEGIN
+                DECLARE @sql NVARCHAR(MAX) = N'
+                    INSERT INTO #perm_table (login_name, database_name, permission_name)
+                    SELECT lf.username, N''' + @db + N''', perm.permission_name
+                    FROM ' + QUOTENAME(@db) + N'.sys.database_permissions perm
+                    JOIN ' + QUOTENAME(@db) + N'.sys.database_principals dp
+                        ON perm.grantee_principal_id = dp.principal_id
+                    JOIN #login_filter lf ON dp.name = lf.username';
+
+                BEGIN TRY
+                    EXEC (@sql);
+                END TRY
+                BEGIN CATCH
+                    PRINT ERROR_MESSAGE();
+                END CATCH
+
+                FETCH NEXT FROM db_cursor INTO @db;
+            END
+
+            CLOSE db_cursor;
+            DEALLOCATE db_cursor;
+
+            SELECT login_name, database_name, permission_name FROM #perm_table;
+        """
+
+        rows: List[tuple[Any, Any, Any]] = []
+        try:
+            rows = connection.execute_query(sql, tuple(usernames))
+        except Exception as exc:  # noqa: BLE001
+            self.logger.error(
+                "fetch_sqlserver_db_permissions_bulk_failed",
+                module="sqlserver_account_adapter",
+                logins=usernames,
+                error=str(exc),
+                exc_info=True,
+            )
+            return {}
+
+        user_db_perms: Dict[str, Dict[str, List[str]]] = {}
+        for login_name, database, permission in rows:
+            if not login_name or not database or not permission:
+                continue
+            db_map = user_db_perms.setdefault(login_name, {})
+            db_map.setdefault(database, []).append(permission)
+
+        return user_db_perms
 
     # 缓存操作
     def clear_user_cache(self, instance: Instance, username: str) -> bool:
