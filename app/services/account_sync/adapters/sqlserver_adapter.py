@@ -204,33 +204,61 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return db_roles
 
     def _get_database_permissions(self, connection: Any, login_name: str) -> Dict[str, List[str]]:
+        sql = """
+            DECLARE @login NVARCHAR(256) = %s;
+
+            IF OBJECT_ID('tempdb..#perm_table') IS NOT NULL
+                DROP TABLE #perm_table;
+
+            CREATE TABLE #perm_table (
+                database_name NVARCHAR(128),
+                permission_name NVARCHAR(128)
+            );
+
+            DECLARE @db NVARCHAR(128);
+            DECLARE db_cursor CURSOR FAST_FORWARD FOR
+                SELECT name FROM sys.databases WHERE state_desc = 'ONLINE';
+
+            OPEN db_cursor;
+            FETCH NEXT FROM db_cursor INTO @db;
+
+            WHILE @@FETCH_STATUS = 0
+            BEGIN
+                DECLARE @sql NVARCHAR(MAX) = N'
+                    INSERT INTO #perm_table (database_name, permission_name)
+                    SELECT N''' + @db + N''', perm.permission_name
+                    FROM ' + QUOTENAME(@db) + N'.sys.database_permissions perm
+                    JOIN ' + QUOTENAME(@db) + N'.sys.database_principals dp
+                        ON perm.grantee_principal_id = dp.principal_id
+                    WHERE dp.name = @login';
+
+                BEGIN TRY
+                    EXEC sp_executesql @sql, N'@login NVARCHAR(256)', @login=@login;
+                END TRY
+                BEGIN CATCH
+                    PRINT ERROR_MESSAGE();
+                END CATCH
+
+                FETCH NEXT FROM db_cursor INTO @db;
+            END
+
+            CLOSE db_cursor;
+            DEALLOCATE db_cursor;
+
+            SELECT database_name, permission_name FROM #perm_table;
+        """
+
         rows: List[tuple[Any, Any]] = []
-        databases = connection.execute_query(
-            "SELECT name FROM sys.databases WHERE state_desc = 'ONLINE'"
-        )
-        for db_name_tuple in databases:
-            database = db_name_tuple[0]
-            if not database:
-                continue
-            safe_db_name = database.replace("]", "]]")
-            quoted_db = f"[{safe_db_name}]"
-            sql = f"""
-                SELECT '{database}' AS database_name, perm.permission_name
-                FROM {quoted_db}.sys.database_permissions perm
-                JOIN {quoted_db}.sys.database_principals dp ON perm.grantee_principal_id = dp.principal_id
-                WHERE dp.name = %s
-            """
-            try:
-                db_rows = connection.execute_query(sql, (login_name,))
-                rows.extend(db_rows)
-            except Exception as exc:  # noqa: BLE001
-                self.logger.warning(
-                    "fetch_sqlserver_db_permissions_failed",
-                    database=database,
-                    login=login_name,
-                    error=str(exc),
-                    exc_info=True,
-                )
+        try:
+            rows = connection.execute_query(sql, (login_name,))
+        except Exception as exc:  # noqa: BLE001
+            self.logger.error(
+                "fetch_sqlserver_db_permissions_failed",
+                module="sqlserver_account_adapter",
+                login=login_name,
+                error=str(exc),
+                exc_info=True,
+            )
         db_perms: Dict[str, List[str]] = {}
         for row in rows:
             database = row[0]
