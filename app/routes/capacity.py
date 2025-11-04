@@ -15,7 +15,7 @@ from app.constants import SyncStatus, TaskStatus
 from app.errors import NotFoundError, SystemError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
-from app.services.capacity_sync_service import DatabaseSizeCollectorService
+from app.services.database_sync import DatabaseSizeCollectorService
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
@@ -41,11 +41,42 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
         }
 
     try:
-        databases_data = collector.collect_database_sizes()
+        try:
+            inventory_result = collector.synchronize_database_inventory()
+        except Exception as inventory_error:
+            log_error(
+                "同步数据库列表失败",
+                module="capacity",
+                instance_id=instance.id,
+                instance_name=instance.name,
+                error=str(inventory_error),
+                exc_info=True,
+            )
+            return {
+                'success': False,
+                'message': f'同步数据库列表失败: {inventory_error}',
+            }
+
+        active_databases = set(inventory_result.get('active_databases', []))
+
+        if not active_databases:
+            return {
+                'success': True,
+                'databases': [],
+                'database_count': 0,
+                'total_size_mb': 0,
+                'saved_count': 0,
+                'instance_stat_updated': False,
+                'inventory': inventory_result,
+                'message': '未发现活跃数据库，已仅同步数据库列表',
+            }
+
+        databases_data = collector.collect_database_sizes(active_databases)
         if not databases_data:
             return {
                 'success': False,
                 'message': '未采集到任何数据库大小数据',
+                'inventory': inventory_result,
             }
 
         database_count = len(databases_data)
@@ -90,6 +121,7 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
             'total_size_mb': total_size_mb,
             'saved_count': saved_count,
             'instance_stat_updated': instance_stat_updated,
+            'inventory': inventory_result,
             'message': f'成功采集并保存 {database_count} 个数据库的容量信息',
         }
     finally:

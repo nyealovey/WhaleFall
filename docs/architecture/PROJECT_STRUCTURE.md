@@ -99,7 +99,20 @@ routes/
 ```
 services/
 ├── __init__.py
-├── account_sync_service.py # 账户同步服务
+├── account_sync/
+│   ├── __init__.py
+│   ├── account_sync_service.py      # 账户同步统一入口
+│   ├── coordinator.py               # 两阶段协调器
+│   ├── inventory_manager.py         # 账户清单同步
+│   ├── permission_manager.py        # 权限快照同步
+│   ├── account_query_service.py     # 查询辅助
+│   └── adapters/
+│       ├── base_adapter.py          # 账户同步适配器基类
+│       ├── factory.py
+│       ├── mysql_adapter.py
+│       ├── postgresql_adapter.py
+│       ├── sqlserver_adapter.py
+│       └── oracle_adapter.py
 ├── sync_session_service.py # 同步会话服务
 ├── sync_data_manager.py    # 同步数据管理
 ├── database_type_service.py # 数据库类型服务
@@ -111,14 +124,7 @@ services/
 │   ├── connection_factory.py
 │   └── connection_test_service.py
 
-└── account_sync_adapters/  # 账户同步适配器
-    ├── __init__.py
-    ├── base_sync_adapter.py
-    ├── account_sync_filters.py  # 账户同步过滤器
-    ├── mysql_sync_adapter.py
-    ├── postgresql_sync_adapter.py
-    ├── sqlserver_sync_adapter.py
-    └── oracle_sync_adapter.py
+
 ```
 
 ### 工具类 (utils/)

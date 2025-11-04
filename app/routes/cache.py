@@ -12,7 +12,7 @@ from app.constants import DatabaseType, TaskStatus
 
 from app.models import Instance
 from app.services.cache_service import cache_manager
-from app.services.account_sync_adapters.sqlserver_sync_adapter import SQLServerSyncAdapter
+from app.services.account_sync.adapters.sqlserver_adapter import SQLServerAccountAdapter
 from app.services.account_classification_service import AccountClassificationService
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.utils.response_utils import jsonify_unified_success
@@ -54,7 +54,7 @@ def clear_user_cache() -> Response:
 
     try:
         if instance.db_type == DatabaseType.SQLSERVER:
-            adapter = SQLServerSyncAdapter()
+            adapter = SQLServerAccountAdapter()
             success = adapter.clear_user_cache(instance, username)
         else:
             success = cache_manager.invalidate_user_cache(instance_id, username)
