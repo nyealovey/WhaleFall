@@ -205,7 +205,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     def _get_database_permissions(self, connection: Any, login_name: str) -> Dict[str, List[str]]:
         sql = """
-            DECLARE @login NVARCHAR(256) = %s;
+            DECLARE @login NVARCHAR(256);
+            SET @login = %s;
 
             IF OBJECT_ID('tempdb..#perm_table') IS NOT NULL
                 DROP TABLE #perm_table;
