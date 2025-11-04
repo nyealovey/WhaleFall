@@ -4,13 +4,12 @@
 """
 
 from typing import Any
-from uuid import uuid4
+import threading
 
 from flask import Blueprint, Response, current_app, render_template, request
 from flask_login import current_user, login_required  # type: ignore
 
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from app.errors import NotFoundError, SystemError, ValidationError
@@ -18,7 +17,6 @@ from app.scheduler import get_scheduler
 from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
-from app.utils.time_utils import time_utils
 
 # 常量: 内置任务ID集合（统一前后端识别）
 BUILTIN_TASK_IDS: set[str] = {
@@ -314,34 +312,44 @@ def run_job(job_id: str) -> Response:
         log_info("开始立即执行任务", module="scheduler", job_id=job_id, job_name=job.name)
 
         try:
-            manual_kwargs = dict(job.kwargs) if job.kwargs else {}
-            if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
-                manual_kwargs["manual_run"] = True
-                manual_kwargs["created_by"] = current_user.id if current_user.is_authenticated else None
+            def _run_job_in_background() -> None:
+                try:
+                    if job_id in BUILTIN_TASK_IDS:
+                        manual_kwargs = dict(job.kwargs) if job.kwargs else {}
+                        if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
+                            manual_kwargs["manual_run"] = True
+                            manual_kwargs["created_by"] = (
+                                current_user.id if current_user.is_authenticated else None
+                            )
+                        job.func(*job.args, **manual_kwargs)
+                    else:
+                        from app import create_app
 
-            manual_job_id = f"{job_id}_manual_{uuid4().hex}"
-            scheduler.add_job(
-                job.func,
-                trigger=DateTrigger(run_date=time_utils.now()),
-                args=job.args,
-                kwargs=manual_kwargs if manual_kwargs else job.kwargs,
-                id=manual_job_id,
-                replace_existing=False,
-                coalesce=False,
-                misfire_grace_time=job.misfire_grace_time,
-                max_instances=job.max_instances,
-            )
+                        app = create_app()  # type: ignore
+                        with app.app_context():
+                            job.func(*job.args, **(job.kwargs or {}))
 
-            log_info(
-                "任务已异步调度执行",
-                module="scheduler",
-                job_id=job_id,
-                job_name=job.name,
-                manual_job_id=manual_job_id,
-            )
+                    log_info(
+                        "任务立即执行成功",
+                        module="scheduler",
+                        job_id=job_id,
+                        job_name=job.name,
+                    )
+                except Exception as func_error:  # pragma: no cover - 防御性日志
+                    log_error(
+                        "任务函数执行失败",
+                        module="scheduler",
+                        job_id=job_id,
+                        job_name=job.name,
+                        error=str(func_error),
+                    )
+
+            thread = threading.Thread(target=_run_job_in_background, name=f"{job_id}_manual", daemon=True)
+            thread.start()
+
             return jsonify_unified_success(
-                data={"manual_job_id": manual_job_id},
-                message="任务已加入执行队列",
+                data={"manual_job_id": thread.name},
+                message="任务已提交后台执行",
             )
 
         except Exception as func_error:
