@@ -91,7 +91,16 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
         permissions = account.get("permissions", {})
-        attributes = account.get("attributes", {})
+        type_specific = permissions.setdefault("type_specific", {})
+        attributes = {
+            "can_create_role": type_specific.get("can_create_role"),
+            "can_create_db": type_specific.get("can_create_db"),
+            "can_replicate": type_specific.get("can_replicate"),
+            "can_bypass_rls": type_specific.get("can_bypass_rls"),
+            "can_login": type_specific.get("can_login"),
+            "can_inherit": type_specific.get("can_inherit"),
+            "valid_until": type_specific.get("valid_until"),
+        }
         return {
             "username": account["username"],
             "display_name": account["username"],
@@ -105,7 +114,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 "database_privileges_pg": permissions.get("database_privileges", {}),
                 "tablespace_privileges": permissions.get("tablespace_privileges", {}),
                 "system_privileges": permissions.get("system_privileges", []),
-                "type_specific": permissions.get("type_specific", {}),
+                "type_specific": type_specific,
             },
         }
 

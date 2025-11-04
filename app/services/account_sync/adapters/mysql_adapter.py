@@ -47,15 +47,6 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             for username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed in users:
                 unique_username = f"{username}@{host}"
                 is_locked = (is_locked_flag or "").upper() == "Y"
-                attributes = {
-                    "host": host,
-                    "original_username": username,
-                    "is_locked": is_locked,
-                    "plugin": plugin,
-                    "password_last_changed": password_last_changed.isoformat() if password_last_changed else None,
-                    "can_grant": (can_grant_flag or "").upper() == "Y",
-                }
-
                 accounts.append(
                     {
                         "username": unique_username,
@@ -63,8 +54,18 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                         "host": host,
                         "is_superuser": is_superuser == "Y",
                         "is_locked": is_locked,
-                        "permissions": {},
-                        "attributes": attributes,
+                        "permissions": {
+                            "type_specific": {
+                                "host": host,
+                                "original_username": username,
+                                "is_locked": is_locked,
+                                "plugin": plugin,
+                                "password_last_changed": password_last_changed.isoformat()
+                                if password_last_changed
+                                else None,
+                                "can_grant": (can_grant_flag or "").upper() == "Y",
+                            }
+                        },
                     }
                 )
 
@@ -87,16 +88,14 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
         permissions = account.get("permissions", {})
-        type_specific = permissions.get("type_specific", {})
-        attributes_source = account.get("attributes", {})
+        type_specific = permissions.setdefault("type_specific", {})
         attributes = {
-            "host": attributes_source.get("host", account.get("host")),
-            "original_username": attributes_source.get("original_username", account.get("original_username")),
-            "is_locked": attributes_source.get("is_locked", account.get("is_locked", False)),
+            "host": type_specific.get("host", account.get("host")),
+            "original_username": type_specific.get("original_username", account.get("original_username")),
+            "is_locked": type_specific.get("is_locked", account.get("is_locked", False)),
             "grant_statements": type_specific.get("grant_statements"),
-            "plugin": attributes_source.get("plugin") or type_specific.get("plugin"),
-            "password_last_changed": attributes_source.get("password_last_changed")
-            or type_specific.get("password_last_changed"),
+            "plugin": type_specific.get("plugin"),
+            "password_last_changed": type_specific.get("password_last_changed"),
         }
         return {
             "username": account["username"],

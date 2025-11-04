@@ -30,9 +30,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                         "username": login_name,
                         "is_superuser": is_superuser,
                         "is_disabled": is_disabled,
-                        "attributes": {"is_disabled": is_disabled},
-                        # 权限信息在 collection 阶段按需加载
-                        "permissions": {},
+                        "permissions": {
+                            "type_specific": {
+                                "is_disabled": is_disabled,
+                            }
+                        },
                     }
                 )
             self.logger.info(
@@ -54,8 +56,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
         permissions = account.get("permissions", {})
-        attributes = account.get("attributes") or {}
-        attributes.setdefault("is_disabled", account.get("is_disabled", False))
+        type_specific = permissions.setdefault("type_specific", {})
+        type_specific.setdefault("is_disabled", account.get("is_disabled", False))
+        attributes = {
+            "is_disabled": type_specific.get("is_disabled", account.get("is_disabled", False)),
+        }
         return {
             "username": account["username"],
             "display_name": account["username"],

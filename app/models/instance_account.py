@@ -20,7 +20,6 @@ class InstanceAccount(db.Model):
     first_seen_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, comment="首次发现时间")
     last_seen_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, comment="最后发现时间")
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
-    attributes = db.Column(db.JSON, nullable=True, comment="账户补充属性（如主机、锁定状态等）")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now)
 

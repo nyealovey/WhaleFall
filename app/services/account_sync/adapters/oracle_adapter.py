@@ -24,17 +24,17 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 username = user["username"]
                 account_status = user["account_status"]
                 is_locked = account_status.upper() != "OPEN"
-                attributes = {
-                    "account_status": account_status,
-                    "default_tablespace": user.get("default_tablespace"),
-                }
                 accounts.append(
                     {
                         "username": username,
                         "is_superuser": user.get("is_dba", False),
                         "is_locked": is_locked,
-                        "permissions": {},
-                        "attributes": attributes,
+                        "permissions": {
+                            "type_specific": {
+                                "account_status": account_status,
+                                "default_tablespace": user.get("default_tablespace"),
+                            }
+                        },
                     }
                 )
             self.logger.info(
@@ -56,11 +56,10 @@ class OracleAccountAdapter(BaseAccountAdapter):
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
         permissions = account.get("permissions", {})
-        attributes_source = account.get("attributes", {})
-        type_specific = permissions.get("type_specific", {})
+        type_specific = permissions.setdefault("type_specific", {})
         attributes = {
-            "account_status": attributes_source.get("account_status", type_specific.get("account_status")),
-            "default_tablespace": attributes_source.get("default_tablespace"),
+            "account_status": type_specific.get("account_status"),
+            "default_tablespace": type_specific.get("default_tablespace"),
         }
         return {
             "username": account["username"],
@@ -132,11 +131,6 @@ class OracleAccountAdapter(BaseAccountAdapter):
             try:
                 permissions = self._get_user_permissions(connection, username)
                 type_specific = permissions.setdefault("type_specific", {})
-                attributes = account.get("attributes") or {}
-                if attributes.get("account_status") is not None:
-                    type_specific.setdefault("account_status", attributes["account_status"])
-                if attributes.get("default_tablespace"):
-                    type_specific.setdefault("default_tablespace", attributes["default_tablespace"])
                 account["permissions"] = permissions
             except Exception as exc:  # noqa: BLE001
                 self.logger.error(
