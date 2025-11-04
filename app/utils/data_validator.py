@@ -299,15 +299,37 @@ class DataValidator:
             清理后的数据
         """
         sanitized: Dict[str, Any] = {}
-        for key, value in (data or {}).items():
-            if isinstance(value, str):
-                sanitized[key] = cls.sanitize_string(value)
-            elif isinstance(value, (int, float, bool)):
-                sanitized[key] = value
-            elif value is None:
-                sanitized[key] = None
-            else:
-                sanitized[key] = cls.sanitize_string(str(value))
+        if hasattr(data, "getlist"):
+            # MultiDict 支持同名字段多值（如 checkbox + hidden），需要保留全部值
+            for key in data.keys():
+                values = data.getlist(key)
+                if not values:
+                    sanitized[key] = None
+                    continue
+
+                cleaned_values = []
+                for value in values:
+                    if isinstance(value, str):
+                        cleaned_values.append(cls.sanitize_string(value))
+                    elif isinstance(value, (int, float, bool)):
+                        cleaned_values.append(value)
+                    elif value is None:
+                        cleaned_values.append(None)
+                    else:
+                        cleaned_values.append(cls.sanitize_string(str(value)))
+
+                # 只有一个值时保持原有标量行为，多个值返回列表供后续解析
+                sanitized[key] = cleaned_values[0] if len(cleaned_values) == 1 else cleaned_values
+        else:
+            for key, value in (data or {}).items():
+                if isinstance(value, str):
+                    sanitized[key] = cls.sanitize_string(value)
+                elif isinstance(value, (int, float, bool)):
+                    sanitized[key] = value
+                elif value is None:
+                    sanitized[key] = None
+                else:
+                    sanitized[key] = cls.sanitize_string(str(value))
         return sanitized
 
     @staticmethod
