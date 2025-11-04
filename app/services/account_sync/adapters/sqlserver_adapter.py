@@ -25,16 +25,22 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 login_name = user["name"]
                 is_disabled = user.get("is_disabled", False)
                 is_superuser = user.get("is_sysadmin", False)
-                permissions = self._get_login_permissions(connection, login_name)
-                permissions.setdefault("type_specific", {})["is_disabled"] = is_disabled
                 accounts.append(
                     {
                         "username": login_name,
                         "is_superuser": is_superuser,
                         "is_disabled": is_disabled,
-                        "permissions": permissions,
+                        "attributes": {"is_disabled": is_disabled},
+                        # 权限信息在 collection 阶段按需加载
+                        "permissions": {},
                     }
                 )
+            self.logger.info(
+                "fetch_sqlserver_accounts_success",
+                module="sqlserver_account_adapter",
+                instance=instance.name,
+                account_count=len(accounts),
+            )
             return accounts
         except Exception as exc:  # noqa: BLE001
             self.logger.error(
@@ -48,9 +54,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
         permissions = account.get("permissions", {})
-        attributes = {
-            "is_disabled": account.get("is_disabled", False),
-        }
+        attributes = account.get("attributes") or {}
+        attributes.setdefault("is_disabled", account.get("is_disabled", False))
         return {
             "username": account["username"],
             "display_name": account["username"],
@@ -66,6 +71,49 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 "type_specific": permissions.get("type_specific", {}),
             },
         }
+
+    def enrich_permissions(
+        self,
+        instance: Instance,
+        connection: Any,
+        accounts: List[Dict[str, Any]],
+        *,
+        usernames: List[str] | None = None,
+    ) -> List[Dict[str, Any]]:
+        target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
+        if not target_usernames:
+            return accounts
+
+        processed = 0
+        for account in accounts:
+            username = account.get("username")
+            if not username or username not in target_usernames:
+                continue
+            processed += 1
+            try:
+                permissions = self._get_login_permissions(connection, username)
+                permissions.setdefault("type_specific", {})["is_disabled"] = account.get("attributes", {}).get(
+                    "is_disabled", account.get("is_disabled", False)
+                )
+                account["permissions"] = permissions
+            except Exception as exc:  # noqa: BLE001
+                self.logger.error(
+                    "fetch_sqlserver_permissions_failed",
+                    module="sqlserver_account_adapter",
+                    instance=instance.name,
+                    username=username,
+                    error=str(exc),
+                    exc_info=True,
+                )
+                account.setdefault("permissions", {}).setdefault("errors", []).append(str(exc))
+
+        self.logger.info(
+            "fetch_sqlserver_permissions_completed",
+            module="sqlserver_account_adapter",
+            instance=instance.name,
+            processed_accounts=processed,
+        )
+        return accounts
 
     # ------------------------------------------------------------------
     # 查询逻辑来源于旧实现

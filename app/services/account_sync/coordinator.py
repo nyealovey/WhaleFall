@@ -26,6 +26,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         self._connection = None
         self._cached_accounts: Optional[List[dict]] = None
         self._active_accounts_cache = None
+        self._enriched_usernames: set[str] = set()
         self._connection_failed = False
         self._connection_error: Optional[str] = None
 
@@ -132,15 +133,18 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                     instance_name=self.instance.name,
                 )
 
+    def _ensure_connection(self) -> None:
+        if not self._connection or not getattr(self._connection, "is_connected", False):
+            if not self.connect():
+                error_message = self._connection_error or "数据库连接未建立"
+                raise RuntimeError(error_message)
+
     # ------------------------------------------------------------------
     # 同步阶段
     # ------------------------------------------------------------------
     def fetch_remote_accounts(self) -> List[dict]:
         if self._cached_accounts is None:
-            if not self._connection or not getattr(self._connection, "is_connected", False):
-                if not self.connect():
-                    error_message = self._connection_error or "数据库连接未建立"
-                    raise RuntimeError(error_message)
+            self._ensure_connection()
             self.logger.info(
                 "account_sync_fetch_remote_accounts_start",
                 module=MODULE,
@@ -149,6 +153,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             )
             raw_accounts = self._adapter.fetch_remote_accounts(self.instance, self._connection) or []
             self._cached_accounts = list(raw_accounts)
+            self._enriched_usernames.clear()
             self.logger.info(
                 "account_sync_fetch_remote_accounts_completed",
                 module=MODULE,
@@ -220,6 +225,21 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 skipped=len(remote_accounts),
             )
             return collection_summary
+
+        # 在进入权限阶段前按需补全权限信息
+        active_usernames = [account.username for account in active_accounts if getattr(account, "username", None)]
+        enriched_usernames = getattr(self, "_enriched_usernames", set())
+        pending_usernames = [username for username in active_usernames if username and username not in enriched_usernames]
+        if pending_usernames:
+            self._ensure_connection()
+            self._cached_accounts = self._adapter.enrich_permissions(
+                self.instance,
+                self._connection,
+                self._cached_accounts,
+                usernames=pending_usernames,
+            )
+            enriched_usernames.update(pending_usernames)
+            self._enriched_usernames = enriched_usernames
 
         try:
             summary = self._permission_manager.synchronize(

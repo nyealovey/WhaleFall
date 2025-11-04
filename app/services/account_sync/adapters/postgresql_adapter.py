@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
@@ -53,30 +53,31 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                     can_inherit,
                     valid_until,
                 ) = row
-                permissions = self._get_role_permissions(
-                    connection,
-                    username,
-                    is_superuser=is_superuser,
-                )
-                permissions.setdefault("type_specific", {})["valid_until"] = (
-                    valid_until.isoformat() if valid_until else None
-                )
+                attributes = {
+                    "can_create_role": can_create_role,
+                    "can_create_db": can_create_db,
+                    "can_replicate": can_replicate,
+                    "can_bypass_rls": can_bypass_rls,
+                    "can_login": can_login,
+                    "can_inherit": can_inherit,
+                    "valid_until": valid_until.isoformat() if valid_until else None,
+                }
                 accounts.append(
                     {
                         "username": username,
                         "is_superuser": is_superuser,
                         "can_login": can_login,
-                        "attributes": {
-                            "can_create_role": can_create_role,
-                            "can_create_db": can_create_db,
-                            "can_replicate": can_replicate,
-                            "can_bypass_rls": can_bypass_rls,
-                            "can_inherit": can_inherit,
-                            "valid_until": valid_until.isoformat() if valid_until else None,
-                        },
-                        "permissions": permissions,
+                        "attributes": attributes,
+                        # 权限在 collection 阶段按需加载
+                        "permissions": {},
                     }
                 )
+            self.logger.info(
+                "fetch_postgresql_accounts_success",
+                module="postgresql_account_adapter",
+                instance=instance.name,
+                account_count=len(accounts),
+            )
             return accounts
         except Exception as exc:  # noqa: BLE001
             self.logger.error(
@@ -175,6 +176,65 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         if is_superuser:
             permissions["system_privileges"].append("SUPERUSER")
         return permissions
+
+    def enrich_permissions(
+        self,
+        instance: Instance,
+        connection: Any,
+        accounts: List[Dict[str, Any]],
+        *,
+        usernames: Sequence[str] | None = None,
+    ) -> List[Dict[str, Any]]:
+        target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
+        if not target_usernames:
+            return accounts
+
+        processed = 0
+        for account in accounts:
+            username = account.get("username")
+            if not username or username not in target_usernames:
+                continue
+            processed += 1
+            try:
+                permissions = self._get_role_permissions(
+                    connection,
+                    username,
+                    is_superuser=bool(account.get("is_superuser")),
+                )
+                attributes = account.get("attributes") or {}
+                type_specific = permissions.setdefault("type_specific", {})
+                if attributes.get("valid_until"):
+                    type_specific.setdefault("valid_until", attributes["valid_until"])
+                type_specific.setdefault("can_login", attributes.get("can_login"))
+                permissions.setdefault("role_attributes", {}).update(
+                    {
+                        "can_create_role": attributes.get("can_create_role"),
+                        "can_create_db": attributes.get("can_create_db"),
+                        "can_replicate": attributes.get("can_replicate"),
+                        "can_bypass_rls": attributes.get("can_bypass_rls"),
+                        "can_inherit": attributes.get("can_inherit"),
+                        "can_login": attributes.get("can_login"),
+                    }
+                )
+                account["permissions"] = permissions
+            except Exception as exc:  # noqa: BLE001
+                self.logger.error(
+                    "fetch_pg_permissions_failed",
+                    module="postgresql_account_adapter",
+                    instance=instance.name,
+                    username=username,
+                    error=str(exc),
+                    exc_info=True,
+                )
+                account.setdefault("permissions", {}).setdefault("errors", []).append(str(exc))
+
+        self.logger.info(
+            "fetch_postgresql_permissions_completed",
+            module="postgresql_account_adapter",
+            instance=instance.name,
+            processed_accounts=processed,
+        )
+        return accounts
 
     # 以下辅助查询函数沿用旧实现
     def _get_role_attributes(self, connection: Any, username: str) -> Dict[str, Any]:
