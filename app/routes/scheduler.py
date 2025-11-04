@@ -10,6 +10,7 @@ from flask import Blueprint, Response, current_app, render_template, request
 from flask_login import current_user, login_required  # type: ignore
 
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from app.errors import NotFoundError, SystemError, ValidationError
