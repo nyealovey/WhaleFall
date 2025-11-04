@@ -22,6 +22,8 @@ class AccountSyncCoordinator:
         self._connection = None
         self._cached_accounts: Optional[List[dict]] = None
         self._active_accounts_cache = None
+        self._connection_failed = False
+        self._connection_error: Optional[str] = None
 
     # ------------------------------------------------------------------
     # 连接管理
@@ -29,13 +31,62 @@ class AccountSyncCoordinator:
     def connect(self) -> bool:
         if self._connection and getattr(self._connection, "is_connected", False):
             return True
-        connection = ConnectionFactory.create_connection(self.instance)
-        if not connection:
+        if self._connection_failed:
             return False
-        if connection.connect():
-            self._connection = connection
-            return True
-        return False
+
+        try:
+            connection = ConnectionFactory.create_connection(self.instance)
+        except Exception as exc:  # noqa: BLE001
+            self._connection_failed = True
+            self._connection_error = str(exc)
+            self.logger.error(
+                "account_sync_connection_init_failed",
+                instance_id=self.instance.id,
+                instance_name=self.instance.name,
+                db_type=self.instance.db_type,
+                error=self._connection_error,
+                exc_info=True,
+            )
+            return False
+
+        if not connection:
+            self._connection_failed = True
+            self._connection_error = "不支持的数据库类型"
+            self.logger.error(
+                "account_sync_connection_unsupported",
+                instance_id=self.instance.id,
+                instance_name=self.instance.name,
+                db_type=self.instance.db_type,
+            )
+            return False
+
+        try:
+            if connection.connect():
+                self._connection = connection
+                self._connection_failed = False
+                self._connection_error = None
+                return True
+            self._connection_failed = True
+            self._connection_error = "连接返回失败"
+            self.logger.error(
+                "account_sync_connection_failed",
+                instance_id=self.instance.id,
+                instance_name=self.instance.name,
+                db_type=self.instance.db_type,
+            )
+            return False
+        except Exception as exc:  # noqa: BLE001
+            self._connection_failed = True
+            self._connection_error = str(exc)
+            self.logger.error(
+                "account_sync_connection_exception",
+                instance_id=self.instance.id,
+                instance_name=self.instance.name,
+                db_type=self.instance.db_type,
+                error=self._connection_error,
+                exc_info=True,
+            )
+            return False
 
     def disconnect(self) -> None:
         if self._connection:
@@ -51,7 +102,8 @@ class AccountSyncCoordinator:
         if self._cached_accounts is None:
             if not self._connection or not getattr(self._connection, "is_connected", False):
                 if not self.connect():
-                    raise RuntimeError("数据库连接未建立")
+                    error_message = self._connection_error or "数据库连接未建立"
+                    raise RuntimeError(error_message)
             self._cached_accounts = self._adapter.fetch_remote_accounts(self.instance, self._connection)
         return self._cached_accounts
 
