@@ -28,15 +28,15 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
         try:
             where_clause, params = self._build_filter_conditions()
-            user_sql = f"
-                SELECT
-                    User as username,
-                    Host as host,
-                    Super_priv as is_superuser
-                FROM mysql.user
-                WHERE User != '' AND {where_clause}
-                ORDER BY User, Host
-            "
+            user_sql = (
+                "SELECT "
+                "    User as username, "
+                "    Host as host, "
+                "    Super_priv as is_superuser "
+                "FROM mysql.user "
+                f"WHERE User != '' AND {where_clause} "
+                "ORDER BY User, Host"
+            )
             users = connection.execute_query(user_sql, params)
 
             accounts: List[Dict[str, Any]] = []
