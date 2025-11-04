@@ -39,7 +39,7 @@ class DatabaseFilterManager:
                 raise ValueError("配置文件格式错误，缺少 account_filters 节点")
 
             filter_rules = config["account_filters"] or {}
-            logger.info("成功加载账户过滤规则配置文件: %s", self.config_file)
+            logger.info("成功加载账户过滤规则配置文件: %s", str(self.config_file))
             logger.info("加载的数据库类型: %s", list(filter_rules.keys()))
 
             return filter_rules
