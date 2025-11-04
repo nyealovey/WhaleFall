@@ -7,7 +7,7 @@ from typing import Any
 from uuid import uuid4
 
 from flask import Blueprint, Response, current_app, render_template, request
-from flask_login import login_required  # type: ignore
+from flask_login import current_user, login_required  # type: ignore
 
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
@@ -317,6 +317,7 @@ def run_job(job_id: str) -> Response:
             manual_kwargs = dict(job.kwargs) if job.kwargs else {}
             if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
                 manual_kwargs["manual_run"] = True
+                manual_kwargs["created_by"] = current_user.id if current_user.is_authenticated else None
 
             manual_job_id = f"{job_id}_manual_{uuid4().hex}"
             scheduler.add_job(
