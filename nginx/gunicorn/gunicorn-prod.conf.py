@@ -10,7 +10,7 @@ backlog = 2048
 workers = 2  # 固定2个进程，避免复杂配置
 worker_class = "gevent"  # 使用gevent工作器，支持异步
 worker_connections = 1000  # gevent工作器连接数
-timeout = 30
+timeout = 120
 keepalive = 2
 
 # 重启
