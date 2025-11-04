@@ -125,12 +125,15 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                     # 完成实例同步
                     details = normalized.get("details", {})
                     inventory = details.get("inventory", {})
-                    permissions = details.get("permissions", {})
+                    collection = details.get("collection", {})
+                    processed_records = collection.get("processed_records", 0)
+                    if collection.get("status") == "skipped":
+                        processed_records = 0
                     sync_session_service.complete_instance_sync(
                         record.id,
-                        items_synced=permissions.get("updated", 0) + permissions.get("created", 0),
+                        items_synced=processed_records,
                         items_created=inventory.get("created", 0),
-                        items_updated=permissions.get("updated", 0),
+                        items_updated=collection.get("updated", 0),
                         items_deleted=inventory.get("deactivated", 0),
                         sync_details=details,
                     )

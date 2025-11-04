@@ -92,6 +92,9 @@ class AccountInventoryManager:
             self.logger.error(
                 "account_inventory_sync_commit_failed",
                 instance=instance.name,
+                instance_id=instance.id,
+                module="account_sync",
+                phase="inventory",
                 error=str(exc),
                 exc_info=True,
             )
@@ -103,11 +106,16 @@ class AccountInventoryManager:
             "reactivated": reactivated,
             "deactivated": deactivated,
             "active_count": len(active_accounts),
+            "total_remote": len(remote_accounts),
+            "processed_records": created + refreshed + reactivated,
         }
 
         self.logger.info(
             "account_inventory_sync_completed",
             instance=instance.name,
+            instance_id=instance.id,
+            module="account_sync",
+            phase="inventory",
             **summary,
         )
 

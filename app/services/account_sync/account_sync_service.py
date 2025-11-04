@@ -108,12 +108,10 @@ class AccountSyncService:
         单实例同步 - 无会话管理
         用于实例页面的直接同步调用
         """
-        coordinator = AccountSyncCoordinator(instance)
         temp_session_id = str(uuid4())
         try:
-            if not coordinator.connect():
-                return {"success": False, "error": "无法获取数据库连接"}
-            summary = coordinator.sync_all(session_id=temp_session_id)
+            with AccountSyncCoordinator(instance) as coordinator:
+                summary = coordinator.sync_all(session_id=temp_session_id)
             result = self._build_result(summary)
             instance.last_connected = time_utils.now()
             db.session.commit()
@@ -122,7 +120,7 @@ class AccountSyncService:
                 module="account_sync_unified",
                 instance_name=instance.name,
                 inventory=summary.get("inventory", {}),
-                permissions=summary.get("permissions", {}),
+                collection=summary.get("collection", {}),
             )
             result["details"] = summary
             return result
@@ -135,8 +133,6 @@ class AccountSyncService:
                 exc_info=True,
             )
             return {"success": False, "error": f"同步失败: {str(exc)}"}
-        finally:
-            coordinator.disconnect()
 
     def _sync_with_session(self, instance: Instance, sync_type: str, created_by: int | None) -> dict[str, Any]:
         """
@@ -166,12 +162,14 @@ class AccountSyncService:
             if result["success"]:
                 details = result.get("details", {})
                 inventory = details.get("inventory", {})
-                permissions = details.get("permissions", {})
+                collection = details.get("collection", {})
                 sync_session_service.complete_instance_sync(
                     record.id,
-                    items_synced=permissions.get("updated", 0) + permissions.get("created", 0),
+                    items_synced=collection.get("processed_records", 0)
+                    if collection.get("status") != "skipped"
+                    else 0,
                     items_created=inventory.get("created", 0),
-                    items_updated=permissions.get("updated", 0),
+                    items_updated=collection.get("updated", 0),
                     items_deleted=inventory.get("deactivated", 0),
                     sync_details=details,
                 )
@@ -196,11 +194,9 @@ class AccountSyncService:
         """
         使用现有会话ID进行同步
         """
-        coordinator = AccountSyncCoordinator(instance)
         try:
-            if not coordinator.connect():
-                return {"success": False, "error": "无法获取数据库连接"}
-            summary = coordinator.sync_all(session_id=session_id)
+            with AccountSyncCoordinator(instance) as coordinator:
+                summary = coordinator.sync_all(session_id=session_id)
             result = self._build_result(summary)
             result["details"] = summary
             instance.last_connected = time_utils.now()
@@ -217,22 +213,23 @@ class AccountSyncService:
                 exc_info=True,
             )
             return {"success": False, "error": f"同步失败: {str(exc)}"}
-        finally:
-            coordinator.disconnect()
 
     def _build_result(self, summary: Dict[str, Dict[str, int]]) -> Dict[str, Any]:
         inventory = summary.get("inventory", {})
-        permissions = summary.get("permissions", {})
+        collection = summary.get("collection", {})
 
         added = inventory.get("created", 0)
         reactivated = inventory.get("reactivated", 0)
         removed = inventory.get("deactivated", 0)
-        updated = permissions.get("updated", 0)
-        created = permissions.get("created", 0)
+        updated = collection.get("updated", 0)
+        created = collection.get("created", 0)
+        processed_records = collection.get("processed_records", created + updated)
+        if collection.get("status") == "skipped":
+            processed_records = 0
 
         return {
             "success": True,
-            "synced_count": created + updated,
+            "synced_count": processed_records,
             "added_count": added + reactivated,
             "modified_count": updated,
             "removed_count": removed,
