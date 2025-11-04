@@ -91,84 +91,159 @@ def collect_database_sizes():
                     )
                     
                     # 调用数据库大小采集服务
-                    from app.services.capacity_sync_service import (
+                    from app.services.database_sync import (
                         DatabaseSizeCollectorService,
                     )
-                    
                     collector = DatabaseSizeCollectorService(instance)
                     
-                    # 建立连接
-                    if not collector.connect():
-                        error_msg = f"无法连接到实例 {instance.name}"
-                        sync_logger.error(
-                            error_msg,
-                            module="capacity_sync",
-                            session_id=session.session_id,
-                            instance_id=instance.id,
-                            instance_name=instance.name
-                        )
-                        sync_session_service.fail_instance_sync(record.id, error_msg)
-                        total_failed += 1
-                        results.append({
-                            'instance_id': instance.id,
-                            'instance_name': instance.name,
-                            'success': False,
-                            'error': error_msg
-                        })
-                        continue
-                    
-                    # 采集数据库大小
                     try:
-                        databases_data = collector.collect_database_sizes()
-                    except Exception as e:
-                        error_msg = f"采集数据库大小失败: {str(e)}"
-                        sync_logger.error(
-                            error_msg,
-                            module="capacity_sync",
-                            session_id=session.session_id,
-                            instance_id=instance.id,
-                            instance_name=instance.name,
-                            error=str(e)
-                        )
-                        sync_session_service.fail_instance_sync(record.id, error_msg)
-                        total_failed += 1
-                        results.append({
-                            'instance_id': instance.id,
-                            'instance_name': instance.name,
-                            'success': False,
-                            'error': error_msg
-                        })
-                        continue
-                    
-                    if databases_data and len(databases_data) > 0:
+                        # 建立连接
+                        if not collector.connect():
+                            error_msg = f"无法连接到实例 {instance.name}"
+                            sync_logger.error(
+                                error_msg,
+                                module="capacity_sync",
+                                session_id=session.session_id,
+                                instance_id=instance.id,
+                                instance_name=instance.name
+                            )
+                            sync_session_service.fail_instance_sync(record.id, error_msg)
+                            total_failed += 1
+                            results.append({
+                                'instance_id': instance.id,
+                                'instance_name': instance.name,
+                                'success': False,
+                                'error': error_msg
+                            })
+                            continue
+
+                        try:
+                            inventory_result = collector.synchronize_database_inventory()
+                        except Exception as inventory_error:
+                            error_msg = f"同步数据库列表失败: {inventory_error}"
+                            sync_logger.error(
+                                error_msg,
+                                module="capacity_sync",
+                                session_id=session.session_id,
+                                instance_id=instance.id,
+                                instance_name=instance.name,
+                                error=str(inventory_error),
+                                exc_info=True,
+                            )
+                            sync_session_service.fail_instance_sync(record.id, error_msg)
+                            total_failed += 1
+                            results.append({
+                                'instance_id': instance.id,
+                                'instance_name': instance.name,
+                                'success': False,
+                                'error': error_msg
+                            })
+                            continue
+
+                        active_databases = set(inventory_result.get('active_databases', []))
+
+                        if not active_databases:
+                            sync_session_service.complete_instance_sync(
+                                record.id,
+                                items_synced=0,
+                                items_created=inventory_result.get('created', 0),
+                                items_updated=inventory_result.get('refreshed', 0) + inventory_result.get('reactivated', 0),
+                                items_deleted=inventory_result.get('deactivated', 0),
+                                sync_details={
+                                    'total_size_mb': 0,
+                                    'database_count': 0,
+                                    'saved_count': 0,
+                                    'databases': [],
+                                    'inventory': inventory_result,
+                                }
+                            )
+
+                            total_synced += 1
+                            results.append({
+                                'instance_id': instance.id,
+                                'instance_name': instance.name,
+                                'success': True,
+                                'size_mb': 0,
+                                'database_count': 0,
+                                'saved_count': 0,
+                                'databases': [],
+                                'inventory': inventory_result,
+                                'message': '未发现活跃数据库，已仅同步数据库列表'
+                            })
+                            continue
+
+                        # 采集数据库大小
+                        try:
+                            databases_data = collector.collect_database_sizes(active_databases)
+                        except Exception as e:
+                            error_msg = f"采集数据库大小失败: {str(e)}"
+                            sync_logger.error(
+                                error_msg,
+                                module="capacity_sync",
+                                session_id=session.session_id,
+                                instance_id=instance.id,
+                                instance_name=instance.name,
+                                error=str(e)
+                            )
+                            sync_session_service.fail_instance_sync(record.id, error_msg)
+                            total_failed += 1
+                            results.append({
+                                'instance_id': instance.id,
+                                'instance_name': instance.name,
+                                'success': False,
+                                'error': error_msg
+                            })
+                            continue
+
+                        if not databases_data:
+                            error_msg = '未采集到任何数据库大小数据'
+                            sync_logger.error(
+                                f"实例容量同步失败: {instance.name} - {error_msg}",
+                                module="capacity_sync",
+                                session_id=session.session_id,
+                                instance_id=instance.id,
+                                instance_name=instance.name,
+                                error=error_msg
+                            )
+                            sync_session_service.fail_instance_sync(record.id, error_msg)
+                            total_failed += 1
+                            results.append({
+                                'instance_id': instance.id,
+                                'instance_name': instance.name,
+                                'success': False,
+                                'error': error_msg
+                            })
+                            continue
+
                         # 计算总大小和数据库数量
                         database_count = len(databases_data)
                         instance_total_size_mb = sum(db.get('size_mb', 0) for db in databases_data)
-                        
+
                         # 保存数据库大小数据到数据库
                         saved_count = collector.save_collected_data(databases_data)
-                        
+
                         # 更新实例大小统计
                         collector.update_instance_total_size()
-                        
+
                         # 更新同步记录 - 容量同步使用数据库数量作为同步数量
                         sync_session_service.complete_instance_sync(
                             record.id,
-                            items_synced=database_count,  # 使用数据库数量作为同步数量
-                            items_created=0,  # 容量同步没有新增概念
-                            items_updated=0,  # 容量同步没有更新概念
-                            items_deleted=0,  # 容量同步没有删除概念
+                            items_synced=database_count,
+                            items_created=inventory_result.get('created', 0),
+                            items_updated=inventory_result.get('refreshed', 0) + inventory_result.get('reactivated', 0),
+                            items_deleted=inventory_result.get('deactivated', 0),
                             sync_details={
                                 'total_size_mb': instance_total_size_mb,
                                 'database_count': database_count,
                                 'saved_count': saved_count,
-                                'databases': databases_data
+                                'databases': databases_data,
+                                'inventory': inventory_result
                             }
                         )
-                        
+
                         total_synced += 1
                         total_collected_size_mb += instance_total_size_mb
-                        
+
                         sync_logger.info(
                             f"实例容量同步成功: {instance.name}",
                             module="capacity_sync",
@@ -179,7 +254,7 @@ def collect_database_sizes():
                             database_count=database_count,
                             saved_count=saved_count
                         )
-                        
+
                         results.append({
                             'instance_id': instance.id,
                             'instance_name': instance.name,
@@ -187,29 +262,11 @@ def collect_database_sizes():
                             'size_mb': instance_total_size_mb,
                             'database_count': database_count,
                             'saved_count': saved_count,
-                            'databases': databases_data
+                            'databases': databases_data,
+                            'inventory': inventory_result
                         })
-                    else:
-                        error_msg = '未采集到任何数据库大小数据'
-                        sync_logger.error(
-                            f"实例容量同步失败: {instance.name} - {error_msg}",
-                            module="capacity_sync",
-                            session_id=session.session_id,
-                            instance_id=instance.id,
-                            instance_name=instance.name,
-                            error=error_msg
-                        )
-                        sync_session_service.fail_instance_sync(record.id, error_msg)
-                        total_failed += 1
-                        results.append({
-                            'instance_id': instance.id,
-                            'instance_name': instance.name,
-                            'success': False,
-                            'error': error_msg
-                        })
-                    
-                    # 关闭连接
-                    collector.disconnect()
+                    finally:
+                        collector.disconnect()
                     
                 except Exception as e:
                     error_msg = f"实例同步异常: {str(e)}"
@@ -291,7 +348,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
         Dict[str, Any]: 采集结果
     """
     from app import create_app
-    from app.services.capacity_sync_service import DatabaseSizeCollectorService
+    from app.services.database_sync import DatabaseSizeCollectorService
     
     # 创建Flask应用上下文
     app = create_app()
@@ -329,8 +386,38 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
                 }
             
             try:
+                try:
+                    inventory_result = collector.synchronize_database_inventory()
+                except Exception as inventory_error:
+                    sync_logger.error(
+                        "同步数据库列表失败",
+                        module="capacity_sync",
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        error=str(inventory_error),
+                        exc_info=True,
+                    )
+                    return {
+                        'success': False,
+                        'message': f'同步数据库列表失败: {inventory_error}',
+                    }
+
+                active_databases = set(inventory_result.get('active_databases', []))
+
+                if not active_databases:
+                    return {
+                        'success': True,
+                        'databases': [],
+                        'database_count': 0,
+                        'total_size_mb': 0,
+                        'saved_count': 0,
+                        'instance_stat_updated': False,
+                        'inventory': inventory_result,
+                        'message': '未发现活跃数据库，已仅同步数据库列表',
+                    }
+
                 # 采集数据库大小
-                databases_data = collector.collect_database_sizes()
+                databases_data = collector.collect_database_sizes(active_databases)
                 
                 if databases_data and len(databases_data) > 0:
                     # 计算总大小和数据库数量
@@ -351,7 +438,8 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
                         return {
                             'success': False,
                             'message': f'采集成功但保存数据失败: {save_error}',
-                            'error': str(save_error)
+                            'error': str(save_error),
+                            'inventory': inventory_result,
                         }
 
                     instance_stat_updated = collector.update_instance_total_size()
@@ -387,12 +475,14 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
                         'total_size_mb': total_size_mb,
                         'saved_count': saved_count,
                         'instance_stat_updated': instance_stat_updated,
+                        'inventory': inventory_result,
                         'message': f'成功采集并保存 {database_count} 个数据库的容量信息'
                     }
                 else:
                     return {
                         'success': False,
-                        'message': '未采集到任何数据库大小数据'
+                        'message': '未采集到任何数据库大小数据',
+                        'inventory': inventory_result,
                     }
             finally:
                 # 确保关闭连接
@@ -561,7 +651,7 @@ def validate_collection_config() -> Dict[str, Any]:
         }
         
         # 检查服务可用性
-        from app.services.capacity_sync_service import (
+        from app.services.database_sync import (
             DatabaseSizeCollectorService,
         )
         service = DatabaseSizeCollectorService()

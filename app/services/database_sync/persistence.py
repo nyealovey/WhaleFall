@@ -1,0 +1,194 @@
+from __future__ import annotations
+
+from typing import Iterable, List
+
+from sqlalchemy.exc import SQLAlchemyError
+
+from app import db
+from app.models.database_size_stat import DatabaseSizeStat
+from app.models.instance import Instance
+from app.models.instance_size_stat import InstanceSizeStat
+from app.utils.structlog_config import get_system_logger
+from app.utils.time_utils import time_utils
+
+
+class CapacityPersistence:
+    """负责容量采集相关的数据持久化。"""
+
+    def __init__(self) -> None:
+        self.logger = get_system_logger()
+
+    def save_database_stats(self, instance: Instance, data: Iterable[dict]) -> int:
+        """
+        保存数据库容量数据。
+
+        Returns:
+            int: 成功保存的记录数
+        """
+        rows = list(data or [])
+        if not rows:
+            return 0
+
+        saved = 0
+        for item in rows:
+            try:
+                existing = DatabaseSizeStat.query.filter_by(
+                    instance_id=instance.id,
+                    database_name=item["database_name"],
+                    collected_date=item["collected_date"],
+                ).first()
+
+                if existing:
+                    existing.size_mb = item["size_mb"]
+                    existing.data_size_mb = item["data_size_mb"]
+                    existing.log_size_mb = item["log_size_mb"]
+                    existing.collected_at = item["collected_at"]
+                    existing.updated_at = item["collected_at"]
+                else:
+                    new_stat = DatabaseSizeStat(
+                        instance_id=instance.id,
+                        database_name=item["database_name"],
+                        size_mb=item["size_mb"],
+                        data_size_mb=item["data_size_mb"],
+                        log_size_mb=item["log_size_mb"],
+                        collected_date=item["collected_date"],
+                        collected_at=item["collected_at"],
+                        updated_at=item["collected_at"],
+                        is_deleted=False,
+                    )
+                    db.session.add(new_stat)
+
+                saved += 1
+            except Exception as exc:  # noqa: BLE001
+                self.logger.error(
+                    "save_database_stat_failed",
+                    instance=instance.name,
+                    database=item.get("database_name"),
+                    error=str(exc),
+                    exc_info=True,
+                )
+
+        try:
+            db.session.commit()
+            self.logger.info(
+                "save_database_stats_success",
+                instance=instance.name,
+                saved_count=saved,
+            )
+        except SQLAlchemyError as exc:
+            db.session.rollback()
+            self.logger.error(
+                "save_database_stats_commit_failed",
+                instance=instance.name,
+                error=str(exc),
+                exc_info=True,
+            )
+            raise
+
+        return saved
+
+    def save_instance_stats(self, instance: Instance, data: Iterable[dict]) -> bool:
+        """
+        保存实例总体容量数据。
+
+        Returns:
+            bool: 是否成功保存
+        """
+        rows = list(data or [])
+        if not rows:
+            self.logger.warning(
+                "skip_instance_stats_save_no_data",
+                instance=instance.name,
+            )
+            return False
+
+        total_size = sum(item["size_mb"] for item in rows)
+        database_count = len(rows)
+
+        china_now = time_utils.now_china()
+        collected_date = china_now.date()
+
+        try:
+            existing = InstanceSizeStat.query.filter_by(
+                instance_id=instance.id,
+                collected_date=collected_date,
+            ).first()
+
+            if existing:
+                existing.total_size_mb = total_size
+                existing.database_count = database_count
+                existing.collected_at = time_utils.now()
+                existing.updated_at = time_utils.now()
+            else:
+                new_stat = InstanceSizeStat(
+                    instance_id=instance.id,
+                    total_size_mb=total_size,
+                    database_count=database_count,
+                    collected_date=collected_date,
+                    collected_at=time_utils.now(),
+                    is_deleted=False,
+                )
+                db.session.add(new_stat)
+
+            self.logger.info(
+                "save_instance_stats_success",
+                instance=instance.name,
+                total_size_mb=total_size,
+                database_count=database_count,
+            )
+            return True
+        except SQLAlchemyError as exc:
+            self.logger.error(
+                "save_instance_stats_failed",
+                instance=instance.name,
+                error=str(exc),
+                exc_info=True,
+            )
+            return False
+
+    def update_instance_total_size(self, instance: Instance) -> bool:
+        """根据当天采集数据刷新实例汇总。"""
+        today = time_utils.now_china().date()
+        stats: List[DatabaseSizeStat] = DatabaseSizeStat.query.filter_by(
+            instance_id=instance.id,
+            collected_date=today,
+            is_deleted=False,
+        ).all()
+
+        if not stats:
+            self.logger.warning(
+                "update_instance_total_size_skipped",
+                instance=instance.name,
+            )
+            return False
+
+        total_size = sum(stat.size_mb for stat in stats)
+        database_count = len(stats)
+
+        success = self.save_instance_stats(
+            instance,
+            [{"size_mb": stat.size_mb} for stat in stats],
+        )
+
+        if success:
+            try:
+                db.session.commit()
+            except SQLAlchemyError as exc:
+                db.session.rollback()
+                self.logger.error(
+                    "update_instance_total_size_commit_failed",
+                    instance=instance.name,
+                    error=str(exc),
+                    exc_info=True,
+                )
+                return False
+
+            self.logger.info(
+                "update_instance_total_size_success",
+                instance=instance.name,
+                total_size_mb=total_size,
+                database_count=database_count,
+            )
+            return True
+
+        return False
