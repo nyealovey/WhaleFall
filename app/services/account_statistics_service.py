@@ -11,13 +11,13 @@ from typing import Any
 from app.errors import SystemError
 from app.constants import DatabaseType
 from app.models.account_classification import AccountClassification, AccountClassificationAssignment
-from app.models.current_account_sync_data import CurrentAccountSyncData
+from app.models.account_permission import AccountPermission
 from app.models.instance_account import InstanceAccount
 from app.models.instance import Instance
 from app.utils.structlog_config import log_error
 
 
-def _is_account_locked(account: CurrentAccountSyncData, db_type: str) -> bool:
+def _is_account_locked(account: AccountPermission, db_type: str) -> bool:
     """根据数据库类型判断账户是否锁定"""
     if account.instance_account and account.instance_account.is_active is False:
         return True
@@ -41,14 +41,14 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
         db_type: 可选的数据库类型过滤条件。
     """
     try:
-        query = CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
+        query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
         query = query.filter(InstanceAccount.is_active.is_(True))
 
         if instance_id is not None:
-            query = query.filter(CurrentAccountSyncData.instance_id == instance_id)
+            query = query.filter(AccountPermission.instance_id == instance_id)
 
         if db_type:
-            query = query.filter(CurrentAccountSyncData.db_type == db_type)
+            query = query.filter(AccountPermission.db_type == db_type)
 
         accounts = query.all()
 
@@ -86,9 +86,9 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
         db_type_stats: dict[str, dict[str, int]] = {}
         for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
             accounts = (
-                CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
+                AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
                 .filter(InstanceAccount.is_active.is_(True))
-                .filter(CurrentAccountSyncData.db_type == db_type)
+                .filter(AccountPermission.db_type == db_type)
                 .all()
             )
             total_count = len(accounts)

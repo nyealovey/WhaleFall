@@ -125,9 +125,9 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
     """获取账户变更历史"""
     instance = Instance.query.get_or_404(instance_id)
 
-    from app.models.current_account_sync_data import CurrentAccountSyncData
+    from app.models.account_permission import AccountPermission
 
-    account = CurrentAccountSyncData.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
+    account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
     try:
         from app.models.account_change_log import AccountChangeLog

@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.account_change_log import AccountChangeLog
-from app.models.current_account_sync_data import CurrentAccountSyncData
+from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.utils.structlog_config import get_sync_logger
@@ -67,9 +67,9 @@ class AccountPermissionManager:
             permissions = remote.get("permissions", {})
             is_superuser = bool(remote.get("is_superuser", False))
 
-            existing = CurrentAccountSyncData.query.filter_by(instance_account_id=account.id).first()
+            existing = AccountPermission.query.filter_by(instance_account_id=account.id).first()
             if not existing:
-                existing = CurrentAccountSyncData.query.filter_by(
+                existing = AccountPermission.query.filter_by(
                     instance_id=instance.id,
                     db_type=instance.db_type,
                     username=account.username,
@@ -101,30 +101,24 @@ class AccountPermissionManager:
                             instance_name=instance.name,
                             username=account.username,
                             error=str(log_exc),
-                            session_id=session_id,
                         )
                         skipped += 1
                         continue
                 else:
                     skipped += 1
                 existing.last_sync_time = time_utils.now()
-                existing.sync_time = time_utils.now()
-                existing.status = "success"
             else:
-                existing = CurrentAccountSyncData(
+                existing = AccountPermission(
                     instance_id=instance.id,
                     db_type=instance.db_type,
                     instance_account_id=account.id,
                     username=account.username,
                     is_superuser=is_superuser,
-                    status="success",
-                    session_id=session_id,
                 )
                 self._apply_permissions(existing, permissions, is_superuser)
                 existing.last_change_type = "add"
                 existing.last_change_time = time_utils.now()
                 existing.last_sync_time = time_utils.now()
-                existing.sync_time = time_utils.now()
                 created += 1
                 db.session.add(existing)
 
@@ -146,7 +140,6 @@ class AccountPermissionManager:
                         instance_name=instance.name,
                         username=account.username,
                         error=str(log_exc),
-                        session_id=session_id,
                     )
                     skipped += 1
                     continue
@@ -204,7 +197,7 @@ class AccountPermissionManager:
     # ------------------------------------------------------------------
     def _apply_permissions(
         self,
-        record: CurrentAccountSyncData,
+        record: AccountPermission,
         permissions: Dict,
         is_superuser: bool,
     ) -> None:
@@ -220,7 +213,7 @@ class AccountPermissionManager:
 
     def _calculate_diff(
         self,
-        record: CurrentAccountSyncData,
+        record: AccountPermission,
         permissions: Dict,
         is_superuser: bool,
     ) -> Dict[str, Any]:
@@ -261,7 +254,6 @@ class AccountPermissionManager:
         username: str,
         change_type: str,
         diff_payload: Dict[str, Any],
-        session_id: str | None,
     ) -> None:
         if change_type == "none":
             return
@@ -272,9 +264,6 @@ class AccountPermissionManager:
             username=username,
             change_type=change_type,
             change_time=time_utils.now(),
-            session_id=session_id,
-            status="success",
-            message="权限已更新" if change_type != "add" else "新增账户",
             privilege_diff=diff_payload.get("privilege_diff"),
             other_diff=diff_payload.get("other_diff"),
         )

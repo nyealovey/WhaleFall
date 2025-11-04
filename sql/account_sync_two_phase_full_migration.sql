@@ -1,8 +1,8 @@
 -- 账户同步两阶段重构 - 完整迁移脚本（PostgreSQL）
 -- 步骤：
 --   1. 创建 / 补全 instance_accounts 表结构；
---   2. 从 current_account_sync_data 聚合历史记录写入 instance_accounts；
---   3. 回填 current_account_sync_data.instance_account_id 外键；
+--   2. 从 account_permission 聚合历史记录写入 instance_accounts；
+--   3. 回填 account_permission.instance_account_id 外键；
 --   4. 建立约束并清理旧字段。
 
 BEGIN;
@@ -53,11 +53,11 @@ COMMENT ON COLUMN instance_accounts.last_seen_at  IS '最后发现时间';
 COMMENT ON COLUMN instance_accounts.deleted_at    IS '删除时间';
 COMMENT ON COLUMN instance_accounts.attributes    IS '补充属性：主机、锁定状态等';
 
-ALTER TABLE current_account_sync_data
+ALTER TABLE account_permission
     ADD COLUMN IF NOT EXISTS instance_account_id INTEGER;
 
 -- ---------------------------------------------------------------------------
--- 2. 聚合 current_account_sync_data 数据写入 instance_accounts
+-- 2. 聚合 account_permission 数据写入 instance_accounts
 -- ---------------------------------------------------------------------------
 WITH normalized AS (
     SELECT
@@ -67,7 +67,7 @@ WITH normalized AS (
         username,
         type_specific,
         COALESCE(last_sync_time, sync_time, last_change_time, NOW()) AS observed_at
-    FROM current_account_sync_data
+    FROM account_permission
 ),
 summary AS (
     SELECT
@@ -115,7 +115,7 @@ SELECT
     NULL AS deleted_at,
     jsonb_strip_nulls(
         jsonb_build_object(
-            'source', 'migration_current_account_sync_data',
+            'source', 'migration_account_permission',
             'last_snapshot_type_specific', l.type_specific
         )
     ) AS attributes,
@@ -140,9 +140,9 @@ SET
     updated_at    = COALESCE(EXCLUDED.updated_at, NOW());
 
 -- ---------------------------------------------------------------------------
--- 3. 回填 current_account_sync_data.instance_account_id
+-- 3. 回填 account_permission.instance_account_id
 -- ---------------------------------------------------------------------------
-UPDATE current_account_sync_data AS casd
+UPDATE account_permission AS casd
 SET instance_account_id = ia.id
 FROM instance_accounts AS ia
 WHERE ia.instance_id = casd.instance_id
@@ -153,7 +153,7 @@ DO $$
 BEGIN
     IF EXISTS (
         SELECT 1
-        FROM current_account_sync_data
+        FROM account_permission
         WHERE instance_account_id IS NULL
     ) THEN
         RAISE EXCEPTION '回填 instance_account_id 失败：存在未匹配的账户记录';
@@ -163,19 +163,19 @@ END $$;
 -- ---------------------------------------------------------------------------
 -- 4. 约束 & 清理
 -- ---------------------------------------------------------------------------
-ALTER TABLE current_account_sync_data
+ALTER TABLE account_permission
     ALTER COLUMN instance_account_id SET NOT NULL;
 
-ALTER TABLE current_account_sync_data
+ALTER TABLE account_permission
     DROP CONSTRAINT IF EXISTS fk_current_account_sync_instance_account;
 
-ALTER TABLE current_account_sync_data
+ALTER TABLE account_permission
     ADD CONSTRAINT fk_current_account_sync_instance_account
         FOREIGN KEY (instance_account_id)
         REFERENCES instance_accounts(id)
         ON DELETE CASCADE;
 
-ALTER TABLE current_account_sync_data
+ALTER TABLE account_permission
     DROP COLUMN IF EXISTS is_active,
     DROP COLUMN IF EXISTS is_deleted,
     DROP COLUMN IF EXISTS deleted_time,
@@ -188,4 +188,4 @@ DROP INDEX IF EXISTS idx_current_account_sync_deleted_time;
 COMMIT;
 
 ANALYZE instance_accounts;
-ANALYZE current_account_sync_data;
+ANALYZE account_permission;

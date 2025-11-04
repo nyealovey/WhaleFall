@@ -59,7 +59,7 @@ models/
 ├── sync_session.py         # 同步会话模型
 ├── sync_instance_record.py # 同步实例记录模型
 ├── account_change_log.py   # 账户变更日志模型
-├── current_account_sync_data.py # 当前账户同步数据模型
+├── account_permission.py # 当前账户同步数据模型
 ├── base_sync_data.py       # 基础同步数据模型
 ├── database_type_config.py # 数据库类型配置模型
 ├── global_param.py         # 全局参数模型
@@ -235,7 +235,7 @@ templates/
 | sync_sessions | 同步会话表 | id, name, status, start_time, end_time |
 | sync_instance_records | 同步实例记录表 | id, session_id, instance_id, status, records_count |
 | account_change_logs | 账户变更日志表 | id, account_id, change_type, old_value, new_value |
-| current_account_sync_data | 当前账户同步数据表 | id, instance_id, account_data, last_sync_time |
+| account_permission | 当前账户同步数据表 | id, instance_id, account_data, last_sync_time |
 | base_sync_data | 基础同步数据表 | id, instance_id, sync_data, sync_time |
 | database_type_configs | 数据库类型配置表 | id, name, display_name, driver, port |
 | global_params | 全局参数表 | id, key, value, description |

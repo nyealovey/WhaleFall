@@ -320,7 +320,7 @@ CREATE TABLE instances (
 
 ```sql
 -- 账户当前状态表（优化版）
-CREATE TABLE current_account_sync_data (
+CREATE TABLE account_permission (
     id SERIAL PRIMARY KEY,
     instance_id INTEGER NOT NULL REFERENCES instances(id),
     db_type VARCHAR(20) NOT NULL,

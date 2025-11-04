@@ -46,15 +46,15 @@ def _delete_instance_related_data(instance_id: int, instance_name: str = None) -
     """
     from app.models.account_change_log import AccountChangeLog
     from app.models.account_classification import AccountClassificationAssignment
-    from app.models.current_account_sync_data import CurrentAccountSyncData
+    from app.models.account_permission import AccountPermission
     from app.models.sync_instance_record import SyncInstanceRecord
 
     # 统计删除的数据量
     stats = {"assignment_count": 0, "sync_data_count": 0, "sync_record_count": 0, "change_log_count": 0}
 
     try:
-        # 第一步：删除账户分类分配 (依赖CurrentAccountSyncData)
-        sync_data_ids = [data.id for data in CurrentAccountSyncData.query.filter_by(instance_id=instance_id).all()]
+        # 第一步：删除账户分类分配 (依赖AccountPermission)
+        sync_data_ids = [data.id for data in AccountPermission.query.filter_by(instance_id=instance_id).all()]
         if sync_data_ids:
             stats["assignment_count"] = AccountClassificationAssignment.query.filter(
                 AccountClassificationAssignment.account_id.in_(sync_data_ids)
@@ -70,10 +70,10 @@ def _delete_instance_related_data(instance_id: int, instance_name: str = None) -
                     instance_name=instance_name,
                 )
 
-        # 第二步：删除同步数据 (CurrentAccountSyncData)
-        stats["sync_data_count"] = CurrentAccountSyncData.query.filter_by(instance_id=instance_id).count()
+        # 第二步：删除同步数据 (AccountPermission)
+        stats["sync_data_count"] = AccountPermission.query.filter_by(instance_id=instance_id).count()
         if stats["sync_data_count"] > 0:
-            CurrentAccountSyncData.query.filter_by(instance_id=instance_id).delete()
+            AccountPermission.query.filter_by(instance_id=instance_id).delete()
             log_info(
                 f"步骤2: 删除了 {stats['sync_data_count']} 条同步数据记录",
                 module="instances",
@@ -495,7 +495,7 @@ def batch_delete() -> str | Response | tuple[Response, int]:
 
         # 检查是否有相关数据关联
         from app.models.account_change_log import AccountChangeLog
-        from app.models.current_account_sync_data import CurrentAccountSyncData
+        from app.models.account_permission import AccountPermission
         from app.models.sync_instance_record import SyncInstanceRecord
 
         related_data_counts = {}
@@ -503,7 +503,7 @@ def batch_delete() -> str | Response | tuple[Response, int]:
             instance = Instance.query.get(instance_id)
             if instance:
                 # 检查各种关联数据
-                sync_data_count = CurrentAccountSyncData.query.filter_by(instance_id=instance_id).count()
+                sync_data_count = AccountPermission.query.filter_by(instance_id=instance_id).count()
                 sync_record_count = SyncInstanceRecord.query.filter_by(instance_id=instance_id).count()
                 change_log_count = AccountChangeLog.query.filter_by(instance_id=instance_id).count()
 
@@ -866,9 +866,9 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
     """获取账户权限详情"""
     instance = Instance.query.get_or_404(instance_id)
 
-    from app.models.current_account_sync_data import CurrentAccountSyncData
+    from app.models.account_permission import AccountPermission
 
-    account = CurrentAccountSyncData.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
+    account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
     try:
         # 构建权限信息（与账户管理页面保持一致的数据结构）

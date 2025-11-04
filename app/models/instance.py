@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from app import db
 from app.utils.time_utils import time_utils
-from app.constants import TaskStatus
 from app.utils.version_parser import DatabaseVersionParser
 
 if TYPE_CHECKING:
@@ -27,13 +26,9 @@ class Instance(db.Model):
     database_version = db.Column(db.String(1000), nullable=True)  # 原始版本字符串
     main_version = db.Column(db.String(20), nullable=True)  # 主版本号 (如 8.0, 13.4, 14.0)
     detailed_version = db.Column(db.String(50), nullable=True)  # 详细版本号 (如 8.0.32, 13.4, 14.0.3465.1)
-    environment = db.Column(
-        db.String(20), default="production", nullable=False, index=True
-    )  # 环境：production, development, testing
     sync_count = db.Column(db.Integer, default=0, nullable=False)
     credential_id = db.Column(db.Integer, db.ForeignKey("credentials.id"), nullable=True)
     description = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(20), default="active", index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     last_connected = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
@@ -78,7 +73,7 @@ class Instance(db.Model):
         back_populates="instance",
         cascade="all, delete-orphan",
     )
-    # accounts关系已移除，因为Account模型已废弃，使用CurrentAccountSyncData
+    # accounts关系已移除，因为Account模型已废弃，使用AccountPermission
     # sync_data关系已移除，因为SyncData表已删除
 
     def __init__(
@@ -173,6 +168,8 @@ class Instance(db.Model):
         Returns:
             dict: 实例信息字典
         """
+        status_value = "deleted" if self.deleted_at else ("active" if self.is_active else "inactive")
+
         data = {
             "id": self.id,
             "name": self.name,
@@ -183,15 +180,14 @@ class Instance(db.Model):
             "database_version": self.database_version,
             "main_version": self.main_version,
             "detailed_version": self.detailed_version,
-            "environment": self.environment,
             "credential_id": self.credential_id,
             "description": self.description,
             "tags": [tag.to_dict() for tag in self.tags],
-            "status": self.status,
             "is_active": self.is_active,
             "last_connected": (self.last_connected.isoformat() if self.last_connected else None),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "status": status_value,
         }
 
         if self.credential:
@@ -217,7 +213,7 @@ class Instance(db.Model):
     def soft_delete(self) -> None:
         """软删除实例"""
         self.deleted_at = time_utils.now()
-        self.status = "deleted"
+        self.is_active = False
         db.session.commit()
         from app.utils.structlog_config import get_system_logger
 
@@ -233,7 +229,7 @@ class Instance(db.Model):
     def restore(self) -> None:
         """恢复实例"""
         self.deleted_at = None
-        self.status = "active"
+        self.is_active = True
         db.session.commit()
         from app.utils.structlog_config import get_system_logger
 
@@ -249,31 +245,17 @@ class Instance(db.Model):
     @staticmethod
     def get_active_instances() -> list:
         """获取所有活跃实例"""
-        return Instance.query.filter_by(deleted_at=None, status="active").all()
+        return (
+            Instance.query.filter(
+                Instance.deleted_at.is_(None),
+                Instance.is_active.is_(True),
+            ).all()
+        )
 
     @staticmethod
     def get_by_db_type(db_type: str) -> list:
         """根据数据库类型获取实例"""
         return Instance.query.filter_by(db_type=db_type, deleted_at=None).all()
-
-    @staticmethod
-    def get_by_environment(environment: str) -> list:
-        """根据环境类型获取实例"""
-        return Instance.query.filter_by(environment=environment, deleted_at=None).all()
-
-    @staticmethod
-    def get_by_db_type_and_environment(db_type: str, environment: str) -> list:
-        """根据数据库类型和环境类型获取实例"""
-        return Instance.query.filter_by(db_type=db_type, environment=environment, deleted_at=None).all()
-
-    @staticmethod
-    def get_environment_choices() -> list:
-        """获取环境类型选项"""
-        return [
-            ("production", "生产环境"),
-            ("development", "开发环境"),
-            ("testing", "测试环境"),
-        ]
 
     # 标签相关方法
     def add_tag(self, tag: "Tag") -> None:

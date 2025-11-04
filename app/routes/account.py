@@ -13,7 +13,7 @@ from app.models.account_classification import (
     AccountClassificationAssignment,
 )
 from app.errors import SystemError
-from app.models.current_account_sync_data import CurrentAccountSyncData
+from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.account_sync import account_sync_service
@@ -53,24 +53,24 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     from app.models.instance_account import InstanceAccount
 
     # 构建查询
-    query = CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
+    query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
 
     # 数据库类型过滤
     if db_type and db_type != "all":
-        query = query.filter(CurrentAccountSyncData.db_type == db_type)
+        query = query.filter(AccountPermission.db_type == db_type)
 
     # 实例过滤
     if instance_id:
-        query = query.filter(CurrentAccountSyncData.instance_id == instance_id)
+        query = query.filter(AccountPermission.instance_id == instance_id)
 
     # 搜索过滤 - 支持用户名、实例名称、IP地址搜索
     if search:
         from app import db
         # 通过JOIN实例表来搜索实例名称和IP地址
-        query = query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
+        query = query.join(Instance, AccountPermission.instance_id == Instance.id)
         query = query.filter(
             db.or_(
-                CurrentAccountSyncData.username.contains(search),
+                AccountPermission.username.contains(search),
                 Instance.name.contains(search),
                 Instance.host.contains(search)
             )
@@ -87,7 +87,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
 
     # 超级用户过滤
     if is_superuser is not None:
-        query = query.filter(CurrentAccountSyncData.is_superuser == (is_superuser == "true"))
+        query = query.filter(AccountPermission.is_superuser == (is_superuser == "true"))
 
     # 标签过滤
     if tags:
@@ -132,20 +132,20 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
             pass
 
     # 排序
-    query = query.order_by(CurrentAccountSyncData.username.asc())
+    query = query.order_by(AccountPermission.username.asc())
 
     # 分页
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
     # 获取统计信息
-    base_query = CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
+    base_query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
     base_query = base_query.filter(InstanceAccount.is_active.is_(True))
     stats = {
         "total": base_query.count(),
-        "mysql": base_query.filter(CurrentAccountSyncData.db_type == "mysql").count(),
-        "postgresql": base_query.filter(CurrentAccountSyncData.db_type == "postgresql").count(),
-        "oracle": base_query.filter(CurrentAccountSyncData.db_type == "oracle").count(),
-        "sqlserver": base_query.filter(CurrentAccountSyncData.db_type == "sqlserver").count(),
+        "mysql": base_query.filter(AccountPermission.db_type == "mysql").count(),
+        "postgresql": base_query.filter(AccountPermission.db_type == "postgresql").count(),
+        "oracle": base_query.filter(AccountPermission.db_type == "oracle").count(),
+        "sqlserver": base_query.filter(AccountPermission.db_type == "sqlserver").count(),
     }
 
     instances = Instance.query.filter_by(is_active=True).all()
@@ -237,7 +237,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
 def get_account_permissions(account_id: int) -> tuple[Response, int]:
     """获取账户权限详情"""
     try:
-        account = CurrentAccountSyncData.query.get_or_404(account_id)
+        account = AccountPermission.query.get_or_404(account_id)
         instance = account.instance
 
         # 构建权限信息

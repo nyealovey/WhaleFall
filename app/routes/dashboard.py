@@ -14,7 +14,7 @@ from app import db
 from app.constants.system_constants import SuccessMessages
 from app.constants import TaskStatus
 from app.models.instance import Instance
-from app.models.current_account_sync_data import CurrentAccountSyncData
+from app.models.account_permission import AccountPermission
 
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.user import User
@@ -153,7 +153,7 @@ def get_system_overview() -> dict:
         total_users = User.query.count()
         total_instances = Instance.query.count()
         from app.models.account_classification import AccountClassification, AccountClassificationAssignment
-        from app.models.current_account_sync_data import CurrentAccountSyncData
+        from app.models.account_permission import AccountPermission
         from app.models.unified_log import LogLevel, UnifiedLog
 
         # 获取容量统计
@@ -194,7 +194,7 @@ def get_system_overview() -> dict:
         from app.models.instance_account import InstanceAccount
 
         total_accounts = (
-            CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
+            AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
             .filter(InstanceAccount.is_active.is_(True))
             .count()
         )
@@ -224,17 +224,17 @@ def get_system_overview() -> dict:
                 )
             )
             .outerjoin(
-                CurrentAccountSyncData,
-                CurrentAccountSyncData.id == AccountClassificationAssignment.account_id,
+                AccountPermission,
+                AccountPermission.id == AccountClassificationAssignment.account_id,
             )
             .outerjoin(
                 InstanceAccount,
-                CurrentAccountSyncData.instance_account,
+                AccountPermission.instance_account,
             )
             .outerjoin(
                 Instance,
                 and_(
-                    Instance.id == CurrentAccountSyncData.instance_id,
+                    Instance.id == AccountPermission.instance_id,
                     Instance.is_active.is_(True),
                     Instance.deleted_at.is_(None)
                 )
@@ -254,17 +254,17 @@ def get_system_overview() -> dict:
         auto_classified_accounts = (
             db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
             .join(
-                CurrentAccountSyncData,
-                CurrentAccountSyncData.id == AccountClassificationAssignment.account_id,
+                AccountPermission,
+                AccountPermission.id == AccountClassificationAssignment.account_id,
             )
             .join(
                 InstanceAccount,
-                CurrentAccountSyncData.instance_account,
+                AccountPermission.instance_account,
             )
             .join(
                 Instance,
                 and_(
-                    Instance.id == CurrentAccountSyncData.instance_id,
+                    Instance.id == AccountPermission.instance_id,
                     Instance.is_active.is_(True),
                     Instance.deleted_at.is_(None)
                 )
@@ -290,9 +290,9 @@ def get_system_overview() -> dict:
         active_instances = Instance.query.filter_by(is_active=True).count()
 
         active_accounts = (
-            db.session.query(func.count(CurrentAccountSyncData.id))
-            .join(InstanceAccount, CurrentAccountSyncData.instance_account)
-            .join(Instance, Instance.id == CurrentAccountSyncData.instance_id)
+            db.session.query(func.count(AccountPermission.id))
+            .join(InstanceAccount, AccountPermission.instance_account)
+            .join(Instance, Instance.id == AccountPermission.instance_id)
             .filter(
                 InstanceAccount.is_active.is_(True),
                 Instance.is_active.is_(True),
