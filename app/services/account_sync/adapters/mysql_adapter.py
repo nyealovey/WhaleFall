@@ -5,7 +5,7 @@ MySQL账户同步适配器（两阶段版）
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
@@ -32,7 +32,11 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 "SELECT "
                 "    User as username, "
                 "    Host as host, "
-                "    Super_priv as is_superuser "
+                "    Super_priv as is_superuser, "
+                "    account_locked as is_locked, "
+                "    Grant_priv as can_grant, "
+                "    plugin as plugin, "
+                "    password_last_changed as password_last_changed "
                 "FROM mysql.user "
                 f"WHERE User != '' AND {where_clause} "
                 "ORDER BY User, Host"
@@ -40,18 +44,17 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             users = connection.execute_query(user_sql, params)
 
             accounts: List[Dict[str, Any]] = []
-            for username, host, is_superuser in users:
+            for username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed in users:
                 unique_username = f"{username}@{host}"
-                permissions = self._get_user_permissions(connection, username, host)
-
-                # 获取锁定状态
-                is_locked_sql = "SELECT account_locked FROM mysql.user WHERE User = %s AND Host = %s"
-                is_locked_result = connection.execute_query(is_locked_sql, (username, host))
-                is_locked = is_locked_result[0][0] == "Y" if is_locked_result else False
-
-                permissions.setdefault("type_specific", {})["host"] = host
-                permissions["type_specific"]["original_username"] = username
-                permissions["type_specific"]["is_locked"] = is_locked
+                is_locked = (is_locked_flag or "").upper() == "Y"
+                attributes = {
+                    "host": host,
+                    "original_username": username,
+                    "is_locked": is_locked,
+                    "plugin": plugin,
+                    "password_last_changed": password_last_changed.isoformat() if password_last_changed else None,
+                    "can_grant": (can_grant_flag or "").upper() == "Y",
+                }
 
                 accounts.append(
                     {
@@ -60,7 +63,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                         "host": host,
                         "is_superuser": is_superuser == "Y",
                         "is_locked": is_locked,
-                        "permissions": permissions,
+                        "permissions": {},
+                        "attributes": attributes,
                     }
                 )
 
@@ -84,13 +88,15 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
         permissions = account.get("permissions", {})
         type_specific = permissions.get("type_specific", {})
+        attributes_source = account.get("attributes", {})
         attributes = {
-            "host": account.get("host"),
-            "original_username": account.get("original_username"),
-            "is_locked": account.get("is_locked", False),
+            "host": attributes_source.get("host", account.get("host")),
+            "original_username": attributes_source.get("original_username", account.get("original_username")),
+            "is_locked": attributes_source.get("is_locked", account.get("is_locked", False)),
             "grant_statements": type_specific.get("grant_statements"),
-            "plugin": type_specific.get("plugin"),
-            "password_last_changed": type_specific.get("password_last_changed"),
+            "plugin": attributes_source.get("plugin") or type_specific.get("plugin"),
+            "password_last_changed": attributes_source.get("password_last_changed")
+            or type_specific.get("password_last_changed"),
         }
         return {
             "username": account["username"],
@@ -168,6 +174,66 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 "database_privileges": {},
                 "type_specific": {"grant_statements": [], "can_grant": False, "is_locked": False},
             }
+
+    def enrich_permissions(
+        self,
+        instance: Instance,
+        connection: Any,
+        accounts: List[Dict[str, Any]],
+        *,
+        usernames: Sequence[str] | None = None,
+    ) -> List[Dict[str, Any]]:
+        target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
+        if not target_usernames:
+            return accounts
+
+        processed = 0
+        for account in accounts:
+            username = account.get("username")
+            if not username or username not in target_usernames:
+                continue
+            original_username = account.get("original_username")
+            host = account.get("host")
+            if not original_username or host is None:
+                continue
+
+            processed += 1
+            try:
+                permissions = self._get_user_permissions(connection, original_username, host)
+                type_specific = permissions.setdefault("type_specific", {})
+                attributes = account.get("attributes") or {}
+                if attributes.get("host") is not None:
+                    type_specific.setdefault("host", attributes["host"])
+                if attributes.get("original_username") is not None:
+                    type_specific.setdefault("original_username", attributes["original_username"])
+                if attributes.get("is_locked") is not None:
+                    type_specific.setdefault("is_locked", attributes["is_locked"])
+                if attributes.get("plugin") is not None:
+                    type_specific.setdefault("plugin", attributes["plugin"])
+                if attributes.get("password_last_changed") is not None:
+                    type_specific.setdefault("password_last_changed", attributes["password_last_changed"])
+                if attributes.get("can_grant") is not None:
+                    type_specific.setdefault("can_grant", attributes["can_grant"])
+                account["permissions"] = permissions
+            except Exception as exc:  # noqa: BLE001
+                self.logger.error(
+                    "fetch_mysql_permissions_failed",
+                    module="mysql_account_adapter",
+                    instance=instance.name,
+                    username=original_username,
+                    host=host,
+                    error=str(exc),
+                    exc_info=True,
+                )
+                account.setdefault("permissions", {}).setdefault("errors", []).append(str(exc))
+
+        self.logger.info(
+            "fetch_mysql_permissions_completed",
+            module="mysql_account_adapter",
+            instance=instance.name,
+            processed_accounts=processed,
+        )
+        return accounts
 
     def _parse_grant_statement(
         self,

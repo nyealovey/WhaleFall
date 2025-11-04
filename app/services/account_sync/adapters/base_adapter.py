@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
 
 from app.models.instance import Instance
 
@@ -25,6 +25,23 @@ class BaseAccountAdapter(ABC):
         for account in raw_accounts:
             normalized.append(self._normalize_account(instance, account))
         return normalized
+
+    def enrich_permissions(
+        self,
+        instance: Instance,
+        connection: Any,
+        accounts: List[Dict[str, Any]],
+        *,
+        usernames: Sequence[str] | None = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        为账号列表补全权限信息。
+
+        默认实现直接返回原列表，适用于在 ``_fetch_raw_accounts`` 阶段已经填充
+        ``permissions`` 的适配器。若需要按需加载权限（例如 SQL Server），请在具体
+        适配器中重写该方法。
+        """
+        return accounts
 
     @abstractmethod
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
