@@ -21,14 +21,16 @@ class DatabaseFilterManager:
     """数据库过滤规则管理器"""
 
     def __init__(self, config_path: str | Path | None = None) -> None:
-        self.config_file = Path(config_path) if config_path else _DEFAULT_CONFIG_PATH
+        path_obj = Path(config_path) if config_path else _DEFAULT_CONFIG_PATH
+        self.config_file = path_obj
+        self.config_path_str = str(path_obj)
         self.filter_rules = self._load_filter_rules()
 
     def _load_filter_rules(self) -> dict[str, dict[str, Any]]:
         """从配置文件加载过滤规则配置"""
         if not self.config_file.exists():
-            logger.error("账户过滤规则配置文件不存在: %s", self.config_file)
-            raise FileNotFoundError(f"账户过滤规则配置文件不存在: {self.config_file}")
+            logger.error("账户过滤规则配置文件不存在: %s", self.config_path_str)
+            raise FileNotFoundError(f"账户过滤规则配置文件不存在: {self.config_path_str}")
 
         try:
             with self.config_file.open(encoding="utf-8") as config_buffer:
@@ -39,7 +41,7 @@ class DatabaseFilterManager:
                 raise ValueError("配置文件格式错误，缺少 account_filters 节点")
 
             filter_rules = config["account_filters"] or {}
-            logger.info("成功加载账户过滤规则配置文件: %s", str(self.config_file))
+            logger.info("成功加载账户过滤规则配置文件: %s", self.config_path_str)
             logger.info("加载的数据库类型: %s", list(filter_rules.keys()))
 
             return filter_rules
