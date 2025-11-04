@@ -31,6 +31,44 @@ from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 
+TRUTHY_VALUES = {"1", "true", "on", "yes", "y"}
+FALSY_VALUES = {"0", "false", "off", "no", "n"}
+
+
+def _parse_is_active_value(data: Any, default: bool = False) -> bool:
+    """从请求数据中解析 is_active，兼容表单/JSON/checkbox"""
+    value: Any
+    if hasattr(data, "getlist"):
+        values = data.getlist("is_active")
+        if not values:
+            value = None
+        else:
+            value = values[-1]  # 取最后一个值（checkbox优先于隐藏域）
+    else:
+        value = data.get("is_active", default)
+
+    if value is None:
+        return default
+
+    if isinstance(value, (list, tuple)):
+        # 兼容 JSON 中提供数组的情况，取最后一个
+        for item in reversed(value):
+            parsed = _parse_is_active_value({"is_active": item}, default)
+            if parsed is not None:
+                return parsed
+        return default
+
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in TRUTHY_VALUES:
+            return True
+        if normalized in FALSY_VALUES:
+            return False
+        return default
+
+    return bool(value)
+
+
 @instance_bp.route("/<int:instance_id>")
 @login_required
 @view_required
@@ -184,13 +222,8 @@ def edit_api(instance_id: int) -> Response:
         instance.port = int(data.get("port", instance.port))
         instance.credential_id = data.get("credential_id", instance.credential_id)
         instance.description = data.get("description", instance.description).strip()
-        
-        # 处理布尔值
-        is_active_value = data.get("is_active", instance.is_active)
-        if isinstance(is_active_value, str):
-            instance.is_active = is_active_value in ["on", "true", "1", "yes"]
-        else:
-            instance.is_active = bool(is_active_value)
+
+        instance.is_active = _parse_is_active_value(data, default=instance.is_active)
 
         db.session.commit()
 
@@ -297,11 +330,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
             if data.get("description"):
                 instance.description = data.get("description").strip()
             # 正确处理布尔值
-            is_active_value = data.get("is_active", instance.is_active)
-            if isinstance(is_active_value, str):
-                instance.is_active = is_active_value in ["on", "true", "1", "yes"]
-            else:
-                instance.is_active = bool(is_active_value)
+            instance.is_active = _parse_is_active_value(data, default=instance.is_active)
 
             # 处理标签更新
             tag_names = data.get("tag_names", [])
