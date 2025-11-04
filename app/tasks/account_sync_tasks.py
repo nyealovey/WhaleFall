@@ -16,20 +16,20 @@ from app.utils.time_utils import time_utils
 
 def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwargs: Any) -> None:  # noqa: ANN401
     """同步账户任务 - 同步所有实例的账户信息"""
-    sync_logger = get_sync_logger()
-
     app = create_app()
     with app.app_context():
+        sync_logger = get_sync_logger()
+
         try:
             instances = Instance.query.filter_by(is_active=True).all()
 
             if not instances:
-                sync_logger.info("没有找到启用的数据库实例")
+                sync_logger.info("没有找到启用的数据库实例", module="account_sync")
                 return
 
             sync_logger.info(
                 "开始同步账户信息",
-                module="account_sync_task",
+                module="account_sync",
                 instance_count=len(instances),
                 manual_run=manual_run,
                 created_by=created_by,
@@ -57,53 +57,69 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                 if not record:
                     continue
 
+                instance_session_id = f"{session.session_id}_{instance.id}"
+
                 try:
                     sync_session_service.start_instance_sync(record.id)
 
-                    coordinator = AccountSyncCoordinator(instance)
+                    sync_logger.info(
+                        "开始实例账户同步",
+                        module="account_sync",
+                        phase="inventory",
+                        session_id=session.session_id,
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                    )
 
                     try:
-                        if not coordinator.connect():
-                            error_msg = f"无法获取数据库连接"
-                            sync_session_service.fail_instance_sync(record.id, error_msg)
-                            sync_logger.error(
-                                "实例 %s 同步失败：无法建立连接",
-                                instance.name,
-                                instance_id=instance.id,
-                                session_id=session.session_id,
-                                error=error_msg,
-                            )
-                            total_failed += 1
-                            continue
-
-                        temp_session_id = f"{session.session_id}_{instance.id}"
-                        summary = coordinator.sync_all(session_id=temp_session_id)
-
-                        inventory = summary.get("inventory", {})
-                        permissions = summary.get("permissions", {})
-
-                        sync_session_service.complete_instance_sync(
-                            record.id,
-                            items_synced=permissions.get("updated", 0) + permissions.get("created", 0),
-                            items_created=inventory.get("created", 0),
-                            items_updated=permissions.get("updated", 0),
-                            items_deleted=inventory.get("deactivated", 0),
-                            sync_details=summary,
-                        )
-
-                        total_synced += 1
-
-                        sync_logger.info(
-                            "实例 %s 同步成功",
-                            instance.name,
-                            instance_id=instance.id,
+                        with AccountSyncCoordinator(instance) as coordinator:
+                            summary = coordinator.sync_all(session_id=instance_session_id)
+                    except RuntimeError as connection_error:
+                        error_message = str(connection_error) or "无法建立数据库连接"
+                        sync_session_service.fail_instance_sync(record.id, error_message)
+                        sync_logger.error(
+                            "账户同步连接失败",
+                            module="account_sync",
+                            phase="connection",
                             session_id=session.session_id,
-                            inventory=inventory,
-                            permissions=permissions,
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            error=error_message,
                         )
+                        total_failed += 1
+                        continue
 
-                    finally:
-                        coordinator.disconnect()
+                    inventory_summary = summary.get("inventory", {}) or {}
+                    collection_summary = summary.get("collection", {}) or {}
+
+                    items_created = inventory_summary.get("created", 0)
+                    items_deleted = inventory_summary.get("deactivated", 0)
+                    items_updated = collection_summary.get("updated", 0)
+                    items_synced = collection_summary.get("processed_records", 0)
+
+                    if collection_summary.get("status") == "skipped":
+                        items_synced = 0
+
+                    sync_session_service.complete_instance_sync(
+                        record.id,
+                        items_synced=items_synced,
+                        items_created=items_created,
+                        items_updated=items_updated,
+                        items_deleted=items_deleted,
+                        sync_details=summary,
+                    )
+
+                    total_synced += 1
+
+                    sync_logger.info(
+                        "实例账户同步完成",
+                        module="account_sync",
+                        session_id=session.session_id,
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        inventory=inventory_summary,
+                        collection=collection_summary,
+                    )
 
                 except Exception as exc:  # noqa: BLE001
                     total_failed += 1
@@ -111,9 +127,11 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                     sync_session_service.fail_instance_sync(record.id, str(exc))
 
                     sync_logger.error(
-                        "实例 %s 同步异常",
-                        instance.name,
+                        "实例账户同步异常",
+                        module="account_sync",
+                        session_id=session.session_id,
                         instance_id=instance.id,
+                        instance_name=instance.name,
                         error=str(exc),
                         exc_info=True,
                     )
@@ -126,6 +144,7 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
 
             sync_logger.info(
                 "账户同步任务完成",
+                module="account_sync",
                 session_id=session.session_id,
                 total_instances=len(instances),
                 total_synced=total_synced,
@@ -141,6 +160,7 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
 
             sync_logger.error(
                 "账户同步任务失败",
+                module="account_sync",
                 error=str(exc),
                 exc_info=True,
             )

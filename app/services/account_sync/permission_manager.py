@@ -122,6 +122,9 @@ class AccountPermissionManager:
             self.logger.error(
                 "account_permission_sync_commit_failed",
                 instance=instance.name,
+                instance_id=instance.id,
+                module="account_sync",
+                phase="collection",
                 error=str(exc),
                 exc_info=True,
             )
@@ -131,11 +134,15 @@ class AccountPermissionManager:
             "created": created,
             "updated": updated,
             "skipped": skipped,
+            "processed_records": created + updated,
         }
 
         self.logger.info(
             "account_permission_sync_completed",
             instance=instance.name,
+            instance_id=instance.id,
+            module="account_sync",
+            phase="collection",
             **summary,
         )
 
