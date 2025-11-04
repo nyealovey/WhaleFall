@@ -14,7 +14,7 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 
-def sync_accounts(**kwargs: Any) -> None:  # noqa: ANN401
+def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwargs: Any) -> None:  # noqa: ANN401
     """同步账户任务 - 同步所有实例的账户信息"""
     sync_logger = get_sync_logger()
 
@@ -27,15 +27,21 @@ def sync_accounts(**kwargs: Any) -> None:  # noqa: ANN401
                 sync_logger.info("没有找到启用的数据库实例")
                 return
 
-            sync_logger.info("开始同步 %s 个实例的账户信息", len(instances))
+            sync_logger.info(
+                "开始同步账户信息",
+                module="account_sync_task",
+                instance_count=len(instances),
+                manual_run=manual_run,
+                created_by=created_by,
+            )
 
             total_synced = 0
             total_failed = 0
 
             session = sync_session_service.create_session(
-                sync_type=SyncOperationType.SCHEDULED_TASK.value,
+                sync_type=SyncOperationType.MANUAL_TASK.value if manual_run else SyncOperationType.SCHEDULED_TASK.value,
                 sync_category=SyncCategory.ACCOUNT.value,
-                created_by=None,
+                created_by=created_by,
             )
 
             instance_ids = [inst.id for inst in instances]

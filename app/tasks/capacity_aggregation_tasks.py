@@ -258,6 +258,7 @@ def run_quarterly_aggregation(
 def calculate_database_size_aggregations(
     manual_run: bool = False,
     periods: Optional[List[str]] = None,
+    created_by: int | None = None,
 ) -> Dict[str, Any]:
     """
     计算数据库大小统计聚合（拆分为日/周/月/季四个阶段顺序执行）
@@ -340,9 +341,6 @@ def calculate_database_size_aggregations(
             )
 
             if manual_run:
-                from flask_login import current_user
-
-                created_by = current_user.id if current_user.is_authenticated else None
                 sync_type = SyncOperationType.MANUAL_TASK.value
             else:
                 created_by = None
