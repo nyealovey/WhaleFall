@@ -12,12 +12,15 @@ from app.errors import SystemError
 from app.constants import DatabaseType
 from app.models.account_classification import AccountClassification, AccountClassificationAssignment
 from app.models.current_account_sync_data import CurrentAccountSyncData
+from app.models.instance_account import InstanceAccount
 from app.models.instance import Instance
 from app.utils.structlog_config import log_error
 
 
 def _is_account_locked(account: CurrentAccountSyncData, db_type: str) -> bool:
     """根据数据库类型判断账户是否锁定"""
+    if account.instance_account and account.instance_account.is_active is False:
+        return True
     if db_type == DatabaseType.MYSQL:
         return bool(account.type_specific and account.type_specific.get("is_locked"))
     if db_type == DatabaseType.POSTGRESQL:
@@ -38,7 +41,8 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
         db_type: 可选的数据库类型过滤条件。
     """
     try:
-        query = CurrentAccountSyncData.query.filter_by(is_deleted=False)
+        query = CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
+        query = query.filter(InstanceAccount.is_active.is_(True))
 
         if instance_id is not None:
             query = query.filter(CurrentAccountSyncData.instance_id == instance_id)
@@ -81,7 +85,12 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
     try:
         db_type_stats: dict[str, dict[str, int]] = {}
         for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
-            accounts = CurrentAccountSyncData.query.filter_by(db_type=db_type, is_deleted=False).all()
+            accounts = (
+                CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
+                .filter(InstanceAccount.is_active.is_(True))
+                .filter(CurrentAccountSyncData.db_type == db_type)
+                .all()
+            )
             total_count = len(accounts)
             active_count = 0
             locked_count = 0

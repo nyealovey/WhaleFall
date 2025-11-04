@@ -16,13 +16,12 @@ class CurrentAccountSyncData(BaseSyncData):
     __table_args__ = (
         db.UniqueConstraint("instance_id", "db_type", "username", name="uq_current_account_sync"),
         db.Index("idx_instance_dbtype", "instance_id", "db_type"),
-        db.Index("idx_deleted", "is_deleted"),
         db.Index("idx_username", "username"),
     )
 
+    instance_account_id = db.Column(db.Integer, db.ForeignKey("instance_accounts.id"), nullable=False, index=True)
     username = db.Column(db.String(255), nullable=False)
     is_superuser = db.Column(db.Boolean, default=False)
-    is_active = db.Column(db.Boolean, default=True, nullable=True)
 
     # MySQL权限字段
     global_privileges = db.Column(db.JSON, nullable=True)  # MySQL全局权限
@@ -54,11 +53,9 @@ class CurrentAccountSyncData(BaseSyncData):
     last_change_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
 
     # 删除标记（不支持恢复）
-    is_deleted = db.Column(db.Boolean, default=False, index=True)
-    deleted_time = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
-
-    # 关联实例
+    # 关联实例与账户
     instance = db.relationship("Instance", backref="current_account_sync_data")
+    instance_account = db.relationship("InstanceAccount", backref=db.backref("current_sync", uselist=False))
 
     def __repr__(self) -> str:
         return f"<CurrentAccountSyncData {self.username}@{self.db_type}>"
@@ -70,7 +67,6 @@ class CurrentAccountSyncData(BaseSyncData):
             {
                 "username": self.username,
                 "is_superuser": self.is_superuser,
-                "is_active": self.is_active,
                 "global_privileges": self.global_privileges,
                 "database_privileges": self.database_privileges,
                 "predefined_roles": self.predefined_roles,
@@ -88,8 +84,7 @@ class CurrentAccountSyncData(BaseSyncData):
                 "last_sync_time": (self.last_sync_time.isoformat() if self.last_sync_time else None),
                 "last_change_type": self.last_change_type,
                 "last_change_time": (self.last_change_time.isoformat() if self.last_change_time else None),
-                "is_deleted": self.is_deleted,
-                "deleted_time": (self.deleted_time.isoformat() if self.deleted_time else None),
+                "instance_account_id": self.instance_account_id,
             }
         )
         return base_dict
