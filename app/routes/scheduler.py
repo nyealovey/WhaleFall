@@ -4,6 +4,7 @@
 """
 
 from typing import Any
+from uuid import uuid4
 
 from flask import Blueprint, Response, current_app, render_template, request
 from flask_login import login_required  # type: ignore
@@ -313,26 +314,34 @@ def run_job(job_id: str) -> Response:
         log_info("开始立即执行任务", module="scheduler", job_id=job_id, job_name=job.name)
 
         try:
-            if job_id in BUILTIN_TASK_IDS:
-                if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
-                    result = job.func(manual_run=True)
-                else:
-                    result = job.func(*job.args, **job.kwargs)
-            else:
-                from app import create_app
+            manual_kwargs = dict(job.kwargs) if job.kwargs else {}
+            if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
+                manual_kwargs["manual_run"] = True
 
-                app = create_app()  # type: ignore
-                with app.app_context():
-                    result = job.func(*job.args, **job.kwargs)
+            manual_job_id = f"{job_id}_manual_{uuid4().hex}"
+            scheduler.add_job(
+                job.func,
+                trigger=DateTrigger(run_date=time_utils.now()),
+                args=job.args,
+                kwargs=manual_kwargs,
+                id=manual_job_id,
+                replace_existing=False,
+                coalesce=False,
+                misfire_grace_time=job.misfire_grace_time,
+                max_instances=job.max_instances,
+            )
 
             log_info(
-                "任务立即执行成功",
+                "任务已异步调度执行",
                 module="scheduler",
                 job_id=job_id,
                 job_name=job.name,
-                result=str(result),
+                manual_job_id=manual_job_id,
             )
-            return jsonify_unified_success(data={"result": str(result)}, message="任务执行成功")
+            return jsonify_unified_success(
+                data={"manual_job_id": manual_job_id},
+                message="任务已加入执行队列",
+            )
 
         except Exception as func_error:
             log_error(
