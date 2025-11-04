@@ -65,6 +65,11 @@ class AccountPermissionManager:
                 continue
 
             permissions = remote.get("permissions", {})
+            attributes = remote.get("attributes")
+            if isinstance(attributes, dict):
+                type_specific = permissions.setdefault("type_specific", {})
+                for key, value in attributes.items():
+                    type_specific.setdefault(key, value)
             is_superuser = bool(remote.get("is_superuser", False))
 
             existing = AccountPermission.query.filter_by(instance_account_id=account.id).first()

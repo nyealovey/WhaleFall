@@ -46,7 +46,6 @@ class AccountInventoryManager:
 
             seen_usernames.add(username)
             is_active = bool(item.get("is_active", True))
-            attributes = item.get("attributes")
             db_type = (item.get("db_type") or instance.db_type).lower()
 
             record = existing_map.get(username)
@@ -54,7 +53,6 @@ class AccountInventoryManager:
                 record.last_seen_at = now_ts
                 record.updated_at = now_ts
                 record.db_type = db_type
-                record.attributes = attributes
                 if not record.is_active and is_active:
                     record.is_active = True
                     record.deleted_at = None
@@ -69,7 +67,6 @@ class AccountInventoryManager:
                     is_active=is_active,
                     first_seen_at=now_ts,
                     last_seen_at=now_ts,
-                    attributes=attributes,
                 )
                 db.session.add(record)
                 existing_map[username] = record
