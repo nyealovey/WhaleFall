@@ -68,6 +68,11 @@ class Instance(db.Model):
         back_populates="instance",
         cascade="all, delete-orphan",
     )
+    instance_accounts = db.relationship(
+        "InstanceAccount",
+        back_populates="instance",
+        cascade="all, delete-orphan",
+    )
     instance_size_aggregations = db.relationship(
         "InstanceSizeAggregation",
         back_populates="instance",

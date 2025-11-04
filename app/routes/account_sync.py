@@ -13,7 +13,7 @@ from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
-from app.services.account_sync_service import account_sync_service
+from app.services.account_sync import account_sync_service
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -123,13 +123,16 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                     success_count += 1
 
                     # 完成实例同步
+                    details = normalized.get("details", {})
+                    inventory = details.get("inventory", {})
+                    permissions = details.get("permissions", {})
                     sync_session_service.complete_instance_sync(
                         record.id,
-                        items_synced=normalized.get("synced_count", 0),
-                        items_created=normalized.get("added_count", 0),
-                        items_updated=normalized.get("modified_count", 0),
-                        items_deleted=normalized.get("removed_count", 0),
-                        sync_details=normalized.get("details", {}),
+                        items_synced=permissions.get("updated", 0) + permissions.get("created", 0),
+                        items_created=inventory.get("created", 0),
+                        items_updated=permissions.get("updated", 0),
+                        items_deleted=inventory.get("deactivated", 0),
+                        sync_details=details,
                     )
 
                     # 移除实例同步成功的日志记录，减少日志噪音

@@ -134,10 +134,16 @@ class AccountClassificationService:
     def _get_accounts_to_classify(self, instance_id: int = None) -> list[CurrentAccountSyncData]:
         """获取需要分类的账户"""
         try:
-            query = CurrentAccountSyncData.query.join(Instance).filter(
-                Instance.is_active.is_(True),
-                Instance.deleted_at.is_(None),
-                CurrentAccountSyncData.is_deleted.is_(False),
+            from app.models.instance_account import InstanceAccount
+
+            query = (
+                CurrentAccountSyncData.query.join(Instance)
+                .join(InstanceAccount, CurrentAccountSyncData.instance_account)
+                .filter(
+                    Instance.is_active.is_(True),
+                    Instance.deleted_at.is_(None),
+                    InstanceAccount.is_active.is_(True),
+                )
             )
 
             if instance_id:
@@ -1059,11 +1065,12 @@ class AccountClassificationService:
             # 获取所有活跃的账户
             accounts = (
                 CurrentAccountSyncData.query.join(Instance, CurrentAccountSyncData.instance_id == Instance.id)
+                .join(InstanceAccount, CurrentAccountSyncData.instance_account)
                 .filter(
                     Instance.is_active.is_(True),
-                    CurrentAccountSyncData.is_deleted.is_(False),
                     Instance.deleted_at.is_(None),
-                    Instance.db_type == rule.db_type,  # 只匹配相同数据库类型
+                    InstanceAccount.is_active.is_(True),
+                    Instance.db_type == rule.db_type,
                 )
                 .all()
             )

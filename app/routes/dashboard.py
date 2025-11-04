@@ -191,7 +191,13 @@ def get_system_overview() -> dict:
         
         total_databases = len(unique_databases)
 
-        total_accounts = CurrentAccountSyncData.query.filter_by(is_deleted=False).count()
+        from app.models.instance_account import InstanceAccount
+
+        total_accounts = (
+            CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
+            .filter(InstanceAccount.is_active.is_(True))
+            .count()
+        )
         log_info(
             "dashboard_base_counts",
             module="dashboard",
@@ -219,10 +225,11 @@ def get_system_overview() -> dict:
             )
             .outerjoin(
                 CurrentAccountSyncData,
-                and_(
-                    CurrentAccountSyncData.id == AccountClassificationAssignment.account_id,
-                    CurrentAccountSyncData.is_deleted.is_(False)
-                )
+                CurrentAccountSyncData.id == AccountClassificationAssignment.account_id,
+            )
+            .outerjoin(
+                InstanceAccount,
+                CurrentAccountSyncData.instance_account,
             )
             .outerjoin(
                 Instance,
@@ -233,6 +240,7 @@ def get_system_overview() -> dict:
                 )
             )
             .filter(AccountClassification.is_active.is_(True))
+            .filter(or_(InstanceAccount.is_active.is_(True), InstanceAccount.id.is_(None)))
             .group_by(AccountClassification.id)
             .order_by(AccountClassification.priority.desc())
             .all()
@@ -247,10 +255,11 @@ def get_system_overview() -> dict:
             db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
             .join(
                 CurrentAccountSyncData,
-                and_(
-                    CurrentAccountSyncData.id == AccountClassificationAssignment.account_id,
-                    CurrentAccountSyncData.is_deleted.is_(False)
-                )
+                CurrentAccountSyncData.id == AccountClassificationAssignment.account_id,
+            )
+            .join(
+                InstanceAccount,
+                CurrentAccountSyncData.instance_account,
             )
             .join(
                 Instance,
@@ -264,6 +273,7 @@ def get_system_overview() -> dict:
                 AccountClassificationAssignment.is_active.is_(True),
                 AccountClassificationAssignment.assignment_type == "auto"
             )
+            .filter(InstanceAccount.is_active.is_(True))
             .scalar()
             or 0
         )
@@ -281,15 +291,12 @@ def get_system_overview() -> dict:
 
         active_accounts = (
             db.session.query(func.count(CurrentAccountSyncData.id))
+            .join(InstanceAccount, CurrentAccountSyncData.instance_account)
             .join(Instance, Instance.id == CurrentAccountSyncData.instance_id)
             .filter(
-                CurrentAccountSyncData.is_deleted.is_(False),
+                InstanceAccount.is_active.is_(True),
                 Instance.is_active.is_(True),
                 Instance.deleted_at.is_(None),
-                or_(
-                    CurrentAccountSyncData.is_active.is_(None),
-                    CurrentAccountSyncData.is_active.is_(True)
-                )
             )
             .scalar()
             or 0

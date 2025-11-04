@@ -45,8 +45,10 @@ def export_accounts() -> Response:
         is_superuser = request.args.get("is_superuser")
         tags = [tag for tag in request.args.getlist("tags") if tag.strip()]
 
+        from app.models.instance_account import InstanceAccount
+
         # 构建查询
-        query = CurrentAccountSyncData.query.filter_by(is_deleted=False)
+        query = CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
 
         if db_type and db_type != "all":
             query = query.filter(CurrentAccountSyncData.db_type == db_type)
@@ -66,9 +68,11 @@ def export_accounts() -> Response:
 
         if is_locked is not None:
             if is_locked == "true":
-                query = query.filter(CurrentAccountSyncData.is_active.is_(False))
+                query = query.filter(InstanceAccount.is_active.is_(False))
             elif is_locked == "false":
-                query = query.filter(CurrentAccountSyncData.is_active.is_(True))
+                query = query.filter(InstanceAccount.is_active.is_(True))
+        else:
+            query = query.filter(InstanceAccount.is_active.is_(True))
 
         if is_superuser is not None:
             query = query.filter(CurrentAccountSyncData.is_superuser == (is_superuser == "true"))

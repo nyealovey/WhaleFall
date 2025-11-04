@@ -8,7 +8,7 @@ from app import create_app, db
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.constants import SyncStatus, TaskStatus
 from app.models.instance import Instance
-from app.services.account_sync_service import account_sync_service
+from app.services.account_sync import account_sync_service
 from app.services.sync_session_service import sync_session_service
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -59,13 +59,16 @@ def sync_accounts(**kwargs: Any) -> None:  # noqa: ANN401
                     if result.get("success", False):
                         total_synced += 1
 
+                        details = result.get("details", {})
+                        inventory = details.get("inventory", {})
+                        permissions = details.get("permissions", {})
                         sync_session_service.complete_instance_sync(
                             record.id,
-                            items_synced=result.get("synced_count", 0),
-                            items_created=result.get("added_count", 0),
-                            items_updated=result.get("modified_count", 0),
-                            items_deleted=result.get("removed_count", 0),
-                            sync_details=result.get("details", {}),
+                            items_synced=permissions.get("updated", 0) + permissions.get("created", 0),
+                            items_created=inventory.get("created", 0),
+                            items_updated=permissions.get("updated", 0),
+                            items_deleted=inventory.get("deactivated", 0),
+                            sync_details=details,
                         )
 
                         sync_logger.info(

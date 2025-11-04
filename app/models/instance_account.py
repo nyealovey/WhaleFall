@@ -1,0 +1,78 @@
+"""
+鲸落 - 实例账户关系模型
+用于维护实例包含哪些账户，以及账户的存在状态
+"""
+
+from app import db
+from app.utils.time_utils import time_utils
+
+
+class InstanceAccount(db.Model):
+    """实例-账户关系模型"""
+
+    __tablename__ = "instance_accounts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
+    username = db.Column(db.String(255), nullable=False, comment="账户名（对外展示，含必要的主机信息）")
+    db_type = db.Column(db.String(50), nullable=False, comment="数据库类型")
+    is_active = db.Column(db.Boolean, default=True, nullable=False, comment="账户是否活跃")
+    first_seen_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, comment="首次发现时间")
+    last_seen_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, comment="最后发现时间")
+    deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
+    attributes = db.Column(db.JSON, nullable=True, comment="账户补充属性（如主机、锁定状态等）")
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now)
+
+    # 关系
+    instance = db.relationship("Instance", back_populates="instance_accounts")
+
+    __table_args__ = (
+        db.UniqueConstraint("instance_id", "db_type", "username", name="uq_instance_account_instance_username"),
+        db.Index("ix_instance_accounts_username", "username"),
+        db.Index("ix_instance_accounts_active", "is_active"),
+        db.Index("ix_instance_accounts_last_seen", "last_seen_at"),
+        {
+            "comment": "实例-账户关系表，维护账户存在状态",
+        },
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<InstanceAccount(id={self.id}, instance_id={self.instance_id}, "
+            f"username='{self.username}', is_active={self.is_active})>"
+        )
+
+    @classmethod
+    def mark_as_deleted(cls, instance_id: int, username: str, db_type: str) -> bool:
+        """标记账户为已删除"""
+        account = cls.query.filter_by(
+            instance_id=instance_id,
+            db_type=db_type,
+            username=username,
+        ).first()
+        if not account:
+            return False
+
+        account.is_active = False
+        account.deleted_at = time_utils.now()
+        account.updated_at = time_utils.now()
+        db.session.commit()
+        return True
+
+    @classmethod
+    def reactivate(cls, instance_id: int, username: str, db_type: str) -> bool:
+        """重新激活已删除账户"""
+        account = cls.query.filter_by(
+            instance_id=instance_id,
+            db_type=db_type,
+            username=username,
+        ).first()
+        if not account:
+            return False
+
+        account.is_active = True
+        account.deleted_at = None
+        account.updated_at = time_utils.now()
+        db.session.commit()
+        return True

@@ -156,6 +156,7 @@ CREATE TABLE IF NOT EXISTS instance_tags (
 CREATE TABLE IF NOT EXISTS current_account_sync_data (
     id SERIAL PRIMARY KEY,
     instance_id INTEGER NOT NULL REFERENCES instances(id),
+    instance_account_id INTEGER NOT NULL REFERENCES instance_accounts(id),
     db_type VARCHAR(20) NOT NULL,
     session_id VARCHAR(36),
     sync_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -164,8 +165,6 @@ CREATE TABLE IF NOT EXISTS current_account_sync_data (
     error_message TEXT,
     username VARCHAR(255) NOT NULL,
     is_superuser BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
-    is_deleted BOOLEAN DEFAULT FALSE,
     
     -- MySQL权限字段
     global_privileges JSONB,
@@ -194,23 +193,16 @@ CREATE TABLE IF NOT EXISTS current_account_sync_data (
     -- 时间戳和状态字段
     last_sync_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     last_change_type VARCHAR(20) DEFAULT 'add',
-    last_change_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    deleted_time TIMESTAMP WITH TIME ZONE,
-    
-    -- 分类相关字段
-    last_classified_at TIMESTAMP WITH TIME ZONE,
-    last_classification_batch_id VARCHAR(36)
+    last_change_time TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 账户同步数据表索引
 CREATE UNIQUE INDEX IF NOT EXISTS uq_current_account_sync ON current_account_sync_data(instance_id, db_type, username);
 CREATE INDEX IF NOT EXISTS idx_instance_dbtype ON current_account_sync_data(instance_id, db_type);
-CREATE INDEX IF NOT EXISTS idx_deleted ON current_account_sync_data(is_deleted);
 CREATE INDEX IF NOT EXISTS idx_username ON current_account_sync_data(username);
 CREATE INDEX IF NOT EXISTS idx_session_id ON current_account_sync_data(session_id);
 CREATE INDEX IF NOT EXISTS idx_last_sync_time ON current_account_sync_data(last_sync_time);
 CREATE INDEX IF NOT EXISTS idx_last_change_time ON current_account_sync_data(last_change_time);
-CREATE INDEX IF NOT EXISTS idx_deleted_time ON current_account_sync_data(deleted_time);
 
 -- ============================================================================
 -- 7. 账户分类管理模块
@@ -914,34 +906,57 @@ COMMENT ON COLUMN instance_databases.first_seen_date IS '首次发现日期';
 COMMENT ON COLUMN instance_databases.last_seen_date IS '最后发现日期';
 COMMENT ON COLUMN instance_databases.deleted_at IS '删除时间';
 
--- 创建触发器函数：自动更新 last_seen_date
+-- 实例账户表
+CREATE TABLE IF NOT EXISTS instance_accounts (
+    id SERIAL PRIMARY KEY,
+    instance_id INTEGER NOT NULL REFERENCES instances(id),
+    username VARCHAR(255) NOT NULL,
+    db_type VARCHAR(50) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ NULL,
+    attributes JSONB NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE instance_accounts
+    ADD CONSTRAINT uq_instance_account_instance_username UNIQUE (instance_id, db_type, username);
+
+CREATE INDEX IF NOT EXISTS ix_instance_accounts_instance_id ON instance_accounts(instance_id);
+CREATE INDEX IF NOT EXISTS ix_instance_accounts_username ON instance_accounts(username);
+CREATE INDEX IF NOT EXISTS ix_instance_accounts_active ON instance_accounts(is_active);
+CREATE INDEX IF NOT EXISTS ix_instance_accounts_last_seen ON instance_accounts(last_seen_at);
+
+COMMENT ON TABLE instance_accounts IS '实例-账户关系表，维护账户存在状态';
+COMMENT ON COLUMN instance_accounts.instance_id IS '实例ID';
+COMMENT ON COLUMN instance_accounts.username IS '账户名';
+COMMENT ON COLUMN instance_accounts.db_type IS '数据库类型';
+COMMENT ON COLUMN instance_accounts.is_active IS '账户是否活跃';
+COMMENT ON COLUMN instance_accounts.first_seen_at IS '首次发现时间';
+COMMENT ON COLUMN instance_accounts.last_seen_at IS '最后发现时间';
+COMMENT ON COLUMN instance_accounts.deleted_at IS '删除时间';
+
+-- 调整触发器：仅更新已存在记录的 last_seen_date
+DROP TRIGGER IF EXISTS trg_update_instance_database_last_seen ON database_size_stats;
+DROP FUNCTION IF EXISTS update_instance_database_last_seen();
+
 CREATE OR REPLACE FUNCTION update_instance_database_last_seen()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- 当有新的数据库大小数据时，更新 last_seen_date
     UPDATE instance_databases 
     SET last_seen_date = NEW.collected_date,
-        updated_at = NOW()
+        updated_at = NOW(),
+        is_active = TRUE,
+        deleted_at = NULL
     WHERE instance_id = NEW.instance_id 
-    AND database_name = NEW.database_name;
-    
-    -- 如果数据库不存在，则插入新记录
-    IF NOT FOUND THEN
-        INSERT INTO instance_databases (instance_id, database_name, first_seen_date, last_seen_date)
-        VALUES (NEW.instance_id, NEW.database_name, NEW.collected_date, NEW.collected_date)
-        ON CONFLICT (instance_id, database_name) DO UPDATE SET
-            last_seen_date = NEW.collected_date,
-            is_active = TRUE,
-            deleted_at = NULL,
-            updated_at = NOW();
-    END IF;
-    
+      AND database_name = NEW.database_name;
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- 创建触发器
-DROP TRIGGER IF EXISTS trg_update_instance_database_last_seen ON database_size_stats;
 CREATE TRIGGER trg_update_instance_database_last_seen
     AFTER INSERT ON database_size_stats
     FOR EACH ROW EXECUTE FUNCTION update_instance_database_last_seen();
@@ -1219,6 +1234,7 @@ UNION ALL
 SELECT 'Instance Size Aggregations', COUNT(*) FROM instance_size_aggregations
 UNION ALL
 SELECT 'Instance Databases', COUNT(*) FROM instance_databases;
+SELECT 'Instance Accounts', COUNT(*) FROM instance_accounts;
 
 -- 脚本执行完成提示
 SELECT 'PostgreSQL 初始化脚本执行完成！' as message,

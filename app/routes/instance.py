@@ -25,6 +25,7 @@ from app.utils.data_validator import (
     validate_required_fields,
 )
 from app.utils.response_utils import jsonify_unified_success
+from app.services.account_sync.account_query_service import get_accounts_by_instance
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
@@ -802,18 +803,20 @@ def api_get_accounts(instance_id: int) -> Response:
     include_deleted = request.args.get("include_deleted", "false").lower() == "true"
 
     try:
-        accounts = AccountDataManager.get_accounts_by_instance(instance_id, include_deleted=include_deleted)
+        accounts = get_accounts_by_instance(instance_id, include_inactive=include_deleted)
 
         account_data = []
         for account in accounts:
             type_specific = account.type_specific or {}
+            instance_account = account.instance_account
+            is_active = bool(instance_account and instance_account.is_active)
 
             account_info = {
                 "id": account.id,
                 "username": account.username,
                 "is_superuser": account.is_superuser,
-                "is_locked": not account.is_active,
-                "is_deleted": account.is_deleted,
+                "is_locked": not is_active,
+                "is_deleted": not is_active,
                 "last_change_time": account.last_change_time.isoformat() if account.last_change_time else None,
                 "type_specific": type_specific,
                 "server_roles": account.server_roles or [],

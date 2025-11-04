@@ -16,7 +16,7 @@ from app.errors import SystemError
 from app.models.current_account_sync_data import CurrentAccountSyncData
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.services.account_sync_service import account_sync_service
+from app.services.account_sync import account_sync_service
 from app.utils.decorators import update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
@@ -50,8 +50,10 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     classification_filter = classification_param if classification_param not in {"", "all"} else ""
     classification = classification_param
 
+    from app.models.instance_account import InstanceAccount
+
     # 构建查询
-    query = CurrentAccountSyncData.query.filter_by(is_deleted=False)
+    query = CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
 
     # 数据库类型过滤
     if db_type and db_type != "all":
@@ -74,14 +76,14 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
             )
         )
 
-    # 锁定状态过滤（使用is_active字段）
+    # 锁定状态过滤（基于 InstanceAccount.is_active）
     if is_locked is not None:
         if is_locked == "true":
-            # 查找 is_active = False 的记录（已锁定）
-            query = query.filter(CurrentAccountSyncData.is_active.is_(False))
+            query = query.filter(InstanceAccount.is_active.is_(False))
         elif is_locked == "false":
-            # 查找 is_active = True 的记录（正常）
-            query = query.filter(CurrentAccountSyncData.is_active.is_(True))
+            query = query.filter(InstanceAccount.is_active.is_(True))
+    else:
+        query = query.filter(InstanceAccount.is_active.is_(True))
 
     # 超级用户过滤
     if is_superuser is not None:
@@ -136,12 +138,14 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
     # 获取统计信息
+    base_query = CurrentAccountSyncData.query.join(InstanceAccount, CurrentAccountSyncData.instance_account)
+    base_query = base_query.filter(InstanceAccount.is_active.is_(True))
     stats = {
-        "total": CurrentAccountSyncData.query.filter_by(is_deleted=False).count(),
-        "mysql": CurrentAccountSyncData.query.filter_by(db_type="mysql", is_deleted=False).count(),
-        "postgresql": CurrentAccountSyncData.query.filter_by(db_type="postgresql", is_deleted=False).count(),
-        "oracle": CurrentAccountSyncData.query.filter_by(db_type="oracle", is_deleted=False).count(),
-        "sqlserver": CurrentAccountSyncData.query.filter_by(db_type="sqlserver", is_deleted=False).count(),
+        "total": base_query.count(),
+        "mysql": base_query.filter(CurrentAccountSyncData.db_type == "mysql").count(),
+        "postgresql": base_query.filter(CurrentAccountSyncData.db_type == "postgresql").count(),
+        "oracle": base_query.filter(CurrentAccountSyncData.db_type == "oracle").count(),
+        "sqlserver": base_query.filter(CurrentAccountSyncData.db_type == "sqlserver").count(),
     }
 
     instances = Instance.query.filter_by(is_active=True).all()
