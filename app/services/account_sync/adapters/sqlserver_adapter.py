@@ -157,7 +157,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     def _get_database_permissions(self, connection: Any, login_name: str) -> Dict[str, List[str]]:
         rows: List[tuple[Any, Any]] = []
-        databases = connection.execute_query("SELECT name FROM sys.databases")
+        databases = connection.execute_query(
+            "SELECT name FROM sys.databases WHERE state_desc = 'ONLINE'"
+        )
         for db_name_tuple in databases:
             database = db_name_tuple[0]
             if not database:
@@ -170,8 +172,17 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 JOIN {quoted_db}.sys.database_principals dp ON perm.grantee_principal_id = dp.principal_id
                 WHERE dp.name = %s
             """
-            db_rows = connection.execute_query(sql, (login_name,))
-            rows.extend(db_rows)
+            try:
+                db_rows = connection.execute_query(sql, (login_name,))
+                rows.extend(db_rows)
+            except Exception as exc:  # noqa: BLE001
+                self.logger.warning(
+                    "fetch_sqlserver_db_permissions_failed",
+                    database=database,
+                    login=login_name,
+                    error=str(exc),
+                    exc_info=True,
+                )
         db_perms: Dict[str, List[str]] = {}
         for row in rows:
             database = row[0]
