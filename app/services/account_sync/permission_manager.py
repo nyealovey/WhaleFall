@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -30,6 +30,14 @@ PERMISSION_FIELDS = {
 }
 
 
+class PermissionSyncError(RuntimeError):
+    """权限同步阶段出现错误时抛出，携带阶段 summary。"""
+
+    def __init__(self, summary: Dict[str, Any], message: str | None = None) -> None:
+        super().__init__(message or summary.get("message") or "权限同步失败")
+        self.summary = summary
+
+
 class AccountPermissionManager:
     """处理权限快照的增量更新。"""
 
@@ -43,13 +51,12 @@ class AccountPermissionManager:
         active_accounts: List[InstanceAccount],
         *,
         session_id: str | None = None,
-    ) -> Tuple[dict, List[CurrentAccountSyncData]]:
+    ) -> Dict[str, Any]:
         remote_map = {account["username"]: account for account in remote_accounts}
-        updated_records: List[CurrentAccountSyncData] = []
-
         created = 0
         updated = 0
         skipped = 0
+        errors: List[str] = []
 
         for account in active_accounts:
             remote = remote_map.get(account.username)
@@ -76,19 +83,33 @@ class AccountPermissionManager:
                     existing.last_change_type = diff["change_type"]
                     existing.last_change_time = time_utils.now()
                     updated += 1
-                    self._log_change(
-                        instance,
-                        username=account.username,
-                        change_type=diff["change_type"],
-                        diff_payload=diff,
-                        session_id=session_id,
-                    )
+                    try:
+                        self._log_change(
+                            instance,
+                            username=account.username,
+                            change_type=diff["change_type"],
+                            diff_payload=diff,
+                            session_id=session_id,
+                        )
+                    except Exception as log_exc:  # noqa: BLE001
+                        errors.append(f"记录权限变更日志失败: {log_exc}")
+                        self.logger.error(
+                            "account_permission_change_log_failed",
+                            module="account_sync",
+                            phase="collection",
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            username=account.username,
+                            error=str(log_exc),
+                            session_id=session_id,
+                        )
+                        skipped += 1
+                        continue
                 else:
                     skipped += 1
                 existing.last_sync_time = time_utils.now()
                 existing.sync_time = time_utils.now()
                 existing.status = "success"
-                updated_records.append(existing)
             else:
                 existing = CurrentAccountSyncData(
                     instance_id=instance.id,
@@ -106,14 +127,29 @@ class AccountPermissionManager:
                 existing.sync_time = time_utils.now()
                 created += 1
                 db.session.add(existing)
-                updated_records.append(existing)
-                self._log_change(
-                    instance,
-                    username=account.username,
-                    change_type="add",
-                    diff_payload={"privilege_diff": permissions},
-                    session_id=session_id,
-                )
+
+                try:
+                    self._log_change(
+                        instance,
+                        username=account.username,
+                        change_type="add",
+                        diff_payload={"privilege_diff": permissions},
+                        session_id=session_id,
+                    )
+                except Exception as log_exc:  # noqa: BLE001
+                    errors.append(f"记录新增权限日志失败: {log_exc}")
+                    self.logger.error(
+                        "account_permission_change_log_failed",
+                        module="account_sync",
+                        phase="collection",
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        username=account.username,
+                        error=str(log_exc),
+                        session_id=session_id,
+                    )
+                    skipped += 1
+                    continue
 
         try:
             db.session.commit()
@@ -130,12 +166,27 @@ class AccountPermissionManager:
             )
             raise
 
-        summary = {
+        summary: Dict[str, Any] = {
             "created": created,
             "updated": updated,
             "skipped": skipped,
             "processed_records": created + updated,
+            "errors": errors,
+            "status": "completed" if not errors else "failed",
+            "message": None if not errors else "权限同步阶段发生错误",
         }
+
+        if errors:
+            self.logger.error(
+                "account_permission_sync_failed",
+                instance=instance.name,
+                instance_id=instance.id,
+                module="account_sync",
+                phase="collection",
+                errors=errors,
+                session_id=session_id,
+            )
+            raise PermissionSyncError(summary)
 
         self.logger.info(
             "account_permission_sync_completed",
@@ -143,10 +194,10 @@ class AccountPermissionManager:
             instance_id=instance.id,
             module="account_sync",
             phase="collection",
-            **summary,
+            **{k: v for k, v in summary.items() if k not in {"errors"}},
         )
 
-        return summary, updated_records
+        return summary
 
     # ------------------------------------------------------------------
     # 内部工具

@@ -9,6 +9,7 @@ from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.constants import SyncStatus, TaskStatus
 from app.models.instance import Instance
 from app.services.account_sync.coordinator import AccountSyncCoordinator
+from app.services.account_sync.permission_manager import PermissionSyncError
 from app.services.sync_session_service import sync_session_service
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -85,6 +86,20 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                             instance_id=instance.id,
                             instance_name=instance.name,
                             error=error_message,
+                        )
+                        total_failed += 1
+                        continue
+                    except PermissionSyncError as permission_error:
+                        sync_session_service.fail_instance_sync(record.id, str(permission_error), sync_details=permission_error.summary)
+                        sync_logger.error(
+                            "账户同步权限阶段失败",
+                            module="account_sync",
+                            phase="collection",
+                            session_id=session.session_id,
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            errors=permission_error.summary.get("errors"),
+                            error=str(permission_error),
                         )
                         total_failed += 1
                         continue
