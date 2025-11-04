@@ -254,6 +254,7 @@ class AccountPermissionManager:
         username: str,
         change_type: str,
         diff_payload: Dict[str, Any],
+        session_id: str | None = None,
     ) -> None:
         if change_type == "none":
             return
@@ -266,5 +267,6 @@ class AccountPermissionManager:
             change_time=time_utils.now(),
             privilege_diff=diff_payload.get("privilege_diff"),
             other_diff=diff_payload.get("other_diff"),
+            session_id=session_id,
         )
         db.session.add(log)
