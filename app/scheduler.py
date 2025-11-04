@@ -394,12 +394,12 @@ def _add_hardcoded_default_jobs() -> None:
     except Exception as e:
         logger.warning("任务已存在，跳过创建: cleanup_logs - %s", str(e))
 
-    # 账户同步 - 每30分钟执行
+    # 账户同步 - 每天凌晨1点执行
     try:
+        from apscheduler.triggers.cron import CronTrigger
         scheduler.add_job(
             sync_accounts,
-            "interval",
-            minutes=30,
+            CronTrigger(hour=1, minute=0, timezone="Asia/Shanghai"),
             id="sync_accounts",
             name="账户同步",
         )
