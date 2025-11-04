@@ -312,16 +312,24 @@ def run_job(job_id: str) -> Response:
 
         log_info("开始立即执行任务", module="scheduler", job_id=job_id, job_name=job.name)
 
+        # 在请求上下文内获取当前用户信息，避免线程中访问 current_user 失败
+        created_by = None
+        user_is_authenticated = False
         try:
-            def _run_job_in_background() -> None:
+            user_is_authenticated = current_user.is_authenticated  # type: ignore[attr-defined]
+        except Exception:  # pragma: no cover - 防御性捕获
+            user_is_authenticated = False
+        if user_is_authenticated:
+            created_by = getattr(current_user, "id", None)
+
+        try:
+            def _run_job_in_background(captured_created_by: int | None = created_by) -> None:
                 try:
                     if job_id in BUILTIN_TASK_IDS:
                         manual_kwargs = dict(job.kwargs) if job.kwargs else {}
                         if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
                             manual_kwargs["manual_run"] = True
-                            manual_kwargs["created_by"] = (
-                                current_user.id if current_user.is_authenticated else None
-                            )
+                            manual_kwargs["created_by"] = captured_created_by
                         job.func(*job.args, **manual_kwargs)
                     else:
                         from app import create_app
