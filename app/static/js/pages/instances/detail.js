@@ -91,7 +91,7 @@ function syncAccounts() {
     syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
     syncBtn.disabled = true;
 
-    http.post(`/account_sync/api/instance/${getInstanceId()}/sync`)
+    http.post(`/account_sync/api/instances/${getInstanceId()}/sync`)
         .then(data => {
             if (data.message) {
                 // 记录成功日志
