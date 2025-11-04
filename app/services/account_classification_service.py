@@ -15,6 +15,7 @@ from app.models.account_classification import (
 )
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
+from app.models.instance_account import InstanceAccount
 from app.services.cache_service import cache_manager
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
@@ -134,8 +135,6 @@ class AccountClassificationService:
     def _get_accounts_to_classify(self, instance_id: int = None) -> list[AccountPermission]:
         """获取需要分类的账户"""
         try:
-            from app.models.instance_account import InstanceAccount
-
             query = (
                 AccountPermission.query.join(Instance)
                 .join(InstanceAccount, AccountPermission.instance_account)
