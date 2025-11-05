@@ -55,7 +55,7 @@ nano .env
 ```bash
 # 应用配置
 APP_NAME=鲸落
-APP_VERSION=1.2.0
+APP_VERSION=1.2.1
 FLASK_ENV=production
 SECRET_KEY=your-secret-key-here
 
@@ -589,6 +589,6 @@ journalctl -u whalefalling -f
 
 ---
 
-**最后更新**: 2025-10-31  
-**文档版本**: v1.2.0  
+**最后更新**: 2025-11-05  
+**文档版本**: v1.2.1  
 **维护团队**: TaifishingV4 Team

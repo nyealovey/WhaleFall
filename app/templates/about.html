@@ -25,7 +25,7 @@
                 <div class="card-body">
                     <p class="card-text">
                         鲸落是一套面向 DBA 的数据库资源管理平台，围绕实例、账户、容量与任务调度等日常运维场景提供统一入口。
-                        1.2.0 版本完成聚合服务的全面重构与冗余代码清理，让容量统计与同步会话流程更加稳定、可扩展。
+                        1.2.1 版本聚焦核心服务重构：统一账户同步、权限差异与变更历史链路，让数据结构更清晰、摘要信息更可读。
                     </p>
                 </div>
             </div>
@@ -144,6 +144,17 @@
                     <h5 class="mb-0"><i class="fas fa-history me-2"></i>更新日志</h5>
                 </div>
                 <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    <!-- 版本 1.2.1 -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-tag me-2"></i>版本 1.2.1
+                            <small class="text-muted">(2025-11-05)</small>
+                        </h6>
+                        <p class="small text-muted mb-0">
+                            重构核心服务：统一账户同步、权限差异与变更日志链路，提升数据一致性与可观察性。
+                        </p>
+                    </div>
+
                     <!-- 版本 1.2.0 -->
                     <div class="mb-4">
                         <h6 class="text-primary">
@@ -151,8 +162,7 @@
                             <small class="text-muted">(2025-10-31)</small>
                         </h6>
                         <p class="small text-muted mb-0">
-                            彻底清理冗余代码；
-                            重构大部分业务。
+                            聚合服务职责梳理，手动聚合流程统一，容量统计体验升级。
                         </p>
                     </div>
 
