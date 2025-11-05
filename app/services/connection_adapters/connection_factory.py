@@ -444,7 +444,6 @@ class OracleConnection(DatabaseConnection):
                     user=(self.instance.credential.username if self.instance.credential else ""),
                     password=password,
                     dsn=dsn,
-                    timeout=20,  # 20秒连接超时
                 )
             except Exception as e:
                 # 如果服务名格式失败，尝试SID格式
@@ -455,7 +454,6 @@ class OracleConnection(DatabaseConnection):
                             user=(self.instance.credential.username if self.instance.credential else ""),
                             password=password,
                             dsn=sid_dsn,
-                            timeout=20,  # 20秒连接超时
                         )
                     except Exception:
                         # 如果SID格式也失败，抛出原始错误
