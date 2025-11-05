@@ -65,7 +65,7 @@ ENV ORACLE_CLIENT_VERSION=21.18.0.0.0
 ENV ORACLE_HOME=/opt/oracle/instantclient_21_18
 
 # 下载并安装Oracle Instant Client for Linux
-RUN mkdir -p $ORACLE_HOME && \
+RUN mkdir -p /opt/oracle && \
     if [ -n "$HTTP_PROXY" ]; then \
         wget -q -e use_proxy=yes -e http_proxy="$HTTP_PROXY" https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-basic-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-basic.zip && \
         wget -q -e use_proxy=yes -e http_proxy="$HTTP_PROXY" https://download.oracle.com/otn_software/linux/instantclient/2118000/instantclient-sdk-linux.x64-${ORACLE_CLIENT_VERSION}dbru.zip -O /tmp/instantclient-sdk.zip; \
@@ -75,8 +75,6 @@ RUN mkdir -p $ORACLE_HOME && \
     fi && \
     unzip -o /tmp/instantclient-basic.zip -d /opt/oracle && \
     unzip -o /tmp/instantclient-sdk.zip -d /opt/oracle && \
-    rm -rf $ORACLE_HOME && \
-    mv /opt/oracle/instantclient_21_18 $ORACLE_HOME && \
     rm /tmp/instantclient-basic.zip /tmp/instantclient-sdk.zip && \
     echo "$ORACLE_HOME" > /etc/ld.so.conf.d/oracle-instantclient.conf && \
     ldconfig
