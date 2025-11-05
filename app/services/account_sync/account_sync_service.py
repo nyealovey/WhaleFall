@@ -51,7 +51,10 @@ class AccountSyncService:
         try:
             self.sync_logger.info(
                 "开始账户同步",
-                module="account_sync_unified",
+                module="account_sync",
+                phase="start",
+                operation="sync_accounts",
+                instance_id=instance.id,
                 instance_name=instance.name,
                 db_type=instance.db_type,
                 sync_type=sync_type,
@@ -65,7 +68,7 @@ class AccountSyncService:
             elif sync_type in [SyncOperationType.MANUAL_BATCH.value, SyncOperationType.MANUAL_TASK.value, SyncOperationType.SCHEDULED_TASK.value]:
                 if session_id:
                     # 已有会话ID的批量同步
-                    return self._sync_with_existing_session(instance, session_id)
+                    return self._sync_with_existing_session(instance, session_id, sync_type=sync_type)
                 else:
                     # 批量同步操作方式需要会话管理
                     return self._sync_with_session(instance, sync_type, created_by)
@@ -87,7 +90,10 @@ class AccountSyncService:
 
             self.sync_logger.error(
                 "同步过程发生异常",
-                module="account_sync_unified",
+                module="account_sync",
+                phase="error",
+                operation="sync_accounts",
+                instance_id=instance.id,
                 instance_name=instance.name,
                 db_type=instance.db_type,
                 sync_type=sync_type,
@@ -115,24 +121,34 @@ class AccountSyncService:
             result = self._build_result(summary)
             instance.last_connected = time_utils.now()
             db.session.commit()
-            self.sync_logger.info(
-                "单实例同步完成",
-                module="account_sync_unified",
-                instance_name=instance.name,
-                inventory=summary.get("inventory", {}),
-                collection=summary.get("collection", {}),
-            )
             result["details"] = summary
+            self._emit_completion_log(
+                instance=instance,
+                session_id=temp_session_id,
+                sync_type=SyncOperationType.MANUAL_SINGLE.value,
+                result=result,
+            )
             return result
         except Exception as exc:  # noqa: BLE001
             self.sync_logger.error(
                 "单实例同步失败",
-                module="account_sync_unified",
+                module="account_sync",
+                phase="error",
+                operation="sync_accounts",
+                instance_id=instance.id,
                 instance_name=instance.name,
+                session_id=temp_session_id,
                 error=str(exc),
                 exc_info=True,
             )
-            return {"success": False, "error": f"同步失败: {str(exc)}"}
+            failure_result = {"success": False, "error": f"同步失败: {str(exc)}"}
+            self._emit_completion_log(
+                instance=instance,
+                session_id=temp_session_id,
+                sync_type=SyncOperationType.MANUAL_SINGLE.value,
+                result=failure_result,
+            )
+            return failure_result
 
     def _sync_with_session(self, instance: Instance, sync_type: str, created_by: int | None) -> dict[str, Any]:
         """
@@ -156,7 +172,7 @@ class AccountSyncService:
             sync_session_service.start_instance_sync(record.id)
 
             # 执行实际同步
-            result = self._sync_with_existing_session(instance, session.session_id)
+            result = self._sync_with_existing_session(instance, session.session_id, sync_type=sync_type)
 
             # 更新实例同步状态
             if result["success"]:
@@ -183,14 +199,30 @@ class AccountSyncService:
         except Exception as e:
             self.sync_logger.error(
                 "会话同步失败",
-                module="account_sync_unified",
+                module="account_sync",
+                phase="error",
+                operation="sync_accounts",
                 instance_name=instance.name,
+                instance_id=instance.id,
                 sync_type=sync_type,
                 error=str(e),
             )
-            return {"success": False, "error": f"会话同步失败: {str(e)}"}
+            failure_result = {"success": False, "error": f"会话同步失败: {str(e)}"}
+            self._emit_completion_log(
+                instance=instance,
+                session_id=session.session_id if "session" in locals() else None,
+                sync_type=sync_type,
+                result=failure_result,
+            )
+            return failure_result
 
-    def _sync_with_existing_session(self, instance: Instance, session_id: str) -> dict[str, Any]:
+    def _sync_with_existing_session(
+        self,
+        instance: Instance,
+        session_id: str,
+        *,
+        sync_type: str | None = None,
+    ) -> dict[str, Any]:
         """
         使用现有会话ID进行同步
         """
@@ -201,18 +233,34 @@ class AccountSyncService:
             result["details"] = summary
             instance.last_connected = time_utils.now()
             db.session.commit()
+            self._emit_completion_log(
+                instance=instance,
+                session_id=session_id,
+                sync_type=sync_type or "session",
+                result=result,
+            )
             return result
         except Exception as exc:  # noqa: BLE001
             db.session.rollback()
             self.sync_logger.error(
                 "现有会话同步失败",
-                module="account_sync_unified",
+                module="account_sync",
+                phase="error",
+                operation="sync_accounts",
                 instance_name=instance.name,
+                instance_id=instance.id,
                 session_id=session_id,
                 error=str(exc),
                 exc_info=True,
             )
-            return {"success": False, "error": f"同步失败: {str(exc)}"}
+            failure_result = {"success": False, "error": f"同步失败: {str(exc)}"}
+            self._emit_completion_log(
+                instance=instance,
+                session_id=session_id,
+                sync_type=sync_type or "session",
+                result=failure_result,
+            )
+            return failure_result
 
     def _build_result(self, summary: Dict[str, Dict[str, int]]) -> Dict[str, Any]:
         inventory = summary.get("inventory", {})
@@ -248,6 +296,34 @@ class AccountSyncService:
             "modified_count": updated,
             "removed_count": removed,
         }
+
+    def _emit_completion_log(
+        self,
+        *,
+        instance: Instance,
+        session_id: str | None,
+        sync_type: str,
+        result: dict[str, Any],
+    ) -> None:
+        message = result.get("message") or result.get("error") or "账户同步完成"
+        log_kwargs: Dict[str, Any] = {
+            "module": "account_sync",
+            "phase": "completed" if result.get("success", True) else "error",
+            "operation": "sync_accounts",
+            "instance_id": instance.id,
+            "instance_name": instance.name,
+            "session_id": session_id,
+            "sync_type": sync_type,
+            "synced_count": result.get("synced_count", 0),
+            "added_count": result.get("added_count", 0),
+            "modified_count": result.get("modified_count", 0),
+            "removed_count": result.get("removed_count", 0),
+            "message": message,
+        }
+        if result.get("success", True):
+            self.sync_logger.info("实例账户同步完成", **log_kwargs)
+        else:
+            self.sync_logger.error("实例账户同步失败", **log_kwargs)
 
 
 # 创建服务实例

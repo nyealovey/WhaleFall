@@ -18,7 +18,7 @@ from app.errors import NotFoundError, SystemError, ValidationError as AppValidat
 from app.services.account_sync import account_sync_service
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, update_required, view_required
-from app.utils.response_utils import jsonify_unified_success
+from app.utils.response_utils import jsonify_unified_success, jsonify_unified_error_message
 from app.utils.structlog_config import log_error, log_info, log_warning
 
 # 创建蓝图
@@ -155,12 +155,13 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
             if is_json:
                 return jsonify_unified_success(
                     data={"result": normalized},
-                    message="账户同步成功",
+                    message=normalized["message"],
                 )
 
-            flash("账户同步成功！", FlashCategory.SUCCESS)
+            flash(normalized["message"], FlashCategory.SUCCESS)
             return redirect(url_for("instance.detail", instance_id=instance_id))
 
+        failure_message = normalized.get("message", "账户同步失败")
         log_error(
             "实例账户同步失败",
             module="account_sync",
@@ -169,13 +170,16 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
             instance_name=instance.name,
             db_type=instance.db_type,
             host=instance.host,
-            error=normalized.get("message", "未知错误"),
+            error=failure_message,
         )
 
         if is_json:
-            raise SystemError(normalized.get("message", "账户同步失败"))
+            return jsonify_unified_error_message(
+                failure_message,
+                extra={"result": normalized, "instance_id": instance.id},
+            )
 
-        flash(f"账户同步失败: {normalized.get('message', '未知错误')}", "error")
+        flash(f"账户同步失败: {failure_message}", FlashCategory.ERROR)
         return redirect(url_for("instance.detail", instance_id=instance_id))
 
     except Exception as exc:
