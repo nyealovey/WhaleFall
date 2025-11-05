@@ -117,12 +117,9 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 @login_required
 @update_required
 @require_csrf
-def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response, int]:
-    """同步指定实例的账户信息"""
+def sync_instance_accounts(instance_id: int) -> Response:
+    """同步指定实例的账户信息，统一返回 JSON"""
     instance = Instance.query.get_or_404(instance_id)
-    is_json = request.is_json
-    wants_json = is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
     try:
         log_info(
             "开始同步实例账户",
@@ -153,14 +150,10 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
                 synced_count=normalized.get("synced_count", 0),
             )
 
-            if wants_json:
-                return jsonify_unified_success(
-                    data={"result": normalized},
-                    message=normalized["message"],
-                )
-
-            flash(normalized["message"], FlashCategory.SUCCESS)
-            return redirect(url_for("instance.detail", instance_id=instance_id))
+            return jsonify_unified_success(
+                data={"result": normalized},
+                message=normalized["message"],
+            )
 
         failure_message = normalized.get("message", "账户同步失败")
         log_error(
@@ -174,14 +167,10 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
             error=failure_message,
         )
 
-        if wants_json:
-            return jsonify_unified_error_message(
-                failure_message,
-                extra={"result": normalized, "instance_id": instance.id},
-            )
-
-        flash(f"账户同步失败: {failure_message}", FlashCategory.ERROR)
-        return redirect(url_for("instance.detail", instance_id=instance_id))
+        return jsonify_unified_error_message(
+            failure_message,
+            extra={"result": normalized, "instance_id": instance.id},
+        )
 
     except Exception as exc:
         log_error(f"同步实例账户失败: {exc}", module="account_sync", instance_id=instance.id)
@@ -195,9 +184,4 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
             host=instance.host,
             error=str(exc),
         )
-
-        if wants_json:
-            raise SystemError("账户同步失败，请重试") from exc
-
-        flash("账户同步失败，请重试", FlashCategory.ERROR)
-        return redirect(url_for("instance.detail", instance_id=instance_id))
+        raise SystemError("账户同步失败，请重试") from exc
