@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -27,6 +27,27 @@ PERMISSION_FIELDS = {
     "system_privileges",
     "tablespace_privileges_oracle",
     "type_specific",
+}
+
+PRIVILEGE_FIELD_LABELS: Dict[str, str] = {
+    "global_privileges": "全局权限",
+    "database_privileges": "数据库权限",
+    "database_privileges_pg": "数据库权限",
+    "predefined_roles": "预设角色",
+    "role_attributes": "角色属性",
+    "tablespace_privileges": "表空间权限",
+    "server_roles": "服务器角色",
+    "server_permissions": "服务器权限",
+    "database_roles": "数据库角色",
+    "database_permissions": "数据库权限",
+    "oracle_roles": "Oracle 角色",
+    "system_privileges": "系统权限",
+    "tablespace_privileges_oracle": "表空间权限",
+}
+
+OTHER_FIELD_LABELS: Dict[str, str] = {
+    "is_superuser": "超级用户",
+    "type_specific": "数据库特性",
 }
 
 
@@ -123,11 +144,12 @@ class AccountPermissionManager:
                 db.session.add(existing)
 
                 try:
+                    initial_diff = self._build_initial_diff_payload(permissions, is_superuser)
                     self._log_change(
                         instance,
                         username=account.username,
                         change_type="add",
-                        diff_payload={"privilege_diff": permissions},
+                        diff_payload=initial_diff,
                         session_id=session_id,
                     )
                 except Exception as log_exc:  # noqa: BLE001
@@ -166,7 +188,11 @@ class AccountPermissionManager:
             "processed_records": created + updated,
             "errors": errors,
             "status": "completed" if not errors else "failed",
-            "message": None if not errors else "权限同步阶段发生错误",
+            "message": (
+                f"权限同步完成：新增 {created} 个账户，更新 {updated} 个账户"
+                if not errors
+                else "权限同步阶段发生错误"
+            ),
         }
 
         if errors:
@@ -217,35 +243,46 @@ class AccountPermissionManager:
         permissions: Dict,
         is_superuser: bool,
     ) -> Dict[str, Any]:
-        diff: Dict[str, Any] = {"changed": False}
+        privilege_changes: List[Dict[str, Any]] = []
+        other_changes: List[Dict[str, Any]] = []
 
         if record.is_superuser != is_superuser:
-            diff["changed"] = True
-            diff.setdefault("other_diff", {})["is_superuser"] = {
-                "old": record.is_superuser,
-                "new": is_superuser,
-            }
+            other_entry = self._build_other_diff_entry(
+                field="is_superuser",
+                old_value=record.is_superuser,
+                new_value=is_superuser,
+            )
+            if other_entry:
+                other_changes.append(other_entry)
 
         for field in PERMISSION_FIELDS:
             new_value = permissions.get(field)
             old_value = getattr(record, field)
             if new_value is None and old_value is None:
                 continue
-            if new_value != old_value:
-                diff["changed"] = True
-                diff.setdefault("privilege_diff", {})[field] = {
-                    "old": old_value,
-                    "new": new_value,
-                }
 
-        if not diff["changed"]:
-            diff["change_type"] = "none"
-        elif diff.get("privilege_diff"):
-            diff["change_type"] = "modify_privilege"
+            if field in PRIVILEGE_FIELD_LABELS:
+                entries = self._build_privilege_diff_entries(field, old_value, new_value)
+                privilege_changes.extend(entries)
+            else:
+                entry = self._build_other_diff_entry(field, old_value, new_value)
+                if entry:
+                    other_changes.append(entry)
+
+        changed = bool(privilege_changes or other_changes)
+        if not changed:
+            change_type = "none"
+        elif privilege_changes:
+            change_type = "modify_privilege"
         else:
-            diff["change_type"] = "modify_other"
+            change_type = "modify_other"
 
-        return diff
+        return {
+            "changed": changed,
+            "change_type": change_type,
+            "privilege_diff": privilege_changes,
+            "other_diff": other_changes,
+        }
 
     def _log_change(
         self,
@@ -259,14 +296,253 @@ class AccountPermissionManager:
         if change_type == "none":
             return
 
+        privilege_diff = diff_payload.get("privilege_diff") or []
+        other_diff = diff_payload.get("other_diff") or []
+        summary = self._build_change_summary(username, change_type, privilege_diff, other_diff)
+
         log = AccountChangeLog(
             instance_id=instance.id,
             db_type=instance.db_type,
             username=username,
             change_type=change_type,
             change_time=time_utils.now(),
-            privilege_diff=diff_payload.get("privilege_diff"),
-            other_diff=diff_payload.get("other_diff"),
+            privilege_diff=privilege_diff,
+            other_diff=other_diff,
+            message=summary,
             session_id=session_id,
         )
         db.session.add(log)
+
+    # ------------------------------------------------------------------
+    # Diff 构建辅助
+    # ------------------------------------------------------------------
+    def _build_initial_diff_payload(
+        self,
+        permissions: Dict[str, Any],
+        is_superuser: bool,
+    ) -> Dict[str, Any]:
+        privilege_diff: List[Dict[str, Any]] = []
+        for field in PERMISSION_FIELDS:
+            if field in PRIVILEGE_FIELD_LABELS:
+                privilege_diff.extend(
+                    self._build_privilege_diff_entries(field, None, permissions.get(field))
+                )
+        other_diff: List[Dict[str, Any]] = []
+        if is_superuser:
+            other_entry = self._build_other_diff_entry("is_superuser", False, True)
+            if other_entry:
+                other_diff.append(other_entry)
+        type_specific_entry = self._build_other_diff_entry(
+            "type_specific", None, permissions.get("type_specific")
+        )
+        if type_specific_entry:
+            other_diff.append(type_specific_entry)
+        return {
+            "privilege_diff": privilege_diff,
+            "other_diff": other_diff,
+        }
+
+    def _build_privilege_diff_entries(
+        self,
+        field: str,
+        old_value: Any,
+        new_value: Any,
+    ) -> List[Dict[str, Any]]:
+        label = PRIVILEGE_FIELD_LABELS.get(field, field)
+        entries: List[Dict[str, Any]] = []
+
+        if self._is_mapping(old_value) or self._is_mapping(new_value):
+            old_map = self._normalize_mapping(old_value)
+            new_map = self._normalize_mapping(new_value)
+            all_keys = sorted(set(old_map.keys()) | set(new_map.keys()))
+
+            for key in all_keys:
+                old_set = old_map.get(key, set())
+                new_set = new_map.get(key, set())
+                grants = sorted(new_set - old_set)
+                revokes = sorted(old_set - new_set)
+
+                object_label = f"{label}:{key}" if key else label
+                if grants:
+                    entries.append(
+                        {
+                            "field": field,
+                            "label": label,
+                            "object": object_label,
+                            "action": "GRANT",
+                            "permissions": grants,
+                        }
+                    )
+                if revokes:
+                    entries.append(
+                        {
+                            "field": field,
+                            "label": label,
+                            "object": object_label,
+                            "action": "REVOKE",
+                            "permissions": revokes,
+                        }
+                    )
+                if not grants and not revokes and new_set != old_set:
+                    entries.append(
+                        {
+                            "field": field,
+                            "label": label,
+                            "object": object_label,
+                            "action": "ALTER",
+                            "permissions": sorted(new_set),
+                        }
+                    )
+            return entries
+
+        old_set = self._normalize_sequence(old_value)
+        new_set = self._normalize_sequence(new_value)
+        if not old_set and not new_set:
+            return entries
+
+        grants = sorted(new_set - old_set)
+        revokes = sorted(old_set - new_set)
+        object_label = label
+
+        if grants:
+            entries.append(
+                {
+                    "field": field,
+                    "label": label,
+                    "object": object_label,
+                    "action": "GRANT",
+                    "permissions": grants,
+                }
+            )
+        if revokes:
+            entries.append(
+                {
+                    "field": field,
+                    "label": label,
+                    "object": object_label,
+                    "action": "REVOKE",
+                    "permissions": revokes,
+                }
+            )
+        if not grants and not revokes and new_set != old_set:
+            entries.append(
+                {
+                    "field": field,
+                    "label": label,
+                    "object": object_label,
+                    "action": "ALTER",
+                    "permissions": sorted(new_set),
+                }
+            )
+        return entries
+
+    def _build_other_diff_entry(
+        self,
+        field: str,
+        old_value: Any,
+        new_value: Any,
+    ) -> Optional[Dict[str, Any]]:
+        if old_value == new_value:
+            return None
+
+        label = OTHER_FIELD_LABELS.get(field, field)
+        description = self._build_other_description(label, old_value, new_value)
+        return {
+            "field": field,
+            "label": label,
+            "before": self._repr_value(old_value),
+            "after": self._repr_value(new_value),
+            "description": description,
+        }
+
+    def _build_other_description(self, label: str, old_value: Any, new_value: Any) -> str:
+        before = self._repr_value(old_value)
+        after = self._repr_value(new_value)
+        if before and after:
+            return f"{label} 从 {before} 调整为 {after}"
+        if after and not before:
+            return f"{label} 设置为 {after}"
+        if before and not after:
+            return f"{label} 已清空"
+        return f"{label} 已更新"
+
+    def _build_change_summary(
+        self,
+        username: str,
+        change_type: str,
+        privilege_diff: List[Dict[str, Any]],
+        other_diff: List[Dict[str, Any]],
+    ) -> str:
+        segments: List[str] = []
+
+        if change_type == "add":
+            grant_count = self._count_permissions_by_action(privilege_diff, "GRANT")
+            if grant_count:
+                segments.append(f"新增账户，赋予 {grant_count} 项权限")
+            else:
+                segments.append("新增账户")
+        else:
+            if privilege_diff:
+                grant_count = self._count_permissions_by_action(privilege_diff, "GRANT")
+                revoke_count = self._count_permissions_by_action(privilege_diff, "REVOKE")
+                alter_count = self._count_permissions_by_action(privilege_diff, "ALTER")
+                parts: List[str] = []
+                if grant_count:
+                    parts.append(f"新增 {grant_count} 项授权")
+                if revoke_count:
+                    parts.append(f"撤销 {revoke_count} 项授权")
+                if alter_count and not grant_count and not revoke_count:
+                    parts.append(f"更新 {alter_count} 项权限")
+                if parts:
+                    segments.append("权限更新：" + "，".join(parts))
+
+            if other_diff:
+                descriptions = [entry.get("description") for entry in other_diff if entry.get("description")]
+                if descriptions:
+                    segments.append("其他变更：" + "，".join(descriptions))
+
+        base = f"账户 {username}"
+        if segments:
+            return f"{base} " + "；".join(segments)
+        return f"{base} 未发生变更"
+
+    @staticmethod
+    def _is_mapping(value: Any) -> bool:
+        return isinstance(value, dict)
+
+    @staticmethod
+    def _normalize_mapping(value: Any) -> Dict[str, set]:
+        if not isinstance(value, dict):
+            return {}
+        normalized: Dict[str, set] = {}
+        for key, permissions in value.items():
+            normalized[str(key)] = AccountPermissionManager._normalize_sequence(permissions)
+        return normalized
+
+    @staticmethod
+    def _normalize_sequence(value: Any) -> set:
+        if value is None:
+            return set()
+        if isinstance(value, (list, tuple, set)):
+            return {AccountPermissionManager._repr_value(item) for item in value if item is not None}
+        return {AccountPermissionManager._repr_value(value)}
+
+    @staticmethod
+    def _repr_value(value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, bool):
+            return "是" if value else "否"
+        if isinstance(value, (list, tuple, set)):
+            return "、".join(str(item) for item in value)
+        if isinstance(value, dict):
+            return "; ".join(f"{k}:{AccountPermissionManager._repr_value(v)}" for k, v in value.items())
+        return str(value)
+
+    @staticmethod
+    def _count_permissions_by_action(privilege_diff: List[Dict[str, Any]], action: str) -> int:
+        total = 0
+        for entry in privilege_diff:
+            if entry.get("action") == action:
+                total += len(entry.get("permissions", []))
+        return total
