@@ -93,30 +93,32 @@ function syncAccounts() {
 
     http.post(`/account_sync/api/instances/${getInstanceId()}/sync`)
         .then(data => {
-            if (data.message) {
-                // 记录成功日志
+            const isSuccess = data?.success || Boolean(data?.message);
+            const successMessage = data?.message || data?.data?.result?.message || '账户同步成功';
+            const errorMessage =
+                data?.error ||
+                data?.message && !isSuccess ? data.message : '账户同步失败';
+
+            if (isSuccess) {
                 console.info('同步账户成功', {
                     operation: 'sync_accounts',
                     instance_id: getInstanceId(),
                     instance_name: getInstanceName(),
                     result: 'success',
-                    message: data.message
+                    message: successMessage
                 });
-                const successMessage = data.message || '账户同步成功';
                 toast.success(successMessage, {
                     title: '账户同步成功',
                     duration: 5000
                 });
-            } else if (data.error) {
-                // 记录失败日志
+            } else {
                 console.error('同步账户失败', {
                     operation: 'sync_accounts',
                     instance_id: getInstanceId(),
                     instance_name: getInstanceName(),
                     result: 'failed',
-                    error: data.error
+                    error: errorMessage
                 });
-                const errorMessage = data.error || '账户同步失败';
                 toast.error(errorMessage, {
                     title: '账户同步失败',
                     duration: 6000
