@@ -25,12 +25,19 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
             instances = Instance.query.filter_by(is_active=True).all()
 
             if not instances:
-                sync_logger.info("没有找到启用的数据库实例", module="account_sync")
+                sync_logger.info(
+                    "没有找到启用的数据库实例",
+                    module="account_sync",
+                    phase="start",
+                    operation="sync_accounts",
+                )
                 return
 
             sync_logger.info(
                 "开始同步账户信息",
                 module="account_sync",
+                phase="start",
+                operation="sync_accounts",
                 instance_count=len(instances),
                 manual_run=manual_run,
                 created_by=created_by,
@@ -67,6 +74,7 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                         "开始实例账户同步",
                         module="account_sync",
                         phase="inventory",
+                        operation="sync_accounts",
                         session_id=session.session_id,
                         instance_id=instance.id,
                         instance_name=instance.name,
@@ -82,6 +90,7 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                             "账户同步连接失败",
                             module="account_sync",
                             phase="connection",
+                            operation="sync_accounts",
                             session_id=session.session_id,
                             instance_id=instance.id,
                             instance_name=instance.name,
@@ -95,6 +104,7 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                             "账户同步权限阶段失败",
                             module="account_sync",
                             phase="collection",
+                            operation="sync_accounts",
                             session_id=session.session_id,
                             instance_id=instance.id,
                             instance_name=instance.name,
@@ -129,6 +139,8 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                     sync_logger.info(
                         "实例账户同步完成",
                         module="account_sync",
+                        phase="completed",
+                        operation="sync_accounts",
                         session_id=session.session_id,
                         instance_id=instance.id,
                         instance_name=instance.name,
@@ -144,6 +156,8 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                     sync_logger.error(
                         "实例账户同步异常",
                         module="account_sync",
+                        phase="error",
+                        operation="sync_accounts",
                         session_id=session.session_id,
                         instance_id=instance.id,
                         instance_name=instance.name,
@@ -160,6 +174,8 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
             sync_logger.info(
                 "账户同步任务完成",
                 module="account_sync",
+                phase="completed",
+                operation="sync_accounts",
                 session_id=session.session_id,
                 total_instances=len(instances),
                 total_synced=total_synced,
@@ -176,6 +192,8 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
             sync_logger.error(
                 "账户同步任务失败",
                 module="account_sync",
+                phase="error",
+                operation="sync_accounts",
                 error=str(exc),
                 exc_info=True,
             )
