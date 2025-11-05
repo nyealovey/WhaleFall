@@ -102,7 +102,11 @@ function syncAccounts() {
                     result: 'success',
                     message: data.message
                 });
-                toast.success(data.message);
+                const successMessage = data.message || '账户同步成功';
+                toast.success(successMessage, {
+                    title: '账户同步成功',
+                    duration: 5000
+                });
             } else if (data.error) {
                 // 记录失败日志
                 console.error('同步账户失败', {
@@ -112,7 +116,11 @@ function syncAccounts() {
                     result: 'failed',
                     error: data.error
                 });
-                toast.error(data.error);
+                const errorMessage = data.error || '账户同步失败';
+                toast.error(errorMessage, {
+                    title: '账户同步失败',
+                    duration: 6000
+                });
             }
         })
         .catch(error => {
@@ -123,7 +131,10 @@ function syncAccounts() {
                 instance_name: getInstanceName(),
                 result: 'exception'
             });
-            toast.error('同步失败');
+            toast.error('同步失败', {
+                title: '账户同步失败',
+                duration: 6000
+            });
         })
         .finally(() => {
             syncBtn.innerHTML = originalText;
