@@ -236,23 +236,7 @@
 
 </div>
 
-<!-- 权限详情模态框 -->
-<div class="modal fade" id="permissionsModal" tabindex="-1" aria-labelledby="permissionsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="permissionsModalLabel">账户权限详情</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="permissionsModalBody">
-                <!-- 权限内容将通过JS加载 -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-            </div>
-</div>
-</div>
-</div>
+{% include 'components/permission_modal.html' %}
 {% endblock %}
 
 {% block extra_js %}
