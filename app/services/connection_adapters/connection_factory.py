@@ -404,21 +404,54 @@ class OracleConnection(DatabaseConnection):
 
             # 获取连接信息
             password = self.instance.credential.get_plain_password() if self.instance.credential else ""
+            username = self.instance.credential.username if self.instance.credential else ""
+            
+            # Oracle 用户名处理：默认转换为大写
+            # 如果用户名包含引号，则保持原样（大小写敏感）
+            if username and not username.startswith('"'):
+                username_for_connection = username.upper()
+                if username != username_for_connection:
+                    self.db_logger.debug(
+                        "Oracle用户名转换为大写",
+                        module="connection",
+                        instance_id=self.instance.id,
+                        original_username=username,
+                        converted_username=username_for_connection,
+                    )
+            else:
+                username_for_connection = username
 
             # 构建连接字符串
             database_name = self.instance.database_name or _get_default_schema("oracle") or "ORCL"
 
-            # 优先使用服务名格式，因为大多数现代Oracle配置都使用服务名
-            if "." in database_name:
-                # Service Name格式: host:port/service_name
-                dsn = f"{self.instance.host}:{self.instance.port}/{database_name}"
-            else:
-                # 对于简单名称，优先尝试服务名格式，如果失败再尝试SID格式
-                dsn = f"{self.instance.host}:{self.instance.port}/{database_name}"
-
-            # 直接使用Thick模式连接（用户已安装Oracle客户端）
+            # 使用 makedsn 构建 DSN（更可靠）
             try:
-                # 初始化Thick模式，优先读取环境变量指向的客户端目录
+                # 优先尝试服务名格式
+                dsn = oracledb.makedsn(
+                    host=self.instance.host,
+                    port=self.instance.port,
+                    service_name=database_name
+                )
+            except Exception:
+                # 如果失败，尝试 SID 格式
+                dsn = oracledb.makedsn(
+                    host=self.instance.host,
+                    port=self.instance.port,
+                    sid=database_name
+                )
+
+            self.db_logger.info(
+                "尝试连接Oracle数据库",
+                module="connection",
+                instance_id=self.instance.id,
+                host=self.instance.host,
+                port=self.instance.port,
+                username=username_for_connection,
+                database_name=database_name,
+            )
+
+            # 初始化Thick模式，优先读取环境变量指向的客户端目录
+            try:
                 import os
 
                 candidate_paths: list[str] = []
@@ -440,37 +473,47 @@ class OracleConnection(DatabaseConnection):
                     oracledb.init_oracle_client(lib_dir=lib_dir)
                 else:
                     oracledb.init_oracle_client()
-                self.connection = oracledb.connect(
-                    user=(self.instance.credential.username if self.instance.credential else ""),
-                    password=password,
-                    dsn=dsn,
-                )
-            except Exception as e:
-                # 如果服务名格式失败，尝试SID格式
-                if not dsn.endswith(f":{database_name}") and "." not in database_name:
-                    try:
-                        sid_dsn = f"{self.instance.host}:{self.instance.port}:{database_name}"
-                        self.connection = oracledb.connect(
-                            user=(self.instance.credential.username if self.instance.credential else ""),
-                            password=password,
-                            dsn=sid_dsn,
-                        )
-                    except Exception:
-                        # 如果SID格式也失败，抛出原始错误
-                        raise e from None
-                else:
-                    raise e
+                    
+            except Exception as init_error:
+                # 如果已经初始化过，忽略错误
+                if "already been initialized" not in str(init_error).lower():
+                    self.db_logger.warning(
+                        "Oracle客户端初始化警告",
+                        module="connection",
+                        instance_id=self.instance.id,
+                        error=str(init_error),
+                    )
 
+            # 建立连接
+            self.connection = oracledb.connect(
+                user=username_for_connection,
+                password=password,
+                dsn=dsn,
+            )
+            
             self.is_connected = True
+            
+            self.db_logger.info(
+                "Oracle连接成功",
+                module="connection",
+                instance_id=self.instance.id,
+                username=username_for_connection,
+            )
+            
             return True
 
         except Exception as e:
+            error_message = str(e)
             self.db_logger.error(
                 "Oracle连接失败",
                 module="connection",
                 instance_id=self.instance.id,
                 db_type="Oracle",
-                error=str(e),
+                host=self.instance.host,
+                port=self.instance.port,
+                username=username_for_connection if 'username_for_connection' in locals() else username if 'username' in locals() else "unknown",
+                error=error_message,
+                error_type=type(e).__name__,
             )
             return False
 
