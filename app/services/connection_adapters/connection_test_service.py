@@ -1,13 +1,14 @@
-"""
-鲸落 - 数据库连接测试服务
-"""
+"""鲸落 - 数据库连接测试服务"""
 
 from typing import Any
 
+from app import db
+from app.constants import DatabaseType
 from app.models import Instance
-from app.constants import DatabaseType, TaskStatus
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_sync_logger
+from app.utils.time_utils import time_utils
+from app.utils.version_parser import DatabaseVersionParser
 
 
 class ConnectionTestService:
@@ -31,34 +32,36 @@ class ConnectionTestService:
             # 创建连接
             connection_obj = ConnectionFactory.create_connection(instance)
             if not connection_obj.connect():
+                self._update_last_connected(instance)
                 return {"success": False, "error": "无法建立数据库连接"}
 
             # 获取数据库版本信息
             version_info = self._get_database_version(instance, connection_obj)
 
-            # 更新最后连接时间
-            from app import db
-            from app.utils.time_utils import time_utils
+            parsed_version = DatabaseVersionParser.parse_version(instance.db_type.lower(), version_info)
+            formatted_version = DatabaseVersionParser.format_version_display(
+                instance.db_type.lower(), version_info
+            )
 
             instance.last_connected = time_utils.now()
+            instance.database_version = parsed_version["original"]
+            instance.main_version = parsed_version["main_version"]
+            instance.detailed_version = parsed_version["detailed_version"]
+
             db.session.commit()
 
             return {
                 "success": True,
-                "message": f"连接成功，数据库版本: {version_info}",
-                "version": version_info,
+                "message": f"连接成功，数据库版本: {formatted_version}",
+                "version": formatted_version,
+                "database_version": instance.database_version,
+                "main_version": instance.main_version,
+                "detailed_version": instance.detailed_version,
             }
 
         except Exception as e:
             # 即使连接失败，也记录尝试时间
-            try:
-                from app import db
-                from app.utils.time_utils import time_utils
-
-                instance.last_connected = time_utils.now()
-                db.session.commit()
-            except Exception as update_error:
-                self.test_logger.error(f"更新最后连接时间失败: {update_error}")
+            self._update_last_connected(instance)
 
             # 记录具体的错误类型用于安全分析
             error_type = type(e).__name__
@@ -112,6 +115,20 @@ class ConnectionTestService:
                         instance_id=instance.id,
                         error=str(close_error)
                     )
+
+    def _update_last_connected(self, instance: Instance) -> None:
+        """更新最后连接时间，不影响已有版本信息"""
+        try:
+            instance.last_connected = time_utils.now()
+            db.session.commit()
+        except Exception as update_error:
+            db.session.rollback()
+            self.test_logger.error(
+                "更新最后连接时间失败",
+                module="connection_test",
+                instance_id=instance.id,
+                error=str(update_error),
+            )
 
     def _get_database_version(self, instance: Instance, connection: Any) -> str:  # noqa: ANN401
         """

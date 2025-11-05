@@ -60,23 +60,14 @@ def _test_existing_instance(instance_id: int) -> Response:
     result = connection_test_service.test_connection(instance)
 
     if result.get("success"):
-        try:
-            instance.last_connected = time_utils.now()
-            db.session.commit()
-        except Exception as exc:
-            db.session.rollback()
-            log_error(
-                "更新实例最近连接时间失败",
-                module="connections",
-                instance_id=instance_id,
-                error=str(exc),
-            )
-
         log_info(
             "实例连接测试成功",
             module="connections",
             instance_id=instance_id,
             instance_name=instance.name,
+            database_version=result.get("database_version"),
+            main_version=result.get("main_version"),
+            detailed_version=result.get("detailed_version"),
         )
         return jsonify_unified_success(data={"result": result}, message="实例连接测试成功")
 
