@@ -56,19 +56,16 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
-        permissions = account.get("permissions", {})
+        permissions = account.get("permissions") or {}
         type_specific = permissions.setdefault("type_specific", {})
-        type_specific.setdefault("is_disabled", account.get("is_disabled", False))
-        attributes = {
-            "is_disabled": type_specific.get("is_disabled", account.get("is_disabled", False)),
-        }
+        if "is_disabled" not in type_specific:
+            type_specific["is_disabled"] = bool(account.get("is_disabled", False))
         return {
             "username": account["username"],
             "display_name": account["username"],
             "db_type": DatabaseType.SQLSERVER,
             "is_superuser": account.get("is_superuser", False),
-            "is_active": not account.get("is_disabled", False),
-            "attributes": attributes,
+            "is_active": not bool(type_specific.get("is_disabled", account.get("is_disabled", False))),
             "permissions": {
                 "server_roles": permissions.get("server_roles", []),
                 "server_permissions": permissions.get("server_permissions", []),
@@ -123,12 +120,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     for key, value in existing_type_specific.items():
                         if value is not None:
                             type_specific.setdefault(key, value)
-                attributes = account.get("attributes") or {}
-                if isinstance(attributes, dict):
-                    for key, value in attributes.items():
-                        if value is not None:
-                            type_specific.setdefault(key, value)
-                type_specific.setdefault("is_disabled", account.get("is_disabled", False))
+                type_specific.setdefault("is_disabled", bool(account.get("is_disabled", False)))
                 account["permissions"] = permissions
             except Exception as exc:  # noqa: BLE001
                 self.logger.error(

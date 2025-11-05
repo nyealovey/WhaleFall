@@ -53,23 +53,33 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                     can_inherit,
                     valid_until,
                 ) = row
-                attributes = {
-                    "can_create_role": can_create_role,
-                    "can_create_db": can_create_db,
-                    "can_replicate": can_replicate,
-                    "can_bypass_rls": can_bypass_rls,
-                    "can_login": can_login,
-                    "can_inherit": can_inherit,
+                type_specific = {
+                    "can_create_role": bool(can_create_role),
+                    "can_create_db": bool(can_create_db),
+                    "can_replicate": bool(can_replicate),
+                    "can_bypass_rls": bool(can_bypass_rls),
+                    "can_login": bool(can_login),
+                    "can_inherit": bool(can_inherit),
                     "valid_until": valid_until.isoformat() if valid_until else None,
+                }
+                role_attributes = {
+                    "can_create_role": bool(can_create_role),
+                    "can_create_db": bool(can_create_db),
+                    "can_replicate": bool(can_replicate),
+                    "can_bypass_rls": bool(can_bypass_rls),
+                    "can_inherit": bool(can_inherit),
+                    "can_login": bool(can_login),
                 }
                 accounts.append(
                     {
                         "username": username,
                         "is_superuser": is_superuser,
-                        "can_login": can_login,
-                        "attributes": attributes,
+                        "can_login": bool(can_login),
                         # 权限在 collection 阶段按需加载
-                        "permissions": {},
+                        "permissions": {
+                            "type_specific": type_specific,
+                            "role_attributes": role_attributes,
+                        },
                     }
                 )
             self.logger.info(
@@ -90,28 +100,21 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
-        permissions = account.get("permissions", {})
+        permissions = account.get("permissions") or {}
         type_specific = permissions.setdefault("type_specific", {})
-        attributes = {
-            "can_create_role": type_specific.get("can_create_role"),
-            "can_create_db": type_specific.get("can_create_db"),
-            "can_replicate": type_specific.get("can_replicate"),
-            "can_bypass_rls": type_specific.get("can_bypass_rls"),
-            "can_login": type_specific.get("can_login"),
-            "can_inherit": type_specific.get("can_inherit"),
-            "valid_until": type_specific.get("valid_until"),
-        }
+        permissions.setdefault("role_attributes", {})
+        if "can_login" not in type_specific and account.get("can_login") is not None:
+            type_specific["can_login"] = bool(account.get("can_login"))
         return {
             "username": account["username"],
             "display_name": account["username"],
             "db_type": DatabaseType.POSTGRESQL,
             "is_superuser": account.get("is_superuser", False),
-            "is_active": bool(account.get("can_login", True)),
-            "attributes": attributes,
+            "is_active": bool(type_specific.get("can_login", True)),
             "permissions": {
                 "predefined_roles": permissions.get("predefined_roles", []),
                 "role_attributes": permissions.get("role_attributes", {}),
-                "database_privileges_pg": permissions.get("database_privileges", {}),
+                "database_privileges_pg": permissions.get("database_privileges_pg", {}),
                 "tablespace_privileges": permissions.get("tablespace_privileges", {}),
                 "system_privileges": permissions.get("system_privileges", []),
                 "type_specific": type_specific,
@@ -141,7 +144,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         permissions: Dict[str, Any] = {
             "predefined_roles": [],
             "role_attributes": {},
-            "database_privileges": {},
+            "database_privileges_pg": {},
             "tablespace_privileges": {},
             "system_privileges": [],
             "type_specific": {},
@@ -165,7 +168,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 exc_info=True,
             )
         try:
-            permissions["database_privileges"] = self._get_database_privileges(connection, username)
+            permissions["database_privileges_pg"] = self._get_database_privileges(connection, username)
         except Exception as exc:  # noqa: BLE001
             self.logger.warning(
                 "fetch_pg_database_privileges_failed",
@@ -205,26 +208,38 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 continue
             processed += 1
             try:
+                existing_permissions = account.get("permissions") or {}
+                seed_type_specific = existing_permissions.get("type_specific") or {}
+                seed_role_attributes = existing_permissions.get("role_attributes") or {}
+
                 permissions = self._get_role_permissions(
                     connection,
                     username,
                     is_superuser=bool(account.get("is_superuser")),
                 )
-                attributes = account.get("attributes") or {}
                 type_specific = permissions.setdefault("type_specific", {})
-                if attributes.get("valid_until"):
-                    type_specific.setdefault("valid_until", attributes["valid_until"])
-                type_specific.setdefault("can_login", attributes.get("can_login"))
-                permissions.setdefault("role_attributes", {}).update(
-                    {
-                        "can_create_role": attributes.get("can_create_role"),
-                        "can_create_db": attributes.get("can_create_db"),
-                        "can_replicate": attributes.get("can_replicate"),
-                        "can_bypass_rls": attributes.get("can_bypass_rls"),
-                        "can_inherit": attributes.get("can_inherit"),
-                        "can_login": attributes.get("can_login"),
-                    }
-                )
+                for key, value in seed_type_specific.items():
+                    if value is not None:
+                        type_specific.setdefault(key, value)
+                role_attributes = permissions.setdefault("role_attributes", {})
+                for key, value in seed_role_attributes.items():
+                    if value is not None:
+                        role_attributes.setdefault(key, value)
+                if "can_login" not in type_specific and role_attributes.get("can_login") is not None:
+                    type_specific["can_login"] = bool(role_attributes["can_login"])
+                if seed_type_specific.get("valid_until") is not None and "valid_until" not in type_specific:
+                    type_specific["valid_until"] = seed_type_specific["valid_until"]
+                for propagated_key in (
+                    "can_create_role",
+                    "can_create_db",
+                    "can_replicate",
+                    "can_bypass_rls",
+                    "can_inherit",
+                    "can_login",
+                ):
+                    value = role_attributes.get(propagated_key)
+                    if value is not None:
+                        type_specific.setdefault(propagated_key, value)
                 account["permissions"] = permissions
             except Exception as exc:  # noqa: BLE001
                 self.logger.error(
@@ -277,20 +292,49 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
     def _get_database_privileges(self, connection: Any, username: str) -> Dict[str, List[str]]:
         sql = """
-            SELECT datname, array_agg(privilege_type)
-            FROM information_schema.role_table_grants
-            WHERE grantee = %s
-            GROUP BY datname
+            SELECT
+                datname,
+                ARRAY[
+                    CASE WHEN has_database_privilege(%s, datname, 'CONNECT') THEN 'CONNECT' END,
+                    CASE WHEN has_database_privilege(%s, datname, 'CREATE') THEN 'CREATE' END,
+                    CASE WHEN has_database_privilege(%s, datname, 'TEMP') THEN 'TEMP' END
+                ]::text[] AS privileges
+            FROM pg_database
+            WHERE datallowconn = true
+              AND (
+                    has_database_privilege(%s, datname, 'CONNECT')
+                 OR has_database_privilege(%s, datname, 'CREATE')
+                 OR has_database_privilege(%s, datname, 'TEMP')
+              )
         """
-        rows = connection.execute_query(sql, (username,))
-        return {row[0]: row[1] for row in rows if row and row[0]}
+        rows = connection.execute_query(sql, (username,) * 6)
+        privileges: Dict[str, List[str]] = {}
+        for row in rows:
+            if not row or not row[0]:
+                continue
+            datname, priv_list = row
+            filtered = [priv for priv in (priv_list or []) if priv]
+            if filtered:
+                privileges[datname] = filtered
+        return privileges
 
     def _get_tablespace_privileges(self, connection: Any, username: str) -> Dict[str, List[str]]:
         sql = """
-            SELECT spcname, array_agg(privilege_type)
-            FROM information_schema.role_usage_grants
-            WHERE grantee = %s
-            GROUP BY spcname
+            SELECT
+                spcname,
+                ARRAY[
+                    CASE WHEN has_tablespace_privilege(%s, spcname, 'CREATE') THEN 'CREATE' END
+                ]::text[] AS privileges
+            FROM pg_tablespace
+            WHERE has_tablespace_privilege(%s, spcname, 'CREATE')
         """
-        rows = connection.execute_query(sql, (username,))
-        return {row[0]: row[1] for row in rows if row and row[0]}
+        rows = connection.execute_query(sql, (username, username))
+        privileges: Dict[str, List[str]] = {}
+        for row in rows:
+            if not row or not row[0]:
+                continue
+            spcname, priv_list = row
+            filtered = [priv for priv in (priv_list or []) if priv]
+            if filtered:
+                privileges[spcname] = filtered
+        return privileges

@@ -20,7 +20,7 @@ class AccountInventoryManager:
 
         Args:
             instance: 数据库实例
-            remote_accounts: 远程账户数据列表，每项至少包含 username、db_type、attributes（可选）、is_active
+            remote_accounts: 远程账户数据列表，每项至少包含 username、db_type、is_active
 
         Returns:
             Tuple[dict, List[InstanceAccount]]: 同步统计信息与活跃账户对象列表

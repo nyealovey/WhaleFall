@@ -55,19 +55,18 @@ class OracleAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
-        permissions = account.get("permissions", {})
+        permissions = account.get("permissions") or {}
         type_specific = permissions.setdefault("type_specific", {})
-        attributes = {
-            "account_status": type_specific.get("account_status"),
-            "default_tablespace": type_specific.get("default_tablespace"),
-        }
+        account_status = type_specific.get("account_status")
+        is_active = not bool(account.get("is_locked", False))
+        if isinstance(account_status, str):
+            is_active = account_status.upper() == "OPEN"
         return {
             "username": account["username"],
             "display_name": account["username"],
             "db_type": DatabaseType.ORACLE,
             "is_superuser": account.get("is_superuser", False),
-            "is_active": not account.get("is_locked", False),
-            "attributes": attributes,
+            "is_active": is_active,
             "permissions": {
                 "oracle_roles": permissions.get("oracle_roles", []),
                 "system_privileges": permissions.get("system_privileges", []),
