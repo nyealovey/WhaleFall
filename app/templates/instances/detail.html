@@ -647,20 +647,7 @@
 </div>
 
 
-<!-- 权限查看模态框 -->
-<div class="modal fade" id="permissionsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="permissionsModalTitle">权限详情</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="permissionsModalBody">
-                <div id="permissionsContent"></div>
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'components/permission_modal.html' %}
 
 <!-- 变更历史模态框 -->
 <div class="modal fade" id="historyModal" tabindex="-1">
