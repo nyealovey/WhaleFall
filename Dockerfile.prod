@@ -62,7 +62,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 # 安装Oracle Instant Client
 ENV ORACLE_CLIENT_VERSION=21.18.0.0.0
-ENV ORACLE_HOME=/opt/oracle/instantclient_${ORACLE_CLIENT_VERSION//./_}
+ENV ORACLE_HOME=/opt/oracle/instantclient_21_18
 
 # 下载并安装Oracle Instant Client for Linux
 RUN mkdir -p $ORACLE_HOME && \
@@ -75,6 +75,8 @@ RUN mkdir -p $ORACLE_HOME && \
     fi && \
     unzip -o /tmp/instantclient-basic.zip -d /opt/oracle && \
     unzip -o /tmp/instantclient-sdk.zip -d /opt/oracle && \
+    rm -rf $ORACLE_HOME && \
+    mv /opt/oracle/instantclient_21_18 $ORACLE_HOME && \
     rm /tmp/instantclient-basic.zip /tmp/instantclient-sdk.zip && \
     echo "$ORACLE_HOME" > /etc/ld.so.conf.d/oracle-instantclient.conf && \
     ldconfig
