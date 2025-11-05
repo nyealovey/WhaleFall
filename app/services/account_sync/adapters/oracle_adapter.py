@@ -70,7 +70,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
             "permissions": {
                 "oracle_roles": permissions.get("oracle_roles", []),
                 "system_privileges": permissions.get("system_privileges", []),
-                "tablespace_privileges_oracle": permissions.get("tablespace_privileges", {}),
+                "tablespace_quotas": permissions.get("tablespace_quotas", {}),
                 "type_specific": permissions.get("type_specific", {}),
             },
         }
@@ -104,7 +104,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         permissions = {
             "oracle_roles": self._get_roles(connection, username),
             "system_privileges": self._get_system_privileges(connection, username),
-            "tablespace_privileges": self._get_tablespace_privileges(connection, username),
+            "tablespace_quotas": self._get_tablespace_privileges(connection, username),
             "type_specific": {},
         }
         return permissions
@@ -161,13 +161,28 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return [row[0] for row in rows if row and row[0]]
 
     def _get_tablespace_privileges(self, connection: Any, username: str) -> Dict[str, Dict[str, Any]]:
-        sql = "SELECT tablespace_name, privilege FROM dba_ts_privs WHERE grantee = :1"
+        """查询用户的表空间配额信息（Oracle 11g+兼容）"""
+        sql = """
+            SELECT 
+                tablespace_name, 
+                CASE 
+                    WHEN max_bytes = -1 THEN 'UNLIMITED'
+                    ELSE TO_CHAR(max_bytes / 1024 / 1024) || ' MB'
+                END AS quota,
+                bytes / 1024 / 1024 AS used_mb
+            FROM dba_ts_quotas 
+            WHERE username = :1
+        """
         rows = connection.execute_query(sql, {":1": username})
-        privileges: Dict[str, List[str]] = {}
+        quotas: Dict[str, Dict[str, Any]] = {}
         for row in rows:
             tablespace = row[0]
-            privilege = row[1]
-            if not tablespace or not privilege:
+            quota = row[1]
+            used_mb = float(row[2]) if row[2] else 0
+            if not tablespace:
                 continue
-            privileges.setdefault(tablespace, []).append(privilege)
-        return privileges
+            quotas[tablespace] = {
+                "quota": quota,
+                "used_mb": round(used_mb, 2)
+            }
+        return quotas
