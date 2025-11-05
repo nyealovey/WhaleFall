@@ -89,21 +89,15 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
         permissions = account.get("permissions", {})
         type_specific = permissions.setdefault("type_specific", {})
-        attributes = {
-            "host": type_specific.get("host", account.get("host")),
-            "original_username": type_specific.get("original_username", account.get("original_username")),
-            "is_locked": type_specific.get("is_locked", account.get("is_locked", False)),
-            "grant_statements": type_specific.get("grant_statements"),
-            "plugin": type_specific.get("plugin"),
-            "password_last_changed": type_specific.get("password_last_changed"),
-        }
+        type_specific.setdefault("host", account.get("host"))
+        type_specific.setdefault("original_username", account.get("original_username"))
+        type_specific.setdefault("is_locked", account.get("is_locked", False))
         return {
             "username": account["username"],
             "display_name": account["username"],
             "db_type": DatabaseType.MYSQL,
             "is_superuser": account.get("is_superuser", False),
-            "is_active": not account.get("is_locked", False),
-            "attributes": attributes,
+            "is_active": not type_specific.get("is_locked", account.get("is_locked", False)),
             "permissions": {
                 "global_privileges": permissions.get("global_privileges", []),
                 "database_privileges": permissions.get("database_privileges", {}),
@@ -191,8 +185,14 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             username = account.get("username")
             if not username or username not in target_usernames:
                 continue
-            original_username = account.get("original_username")
-            host = account.get("host")
+            permissions_container = account.get("permissions") or {}
+            existing_type_specific = permissions_container.get("type_specific") or {}
+            original_username = existing_type_specific.get("original_username") or account.get("original_username")
+            host = existing_type_specific.get("host") if "host" in existing_type_specific else account.get("host")
+            if (not original_username or host is None) and "@" in username:
+                user_part, host_part = username.split("@", 1)
+                original_username = original_username or user_part
+                host = host if host is not None else host_part
             if not original_username or host is None:
                 continue
 
@@ -200,19 +200,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             try:
                 permissions = self._get_user_permissions(connection, original_username, host)
                 type_specific = permissions.setdefault("type_specific", {})
-                attributes = account.get("attributes") or {}
-                if attributes.get("host") is not None:
-                    type_specific.setdefault("host", attributes["host"])
-                if attributes.get("original_username") is not None:
-                    type_specific.setdefault("original_username", attributes["original_username"])
-                if attributes.get("is_locked") is not None:
-                    type_specific.setdefault("is_locked", attributes["is_locked"])
-                if attributes.get("plugin") is not None:
-                    type_specific.setdefault("plugin", attributes["plugin"])
-                if attributes.get("password_last_changed") is not None:
-                    type_specific.setdefault("password_last_changed", attributes["password_last_changed"])
-                if attributes.get("can_grant") is not None:
-                    type_specific.setdefault("can_grant", attributes["can_grant"])
+                for key, value in existing_type_specific.items():
+                    if value is not None:
+                        type_specific.setdefault(key, value)
                 account["permissions"] = permissions
             except Exception as exc:  # noqa: BLE001
                 self.logger.error(
