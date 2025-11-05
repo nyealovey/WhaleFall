@@ -418,12 +418,28 @@ class OracleConnection(DatabaseConnection):
 
             # 直接使用Thick模式连接（用户已安装Oracle客户端）
             try:
-                # 初始化Thick模式（指定Oracle Instant Client路径）
+                # 初始化Thick模式，优先读取环境变量指向的客户端目录
                 import os
 
+                candidate_paths: list[str] = []
+
+                env_lib_dir = os.getenv("ORACLE_CLIENT_LIB_DIR")
+                if env_lib_dir:
+                    candidate_paths.append(env_lib_dir)
+
+                oracle_home = os.getenv("ORACLE_HOME")
+                if oracle_home:
+                    candidate_paths.append(os.path.join(oracle_home, "lib"))
+
                 current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                oracle_client_path = os.path.join(current_dir, "oracle_client", "lib")
-                oracledb.init_oracle_client(lib_dir=oracle_client_path)
+                candidate_paths.append(os.path.join(current_dir, "oracle_client", "lib"))
+
+                lib_dir = next((path for path in candidate_paths if path and os.path.isdir(path)), None)
+
+                if lib_dir:
+                    oracledb.init_oracle_client(lib_dir=lib_dir)
+                else:
+                    oracledb.init_oracle_client()
                 self.connection = oracledb.connect(
                     user=(self.instance.credential.username if self.instance.credential else ""),
                     password=password,
