@@ -121,6 +121,7 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
     """同步指定实例的账户信息"""
     instance = Instance.query.get_or_404(instance_id)
     is_json = request.is_json
+    wants_json = is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
     try:
         log_info(
@@ -152,7 +153,7 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
                 synced_count=normalized.get("synced_count", 0),
             )
 
-            if is_json:
+            if wants_json:
                 return jsonify_unified_success(
                     data={"result": normalized},
                     message=normalized["message"],
@@ -173,7 +174,7 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
             error=failure_message,
         )
 
-        if is_json:
+        if wants_json:
             return jsonify_unified_error_message(
                 failure_message,
                 extra={"result": normalized, "instance_id": instance.id},
@@ -195,7 +196,7 @@ def sync_instance_accounts(instance_id: int) -> str | Response | tuple[Response,
             error=str(exc),
         )
 
-        if is_json:
+        if wants_json:
             raise SystemError("账户同步失败，请重试") from exc
 
         flash("账户同步失败，请重试", FlashCategory.ERROR)
