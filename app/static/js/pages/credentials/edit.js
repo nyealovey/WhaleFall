@@ -95,14 +95,47 @@ function initializeFormValidation() {
         return;
     }
 
+    // 编辑页面的密码验证规则：可选，但如果填写则需要至少6个字符
+    const passwordRules = [
+        {
+            validator: function (value) {
+                // 如果密码为空，允许通过（表示不修改密码）
+                if (!value || value.trim() === '') {
+                    return true;
+                }
+                // 如果填写了密码，则需要至少6个字符
+                return value.length >= 6;
+            },
+            errorMessage: '密码至少需要 6 个字符',
+        },
+    ];
+
     credentialEditValidator
         .useRules('#name', window.ValidationRules.credential.name)
         .useRules('#credential_type', window.ValidationRules.credential.credentialType)
         .useRules('#db_type', window.ValidationRules.credential.dbType)
         .useRules('#username', window.ValidationRules.credential.username)
-        .useRules('#password', window.ValidationRules.credential.password)
+        .useRules('#password', passwordRules)
         .onSuccess(function (event) {
+            event.preventDefault();
             const form = event.target;
+            
+            // 处理复选框值：确保 is_active 字段正确提交
+            const isActiveCheckbox = form.querySelector('#is_active');
+            let isActiveInput = form.querySelector('input[name="is_active"][type="hidden"]');
+            
+            if (isActiveCheckbox) {
+                // 如果隐藏字段不存在，创建一个
+                if (!isActiveInput) {
+                    isActiveInput = document.createElement('input');
+                    isActiveInput.type = 'hidden';
+                    isActiveInput.name = 'is_active';
+                    form.appendChild(isActiveInput);
+                }
+                // 设置值：选中为 'true'，未选中为 'false'
+                isActiveInput.value = isActiveCheckbox.checked ? 'true' : 'false';
+            }
+            
             showLoadingState(form);
             form.submit();
         })
