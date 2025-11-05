@@ -227,8 +227,22 @@ class AccountSyncService:
         if collection.get("status") == "skipped":
             processed_records = 0
 
+        # 构建详细的成功消息
+        message_parts = []
+        if processed_records > 0:
+            message_parts.append(f"同步 {processed_records} 个账户")
+        if added + reactivated > 0:
+            message_parts.append(f"新增 {added + reactivated} 个")
+        if updated > 0:
+            message_parts.append(f"更新 {updated} 个")
+        if removed > 0:
+            message_parts.append(f"移除 {removed} 个")
+        
+        message = "、".join(message_parts) if message_parts else "账户同步完成"
+
         return {
             "success": True,
+            "message": message,
             "synced_count": processed_records,
             "added_count": added + reactivated,
             "modified_count": updated,
