@@ -19,8 +19,8 @@ def test_account_inventory_manager_lifecycle(db):
     manager = AccountInventoryManager()
 
     stage_one_remote = [
-        {"username": "user_a", "db_type": "mysql", "is_active": True, "attributes": {"host": "%"}},
-        {"username": "user_b", "db_type": "mysql", "is_active": True, "attributes": {"host": "%"}},
+        {"username": "user_a", "db_type": "mysql", "is_active": True},
+        {"username": "user_b", "db_type": "mysql", "is_active": True},
     ]
 
     summary, active_accounts = manager.synchronize(instance, stage_one_remote)
@@ -34,8 +34,8 @@ def test_account_inventory_manager_lifecycle(db):
         assert record.first_seen_at is not None
 
     stage_two_remote = [
-        {"username": "user_b", "db_type": "mysql", "is_active": True, "attributes": {"host": "%"}},
-        {"username": "user_c", "db_type": "mysql", "is_active": True, "attributes": {"host": "%"}},
+        {"username": "user_b", "db_type": "mysql", "is_active": True},
+        {"username": "user_c", "db_type": "mysql", "is_active": True},
     ]
 
     summary, active_accounts = manager.synchronize(instance, stage_two_remote)
@@ -48,8 +48,8 @@ def test_account_inventory_manager_lifecycle(db):
     assert user_a.is_active is False
 
     stage_three_remote = [
-        {"username": "user_a", "db_type": "mysql", "is_active": True, "attributes": {"host": "%"}},
-        {"username": "user_c", "db_type": "mysql", "is_active": True, "attributes": {"host": "%"}},
+        {"username": "user_a", "db_type": "mysql", "is_active": True},
+        {"username": "user_c", "db_type": "mysql", "is_active": True},
     ]
 
     summary, active_accounts = manager.synchronize(instance, stage_three_remote)
