@@ -3,21 +3,20 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v1.2.0-blue.svg)](CHANGELOG.md#120---2025-10-31)
+[![Version](https://img.shields.io/badge/Version-v1.2.1-blue.svg)](CHANGELOG.md#121---2025-11-05)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 
 > 鲸落是一套面向 DBA 团队的数据库资源管理平台，围绕实例、账户、容量与任务调度等场景提供统一的管理与审计能力。
 
 ---
 
-## 🚀 1.2.0 焦点
+## 🚀 1.2.1 焦点
 
-- **聚合服务重构**：`DatabaseSizeAggregationService` 更名为 `AggregationService`，聚合入口职责更加清晰。
-- **同步会话增强**：新增 `scope`（instance/database）标记，接口回调与定时任务保持一致，解决手动聚合会话卡住的问题。
-- **容量统计体验升级**：前端改用自然周期（周日/月末/季末），实例与数据库页面的“统计当前周期”均按真实顺序展示进度。
-- **版本与文档更新**：README、部署脚本、数据库初始化脚本、Nginx 页脚等全局版本号统一至 v1.2.0。
+- **重构核心服务**：账户同步、权限差异与历史日志逻辑整体梳理，`type_specific` 字段结构统一，摘要信息更清晰。
+- **系统信息一致化**：所有页脚、API 与脚本中的版本号同步更新，About 页面新增核心服务重构说明。
+- **文档同步更新**：新增 `permissions_type_specific` 重构说明，刷新部署手册、架构文档版本标识。
 
-完整更新详情见 [CHANGELOG.md](CHANGELOG.md#120---2025-10-31)。
+完整更新详情见 [CHANGELOG.md](CHANGELOG.md#121---2025-11-05)。
 
 ---
 
@@ -81,4 +80,3 @@ make dev start-flask
 ## 📄 许可证
 
 本项目基于 [MIT License](LICENSE) 发布。欢迎在遵守许可证的前提下使用并衍生。
-
