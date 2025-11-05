@@ -52,6 +52,10 @@ class InventoryManager:
             if raw_name is None:
                 continue
 
+            if item.get("is_system"):
+                # 系统/模板库不纳入库存同步，避免后续容量采集中产生缺失警告
+                continue
+
             name = str(raw_name).strip()
             if not name:
                 continue
