@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from app import db
 from app.utils.time_utils import time_utils
-from app.utils.version_parser import DatabaseVersionParser
 
 if TYPE_CHECKING:
     from app.models.tag import Tag
@@ -111,52 +110,10 @@ class Instance(db.Model):
         # 标签将在创建后通过关系添加
 
     def test_connection(self) -> dict:
-        """
-        测试数据库连接
+        """调用统一的连接测试服务"""
+        from app.services.connection_adapters.connection_test_service import connection_test_service
 
-        Returns:
-            dict: 连接测试结果
-        """
-        try:
-            from app.services.connection_adapters.connection_test_service import connection_test_service
-            # 使用连接测试服务
-            result = connection_test_service.test_connection(self)
-
-            # 无论连接成功还是失败，都更新最后连接时间
-            self.last_connected = time_utils.now()
-
-            # 如果连接成功，解析版本信息
-            if result.get("success") and result.get("version"):
-                version_info = result["version"]
-                parsed = DatabaseVersionParser.parse_version(self.db_type.lower(), version_info)
-
-                # 更新实例的版本信息
-                self.database_version = parsed["original"]
-                self.main_version = parsed["main_version"]
-                self.detailed_version = parsed["detailed_version"]
-
-                # 更新返回结果中的版本信息
-                result["version"] = DatabaseVersionParser.format_version_display(self.db_type.lower(), version_info)
-                result["main_version"] = parsed["main_version"]
-                result["detailed_version"] = parsed["detailed_version"]
-
-            # 保存到数据库
-            db.session.commit()
-
-            return result
-
-        except Exception as e:
-            # 即使出现异常，也尝试更新最后连接时间
-            try:
-                self.last_connected = time_utils.now()
-                db.session.commit()
-            except Exception as update_error:
-                # 记录更新时间错误，但不影响连接测试结果
-                from app.utils.structlog_config import get_system_logger
-
-                get_system_logger().warning("更新时间失败: %s", update_error)
-
-            return {"status": "error", "message": f"连接测试失败: {str(e)}"}
+        return connection_test_service.test_connection(self)
 
     def to_dict(self, *, include_password: bool = False) -> dict:
         """

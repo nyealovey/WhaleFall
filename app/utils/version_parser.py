@@ -6,6 +6,8 @@
 
 import re
 
+from app.constants import DatabaseType
+
 
 class DatabaseVersionParser:
     """数据库版本解析器"""
