@@ -35,6 +35,10 @@ database_filters:
 
   oracle:
     description: "Oracle 默认过滤"
+    exclude_databases:
+      - SYSTEM
+      - SYSAUX
+      - USERS
     exclude_patterns:
       - "SYS%"
       - "SYSTEM%"
