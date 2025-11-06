@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // 页面加载完成，等待用户手动测试连接
     // 默认隐藏已删除账户（复选框未勾选状态）
     const checkbox = document.getElementById('showDeletedAccounts');
-    if (checkbox && !checkbox.checked) {
+    if (checkbox) {
+        checkbox.checked = false;
         toggleDeletedAccounts();
     }
 });
