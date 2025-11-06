@@ -52,8 +52,9 @@ class InventoryManager:
             if raw_name is None:
                 continue
 
-            if item.get("is_system"):
-                # 系统/模板库不纳入库存同步，避免后续容量采集中产生缺失警告
+            is_system = bool(item.get("is_system"))
+            if is_system and (instance.db_type or "").lower() != "mysql":
+                # 非 MySQL 保持跳过系统库；MySQL 根据需求纳入同步
                 continue
 
             name = str(raw_name).strip()
