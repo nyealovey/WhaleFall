@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Iterable, List
 
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app import db
 from app.models.database_size_stat import DatabaseSizeStat
@@ -29,44 +30,92 @@ class CapacityPersistence:
         if not rows:
             return 0
 
-        saved = 0
+        current_utc = time_utils.now()
+        records: list[dict] = []
+
         for item in rows:
             try:
-                existing = DatabaseSizeStat.query.filter_by(
-                    instance_id=instance.id,
-                    database_name=item["database_name"],
-                    collected_date=item["collected_date"],
-                ).first()
-
-                if existing:
-                    existing.size_mb = item["size_mb"]
-                    existing.data_size_mb = item["data_size_mb"]
-                    existing.log_size_mb = item["log_size_mb"]
-                    existing.collected_at = item["collected_at"]
-                    existing.updated_at = item["collected_at"]
-                else:
-                    new_stat = DatabaseSizeStat(
-                        instance_id=instance.id,
-                        database_name=item["database_name"],
-                        size_mb=item["size_mb"],
-                        data_size_mb=item["data_size_mb"],
-                        log_size_mb=item["log_size_mb"],
-                        collected_date=item["collected_date"],
-                        collected_at=item["collected_at"],
-                        updated_at=item["collected_at"],
-                        is_deleted=False,
-                    )
-                    db.session.add(new_stat)
-
-                saved += 1
-            except Exception as exc:  # noqa: BLE001
+                record = {
+                    "instance_id": instance.id,
+                    "database_name": item["database_name"],
+                    "size_mb": item["size_mb"],
+                    "data_size_mb": item.get("data_size_mb"),
+                    "log_size_mb": item.get("log_size_mb"),
+                    "collected_date": item["collected_date"],
+                    "collected_at": item["collected_at"],
+                    "is_deleted": False,
+                    "created_at": current_utc,
+                    "updated_at": current_utc,
+                }
+            except KeyError as exc:  # 缺少关键字段直接跳过
                 self.logger.error(
-                    "save_database_stat_failed",
+                    "save_database_stat_invalid_payload",
                     instance=instance.name,
-                    database=item.get("database_name"),
+                    payload=item,
+                    missing_field=str(exc),
+                )
+                continue
+
+            records.append(record)
+
+        if not records:
+            self.logger.warning(
+                "skip_database_stats_upsert_no_valid_rows",
+                instance=instance.name,
+            )
+            return 0
+
+        saved = len(records)
+
+        dialect_name = db.session.bind.dialect.name if db.session.bind else ""
+
+        if dialect_name == "postgresql":
+            insert_stmt = pg_insert(DatabaseSizeStat).values(records)
+            upsert_stmt = insert_stmt.on_conflict_do_update(
+                index_elements=[
+                    DatabaseSizeStat.instance_id,
+                    DatabaseSizeStat.database_name,
+                    DatabaseSizeStat.collected_date,
+                ],
+                set={
+                    "size_mb": insert_stmt.excluded.size_mb,
+                    "data_size_mb": insert_stmt.excluded.data_size_mb,
+                    "log_size_mb": insert_stmt.excluded.log_size_mb,
+                    "collected_at": insert_stmt.excluded.collected_at,
+                    "is_deleted": False,
+                    "updated_at": current_utc,
+                },
+            )
+
+            try:
+                db.session.execute(upsert_stmt)
+            except SQLAlchemyError as exc:
+                db.session.rollback()
+                self.logger.error(
+                    "save_database_stats_upsert_failed",
+                    instance=instance.name,
                     error=str(exc),
                     exc_info=True,
                 )
+                raise
+        else:
+            # SQLite 等非 PostgreSQL 方言回退为逐条处理，兼容单元测试
+            for record in records:
+                existing = DatabaseSizeStat.query.filter_by(
+                    instance_id=record["instance_id"],
+                    database_name=record["database_name"],
+                    collected_date=record["collected_date"],
+                ).first()
+
+                if existing:
+                    existing.size_mb = record["size_mb"]
+                    existing.data_size_mb = record["data_size_mb"]
+                    existing.log_size_mb = record["log_size_mb"]
+                    existing.collected_at = record["collected_at"]
+                    existing.updated_at = record["updated_at"]
+                    existing.is_deleted = False
+                else:
+                    db.session.add(DatabaseSizeStat(**record))
 
         try:
             db.session.commit()
