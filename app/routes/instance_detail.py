@@ -17,6 +17,7 @@ from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance_database import InstanceDatabase
 from app.constants.database_types import DatabaseType
 from app.models.credential import Credential
+from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.account_sync.account_query_service import get_accounts_by_instance
