@@ -536,7 +536,10 @@ class AccountPermissionManager:
         if isinstance(value, (list, tuple, set)):
             return "、".join(str(item) for item in value)
         if isinstance(value, dict):
-            return "; ".join(f"{k}:{AccountPermissionManager._repr_value(v)}" for k, v in value.items())
+            ordered_items = sorted(value.items(), key=lambda item: str(item[0]))
+            return "; ".join(
+                f"{key}:{AccountPermissionManager._repr_value(val)}" for key, val in ordered_items
+            )
         return str(value)
 
     @staticmethod
