@@ -16,10 +16,10 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
-common_api_bp = Blueprint('common_api', __name__)
+common_bp = Blueprint('common', __name__)
 
 
-@common_api_bp.route('/api/instances-options', methods=['GET'])
+@common_bp.route('/api/instances-options', methods=['GET'])
 @login_required
 @view_required
 def get_instance_options() -> Response:
@@ -67,15 +67,15 @@ def get_instance_options() -> Response:
             for instance in instances
         ]
 
-        log_info("加载实例选项成功", module="common_api", count=len(options), db_type=db_type)
+        log_info("加载实例选项成功", module="common", count=len(options), db_type=db_type)
         return jsonify_unified_success(data={'instances': options}, message="实例选项获取成功")
 
     except Exception as exc:
-        log_error("加载实例选项失败", module="common_api", error=str(exc))
+        log_error("加载实例选项失败", module="common", error=str(exc))
         raise SystemError("加载实例选项失败") from exc
 
 
-@common_api_bp.route('/api/databases-options', methods=['GET'])
+@common_bp.route('/api/databases-options', methods=['GET'])
 @login_required
 @view_required
 def get_database_options() -> Response:
@@ -124,7 +124,7 @@ def get_database_options() -> Response:
     except Exception as exc:
         log_error(
             "获取实例数据库列表失败",
-            module="common_api",
+            module="common",
             instance_id=instance_id,
             error=str(exc),
         )
@@ -151,14 +151,14 @@ def get_database_options() -> Response:
 
     log_info(
         "加载数据库选项成功",
-        module="common_api",
+        module="common",
         instance_id=instance_id,
         count=len(data),
     )
     return jsonify_unified_success(data=payload, message="数据库选项获取成功")
 
 
-@common_api_bp.route('/api/dbtypes-options', methods=['GET'])
+@common_bp.route('/api/dbtypes-options', methods=['GET'])
 @login_required
 @view_required
 def get_database_type_options() -> Response:
@@ -170,8 +170,8 @@ def get_database_type_options() -> Response:
     """
     try:
         options = DatabaseTypeService.get_database_types_for_form()
-        log_info("加载数据库类型选项成功", module="common_api", count=len(options))
+        log_info("加载数据库类型选项成功", module="common", count=len(options))
         return jsonify_unified_success(data={"options": options}, message="数据库类型选项获取成功")
     except Exception as exc:
-        log_error("加载数据库类型选项失败", module="common_api", error=str(exc))
+        log_error("加载数据库类型选项失败", module="common", error=str(exc))
         raise SystemError("加载数据库类型选项失败") from exc

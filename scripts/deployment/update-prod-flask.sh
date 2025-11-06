@@ -375,11 +375,11 @@ wait_for_service_ready() {
     
     if curl --noproxy localhost -f http://localhost:5001/health/api/health > /dev/null 2>&1; then
         log_success "端口5001服务已就绪"
-        return 0
     else
         log_warning "端口5001服务检查失败，但继续执行"
         log_info "端口5001状态码: $(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/health/api/health 2>/dev/null)"
     fi
+
 }
 
 # 刷新Nginx缓存（Nginx和Flask在同一容器）

@@ -208,7 +208,7 @@ function syncCapacity(instanceId, instanceName) {
 function viewInstanceAccountPermissions(accountId) {
     // 调用全局的 viewAccountPermissions 函数，指定instances页面的API URL
     window.viewAccountPermissions(accountId, {
-        apiUrl: `/instances/api/${getInstanceId()}/accounts/${accountId}/permissions`
+        apiUrl: `/instances/detail/api/${getInstanceId()}/accounts/${accountId}/permissions`
     });
 }
 
@@ -338,7 +338,7 @@ function loadDatabaseSizes() {
         </div>
     `;
 
-    http.get(`/database_aggr/api/instances/${instanceId}/database-sizes?latest_only=true`)
+    http.get(`/instances/api/databases/${instanceId}/sizes?latest_only=true`)
         .then(data => {
             const payload = data && typeof data === 'object'
                 ? (data.data && typeof data.data === 'object' ? data.data : data)

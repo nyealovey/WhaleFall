@@ -355,17 +355,18 @@ def register_blueprints(app: Flask) -> None:
     # 导入蓝图
     from app.routes.account_classification import account_classification_bp
     from app.routes.account import account_bp
+    from app.routes.account_stat import account_stat_bp
     from app.routes.account_sync import account_sync_bp
     from app.routes.auth import auth_bp
     from app.routes.cache import cache_bp
-    from app.routes.common_api import common_api_bp
+    from app.routes.common import common_bp
     from app.routes.credentials import credentials_bp
     from app.routes.dashboard import dashboard_bp
-    from app.routes.database_types import database_types_bp
     from app.routes.capacity import capacity_bp
     from app.routes.aggregations import aggregations_bp
     from app.routes.health import health_bp
     from app.routes.instance import instance_bp
+    from app.routes.instance_detail import instance_detail_bp
     from app.routes.tags import tags_bp
     from app.routes.tags_batch import tags_batch_bp
     from app.routes.files import files_bp
@@ -406,20 +407,21 @@ def register_blueprints(app: Flask) -> None:
 
     # 注册所有蓝图到Flask应用
     app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(common_api_bp)  # 通用 API（无前缀）
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(common_bp, url_prefix='/common')
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
     app.register_blueprint(instance_bp, url_prefix='/instances')
+    app.register_blueprint(instance_detail_bp, url_prefix='/instances/detail')
     app.register_blueprint(credentials_bp, url_prefix='/credentials')
     app.register_blueprint(account_classification_bp, url_prefix='/account_classification')
     app.register_blueprint(account_bp, url_prefix='/account')
+    app.register_blueprint(account_stat_bp, url_prefix='/account_stat')
     app.register_blueprint(account_sync_bp, url_prefix='/account_sync')
     app.register_blueprint(tags_bp, url_prefix='/tags')
     app.register_blueprint(tags_batch_bp, url_prefix='/tags')
     app.register_blueprint(logs_bp, url_prefix='/logs')
     app.register_blueprint(health_bp, url_prefix='/health')
     app.register_blueprint(cache_bp, url_prefix='/cache')
-    app.register_blueprint(database_types_bp, url_prefix='/database_types')
     app.register_blueprint(capacity_bp, url_prefix='/capacity')
     app.register_blueprint(aggregations_bp, url_prefix='/aggregations')
     app.register_blueprint(partition_bp, url_prefix='/partition')
@@ -439,8 +441,8 @@ def register_blueprints(app: Flask) -> None:
     except Exception as e:
         # 调度器初始化失败不影响应用启动
         from app.utils.structlog_config import get_system_logger
-        logger = get_system_logger()
-        logger.error("调度器初始化失败，应用将继续启动: %s", str(e))
+        scheduler_logger = get_system_logger()
+        scheduler_logger.error("调度器初始化失败，应用将继续启动: %s", str(e))
 
 
 def configure_logging(app: Flask) -> None:

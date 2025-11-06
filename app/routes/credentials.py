@@ -436,51 +436,6 @@ def edit(credential_id: int) -> "str | Response":
 
     return render_template("credentials/edit.html", credential=credential)
 
-
-@credentials_bp.route("/api/credentials/<int:credential_id>/toggle", methods=["POST"])
-@login_required
-@update_required
-@require_csrf
-def toggle(credential_id: int) -> "Response":
-    """启用/禁用凭据"""
-    credential = _get_credential_or_error(credential_id)
-    payload = _parse_payload()
-
-    is_active = _coerce_bool(payload.get("is_active"), default=credential.is_active)
-    credential.is_active = is_active
-
-    try:
-        try:
-            db.session.commit()
-        except Exception as exc:
-            _handle_db_exception("切换凭据状态", exc)
-    except DatabaseError as exc:
-        if request.is_json:
-            raise
-        flash(exc.message, FlashCategory.ERROR)
-        return redirect(url_for("credentials.index"))
-
-    log_info(
-        "切换凭据状态",
-        module="credentials",
-        user_id=current_user.id,
-        credential_id=credential.id,
-        credential_name=credential.name,
-        is_active=is_active,
-    )
-
-    message = "凭据启用成功" if is_active else "凭据禁用成功"
-
-    if request.is_json:
-        return jsonify_unified_success(
-            data={"credential": credential.to_dict(), "is_active": is_active},
-            message=message,
-        )
-
-    flash(message, FlashCategory.SUCCESS)
-    return redirect(url_for("credentials.index"))
-
-
 @credentials_bp.route("/api/credentials/<int:credential_id>/delete", methods=["POST"])
 @login_required
 @delete_required

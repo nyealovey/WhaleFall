@@ -29,6 +29,8 @@ from app.services.account_sync.account_query_service import get_accounts_by_inst
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
+from app.routes.instance_detail import instance_detail_bp
+
 # 创建蓝图
 instance_bp = Blueprint("instance", __name__)
 
@@ -858,13 +860,6 @@ def api_get_accounts(instance_id: int) -> Response:
         )
         raise SystemError("获取实例账户数据失败") from exc
 
-
-@instance_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
-@login_required
-@view_required
-def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
-    """获取账户权限详情"""
-    instance = Instance.query.get_or_404(instance_id)
 
     from app.models.account_permission import AccountPermission
 

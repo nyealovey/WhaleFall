@@ -86,7 +86,7 @@ start_flask_application() {
     
     # 启动Flask应用
     docker compose -f docker-compose.prod.yml up -d whalefall
-    
+
     log_success "Flask应用启动完成"
 }
 
