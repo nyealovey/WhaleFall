@@ -2,17 +2,18 @@
 实例详情相关接口
 """
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Dict, Optional
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import text
+from sqlalchemy import text, or_
 
 from app import db
 from app.errors import ConflictError, SystemError, ValidationError
 from app.constants import TaskStatus, FlashCategory, HttpMethod
 from app.models.database_size_stat import DatabaseSizeStat
+from app.models.instance_database import InstanceDatabase
 from app.constants.database_types import DatabaseType
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -431,13 +432,14 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int) -> Response:
-    """获取指定实例的数据库大小历史数据"""
+    """获取指定实例的数据库大小数据（最新或历史）"""
     Instance.query.get_or_404(instance_id)
 
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
     database_name = request.args.get("database_name")
     latest_only = request.args.get("latest_only", "false").lower() == "true"
+    include_inactive = request.args.get("include_inactive", "false").lower() == "true"
 
     try:
         limit = int(request.args.get("limit", 100))
@@ -445,32 +447,40 @@ def get_instance_database_sizes(instance_id: int) -> Response:
     except ValueError as exc:
         raise ValidationError("limit/offset 必须为整数") from exc
 
-    start_date_obj: Optional[date] = None
-    if start_date:
+    def _parse_date(value: Optional[str], field: str) -> Optional[date]:
+        if not value:
+            return None
         try:
-            parsed_dt = time_utils.to_china(start_date + "T00:00:00")
-            start_date_obj = parsed_dt.date() if parsed_dt else None
-        except Exception as exc:
-            raise ValidationError("start_date 格式错误，应为 YYYY-MM-DD") from exc
+            parsed_dt = time_utils.to_china(value + "T00:00:00")
+            return parsed_dt.date() if parsed_dt else None
+        except Exception as exc:  # noqa: BLE001
+            raise ValidationError(f"{field} 格式错误，应为 YYYY-MM-DD") from exc
 
-    end_date_obj: Optional[date] = None
-    if end_date:
-        try:
-            parsed_dt = time_utils.to_china(end_date + "T00:00:00")
-            end_date_obj = parsed_dt.date() if parsed_dt else None
-        except Exception as exc:
-            raise ValidationError("end_date 格式错误，应为 YYYY-MM-DD") from exc
+    start_date_obj = _parse_date(start_date, "start_date")
+    end_date_obj = _parse_date(end_date, "end_date")
 
     try:
         if latest_only:
             stats_payload = _fetch_latest_database_sizes(
-                instance_id, database_name, start_date_obj, end_date_obj, limit, offset
+                instance_id=instance_id,
+                database_name=database_name,
+                start_date=start_date_obj,
+                end_date=end_date_obj,
+                include_inactive=include_inactive,
+                limit=limit,
+                offset=offset,
             )
         else:
             stats_payload = _fetch_historical_database_sizes(
-                instance_id, database_name, start_date_obj, end_date_obj, limit, offset
+                instance_id=instance_id,
+                database_name=database_name,
+                start_date=start_date_obj,
+                end_date=end_date_obj,
+                include_inactive=include_inactive,
+                limit=limit,
+                offset=offset,
             )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log_error(
             "获取实例数据库大小历史数据失败",
             module="database_aggr",
@@ -519,144 +529,32 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
 
     return jsonify_unified_success(data={"permissions": permissions}, message="获取账户权限详情成功")
 
-def get_instance_database_sizes(instance_id: int) -> Response:
-    """获取指定实例的数据库大小历史数据"""
-    Instance.query.get_or_404(instance_id)
-
-    start_date = request.args.get("start_date")
-    end_date = request.args.get("end_date")
-    database_name = request.args.get("database_name")
-    latest_only = request.args.get("latest_only", "false").lower() == "true"
-
-    try:
-        limit = int(request.args.get("limit", 100))
-        offset = int(request.args.get("offset", 0))
-    except ValueError as exc:
-        raise ValidationError("limit/offset 必须为整数") from exc
-
-    start_date_obj: Optional[date] = None
-    if start_date:
-        try:
-            parsed_dt = time_utils.to_china(start_date + "T00:00:00")
-            start_date_obj = parsed_dt.date() if parsed_dt else None
-        except Exception as exc:
-            raise ValidationError("start_date 格式错误，应为 YYYY-MM-DD") from exc
-
-    end_date_obj: Optional[date] = None
-    if end_date:
-        try:
-            parsed_dt = time_utils.to_china(end_date + "T00:00:00")
-            end_date_obj = parsed_dt.date() if parsed_dt else None
-        except Exception as exc:
-            raise ValidationError("end_date 格式错误，应为 YYYY-MM-DD") from exc
-
-    try:
-        if latest_only:
-            stats_payload = _fetch_latest_database_sizes(
-                instance_id, database_name, start_date_obj, end_date_obj, limit, offset
-            )
-        else:
-            stats_payload = _fetch_historical_database_sizes(
-                instance_id, database_name, start_date_obj, end_date_obj, limit, offset
-            )
-    except Exception as exc:
-        log_error(
-            "获取实例数据库大小历史数据失败",
-            module="database_aggr",
-            instance_id=instance_id,
-            error=str(exc),
-        )
-        raise SystemError("获取数据库大小历史数据失败") from exc
-
-    return jsonify_unified_success(data=stats_payload, message="数据库大小数据获取成功")
-
-
 def _fetch_latest_database_sizes(
     instance_id: int,
     database_name: Optional[str],
     start_date: Optional[date],
     end_date: Optional[date],
     limit: int,
-    offset: int,
-) -> Dict[str, Any]:
-    sql_query = text(
-        """
-        SELECT * FROM (
-            SELECT *,
-                   ROW_NUMBER() OVER (
-                       PARTITION BY database_name
-                       ORDER BY collected_date DESC
-                   ) AS rn
-            FROM database_size_stats
-            WHERE instance_id = :instance_id
-        ) ranked
-        WHERE rn = 1
-        """
-    )
-
-    result = db.session.execute(sql_query, {"instance_id": instance_id})
-    stats: list[DatabaseSizeStat] = []
-    for row in result:
-        stat = DatabaseSizeStat()
-        stat.id = row.id
-        stat.instance_id = row.instance_id
-        stat.database_name = row.database_name
-        stat.size_mb = row.size_mb
-        stat.data_size_mb = row.data_size_mb
-        stat.log_size_mb = row.log_size_mb
-        stat.collected_date = row.collected_date
-        stat.collected_at = row.collected_at
-        stats.append(stat)
-
-    if database_name:
-        stats = [stat for stat in stats if database_name.lower() in stat.database_name.lower()]
-
-    if start_date:
-        stats = [stat for stat in stats if stat.collected_date >= start_date]
-
-    if end_date:
-        stats = [stat for stat in stats if stat.collected_date <= end_date]
-
-    stats.sort(key=lambda x: x.collected_date, reverse=True)
-
-    total_size_mb = sum(stat.size_mb or 0 for stat in stats)
-    database_count = len(stats)
-    total_count = len(stats)
-    paged_stats = stats[offset : offset + limit]
-
-    payload = {
-        "total": total_count,
-        "limit": limit,
-        "offset": offset,
-        "database_count": database_count,
-        "total_size_mb": total_size_mb,
-        "databases": [
-            {
-                "id": stat.id,
-                "database_name": stat.database_name,
-                "size_mb": stat.size_mb,
-                "data_size_mb": stat.data_size_mb,
-                "log_size_mb": stat.log_size_mb,
-                "collected_date": stat.collected_date.isoformat() if stat.collected_date else None,
-                "collected_at": stat.collected_at.isoformat() if stat.collected_at else None,
-                "is_active": True,
-            }
-            for stat in paged_stats
-        ],
-    }
-
-    return payload
-
-
-def _fetch_historical_database_sizes(
+def _build_capacity_query(
     instance_id: int,
     database_name: Optional[str],
     start_date: Optional[date],
     end_date: Optional[date],
-    limit: int,
-    offset: int,
-) -> Dict[str, Any]:
-    query = DatabaseSizeStat.query.filter(DatabaseSizeStat.instance_id == instance_id)
+):
+    query = (
+        db.session.query(
+            DatabaseSizeStat,
+            InstanceDatabase.is_active,
+            InstanceDatabase.deleted_at,
+            InstanceDatabase.last_seen_date,
+        )
+        .outerjoin(
+            InstanceDatabase,
+            (DatabaseSizeStat.instance_id == InstanceDatabase.instance_id)
+            & (DatabaseSizeStat.database_name == InstanceDatabase.database_name),
+        )
+        .filter(DatabaseSizeStat.instance_id == instance_id)
+    )
 
     if database_name:
         query = query.filter(DatabaseSizeStat.database_name.ilike(f"%{database_name}%"))
@@ -667,10 +565,109 @@ def _fetch_historical_database_sizes(
     if end_date:
         query = query.filter(DatabaseSizeStat.collected_date <= end_date)
 
+    return query
+
+
+def _normalize_active_flag(flag: Optional[bool]) -> bool:
+    if flag is None:
+        return True
+    return bool(flag)
+
+
+def _serialize_capacity_entry(
+    stat: DatabaseSizeStat,
+    is_active: bool,
+    deleted_at: Optional[datetime],
+    last_seen_date: Optional[date],
+) -> dict[str, Any]:
+    return {
+        "id": stat.id,
+        "database_name": stat.database_name,
+        "size_mb": stat.size_mb,
+        "data_size_mb": stat.data_size_mb,
+        "log_size_mb": stat.log_size_mb,
+        "collected_date": stat.collected_date.isoformat() if stat.collected_date else None,
+        "collected_at": stat.collected_at.isoformat() if stat.collected_at else None,
+        "is_active": is_active,
+        "deleted_at": deleted_at.isoformat() if deleted_at else None,
+        "last_seen_date": last_seen_date.isoformat() if last_seen_date else None,
+    }
+
+
+def _fetch_latest_database_sizes(
+    instance_id: int,
+    database_name: Optional[str],
+    start_date: Optional[date],
+    end_date: Optional[date],
+    include_inactive: bool,
+    limit: int,
+    offset: int,
+) -> Dict[str, Any]:
+    query = _build_capacity_query(instance_id, database_name, start_date, end_date)
+
+    records = (
+        query
+        .order_by(DatabaseSizeStat.database_name.asc(), DatabaseSizeStat.collected_date.desc())
+        .all()
+    )
+
+    latest: list[tuple[DatabaseSizeStat, bool, Optional[datetime], Optional[date]]] = []
+    seen: set[str] = set()
+
+    for stat, is_active_flag, deleted_at, last_seen in records:
+        key = stat.database_name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized_active = _normalize_active_flag(is_active_flag)
+        if not include_inactive and not normalized_active:
+            continue
+        latest.append((stat, normalized_active, deleted_at, last_seen))
+
+    total = len(latest)
+    filtered_count = sum(1 for _, active, _, _ in latest if not active)
+    active_total_size = sum((stat.size_mb or 0) for stat, active, _, _ in latest if active)
+
+    paged = latest[offset : offset + limit]
+
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "active_count": total - filtered_count,
+        "filtered_count": filtered_count,
+        "total_size_mb": active_total_size,
+        "databases": [
+            _serialize_capacity_entry(stat, active, deleted_at, last_seen)
+            for stat, active, deleted_at, last_seen in paged
+        ],
+    }
+
+
+def _fetch_historical_database_sizes(
+    instance_id: int,
+    database_name: Optional[str],
+    start_date: Optional[date],
+    end_date: Optional[date],
+    include_inactive: bool,
+    limit: int,
+    offset: int,
+) -> Dict[str, Any]:
+    query = _build_capacity_query(instance_id, database_name, start_date, end_date)
+
+    if not include_inactive:
+        query = query.filter(
+            or_(
+                InstanceDatabase.is_active.is_(True),
+                InstanceDatabase.is_active.is_(None),
+            )
+        )
+
     total = query.count()
 
-    stats = (
-        query.order_by(DatabaseSizeStat.collected_date.desc())
+    rows = (
+        query
+        .order_by(DatabaseSizeStat.collected_date.desc(), DatabaseSizeStat.database_name.asc())
         .offset(offset)
         .limit(limit)
         .all()
@@ -681,15 +678,12 @@ def _fetch_historical_database_sizes(
         "limit": limit,
         "offset": offset,
         "databases": [
-            {
-                "id": stat.id,
-                "database_name": stat.database_name,
-                "size_mb": stat.size_mb,
-                "data_size_mb": stat.data_size_mb,
-                "log_size_mb": stat.log_size_mb,
-                "collected_date": stat.collected_date.isoformat() if stat.collected_date else None,
-                "collected_at": stat.collected_at.isoformat() if stat.collected_at else None,
-            }
-            for stat in stats
+            _serialize_capacity_entry(
+                stat,
+                _normalize_active_flag(is_active_flag),
+                deleted_at,
+                last_seen,
+            )
+            for stat, is_active_flag, deleted_at, last_seen in rows
         ],
     }
