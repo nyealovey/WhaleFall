@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import re
 import time
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Pattern, Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
@@ -147,7 +148,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     def _fetch_logins(self, connection: Any) -> List[Dict[str, Any]]:
         filter_rules = self.filter_manager.get_filter_rules("sqlserver")
         exclude_users = filter_rules.get("exclude_users", [])
-        exclude_patterns = filter_rules.get("exclude_patterns", [])
+        exclude_patterns = self._compile_like_patterns(filter_rules.get("exclude_patterns"))
 
         sql = """
             SELECT
@@ -168,7 +169,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         results: List[Dict[str, Any]] = []
         for row in rows:
             name = row[0]
-            if any(pattern and pattern in name for pattern in exclude_patterns):
+            if any(pattern.match(name) for pattern in exclude_patterns):
                 continue
             results.append(
                 {
@@ -179,6 +180,26 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 }
             )
         return results
+
+    @staticmethod
+    def _compile_like_patterns(patterns: Optional[Iterable[str]]) -> List[Pattern[str]]:
+        compiled: List[Pattern[str]] = []
+        if not patterns:
+            return compiled
+        for pattern in patterns:
+            if not pattern:
+                continue
+            regex_parts = ["^"]
+            for ch in pattern:
+                if ch == "%":
+                    regex_parts.append(".*")
+                elif ch == "_":
+                    regex_parts.append(".")
+                else:
+                    regex_parts.append(re.escape(ch))
+            regex_parts.append("$")
+            compiled.append(re.compile("".join(regex_parts), re.IGNORECASE))
+        return compiled
 
     def _get_login_permissions(
         self,
