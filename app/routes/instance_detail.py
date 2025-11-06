@@ -540,7 +540,20 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         permissions["oracle_privileges"] = account.oracle_privileges or []
         permissions["oracle_roles"] = account.oracle_roles or []
 
-    return jsonify_unified_success(data={"permissions": permissions}, message="获取账户权限详情成功")
+    account_info = {
+        "id": account.id,
+        "instance_id": instance_id,
+        "username": account.username,
+        "db_type": instance.db_type.lower() if instance and instance.db_type else "",
+        "is_superuser": account.is_superuser,
+        "is_locked": account.is_locked_display,
+        "last_sync_time": account.last_sync_time.isoformat() if account.last_sync_time else None,
+    }
+
+    return jsonify_unified_success(
+        data={"permissions": permissions, "account": account_info},
+        message="获取账户权限详情成功",
+    )
 def _build_capacity_query(
     instance_id: int,
     database_name: Optional[str],
