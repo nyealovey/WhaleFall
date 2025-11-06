@@ -191,7 +191,7 @@
                     <button type="button" class="btn btn-outline-primary" onclick="syncCapacity({{ instance.id }}, '{{ instance.name }}')">
                         <i class="fas fa-sync-alt me-2"></i>同步容量
                     </button>
-                    <a href="{{ url_for('instance.edit', instance_id=instance.id) }}" class="btn btn-outline-warning">
+                    <a href="{{ url_for('instance_detail.edit', instance_id=instance.id) }}" class="btn btn-outline-warning">
                         <i class="fas fa-edit me-2"></i>编辑实例
                     </a>
                     <a href="{{ url_for('instance.index') }}" class="btn btn-outline-secondary">
