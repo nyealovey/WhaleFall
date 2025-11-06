@@ -308,7 +308,7 @@
 | `/instances/api/<int:instance_id>/accounts/<int:account_id>/change-history` | GET | `get_account_change_history` | 获取账户变更历史 |
 | `/instances/api/<int:instance_id>/edit` | POST | `edit_api` | 编辑实例API |
 | `/instances/api/databases/<int:instance_id>/sizes` | GET | `get_instance_database_sizes` | 获取指定实例的数据库大小历史数据 |
-| `/instances/detail/api/<int:instance_id>/accounts/<int:account_id>/permissions` | GET | `get_account_permissions` | 获取账户权限详情 |
+| `/instances/api/<int:instance_id>/accounts/<int:account_id>/permissions` | GET | `get_account_permissions` | 获取账户权限详情 |
 
 
 ---

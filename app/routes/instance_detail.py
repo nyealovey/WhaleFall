@@ -4,6 +4,7 @@
 
 from datetime import date, datetime
 from typing import Any, Dict, Optional
+from types import SimpleNamespace
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -598,11 +599,10 @@ def _fetch_latest_database_sizes(
 ) -> Dict[str, Any]:
     query = _build_capacity_query(instance_id, database_name, start_date, end_date)
 
-    records = (
-        query
-        .order_by(DatabaseSizeStat.database_name.asc(), DatabaseSizeStat.collected_date.desc())
-        .all()
-    )
+    records = query.order_by(
+        DatabaseSizeStat.database_name.asc(),
+        DatabaseSizeStat.collected_date.desc(),
+    ).all()
 
     latest: list[tuple[DatabaseSizeStat, bool, Optional[datetime], Optional[date]]] = []
     seen: set[str] = set()
@@ -616,6 +616,37 @@ def _fetch_latest_database_sizes(
         if not include_inactive and not normalized_active:
             continue
         latest.append((stat, normalized_active, deleted_at, last_seen))
+
+    include_placeholder_inactive = include_inactive or not latest
+
+    if include_placeholder_inactive:
+        inactive_query = (
+            InstanceDatabase.query.filter(
+                InstanceDatabase.instance_id == instance_id,
+                InstanceDatabase.is_active.is_(False),
+            )
+        )
+        if database_name:
+            inactive_query = inactive_query.filter(InstanceDatabase.database_name.ilike(f"%{database_name}%"))
+
+        for instance_db in inactive_query:
+            if not instance_db.database_name:
+                continue
+            key = instance_db.database_name.lower()
+            if key in seen:
+                continue
+            placeholder_stat = SimpleNamespace(
+                id=None,
+                instance_id=instance_db.instance_id,
+                database_name=instance_db.database_name,
+                size_mb=0,
+                data_size_mb=None,
+                log_size_mb=None,
+                collected_date=None,
+                collected_at=None,
+            )
+            latest.append((placeholder_stat, False, instance_db.deleted_at, instance_db.last_seen_date))
+            seen.add(key)
 
     total = len(latest)
     filtered_count = sum(1 for _, active, _, _ in latest if not active)
