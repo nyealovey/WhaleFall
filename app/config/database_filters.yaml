@@ -1,0 +1,40 @@
+version: "1.0"
+description: "默认的数据库过滤规则配置"
+
+database_filters:
+  mysql:
+    description: "MySQL 默认过滤"
+    exclude_databases:
+      - information_schema
+      - performance_schema
+      - mysql
+      - sys
+    exclude_patterns:
+      - "tmp_%"
+      - "temp_%"
+      - "#sql%"
+
+  postgresql:
+    description: "PostgreSQL 默认过滤"
+    exclude_databases:
+      - template0
+      - template1
+      - postgres
+    exclude_patterns:
+      - "pg_%"
+
+  sqlserver:
+    description: "SQL Server 默认过滤"
+    exclude_databases:
+      - master
+      - model
+      - msdb
+      - tempdb
+    exclude_patterns:
+      - "ReportServer%"
+
+  oracle:
+    description: "Oracle 默认过滤"
+    exclude_patterns:
+      - "SYS%"
+      - "SYSTEM%"

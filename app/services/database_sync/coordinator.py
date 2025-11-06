@@ -5,6 +5,7 @@ from typing import Iterable, List, Optional, Sequence
 from app import db
 from app.models.instance import Instance
 from app.services.database_sync.adapters import get_capacity_adapter
+from app.services.database_sync.database_filters import database_sync_filter_manager
 from app.services.database_sync.inventory_manager import InventoryManager
 from app.services.database_sync.persistence import CapacityPersistence
 from app.services.connection_adapters.connection_factory import ConnectionFactory
@@ -18,7 +19,7 @@ class CapacitySyncCoordinator:
         self.instance = instance
         self.logger = get_system_logger()
         self._adapter = get_capacity_adapter(instance.db_type)
-        self._inventory_manager = InventoryManager()
+        self._inventory_manager = InventoryManager(filter_manager=database_sync_filter_manager)
         self._persistence = CapacityPersistence()
         self._connection = None
 
@@ -103,8 +104,40 @@ class CapacitySyncCoordinator:
     ) -> List[dict]:
         """采集容量数据。"""
         self._ensure_connection()
-        data = self._adapter.fetch_capacity(self.instance, self._connection, target_databases)
-        return data
+
+        filtered_targets = None
+        if target_databases is not None:
+            allowed, excluded = database_sync_filter_manager.filter_database_names(
+                self.instance, target_databases
+            )
+            if excluded:
+                self.logger.info(
+                    "capacity_skip_filtered_targets",
+                    instance=self.instance.name,
+                    filtered=excluded,
+                )
+            filtered_targets = allowed
+            if not filtered_targets:
+                return []
+
+        data = self._adapter.fetch_capacity(
+            self.instance,
+            self._connection,
+            filtered_targets,
+        )
+
+        filtered_data, excluded = database_sync_filter_manager.filter_capacity_payload(
+            self.instance, data
+        )
+
+        if excluded:
+            self.logger.info(
+                "capacity_skip_filtered_results",
+                instance=self.instance.name,
+                filtered=excluded,
+            )
+
+        return filtered_data
 
     def save_database_stats(self, data: Iterable[dict]) -> int:
         return self._persistence.save_database_stats(self.instance, data)

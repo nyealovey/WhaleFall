@@ -50,19 +50,20 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             )
             return []
 
+        self._assert_permission(connection, instance)
+
         try:
-            self._assert_permission(connection, instance)
             tablespace_stats = self._collect_tablespace_sizes(connection, instance)
-            data = self._build_stats_from_tablespaces(instance, tablespace_stats)
-        except Exception as exc:
-            # 回退到 information_schema
-            self.logger.warning(
+        except Exception as exc:  # pragma: no cover - defensive logging
+            self.logger.error(
                 "mysql_tablespace_collection_failed",
                 instance=instance.name,
                 error=str(exc),
                 exc_info=True,
             )
-            data = self._collect_from_information_schema(connection, instance)
+            raise
+
+        data = self._build_stats_from_tablespaces(instance, tablespace_stats)
 
         if normalized_target is not None:
             filtered = [
@@ -197,58 +198,6 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                 system_database=is_system_db,
             )
 
-        return data
-
-    def _collect_from_information_schema(self, connection, instance) -> List[dict]:
-        query = """
-            SELECT
-                s.SCHEMA_NAME AS database_name,
-                COALESCE(ROUND(SUM(COALESCE(t.data_length, 0) + COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS total_size_mb,
-                COALESCE(ROUND(SUM(COALESCE(t.data_length, 0)) / 1024 / 1024, 2), 0) AS data_size_mb,
-                COALESCE(ROUND(SUM(COALESCE(t.index_length, 0)) / 1024 / 1024, 2), 0) AS index_size_mb
-            FROM
-                information_schema.SCHEMATA s
-            LEFT JOIN
-                information_schema.tables t ON s.SCHEMA_NAME = t.table_schema
-            GROUP BY
-                s.SCHEMA_NAME
-            ORDER BY
-                total_size_mb DESC
-        """
-
-        result = connection.execute_query(query)
-        if not result:
-            error_msg = "MySQL 未查询到任何数据库大小数据"
-            self.logger.error(
-                "mysql_information_schema_empty",
-                instance=instance.name,
-            )
-            raise ValueError(error_msg)
-
-        china_now = time_utils.now_china()
-        data: List[dict] = []
-        for row in result:
-            db_name = row[0]
-            total_size = float(row[1] or 0)
-            data_size = float(row[2] or 0)
-
-            data.append(
-                {
-                    "database_name": db_name,
-                    "size_mb": int(total_size),
-                    "data_size_mb": int(data_size),
-                    "log_size_mb": None,
-                    "collected_date": china_now.date(),
-                    "collected_at": time_utils.now(),
-                    "is_system": db_name in self._SYSTEM_DATABASES,
-                }
-            )
-
-        self.logger.info(
-            "mysql_information_schema_collection_success",
-            instance=instance.name,
-            database_count=len(data),
-        )
         return data
 
     def _build_tablespace_queries(self, instance) -> List[Tuple[str, str]]:
