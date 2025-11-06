@@ -528,13 +528,6 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         permissions["oracle_roles"] = account.oracle_roles or []
 
     return jsonify_unified_success(data={"permissions": permissions}, message="获取账户权限详情成功")
-
-def _fetch_latest_database_sizes(
-    instance_id: int,
-    database_name: Optional[str],
-    start_date: Optional[date],
-    end_date: Optional[date],
-    limit: int,
 def _build_capacity_query(
     instance_id: int,
     database_name: Optional[str],
