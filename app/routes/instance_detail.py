@@ -120,7 +120,18 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
         }
         accounts.append(account_data)
 
-    return render_template("instances/detail.html", instance=instance, accounts=accounts)
+    account_summary = {
+        "active": sum(1 for account in accounts if account.get("is_active")),
+        "deleted": sum(1 for account in accounts if not account.get("is_active")),
+        "superuser": sum(1 for account in accounts if account.get("is_superuser")),
+    }
+
+    return render_template(
+        "instances/detail.html",
+        instance=instance,
+        accounts=accounts,
+        account_summary=account_summary,
+    )
 
 @instance_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
 @login_required
