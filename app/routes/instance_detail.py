@@ -17,8 +17,6 @@ from app.constants.database_types import DatabaseType
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.routes.instance import instance_bp
-
 from app.services.account_sync.account_query_service import get_accounts_by_instance
 from app.utils.data_validator import (
     DataValidator,
@@ -31,7 +29,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
-instance_detail_bp = Blueprint("instance_detail", __name__)
+instance_detail_bp = Blueprint("instance_detail", __name__, url_prefix="/instances")
 
 
 TRUTHY_VALUES = {"1", "true", "on", "yes", "y"}
@@ -72,7 +70,7 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
     return bool(value)
 
 
-@instance_bp.route("/<int:instance_id>")
+@instance_detail_bp.route("/<int:instance_id>")
 @login_required
 @view_required
 def detail(instance_id: int) -> str | Response | tuple[Response, int]:
@@ -121,7 +119,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 
     return render_template("instances/detail.html", instance=instance, accounts=accounts)
 
-@instance_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
+@instance_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
 @login_required
 @view_required
 def get_account_change_history(instance_id: int, account_id: int) -> Response:
@@ -183,7 +181,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
         )
         raise SystemError("获取变更历史失败") from exc
 
-@instance_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
+@instance_detail_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
 @login_required
 @update_required
 @require_csrf
@@ -260,7 +258,7 @@ def edit_api(instance_id: int) -> Response:
         raise SystemError("更新实例失败") from e
 
 
-@instance_bp.route("/<int:instance_id>/edit", methods=["GET", "POST"])
+@instance_detail_bp.route("/<int:instance_id>/edit", methods=["GET", "POST"])
 @login_required
 @update_required
 @require_csrf
@@ -429,7 +427,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
 
 
 
-@instance_bp.route("/api/databases/<int:instance_id>/sizes", methods=["GET"])
+@instance_detail_bp.route("/api/databases/<int:instance_id>/sizes", methods=["GET"])
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int) -> Response:

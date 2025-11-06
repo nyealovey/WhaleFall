@@ -411,7 +411,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(common_bp, url_prefix='/common')
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
     app.register_blueprint(instance_bp, url_prefix='/instances')
-    app.register_blueprint(instance_detail_bp, url_prefix='/instances/detail')
+    app.register_blueprint(instance_detail_bp)
     app.register_blueprint(credentials_bp, url_prefix='/credentials')
     app.register_blueprint(account_classification_bp, url_prefix='/account_classification')
     app.register_blueprint(account_bp, url_prefix='/account')
