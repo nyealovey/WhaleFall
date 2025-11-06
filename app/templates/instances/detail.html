@@ -250,9 +250,9 @@
                     <div class="tab-pane fade" id="accounts-pane" role="tabpanel" aria-labelledby="accounts-tab">
                 <!-- 账户显示控制 -->
                 <div class="row mb-3">
-                    <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="showDeletedAccounts" 
+                    <div class="col-md-6 d-flex align-items-center">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="showDeletedAccounts"
                                    onchange="toggleDeletedAccounts()">
                             <label class="form-check-label" for="showDeletedAccounts">
                                 <i class="fas fa-eye-slash me-1"></i>显示已删除账户
