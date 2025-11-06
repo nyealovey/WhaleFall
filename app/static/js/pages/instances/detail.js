@@ -204,6 +204,65 @@ function viewInstanceAccountPermissions(accountId) {
     });
 }
 
+function escapeHtml(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function renderPrivilegeDiffEntries(diffEntries) {
+    if (!Array.isArray(diffEntries) || diffEntries.length === 0) {
+        return '';
+    }
+
+    const actionLabels = {
+        GRANT: { text: '授权', badge: 'bg-success' },
+        REVOKE: { text: '撤销', badge: 'bg-danger' },
+        ALTER: { text: '更新', badge: 'bg-primary' },
+    };
+
+    let html = '<div class="mt-2"><h6 class="text-muted small mb-1">权限变更</h6><ul class="list-unstyled mb-0">';
+    diffEntries.forEach(entry => {
+        const action = entry?.action || 'UPDATE';
+        const actionInfo = actionLabels[action] || { text: action, badge: 'bg-secondary' };
+        const target = entry?.object || entry?.label || '';
+        const perms =
+            Array.isArray(entry?.permissions) && entry.permissions.length > 0
+                ? entry.permissions.map(escapeHtml).join('、')
+                : escapeHtml(entry?.permissions || '无');
+
+        html += `
+            <li class="mb-1">
+                <span class="badge ${actionInfo.badge} me-2">${actionInfo.text}</span>
+                <span class="text-muted small">${escapeHtml(target)}</span>
+                <div class="text-muted small ps-4">${perms}</div>
+            </li>
+        `;
+    });
+    html += '</ul></div>';
+    return html;
+}
+
+function renderOtherDiffEntries(diffEntries) {
+    if (!Array.isArray(diffEntries) || diffEntries.length === 0) {
+        return '';
+    }
+
+    let html = '<div class="mt-2"><h6 class="text-muted small mb-1">其他变更</h6><ul class="list-unstyled mb-0">';
+    diffEntries.forEach(entry => {
+        const desc = entry?.description || `${entry?.label || ''} 已更新`;
+        html += `<li class="text-muted small">${escapeHtml(desc)}</li>`;
+    });
+    html += '</ul></div>';
+    return html;
+}
+
 // 查看账户变更历史
 function viewAccountChangeHistory(accountId) {
     http.get(`/instances/api/${getInstanceId()}/accounts/${accountId}/change-history`)
@@ -221,13 +280,19 @@ function viewAccountChangeHistory(accountId) {
                 if (history && history.length > 0) {
                     let html = '<div class="timeline">';
                     history.forEach(change => {
+                        const messageHtml = escapeHtml(change.message || '无描述');
+                        const privilegeHtml = renderPrivilegeDiffEntries(change.privilege_diff);
+                        const otherHtml = renderOtherDiffEntries(change.other_diff);
+
                         html += `
                         <div class="timeline-item">
                             <div class="timeline-marker bg-primary"></div>
                             <div class="timeline-content">
-                                <h6 class="mb-1">${change.change_type || '变更'}</h6>
-                                <p class="text-muted mb-1">${change.message || '无描述'}</p>
-                                <small class="text-muted">${change.change_time || '未知时间'}</small>
+                                <h6 class="mb-1">${escapeHtml(change.change_type || '变更')}</h6>
+                                <p class="text-muted mb-1">${messageHtml}</p>
+                                ${privilegeHtml}
+                                ${otherHtml}
+                                <small class="text-muted d-block mt-2">${escapeHtml(change.change_time || '未知时间')}</small>
                             </div>
                         </div>
                     `;
