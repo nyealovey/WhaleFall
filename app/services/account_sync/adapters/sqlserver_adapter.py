@@ -61,12 +61,15 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         type_specific = permissions.setdefault("type_specific", {})
         if "is_disabled" not in type_specific:
             type_specific["is_disabled"] = bool(account.get("is_disabled", False))
+        is_disabled = bool(type_specific.get("is_disabled", account.get("is_disabled", False)))
+        type_specific["is_disabled"] = is_disabled
         return {
             "username": account["username"],
             "display_name": account["username"],
             "db_type": DatabaseType.SQLSERVER,
             "is_superuser": account.get("is_superuser", False),
-            "is_active": not bool(type_specific.get("is_disabled", account.get("is_disabled", False))),
+            # SQL Server 登录被禁用仍视为清单内账户，仅通过 is_locked 字段表达锁定状态
+            "is_active": True,
             "permissions": {
                 "server_roles": permissions.get("server_roles", []),
                 "server_permissions": permissions.get("server_permissions", []),
