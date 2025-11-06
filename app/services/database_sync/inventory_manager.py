@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import db
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
+from app.services.database_sync.database_filters import database_sync_filter_manager
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
@@ -14,8 +15,9 @@ from app.utils.time_utils import time_utils
 class InventoryManager:
     """负责维护 instance_databases 表的增量同步逻辑。"""
 
-    def __init__(self) -> None:
+    def __init__(self, filter_manager=database_sync_filter_manager) -> None:
         self.logger = get_system_logger()
+        self.filter_manager = filter_manager
 
     def synchronize(
         self,
@@ -47,6 +49,8 @@ class InventoryManager:
         reactivated = 0
         deactivated = 0
 
+        excluded_names: list[str] = []
+
         for item in metadata:
             raw_name = item.get("database_name")
             if raw_name is None:
@@ -59,6 +63,17 @@ class InventoryManager:
 
             name = str(raw_name).strip()
             if not name:
+                continue
+
+            should_exclude, reason = self.filter_manager.should_exclude_database(instance, name)
+            if should_exclude:
+                excluded_names.append(name)
+                self.logger.info(
+                    "inventory_database_filtered",
+                    instance=instance.name,
+                    database=name,
+                    reason=reason,
+                )
                 continue
 
             seen_names.add(name)
@@ -111,6 +126,7 @@ class InventoryManager:
             "reactivated": reactivated,
             "deactivated": deactivated,
             "active_databases": sorted(seen_names),
+            "filtered_databases": sorted(excluded_names),
         }
 
         self.logger.info(
