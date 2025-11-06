@@ -343,9 +343,9 @@
                         </thead>
                         <tbody>
                             {% for account in accounts %}
-                            <tr class="account-row" data-account-id="{{ account.id }}" 
-                                {% set is_deleted = (account.instance_account and (account.instance_account.is_active == False)) %}
-                                {% if is_deleted %}data-is-deleted="true" style="opacity: 0.6; background-color: #f8f9fa;"{% else %}data-is-deleted="false"{% endif %}>
+                            {% set is_deleted = (not account.is_active) %}
+                            <tr class="account-row{% if is_deleted %} table-light text-muted{% endif %}" data-account-id="{{ account.id }}"
+                                data-is-deleted="{{ 'true' if is_deleted else 'false' }}">
                                 {% if instance.db_type == 'mysql' %}
                                 <td>
                                     <span class="badge bg-secondary" style="font-size: 0.75em;">
