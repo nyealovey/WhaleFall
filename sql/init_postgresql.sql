@@ -624,7 +624,8 @@ CREATE TABLE IF NOT EXISTS database_size_stats (
     is_deleted BOOLEAN DEFAULT FALSE,
     deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE (instance_id, database_name, collected_date)
 ) PARTITION BY RANGE (collected_date);
 
 -- 实例大小统计表（按月分区）
