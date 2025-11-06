@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable, List
 
+from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -9,6 +10,7 @@ from app import db
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
 from app.models.instance_size_stat import InstanceSizeStat
+from app.models.instance_database import InstanceDatabase
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
@@ -43,7 +45,6 @@ class CapacityPersistence:
                     "log_size_mb": item.get("log_size_mb"),
                     "collected_date": item["collected_date"],
                     "collected_at": item["collected_at"],
-                    "is_deleted": False,
                     "created_at": current_utc,
                     "updated_at": current_utc,
                 }
@@ -82,7 +83,6 @@ class CapacityPersistence:
                     "data_size_mb": insert_stmt.excluded.data_size_mb,
                     "log_size_mb": insert_stmt.excluded.log_size_mb,
                     "collected_at": insert_stmt.excluded.collected_at,
-                    "is_deleted": False,
                     "updated_at": current_utc,
                 },
             )
@@ -113,7 +113,6 @@ class CapacityPersistence:
                     existing.log_size_mb = record["log_size_mb"]
                     existing.collected_at = record["collected_at"]
                     existing.updated_at = record["updated_at"]
-                    existing.is_deleted = False
                 else:
                     db.session.add(DatabaseSizeStat(**record))
 
@@ -198,11 +197,23 @@ class CapacityPersistence:
     def update_instance_total_size(self, instance: Instance) -> bool:
         """根据当天采集数据刷新实例汇总。"""
         today = time_utils.now_china().date()
-        stats: List[DatabaseSizeStat] = DatabaseSizeStat.query.filter_by(
-            instance_id=instance.id,
-            collected_date=today,
-            is_deleted=False,
-        ).all()
+        stats: List[DatabaseSizeStat] = (
+            DatabaseSizeStat.query
+            .outerjoin(
+                InstanceDatabase,
+                (InstanceDatabase.instance_id == DatabaseSizeStat.instance_id)
+                & (InstanceDatabase.database_name == DatabaseSizeStat.database_name),
+            )
+            .filter(
+                DatabaseSizeStat.instance_id == instance.id,
+                DatabaseSizeStat.collected_date == today,
+                or_(
+                    InstanceDatabase.is_active.is_(True),
+                    InstanceDatabase.is_active.is_(None),
+                ),
+            )
+            .all()
+        )
 
         if not stats:
             self.logger.warning(

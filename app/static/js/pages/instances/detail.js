@@ -338,20 +338,14 @@ function loadDatabaseSizes() {
         </div>
     `;
 
-    http.get(`/instances/api/databases/${instanceId}/sizes?latest_only=true`)
+    http.get(`/instances/api/databases/${instanceId}/sizes?latest_only=true&include_inactive=true`)
         .then(data => {
             const payload = data && typeof data === 'object'
                 ? (data.data && typeof data.data === 'object' ? data.data : data)
                 : {};
 
-            const databases = Array.isArray(payload)
-                ? payload
-                : (Array.isArray(payload?.databases) ? payload.databases : null);
-
-            if (databases) {
-                // 使用API返回的总容量信息
-                const totalSize = Number(payload?.total_size_mb ?? payload?.total_size ?? 0) || 0;
-                displayDatabaseSizes(databases, totalSize);
+            if (payload && Array.isArray(payload.databases)) {
+                displayDatabaseSizes(payload);
             } else {
                 const errorMsg = data?.error || data?.message || '加载失败';
                 displayDatabaseSizesError(errorMsg);
@@ -363,10 +357,11 @@ function loadDatabaseSizes() {
         });
 }
 
-function displayDatabaseSizes(databases, totalSize) {
+function displayDatabaseSizes(payload) {
     const contentDiv = document.getElementById('databaseSizesContent');
+    const databases = Array.isArray(payload?.databases) ? payload.databases : [];
 
-    if (!databases || databases.length === 0) {
+    if (!databases.length) {
         contentDiv.innerHTML = `
             <div class="text-center py-4">
                 <i class="fas fa-database fa-3x text-muted mb-3"></i>
@@ -377,15 +372,17 @@ function displayDatabaseSizes(databases, totalSize) {
         return;
     }
 
-    // 计算总容量显示
+    const totalSize = Number(payload?.total_size_mb ?? 0) || 0;
     const totalSizeGB = (totalSize / 1024).toFixed(3);
+
+    const filteredCount = Number(payload?.filtered_count ?? 0) || 0;
+    const activeCount = Number(payload?.active_count ?? (databases.length - filteredCount));
 
     // 按数据库大小从大到小排序
     databases.sort((a, b) => (b.size_mb || 0) - (a.size_mb || 0));
 
-    // 统计已删除和在线数据库数量
-    const deletedCount = databases.filter(db => !db.is_active).length;
-    const onlineCount = databases.length - deletedCount;
+    const deletedCount = filteredCount || databases.filter(db => db.is_active === false).length;
+    const onlineCount = activeCount;
 
     let html = `
         <div class="row mb-3">
@@ -428,10 +425,10 @@ function displayDatabaseSizes(databases, totalSize) {
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 40%;"><i class="fas fa-database me-1"></i>数据库名称</th>
-                        <th style="width: 20%;"><i class="fas fa-hdd me-1"></i>总大小</th>
-                        <th style="width: 15%;"><i class="fas fa-trash me-1"></i>状态</th>
-                        <th style="width: 25%;"><i class="fas fa-clock me-1"></i>采集时间</th>
+                        <th style="width: 38%;"><i class="fas fa-database me-1"></i>数据库名称</th>
+                        <th style="width: 18%;"><i class="fas fa-hdd me-1"></i>总大小</th>
+                        <th style="width: 14%;"><i class="fas fa-trash me-1"></i>状态</th>
+                        <th style="width: 30%;"><i class="fas fa-clock me-1"></i>采集时间</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -441,10 +438,10 @@ function displayDatabaseSizes(databases, totalSize) {
         const sizeGB = (db.size_mb / 1024).toFixed(3);
         const collectedAt = db.collected_at ? timeUtils.formatDateTime(db.collected_at) : '未采集';
 
-        const isDeleted = !db.is_active;
-        const rowClass = isDeleted ? 'table-secondary' : '';
-        const iconClass = isDeleted ? 'text-muted' : 'text-primary';
-        const textClass = isDeleted ? 'text-muted' : '';
+        const isActive = db.is_active !== false;
+        const rowClass = isActive ? '' : 'table-secondary';
+        const iconClass = isActive ? 'text-primary' : 'text-muted';
+        const textClass = isActive ? '' : 'text-muted';
 
         // 根据总大小判断颜色
         let sizeBadgeClass = 'badge bg-success'; // 默认绿色
@@ -461,12 +458,18 @@ function displayDatabaseSizes(databases, totalSize) {
         }
 
         // 状态列显示
-        const statusBadge = isDeleted ?
-            '<span class="badge bg-danger">已删除</span>' :
-            '<span class="badge bg-success">在线</span>';
+        const statusBadge = isActive ?
+            '<span class="badge bg-success">在线</span>' :
+            '<span class="badge bg-secondary">已隐藏</span>';
+
+        const lastSeen = db.last_seen_date ? timeUtils.formatDate(db.last_seen_date) : null;
+        const deletedAt = db.deleted_at ? timeUtils.formatDateTime(db.deleted_at) : null;
+        const statusMeta = !isActive && (lastSeen || deletedAt)
+            ? `<div class="text-muted small">${lastSeen ? `最后出现：${lastSeen}` : ''}${deletedAt ? `<br/>隐藏时间：${deletedAt}` : ''}</div>`
+            : '';
 
         html += `
-            <tr class="${rowClass}" data-deleted="${isDeleted}">
+            <tr class="${rowClass}" data-is-active="${isActive}">
                 <td>
                     <div class="d-flex align-items-start">
                         <i class="fas fa-database ${iconClass} me-2 mt-1"></i>
@@ -480,6 +483,7 @@ function displayDatabaseSizes(databases, totalSize) {
                 </td>
                 <td>
                     ${statusBadge}
+                    ${statusMeta}
                 </td>
                 <td>
                     <small class="text-muted">${collectedAt}</small>
@@ -488,13 +492,19 @@ function displayDatabaseSizes(databases, totalSize) {
         `;
     });
 
-    html += `
+   html += `
                 </tbody>
             </table>
         </div>
     `;
 
     contentDiv.innerHTML = html;
+
+    const checkbox = document.getElementById('showDeletedDatabases');
+    if (checkbox) {
+        checkbox.checked = false;
+    }
+    toggleDeletedDatabases();
 }
 
 function displayDatabaseSizesError(error) {
@@ -518,11 +528,11 @@ function refreshDatabaseSizes() {
 // 切换已删除数据库显示/隐藏
 function toggleDeletedDatabases() {
     const checkbox = document.getElementById('showDeletedDatabases');
-    const rows = document.querySelectorAll('#databaseSizesContent tbody tr[data-deleted]');
+    const rows = document.querySelectorAll('#databaseSizesContent tbody tr[data-is-active]');
 
     rows.forEach(row => {
-        const isDeleted = row.getAttribute('data-deleted') === 'true';
-        if (isDeleted) {
+        const isActive = row.getAttribute('data-is-active') !== 'false';
+        if (!isActive) {
             row.style.display = checkbox.checked ? '' : 'none';
         }
     });

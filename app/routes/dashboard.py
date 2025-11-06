@@ -159,6 +159,7 @@ def get_system_overview() -> dict:
         # 获取容量统计
         from app.models.database_size_stat import DatabaseSizeStat
         from app.models.instance_size_stat import InstanceSizeStat
+        from app.models.instance_database import InstanceDatabase
         
         # 获取最近的容量数据（最近7天）
         recent_date = time_utils.now_china().date() - timedelta(days=7)
@@ -180,15 +181,27 @@ def get_system_overview() -> dict:
         total_capacity_gb = sum(inst['size_mb'] for inst in instance_sizes.values()) / 1024
         
         # 计算数据库总数
-        recent_db_stats = DatabaseSizeStat.query.filter(
-            DatabaseSizeStat.collected_date >= recent_date
-        ).all()
-        
-        # 按数据库分组，计算唯一数据库数量
-        unique_databases = set()
-        for stat in recent_db_stats:
-            unique_databases.add(f"{stat.instance_id}_{stat.database_name}")
-        
+        recent_db_stats = (
+            db.session.query(
+                DatabaseSizeStat.instance_id,
+                DatabaseSizeStat.database_name,
+                InstanceDatabase.is_active,
+            )
+            .outerjoin(
+                InstanceDatabase,
+                (DatabaseSizeStat.instance_id == InstanceDatabase.instance_id)
+                & (DatabaseSizeStat.database_name == InstanceDatabase.database_name),
+            )
+            .filter(DatabaseSizeStat.collected_date >= recent_date)
+            .all()
+        )
+
+        unique_databases = {
+            (instance_id, db_name)
+            for instance_id, db_name, is_active in recent_db_stats
+            if is_active is None or is_active
+        }
+
         total_databases = len(unique_databases)
 
         from app.models.instance_account import InstanceAccount

@@ -621,8 +621,6 @@ CREATE TABLE IF NOT EXISTS database_size_stats (
     log_size_mb BIGINT,
     collected_date DATE NOT NULL,
     collected_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    is_deleted BOOLEAN DEFAULT FALSE,
-    deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     UNIQUE (instance_id, database_name, collected_date)
@@ -766,7 +764,6 @@ END $$;
 CREATE INDEX IF NOT EXISTS ix_database_size_stats_instance_db ON database_size_stats (instance_id, database_name);
 CREATE INDEX IF NOT EXISTS ix_database_size_stats_collected_date ON database_size_stats (collected_date);
 CREATE INDEX IF NOT EXISTS ix_database_size_stats_instance_date ON database_size_stats (instance_id, collected_date);
-CREATE INDEX IF NOT EXISTS ix_database_size_stats_deleted ON database_size_stats (is_deleted);
 
 -- 实例大小统计表索引
 CREATE INDEX IF NOT EXISTS ix_instance_size_stats_instance_id ON instance_size_stats (instance_id);
