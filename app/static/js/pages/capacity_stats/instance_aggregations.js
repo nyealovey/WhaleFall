@@ -43,7 +43,7 @@
           get_all: "true",
         },
         calculateEndpoint: "/aggregations/api/aggregate-current",
-        instanceOptionsEndpoint: "/api/instances-options",
+        instanceOptionsEndpoint: "/common/api/instances-options",
       },
       summaryCards: [
         { selector: "#totalInstances", field: "total_instances", formatter: "number" },

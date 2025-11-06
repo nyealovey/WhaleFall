@@ -82,20 +82,6 @@ class ConnectionManager {
     }
 
     /**
-     * 获取支持的数据库类型
-     * @returns {Promise<Array>} 支持的数据库类型列表
-     */
-    async getSupportedTypes() {
-        try {
-            const result = await http.get(`${this.baseUrl}/supported-types`);
-            return result.success ? result.data : [];
-        } catch (error) {
-            console.error('获取支持的数据库类型失败:', error);
-            return [];
-        }
-    }
-
-    /**
      * 验证连接参数
      * @param {Object} params - 连接参数
      * @returns {Promise<Object>} 验证结果

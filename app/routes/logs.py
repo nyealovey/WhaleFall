@@ -175,24 +175,6 @@ def get_log_statistics() -> Response:
         raise SystemError("Failed to get log statistics") from e
 
 
-@logs_bp.route("/api/errors", methods=["GET"])
-@login_required
-def get_error_logs() -> Response:
-    """获取错误日志API"""
-    try:
-        hours = int(request.args.get("hours", 24))
-        limit = int(request.args.get("limit", 50))
-
-        error_logs = UnifiedLog.get_error_logs(hours=hours, limit=limit)
-
-        logs = [log.to_dict() for log in error_logs]
-
-        return jsonify_unified_success(data={"logs": logs})
-
-    except Exception as e:
-        log_error("Failed to get error logs", module="logs", error=str(e))
-        raise SystemError("Failed to get error logs") from e
-
 
 @logs_bp.route("/api/modules", methods=["GET"])
 @login_required

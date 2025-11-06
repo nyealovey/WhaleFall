@@ -68,8 +68,8 @@
           get_all: "true",
         },
         calculateEndpoint: "/aggregations/api/aggregate-current",
-        instanceOptionsEndpoint: "/api/instances-options",
-        databaseOptionsEndpoint: "/api/databases-options",
+        instanceOptionsEndpoint: "/common/api/instances-options",
+        databaseOptionsEndpoint: "/common/api/databases-options",
       },
       fields: {
         change: "size_change_mb",

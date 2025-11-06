@@ -1,6 +1,6 @@
 /**
  * 凭据列表页面JavaScript
- * 处理凭据状态切换、删除确认、搜索筛选、分页等功能
+ * 处理删除确认、搜索筛选、分页等功能
  */
 
 // 全局变量
@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeCredentialsListPage() {
     initializeDeleteConfirmation();
     initializeSearchForm();
-    initializeStatusToggles();
 }
 
 // 初始化删除确认功能
@@ -83,49 +82,6 @@ function handleSearchSubmit(event, form) {
     }
     
     return true;
-}
-
-// 初始化状态切换功能
-function initializeStatusToggles() {
-    const toggleButtons = document.querySelectorAll('[onclick*="toggleCredential"]');
-    
-    toggleButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const credentialId = this.getAttribute('data-credential-id');
-            const isActive = this.getAttribute('data-is-active') === 'true';
-            
-            if (credentialId) {
-                toggleCredentialStatus(credentialId, isActive, this);
-            }
-        });
-    });
-}
-
-// 切换凭据状态
-function toggleCredentialStatus(credentialId, isActive, button) {
-    const originalHtml = button.innerHTML;
-    
-    showLoadingState(button, '处理中...');
-    button.disabled = true;
-    
-    http.post(`/credentials/api/credentials/${credentialId}/toggle`, { is_active: !isActive })
-    .then(data => {
-        if (data.message) {
-            toast.success(data.message);
-            setTimeout(() => location.reload(), 1000);
-        } else if (data.error) {
-            toast.error(data.error);
-        }
-    })
-    .catch(error => {
-        console.error('切换凭据状态失败:', error);
-        toast.error('操作失败，请稍后重试');
-    })
-    .finally(() => {
-        hideLoadingState(button, originalHtml);
-        button.disabled = false;
-    });
 }
 
 // 删除凭据
@@ -261,7 +217,6 @@ initializeRealTimeSearch();
 
 // 导出函数供全局使用
 window.deleteCredential = deleteCredential;
-window.toggleCredentialStatus = toggleCredentialStatus;
 window.performSearch = performSearch;
 window.clearSearch = clearSearch;
 window.exportCredentials = exportCredentials;

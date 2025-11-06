@@ -71,10 +71,10 @@ account_classification_service = AccountClassificationService()
 
 | 方法 | 描述 | 引用情况 | 用途 |
 | --- | --- | --- | --- |
-| `get_all_types()` | 列出全部数据库类型 | `app/routes/database_types.py:28` | 数据库类型管理列表 |
-| `get_active_types()` | 启用类型 | `app/routes/instances/create.py:42` | 实例创建表单下拉 |
+| `get_all_types()` | 列出全部数据库类型 | `app/services/database_type_service.py:15` | 后端服务调用 |
+| `get_active_types()` | 启用类型 | `app/routes/instances/create.py:42` 等 | 实例表单下拉 |
 | `get_type_by_name(name)` | 指定类型 | `app/services/instance_service.py:67` | 实例校验 |
-| `get_database_types_for_form()` | 表单展示数据 | `app/routes/instances/edit.py:53` | 实例编辑页 |
+| `get_database_types_for_form()` | 表单展示数据 | `app/routes/common.py:172` | 下拉选项接口 |
 
 ---
 

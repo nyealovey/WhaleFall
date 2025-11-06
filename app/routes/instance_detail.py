@@ -5,7 +5,7 @@
 from datetime import date
 from typing import Any, Dict, Optional
 
-from flask import Response, flash, redirect, render_template, request, url_for
+from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import text
 
@@ -13,11 +13,12 @@ from app import db
 from app.errors import ConflictError, SystemError, ValidationError
 from app.constants import TaskStatus, FlashCategory, HttpMethod
 from app.models.database_size_stat import DatabaseSizeStat
+from app.constants.database_types import DatabaseType
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.routes.database_aggr import database_aggr_bp
 from app.routes.instance import instance_bp
+
 from app.services.account_sync.account_query_service import get_accounts_by_instance
 from app.utils.data_validator import (
     DataValidator,
@@ -29,6 +30,8 @@ from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
+
+instance_detail_bp = Blueprint("instance_detail", __name__)
 
 
 TRUTHY_VALUES = {"1", "true", "on", "yes", "y"}
@@ -426,9 +429,98 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
 
 
 
-@database_aggr_bp.route("/api/instances/<int:instance_id>/database-sizes", methods=["GET"])
+@instance_bp.route("/api/databases/<int:instance_id>/sizes", methods=["GET"])
 @login_required
 @view_required
+def get_instance_database_sizes(instance_id: int) -> Response:
+    """获取指定实例的数据库大小历史数据"""
+    Instance.query.get_or_404(instance_id)
+
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    database_name = request.args.get("database_name")
+    latest_only = request.args.get("latest_only", "false").lower() == "true"
+
+    try:
+        limit = int(request.args.get("limit", 100))
+        offset = int(request.args.get("offset", 0))
+    except ValueError as exc:
+        raise ValidationError("limit/offset 必须为整数") from exc
+
+    start_date_obj: Optional[date] = None
+    if start_date:
+        try:
+            parsed_dt = time_utils.to_china(start_date + "T00:00:00")
+            start_date_obj = parsed_dt.date() if parsed_dt else None
+        except Exception as exc:
+            raise ValidationError("start_date 格式错误，应为 YYYY-MM-DD") from exc
+
+    end_date_obj: Optional[date] = None
+    if end_date:
+        try:
+            parsed_dt = time_utils.to_china(end_date + "T00:00:00")
+            end_date_obj = parsed_dt.date() if parsed_dt else None
+        except Exception as exc:
+            raise ValidationError("end_date 格式错误，应为 YYYY-MM-DD") from exc
+
+    try:
+        if latest_only:
+            stats_payload = _fetch_latest_database_sizes(
+                instance_id, database_name, start_date_obj, end_date_obj, limit, offset
+            )
+        else:
+            stats_payload = _fetch_historical_database_sizes(
+                instance_id, database_name, start_date_obj, end_date_obj, limit, offset
+            )
+    except Exception as exc:
+        log_error(
+            "获取实例数据库大小历史数据失败",
+            module="database_aggr",
+            instance_id=instance_id,
+            error=str(exc),
+        )
+        raise SystemError("获取数据库大小历史数据失败") from exc
+
+    return jsonify_unified_success(data=stats_payload, message="数据库大小数据获取成功")
+
+
+@instance_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
+@login_required
+@view_required
+def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
+    """获取账户权限详情"""
+    instance = Instance.query.get_or_404(instance_id)
+
+    account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
+
+    permissions = {
+        "db_type": instance.db_type.upper() if instance else "",
+        "username": account.username,
+        "is_superuser": account.is_superuser,
+        "last_sync_time": (
+            time_utils.format_china_time(account.last_sync_time) if account.last_sync_time else "未知"
+        ),
+    }
+
+    if instance.db_type == DatabaseType.MYSQL:
+        permissions["global_privileges"] = account.global_privileges or []
+        permissions["database_privileges"] = account.database_privileges or {}
+    elif instance.db_type == DatabaseType.POSTGRESQL:
+        permissions["predefined_roles"] = account.predefined_roles or []
+        permissions["role_attributes"] = account.role_attributes or {}
+        permissions["database_privileges_pg"] = account.database_privileges_pg or {}
+        permissions["tablespace_privileges"] = account.tablespace_privileges or {}
+    elif instance.db_type == DatabaseType.SQLSERVER:
+        permissions["server_roles"] = account.server_roles or []
+        permissions["server_permissions"] = account.server_permissions or []
+        permissions["database_roles"] = account.database_roles or {}
+        permissions["database_permissions"] = account.database_permissions or {}
+    elif instance.db_type == DatabaseType.ORACLE:
+        permissions["oracle_privileges"] = account.oracle_privileges or []
+        permissions["oracle_roles"] = account.oracle_roles or []
+
+    return jsonify_unified_success(data={"permissions": permissions}, message="获取账户权限详情成功")
+
 def get_instance_database_sizes(instance_id: int) -> Response:
     """获取指定实例的数据库大小历史数据"""
     Instance.query.get_or_404(instance_id)

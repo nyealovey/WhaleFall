@@ -1,14 +1,11 @@
-"""
-账户统计相关路由
-"""
+"""账户统计相关路由"""
 
-from flask import Response, flash, render_template, request
+from flask import Blueprint, Response, flash, render_template, request
 from flask_login import login_required
 
 from app.errors import SystemError
-from app.constants import TaskStatus, FlashCategory
+from app.constants import FlashCategory
 from app.models.instance import Instance
-from app.routes.account import account_bp
 from app.services.account_statistics_service import (
     build_aggregated_statistics,
     empty_statistics,
@@ -21,7 +18,10 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error
 
 
-@account_bp.route("/statistics")
+account_stat_bp = Blueprint("account_stat", __name__)
+
+
+@account_stat_bp.route("/statistics")
 @login_required
 @view_required
 def statistics() -> str:
@@ -46,7 +46,7 @@ def statistics() -> str:
     )
 
 
-@account_bp.route("/api/statistics")
+@account_stat_bp.route("/api/statistics")
 @login_required
 @view_required
 def statistics_api() -> tuple[Response, int]:
@@ -61,7 +61,7 @@ def statistics_api() -> tuple[Response, int]:
         raise SystemError("获取账户统计信息失败") from exc
 
 
-@account_bp.route("/api/statistics/summary")
+@account_stat_bp.route("/api/statistics/summary")
 @login_required
 @view_required
 def statistics_summary_api() -> tuple[Response, int]:
@@ -73,7 +73,7 @@ def statistics_summary_api() -> tuple[Response, int]:
     return jsonify_unified_success(data=summary, message="获取账户统计汇总成功")
 
 
-@account_bp.route("/api/statistics/db-types")
+@account_stat_bp.route("/api/statistics/db-types")
 @login_required
 @view_required
 def statistics_db_type_api() -> tuple[Response, int]:
@@ -82,7 +82,7 @@ def statistics_db_type_api() -> tuple[Response, int]:
     return jsonify_unified_success(data=stats, message="获取数据库类型统计成功")
 
 
-@account_bp.route("/api/statistics/classifications")
+@account_stat_bp.route("/api/statistics/classifications")
 @login_required
 @view_required
 def statistics_classification_api() -> tuple[Response, int]:

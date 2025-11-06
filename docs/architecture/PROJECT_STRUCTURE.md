@@ -88,7 +88,6 @@ routes/
 ├── logs.py                 # 日志管理路由
 ├── scheduler.py            # 任务调度路由
 ├── cache.py               # 缓存管理路由
-├── database_types.py       # 数据库类型路由
 ├── storage.py              # 存储同步路由
 ├── users.py                # 用户管理路由
 └── health.py               # 健康检查路由
