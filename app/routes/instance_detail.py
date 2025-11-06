@@ -381,7 +381,7 @@ def edit(instance_id: int) -> str | Response | tuple[Response, int]:
             )
 
             flash("实例更新成功！", FlashCategory.SUCCESS)
-            return redirect(url_for("instance.detail", instance_id=instance_id))
+            return redirect(url_for("instance_detail.detail", instance_id=instance_id))
 
         except Exception as e:
             db.session.rollback()
