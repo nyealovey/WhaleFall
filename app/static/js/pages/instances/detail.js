@@ -208,7 +208,7 @@ function syncCapacity(instanceId, instanceName) {
 function viewInstanceAccountPermissions(accountId) {
     // 调用全局的 viewAccountPermissions 函数，指定instances页面的API URL
     window.viewAccountPermissions(accountId, {
-        apiUrl: `/instances/detail/api/${getInstanceId()}/accounts/${accountId}/permissions`
+        apiUrl: `/instances/api/${getInstanceId()}/accounts/${accountId}/permissions`
     });
 }
 
@@ -379,7 +379,7 @@ function displayDatabaseSizes(payload) {
     const activeCount = Number(payload?.active_count ?? (databases.length - filteredCount));
 
     // 按数据库大小从大到小排序
-    databases.sort((a, b) => (b.size_mb || 0) - (a.size_mb || 0));
+    databases.sort((a, b) => (Number(b.size_mb) || 0) - (Number(a.size_mb) || 0));
 
     const deletedCount = filteredCount || databases.filter(db => db.is_active === false).length;
     const onlineCount = activeCount;
@@ -435,32 +435,32 @@ function displayDatabaseSizes(payload) {
     `;
 
     databases.forEach(db => {
-        const sizeGB = (db.size_mb / 1024).toFixed(3);
+        const isActive = db.is_active !== false;
+        const sizeValue = Number(db.size_mb) || 0;
+        const sizeGB = (sizeValue / 1024).toFixed(3);
         const collectedAt = db.collected_at ? timeUtils.formatDateTime(db.collected_at) : '未采集';
 
-        const isActive = db.is_active !== false;
-        const rowClass = isActive ? '' : 'table-secondary';
         const iconClass = isActive ? 'text-primary' : 'text-muted';
         const textClass = isActive ? '' : 'text-muted';
+        const rowClass = `database-row${isActive ? '' : ' table-light text-muted'}`;
+        const rowStyle = isActive ? '' : ' style="opacity: 0.7;"';
 
         // 根据总大小判断颜色
         let sizeBadgeClass = 'badge bg-success'; // 默认绿色
-        const sizeGBValue = parseFloat(sizeGB);
-
-        if (sizeGBValue >= 1000) {
-            sizeBadgeClass = 'badge bg-danger'; // 红色 - 大于1000GB
-        } else if (sizeGBValue >= 100) {
-            sizeBadgeClass = 'badge bg-warning'; // 黄色 - 大于100GB
-        } else if (sizeGBValue >= 10) {
-            sizeBadgeClass = 'badge bg-primary'; // 蓝色 - 大于10GB
-        } else {
-            sizeBadgeClass = 'badge bg-success'; // 绿色 - 小于10GB
+        if (sizeValue >= 1024 * 1000) {
+            sizeBadgeClass = 'badge bg-danger'; // >= 1 TB
+        } else if (sizeValue >= 1024 * 100) {
+            sizeBadgeClass = 'badge bg-warning';
+        } else if (sizeValue >= 1024 * 10) {
+            sizeBadgeClass = 'badge bg-primary';
         }
 
+        const sizeLabel = sizeValue > 0 ? `${sizeGB} GB` : '<span class="text-muted">无数据</span>';
+
         // 状态列显示
-        const statusBadge = isActive ?
-            '<span class="badge bg-success">在线</span>' :
-            '<span class="badge bg-secondary">已隐藏</span>';
+        const statusBadge = isActive
+            ? '<span class="badge bg-success"><i class="fas fa-check me-1"></i>在线</span>'
+            : '<span class="badge bg-danger"><i class="fas fa-trash me-1"></i>已删除</span>';
 
         const lastSeen = db.last_seen_date ? timeUtils.formatDate(db.last_seen_date) : null;
         const deletedAt = db.deleted_at ? timeUtils.formatDateTime(db.deleted_at) : null;
@@ -469,7 +469,7 @@ function displayDatabaseSizes(payload) {
             : '';
 
         html += `
-            <tr class="${rowClass}" data-is-active="${isActive}">
+            <tr class="${rowClass}" data-is-active="${isActive}"${rowStyle}>
                 <td>
                     <div class="d-flex align-items-start">
                         <i class="fas fa-database ${iconClass} me-2 mt-1"></i>
@@ -479,7 +479,7 @@ function displayDatabaseSizes(payload) {
                     </div>
                 </td>
                 <td>
-                    <span class="${sizeBadgeClass}">${sizeGB} GB</span>
+                    ${sizeValue > 0 ? `<span class="${sizeBadgeClass}">${sizeGB} GB</span>` : sizeLabel}
                 </td>
                 <td>
                     ${statusBadge}
