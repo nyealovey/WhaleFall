@@ -127,7 +127,10 @@ def get_instances_aggregations():
         
         # 构建查询 - 查询实例统计聚合表
         from app.models.instance_size_aggregation import InstanceSizeAggregation
-        query = InstanceSizeAggregation.query.join(Instance)
+        query = (
+            InstanceSizeAggregation.query.join(Instance)
+            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+        )
         
         # 应用过滤条件
         if instance_id:
