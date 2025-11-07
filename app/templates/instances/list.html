@@ -90,7 +90,7 @@
                         <th>类型</th>
                         <th>主机</th>
                         <th>版本信息</th>
-                        <th>活跃</th>
+                        <th style="width: 130px;">活跃</th>
                         <th>标签</th>
                         <th>状态</th>
                         <th>最后同步</th>
@@ -135,12 +135,14 @@
                         <td>
                             {% set db_count = active_database_counts.get(instance.id, 0) %}
                             {% set account_count = active_account_counts.get(instance.id, 0) %}
-                            <span class="badge bg-primary me-1">
-                                <i class="fas fa-database me-1"></i>{{ db_count }}
-                            </span>
-                            <span class="badge bg-info text-dark">
-                                <i class="fas fa-user me-1"></i>{{ account_count }}
-                            </span>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-primary me-2" style="min-width: 58px; justify-content: center; display: inline-flex; align-items: center;">
+                                    <i class="fas fa-database me-1"></i>{{ db_count }}
+                                </span>
+                                <span class="badge bg-info text-white" style="min-width: 58px; justify-content: center; display: inline-flex; align-items: center;">
+                                    <i class="fas fa-user me-1"></i>{{ account_count }}
+                                </span>
+                            </div>
                         </td>
                         <td>
                             {% if instance.tags.all() %}
