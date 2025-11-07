@@ -6,7 +6,7 @@ from flask_login import login_required
 from app.errors import SystemError
 from app.constants import FlashCategory
 from app.models.instance import Instance
-from app.services.account_statistics_service import (
+from app.services.statistics.account_statistics_service import (
     build_aggregated_statistics,
     empty_statistics,
     fetch_classification_stats,

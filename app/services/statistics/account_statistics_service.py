@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import and_, distinct, func, or_
+
+from app import db
 from app.errors import SystemError
 from app.constants import DatabaseType
 from app.models.account_classification import AccountClassification, AccountClassificationAssignment
@@ -148,25 +151,34 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
 def fetch_classification_stats() -> dict[str, dict[str, Any]]:
     """按账户分类返回统计信息。"""
     try:
+        rows = _query_classification_rows()
         classification_stats: dict[str, dict[str, Any]] = {}
-        classifications = AccountClassification.query.filter_by(is_active=True).all()
-
-        for classification in classifications:
-            assignment_count = AccountClassificationAssignment.query.filter_by(
-                classification_id=classification.id,
-                is_active=True,
-            ).count()
-
-            classification_stats[classification.name] = {
-                "account_count": assignment_count,
-                "color": getattr(classification, "color", None),
-                "display_name": getattr(classification, "display_name", classification.name),
+        for row in rows:
+            classification_stats[row["name"]] = {
+                "account_count": row["count"],
+                "color": row.get("color"),
+                "display_name": row.get("display_name", row["name"]),
             }
-
         return classification_stats
     except Exception as exc:  # noqa: BLE001
         log_error("获取账户分类统计失败", module="account_statistics", exception=exc)
         raise SystemError("获取账户分类统计失败") from exc
+
+
+def fetch_classification_overview() -> dict[str, Any]:
+    """获取分类账户概览，供仪表盘等场景复用。"""
+    try:
+        rows = _query_classification_rows()
+        total_classified_accounts = sum(row["count"] for row in rows)
+        auto_classified_accounts = _query_auto_classified_count()
+        return {
+            "total": total_classified_accounts,
+            "auto": auto_classified_accounts,
+            "classifications": rows,
+        }
+    except Exception as exc:  # noqa: BLE001
+        log_error("获取账户分类概览失败", module="account_statistics", exception=exc)
+        raise SystemError("获取账户分类概览失败") from exc
 
 
 def build_aggregated_statistics() -> dict[str, Any]:
@@ -204,3 +216,76 @@ def empty_statistics() -> dict[str, Any]:
         "db_type_stats": {},
         "classification_stats": {},
     }
+
+
+def _query_classification_rows() -> list[dict[str, Any]]:
+    rows = (
+        db.session.query(
+            AccountClassification.name,
+            AccountClassification.color,
+            AccountClassification.display_name,
+            AccountClassification.priority,
+            func.count(distinct(AccountClassificationAssignment.account_id)).label("count"),
+        )
+        .outerjoin(
+            AccountClassificationAssignment,
+            and_(
+                AccountClassificationAssignment.classification_id == AccountClassification.id,
+                AccountClassificationAssignment.is_active.is_(True),
+            ),
+        )
+        .outerjoin(
+            AccountPermission,
+            AccountPermission.id == AccountClassificationAssignment.account_id,
+        )
+        .outerjoin(
+            InstanceAccount,
+            AccountPermission.instance_account,
+        )
+        .outerjoin(
+            Instance,
+            and_(
+                Instance.id == AccountPermission.instance_id,
+                Instance.is_active.is_(True),
+                Instance.deleted_at.is_(None),
+            ),
+        )
+        .filter(AccountClassification.is_active.is_(True))
+        .filter(or_(InstanceAccount.is_active.is_(True), InstanceAccount.id.is_(None)))
+        .group_by(AccountClassification.id)
+        .order_by(AccountClassification.priority.desc())
+        .all()
+    )
+    return [
+        {
+            "name": name,
+            "color": color,
+            "display_name": display_name or name,
+            "priority": priority,
+            "count": count or 0,
+        }
+        for name, color, display_name, priority, count in rows
+    ]
+
+
+def _query_auto_classified_count() -> int:
+    return (
+        db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
+        .join(AccountPermission, AccountPermission.id == AccountClassificationAssignment.account_id)
+        .join(InstanceAccount, AccountPermission.instance_account)
+        .join(
+            Instance,
+            and_(
+                Instance.id == AccountPermission.instance_id,
+                Instance.is_active.is_(True),
+                Instance.deleted_at.is_(None),
+            ),
+        )
+        .filter(
+            AccountClassificationAssignment.is_active.is_(True),
+            AccountClassificationAssignment.assignment_type == "auto",
+        )
+        .filter(InstanceAccount.is_active.is_(True))
+        .scalar()
+        or 0
+    )
