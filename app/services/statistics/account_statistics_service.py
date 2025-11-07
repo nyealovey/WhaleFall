@@ -219,11 +219,17 @@ def empty_statistics() -> dict[str, Any]:
 
 
 def _query_classification_rows() -> list[dict[str, Any]]:
+    display_name_column = (
+        AccountClassification.display_name
+        if hasattr(AccountClassification, "display_name")
+        else AccountClassification.name.label("display_name")
+    )
+
     rows = (
         db.session.query(
             AccountClassification.name,
             AccountClassification.color,
-            AccountClassification.display_name,
+            display_name_column,
             AccountClassification.priority,
             func.count(distinct(AccountClassificationAssignment.account_id)).label("count"),
         )
