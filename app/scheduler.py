@@ -128,8 +128,19 @@ def get_scheduler() -> Any:  # noqa: ANN401
 
 
 def init_scheduler(app: Any) -> None:  # noqa: ANN401
-    """初始化调度器"""
+    """初始化调度器（仅在主进程启动）"""
     global scheduler
+
+    server_software = os.environ.get("SERVER_SOFTWARE", "")
+    if server_software.startswith("gunicorn"):
+        parent_pid = os.getppid()
+        if parent_pid != 1:
+            logger.info(
+                "检测到 gunicorn worker 进程 (ppid=%s)，跳过调度器初始化",
+                parent_pid,
+            )
+            return None
+
     try:
         # 检查是否已经初始化过
         if hasattr(scheduler, "app") and scheduler.app is not None:
