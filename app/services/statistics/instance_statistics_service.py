@@ -50,9 +50,12 @@ def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
         from app.models.instance_size_stat import InstanceSizeStat
 
         recent_date = time_utils.now_china().date() - timedelta(days=recent_days)
-        recent_stats = InstanceSizeStat.query.filter(
-            InstanceSizeStat.collected_date >= recent_date
-        ).all()
+        recent_stats = (
+            InstanceSizeStat.query.join(Instance, Instance.id == InstanceSizeStat.instance_id)
+            .filter(InstanceSizeStat.collected_date >= recent_date)
+            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+            .all()
+        )
 
         latest_per_instance: dict[int, dict[str, Any]] = {}
         for stat in recent_stats:
