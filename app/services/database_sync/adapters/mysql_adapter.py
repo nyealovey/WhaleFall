@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
@@ -119,6 +120,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                         if not raw_name:
                             continue
                         db_name = raw_name.split("/", 1)[0] if "/" in raw_name else raw_name
+                        db_name = self._normalize_database_name(db_name)
                         total_bytes = row[1] if len(row) > 1 else None
                         if total_bytes is None:
                             continue
@@ -151,7 +153,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                 for row in databases_result:
                     if not row:
                         continue
-                    db_name = str(row[0])
+                    db_name = self._normalize_database_name(str(row[0]))
                     if not db_name:
                         continue
                     aggregated.setdefault(db_name, 0)
@@ -200,6 +202,21 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             )
 
         return data
+
+    @staticmethod
+    def _normalize_database_name(raw_name: str) -> str:
+        """将 MySQL tablespace 名称中的 @XXXX 转回正常字符。"""
+        if not raw_name:
+            return raw_name
+
+        def _replace(match: re.Match[str]) -> str:
+            code = match.group(1)
+            try:
+                return chr(int(code, 16))
+            except ValueError:
+                return match.group(0)
+
+        return re.sub(r"@([0-9A-Fa-f]{4})", _replace, raw_name)
 
     def _build_tablespace_queries(self, instance) -> List[Tuple[str, str]]:
         normalized_version = (instance.main_version or "").strip().lower()
