@@ -36,7 +36,7 @@
     <!-- 主要内容区域 -->
     <div class="row">
         <!-- 左侧：分类列表 -->
-        <div class="col-md-4">
+        <div class="col-4">
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
@@ -59,7 +59,7 @@
         </div>
 
         <!-- 右侧：规则管理 -->
-        <div class="col-md-8">
+        <div class="col-8">
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
@@ -110,7 +110,7 @@
                         <textarea class="form-control" id="classificationDescription" rows="3"></textarea>
                     </div>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="riskLevel" class="form-label">风险等级</label>
                                 <select class="form-select" id="riskLevel">
@@ -121,7 +121,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="classificationColor" class="form-label">显示颜色</label>
                                 <select class="form-select" id="classificationColor" required>
@@ -144,7 +144,7 @@
                     <div class="mb-3">
                         <label for="classificationIcon" class="form-label">图标选择</label>
                         <div class="row">
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="classificationIcon" id="iconCrown" value="fa-crown">
                                     <label class="form-check-label" for="iconCrown">
@@ -152,7 +152,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="classificationIcon" id="iconShield" value="fa-shield-alt">
                                     <label class="form-check-label" for="iconShield">
@@ -160,7 +160,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="classificationIcon" id="iconWarning" value="fa-exclamation-triangle">
                                     <label class="form-check-label" for="iconWarning">
@@ -168,7 +168,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="classificationIcon" id="iconUser" value="fa-user">
                                     <label class="form-check-label" for="iconUser">
@@ -176,7 +176,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="classificationIcon" id="iconEye" value="fa-eye">
                                     <label class="form-check-label" for="iconEye">
@@ -184,7 +184,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="classificationIcon" id="iconTag" value="fa-tag" checked>
                                     <label class="form-check-label" for="iconTag">
@@ -222,7 +222,7 @@
             <div class="modal-body">
                 <form id="createRuleForm">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="ruleClassification" class="form-label">分类 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="ruleClassification" required>
@@ -230,7 +230,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="ruleName" class="form-label">规则名称 <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="ruleName" required>
@@ -238,7 +238,7 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-6">
                     <div class="mb-3">
                         <label for="ruleDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
                         <select class="form-select" id="ruleDbType" required onchange="loadPermissions()">
@@ -250,7 +250,7 @@
                         </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="ruleOperator" class="form-label">匹配逻辑 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="ruleOperator" required>
@@ -301,7 +301,7 @@
                         <textarea class="form-control" id="editClassificationDescription" rows="3"></textarea>
                     </div>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="editClassificationRiskLevel" class="form-label">风险等级</label>
                                 <select class="form-select" id="editClassificationRiskLevel">
@@ -312,7 +312,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="editClassificationColor" class="form-label">显示颜色</label>
                                 <select class="form-select" id="editClassificationColor" required>
@@ -335,7 +335,7 @@
                     <div class="mb-3">
                         <label for="editClassificationIcon" class="form-label">图标选择</label>
                         <div class="row">
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconCrown" value="fa-crown">
                                     <label class="form-check-label" for="editIconCrown">
@@ -343,7 +343,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconShield" value="fa-shield-alt">
                                     <label class="form-check-label" for="editIconShield">
@@ -351,7 +351,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconWarning" value="fa-exclamation-triangle">
                                     <label class="form-check-label" for="editIconWarning">
@@ -359,7 +359,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconUser" value="fa-user">
                                     <label class="form-check-label" for="editIconUser">
@@ -367,7 +367,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconEye" value="fa-eye">
                                     <label class="form-check-label" for="editIconEye">
@@ -375,7 +375,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconTag" value="fa-tag">
                                     <label class="form-check-label" for="editIconTag">
@@ -415,7 +415,7 @@
                 <form id="editRuleForm">
                     <input type="hidden" id="editRuleId">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="editRuleClassification" class="form-label">分类 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="editRuleClassification" required>
@@ -423,7 +423,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="editRuleName" class="form-label">规则名称 <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="editRuleName" required>
@@ -431,7 +431,7 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-6">
                     <div class="mb-3">
                         <label for="editRuleDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
                         <select class="form-select" id="editRuleDbType" required disabled>
@@ -444,7 +444,7 @@
                         <input type="hidden" id="editRuleDbTypeHidden" name="db_type">
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="editRuleOperator" class="form-label">匹配逻辑 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="editRuleOperator" required>
@@ -485,25 +485,25 @@
             </div>
             <div class="modal-body">
                 <div class="row mb-3">
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <label class="form-label fw-bold">规则名称</label>
                         <p class="form-control-plaintext" id="viewRuleName">-</p>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <label class="form-label fw-bold">分类</label>
                         <p class="form-control-plaintext" id="viewRuleClassification">-</p>
                     </div>
                 </div>
                 <div class="row mb-3">
-                    <div class="col-md-4">
+                    <div class="col-4">
                         <label class="form-label fw-bold">数据库类型</label>
                         <p class="form-control-plaintext" id="viewRuleDbType">-</p>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-4">
                         <label class="form-label fw-bold">匹配逻辑</label>
                         <p class="form-control-plaintext" id="viewRuleOperator">-</p>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-4">
                         <label class="form-label fw-bold">状态</label>
                         <p class="form-control-plaintext" id="viewRuleStatus">-</p>
                     </div>
@@ -517,11 +517,11 @@
                     </div>
                 </div>
                 <div class="row mb-3">
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <label class="form-label fw-bold">创建时间</label>
                         <p class="form-control-plaintext" id="viewRuleCreatedAt">-</p>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <label class="form-label fw-bold">更新时间</label>
                         <p class="form-control-plaintext" id="viewRuleUpdatedAt">-</p>
                     </div>

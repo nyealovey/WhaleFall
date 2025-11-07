@@ -27,9 +27,9 @@
             <!-- 搜索和筛选 -->
             <div class="sync-sessions-page">
                 {% call filter_card(form_id='sync-sessions-filter-form', action=url_for('sync_sessions.index'), auto_register=False) %}
-                    {{ sync_type_filter(sync_type_options, '', col_class='col-12 col-lg-3 col-xl-3') }}
-                    {{ sync_category_filter(sync_category_options, '', col_class='col-12 col-lg-3 col-xl-3') }}
-                    {{ status_sync_filter(status_options, '', col_class='col-12 col-lg-3 col-xl-3') }}
+                    {{ sync_type_filter(sync_type_options, '', col_class='col-3') }}
+                    {{ sync_category_filter(sync_category_options, '', col_class='col-3') }}
+                    {{ status_sync_filter(status_options, '', col_class='col-3') }}
                 {% endcall %}
             </div>
 

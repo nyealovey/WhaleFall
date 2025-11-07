@@ -19,7 +19,7 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-8">
+    <div class="col-8">
         <!-- 基本信息 -->
         <div class="card mb-4">
             <div class="card-header">
@@ -29,13 +29,13 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">实例名称</label>
                             <p class="form-control-plaintext">{{ instance.name }}</p>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">数据库类型</label>
                             <p class="form-control-plaintext">
@@ -48,13 +48,13 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">主机地址</label>
                             <p class="form-control-plaintext">{{ instance.host }}</p>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">端口号</label>
                             <p class="form-control-plaintext">{{ instance.port }}</p>
@@ -63,7 +63,7 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">数据库版本</label>
                             <p class="form-control-plaintext">
@@ -90,7 +90,7 @@
                             </p>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">标签</label>
                             <p class="form-control-plaintext">
@@ -127,7 +127,7 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">最后连接时间</label>
                             <p class="form-control-plaintext">
@@ -139,7 +139,7 @@
                             </p>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">连接状态</label>
                             <p class="form-control-plaintext">
@@ -150,7 +150,7 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">创建时间</label>
                             <p class="form-control-plaintext">
@@ -158,7 +158,7 @@
                             </p>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">更新时间</label>
                             <p class="form-control-plaintext">
@@ -172,7 +172,7 @@
 
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-4">
         <!-- 快速操作 -->
         <div class="card mb-4">
             <div class="card-header">
@@ -250,7 +250,7 @@
                     <div class="tab-pane fade" id="accounts-pane" role="tabpanel" aria-labelledby="accounts-tab">
                 <!-- 账户概览标签 -->
                 <div class="row mb-3">
-                    <div class="col-md-4">
+                    <div class="col-4">
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <h5 class="card-title text-primary">{{ account_summary.active }}</h5>
@@ -258,7 +258,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-4">
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <h5 class="card-title text-danger">{{ account_summary.deleted }}</h5>
@@ -266,7 +266,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-4">
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <h5 class="card-title text-success">{{ account_summary.superuser }}</h5>
@@ -278,7 +278,7 @@
 
                 <!-- 账户显示控制 -->
                 <div class="row mb-3">
-                    <div class="col-md-6 d-flex align-items-center">
+                    <div class="d-flex align-items-center col-6">
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" role="switch" id="showDeletedAccounts"
                                    onchange="toggleDeletedAccounts()">
@@ -287,7 +287,7 @@
                             </label>
                         </div>
                     </div>
-                    <div class="col-md-6 text-end">
+                    <div class="text-end col-6">
                         <span class="badge bg-primary" id="accountCount">共 {{ accounts|length }} 个账户</span>
                     </div>
                 </div>

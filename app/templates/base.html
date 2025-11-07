@@ -3,7 +3,6 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title id="page-title">{% block title %}鲸落 - 数据同步管理平台{% endblock %}</title>
 
@@ -42,10 +41,6 @@
                     style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
                 <span id="app-name">鲸落</span>
             </a>
-
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
 
             <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
                 <ul class="navbar-nav">

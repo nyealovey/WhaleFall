@@ -30,19 +30,19 @@
 }
 
 /* 确保图表区域和侧边栏高度一致 */
-.row .col-lg-8 .card,
-.row .col-lg-4 .card {
+.row .col-8 .card,
+.row .col-4 .card {
     height: 100%;
 }
 
-.row .col-lg-8,
-.row .col-lg-4 {
+.row .col-8,
+.row .col-4 {
     display: flex;
     flex-direction: column;
 }
 
-.row .col-lg-8 .card .card-body,
-.row .col-lg-4 .card .card-body {
+.row .col-8 .card .card-body,
+.row .col-4 .card .card-body {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -145,9 +145,3 @@
 }
 
 /* 响应式调整 */
-@media (max-width: 768px) {
-    .chart-container {
-        height: 250px;
-        padding: var(--spacing-sm);
-    }
-}
