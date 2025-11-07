@@ -3,41 +3,46 @@
 /* 页面头部样式已移至全局样式 (global.css) */
 
 /* 状态卡片 - 利用全局卡片样式 */
-.card {
+.partition-stat-card {
     border: none;
     border-radius: var(--border-radius-xl);
     overflow: hidden;
     transition: var(--transition-base);
     box-shadow: var(--shadow-md);
+    height: 100%;
 }
 
-.card:hover {
+.partition-stat-card:hover {
     box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
 }
 
-.card.bg-primary {
+.partition-stat-card.bg-primary {
     background: var(--gradient-primary) !important;
 }
 
-.card.bg-info {
+.partition-stat-card.bg-info {
     background: var(--gradient-info) !important;
 }
 
-.card.bg-success {
+.partition-stat-card.bg-success {
     background: var(--gradient-success) !important;
 }
 
-.card.bg-warning {
+.partition-stat-card.bg-warning {
     background: var(--gradient-warning) !important;
 }
 
-.card-body {
+.partition-stat-card .card-body {
     padding: var(--spacing-lg);
-    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: left;
 }
 
-.card-title {
+.partition-stat-card .card-title {
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: var(--spacing-sm);
@@ -109,4 +114,3 @@
 }
 
 /* 响应式调整 */
-
