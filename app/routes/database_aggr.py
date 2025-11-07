@@ -9,15 +9,17 @@ from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import and_, desc, func
+from sqlalchemy import and_, func
 
 from app import db
 from app.errors import SystemError, ValidationError
-from app.models.database_size_aggregation import DatabaseSizeAggregation
-from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.services.database_type_service import DatabaseTypeService
+from app.services.statistics.database_statistics_service import (
+    fetch_aggregation_summary,
+    fetch_aggregations,
+)
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error
@@ -125,7 +127,7 @@ def get_databases_aggregations() -> Response:
         raise ValidationError('page 必须大于 0')
 
     try:
-        payload = _fetch_database_aggregations(
+        payload = fetch_aggregations(
             instance_id=instance_id,
             db_type=db_type,
             database_name=database_name,
@@ -161,94 +163,6 @@ def _parse_date(value: str, field: str) -> date:
         raise ValidationError(f'{field} 格式错误，应为 YYYY-MM-DD') from exc
 
 
-def _fetch_database_aggregations(
-    *,
-    instance_id: Optional[int],
-    db_type: Optional[str],
-    database_name: Optional[str],
-    database_id: Optional[int],
-    period_type: Optional[str],
-    start_date: Optional[date],
-    end_date: Optional[date],
-    page: int,
-    per_page: int,
-    offset: int,
-    get_all: bool,
-) -> Dict[str, Any]:
-    query = DatabaseSizeAggregation.query.join(Instance)
-
-    if instance_id:
-        query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
-    if db_type:
-        query = query.filter(Instance.db_type == db_type)
-    if database_name:
-        query = query.filter(DatabaseSizeAggregation.database_name == database_name)
-    elif database_id:
-        from app.models.instance_database import InstanceDatabase
-
-        db_record = InstanceDatabase.query.filter_by(id=database_id).first()
-        if db_record:
-            query = query.filter(DatabaseSizeAggregation.database_name == db_record.database_name)
-    if period_type:
-        query = query.filter(DatabaseSizeAggregation.period_type == period_type)
-    if start_date:
-        query = query.filter(DatabaseSizeAggregation.period_start >= start_date)
-    if end_date:
-        query = query.filter(DatabaseSizeAggregation.period_end <= end_date)
-
-    if get_all:
-        base_query = query.with_entities(
-            DatabaseSizeAggregation.instance_id,
-            DatabaseSizeAggregation.database_name,
-            func.max(DatabaseSizeAggregation.avg_size_mb).label('max_avg_size_mb'),
-        ).group_by(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name).subquery()
-
-        top_pairs = db.session.query(
-            base_query.c.instance_id,
-            base_query.c.database_name,
-        ).order_by(desc(base_query.c.max_avg_size_mb)).limit(100).all()
-
-        if top_pairs:
-            from sqlalchemy import tuple_
-
-            pair_values = [(row.instance_id, row.database_name) for row in top_pairs]
-            aggregations = (
-                query.filter(tuple_(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name).in_(pair_values))
-                .order_by(DatabaseSizeAggregation.period_start.asc())
-                .all()
-            )
-            total = len(aggregations)
-        else:
-            aggregations = []
-            total = 0
-    else:
-        query = query.order_by(desc(DatabaseSizeAggregation.period_start))
-        total = query.count()
-        aggregations = query.offset(offset).limit(per_page).all()
-
-    data = []
-    for agg in aggregations:
-        agg_dict = agg.to_dict()
-        agg_dict['instance'] = {
-            'id': agg.instance.id,
-            'name': agg.instance.name,
-            'db_type': agg.instance.db_type,
-        }
-        data.append(agg_dict)
-
-    total_pages = (total + per_page - 1) // per_page if not get_all else 1
-
-    return {
-        'data': data,
-        'total': total,
-        'page': page,
-        'per_page': per_page,
-        'total_pages': total_pages,
-        'has_prev': page > 1,
-        'has_next': page < total_pages,
-    }
-
-
 @database_aggr_bp.route('/api/databases/aggregations/summary', methods=['GET'])
 @login_required
 @view_required
@@ -266,7 +180,7 @@ def get_databases_aggregations_summary() -> Response:
     end_date = _parse_date(end_date_str, 'end_date') if end_date_str else None
 
     try:
-        summary = _fetch_database_aggregation_summary(
+        summary = fetch_aggregation_summary(
             instance_id=instance_id,
             db_type=db_type,
             database_name=database_name,
@@ -286,112 +200,3 @@ def get_databases_aggregations_summary() -> Response:
         raise SystemError("获取数据库统计聚合汇总信息失败") from exc
 
     return jsonify_unified_success(data={'summary': summary}, message="数据库统计聚合汇总获取成功")
-
-
-def _fetch_database_aggregation_summary(
-    *,
-    instance_id: Optional[int],
-    db_type: Optional[str],
-    database_name: Optional[str],
-    database_id: Optional[int],
-    period_type: Optional[str],
-    start_date: Optional[date],
-    end_date: Optional[date],
-) -> Dict[str, Any]:
-    filters = []
-
-    if instance_id:
-        filters.append(DatabaseSizeAggregation.instance_id == instance_id)
-    if db_type:
-        filters.append(Instance.db_type == db_type)
-    resolved_database_name = database_name
-    if not resolved_database_name and database_id:
-        from app.models.instance_database import InstanceDatabase
-
-        db_record = InstanceDatabase.query.filter_by(id=database_id).first()
-        if db_record:
-            resolved_database_name = db_record.database_name
-    if resolved_database_name:
-        filters.append(DatabaseSizeAggregation.database_name == resolved_database_name)
-    if period_type:
-        filters.append(DatabaseSizeAggregation.period_type == period_type)
-    if start_date:
-        filters.append(DatabaseSizeAggregation.period_end >= start_date)
-    if end_date:
-        filters.append(DatabaseSizeAggregation.period_end <= end_date)
-
-    latest_entries_query = (
-        db.session.query(
-            DatabaseSizeAggregation.instance_id.label("instance_id"),
-            DatabaseSizeAggregation.database_name.label("database_name"),
-            DatabaseSizeAggregation.period_type.label("period_type"),
-            func.max(DatabaseSizeAggregation.period_end).label("latest_period_end"),
-        )
-        .join(Instance)
-        .filter(*filters)
-        .group_by(
-            DatabaseSizeAggregation.instance_id,
-            DatabaseSizeAggregation.database_name,
-            DatabaseSizeAggregation.period_type,
-        )
-    )
-
-    latest_entries = latest_entries_query.all()
-
-    if not latest_entries:
-        return {
-            'total_databases': 0,
-            'total_instances': 0,
-            'total_size_mb': 0,
-            'avg_size_mb': 0,
-            'average_size_mb': 0,
-            'max_size_mb': 0,
-            'growth_rate': 0,
-        }
-
-    from sqlalchemy import tuple_
-
-    lookup_values = [
-        (entry.instance_id, entry.database_name, entry.period_type, entry.latest_period_end)
-        for entry in latest_entries
-    ]
-
-    aggregations = (
-        DatabaseSizeAggregation.query.filter(
-            tuple_(
-                DatabaseSizeAggregation.instance_id,
-                DatabaseSizeAggregation.database_name,
-                DatabaseSizeAggregation.period_type,
-                DatabaseSizeAggregation.period_end,
-            ).in_(lookup_values)
-        ).all()
-    )
-
-    if not aggregations:
-        return {
-            'total_databases': 0,
-            'total_instances': 0,
-            'total_size_mb': 0,
-            'avg_size_mb': 0,
-            'average_size_mb': 0,
-            'max_size_mb': 0,
-            'growth_rate': 0,
-        }
-
-    total_databases = len({(entry.instance_id, entry.database_name) for entry in latest_entries})
-    total_instances = len({entry.instance_id for entry in latest_entries})
-    total_size_mb = sum(agg.avg_size_mb for agg in aggregations)
-    average_size_mb = total_size_mb / total_databases if total_databases else 0
-    max_size_mb = max((agg.max_size_mb or 0) for agg in aggregations)
-
-    growth_rate = 0.0
-
-    return {
-        'total_databases': total_databases,
-        'total_instances': total_instances,
-        'total_size_mb': total_size_mb,
-        'avg_size_mb': average_size_mb,
-        'average_size_mb': average_size_mb,
-        'max_size_mb': max_size_mb,
-        'growth_rate': growth_rate,
-    }

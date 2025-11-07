@@ -8,18 +8,21 @@ from datetime import datetime, timedelta, date
 import psutil
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
-from sqlalchemy import and_, distinct, func, or_, text, case
+from sqlalchemy import and_, func, or_, text, case
 
 from app import db
 from app.constants.system_constants import SuccessMessages
 from app.constants import TaskStatus
 from app.models.instance import Instance
-from app.models.account_permission import AccountPermission
-from app.models.instance_account import InstanceAccount
-from app.models.instance_database import InstanceDatabase
-from app.services.statistics.account_statistics_service import fetch_summary as fetch_account_summary
+from app.services.statistics.account_statistics_service import (
+    fetch_classification_overview,
+    fetch_summary as fetch_account_summary,
+)
 from app.services.statistics.database_statistics_service import fetch_summary as fetch_database_summary
-from app.services.statistics.instance_statistics_service import fetch_summary as fetch_instance_summary
+from app.services.statistics.instance_statistics_service import (
+    fetch_capacity_summary,
+    fetch_summary as fetch_instance_summary,
+)
 
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.user import User
@@ -157,35 +160,11 @@ def get_system_overview() -> dict:
         # 基础统计
         total_users = User.query.count()
         account_summary = fetch_account_summary()
+        classification_overview = fetch_classification_overview()
         instance_summary = fetch_instance_summary()
         database_summary = fetch_database_summary()
-        from app.models.account_classification import AccountClassification, AccountClassificationAssignment
-        from app.models.account_permission import AccountPermission
+        capacity_summary = fetch_capacity_summary()
         from app.models.unified_log import LogLevel, UnifiedLog
-
-        # 获取容量统计
-        from app.models.database_size_stat import DatabaseSizeStat
-        from app.models.instance_size_stat import InstanceSizeStat
-        from app.models.instance_database import InstanceDatabase
-        
-        # 获取最近的容量数据（最近7天）
-        recent_date = time_utils.now_china().date() - timedelta(days=7)
-        
-        # 计算总容量（使用实例大小统计）
-        recent_instance_stats = InstanceSizeStat.query.filter(
-            InstanceSizeStat.collected_date >= recent_date
-        ).all()
-        
-        # 按实例分组，获取每个实例的最新大小
-        instance_sizes = {}
-        for stat in recent_instance_stats:
-            if stat.instance_id not in instance_sizes or stat.collected_date > instance_sizes[stat.instance_id]['date']:
-                instance_sizes[stat.instance_id] = {
-                    'size_mb': stat.total_size_mb or 0,
-                    'date': stat.collected_date
-                }
-        
-        total_capacity_gb = sum(inst['size_mb'] for inst in instance_sizes.values()) / 1024
         
         log_info(
             "dashboard_base_counts",
@@ -193,89 +172,19 @@ def get_system_overview() -> dict:
             total_users=total_users,
             total_instances=instance_summary["total_instances"],
             total_accounts=account_summary["total_accounts"],
-            total_capacity_gb=round(total_capacity_gb, 1),
+            total_capacity_gb=capacity_summary["total_gb"],
             total_databases=database_summary["total_databases"],
             active_accounts=account_summary["active_accounts"],
             locked_accounts=account_summary["locked_accounts"],
             active_databases=database_summary["active_databases"],
         )
 
-        # 分类统计（聚合查询，避免N+1）
-        classification_rows = (
-            db.session.query(
-                AccountClassification.name,
-                AccountClassification.color,
-                AccountClassification.priority,
-                func.count(distinct(AccountClassificationAssignment.account_id)).label("count")
-            )
-            .outerjoin(
-                AccountClassificationAssignment,
-                and_(
-                    AccountClassificationAssignment.classification_id == AccountClassification.id,
-                    AccountClassificationAssignment.is_active.is_(True)
-                )
-            )
-            .outerjoin(
-                AccountPermission,
-                AccountPermission.id == AccountClassificationAssignment.account_id,
-            )
-            .outerjoin(
-                InstanceAccount,
-                AccountPermission.instance_account,
-            )
-            .outerjoin(
-                Instance,
-                and_(
-                    Instance.id == AccountPermission.instance_id,
-                    Instance.is_active.is_(True),
-                    Instance.deleted_at.is_(None)
-                )
-            )
-            .filter(AccountClassification.is_active.is_(True))
-            .filter(or_(InstanceAccount.is_active.is_(True), InstanceAccount.id.is_(None)))
-            .group_by(AccountClassification.id)
-            .order_by(AccountClassification.priority.desc())
-            .all()
-        )
-        classification_stats = [
-            (name, color, priority, count or 0)
-            for name, color, priority, count in classification_rows
-        ]
-        total_classified_accounts = sum(count for _, _, _, count in classification_stats)
-
-        auto_classified_accounts = (
-            db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
-            .join(
-                AccountPermission,
-                AccountPermission.id == AccountClassificationAssignment.account_id,
-            )
-            .join(
-                InstanceAccount,
-                AccountPermission.instance_account,
-            )
-            .join(
-                Instance,
-                and_(
-                    Instance.id == AccountPermission.instance_id,
-                    Instance.is_active.is_(True),
-                    Instance.deleted_at.is_(None)
-                )
-            )
-            .filter(
-                AccountClassificationAssignment.is_active.is_(True),
-                AccountClassificationAssignment.assignment_type == "auto"
-            )
-            .filter(InstanceAccount.is_active.is_(True))
-            .scalar()
-            or 0
-        )
-
         log_info(
             "dashboard_classification_counts",
             module="dashboard",
-            classifications=len(classification_stats),
-            total_classified_accounts=total_classified_accounts,
-            auto_classified_accounts=auto_classified_accounts,
+            classifications=len(classification_overview["classifications"]),
+            total_classified_accounts=classification_overview["total"],
+            auto_classified_accounts=classification_overview["auto"],
         )
 
         log_info(
@@ -285,12 +194,6 @@ def get_system_overview() -> dict:
             active_accounts=account_summary["active_accounts"],
             active_instances=instance_summary["active_instances"],
         )
-
-        # 获取最新的容量使用率（可选，用于显示使用情况）
-        capacity_usage_percent = 0
-        if total_capacity_gb > 0:
-            # 这里可以根据实际需求计算使用率，暂时设为0
-            capacity_usage_percent = 0
 
         # 最近同步数据（东八区） - 使用新的同步会话模型
 
@@ -307,15 +210,8 @@ def get_system_overview() -> dict:
                 "active": account_summary["active_accounts"],
                 "locked": account_summary["locked_accounts"],
             },
-            "classified_accounts": {
-                "total": total_classified_accounts,
-                "auto": auto_classified_accounts,
-                "classifications": [
-                    {"name": name, "color": color or "#6c757d", "priority": priority, "count": count}
-                    for name, color, priority, count in classification_stats
-                ],
-            },
-            "capacity": {"total_gb": round(total_capacity_gb, 1), "usage_percent": capacity_usage_percent},
+            "classified_accounts": classification_overview,
+            "capacity": capacity_summary,
             "databases": {
                 "total": database_summary["total_databases"],
                 "active": database_summary["active_databases"],

@@ -6,12 +6,14 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from app import db
 from app.errors import SystemError
 from app.models.instance import Instance
 from app.utils.structlog_config import log_error
+from app.utils.time_utils import time_utils
 
 
 def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
@@ -40,6 +42,36 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
     except Exception as exc:  # noqa: BLE001
         log_error("获取实例汇总失败", module="instance_statistics", exception=exc)
         raise SystemError("获取实例汇总失败") from exc
+
+
+def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
+    """汇总实例容量信息，返回总容量与使用率。"""
+    try:
+        from app.models.instance_size_stat import InstanceSizeStat
+
+        recent_date = time_utils.now_china().date() - timedelta(days=recent_days)
+        recent_stats = InstanceSizeStat.query.filter(
+            InstanceSizeStat.collected_date >= recent_date
+        ).all()
+
+        latest_per_instance: dict[int, dict[str, Any]] = {}
+        for stat in recent_stats:
+            current = latest_per_instance.get(stat.instance_id)
+            if current is None or stat.collected_date > current["date"]:
+                latest_per_instance[stat.instance_id] = {
+                    "size_mb": stat.total_size_mb or 0,
+                    "date": stat.collected_date,
+                }
+
+        total_capacity_gb = sum(item["size_mb"] for item in latest_per_instance.values()) / 1024
+        capacity_usage_percent = 0
+        return {
+            "total_gb": round(total_capacity_gb, 1),
+            "usage_percent": capacity_usage_percent,
+        }
+    except Exception as exc:  # noqa: BLE001
+        log_error("获取实例容量统计失败", module="instance_statistics", exception=exc)
+        raise SystemError("获取实例容量统计失败") from exc
 
 
 def build_aggregated_statistics() -> dict[str, Any]:
