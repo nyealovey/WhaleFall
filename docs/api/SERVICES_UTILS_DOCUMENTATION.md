@@ -30,7 +30,7 @@
 | `AccountClassificationService.invalidate_db_type_cache` | 仅所在文件内部使用 | 负责 invalidate db type cache 相关逻辑 |
 | `AccountClassificationService.get_rule_matched_accounts_count` | 仅所在文件内部使用 | 负责 get rule matched accounts count 相关逻辑 |
 
-## `app/services/account_statistics_service.py`
+## `app/services/statistics/account_statistics_service.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
