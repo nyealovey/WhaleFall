@@ -132,14 +132,14 @@
         <div class="card session-card ${statusClass} mb-3">
           <div class="card-body">
             <div class="row align-items-center">
-              <div class="col-md-2">
+              <div class="col-2">
                 <h6 class="mb-1">${session.session_id.substring(0, 8)}...</h6>
                 <small class="text-muted">${getSyncTypeText(session.sync_type)} - ${getSyncCategoryText(session.sync_category)}</small>
               </div>
-              <div class="col-md-2">
+              <div class="col-2">
                 <span class="badge status-badge bg-${getStatusColor(session.status)}">${statusText}</span>
               </div>
-              <div class="col-md-3">
+              <div class="col-3">
                 <div class="progress" style="height: 12px;">
                   <div class="progress-bar ${progressInfo.barClass}" role="progressbar" style="width: ${successRate}%" title="${progressInfo.tooltip}"></div>
                 </div>
@@ -149,16 +149,16 @@
                   </span>
                 </small>
               </div>
-              <div class="col-md-2">
+              <div class="col-2">
                 <small class="text-muted">
                   <i class="fas fa-clock"></i> ${startedAt}<br>
                   <i class="fas fa-check-circle"></i> ${completedAt}
                 </small>
               </div>
-              <div class="col-md-1">
+              <div class="col-1">
                 ${getDurationBadge(session.started_at, session.completed_at)}
               </div>
-              <div class="col-md-2 text-end">
+              <div class="text-end col-2">
                 <button class="btn btn-sm btn-outline-primary" data-action="view" data-id="${session.session_id}">
                   <i class="fas fa-eye"></i> 详情
                 </button>
@@ -347,13 +347,13 @@
         <div class="card mb-2">
           <div class="card-body">
             <div class="row align-items-center">
-              <div class="col-md-3">
+              <div class="col-3">
                 <h6 class="mb-1"><strong>ID: ${record.instance_id}</strong> &nbsp;&nbsp; ${record.instance_name}</h6>
               </div>
-              <div class="col-md-2">
+              <div class="col-2">
                 <span class="badge status-badge bg-${getStatusColor(record.status)}">${statusText}</span>
               </div>
-              <div class="col-md-7">
+              <div class="col-7">
                 <small class="text-muted">
                   开始: ${startedAt} &nbsp;&nbsp; | &nbsp;&nbsp; 完成: ${completedAt} &nbsp;&nbsp; | &nbsp;&nbsp; 耗时: ${duration}
                   ${record.error_message ? ` &nbsp;&nbsp; | &nbsp;&nbsp; 错误: ${record.error_message}` : ''}
@@ -366,21 +366,21 @@
 
     content.innerHTML = `
       <div class="row mb-3">
-        <div class="col-md-6"><strong>会话ID:</strong> ${safeSession.session_id || '未知'}</div>
-        <div class="col-md-6"><strong>状态:</strong> <span class="badge bg-${getStatusColor(safeSession.status)}">${getStatusText(safeSession.status)}</span></div>
+        <div class="col-6"><strong>会话ID:</strong> ${safeSession.session_id || '未知'}</div>
+        <div class="col-6"><strong>状态:</strong> <span class="badge bg-${getStatusColor(safeSession.status)}">${getStatusText(safeSession.status)}</span></div>
       </div>
       <div class="row mb-3">
-        <div class="col-md-6"><strong>操作方式:</strong> ${getSyncTypeText(safeSession.sync_type)}</div>
-        <div class="col-md-6"><strong>同步分类:</strong> ${getSyncCategoryText(safeSession.sync_category)}</div>
+        <div class="col-6"><strong>操作方式:</strong> ${getSyncTypeText(safeSession.sync_type)}</div>
+        <div class="col-6"><strong>同步分类:</strong> ${getSyncCategoryText(safeSession.sync_category)}</div>
       </div>
       <div class="row mb-3">
-        <div class="col-md-6"><strong>开始时间:</strong> ${timeUtils.formatTime(safeSession.started_at, 'datetime')}</div>
-        <div class="col-md-6"><strong>完成时间:</strong> ${safeSession.completed_at ? timeUtils.formatTime(safeSession.completed_at, 'datetime') : '未完成'}</div>
+        <div class="col-6"><strong>开始时间:</strong> ${timeUtils.formatTime(safeSession.started_at, 'datetime')}</div>
+        <div class="col-6"><strong>完成时间:</strong> ${safeSession.completed_at ? timeUtils.formatTime(safeSession.completed_at, 'datetime') : '未完成'}</div>
       </div>
       <div class="row mb-3">
-        <div class="col-md-4"><strong>总实例数:</strong> ${safeSession.total_instances ?? 0}</div>
-        <div class="col-md-4"><strong>成功:</strong> ${safeSession.successful_instances ?? 0}</div>
-        <div class="col-md-4"><strong>失败:</strong> ${safeSession.failed_instances ?? 0}</div>
+        <div class="col-4"><strong>总实例数:</strong> ${safeSession.total_instances ?? 0}</div>
+        <div class="col-4"><strong>成功:</strong> ${safeSession.successful_instances ?? 0}</div>
+        <div class="col-4"><strong>失败:</strong> ${safeSession.failed_instances ?? 0}</div>
       </div>
       <hr>
       <h6>实例记录</h6>

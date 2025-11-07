@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-6">
+    <div class="col-6">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
@@ -30,7 +30,7 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="category" class="form-label">分类 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="category" name="category" required>
@@ -48,7 +48,7 @@
                                 <div class="form-text">选择标签所属分类</div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="color" class="form-label">颜色</label>
                                 <select class="form-select" id="color" name="color">
@@ -71,7 +71,7 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label for="sort_order" class="form-label">排序顺序</label>
                                 <input type="number" class="form-control" id="sort_order" name="sort_order" 
@@ -79,7 +79,7 @@
                                 <div class="form-text">数字越小排序越靠前</div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
@@ -92,8 +92,8 @@
                         </div>
                     </div>
                     
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('tags.index') }}" class="btn btn-secondary me-md-2">取消</a>
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{{ url_for('tags.index') }}" class="btn btn-secondary me-2">取消</a>
                         <button type="submit" class="btn btn-primary">创建标签</button>
                     </div>
                 </form>

@@ -345,7 +345,7 @@ function createJobCard(job) {
     const lastRunTime = job.last_run_time ? formatTime(job.last_run_time) : '从未运行';
 
     return $(`
-        <div class="col-md-6 col-lg-4">
+        <div class="col-4">
             <div class="job-card ${statusClass}">
                 <div class="job-info">
                     <div class="d-flex justify-content-between align-items-start mb-2">

@@ -24,7 +24,7 @@
 
 <!-- 总体统计卡片 -->
 <div class="row mb-4">
-    <div class="col-md-3">
+    <div class="col-3">
         <div class="card bg-primary text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
@@ -39,7 +39,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-3">
         <div class="card bg-success text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
@@ -54,7 +54,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-3">
         <div class="card bg-danger text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
@@ -69,7 +69,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-3">
         <div class="card bg-info text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
@@ -98,7 +98,7 @@
             <div class="card-body">
                 <div class="row">
                     {% for db_type, type_stats in stats.db_type_stats.items() %}
-                    <div class="col-md-3 mb-3">
+                    <div class="mb-3 col-3">
                         <div class="card border-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}">
                             <div class="card-body text-center">
                                 <i class="fas fa-database fa-2x mb-2 text-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}"></i>

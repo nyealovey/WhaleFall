@@ -39,9 +39,3 @@
     color: var(--danger-color);
 }
 
-@media (max-width: 768px) {
-    .form-section {
-        padding: var(--spacing-md);
-        margin-bottom: var(--spacing-md);
-    }
-}

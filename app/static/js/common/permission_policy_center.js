@@ -39,7 +39,7 @@
       }
       return `
         <div class="row">
-          <div class="col-md-12">
+          <div class="col-12">
             <h6 class="mb-2"><i class="fas fa-key me-2"></i>权限</h6>
             <div class="mb-2">
               ${permissions.map((item) => `<span class="badge bg-primary me-1 mb-1">${item}</span>`).join("")}
@@ -66,7 +66,7 @@
 
       return `
         <div class="row">
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-primary mb-3"><i class="fas fa-globe me-2"></i>全局权限</h6>
             <div class="permission-section">
               ${globals
@@ -87,7 +87,7 @@
                 .join("") || '<div class="text-muted">暂无全局权限</div>'}
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-success mb-3"><i class="fas fa-database me-2"></i>数据库权限</h6>
             <div class="permission-section">
               ${databases
@@ -211,25 +211,25 @@
 
       return `
         <div class="row">
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-info mb-3"><i class="fas fa-users me-2"></i>服务器角色</h6>
             <div class="permission-section">
               ${renderGroup(serverRoles, "server_role", "fas fa-users", "info", "服务器角色")}
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-warning mb-3"><i class="fas fa-user-shield me-2"></i>服务器权限</h6>
             <div class="permission-section">
               ${renderGroup(serverPermissions, "server_perm", "fas fa-user-shield", "warning", "服务器权限")}
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-success mb-3"><i class="fas fa-database me-2"></i>数据库角色</h6>
             <div class="permission-section">
               ${renderGroup(databaseRoles, "db_role", "fas fa-database", "success", "数据库角色")}
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-primary mb-3"><i class="fas fa-key me-2"></i>数据库权限</h6>
             <div class="permission-section">
               ${renderGroup(databasePermissions, "db_perm", "fas fa-key", "primary", "数据库权限")}
@@ -346,25 +346,25 @@
 
       return `
         <div class="row">
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-primary mb-3"><i class="fas fa-user-tag me-2"></i>预定义角色</h6>
             <div class="permission-section">
               ${renderGroup(predefinedRoles, "predefined_role", "fas fa-user-tag", "primary", "预定义角色")}
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-success mb-3"><i class="fas fa-user-check me-2"></i>角色属性</h6>
             <div class="permission-section">
               ${renderGroup(roleAttributes, "role_attr", "fas fa-user-check", "success", "角色属性")}
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-warning mb-3"><i class="fas fa-database me-2"></i>数据库权限</h6>
             <div class="permission-section">
               ${renderGroup(databasePrivileges, "db_perm", "fas fa-database", "warning", "数据库权限")}
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-info mb-3"><i class="fas fa-layer-group me-2"></i>表空间权限</h6>
             <div class="permission-section">
               ${renderGroup(tablespacePrivileges, "tablespace_perm", "fas fa-layer-group", "info", "表空间权限")}
@@ -481,25 +481,25 @@
 
       return `
         <div class="row">
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-primary mb-3"><i class="fas fa-user-shield me-2"></i>角色</h6>
             <div class="permission-section">
               ${renderGroup(roles, "role", "fas fa-user-shield", "primary", "角色")}
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-success mb-3"><i class="fas fa-cogs me-2"></i>系统权限</h6>
             <div class="permission-section">
               ${renderGroup(systemPermissions, "sys_perm", "fas fa-cogs", "success", "系统权限")}
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-warning mb-3"><i class="fas fa-layer-group me-2"></i>表空间权限</h6>
             <div class="permission-section">
               ${renderGroup(tablespacePermissions, "tablespace_perm", "fas fa-layer-group", "warning", "表空间权限")}
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-6">
             <h6 class="text-info mb-3"><i class="fas fa-balance-scale me-2"></i>表空间配额</h6>
             <div class="permission-section">
               ${renderGroup(tablespaceQuotas, "tablespace_quota", "fas fa-balance-scale", "info", "表空间配额")}
@@ -598,7 +598,7 @@
     const columns = sections
       .map(
         (section) => `
-      <div class="col-md-6">
+      <div class="col-6">
         <h6 class="text-${section.color} mb-2"><i class="${section.icon} me-2"></i>${section.title}</h6>
         <div class="mb-3">
           ${section.items.map((item) => `<span class="badge bg-${section.color} me-1 mb-1">${item}</span>`).join("")}

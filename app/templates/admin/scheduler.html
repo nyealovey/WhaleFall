@@ -44,7 +44,7 @@
                 </div>
                 <div class="card-body">
                     <div id="healthStatus" class="row">
-                        <div class="col-md-3">
+                        <div class="col-3">
                             <div class="health-item">
                                 <div class="health-label">
                                     <i class="fas fa-heartbeat me-1"></i>整体状态
@@ -54,7 +54,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-3">
                             <div class="health-item">
                                 <div class="health-label">
                                     <i class="fas fa-chart-line me-1"></i>健康分数
@@ -64,7 +64,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-3">
                             <div class="health-item">
                                 <div class="health-label">
                                     <i class="fas fa-play-circle me-1"></i>调度器运行
@@ -74,7 +74,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-3">
                             <div class="health-item">
                                 <div class="health-label">
                                     <i class="fas fa-tasks me-1"></i>任务数量
@@ -89,7 +89,7 @@
                         <div class="col-12">
                             <div class="health-details">
                                 <div class="row">
-                                    <div class="col-md-3">
+                                    <div class="col-3">
                                         <div class="detail-item">
                                             <span class="detail-label">
                                                 <i class="fas fa-microchip me-1"></i>线程:
@@ -97,7 +97,7 @@
                                             <span id="threadStatus" class="detail-value">--</span>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-3">
                                         <div class="detail-item">
                                             <span class="detail-label">
                                                 <i class="fas fa-database me-1"></i>存储:
@@ -105,7 +105,7 @@
                                             <span id="jobstoreStatus" class="detail-value">--</span>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-3">
                                         <div class="detail-item">
                                             <span class="detail-label">
                                                 <i class="fas fa-cogs me-1"></i>执行器:
@@ -113,7 +113,7 @@
                                             <span id="executorStatus" class="detail-value">--</span>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-3">
                                         <div class="detail-item">
                                             <span class="detail-label">
                                                 <i class="fas fa-clock me-1"></i>检查时间:
@@ -199,13 +199,13 @@
             <form id="addJobForm">
                 <div class="modal-body">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="form-group">
                                 <label for="jobName" class="form-label">任务名称 <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="jobName" name="name" required>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="form-group">
                                 <label for="jobFunction" class="form-label">执行函数 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="jobFunction" name="func" required>
@@ -230,28 +230,28 @@
                     <div id="cronConfig" class="trigger-config show">
                         <!-- 第一行：秒、分、时、日 -->
                         <div class="row">
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="cronSecond" class="form-label small">秒 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="cronSecond" name="cron_second" placeholder="0-59" value="0">
                                     <small class="form-text text-muted small">0-59</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="cronMinute" class="form-label small">分钟 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="cronMinute" name="cron_minute" placeholder="0-59" value="0">
                                     <small class="form-text text-muted small">0-59</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="cronHour" class="form-label small">小时 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="cronHour" name="cron_hour" placeholder="0-23" value="0">
                                     <small class="form-text text-muted small">0-23</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="cronDay" class="form-label small">日 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="cronDay" name="cron_day" placeholder="1-31" value="*">
@@ -262,21 +262,21 @@
                         
                         <!-- 第二行：月、周、年 -->
                         <div class="row mt-2">
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="cronMonth" class="form-label small">月份 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="cronMonth" name="cron_month" placeholder="1-12" value="*">
                                     <small class="form-text text-muted small">1-12</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="cronWeekday" class="form-label small">星期 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="cronWeekday" name="cron_weekday" placeholder="0-6" value="*">
                                     <small class="form-text text-muted small">0-6</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="cronYear" class="form-label small">年</label>
                                     <input type="text" class="form-control" id="cronYear" name="year" placeholder="2024" value="*">
@@ -328,13 +328,13 @@
                 <div class="modal-body">
                     <input type="hidden" id="editJobId" name="job_id" />
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="form-group">
                                 <label for="editJobName" class="form-label">任务名称 <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="editJobName" name="name" required>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6">
                             <div class="form-group">
                                 <label for="editJobFunction" class="form-label">执行函数 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="editJobFunction" name="func" required>
@@ -356,28 +356,28 @@
                     <div id="editCronConfig" class="edit-trigger-config show">
                         <!-- 第一行：秒、分、时、日 -->
                         <div class="row">
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="editCronSecond" class="form-label small">秒 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="editCronSecond" name="cron_second" placeholder="0-59" value="0">
                                     <small class="form-text text-muted small">0-59</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="editCronMinute" class="form-label small">分钟 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="editCronMinute" name="cron_minute" placeholder="0-59" value="0">
                                     <small class="form-text text-muted small">0-59</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="editCronHour" class="form-label small">小时 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="editCronHour" name="cron_hour" placeholder="0-23" value="0">
                                     <small class="form-text text-muted small">0-23</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="editCronDay" class="form-label small">日 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="editCronDay" name="cron_day" placeholder="1-31" value="*">
@@ -388,21 +388,21 @@
                         
                         <!-- 第二行：月、周、年 -->
                         <div class="row mt-2">
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="editCronMonth" class="form-label small">月份 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="editCronMonth" name="cron_month" placeholder="1-12" value="*">
                                     <small class="form-text text-muted small">1-12</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="editCronWeekday" class="form-label small">星期 <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="editCronWeekday" name="cron_weekday" placeholder="0-6" value="*">
                                     <small class="form-text text-muted small">0-6</small>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-2">
                                 <div class="form-group">
                                     <label for="editCronYear" class="form-label small">年</label>
                                     <input type="text" class="form-control" id="editCronYear" name="year" placeholder="2024" value="*">
@@ -434,14 +434,14 @@
                     <!-- Interval 触发器配置（编辑） -->
                     <div id="editIntervalConfig" class="edit-trigger-config" style="display:none;">
                         <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-3">
                                 <div class="form-group">
                                     <label for="editIntervalMinutes" class="form-label">间隔（分钟）</label>
                                     <input type="number" min="0" class="form-control" id="editIntervalMinutes" name="interval_minutes" value="0">
                                     <small class="form-text text-muted">>= 0</small>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-3">
                                 <div class="form-group">
                                     <label for="editIntervalSeconds" class="form-label">间隔（秒）</label>
                                     <input type="number" min="0" class="form-control" id="editIntervalSeconds" name="interval_seconds" value="0">
@@ -457,7 +457,7 @@
                     <!-- Date 触发器配置（编辑） -->
                     <div id="editDateConfig" class="edit-trigger-config" style="display:none;">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-6">
                                 <div class="form-group">
                                     <label for="editRunDate" class="form-label">运行时间</label>
                                     <input type="datetime-local" class="form-control" id="editRunDate" name="run_date">

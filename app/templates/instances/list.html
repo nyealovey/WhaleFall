@@ -38,7 +38,7 @@
     <!-- 搜索和筛选 -->
     <div class="instances-page">
         {% call filter_card(form_id='instance-filter-form', action=url_for('instance.index')) %}
-            {{ search_input(value=search, col_class='col-12 col-lg-2 col-xl-2') }}
+            {{ search_input(value=search, col_class='col-2') }}
             {{ db_type_filter(database_type_options, db_type) }}
             {{ status_active_filter(status_options, status) }}
             {{ tag_selector_filter(tag_options, selected_tags) }}

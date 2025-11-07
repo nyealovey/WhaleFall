@@ -138,17 +138,4 @@
 }
 
 /* 响应式调整 */
-@media (max-width: 768px) {
-    .stats-card .card-body {
-        padding: var(--spacing-md);
-    }
-    
-    .stats-number {
-        font-size: 2rem;
-    }
-    
-    .chart-container {
-        height: 300px;
-        padding: var(--spacing-sm);
-    }
-}
+

@@ -359,22 +359,22 @@ function displayRules(rulesByDbType) {
                                         <div class="rule-card">
                                             <div class="card-body">
                                                 <div class="row align-items-center">
-                                                    <div class="col-md-3">
+                                                    <div class="col-3">
                                                         <h6 class="card-title mb-0">${rule.rule_name}</h6>
                                                     </div>
-                                                    <div class="col-md-4">
+                                                    <div class="col-4">
                                                         <div class="d-flex align-items-center justify-content-center gap-1">
                                                             <span class="rule-classification-badge ${getClassificationClass(rule.classification_name)}">${rule.classification_name || '未分类'}</span>
                                                             <span class="db-type-badge">${rule.db_type.toUpperCase()}</span>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-2">
+                                                    <div class="col-2">
                                                         <span class="badge accounts-count-badge" 
                                                               data-count="${rule.matched_accounts_count || 0}">
                                                             <i class="fas fa-users me-1"></i>${rule.matched_accounts_count || 0} 个账户
                                                         </span>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-3">
                                                         <div class="rule-actions">
                                                             <button class="btn btn-outline-info" onclick="viewRule(${rule.id})" title="查看详情">
                                                                 <i class="fas fa-eye"></i>
