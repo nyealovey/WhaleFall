@@ -38,8 +38,8 @@
     <div class="tags-page">
         {% call filter_card(form_id='tag-filter-form', action=url_for('tags.index')) %}
             {{ search_input(value=search, placeholder='搜索标签名称或描述') }}
-            {{ tag_category_filter(category_options, category, col_class='col-12 col-lg-3 col-xl-3') }}
-            {{ status_active_filter(status_options, status, col_class='col-12 col-lg-2 col-xl-2') }}
+            {{ tag_category_filter(category_options, category, col_class='col-3') }}
+            {{ status_active_filter(status_options, status, col_class='col-2') }}
         {% endcall %}
     </div>
 

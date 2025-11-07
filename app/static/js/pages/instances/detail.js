@@ -443,7 +443,7 @@ function displayDatabaseSizes(payload) {
 
     let html = `
         <div class="row mb-3">
-            <div class="col-md-4">
+            <div class="col-4">
                 <div class="card bg-light">
                     <div class="card-body text-center">
                         <h5 class="card-title text-primary">${onlineCount}</h5>
@@ -451,7 +451,7 @@ function displayDatabaseSizes(payload) {
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-4">
                 <div class="card bg-light">
                     <div class="card-body text-center">
                         <h5 class="card-title text-danger">${deletedCount}</h5>
@@ -459,7 +459,7 @@ function displayDatabaseSizes(payload) {
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-4">
                 <div class="card bg-light">
                     <div class="card-body text-center">
                         <h5 class="card-title text-success">${totalSizeGB} GB</h5>

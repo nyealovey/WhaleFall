@@ -212,23 +212,7 @@
 }
 
 /* 响应式调整 */
-@media (max-width: 768px) {
-    .instance-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .tag-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .operation-buttons {
-        flex-direction: column;
-    }
-    
-    .operation-buttons .btn {
-        width: 100%;
-    }
-}
+
 
 /* 手风琴样式 */
 .instance-group, .tag-group {

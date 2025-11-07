@@ -105,12 +105,3 @@
 }
 
 /* 响应式调整 */
-@media (max-width: 768px) {
-    .timeline {
-        padding-left: var(--spacing-lg);
-    }
-    
-    .timeline-marker {
-        left: -25px;
-    }
-}
