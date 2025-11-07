@@ -499,14 +499,6 @@
 | `PartitionManagementService._format_size` | 仅所在文件内部使用 | 负责 format size 相关逻辑 |
 | `PartitionManagementService._rollback_on_error` | 仅所在文件内部使用 | 负责 rollback on error 相关逻辑 |
 
-## `app/services/scheduler_health_service.py`
-
-| 条目 | 引用情况 | 用途 |
-| --- | --- | --- |
-| `SchedulerHealthReport.executor_working` | 仅所在文件内部使用 | 负责 executor working 相关逻辑 |
-| `SchedulerHealthService.inspect` | 仅所在文件内部使用 | 负责 inspect 相关逻辑 |
-| `SchedulerHealthService._inspect_executors` | 仅所在文件内部使用 | 负责 inspect executors 相关逻辑 |
-
 ## `app/services/sync_session_service.py`
 
 | 条目 | 引用情况 | 用途 |

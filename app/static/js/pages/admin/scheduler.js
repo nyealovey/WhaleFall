@@ -38,7 +38,6 @@ $(document).ready(function () {
 // 初始化定时任务管理页面（移除自动刷新）
 function initializeSchedulerPage() {
     loadJobs();
-    loadHealthStatus();
     initializeEventHandlers();
     initializeSchedulerValidators();
 }
@@ -965,62 +964,6 @@ function formatTime(timeString) {
 
 
 
-// 健康状态检查功能
-function loadHealthStatus() {
-    $.ajax({
-        url: '/health/api/scheduler',
-        method: 'GET',
-        success: function (response) {
-            if (response.success) {
-                updateHealthDisplay(response.data);
-            } else {
-                toast.error('获取健康状态失败: ' + response.message);
-            }
-        },
-        error: function (xhr) {
-            console.error('健康状态API调用失败:', xhr);
-            console.error('状态码:', xhr.status);
-            console.error('响应文本:', xhr.responseText);
-
-            const error = xhr.responseJSON;
-            const errorMsg = error ? error.message : `HTTP ${xhr.status}: ${xhr.statusText}`;
-            toast.error('获取健康状态失败: ' + errorMsg);
-        }
-    });
-}
-
-// 更新健康状态显示
-function updateHealthDisplay(healthData) {
-    // 更新整体状态
-    const statusBadge = $('#overallStatus');
-    statusBadge.html(`<span class="badge bg-${healthData.status_color}">${healthData.status_text}</span>`);
-
-    // 更新健康分数
-    const scoreBadge = $('#healthScore');
-    let scoreColor = 'secondary';
-    if (healthData.health_score >= 80) scoreColor = 'success';
-    else if (healthData.health_score >= 60) scoreColor = 'warning';
-    else scoreColor = 'danger';
-    scoreBadge.html(`<span class="badge bg-${scoreColor}">${healthData.health_score}/100</span>`);
-
-    // 更新调度器运行状态
-    $('#schedulerRunning').html(`<span class="badge bg-${healthData.scheduler_running ? 'success' : 'danger'}">${healthData.scheduler_running ? '运行中' : '已停止'}</span>`);
-
-    // 更新任务数量
-    $('#totalJobs').html(`<span class="badge bg-info">${healthData.total_jobs}</span>`);
-
-    // 更新详细状态
-    $('#threadStatus').text(healthData.thread_alive ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.thread_alive ? 'text-success' : 'text-danger');
-    $('#jobstoreStatus').text(healthData.jobstore_accessible ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.jobstore_accessible ? 'text-success' : 'text-danger');
-    $('#executorStatus').text(healthData.executor_working ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.executor_working ? 'text-success' : 'text-danger');
-    $('#lastCheck').text(healthData.last_check || '--');
-}
-
-// 添加刷新健康状态按钮事件
-$(document).on('click', '#refreshHealthBtn', function () {
-    loadHealthStatus();
-});
-
 // 导出函数供全局使用
 window.loadJobs = loadJobs;
 window.enableJob = enableJob;
@@ -1031,50 +974,3 @@ window.deleteJob = deleteJob;
 window.viewJobLogs = viewJobLogs;
 window.addJob = addJob;
 window.formatTime = formatTime;
-window.loadHealthStatus = loadHealthStatus;
-
-function updateHealthDisplay(healthData) {
-    // 更新整体状态
-    const overallStatus = $(`#overallStatus .badge`);
-    overallStatus.removeClass('bg-success bg-warning bg-danger bg-secondary');
-    overallStatus.addClass(`bg-${healthData.status_color}`);
-    overallStatus.text(healthData.status_text);
-
-    // 更新健康分数
-    $('#healthScore .badge').text(`${healthData.health_score}/100`);
-
-    // 更新调度器运行状态
-    const schedulerStatus = healthData.scheduler_running ? '运行中' : '已停止';
-    const schedulerColor = healthData.scheduler_running ? 'success' : 'danger';
-    $('#schedulerRunning .badge').removeClass('bg-success bg-danger bg-secondary').addClass(`bg-${schedulerColor}`).text(schedulerStatus);
-
-    // 更新任务数量
-    $('#totalJobs .badge').text(`${healthData.total_jobs || 0}`);
-
-    // 更新详细信息
-    $('#threadStatus').text(healthData.thread_alive ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.thread_alive ? 'text-success' : 'text-danger');
-    $('#jobstoreStatus').text(healthData.jobstore_accessible ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.jobstore_accessible ? 'text-success' : 'text-danger');
-    $('#executorStatus').text(healthData.executor_working ? '正常' : '异常').removeClass('text-success text-danger').addClass(healthData.executor_working ? 'text-success' : 'text-danger');
-    // 使用统一的时间格式化
-    const lastCheckText = healthData.last_check ?
-        (window.formatDateTime ? window.formatDateTime(healthData.last_check) : new Date(healthData.last_check).toLocaleString()) :
-        '--';
-    $('#lastCheck').text(lastCheckText);
-}
-
-// 添加刷新健康状态按钮事件
-$(document).on('click', '#refreshHealthBtn', function () {
-    loadHealthStatus();
-});
-
-// 导出函数供全局使用
-window.loadJobs = loadJobs;
-window.enableJob = enableJob;
-window.disableJob = disableJob;
-window.runJobNow = runJobNow;
-window.editJob = editJob;
-window.deleteJob = deleteJob;
-window.viewJobLogs = viewJobLogs;
-window.addJob = addJob;
-window.formatTime = formatTime;
-window.loadHealthStatus = loadHealthStatus;
