@@ -90,6 +90,7 @@
                         <th>类型</th>
                         <th>主机</th>
                         <th>版本信息</th>
+                        <th>活跃</th>
                         <th>标签</th>
                         <th>状态</th>
                         <th>最后连接</th>
@@ -130,6 +131,16 @@
                             {% else %}
                                 <small class="text-muted">未检测</small>
                             {% endif %}
+                        </td>
+                        <td>
+                            {% set db_count = active_database_counts.get(instance.id, 0) %}
+                            {% set account_count = active_account_counts.get(instance.id, 0) %}
+                            <span class="badge bg-primary me-1">
+                                <i class="fas fa-database me-1"></i>{{ db_count }}
+                            </span>
+                            <span class="badge bg-info text-dark">
+                                <i class="fas fa-user me-1"></i>{{ account_count }}
+                            </span>
                         </td>
                         <td>
                             {% if instance.tags.all() %}
