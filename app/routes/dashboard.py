@@ -23,6 +23,10 @@ from app.services.statistics.instance_statistics_service import (
     fetch_capacity_summary,
     fetch_summary as fetch_instance_summary,
 )
+from app.services.statistics.log_statistics_service import (
+    fetch_log_level_distribution,
+    fetch_log_trend_data,
+)
 
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.user import User
@@ -261,121 +265,12 @@ def get_chart_data(chart_type: str = "all") -> dict:
 
 @dashboard_cache(timeout=300)
 def get_log_trend_data() -> list[dict[str, int | str]]:
-    """获取日志趋势数据（分别显示错误和告警日志）"""
-    try:
-        db.session.rollback()
-        from app.models.unified_log import LogLevel, UnifiedLog
-
-        # 最近7天的日志数据（东八区）
-        china_today = time_utils.now_china().date()
-        start_date = china_today - timedelta(days=6)
-
-        date_buckets: list[tuple[datetime, any, any]] = []
-        for offset in range(7):
-            day = start_date + timedelta(days=offset)
-            start_dt = datetime(
-                year=day.year,
-                month=day.month,
-                day=day.day,
-                tzinfo=CHINA_TZ,
-            )
-            end_dt = start_dt + timedelta(days=1)
-            start_utc = time_utils.to_utc(start_dt)
-            end_utc = time_utils.to_utc(end_dt)
-            if start_utc is None or end_utc is None:
-                continue
-            date_buckets.append((start_dt, start_utc, end_utc))
-
-        if not date_buckets:
-            return []
-
-        select_columns = []
-        labels: list[tuple[date, str, str]] = []
-        for day, start_utc, end_utc in date_buckets:
-            suffix = time_utils.format_china_time(day, "%Y%m%d")
-            error_label = f"error_{suffix}"
-            warning_label = f"warning_{suffix}"
-            select_columns.append(
-                func.sum(
-                    case(
-                        (
-                            and_(
-                                UnifiedLog.timestamp >= start_utc,
-                                UnifiedLog.timestamp < end_utc,
-                                UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]),
-                            ),
-                            1,
-                        ),
-                        else_=0,
-                    )
-                ).label(error_label)
-            )
-            select_columns.append(
-                func.sum(
-                    case(
-                        (
-                            and_(
-                                UnifiedLog.timestamp >= start_utc,
-                                UnifiedLog.timestamp < end_utc,
-                                UnifiedLog.level == LogLevel.WARNING,
-                            ),
-                            1,
-                        ),
-                        else_=0,
-                    )
-                ).label(warning_label)
-            )
-            labels.append((day, error_label, warning_label))
-
-        if not select_columns:
-            return []
-
-        relevant_levels = [LogLevel.ERROR, LogLevel.WARNING, LogLevel.CRITICAL]
-        query = (
-            db.session.query(*select_columns)
-            .filter(
-                UnifiedLog.timestamp >= date_buckets[0][1],
-                UnifiedLog.timestamp < date_buckets[-1][2],
-                UnifiedLog.level.in_(relevant_levels),
-            )
-        )
-        result = query.one_or_none()
-        result_mapping = result._mapping if result is not None else {}
-
-        trend_data: list[dict[str, int | str]] = []
-        for day, error_label, warning_label in labels:
-            trend_data.append(
-                {
-                    "date": time_utils.format_china_time(day, "%Y-%m-%d"),
-                    "error_count": int(result_mapping.get(error_label) or 0),
-                    "warning_count": int(result_mapping.get(warning_label) or 0),
-                }
-            )
-
-        return trend_data
-    except Exception as e:
-        log_error(f"获取日志趋势数据失败: {e}", module="dashboard")
-        return []
+    return fetch_log_trend_data()
 
 
 @dashboard_cache(timeout=300)
 def get_log_level_distribution() -> list[dict[str, int | str]]:
-    """获取日志级别分布（只显示错误和告警日志）"""
-    try:
-        db.session.rollback()
-        from app.models.unified_log import LogLevel, UnifiedLog
-
-        level_stats = (
-            db.session.query(UnifiedLog.level, db.func.count(UnifiedLog.id).label("count"))
-            .filter(UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.WARNING, LogLevel.CRITICAL]))
-            .group_by(UnifiedLog.level)
-            .all()
-        )
-
-        return [{"level": stat.level.value, "count": stat.count} for stat in level_stats]
-    except Exception as e:
-        log_error(f"获取日志级别分布失败: {e}", module="dashboard")
-        return []
+    return fetch_log_level_distribution()
 
 
 @dashboard_cache(timeout=60)
