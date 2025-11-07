@@ -47,6 +47,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
         account_query = (
             AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
             .join(Instance, Instance.id == AccountPermission.instance_id)
+            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
         )
 
         if instance_id is not None:
@@ -71,25 +72,23 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
         deleted_accounts = total_accounts - active_accounts
         normal_accounts = max(active_accounts - locked_accounts, 0)
 
-        instance_query = Instance.query
+        base_instance_query = Instance.query
+        deleted_query = Instance.query
+        active_instance_query = base_instance_query.filter(Instance.deleted_at.is_(None))
         if db_type:
-            instance_query = instance_query.filter(Instance.db_type == db_type)
+            active_instance_query = active_instance_query.filter(Instance.db_type == db_type)
+            deleted_query = deleted_query.filter(Instance.db_type == db_type)
 
         if instance_id is not None:
-            instance_query = instance_query.filter(Instance.id == instance_id)
+            active_instance_query = active_instance_query.filter(Instance.id == instance_id)
+            deleted_query = deleted_query.filter(Instance.id == instance_id)
 
-        instances = instance_query.all()
-        total_instances = len(instances)
-        active_instances = 0
-        disabled_instances = 0
-        deleted_instances = 0
-        for instance in instances:
-            if instance.deleted_at:
-                deleted_instances += 1
-                continue
-            active_instances += 1
-            if not instance.is_active:
-                disabled_instances += 1
+        active_instances = active_instance_query.filter(Instance.is_active.is_(True)).count()
+        disabled_instances = (
+            active_instance_query.filter(Instance.is_active.is_(False)).count()
+        )
+        deleted_instances = deleted_query.filter(Instance.deleted_at.isnot(None)).count()
+        total_instances = active_instances
 
         normal_instances = max(active_instances - disabled_instances, 0)
 
@@ -118,6 +117,7 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
             accounts = (
                 AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
                 .join(Instance, Instance.id == AccountPermission.instance_id)
+                .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
                 .filter(AccountPermission.db_type == db_type)
                 .all()
             )

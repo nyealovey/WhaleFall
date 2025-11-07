@@ -241,8 +241,10 @@ def get_instances_aggregations_summary():
             end_date_obj = _parse_iso_date(end_date, 'end_date')
 
         # 优先使用实例大小统计表（与容量同步实时同步）
-        stat_query = InstanceSizeStat.query.join(Instance).filter(
-            InstanceSizeStat.is_deleted.is_(False)
+        stat_query = (
+            InstanceSizeStat.query.join(Instance)
+            .filter(InstanceSizeStat.is_deleted.is_(False))
+            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
         )
         if instance_id:
             stat_query = stat_query.filter(InstanceSizeStat.instance_id == instance_id)

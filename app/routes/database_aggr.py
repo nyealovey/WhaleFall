@@ -11,7 +11,6 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from sqlalchemy import and_, func
 
-from app import db
 from app.errors import SystemError, ValidationError
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
