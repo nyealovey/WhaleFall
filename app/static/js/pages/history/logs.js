@@ -398,12 +398,12 @@ function displayLogDetail(log) {
             <div class="log-detail-label">基本信息</div>
             <div class="log-detail-value">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <strong>时间:</strong> ${timestamp}<br>
                         <strong>级别:</strong> ${levelBadge}<br>
                         <strong>模块:</strong> ${moduleBadge || '<span class="text-muted">未知</span>'}
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-6">
                         <strong>ID:</strong> <code>${log.id}</code><br>
                         <strong>创建时间:</strong> ${createdAt}
                     </div>

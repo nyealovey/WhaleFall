@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-8">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
@@ -15,7 +15,7 @@
                 <form method="POST" id="instanceForm">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-4">
                             <div class="mb-3">
                                 <label for="name" class="form-label">实例名称 <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="name" name="name" 
@@ -23,7 +23,7 @@
                                 <div class="form-text">用于标识此数据库实例的名称</div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-4">
                             <div class="mb-3">
                                 <label for="db_type" class="form-label">数据库类型 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="db_type" name="db_type" required>
@@ -43,14 +43,14 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-8">
+                        <div class="col-8">
                             <div class="mb-3">
                                 <label for="host" class="form-label">主机地址 <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="host" name="host" 
                                        placeholder="例如: localhost 或 192.168.1.100" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-4">
                             <div class="mb-3">
                                 <label for="port" class="form-label">端口号 <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" id="port" name="port" 
@@ -60,7 +60,7 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-12">
+                        <div class="col-12">
                             <div class="mb-3">
                                 <label for="credential_id" class="form-label">凭据 <span class="text-danger">*</span></label>
                                 <select class="form-select" id="credential_id" name="credential_id" required>
@@ -80,7 +80,7 @@
                     
                     <!-- 数据库名称字段 -->
                     <div class="row" id="database-name-row">
-                        <div class="col-md-12">
+                        <div class="col-12">
                             <div class="mb-3">
                                 <label for="database_name" class="form-label">数据库名称</label>
                                 <input type="text" class="form-control" id="database_name" name="database_name" 
@@ -131,7 +131,7 @@
                         </label>
                     </div>
                     
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <div class="d-flex gap-2 justify-content-end">
                         <a href="{{ url_for('instance.index') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-arrow-left me-2"></i>返回列表
                         </a>

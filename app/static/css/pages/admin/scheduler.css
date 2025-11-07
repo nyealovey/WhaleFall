@@ -167,39 +167,9 @@
 }
 
 /* 响应式调整 */
-@media (max-width: 768px) {
-    /* 页面头部响应式样式已移至全局样式 (global.css) */
 
-    .job-info {
-        padding: var(--spacing-md);
-    }
 
-    .job-meta {
-        flex-direction: column;
-        gap: var(--spacing-sm);
-    }
 
-    .job-actions {
-        flex-direction: column;
-    }
-
-    .job-actions .btn {
-        width: 100%;
-        text-align: center;
-    }
-}
-
-@media (max-width: 576px) {
-    /* 页面头部响应式样式已移至全局样式 (global.css) */
-
-    .job-info {
-        padding: var(--spacing-sm);
-    }
-
-    .stats-number {
-        font-size: 1.5rem;
-    }
-}
 
 /* 动画效果 */
 @keyframes fadeIn {

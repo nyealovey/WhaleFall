@@ -212,30 +212,6 @@ body {
     color: white;
 }
 
-/* 页面头部响应式调整 */
-@media (max-width: 768px) {
-    .page-header {
-        padding: var(--spacing-lg) 0;
-        margin-bottom: var(--spacing-lg);
-    }
-
-    .page-header h1,
-    .page-header h2 {
-        font-size: 1.5rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .page-header {
-        padding: var(--spacing-md) 0;
-        margin-bottom: var(--spacing-md);
-    }
-
-    .page-header h1,
-    .page-header h2 {
-        font-size: 1.25rem;
-    }
-}
 
 /* 统一分页样式 */
 .pagination .page-link {
@@ -336,33 +312,6 @@ body {
 
 .bg-info {
     background-color: var(--info-color) !important;
-}
-
-/* 响应式优化 */
-@media (max-width: 991.98px) {
-    .navbar-collapse {
-        flex-grow: 1;
-    }
-
-    .navbar-nav.ms-auto {
-        margin-left: 0 !important;
-        margin-top: var(--spacing-md);
-    }
-
-    .main-content {
-        padding: var(--spacing-md) 0;
-    }
-}
-
-@media (max-width: 768px) {
-    .card {
-        margin-bottom: var(--spacing-md);
-    }
-
-    .btn {
-        width: 100%;
-        margin-bottom: var(--spacing-sm);
-    }
 }
 
 /* 动画效果 */
