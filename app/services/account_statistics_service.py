@@ -41,26 +41,34 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
         db_type: 可选的数据库类型过滤条件。
     """
     try:
-        query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
-        query = query.filter(InstanceAccount.is_active.is_(True))
+        account_query = (
+            AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+            .join(Instance, Instance.id == AccountPermission.instance_id)
+        )
 
         if instance_id is not None:
-            query = query.filter(AccountPermission.instance_id == instance_id)
+            account_query = account_query.filter(AccountPermission.instance_id == instance_id)
 
         if db_type:
-            query = query.filter(AccountPermission.db_type == db_type)
+            account_query = account_query.filter(AccountPermission.db_type == db_type)
 
-        accounts = query.all()
+        accounts = account_query.all()
 
+        total_accounts = len(accounts)
         active_accounts = 0
         locked_accounts = 0
         for account in accounts:
-            if _is_account_locked(account, account.db_type):
-                locked_accounts += 1
-            else:
+            instance_account = account.instance_account
+            if instance_account and instance_account.is_active:
                 active_accounts += 1
+                if _is_account_locked(account, account.db_type):
+                    locked_accounts += 1
+            # 非活跃账户视为已删除/停用，计入 total 但不计入 active
 
-        instance_query = Instance.query.filter_by(is_active=True)
+        deleted_accounts = total_accounts - active_accounts
+        normal_accounts = max(active_accounts - locked_accounts, 0)
+
+        instance_query = Instance.query
         if db_type:
             instance_query = instance_query.filter(Instance.db_type == db_type)
 
@@ -68,12 +76,31 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
             instance_query = instance_query.filter(Instance.id == instance_id)
 
         instances = instance_query.all()
+        total_instances = len(instances)
+        active_instances = 0
+        disabled_instances = 0
+        deleted_instances = 0
+        for instance in instances:
+            if instance.deleted_at:
+                deleted_instances += 1
+                continue
+            active_instances += 1
+            if not instance.is_active:
+                disabled_instances += 1
+
+        normal_instances = max(active_instances - disabled_instances, 0)
 
         return {
-            "total_accounts": len(accounts),
+            "total_accounts": total_accounts,
             "active_accounts": active_accounts,
             "locked_accounts": locked_accounts,
-            "total_instances": len(instances),
+            "normal_accounts": normal_accounts,
+            "deleted_accounts": deleted_accounts,
+            "total_instances": total_instances,
+            "active_instances": active_instances,
+            "disabled_instances": disabled_instances,
+            "normal_instances": normal_instances,
+            "deleted_instances": deleted_instances,
         }
     except Exception as exc:  # noqa: BLE001
         log_error("获取账户统计汇总失败", module="account_statistics", exception=exc)
@@ -87,24 +114,29 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
         for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
             accounts = (
                 AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
-                .filter(InstanceAccount.is_active.is_(True))
+                .join(Instance, Instance.id == AccountPermission.instance_id)
                 .filter(AccountPermission.db_type == db_type)
                 .all()
             )
             total_count = len(accounts)
             active_count = 0
             locked_count = 0
-
             for account in accounts:
-                if _is_account_locked(account, db_type):
-                    locked_count += 1
-                else:
+                instance_account = account.instance_account
+                if instance_account and instance_account.is_active:
                     active_count += 1
+                    if _is_account_locked(account, db_type):
+                        locked_count += 1
+
+            deleted_count = total_count - active_count
+            normal_count = max(active_count - locked_count, 0)
 
             db_type_stats[db_type] = {
                 "total": total_count,
                 "active": active_count,
+                "normal": normal_count,
                 "locked": locked_count,
+                "deleted": deleted_count,
             }
 
         return db_type_stats
@@ -161,8 +193,14 @@ def empty_statistics() -> dict[str, Any]:
         "total_accounts": 0,
         "active_accounts": 0,
         "locked_accounts": 0,
+        "normal_accounts": 0,
+        "deleted_accounts": 0,
         "database_instances": 0,
         "total_instances": 0,
+        "active_instances": 0,
+        "disabled_instances": 0,
+        "normal_instances": 0,
+        "deleted_instances": 0,
         "db_type_stats": {},
         "classification_stats": {},
     }
