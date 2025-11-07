@@ -32,6 +32,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             "fetch_mysql_inventory_success",
             instance=instance.name,
             database_count=len(metadata),
+            database_names=[entry["database_name"] for entry in metadata],
         )
         return metadata
 
