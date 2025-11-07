@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Dict, Optional
 
-from sqlalchemy import desc, func, tuple_
+from sqlalchemy import and_, desc, func, tuple_
 
 from app import db
 from app.errors import SystemError
@@ -84,8 +84,19 @@ def fetch_aggregations(
     get_all: bool,
 ) -> Dict[str, Any]:
     """获取数据库容量聚合数据。"""
-    query = DatabaseSizeAggregation.query.join(Instance).filter(
-        Instance.is_active.is_(True), Instance.deleted_at.is_(None)
+    join_condition = and_(
+        InstanceDatabase.instance_id == DatabaseSizeAggregation.instance_id,
+        InstanceDatabase.database_name == DatabaseSizeAggregation.database_name,
+    )
+
+    query = (
+        DatabaseSizeAggregation.query.join(Instance)
+        .join(InstanceDatabase, join_condition)
+        .filter(
+            Instance.is_active.is_(True),
+            Instance.deleted_at.is_(None),
+            InstanceDatabase.is_active.is_(True),
+        )
     )
 
     if instance_id:
@@ -187,6 +198,11 @@ def fetch_aggregation_summary(
     if end_date:
         filters.append(DatabaseSizeAggregation.period_end <= end_date)
 
+    join_condition = and_(
+        InstanceDatabase.instance_id == DatabaseSizeAggregation.instance_id,
+        InstanceDatabase.database_name == DatabaseSizeAggregation.database_name,
+    )
+
     latest_entries = (
         db.session.query(
             DatabaseSizeAggregation.instance_id.label("instance_id"),
@@ -195,7 +211,9 @@ def fetch_aggregation_summary(
             func.max(DatabaseSizeAggregation.period_end).label("latest_period_end"),
         )
         .join(Instance)
+        .join(InstanceDatabase, join_condition)
         .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+        .filter(InstanceDatabase.is_active.is_(True))
         .filter(*filters)
         .group_by(
             DatabaseSizeAggregation.instance_id,
