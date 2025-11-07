@@ -93,7 +93,7 @@
                         <th>活跃</th>
                         <th>标签</th>
                         <th>状态</th>
-                        <th>最后连接</th>
+                        <th>最后同步</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -161,10 +161,11 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if instance.last_connected %}
-                            <small class="text-muted">{{ instance.last_connected | china_time('%Y-%m-%d %H:%M') }}</small>
+                            {% set last_sync = last_sync_times.get(instance.id) %}
+                            {% if last_sync %}
+                                <small class="text-muted">{{ last_sync | china_time('%Y-%m-%d %H:%M') }}</small>
                             {% else %}
-                            <small class="text-muted">从未连接</small>
+                                <small class="text-muted">暂无同步记录</small>
                             {% endif %}
                         </td>
                         <td>
