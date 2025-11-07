@@ -7,6 +7,7 @@ from typing import Any
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy import func
 
 from app import db
 from app.constants import HttpStatus, TaskStatus, FlashCategory, HttpMethod
@@ -14,6 +15,8 @@ from app.constants.database_types import DatabaseType
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
+from app.models.instance_database import InstanceDatabase
+from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
 from app.constants.filter_options import STATUS_ACTIVE_OPTIONS
 from app.utils.query_filter_utils import get_active_tag_options
@@ -167,6 +170,39 @@ def index() -> str:
 
     # 分页查询，按ID排序
     instances = query.order_by(Instance.id).paginate(page=page, per_page=per_page, error_out=False)
+    instance_ids = [instance.id for instance in instances.items]
+
+    active_database_counts = {}
+    active_account_counts = {}
+
+    if instance_ids:
+        db_count_rows = (
+            db.session.query(
+                InstanceDatabase.instance_id,
+                func.count(InstanceDatabase.id),
+            )
+            .filter(
+                InstanceDatabase.instance_id.in_(instance_ids),
+                InstanceDatabase.is_active.is_(True),
+            )
+            .group_by(InstanceDatabase.instance_id)
+            .all()
+        )
+        active_database_counts = {instance_id: count for instance_id, count in db_count_rows}
+
+        account_count_rows = (
+            db.session.query(
+                InstanceAccount.instance_id,
+                func.count(InstanceAccount.id),
+            )
+            .filter(
+                InstanceAccount.instance_id.in_(instance_ids),
+                InstanceAccount.is_active.is_(True),
+            )
+            .group_by(InstanceAccount.instance_id)
+            .all()
+        )
+        active_account_counts = {instance_id: count for instance_id, count in account_count_rows}
 
     # 获取所有可用的凭据
     credentials = Credential.query.filter_by(is_active=True).all()
@@ -201,6 +237,8 @@ def index() -> str:
         credentials=credentials,
         database_type_options=database_type_options,
         database_type_map=database_type_map,
+        active_database_counts=active_database_counts,
+        active_account_counts=active_account_counts,
         tag_options=tag_options,
         status_options=STATUS_ACTIVE_OPTIONS,
         selected_tags=tags,
