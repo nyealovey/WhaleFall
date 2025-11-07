@@ -401,7 +401,6 @@
 | `/health/api/cache` | GET | `api_cache_health` | 缓存服务健康检查 |
 | `/health/api/detailed` | GET | `detailed_health_check` | 详细健康检查 |
 | `/health/api/health` | GET | `api_health` | 健康检查（供外部监控使用） |
-| `/health/api/scheduler` | GET | `api_scheduler_health` | 调度器健康检查 |
 
 
 ---
