@@ -17,6 +17,7 @@ from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.models.instance_account import InstanceAccount
+from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag
 from app.constants.filter_options import STATUS_ACTIVE_OPTIONS
 from app.utils.query_filter_utils import get_active_tag_options
@@ -174,6 +175,7 @@ def index() -> str:
 
     active_database_counts = {}
     active_account_counts = {}
+    last_sync_times: dict[int, Any] = {}
 
     if instance_ids:
         db_count_rows = (
@@ -203,6 +205,22 @@ def index() -> str:
             .all()
         )
         active_account_counts = {instance_id: count for instance_id, count in account_count_rows}
+
+        sync_rows = (
+            db.session.query(
+                SyncInstanceRecord.instance_id,
+                func.max(SyncInstanceRecord.completed_at),
+            )
+            .filter(
+                SyncInstanceRecord.instance_id.in_(instance_ids),
+                SyncInstanceRecord.sync_category.in_(["account", "capacity"]),
+                SyncInstanceRecord.status == "completed",
+                SyncInstanceRecord.completed_at.isnot(None),
+            )
+            .group_by(SyncInstanceRecord.instance_id)
+            .all()
+        )
+        last_sync_times = {instance_id: completed_at for instance_id, completed_at in sync_rows}
 
     # 获取所有可用的凭据
     credentials = Credential.query.filter_by(is_active=True).all()
@@ -239,6 +257,7 @@ def index() -> str:
         database_type_map=database_type_map,
         active_database_counts=active_database_counts,
         active_account_counts=active_account_counts,
+        last_sync_times=last_sync_times,
         tag_options=tag_options,
         status_options=STATUS_ACTIVE_OPTIONS,
         selected_tags=tags,
