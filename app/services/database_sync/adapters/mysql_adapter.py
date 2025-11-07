@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -178,7 +179,10 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             except (TypeError, ValueError):
                 total_bytes_int = int(float(total_bytes or 0))
 
-            size_mb = max(total_bytes_int // (1024 * 1024), 0)
+            if total_bytes_int <= 0:
+                size_mb = 0
+            else:
+                size_mb = max(math.ceil(total_bytes_int / (1024 * 1024)), 1)
             is_system_db = db_name in self._SYSTEM_DATABASES
 
             data.append(
