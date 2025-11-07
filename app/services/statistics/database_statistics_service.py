@@ -27,7 +27,10 @@ def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
         instance_id: 可选实例过滤条件，仅统计指定实例下的数据库。
     """
     try:
-        query = InstanceDatabase.query.join(Instance, Instance.id == InstanceDatabase.instance_id)
+        query = (
+            InstanceDatabase.query.join(Instance, Instance.id == InstanceDatabase.instance_id)
+            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+        )
 
         if instance_id is not None:
             query = query.filter(InstanceDatabase.instance_id == instance_id)
@@ -81,7 +84,9 @@ def fetch_aggregations(
     get_all: bool,
 ) -> Dict[str, Any]:
     """获取数据库容量聚合数据。"""
-    query = DatabaseSizeAggregation.query.join(Instance)
+    query = DatabaseSizeAggregation.query.join(Instance).filter(
+        Instance.is_active.is_(True), Instance.deleted_at.is_(None)
+    )
 
     if instance_id:
         query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
@@ -190,6 +195,7 @@ def fetch_aggregation_summary(
             func.max(DatabaseSizeAggregation.period_end).label("latest_period_end"),
         )
         .join(Instance)
+        .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
         .filter(*filters)
         .group_by(
             DatabaseSizeAggregation.instance_id,
