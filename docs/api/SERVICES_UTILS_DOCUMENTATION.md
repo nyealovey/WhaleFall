@@ -486,8 +486,6 @@
 | `PartitionManagementService.create_partition` | 仅所在文件内部使用 | 负责 create partition 相关逻辑 |
 | `PartitionManagementService.create_future_partitions` | 仅所在文件内部使用 | 负责 create future partitions 相关逻辑 |
 | `PartitionManagementService.cleanup_old_partitions` | 仅所在文件内部使用 | 负责 cleanup old partitions 相关逻辑 |
-| `PartitionManagementService.get_partition_info` | 仅所在文件内部使用 | 负责 get partition info 相关逻辑 |
-| `PartitionManagementService.get_partition_statistics` | 仅所在文件内部使用 | 负责 get partition statistics 相关逻辑 |
 | `PartitionManagementService._month_window` | 仅所在文件内部使用 | 负责 month window 相关逻辑 |
 | `PartitionManagementService._get_table_partitions` | 仅所在文件内部使用 | 负责 get table partitions 相关逻辑 |
 | `PartitionManagementService._partition_exists` | 仅所在文件内部使用 | 负责 partition exists 相关逻辑 |
@@ -735,3 +733,9 @@
 | `DatabaseVersionParser.parse_version` | 仅所在文件内部使用 | 负责 parse version 相关逻辑 |
 | `DatabaseVersionParser._extract_main_version` | 仅所在文件内部使用 | 负责 extract main version 相关逻辑 |
 | `DatabaseVersionParser.format_version_display` | 仅所在文件内部使用 | 负责 format version display 相关逻辑 |
+## `app/services/statistics/partition_statistics_service.py`
+
+| 条目 | 引用情况 | 用途 |
+| --- | --- | --- |
+| `PartitionStatisticsService.get_partition_info` | `app/routes/partition.py`, `app/tasks/partition_management_tasks.py` | 汇总分区信息（含容量、数量等） |
+| `PartitionStatisticsService.get_partition_statistics` | 同上 | 返回概要统计（总数/容量/记录数） |
