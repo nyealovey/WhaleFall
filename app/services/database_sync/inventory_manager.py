@@ -127,6 +127,7 @@ class InventoryManager:
             "deactivated": deactivated,
             "active_databases": sorted(seen_names),
             "filtered_databases": sorted(excluded_names),
+            "synchronized_databases": sorted(seen_names),
         }
 
         self.logger.info(
