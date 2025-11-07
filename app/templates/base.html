@@ -67,6 +67,14 @@
                             <li><a class="dropdown-item" href="{{ url_for('account.list_accounts') }}">
                                     <i class="fas fa-users me-2"></i>账户管理
                                 </a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="statisticsDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-chart-line me-1"></i>数据统计
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="statisticsDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('instance_aggr.instance_aggregations') }}">
                                     <i class="fas fa-chart-pie me-2"></i>容量统计(实例)
                                 </a></li>
