@@ -30,7 +30,8 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h4 class="card-title">{{ stats.total_accounts }}</h4>
-                        <p class="card-text">总账户数</p>
+                        <p class="card-text mb-2">总账户数（含已删除）</p>
+                        <small class="text-white-75">活跃：{{ stats.active_accounts }} ｜ 已删除：{{ stats.deleted_accounts | default(0) }}</small>
                     </div>
                     <div class="align-self-center">
                         <i class="fas fa-users fa-2x"></i>
@@ -45,7 +46,8 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h4 class="card-title">{{ stats.active_accounts }}</h4>
-                        <p class="card-text">活跃账户</p>
+                        <p class="card-text mb-2">活跃账户</p>
+                        <small class="text-white-75">正常：{{ stats.normal_accounts | default(stats.active_accounts) }} ｜ 禁用/锁定：{{ stats.locked_accounts }}</small>
                     </div>
                     <div class="align-self-center">
                         <i class="fas fa-user-check fa-2x"></i>
@@ -60,7 +62,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h4 class="card-title">{{ stats.locked_accounts }}</h4>
-                        <p class="card-text">锁定账户</p>
+                        <p class="card-text">锁定/禁用账户</p>
                     </div>
                     <div class="align-self-center">
                         <i class="fas fa-user-lock fa-2x"></i>
@@ -75,7 +77,9 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h4 class="card-title">{{ stats.total_instances }}</h4>
-                        <p class="card-text">数据库实例</p>
+                        <p class="card-text mb-2">数据库实例总数（含已删除）</p>
+                        <small class="d-block text-white-75">活跃：{{ stats.active_instances }} ｜ 已删除：{{ stats.deleted_instances | default(0) }}</small>
+                        <small class="text-white-75">正常运行：{{ stats.normal_instances | default(stats.active_instances) }} ｜ 已禁用：{{ stats.disabled_instances | default(0) }}</small>
                     </div>
                     <div class="align-self-center">
                         <i class="fas fa-database fa-2x"></i>
@@ -104,7 +108,8 @@
                                 <i class="fas fa-database fa-2x mb-2 text-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}"></i>
                                 <h5 class="mb-1">{{ db_type.upper() }}</h5>
                                 <h4 class="mb-0 text-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}">{{ type_stats.total }}</h4>
-                                <small class="text-muted">{{ type_stats.active }} 活跃, {{ type_stats.locked }} 锁定</small>
+                                <small class="text-muted d-block">活跃 {{ type_stats.active }} （正常 {{ type_stats.normal | default(0) }}｜禁用 {{ type_stats.locked }}）</small>
+                                <small class="text-muted">已删除 {{ type_stats.deleted | default(0) }}</small>
                             </div>
                         </div>
                     </div>
