@@ -17,6 +17,9 @@ from app.models.instance import Instance
 from app.models.account_permission import AccountPermission
 from app.models.instance_account import InstanceAccount
 from app.models.instance_database import InstanceDatabase
+from app.services.statistics.account_statistics_service import fetch_summary as fetch_account_summary
+from app.services.statistics.database_statistics_service import fetch_summary as fetch_database_summary
+from app.services.statistics.instance_statistics_service import fetch_summary as fetch_instance_summary
 
 # 移除SyncData导入，使用新的同步会话模型
 from app.models.user import User
@@ -30,16 +33,6 @@ from app.routes.health import check_database_health, check_cache_health
 
 # 创建蓝图
 dashboard_bp = Blueprint("dashboard", __name__)
-
-
-def _is_account_locked_for_overview(account: AccountPermission) -> bool:
-    """判断账户是否属于锁定/禁用/过期态（用于仪表盘汇总）"""
-    try:
-        if account.instance_account and account.instance_account.is_active is False:
-            return True
-        return bool(getattr(account, "is_locked_display", False))
-    except AttributeError:
-        return False
 
 
 @dashboard_bp.route("/")
@@ -163,7 +156,9 @@ def get_system_overview() -> dict:
         db.session.rollback()
         # 基础统计
         total_users = User.query.count()
-        total_instances = Instance.query.count()
+        account_summary = fetch_account_summary()
+        instance_summary = fetch_instance_summary()
+        database_summary = fetch_database_summary()
         from app.models.account_classification import AccountClassification, AccountClassificationAssignment
         from app.models.account_permission import AccountPermission
         from app.models.unified_log import LogLevel, UnifiedLog
@@ -192,42 +187,17 @@ def get_system_overview() -> dict:
         
         total_capacity_gb = sum(inst['size_mb'] for inst in instance_sizes.values()) / 1024
         
-        # 数据库数量（含已删除）统计
-        database_query = (
-            InstanceDatabase.query.join(Instance, Instance.id == InstanceDatabase.instance_id)
-            .filter(Instance.deleted_at.is_(None))
-        )
-        total_databases = database_query.count()
-        active_databases = database_query.filter(InstanceDatabase.is_active.is_(True)).count()
-        inactive_databases = max(total_databases - active_databases, 0)
-
-        # 账户数量（含已删除）
-        account_records = (
-            AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
-            .join(Instance, Instance.id == AccountPermission.instance_id)
-            .filter(Instance.deleted_at.is_(None))
-            .all()
-        )
-        total_accounts = len(account_records)
-        active_accounts = 0
-        locked_accounts = 0
-        for account in account_records:
-            if account.instance_account and account.instance_account.is_active:
-                active_accounts += 1
-            if _is_account_locked_for_overview(account):
-                locked_accounts += 1
-
         log_info(
             "dashboard_base_counts",
             module="dashboard",
             total_users=total_users,
-            total_instances=total_instances,
-            total_accounts=total_accounts,
+            total_instances=instance_summary["total_instances"],
+            total_accounts=account_summary["total_accounts"],
             total_capacity_gb=round(total_capacity_gb, 1),
-            total_databases=total_databases,
-            active_accounts=active_accounts,
-            locked_accounts=locked_accounts,
-            active_databases=active_databases,
+            total_databases=database_summary["total_databases"],
+            active_accounts=account_summary["active_accounts"],
+            locked_accounts=account_summary["locked_accounts"],
+            active_databases=database_summary["active_databases"],
         )
 
         # 分类统计（聚合查询，避免N+1）
@@ -308,15 +278,12 @@ def get_system_overview() -> dict:
             auto_classified_accounts=auto_classified_accounts,
         )
 
-        # 活跃实例数
-        active_instances = Instance.query.filter_by(is_active=True).count()
-
         log_info(
             "dashboard_active_counts",
             module="dashboard",
-            total_accounts=total_accounts,
-            active_accounts=active_accounts,
-            active_instances=active_instances,
+            total_accounts=account_summary["total_accounts"],
+            active_accounts=account_summary["active_accounts"],
+            active_instances=instance_summary["active_instances"],
         )
 
         # 获取最新的容量使用率（可选，用于显示使用情况）
@@ -331,8 +298,15 @@ def get_system_overview() -> dict:
 
         return {
             "users": {"total": total_users, "active": total_users},  # 简化处理
-            "instances": {"total": total_instances, "active": active_instances},
-            "accounts": {"total": total_accounts, "active": active_accounts, "locked": locked_accounts},
+            "instances": {
+                "total": instance_summary["total_instances"],
+                "active": instance_summary["active_instances"],
+            },
+            "accounts": {
+                "total": account_summary["total_accounts"],
+                "active": account_summary["active_accounts"],
+                "locked": account_summary["locked_accounts"],
+            },
             "classified_accounts": {
                 "total": total_classified_accounts,
                 "auto": auto_classified_accounts,
@@ -343,9 +317,9 @@ def get_system_overview() -> dict:
             },
             "capacity": {"total_gb": round(total_capacity_gb, 1), "usage_percent": capacity_usage_percent},
             "databases": {
-                "total": total_databases,
-                "active": active_databases,
-                "inactive": inactive_databases,
+                "total": database_summary["total_databases"],
+                "active": database_summary["active_databases"],
+                "inactive": database_summary["inactive_databases"],
             },
         }
     except Exception as e:
