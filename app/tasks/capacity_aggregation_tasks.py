@@ -3,8 +3,9 @@
 负责计算每周、每月、每季度的统计聚合数据
 """
 
+from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Sequence, Set
 
 from app import db
 from app.config import Config
@@ -12,247 +13,97 @@ from app.constants import SyncStatus, TaskStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.services.aggregation.aggregation_service import AggregationService
 from app.models.instance import Instance
-from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.structlog_config import log_error, log_info
 
 STATUS_COMPLETED = "completed"
 STATUS_SKIPPED = "skipped"
 STATUS_FAILED = "failed"
 TASK_MODULE = "aggregation_tasks"
+PERIOD_ORDER = ["daily", "weekly", "monthly", "quarterly"]
 
 
-def _initialize_instance_state(instances: List["Instance"], records_by_instance: dict[int, Any]) -> dict[int, dict[str, Any]]:
-    """根据实例列表初始化状态字典"""
-    instance_state: dict[int, dict[str, Any]] = {}
-    for instance in instances:
-        instance_state[instance.id] = {
-            "record": records_by_instance.get(instance.id),
-            "period_results": {},
-            "aggregations_created": 0,
-            "errors": [],
-        }
-    return instance_state
+@dataclass(frozen=True)
+class PeriodConfig:
+    key: str
+    instance_method: str
+    database_method: str
 
 
-def _update_instance_state(instance_state: dict[int, dict[str, Any]], instance_id: int, period: str, result: dict) -> None:
-    """更新指定实例的聚合结果状态"""
-    state = instance_state.get(instance_id)
-    if state is None:
-        return
+PERIOD_CONFIGS: dict[str, PeriodConfig] = {
+    cfg.key: cfg
+    for cfg in [
+        PeriodConfig(
+            "daily",
+            "calculate_daily_aggregations_for_instance",
+            "calculate_daily_aggregations",
+        ),
+        PeriodConfig(
+            "weekly",
+            "calculate_weekly_aggregations_for_instance",
+            "calculate_weekly_aggregations",
+        ),
+        PeriodConfig(
+            "monthly",
+            "calculate_monthly_aggregations_for_instance",
+            "calculate_monthly_aggregations",
+        ),
+        PeriodConfig(
+            "quarterly",
+            "calculate_quarterly_aggregations_for_instance",
+            "calculate_quarterly_aggregations",
+        ),
+    ]
+}
 
-    state["period_results"][period] = result
-    records_created = int(
+
+def _select_periods(requested: Optional[Sequence[str]], logger) -> List[str]:
+    """根据请求的周期返回有效周期列表"""
+    if requested is None:
+        return PERIOD_ORDER.copy()
+
+    normalized: List[str] = []
+    unknown: List[str] = []
+    seen: set[str] = set()
+    for item in requested:
+        key = (item or "").strip().lower()
+        if not key:
+            continue
+        if key in PERIOD_CONFIGS:
+            if key not in seen:
+                normalized.append(key)
+                seen.add(key)
+        else:
+            unknown.append(item)
+
+    if unknown:
+        logger.warning(
+            "忽略未知聚合周期",
+            module="aggregation_sync",
+            unknown_periods=unknown,
+        )
+
+    ordered = [period for period in PERIOD_ORDER if period in normalized]
+    return ordered
+
+
+def _extract_processed_records(result: dict[str, Any] | None) -> int:
+    if not result:
+        return 0
+    return int(
         result.get("processed_records")
         or result.get("total_records")
         or result.get("aggregations_created")
         or 0
     )
-    state["aggregations_created"] += records_created
-
-    status = (result.get("status") or STATUS_FAILED).lower()
-    if status == STATUS_FAILED:
-        errors = result.get("errors")
-        if isinstance(errors, list) and errors:
-            error_message = "; ".join(str(err) for err in errors)
-        else:
-            error_message = result.get("error") or result.get("message") or f"{period} 聚合失败"
-        state["errors"].append(f"{period}: {error_message}")
 
 
-def _run_period_aggregation(
-    *,
-    period: str,
-    instances: List["Instance"],
-    service: AggregationService,
-    instance_func: Callable[[int], Dict[str, Any]],
-    database_func: Callable[[], Dict[str, Any]],
-    sync_logger,
-    instance_state: dict[int, dict[str, Any]],
-) -> dict[str, Any]:
-    """执行单个周期的聚合计算"""
-    period_summary: dict[str, Any] = {
-        "period": period,
-        "instance_results": [],
-        "database_result": None,
-    }
-
-    for instance in instances:
-        try:
-            result = instance_func(instance.id)
-        except Exception as exc:  # pragma: no cover - 防御性日志
-            sync_logger.error(
-                f"{period} 聚合计算异常",
-                module="aggregation_sync",
-                period=period,
-                instance_id=instance.id,
-                instance_name=instance.name,
-                error=str(exc),
-            )
-            result = {
-                "status": STATUS_FAILED,
-                "instance_id": instance.id,
-                "instance_name": instance.name,
-                "period_type": period,
-                "errors": [str(exc)],
-            }
-
-        result.setdefault("instance_id", instance.id)
-        result.setdefault("instance_name", instance.name)
-        result.setdefault("period_type", period)
-
-        status = (result.get("status") or STATUS_FAILED).lower()
-        if status == STATUS_COMPLETED:
-            sync_logger.info(
-                f"{period} 聚合完成",
-                module="aggregation_sync",
-                period=period,
-                instance_id=instance.id,
-                instance_name=instance.name,
-                total_records=result.get("processed_records") or result.get("total_records", 0),
-                message=result.get("message"),
-            )
-        elif status == STATUS_SKIPPED:
-            sync_logger.info(
-                f"{period} 聚合跳过",
-                module="aggregation_sync",
-                period=period,
-                instance_id=instance.id,
-                instance_name=instance.name,
-                message=result.get("message"),
-            )
-        else:
-            sync_logger.error(
-                f"{period} 聚合失败",
-                module="aggregation_sync",
-                period=period,
-                instance_id=result.get("instance_id"),
-                instance_name=result.get("instance_name"),
-                error=result.get("error") or result.get("message"),
-                errors=result.get("errors"),
-            )
-
-        period_summary["instance_results"].append(result)
-        _update_instance_state(instance_state, instance.id, period, result)
-
-    try:
-        database_result = database_func()
-    except Exception as exc:  # pragma: no cover - 防御性日志
-        sync_logger.error(
-            f"{period} 数据库聚合异常",
-            module="aggregation_sync",
-            period=period,
-            error=str(exc),
-        )
-        database_result = {
-            "status": STATUS_FAILED,
-            "period_type": period,
-            "errors": [str(exc)],
-            "error": str(exc),
-        }
-
-    db_status = (database_result.get("status") or STATUS_FAILED).lower()
-    if db_status == STATUS_COMPLETED:
-        sync_logger.info(
-            f"{period} 数据库聚合完成",
-            module="aggregation_sync",
-            period=period,
-            total_records=database_result.get("total_records", 0),
-            processed_instances=database_result.get("processed_instances", 0),
-        )
-    elif db_status == STATUS_SKIPPED:
-        sync_logger.info(
-            f"{period} 数据库聚合跳过",
-            module="aggregation_sync",
-            period=period,
-            message=database_result.get("message"),
-        )
-    else:
-        sync_logger.error(
-            f"{period} 数据库聚合失败",
-            module="aggregation_sync",
-            period=period,
-            error=database_result.get("error"),
-            errors=database_result.get("errors"),
-        )
-
-    database_result.setdefault("period_type", period)
-    period_summary["database_result"] = database_result
-    return period_summary
-
-
-def run_daily_aggregation(
-    *,
-    instances: List["Instance"],
-    service: AggregationService,
-    sync_logger,
-    instance_state: dict[int, dict[str, Any]],
-) -> dict[str, Any]:
-    """执行日聚合"""
-    return _run_period_aggregation(
-        period="daily",
-        instances=instances,
-        service=service,
-        instance_func=service.calculate_daily_aggregations_for_instance,
-        database_func=service.calculate_daily_aggregations,
-        sync_logger=sync_logger,
-        instance_state=instance_state,
-    )
-
-
-def run_weekly_aggregation(
-    *,
-    instances: List["Instance"],
-    service: AggregationService,
-    sync_logger,
-    instance_state: dict[int, dict[str, Any]],
-) -> dict[str, Any]:
-    """执行周聚合"""
-    return _run_period_aggregation(
-        period="weekly",
-        instances=instances,
-        service=service,
-        instance_func=service.calculate_weekly_aggregations_for_instance,
-        database_func=service.calculate_weekly_aggregations,
-        sync_logger=sync_logger,
-        instance_state=instance_state,
-    )
-
-
-def run_monthly_aggregation(
-    *,
-    instances: List["Instance"],
-    service: AggregationService,
-    sync_logger,
-    instance_state: dict[int, dict[str, Any]],
-) -> dict[str, Any]:
-    """执行月聚合"""
-    return _run_period_aggregation(
-        period="monthly",
-        instances=instances,
-        service=service,
-        instance_func=service.calculate_monthly_aggregations_for_instance,
-        database_func=service.calculate_monthly_aggregations,
-        sync_logger=sync_logger,
-        instance_state=instance_state,
-    )
-
-
-def run_quarterly_aggregation(
-    *,
-    instances: List["Instance"],
-    service: AggregationService,
-    sync_logger,
-    instance_state: dict[int, dict[str, Any]],
-) -> dict[str, Any]:
-    """执行季聚合"""
-    return _run_period_aggregation(
-        period="quarterly",
-        instances=instances,
-        service=service,
-        instance_func=service.calculate_quarterly_aggregations_for_instance,
-        database_func=service.calculate_quarterly_aggregations,
-        sync_logger=sync_logger,
-        instance_state=instance_state,
-    )
+def _extract_error_message(result: dict[str, Any] | None) -> str:
+    if not result:
+        return "无返回结果"
+    errors = result.get("errors")
+    if isinstance(errors, list) and errors:
+        return "; ".join(str(err) for err in errors)
+    return result.get("error") or result.get("message") or "未知错误"
 
 
 def calculate_database_size_aggregations(
@@ -304,18 +155,7 @@ def calculate_database_size_aggregations(
                     "periods_executed": [],
                 }
 
-            period_order = ["daily", "weekly", "monthly", "quarterly"]
-            selected_periods = (
-                period_order if periods is None else [p for p in period_order if p in periods]
-            )
-            if periods is not None:
-                unknown_periods = [p for p in periods if p not in period_order]
-                if unknown_periods:
-                    sync_logger.warning(
-                        "忽略未知聚合周期",
-                        module="aggregation_sync",
-                        unknown_periods=unknown_periods,
-                    )
+            selected_periods = _select_periods(periods, sync_logger)
             if not selected_periods:
                 sync_logger.warning(
                     "未选择任何有效的聚合周期，任务直接完成",
@@ -371,25 +211,12 @@ def calculate_database_size_aggregations(
             session.total_instances = len(active_instances)
 
             records_by_instance = {record.instance_id: record for record in records}
-            instance_state = _initialize_instance_state(active_instances, records_by_instance)
 
             started_record_ids: Set[int] = set()
             finalized_record_ids: Set[int] = set()
 
             service = AggregationService()
-            instance_period_funcs: dict[str, Callable[[int], Dict[str, Any]]] = {
-                "daily": service.calculate_daily_aggregations_for_instance,
-                "weekly": service.calculate_weekly_aggregations_for_instance,
-                "monthly": service.calculate_monthly_aggregations_for_instance,
-                "quarterly": service.calculate_quarterly_aggregations_for_instance,
-            }
-            database_period_funcs: dict[str, Callable[[], Dict[str, Any]]] = {
-                "daily": service.calculate_daily_aggregations,
-                "weekly": service.calculate_weekly_aggregations,
-                "monthly": service.calculate_monthly_aggregations,
-                "quarterly": service.calculate_quarterly_aggregations,
-            }
-
+            instance_details: dict[int, dict[str, Any]] = {}
             successful_instances = 0
             failed_instances = 0
             total_instance_aggregations = 0
@@ -408,40 +235,47 @@ def calculate_database_size_aggregations(
                         instance_name=instance.name,
                     )
 
-                period_results: dict[str, Dict[str, Any]] = {}
+                try:
+                    service_summary = service.calculate_instance_aggregations(
+                        instance.id,
+                        periods=selected_periods,
+                    )
+                    period_results = service_summary.get("periods", {}) or {}
+                except Exception as period_exc:  # pragma: no cover - 防御性日志
+                    sync_logger.error(
+                        "实例聚合执行异常",
+                        module="aggregation_sync",
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        error=str(period_exc),
+                    )
+                    period_results = {
+                        period_name: {
+                            "status": STATUS_FAILED,
+                            "instance_id": instance.id,
+                            "instance_name": instance.name,
+                            "period_type": period_name,
+                            "errors": [str(period_exc)],
+                            "error": str(period_exc),
+                        }
+                        for period_name in selected_periods
+                    }
+
+                filtered_period_results: dict[str, Dict[str, Any]] = {}
                 instance_errors: List[str] = []
                 aggregated_count = 0
 
                 for period_name in selected_periods:
-                    period_func = instance_period_funcs.get(period_name)
-                    if not period_func:
-                        sync_logger.warning(
-                            "未找到实例聚合函数，跳过周期",
-                            module="aggregation_sync",
-                            period=period_name,
-                            instance_id=instance.id,
-                        )
-                        continue
-
-                    try:
-                        result = period_func(instance.id)
-                    except Exception as period_exc:  # pragma: no cover - 防御性日志
-                        sync_logger.error(
-                            "实例聚合执行异常",
-                            module="aggregation_sync",
-                            period=period_name,
-                            instance_id=instance.id,
-                            instance_name=instance.name,
-                            error=str(period_exc),
-                        )
+                    result = period_results.get(period_name)
+                    if result is None:
                         result = {
                             "status": STATUS_FAILED,
-                            "errors": [str(period_exc)],
-                            "error": str(period_exc),
+                            "errors": ["聚合服务未返回结果"],
                             "instance_id": instance.id,
                             "instance_name": instance.name,
                             "period_type": period_name,
                         }
+                    filtered_period_results[period_name] = result
 
                     status = (result.get("status") or STATUS_FAILED).lower()
                     if status == STATUS_COMPLETED:
@@ -451,7 +285,7 @@ def calculate_database_size_aggregations(
                             period=period_name,
                             instance_id=instance.id,
                             instance_name=instance.name,
-                            total_records=result.get("processed_records") or result.get("total_records", 0),
+                            total_records=_extract_processed_records(result),
                             message=result.get("message"),
                         )
                     elif status == STATUS_SKIPPED:
@@ -464,12 +298,7 @@ def calculate_database_size_aggregations(
                             message=result.get("message"),
                         )
                     else:
-                        error_msg = None
-                        errors = result.get("errors")
-                        if isinstance(errors, list) and errors:
-                            error_msg = "; ".join(str(err) for err in errors)
-                        if not error_msg:
-                            error_msg = result.get("error") or result.get("message") or "未知错误"
+                        error_msg = _extract_error_message(result)
                         instance_errors.append(f"{period_name}: {error_msg}")
                         sync_logger.error(
                             "实例聚合失败",
@@ -481,25 +310,18 @@ def calculate_database_size_aggregations(
                             errors=result.get("errors"),
                         )
 
-                    aggregated_count += (
-                        result.get("processed_records")
-                        or result.get("total_records")
-                        or 0
-                    )
-                    period_results[period_name] = result
+                    aggregated_count += _extract_processed_records(result)
 
-                state = instance_state.setdefault(
-                    instance.id,
-                    {"record": record, "period_results": {}, "aggregations_created": 0, "errors": []},
-                )
-                state["period_results"] = period_results
-                state["aggregations_created"] = aggregated_count
-                state["errors"] = instance_errors
+                instance_details[instance.id] = {
+                    "aggregations_created": aggregated_count,
+                    "errors": instance_errors,
+                    "period_results": filtered_period_results,
+                }
 
                 details = {
                     "aggregations_created": aggregated_count,
                     "aggregation_count": aggregated_count,
-                    "periods": period_results,
+                    "periods": filtered_period_results,
                     "errors": instance_errors,
                     "instance_id": instance.id,
                     "instance_name": instance.name,
@@ -529,12 +351,21 @@ def calculate_database_size_aggregations(
                 total_instance_aggregations += aggregated_count
 
             period_summaries: List[dict[str, Any]] = []
+            total_database_aggregations = 0
             for period_name in selected_periods:
-                period_func = database_period_funcs.get(period_name)
-                if not period_func:
+                config = PERIOD_CONFIGS.get(period_name)
+                if not config:
+                    continue
+                database_func = getattr(service, config.database_method, None)
+                if database_func is None:
+                    sync_logger.warning(
+                        "未找到数据库聚合函数，跳过周期",
+                        module="aggregation_sync",
+                        period=period_name,
+                    )
                     continue
                 try:
-                    db_result = period_func()
+                    db_result = database_func()
                 except Exception as db_exc:  # pragma: no cover - 防御性日志
                     sync_logger.error(
                         "数据库级聚合执行异常",
@@ -548,8 +379,8 @@ def calculate_database_size_aggregations(
                         "errors": [str(db_exc)],
                         "period_type": period_name,
                     }
-                db_status = (db_result.get("status") or STATUS_FAILED).lower()
-                if db_status == STATUS_COMPLETED:
+                status = (db_result.get("status") or STATUS_FAILED).lower()
+                if status == STATUS_COMPLETED:
                     sync_logger.info(
                         "数据库级聚合完成",
                         module="aggregation_sync",
@@ -557,7 +388,7 @@ def calculate_database_size_aggregations(
                         total_records=db_result.get("total_records", 0),
                         processed_instances=db_result.get("processed_instances"),
                     )
-                elif db_status == STATUS_SKIPPED:
+                elif status == STATUS_SKIPPED:
                     sync_logger.info(
                         "数据库级聚合跳过",
                         module="aggregation_sync",
@@ -572,12 +403,9 @@ def calculate_database_size_aggregations(
                         error=db_result.get("error"),
                         errors=db_result.get("errors"),
                     )
+                db_result.setdefault("period_type", period_name)
                 period_summaries.append(db_result)
-
-            total_database_aggregations = sum(
-                summary.get("total_records", 0) or summary.get("aggregations_created", 0) or 0
-                for summary in period_summaries
-            )
+                total_database_aggregations += _extract_processed_records(db_result)
 
             session.successful_instances = successful_instances
             session.failed_instances = failed_instances
@@ -610,14 +438,7 @@ def calculate_database_size_aggregations(
                 "periods_executed": selected_periods,
                 "details": {
                     "periods": period_summaries,
-                    "instances": {
-                        instance_id: {
-                            "aggregations_created": state["aggregations_created"],
-                            "errors": state["errors"],
-                            "period_results": state["period_results"],
-                        }
-                        for instance_id, state in instance_state.items()
-                    },
+                    "instances": instance_details,
                 },
                 "metrics": {
                     "instances": {

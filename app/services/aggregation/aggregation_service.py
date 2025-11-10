@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.constants import SyncStatus
@@ -488,7 +488,11 @@ class AggregationService:
         start_date, end_date = self.period_calculator.get_last_period("quarterly")
         return self.instance_runner.aggregate_period("quarterly", start_date, end_date)
 
-    def calculate_instance_aggregations(self, instance_id: int) -> Dict[str, Any]:
+    def calculate_instance_aggregations(
+        self,
+        instance_id: int,
+        periods: Sequence[str] | None = None,
+    ) -> Dict[str, Any]:
         """计算指定实例的多周期聚合"""
         instance = Instance.query.get(instance_id)
         if not instance:
@@ -503,13 +507,24 @@ class AggregationService:
             "monthly": self.calculate_monthly_aggregations_for_instance,
             "quarterly": self.calculate_quarterly_aggregations_for_instance,
         }
+        requested: List[str] = []
+        if periods:
+            seen: set[str] = set()
+            for period in periods:
+                normalized = (period or "").strip().lower()
+                if normalized in period_funcs and normalized not in seen:
+                    requested.append(normalized)
+                    seen.add(normalized)
+        if not requested:
+            requested = list(period_funcs.keys())
 
         period_results: dict[str, dict[str, Any]] = {}
         failed_periods: set[str] = set()
         processed_periods = 0
         skipped_periods = 0
 
-        for period, func in period_funcs.items():
+        for period in requested:
+            func = period_funcs[period]
             try:
                 result = func(instance_id)
             except Exception as exc:  # pragma: no cover - 防御性日志
