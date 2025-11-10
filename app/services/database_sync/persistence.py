@@ -68,53 +68,33 @@ class CapacityPersistence:
 
         saved = len(records)
 
-        dialect_name = db.session.bind.dialect.name if db.session.bind else ""
+        insert_stmt = pg_insert(DatabaseSizeStat).values(records)
+        upsert_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=[
+                DatabaseSizeStat.instance_id,
+                DatabaseSizeStat.database_name,
+                DatabaseSizeStat.collected_date,
+            ],
+            set={
+                "size_mb": insert_stmt.excluded.size_mb,
+                "data_size_mb": insert_stmt.excluded.data_size_mb,
+                "log_size_mb": insert_stmt.excluded.log_size_mb,
+                "collected_at": insert_stmt.excluded.collected_at,
+                "updated_at": current_utc,
+            },
+        )
 
-        if dialect_name == "postgresql":
-            insert_stmt = pg_insert(DatabaseSizeStat).values(records)
-            upsert_stmt = insert_stmt.on_conflict_do_update(
-                index_elements=[
-                    DatabaseSizeStat.instance_id,
-                    DatabaseSizeStat.database_name,
-                    DatabaseSizeStat.collected_date,
-                ],
-                set={
-                    "size_mb": insert_stmt.excluded.size_mb,
-                    "data_size_mb": insert_stmt.excluded.data_size_mb,
-                    "log_size_mb": insert_stmt.excluded.log_size_mb,
-                    "collected_at": insert_stmt.excluded.collected_at,
-                    "updated_at": current_utc,
-                },
+        try:
+            db.session.execute(upsert_stmt)
+        except SQLAlchemyError as exc:
+            db.session.rollback()
+            self.logger.error(
+                "save_database_stats_upsert_failed",
+                instance=instance.name,
+                error=str(exc),
+                exc_info=True,
             )
-
-            try:
-                db.session.execute(upsert_stmt)
-            except SQLAlchemyError as exc:
-                db.session.rollback()
-                self.logger.error(
-                    "save_database_stats_upsert_failed",
-                    instance=instance.name,
-                    error=str(exc),
-                    exc_info=True,
-                )
-                raise
-        else:
-            # SQLite 等非 PostgreSQL 方言回退为逐条处理，兼容单元测试
-            for record in records:
-                existing = DatabaseSizeStat.query.filter_by(
-                    instance_id=record["instance_id"],
-                    database_name=record["database_name"],
-                    collected_date=record["collected_date"],
-                ).first()
-
-                if existing:
-                    existing.size_mb = record["size_mb"]
-                    existing.data_size_mb = record["data_size_mb"]
-                    existing.log_size_mb = record["log_size_mb"]
-                    existing.collected_at = record["collected_at"]
-                    existing.updated_at = record["updated_at"]
-                else:
-                    db.session.add(DatabaseSizeStat(**record))
+            raise
 
         try:
             db.session.commit()

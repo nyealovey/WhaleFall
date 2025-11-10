@@ -56,9 +56,13 @@ class MySQLRuleClassifier(BaseRuleClassifier):
                 database_match = False
                 for db_name, db_perms in database_privileges.items():
                     for requirement in required_databases:
-                        if requirement.get("database") not in ("*", db_name):
+                        requirement_dict = self._normalize_db_requirement(requirement)
+                        if not requirement_dict:
                             continue
-                        perms = requirement.get("privileges", [])
+                        requirement_db = requirement_dict.get("database", "*")
+                        if requirement_db not in ("*", db_name):
+                            continue
+                        perms = self._ensure_list(requirement_dict.get("privileges", []))
                         db_perm_names = self._extract_perm_names(db_perms)
                         if operator == "AND":
                             if all(perm in db_perm_names for perm in perms):
@@ -80,11 +84,16 @@ class MySQLRuleClassifier(BaseRuleClassifier):
                 for db_name, tables in table_privileges.items():
                     for table_name, table_perms in tables.items():
                         for requirement in required_tables:
-                            if requirement.get("database") not in ("*", db_name):
+                            requirement_dict = self._normalize_table_requirement(requirement)
+                            if not requirement_dict:
                                 continue
-                            if requirement.get("table") not in ("*", table_name):
+                            requirement_db = requirement_dict.get("database", "*")
+                            requirement_table = requirement_dict.get("table", "*")
+                            if requirement_db not in ("*", db_name):
                                 continue
-                            perms = requirement.get("privileges", [])
+                            if requirement_table not in ("*", table_name):
+                                continue
+                            perms = self._ensure_list(requirement_dict.get("privileges", []))
                             table_perm_names = self._extract_perm_names(table_perms)
                             if operator == "AND":
                                 if all(perm in table_perm_names for perm in perms):
@@ -130,3 +139,27 @@ class MySQLRuleClassifier(BaseRuleClassifier):
                 if granted:
                     perm_names.add(perm_name)
         return perm_names
+
+    @staticmethod
+    def _normalize_db_requirement(requirement: Any) -> dict[str, Any] | None:
+        if isinstance(requirement, dict):
+            return requirement
+        if isinstance(requirement, str):
+            return {"database": "*", "privileges": [requirement]}
+        return None
+
+    @staticmethod
+    def _normalize_table_requirement(requirement: Any) -> dict[str, Any] | None:
+        if isinstance(requirement, dict):
+            return requirement
+        if isinstance(requirement, str):
+            return {"database": "*", "table": "*", "privileges": [requirement]}
+        return None
+
+    @staticmethod
+    def _ensure_list(value: Any) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        return [value]
