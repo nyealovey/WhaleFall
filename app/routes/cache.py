@@ -13,7 +13,7 @@ from app.constants import DatabaseType, TaskStatus
 from app.models import Instance
 from app.services.cache_service import cache_manager
 from app.services.account_sync.adapters.sqlserver_adapter import SQLServerAccountAdapter
-from app.services.account_classification_service import AccountClassificationService
+from app.services.account_classification.orchestrator import AccountClassificationService
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info

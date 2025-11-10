@@ -2,7 +2,7 @@
 
 > 生成时间：2025-11-06；列出 `app/services` 与 `app/utils` 目录下所有函数 / 方法的引用概览。`引用情况` 基于 `rg` 搜索，若标记为“仅所在文件内部使用”，表示当前仅在声明文件内被调用。`用途` 字段提供简要描述，后续可按需补充详细语义。
 
-## `app/services/account_classification_service.py`
+## `app/services/account_classification/orchestrator.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
@@ -29,6 +29,15 @@
 | `AccountClassificationService.invalidate_cache` | 仅所在文件内部使用 | 负责 invalidate cache 相关逻辑 |
 | `AccountClassificationService.invalidate_db_type_cache` | 仅所在文件内部使用 | 负责 invalidate db type cache 相关逻辑 |
 | `AccountClassificationService.get_rule_matched_accounts_count` | 仅所在文件内部使用 | 负责 get rule matched accounts count 相关逻辑 |
+
+## `app/services/instances/batch_service.py`
+
+| 条目 | 引用情况 | 用途 |
+| --- | --- | --- |
+| `InstanceBatchCreationService.create_instances` | `app/routes/instance.py` | 批量校验并创建实例 |
+| `InstanceBatchCreationService._build_instance_from_payload` | 仅所在文件内部使用 | 将原始字典转换为 `Instance` 模型 |
+| `InstanceBatchDeletionService.delete_instances` | `app/routes/instance.py` | 批量删除实例及所有关联数据 |
+| `InstanceBatchDeletionService._delete_single_instance` | 仅所在文件内部使用 | 清理单个实例下的级联数据 |
 
 ## `app/services/statistics/account_statistics_service.py`
 

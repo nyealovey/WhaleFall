@@ -30,100 +30,14 @@ from app.utils.data_validator import (
 )
 from app.utils.response_utils import jsonify_unified_success
 from app.services.account_sync.account_query_service import get_accounts_by_instance
+from app.services.instances import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
 instance_bp = Blueprint("instance", __name__)
-
-
-def _delete_instance_related_data(instance_id: int, instance_name: str = None) -> dict:
-    """
-    删除实例的所有关联数据
-
-    Args:
-        instance_id: 实例ID
-        instance_name: 实例名称（用于日志）
-
-    Returns:
-        dict: 删除统计信息
-    """
-    from app.models.account_change_log import AccountChangeLog
-    from app.models.account_classification import AccountClassificationAssignment
-    from app.models.account_permission import AccountPermission
-    from app.models.sync_instance_record import SyncInstanceRecord
-
-    # 统计删除的数据量
-    stats = {"assignment_count": 0, "sync_data_count": 0, "sync_record_count": 0, "change_log_count": 0}
-
-    try:
-        # 第一步：删除账户分类分配 (依赖AccountPermission)
-        sync_data_ids = [data.id for data in AccountPermission.query.filter_by(instance_id=instance_id).all()]
-        if sync_data_ids:
-            stats["assignment_count"] = AccountClassificationAssignment.query.filter(
-                AccountClassificationAssignment.account_id.in_(sync_data_ids)
-            ).count()
-            if stats["assignment_count"] > 0:
-                AccountClassificationAssignment.query.filter(
-                    AccountClassificationAssignment.account_id.in_(sync_data_ids)
-                ).delete(synchronize_session=False)
-                log_info(
-                    f"步骤1: 删除了 {stats['assignment_count']} 个分类分配记录",
-                    module="instances",
-                    instance_id=instance_id,
-                    instance_name=instance_name,
-                )
-
-        # 第二步：删除同步数据 (AccountPermission)
-        stats["sync_data_count"] = AccountPermission.query.filter_by(instance_id=instance_id).count()
-        if stats["sync_data_count"] > 0:
-            AccountPermission.query.filter_by(instance_id=instance_id).delete()
-            log_info(
-                f"步骤2: 删除了 {stats['sync_data_count']} 条同步数据记录",
-                module="instances",
-                instance_id=instance_id,
-                instance_name=instance_name,
-            )
-
-        # 第三步：删除同步实例记录 (SyncInstanceRecord)
-        stats["sync_record_count"] = SyncInstanceRecord.query.filter_by(instance_id=instance_id).count()
-        if stats["sync_record_count"] > 0:
-            SyncInstanceRecord.query.filter_by(instance_id=instance_id).delete()
-            log_info(
-                f"步骤3: 删除了 {stats['sync_record_count']} 条同步实例记录",
-                module="instances",
-                instance_id=instance_id,
-                instance_name=instance_name,
-            )
-
-        # 第四步：删除账户变更日志 (AccountChangeLog)
-        stats["change_log_count"] = AccountChangeLog.query.filter_by(instance_id=instance_id).count()
-        if stats["change_log_count"] > 0:
-            AccountChangeLog.query.filter_by(instance_id=instance_id).delete()
-            log_info(
-                f"步骤4: 删除了 {stats['change_log_count']} 条账户变更日志",
-                module="instances",
-                instance_id=instance_id,
-                instance_name=instance_name,
-            )
-
-        log_info(
-            f"实例 {instance_name or instance_id} 的所有关联数据删除完成",
-            module="instances",
-            instance_id=instance_id,
-            instance_name=instance_name,
-        )
-
-        return stats
-
-    except Exception as e:
-        log_error(
-            f"删除实例 {instance_name or instance_id} 关联数据失败: {e}",
-            module="instances",
-            instance_id=instance_id,
-            instance_name=instance_name,
-        )
-        raise
+batch_creation_service = InstanceBatchCreationService()
+batch_deletion_service = InstanceBatchDeletionService()
 
 
 @instance_bp.route("/")
@@ -488,13 +402,6 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
     """删除实例"""
     instance = Instance.query.get_or_404(instance_id)
 
-    stats = {
-        "assignment_count": 0,
-        "sync_data_count": 0,
-        "sync_record_count": 0,
-        "change_log_count": 0,
-    }
-
     try:
         log_info(
             "删除数据库实例",
@@ -506,21 +413,14 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
             host=instance.host,
         )
 
-        stats = _delete_instance_related_data(instance.id, instance.name)
-        db.session.delete(instance)
-        db.session.commit()
-
-        assignment_count = stats["assignment_count"]
-        sync_data_count = stats["sync_data_count"]
-        sync_record_count = stats["sync_record_count"]
-        change_log_count = stats["change_log_count"]
+        result = batch_deletion_service.delete_instances([instance.id], operator_id=current_user.id)
 
         return jsonify_unified_success(
             data={
-                "deleted_assignments": assignment_count,
-                "deleted_sync_data": sync_data_count,
-                "deleted_sync_records": sync_record_count,
-                "deleted_change_logs": change_log_count,
+                "deleted_assignments": result.get("deleted_assignments", 0),
+                "deleted_sync_data": result.get("deleted_sync_data", 0),
+                "deleted_sync_records": result.get("deleted_sync_records", 0),
+                "deleted_change_logs": result.get("deleted_change_logs", 0),
             },
             message="实例删除成功",
         )
@@ -544,106 +444,15 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 def batch_delete() -> str | Response | tuple[Response, int]:
     """批量删除实例"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         instance_ids = data.get("instance_ids", [])
 
-        if not instance_ids:
-            raise ValidationError("请选择要删除的实例")
+        result = batch_deletion_service.delete_instances(instance_ids, operator_id=current_user.id)
+        message = f"成功删除 {result.get('deleted_count', 0)} 个实例"
 
-        # 检查是否有相关数据关联
-        from app.models.account_change_log import AccountChangeLog
-        from app.models.account_permission import AccountPermission
-        from app.models.sync_instance_record import SyncInstanceRecord
-
-        related_data_counts = {}
-        for instance_id in instance_ids:
-            instance = Instance.query.get(instance_id)
-            if instance:
-                # 检查各种关联数据
-                sync_data_count = AccountPermission.query.filter_by(instance_id=instance_id).count()
-                sync_record_count = SyncInstanceRecord.query.filter_by(instance_id=instance_id).count()
-                change_log_count = AccountChangeLog.query.filter_by(instance_id=instance_id).count()
-
-                total_related = sync_data_count + sync_record_count + change_log_count
-                if total_related > 0:
-                    related_data_counts[instance.name] = {
-                        "sync_data": sync_data_count,
-                        "sync_records": sync_record_count,
-                        "change_logs": change_log_count,
-                        "total": total_related,
-                    }
-
-        # 如果有相关数据，先删除关联数据，然后删除实例
-        if related_data_counts:
-            log_info(
-                f"检测到 {len(related_data_counts)} 个实例有关联数据，将先删除关联数据",
-                module="instances",
-                user_id=current_user.id,
-            )
-
-        # 批量删除
-        deleted_count = 0
-        deleted_assignments = 0
-        deleted_sync_data = 0
-        deleted_sync_records = 0
-        deleted_change_logs = 0
-
-        for instance_id in instance_ids:
-            instance = Instance.query.get(instance_id)
-            if instance:
-                # 记录操作日志
-                log_info(
-                    "批量删除数据库实例",
-                    module="instances",
-                    user_id=current_user.id,
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    db_type=instance.db_type,
-                    host=instance.host,
-                )
-
-                # 第一步：删除所有关联数据
-                try:
-                    stats = _delete_instance_related_data(instance.id, instance.name)
-                except Exception as e:
-                    log_error(f"删除实例 {instance.name} 关联数据失败: {e}", module="instances")
-                    continue  # 跳过这个实例，继续处理其他实例
-
-                # 第二步：最后删除实例本身
-                try:
-                    db.session.delete(instance)
-                    deleted_count += 1
-
-                    # 累计统计信息
-                    deleted_assignments += stats["assignment_count"]
-                    deleted_sync_data += stats["sync_data_count"]
-                    deleted_sync_records += stats["sync_record_count"]
-                    deleted_change_logs += stats["change_log_count"]
-                except Exception as e:
-                    log_error(f"删除实例 {instance.name} 失败: {e}", module="instances")
-                    continue  # 跳过这个实例，继续处理其他实例
-
-        db.session.commit()
-
-        log_info(
-            f"批量删除完成：{deleted_count} 个实例，{deleted_assignments} 个分类分配，{deleted_sync_data} 条同步数据，{deleted_sync_records} 条同步记录，{deleted_change_logs} 条变更日志",
-            module="instances",
-        )
-
-        return jsonify_unified_success(
-            data={
-                "deleted_count": deleted_count,
-                "deleted_assignments": deleted_assignments,
-                "deleted_sync_data": deleted_sync_data,
-                "deleted_sync_records": deleted_sync_records,
-                "deleted_change_logs": deleted_change_logs,
-                "instances_with_related_data": related_data_counts,
-            },
-            message=f"成功删除 {deleted_count} 个实例",
-        )
+        return jsonify_unified_success(data=result, message=message)
 
     except Exception as e:
-        db.session.rollback()
         log_error("批量删除实例失败", module="instances", exception=e)
         raise SystemError("批量删除实例失败") from e
 
@@ -655,21 +464,11 @@ def batch_delete() -> str | Response | tuple[Response, int]:
 def batch_create() -> str | Response | tuple[Response, int]:
     """批量创建实例"""
     try:
-        # 检查是否有文件上传
-        if "file" in request.files:
-            file = request.files["file"]
-            if file and file.filename.endswith(".csv"):
-                return _process_csv_file(file)
+        file = request.files.get("file")
+        if not file or not file.filename.endswith(".csv"):
             raise ValidationError("请上传CSV格式文件")
 
-        # 处理JSON格式（保持向后兼容）
-        data = request.get_json()
-        instances_data = data.get("instances", [])
-
-        if not instances_data:
-            raise ValidationError("请提供实例数据")
-
-        return _process_instances_data(instances_data)
+        return _process_csv_file(file)
 
     except Exception as e:
         db.session.rollback()
@@ -677,7 +476,7 @@ def batch_create() -> str | Response | tuple[Response, int]:
         raise SystemError("批量创建实例失败") from e
 
 
-def _process_csv_file(file: Any) -> dict[str, Any] | Response | tuple[Response, int]:  # noqa: ANN401
+def _process_csv_file(file: Any) -> Response:  # noqa: ANN401
     """处理CSV文件"""
     import csv
     import io
@@ -700,96 +499,18 @@ def _process_csv_file(file: Any) -> dict[str, Any] | Response | tuple[Response, 
 
             instances_data.append(instance_data)
 
-        return _process_instances_data(instances_data)
+        return _create_instances(instances_data)
 
     except Exception as e:
         raise ValidationError(f"CSV文件处理失败: {str(e)}") from e
 
 
-def _process_instances_data(
-    instances_data: list[dict[str, Any]],
-) -> Response:
-    """处理实例数据"""
-    created_count = 0
-    errors = []
-
-    # 使用新的数据验证器进行批量验证
-    valid_data, validation_errors = DataValidator.validate_batch_data(instances_data)
-    
-    # 添加验证错误到错误列表
-    errors.extend(validation_errors)
-
-    for i, instance_data in enumerate(valid_data):
-        try:
-
-            # 检查实例名称是否已存在
-            existing_instance = Instance.query.filter_by(name=instance_data["name"]).first()
-            if existing_instance:
-                errors.append(f"第 {i + 1} 个实例名称已存在: {instance_data['name']}")
-                continue
-
-            # 处理端口号
-            try:
-                port = int(instance_data["port"])
-            except (ValueError, TypeError):
-                errors.append(f"第 {i + 1} 个实例端口号无效: {instance_data['port']}")
-                continue
-
-            # 处理凭据ID
-            credential_id = None
-            if instance_data.get("credential_id"):
-                try:
-                    credential_id = int(instance_data["credential_id"])
-                except (ValueError, TypeError):
-                    errors.append(f"第 {i + 1} 个实例凭据ID无效: {instance_data['credential_id']}")
-                    continue
-
-            # 创建实例
-            instance = Instance(
-                name=instance_data["name"],
-                db_type=instance_data["db_type"],
-                host=instance_data["host"],
-                port=port,
-                database_name=instance_data.get("database_name"),
-                description=instance_data.get("description"),
-                credential_id=credential_id,
-                tags={},
-            )
-
-            db.session.add(instance)
-            created_count += 1
-
-            # 记录操作日志
-            if current_user and hasattr(current_user, "id"):
-                log_info(
-                    "批量创建数据库实例",
-                    module="instances",
-                    user_id=current_user.id,
-                    instance_name=instance.name,
-                    db_type=instance.db_type,
-                    host=instance.host,
-                )
-
-        except Exception as e:
-            errors.append(f"第 {i + 1} 个实例创建失败: {str(e)}")
-            continue
-
-    if created_count > 0:
-        try:
-            db.session.commit()
-        except Exception as exc:
-            db.session.rollback()
-            log_error("批量创建实例提交失败", module="instances", exception=exc)
-            raise SystemError("批量创建实例失败") from exc
-
-    message = f"成功创建 {created_count} 个实例"
-    payload: dict[str, Any] = {
-        "created_count": created_count,
-    }
-    if errors:
-        payload["errors"] = errors
-
-    return jsonify_unified_success(data=payload, message=message)
+def _create_instances(instances_data: list[dict[str, Any]]) -> Response:
+    """调用服务执行批量创建并返回统一响应。"""
+    operator_id = getattr(current_user, "id", None)
+    result = batch_creation_service.create_instances(instances_data, operator_id=operator_id)
+    message = result.pop("message", f"成功创建 {result.get('created_count', 0)} 个实例")
+    return jsonify_unified_success(data=result, message=message)
 
 
 
