@@ -16,6 +16,7 @@ from app.models.account_classification import (
     ClassificationRule,
 )
 from app.services.account_classification_service import AccountClassificationService
+from app.services.statistics import account_statistics_service
 from app.constants.colors import ThemeColors
 from app.errors import SystemError, ValidationError
 from app.utils.decorators import (
@@ -291,10 +292,8 @@ def list_rules() -> tuple[Response, int]:
         log_error(f"获取规则列表失败: {exc}", module="account_classification")
         raise SystemError("获取规则列表失败") from exc
 
-    service = AccountClassificationService()
     result = []
     for rule in rules:
-        matched_count = service.get_rule_matched_accounts_count(rule.id)
         result.append(
             {
                 "id": rule.id,
@@ -304,7 +303,7 @@ def list_rules() -> tuple[Response, int]:
                 "db_type": rule.db_type,
                 "rule_expression": rule.rule_expression,
                 "is_active": rule.is_active,
-                "matched_accounts_count": matched_count,
+                "matched_accounts_count": 0,
                 "created_at": rule.created_at.isoformat() if rule.created_at else None,
                 "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
             }
@@ -318,6 +317,42 @@ def list_rules() -> tuple[Response, int]:
     return jsonify_unified_success(
         data={"rules_by_db_type": rules_by_db_type},
         message="分类规则列表获取成功",
+    )
+
+
+@account_classification_bp.route("/api/rules/stats")
+@login_required
+@view_required
+def get_rule_stats() -> tuple[Response, int]:
+    """获取规则命中统计"""
+    rule_ids_param = request.args.get("rule_ids")
+    rule_ids: list[int] | None = None
+
+    if rule_ids_param:
+        try:
+            rule_ids = [
+                int(rule_id)
+                for rule_id in rule_ids_param.split(",")
+                if rule_id.strip()
+            ]
+        except ValueError as exc:
+            raise ValidationError("rule_ids 参数必须为整数ID，使用逗号分隔") from exc
+
+    try:
+        stats_map = account_statistics_service.fetch_rule_match_stats(rule_ids)
+    except SystemError:
+        raise
+    except Exception as exc:
+        log_error(f"获取规则命中统计失败: {exc}", module="account_classification")
+        raise SystemError("获取规则命中统计失败") from exc
+
+    stats_payload = [
+        {"rule_id": rule_id, "matched_accounts_count": count}
+        for rule_id, count in stats_map.items()
+    ]
+    return jsonify_unified_success(
+        data={"rule_stats": stats_payload},
+        message="规则命中统计获取成功",
     )
 
 
