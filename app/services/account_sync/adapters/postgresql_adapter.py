@@ -69,6 +69,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                     "can_bypass_rls": bool(can_bypass_rls),
                     "can_inherit": bool(can_inherit),
                     "can_login": bool(can_login),
+                    "can_super": bool(is_superuser),
                 }
                 accounts.append(
                     {

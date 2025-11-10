@@ -23,7 +23,11 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
             required_roles = rule_expression.get("roles", [])
             if required_roles:
-                actual_roles = permissions.get("roles", [])
+                actual_roles = (
+                    permissions.get("oracle_roles")
+                    or permissions.get("roles")
+                    or []
+                )
                 role_names = {
                     role.get("role") if isinstance(role, dict) else role for role in (actual_roles or [])
                 }
@@ -31,7 +35,11 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
             required_system_privs = rule_expression.get("system_privileges", [])
             if required_system_privs:
-                system_privileges = permissions.get("system_privileges", [])
+                system_privileges = (
+                    permissions.get("system_privileges")
+                    or permissions.get("oracle_system_privileges")
+                    or []
+                )
                 system_priv_names = {
                     priv.get("privilege") if isinstance(priv, dict) else priv for priv in (system_privileges or [])
                 }
@@ -62,16 +70,20 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
             required_tablespace = rule_expression.get("tablespace_privileges", [])
             if required_tablespace:
-                tablespace_privileges = permissions.get("tablespace_privileges", [])
+                tablespace_privileges = self._normalize_tablespace_privileges(
+                    permissions.get("tablespace_privileges_oracle")
+                    or permissions.get("tablespace_privileges")
+                    or {}
+                )
                 tablespace_match = False
-                for privilege in tablespace_privileges or []:
+                for privilege in tablespace_privileges:
                     priv_name = privilege.get("privilege") if isinstance(privilege, dict) else privilege
                     tablespace_name = privilege.get("tablespace_name") if isinstance(privilege, dict) else None
                     for requirement in required_tablespace:
                         required_priv = requirement.get("privilege")
-                        required_tablespace = requirement.get("tablespace_name")
+                        required_tablespace_name = requirement.get("tablespace_name")
                         priv_ok = required_priv in (priv_name, "*")
-                        ts_ok = required_tablespace in (tablespace_name, "*")
+                        ts_ok = required_tablespace_name in (tablespace_name, "*")
                         if priv_ok and ts_ok:
                             tablespace_match = True
                             break
@@ -91,3 +103,21 @@ class OracleRuleClassifier(BaseRuleClassifier):
         if operator == "AND":
             return all(results)
         return any(results)
+
+    @staticmethod
+    def _normalize_tablespace_privileges(source: Any) -> list[dict[str, Any]]:
+        """支持 dict/list 两种结构的表空间权限。"""
+        normalized: list[dict[str, Any]] = []
+        if isinstance(source, dict):
+            for tablespace_name, privileges in source.items():
+                perms = privileges if isinstance(privileges, list) else [privileges]
+                for privilege in perms:
+                    normalized.append(
+                        {
+                            "tablespace_name": tablespace_name,
+                            "privilege": privilege,
+                        }
+                    )
+        elif isinstance(source, list):
+            normalized = [item for item in source if isinstance(item, dict)]
+        return normalized
