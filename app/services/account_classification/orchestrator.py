@@ -216,7 +216,11 @@ class AccountClassificationService:
             try:
                 matched_accounts = self._find_accounts_matching_rule(rule, accounts, db_type)
                 if matched_accounts:
-                    added_count = self.repository.upsert_assignments(matched_accounts, rule.classification_id)
+                    added_count = self.repository.upsert_assignments(
+                        matched_accounts,
+                        rule.classification_id,
+                        rule_id=rule.id,
+                    )
                     total_classifications_added += added_count
                     total_matches += len(matched_accounts)
 
