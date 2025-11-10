@@ -1,1092 +1,1010 @@
-/* 账户分类管理页面JavaScript */
+/* 账户分类管理页面脚本（模块化重构版） */
+(function initAccountClassificationPage(window, document) {
+    'use strict';
 
-// 引入console工具函数
-if (typeof logErrorWithContext === 'undefined') {
-    // console-utils.js not loaded, using fallback logging
-    window.logErrorWithContext = function (error, context, additionalContext) {
-        console.error(`错误处理: ${context}`, error, additionalContext);
-    };
-}
-
-// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
-
-// 全局变量
-let currentClassificationId = null;
-let currentDbType = null;
-let createClassificationValidator = null;
-let editClassificationValidator = null;
-let createRuleValidator = null;
-
-// 获取分类图标
-function getClassificationIcon(iconName, color) {
-    const iconMap = {
-        'fa-crown': 'fas fa-crown',
-        'fa-shield-alt': 'fas fa-shield-alt',
-        'fa-exclamation-triangle': 'fas fa-exclamation-triangle',
-        'fa-user': 'fas fa-user',
-        'fa-eye': 'fas fa-eye',
-        'fa-tag': 'fas fa-tag'
-    };
-
-    const iconClass = iconMap[iconName] || 'fas fa-tag';
-    return `<i class="${iconClass}" style="color: ${color || '#6c757d'};"></i>`;
-}
-
-// 页面加载时初始化
-document.addEventListener('DOMContentLoaded', function () {
-    loadClassifications();
-    loadRules();
-    loadClassificationsForRules(); // 为规则创建加载分类列表
-    initializeClassificationFormValidators();
-});
-
-// ==================== 分类管理相关函数 ====================
-
-// 加载分类列表
-function loadClassifications() {
-    http.get('/account_classification/api/classifications')
-        .then(data => {
-            if (data.success) {
-                const classifications = data?.data?.classifications ?? data.classifications ?? [];
-                displayClassifications(Array.isArray(classifications) ? classifications : []);
-            } else {
-                toast.error('加载分类失败: ' + (data.error || '未知错误'));
-            }
-        })
-        .catch(error => {
-            logErrorWithContext(error, '加载分类失败', { action: 'load_classifications' });
-            toast.error('加载分类失败');
-        });
-}
-
-// 显示分类列表
-function displayClassifications(classifications) {
-    const list = Array.isArray(classifications) ? classifications : [];
-    const container = document.getElementById('classificationsList');
-
-    if (list.length === 0) {
-        container.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-info-circle me-2"></i>暂无分类</div>';
+    const api = window.AccountClassificationAPI;
+    if (!api) {
+        console.error('AccountClassificationAPI 未加载，账户分类页面无法初始化');
         return;
     }
 
-    let html = '';
-    list.forEach(classification => {
-        const riskLevelClass = {
-            'low': 'success',
-            'medium': 'warning',
-            'high': 'danger',
-            'critical': 'dark'
-        }[classification.risk_level] || 'secondary';
+    const toast = window.toast || {
+        success: message => console.log(message),
+        error: message => console.error(message),
+        warning: message => console.warn(message),
+        info: message => console.info(message),
+    };
 
-        html += `
-            <div class="card mb-2 classification-item" data-id="${classification.id}">
-                <div class="card-body py-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center">
-                            <div class="me-2">
-                                ${getClassificationIcon(classification.icon_name, classification.color)}
-                            </div>
-                            <span class="position-relative d-inline-block me-2">
-                                <span class="badge bg-${riskLevelClass}" style="background-color: ${classification.color || '#6c757d'} !important;">
-                                    ${classification.name}
-                                </span>
-                                ${classification.rules_count > 0 ? `
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm">
-                                        ${classification.rules_count}
-                                        <span class="visually-hidden">匹配规则数量</span>
-                                    </span>
-                                ` : ''}
-                            </span>
-                            ${classification.rules_count > 0 ? '' : '<small class="text-muted">无匹配</small>'}
-                        </div>
-                        <div class="btn-group btn-group-sm">
-                            ${window.currentUserRole === 'admin' ? `
-                                <button class="btn btn-outline-primary" onclick="editClassification(${classification.id})" title="编辑">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                ${!classification.is_system ? `
-                                    <button class="btn btn-outline-danger" onclick="deleteClassification(${classification.id})" title="删除">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                ` : ''}
-                            ` : `
-                                <span class="btn btn-outline-secondary disabled" title="只读模式">
-                                    <i class="fas fa-lock"></i>
-                                </span>
-                            `}
-                        </div>
-                    </div>
-                    ${classification.description ? `<small class="text-muted d-block mt-1">${classification.description}</small>` : ''}
-                </div>
-            </div>
-        `;
+    const logError =
+        window.logErrorWithContext ||
+        function fallbackLogger(error, context, extras) {
+            console.error(`[AccountClassificationPage] ${context}`, error, extras || {});
+        };
+
+    const state = {
+        classifications: [],
+        rulesByDbType: {},
+    };
+
+    const validators = {
+        createClassification: null,
+        editClassification: null,
+        createRule: null,
+    };
+
+    document.addEventListener('DOMContentLoaded', function onReady() {
+        setupColorPreviewListeners();
+        setupGlobalSearchListener();
+        initFormValidators();
+
+        loadClassifications()
+            .then(() => loadClassificationsForRules())
+            .catch(() => loadClassificationsForRules());
+        loadRules();
+        loadPermissions().catch(() => {});
     });
 
-    container.innerHTML = html;
-}
+    /* ========== 数据加载 ========== */
+    async function loadClassifications() {
+        try {
+            const response = await api.classifications.list();
+            const list = extractClassifications(response);
+            state.classifications = list;
+            renderClassifications(list);
+            populateRuleClassificationSelect('ruleClassification', list);
+            populateRuleClassificationSelect('editRuleClassification', list);
+            return list;
+        } catch (error) {
+            handleRequestError(error, '加载分类失败', 'load_classifications');
+            renderClassifications([]);
+            throw error;
+        }
+    }
 
-// 创建分类
-function createClassification() {
-    const form = document.getElementById('createClassificationForm');
-    const formData = new FormData(form);
+    async function loadRules() {
+        try {
+            const response = await api.rules.list();
+            const rulesByDbType = extractRules(response);
+            const enriched = await attachRuleStats(rulesByDbType);
+            state.rulesByDbType = enriched;
+            renderRules(enriched);
+        } catch (error) {
+            handleRequestError(error, '加载规则失败', 'load_rules');
+            renderRules({});
+        }
+    }
 
-    const data = {
-        name: document.getElementById('classificationName').value,
-        description: document.getElementById('classificationDescription').value,
-        risk_level: document.getElementById('riskLevel').value,
-        color: document.getElementById('classificationColor').value,
-        priority: parseInt(document.getElementById('priority').value),
-        icon_name: document.querySelector('input[name="classificationIcon"]:checked').value
-    };
+    function extractClassifications(response) {
+        const collection = response?.data?.classifications ?? response?.classifications ?? [];
+        return Array.isArray(collection) ? collection : [];
+    }
 
-    http.post('/account_classification/api/classifications', data)
-        .then(data => {
-            if (data.success) {
-                toast.success(data.message || '分类创建成功');
-                bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
-                form.reset();
-                loadClassifications();
-            } else {
-                toast.error(data.error || '创建分类失败');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('创建分类失败');
-        });
-}
+    function extractRules(response) {
+        const raw = response?.data?.rules_by_db_type ?? response?.rules_by_db_type ?? {};
+        return typeof raw === 'object' && raw !== null ? raw : {};
+    }
 
-// 编辑分类
-function editClassification(id) {
-    // 获取分类信息
-    http.get(`/account_classification/api/classifications/${id}`)
-        .then(data => {
-            if (data.success) {
-                const classification = data?.data?.classification ?? data.classification;
+    async function attachRuleStats(rulesByDbType) {
+        const ids = collectRuleIds(rulesByDbType);
+        if (ids.length === 0) {
+            return rulesByDbType;
+        }
 
-                // 填充编辑表单
-                document.getElementById('editClassificationId').value = classification.id;
-                document.getElementById('editClassificationName').value = classification.name;
-                document.getElementById('editClassificationDescription').value = classification.description || '';
-                document.getElementById('editClassificationRiskLevel').value = classification.risk_level;
-                document.getElementById('editClassificationColor').value = classification.color_key || 'info';
-                document.getElementById('editClassificationPriority').value = classification.priority || 0;
-
-                // 显示编辑模态框
-                const editModal = new bootstrap.Modal(document.getElementById('editClassificationModal'));
-
-                // 在模态框显示后设置图标选择
-                const modalElement = document.getElementById('editClassificationModal');
-                const setIconSelection = () => {
-                    const iconName = classification.icon_name || 'fa-tag';
-
-                    // 先清除所有图标选择的选中状态
-                    const allIconRadios = document.querySelectorAll('input[name="editClassificationIcon"]');
-                    allIconRadios.forEach(radio => {
-                        radio.checked = false;
-                    });
-
-                    // 然后选中对应的图标
-                    const iconRadio = document.querySelector(`input[name="editClassificationIcon"][value="${iconName}"]`);
-                    if (iconRadio) {
-                        iconRadio.checked = true;
-                    } else {
-                        // 如果找不到对应的图标，默认选中标签图标
-                        const defaultRadio = document.querySelector('input[name="editClassificationIcon"][value="fa-tag"]');
-                        if (defaultRadio) {
-                            defaultRadio.checked = true;
-                        }
+        try {
+            const response = await api.rules.stats(ids);
+            const statsList = response?.data?.rule_stats ?? response?.rule_stats ?? [];
+            const statsMap = {};
+            if (Array.isArray(statsList)) {
+                statsList.forEach(item => {
+                    if (item && typeof item.rule_id === 'number') {
+                        statsMap[item.rule_id] = item.matched_accounts_count ?? 0;
                     }
-                };
-
-                // 监听模态框显示事件
-                modalElement.addEventListener('shown.bs.modal', setIconSelection, { once: true });
-
-                // 延迟设置作为备用方案
-                setTimeout(setIconSelection, 100);
-
-                editModal.show();
-            } else {
-                toast.error('获取分类信息失败: ' + (data.error || '未知错误'));
+                });
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('获取分类信息失败');
-        });
-}
+            Object.values(rulesByDbType).forEach(ruleGroup => {
+                if (Array.isArray(ruleGroup)) {
+                    ruleGroup.forEach(rule => {
+                        if (rule && typeof rule.id === 'number') {
+                            rule.matched_accounts_count = statsMap[rule.id] ?? 0;
+                        }
+                    });
+                }
+            });
+        } catch (error) {
+            console.error('加载规则统计失败', error);
+        }
 
-// 更新分类
-function updateClassification() {
-    const id = document.getElementById('editClassificationId').value;
-    const name = document.getElementById('editClassificationName').value;
-    const description = document.getElementById('editClassificationDescription').value;
-    const riskLevel = document.getElementById('editClassificationRiskLevel').value;
-    const color = document.getElementById('editClassificationColor').value;
-    const priority = parseInt(document.getElementById('editClassificationPriority').value) || 0;
-
-    if (!name.trim()) {
-        toast.warning('请输入分类名称');
-        return;
+        return rulesByDbType;
     }
 
-    const data = {
-        name: name.trim(),
-        description: description.trim(),
-        risk_level: riskLevel,
-        color: color,
-        priority: priority,
-        icon_name: document.querySelector('input[name="editClassificationIcon"]:checked').value
-    };
-
-    http.put(`/account_classification/api/classifications/${id}`, data)
-        .then(data => {
-            if (data.success) {
-                toast.success('分类更新成功');
-                bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
-                loadClassifications();
-            } else {
-                toast.error(data.error || '分类更新失败');
+    function collectRuleIds(rulesByDbType) {
+        const ids = [];
+        Object.values(rulesByDbType || {}).forEach(ruleGroup => {
+            if (Array.isArray(ruleGroup)) {
+                ruleGroup.forEach(rule => {
+                    if (rule && typeof rule.id === 'number') {
+                        ids.push(rule.id);
+                    }
+                });
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('更新分类失败');
         });
-}
-
-// 删除分类
-function deleteClassification(id) {
-    if (!confirm('确定要删除这个分类吗？')) {
-        return;
+        return ids;
     }
 
-    http.delete(`/account_classification/api/classifications/${id}`)
-        .then(data => {
-            if (data.success) {
-                toast.success(data.message || '分类删除成功');
-                loadClassifications();
-            } else {
-                toast.error(data.error || '删除分类失败');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('删除分类失败');
-        });
-}
-
-// ==================== 规则管理相关函数 ====================
-
-// 加载规则
-async function loadRules() {
-    try {
-        const data = await http.get('/account_classification/api/rules');
-        if (!data.success) {
-            toast.error('加载规则失败: ' + (data.error || '未知错误'));
+    /* ========== 分类渲染 & 处理 ========== */
+    function renderClassifications(classifications) {
+        const container = document.getElementById('classificationsList');
+        if (!container) {
             return;
         }
 
-        const rulesByDbType = data?.data?.rules_by_db_type ?? data.rules_by_db_type ?? {};
-        const normalizedRules = rulesByDbType && typeof rulesByDbType === 'object' ? rulesByDbType : {};
+        const list = Array.isArray(classifications) ? classifications : [];
+        if (list.length === 0) {
+            container.innerHTML =
+                '<div class="text-center text-muted py-3"><i class="fas fa-info-circle me-2"></i>暂无分类</div>';
+            return;
+        }
 
-        const allRuleIds = [];
-        Object.values(normalizedRules).forEach(rules => {
-            if (Array.isArray(rules)) {
-                rules.forEach(rule => {
-                    if (rule && typeof rule.id === 'number') {
-                        allRuleIds.push(rule.id);
-                    }
-                });
+        container.innerHTML = list
+            .map(classification => {
+                const riskLevelClass = {
+                    low: 'success',
+                    medium: 'warning',
+                    high: 'danger',
+                    critical: 'dark',
+                }[classification.risk_level] || 'secondary';
+
+                const iconHtml = getClassificationIcon(classification.icon_name, classification.color);
+                const badge = `
+                    <span class="position-relative d-inline-block me-2">
+                        <span class="badge bg-${riskLevelClass}" style="background-color: ${
+                            classification.color || '#6c757d'
+                        } !important;">
+                            ${classification.name}
+                        </span>
+                        ${
+                            classification.rules_count > 0
+                                ? `
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm">
+                                    ${classification.rules_count}
+                                    <span class="visually-hidden">匹配规则数量</span>
+                                </span>
+                            `
+                                : ''
+                        }
+                    </span>
+                `;
+
+                const actionButtons =
+                    window.currentUserRole === 'admin'
+                        ? `
+                            <button class="btn btn-outline-primary" onclick="editClassification(${classification.id})" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            ${
+                                classification.is_system
+                                    ? ''
+                                    : `
+                                <button class="btn btn-outline-danger" onclick="deleteClassification(${classification.id})" title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `
+                            }
+                        `
+                        : `
+                            <span class="btn btn-outline-secondary disabled" title="只读模式">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                        `;
+
+                return `
+                    <div class="card mb-2 classification-item" data-id="${classification.id}">
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">${iconHtml}</div>
+                                    ${badge}
+                                    ${
+                                        classification.rules_count > 0
+                                            ? ''
+                                            : '<small class="text-muted">无匹配</small>'
+                                    }
+                                </div>
+                                <div class="btn-group btn-group-sm">${actionButtons}</div>
+                            </div>
+                            ${
+                                classification.description
+                                    ? `<small class="text-muted d-block mt-1">${classification.description}</small>`
+                                    : ''
+                            }
+                        </div>
+                    </div>
+                `;
+            })
+            .join('');
+    }
+
+    function getClassificationIcon(iconName, color) {
+        const iconMap = {
+            'fa-crown': 'fas fa-crown',
+            'fa-shield-alt': 'fas fa-shield-alt',
+            'fa-exclamation-triangle': 'fas fa-exclamation-triangle',
+            'fa-user': 'fas fa-user',
+            'fa-eye': 'fas fa-eye',
+            'fa-tag': 'fas fa-tag',
+        };
+
+        const iconClass = iconMap[iconName] || 'fas fa-tag';
+        return `<i class="${iconClass}" style="color: ${color || '#6c757d'};"></i>`;
+    }
+
+    async function handleEditClassification(id) {
+        try {
+            const response = await api.classifications.detail(id);
+            const classification = response?.data?.classification ?? response?.classification;
+            if (!classification) {
+                toast.error('未获取到分类信息');
+                return;
             }
-        });
 
-        if (allRuleIds.length > 0) {
-            try {
-                const statsMap = await fetchRuleStats(allRuleIds);
-                Object.values(normalizedRules).forEach(rules => {
-                    if (Array.isArray(rules)) {
-                        rules.forEach(rule => {
-                            rule.matched_accounts_count = statsMap[rule.id] ?? 0;
-                        });
-                    }
-                });
-            } catch (statsError) {
-                console.error('加载规则统计失败', statsError);
+            fillEditClassificationForm(classification);
+
+            const modal = new bootstrap.Modal(document.getElementById('editClassificationModal'));
+            modal.show();
+        } catch (error) {
+            handleRequestError(error, '获取分类信息失败', 'edit_classification');
+        }
+    }
+
+    function fillEditClassificationForm(classification) {
+        document.getElementById('editClassificationId').value = classification.id;
+        document.getElementById('editClassificationName').value = classification.name || '';
+        document.getElementById('editClassificationDescription').value = classification.description || '';
+        document.getElementById('editClassificationRiskLevel').value = classification.risk_level || 'medium';
+        document.getElementById('editClassificationColor').value = classification.color_key || classification.color || '';
+        document.getElementById('editClassificationPriority').value = classification.priority ?? 0;
+
+        const iconName = classification.icon_name || 'fa-tag';
+        const radio = document.querySelector(`input[name="editClassificationIcon"][value="${iconName}"]`);
+        if (radio) {
+            radio.checked = true;
+        } else {
+            const fallback = document.querySelector('input[name="editClassificationIcon"][value="fa-tag"]');
+            if (fallback) {
+                fallback.checked = true;
             }
         }
 
-        displayRules(normalizedRules);
-    } catch (error) {
-        console.error('Error:', error);
-        toast.error('加载规则失败');
-    }
-}
-
-async function fetchRuleStats(ruleIds) {
-    if (!Array.isArray(ruleIds) || ruleIds.length === 0) {
-        return {};
+        updateColorPreview('editColorPreview', document.getElementById('editClassificationColor'));
     }
 
-    const query = encodeURIComponent(ruleIds.join(','));
-    const response = await http.get(`/account_classification/api/rules/stats?rule_ids=${query}`);
+    async function handleDeleteClassification(id) {
+        if (!confirm('确定要删除这个分类吗？')) {
+            return;
+        }
 
-    if (!response.success) {
-        toast.error('加载规则统计失败: ' + (response.error || '未知错误'));
-        return {};
+        try {
+            const response = await api.classifications.remove(id);
+            toast.success(response?.message || '分类删除成功');
+            await loadClassifications();
+            await loadRules();
+        } catch (error) {
+            handleRequestError(error, '删除分类失败', 'delete_classification');
+        }
     }
 
-    const statsList = response?.data?.rule_stats ?? response.rule_stats ?? [];
-    const statsMap = {};
-    if (Array.isArray(statsList)) {
-        statsList.forEach(item => {
-            if (item && typeof item.rule_id === 'number') {
-                statsMap[item.rule_id] = item.matched_accounts_count ?? 0;
+    function triggerCreateClassification() {
+        if (validators.createClassification) {
+            validators.createClassification.revalidate();
+            return;
+        }
+        const form = document.getElementById('createClassificationForm');
+        if (form) {
+            submitCreateClassification(form);
+        }
+    }
+
+    function triggerUpdateClassification() {
+        if (validators.editClassification) {
+            if (typeof validators.editClassification.revalidate === 'function') {
+                validators.editClassification.revalidate();
+                return;
             }
+            if (validators.editClassification.instance) {
+                validators.editClassification.instance.revalidate();
+                return;
+            }
+        }
+
+        const form = document.getElementById('editClassificationForm');
+        if (form) {
+            submitUpdateClassification(form);
+        }
+    }
+
+    async function submitCreateClassification(form) {
+        const payload = collectClassificationPayload(form, {
+            name: '#classificationName',
+            description: '#classificationDescription',
+            riskLevel: '#riskLevel',
+            color: '#classificationColor',
+            priority: '#priority',
+            iconSelector: 'input[name="classificationIcon"]:checked',
         });
-    }
-    return statsMap;
-}
 
-// 根据分类名称获取对应的CSS类
-function getClassificationClass(classificationName) {
-    if (!classificationName) return 'normal';
+        if (!payload) {
+            return;
+        }
 
-    if (classificationName.includes('特权')) {
-        return 'privileged';
-    } else if (classificationName.includes('敏感')) {
-        return 'sensitive';
-    } else if (classificationName.includes('风险')) {
-        return 'risk';
-    } else if (classificationName.includes('只读')) {
-        return 'readonly';
-    }
-
-    return 'normal'; // 默认普通账户
-}
-
-// 显示规则列表
-function displayRules(rulesByDbType) {
-    const container = document.getElementById('rulesList');
-
-    const entries = Object.entries(rulesByDbType || {});
-
-    if (entries.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-info-circle"></i>
-                <h5 class="mb-2">暂无规则</h5>
-                <p class="mb-0">点击"新建规则"按钮创建第一个分类规则</p>
-            </div>
-        `;
-        return;
+        try {
+            const response = await api.classifications.create(payload);
+            toast.success(response?.message || '分类创建成功');
+            bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
+            form.reset();
+            resetColorPreview('colorPreview');
+            refreshValidator(validators.createClassification);
+            await loadClassifications();
+        } catch (error) {
+            handleRequestError(error, '创建分类失败', 'create_classification');
+        }
     }
 
-    let html = '';
-    for (const [dbType, rulesRaw] of entries) {
-        const rules = Array.isArray(rulesRaw) ? rulesRaw : [];
-        // 数据库类型图标映射
-        const dbIcons = {
-            'mysql': 'fas fa-database',
-            'postgresql': 'fas fa-elephant',
-            'sqlserver': 'fas fa-server',
-            'oracle': 'fas fa-database'
+    async function submitUpdateClassification(form) {
+        const payload = collectClassificationPayload(form, {
+            name: '#editClassificationName',
+            description: '#editClassificationDescription',
+            riskLevel: '#editClassificationRiskLevel',
+            color: '#editClassificationColor',
+            priority: '#editClassificationPriority',
+            iconSelector: 'input[name="editClassificationIcon"]:checked',
+        });
+
+        const id = form.querySelector('#editClassificationId')?.value;
+        if (!payload || !id) {
+            toast.error('请填写完整的分类信息');
+            return;
+        }
+
+        try {
+            const response = await api.classifications.update(id, payload);
+            toast.success(response?.message || '分类更新成功');
+            bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
+            resetColorPreview('editColorPreview');
+            refreshValidator(validators.editClassification);
+            await loadClassifications();
+        } catch (error) {
+            handleRequestError(error, '更新分类失败', 'update_classification');
+        }
+    }
+
+    function collectClassificationPayload(form, selectors) {
+        const nameInput = form.querySelector(selectors.name);
+        const colorSelect = form.querySelector(selectors.color);
+        const priorityInput = form.querySelector(selectors.priority);
+        const descriptionInput = form.querySelector(selectors.description);
+        const riskLevelSelect = form.querySelector(selectors.riskLevel);
+        const iconRadio = form.querySelector(selectors.iconSelector);
+
+        const payload = {
+            name: nameInput ? nameInput.value.trim() : '',
+            description: descriptionInput ? descriptionInput.value.trim() : '',
+            risk_level: riskLevelSelect ? riskLevelSelect.value : 'medium',
+            color: colorSelect ? colorSelect.value : '',
+            priority: parsePriority(priorityInput ? priorityInput.value : ''),
+            icon_name: iconRadio ? iconRadio.value : 'fa-tag',
         };
 
-        const dbIcon = dbIcons[dbType] || 'fas fa-database';
+        if (!payload.name || !payload.color) {
+            toast.error('请填写完整的分类信息');
+            return null;
+        }
 
-        html += `
-            <div class="rule-group-card">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>
-                            <i class="${dbIcon} me-2 text-primary"></i>${dbType.toUpperCase()} 规则
-                            <span class="badge bg-primary ms-2 rounded-pill">${rules.length}</span>
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        ${rules.length > 0 ? `
-                            <div class="rule-list">
-                                ${rules.map(rule => `
-                                    <div class="rule-item">
-                                        <div class="rule-card">
-                                            <div class="card-body">
-                                                <div class="row align-items-center">
-                                                    <div class="col-3">
-                                                        <h6 class="card-title mb-0">${rule.rule_name}</h6>
-                                                    </div>
-                                                    <div class="col-4">
-                                                        <div class="d-flex align-items-center justify-content-center gap-1">
-                                                            <span class="rule-classification-badge ${getClassificationClass(rule.classification_name)}">${rule.classification_name || '未分类'}</span>
-                                                            <span class="db-type-badge">${rule.db_type.toUpperCase()}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-2">
-                                                        <span class="badge accounts-count-badge" 
-                                                              data-count="${rule.matched_accounts_count || 0}">
-                                                            <i class="fas fa-users me-1"></i>${rule.matched_accounts_count || 0} 个账户
-                                                        </span>
-                                                    </div>
-                                                    <div class="col-3">
-                                                        <div class="rule-actions">
-                                                            <button class="btn btn-outline-info" onclick="viewRule(${rule.id})" title="查看详情">
-                                                                <i class="fas fa-eye"></i>
-                                                            </button>
-                                                            ${window.currentUserRole === 'admin' ? `
-                                                                <button class="btn btn-outline-primary" onclick="editRule(${rule.id})" title="编辑规则">
-                                                                    <i class="fas fa-edit"></i>
-                                                                </button>
-                                                                <button class="btn btn-outline-danger" onclick="deleteRule(${rule.id})" title="删除规则">
-                                                                    <i class="fas fa-trash"></i>
-                                                                </button>
-                                                            ` : `
-                                                                <span class="btn btn-outline-secondary disabled" title="只读模式">
-                                                                    <i class="fas fa-lock"></i>
-                                                                </span>
-                                                            `}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+        return payload;
+    }
+
+    function parsePriority(value) {
+        if (value === '' || value === null || value === undefined) {
+            return 0;
+        }
+        const parsed = parseInt(value, 10);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    /* ========== 规则渲染 & 处理 ========== */
+    function renderRules(rulesByDbType) {
+        const container = document.getElementById('rulesList');
+        if (!container) {
+            return;
+        }
+
+        const entries = Object.entries(rulesByDbType || {});
+        if (entries.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-info-circle"></i>
+                    <h5 class="mb-2">暂无规则</h5>
+                    <p class="mb-0">点击"新建规则"按钮创建第一个分类规则</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = entries
+            .map(([dbType, rulesRaw]) => {
+                const rules = Array.isArray(rulesRaw) ? rulesRaw : [];
+                const dbIcons = {
+                    mysql: 'fas fa-database',
+                    postgresql: 'fas fa-elephant',
+                    sqlserver: 'fas fa-server',
+                    oracle: 'fas fa-database',
+                };
+                const dbIcon = dbIcons[dbType] || 'fas fa-database';
+
+                return `
+                    <div class="rule-group-card">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>
+                                    <i class="${dbIcon} me-2 text-primary"></i>${dbType.toUpperCase()} 规则
+                                    <span class="badge bg-primary ms-2 rounded-pill">${rules.length}</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                ${
+                                    rules.length > 0
+                                        ? `
+                                        <div class="rule-list">
+                                            ${rules.map(rule => renderRuleRow(rule)).join('')}
                                         </div>
-                                    </div>
-                                `).join('')}
+                                    `
+                                        : `
+                                        <div class="text-center text-muted py-5">
+                                            <i class="fas fa-info-circle fa-3x mb-3 text-muted"></i>
+                                            <p class="mb-0">暂无${dbType.toUpperCase()}规则</p>
+                                            <small class="text-muted">点击"新建规则"按钮创建第一个规则</small>
+                                        </div>
+                                    `
+                                }
                             </div>
-                        ` : `
-                            <div class="text-center text-muted py-5">
-                                <i class="fas fa-info-circle fa-3x mb-3 text-muted"></i>
-                                <p class="mb-0">暂无${dbType.toUpperCase()}规则</p>
-                                <small class="text-muted">点击"新建规则"按钮创建第一个规则</small>
+                        </div>
+                    </div>
+                `;
+            })
+            .join('');
+    }
+
+    function renderRuleRow(rule) {
+        const classificationBadge = `
+            <span class="rule-classification-badge ${getClassificationClass(rule.classification_name)}">
+                ${rule.classification_name || '未分类'}
+            </span>
+        `;
+        const count = typeof rule.matched_accounts_count === 'number' ? rule.matched_accounts_count : 0;
+
+        const actions =
+            window.currentUserRole === 'admin'
+                ? `
+                    <button class="btn btn-outline-info" onclick="viewRule(${rule.id})" title="查看详情">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="editRule(${rule.id})" title="编辑规则">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="deleteRule(${rule.id})" title="删除规则">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `
+                : `
+                    <span class="btn btn-outline-secondary disabled" title="只读模式">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                `;
+
+        return `
+            <div class="rule-item">
+                <div class="rule-card">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-3">
+                                <h6 class="card-title mb-0">${rule.rule_name}</h6>
                             </div>
-                        `}
+                            <div class="col-4">
+                                <div class="d-flex align-items-center justify-content-center gap-1">
+                                    ${classificationBadge}
+                                    <span class="db-type-badge">${(rule.db_type || '').toUpperCase()}</span>
+                                </div>
+                            </div>
+                            <div class="col-2">
+                                <span class="badge accounts-count-badge" data-count="${count}">
+                                    <i class="fas fa-users me-1"></i>${count} 个账户
+                                </span>
+                            </div>
+                            <div class="col-3">
+                                <div class="rule-actions">${actions}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
     }
 
-    container.innerHTML = html;
-}
+    function getClassificationClass(name) {
+        if (!name) return 'normal';
+        if (name.includes('特权')) return 'privileged';
+        if (name.includes('敏感')) return 'sensitive';
+        if (name.includes('风险')) return 'risk';
+        if (name.includes('只读')) return 'readonly';
+        return 'normal';
+    }
 
-// 加载分类列表（用于规则创建）
-function loadClassificationsForRules(prefix = '') {
-    return http.get('/account_classification/api/classifications')
-        .then(data => {
-            if (data.success) {
-                const classifications = data?.data?.classifications ?? data.classifications ?? [];
-                const elementId = prefix ? `${prefix}RuleClassification` : 'ruleClassification';
-                const select = document.getElementById(elementId);
-                if (select) {
-                    select.innerHTML = '<option value="">请选择分类</option>';
-                    classifications.forEach(classification => {
-                        const option = document.createElement('option');
-                        option.value = classification.id;
-                        option.textContent = classification.name;
-                        select.appendChild(option);
-                    });
-                }
+    function triggerCreateRule() {
+        if (validators.createRule) {
+            validators.createRule.revalidate();
+            return;
+        }
+        const form = document.getElementById('createRuleForm');
+        if (form) {
+            submitCreateRule(form);
+        }
+    }
+
+    async function submitCreateRule(form) {
+        const payload = collectRulePayload(form, {
+            idField: '#ruleId',
+            classification: '#ruleClassification',
+            name: '#ruleName',
+            dbType: '#ruleDbType',
+            operator: '#ruleOperator',
+            permissionsContainer: 'permissionsConfig',
+            prefix: '',
+        });
+
+        if (!payload) {
+            return;
+        }
+
+        try {
+            const response = await api.rules.create(payload);
+            toast.success(response?.message || '规则创建成功');
+            bootstrap.Modal.getInstance(document.getElementById('createRuleModal')).hide();
+            form.reset();
+            refreshValidator(validators.createRule);
+            await loadRules();
+        } catch (error) {
+            handleRequestError(error, '创建规则失败', 'create_rule');
+        }
+    }
+
+    async function handleEditRule(id) {
+        try {
+            const response = await api.rules.detail(id);
+            const rule = response?.data?.rule ?? response?.rule;
+            if (!rule) {
+                toast.error('未获取到规则信息');
+                return;
             }
-            return data;
-        });
-}
 
-// 加载权限配置
-function loadPermissions(prefix = '') {
-    const elementId = prefix ? `${prefix}RuleDbType` : 'ruleDbType';
-    const dbTypeElement = document.getElementById(elementId);
-    if (!dbTypeElement) {
-        console.error('找不到数据库类型选择元素:', elementId);
-        return Promise.resolve();
-    }
-    const dbType = dbTypeElement.value;
-    const containerId = prefix ? `${prefix}PermissionsConfig` : 'permissionsConfig';
+            await loadClassificationsForRules('edit');
 
-    return PermissionPolicyCenter.load(dbType, containerId, prefix)
-        .catch(error => {
-            console.error('加载权限配置失败:', error);
-            toast.error('加载权限配置失败: ' + (error.message || '未知错误'));
-        });
-}
+            document.getElementById('editRuleId').value = rule.id;
+            document.getElementById('editRuleName').value = rule.rule_name || '';
+            document.getElementById('editRuleClassification').value = rule.classification_id || '';
+            document.getElementById('editRuleDbType').value = rule.db_type || '';
+            document.getElementById('editRuleDbTypeHidden').value = rule.db_type || '';
+            document.getElementById('editRuleOperator').value =
+                (rule.rule_expression && rule.rule_expression.operator) || 'OR';
 
-// 显示权限配置
-// ==================== 规则CRUD操作 ====================
+            const editModalEl = document.getElementById('editRuleModal');
+            const editModal = new bootstrap.Modal(editModalEl);
 
-function createRule() {
-    if (createRuleValidator) {
-        createRuleValidator.revalidate();
-        return;
-    }
-
-    const form = document.getElementById('createRuleForm');
-    if (form) {
-        submitCreateRule(form);
-    }
-}
-
-function submitCreateRule(form) {
-    const classificationId = form.querySelector('#ruleClassification')?.value;
-    const ruleName = form.querySelector('#ruleName')?.value;
-    const dbType = form.querySelector('#ruleDbType')?.value;
-    const operator = form.querySelector('#ruleOperator')?.value;
-
-    const selectedPermissions = PermissionPolicyCenter.collectSelected(dbType, 'permissionsConfig', '');
-    if (!PermissionPolicyCenter.hasSelection(selectedPermissions)) {
-        toast.warning('请至少选择一个权限');
-        return;
-    }
-
-    const ruleExpression = PermissionPolicyCenter.buildExpression(dbType, selectedPermissions, operator);
-
-    const data = {
-        classification_id: parseInt(classificationId),
-        rule_name: ruleName,
-        db_type: dbType,
-        rule_expression: ruleExpression
-    };
-
-    http.post('/account_classification/api/rules', data)
-        .then(response => {
-            if (response.success) {
-                toast.success('规则创建成功');
-                bootstrap.Modal.getInstance(document.getElementById('createRuleModal')).hide();
-                document.getElementById('createRuleForm').reset();
-                if (createRuleValidator && createRuleValidator.instance) {
-                    createRuleValidator.instance.refresh();
-                }
-                loadRules();
-            } else {
-                toast.error(response.error || '规则创建失败');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('创建规则失败');
-        });
-}
-
-// 编辑规则
-function editRule(id) {
-    http.get(`/account_classification/api/rules/${id}`)
-        .then(data => {
-            if (data.success) {
-                const rule = data.data.rule;
-
-                // 先加载分类列表，然后填充表单
-                loadClassificationsForRules('edit').then(() => {
-                    // 填充编辑表单
-                    document.getElementById('editRuleId').value = rule.id;
-                    document.getElementById('editRuleName').value = rule.rule_name;
-                    document.getElementById('editRuleClassification').value = rule.classification_id;
-                    document.getElementById('editRuleDbTypeHidden').value = rule.db_type;
-
-                    // 设置数据库类型显示
-                    document.getElementById('editRuleDbType').value = rule.db_type;
-
-                    // 设置操作符
-                    const ruleExpression = rule.rule_expression;
-                    if (ruleExpression && ruleExpression.operator) {
-                        document.getElementById('editRuleOperator').value = ruleExpression.operator;
-                    } else {
-                        document.getElementById('editRuleOperator').value = 'OR'; // 默认值
-                    }
-
-                    // 显示编辑模态框
-                    const editModal = new bootstrap.Modal(document.getElementById('editRuleModal'));
-                    editModal.show();
-
-                    // 模态框显示后加载权限配置
-                    document.getElementById('editRuleModal').addEventListener('shown.bs.modal', function () {
-                        // 确保数据库类型字段有值
-                        document.getElementById('editRuleDbType').value = rule.db_type;
-
-                        // 加载权限配置
-                        loadPermissions('edit').then(() => {
-                            PermissionPolicyCenter.setSelected(
+            const onShown = () => {
+                loadPermissions('edit')
+                    .then(() => {
+                        if (
+                            window.PermissionPolicyCenter &&
+                            typeof window.PermissionPolicyCenter.setSelected === 'function'
+                        ) {
+                            window.PermissionPolicyCenter.setSelected(
                                 rule.db_type,
                                 rule.rule_expression,
                                 'editPermissionsConfig',
                                 'edit'
                             );
-                        }).catch(error => {
-                            console.error('加载权限配置失败:', error);
-                            toast.error('加载权限配置失败: ' + (error.message || '未知错误'));
-                        });
-                    }, { once: true });
-                });
-            } else {
-                toast.error('获取规则信息失败: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('获取规则信息失败');
-        });
-}
+                        }
+                    })
+                    .catch(err => handleRequestError(err, '加载权限配置失败', 'edit_rule_permissions'));
+                editModalEl.removeEventListener('shown.bs.modal', onShown);
+            };
 
-// 设置选中的权限
-// 更新规则
-function updateRule() {
-    const ruleId = document.getElementById('editRuleId').value;
-    const ruleName = document.getElementById('editRuleName').value;
-    const classificationId = document.getElementById('editRuleClassification').value;
-    const dbType = document.getElementById('editRuleDbTypeHidden').value;
-    const operator = document.getElementById('editRuleOperator').value;
-
-    if (!ruleName) {
-        toast.warning('请输入规则名称');
-        return;
-    }
-
-    if (!classificationId) {
-        toast.warning('请选择分类');
-        return;
-    }
-
-    if (!operator) {
-        toast.warning('请选择匹配逻辑');
-        return;
-    }
-
-    const selectedPermissions = PermissionPolicyCenter.collectSelected(dbType, 'editPermissionsConfig', 'edit');
-    if (!PermissionPolicyCenter.hasSelection(selectedPermissions)) {
-        toast.warning('请至少选择一个权限');
-        return;
-    }
-
-    const ruleExpression = PermissionPolicyCenter.buildExpression(dbType, selectedPermissions, operator);
-
-    const data = {
-        classification_id: parseInt(classificationId),
-        rule_name: ruleName,
-        db_type: dbType,
-        rule_expression: ruleExpression
-    };
-
-    http.put(`/account_classification/api/rules/${ruleId}`, data)
-        .then(data => {
-            if (data.success) {
-                toast.success('规则更新成功');
-                bootstrap.Modal.getInstance(document.getElementById('editRuleModal')).hide();
-                loadRules();
-            } else {
-                toast.error(data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('更新规则失败');
-        });
-}
-
-// ==================== 其他功能函数 ====================
-
-// 处理搜索框回车事件
-document.addEventListener('DOMContentLoaded', function () {
-    // 为搜索框添加回车事件监听
-    document.addEventListener('keypress', function (e) {
-        if (e.target.id === 'accountSearchInput' && e.key === 'Enter') {
-            const ruleId = e.target.closest('.modal').dataset.ruleId;
-            if (ruleId) {
-                searchMatchedAccounts(parseInt(ruleId));
-            }
-        }
-    });
-});
-
-// 查看规则
-function viewRule(id) {
-    http.get(`/account_classification/api/rules/${id}`)
-        .then(data => {
-            if (data.success) {
-                const rule = data.data.rule;
-
-                // 填充查看表单
-                document.getElementById('viewRuleName').textContent = rule.rule_name;
-                document.getElementById('viewRuleClassification').textContent = rule.classification_name || '未分类';
-                document.getElementById('viewRuleDbType').textContent = rule.db_type.toUpperCase();
-
-                // 显示操作符
-                const ruleExpression = rule.rule_expression;
-                const operator = ruleExpression && ruleExpression.operator ? ruleExpression.operator : 'OR';
-                const operatorText = operator === 'AND' ? 'AND (所有条件都必须满足)' : 'OR (任一条件满足即可)';
-                document.getElementById('viewRuleOperator').textContent = operatorText;
-
-                document.getElementById('viewRuleStatus').innerHTML = rule.is_active ?
-                    '<span class="badge bg-success">启用</span>' :
-                    '<span class="badge bg-secondary">禁用</span>';
-                // 使用统一的时间格式化
-                document.getElementById('viewRuleCreatedAt').textContent = rule.created_at ?
-                    timeUtils.formatDateTime(rule.created_at) : '-';
-                document.getElementById('viewRuleUpdatedAt').textContent = rule.updated_at ?
-                    timeUtils.formatDateTime(rule.updated_at) : '-';
-
-                const permissionsContainer = document.getElementById('viewPermissionsConfig');
-                if (permissionsContainer) {
-                    permissionsContainer.innerHTML = PermissionPolicyCenter.renderDisplay(rule.db_type, rule.rule_expression);
-                }
-
-                // 显示查看模态框
-                const viewModal = new bootstrap.Modal(document.getElementById('viewRuleModal'));
-                viewModal.show();
-            } else {
-                toast.error('获取规则信息失败: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('获取规则信息失败');
-        });
-}
-
-// 删除规则
-function deleteRule(id) {
-    if (!confirm('确定要删除这个规则吗？')) {
-        return;
-    }
-
-    http.delete(`/account_classification/rules/${id}`)
-        .then(data => {
-            if (data.success) {
-                toast.success('规则删除成功');
-                loadRules();
-            } else {
-                toast.error(data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('删除规则失败');
-        });
-}
-
-// 自动分类所有账户
-function autoClassifyAll() {
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-
-    // 更新按钮状态
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>分类中...';
-    btn.disabled = true;
-
-    // 记录操作开始日志
-    console.info('开始自动分类所有账户', { operation: 'auto_classify_all' });
-
-    http.post('/account_classification/api/auto-classify', {})
-        .then(data => {
-            if (data.success) {
-                // 记录成功日志
-                console.info('自动分类所有账户成功', {
-                    operation: 'auto_classify_all',
-                    result: 'success',
-                    message: data.message
-                });
-                toast.success(data.message);
-                // 分类完成后刷新页面显示最新数据
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
-            } else {
-                // 记录失败日志
-                console.error('自动分类所有账户失败', {
-                    operation: 'auto_classify_all',
-                    result: 'failed',
-                    error: data.error
-                });
-                toast.error(data.error);
-            }
-        })
-        .catch(error => {
-            // 记录异常日志
-            logErrorWithContext(error, '自动分类所有账户异常', {
-                operation: 'auto_classify_all',
-                result: 'exception'
-            });
-            toast.error('自动分类失败');
-        })
-        .finally(() => {
-            // 恢复按钮状态
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        });
-}
-
-// 显示提示信息
-// ==================== 颜色预览功能 ====================
-
-// 初始化颜色预览功能
-document.addEventListener('DOMContentLoaded', function () {
-    // 创建分类的颜色预览
-    const createColorSelect = document.getElementById('classificationColor');
-    if (createColorSelect) {
-        createColorSelect.addEventListener('change', function () {
-            updateColorPreview('colorPreview', this);
-        });
-    }
-
-    // 编辑分类的颜色预览
-    const editColorSelect = document.getElementById('editClassificationColor');
-    if (editColorSelect) {
-        editColorSelect.addEventListener('change', function () {
-            updateColorPreview('editColorPreview', this);
-        });
-    }
-});
-
-// 更新颜色预览
-function updateColorPreview(previewId, selectElement) {
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    const colorValue = selectedOption.dataset.color;
-    const colorText = selectedOption.text;
-
-    const preview = document.getElementById(previewId);
-    if (!preview) return;
-
-    if (colorValue && selectElement.value) {
-        const dot = preview.querySelector('.color-preview-dot');
-        const text = preview.querySelector('.color-preview-text');
-
-        if (dot && text) {
-            dot.style.backgroundColor = colorValue;
-            text.textContent = colorText;
-            preview.style.display = 'flex';
-        }
-    } else {
-        preview.style.display = 'none';
-    }
-}
-
-function initializeClassificationFormValidators() {
-    if (!window.FormValidator || !window.ValidationRules) {
-        console.error('表单校验模块未正确加载');
-        return;
-    }
-
-    const createForm = document.getElementById('createClassificationForm');
-    if (createForm) {
-        createClassificationValidator = FormValidator.create('#createClassificationForm');
-        createClassificationValidator
-            .useRules('#classificationName', ValidationRules.classification.name)
-            .useRules('#classificationColor', ValidationRules.classification.color)
-            .useRules('#priority', ValidationRules.classification.priority)
-            .onSuccess(function (event) {
-                submitCreateClassification(event.target);
-            })
-            .onFail(function () {
-                toast.error('请检查分类信息填写');
-            });
-
-        const nameInput = createForm.querySelector('#classificationName');
-        if (nameInput) {
-            nameInput.addEventListener('blur', function () {
-                createClassificationValidator.revalidateField('#classificationName');
-            });
-        }
-        const colorSelect = createForm.querySelector('#classificationColor');
-        if (colorSelect) {
-            colorSelect.addEventListener('change', function () {
-                createClassificationValidator.revalidateField('#classificationColor');
-            });
-        }
-        const priorityInput = createForm.querySelector('#priority');
-        if (priorityInput) {
-            priorityInput.addEventListener('input', function () {
-                createClassificationValidator.revalidateField('#priority');
-            });
+            editModalEl.addEventListener('shown.bs.modal', onShown);
+            editModal.show();
+        } catch (error) {
+            handleRequestError(error, '获取规则信息失败', 'edit_rule');
         }
     }
 
-    const editForm = document.getElementById('editClassificationForm');
-    if (editForm) {
-        editClassificationValidator = FormValidator.create('#editClassificationForm');
-        editClassificationValidator
-            .useRules('#editClassificationName', ValidationRules.classification.name)
-            .useRules('#editClassificationColor', ValidationRules.classification.color)
-            .useRules('#editClassificationPriority', ValidationRules.classification.priority)
-            .onSuccess(function (event) {
-                submitUpdateClassification(event.target);
-            })
-            .onFail(function () {
-                toast.error('请检查分类信息填写');
-            });
+    async function submitUpdateRule() {
+        const form = document.getElementById('editRuleForm');
+        if (!form) {
+            return;
+        }
 
-        const editNameInput = editForm.querySelector('#editClassificationName');
-        if (editNameInput) {
-            editNameInput.addEventListener('blur', function () {
-                editClassificationValidator.revalidateField('#editClassificationName');
+        const payload = collectRulePayload(form, {
+            idField: '#editRuleId',
+            classification: '#editRuleClassification',
+            name: '#editRuleName',
+            dbType: '#editRuleDbTypeHidden',
+            operator: '#editRuleOperator',
+            permissionsContainer: 'editPermissionsConfig',
+            prefix: 'edit',
+        });
+
+        if (!payload) {
+            return;
+        }
+
+        const ruleId = form.querySelector('#editRuleId')?.value;
+
+        try {
+            const response = await api.rules.update(ruleId, payload);
+            toast.success(response?.message || '规则更新成功');
+            bootstrap.Modal.getInstance(document.getElementById('editRuleModal')).hide();
+            await loadRules();
+        } catch (error) {
+            handleRequestError(error, '更新规则失败', 'update_rule');
+        }
+    }
+
+    function collectRulePayload(form, options) {
+        if (!ensurePermissionCenter()) {
+            return null;
+        }
+
+        const classificationId = form.querySelector(options.classification)?.value;
+        const ruleName = form.querySelector(options.name)?.value;
+        const dbType = form.querySelector(options.dbType)?.value;
+        const operator = form.querySelector(options.operator)?.value || 'OR';
+
+        const selected = window.PermissionPolicyCenter.collectSelected(
+            dbType,
+            options.permissionsContainer,
+            options.prefix || ''
+        );
+        if (!window.PermissionPolicyCenter.hasSelection(selected)) {
+            toast.warning('请至少选择一个权限');
+            return null;
+        }
+
+        const ruleExpression = window.PermissionPolicyCenter.buildExpression(dbType, selected, operator);
+
+        return {
+            classification_id: parseInt(classificationId, 10),
+            rule_name: ruleName,
+            db_type: dbType,
+            rule_expression: ruleExpression,
+        };
+    }
+
+    async function handleViewRule(id) {
+        try {
+            const response = await api.rules.detail(id);
+            const rule = response?.data?.rule ?? response?.rule;
+            if (!rule) {
+                toast.error('未获取到规则信息');
+                return;
+            }
+
+            const modalEl = document.getElementById('viewRuleModal');
+            if (modalEl) {
+                modalEl.dataset.ruleId = rule.id;
+            }
+
+            document.getElementById('viewRuleName').textContent = rule.rule_name || '-';
+            document.getElementById('viewRuleClassification').textContent = rule.classification_name || '未分类';
+            document.getElementById('viewRuleDbType').textContent = (rule.db_type || '').toUpperCase();
+
+            const operator = rule.rule_expression?.operator === 'AND' ? 'AND (所有条件都必须满足)' : 'OR (任一条件满足即可)';
+            document.getElementById('viewRuleOperator').textContent = operator;
+
+            document.getElementById('viewRuleStatus').innerHTML = rule.is_active
+                ? '<span class="badge bg-success">启用</span>'
+                : '<span class="badge bg-secondary">禁用</span>';
+
+            if (window.timeUtils && typeof window.timeUtils.formatDateTime === 'function') {
+                document.getElementById('viewRuleCreatedAt').textContent = rule.created_at
+                    ? window.timeUtils.formatDateTime(rule.created_at)
+                    : '-';
+                document.getElementById('viewRuleUpdatedAt').textContent = rule.updated_at
+                    ? window.timeUtils.formatDateTime(rule.updated_at)
+                    : '-';
+            }
+
+            const permissionsContainer = document.getElementById('viewPermissionsConfig');
+            if (permissionsContainer && ensurePermissionCenter()) {
+                permissionsContainer.innerHTML = window.PermissionPolicyCenter.renderDisplay(
+                    rule.db_type,
+                    rule.rule_expression
+                );
+            }
+
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        } catch (error) {
+            handleRequestError(error, '获取规则信息失败', 'view_rule');
+        }
+    }
+
+    async function handleDeleteRule(id) {
+        if (!confirm('确定要删除这个规则吗？')) {
+            return;
+        }
+
+        try {
+            const response = await api.rules.remove(id);
+            toast.success(response?.message || '规则删除成功');
+            await loadRules();
+        } catch (error) {
+            handleRequestError(error, '删除规则失败', 'delete_rule');
+        }
+    }
+
+    /* ========== 自动分类 ========== */
+    async function handleAutoClassifyAll(eventArg) {
+        const evt = eventArg || window.event;
+        const btn = evt?.currentTarget || evt?.target;
+        const originalText = btn ? btn.innerHTML : '';
+
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>分类中...';
+            btn.disabled = true;
+        }
+
+        console.info('开始自动分类所有账户', { operation: 'auto_classify_all' });
+
+        try {
+            const response = await api.automation.trigger({});
+            console.info('自动分类所有账户成功', { operation: 'auto_classify_all', result: 'success' });
+            toast.success(response?.message || '自动分类任务已启动');
+            setTimeout(() => window.location.reload(), 2000);
+        } catch (error) {
+            console.error('自动分类所有账户失败', error);
+            toast.error(error?.response?.error || error.message || '自动分类失败');
+        } finally {
+            if (btn) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+    }
+
+    /* ========== 下拉/权限加载 ========== */
+    async function loadClassificationsForRules(prefix = '') {
+        const selectId = prefix ? `${prefix}RuleClassification` : 'ruleClassification';
+        const select = document.getElementById(selectId);
+        if (!select) {
+            return;
+        }
+
+        const data =
+            state.classifications.length > 0
+                ? state.classifications
+                : await loadClassifications().catch(() => []);
+
+        populateRuleClassificationSelect(selectId, data);
+    }
+
+    function populateRuleClassificationSelect(elementId, classifications) {
+        const select = document.getElementById(elementId);
+        if (!select) {
+            return;
+        }
+
+        select.innerHTML = '<option value="">请选择分类</option>';
+        classifications.forEach(classification => {
+            const option = document.createElement('option');
+            option.value = classification.id;
+            option.textContent = classification.name;
+            select.appendChild(option);
+        });
+    }
+
+    function loadPermissions(prefix = '') {
+        if (!ensurePermissionCenter()) {
+            return Promise.resolve();
+        }
+
+        const elementId = prefix ? `${prefix}RuleDbType` : 'ruleDbType';
+        const dbTypeElement = document.getElementById(elementId);
+        if (!dbTypeElement) {
+            console.error('找不到数据库类型选择元素:', elementId);
+            return Promise.resolve();
+        }
+
+        const dbType = dbTypeElement.value;
+        const containerId = prefix ? `${prefix}PermissionsConfig` : 'permissionsConfig';
+
+        return window.PermissionPolicyCenter.load(dbType, containerId, prefix).catch(error => {
+            handleRequestError(error, '加载权限配置失败', 'load_permissions');
+        });
+    }
+
+    /* ========== 颜色预览 & 表单校验 ========== */
+    function setupColorPreviewListeners() {
+        const createColorSelect = document.getElementById('classificationColor');
+        if (createColorSelect) {
+            createColorSelect.addEventListener('change', function () {
+                updateColorPreview('colorPreview', this);
             });
         }
-        const editColorSelect = editForm.querySelector('#editClassificationColor');
+
+        const editColorSelect = document.getElementById('editClassificationColor');
         if (editColorSelect) {
             editColorSelect.addEventListener('change', function () {
-                editClassificationValidator.revalidateField('#editClassificationColor');
-            });
-        }
-        const editPriorityInput = editForm.querySelector('#editClassificationPriority');
-        if (editPriorityInput) {
-            editPriorityInput.addEventListener('input', function () {
-                editClassificationValidator.revalidateField('#editClassificationPriority');
+                updateColorPreview('editColorPreview', this);
             });
         }
     }
 
-    const ruleForm = document.getElementById('createRuleForm');
-    if (ruleForm) {
-        createRuleValidator = FormValidator.create('#createRuleForm');
-        createRuleValidator
-            .useRules('#ruleClassification', ValidationRules.classificationRule.classification)
-            .useRules('#ruleName', ValidationRules.classificationRule.name)
-            .useRules('#ruleDbType', ValidationRules.classificationRule.dbType)
-            .useRules('#ruleOperator', ValidationRules.classificationRule.operator)
-            .onSuccess(function (event) {
-                submitCreateRule(event.target);
-            })
-            .onFail(function () {
-                toast.error('请检查规则信息填写');
-            });
-
-        const classificationSelect = ruleForm.querySelector('#ruleClassification');
-        if (classificationSelect) {
-            classificationSelect.addEventListener('change', function () {
-                createRuleValidator.revalidateField('#ruleClassification');
-            });
+    function updateColorPreview(previewId, selectElement) {
+        const preview = document.getElementById(previewId);
+        if (!preview || !selectElement) {
+            return;
         }
-        const ruleNameInput = ruleForm.querySelector('#ruleName');
-        if (ruleNameInput) {
-            ruleNameInput.addEventListener('blur', function () {
-                createRuleValidator.revalidateField('#ruleName');
-            });
-        }
-        const dbTypeSelect = ruleForm.querySelector('#ruleDbType');
-        if (dbTypeSelect) {
-            dbTypeSelect.addEventListener('change', function () {
-                createRuleValidator.revalidateField('#ruleDbType');
-            });
-        }
-        const operatorSelect = ruleForm.querySelector('#ruleOperator');
-        if (operatorSelect) {
-            operatorSelect.addEventListener('change', function () {
-                createRuleValidator.revalidateField('#ruleOperator');
-            });
-        }
-    }
-}
 
-function createClassification() {
-    if (createClassificationValidator) {
-        createClassificationValidator.revalidate();
-        return;
-    }
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const colorValue = selectedOption?.dataset?.color;
+        const colorText = selectedOption?.text;
 
-    const form = document.getElementById('createClassificationForm');
-    if (form) {
-        submitCreateClassification(form);
-    }
-}
-
-function submitCreateClassification(form) {
-    const nameInput = form.querySelector('#classificationName');
-    const colorSelect = form.querySelector('#classificationColor');
-    const priorityInput = form.querySelector('#priority');
-    const descriptionInput = form.querySelector('#classificationDescription');
-    const riskLevelSelect = form.querySelector('#riskLevel');
-    const iconRadio = form.querySelector('input[name="classificationIcon"]:checked');
-
-    const data = {
-        name: nameInput ? nameInput.value.trim() : '',
-        description: descriptionInput ? descriptionInput.value.trim() : '',
-        risk_level: riskLevelSelect ? riskLevelSelect.value : 'medium',
-        color: colorSelect ? colorSelect.value : '',
-        priority: priorityInput && priorityInput.value !== '' ? parseInt(priorityInput.value, 10) || 0 : 0,
-        icon_name: iconRadio ? iconRadio.value : 'fa-tag',
-    };
-
-    if (!data.name || !data.color) {
-        toast.error('请填写完整的分类信息');
-        return;
-    }
-
-    http.post('/account_classification/api/classifications', data)
-        .then(response => {
-            if (response.success) {
-                toast.success('分类创建成功');
-                bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
-                form.reset();
-                // 重置颜色预览
-                const createColorPreview = document.getElementById('colorPreview');
-                if (createColorPreview) {
-                    createColorPreview.style.display = 'none';
-                }
-                loadClassifications();
-                if (createClassificationValidator && createClassificationValidator.instance) {
-                    createClassificationValidator.instance.refresh();
-                }
-            } else {
-                toast.error(response.error || '创建分类失败');
+        if (colorValue && selectElement.value) {
+            const dot = preview.querySelector('.color-preview-dot');
+            const text = preview.querySelector('.color-preview-text');
+            if (dot && text) {
+                dot.style.backgroundColor = colorValue;
+                text.textContent = colorText;
+                preview.style.display = 'flex';
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('创建分类失败: ' + (error.message || '未知错误'));
-        });
-}
-
-function updateClassification() {
-    if (editClassificationValidator && editClassificationValidator.instance) {
-        editClassificationValidator.instance.revalidate();
-        return;
+        } else {
+            preview.style.display = 'none';
+        }
     }
 
-    const form = document.getElementById('editClassificationForm');
-    if (form) {
-        submitUpdateClassification(form);
-    }
-}
-
-function submitUpdateClassification(form) {
-    const idInput = form.querySelector('#editClassificationId');
-    const nameInput = form.querySelector('#editClassificationName');
-    const colorSelect = form.querySelector('#editClassificationColor');
-    const priorityInput = form.querySelector('#editClassificationPriority');
-    const descriptionInput = form.querySelector('#editClassificationDescription');
-    const riskLevelSelect = form.querySelector('#editClassificationRiskLevel');
-    const iconRadio = form.querySelector('input[name="editClassificationIcon"]:checked');
-
-    const data = {
-        name: nameInput ? nameInput.value.trim() : '',
-        description: descriptionInput ? descriptionInput.value.trim() : '',
-        risk_level: riskLevelSelect ? riskLevelSelect.value : 'medium',
-        color: colorSelect ? colorSelect.value : '',
-        priority: priorityInput && priorityInput.value !== '' ? parseInt(priorityInput.value, 10) || 0 : 0,
-        icon_name: iconRadio ? iconRadio.value : 'fa-tag',
-    };
-
-    if (!data.name || !data.color) {
-        toast.error('请填写完整的分类信息');
-        return;
+    function resetColorPreview(previewId) {
+        const preview = document.getElementById(previewId);
+        if (preview) {
+            preview.style.display = 'none';
+        }
     }
 
-    const id = idInput ? idInput.value : '';
+    function initFormValidators() {
+        if (!window.FormValidator || !window.ValidationRules) {
+            console.error('表单校验模块未正确加载');
+            return;
+        }
 
-    http.put(`/account_classification/api/classifications/${id}`, data)
-        .then(response => {
-            if (response.success) {
-                toast.success('分类更新成功');
-                bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
-                // 重置颜色预览
-                const editColorPreview = document.getElementById('editColorPreview');
-                if (editColorPreview) {
-                    editColorPreview.style.display = 'none';
-                }
-                loadClassifications();
-                if (editClassificationValidator && editClassificationValidator.instance) {
-                    editClassificationValidator.instance.refresh();
-                }
-            } else {
-                toast.error(response.error || '更新分类失败');
+        const createForm = document.getElementById('createClassificationForm');
+        if (createForm) {
+            validators.createClassification = window.FormValidator.create('#createClassificationForm');
+            if (validators.createClassification) {
+                validators.createClassification
+                    .useRules('#classificationName', window.ValidationRules.classification.name)
+                    .useRules('#classificationColor', window.ValidationRules.classification.color)
+                    .useRules('#priority', window.ValidationRules.classification.priority)
+                    .onSuccess(event => submitCreateClassification(event.target))
+                    .onFail(() => toast.error('请检查分类信息填写'));
+
+                bindRevalidate(createForm, '#classificationName', validators.createClassification);
+                bindRevalidate(createForm, '#classificationColor', validators.createClassification, 'change');
+                bindRevalidate(createForm, '#priority', validators.createClassification, 'input');
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('更新分类失败: ' + (error.message || '未知错误'));
+        }
+
+        const editForm = document.getElementById('editClassificationForm');
+        if (editForm) {
+            validators.editClassification = window.FormValidator.create('#editClassificationForm');
+            if (validators.editClassification) {
+                validators.editClassification
+                    .useRules('#editClassificationName', window.ValidationRules.classification.name)
+                    .useRules('#editClassificationColor', window.ValidationRules.classification.color)
+                    .useRules('#editClassificationPriority', window.ValidationRules.classification.priority)
+                    .onSuccess(event => submitUpdateClassification(event.target))
+                    .onFail(() => toast.error('请检查分类信息填写'));
+
+                bindRevalidate(editForm, '#editClassificationName', validators.editClassification);
+                bindRevalidate(editForm, '#editClassificationColor', validators.editClassification, 'change');
+                bindRevalidate(editForm, '#editClassificationPriority', validators.editClassification, 'input');
+            }
+        }
+
+        const ruleForm = document.getElementById('createRuleForm');
+        if (ruleForm) {
+            validators.createRule = window.FormValidator.create('#createRuleForm');
+            if (validators.createRule) {
+                validators.createRule
+                    .useRules('#ruleClassification', window.ValidationRules.classificationRule.classification)
+                    .useRules('#ruleName', window.ValidationRules.classificationRule.name)
+                    .useRules('#ruleDbType', window.ValidationRules.classificationRule.dbType)
+                    .useRules('#ruleOperator', window.ValidationRules.classificationRule.operator)
+                    .onSuccess(event => submitCreateRule(event.target))
+                    .onFail(() => toast.error('请检查规则信息填写'));
+
+                bindRevalidate(ruleForm, '#ruleClassification', validators.createRule, 'change');
+                bindRevalidate(ruleForm, '#ruleName', validators.createRule);
+                bindRevalidate(ruleForm, '#ruleDbType', validators.createRule, 'change');
+                bindRevalidate(ruleForm, '#ruleOperator', validators.createRule, 'change');
+            }
+        }
+    }
+
+    function bindRevalidate(form, selector, validator, eventName) {
+        const field = form.querySelector(selector);
+        if (!field || !validator) {
+            return;
+        }
+        const evt = eventName || 'blur';
+        field.addEventListener(evt, function () {
+            validator.revalidateField(selector);
         });
-}
+    }
+
+    function refreshValidator(validator) {
+        if (validator?.instance?.refresh) {
+            validator.instance.refresh();
+        }
+    }
+
+    /* ========== 其他辅助 ========== */
+    function setupGlobalSearchListener() {
+        document.addEventListener('keypress', function (event) {
+            if (event.target?.id === 'accountSearchInput' && event.key === 'Enter') {
+                const modal = event.target.closest('.modal');
+                const ruleId = modal?.dataset?.ruleId;
+                if (ruleId && typeof window.searchMatchedAccounts === 'function') {
+                    window.searchMatchedAccounts(parseInt(ruleId, 10));
+                }
+            }
+        });
+    }
+
+    function ensurePermissionCenter() {
+        if (!window.PermissionPolicyCenter) {
+            toast.error('权限配置模块未加载');
+            return false;
+        }
+        return true;
+    }
+
+    function handleRequestError(error, fallbackMessage, context) {
+        logError(error, context || 'account_classification', {
+            fallbackMessage,
+        });
+        const message = error?.response?.error || error?.message || fallbackMessage || '操作失败';
+        if (fallbackMessage) {
+            toast.error(message);
+        }
+    }
+
+    /* ========== 对外暴露（保持旧接口兼容） ========== */
+    window.createClassification = triggerCreateClassification;
+    window.editClassification = handleEditClassification;
+    window.updateClassification = triggerUpdateClassification;
+    window.deleteClassification = handleDeleteClassification;
+
+    window.createRule = triggerCreateRule;
+    window.editRule = handleEditRule;
+    window.updateRule = submitUpdateRule;
+    window.deleteRule = handleDeleteRule;
+    window.viewRule = handleViewRule;
+
+    window.autoClassifyAll = handleAutoClassifyAll;
+    window.loadPermissions = loadPermissions;
+    window.loadClassificationsForRules = loadClassificationsForRules;
+
+    window.AccountClassificationPage = {
+        reload: function reloadPageData() {
+            loadClassifications();
+            loadRules();
+        },
+        state,
+    };
+})(window, document);

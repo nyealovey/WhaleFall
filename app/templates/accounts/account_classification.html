@@ -21,7 +21,7 @@
             </div>
             <div class="btn-group">
                 {% if current_user.role == 'admin' %}
-                <button class="btn btn-light" onclick="autoClassifyAll()">
+                <button class="btn btn-light" onclick="autoClassifyAll(event)">
                     <i class="fas fa-magic me-2"></i>自动分类
                 </button>
                 {% endif %}
@@ -544,5 +544,6 @@
     window.currentUserRole = '{{ current_user.role }}';
 </script>
 <script src="{{ url_for('static', filename='js/common/permission_policy_center.js') }}"></script>
+<script src="{{ url_for('static', filename='js/api/accountClassification.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/accounts/account_classification.js') }}"></script>
 {% endblock %}
