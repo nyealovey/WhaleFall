@@ -537,8 +537,9 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         permissions["database_roles"] = account.database_roles or {}
         permissions["database_permissions"] = account.database_permissions or {}
     elif instance.db_type == DatabaseType.ORACLE:
-        permissions["oracle_privileges"] = account.oracle_privileges or []
         permissions["oracle_roles"] = account.oracle_roles or []
+        permissions["system_privileges"] = account.system_privileges or []
+        permissions["tablespace_privileges_oracle"] = account.tablespace_privileges_oracle or {}
 
     account_info = {
         "id": account.id,
