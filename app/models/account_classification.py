@@ -134,6 +134,7 @@ class AccountClassificationAssignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.Integer, db.ForeignKey("account_permission.id"), nullable=False)
     classification_id = db.Column(db.Integer, db.ForeignKey("account_classifications.id"), nullable=False)
+    rule_id = db.Column(db.Integer, db.ForeignKey("classification_rules.id"), nullable=True)
     assigned_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)  # 分配人
     assignment_type = db.Column(db.String(20), nullable=False, default="auto")  # auto, manual
     confidence_score = db.Column(db.Float, nullable=True)  # 自动分配的置信度分数
@@ -162,6 +163,7 @@ class AccountClassificationAssignment(db.Model):
             "id": self.id,
             "account_id": self.account_id,
             "classification_id": self.classification_id,
+            "rule_id": self.rule_id,
             "assigned_by": self.assigned_by,
             "assignment_type": self.assignment_type,
             "confidence_score": self.confidence_score,

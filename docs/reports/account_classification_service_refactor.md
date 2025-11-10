@@ -24,6 +24,7 @@
 - ✅ 移除 `_group_accounts_by_db_type` 写入“accounts_by_db_type”缓存的逻辑，缓存服务同步删除对应 API，`/cache/api/classification/stats` 仅统计规则缓存。
 - ✅ 在 `app/services/statistics/account_statistics_service.py` 中新增 `fetch_rule_match_stats`，`/account_classification/api/rules/stats` 提供聚合后的命中数；前端通过 `fetchRuleStats` 拉取统计数据，列表接口不再实时评估规则。
 - ✅ 新增 `app/services/account_classification/` 包，拆出 `cache.py`、`repositories.py`、`classifiers/` 以及 `orchestrator.py`，原 `AccountClassificationService` 仅作为兼容入口。
+- ✅ `AccountClassificationAssignment` 增加 `rule_id` 字段及迁移，自动分类写入时记录触发规则，统计接口可返回真实命中数。
 - 🚧 后续需要在 orchestrator 基础上补充更多监控指标、与账户同步协同的任务处理，以及 Feature Flag 化切换流程。
 
 ## 目标架构
