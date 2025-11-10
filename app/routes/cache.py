@@ -216,26 +216,21 @@ def get_classification_cache_stats() -> Response:
         log_error(f"获取缓存统计失败: {exc}", module="cache")
         raise SystemError("获取分类缓存统计失败") from exc
 
-    db_type_stats = {}
+    db_type_stats: dict[str, dict[str, object]] = {}
     db_types = ["mysql", "postgresql", "sqlserver", "oracle"]
 
     for db_type in db_types:
         try:
             rules_cache = cache_manager.get_classification_rules_by_db_type_cache(db_type)
-            accounts_cache = cache_manager.get_accounts_by_db_type_cache(db_type)
             db_type_stats[db_type] = {
                 "rules_cached": rules_cache is not None,
                 "rules_count": len(rules_cache) if rules_cache else 0,
-                "accounts_cached": accounts_cache is not None,
-                "accounts_count": len(accounts_cache) if accounts_cache else 0,
             }
         except Exception as exc:
             log_error(f"获取数据库类型 {db_type} 缓存统计失败: {exc}", module="cache")
             db_type_stats[db_type] = {
                 "rules_cached": False,
                 "rules_count": 0,
-                "accounts_cached": False,
-                "accounts_count": 0,
                 "error": str(exc),
             }
 

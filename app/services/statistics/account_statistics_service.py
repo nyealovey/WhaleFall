@@ -6,14 +6,18 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Sequence
 
 from sqlalchemy import and_, distinct, func, or_
 
 from app import db
 from app.errors import SystemError
 from app.constants import DatabaseType
-from app.models.account_classification import AccountClassification, AccountClassificationAssignment
+from app.models.account_classification import (
+    AccountClassification,
+    AccountClassificationAssignment,
+    ClassificationRule,
+)
 from app.models.account_permission import AccountPermission
 from app.models.instance_account import InstanceAccount
 from app.models.instance import Instance
@@ -179,6 +183,44 @@ def fetch_classification_overview() -> dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         log_error("获取账户分类概览失败", module="account_statistics", exception=exc)
         raise SystemError("获取账户分类概览失败") from exc
+
+def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, int]:
+    """
+    统计每条规则所关联分类的账户数量。
+
+    由于当前分配记录未直接存储 rule_id，统计基于
+    AccountClassificationAssignment 中同分类的活跃记录。
+    """
+    try:
+        query = (
+            db.session.query(
+                ClassificationRule.id.label("rule_id"),
+                func.count(distinct(AccountClassificationAssignment.account_id)).label("count"),
+            )
+            .outerjoin(
+                AccountClassificationAssignment,
+                and_(
+                    AccountClassificationAssignment.classification_id == ClassificationRule.classification_id,
+                    AccountClassificationAssignment.is_active.is_(True),
+                ),
+            )
+            .filter(ClassificationRule.is_active.is_(True))
+        )
+
+        if rule_ids:
+            query = query.filter(ClassificationRule.id.in_(rule_ids))
+
+        rows = query.group_by(ClassificationRule.id).all()
+        stats = {row.rule_id: row.count for row in rows}
+
+        if rule_ids:
+            for rid in rule_ids:
+                stats.setdefault(rid, 0)
+
+        return stats
+    except Exception as exc:  # noqa: BLE001
+        log_error("获取规则匹配统计失败", module="account_statistics", exception=exc)
+        raise SystemError("获取规则匹配统计失败") from exc
 
 
 def build_aggregated_statistics() -> dict[str, Any]:

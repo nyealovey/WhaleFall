@@ -247,70 +247,14 @@ class CacheService:
             logger.warning("设置数据库类型规则缓存失败: %s", db_type, error=str(e))
             return False
 
-    def get_accounts_by_db_type_cache(self, db_type: str) -> list[dict[str, Any]] | None:
-        """获取按数据库类型分组的账户缓存"""
-        try:
-            if not self.cache:
-                return None
-                
-            cache_key = f"accounts_by_db_type:{db_type}"
-            cached_data = self.cache.get(cache_key)
-
-            if cached_data:
-                data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
-                # 处理不同的缓存数据格式
-                if isinstance(data, dict) and "accounts" in data:
-                    logger.debug("数据库类型账户缓存命中: %s", db_type, cache_key=cache_key, count=len(data["accounts"]))
-                    return data["accounts"]
-                elif isinstance(data, list):
-                    logger.debug("数据库类型账户缓存命中（旧格式）: %s", db_type, cache_key=cache_key, count=len(data))
-                    return data
-                else:
-                    logger.warning("数据库类型账户缓存格式错误: %s", db_type, cache_key=cache_key)
-                    return None
-
-            return None
-
-        except Exception as e:
-            logger.warning("获取数据库类型账户缓存失败: %s", db_type, error=str(e))
-            return None
-
-    def set_accounts_by_db_type_cache(self, db_type: str, accounts: list[dict[str, Any]], ttl: int = None) -> bool:
-        """设置按数据库类型分组的账户缓存"""
-        try:
-            if not self.cache:
-                return False
-                
-            cache_key = f"accounts_by_db_type:{db_type}"
-            cache_data = {
-                "accounts": accounts,
-                "cached_at": time_utils.now().isoformat(),
-                "count": len(accounts),
-                "db_type": db_type,
-            }
-
-            ttl = ttl or Config.CACHE_ACCOUNT_TTL  # 账户缓存1小时
-            self.cache.set(cache_key, cache_data, timeout=ttl)
-            logger.debug("数据库类型账户缓存已设置: %s", db_type, cache_key=cache_key, ttl=ttl, count=len(accounts))
-            return True
-
-        except Exception as e:
-            logger.warning("设置数据库类型账户缓存失败: %s", db_type, error=str(e))
-            return False
-
     def invalidate_db_type_cache(self, db_type: str) -> bool:
         """清除特定数据库类型的缓存"""
         try:
             if not self.cache:
                 return True
                 
-            # 清除该数据库类型的规则缓存
             rules_key = f"classification_rules:{db_type}"
             self.cache.delete(rules_key)
-            
-            # 清除该数据库类型的账户缓存
-            accounts_key = f"accounts_by_db_type:{db_type}"
-            self.cache.delete(accounts_key)
             
             logger.info("清除数据库类型缓存: %s", db_type)
             return True
@@ -320,12 +264,11 @@ class CacheService:
             return False
 
     def invalidate_all_db_type_cache(self) -> bool:
-        """清除所有数据库类型的缓存"""
+        """清除所有数据库类型的规则缓存"""
         try:
             if not self.cache:
                 return True
                 
-            # 清除所有数据库类型的规则缓存
             db_types = ["mysql", "postgresql", "sqlserver", "oracle"]
             for db_type in db_types:
                 self.invalidate_db_type_cache(db_type)

@@ -329,53 +329,6 @@ class PartitionManagementService:
     # ------------------------------------------------------------------------------
     # 查询分区信息
     # ------------------------------------------------------------------------------
-    def get_partition_info(self) -> dict[str, Any]:
-        """获取所有分区的详细信息"""
-        try:
-            db.session.execute(text("SELECT 1"))
-        except SQLAlchemyError as exc:
-            log_error("数据库连接失败", module=MODULE, exception=exc)
-            raise DatabaseError(message="数据库连接失败") from exc
-
-        partitions: list[dict[str, Any]] = []
-        total_size_bytes = 0
-        total_records = 0
-
-        for table_key, table_config in self.tables.items():
-            table_partitions = self._get_table_partitions(table_key, table_config)
-            partitions.extend(table_partitions)
-            for partition in table_partitions:
-                total_size_bytes += partition.get("size_bytes", 0)
-                total_records += partition.get("record_count", 0)
-
-        partitions.sort(key=lambda item: item["name"])
-        log_info(
-            "完成分区信息查询",
-            module=MODULE,
-            partition_count=len(partitions),
-            total_size_bytes=total_size_bytes,
-        )
-
-        return {
-            "partitions": partitions,
-            "total_partitions": len(partitions),
-            "total_size_bytes": total_size_bytes,
-            "total_size": self._format_size(total_size_bytes),
-            "total_records": total_records,
-            "tables": list(self.tables.keys()),
-        }
-
-    def get_partition_statistics(self) -> dict[str, Any]:
-        """基于分区信息生成概要统计"""
-        info = self.get_partition_info()
-        return {
-            "total_records": info["total_records"],
-            "total_partitions": info["total_partitions"],
-            "total_size": info["total_size"],
-            "total_size_bytes": info["total_size_bytes"],
-            "partitions": info["partitions"],
-            "tables": info["tables"],
-        }
 
     # ------------------------------------------------------------------------------
     # 内部辅助方法
