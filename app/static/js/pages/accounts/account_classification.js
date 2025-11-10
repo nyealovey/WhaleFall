@@ -279,20 +279,73 @@ function deleteClassification(id) {
 // ==================== 规则管理相关函数 ====================
 
 // 加载规则
-function loadRules() {
-    http.get('/account_classification/api/rules')
-        .then(data => {
-            if (data.success) {
-                const rulesByDbType = data?.data?.rules_by_db_type ?? data.rules_by_db_type ?? {};
-                displayRules(rulesByDbType && typeof rulesByDbType === 'object' ? rulesByDbType : {});
-            } else {
-                toast.error('加载规则失败: ' + (data.error || '未知错误'));
+async function loadRules() {
+    try {
+        const data = await http.get('/account_classification/api/rules');
+        if (!data.success) {
+            toast.error('加载规则失败: ' + (data.error || '未知错误'));
+            return;
+        }
+
+        const rulesByDbType = data?.data?.rules_by_db_type ?? data.rules_by_db_type ?? {};
+        const normalizedRules = rulesByDbType && typeof rulesByDbType === 'object' ? rulesByDbType : {};
+
+        const allRuleIds = [];
+        Object.values(normalizedRules).forEach(rules => {
+            if (Array.isArray(rules)) {
+                rules.forEach(rule => {
+                    if (rule && typeof rule.id === 'number') {
+                        allRuleIds.push(rule.id);
+                    }
+                });
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toast.error('加载规则失败');
         });
+
+        if (allRuleIds.length > 0) {
+            try {
+                const statsMap = await fetchRuleStats(allRuleIds);
+                Object.values(normalizedRules).forEach(rules => {
+                    if (Array.isArray(rules)) {
+                        rules.forEach(rule => {
+                            rule.matched_accounts_count = statsMap[rule.id] ?? 0;
+                        });
+                    }
+                });
+            } catch (statsError) {
+                console.error('加载规则统计失败', statsError);
+            }
+        }
+
+        displayRules(normalizedRules);
+    } catch (error) {
+        console.error('Error:', error);
+        toast.error('加载规则失败');
+    }
+}
+
+async function fetchRuleStats(ruleIds) {
+    if (!Array.isArray(ruleIds) || ruleIds.length === 0) {
+        return {};
+    }
+
+    const query = encodeURIComponent(ruleIds.join(','));
+    const response = await http.get(`/account_classification/api/rules/stats?rule_ids=${query}`);
+
+    if (!response.success) {
+        toast.error('加载规则统计失败: ' + (response.error || '未知错误'));
+        return {};
+    }
+
+    const statsList = response?.data?.rule_stats ?? response.rule_stats ?? [];
+    const statsMap = {};
+    if (Array.isArray(statsList)) {
+        statsList.forEach(item => {
+            if (item && typeof item.rule_id === 'number') {
+                statsMap[item.rule_id] = item.matched_accounts_count ?? 0;
+            }
+        });
+    }
+    return statsMap;
 }
 
 // 根据分类名称获取对应的CSS类

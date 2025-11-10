@@ -10,6 +10,7 @@ from datetime import date, timedelta
 from app.config import Config
 from app.errors import AppError, DatabaseError
 from app.services.partition_management_service import PartitionManagementService
+from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.utils.response_utils import unified_error_response, unified_success_response
 from app.utils.structlog_config import log_error, log_info, log_warning
 
@@ -26,7 +27,8 @@ def create_database_size_partitions() -> dict[str, object]:
     创建数据库大小统计表的分区
     每天凌晨 2 点执行，创建未来 3 个月的分区
     """
-    service = PartitionManagementService()
+    management_service = PartitionManagementService()
+    stats_service = PartitionStatisticsService()
     try:
         months_ahead = 3
         log_info("开始创建数据库大小统计表分区", module=MODULE, months_ahead=months_ahead)
@@ -88,8 +90,8 @@ def monitor_partition_health() -> dict[str, object]:
     service = PartitionManagementService()
     try:
         log_info("开始监控分区健康状态", module=MODULE)
-        partition_info = service.get_partition_info()
-        stats = service.get_partition_statistics()
+        partition_info = stats_service.get_partition_info()
+        stats = stats_service.get_partition_statistics()
 
         current_date = date.today()
         next_month = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
@@ -106,7 +108,7 @@ def monitor_partition_health() -> dict[str, object]:
                 partition_name=next_partition_name,
             )
             try:
-                creation_result = service.create_partition(next_month)
+                creation_result = management_service.create_partition(next_month)
                 auto_creation = {"created": True, "result": creation_result}
                 log_info(
                     "自动创建下个月分区成功",
@@ -144,10 +146,10 @@ def get_partition_management_status() -> dict[str, object]:
     获取分区管理状态
     用于 API 接口和监控页面
     """
-    service = PartitionManagementService()
+    stats_service = PartitionStatisticsService()
     try:
-        partition_info = service.get_partition_info()
-        stats = service.get_partition_statistics()
+        partition_info = stats_service.get_partition_info()
+        stats = stats_service.get_partition_statistics()
 
         partitions = partition_info["partitions"]
         current_date = date.today()

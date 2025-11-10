@@ -14,6 +14,7 @@ from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.services.partition_management_service import PartitionManagementService
+from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
@@ -39,8 +40,8 @@ def partitions_page():
 def get_partition_info() -> Response:
     """获取分区信息API"""
     log_info("开始获取分区信息", module="partition", user_id=getattr(current_user, "id", None))
-    service = PartitionManagementService()
-    result = service.get_partition_info()
+    stats_service = PartitionStatisticsService()
+    result = stats_service.get_partition_info()
     payload = {
         'data': result,
         'timestamp': time_utils.now().isoformat(),
@@ -50,9 +51,9 @@ def get_partition_info() -> Response:
 
 # API 路由
 
-def _build_partition_status(service: PartitionManagementService) -> dict[str, object]:
-    partition_info = service.get_partition_info()
-    stats = service.get_partition_statistics()
+def _build_partition_status(stats_service: PartitionStatisticsService) -> dict[str, object]:
+    partition_info = stats_service.get_partition_info()
+    stats = stats_service.get_partition_statistics()
 
     current_date = date.today()
     required_partitions: list[str] = []
@@ -82,9 +83,9 @@ def _build_partition_status(service: PartitionManagementService) -> dict[str, ob
 def get_partition_status() -> Response:
     """获取分区管理状态"""
 
-    service = PartitionManagementService()
+    stats_service = PartitionStatisticsService()
     try:
-        result = _build_partition_status(service)
+        result = _build_partition_status(stats_service)
     except Exception as exc:  # noqa: BLE001
         log_error("获取分区管理状态失败", module="partition", exception=exc)
         raise SystemError("获取分区管理状态失败") from exc
@@ -194,7 +195,7 @@ def cleanup_partitions() -> Response:
 @view_required
 def get_partition_statistics() -> Response:
     """获取分区统计信息"""
-    service = PartitionManagementService()
+    service = PartitionStatisticsService()
     result = service.get_partition_statistics()
 
     payload = {
