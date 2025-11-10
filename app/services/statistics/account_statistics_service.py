@@ -186,38 +186,34 @@ def fetch_classification_overview() -> dict[str, Any]:
 
 def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, int]:
     """
-    统计每条规则所关联分类的账户数量。
-
-    由于当前分配记录未直接存储 rule_id，统计基于
-    AccountClassificationAssignment 中同分类的活跃记录。
+    统计每条规则所关联的账户数量（基于 rule_id 字段）。
     """
     try:
-        query = (
+        rule_query = ClassificationRule.query.filter(ClassificationRule.is_active.is_(True))
+        if rule_ids:
+            rule_query = rule_query.filter(ClassificationRule.id.in_(rule_ids))
+        rules = rule_query.all()
+        if not rules:
+            return {}
+
+        assignment_query = (
             db.session.query(
-                ClassificationRule.id.label("rule_id"),
+                AccountClassificationAssignment.rule_id,
                 func.count(distinct(AccountClassificationAssignment.account_id)).label("count"),
             )
-            .outerjoin(
-                AccountClassificationAssignment,
-                and_(
-                    AccountClassificationAssignment.classification_id == ClassificationRule.classification_id,
-                    AccountClassificationAssignment.is_active.is_(True),
-                ),
+            .filter(
+                AccountClassificationAssignment.is_active.is_(True),
+                AccountClassificationAssignment.rule_id.isnot(None),
             )
-            .filter(ClassificationRule.is_active.is_(True))
         )
 
         if rule_ids:
-            query = query.filter(ClassificationRule.id.in_(rule_ids))
+            assignment_query = assignment_query.filter(AccountClassificationAssignment.rule_id.in_(rule_ids))
 
-        rows = query.group_by(ClassificationRule.id).all()
-        stats = {row.rule_id: row.count for row in rows}
+        assignment_rows = assignment_query.group_by(AccountClassificationAssignment.rule_id).all()
+        assignment_map = {row.rule_id: row.count for row in assignment_rows if row.rule_id is not None}
 
-        if rule_ids:
-            for rid in rule_ids:
-                stats.setdefault(rid, 0)
-
-        return stats
+        return {rule.id: assignment_map.get(rule.id, 0) for rule in rules}
     except Exception as exc:  # noqa: BLE001
         log_error("获取规则匹配统计失败", module="account_statistics", exception=exc)
         raise SystemError("获取规则匹配统计失败") from exc

@@ -64,6 +64,8 @@ class ClassificationRepository:
         self,
         matched_accounts: Sequence[AccountPermission],
         classification_id: int,
+        *,
+        rule_id: int | None = None,
     ) -> int:
         """Replace assignments for the provided accounts."""
         if not matched_accounts:
@@ -92,6 +94,7 @@ class ClassificationRepository:
                 {
                     "account_id": account.id,
                     "classification_id": classification_id,
+                    "rule_id": rule_id,
                     "assigned_by": None,
                     "assignment_type": "auto",
                     "notes": None,
