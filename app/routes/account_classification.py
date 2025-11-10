@@ -15,7 +15,7 @@ from app.models.account_classification import (
     AccountClassificationAssignment,
     ClassificationRule,
 )
-from app.services.account_classification_service import AccountClassificationService
+from app.services.account_classification.orchestrator import AccountClassificationService
 from app.services.statistics import account_statistics_service
 from app.constants.colors import ThemeColors
 from app.errors import SystemError, ValidationError

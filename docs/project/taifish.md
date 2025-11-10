@@ -48,7 +48,8 @@
 ### 业务服务层 (app/services/)
 - `app/services/database_service.py` - 数据库连接和操作服务
 - `app/services/account_sync/account_sync_service.py` - 账户同步服务
-- `app/services/account_classification_service.py` - 账户分类服务
+- `app/services/account_classification/orchestrator.py` - 账户分类服务
+- `app/services/instances/batch_service.py` - 实例批量创建与删除服务
 - `app/services/task_executor.py` - 任务执行服务
 
 ### 工具类 (app/utils/)

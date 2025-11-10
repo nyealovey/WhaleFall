@@ -116,7 +116,11 @@ services/
 ├── sync_data_manager.py    # 同步数据管理
 ├── database_type_service.py # 数据库类型服务
 ├── cache_service.py        # 缓存管理器
-├── account_classification_service.py # 优化账户分类服务
+├── account_classification/
+│   ├── orchestrator.py # 优化账户分类服务
+├── instances/
+│   ├── __init__.py
+│   └── batch_service.py     # 实例批量创建/删除服务
 ├── classification_batch_service.py # 分类批次服务
 ├── connection_adapters/    # 连接适配器
 │   ├── __init__.py
