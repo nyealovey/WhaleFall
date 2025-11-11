@@ -116,10 +116,14 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
     def _get_user_permissions(self, connection: Any, username: str, host: str) -> Dict[str, Any]:  # noqa: ANN401
         try:
-            # 避免 SHOW GRANTS 带来的锁争用与性能问题，直接返回空权限集合，
-            # 仅保留 mysql.user 中的补充属性（can_grant 等）
+            grants = connection.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
+            grant_statements = [row[0] for row in grants]
+
             global_privileges: List[str] = []
             database_privileges: Dict[str, List[str]] = {}
+
+            for statement in grant_statements:
+                self._parse_grant_statement(statement, global_privileges, database_privileges)
             user_attrs_sql = """
                 SELECT
                     Grant_priv as can_grant,
