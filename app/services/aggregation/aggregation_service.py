@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Sequence
 
 from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.constants import SyncStatus
@@ -14,13 +14,12 @@ from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 from sqlalchemy import func, and_, or_
 from sqlalchemy.exc import IntegrityError
-from app.models.database_size_aggregation import DatabaseSizeAggregation
-from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance import Instance
 from app import db
 from app.services.aggregation.calculator import PeriodCalculator
 from app.services.aggregation.database_aggregation_runner import DatabaseAggregationRunner
 from app.services.aggregation.instance_aggregation_runner import InstanceAggregationRunner
+from app.services.aggregation.query_service import AggregationQueryService
 from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
 
 
@@ -45,6 +44,13 @@ class AggregationService:
             period_calculator=self.period_calculator,
             module=MODULE,
         )
+        self.query_service = AggregationQueryService()
+        self._database_methods = {
+            "daily": self.calculate_daily_aggregations,
+            "weekly": self.calculate_weekly_aggregations,
+            "monthly": self.calculate_monthly_aggregations,
+            "quarterly": self.calculate_quarterly_aggregations,
+        }
 
     def _get_instance_or_raise(self, instance_id: int) -> Instance:
         instance = Instance.query.get(instance_id)
@@ -88,6 +94,119 @@ class AggregationService:
                 message="提交聚合结果失败",
                 extra={"start_date": start_date.isoformat(), "error": str(exc)},
             ) from exc
+
+    def _period_range(self, period_type: str, *, use_current_period: bool) -> tuple[date, date]:
+        return (
+            self.period_calculator.get_current_period(period_type)
+            if use_current_period
+            else self.period_calculator.get_last_period(period_type)
+        )
+
+    def _aggregate_database_for_instance(
+        self,
+        instance_id: int,
+        period_type: str,
+        *,
+        use_current_period: bool,
+    ) -> Dict[str, Any]:
+        instance = self._get_instance_or_raise(instance_id)
+        if not instance.is_active:
+            return self._inactive_instance_summary(instance, period_type)
+
+        start_date, end_date = self._period_range(period_type, use_current_period=use_current_period)
+        summary = self.database_runner.aggregate_database_period(
+            instance,
+            period_type=period_type,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return summary.to_dict()
+
+    def _aggregate_instance_for_instance(
+        self,
+        instance_id: int,
+        period_type: str,
+        *,
+        use_current_period: bool,
+    ) -> Dict[str, Any]:
+        instance = self._get_instance_or_raise(instance_id)
+        start_date, end_date = self._period_range(period_type, use_current_period=use_current_period)
+        summary = self.instance_runner.aggregate_instance_period(
+            instance,
+            period_type=period_type,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return summary.to_dict()
+
+    def _inactive_instance_summary(self, instance: Instance, period_type: str) -> Dict[str, Any]:
+        log_info(
+            "实例未激活，跳过聚合",
+            module=MODULE,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            period_type=period_type,
+        )
+        summary = InstanceSummary(
+            instance_id=instance.id,
+            instance_name=instance.name,
+            period_type=period_type,
+            message=f"实例 {instance.name} 未激活，跳过聚合",
+        )
+        return summary.to_dict()
+
+    def _aggregate_period(
+        self,
+        *,
+        runner,
+        period_type: str,
+        use_current_period: bool,
+        log_message: str,
+    ) -> Dict[str, Any]:
+        log_info(log_message, module=MODULE)
+        start_date, end_date = self._period_range(period_type, use_current_period=use_current_period)
+        return runner.aggregate_period(period_type, start_date, end_date)
+
+    def _normalize_periods(self, periods: Sequence[str] | None) -> list[str]:
+        if not periods:
+            return list(self.period_types)
+
+        seen: set[str] = set()
+        normalized: list[str] = []
+        for item in periods:
+            key = (item or "").strip().lower()
+            if key in self.period_types and key not in seen:
+                normalized.append(key)
+                seen.add(key)
+        return normalized
+
+    def aggregate_database_periods(self, periods: Sequence[str] | None = None) -> dict[str, Dict[str, Any]]:
+        normalized = self._normalize_periods(periods)
+        results: dict[str, Dict[str, Any]] = {}
+
+        for period in normalized:
+            method = self._database_methods.get(period)
+            if method is None:
+                continue
+            try:
+                period_result = method()
+            except Exception as exc:  # pragma: no cover - 防御性日志
+                log_error(
+                    "数据库级聚合执行失败",
+                    module=MODULE,
+                    period_type=period,
+                    exception=exc,
+                )
+                period_result = {
+                    "status": AggregationStatus.FAILED.value,
+                    "error": str(exc),
+                    "errors": [str(exc)],
+                    "period_type": period,
+                }
+            period_result.setdefault("period_type", period)
+            results[period] = period_result
+
+        return results
     
     def calculate_all_aggregations(self) -> Dict[str, Any]:
         """
@@ -173,17 +292,13 @@ class AggregationService:
         }
     
     def calculate_daily_aggregations(self) -> Dict[str, Any]:
-        """
-        计算每日统计聚合（定时任务用，处理今天的数据）
-        
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-        """
-        log_info("开始计算每日统计聚合", module=MODULE)
-        
-        # 与容量同步任务保持一致：使用中国时区的今日数据
-        start_date, end_date = self.period_calculator.get_current_period("daily")
-        return self.database_runner.aggregate_period("daily", start_date, end_date)
+        """计算每日统计聚合（定时任务用，处理今天的数据）"""
+        return self._aggregate_period(
+            runner=self.database_runner,
+            period_type="daily",
+            use_current_period=True,
+            log_message="开始计算每日统计聚合",
+        )
 
     def aggregate_current_period(
         self,
@@ -287,206 +402,99 @@ class AggregationService:
         }
 
     def calculate_weekly_aggregations(self) -> Dict[str, Any]:
-        """
-        计算每周统计聚合
-        
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-        """
-        log_info("开始计算每周统计聚合", module=MODULE)
-        
-        # 使用完整自然周（上周周一至上周周日）
-        start_date, end_date = self.period_calculator.get_last_period("weekly")
-        return self.database_runner.aggregate_period("weekly", start_date, end_date)
+        """计算每周统计聚合"""
+        return self._aggregate_period(
+            runner=self.database_runner,
+            period_type="weekly",
+            use_current_period=False,
+            log_message="开始计算每周统计聚合",
+        )
     
     def calculate_monthly_aggregations(self) -> Dict[str, Any]:
-        """
-        计算每月统计聚合
-        
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-        """
-        log_info("开始计算每月统计聚合", module=MODULE)
-        
-        # 获取上个月的数据（使用中国时区）
-        start_date, end_date = self.period_calculator.get_last_period("monthly")
-        return self.database_runner.aggregate_period("monthly", start_date, end_date)
+        """计算每月统计聚合"""
+        return self._aggregate_period(
+            runner=self.database_runner,
+            period_type="monthly",
+            use_current_period=False,
+            log_message="开始计算每月统计聚合",
+        )
     
     def calculate_quarterly_aggregations(self) -> Dict[str, Any]:
-        """
-        计算每季度统计聚合
-        
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-        """
-        log_info("开始计算每季度统计聚合", module=MODULE)
-        
-        # 获取上个季度的数据（使用中国时区）
-        start_date, end_date = self.period_calculator.get_last_period("quarterly")
-        return self.database_runner.aggregate_period("quarterly", start_date, end_date)
+        """计算每季度统计聚合"""
+        return self._aggregate_period(
+            runner=self.database_runner,
+            period_type="quarterly",
+            use_current_period=False,
+            log_message="开始计算每季度统计聚合",
+        )
 
     def calculate_daily_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """
-        为指定实例计算当日的数据库级聚合
-        单实例容量同步完成后调用，避免等待全量调度任务
-        """
-        instance = self._get_instance_or_raise(instance_id)
-        if not instance.is_active:
-            log_info(
-                "实例未激活，跳过日数据库聚合",
-                module=MODULE,
-                instance_id=instance.id,
-                instance_name=instance.name,
-            )
-            summary = InstanceSummary(
-                instance_id=instance.id,
-                instance_name=instance.name,
-                period_type="daily",
-                message=f"实例 {instance.name} 未激活，跳过聚合",
-            )
-            return summary.to_dict()
-
-        start_date, end_date = self.period_calculator.get_current_period("daily")
-        summary = self.database_runner.aggregate_database_period(
-            instance,
-            period_type="daily",
-            start_date=start_date,
-            end_date=end_date,
+        """单实例容量同步完成后触发的当日数据库级聚合"""
+        return self._aggregate_database_for_instance(
+            instance_id,
+            "daily",
+            use_current_period=True,
         )
-        return summary.to_dict()
 
     def calculate_weekly_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
         """为指定实例计算周数据库级聚合"""
-        instance = self._get_instance_or_raise(instance_id)
-        if not instance.is_active:
-            log_info(
-                "实例未激活，跳过周数据库聚合",
-                module=MODULE,
-                instance_id=instance.id,
-                instance_name=instance.name,
-            )
-            summary = InstanceSummary(
-                instance_id=instance.id,
-                instance_name=instance.name,
-                period_type="weekly",
-                message=f"实例 {instance.name} 未激活，跳过聚合",
-            )
-            return summary.to_dict()
-
-        start_date, end_date = self.period_calculator.get_last_period("weekly")
-        summary = self.database_runner.aggregate_database_period(
-            instance,
-            period_type="weekly",
-            start_date=start_date,
-            end_date=end_date,
+        return self._aggregate_database_for_instance(
+            instance_id,
+            "weekly",
+            use_current_period=False,
         )
-        return summary.to_dict()
 
     def calculate_monthly_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
         """为指定实例计算月数据库级聚合"""
-        instance = self._get_instance_or_raise(instance_id)
-        if not instance.is_active:
-            log_info(
-                "实例未激活，跳过月数据库聚合",
-                module=MODULE,
-                instance_id=instance.id,
-                instance_name=instance.name,
-            )
-            summary = InstanceSummary(
-                instance_id=instance.id,
-                instance_name=instance.name,
-                period_type="monthly",
-                message=f"实例 {instance.name} 未激活，跳过聚合",
-            )
-            return summary.to_dict()
-
-        start_date, end_date = self.period_calculator.get_last_period("monthly")
-        summary = self.database_runner.aggregate_database_period(
-            instance,
-            period_type="monthly",
-            start_date=start_date,
-            end_date=end_date,
+        return self._aggregate_database_for_instance(
+            instance_id,
+            "monthly",
+            use_current_period=False,
         )
-        return summary.to_dict()
 
     def calculate_quarterly_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
         """为指定实例计算季度数据库级聚合"""
-        instance = self._get_instance_or_raise(instance_id)
-        if not instance.is_active:
-            log_info(
-                "实例未激活，跳过季度数据库聚合",
-                module=MODULE,
-                instance_id=instance.id,
-                instance_name=instance.name,
-            )
-            summary = InstanceSummary(
-                instance_id=instance.id,
-                instance_name=instance.name,
-                period_type="quarterly",
-                message=f"实例 {instance.name} 未激活，跳过聚合",
-            )
-            return summary.to_dict()
-
-        start_date, end_date = self.period_calculator.get_last_period("quarterly")
-        summary = self.database_runner.aggregate_database_period(
-            instance,
-            period_type="quarterly",
-            start_date=start_date,
-            end_date=end_date,
+        return self._aggregate_database_for_instance(
+            instance_id,
+            "quarterly",
+            use_current_period=False,
         )
-        return summary.to_dict()
 
     def calculate_daily_instance_aggregations(self) -> Dict[str, Any]:
-        """
-        计算每日实例统计聚合（定时任务用，处理今天的数据）
-        
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-        """
-        log_info("开始计算每日实例统计聚合", module=MODULE)
-        
-        # 获取今天的数据（与容量同步任务保持一致，使用中国时区）
-        start_date, end_date = self.period_calculator.get_current_period("daily")
-        return self.instance_runner.aggregate_period("daily", start_date, end_date)
+        """计算每日实例统计聚合"""
+        return self._aggregate_period(
+            runner=self.instance_runner,
+            period_type="daily",
+            use_current_period=True,
+            log_message="开始计算每日实例统计聚合",
+        )
     
     def calculate_weekly_instance_aggregations(self) -> Dict[str, Any]:
-        """
-        计算每周实例统计聚合
-        
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-        """
-        log_info("开始计算每周实例统计聚合", module=MODULE)
-        
-        # 获取上周完整自然周的数据（使用中国时区）
-        start_date, end_date = self.period_calculator.get_last_period("weekly")
-        return self.instance_runner.aggregate_period("weekly", start_date, end_date)
+        """计算每周实例统计聚合"""
+        return self._aggregate_period(
+            runner=self.instance_runner,
+            period_type="weekly",
+            use_current_period=False,
+            log_message="开始计算每周实例统计聚合",
+        )
     
     def calculate_monthly_instance_aggregations(self) -> Dict[str, Any]:
-        """
-        计算每月实例统计聚合
-        
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-        """
-        log_info("开始计算每月实例统计聚合", module=MODULE)
-        
-        # 获取上个月的数据（使用中国时区）
-        start_date, end_date = self.period_calculator.get_last_period("monthly")
-        return self.instance_runner.aggregate_period("monthly", start_date, end_date)
+        """计算每月实例统计聚合"""
+        return self._aggregate_period(
+            runner=self.instance_runner,
+            period_type="monthly",
+            use_current_period=False,
+            log_message="开始计算每月实例统计聚合",
+        )
     
     def calculate_quarterly_instance_aggregations(self) -> Dict[str, Any]:
-        """
-        计算每季度实例统计聚合
-        
-        Returns:
-            Dict[str, Any]: 聚合结果统计
-        """
-        log_info("开始计算每季度实例统计聚合", module=MODULE)
-        
-        # 获取上个季度的数据（使用中国时区）
-        start_date, end_date = self.period_calculator.get_last_period("quarterly")
-        return self.instance_runner.aggregate_period("quarterly", start_date, end_date)
+        """计算每季度实例统计聚合"""
+        return self._aggregate_period(
+            runner=self.instance_runner,
+            period_type="quarterly",
+            use_current_period=False,
+            log_message="开始计算每季度实例统计聚合",
+        )
 
     def calculate_instance_aggregations(
         self,
@@ -507,14 +515,7 @@ class AggregationService:
             "monthly": self.calculate_monthly_aggregations_for_instance,
             "quarterly": self.calculate_quarterly_aggregations_for_instance,
         }
-        requested: List[str] = []
-        if periods:
-            seen: set[str] = set()
-            for period in periods:
-                normalized = (period or "").strip().lower()
-                if normalized in period_funcs and normalized not in seen:
-                    requested.append(normalized)
-                    seen.add(normalized)
+        requested = self._normalize_periods(periods)
         if not requested:
             requested = list(period_funcs.keys())
 
@@ -580,51 +581,35 @@ class AggregationService:
 
     def calculate_daily_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
         """为指定实例计算日统计聚合"""
-        instance = self._get_instance_or_raise(instance_id)
-        start_date, end_date = self.period_calculator.get_current_period("daily")
-        summary = self.instance_runner.aggregate_instance_period(
-            instance,
-            period_type="daily",
-            start_date=start_date,
-            end_date=end_date,
+        return self._aggregate_instance_for_instance(
+            instance_id,
+            "daily",
+            use_current_period=True,
         )
-        return summary.to_dict()
 
     def calculate_weekly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
         """为指定实例计算周统计聚合"""
-        instance = self._get_instance_or_raise(instance_id)
-        start_date, end_date = self.period_calculator.get_last_period("weekly")
-        summary = self.instance_runner.aggregate_instance_period(
-            instance,
-            period_type="weekly",
-            start_date=start_date,
-            end_date=end_date,
+        return self._aggregate_instance_for_instance(
+            instance_id,
+            "weekly",
+            use_current_period=False,
         )
-        return summary.to_dict()
 
     def calculate_monthly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
         """为指定实例计算月统计聚合"""
-        instance = self._get_instance_or_raise(instance_id)
-        start_date, end_date = self.period_calculator.get_last_period("monthly")
-        summary = self.instance_runner.aggregate_instance_period(
-            instance,
-            period_type="monthly",
-            start_date=start_date,
-            end_date=end_date,
+        return self._aggregate_instance_for_instance(
+            instance_id,
+            "monthly",
+            use_current_period=False,
         )
-        return summary.to_dict()
 
     def calculate_quarterly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
         """为指定实例计算季度统计聚合"""
-        instance = self._get_instance_or_raise(instance_id)
-        start_date, end_date = self.period_calculator.get_last_period("quarterly")
-        summary = self.instance_runner.aggregate_instance_period(
-            instance,
-            period_type="quarterly",
-            start_date=start_date,
-            end_date=end_date,
+        return self._aggregate_instance_for_instance(
+            instance_id,
+            "quarterly",
+            use_current_period=False,
         )
-        return summary.to_dict()
 
     def calculate_period_aggregations(self, period_type: str, start_date: date, end_date: date) -> Dict[str, Any]:
         """计算指定周期的聚合数据"""
@@ -649,143 +634,34 @@ class AggregationService:
         )
         return self.database_runner.aggregate_period(normalized, start_date, end_date)
     
-    def get_aggregations(self, instance_id: int, period_type: str, 
-                        start_date: date = None, end_date: date = None,
-                        database_name: str = None) -> List[Dict[str, Any]]:
-        """
-        获取统计聚合数据
-        
-        Args:
-            instance_id: 实例ID
-            period_type: 统计周期类型
-            start_date: 开始日期
-            end_date: 结束日期
-            database_name: 数据库名称
-            
-        Returns:
-            List[Dict[str, Any]]: 聚合数据列表
-        """
-        query = DatabaseSizeAggregation.query.filter(
-            DatabaseSizeAggregation.instance_id == instance_id,
-            DatabaseSizeAggregation.period_type == period_type
+    def get_aggregations(
+        self,
+        instance_id: int,
+        period_type: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        database_name: str | None = None,
+    ) -> List[Dict[str, Any]]:
+        """获取数据库级聚合数据"""
+        return self.query_service.get_database_aggregations(
+            instance_id=instance_id,
+            period_type=period_type,
+            start_date=start_date,
+            end_date=end_date,
+            database_name=database_name,
         )
-        
-        if start_date:
-            query = query.filter(DatabaseSizeAggregation.period_start >= start_date)
-        if end_date:
-            query = query.filter(DatabaseSizeAggregation.period_end <= end_date)
-        if database_name:
-            query = query.filter(DatabaseSizeAggregation.database_name == database_name)
-        
-        aggregations = query.order_by(DatabaseSizeAggregation.period_start.desc()).all()
-        
-        return [self._format_aggregation(agg) for agg in aggregations]
-    
-    def get_instance_aggregations(self, instance_id: int, period_type: str, 
-                                start_date: date = None, end_date: date = None) -> List[Dict[str, Any]]:
-        """
-        获取实例统计聚合数据
-        
-        Args:
-            instance_id: 实例ID
-            period_type: 统计周期类型
-            start_date: 开始日期
-            end_date: 结束日期
-            
-        Returns:
-            List[Dict[str, Any]]: 实例聚合数据列表
-        """
-        query = InstanceSizeAggregation.query.filter(
-            InstanceSizeAggregation.instance_id == instance_id,
-            InstanceSizeAggregation.period_type == period_type
+
+    def get_instance_aggregations(
+        self,
+        instance_id: int,
+        period_type: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> List[Dict[str, Any]]:
+        """获取实例整体聚合数据"""
+        return self.query_service.get_instance_aggregations(
+            instance_id=instance_id,
+            period_type=period_type,
+            start_date=start_date,
+            end_date=end_date,
         )
-        
-        if start_date:
-            query = query.filter(InstanceSizeAggregation.period_start >= start_date)
-        if end_date:
-            query = query.filter(InstanceSizeAggregation.period_end <= end_date)
-        
-        aggregations = query.order_by(InstanceSizeAggregation.period_start.desc()).all()
-        
-        return [self._format_instance_aggregation(agg) for agg in aggregations]
-    
-    def _format_aggregation(self, aggregation: DatabaseSizeAggregation) -> Dict[str, Any]:
-        """
-        格式化聚合数据
-        
-        Args:
-            aggregation: 聚合数据对象
-            
-        Returns:
-            Dict[str, Any]: 格式化后的数据
-        """
-        return {
-            'id': aggregation.id,
-            'instance_id': aggregation.instance_id,
-            'database_name': aggregation.database_name,
-            'period_type': aggregation.period_type,
-            'period_start': aggregation.period_start.isoformat() if aggregation.period_start else None,
-            'period_end': aggregation.period_end.isoformat() if aggregation.period_end else None,
-            'statistics': {
-                'avg_size_mb': aggregation.avg_size_mb,
-                'max_size_mb': aggregation.max_size_mb,
-                'min_size_mb': aggregation.min_size_mb,
-                'data_count': aggregation.data_count,
-                'avg_data_size_mb': aggregation.avg_data_size_mb,
-                'max_data_size_mb': aggregation.max_data_size_mb,
-                'min_data_size_mb': aggregation.min_data_size_mb,
-                'avg_log_size_mb': aggregation.avg_log_size_mb,
-                'max_log_size_mb': aggregation.max_log_size_mb,
-                'min_log_size_mb': aggregation.min_log_size_mb
-            },
-            'changes': {
-                'size_change_mb': aggregation.size_change_mb,
-                'size_change_percent': float(aggregation.size_change_percent) if aggregation.size_change_percent else 0,
-                'data_size_change_mb': aggregation.data_size_change_mb,
-                'data_size_change_percent': float(aggregation.data_size_change_percent) if aggregation.data_size_change_percent else None,
-                'log_size_change_mb': aggregation.log_size_change_mb,
-                'log_size_change_percent': float(aggregation.log_size_change_percent) if aggregation.log_size_change_percent else None,
-                'growth_rate': float(aggregation.growth_rate) if aggregation.growth_rate else 0
-            },
-            'calculated_at': aggregation.calculated_at.isoformat() if aggregation.calculated_at else None,
-            'created_at': aggregation.created_at.isoformat() if aggregation.created_at else None
-        }
-    
-    def _format_instance_aggregation(self, aggregation: InstanceSizeAggregation) -> Dict[str, Any]:
-        """
-        格式化实例聚合数据
-        
-        Args:
-            aggregation: 实例聚合数据对象
-            
-        Returns:
-            Dict[str, Any]: 格式化后的数据
-        """
-        return {
-            'id': aggregation.id,
-            'instance_id': aggregation.instance_id,
-            'period_type': aggregation.period_type,
-            'period_start': aggregation.period_start.isoformat() if aggregation.period_start else None,
-            'period_end': aggregation.period_end.isoformat() if aggregation.period_end else None,
-            'statistics': {
-                'total_size_mb': aggregation.total_size_mb,
-                'avg_size_mb': aggregation.avg_size_mb,
-                'max_size_mb': aggregation.max_size_mb,
-                'min_size_mb': aggregation.min_size_mb,
-                'data_count': aggregation.data_count,
-                'database_count': aggregation.database_count,
-                'avg_database_count': float(aggregation.avg_database_count) if aggregation.avg_database_count else None,
-                'max_database_count': aggregation.max_database_count,
-                'min_database_count': aggregation.min_database_count
-            },
-            'changes': {
-                'total_size_change_mb': aggregation.total_size_change_mb,
-                'total_size_change_percent': float(aggregation.total_size_change_percent) if aggregation.total_size_change_percent else 0,
-                'database_count_change': aggregation.database_count_change,
-                'database_count_change_percent': float(aggregation.database_count_change_percent) if aggregation.database_count_change_percent else None,
-                'growth_rate': float(aggregation.growth_rate) if aggregation.growth_rate else 0,
-                'trend_direction': aggregation.trend_direction
-            },
-            'calculated_at': aggregation.calculated_at.isoformat() if aggregation.calculated_at else None,
-            'created_at': aggregation.created_at.isoformat() if aggregation.created_at else None
-        }

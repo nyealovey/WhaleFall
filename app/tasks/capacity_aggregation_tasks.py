@@ -3,7 +3,6 @@
 负责计算每周、每月、每季度的统计聚合数据
 """
 
-from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any, Dict, List, Optional, Sequence, Set
 
@@ -19,47 +18,16 @@ STATUS_COMPLETED = "completed"
 STATUS_SKIPPED = "skipped"
 STATUS_FAILED = "failed"
 TASK_MODULE = "aggregation_tasks"
-PERIOD_ORDER = ["daily", "weekly", "monthly", "quarterly"]
 
 
-@dataclass(frozen=True)
-class PeriodConfig:
-    key: str
-    instance_method: str
-    database_method: str
-
-
-PERIOD_CONFIGS: dict[str, PeriodConfig] = {
-    cfg.key: cfg
-    for cfg in [
-        PeriodConfig(
-            "daily",
-            "calculate_daily_aggregations_for_instance",
-            "calculate_daily_aggregations",
-        ),
-        PeriodConfig(
-            "weekly",
-            "calculate_weekly_aggregations_for_instance",
-            "calculate_weekly_aggregations",
-        ),
-        PeriodConfig(
-            "monthly",
-            "calculate_monthly_aggregations_for_instance",
-            "calculate_monthly_aggregations",
-        ),
-        PeriodConfig(
-            "quarterly",
-            "calculate_quarterly_aggregations_for_instance",
-            "calculate_quarterly_aggregations",
-        ),
-    ]
-}
-
-
-def _select_periods(requested: Optional[Sequence[str]], logger) -> List[str]:
+def _select_periods(requested: Optional[Sequence[str]], logger, allowed_periods: Sequence[str]) -> List[str]:
     """根据请求的周期返回有效周期列表"""
+    allowed = list(allowed_periods)
+    if not allowed:
+        return []
+
     if requested is None:
-        return PERIOD_ORDER.copy()
+        return allowed.copy()
 
     normalized: List[str] = []
     unknown: List[str] = []
@@ -68,7 +36,7 @@ def _select_periods(requested: Optional[Sequence[str]], logger) -> List[str]:
         key = (item or "").strip().lower()
         if not key:
             continue
-        if key in PERIOD_CONFIGS:
+        if key in allowed_periods:
             if key not in seen:
                 normalized.append(key)
                 seen.add(key)
@@ -82,8 +50,8 @@ def _select_periods(requested: Optional[Sequence[str]], logger) -> List[str]:
             unknown_periods=unknown,
         )
 
-    ordered = [period for period in PERIOD_ORDER if period in normalized]
-    return ordered
+    ordered = [period for period in allowed if period in normalized]
+    return ordered if ordered else allowed.copy()
 
 
 def _extract_processed_records(result: dict[str, Any] | None) -> int:
@@ -155,7 +123,8 @@ def calculate_database_size_aggregations(
                     "periods_executed": [],
                 }
 
-            selected_periods = _select_periods(periods, sync_logger)
+            service = AggregationService()
+            selected_periods = _select_periods(periods, sync_logger, service.period_types)
             if not selected_periods:
                 sync_logger.warning(
                     "未选择任何有效的聚合周期，任务直接完成",
@@ -215,7 +184,6 @@ def calculate_database_size_aggregations(
             started_record_ids: Set[int] = set()
             finalized_record_ids: Set[int] = set()
 
-            service = AggregationService()
             instance_details: dict[int, dict[str, Any]] = {}
             successful_instances = 0
             failed_instances = 0
@@ -352,31 +320,14 @@ def calculate_database_size_aggregations(
 
             period_summaries: List[dict[str, Any]] = []
             total_database_aggregations = 0
+            database_period_results = service.aggregate_database_periods(selected_periods)
             for period_name in selected_periods:
-                config = PERIOD_CONFIGS.get(period_name)
-                if not config:
-                    continue
-                database_func = getattr(service, config.database_method, None)
-                if database_func is None:
-                    sync_logger.warning(
-                        "未找到数据库聚合函数，跳过周期",
-                        module="aggregation_sync",
-                        period=period_name,
-                    )
-                    continue
-                try:
-                    db_result = database_func()
-                except Exception as db_exc:  # pragma: no cover - 防御性日志
-                    sync_logger.error(
-                        "数据库级聚合执行异常",
-                        module="aggregation_sync",
-                        period=period_name,
-                        error=str(db_exc),
-                    )
+                db_result = database_period_results.get(period_name)
+                if db_result is None:
                     db_result = {
                         "status": STATUS_FAILED,
-                        "error": str(db_exc),
-                        "errors": [str(db_exc)],
+                        "errors": ["聚合服务未返回结果"],
+                        "error": "聚合服务未返回结果",
                         "period_type": period_name,
                     }
                 status = (db_result.get("status") or STATUS_FAILED).lower()
