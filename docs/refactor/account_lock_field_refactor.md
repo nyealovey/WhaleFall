@@ -13,8 +13,8 @@
 | 项目 | 说明 |
 | --- | --- |
 | 新增列 | `account_permission.is_locked BOOLEAN DEFAULT FALSE NOT NULL`（带索引 `idx_account_permission_locked` 以便筛选） |
-| ORM 更新 | `AccountPermission` 模型新增 `is_locked = db.Column(db.Boolean, default=False, nullable=False, index=True)`；`is_locked_display` 属性改为优先返回该字段，若为 `None` 再回退到 `type_specific` |
-| 兼容策略 | 迁移脚本在新增列后执行回填：根据现有 `type_specific` 推导锁定状态（同 `is_locked_display` 逻辑），并写入 `is_locked` |
+| ORM 更新 | `AccountPermission` 模型新增 `is_locked = db.Column(db.Boolean, default=False, nullable=False, index=True)`，取消 `is_locked_display` 衍生逻辑 |
+| 兼容策略 | 迁移脚本在新增列后执行回填：根据现有 `type_specific` 推导锁定状态并写入 `is_locked` |
 
 ## 3. 同步链路调整
 
@@ -33,7 +33,7 @@
 | --- | --- |
 | `app/routes/account.py`, `app/routes/files.py` | 筛选条件新增对 `AccountPermission.is_locked` 的直接过滤；导出时不再解析 JSON。 |
 | `app/routes/instance.py` | `/api/<id>/accounts` 的响应字段 `is_locked` 直接返回模型字段；仍保留 `type_specific` 细节。 |
-| `templates/accounts/list.html` 等 | 模板与前端 JS 改为读取 `account.is_locked`（或 `is_locked_display` 兼容），保证 UI 一致。 |
+| `templates/accounts/list.html` 等 | 模板与前端 JS 改为读取 `account.is_locked`，保证 UI 一致。 |
 | 统计服务 | `account_statistics_service` 直接基于 `is_locked` 计算锁定占比，减少多次解析。 |
 
 ## 5. 迁移计划
@@ -62,7 +62,7 @@
 | 风险 | 缓解策略 |
 | --- | --- |
 | JSON 字段与新字段不一致 | 同步链路以 `is_locked` 为准，同时在调试日志中输出 `type_specific` 与 `is_locked`，发现差异立即报警。 |
-| 旧代码仍引用 `type_specific.is_locked` | 搜索代码库并替换；在 `AccountPermission.is_locked_display` 中打印 deprecation warning（开发期使用）。 |
+| 旧代码仍引用 `type_specific.is_locked` | 搜索代码库并替换，严禁再引入 JSON 解析逻辑。 |
 | 迁移回填耗时 | 批量更新可按数据库类型分批执行，并在低流量窗口进行；必要时写脚本分块处理。 |
 
 ## 7. 时间线
