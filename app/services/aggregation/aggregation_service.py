@@ -45,6 +45,12 @@ class AggregationService:
             module=MODULE,
         )
         self.query_service = AggregationQueryService()
+        self._database_methods = {
+            "daily": self.calculate_daily_aggregations,
+            "weekly": self.calculate_weekly_aggregations,
+            "monthly": self.calculate_monthly_aggregations,
+            "quarterly": self.calculate_quarterly_aggregations,
+        }
 
     def _get_instance_or_raise(self, instance_id: int) -> Instance:
         instance = Instance.query.get(instance_id)
@@ -160,6 +166,47 @@ class AggregationService:
         log_info(log_message, module=MODULE)
         start_date, end_date = self._period_range(period_type, use_current_period=use_current_period)
         return runner.aggregate_period(period_type, start_date, end_date)
+
+    def _normalize_periods(self, periods: Sequence[str] | None) -> list[str]:
+        if not periods:
+            return list(self.period_types)
+
+        seen: set[str] = set()
+        normalized: list[str] = []
+        for item in periods:
+            key = (item or "").strip().lower()
+            if key in self.period_types and key not in seen:
+                normalized.append(key)
+                seen.add(key)
+        return normalized
+
+    def aggregate_database_periods(self, periods: Sequence[str] | None = None) -> dict[str, Dict[str, Any]]:
+        normalized = self._normalize_periods(periods)
+        results: dict[str, Dict[str, Any]] = {}
+
+        for period in normalized:
+            method = self._database_methods.get(period)
+            if method is None:
+                continue
+            try:
+                period_result = method()
+            except Exception as exc:  # pragma: no cover - 防御性日志
+                log_error(
+                    "数据库级聚合执行失败",
+                    module=MODULE,
+                    period_type=period,
+                    exception=exc,
+                )
+                period_result = {
+                    "status": AggregationStatus.FAILED.value,
+                    "error": str(exc),
+                    "errors": [str(exc)],
+                    "period_type": period,
+                }
+            period_result.setdefault("period_type", period)
+            results[period] = period_result
+
+        return results
     
     def calculate_all_aggregations(self) -> Dict[str, Any]:
         """
@@ -468,14 +515,7 @@ class AggregationService:
             "monthly": self.calculate_monthly_aggregations_for_instance,
             "quarterly": self.calculate_quarterly_aggregations_for_instance,
         }
-        requested: List[str] = []
-        if periods:
-            seen: set[str] = set()
-            for period in periods:
-                normalized = (period or "").strip().lower()
-                if normalized in period_funcs and normalized not in seen:
-                    requested.append(normalized)
-                    seen.add(normalized)
+        requested = self._normalize_periods(periods)
         if not requested:
             requested = list(period_funcs.keys())
 
