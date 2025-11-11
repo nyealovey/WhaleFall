@@ -25,7 +25,15 @@ class SyncSessionService:
         self.sync_logger = get_sync_logger()
 
     def _clean_sync_details(self, sync_details: dict[str, Any] | None) -> dict[str, Any] | None:
-        """将同步详情中的 datetime/date 转换为字符串，方便序列化。"""
+        """
+        清理同步详情中的datetime对象，确保JSON可序列化
+        
+        Args:
+            sync_details: 原始同步详情
+            
+        Returns:
+            清理后的同步详情
+        """
         if not sync_details:
             return None
             
@@ -42,7 +50,17 @@ class SyncSessionService:
         return clean_value(sync_details)
 
     def create_session(self, sync_type: str, sync_category: str = "account", created_by: int = None) -> SyncSession:
-        """创建同步会话实体并写库。"""
+        """
+        创建同步会话
+
+        Args:
+            sync_type: 同步操作方式 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
+            sync_category: 同步分类 ('account', 'capacity', 'config', 'aggregation', 'other')
+            created_by: 创建用户ID
+
+        Returns:
+            SyncSession: 创建的同步会话
+        """
         try:
             session = SyncSession(sync_type=sync_type, sync_category=sync_category, created_by=created_by)
             db.session.add(session)
@@ -70,7 +88,17 @@ class SyncSessionService:
             raise
 
     def add_instance_records(self, session_id: str, instance_ids: list[int], sync_category: str = "account") -> list[SyncInstanceRecord]:
-        """为指定会话批量创建实例同步记录。"""
+        """
+        为会话添加实例记录
+
+        Args:
+            session_id: 会话ID
+            instance_ids: 实例ID列表
+            sync_category: 同步分类 ('account', 'capacity', 'config', 'aggregation', 'other')
+
+        Returns:
+            List[SyncInstanceRecord]: 创建的实例记录列表
+        """
         try:
             records = []
             instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
@@ -111,7 +139,15 @@ class SyncSessionService:
             raise
 
     def start_instance_sync(self, record_id: int) -> bool:
-        """标记实例记录开始同步。"""
+        """
+        开始实例同步
+
+        Args:
+            record_id: 实例记录ID
+
+        Returns:
+            bool: 是否成功开始
+        """
         try:
             record = SyncInstanceRecord.query.get(record_id)
             if not record:
@@ -148,7 +184,20 @@ class SyncSessionService:
         items_deleted: int = 0,
         sync_details: dict[str, Any] = None,
     ) -> bool:
-        """标记实例同步完成并更新统计。"""
+        """
+        完成实例同步
+
+        Args:
+            record_id: 实例记录ID
+            items_synced: 同步的项目总数
+            items_created: 新增的项目数量
+            items_updated: 更新的项目数量
+            items_deleted: 删除的项目数量
+            sync_details: 同步详情
+
+        Returns:
+            bool: 是否成功完成
+        """
         try:
             record = SyncInstanceRecord.query.get(record_id)
             if not record:
@@ -190,7 +239,17 @@ class SyncSessionService:
             return False
 
     def fail_instance_sync(self, record_id: int, error_message: str, sync_details: dict[str, Any] = None) -> bool:
-        """标记实例同步失败并记录错误详情。"""
+        """
+        标记实例同步失败
+
+        Args:
+            record_id: 实例记录ID
+            error_message: 错误信息
+            sync_details: 同步详情
+
+        Returns:
+            bool: 是否成功标记
+        """
         try:
             record = SyncInstanceRecord.query.get(record_id)
             if not record:
@@ -223,7 +282,7 @@ class SyncSessionService:
             return False
 
     def _update_session_statistics(self, session_id: str) -> None:
-        """刷新会话成功/失败数量。"""
+        """更新会话统计信息"""
         try:
             session = db.session.query(SyncSession).filter_by(session_id=session_id).with_for_update().one()
             
@@ -258,7 +317,15 @@ class SyncSessionService:
             raise
 
     def get_session_records(self, session_id: str) -> list[SyncInstanceRecord]:
-        """查询某个会话的全部实例记录。"""
+        """
+        获取会话的所有实例记录
+
+        Args:
+            session_id: 会话ID
+
+        Returns:
+            List[SyncInstanceRecord]: 实例记录列表
+        """
         try:
             return SyncInstanceRecord.get_records_by_session(session_id)
         except Exception as e:
@@ -271,7 +338,15 @@ class SyncSessionService:
             return []
 
     def get_session_by_id(self, session_id: str) -> SyncSession | None:
-        """按照会话 ID 获取会话对象。"""
+        """
+        根据ID获取会话
+
+        Args:
+            session_id: 会话ID
+
+        Returns:
+            Optional[SyncSession]: 会话对象
+        """
         try:
             return SyncSession.query.filter_by(session_id=session_id).first()
         except Exception as e:
@@ -284,7 +359,16 @@ class SyncSessionService:
             return None
 
     def get_sessions_by_type(self, sync_type: str, limit: int = 50) -> list[SyncSession]:
-        """按同步类型获取最近的会话列表。"""
+        """
+        根据类型获取会话列表
+
+        Args:
+            sync_type: 同步类型
+            limit: 限制数量
+
+        Returns:
+            List[SyncSession]: 会话列表
+        """
         try:
             return SyncSession.get_sessions_by_type(sync_type, limit)
         except Exception as e:
@@ -297,7 +381,16 @@ class SyncSessionService:
             return []
 
     def get_sessions_by_category(self, sync_category: str, limit: int = 50) -> list[SyncSession]:
-        """按同步分类获取最近的会话列表。"""
+        """
+        根据分类获取会话列表
+
+        Args:
+            sync_category: 同步分类
+            limit: 限制数量
+
+        Returns:
+            List[SyncSession]: 会话列表
+        """
         try:
             return SyncSession.get_sessions_by_category(sync_category, limit)
         except Exception as e:
@@ -310,7 +403,15 @@ class SyncSessionService:
             return []
 
     def get_recent_sessions(self, limit: int = 20) -> list[SyncSession]:
-        """获取最近创建的同步会话。"""
+        """
+        获取最近的会话列表
+
+        Args:
+            limit: 限制数量
+
+        Returns:
+            List[SyncSession]: 会话列表
+        """
         try:
             return SyncSession.query.order_by(SyncSession.created_at.desc()).limit(limit).all()
         except Exception as e:
@@ -323,7 +424,15 @@ class SyncSessionService:
             return []
 
     def cancel_session(self, session_id: str) -> bool:
-        """取消未完成的同步会话。"""
+        """
+        取消会话
+
+        Args:
+            session_id: 会话ID
+
+        Returns:
+            bool: 是否成功取消
+        """
         try:
             session = SyncSession.query.filter_by(session_id=session_id).first()
             if not session:
