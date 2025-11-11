@@ -1,4 +1,4 @@
-"""Enhanced error handling utilities shared by logging stack."""
+"""日志系统使用的增强错误处理辅助方法。"""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from app.utils.time_utils import time_utils
 
 @dataclass(slots=True)
 class ErrorContext:
-    """Error context captured at exception time."""
+    """异常发生时采集的上下文信息。"""
 
     error: Exception
     request: Any | None = None
@@ -48,7 +48,7 @@ class ErrorContext:
 
 @dataclass(slots=True)
 class ErrorMetadata:
-    """Derived error metadata for classification."""
+    """用于判定错误分类的元数据。"""
 
     status_code: int
     category: ErrorCategory

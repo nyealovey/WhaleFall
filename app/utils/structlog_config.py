@@ -1,4 +1,4 @@
-"""Structured logging configuration and helpers for the TaifishingV4 project."""
+"""TaifishingV4 项目的结构化日志配置与辅助函数。"""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from app.utils.time_utils import time_utils
 
 
 class StructlogConfig:
-    """Central configuration for structlog."""
+    """structlog 配置核心类。"""
 
     def __init__(self) -> None:
         self.handler = DatabaseLogHandler()
@@ -35,7 +35,7 @@ class StructlogConfig:
         self.configured = False
 
     def configure(self, app=None):  # noqa: ANN001
-        """Configure structlog processors (idempotent)."""
+        """初始化 structlog 处理器（幂等）。"""
         if not self.configured:
             structlog.configure(
                 processors=[

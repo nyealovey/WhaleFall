@@ -1,4 +1,4 @@
-"""Structlog processors/handlers for database logging."""
+"""结构化日志处理器：负责将事件标准化并交由数据库 worker 写入。"""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ SYSTEM_FIELDS = {"level", "module", "event", "timestamp", "exception", "logger",
 
 
 class DebugFilter:
-    """Processor that drops DEBUG logs unless显式开启."""
+    """根据配置决定是否丢弃 DEBUG 日志的处理器。"""
 
     def __init__(self, enabled: bool = False) -> None:
         self.enabled = enabled
@@ -34,7 +34,7 @@ class DebugFilter:
 
 
 class DatabaseLogHandler:
-    """Structlog processor that enqueues DB log entries via a worker."""
+    """将日志事件入队，由后台线程统一写入数据库的处理器。"""
 
     def __init__(self, worker: Any | None = None) -> None:  # noqa: ANN401 - worker is queue worker instance
         self.worker = worker
@@ -53,7 +53,7 @@ class DatabaseLogHandler:
 
 
 def _build_log_entry(event_dict: Dict[str, Any]) -> dict[str, Any] | None:
-    """Map structlog event dict to UnifiedLog fields."""
+    """把 structlog 事件转换为 UnifiedLog 可用的字段字典。"""
 
     if not isinstance(event_dict, dict):
         message = str(event_dict)
