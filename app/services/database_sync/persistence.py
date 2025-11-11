@@ -75,7 +75,7 @@ class CapacityPersistence:
                 DatabaseSizeStat.database_name,
                 DatabaseSizeStat.collected_date,
             ],
-            set={
+            set_={
                 "size_mb": insert_stmt.excluded.size_mb,
                 "data_size_mb": insert_stmt.excluded.data_size_mb,
                 "log_size_mb": insert_stmt.excluded.log_size_mb,
