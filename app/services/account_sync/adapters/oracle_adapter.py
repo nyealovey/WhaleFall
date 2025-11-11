@@ -58,16 +58,16 @@ class OracleAccountAdapter(BaseAccountAdapter):
         permissions = account.get("permissions") or {}
         type_specific = permissions.setdefault("type_specific", {})
         account_status = type_specific.get("account_status")
-        is_active = not bool(account.get("is_locked", False))
+        is_locked = bool(account.get("is_locked", False))
         if isinstance(account_status, str):
-            is_active = account_status.upper() == "OPEN"
+            is_locked = account_status.upper() != "OPEN"
         return {
             "username": account["username"],
             "display_name": account["username"],
             "db_type": DatabaseType.ORACLE,
             "is_superuser": account.get("is_superuser", False),
-            "is_locked": not is_active,
-            "is_active": is_active,
+            "is_locked": is_locked,
+            "is_active": True,
             "permissions": {
                 "oracle_roles": permissions.get("oracle_roles", []),
                 "system_privileges": permissions.get("system_privileges", []),

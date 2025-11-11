@@ -99,7 +99,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             "db_type": DatabaseType.MYSQL,
             "is_superuser": account.get("is_superuser", False),
             "is_locked": is_locked,
-            "is_active": not is_locked,
+            "is_active": True,
             "permissions": {
                 "global_privileges": permissions.get("global_privileges", []),
                 "database_privileges": permissions.get("database_privileges", {}),

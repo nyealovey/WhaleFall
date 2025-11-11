@@ -113,7 +113,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             "db_type": DatabaseType.POSTGRESQL,
             "is_superuser": account.get("is_superuser", False),
             "is_locked": not can_login,
-            "is_active": can_login,
+            "is_active": True,
             "permissions": {
                 "predefined_roles": permissions.get("predefined_roles", []),
                 "role_attributes": permissions.get("role_attributes", {}),
