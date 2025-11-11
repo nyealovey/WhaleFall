@@ -150,34 +150,3 @@ class AccountPermission(BaseSyncData):
             return False
         except (TypeError, AttributeError):
             return False
-
-    @property
-    def is_locked_display(self) -> bool:
-        """计算显示用的账户锁定状态"""
-        if self.is_locked is not None:
-            return bool(self.is_locked)
-
-        if not self.type_specific:
-            return False
-
-        try:
-            if self.db_type == DatabaseType.MYSQL:
-                # MySQL: 检查 account_locked 字段
-                return self.type_specific.get("is_locked", False)
-
-            if self.db_type == DatabaseType.POSTGRESQL:
-                # PostgreSQL: 检查 can_login 属性（反向）
-                return not self.type_specific.get("can_login", True)
-
-            if self.db_type == DatabaseType.SQLSERVER:
-                # SQL Server: 检查 is_disabled 字段
-                return self.type_specific.get("is_disabled", False)
-
-            if self.db_type == DatabaseType.ORACLE:
-                # Oracle: 检查 account_status 字段
-                account_status = self.type_specific.get("account_status", "OPEN")
-                return account_status.upper() != "OPEN"
-
-            return False
-        except (TypeError, AttributeError, KeyError):
-            return False

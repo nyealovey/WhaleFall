@@ -38,7 +38,7 @@
    - `is_locked`（或数据库特定字段）放入 `type_specific`，并根据锁定状态计算 `is_active`。
    - `is_superuser` 布尔值用于 `permission_manager`。
 2. **持久化与展示**：
-   - `AccountPermission.is_locked` 为单一数据源；`is_locked_display` 仅为兼容旧数据的兜底逻辑。
+   - `AccountPermission.is_locked` 为唯一数据源，所有上下游都以此布尔值为准。
    - 对外 API（`/instances/<id>/accounts`、`/account/list` 等）返回 `is_locked` 字段。
    - 前端模板统一读取 `account.is_locked`，不再依赖 JSON。
 3. **排查指引**：若发现锁定状态异常，检查流程为：
