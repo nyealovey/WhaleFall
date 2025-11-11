@@ -33,18 +33,7 @@ class RateLimiter:
         return f"{endpoint}:{identifier}"
 
     def is_allowed(self, identifier: str, endpoint: str, limit: int, window: int) -> dict[str, any]:
-        """
-        检查是否允许请求
-
-        Args:
-            identifier: 标识符（IP地址或用户ID）
-            endpoint: 端点名称
-            limit: 限制次数
-            window: 时间窗口（秒）
-
-        Returns:
-            dict: 包含是否允许、剩余次数、重置时间等信息
-        """
+        """检查某标识在指定窗口内是否仍可发起请求。"""
         current_time = int(time.time())
         window_start = current_time - window
 
