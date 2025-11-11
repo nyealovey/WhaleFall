@@ -159,7 +159,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if not account.is_locked_display %}
+                            {% if not account.is_locked %}
                                 <span class="badge bg-success">正常</span>
                             {% else %}
                                 <span class="badge bg-danger">已锁定</span>
