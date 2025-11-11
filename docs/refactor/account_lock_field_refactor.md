@@ -72,10 +72,10 @@
 3. D3：灰度环境运行一次完整同步 + 对比报表；若无异常，合并进入 `main`。  
 4. D4：生产执行迁移，并在 `make quality` 中增加检查（例如同步输出 `is_locked` 缺失报警）。
 
-## 8. 追加优化：移除 MySQL `SHOW GRANTS`
+## 8. 追加优化：剥离 `grant_statements`
 
-- 在此次重构中同时移除 MySQL 适配器中对 `SHOW GRANTS` 的依赖，避免锁争用及性能问题。  
-- `_get_user_permissions` 不再写入 `grant_statements` 字段，`type_specific` 仅保留 `can_grant`、`is_locked`、`plugin`、`password_last_changed` 等必要信息。  
-- 若需要排查授权，可通过日志或 DBA 工具临时执行 `SHOW GRANTS`，不再在快照中持久化。
+- MySQL 适配器仍使用 `SHOW GRANTS` 解析权限，保证 `global_privileges` / `database_privileges` 的准确性；  
+- 但不再把原始 `grant_statements` 字符串数组写入 `type_specific`，避免 JSON 体膨胀及敏感信息泄漏；  
+- 如需排查授权，可在同步日志中单次打印或让 DBA 手动 `SHOW GRANTS`，而不是长期保存在快照里。
 
 通过此次重构，可以将“账户锁定”作为一等字段管理，消除跨数据库字段名差异带来的逻辑分叉，提升同步准确性和调试效率。***
