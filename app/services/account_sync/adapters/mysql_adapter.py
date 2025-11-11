@@ -92,12 +92,14 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         type_specific.setdefault("host", account.get("host"))
         type_specific.setdefault("original_username", account.get("original_username"))
         type_specific.setdefault("is_locked", account.get("is_locked", False))
+        is_locked = bool(type_specific.get("is_locked", account.get("is_locked", False)))
         return {
             "username": account["username"],
             "display_name": account["username"],
             "db_type": DatabaseType.MYSQL,
             "is_superuser": account.get("is_superuser", False),
-            "is_active": not type_specific.get("is_locked", account.get("is_locked", False)),
+            "is_locked": is_locked,
+            "is_active": not is_locked,
             "permissions": {
                 "global_privileges": permissions.get("global_privileges", []),
                 "database_privileges": permissions.get("database_privileges", {}),
@@ -201,6 +203,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     if value is not None:
                         type_specific.setdefault(key, value)
                 account["permissions"] = permissions
+                account["is_locked"] = bool(
+                    type_specific.get("is_locked", account.get("is_locked", False))
+                )
             except Exception as exc:  # noqa: BLE001
                 self.logger.error(
                     "fetch_mysql_permissions_failed",

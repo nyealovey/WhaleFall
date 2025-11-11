@@ -54,6 +54,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
 
     # 构建查询
     query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+    query = query.filter(InstanceAccount.is_active.is_(True))
 
     # 数据库类型过滤
     if db_type and db_type != "all":
@@ -76,14 +77,12 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
             )
         )
 
-    # 锁定状态过滤（基于 InstanceAccount.is_active）
+    # 锁定状态过滤（基于 AccountPermission.is_locked）
     if is_locked is not None:
         if is_locked == "true":
-            query = query.filter(InstanceAccount.is_active.is_(False))
+            query = query.filter(AccountPermission.is_locked.is_(True))
         elif is_locked == "false":
-            query = query.filter(InstanceAccount.is_active.is_(True))
-    else:
-        query = query.filter(InstanceAccount.is_active.is_(True))
+            query = query.filter(AccountPermission.is_locked.is_(False))
 
     # 超级用户过滤
     if is_superuser is not None:

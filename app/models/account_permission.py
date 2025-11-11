@@ -20,6 +20,7 @@ class AccountPermission(BaseSyncData):
     instance_account_id = db.Column(db.Integer, db.ForeignKey("instance_accounts.id"), nullable=False, index=True)
     username = db.Column(db.String(255), nullable=False)
     is_superuser = db.Column(db.Boolean, default=False)
+    is_locked = db.Column(db.Boolean, default=False, nullable=False, index=True)
 
     # MySQL权限字段
     global_privileges = db.Column(db.JSON, nullable=True)  # MySQL全局权限
@@ -68,6 +69,7 @@ class AccountPermission(BaseSyncData):
             {
                 "username": self.username,
                 "is_superuser": self.is_superuser,
+                "is_locked": self.is_locked,
                 "global_privileges": self.global_privileges,
                 "database_privileges": self.database_privileges,
                 "predefined_roles": self.predefined_roles,
@@ -152,6 +154,9 @@ class AccountPermission(BaseSyncData):
     @property
     def is_locked_display(self) -> bool:
         """计算显示用的账户锁定状态"""
+        if self.is_locked is not None:
+            return bool(self.is_locked)
+
         if not self.type_specific:
             return False
 

@@ -102,7 +102,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
             "host": type_specific.get("host", "%"),
             "plugin": type_specific.get("plugin", ""),
             "account_type": sync_account.db_type,
-            "is_locked": sync_account.is_locked_display,  # 使用计算字段
+            "is_locked": bool(sync_account.is_locked),
             "is_active": is_active,
             "account_created_at": type_specific.get("account_created_at"),
             "last_sync_time": sync_account.last_sync_time,
@@ -547,7 +547,7 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         "username": account.username,
         "db_type": instance.db_type.lower() if instance and instance.db_type else "",
         "is_superuser": account.is_superuser,
-        "is_locked": account.is_locked_display,
+        "is_locked": bool(account.is_locked),
         "last_sync_time": account.last_sync_time.isoformat() if account.last_sync_time else None,
     }
 

@@ -47,6 +47,7 @@ PRIVILEGE_FIELD_LABELS: Dict[str, str] = {
 
 OTHER_FIELD_LABELS: Dict[str, str] = {
     "is_superuser": "超级用户",
+    "is_locked": "锁定状态",
     "type_specific": "数据库特性",
 }
 
@@ -87,6 +88,7 @@ class AccountPermissionManager:
 
             permissions = remote.get("permissions", {})
             is_superuser = bool(remote.get("is_superuser", False))
+            is_locked = bool(remote.get("is_locked", False))
 
             existing = AccountPermission.query.filter_by(instance_account_id=account.id).first()
             if not existing:
@@ -98,9 +100,9 @@ class AccountPermissionManager:
                 if existing and not existing.instance_account_id:
                     existing.instance_account_id = account.id
             if existing:
-                diff = self._calculate_diff(existing, permissions, is_superuser)
+                diff = self._calculate_diff(existing, permissions, is_superuser, is_locked)
                 if diff["changed"]:
-                    self._apply_permissions(existing, permissions, is_superuser)
+                    self._apply_permissions(existing, permissions, is_superuser, is_locked)
                     existing.last_change_type = diff["change_type"]
                     existing.last_change_time = time_utils.now()
                     updated += 1
@@ -136,7 +138,7 @@ class AccountPermissionManager:
                     username=account.username,
                     is_superuser=is_superuser,
                 )
-                self._apply_permissions(existing, permissions, is_superuser)
+                self._apply_permissions(existing, permissions, is_superuser, is_locked)
                 existing.last_change_type = "add"
                 existing.last_change_time = time_utils.now()
                 existing.last_sync_time = time_utils.now()
@@ -144,7 +146,7 @@ class AccountPermissionManager:
                 db.session.add(existing)
 
                 try:
-                    initial_diff = self._build_initial_diff_payload(permissions, is_superuser)
+                    initial_diff = self._build_initial_diff_payload(permissions, is_superuser, is_locked)
                     self._log_change(
                         instance,
                         username=account.username,
@@ -226,8 +228,10 @@ class AccountPermissionManager:
         record: AccountPermission,
         permissions: Dict,
         is_superuser: bool,
+        is_locked: bool,
     ) -> None:
         record.is_superuser = is_superuser
+        record.is_locked = bool(is_locked)
         for field in PERMISSION_FIELDS:
             if field in permissions:
                 setattr(record, field, permissions[field])
@@ -242,6 +246,7 @@ class AccountPermissionManager:
         record: AccountPermission,
         permissions: Dict,
         is_superuser: bool,
+        is_locked: bool,
     ) -> Dict[str, Any]:
         privilege_changes: List[Dict[str, Any]] = []
         other_changes: List[Dict[str, Any]] = []
@@ -254,6 +259,15 @@ class AccountPermissionManager:
             )
             if other_entry:
                 other_changes.append(other_entry)
+
+        if bool(record.is_locked) != bool(is_locked):
+            locked_entry = self._build_other_diff_entry(
+                field="is_locked",
+                old_value=bool(record.is_locked),
+                new_value=bool(is_locked),
+            )
+            if locked_entry:
+                other_changes.append(locked_entry)
 
         for field in PERMISSION_FIELDS:
             new_value = permissions.get(field)
@@ -320,6 +334,7 @@ class AccountPermissionManager:
         self,
         permissions: Dict[str, Any],
         is_superuser: bool,
+        is_locked: bool,
     ) -> Dict[str, Any]:
         privilege_diff: List[Dict[str, Any]] = []
         for field in PERMISSION_FIELDS:
@@ -332,6 +347,11 @@ class AccountPermissionManager:
             other_entry = self._build_other_diff_entry("is_superuser", False, True)
             if other_entry:
                 other_diff.append(other_entry)
+        if is_locked:
+            locked_entry = self._build_other_diff_entry("is_locked", False, True)
+            if locked_entry:
+                other_diff.append(locked_entry)
+
         type_specific_entry = self._build_other_diff_entry(
             "type_specific", None, permissions.get("type_specific")
         )

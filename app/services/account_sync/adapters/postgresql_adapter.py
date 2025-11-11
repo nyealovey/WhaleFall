@@ -106,12 +106,14 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         permissions.setdefault("role_attributes", {})
         if "can_login" not in type_specific and account.get("can_login") is not None:
             type_specific["can_login"] = bool(account.get("can_login"))
+        can_login = bool(type_specific.get("can_login", True))
         return {
             "username": account["username"],
             "display_name": account["username"],
             "db_type": DatabaseType.POSTGRESQL,
             "is_superuser": account.get("is_superuser", False),
-            "is_active": bool(type_specific.get("can_login", True)),
+            "is_locked": not can_login,
+            "is_active": can_login,
             "permissions": {
                 "predefined_roles": permissions.get("predefined_roles", []),
                 "role_attributes": permissions.get("role_attributes", {}),
@@ -242,6 +244,9 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                     if value is not None:
                         type_specific.setdefault(propagated_key, value)
                 account["permissions"] = permissions
+                can_login = bool(type_specific.get("can_login", True))
+                account["is_active"] = can_login
+                account["is_locked"] = not can_login
             except Exception as exc:  # noqa: BLE001
                 self.logger.error(
                     "fetch_pg_permissions_failed",

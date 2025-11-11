@@ -66,6 +66,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
             "display_name": account["username"],
             "db_type": DatabaseType.ORACLE,
             "is_superuser": account.get("is_superuser", False),
+            "is_locked": not is_active,
             "is_active": is_active,
             "permissions": {
                 "oracle_roles": permissions.get("oracle_roles", []),
@@ -131,6 +132,9 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 permissions = self._get_user_permissions(connection, username)
                 type_specific = permissions.setdefault("type_specific", {})
                 account["permissions"] = permissions
+                account_status = type_specific.get("account_status")
+                if isinstance(account_status, str):
+                    account["is_locked"] = account_status.upper() != "OPEN"
             except Exception as exc:  # noqa: BLE001
                 self.logger.error(
                     "fetch_oracle_permissions_failed",

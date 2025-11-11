@@ -26,8 +26,8 @@ from app.utils.structlog_config import log_error
 
 def _is_account_locked(account: AccountPermission, db_type: str) -> bool:
     """根据数据库类型判断账户是否锁定"""
-    if account.instance_account and account.instance_account.is_active is False:
-        return True
+    if account.is_locked is not None:
+        return bool(account.is_locked)
     if db_type == DatabaseType.MYSQL:
         return bool(account.type_specific and account.type_specific.get("is_locked"))
     if db_type == DatabaseType.POSTGRESQL:
