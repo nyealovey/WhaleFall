@@ -127,9 +127,12 @@ def get_scheduler() -> Any:  # noqa: ANN401
     return scheduler.scheduler
 
 
-def init_scheduler(app: Any) -> None:  # noqa: ANN401
-    """初始化调度器（仅在主进程启动）"""
-    global scheduler
+def _should_start_scheduler() -> bool:
+    """根据运行环境判断是否应启动调度器。"""
+    enable_flag = os.environ.get("ENABLE_SCHEDULER", "true").strip().lower()
+    if enable_flag not in ("true", "1", "yes"):
+        logger.info("检测到 ENABLE_SCHEDULER=%s，跳过调度器初始化", enable_flag)
+        return False
 
     server_software = os.environ.get("SERVER_SOFTWARE", "")
     if server_software.startswith("gunicorn"):
@@ -139,7 +142,24 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
                 "检测到 gunicorn worker 进程 (ppid=%s)，跳过调度器初始化",
                 parent_pid,
             )
-            return None
+            return False
+
+    # Flask reloader: 只有子进程 (WERKZEUG_RUN_MAIN=true) 才运行调度器
+    if os.environ.get("FLASK_RUN_FROM_CLI") == "true":
+        reloader_flag = os.environ.get("WERKZEUG_RUN_MAIN")
+        if reloader_flag not in ("true", "1"):
+            logger.info("检测到 Flask reloader 父进程，跳过调度器初始化")
+            return False
+
+    return True
+
+
+def init_scheduler(app: Any) -> None:  # noqa: ANN401
+    """初始化调度器（仅在允许的进程中启动）"""
+    global scheduler
+
+    if not _should_start_scheduler():
+        return None
 
     try:
         # 检查是否已经初始化过
@@ -231,25 +251,9 @@ def _load_tasks_from_config(force: bool = False) -> None:
 
     from app.tasks.log_cleanup_tasks import cleanup_old_logs
     from app.tasks.account_sync_tasks import sync_accounts
-    from app.tasks.partition_management_tasks import (
-        create_database_size_partitions,
-        cleanup_database_size_partitions,
-        monitor_partition_health
-    )
-    from app.tasks.capacity_collection_tasks import (
-        collect_database_sizes,
-        collect_specific_instance_database_sizes,
-        collect_database_sizes_by_type,
-        get_collection_status,
-        validate_collection_config
-    )
-    from app.tasks.capacity_aggregation_tasks import (
-        calculate_database_size_aggregations,
-        calculate_instance_aggregations,
-        calculate_period_aggregations,
-        get_aggregation_status,
-        validate_aggregation_config,
-    )
+    from app.tasks.partition_management_tasks import monitor_partition_health
+    from app.tasks.capacity_collection_tasks import collect_database_sizes
+    from app.tasks.capacity_aggregation_tasks import calculate_database_size_aggregations
 
     # 如果不是强制模式，检查是否已有任务
     if not force:
@@ -285,37 +289,16 @@ def _load_tasks_from_config(force: bool = False) -> None:
             trigger_params = task_config.get("trigger_params", {})
 
             # 获取函数对象
-            if function_name == "sync_accounts":
-                func = sync_accounts
-            elif function_name == "cleanup_old_logs":
-                func = cleanup_old_logs
-            elif function_name == "create_database_size_partitions":
-                func = create_database_size_partitions
-            elif function_name == "cleanup_database_size_partitions":
-                func = cleanup_database_size_partitions
-            elif function_name == "monitor_partition_health":
-                func = monitor_partition_health
-            elif function_name == "collect_database_sizes":
-                func = collect_database_sizes
-            elif function_name == "collect_specific_instance_database_sizes":
-                func = collect_specific_instance_database_sizes
-            elif function_name == "collect_database_sizes_by_type":
-                func = collect_database_sizes_by_type
-            elif function_name == "get_collection_status":
-                func = get_collection_status
-            elif function_name == "validate_collection_config":
-                func = validate_collection_config
-            elif function_name == "calculate_database_size_aggregations":
-                func = calculate_database_size_aggregations
-            elif function_name == "calculate_instance_aggregations":
-                func = calculate_instance_aggregations
-            elif function_name == "calculate_period_aggregations":
-                func = calculate_period_aggregations
-            elif function_name == "get_aggregation_status":
-                func = get_aggregation_status
-            elif function_name == "validate_aggregation_config":
-                func = validate_aggregation_config
-            else:
+            task_func_map = {
+                "sync_accounts": sync_accounts,
+                "cleanup_old_logs": cleanup_old_logs,
+                "monitor_partition_health": monitor_partition_health,
+                "collect_database_sizes": collect_database_sizes,
+                "calculate_database_size_aggregations": calculate_database_size_aggregations,
+            }
+
+            func = task_func_map.get(function_name)
+            if not func:
                 logger.warning("未知的任务函数: %s", function_name)
                 continue
 
@@ -373,83 +356,10 @@ def _load_tasks_from_config(force: bool = False) -> None:
                     logger.warning("任务已存在，跳过创建: %s (%s) - %s", task_name, task_id, str(e))
 
     except FileNotFoundError:
-        logger.warning("配置文件不存在: %s，使用硬编码默认任务", config_file)
-        # 回退到硬编码方式
-        _add_hardcoded_default_jobs()
+        logger.error("配置文件不存在: %s，无法加载默认任务", config_file)
+        return
     except Exception as e:
-        logger.error("读取配置文件失败: %s，使用硬编码默认任务", str(e))
-        # 回退到硬编码方式
-        _add_hardcoded_default_jobs()
+        logger.error("读取配置文件失败: %s", str(e))
+        return
 
     logger.info("默认定时任务已添加")
-
-
-def _add_hardcoded_default_jobs() -> None:
-    """添加硬编码的默认任务（备用方案）"""
-    from app.tasks.log_cleanup_tasks import cleanup_old_logs
-    from app.tasks.account_sync_tasks import sync_accounts
-    from app.tasks.capacity_collection_tasks import collect_database_sizes
-    from app.tasks.capacity_aggregation_tasks import calculate_database_size_aggregations
-    from app.tasks.partition_management_tasks import monitor_partition_health
-
-    # 清理旧日志 - 每天凌晨2点执行
-    try:
-        from apscheduler.triggers.cron import CronTrigger
-        scheduler.add_job(
-            cleanup_old_logs,
-            CronTrigger(hour=2, minute=0, timezone="Asia/Shanghai"),
-            id="cleanup_logs",
-            name="清理旧日志",
-        )
-        logger.info("添加硬编码任务: 清理旧日志")
-    except Exception as e:
-        logger.warning("任务已存在，跳过创建: cleanup_logs - %s", str(e))
-
-    # 账户同步 - 每天凌晨1点执行
-    try:
-        from apscheduler.triggers.cron import CronTrigger
-        scheduler.add_job(
-            sync_accounts,
-            CronTrigger(hour=1, minute=0, timezone="Asia/Shanghai"),
-            id="sync_accounts",
-            name="账户同步",
-        )
-        logger.info("添加硬编码任务: 账户同步")
-    except Exception as e:
-        logger.warning("任务已存在，跳过创建: sync_accounts - %s", str(e))
-
-    # 容量同步 - 每天凌晨3点执行
-    try:
-        scheduler.add_job(
-            collect_database_sizes,
-            CronTrigger(hour=3, minute=0, timezone="Asia/Shanghai"),
-            id="collect_database_sizes",
-            name="容量同步",
-        )
-        logger.info("添加硬编码任务: 容量同步")
-    except Exception as e:
-        logger.warning("任务已存在，跳过创建: collect_database_sizes - %s", str(e))
-
-    # 统计聚合 - 每天凌晨4点执行
-    try:
-        scheduler.add_job(
-            calculate_database_size_aggregations,
-            CronTrigger(hour=4, minute=0, timezone="Asia/Shanghai"),
-            id="calculate_database_size_aggregations",
-            name="统计聚合",
-        )
-        logger.info("添加硬编码任务: 统计聚合")
-    except Exception as e:
-        logger.warning("任务已存在，跳过创建: calculate_database_size_aggregations - %s", str(e))
-
-    # 监控分区健康状态 - 每天凌晨0点30分执行
-    try:
-        scheduler.add_job(
-            monitor_partition_health,
-            CronTrigger(hour=0, minute=30, timezone="Asia/Shanghai"),
-            id="monitor_partition_health",
-            name="监控分区健康状态",
-        )
-        logger.info("添加硬编码任务: 监控分区健康状态")
-    except Exception as e:
-        logger.warning("任务已存在，跳过创建: monitor_partition_health - %s", str(e))
