@@ -1,486 +1,158 @@
-"""
-鲸落 - Structlog 配置
-统一日志系统的核心配置和处理器
-"""
+"""Structured logging configuration and helpers for the TaifishingV4 project."""
 
-import contextlib
+from __future__ import annotations
+
+import atexit
 import logging
 import sys
-import threading
-import time
-from contextvars import ContextVar
-from datetime import datetime
-from queue import Empty, Queue
 from typing import Any, Callable, Mapping
-from dataclasses import dataclass, field
-from uuid import uuid4
-
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 import structlog
 from flask import current_app, g, has_request_context
 from flask_login import current_user
-from werkzeug.exceptions import HTTPException
-
-from app import db
-from app.constants import HttpStatus, TaskStatus
-from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
-from app.errors import AppError, map_exception_to_status
-from app.models.unified_log import LogLevel, UnifiedLog
+from app.constants.system_constants import ErrorSeverity
+from app.errors import map_exception_to_status
+from app.utils.logging.context_vars import request_id_var, user_id_var
+from app.utils.logging.error_adapter import (
+    ErrorContext,
+    ErrorMetadata,
+    build_public_context,
+    derive_error_metadata,
+    get_error_suggestions,
+)
+from app.utils.logging.handlers import DatabaseLogHandler, DebugFilter
+from app.utils.logging.queue_worker import LogQueueWorker
 from app.utils.time_utils import time_utils
-
-# 请求上下文变量
-request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
-user_id_var: ContextVar[int | None] = ContextVar("user_id", default=None)
-
-# 全局上下文绑定
-_global_context = {}
-
-
-class SQLAlchemyLogHandler:
-    """SQLAlchemy 日志处理器"""
-
-    def __init__(self, batch_size: int = 100, flush_interval: float = 5.0):
-        self.batch_size = batch_size
-        self.flush_interval = flush_interval
-        self.log_queue = Queue()
-        self.batch_buffer: list[dict[str, Any]] = []
-        self.last_flush = time.time()
-        self._shutdown = False
-
-        # 启动后台线程处理日志
-        self._thread = threading.Thread(target=self._process_logs, daemon=True)
-        self._thread.start()
-
-    def __call__(self, logger, method_name, event_dict):
-        """处理日志事件"""
-        if self._shutdown:
-            return event_dict
-
-        # 过滤DEBUG级别日志
-        level = event_dict.get("level", "INFO")
-        level_priority = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
-
-        # 如果级别低于INFO，则丢弃日志
-        if level_priority.get(level, 20) < 20:  # INFO级别
-            raise structlog.DropEvent
-
-        # 构建日志条目
-        log_entry = self._build_log_entry(event_dict)
-        if log_entry:
-            # 直接同步写入数据库
-            try:
-                # 检查是否有应用上下文
-                if has_request_context() or current_app:
-                    with current_app.app_context():
-                        # 确保时间戳是datetime对象，使用东八区时间
-                        if isinstance(log_entry.get("timestamp"), str):
-                            from app.utils.time_utils import time_utils
-
-                            try:
-                                log_entry["timestamp"] = time_utils.to_utc(log_entry["timestamp"])
-                            except ValueError:
-                                log_entry["timestamp"] = time_utils.now()
-
-                        # 创建并保存日志条目
-                        unified_log = UnifiedLog.create_log_entry(**log_entry)
-                        db.session.add(unified_log)
-                        db.session.commit()
-                else:
-                    # 如果没有应用上下文，跳过数据库写入
-                    pass
-            except Exception:
-                # 使用标准logging避免循环依赖
-                import logging
-
-                logging.error("Error writing log to database: {e}")
-
-        return event_dict
-
-    def _build_log_entry(self, event_dict: dict[str, Any]) -> dict[str, Any] | None:
-        """构建日志条目"""
-        try:
-            # 检查event_dict是否为字典
-            if not isinstance(event_dict, dict):
-                # 如果不是字典，尝试从字符串中提取信息
-                if isinstance(event_dict, str):
-                    return {
-                        "level": LogLevel.INFO,
-                        "module": "unknown",
-                        "message": event_dict,
-                        "context": {},
-                        "timestamp": time_utils.now(),
-                    }
-                return None
-
-            # 提取基本信息
-            level_str = event_dict.get("level", "INFO").upper()
-            try:
-                level = LogLevel(level_str)
-            except ValueError:
-                level = LogLevel.INFO
-            
-            # 过滤DEBUG级别日志，不记录到数据库
-            if level == LogLevel.DEBUG:
-                return None
-
-            # 获取模块名，优先从logger名称获取
-            module = event_dict.get("module", "")
-            if not module:
-                # 尝试从logger名称提取模块
-                logger_name = event_dict.get("logger", "")
-                if logger_name:
-                    # 从logger名称提取模块名
-                    if "." in logger_name:
-                        module = logger_name.split(".")[-1]
-                    else:
-                        module = logger_name
-                else:
-                    # 如果无法确定模块，使用默认值
-                    module = "app"
-
-            # 获取消息内容
-            message = event_dict.get("event", "")
-            if not message:
-                # 如果没有event字段，尝试其他可能的字段
-                message = event_dict.get("message", "")
-
-            # 获取时间戳，确保带时区信息
-            timestamp = event_dict.get("timestamp", time_utils.now())
-            if isinstance(timestamp, str):
-                try:
-                    timestamp = time_utils.to_utc(timestamp)
-                except Exception:
-                    timestamp = time_utils.now()
-                if timestamp is None:
-                    timestamp = time_utils.now()
-
-            # 确保时间戳带时区信息
-            if timestamp.tzinfo is None:
-                from app.utils.time_utils import UTC_TZ
-
-                timestamp = timestamp.replace(tzinfo=UTC_TZ)
-
-            # 提取堆栈追踪
-            traceback = None
-            if "exception" in event_dict and event_dict["exception"]:
-                traceback = str(event_dict["exception"])
-
-            # 构建上下文
-            context = self._build_context(event_dict)
-
-            return {
-                "timestamp": timestamp,
-                "level": level,
-                "module": module,
-                "message": message,
-                "traceback": traceback,
-                "context": context,
-            }
-        except Exception:
-            # 避免日志处理本身出错
-            # 使用标准logging避免循环依赖
-            import logging
-
-            logging.error("Error building log entry: {e}")
-            return None
-
-    def _build_context(self, event_dict: dict[str, Any]) -> dict[str, Any]:
-        """构建日志上下文"""
-        context = {}
-
-        # 添加请求上下文
-        if has_request_context():
-            context.update(
-                {
-                    "request_id": request_id_var.get(),
-                    "user_id": user_id_var.get(),
-                    "url": getattr(g, "url", None),
-                    "method": getattr(g, "method", None),
-                    "ip_address": getattr(g, "ip_address", None),
-                    "user_agent": getattr(g, "user_agent", None),
-                }
-            )
-
-        # 添加用户信息
-        if current_user and hasattr(current_user, "id"):
-            context["current_user_id"] = current_user.id
-            context["current_username"] = getattr(current_user, "username", None)
-            context["current_user_role"] = getattr(current_user, "role", None)
-            context["is_admin"] = getattr(current_user, "is_admin", lambda: False)()
-
-        # 添加其他上下文信息（过滤掉系统字段）
-        system_fields = ["level", "module", "event", "timestamp", "exception", "logger", "logger_name"]
-        for key, value in event_dict.items():
-            if key not in system_fields and value is not None:
-                # 处理特殊数据类型
-                if isinstance(value, datetime):
-                    context[key] = value.isoformat()
-                elif hasattr(value, "to_dict"):
-                    # 如果是模型对象，转换为字典
-                    try:
-                        context[key] = value.to_dict()
-                    except:
-                        context[key] = str(value)
-                else:
-                    context[key] = value
-
-        return context
-
-    def _process_logs(self):
-        """后台处理日志队列"""
-        while not self._shutdown:
-            try:
-                # 尝试获取日志条目
-                try:
-                    log_entry = self.log_queue.get(timeout=1.0)
-                    self.batch_buffer.append(log_entry)
-                except Empty:
-                    pass
-
-                # 检查是否需要刷新
-                current_time = time.time()
-                should_flush = len(self.batch_buffer) >= self.batch_size or (
-                    self.batch_buffer and current_time - self.last_flush >= self.flush_interval
-                )
-
-                if should_flush:
-                    self._flush_logs()
-
-            except Exception:
-                # 使用标准logging避免循环依赖
-                import logging
-
-                logging.error("Error processing logs: {e}")
-                time.sleep(1)
-
-    def _flush_logs(self):
-        """刷新日志到数据库"""
-        if not self.batch_buffer:
-            return
-
-        try:
-            # 创建新的应用上下文
-            from flask import current_app
-
-            with current_app.app_context():
-                # 批量插入日志
-                log_entries = []
-                for log_data in self.batch_buffer:
-                    # 确保时间戳是datetime对象，使用东八区时间
-                    if isinstance(log_data.get("timestamp"), str):
-                        from app.utils.time_utils import time_utils
-
-                        try:
-                            log_data["timestamp"] = time_utils.to_utc(log_data["timestamp"])
-                        except Exception:
-                            log_data["timestamp"] = time_utils.now()
-                        if log_data["timestamp"] is None:
-                            log_data["timestamp"] = time_utils.now()
-
-                        # 确保时间戳带时区信息
-                        if log_data["timestamp"].tzinfo is None:
-                            from app.utils.time_utils import UTC_TZ
-
-                            log_data["timestamp"] = log_data["timestamp"].replace(tzinfo=UTC_TZ)
-
-                    log_entry = UnifiedLog.create_log_entry(**log_data)
-                    log_entries.append(log_entry)
-
-                db.session.add_all(log_entries)
-                db.session.commit()
-
-                self.batch_buffer.clear()
-                self.last_flush = time.time()
-
-        except Exception:
-            # 使用标准logging避免循环依赖
-            import logging
-
-            logging.error("Error flushing logs to database: {e}")
-            with contextlib.suppress(BaseException):
-                db.session.rollback()
-            # 清空缓冲区避免重复错误
-            self.batch_buffer.clear()
-
-    def shutdown(self):
-        """关闭处理器"""
-        self._shutdown = True
-        # 刷新剩余的日志
-        if self.batch_buffer:
-            self._flush_logs()
-        self._thread.join(timeout=5)
 
 
 class StructlogConfig:
-    """Structlog 配置类"""
+    """Central configuration for structlog."""
 
-    def __init__(self):
-        self.handler = None
+    def __init__(self) -> None:
+        self.handler = DatabaseLogHandler()
+        self.debug_filter = DebugFilter(enabled=False)
+        self.worker: LogQueueWorker | None = None
         self.configured = False
 
-    def configure(self, app=None):
-        """配置 structlog"""
-        if self.configured:
-            return
+    def configure(self, app=None):  # noqa: ANN001
+        """Configure structlog processors (idempotent)."""
+        if not self.configured:
+            structlog.configure(
+                processors=[
+                    self.debug_filter,
+                    structlog.processors.TimeStamper(fmt="iso"),
+                    structlog.stdlib.add_log_level,
+                    structlog.processors.StackInfoRenderer(),
+                    structlog.processors.format_exc_info,
+                    self._add_request_context,
+                    self._add_user_context,
+                    self._add_global_context,
+                    self.handler,
+                    self._get_console_renderer(),
+                    structlog.processors.JSONRenderer(),
+                ],
+                context_class=dict,
+                logger_factory=structlog.stdlib.LoggerFactory(),
+                wrapper_class=structlog.stdlib.BoundLogger,
+                cache_logger_on_first_use=True,
+            )
+            self.configured = True
 
-        # 配置 structlog - 按照官方文档推荐的最佳实践
-        structlog.configure(
-            processors=[
-                # 1. 过滤日志级别（只允许INFO及以上级别）
-                self._filter_log_level,
-                # 2. 添加时间戳
-                structlog.processors.TimeStamper(fmt="iso"),
-                # 3. 添加日志级别
-                structlog.stdlib.add_log_level,
-                # 4. 添加堆栈追踪
-                structlog.processors.StackInfoRenderer(),
-                # 5. 添加异常信息
-                structlog.processors.format_exc_info,
-                # 6. 添加请求上下文
-                self._add_request_context,
-                # 7. 添加用户上下文
-                self._add_user_context,
-                # 8. 添加全局上下文绑定
-                self._add_global_context,
-                # 9. 数据库处理器（在JSON渲染之前）
-                self._get_handler(),
-                # 10. 控制台渲染器（美化输出）
-                self._get_console_renderer(),
-                # 11. JSON 渲染器（用于文件输出）
-                structlog.processors.JSONRenderer(),
-            ],
-            context_class=dict,
-            logger_factory=structlog.stdlib.LoggerFactory(),
-            wrapper_class=structlog.stdlib.BoundLogger,
-            cache_logger_on_first_use=True,
-        )
+        if app is not None:
+            self._attach_app(app)
 
-        self.configured = True
+    def _attach_app(self, app):  # noqa: ANN001
+        if not self.worker:
+            queue_size = int(app.config.get("LOG_QUEUE_SIZE", 1000))
+            batch_size = int(app.config.get("LOG_BATCH_SIZE", 100))
+            flush_interval = float(app.config.get("LOG_FLUSH_INTERVAL", 3.0))
+            self.worker = LogQueueWorker(
+                app,
+                queue_size=queue_size,
+                batch_size=batch_size,
+                flush_interval=flush_interval,
+            )
+            self.handler.set_worker(self.worker)
 
-    def _filter_log_level(self, logger, method_name, event_dict):
-        """过滤日志级别，只允许INFO及以上级别"""
-        # 获取日志级别
-        level = event_dict.get("level", "INFO")
+        enable_debug = bool(app.config.get("ENABLE_DEBUG_LOG", False))
+        self.debug_filter.set_enabled(enable_debug)
 
-        # 定义级别优先级
-        level_priority = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
-
-        # 如果级别低于INFO，则丢弃日志
-        if level_priority.get(level, 20) < 20:  # INFO级别
-            # 静默丢弃DEBUG日志，不打印调试信息
-            raise structlog.DropEvent
-
-        return event_dict
-
-    def _add_request_context(self, logger, method_name, event_dict):
-        """添加请求上下文"""
+    def _add_request_context(self, logger, method_name, event_dict):  # noqa: ANN001
         if has_request_context():
             event_dict["request_id"] = request_id_var.get()
             event_dict["user_id"] = user_id_var.get()
         return event_dict
 
-    def _add_user_context(self, logger, method_name, event_dict):
-        """添加用户上下文"""
+    def _add_user_context(self, logger, method_name, event_dict):  # noqa: ANN001
         try:
             if current_user and getattr(current_user, "is_authenticated", False):
                 event_dict["current_user_id"] = getattr(current_user, "id", None)
                 event_dict["current_username"] = getattr(current_user, "username", None)
-        except Exception:
-            # 避免在错误处理中再次触发数据库查询
+        except Exception:  # noqa: BLE001
             pass
         return event_dict
 
-    def _add_global_context(self, logger, method_name, event_dict):
-        """添加全局上下文绑定"""
-        # 添加应用信息
+    def _add_global_context(self, logger, method_name, event_dict):  # noqa: ANN001
         event_dict["app_name"] = "鲸落"
         try:
-            from flask import current_app
-
             event_dict["app_version"] = getattr(current_app.config, "APP_VERSION", "unknown")
-        except Exception:
+        except RuntimeError:
             event_dict["app_version"] = "unknown"
 
-        # 添加环境信息
         if has_request_context():
-            event_dict["environment"] = "development"  # 可以根据实际环境设置
+            event_dict["environment"] = current_app.config.get("ENV", "development")
             event_dict["host"] = getattr(g, "host", "localhost")
 
-        # 添加模块信息（从logger名称提取）
-        logger_name = logger.name if hasattr(logger, "name") else "unknown"
+        logger_name = getattr(logger, "name", "unknown")
         event_dict["logger_name"] = logger_name
-
-        # 添加全局上下文变量
-        global _global_context
-        event_dict.update(_global_context)
-
         return event_dict
 
     def _get_console_renderer(self):
-        """获取控制台渲染器"""
-        # 检查是否在终端环境中
         if sys.stdout.isatty():
-            # 在终端中，使用彩色控制台渲染器
             return structlog.dev.ConsoleRenderer(
                 colors=True,
-                exception_formatter=structlog.dev.RichTracebackFormatter(
-                    show_locals=True,
-                    max_frames=10,
-                ),
+                exception_formatter=structlog.dev.RichTracebackFormatter(show_locals=True, max_frames=10),
             )
-        # 非终端环境，使用简单的控制台渲染器
         return structlog.dev.ConsoleRenderer(colors=False)
 
-    def _get_handler(self):
-        """获取数据库处理器"""
-        if not self.handler:
-            self.handler = SQLAlchemyLogHandler()
-        return self.handler
-
-    def shutdown(self):
-        """关闭配置"""
-        if self.handler:
-            self.handler.shutdown()
+    def shutdown(self) -> None:
+        if self.worker:
+            self.worker.shutdown()
+            self.handler.set_worker(None)
+            self.worker = None
 
 
-# 全局配置实例
 structlog_config = StructlogConfig()
+atexit.register(structlog_config.shutdown)
 
 
 def get_logger(name: str) -> structlog.BoundLogger:
-    """获取结构化日志记录器"""
-    if not structlog_config.configured:
-        structlog_config.configure()
-
+    structlog_config.configure()
     return structlog.get_logger(name)
 
 
-def configure_structlog(app):
-    """配置应用的结构化日志"""
+def configure_structlog(app):  # noqa: ANN001
     structlog_config.configure(app)
 
-    # 注册关闭处理器
     @app.teardown_appcontext
-    def shutdown_logging(exception):
+    def log_teardown_error(exception):  # noqa: ANN001
         if exception:
             get_logger("app").error("Application error", module="system", exception=str(exception))
 
 
 def should_log_debug() -> bool:
-    """检查是否应该记录DEBUG日志"""
-    return False
+    try:
+        return bool(current_app.config.get("ENABLE_DEBUG_LOG", False))
+    except RuntimeError:
+        return False
 
 
-# 便捷函数
 def log_info(message: str, module: str = "app", **kwargs):
-    """记录信息日志"""
     logger = get_logger("app")
     logger.info(message, module=module, **kwargs)
 
 
 def log_warning(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
-    """记录警告日志"""
     logger = get_logger("app")
     if exception:
         logger.warning(message, module=module, exception=str(exception), **kwargs)
@@ -489,106 +161,50 @@ def log_warning(message: str, module: str = "app", exception: Exception | None =
 
 
 def log_error(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
-    """记录错误日志"""
     logger = get_logger("app")
     if exception:
-        # 使用 exc_info=True 来触发堆栈追踪
         logger.error(message, module=module, error=str(exception), **kwargs, exc_info=True)
     else:
         logger.error(message, module=module, **kwargs)
 
 
 def log_critical(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
-    """记录严重错误日志"""
     logger = get_logger("app")
     if exception:
-        # 使用 exc_info=True 来触发堆栈追踪
         logger.critical(message, module=module, error=str(exception), **kwargs, exc_info=True)
     else:
         logger.critical(message, module=module, **kwargs)
 
 
 def log_debug(message: str, module: str = "app", **kwargs):
-    """记录调试日志"""
     if not should_log_debug():
-        return  # 如果DEBUG日志未启用，直接返回
+        return
     logger = get_logger("app")
     logger.debug(message, module=module, **kwargs)
 
 
-# 专门的日志记录器函数
 def get_system_logger() -> structlog.BoundLogger:
-    """获取系统日志记录器"""
     return get_logger("system")
 
 
 def get_api_logger() -> structlog.BoundLogger:
-    """获取API日志记录器"""
     return get_logger("api")
 
 
 def get_auth_logger() -> structlog.BoundLogger:
-    """获取认证日志记录器"""
     return get_logger("auth")
 
 
 def get_db_logger() -> structlog.BoundLogger:
-    """获取数据库日志记录器"""
     return get_logger("database")
 
 
 def get_sync_logger() -> structlog.BoundLogger:
-    """获取同步日志记录器"""
     return get_logger("sync")
 
 
 def get_task_logger() -> structlog.BoundLogger:
-    """获取任务日志记录器"""
     return get_logger("task")
-
-
-# 错误处理增强功能
-
-
-@dataclass(slots=True)
-class ErrorContext:
-    """错误上下文信息"""
-
-    error: Exception
-    request: Any | None = None
-    error_id: str = field(default_factory=lambda: uuid4().hex)
-    timestamp: datetime = field(default_factory=time_utils.now)
-    request_id: str | None = field(default_factory=lambda: request_id_var.get())
-    user_id: int | None = field(default_factory=lambda: user_id_var.get())
-    url: str | None = None
-    method: str | None = None
-    extra: dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        if self.request is None and has_request_context():
-            from flask import request as flask_request
-
-            self.request = flask_request
-
-        if self.request is not None:
-            self.url = getattr(self.request, "url", self.url)
-            self.method = getattr(self.request, "method", self.method)
-            self.extra.setdefault("ip_address", getattr(self.request, "remote_addr", None))
-            user_agent = getattr(self.request, "user_agent", None)
-            if user_agent:
-                self.extra.setdefault("user_agent", getattr(user_agent, "string", user_agent))
-
-
-@dataclass(slots=True)
-class ErrorMetadata:
-    """错误元信息"""
-
-    status_code: int
-    category: ErrorCategory
-    severity: ErrorSeverity
-    message_key: str
-    message: str
-    recoverable: bool
 
 
 def enhanced_error_handler(
@@ -597,11 +213,12 @@ def enhanced_error_handler(
     *,
     extra: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """增强错误处理器，负责统一结构、分类与日志记录"""
     context = context or ErrorContext(error)
-    metadata = _derive_error_metadata(error)
+    context.ensure_request()
 
-    public_context = _build_public_context(context)
+    metadata = derive_error_metadata(error)
+    public_context = build_public_context(context)
+
     extra_payload: dict[str, Any] = {}
     if extra:
         extra_payload.update(extra)
@@ -615,7 +232,7 @@ def enhanced_error_handler(
         "message": metadata.message,
         "timestamp": context.timestamp.isoformat(),
         "recoverable": metadata.recoverable,
-        "suggestions": _get_error_suggestions(metadata.category),
+        "suggestions": get_error_suggestions(metadata.category),
         "context": public_context,
     }
 
@@ -626,121 +243,7 @@ def enhanced_error_handler(
     return payload
 
 
-def _derive_error_metadata(error: Exception) -> ErrorMetadata:
-    """根据异常类型推导错误元信息"""
-    if isinstance(error, AppError):
-        return ErrorMetadata(
-            status_code=error.status_code,
-            category=error.category,
-            severity=error.severity,
-            message_key=error.message_key,
-            message=error.message,
-            recoverable=error.recoverable,
-        )
-
-    if isinstance(error, HTTPException):
-        status_code = int(getattr(error, "code", HttpStatus.INTERNAL_SERVER_ERROR) or HttpStatus.INTERNAL_SERVER_ERROR)
-        message = getattr(error, "description", ErrorMessages.INTERNAL_ERROR)
-        message_key = "INTERNAL_ERROR" if status_code >= HttpStatus.INTERNAL_SERVER_ERROR else "INVALID_REQUEST"
-        severity = ErrorSeverity.HIGH if status_code >= HttpStatus.INTERNAL_SERVER_ERROR else ErrorSeverity.MEDIUM
-        category = ErrorCategory.SYSTEM if status_code >= HttpStatus.INTERNAL_SERVER_ERROR else ErrorCategory.BUSINESS
-        return ErrorMetadata(
-            status_code=status_code,
-            category=category,
-            severity=severity,
-            message_key=message_key,
-            message=message,
-            recoverable=severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM),
-        )
-
-    if isinstance(error, IntegrityError):
-        message_key = "CONSTRAINT_VIOLATION"
-        message = getattr(ErrorMessages, message_key, ErrorMessages.INTERNAL_ERROR)
-        return ErrorMetadata(
-            status_code=400,
-            category=ErrorCategory.DATABASE,
-            severity=ErrorSeverity.MEDIUM,
-            message_key=message_key,
-            message=message,
-            recoverable=True,
-        )
-
-    if isinstance(error, SQLAlchemyError):
-        message_key = "DATABASE_QUERY_ERROR"
-        message = getattr(ErrorMessages, message_key, ErrorMessages.DATABASE_QUERY_ERROR)
-        return ErrorMetadata(
-            status_code=500,
-            category=ErrorCategory.DATABASE,
-            severity=ErrorSeverity.HIGH,
-            message_key=message_key,
-            message=message,
-            recoverable=False,
-        )
-
-    message_lower = str(error).lower()
-    if "timeout" in message_lower or "connection" in message_lower:
-        message_key = "DATABASE_TIMEOUT"
-        message = getattr(ErrorMessages, message_key, ErrorMessages.DATABASE_TIMEOUT)
-        return ErrorMetadata(
-            status_code=504,
-            category=ErrorCategory.NETWORK,
-            severity=ErrorSeverity.HIGH,
-            message_key=message_key,
-            message=message,
-            recoverable=False,
-        )
-
-    if "permission" in message_lower or "forbidden" in message_lower or "denied" in message_lower:
-        message_key = "PERMISSION_DENIED"
-        message = getattr(ErrorMessages, message_key, ErrorMessages.PERMISSION_DENIED)
-        return ErrorMetadata(
-            status_code=403,
-            category=ErrorCategory.AUTHORIZATION,
-            severity=ErrorSeverity.MEDIUM,
-            message_key=message_key,
-            message=message,
-            recoverable=False,
-        )
-
-    if "validation" in message_lower or "invalid" in message_lower:
-        message_key = "VALIDATION_ERROR"
-        message = getattr(ErrorMessages, message_key, ErrorMessages.VALIDATION_ERROR)
-        return ErrorMetadata(
-            status_code=400,
-            category=ErrorCategory.VALIDATION,
-            severity=ErrorSeverity.LOW,
-            message_key=message_key,
-            message=message,
-            recoverable=True,
-        )
-
-    return ErrorMetadata(
-        status_code=500,
-        category=ErrorCategory.SYSTEM,
-        severity=ErrorSeverity.HIGH,
-        message_key="INTERNAL_ERROR",
-        message=ErrorMessages.INTERNAL_ERROR,
-        recoverable=False,
-    )
-
-
-def _build_public_context(context: ErrorContext) -> dict[str, Any]:
-    """整理公共上下文字段，避免暴露敏感信息"""
-    payload: dict[str, Any] = {
-        "request_id": context.request_id,
-        "user_id": context.user_id,
-    }
-    if context.url:
-        payload["url"] = context.url
-    if context.method:
-        payload["method"] = context.method
-    if context.extra:
-        payload["meta"] = {key: value for key, value in context.extra.items() if value is not None}
-    return payload
-
-
 def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict[str, Any]) -> None:
-    """根据严重度输出统一结构化日志"""
     log_kwargs = {
         "module": "error_handler",
         "error_id": payload["error_id"],
@@ -759,36 +262,40 @@ def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict
         log_warning(payload["message"], exception=error, **log_kwargs)
 
 
-def _get_error_suggestions(category: ErrorCategory) -> list[str]:
-    """根据错误分类给出建议"""
-    suggestions_map = {
-        ErrorCategory.VALIDATION: ["检查输入数据", "根据提示修正请求参数"],
-        ErrorCategory.BUSINESS: ["确认业务规则", "联系管理员核对数据"],
-        ErrorCategory.AUTHENTICATION: ["重新登录", "验证凭据有效性"],
-        ErrorCategory.AUTHORIZATION: ["检查权限配置", "联系管理员"],
-        ErrorCategory.SECURITY: ["稍后重试", "联系管理员"],
-        ErrorCategory.DATABASE: ["检查数据库连接", "联系数据库管理员"],
-        ErrorCategory.EXTERNAL: ["确认第三方服务状态", "稍后重试"],
-        ErrorCategory.NETWORK: ["检查网络连接", "稍后重试"],
-        ErrorCategory.SYSTEM: ["联系管理员", "查看错误日志"],
-    }
-    return suggestions_map.get(category, ["联系管理员", "查看错误日志"])
-
-
 def error_handler(func: Callable):
-    """将异常转换为统一错误响应的装饰器"""
-
     from functools import wraps
     from flask import jsonify
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs):  # noqa: ANN002, ANN003
         try:
             return func(*args, **kwargs)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             context = ErrorContext(error)
             payload = enhanced_error_handler(error, context)
             status_code = map_exception_to_status(error, default=500)
             return jsonify(payload), status_code
 
     return wrapper
+
+
+__all__ = [
+    "ErrorContext",
+    "ErrorMetadata",
+    "enhanced_error_handler",
+    "configure_structlog",
+    "get_logger",
+    "get_system_logger",
+    "get_api_logger",
+    "get_auth_logger",
+    "get_db_logger",
+    "get_sync_logger",
+    "get_task_logger",
+    "log_info",
+    "log_warning",
+    "log_error",
+    "log_critical",
+    "log_debug",
+    "error_handler",
+    "should_log_debug",
+]
