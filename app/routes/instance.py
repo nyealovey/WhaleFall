@@ -589,7 +589,7 @@ def api_get_accounts(instance_id: int) -> Response:
             instance_account = account.instance_account
             is_active = bool(instance_account and instance_account.is_active)
             # 对于锁定状态优先使用各数据库的 type_specific 字段判定，若账户已被标记删除再补充为锁定
-            is_locked_flag = bool(account.is_locked_display or not is_active)
+            is_locked_flag = bool(account.is_locked)
 
             account_info = {
                 "id": account.id,

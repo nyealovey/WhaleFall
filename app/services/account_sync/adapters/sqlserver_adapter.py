@@ -68,6 +68,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             "display_name": account["username"],
             "db_type": DatabaseType.SQLSERVER,
             "is_superuser": account.get("is_superuser", False),
+            "is_locked": is_disabled,
             # SQL Server 登录被禁用仍视为清单内账户，仅通过 is_locked 字段表达锁定状态
             "is_active": True,
             "permissions": {
@@ -126,6 +127,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                             type_specific.setdefault(key, value)
                 type_specific.setdefault("is_disabled", bool(account.get("is_disabled", False)))
                 account["permissions"] = permissions
+                account["is_locked"] = bool(type_specific.get("is_disabled", False))
             except Exception as exc:  # noqa: BLE001
                 self.logger.error(
                     "fetch_sqlserver_permissions_failed",

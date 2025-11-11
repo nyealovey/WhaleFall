@@ -49,6 +49,7 @@ def export_accounts() -> Response:
 
         # 构建查询
         query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+        query = query.filter(InstanceAccount.is_active.is_(True))
 
         if db_type and db_type != "all":
             query = query.filter(AccountPermission.db_type == db_type)
@@ -68,11 +69,9 @@ def export_accounts() -> Response:
 
         if is_locked is not None:
             if is_locked == "true":
-                query = query.filter(InstanceAccount.is_active.is_(False))
+                query = query.filter(AccountPermission.is_locked.is_(True))
             elif is_locked == "false":
-                query = query.filter(InstanceAccount.is_active.is_(True))
-        else:
-            query = query.filter(InstanceAccount.is_active.is_(True))
+                query = query.filter(AccountPermission.is_locked.is_(False))
 
         if is_superuser is not None:
             query = query.filter(AccountPermission.is_superuser == (is_superuser == "true"))
@@ -119,9 +118,7 @@ def export_accounts() -> Response:
             else:
                 username_display = f"{account.username}@{account.instance.host if account.instance else '%'}"
 
-            is_locked_flag = False
-            if account.type_specific and isinstance(account.type_specific, dict):
-                is_locked_flag = account.is_locked_display
+            is_locked_flag = bool(account.is_locked)
 
             if is_locked_flag:
                 lock_status = "已禁用" if instance and instance.db_type == DatabaseType.SQLSERVER else "已锁定"
