@@ -588,12 +588,14 @@ def api_get_accounts(instance_id: int) -> Response:
             type_specific = account.type_specific or {}
             instance_account = account.instance_account
             is_active = bool(instance_account and instance_account.is_active)
+            # 对于锁定状态优先使用各数据库的 type_specific 字段判定，若账户已被标记删除再补充为锁定
+            is_locked_flag = bool(account.is_locked_display or not is_active)
 
             account_info = {
                 "id": account.id,
                 "username": account.username,
                 "is_superuser": account.is_superuser,
-                "is_locked": not is_active,
+                "is_locked": is_locked_flag,
                 "is_deleted": not is_active,
                 "last_change_time": account.last_change_time.isoformat() if account.last_change_time else None,
                 "type_specific": type_specific,
