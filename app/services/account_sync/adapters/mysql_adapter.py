@@ -116,15 +116,10 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
     def _get_user_permissions(self, connection: Any, username: str, host: str) -> Dict[str, Any]:  # noqa: ANN401
         try:
-            grants = connection.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
-            grant_statements = [row[0] for row in grants]
-
+            # 避免 SHOW GRANTS 带来的锁争用与性能问题，直接返回空权限集合，
+            # 仅保留 mysql.user 中的补充属性（can_grant 等）
             global_privileges: List[str] = []
             database_privileges: Dict[str, List[str]] = {}
-
-            for statement in grant_statements:
-                self._parse_grant_statement(statement, global_privileges, database_privileges)
-
             user_attrs_sql = """
                 SELECT
                     Grant_priv as can_grant,
@@ -135,9 +130,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 WHERE User = %s AND Host = %s
             """
             attrs = connection.execute_query(user_attrs_sql, (username, host))
-            type_specific = {
-                "grant_statements": grant_statements,
-            }
+            type_specific: Dict[str, Any] = {}
             if attrs:
                 can_grant, is_locked, plugin, password_last_changed = attrs[0]
                 type_specific.update(
@@ -165,7 +158,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             return {
                 "global_privileges": [],
                 "database_privileges": {},
-                "type_specific": {"grant_statements": [], "can_grant": False, "is_locked": False},
+                "type_specific": {"can_grant": False, "is_locked": False},
             }
 
     def enrich_permissions(
