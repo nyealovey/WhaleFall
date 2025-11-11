@@ -11,6 +11,7 @@ from typing import Any
 
 from app import db
 from app.models.unified_log import UnifiedLog
+from sqlalchemy import text
 
 
 class LogQueueWorker:
@@ -31,6 +32,7 @@ class LogQueueWorker:
         self._buffer: list[dict[str, Any]] = []
         self._last_flush = time.time()
         self._shutdown = threading.Event()
+        self._enum_checked = False
         self._thread = threading.Thread(target=self._run, name="structlog-worker", daemon=True)
         self._thread.start()
 
@@ -81,6 +83,8 @@ class LogQueueWorker:
 
         try:
             with self.app.app_context():
+                self._ensure_log_level_enum()
+
                 models = [UnifiedLog.create_log_entry(**entry) for entry in entries]
                 if models:
                     db.session.add_all(models)
@@ -91,6 +95,28 @@ class LogQueueWorker:
                 db.session.rollback()
         finally:
             self._last_flush = time.time()
+
+    def _ensure_log_level_enum(self) -> None:
+        if self._enum_checked:
+            return
+
+        bind = db.session.get_bind()
+        if not bind or bind.dialect.name != "postgresql":
+            self._enum_checked = True
+            return
+
+        exists = bind.execute(
+            text("SELECT 1 FROM pg_type WHERE typname = 'log_level'")
+        ).scalar()
+
+        if not exists:
+            bind.execute(
+                text(
+                    "CREATE TYPE log_level AS ENUM ('DEBUG','INFO','WARNING','ERROR','CRITICAL')"
+                )
+            )
+
+        self._enum_checked = True
 
 
 __all__ = ["LogQueueWorker"]
