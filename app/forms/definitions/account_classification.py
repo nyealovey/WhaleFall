@@ -3,23 +3,8 @@
 """
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
+from app.forms.definitions.account_classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
 from app.services.account_classification.classification_form_service import ClassificationFormService
-
-RISK_LEVEL_OPTIONS = [
-    {"value": "low", "label": "低风险"},
-    {"value": "medium", "label": "中风险"},
-    {"value": "high", "label": "高风险"},
-    {"value": "critical", "label": "极高风险"},
-]
-
-ICON_OPTIONS = [
-    {"value": "fa-crown", "label": "皇冠"},
-    {"value": "fa-shield-alt", "label": "盾牌"},
-    {"value": "fa-exclamation-triangle", "label": "警告"},
-    {"value": "fa-user", "label": "用户"},
-    {"value": "fa-eye", "label": "眼睛"},
-    {"value": "fa-tag", "label": "标签"},
-]
 
 CLASSIFICATION_FORM_DEFINITION = ResourceFormDefinition(
     name="account_classification",
