@@ -150,8 +150,8 @@ new ResourceFormController('#instanceForm', window.__INSTANCE_FORM__);
 
 | 资源 | 模板重复 | 视图重复 | JS 重复 | 备注 |
 | --- | --- | --- | --- | --- |
-| 实例 | `app/templates/instances/create.html` vs `edit.html` | `app/routes/instance.py:262-393` vs `app/routes/instance_detail.py:294-434` | `app/static/js/pages/instances/create.js` vs `edit.js` | 还包含标签选择、连接测试等可通过插件抽象 |
-| 凭据 | `app/templates/credentials/create.html` vs `edit.html` | `app/routes/credentials.py:345-437` | `app/static/js/pages/credentials/create.js` / `edit.js` | 校验逻辑 `_parse_payload` 已存在，可直接 schema 化 |
+| 实例 | 已合并：`app/templates/instances/form.html` | 已合并：`app/routes/instance_form_view.py` + 蓝图注册 | 已合并：`app/static/js/pages/instances/form.js` | `app/services/instances/form_service.py` 负责校验/标签 |
+| 凭据 | 已合并：`app/templates/credentials/form.html` | 已合并：`app/routes/credential_form_view.py` + `credentials.py` 注册 | 已合并：`app/static/js/pages/credentials/form.js` | 服务层在 `app/services/credentials/form_service.py` |
 | 标签 | `app/templates/tags/create.html` vs `edit.html` | `app/routes/tags.py:186-365` | `app/static/js/pages/tags/form.js`（已复用） | 模板仍 95% 重复，可直接切 form partial |
 | 账户分类 & 规则 | `app/templates/accounts/account_classification.html:212-360`（创建/编辑模态字段重复） | JS 中 `createClassification` vs `updateClassification`、`createRule` vs `updateRule` 逻辑一致 | 可改为 `ClassificationFormModal` 组件 |
 | 账户分类规则 | 同上 | 同上 | 同上 |  |
