@@ -68,7 +68,7 @@ class ResourceFormView(MethodView):
     def _resolve_resource_id(self, resource_id: int | None, kwargs: dict[str, Any]) -> int | None:
         if resource_id is not None:
             return resource_id
-        for key in ("instance_id", "credential_id", "tag_id"):
+        for key in ("instance_id", "credential_id", "tag_id", "classification_id", "rule_id"):
             if kwargs.get(key) is not None:
                 return kwargs[key]
         return None

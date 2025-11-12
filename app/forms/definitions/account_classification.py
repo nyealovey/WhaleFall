@@ -1,0 +1,68 @@
+"""
+账户分类表单定义
+"""
+
+from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
+from app.services.account_classification.classification_form_service import ClassificationFormService
+
+RISK_LEVEL_OPTIONS = [
+    {"value": "low", "label": "低风险"},
+    {"value": "medium", "label": "中风险"},
+    {"value": "high", "label": "高风险"},
+    {"value": "critical", "label": "极高风险"},
+]
+
+ICON_OPTIONS = [
+    {"value": "fa-crown", "label": "皇冠"},
+    {"value": "fa-shield-alt", "label": "盾牌"},
+    {"value": "fa-exclamation-triangle", "label": "警告"},
+    {"value": "fa-user", "label": "用户"},
+    {"value": "fa-eye", "label": "眼睛"},
+    {"value": "fa-tag", "label": "标签"},
+]
+
+CLASSIFICATION_FORM_DEFINITION = ResourceFormDefinition(
+    name="account_classification",
+    template="accounts/classifications/form.html",
+    service_class=ClassificationFormService,
+    success_message="账户分类保存成功",
+    redirect_endpoint="account_classification.index",
+    fields=[
+        ResourceFormField(
+            name="name",
+            label="分类名称",
+            required=True,
+        ),
+        ResourceFormField(
+            name="description",
+            label="描述",
+            component=FieldComponent.TEXTAREA,
+            props={"rows": 3},
+        ),
+        ResourceFormField(
+            name="risk_level",
+            label="风险等级",
+            component=FieldComponent.SELECT,
+            default="medium",
+        ),
+        ResourceFormField(
+            name="color",
+            label="显示颜色",
+            component=FieldComponent.SELECT,
+            required=True,
+        ),
+        ResourceFormField(
+            name="icon_name",
+            label="图标",
+            component=FieldComponent.SELECT,
+            default="fa-tag",
+        ),
+        ResourceFormField(
+            name="priority",
+            label="优先级",
+            component=FieldComponent.NUMBER,
+            default=0,
+            help_text="数字越大优先级越高，用于控制显示顺序和规则匹配顺序",
+        ),
+    ],
+)
