@@ -152,7 +152,7 @@ new ResourceFormController('#instanceForm', window.__INSTANCE_FORM__);
 | --- | --- | --- | --- | --- |
 | 实例 | 已合并：`app/templates/instances/form.html` | 已合并：`app/routes/instance_form_view.py` + 蓝图注册 | 已合并：`app/static/js/pages/instances/form.js` | `app/services/instances/form_service.py` 负责校验/标签 |
 | 凭据 | 已合并：`app/templates/credentials/form.html` | 已合并：`app/routes/credential_form_view.py` + `credentials.py` 注册 | 已合并：`app/static/js/pages/credentials/form.js` | 服务层在 `app/services/credentials/form_service.py` |
-| 标签 | `app/templates/tags/create.html` vs `edit.html` | `app/routes/tags.py:186-365` | `app/static/js/pages/tags/form.js`（已复用） | 模板仍 95% 重复，可直接切 form partial |
+| 标签 | 已合并：`app/templates/tags/form.html` | 已合并：`app/routes/tag_form_view.py` + `tags.py` 注册 | 已合并：`app/static/js/pages/tags/form.js` | `app/services/tags/form_service.py` 负责校验与颜色验证 |
 | 账户分类 & 规则 | `app/templates/accounts/account_classification.html:212-360`（创建/编辑模态字段重复） | JS 中 `createClassification` vs `updateClassification`、`createRule` vs `updateRule` 逻辑一致 | 可改为 `ClassificationFormModal` 组件 |
 | 账户分类规则 | 同上 | 同上 | 同上 |  |
 | 用户 | `app/templates/auth/list.html:112-198` 两个模态高度相似 | `app/static/js/pages/auth/list.js` 中 add/edit API 调用重复 | 可通过 `UserFormModal` 统一 |
