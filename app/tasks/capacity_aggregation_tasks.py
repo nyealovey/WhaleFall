@@ -79,12 +79,15 @@ def calculate_database_size_aggregations(
     periods: Optional[List[str]] = None,
     created_by: int | None = None,
 ) -> Dict[str, Any]:
-    """
-    计算数据库大小统计聚合（拆分为日/周/月/季四个阶段顺序执行）
+    """计算数据库大小统计聚合（按日/周/月/季依次执行）。
 
     Args:
-        manual_run: 是否手动触发执行
-        periods: 需要执行的聚合周期列表（daily/weekly/monthly/quarterly），默认全部
+        manual_run: 是否由用户手动触发，True 表示手动执行。
+        periods: 需要计算的聚合周期列表，取值 daily/weekly/monthly/quarterly，默认全部执行。
+        created_by: 手动触发时记录的用户 ID。
+
+    Returns:
+        dict[str, Any]: 聚合执行结果与指标统计。
     """
     from app import create_app
     from app.services.sync_session_service import sync_session_service
@@ -509,12 +512,12 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
     计算指定周期的统计聚合
     
     Args:
-        period_type: 周期类型 (weekly, monthly, quarterly)
-        start_date: 开始日期
-        end_date: 结束日期
+        period_type: 周期类型（weekly=周、monthly=月、quarterly=季度）。
+        start_date: 周期开始日期。
+        end_date: 周期结束日期。
         
     Returns:
-        Dict[str, Any]: 聚合结果
+        Dict[str, Any]: 聚合执行结果。
     """
     from app import create_app
     

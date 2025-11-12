@@ -38,8 +38,13 @@ class AppError(Exception):
     """
     统一的基础业务异常。
 
-    - message_key 对应 ErrorMessages 的属性名称，便于统一国际化处理
-    - extra 用于承载额外上下文信息（不会直接暴露堆栈等敏感数据）
+    Args:
+        message: 自定义错误文案，若为空则根据 ``message_key`` 推导。
+        message_key: `ErrorMessages` 中的常量名称，便于统一管理/国际化。
+        extra: 附加的上下文信息字典（例如 instance_id、payload 等安全字段）。
+        severity: 可覆盖默认严重度，用于动态调整告警级别。
+        category: 可覆盖默认错误分类，便于统计。
+        status_code: HTTP 状态码，默认取 ``metadata`` 中的配置。
     """
 
     metadata = ExceptionMetadata(

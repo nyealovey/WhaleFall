@@ -1,3 +1,3 @@
-"""Structured logging helpers."""
+"""结构化日志相关的辅助模块。"""
 
 __all__ = []

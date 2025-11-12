@@ -18,15 +18,7 @@ CSRF_HEADER = HttpHeaders.X_CSRF_TOKEN
 SAFE_CSRF_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 def admin_required(f: Any) -> Any:  # noqa: ANN401
-    """
-    管理员权限装饰器
-
-    Args:
-        f: 被装饰的函数
-
-    Returns:
-        装饰后的函数
-    """
+    """确保被装饰函数仅允许管理员访问的装饰器。"""
 
     @wraps(f)
     def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
@@ -104,15 +96,7 @@ def admin_required(f: Any) -> Any:  # noqa: ANN401
 
 
 def login_required(f: Any) -> Any:  # noqa: ANN401
-    """
-    登录权限装饰器
-
-    Args:
-        f: 被装饰的函数
-
-    Returns:
-        装饰后的函数
-    """
+    """要求调用者已登录的装饰器。"""
 
     @wraps(f)
     def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
@@ -161,15 +145,7 @@ def login_required(f: Any) -> Any:  # noqa: ANN401
 
 
 def permission_required(permission: str) -> Any:  # noqa: ANN401
-    """
-    权限验证装饰器
-
-    Args:
-        permission: 需要的权限 (view, create, update, delete)
-
-    Returns:
-        装饰器函数
-    """
+    """校验指定权限（view/create/update/delete）的装饰器工厂。"""
 
     def decorator(f: Any) -> Any:  # noqa: ANN401
         @wraps(f)
@@ -325,15 +301,7 @@ def require_csrf(f: Any) -> Any:  # noqa: ANN401
 
 
 def has_permission(user: Any, permission: str) -> bool:
-    """检查用户是否有指定权限。
-
-    Args:
-        user: 用户对象。
-        permission: 权限名称，可以是简单的字符串或以点分隔的路径。
-
-    Returns:
-        bool: 是否有权限。
-    """
+    """检查给定用户是否具备指定权限。"""
     if not user or not user.is_authenticated:
         return False
 
@@ -359,10 +327,7 @@ def has_permission(user: Any, permission: str) -> bool:
 
 
 def view_required(f: Any = None, *, permission: str = "view") -> Any:  # noqa: ANN401
-    """查看权限装饰器.
-
-    可以作为 @view_required 或 @view_required(permission="...") 使用.
-    """
+    """校验查看权限的装饰器，可直接使用或指定自定义权限。"""
 
     def decorator(func: Any) -> Any:
         return permission_required(permission)(func)
@@ -373,7 +338,7 @@ def view_required(f: Any = None, *, permission: str = "view") -> Any:  # noqa: A
 
 
 def create_required(f: Any = None, *, permission: str = "create") -> Any:  # noqa: ANN401
-    """创建权限装饰器."""
+    """校验创建权限的装饰器。"""
 
     def decorator(func: Any) -> Any:
         return permission_required(permission)(func)
@@ -384,7 +349,7 @@ def create_required(f: Any = None, *, permission: str = "create") -> Any:  # noq
 
 
 def update_required(f: Any = None, *, permission: str = "update") -> Any:  # noqa: ANN401
-    """更新权限装饰器."""
+    """校验更新权限的装饰器。"""
 
     def decorator(func: Any) -> Any:
         return permission_required(permission)(func)
@@ -395,7 +360,7 @@ def update_required(f: Any = None, *, permission: str = "update") -> Any:  # noq
 
 
 def delete_required(f: Any = None, *, permission: str = "delete") -> Any:  # noqa: ANN401
-    """删除权限装饰器."""
+    """校验删除权限的装饰器。"""
 
     def decorator(func: Any) -> Any:
         return permission_required(permission)(func)

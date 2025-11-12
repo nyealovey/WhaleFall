@@ -28,11 +28,10 @@ def create_database_size_partitions() -> dict[str, object]:
     每天凌晨 2 点执行，创建未来 3 个月的分区
     """
     management_service = PartitionManagementService()
-    stats_service = PartitionStatisticsService()
     try:
         months_ahead = 3
         log_info("开始创建数据库大小统计表分区", module=MODULE, months_ahead=months_ahead)
-        result = service.create_future_partitions(months_ahead=months_ahead)
+        result = management_service.create_future_partitions(months_ahead=months_ahead)
         log_info(
             "分区创建任务完成",
             module=MODULE,
@@ -87,7 +86,8 @@ def monitor_partition_health() -> dict[str, object]:
     监控分区健康状态
     每小时执行一次，检查分区状态和容量
     """
-    service = PartitionManagementService()
+    management_service = PartitionManagementService()
+    stats_service = PartitionStatisticsService()
     try:
         log_info("开始监控分区健康状态", module=MODULE)
         partition_info = stats_service.get_partition_info()

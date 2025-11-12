@@ -134,7 +134,7 @@ class PeriodCalculator:
     def _normalize(self, period_type: str) -> str:
         normalized = (period_type or "").lower()
         if normalized not in VALID_PERIODS:
-            raise ValueError(f"Unsupported period type: {period_type!r}")
+            raise ValueError(f"不支持的周期类型: {period_type!r}")
         return normalized
 
 

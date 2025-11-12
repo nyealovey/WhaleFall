@@ -1,4 +1,4 @@
-"""Account classification orchestrator."""
+"""账户分类编排器。"""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from .repositories import ClassificationRepository
 
 
 class AccountClassificationService:
-    """Coordinates rule loading, account grouping, and classification."""
+    """协调规则加载、账户分组与分类执行。"""
 
     def __init__(
         self,
