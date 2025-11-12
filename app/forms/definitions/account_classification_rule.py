@@ -3,19 +3,8 @@
 """
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
+from app.forms.definitions.account_classification_rule_constants import DB_TYPE_OPTIONS, OPERATOR_OPTIONS
 from app.services.account_classification.rule_form_service import ClassificationRuleFormService
-
-DB_TYPE_OPTIONS = [
-    {"value": "mysql", "label": "MySQL"},
-    {"value": "postgresql", "label": "PostgreSQL"},
-    {"value": "sqlserver", "label": "SQL Server"},
-    {"value": "oracle", "label": "Oracle"},
-]
-
-OPERATOR_OPTIONS = [
-    {"value": "OR", "label": "OR (任一条件满足)"},
-    {"value": "AND", "label": "AND (全部条件满足)"},
-]
 
 CLASSIFICATION_RULE_FORM_DEFINITION = ResourceFormDefinition(
     name="classification_rule",
