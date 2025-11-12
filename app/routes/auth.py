@@ -23,7 +23,7 @@ from app.errors import (
     ValidationError as AppValidationError,
 )
 from app.models.user import User
-from app.routes.change_password_form_view import ChangePasswordFormView
+from app.views.change_password_form_view import ChangePasswordFormView
 from app.services.auth import ChangePasswordFormService
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit

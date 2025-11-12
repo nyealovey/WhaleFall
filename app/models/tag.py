@@ -71,10 +71,6 @@ class Tag(db.Model):
         """获取CSS类名"""
         return ThemeColors.get_css_class(self.color)
     
-    def validate_color(self):
-        """验证颜色键是否有效"""
-        return ThemeColors.is_valid_color(self.color) if self.color else True
-
     def to_dict(self) -> dict:
         """转换为字典格式"""
         return {
@@ -105,12 +101,6 @@ class Tag(db.Model):
         return Tag.query.filter_by(category=category, is_active=True).order_by(Tag.sort_order, Tag.name).all()
 
     @staticmethod
-    def get_tag_choices() -> list:
-        """获取标签选项（用于表单）"""
-        tags = Tag.get_active_tags()
-        return [(tag.name, tag.display_name) for tag in tags]
-
-    @staticmethod
     def get_tag_by_name(name: str) -> "Tag | None":
         """根据名称获取标签"""
         return Tag.query.filter_by(name=name).first()
@@ -129,11 +119,6 @@ class Tag(db.Model):
             ("architecture", "架构类型"),
             ("other", "其他标签"),
         ]
-
-    @staticmethod
-    def get_color_choices() -> list:
-        """获取颜色选项"""
-        return ThemeColors.get_color_choices()
 
     def __repr__(self) -> str:
         return f"<Tag {self.name}>"

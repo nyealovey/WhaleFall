@@ -62,10 +62,6 @@ class AccountClassification(db.Model):
         """获取CSS类名"""
         return ThemeColors.get_css_class(self.color)
     
-    def validate_color(self):
-        """验证颜色键是否有效"""
-        return ThemeColors.is_valid_color(self.color) if self.color else True
-
     def to_dict(self) -> dict:
         """转换为字典"""
         return {

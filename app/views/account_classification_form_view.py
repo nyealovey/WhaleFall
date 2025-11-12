@@ -6,7 +6,7 @@ from flask import request, url_for
 
 from app.forms.definitions.account_classification import CLASSIFICATION_FORM_DEFINITION
 from app.forms.definitions.account_classification_rule import CLASSIFICATION_RULE_FORM_DEFINITION
-from app.routes.mixins.resource_form_view import ResourceFormView
+from app.views.mixins.resource_form_view import ResourceFormView
 
 
 class AccountClassificationFormView(ResourceFormView):

@@ -5,7 +5,7 @@
 from flask import request, url_for
 
 from app.forms.definitions.tag import TAG_FORM_DEFINITION
-from app.routes.mixins.resource_form_view import ResourceFormView
+from app.views.mixins.resource_form_view import ResourceFormView
 
 
 class TagFormView(ResourceFormView):

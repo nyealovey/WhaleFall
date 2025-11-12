@@ -19,9 +19,9 @@ from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,
 )
-from app.services.account_classification.classification_form_service import ClassificationFormService
-from app.services.account_classification.rule_form_service import ClassificationRuleFormService
-from app.routes.account_classification_form_view import (
+from app.services.form_service.classification_form_service import ClassificationFormService
+from app.services.form_service.classification_rule_form_service import ClassificationRuleFormService
+from app.views.account_classification_form_view import (
     AccountClassificationFormView,
     ClassificationRuleFormView,
 )
