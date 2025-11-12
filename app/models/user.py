@@ -25,7 +25,7 @@ class User(UserMixin, db.Model):
     # 关系
     # logs关系在UnifiedLog模型中定义
 
-    def __init__(self, username: str, password: str, role: str = "user") -> None:
+    def __init__(self, username: str | None = None, password: str | None = None, role: str = "user") -> None:
         """
         初始化用户
 
@@ -34,9 +34,11 @@ class User(UserMixin, db.Model):
             password: 密码
             role: 角色
         """
-        self.username = username
-        self.set_password(password)
-        self.role = role
+        if username is not None:
+            self.username = username
+        if password is not None:
+            self.set_password(password)
+        self.role = role or UserRole.USER
 
     def set_password(self, password: str) -> None:
         """

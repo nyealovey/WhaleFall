@@ -16,9 +16,9 @@
                 <p class="mb-0">管理系统用户账户，包括添加、编辑、删除和权限管理</p>
             </div>
             <div class="btn-group">
-                <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <a href="{{ url_for('users.create') }}" class="btn btn-light">
                     <i class="fas fa-user-plus me-2"></i>新建用户
-                </button>
+                </a>
             </div>
         </div>
     </div>
@@ -81,12 +81,19 @@
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <button type="button" class="btn btn-sm btn-outline-primary me-1" 
-                                            onclick="editUser({{ user.id }})" title="编辑用户">
+                                    <a href="{{ url_for('users.edit', user_id=user.id) }}"
+                                       class="btn btn-sm btn-outline-primary me-1"
+                                       title="编辑用户">
                                         <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" 
-                                            onclick="deleteUser({{ user.id }}, '{{ user.username }}')" title="删除用户">
+                                    </a>
+                                    {% set is_self = current_user.is_authenticated and current_user.id == user.id %}
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger user-delete-btn"
+                                            data-action="delete-user"
+                                            data-user-id="{{ user.id }}"
+                                            data-username="{{ user.username }}"
+                                            title="{{ '不能删除当前登录用户' if is_self else '删除用户' }}"
+                                            {% if is_self %}disabled{% endif %}>
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -108,98 +115,6 @@
 
 </div>
 
-<!-- 添加用户模态框 -->
-<div class="modal fade" id="addUserModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-user-plus me-2"></i>添加用户
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="addUserForm">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">用户名 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="username" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">密码 <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="role" class="form-label">角色 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="role" name="role" required>
-                            <option value="">请选择角色</option>
-                            <option value="user">普通用户</option>
-                            <option value="admin">管理员</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
-                            <label class="form-check-label" for="is_active">
-                                激活用户
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">添加用户</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- 编辑用户模态框 -->
-<div class="modal fade" id="editUserModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-user-edit me-2"></i>编辑用户
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="editUserForm">
-                <input type="hidden" id="editUserId" name="user_id">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="editUsername" class="form-label">用户名 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="editUsername" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editPassword" class="form-label">密码</label>
-                        <input type="password" class="form-control" id="editPassword" name="password" placeholder="留空则不修改密码">
-                        <div class="form-text">留空则不修改密码，输入新密码将更新用户密码</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editRole" class="form-label">角色 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="editRole" name="role" required>
-                            <option value="user">普通用户</option>
-                            <option value="admin">管理员</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="editIsActive" name="is_active">
-                            <label class="form-check-label" for="editIsActive">
-                                激活用户
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">保存更改</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
