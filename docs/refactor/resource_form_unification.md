@@ -153,6 +153,20 @@ new ResourceFormController('#instanceForm', window.__INSTANCE_FORM__);
 | 实例 | 已合并：`app/templates/instances/form.html` | 已合并：`app/routes/instance_form_view.py` + 蓝图注册 | 已合并：`app/static/js/pages/instances/form.js` | `app/services/instances/form_service.py` 负责校验/标签 |
 | 凭据 | 已合并：`app/templates/credentials/form.html` | 已合并：`app/routes/credential_form_view.py` + `credentials.py` 注册 | 已合并：`app/static/js/pages/credentials/form.js` | 服务层在 `app/services/credentials/form_service.py` |
 | 标签 | 已合并：`app/templates/tags/form.html` | 已合并：`app/routes/tag_form_view.py` + `tags.py` 注册 | 已合并：`app/static/js/pages/tags/form.js` | `app/services/tags/form_service.py` 负责校验与颜色验证 |
+| 账户分类 | 已合并：`app/templates/accounts/classifications/form.html` | 已合并：`account_classification_form_view.py` + `account_classification_bp` 注册 | `app/static/js/pages/accounts/classifications/form.js` | `app/services/account_classification/classification_form_service.py` |
+| 账户分类规则 | 已合并：`app/templates/accounts/classification_rules/form.html` | 同上（`ClassificationRuleFormView`） | `app/static/js/pages/accounts/classification_rules/form.js` | `app/services/account_classification/rule_form_service.py` |
+
+## 当前进度（2025-11-12）
+
+| 模块 | 状态 | 备注 |
+| --- | --- | --- |
+| 实例 | ✅ 已完成 | `InstanceFormService` + `InstanceFormView` 正常运行 |
+| 凭据 | ✅ 已完成 | API 及页面均复用新表单体系 |
+| 标签 | ✅ 已完成 | 新模板 + 服务替代旧 create/edit |
+| 账户分类 | ✅ 已完成 | `/account_classification/classifications/...` 页面和 API 统一走表单服务 |
+| 分类规则 | ✅ 已完成 | 支持单独页面及 API，一处维护校验逻辑 |
+| 用户管理 | ⏳ 未开始 | `auth/list.html` 仍使用双模态 |
+| 其他（例如账户/实例批量操作） | ⏳ 待评估 | 需确认是否适合表单模式 |
 | 账户分类 & 规则 | `app/templates/accounts/account_classification.html:212-360`（创建/编辑模态字段重复） | JS 中 `createClassification` vs `updateClassification`、`createRule` vs `updateRule` 逻辑一致 | 可改为 `ClassificationFormModal` 组件 |
 | 账户分类规则 | 同上 | 同上 | 同上 |  |
 | 用户 | `app/templates/auth/list.html:112-198` 两个模态高度相似 | `app/static/js/pages/auth/list.js` 中 add/edit API 调用重复 | 可通过 `UserFormModal` 统一 |
@@ -192,6 +206,16 @@ new ResourceFormController('#instanceForm', window.__INSTANCE_FORM__);
 2. 新增字段只需修改 `ResourceFormDefinition` 和对应 schema/service。
 3. 表单交互统一（loading 文案、错误提示、TagSelector 等），手工测试通过；`pytest -m "unit and (instances or tags or credentials)"` 全绿。
 4. 文档（本文件 + README“前端/后端约定”）已更新，开发者能按指引扩展。
+
+## 落地进度追踪
+
+| 资源 | 前端形态 | 后端形态 | 备注 |
+| --- | --- | --- | --- |
+| 实例 | ✅ `app/templates/instances/form.html` + `app/static/js/pages/instances/form.js` | ✅ `app/forms/definitions/instance.py` + `app/routes/instance_form_view.py` | 首个试点，涵盖 TagSelector 等复杂控件 |
+| 凭据 | ✅ `app/templates/credentials/form.html` + `app/static/js/pages/credentials/form.js` | ✅ `app/forms/definitions/credential.py` + `app/services/credentials/form_service.py` | 与实例共用 ResourceFormController |
+| 标签 | ✅ `app/templates/tags/form.html` + `app/static/js/pages/tags/form.js` | ✅ `app/forms/definitions/tag.py` + `app/routes/tag_form_view.py` | 作为第二批，验证颜色/分类等下拉选项 |
+| 账户分类/规则 | ✅ `app/templates/accounts/classifications/form.html` 等 | ✅ `app/forms/definitions/account_classification*.py` | 与运营同学确认字段覆盖 |
+| **用户（新增）** | ✅ `app/templates/users/form.html` + `app/static/js/pages/users/form.js` | ✅ `app/forms/definitions/user.py` + `app/services/users/form_service.py` + `app/routes/user_form_view.py` | API `/users/api/users` 与页面 `/users/create|/<id>/edit` 均走统一 upsert，密码校验/角色列表集中在 service/context 中 |
 
 ## 附：命名建议
 

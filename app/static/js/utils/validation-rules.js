@@ -102,6 +102,11 @@
         startTimeBeforeEnd: '开始时间不能晚于结束时间',
         endTimeAfterStart: '结束时间不能早于开始时间',
         confirmPassword: '请再次输入新密码',
+        userUsernameRequired: '用户名不能为空',
+        userUsernameFormat: '用户名只能包含字母、数字和下划线，长度3-20位',
+        userPasswordRequired: '请设置密码',
+        userPasswordStrength: '密码需至少8位且包含大小写字母和数字',
+        userRoleRequired: '请选择用户角色',
     };
 
     var credentialRules = {
@@ -213,6 +218,26 @@
         return /^[A-Za-z0-9*/?,\-]+$/.test(trimmed);
     }
 
+    function isStrongPassword(value) {
+        if (value == null) {
+            return false;
+        }
+        var password = String(value);
+        if (password.length < 8) {
+            return false;
+        }
+        if (!/[A-Z]/.test(password)) {
+            return false;
+        }
+        if (!/[a-z]/.test(password)) {
+            return false;
+        }
+        if (!/[0-9]/.test(password)) {
+            return false;
+        }
+        return true;
+    }
+
     var schedulerRules = {
         jobName: [
             helpers.required(messages.schedulerJobName),
@@ -313,6 +338,37 @@
         ],
     };
 
+    var userRules = {
+        username: [
+            helpers.required(messages.userUsernameRequired),
+            helpers.custom(function (value) {
+                if (value == null) {
+                    return false;
+                }
+                var normalized = String(value).trim();
+                if (!normalized) {
+                    return false;
+                }
+                return /^[A-Za-z0-9_]{3,20}$/.test(normalized);
+            }, messages.userUsernameFormat),
+        ],
+        passwordRequired: [
+            helpers.required(messages.userPasswordRequired),
+            helpers.custom(function (value) {
+                return isStrongPassword(value);
+            }, messages.userPasswordStrength),
+        ],
+        passwordOptional: [
+            helpers.custom(function (value) {
+                if (value == null || String(value).trim() === '') {
+                    return true;
+                }
+                return isStrongPassword(value);
+            }, messages.userPasswordStrength),
+        ],
+        role: [helpers.required(messages.userRoleRequired)],
+    };
+
     global.ValidationRules = Object.assign({}, global.ValidationRules, {
         helpers: helpers,
         messages: messages,
@@ -325,5 +381,6 @@
         unifiedSearch: unifiedSearchRules,
         batchAssign: batchAssignRules,
         tag: tagRules,
+        user: userRules,
     });
 })(window);

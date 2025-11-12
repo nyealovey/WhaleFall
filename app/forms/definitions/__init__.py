@@ -6,6 +6,7 @@ from .credential import CREDENTIAL_FORM_DEFINITION
 from .tag import TAG_FORM_DEFINITION
 from .account_classification import CLASSIFICATION_FORM_DEFINITION
 from .account_classification_rule import CLASSIFICATION_RULE_FORM_DEFINITION
+from .user import USER_FORM_DEFINITION
 
 __all__ = [
     "FieldComponent",
@@ -17,4 +18,5 @@ __all__ = [
     "TAG_FORM_DEFINITION",
     "CLASSIFICATION_FORM_DEFINITION",
     "CLASSIFICATION_RULE_FORM_DEFINITION",
+    "USER_FORM_DEFINITION",
 ]
