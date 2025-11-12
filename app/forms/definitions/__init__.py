@@ -7,6 +7,8 @@ from .tag import TAG_FORM_DEFINITION
 from .account_classification import CLASSIFICATION_FORM_DEFINITION
 from .account_classification_rule import CLASSIFICATION_RULE_FORM_DEFINITION
 from .user import USER_FORM_DEFINITION
+from .change_password import CHANGE_PASSWORD_FORM_DEFINITION
+from .scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
 
 __all__ = [
     "FieldComponent",
@@ -19,4 +21,6 @@ __all__ = [
     "CLASSIFICATION_FORM_DEFINITION",
     "CLASSIFICATION_RULE_FORM_DEFINITION",
     "USER_FORM_DEFINITION",
+    "CHANGE_PASSWORD_FORM_DEFINITION",
+    "SCHEDULER_JOB_FORM_DEFINITION",
 ]

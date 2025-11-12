@@ -216,6 +216,8 @@ new ResourceFormController('#instanceForm', window.__INSTANCE_FORM__);
 | 标签 | ✅ `app/templates/tags/form.html` + `app/static/js/pages/tags/form.js` | ✅ `app/forms/definitions/tag.py` + `app/routes/tag_form_view.py` | 作为第二批，验证颜色/分类等下拉选项 |
 | 账户分类/规则 | ✅ `app/templates/accounts/classifications/form.html` 等 | ✅ `app/forms/definitions/account_classification*.py` | 与运营同学确认字段覆盖 |
 | **用户（新增）** | ✅ `app/templates/users/form.html` + `app/static/js/pages/users/form.js` | ✅ `app/forms/definitions/user.py` + `app/services/users/form_service.py` + `app/routes/user_form_view.py` | API `/users/api/users` 与页面 `/users/create|/<id>/edit` 均走统一 upsert，密码校验/角色列表集中在 service/context 中 |
+| **修改密码（新增）** | ✅ `app/templates/auth/change_password.html` + `app/static/js/pages/auth/change_password.js` | ✅ `app/forms/definitions/change_password.py` + `app/services/auth/change_password_form_service.py` + `app/routes/change_password_form_view.py` | 复用 `ResourceFormController`，API `/auth/api/change-password` 调用同一 service，保持页面/接口一致 |
+| **定时任务编辑（新增）** | ✅ `app/templates/admin/scheduler.html` 中的编辑模态 + `app/static/js/pages/admin/scheduler.js` | ✅ `app/forms/definitions/scheduler_job.py` + `app/services/scheduler/job_form_service.py` + `app/routes/scheduler_job_form_view.py` | 保持原列表页面不变，`PUT /scheduler/api/jobs/<job_id>` 接入 ResourceFormService，统一验证 Cron/Interval 逻辑 |
 
 ## 附：命名建议
 

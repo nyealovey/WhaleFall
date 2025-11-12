@@ -9,27 +9,24 @@ import threading
 from flask import Blueprint, Response, current_app, render_template, request
 from flask_login import current_user, login_required  # type: ignore
 
-from apscheduler.triggers.cron import CronTrigger
-from apscheduler.triggers.date import DateTrigger
-from apscheduler.triggers.interval import IntervalTrigger
-
+from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
+from app.routes.scheduler_job_form_view import SchedulerJobFormView
 from app.scheduler import get_scheduler
 from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 
-# 常量: 内置任务ID集合（统一前后端识别）
-BUILTIN_TASK_IDS: set[str] = {
-    "cleanup_logs", 
-    "sync_accounts", 
-    "monitor_partition_health", 
-    "collect_database_sizes", 
-    "calculate_database_size_aggregations"
-}
-
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__)
+
+_scheduler_job_form_view = SchedulerJobFormView.as_view("scheduler_job_form_view")
+_scheduler_job_form_view = login_required(scheduler_manage_required(require_csrf(_scheduler_job_form_view)))  # type: ignore
+scheduler_bp.add_url_rule(
+    "/api/jobs/<job_id>",
+    view_func=_scheduler_job_form_view,
+    methods=["PUT"],
+)
 
 
 @scheduler_bp.route("/")
@@ -447,194 +444,3 @@ def reload_jobs() -> Response:
     except Exception as exc:
         log_error("重新加载任务失败", module="scheduler", error=str(exc))
         raise SystemError("重新加载任务失败") from exc
-
-
-@scheduler_bp.route("/api/jobs/<job_id>", methods=["PUT"])
-@login_required  # type: ignore
-@scheduler_manage_required  # type: ignore
-@require_csrf
-def update_job_trigger(job_id: str) -> Response:
-    """更新内置任务的触发器配置（仅限内置任务）"""
-    try:
-        data = request.get_json() or {}
-        if not data:
-            raise ValidationError("请求数据不能为空")
-
-        # 检查任务是否存在
-        scheduler = get_scheduler()  # type: ignore
-        if not scheduler.running:
-            log_warning("调度器未启动", module="scheduler")
-            raise SystemError("调度器未启动")
-
-        job = scheduler.get_job(job_id)
-        if not job:
-            raise NotFoundError("任务不存在")
-
-        # 只允许修改内置任务的触发器
-        if job_id not in BUILTIN_TASK_IDS:
-            raise SystemError("只能修改内置任务的触发器配置", status_code=HttpStatus.FORBIDDEN)
-
-        # 检查是否包含触发器配置
-        if "trigger_type" not in data:
-            raise ValidationError("缺少触发器类型配置")
-
-        # 构建新的触发器
-        trigger = _build_trigger(data)
-        if not trigger:
-            raise ValidationError("无效的触发器配置")
-
-        # 更新触发器
-        scheduler.modify_job(job_id, trigger=trigger)
-        
-        # 获取更新后的任务信息
-        updated_job = scheduler.get_job(job_id)
-        if updated_job and hasattr(updated_job, 'next_run_time'):
-            log_info(
-                "任务触发器更新后的下次执行时间",
-                module="scheduler",
-                job_id=job_id,
-                next_run_time=str(updated_job.next_run_time),
-            )
-        
-        log_info("内置任务触发器更新成功", module="scheduler", job_id=job_id)
-        return jsonify_unified_success(message="触发器更新成功")
-
-    except NotFoundError:
-        raise
-    except ValidationError:
-        raise
-    except Exception as exc:
-        log_error("更新任务触发器失败", module="scheduler", job_id=job_id, error=str(exc))
-        raise SystemError("更新任务触发器失败") from exc
-
-
-def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | DateTrigger | None:
-    """根据前端数据构建 APScheduler 触发器。
-
-    支持三种类型：cron、interval、date。
-
-    Args:
-        data: 前端提交的触发器配置。
-
-    Returns:
-        CronTrigger | IntervalTrigger | DateTrigger | None: 构建成功时返回触发器，否则返回 None。
-    """
-    trigger_type = data.get("trigger_type")
-
-    if trigger_type == "cron":
-        cron_kwargs: dict[str, Any] = {}
-        expr = str(data.get("cron_expression", "")).strip()
-        parts: list[str] = expr.split() if expr else []
-
-        # 读取单字段（前端可能传 bare 字段或 cron_ 前缀字段）
-        def pick(*keys: str) -> Any:
-            for k in keys:
-                if data.get(k) is not None and str(data.get(k)).strip() != "":
-                    return data.get(k)
-            return None
-
-        second = pick("cron_second", "second")
-        minute = pick("cron_minute", "minute")
-        hour = pick("cron_hour", "hour")
-        day = pick("cron_day", "day")
-        month = pick("cron_month", "month")
-        day_of_week = pick("cron_weekday", "cron_day_of_week", "day_of_week", "weekday")
-        year = pick("year")
-
-        # 从表达式回填缺失字段
-        try:
-            if len(parts) == 7:
-                s, m, h, d, mo, dow, y = parts
-                second = second or s
-                minute = minute or m
-                hour = hour or h
-                day = day or d
-                month = month or mo
-                day_of_week = day_of_week or dow
-                year = year or y
-            elif len(parts) == 6:
-                s, m, h, d, mo, dow = parts
-                second = second or s
-                minute = minute or m
-                hour = hour or h
-                day = day or d
-                month = month or mo
-                day_of_week = day_of_week or dow
-            elif len(parts) == 5:
-                m, h, d, mo, dow = parts
-                minute = minute or m
-                hour = hour or h
-                day = day or d
-                month = month or mo
-                day_of_week = day_of_week or dow
-        except Exception:  # noqa: BLE001
-            pass
-
-        if year is not None:
-            cron_kwargs["year"] = year
-        if month is not None:
-            cron_kwargs["month"] = month
-        if day is not None:
-            cron_kwargs["day"] = day
-        if day_of_week is not None:
-            cron_kwargs["day_of_week"] = day_of_week
-        if hour is not None:
-            cron_kwargs["hour"] = hour
-        if minute is not None:
-            cron_kwargs["minute"] = minute
-        if second is not None:
-            cron_kwargs["second"] = second
-
-
-        try:
-            # 确保CronTrigger使用与调度器相同的时区
-            cron_kwargs["timezone"] = "Asia/Shanghai"
-            return CronTrigger(**cron_kwargs)
-        except Exception as e:  # noqa: BLE001
-            log_error("CronTrigger 构建失败", module="scheduler", error=str(e))
-            return None
-
-    if trigger_type == "interval":
-        kwargs: dict[str, int] = {}
-        for key in ["weeks", "days", "hours", "minutes", "seconds"]:
-            val = data.get(key)
-            if val is None or str(val).strip() == "":
-                continue
-            try:
-                iv = int(val)
-                if iv > 0:
-                    kwargs[key] = iv
-            except Exception:  # noqa: BLE001
-                continue
-        if not kwargs:
-            return None
-        try:
-            return IntervalTrigger(**kwargs)
-        except Exception as e:  # noqa: BLE001
-            log_error("IntervalTrigger 构建失败", module="scheduler", error=str(e))
-            return None
-
-    if trigger_type == "date":
-        run_date = data.get("run_date")
-        if not run_date:
-            return None
-        dt = None
-        try:
-            # 使用 time_utils 解析时间
-            dt = time_utils.to_utc(str(run_date))
-        except Exception:  # noqa: BLE001
-            dt = None
-        if dt is None:
-            return None
-        try:
-            return DateTrigger(run_date=dt)
-        except Exception as e:  # noqa: BLE001
-            log_error("DateTrigger 构建失败", module="scheduler", error=str(e))
-            return None
-
-    return None
-
-
-
-
-# 辅助函数
