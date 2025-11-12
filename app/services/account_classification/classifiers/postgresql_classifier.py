@@ -1,4 +1,4 @@
-"""PostgreSQL rule classifier."""
+"""PostgreSQL 规则分类器。"""
 
 from __future__ import annotations
 

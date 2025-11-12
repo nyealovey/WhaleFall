@@ -48,12 +48,12 @@ class CacheService:
         """获取缓存统计信息"""
         try:
             if not self.cache:
-                return {"status": "no_cache", "info": "No cache available"}
+                return {"status": "no_cache", "info": "未配置缓存实例"}
                 
             if hasattr(self.cache.cache, 'info'):
                 info = self.cache.cache.info()
                 return {"status": "connected", "info": info}
-            return {"status": "connected", "info": "No detailed info available"}
+            return {"status": "connected", "info": "未获取到缓存详情"}
         except Exception as e:
             return {"status": "error", "error": str(e)}
 

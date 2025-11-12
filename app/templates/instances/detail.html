@@ -3,7 +3,7 @@
 {% block title %}{{ instance.name }} - 实例详情{% endblock %}
 
 {% block content %}
-<!-- CSRF Token for JavaScript -->
+<!-- 提供给 JavaScript 的 CSRF 令牌 -->
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 <div class="mb-4">

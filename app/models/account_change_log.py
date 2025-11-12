@@ -16,7 +16,10 @@ class AccountChangeLog(db.Model):
     instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
     db_type = db.Column(db.String(20), nullable=False, index=True)
     username = db.Column(db.String(255), nullable=False, index=True)
-    change_type = db.Column(db.String(50), nullable=False)  # 'add', 'modify_privilege', 'modify_other', 'delete'
+    change_type = db.Column(
+        db.String(50),
+        nullable=False,
+    )  # 变更类型：add（新增）、modify_privilege（权限变更）、modify_other（其他修改）、delete（删除）
     change_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
     session_id = db.Column(db.String(36), nullable=True)
     status = db.Column(db.String(20), default="success")

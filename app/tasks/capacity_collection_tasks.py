@@ -508,10 +508,10 @@ def collect_database_sizes_by_type(db_type: str) -> Dict[str, Any]:
     采集指定类型数据库的大小信息
     
     Args:
-        db_type: 数据库类型 (mysql, sqlserver, postgresql, oracle)
+        db_type: 数据库类型（mysql/sqlserver/postgresql/oracle）。
         
     Returns:
-        Dict[str, Any]: 采集结果
+        Dict[str, Any]: 采集结果及统计。
     """
     from app import create_app
     

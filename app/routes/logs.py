@@ -39,8 +39,8 @@ def logs_dashboard() -> str | tuple[dict, int]:
             time_range_options=TIME_RANGES,
         )
     except Exception as e:
-        log_error("Failed to render logs dashboard", module="logs", error=str(e))
-        raise SystemError("Failed to load logs dashboard") from e
+        log_error("日志仪表盘渲染失败", module="logs", error=str(e))
+        raise SystemError("日志仪表盘加载失败") from e
 
 
 @logs_bp.route("/api/search", methods=["GET"])
@@ -69,14 +69,14 @@ def search_logs() -> Response:
                 start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
                 query = query.filter(UnifiedLog.timestamp >= start_dt)
             except ValueError as exc:
-                raise ValidationError("Invalid start_time format") from exc
+                raise ValidationError("start_time 参数格式无效") from exc
 
         if end_time:
             try:
                 end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
                 query = query.filter(UnifiedLog.timestamp <= end_dt)
             except ValueError as exc:
-                raise ValidationError("Invalid end_time format") from exc
+                raise ValidationError("end_time 参数格式无效") from exc
 
         # hours参数优先级高于默认时间范围
         if hours and not start_time and not end_time:
@@ -85,7 +85,7 @@ def search_logs() -> Response:
                 start_time_from_hours = time_utils.now() - timedelta(hours=hours_int)
                 query = query.filter(UnifiedLog.timestamp >= start_time_from_hours)
             except ValueError as exc:
-                raise ValidationError("Invalid hours format") from exc
+                raise ValidationError("hours 参数格式无效") from exc
         elif not start_time and not end_time and not hours:
             # 默认时间范围：最近24小时
             default_start = time_utils.now() - timedelta(hours=24)
@@ -97,7 +97,7 @@ def search_logs() -> Response:
                 log_level = LogLevel(level.upper())
                 query = query.filter(UnifiedLog.level == log_level)
             except ValueError as exc:
-                raise ValidationError("Invalid log level") from exc
+                raise ValidationError("日志级别参数无效") from exc
 
         # 模块过滤
         if module:
@@ -148,8 +148,8 @@ def search_logs() -> Response:
         return jsonify_unified_success(data=response_data)
 
     except Exception as e:
-        log_error("Failed to search logs", module="logs", error=str(e))
-        raise SystemError("Failed to search logs") from e
+        log_error("日志查询失败", module="logs", error=str(e))
+        raise SystemError("日志查询失败") from e
 
 
 @logs_bp.route("/api/statistics", methods=["GET"])
@@ -162,7 +162,7 @@ def get_log_statistics() -> Response:
         stats = UnifiedLog.get_log_statistics(hours=hours)
 
         log_info(
-            "Log statistics retrieved",
+            "日志统计数据已获取",
             module="logs",
             hours=hours,
             total_logs=stats["total_logs"],
@@ -171,8 +171,8 @@ def get_log_statistics() -> Response:
         return jsonify_unified_success(data=stats)
 
     except Exception as e:
-        log_error("Failed to get log statistics", module="logs", error=str(e))
-        raise SystemError("Failed to get log statistics") from e
+        log_error("获取日志统计失败", module="logs", error=str(e))
+        raise SystemError("获取日志统计失败") from e
 
 
 
@@ -191,8 +191,8 @@ def get_log_modules_api() -> Response:
         return jsonify_unified_success(data={"modules": module_list})
 
     except Exception as e:
-        log_error("Failed to get log modules", module="logs", error=str(e))
-        raise SystemError("Failed to get log modules") from e
+        log_error("获取日志模块失败", module="logs", error=str(e))
+        raise SystemError("获取日志模块失败") from e
 
 
 @logs_bp.route("/api/stats", methods=["GET"])
@@ -214,7 +214,7 @@ def get_log_stats() -> tuple[dict, int]:
             try:
                 hours_int = int(hours)
             except ValueError as exc:
-                raise ValidationError("Invalid hours format") from exc
+                raise ValidationError("hours 参数格式无效") from exc
             start_time = time_utils.now() - timedelta(hours=hours_int)
             query = query.filter(UnifiedLog.timestamp >= start_time)
 
@@ -278,8 +278,8 @@ def get_log_stats() -> tuple[dict, int]:
         return jsonify_unified_success(data=stats)
 
     except Exception as e:
-        log_error("Failed to get log stats", module="logs", error=str(e))
-        raise SystemError("Failed to get log stats") from e
+        log_error("获取日志概要失败", module="logs", error=str(e))
+        raise SystemError("获取日志概要失败") from e
 
 
 @logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
@@ -292,5 +292,5 @@ def get_log_detail(log_id: int) -> tuple[dict, int]:
         return jsonify_unified_success(data={"log": log.to_dict()})
 
     except Exception as e:
-        log_error("Failed to get log detail", module="logs", error=str(e), log_id=log_id)
-        raise SystemError("Failed to get log detail") from e
+        log_error("获取日志详情失败", module="logs", error=str(e), log_id=log_id)
+        raise SystemError("获取日志详情失败") from e

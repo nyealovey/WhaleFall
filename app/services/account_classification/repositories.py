@@ -1,4 +1,4 @@
-"""Data-access helpers for account classification."""
+"""账户分类数据访问辅助工具。"""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from app.utils.time_utils import time_utils
 
 
 class ClassificationRepository:
-    """Encapsulates DB interactions for account classification."""
+    """封装账户分类场景下的数据库访问。"""
 
     def fetch_active_rules(self) -> list[ClassificationRule]:
         return (
@@ -44,7 +44,7 @@ class ClassificationRepository:
         return query.all()
 
     def cleanup_all_assignments(self) -> int:
-        """Remove all existing assignments prior to re-classification."""
+        """重新分类前清理所有既有分配关系。"""
         try:
             deleted = db.session.query(AccountClassificationAssignment).delete()
             if deleted:
@@ -67,7 +67,7 @@ class ClassificationRepository:
         *,
         rule_id: int | None = None,
     ) -> int:
-        """Replace assignments for the provided accounts."""
+        """为指定账户集重新写入分类分配记录。"""
         if not matched_accounts:
             return 0
 

@@ -137,7 +137,7 @@ def configure_structlog(app):  # noqa: ANN001
     @app.teardown_appcontext
     def log_teardown_error(exception):  # noqa: ANN001
         if exception:
-            get_logger("app").error("Application error", module="system", exception=str(exception))
+            get_logger("app").error("应用请求处理异常", module="system", exception=str(exception))
 
 
 def should_log_debug() -> bool:

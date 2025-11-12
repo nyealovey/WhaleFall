@@ -19,7 +19,11 @@ class BaseSyncData(db.Model):
     def instance_id(cls) -> Mapped[int]:
         return db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
 
-    db_type = db.Column(db.String(20), nullable=False, index=True)  # 'mysql', 'postgresql', 'sqlserver', 'oracle'
+    db_type = db.Column(
+        db.String(20),
+        nullable=False,
+        index=True,
+    )  # 数据库类型：mysql、postgresql、sqlserver、oracle
 
     # 关联实例 - 在子类中定义
 

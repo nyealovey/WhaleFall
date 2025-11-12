@@ -14,8 +14,14 @@ class PermissionConfig(db.Model):
     __tablename__ = "permission_configs"
 
     id = db.Column(db.Integer, primary_key=True)
-    db_type = db.Column(db.String(50), nullable=False)  # mysql/postgresql/sqlserver/oracle
-    category = db.Column(db.String(50), nullable=False)  # 如 global_privileges / server_roles
+    db_type = db.Column(
+        db.String(50),
+        nullable=False,
+    )  # 数据库类型：mysql/postgresql/sqlserver/oracle
+    category = db.Column(
+        db.String(50),
+        nullable=False,
+    )  # 权限分类，如 global_privileges、server_roles 等
     permission_name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
