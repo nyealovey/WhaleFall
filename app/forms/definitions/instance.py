@@ -3,7 +3,7 @@
 """
 
 from app.forms.definitions.base import FieldComponent, FieldOption, ResourceFormDefinition, ResourceFormField
-from app.services.instances.form_service import InstanceFormService
+from app.services.form_service.instances_form_service import InstanceFormService
 
 INSTANCE_FORM_DEFINITION = ResourceFormDefinition(
     name="instance",

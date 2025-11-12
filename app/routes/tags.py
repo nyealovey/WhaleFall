@@ -15,8 +15,8 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.constants.filter_options import STATUS_ACTIVE_OPTIONS
 from app.utils.query_filter_utils import get_tag_categories
-from app.routes.tag_form_view import TagFormView
-from app.services.tags.form_service import TagFormService
+from app.views.tag_form_view import TagFormView
+from app.services.form_service.tags_form_service import TagFormService
 from app.utils.data_validator import sanitize_form_data
 
 # 创建蓝图

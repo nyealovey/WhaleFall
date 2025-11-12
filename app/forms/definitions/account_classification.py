@@ -4,7 +4,7 @@
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
 from app.forms.definitions.account_classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
-from app.services.account_classification.classification_form_service import ClassificationFormService
+from app.services.form_service.classification_form_service import ClassificationFormService
 
 CLASSIFICATION_FORM_DEFINITION = ResourceFormDefinition(
     name="account_classification",

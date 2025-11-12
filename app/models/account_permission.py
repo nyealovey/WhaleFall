@@ -124,29 +124,3 @@ class AccountPermission(BaseSyncData):
                 "type_specific": self.type_specific,
             }
         return {}
-
-    def get_can_grant_status(self) -> bool:
-        """获取账户是否有授权权限"""
-        try:
-            if self.db_type == DatabaseType.MYSQL:
-                # MySQL中检查是否有GRANT权限
-                global_privileges = self.global_privileges or []
-                for perm in global_privileges:
-                    if isinstance(perm, dict) and perm.get("privilege") == "GRANT" and perm.get("granted", False):
-                        return True
-                return False
-            if self.db_type == DatabaseType.POSTGRESQL:
-                # PostgreSQL中检查是否有CREATEROLE属性
-                role_attributes = self.role_attributes or []
-                return "CREATEROLE" in role_attributes
-            if self.db_type == DatabaseType.SQLSERVER:
-                # SQL Server中检查是否有sysadmin角色
-                server_roles = self.server_roles or []
-                return "sysadmin" in server_roles
-            if self.db_type == DatabaseType.ORACLE:
-                # Oracle中检查是否有GRANT ANY PRIVILEGE权限
-                system_privileges = self.system_privileges or []
-                return "GRANT ANY PRIVILEGE" in system_privileges
-            return False
-        except (TypeError, AttributeError):
-            return False

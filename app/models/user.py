@@ -84,34 +84,6 @@ class User(UserMixin, db.Model):
         """
         return self.role == UserRole.ADMIN
 
-    def has_permission(self, permission: str) -> bool:
-        """
-        检查用户是否有指定权限
-
-        Args:
-            permission: 权限名称（view=查看、create=新增、update=修改、delete=删除）
-
-        Returns:
-            bool: 是否有权限
-        """
-        # 管理员拥有所有权限
-        if self.is_admin():
-            return True
-
-        # 根据角色判断权限
-        if self.role == UserRole.ADMIN:
-            return True
-        if self.role == UserRole.USER:
-            # 普通用户只有查看权限
-            return permission == "view"
-        # 其他角色默认无权限
-        return False
-
-    def update_last_login(self) -> None:
-        """更新最后登录时间"""
-        self.last_login = time_utils.now()
-        db.session.commit()
-
     def to_dict(self) -> dict:
         """
         转换为字典
@@ -127,43 +99,6 @@ class User(UserMixin, db.Model):
             "last_login": self.last_login.isoformat() if self.last_login else None,
             "is_active": self.is_active,
         }
-
-    @staticmethod
-    def create_admin() -> "User | None":
-        """创建默认管理员用户"""
-        admin = User.query.filter_by(username="admin").first()
-        if not admin:
-            # 使用环境变量或生成随机密码，避免硬编码
-            import os
-            import secrets
-            import string
-            
-            default_password = os.getenv('DEFAULT_ADMIN_PASSWORD')
-            if not default_password:
-                # 生成随机密码：12位，包含大小写字母、数字和特殊字符
-                alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-                default_password = ''.join(secrets.choice(alphabet) for _ in range(12))
-            
-            admin = User(username="admin", password=default_password, role=UserRole.ADMIN)
-            db.session.add(admin)
-            db.session.commit()
-            from app.utils.structlog_config import get_system_logger
-
-            system_logger = get_system_logger()
-            system_logger.info(
-                "默认管理员用户已创建", 
-                module="user_model", 
-                username="admin",
-                password_length=len(default_password)
-            )
-            
-            # 在控制台显示生成的密码（仅开发环境）
-            import os
-            if os.getenv('FLASK_ENV') == 'development':
-                print(f"管理员用户已创建: {admin.username}")
-                print(f"密码: {default_password}")
-            
-            return admin
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"

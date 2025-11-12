@@ -3,7 +3,7 @@
 """
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.services.tags.form_service import TagFormService
+from app.services.form_service.tags_form_service import TagFormService
 
 TAG_FORM_DEFINITION = ResourceFormDefinition(
     name="tag",

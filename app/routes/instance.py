@@ -33,7 +33,7 @@ from app.services.account_sync.account_query_service import get_accounts_by_inst
 from app.services.instances import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
-from app.routes.instance_form_view import InstanceFormView
+from app.views.instance_form_view import InstanceFormView
 
 # 创建蓝图
 instance_bp = Blueprint("instance", __name__)
