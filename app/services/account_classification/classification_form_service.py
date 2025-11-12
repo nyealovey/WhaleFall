@@ -10,7 +10,7 @@ from flask_login import current_user
 
 from app import db
 from app.constants.colors import ThemeColors
-from app.forms.definitions.account_classification import ICON_OPTIONS, RISK_LEVEL_OPTIONS
+from app.forms.definitions.account_classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
 from app.models.account_classification import AccountClassification
 from app.services.resource_form_service import BaseResourceService, ServiceResult
 
