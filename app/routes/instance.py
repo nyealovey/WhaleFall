@@ -33,6 +33,7 @@ from app.services.account_sync.account_query_service import get_accounts_by_inst
 from app.services.instances import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
+from app.routes.instance_form_view import InstanceFormView
 
 # 创建蓝图
 instance_bp = Blueprint("instance", __name__)
@@ -257,141 +258,6 @@ def create_api() -> Response:
             exception=e,
         )
         raise SystemError("创建实例失败") from e
-
-
-@instance_bp.route("/create", methods=["GET", "POST"])
-@login_required
-@create_required
-@require_csrf
-def create() -> str | Response:
-    """创建实例页面"""
-    # 获取凭据列表
-    credentials = Credential.query.filter_by(is_active=True).all()
-
-    if request.method == HttpMethod.POST:
-        data = request.form
-
-        # 清理输入数据
-        data = DataValidator.sanitize_input(data)
-
-        # 使用新的数据验证器进行严格验证
-        is_valid, validation_error = DataValidator.validate_instance_data(data)
-        if not is_valid:
-            flash(validation_error, FlashCategory.ERROR)
-            return render_template("instances/create.html", credentials=credentials)
-
-        # 验证凭据ID（如果提供）
-        if data.get("credential_id"):
-            try:
-                credential_id = int(data.get("credential_id"))
-                credential = Credential.query.get(credential_id)
-                if not credential:
-                    error_msg = "凭据不存在"
-                    flash(error_msg, FlashCategory.ERROR)
-                    return render_template("instances/create.html", credentials=credentials)
-            except (ValueError, TypeError):
-                error_msg = "无效的凭据ID"
-                flash(error_msg, FlashCategory.ERROR)
-                return render_template("instances/create.html", credentials=credentials)
-
-        # 验证实例名称唯一性
-        existing_instance = Instance.query.filter_by(name=data.get("name")).first()
-        if existing_instance:
-            error_msg = "实例名称已存在"
-            flash(error_msg, FlashCategory.ERROR)
-            return render_template("instances/create.html", credentials=credentials)
-
-        try:
-            # 创建新实例
-            instance = Instance(
-                name=data.get("name").strip(),
-                db_type=data.get("db_type"),
-                host=data.get("host").strip(),
-                port=int(data.get("port")),
-                database_name=data.get("database_name", "").strip() or None,
-                credential_id=(int(data.get("credential_id")) if data.get("credential_id") else None),
-                description=data.get("description", "").strip(),
-            )
-
-            # 设置其他属性
-            instance.is_active = data.get("is_active", True) in [True, "on", "1", 1]
-
-            db.session.add(instance)
-            db.session.commit()
-
-            # 处理标签
-            tag_names = data.get("tag_names", [])
-            
-            if isinstance(tag_names, str):
-                # 如果是逗号分隔的字符串，分割成列表
-                tag_names = [name.strip() for name in tag_names.split(",") if name.strip()]
-            
-            # 添加标签
-            added_tags = []
-            for tag_name in tag_names:
-                tag = Tag.get_tag_by_name(tag_name)
-                if tag:
-                    instance.add_tag(tag)
-                    added_tags.append(tag_name)
-            
-            # 只记录一次标签创建结果
-            if added_tags:
-                log_info(
-                    "实例标签已创建",
-                    module="instances",
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    tags=added_tags,
-                )
-
-            # 记录操作日志
-            log_info(
-                "创建数据库实例",
-                module="instances",
-                user_id=current_user.id,
-                instance_id=instance.id,
-                instance_name=instance.name,
-                db_type=instance.db_type,
-                host=instance.host,
-            )
-
-            flash("实例创建成功！", FlashCategory.SUCCESS)
-            return redirect(url_for("instance.index"))
-
-        except Exception as e:
-            db.session.rollback()
-            log_error(
-                "创建实例失败",
-                module="instances",
-                user_id=getattr(current_user, "id", None),
-                exception=e,
-            )
-
-            # 根据错误类型提供更具体的错误信息
-            if "UNIQUE constraint failed" in str(e):
-                error_msg = "实例名称已存在，请使用其他名称"
-            elif "NOT NULL constraint failed" in str(e):
-                error_msg = "必填字段不能为空"
-            elif "FOREIGN KEY constraint failed" in str(e):
-                error_msg = "关联的凭据不存在"
-            else:
-                error_msg = f"创建实例失败: {str(e)}"
-
-            flash(error_msg, FlashCategory.ERROR)
-
-    # GET请求，显示创建表单
-    credentials = Credential.query.filter_by(is_active=True).all()
-
-    # 获取可用的数据库类型
-    from app.services.database_type_service import DatabaseTypeService
-
-    database_types = DatabaseTypeService.get_active_types()
-    
-    # 获取所有标签
-    all_tags = Tag.get_active_tags()
-
-    return render_template("instances/create.html", credentials=credentials, database_types=database_types, all_tags=all_tags)
-
 
 
 @instance_bp.route("/api/<int:instance_id>/delete", methods=["POST"])
@@ -697,6 +563,21 @@ def api_get_accounts(instance_id: int) -> Response:
             exception=exc,
         )
         raise SystemError("获取权限失败") from exc
+
+
+# ---------------------------------------------------------------------------
+# 表单路由注册
+# ---------------------------------------------------------------------------
+_instance_create_view = InstanceFormView.as_view("instance_create_form")
+_instance_create_view = login_required(create_required(require_csrf(_instance_create_view)))
+
+instance_bp.add_url_rule(
+    "/create",
+    view_func=_instance_create_view,
+    methods=["GET", "POST"],
+    defaults={"resource_id": None},
+    endpoint="create",
+)
 
 
 # 注册额外路由模块
