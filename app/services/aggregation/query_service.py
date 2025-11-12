@@ -1,6 +1,4 @@
-"""
-Read-only aggregation query helpers.
-"""
+"""聚合查询只读工具。"""
 
 from __future__ import annotations
 
@@ -12,7 +10,7 @@ from app.models.instance_size_aggregation import InstanceSizeAggregation
 
 
 class AggregationQueryService:
-    """Encapsulates database queries and formatting for aggregation records."""
+    """封装聚合记录的查询与格式化逻辑。"""
 
     def get_database_aggregations(
         self,

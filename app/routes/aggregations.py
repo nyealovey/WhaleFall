@@ -39,11 +39,10 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
 @view_required
 @require_csrf
 def aggregate_current() -> Response:
-    """
-    手动触发当前周期数据聚合
-    
+    """手动触发当前周期数据聚合。
+
     Returns:
-        JSON: 聚合结果
+        Response: 包含聚合结果的 JSON 响应。
     """
     session = None
     records_by_instance: dict[int, Any] = {}

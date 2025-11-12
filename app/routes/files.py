@@ -259,21 +259,21 @@ def export_logs() -> Response:
                 start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
                 query = query.filter(UnifiedLog.timestamp >= start_dt)
             except ValueError as exc:
-                raise ValidationError("Invalid start_time format") from exc
+                raise ValidationError("start_time 格式无效") from exc
 
         if end_time:
             try:
                 end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
                 query = query.filter(UnifiedLog.timestamp <= end_dt)
             except ValueError as exc:
-                raise ValidationError("Invalid end_time format") from exc
+                raise ValidationError("end_time 格式无效") from exc
 
         if level:
             try:
                 log_level = LogLevel(level.upper())
                 query = query.filter(UnifiedLog.level == log_level)
             except ValueError as exc:
-                raise ValidationError("Invalid log level") from exc
+                raise ValidationError("日志级别参数无效") from exc
 
         if module:
             query = query.filter(UnifiedLog.module.like(f"%{module}%"))
@@ -351,7 +351,7 @@ def export_logs() -> Response:
                 },
             )
 
-        raise ValidationError("Unsupported export format")
+        raise ValidationError("不支持的导出格式")
 
     except Exception as exc:  # noqa: BLE001
         log_error(

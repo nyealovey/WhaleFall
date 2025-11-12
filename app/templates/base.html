@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title id="page-title">{% block title %}鲸落 - 数据同步管理平台{% endblock %}</title>
 
-    <!-- Favicon -->
+    <!-- 站点图标 -->
     <link rel="icon" type="image/webp" href="{{ url_for('static', filename='img/logo.webp') }}">
     <link rel="shortcut icon" type="image/webp" href="{{ url_for('static', filename='img/logo.webp') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
@@ -203,10 +203,10 @@
         </div>
     </footer>
 
-    <!-- jQuery -->
+    <!-- 引入 jQuery -->
     <script src="{{ url_for('static', filename='vendor/jquery/jquery.min.js') }}"></script>
 
-    <!-- Bootstrap JS -->
+    <!-- 引入 Bootstrap JS -->
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 
     <!-- 通用工具组件 -->
@@ -222,7 +222,7 @@
     <script src="{{ url_for('static', filename='js/utils/validation-rules.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/csrf-utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/time-utils.js') }}"></script>
-    <!-- Tom Select -->
+    <!-- 引入 Tom Select -->
     <script src="{{ url_for('static', filename='vendor/tom-select/tom-select.complete.min.js') }}"></script>
     <!-- 筛选组件通用脚本 -->
     <script src="{{ url_for('static', filename='js/components/filters/filter_utils.js') }}"></script>

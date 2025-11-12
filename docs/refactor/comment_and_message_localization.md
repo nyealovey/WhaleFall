@@ -62,12 +62,12 @@
 
 ## 6. Todo 清单（示例）
 
-1. `app/services/account_sync/*`：docstring、日志、`ValidationError` 提示中文化。
-2. `app/services/connection_adapters/*`：连接失败/版本查询等提示翻译；docstring 中文描述。
-3. `app/services/database_sync/*`：inventory manager、persistence 等模块中文化。
+1. `app/services/account_sync/*`：docstring、日志、`ValidationError` 提示中文化（进行中，核心协调器已确认无残留英文，持续巡检新增模块）。
+2. `app/services/connection_adapters/*`：连接失败/版本查询等提示翻译；docstring 中文描述（2025-11-11 完成首次梳理）。
+3. `app/services/database_sync/*`：inventory manager、persistence 等模块中文化（2025-11-11 已补齐过滤器/协同模块 docstring 与提示）。
 4. `app/tasks/capacity_*/*.py`：任务函数 docstring 与日志提示统一中文。
 5. `app/constants/**`：`FlashCategory`、`HttpHeaders` 等工厂函数 docstring 添加中文说明。
-6. `app/routes/**`：视图函数 docstring、Flash 提示翻译；统一日志 message。
+6. `app/routes/**`：视图函数 docstring、Flash 提示翻译；统一日志 message（2025-11-11 全量巡检完成）。
 7. `app/utils/data_validator.py` 等工具模块：docstring 中文、异常 message 中文。
 8. `docs/reports/*`：确保统计、说明章节使用中文术语。
 
@@ -89,3 +89,9 @@
 ---
 
 按照本方案执行，可在不影响逻辑的前提下完成注释与提示信息的全面中文化，降低沟通成本，提升团队协作效率。***
+
+## 9. 最新进展
+
+- 2025-11-11：完成 `app/routes/**` 中全部 docstring、验证错误及日志提示的中文化，`logs`、`files` 等模块的英文异常信息已翻译。
+- 2025-11-11：完成 `app/services` 下 account_classification、aggregation、cache_service、connection_adapters、database_sync/database_filters 等模块的 docstring 与提示中文化，并统一缓存/调度相关文案。
+- 2025-11-11：补充 `app/templates` 公共注释/提示、`app/config.py` 环境变量错误提示、`app/utils/structlog_config.py` 以及基础工具模块的中文化，并复核 `app/scheduler.py` 的日志与提示文字。

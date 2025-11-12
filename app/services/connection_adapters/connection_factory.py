@@ -16,7 +16,7 @@ from app.utils.version_parser import DatabaseVersionParser
 
 
 def _get_default_schema(db_type: str) -> str:
-    """Resolve default schema for a given database type without touching utils layer."""
+    """不依赖 utils 层，直接解析数据库类型对应的默认 schema。"""
     config = DatabaseTypeService.get_type_by_name(db_type)
     return config.default_schema if config and config.default_schema else ""
 

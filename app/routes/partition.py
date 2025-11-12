@@ -113,11 +113,10 @@ def get_partition_status() -> Response:
 @view_required
 @require_csrf
 def create_partition() -> Response:
-    """
-    创建分区
-    
+    """创建分区任务。
+
     Returns:
-        JSON: 创建结果
+        Response: 包含分区创建结果的 JSON 响应。
     """
     data = request.get_json() or {}
     partition_date_str = data.get('date')
@@ -160,11 +159,10 @@ def create_partition() -> Response:
 @view_required
 @require_csrf
 def cleanup_partitions() -> Response:
-    """
-    清理旧分区
-    
+    """清理旧分区。
+
     Returns:
-        JSON: 清理结果
+        Response: 包含清理任务执行结果的 JSON 响应。
     """
     data = request.get_json() or {}
     raw_retention = data.get('retention_months', 12)

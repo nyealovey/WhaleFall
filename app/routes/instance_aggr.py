@@ -42,9 +42,10 @@ def _parse_iso_date(value: str, field_name: str) -> date:
 @login_required
 @view_required
 def instance_aggregations():
-    """
-    实例统计聚合页面（实例统计层面）
-    返回HTML页面
+    """实例统计聚合页面。
+
+    Returns:
+        str: 渲染后的实例统计聚合页面 HTML。
     """
     # 读取已选择的筛选条件以便回填
     selected_db_type = request.args.get('db_type', '')
@@ -92,12 +93,21 @@ def instance_aggregations():
 @login_required
 @view_required
 def get_instances_aggregations():
-    """
-    获取实例聚合数据（实例统计层面）
-    原 /api/instance/data 功能
-    
+    """获取实例聚合数据（实例统计层面）。
+
+    Args:
+        instance_id: 请求参数，实例ID。
+        db_type: 请求参数，数据库类型。
+        period_type: 请求参数，聚合周期类型。
+        start_date: 请求参数，开始日期（YYYY-MM-DD）。
+        end_date: 请求参数，结束日期（YYYY-MM-DD）。
+        time_range: 请求参数，快捷时间范围（天）。
+        page: 请求参数，分页页码。
+        per_page: 请求参数，每页数量。
+        get_all: 请求参数，是否返回全部记录（用于图表）。
+
     Returns:
-        JSON: 实例聚合数据
+        Response: 包含实例聚合数据的 JSON 响应。
     """
     try:
         # 获取查询参数
@@ -212,12 +222,18 @@ def get_instances_aggregations():
 @login_required
 @view_required
 def get_instances_aggregations_summary():
-    """
-    获取实例聚合汇总信息（实例统计层面）
-    原 /api/instance/summary 功能
-    
+    """获取实例聚合汇总信息（实例统计层面）。
+
+    Args:
+        instance_id: 请求参数，实例ID。
+        db_type: 请求参数，数据库类型。
+        period_type: 请求参数，周期类型。
+        start_date: 请求参数，开始日期（YYYY-MM-DD）。
+        end_date: 请求参数，结束日期（YYYY-MM-DD）。
+        time_range: 请求参数，快捷时间范围（天）。
+
     Returns:
-        JSON: 实例聚合汇总信息
+        Response: 包含实例聚合汇总信息的 JSON 响应。
     """
     try:
         # 获取查询参数

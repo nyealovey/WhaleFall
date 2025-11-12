@@ -1,4 +1,4 @@
-"""Classifier factory."""
+"""分类器工厂。"""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from .sqlserver_classifier import SQLServerRuleClassifier
 
 
 class ClassifierFactory:
-    """Provides database-specific classifier instances."""
+    """提供数据库类型专属的分类器实例。"""
 
     def __init__(self) -> None:
         self._registry: Dict[str, BaseRuleClassifier] = {

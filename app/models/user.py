@@ -87,7 +87,7 @@ class User(UserMixin, db.Model):
         检查用户是否有指定权限
 
         Args:
-            permission: 权限名称 (view, create, update, delete)
+            permission: 权限名称（view=查看、create=新增、update=修改、delete=删除）
 
         Returns:
             bool: 是否有权限

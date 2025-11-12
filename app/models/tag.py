@@ -42,8 +42,8 @@ class Tag(db.Model):
         Args:
             name: 标签代码（如：wenzhou）
             display_name: 显示名称（如：温州）
-            category: 标签分类（如：location, company_type, environment）
-            color: 标签颜色（如：primary, success, info, warning, danger）
+            category: 标签分类（如：location=地区、company_type=公司类型、environment=环境）
+            color: 标签颜色（如：primary=蓝色、success=绿色、info=青色、warning=黄色、danger=红色）
             description: 描述
             sort_order: 排序顺序
             is_active: 是否激活

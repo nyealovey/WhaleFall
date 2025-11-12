@@ -1,4 +1,4 @@
-# Constants package
+# 常量包初始化
 
 # 导入颜色常量
 from .colors import ThemeColors

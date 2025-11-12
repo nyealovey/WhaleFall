@@ -23,29 +23,13 @@ common_bp = Blueprint('common', __name__)
 @login_required
 @view_required
 def get_instance_options() -> Response:
-    """
-    获取实例下拉选项（通用）
-    
-    支持按数据库类型筛选，用于各统计页面的实例选择器
-    
-    Query Parameters:
-        db_type: 数据库类型（可选），如 mysql, postgresql, sqlserver, oracle
-        
+    """获取实例下拉选项（通用）。
+
+    Args:
+        db_type: 请求参数，可选的数据库类型筛选。
+
     Returns:
-        JSON: {
-            "instances": [
-                {
-                    "id": 1,
-                    "name": "实例名称",
-                    "db_type": "mysql",
-                    "display_name": "实例名称 (MYSQL)"
-                }
-            ]
-        }
-        
-    Used by:
-        - database_aggregations.js (数据库聚合统计页面)
-        - instance_aggregations.js (实例聚合统计页面)
+        Response: 含实例选项列表的 JSON 响应。
     """
     try:
         db_type = request.args.get('db_type')
@@ -79,28 +63,15 @@ def get_instance_options() -> Response:
 @login_required
 @view_required
 def get_database_options() -> Response:
-    """
-    获取指定实例的数据库下拉选项（通用）
+    """获取指定实例的数据库下拉选项（通用）。
 
-    Query Parameters:
-        instance_id: 实例ID（必填）
-        limit: 返回数量（可选，默认100）
-        offset: 偏移量（可选，默认0）
+    Args:
+        instance_id: 请求参数，必填的实例ID。
+        limit: 请求参数，返回数量（默认100）。
+        offset: 请求参数，数据偏移量（默认0）。
 
     Returns:
-        JSON: {
-            "databases": [
-                {
-                    "id": 1,
-                    "database_name": "数据库名称",
-                    "is_active": true,
-                    ...
-                }
-            ],
-            "total_count": 10,
-            "limit": 100,
-            "offset": 0
-        }
+        Response: 包含数据库列表及分页信息的 JSON 响应。
     """
     instance_id = request.args.get('instance_id', type=int)
     if not instance_id:
@@ -162,11 +133,10 @@ def get_database_options() -> Response:
 @login_required
 @view_required
 def get_database_type_options() -> Response:
-    """
-    获取数据库类型选项（通用）
+    """获取数据库类型选项（通用）。
 
     Returns:
-        JSON: { "database_types": [...] }
+        Response: 含数据库类型配置的 JSON 响应。
     """
     try:
         options = DatabaseTypeService.get_database_types_for_form()
