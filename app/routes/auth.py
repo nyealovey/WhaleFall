@@ -23,14 +23,25 @@ from app.errors import (
     ValidationError as AppValidationError,
 )
 from app.models.user import User
+from app.routes.change_password_form_view import ChangePasswordFormView
+from app.services.auth import ChangePasswordFormService
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
-from app.utils.data_validator import validate_password
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.structlog_config import get_auth_logger
 
 # 创建蓝图
 auth_bp = Blueprint("auth", __name__)
+_change_password_service = ChangePasswordFormService()
+
+_change_password_view = ChangePasswordFormView.as_view("auth_change_password_form")
+_change_password_view = login_required(password_reset_rate_limit(require_csrf(_change_password_view)))
+auth_bp.add_url_rule(
+    "/change-password",
+    view_func=_change_password_view,
+    methods=["GET", "POST"],
+    endpoint="change_password",
+)
 
 # 获取认证日志记录器
 auth_logger = get_auth_logger()
@@ -243,52 +254,23 @@ def profile() -> "str | Response":
 @require_csrf
 def change_password_api() -> "Response":
     """修改密码API"""
-    data = request.get_json(silent=True) if request.is_json else request.form
-    data = data or {}
-    old_password = data.get("old_password")
-    new_password = data.get("new_password")
-    confirm_password = data.get("confirm_password")
+    payload = request.get_json(silent=True) if request.is_json else request.form
+    payload = payload or {}
 
-    # 验证输入
-    if not old_password or not new_password:
-        raise AppValidationError(message="所有字段都不能为空")
-
-    if new_password != confirm_password:
-        raise AppValidationError(message="两次输入的新密码不一致")
-
-    # 验证旧密码
-    if not current_user.check_password(old_password):
+    result = _change_password_service.upsert(payload, current_user)
+    if not result.success:
         auth_logger.warning(
-            "API修改密码失败：旧密码错误",
-            user_id=current_user.id,
-            username=current_user.username,
-            ip_address=request.remote_addr,
-        )
-        raise AuthenticationError(message="旧密码错误")
-
-    # 验证新密码强度
-    password_error = validate_password(new_password)
-    if password_error:
-        raise AppValidationError(message=password_error)
-
-    try:
-        # 更新密码
-        current_user.set_password(new_password)
-        db.session.commit()
-    except Exception as exc:  # pragma: no cover - 数据库异常
-        db.session.rollback()
-        auth_logger.error(
             "API修改密码失败",
             module="auth",
             user_id=current_user.id,
             username=current_user.username,
             ip_address=request.remote_addr,
-            error=str(exc),
-            exc_info=True,
+            error=result.message,
         )
-        raise DatabaseError(message="密码修改失败") from exc
+        if result.message_key == "INVALID_OLD_PASSWORD":
+            raise AuthenticationError(message=result.message or "旧密码错误")
+        raise AppValidationError(message=result.message or "密码修改失败")
 
-    # 记录操作日志
     auth_logger.info(
         "用户API修改密码成功",
         module="auth",
@@ -298,48 +280,6 @@ def change_password_api() -> "Response":
     )
 
     return jsonify_unified_success(message=SuccessMessages.PASSWORD_CHANGED)
-
-
-@auth_bp.route("/change-password", methods=["GET", "POST"])
-@login_required
-@password_reset_rate_limit
-@require_csrf
-def change_password() -> "str | Response":
-    """修改密码页面"""
-    if request.method == HttpMethod.POST:
-        old_password = request.form.get("old_password")
-        new_password = request.form.get("new_password")
-        confirm_password = request.form.get("confirm_password")
-
-        # 验证输入
-        if not old_password or not new_password:
-            flash("所有字段都不能为空", FlashCategory.ERROR)
-            return render_template("auth/change_password.html")
-
-        if new_password != confirm_password:
-            flash("两次输入的新密码不一致", FlashCategory.ERROR)
-            return render_template("auth/change_password.html")
-
-        # 验证旧密码
-        if not current_user.check_password(old_password):
-            flash("旧密码错误", FlashCategory.ERROR)
-            return render_template("auth/change_password.html")
-
-        # 更新密码
-        try:
-            current_user.set_password(new_password)
-            db.session.commit()
-
-            flash("密码修改成功！", FlashCategory.SUCCESS)
-            return redirect(url_for("auth.profile"))
-
-        except Exception:
-            db.session.rollback()
-            flash("密码修改失败，请重试", FlashCategory.ERROR)
-
-    # GET请求，显示修改密码页面
-
-    return render_template("auth/change_password.html")
 
 
 # API路由
