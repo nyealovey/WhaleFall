@@ -4,12 +4,24 @@
  */
 
 let changePasswordValidator = null;
+let changePasswordController = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     initializeChangePasswordPage();
 });
 
 function initializeChangePasswordPage() {
+    const form = document.getElementById('changePasswordForm');
+    if (!form) {
+        return;
+    }
+
+    if (window.ResourceFormController) {
+        changePasswordController = new window.ResourceFormController(form, {
+            loadingText: '更新中...',
+        });
+    }
+
     initializePasswordToggles();
     initializePasswordStrength();
     initializeFormValidation();
@@ -192,7 +204,7 @@ function initializeFormValidation() {
         .useRules('#confirm_password', window.ValidationRules.auth.changePassword.confirmPassword)
         .onSuccess(function (event) {
             const form = event.target;
-            showLoadingState(form);
+            changePasswordController?.toggleLoading(true);
             form.submit();
         })
         .onFail(function () {
@@ -212,23 +224,6 @@ function initializeFormValidation() {
         confirmPasswordInput.addEventListener('input', function () {
             changePasswordValidator.revalidateField('#confirm_password');
         });
-    }
-}
-
-function showLoadingState(form) {
-    const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.dataset.originalText = submitBtn.dataset.originalText || submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>更新中...';
-        submitBtn.disabled = true;
-    }
-}
-
-function hideLoadingState(form) {
-    const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn && submitBtn.dataset.originalText) {
-        submitBtn.innerHTML = submitBtn.dataset.originalText;
-        submitBtn.disabled = false;
     }
 }
 
