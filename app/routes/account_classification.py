@@ -16,6 +16,12 @@ from app.models.account_classification import (
     ClassificationRule,
 )
 from app.services.account_classification.orchestrator import AccountClassificationService
+from app.services.account_classification.classification_form_service import ClassificationFormService
+from app.services.account_classification.rule_form_service import ClassificationRuleFormService
+from app.routes.account_classification_form_view import (
+    AccountClassificationFormView,
+    ClassificationRuleFormView,
+)
 from app.services.statistics import account_statistics_service
 from app.constants.colors import ThemeColors
 from app.errors import SystemError, ValidationError
@@ -31,6 +37,8 @@ from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
 account_classification_bp = Blueprint("account_classification", __name__)
+_classification_form_service = ClassificationFormService()
+_classification_rule_form_service = ClassificationRuleFormService()
 
 
 @account_classification_bp.route("/")
@@ -110,35 +118,12 @@ def get_classifications() -> tuple[Response, int]:
 @require_csrf
 def create_classification() -> tuple[Response, int]:
     """创建账户分类"""
-    data = request.get_json() or {}
+    payload = request.get_json() or {}
+    result = _classification_form_service.upsert(payload)
+    if not result.success or not result.data:
+        raise ValidationError(result.message or "创建账户分类失败")
+    classification = result.data
 
-    color_key = data.get("color", "info")
-    if not ThemeColors.is_valid_color(color_key):
-        raise ValidationError(f"无效的颜色选择: {color_key}")
-
-    try:
-        classification = AccountClassification(
-            name=data["name"],
-            description=data.get("description", ""),
-            risk_level=data.get("risk_level", "medium"),
-            color=color_key,
-            icon_name=data.get("icon_name", "fa-tag"),
-            priority=data.get("priority", 0),
-            is_system=False,
-        )
-        db.session.add(classification)
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(f"创建账户分类失败: {exc}", module="account_classification")
-        raise SystemError("创建账户分类失败") from exc
-
-    log_info(
-        "创建账户分类成功",
-        module="account_classification",
-        classification_id=classification.id,
-        operator_id=getattr(current_user, "id", None),
-    )
     return jsonify_unified_success(
         data={"classification": classification.to_dict()},
         message="账户分类创建成功",
@@ -177,32 +162,12 @@ def get_classification(classification_id: int) -> tuple[Response, int]:
 def update_classification(classification_id: int) -> tuple[Response, int]:
     """更新账户分类"""
     classification = AccountClassification.query.get_or_404(classification_id)
-    data = request.get_json() or {}
+    payload = request.get_json() or {}
+    result = _classification_form_service.upsert(payload, classification)
+    if not result.success or not result.data:
+        raise ValidationError(result.message or "更新账户分类失败")
+    classification = result.data
 
-    color_key = data.get("color", "info")
-    if not ThemeColors.is_valid_color(color_key):
-        raise ValidationError(f"无效的颜色选择: {color_key}")
-
-    classification.name = data["name"]
-    classification.description = data.get("description", "")
-    classification.risk_level = data.get("risk_level", "medium")
-    classification.color = color_key
-    classification.icon_name = data.get("icon_name", "fa-tag")
-    classification.priority = data.get("priority", 0)
-
-    try:
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(f"更新账户分类失败: {exc}", module="account_classification", classification_id=classification_id)
-        raise SystemError("更新账户分类失败") from exc
-
-    log_info(
-        "更新账户分类成功",
-        module="account_classification",
-        classification_id=classification.id,
-        operator_id=getattr(current_user, "id", None),
-    )
     return jsonify_unified_success(
         data={"classification": classification.to_dict()},
         message="账户分类更新成功",
@@ -362,48 +327,11 @@ def get_rule_stats() -> tuple[Response, int]:
 @require_csrf
 def create_rule() -> tuple[Response, int]:
     """创建分类规则"""
-    data = request.get_json() or {}
-    required_fields = ["rule_name", "classification_id", "db_type", "rule_expression"]
-    for field in required_fields:
-        if field not in data:
-            raise ValidationError(f"缺少必填字段: {field}")
-
-    try:
-        rule_expression_json = json.dumps(data["rule_expression"], ensure_ascii=False)
-    except (TypeError, ValueError) as exc:
-        raise ValidationError("规则表达式格式错误") from exc
-
-    rule = ClassificationRule(
-        rule_name=data["rule_name"],
-        classification_id=data["classification_id"],
-        db_type=data["db_type"],
-        rule_expression=rule_expression_json,
-        is_active=True,
-    )
-
-    try:
-        db.session.add(rule)
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(f"创建分类规则失败: {exc}", module="account_classification")
-        raise SystemError("创建分类规则失败") from exc
-
-    try:
-        service = AccountClassificationService()
-        service.invalidate_cache()
-        log_info(
-            "规则创建后已清除分类缓存",
-            module="account_classification",
-            rule_id=rule.id,
-            operator_id=getattr(current_user, "id", None),
-        )
-    except Exception as cache_error:
-        log_error(
-            f"清除分类缓存失败: {cache_error}",
-            module="account_classification",
-            rule_id=rule.id,
-        )
+    payload = request.get_json() or {}
+    result = _classification_rule_form_service.upsert(payload)
+    if not result.success or not result.data:
+        raise ValidationError(result.message or "创建分类规则失败")
+    rule = result.data
 
     return jsonify_unified_success(
         data={"rule_id": rule.id},
@@ -446,46 +374,10 @@ def get_rule(rule_id: int) -> tuple[Response, int]:
 def update_rule(rule_id: int) -> tuple[Response, int]:
     """更新分类规则"""
     rule = ClassificationRule.query.get_or_404(rule_id)
-    data = request.get_json() or {}
-
-    required_fields = ["rule_name", "classification_id", "rule_expression"]
-    for field in required_fields:
-        if field not in data:
-            raise ValidationError(f"缺少必填字段: {field}")
-
-    try:
-        rule_expression_json = json.dumps(data["rule_expression"], ensure_ascii=False)
-    except (TypeError, ValueError) as exc:
-        raise ValidationError("规则表达式格式错误") from exc
-
-    rule.rule_name = data["rule_name"]
-    rule.classification_id = data["classification_id"]
-    rule.rule_expression = rule_expression_json
-    rule.db_type = data.get("db_type", rule.db_type)
-    rule.is_active = data.get("is_active", True)
-
-    try:
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(f"更新分类规则失败: {exc}", module="account_classification", rule_id=rule_id)
-        raise SystemError("更新分类规则失败") from exc
-
-    try:
-        service = AccountClassificationService()
-        service.invalidate_cache()
-        log_info(
-            "规则更新后已清除分类缓存",
-            module="account_classification",
-            rule_id=rule_id,
-            operator_id=getattr(current_user, "id", None),
-        )
-    except Exception as cache_error:
-        log_error(
-            f"清除分类缓存失败: {cache_error}",
-            module="account_classification",
-            rule_id=rule_id,
-        )
+    payload = request.get_json() or {}
+    result = _classification_rule_form_service.upsert(payload, rule)
+    if not result.success or not result.data:
+        raise ValidationError(result.message or "更新分类规则失败")
 
     return jsonify_unified_success(message="分类规则更新成功")
 
@@ -660,6 +552,48 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
 
 
 
+
+
+# ---------------------------------------------------------------------------
+# 表单路由（独立页面）
+# ---------------------------------------------------------------------------
+_classification_create_view = AccountClassificationFormView.as_view("classification_create_form")
+_classification_create_view = login_required(create_required(require_csrf(_classification_create_view)))
+
+account_classification_bp.add_url_rule(
+    "/classifications/create",
+    view_func=_classification_create_view,
+    methods=["GET", "POST"],
+    defaults={"resource_id": None},
+)
+
+_classification_edit_view = AccountClassificationFormView.as_view("classification_edit_form")
+_classification_edit_view = login_required(update_required(require_csrf(_classification_edit_view)))
+
+account_classification_bp.add_url_rule(
+    "/classifications/<int:resource_id>/edit",
+    view_func=_classification_edit_view,
+    methods=["GET", "POST"],
+)
+
+_rule_create_view = ClassificationRuleFormView.as_view("classification_rule_create_form")
+_rule_create_view = login_required(create_required(require_csrf(_rule_create_view)))
+
+account_classification_bp.add_url_rule(
+    "/rules/create",
+    view_func=_rule_create_view,
+    methods=["GET", "POST"],
+    defaults={"resource_id": None},
+)
+
+_rule_edit_view = ClassificationRuleFormView.as_view("classification_rule_edit_form")
+_rule_edit_view = login_required(update_required(require_csrf(_rule_edit_view)))
+
+account_classification_bp.add_url_rule(
+    "/rules/<int:resource_id>/edit",
+    view_func=_rule_edit_view,
+    methods=["GET", "POST"],
+)
 
 
 def _get_db_permissions(db_type: str) -> dict:
