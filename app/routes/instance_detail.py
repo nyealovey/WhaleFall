@@ -21,16 +21,12 @@ from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.account_sync.account_query_service import get_accounts_by_instance
-from app.utils.data_validator import (
-    DataValidator,
-    sanitize_form_data,
-    validate_db_type,
-    validate_required_fields,
-)
+from app.utils.data_validator import DataValidator
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
+from app.routes.instance_form_view import InstanceFormView
 
 instance_detail_bp = Blueprint("instance_detail", __name__, url_prefix="/instances")
 
@@ -270,174 +266,6 @@ def edit_api(instance_id: int) -> Response:
             exception=e,
         )
         raise SystemError("更新实例失败") from e
-
-
-@instance_detail_bp.route("/<int:instance_id>/edit", methods=["GET", "POST"])
-@login_required
-@update_required
-@require_csrf
-def edit(instance_id: int) -> str | Response | tuple[Response, int]:
-    """编辑实例"""
-    instance = Instance.query.get_or_404(instance_id)
-
-    if request.method == HttpMethod.POST:
-        data = request.form
-
-        # 清理输入数据
-        data = sanitize_form_data(data)
-
-        # 输入验证
-        required_fields = ["name", "db_type", "host", "port"]
-        validation_error = validate_required_fields(data, required_fields)
-        if validation_error:
-            flash(validation_error, FlashCategory.ERROR)
-            return render_template("instances/edit.html", instance=instance)
-
-        # 验证数据库类型
-        db_type_error = validate_db_type(data.get("db_type"))
-        if db_type_error:
-            flash(db_type_error, FlashCategory.ERROR)
-            return render_template("instances/edit.html", instance=instance)
-
-
-        # 验证端口号
-        try:
-            port = int(data.get("port"))
-            if port < 1 or port > 65535:
-                error_msg = "端口号必须在1-65535之间"
-                raise ValueError(error_msg)
-        except (ValueError, TypeError):
-            error_msg = "端口号必须是1-65535之间的整数"
-            flash(error_msg, FlashCategory.ERROR)
-            return render_template("instances/edit.html", instance=instance)
-
-        # 验证凭据ID
-        if data.get("credential_id"):
-            try:
-                credential_id = int(data.get("credential_id"))
-                credential = Credential.query.get(credential_id)
-                if not credential:
-                    error_msg = "凭据不存在"
-                    raise ValueError(error_msg)
-            except (ValueError, TypeError):
-                error_msg = "无效的凭据ID"
-                flash(error_msg, FlashCategory.ERROR)
-                return render_template("instances/edit.html", instance=instance)
-
-        # 验证实例名称唯一性（排除当前实例）
-        existing_instance = Instance.query.filter(Instance.name == data.get("name"), Instance.id != instance_id).first()
-        if existing_instance:
-            error_msg = "实例名称已存在"
-            flash(error_msg, FlashCategory.ERROR)
-            return render_template("instances/edit.html", instance=instance)
-
-        try:
-            # 更新实例信息
-            instance.name = data.get("name", instance.name).strip()
-            instance.db_type = data.get("db_type", instance.db_type)
-            instance.host = data.get("host", instance.host).strip()
-            instance.port = int(data.get("port", instance.port))
-            instance.database_name = data.get("database_name", instance.database_name)
-            if instance.database_name:
-                instance.database_name = instance.database_name.strip() or None
-            instance.credential_id = int(data.get("credential_id")) if data.get("credential_id") else None
-            instance.description = data.get("description", instance.description)
-            if data.get("description"):
-                instance.description = data.get("description").strip()
-            # 正确处理布尔值
-            instance.is_active = _parse_is_active_value(data, default=instance.is_active)
-
-            # 处理标签更新
-            tag_names = data.get("tag_names", [])
-            
-            if isinstance(tag_names, str):
-                # 如果是逗号分隔的字符串，分割成列表
-                tag_names = [name.strip() for name in tag_names.split(",") if name.strip()]
-            
-            # 清除现有标签 - 使用正确的方法
-            # 先获取所有现有标签，然后逐个移除
-            existing_tags = list(instance.tags)
-            for tag in existing_tags:
-                instance.tags.remove(tag)
-            
-            # 添加新标签
-            added_tags = []
-            for tag_name in tag_names:
-                tag = Tag.get_tag_by_name(tag_name)
-                if tag:
-                    instance.tags.append(tag)
-                    added_tags.append(tag_name)
-            
-            # 只记录一次标签更新结果
-            if added_tags:
-                log_info(f"实例 {instance.id} 标签已更新: {', '.join(added_tags)}")
-
-            db.session.commit()
-
-            # 记录操作日志
-            log_info(
-                "更新数据库实例",
-                module="instances",
-                user_id=current_user.id,
-                instance_id=instance.id,
-                instance_name=instance.name,
-                db_type=instance.db_type,
-                host=instance.host,
-                changes={
-                    "name": data.get("name"),
-                    "db_type": data.get("db_type"),
-                    "host": data.get("host"),
-                    "port": data.get("port"),
-                    "credential_id": data.get("credential_id"),
-                    "description": data.get("description"),
-                    "is_active": data.get("is_active"),
-                },
-            )
-
-            flash("实例更新成功！", FlashCategory.SUCCESS)
-            return redirect(url_for("instance_detail.detail", instance_id=instance_id))
-
-        except Exception as e:
-            db.session.rollback()
-            log_error(
-                "更新实例失败",
-                module="instances",
-                user_id=getattr(current_user, "id", None),
-                instance_id=instance.id,
-                exception=e,
-            )
-
-            # 根据错误类型提供更具体的错误信息
-            if "UNIQUE constraint failed" in str(e):
-                error_msg = "实例名称已存在，请使用其他名称"
-            elif "NOT NULL constraint failed" in str(e):
-                error_msg = "必填字段不能为空"
-            elif "FOREIGN KEY constraint failed" in str(e):
-                error_msg = "关联的凭据不存在"
-            else:
-                error_msg = f"更新实例失败: {str(e)}"
-
-            flash(error_msg, FlashCategory.ERROR)
-
-    # GET请求，显示编辑表单
-    credentials = Credential.query.filter_by(is_active=True).all()
-
-    # 获取可用的数据库类型
-    from app.services.database_type_service import DatabaseTypeService
-
-    database_types = DatabaseTypeService.get_active_types()
-    
-    # 获取所有标签
-    all_tags = Tag.get_active_tags()
-
-    return render_template(
-        "instances/edit.html",
-        instance=instance,
-        all_tags=all_tags,
-        credentials=credentials,
-        database_types=database_types,
-    )
-
 
 
 
@@ -737,3 +565,17 @@ def _fetch_historical_database_sizes(
             for stat, is_active_flag, deleted_at, last_seen in rows
         ],
     }
+
+
+# ---------------------------------------------------------------------------
+# 表单路由注册
+# ---------------------------------------------------------------------------
+_instance_edit_view = InstanceFormView.as_view("instance_edit_form")
+_instance_edit_view = login_required(update_required(require_csrf(_instance_edit_view)))
+
+instance_detail_bp.add_url_rule(
+    "/<int:instance_id>/edit",
+    view_func=_instance_edit_view,
+    methods=["GET", "POST"],
+    endpoint="edit",
+)
