@@ -1,4 +1,4 @@
-"""Account classification service package."""
+"""账户分类服务包。"""
 
 from .orchestrator import AccountClassificationService
 

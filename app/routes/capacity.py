@@ -131,14 +131,13 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
 @view_required("instance_management.instance_list.sync_capacity")
 @require_csrf
 def sync_instance_capacity(instance_id: int) -> Response:
-    """
-    同步指定实例的容量信息
+    """同步指定实例的容量信息。
 
     Args:
-        instance_id (int): 实例ID
+        instance_id: 实例ID。
 
     Returns:
-        json: 同步结果
+        Response: 包含容量同步结果的 JSON 响应。
     """
     try:
         instance = _get_instance(instance_id)

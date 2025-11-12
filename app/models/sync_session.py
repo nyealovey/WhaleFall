@@ -27,7 +27,7 @@ class SyncSession(db.Model):
     status = db.Column(
         db.String(20),
         nullable=False,
-        default="pending",  # pending, running, completed, failed
+        default="pending",  # 可选值：pending（待处理）、running（执行中）、completed（已完成）、failed（失败）
     )
     started_at = db.Column(db.DateTime(timezone=True))
     completed_at = db.Column(db.DateTime(timezone=True))

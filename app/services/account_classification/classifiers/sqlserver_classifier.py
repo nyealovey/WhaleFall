@@ -1,4 +1,4 @@
-"""SQL Server rule classifier."""
+"""SQL Server 规则分类器。"""
 
 from __future__ import annotations
 

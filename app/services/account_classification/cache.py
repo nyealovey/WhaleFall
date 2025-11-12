@@ -1,4 +1,4 @@
-"""Classification cache helpers."""
+"""账户分类缓存辅助工具。"""
 
 from __future__ import annotations
 
@@ -9,14 +9,14 @@ from app.utils.structlog_config import log_error
 
 
 class ClassificationCache:
-    """Wrapper around global cache manager for classification-specific keys."""
+    """针对分类业务封装的缓存访问器。"""
 
     def __init__(self, manager: Any | None = None) -> None:  # noqa: ANN401
         self.manager = manager or cache_manager
 
     # ---- Rules cache -----------------------------------------------------
     def get_rules(self) -> list[dict[str, Any]] | None:
-        """Return cached rules payload if available."""
+        """返回缓存中的分类规则数据。"""
         if not self.manager:
             return None
         cached = self.manager.get_classification_rules_cache()
@@ -26,11 +26,11 @@ class ClassificationCache:
             return cached["rules"]
         if isinstance(cached, list):
             return cached
-        log_error("Invalid classification rules cache format", module="account_classification_cache")
+        log_error("分类规则缓存格式无效", module="account_classification_cache")
         return None
 
     def set_rules(self, rules_data: Iterable[dict[str, Any]]) -> bool:
-        """Persist rules payload to cache."""
+        """写入分类规则缓存。"""
         if not self.manager:
             return False
         payload = list(rules_data)

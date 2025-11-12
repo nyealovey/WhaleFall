@@ -74,7 +74,7 @@ class Config:
     # ============================================================================
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     if not SQLALCHEMY_DATABASE_URI:
-        raise ValueError("DATABASE_URL environment variable must be set")
+        raise ValueError("必须在环境变量中配置 DATABASE_URL 才能启动应用")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
@@ -91,7 +91,7 @@ class Config:
     CACHE_TYPE = "redis"
     CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL")
     if not CACHE_REDIS_URL:
-        raise ValueError("CACHE_REDIS_URL environment variable must be set")
+        raise ValueError("必须在环境变量中配置 CACHE_REDIS_URL 才能启用缓存")
 
     # ============================================================================
     # 安全配置

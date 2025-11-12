@@ -4,6 +4,7 @@
 
 import time
 from collections.abc import Callable
+from typing import Any, Dict
 from functools import wraps
 
 from flask import flash, redirect, request, url_for
@@ -32,18 +33,17 @@ class RateLimiter:
         """生成内存键"""
         return f"{endpoint}:{identifier}"
 
-    def is_allowed(self, identifier: str, endpoint: str, limit: int, window: int) -> dict[str, any]:
-        """
-        检查是否允许请求
+    def is_allowed(self, identifier: str, endpoint: str, limit: int, window: int) -> Dict[str, Any]:
+        """判断给定标识符在当前窗口内是否允许访问。
 
         Args:
-            identifier: 标识符（IP地址或用户ID）
-            endpoint: 端点名称
-            limit: 限制次数
-            window: 时间窗口（秒）
+            identifier: 唯一标识（IP 或用户 ID）。
+            endpoint: 限流的端点名称。
+            limit: 允许的请求次数。
+            window: 时间窗口（秒）。
 
         Returns:
-            dict: 包含是否允许、剩余次数、重置时间等信息
+            dict[str, Any]: 包含是否允许、剩余次数及 reset 时间等信息。
         """
         current_time = int(time.time())
         window_start = current_time - window
@@ -71,8 +71,20 @@ class RateLimiter:
         window: int,
         current_time: int,
         window_start: int,
-    ) -> dict[str, any]:
-        """使用缓存检查速率限制"""
+    ) -> Dict[str, Any]:
+        """基于缓存记录检查速率限制。
+
+        Args:
+            identifier: 标识符。
+            endpoint: 端点名称。
+            limit: 限制次数。
+            window: 时间窗口（秒）。
+            current_time: 当前时间戳。
+            window_start: 窗口起始时间戳。
+
+        Returns:
+            dict[str, Any]: 限流检查结果。
+        """
         key = self._get_key(identifier, endpoint)
         
         # 获取当前窗口内的请求记录
@@ -111,8 +123,20 @@ class RateLimiter:
         window: int,
         current_time: int,
         window_start: int,
-    ) -> dict[str, any]:
-        """使用内存检查速率限制"""
+    ) -> Dict[str, Any]:
+        """在无缓存情况下，使用内存列表进行限流。
+
+        Args:
+            identifier: 标识符。
+            endpoint: 端点名称。
+            limit: 限制次数。
+            window: 时间窗口（秒）。
+            current_time: 当前时间戳。
+            window_start: 窗口起始时间戳。
+
+        Returns:
+            dict[str, Any]: 限流检查结果。
+        """
         key = self._get_memory_key(identifier, endpoint)
 
         if key not in self.memory_store:
@@ -147,7 +171,16 @@ rate_limiter = RateLimiter()
 
 
 def login_rate_limit(func=None, *, limit: int = None, window: int = None):
-    """登录速率限制"""
+    """登录接口速率限制装饰器。
+
+    Args:
+        func: 被装饰的函数。
+        limit: 可选自定义限制次数。
+        window: 可选自定义时间窗口（秒）。
+
+    Returns:
+        Callable: 包装后的视图函数。
+    """
     from app.config import Config
 
     if limit is None:

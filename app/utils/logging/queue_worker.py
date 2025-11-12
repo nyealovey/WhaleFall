@@ -1,4 +1,4 @@
-"""Queue worker responsible for persisting structured logs asynchronously."""
+"""负责异步持久化结构化日志的队列工作线程。"""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from app.models.unified_log import UnifiedLog
 
 
 class LogQueueWorker:
-    """Background worker that flushes log entries to the database."""
+    """后台线程，按批次将日志写入数据库。"""
 
     def __init__(
         self,
@@ -41,7 +41,7 @@ class LogQueueWorker:
             self.queue.put_nowait(log_entry)
         except Full:
             logging.warning(
-                "Structured log dropped because queue is full", extra={"queue_size": self.queue.qsize()}
+                "结构化日志队列已满，丢弃一条日志", extra={"queue_size": self.queue.qsize()}
             )
 
     def shutdown(self, timeout: float = 5.0) -> None:
@@ -60,7 +60,7 @@ class LogQueueWorker:
             if self._should_flush():
                 self._flush_buffer()
 
-        # Flush remaining logs on shutdown
+        # 线程退出前确保剩余日志也写入
         self._flush_buffer()
 
     def _should_flush(self) -> bool:
@@ -86,7 +86,7 @@ class LogQueueWorker:
                     db.session.add_all(models)
                     db.session.commit()
         except Exception:  # noqa: BLE001
-            logging.exception("Error flushing structured logs to database")
+            logging.exception("写入结构化日志到数据库失败")
             with contextlib.suppress(Exception):
                 db.session.rollback()
         finally:

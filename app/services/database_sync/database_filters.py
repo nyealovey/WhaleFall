@@ -1,4 +1,4 @@
-"""Database-level filtering utilities for capacity synchronization."""
+"""容量同步使用的数据库级过滤工具。"""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ class _CompiledRule:
 
 
 class DatabaseSyncFilterManager:
-    """Loads filtering configuration for database discovery/capacity sync."""
+    """负责加载数据库发现/容量同步所需的过滤配置。"""
 
     def __init__(self, config_path: str | Path | None = None) -> None:
         self._config_path = Path(config_path) if config_path else _DEFAULT_CONFIG_PATH
@@ -35,7 +35,7 @@ class DatabaseSyncFilterManager:
         return self._config_path
 
     def reload(self) -> None:
-        """Reload configuration from disk."""
+        """从磁盘重新加载过滤配置。"""
         if not self._config_path.exists():
             raise FileNotFoundError(f"数据库过滤配置文件不存在: {self._config_path}")
 
@@ -86,7 +86,7 @@ class DatabaseSyncFilterManager:
         return re.compile(regex, re.IGNORECASE)
 
     def should_exclude_database(self, instance: Any, database_name: str | None) -> tuple[bool, str | None]:
-        """Return whether the database should be filtered for the given instance."""
+        """判断给定实例下的数据库是否需要被过滤。"""
         if not database_name:
             return False, None
 
@@ -109,7 +109,7 @@ class DatabaseSyncFilterManager:
         return False, None
 
     def filter_database_names(self, instance: Any, names: Iterable[str]) -> tuple[list[str], list[str]]:
-        """Filter database names, returning (allowed, excluded)."""
+        """过滤数据库名称，返回保留与排除列表。"""
         allowed: list[str] = []
         excluded: list[str] = []
         for name in names:
@@ -121,7 +121,7 @@ class DatabaseSyncFilterManager:
         return allowed, excluded
 
     def filter_capacity_payload(self, instance: Any, payload: Sequence[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
-        """Filter collected capacity rows."""
+        """过滤容量采集结果，返回保留记录与被排除的库名。"""
         kept: list[dict[str, Any]] = []
         excluded: list[str] = []
         for row in payload:

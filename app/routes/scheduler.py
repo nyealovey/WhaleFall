@@ -387,15 +387,12 @@ def run_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def reload_jobs() -> Response:
-    """重新加载所有任务配置
-    
-    此操作会：
-    1. 删除所有现有任务
-    2. 重新从配置文件加载任务
-    3. 确保任务名称和配置都是最新的
-    
+    """重新加载所有任务配置。
+
+    此操作会删除现有任务、重新读取配置并确保任务元数据最新。
+
     Returns:
-        Response: 标准化的JSON响应，包含重新加载的任务信息
+        Response: 包含删除与重载结果的 JSON 响应。
     """
     try:
         scheduler = get_scheduler()  # type: ignore
@@ -517,10 +514,10 @@ def _build_trigger(data: dict[str, Any]) -> CronTrigger | IntervalTrigger | Date
     支持三种类型：cron、interval、date。
 
     Args:
-        data (dict[str, Any]): 前端提交的数据。
+        data: 前端提交的触发器配置。
 
     Returns:
-        CronTrigger | IntervalTrigger | DateTrigger | None: 构建成功返回触发器，否则 None。
+        CronTrigger | IntervalTrigger | DateTrigger | None: 构建成功时返回触发器，否则返回 None。
     """
     trigger_type = data.get("trigger_type")
 
