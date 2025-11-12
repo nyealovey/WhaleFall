@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% set is_edit = resource is not none %}
+{% set form_values = form_data if form_data else {} %}
+{% set page_title = '编辑标签' if is_edit else '添加标签' %}
+
+{% block title %}{{ page_title }} - 鲸落{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tags/index.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center" id="tag-form-root"
+     data-form-mode="{{ form_mode }}"
+     {% if resource %}data-tag-id="{{ resource.id }}"{% endif %}>
+    <div class="col-8">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas {{ 'fa-edit' if is_edit else 'fa-plus' }} me-2"></i>{{ page_title }}
+                </h5>
+                {% if is_edit %}
+                <span class="badge bg-secondary">ID #{{ resource.id }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if form_errors %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>{{ form_errors }}
+                </div>
+                {% endif %}
+                <form method="POST" id="tagForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">标签代码 <span class="text-danger">*</span></label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="name"
+                                       name="name"
+                                       value="{{ form_values.get('name', resource.name if is_edit else '') }}"
+                                       placeholder="例如: wenzhou"
+                                       required>
+                                <div class="form-text">仅支持字母、数字、下划线或短横线</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="display_name" class="form-label">显示名称 <span class="text-danger">*</span></label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="display_name"
+                                       name="display_name"
+                                       value="{{ form_values.get('display_name', resource.display_name if is_edit else '') }}"
+                                       placeholder="例如: 温州"
+                                       required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="category" class="form-label">分类 <span class="text-danger">*</span></label>
+                                {% set current_category = form_values.get('category', resource.category if is_edit else '') %}
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="">请选择分类</option>
+                                    {% for option in category_options %}
+                                    <option value="{{ option.value }}" {% if current_category == option.value %}selected{% endif %}>
+                                        {{ option.label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="color" class="form-label">颜色 <span class="text-danger">*</span></label>
+                                {% set current_color = form_values.get('color', resource.color if is_edit else 'primary') %}
+                                <select class="form-select" id="color" name="color" required>
+                                    {% for option in color_options %}
+                                    <option value="{{ option.value }}" {% if current_color == option.value %}selected{% endif %}>
+                                        {{ option.name }} - {{ option.description }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text d-flex align-items-center gap-2 mt-1">
+                                    <span class="badge" id="colorPreview" style="background-color: var(--bs-primary);">预览</span>
+                                    <span>选择用于列表展示的颜色标签</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述</label>
+                        <textarea class="form-control"
+                                  id="description"
+                                  name="description"
+                                  rows="3"
+                                  placeholder="可选">{{ form_values.get('description', resource.description if is_edit else '') }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="sort_order" class="form-label">排序顺序</label>
+                                <input type="number"
+                                       class="form-control"
+                                       id="sort_order"
+                                       name="sort_order"
+                                       min="0"
+                                       value="{{ form_values.get('sort_order', resource.sort_order if is_edit else 0) }}">
+                                <div class="form-text">数字越小越靠前</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch mb-3">
+                                <input type="hidden" name="is_active" value="0">
+                                {% set active_value = form_values.get('is_active', resource.is_active if is_edit else True) %}
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       id="is_active"
+                                       name="is_active"
+                                       value="1"
+                                       {% if active_value in [True, '1', 'true', 1, 'on'] %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">激活状态</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{{ url_for('tags.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>返回列表
+                        </a>
+                        <button type="submit" class="btn btn-primary" data-resource-submit>
+                            <i class="fas fa-save me-2"></i>{{ '保存更改' if is_edit else '创建标签' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/tags/form.js') }}"></script>
+{% endblock %}

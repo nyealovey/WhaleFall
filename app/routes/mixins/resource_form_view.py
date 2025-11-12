@@ -37,12 +37,12 @@ class ResourceFormView(MethodView):
     # HTTP Methods
     # ------------------------------------------------------------------ #
     def get(self, resource_id: int | None = None, **kwargs) -> str:
-        resource = self._load_resource(resource_id or kwargs.get("instance_id"))
+        resource = self._load_resource(self._resolve_resource_id(resource_id, kwargs))
         context = self._build_context(resource, form_data=None)
         return render_template(self.form_definition.template, **context)
 
     def post(self, resource_id: int | None = None, **kwargs) -> str | Response:
-        resource = self._load_resource(resource_id or kwargs.get("instance_id"))
+        resource = self._load_resource(self._resolve_resource_id(resource_id, kwargs))
         payload = self._extract_payload(request)
 
         result = self.service.upsert(payload, resource)
@@ -64,6 +64,14 @@ class ResourceFormView(MethodView):
         if resource_id is None:
             return None
         return self.service.load(resource_id)
+
+    def _resolve_resource_id(self, resource_id: int | None, kwargs: dict[str, Any]) -> int | None:
+        if resource_id is not None:
+            return resource_id
+        for key in ("instance_id", "credential_id", "tag_id", "classification_id", "rule_id", "user_id"):
+            if kwargs.get(key) is not None:
+                return kwargs[key]
+        return None
 
     def _extract_payload(self, req) -> Mapping[str, Any]:
         if req.is_json:
