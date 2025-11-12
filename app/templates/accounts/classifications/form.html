@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}{{ '编辑账户分类' if resource else '创建账户分类' }} - 鲸落{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center" id="classification-form-root"
+     data-form-mode="{{ form_mode }}"
+     {% if resource %}data-classification-id="{{ resource.id }}"{% endif %}>
+    <div class="col-8">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas {{ 'fa-edit' if resource else 'fa-plus' }} me-2"></i>
+                    {{ '编辑账户分类' if resource else '创建账户分类' }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if form_errors %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>{{ form_errors }}
+                </div>
+                {% endif %}
+                <form method="POST" id="classificationForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">分类名称 <span class="text-danger">*</span></label>
+                        <input type="text"
+                               class="form-control"
+                               id="name"
+                               name="name"
+                               value="{{ (form_data.get('name') if form_data else resource.name) if resource else form_data.get('name','') }}"
+                               required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述</label>
+                        <textarea class="form-control"
+                                  id="description"
+                                  name="description"
+                                  rows="3">{{ form_data.get('description') if form_data else (resource.description if resource else '') }}</textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="risk_level" class="form-label">风险等级</label>
+                                {% set current_risk = form_data.get('risk_level') if form_data else (resource.risk_level if resource else 'medium') %}
+                                <select class="form-select" id="risk_level" name="risk_level">
+                                    {% for option in risk_level_options %}
+                                    <option value="{{ option.value }}" {% if option.value == current_risk %}selected{% endif %}>
+                                        {{ option.label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="color" class="form-label">显示颜色</label>
+                                {% set current_color = form_data.get('color') if form_data else (resource.color if resource else 'info') %}
+                                <select class="form-select" id="color" name="color" required>
+                                    <option value="">请选择颜色</option>
+                                    {% for option in color_options %}
+                                    <option value="{{ option.value }}" {% if option.value == current_color %}selected{% endif %}>
+                                        {{ option.name }} - {{ option.description }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">图标选择</label>
+                        {% set current_icon = form_data.get('icon_name') if form_data else (resource.icon_name if resource else 'fa-tag') %}
+                        <div class="row">
+                            {% for option in icon_options %}
+                            <div class="col-2">
+                                <div class="form-check">
+                                    <input class="form-check-input"
+                                           type="radio"
+                                           name="icon_name"
+                                           id="icon_{{ option.value }}"
+                                           value="{{ option.value }}"
+                                           {% if option.value == current_icon %}checked{% endif %}>
+                                    <label class="form-check-label" for="icon_{{ option.value }}">
+                                        <i class="fas {{ option.value }}"></i> {{ option.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="priority" class="form-label">优先级</label>
+                        <input type="number"
+                               class="form-control"
+                               id="priority"
+                               name="priority"
+                               value="{{ form_data.get('priority') if form_data else (resource.priority if resource else 0) }}"
+                               min="0"
+                               max="100">
+                        <div class="form-text">数字越大优先级越高，用于控制显示与规则匹配顺序</div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('account_classification.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>返回
+                        </a>
+                        <button type="submit" class="btn btn-primary" data-resource-submit>
+                            <i class="fas fa-save me-2"></i>{{ '保存更改' if resource else '创建分类' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/accounts/classifications/form.js') }}"></script>
+{% endblock %}

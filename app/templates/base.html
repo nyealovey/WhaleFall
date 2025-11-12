@@ -211,11 +211,11 @@
 
     <!-- 通用工具组件 -->
 
-    <!-- Axios 库（必须在 config.js 之前加载） -->
+    <!-- Axios 库（必须在 http-client.js 之前加载） -->
     <script src="{{ url_for('static', filename='vendor/axios/axios.min.js') }}"></script>
     
-    <!-- Axios 配置（必须在其他JS之前加载） -->
-    <script src="{{ url_for('static', filename='js/common/config.js') }}"></script>
+    <!-- HTTP 客户端配置（必须在其他JS之前加载） -->
+    <script src="{{ url_for('static', filename='js/common/http-client.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/toast.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/just-validate/just-validate.production.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils/form-validator.js') }}"></script>

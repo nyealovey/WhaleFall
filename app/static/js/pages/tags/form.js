@@ -6,10 +6,22 @@
 (function () {
     'use strict';
 
+    let validator = null;
+    let controller = null;
+
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('tagForm');
         if (!form) {
             return;
+        }
+
+        const root = document.getElementById('tag-form-root');
+        const mode = root?.dataset.formMode || 'create';
+
+        if (window.ResourceFormController) {
+            controller = new window.ResourceFormController(form, {
+                loadingText: mode === 'edit' ? '保存中...' : '创建中...',
+            });
         }
 
         if (!window.FormValidator || !window.ValidationRules) {
@@ -17,7 +29,7 @@
             return;
         }
 
-        const validator = window.FormValidator.create('#tagForm');
+        validator = window.FormValidator.create('#tagForm');
         if (!validator) {
             return;
         }
@@ -28,60 +40,47 @@
             .useRules('#category', window.ValidationRules.tag.category)
             .useRules('#sort_order', window.ValidationRules.tag.sortOrder)
             .onSuccess(function (event) {
-                const targetForm = event.target;
-                setSubmittingState(targetForm, true);
-                targetForm.submit();
+                controller?.toggleLoading(true);
+                event.target.submit();
             })
             .onFail(function () {
-                toast.error('请检查标签表单填写');
+                window.toast?.error('请检查标签表单填写');
             });
 
-        setupRealtimeValidation(validator);
+        setupRealtimeValidation();
+        initializeColorPreview();
     });
 
-    function setupRealtimeValidation(validator) {
-        const nameInput = document.getElementById('name');
-        if (nameInput) {
-            nameInput.addEventListener('blur', function () {
-                validator.revalidateField('#name');
-            });
-        }
-
-        const displayNameInput = document.getElementById('display_name');
-        if (displayNameInput) {
-            displayNameInput.addEventListener('blur', function () {
-                validator.revalidateField('#display_name');
-            });
-        }
-
-        const categorySelect = document.getElementById('category');
-        if (categorySelect) {
-            categorySelect.addEventListener('change', function () {
-                validator.revalidateField('#category');
-            });
-        }
-
-        const sortOrderInput = document.getElementById('sort_order');
-        if (sortOrderInput) {
-            sortOrderInput.addEventListener('input', function () {
-                validator.revalidateField('#sort_order');
-            });
-        }
+    function setupRealtimeValidation() {
+        const map = {
+            '#name': 'blur',
+            '#display_name': 'blur',
+            '#category': 'change',
+            '#sort_order': 'input',
+        };
+        Object.entries(map).forEach(([selector, eventName]) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                element.addEventListener(eventName, function () {
+                    validator?.revalidateField(selector);
+                });
+            }
+        });
     }
 
-    function setSubmittingState(form, isSubmitting) {
-        const submitBtn = form.querySelector('button[type="submit"]');
-        if (!submitBtn) {
+    function initializeColorPreview() {
+        const select = document.getElementById('color');
+        const preview = document.getElementById('colorPreview');
+        if (!select || !preview) {
             return;
         }
 
-        if (isSubmitting) {
-            submitBtn.dataset.originalText = submitBtn.dataset.originalText || submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>提交中...';
-            submitBtn.disabled = true;
-        } else if (submitBtn.dataset.originalText) {
-            submitBtn.innerHTML = submitBtn.dataset.originalText;
-            submitBtn.disabled = false;
-        }
+        const updatePreview = () => {
+            const value = select.value || 'primary';
+            preview.className = 'badge bg-' + value;
+        };
+
+        select.addEventListener('change', updatePreview);
+        updatePreview();
     }
 })();

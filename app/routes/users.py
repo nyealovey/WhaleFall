@@ -3,15 +3,15 @@
 鲸落 - 用户管理路由
 """
 
-import re
-
 from flask import Blueprint, Response, flash, render_template, request
 from flask_login import current_user, login_required
 
 from app import db
 from app.errors import ConflictError, ValidationError
-from app.constants import TaskStatus, UserRole, FlashCategory
+from app.constants import FlashCategory, HttpStatus, UserRole
 from app.models.user import User
+from app.routes.user_form_view import UserFormView
+from app.services.users import UserFormService
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -24,6 +24,7 @@ from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
 users_bp = Blueprint("users", __name__)
+_user_form_service = UserFormService()
 
 
 @users_bp.route("/")
@@ -119,58 +120,22 @@ def api_get_user(user_id: int) -> tuple[Response, int]:
 @require_csrf
 def api_create_user() -> tuple[Response, int]:
     """创建用户API"""
-    data = request.get_json() or {}
+    payload = request.get_json(silent=True) or {}
 
     log_info(
         "创建用户请求",
         module="users",
         user_id=current_user.id,
-        request_data=data,
+        request_data=payload,
     )
 
-    required_fields = ["username", "password", "role"]
-    for field in required_fields:
-        if not data.get(field):
-            raise ValidationError(f"缺少必填字段: {field}")
+    result = _user_form_service.upsert(payload)
+    if not result.success or not result.data:
+        if result.message_key == UserFormService.MESSAGE_USERNAME_EXISTS:
+            raise ConflictError(result.message or "用户名已存在")
+        raise ValidationError(result.message or "用户创建失败")
 
-    username = data["username"].strip()
-    password = data["password"]
-    role = data["role"]
-    is_active = data.get("is_active", True)
-
-    if not re.match(r"^[a-zA-Z0-9_]{3,20}$", username):
-        raise ValidationError("用户名只能包含字母、数字和下划线，长度3-20位")
-
-    if User.query.filter_by(username=username).first():
-        raise ConflictError("用户名已存在")
-
-    if role not in ["admin", "user"]:
-        raise ValidationError("角色只能是admin或user")
-
-    try:
-        user = User(username=username, password=password, role=role)
-    except ValueError as exc:
-        log_error(
-            "创建用户失败: 密码不符合要求",
-            module="users",
-            user_id=current_user.id,
-            error=str(exc),
-        )
-        raise ValidationError(f"密码不符合要求: {exc}") from exc
-
-    user.is_active = is_active
-    db.session.add(user)
-    try:
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(
-            "创建用户失败",
-            module="users",
-            user_id=current_user.id,
-            error=str(exc),
-        )
-        raise
+    user = result.data
 
     log_info(
         "创建用户成功",
@@ -196,60 +161,23 @@ def api_create_user() -> tuple[Response, int]:
 def api_update_user(user_id: int) -> tuple[Response, int]:
     """更新用户API"""
     user = User.query.get_or_404(user_id)
-    data = request.get_json() or {}
+    payload = request.get_json(silent=True) or {}
 
     log_info(
         "更新用户请求",
         module="users",
         user_id=current_user.id,
         target_user_id=user_id,
-        request_data=data,
+        request_data=payload,
     )
 
-    if "username" in data:
-        username = data["username"].strip()
-        if not re.match(r"^[a-zA-Z0-9_]{3,20}$", username):
-            raise ValidationError("用户名只能包含字母、数字和下划线，长度3-20位")
+    result = _user_form_service.upsert(payload, user)
+    if not result.success or not result.data:
+        if result.message_key == UserFormService.MESSAGE_USERNAME_EXISTS:
+            raise ConflictError(result.message or "用户名已存在")
+        raise ValidationError(result.message or "用户更新失败")
 
-        existing_user = User.query.filter(User.username == username, User.id != user_id).first()
-        if existing_user:
-            raise ConflictError("用户名已存在")
-
-        user.username = username
-
-    if "password" in data and data["password"]:
-        try:
-            user.set_password(data["password"])
-        except ValueError as exc:
-            log_error(
-                "更新用户失败: 密码不符合要求",
-                module="users",
-                user_id=current_user.id,
-                target_user_id=user_id,
-                error=str(exc),
-            )
-            raise ValidationError(f"密码不符合要求: {exc}") from exc
-
-    if "role" in data:
-        if data["role"] not in ["admin", "user"]:
-            raise ValidationError("角色只能是admin或user")
-        user.role = data["role"]
-
-    if "is_active" in data:
-        user.is_active = bool(data["is_active"])
-
-    try:
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(
-            "更新用户失败",
-            module="users",
-            user_id=current_user.id,
-            target_user_id=user_id,
-            error=str(exc),
-        )
-        raise
+    user = result.data
 
     log_info(
         "更新用户",
@@ -343,3 +271,28 @@ def api_get_stats() -> tuple[Response, int]:
     }
 
     return jsonify_unified_success(data=data)
+
+
+# ---------------------------------------------------------------------------
+# 表单路由
+# ---------------------------------------------------------------------------
+_user_create_view = UserFormView.as_view("user_create_form")
+_user_create_view = login_required(create_required(require_csrf(_user_create_view)))
+
+users_bp.add_url_rule(
+    "/create",
+    view_func=_user_create_view,
+    methods=["GET", "POST"],
+    defaults={"resource_id": None},
+    endpoint="create",
+)
+
+_user_edit_view = UserFormView.as_view("user_edit_form")
+_user_edit_view = login_required(update_required(require_csrf(_user_edit_view)))
+
+users_bp.add_url_rule(
+    "/<int:user_id>/edit",
+    view_func=_user_edit_view,
+    methods=["GET", "POST"],
+    endpoint="edit",
+)
