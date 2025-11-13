@@ -1,6 +1,8 @@
 (function (window, document) {
   "use strict";
 
+  const LodashUtils = window.LodashUtils || null;
+
   const DEFAULT_ENDPOINTS = {
     tags: "/tags/api/tags",
     categories: "/tags/api/categories",
@@ -31,6 +33,58 @@
     if (!window.http || typeof window.http.get !== "function") {
       throw new Error("window.http 未初始化，无法加载标签数据");
     }
+  }
+
+  function orderCategories(items) {
+    const collection = Array.isArray(items) ? items.filter(Boolean) : [];
+    let processed = collection;
+    if (LodashUtils?.uniqBy) {
+      processed = LodashUtils.uniqBy(processed, "value");
+    } else {
+      const seen = new Set();
+      processed = processed.filter((item) => {
+        const key = (item?.value ?? "").toString();
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+    }
+    if (LodashUtils?.orderBy) {
+      return LodashUtils.orderBy(processed, ["label"], ["asc"]);
+    }
+    return processed.slice().sort((a, b) => {
+      const aLabel = (a?.label || "").toLowerCase();
+      const bLabel = (b?.label || "").toLowerCase();
+      return aLabel.localeCompare(bLabel);
+    });
+  }
+
+  function orderTags(items) {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+    if (LodashUtils?.orderBy) {
+      return LodashUtils.orderBy(
+        items,
+        [
+          (tag) => (tag.is_active === false ? 1 : 0),
+          (tag) => (tag.display_name || tag.name || "").toLowerCase(),
+        ],
+        ["asc", "asc"],
+      );
+    }
+    return items.slice().sort((a, b) => {
+      const aInactive = a.is_active === false ? 1 : 0;
+      const bInactive = b.is_active === false ? 1 : 0;
+      if (aInactive !== bInactive) {
+        return aInactive - bInactive;
+      }
+      const aName = (a.display_name || a.name || "").toLowerCase();
+      const bName = (b.display_name || b.name || "").toLowerCase();
+      return aName.localeCompare(bName);
+    });
   }
 
   function formatNumber(value) {
@@ -238,17 +292,23 @@
 
       group.innerHTML = "";
 
-      const list = Array.isArray(categories)
-        ? categories
-        : [];
-
-      const finalItems = [
-        { value: "all", label: "全部" },
-        ...list.map((item) => ({
+      const list = Array.isArray(categories) ? categories : [];
+      const mapped = list
+        .map((item) => ({
           value: Array.isArray(item) ? item[0] : item?.value ?? item?.name,
-          label: Array.isArray(item) ? item[1] : item?.label ?? item?.display_name ?? item?.value ?? "未命名",
-        })),
-      ];
+          label:
+            Array.isArray(item)
+              ? item[1]
+              : item?.label ??
+                item?.display_name ??
+                item?.value ??
+                "未命名",
+        }))
+        .filter((item) => item.value);
+
+      const orderedCategories = orderCategories(mapped);
+
+      const finalItems = [{ value: "all", label: "全部" }, ...orderedCategories];
 
       const fragment = document.createDocumentFragment();
       finalItems.forEach(({ value, label }, index) => {
@@ -297,7 +357,8 @@
           response?.tags ??
           response?.data ??
           [];
-        this.state.allTags = Array.isArray(tags) ? tags : [];
+        const normalized = Array.isArray(tags) ? tags : [];
+        this.state.allTags = orderTags(normalized);
         this.state.filteredTags = [...this.state.allTags];
         this.updateStats();
         this.renderTagList();
@@ -436,6 +497,7 @@
         );
       });
 
+      this.state.filteredTags = orderTags(this.state.filteredTags);
       this.renderTagList();
       this.updateStats();
     }
@@ -508,19 +570,21 @@
         return;
       }
 
-      if (!this.state.selectedIds.size) {
+      const selectedTags = orderTags(
+        Array.from(this.state.selectedIds)
+          .map((id) => this.state.allTags.find((item) => item.id === id))
+          .filter(Boolean),
+      );
+
+      if (!selectedTags.length) {
         selectedList.innerHTML = "";
         selectedEmpty.hidden = false;
         return;
       }
 
       selectedEmpty.hidden = true;
-      const chips = Array.from(this.state.selectedIds)
-        .map((id) => {
-          const tag = this.state.allTags.find((item) => item.id === id);
-          if (!tag) {
-            return "";
-          }
+      const chips = selectedTags
+        .map((tag) => {
           const badge = resolveBadge(tag);
           return `
             <span class="tag-chip ${badge.className}" ${badge.style ? `style="${badge.style}"` : ""} data-role="selected-chip" data-tag-id="${tag.id}" ${badge.variant ? `data-variant="${badge.variant}"` : ""}>
@@ -635,9 +699,10 @@
 
     getSelectedTags() {
       const selected = Array.from(this.state.selectedIds);
-      return selected
+      const tags = selected
         .map((id) => this.state.allTags.find((tag) => tag.id === id))
         .filter(Boolean);
+      return orderTags(tags);
     }
 
     ready() {
