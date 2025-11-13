@@ -279,13 +279,10 @@ function getStatusColor(status) {
  * 格式化文件大小
  */
 function formatSize(mb) {
-    if (window.NumberFormat) {
-        return window.NumberFormat.formatBytesFromMB(mb, {
-            precision: 2,
-            fallback: '0 B',
-        });
-    }
-    return `${mb || 0} MB`;
+    return window.NumberFormat.formatBytesFromMB(mb, {
+        precision: 2,
+        fallback: '0 B',
+    });
 }
 
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数

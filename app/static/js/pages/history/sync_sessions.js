@@ -489,18 +489,6 @@
     if (!s || !e) return '<span class="text-muted">-</span>';
     
     const sec = (e - s) / 1000;
-    if (window.NumberFormat) {
-      return window.NumberFormat.formatDurationSeconds(sec);
-    }
-    if (sec < 60) {
-      const rounded = Math.round(sec * 10) / 10;
-      return `<span class="badge bg-info">${rounded}秒</span>`;
-    }
-    if (sec < 3600) {
-      const rounded = Math.round((sec / 60) * 10) / 10;
-      return `<span class="badge bg-info">${rounded}分钟</span>`;
-    }
-    const rounded = Math.round((sec / 3600) * 10) / 10;
-    return `<span class="badge bg-info">${rounded}小时</span>`;
+    return window.NumberFormat.formatDurationSeconds(sec);
   }
 })();

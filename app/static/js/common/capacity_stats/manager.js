@@ -68,10 +68,7 @@
   };
 
   function formatDate(date) {
-    if (window.formatDate) {
-      return window.formatDate(date);
-    }
-    return date.toISOString().split("T")[0];
+    return window.formatDate(date);
   }
 
   function getCurrentPeriodRange(baseDate, periodType) {
