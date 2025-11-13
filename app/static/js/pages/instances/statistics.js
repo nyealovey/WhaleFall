@@ -121,8 +121,21 @@ function getChartOptions() {
                 callbacks: {
                     label: function(context) {
                         const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = ((context.parsed / total) * 100).toFixed(1);
-                        return `${context.label}: ${context.parsed} 个实例 (${percentage}%)`;
+                        const valueLabel = window.NumberFormat
+                            ? window.NumberFormat.formatInteger(context.parsed, { fallback: '0' })
+                            : `${context.parsed}`;
+                        let percentLabel = '0%';
+                        if (total > 0) {
+                            const ratio = context.parsed / total;
+                            percentLabel = window.NumberFormat
+                                ? window.NumberFormat.formatPercent(ratio, {
+                                    precision: 1,
+                                    trimZero: true,
+                                    inputType: 'ratio'
+                                  })
+                                : `${Math.round(ratio * 1000) / 10}%`;
+                        }
+                        return `${context.label}: ${valueLabel} 个实例 (${percentLabel})`;
                     }
                 }
             }

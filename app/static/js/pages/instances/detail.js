@@ -375,6 +375,20 @@ function getInstanceName() {
     return '未知实例';
 }
 
+function formatGbLabelFromMb(mbValue) {
+    const numeric = Number(mbValue) || 0;
+    if (window.NumberFormat) {
+        return window.NumberFormat.formatBytesFromMB(numeric, {
+            unit: 'GB',
+            precision: 3,
+            trimZero: false,
+            fallback: '0 GB',
+        });
+    }
+    const gbValue = Math.round((numeric / 1024) * 1000) / 1000;
+    return `${gbValue} GB`;
+}
+
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
 // 数据库容量相关函数
@@ -430,7 +444,7 @@ function displayDatabaseSizes(payload) {
     }
 
     const totalSize = Number(payload?.total_size_mb ?? 0) || 0;
-    const totalSizeGB = (totalSize / 1024).toFixed(3);
+    const totalSizeLabel = formatGbLabelFromMb(totalSize);
 
     const filteredCount = Number(payload?.filtered_count ?? 0) || 0;
     const activeCount = Number(payload?.active_count ?? (databases.length - filteredCount));
@@ -462,7 +476,7 @@ function displayDatabaseSizes(payload) {
             <div class="col-4">
                 <div class="card bg-light">
                     <div class="card-body text-center">
-                        <h5 class="card-title text-success">${totalSizeGB} GB</h5>
+                        <h5 class="card-title text-success">${totalSizeLabel}</h5>
                         <p class="card-text text-muted">总容量</p>
                     </div>
                 </div>
@@ -494,7 +508,7 @@ function displayDatabaseSizes(payload) {
     databases.forEach(db => {
         const isActive = db.is_active !== false;
         const sizeValue = Number(db.size_mb) || 0;
-        const sizeGB = (sizeValue / 1024).toFixed(3);
+        const sizeLabel = formatGbLabelFromMb(sizeValue);
         const collectedAt = db.collected_at ? timeUtils.formatDateTime(db.collected_at) : '未采集';
 
         const iconClass = isActive ? 'text-primary' : 'text-muted';
@@ -512,7 +526,7 @@ function displayDatabaseSizes(payload) {
             sizeBadgeClass = 'badge bg-primary';
         }
 
-        const sizeLabel = sizeValue > 0 ? `${sizeGB} GB` : '<span class="text-muted">无数据</span>';
+        const displaySize = sizeValue > 0 ? sizeLabel : '<span class="text-muted">无数据</span>';
 
         // 状态列显示
         const statusBadge = isActive
@@ -536,7 +550,7 @@ function displayDatabaseSizes(payload) {
                     </div>
                 </td>
                 <td>
-                    ${sizeValue > 0 ? `<span class="${sizeBadgeClass}">${sizeGB} GB</span>` : sizeLabel}
+                    ${sizeValue > 0 ? `<span class="${sizeBadgeClass}">${sizeLabel}</span>` : displaySize}
                 </td>
                 <td>
                     ${statusBadge}
