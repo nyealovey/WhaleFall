@@ -532,10 +532,13 @@ class AggregationsChartManager {
      * 格式化大小（从MB）
      */
     static formatSizeFromMB(mb) {
-        if (mb === 0) return '0 B';
-        if (mb < 1024) return `${mb.toFixed(2)} MB`;
-        if (mb < 1024 * 1024) return `${(mb / 1024).toFixed(2)} GB`;
-        return `${(mb / (1024 * 1024)).toFixed(2)} TB`;
+        if (window.NumberFormat) {
+            return window.NumberFormat.formatBytesFromMB(mb, {
+                precision: 2,
+                fallback: '0 B'
+            });
+        }
+        return `${mb || 0} MB`;
     }
     
     /**
@@ -544,16 +547,6 @@ class AggregationsChartManager {
     formatDateTime(dateString) {
         // 使用统一的时间格式化
         return timeUtils.formatDateTime(dateString);
-        if (isNaN(date.getTime())) return '-';
-        
-        return date.toLocaleString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
     }
 }
 
