@@ -143,6 +143,12 @@ function batchTestConnections() {
     // 使用连接管理API进行批量测试
     connectionManager
         .batchTestConnections(selectedInstances, {
+            onProgress: (result) => {
+                const payload = result?.data || result;
+                if (progressContainer) {
+                    connectionManager.showBatchTestProgress(payload, 'batch-test-progress');
+                }
+            },
             onError: (error) => {
                 toast.error(error.error || '批量测试失败');
             },
