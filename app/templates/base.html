@@ -213,6 +213,10 @@
 
     <!-- Axios 库（必须在 http-client.js 之前加载） -->
     <script src="{{ url_for('static', filename='vendor/axios/axios.min.js') }}"></script>
+
+    <!-- Numeral.js 及统一数字格式化工具 -->
+    <script src="{{ url_for('static', filename='vendor/numeral/numeral.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common/number-format.js') }}"></script>
     
     <!-- HTTP 客户端配置（必须在其他JS之前加载） -->
     <script src="{{ url_for('static', filename='js/common/http-client.js') }}"></script>

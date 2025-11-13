@@ -34,7 +34,10 @@
   }
 
   function formatNumber(value) {
-    return Number(value || 0).toLocaleString();
+    if (window.NumberFormat) {
+      return window.NumberFormat.formatInteger(value, { fallback: "0" });
+    }
+    return `${Math.round(Number(value || 0))}`;
   }
 
   function resolveBadge(tag) {
