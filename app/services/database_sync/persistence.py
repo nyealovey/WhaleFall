@@ -149,22 +149,22 @@ class CapacityPersistence:
             "updated_at": now_utc,
         }
 
-          insert_stmt = pg_insert(InstanceSizeStat).values(payload)
-          upsert_stmt = insert_stmt.on_conflict_do_update(
-              index_elements=[
-                  InstanceSizeStat.instance_id,
-                  InstanceSizeStat.collected_date,
-              ],
-              index_where=InstanceSizeStat.is_deleted.is_(False),
-              set_={
-                  "total_size_mb": insert_stmt.excluded.total_size_mb,
-                  "database_count": insert_stmt.excluded.database_count,
-                  "collected_at": insert_stmt.excluded.collected_at,
-                  "updated_at": insert_stmt.excluded.updated_at,
-                  "is_deleted": False,
-                  "deleted_at": None,
-              },
-          )
+        insert_stmt = pg_insert(InstanceSizeStat).values(payload)
+        upsert_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=[
+                InstanceSizeStat.instance_id,
+                InstanceSizeStat.collected_date,
+            ],
+            index_where=InstanceSizeStat.is_deleted.is_(False),
+            set_={
+                "total_size_mb": insert_stmt.excluded.total_size_mb,
+                "database_count": insert_stmt.excluded.database_count,
+                "collected_at": insert_stmt.excluded.collected_at,
+                "updated_at": insert_stmt.excluded.updated_at,
+                "is_deleted": False,
+                "deleted_at": None,
+            },
+        )
 
         try:
             db.session.execute(upsert_stmt)
