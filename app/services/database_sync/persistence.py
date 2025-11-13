@@ -151,10 +151,7 @@ class CapacityPersistence:
 
         insert_stmt = pg_insert(InstanceSizeStat).values(payload)
         upsert_stmt = insert_stmt.on_conflict_do_update(
-            index_elements=[
-                InstanceSizeStat.instance_id,
-                InstanceSizeStat.collected_date,
-            ],
+            constraint="uq_instance_size_stats_instance_date",
             set_={
                 "total_size_mb": insert_stmt.excluded.total_size_mb,
                 "database_count": insert_stmt.excluded.database_count,
