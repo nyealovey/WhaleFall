@@ -146,16 +146,50 @@ function batchTestConnections() {
     }
     
     // 使用连接管理API进行批量测试
-    connectionManager.batchTestConnections(selectedInstances, {
-        onProgress: (result) => {
-            if (progressContainer) {
-                connectionManager.showBatchTestProgress(result, 'batch-test-progress');
+    connectionManager
+        .batchTestConnections(selectedInstances, {
+            onProgress: (result) => {
+                const payload = result?.data || result;
+                if (progressContainer) {
+                    connectionManager.showBatchTestProgress(payload, 'batch-test-progress');
+                }
+            },
+            onError: (error) => {
+                toast.error(error.error || '批量测试失败');
+            },
+        })
+        .then((result) => {
+            if (!result) {
+                toast.error('批量测试失败');
+                return;
             }
-        },
-        onError: (error) => {
-            toast.error(error.error || '批量测试失败');
-        }
-    });
+
+            if (result.success === false && !result.data) {
+                toast.error(result.error || '批量测试失败');
+                return;
+            }
+
+            const payload = result.data || result;
+            if (!payload) {
+                toast.info(result.message || '批量测试完成');
+                return;
+            }
+
+            const summary = payload.summary || {};
+            const total = summary.total ?? selectedInstances.length;
+            const successCount = summary.success ?? 0;
+            const failedCount = summary.failed ?? Math.max(total - successCount, 0);
+            const toastMessage = `批量连接测试完成：成功 ${successCount} / ${total}${failedCount > 0 ? `，失败 ${failedCount}` : ''}`;
+
+            if (failedCount > 0) {
+                toast.warning(toastMessage);
+            } else {
+                toast.success(toastMessage);
+            }
+        })
+        .catch((error) => {
+            toast.error(error?.message || '批量测试失败');
+        });
 }
 
 // 获取选中的实例ID列表
