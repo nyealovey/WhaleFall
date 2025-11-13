@@ -116,6 +116,18 @@ def create_app(
     # 配置模板过滤器
     configure_template_filters(app)
 
+    if init_scheduler_on_start:
+        from app.scheduler import init_scheduler
+
+        try:
+            init_scheduler(app)
+        except Exception as e:
+            # 调度器初始化失败不影响应用启动
+            from app.utils.structlog_config import get_system_logger
+
+            scheduler_logger = get_system_logger()
+            scheduler_logger.error("调度器初始化失败，应用将继续启动: %s", str(e))
+
     return app
 
 
@@ -437,18 +449,6 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(database_aggr_bp, url_prefix='/database_aggr')
     app.register_blueprint(instance_aggr_bp, url_prefix='/instance_aggr')
     app.register_blueprint(files_bp)
-
-    if init_scheduler_on_start:
-        from app.scheduler import init_scheduler
-
-        try:
-            init_scheduler(app)
-        except Exception as e:
-            # 调度器初始化失败不影响应用启动
-            from app.utils.structlog_config import get_system_logger
-
-            scheduler_logger = get_system_logger()
-            scheduler_logger.error("调度器初始化失败，应用将继续启动: %s", str(e))
 
 
 def configure_logging(app: Flask) -> None:
