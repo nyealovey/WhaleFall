@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable, List
 
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -155,7 +155,7 @@ class CapacityPersistence:
                 InstanceSizeStat.instance_id,
                 InstanceSizeStat.collected_date,
             ],
-            index_where=InstanceSizeStat.is_deleted.is_(False),
+            index_where=text("is_deleted = false"),
             set_={
                 "total_size_mb": insert_stmt.excluded.total_size_mb,
                 "database_count": insert_stmt.excluded.database_count,
