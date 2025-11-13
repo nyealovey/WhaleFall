@@ -6,7 +6,10 @@
   const SummaryCards = window.CapacityStatsSummaryCards;
   const Filters = window.CapacityStatsFilters;
   const ChartRenderer = window.CapacityStatsChartRenderer;
-  const LodashUtils = window.LodashUtils || null;
+  const LodashUtils = window.LodashUtils;
+  if (!LodashUtils) {
+    throw new Error("LodashUtils 未初始化");
+  }
   const toast = window.toast || null;
 
   const DEFAULT_CONFIG = {
@@ -65,10 +68,7 @@
   };
 
   function formatDate(date) {
-    if (window.formatDate) {
-      return window.formatDate(date);
-    }
-    return date.toISOString().split("T")[0];
+    return window.formatDate(date);
   }
 
   function getCurrentPeriodRange(baseDate, periodType) {
@@ -161,14 +161,8 @@
 
   class CapacityStatsManager {
     constructor(userConfig) {
-      const userOverrides = userConfig
-        ? LodashUtils?.cloneDeep
-          ? LodashUtils.cloneDeep(userConfig)
-          : Object.assign({}, userConfig)
-        : {};
-      this.config = LodashUtils?.merge
-        ? LodashUtils.merge({}, DEFAULT_CONFIG, userOverrides)
-        : Object.assign({}, DEFAULT_CONFIG, userOverrides);
+      const userOverrides = userConfig ? LodashUtils.cloneDeep(userConfig) : {};
+      this.config = LodashUtils.merge({}, DEFAULT_CONFIG, userOverrides);
 
       if (!this.config.labelExtractor || typeof this.config.labelExtractor !== "function") {
         throw new Error("CapacityStatsManager: 缺少 labelExtractor 配置");

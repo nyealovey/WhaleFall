@@ -41,9 +41,9 @@ curl -L https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.js \
      2. 影响面大的页面脚本（实例列表、容量统计、历史同步等）  
      3. 其余散点逻辑
 
-3. **保持兼容**  
-   - 封装层仍暴露熟悉的函数签名（如 `utils/debounce(fn, wait)`），内部再调用 Lodash，对外使用感知不变。
-   - 对导出到窗口的工具（若有）需继续挂载，以免模板或第三方脚本报错。
+3. **统一出口**  
+   - 封装层直接转发 Lodash 提供的方法（如 `cloneDeep`, `merge`, `debounce` 等），对外保持统一 API。
+   - 所有业务代码禁止直接访问 `window._`，统一通过 `window.LodashUtils`。
 
 4. **命名与规范**  
    - 引入新文件/函数名需遵循 `docs/refactoring/命名规范重构指南.md`，提交前运行 `./scripts/refactor_naming.sh --dry-run`。
@@ -54,40 +54,24 @@ curl -L https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.js \
 ```js
 // app/static/js/common/lodash-utils.js
 (function (window) {
-  \"use strict\";
+  "use strict";
   const lodash = window._;
   if (!lodash) {
-    console.warn(\"Lodash 未加载，lodash-utils 将提供降级实现\");
+    throw new Error("Lodash 未加载");
   }
 
-  function cloneDeep(value) {
-    if (lodash && typeof lodash.cloneDeep === \"function\") {
-      return lodash.cloneDeep(value);
-    }
-    return JSON.parse(JSON.stringify(value));
-  }
-
-  function debounce(fn, wait, options) {
-    if (lodash && typeof lodash.debounce === \"function\") {
-      return lodash.debounce(fn, wait, options);
-    }
-    let timeout;
-    return function (...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => fn.apply(this, args), wait);
-    };
-  }
-
-  // ... 其他封装
+  const wrap = (method) => method.bind(lodash);
 
   window.LodashUtils = {
-    cloneDeep,
-    debounce,
-    throttle: lodash?.throttle?.bind(lodash),
-    merge: lodash?.merge?.bind(lodash),
-    uniqBy: lodash?.uniqBy?.bind(lodash),
-    orderBy: lodash?.orderBy?.bind(lodash),
-    isEqual: lodash?.isEqual?.bind(lodash),
+    cloneDeep: wrap(lodash.cloneDeep),
+    merge: wrap(lodash.merge),
+    debounce: wrap(lodash.debounce),
+    throttle: wrap(lodash.throttle),
+    uniqBy: wrap(lodash.uniqBy),
+    orderBy: wrap(lodash.orderBy),
+    isEqual: wrap(lodash.isEqual),
+    get: wrap(lodash.get),
+    set: wrap(lodash.set),
   };
 })(window);
 ```
@@ -114,7 +98,7 @@ curl -L https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.js \
 
 - **体积增加**：默认 `lodash.min.js` ~70KB gzip，可接受；若需进一步瘦身，可评估使用 `lodash-es` + 构建工具，当前阶段先以 vendor 方式上线。
 - **全局命名冲突**：Lodash 默认暴露 `_`，若担心冲突，可在封装层内部引用并避免全局滥用。
-- **渐进式迁移**：可在旧逻辑旁保留降级实现（如上例），确保即使缺少 `_` 也能运行，逐步移除回退代码。
+- **渐进式迁移**：可按模块划分批次逐步替换旧逻辑，确保验证路径清晰。
 
 ## 后续计划
 

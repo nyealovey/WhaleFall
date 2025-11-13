@@ -1,7 +1,11 @@
 (function (window) {
   "use strict";
 
-  const hasNumeral = typeof window.numeral === "function";
+  const numeralLib = window.numeral;
+  if (typeof numeralLib !== "function") {
+    throw new Error("Numeral.js 未加载，无法初始化 NumberFormat");
+  }
+
   const UNIT_IN_BYTES = {
     B: 1,
     KB: 1024,
@@ -31,10 +35,7 @@
     if (numeric === null) {
       return fallback ?? "--";
     }
-    if (!hasNumeral) {
-      return `${numeric}`;
-    }
-    return window.numeral(numeric).format(pattern);
+    return numeralLib(numeric).format(pattern);
   }
 
   function formatInteger(value, options = {}) {
@@ -43,10 +44,7 @@
       return options.fallback ?? "0";
     }
     const rounded = Math.round(numeric);
-    if (!hasNumeral) {
-      return `${rounded}`;
-    }
-    return window.numeral(rounded).format("0,0");
+    return numeralLib(rounded).format("0,0");
   }
 
   function formatDecimal(value, options = {}) {
@@ -81,22 +79,13 @@
         ? options.precision
         : 2;
     const targetUnit = normalizeUnit(options.unit);
-    if (!hasNumeral) {
-      if (targetUnit) {
-        const value = numeric / UNIT_IN_BYTES[targetUnit];
-        const factor = Math.pow(10, precision);
-        const rounded = factor ? Math.round(value * factor) / factor : value;
-        return `${rounded} ${targetUnit}`;
-      }
-      return `${numeric} B`;
-    }
     if (!targetUnit || options.unit === "auto") {
       const pattern = precision > 0 ? `0,0.${"0".repeat(precision)} b` : "0,0 b";
-      return window.numeral(numeric).format(pattern);
+      return numeralLib(numeric).format(pattern);
     }
     const value = numeric / UNIT_IN_BYTES[targetUnit];
     const pattern = buildDecimalPattern(precision, options.trimZero ?? true);
-    return `${window.numeral(value).format(pattern)} ${targetUnit}`;
+    return `${numeralLib(value).format(pattern)} ${targetUnit}`;
   }
 
   function formatBytesFromMB(value, options = {}) {
@@ -134,14 +123,7 @@
     const ratio = inputType === "ratio" ? numeric : numeric / 100;
     const basePattern = buildDecimalPattern(precision, options.trimZero ?? false);
     const pattern = `${options.showSign ? "+" : ""}${basePattern}%`;
-    if (!hasNumeral) {
-      const valueToFormat = ratio * 100;
-      const factor = Math.pow(10, precision);
-      const rounded = factor ? Math.round(valueToFormat * factor) / factor : valueToFormat;
-      const prefix = options.showSign && rounded > 0 ? "+" : "";
-      return `${prefix}${rounded}%`;
-    }
-    return window.numeral(ratio).format(pattern);
+    return numeralLib(ratio).format(pattern);
   }
 
   function formatDurationSeconds(value) {
