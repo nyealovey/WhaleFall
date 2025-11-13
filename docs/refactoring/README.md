@@ -1,8 +1,8 @@
 # 命名规范重构文档
 
-> 基于全面代码扫描，发现 **73+ 项命名问题**
+> 基于最新代码扫描，识别出 **79 项命名一致性问题 + 60+ 项语义问题**
 > 
-> 提供完整的重构方案、自动化工具和详细文档
+> 提供完整的重构方案、执行顺序和命令模板，便于后续重构
 
 本目录包含项目命名规范重构的相关文档和工具。
 
@@ -12,17 +12,17 @@
 
 | 类别 | 数量 | 状态 |
 |-----|------|------|
-| 后端文件命名问题 | 17 个 | 🔴 待重构 |
+| 后端文件命名问题 | 18 个 | 🔴 待重构 |
 | 前端目录命名问题 | 5 个 | 🔴 待重构 |
 | 前端 JS 文件命名问题 | 13 个 | 🔴 待重构 |
 | 前端 CSS 文件命名问题 | 8 个 | 🔴 待重构 |
-| 函数命名问题（基础） | 35+ 个 | 🟡 待重构 |
+| 函数命名问题（基础） | 38 个 | 🟡 待重构 |
 | 函数语义问题（深度） | 60+ 个 | 🟡 待分析 |
-| **总计** | **138+ 项** | - |
+| **总计** | **139 项** | - |
 
 **预计工作量**: 5-7 天  
 **风险等级**: 低-中  
-**自动化程度**: 目录和文件重命名 100% 自动化
+**执行方式**: 推荐执行 `scripts/refactor_naming.sh`（支持 dry-run / skip-tests），亦可按命令模板手动处理
 
 ---
 
@@ -57,7 +57,7 @@
 
 快速参考清单，包括：
 - 按优先级排序的重构任务（🔴 高、🟡 中、🟢 低）
-- 快速执行脚本
+- 可复制的命令模板
 - 验证清单
 - 预计时间和风险评估
 - 回滚计划
@@ -68,9 +68,9 @@
 ### 4. [完整重构清单](./完整重构清单.md)
 
 详细的重构任务清单，包括：
-- 所有 78+ 项重构任务的完整列表
+- 所有 79 项重构任务的完整列表
 - 详细的重命名对照表
-- 自动化脚本代码
+- 命令模板 / 示例脚本
 - 执行顺序建议
 - 验证清单
 
@@ -112,77 +112,82 @@
 
 ## 自动化工具
 
-### 重构脚本
+### scripts/refactor_naming.sh
 
-位置: `scripts/refactor_naming.sh`
-
-#### 功能
-
-- 自动重命名后端文件
-- 自动重命名前端文件
-- 自动更新导入路径
-- 自动更新前端引用
-- 运行测试验证
-- 生成重构报告
-
-#### 使用方法
+- **定位**: `scripts/refactor_naming.sh`
+- **功能**:
+  - 先重命名前端目录，再处理后端/前端文件
+  - 自动更新 Python 导入与前端引用
+  - 支持 `--dry-run`（只打印，不修改）与 `--skip-tests`
+  - 默认在完成后运行 `make test` / `make quality`
+  - 生成 `docs/refactoring/重构执行报告_*.md`
 
 ```bash
-# 1. 预览模式（不实际修改文件）
+# 预览所有操作
 ./scripts/refactor_naming.sh --dry-run
 
-# 2. 执行重构
+# 实际执行并自动生成报告
 ./scripts/refactor_naming.sh
 
-# 3. 查看帮助
-./scripts/refactor_naming.sh --help
+# 如已手动验证，可跳过测试
+./scripts/refactor_naming.sh --skip-tests
 ```
 
-#### 注意事项
+## 命令模板（可选）
 
-- 执行前确保工作目录干净（无未提交更改）
-- 脚本会自动创建备份标签
-- 脚本会自动创建重构分支
-- 建议先在 dry-run 模式下预览
+如需只执行部分操作，可参考下列命令片段（与脚本保持一致次序）：
+
+```bash
+# 目录重命名
+git mv app/static/js/pages/capacity_stats app/static/js/pages/capacity-stats
+
+# 文件重命名
+git mv app/views/account_classification_form_view.py app/views/classification_forms.py
+
+# 更新导入（macOS）
+rg -l "from app\.routes\.database_aggr" app \
+  | xargs sed -i '' 's/from app\.routes\.database_aggr/from app.routes.database_aggregations/g'
+
+# 搜索残留引用
+rg "capacity_stats/" app/static app/templates
+```
 
 ## 重构流程
 
 ### 快速开始（推荐）
 
-⚠️ **重要**: 请先阅读 [执行顺序说明](./执行顺序说明.md) 了解为什么顺序很重要！
+⚠️ **重要**: 请先阅读 [执行顺序说明](./执行顺序说明.md)，脚本也是按该顺序执行的。
 
 ```bash
 # 1. 确保工作目录干净
 git status
 
-# 2. 阅读执行顺序说明（重要！）
+# 2. 阅读执行顺序与完整清单
 cat docs/refactoring/执行顺序说明.md
+cat docs/refactoring/完整重构清单.md
 
-# 3. 预览重构（推荐）
+# 3. 预览脚本（可多次执行）
 ./scripts/refactor_naming.sh --dry-run
 
-# 4. 执行重构（脚本会按正确顺序执行）
+# 4. 执行重构
 ./scripts/refactor_naming.sh
 
-# 5. 查看重构报告
-cat docs/refactoring/重构执行报告_*.md
-
-# 6. 推送更改
-git push origin refactor/naming-conventions-YYYYMMDD
+# 5. 查看报告 & 推送
+ls docs/refactoring/重构执行报告_*.md | tail -n 1
+git checkout -b refactor/naming-$(date +%Y%m%d)
+git commit -am "refactor: rename legacy modules"
 ```
 
-**脚本执行顺序**（已优化）：
-1. ✅ 先重命名目录（5 个）
-2. ✅ 再重命名文件（38 个）
-3. ✅ 最后更新引用（一次性完成）
+### 详细执行建议
 
-### 手动执行（高级）
-
-如果需要更精细的控制，可以参考[命名规范重构指南](./命名规范重构指南.md)中的详细步骤手动执行。
+- 即使使用脚本，也建议先 `--dry-run` 核对输出。
+- 脚本支持断点重试；若部分重命名已完成，会自动跳过。
+- 如需定制操作，可结合“命令模板”章节手动执行。
+- 默认模式会在最后运行 `make test` / `make quality` 并生成执行报告。
 
 ## 重构范围
 
-### 高优先级（已包含在自动化脚本中）
+### 高优先级（建议优先执行）
 
 ✅ 后端文件重命名
 - 路由文件（`database_aggr.py` → `database_aggregations.py` 等）
@@ -223,9 +228,9 @@ git push origin refactor/naming-conventions-YYYYMMDD
 
 ## 验证和测试
 
-### 自动验证
+### 建议的自动验证
 
-脚本会自动运行以下验证：
+在每个阶段结束后运行以下命令：
 
 ```bash
 # 单元测试
@@ -250,33 +255,33 @@ make quality
 
 ## 回滚方案
 
-如果重构出现问题，可以使用以下方法回滚：
+在执行任何批量重命名前，建议手动创建标签或临时分支，便于回滚。
 
-### 方法 1: 使用备份标签
+### 方法 1: 创建/恢复标签
 
 ```bash
-# 查看备份标签
-git tag | grep backup-before-refactor
+# 操作前创建标签
+git tag backup-before-naming-$(date +%Y%m%d%H%M%S)
 
-# 回滚到备份点
-git reset --hard backup-before-refactor-YYYYMMDD_HHMMSS
+# 出现问题时回滚
+git reset --hard backup-before-naming-20251113XXXXXX
 ```
 
-### 方法 2: 删除重构分支
+### 方法 2: 使用临时分支
 
 ```bash
-# 切换回主分支
+# 在独立分支上重构
+git checkout -b refactor/naming-conventions
+
+# 若需要放弃，直接删除分支
 git checkout main
-
-# 删除重构分支
-git branch -D refactor/naming-conventions-YYYYMMDD
+git branch -D refactor/naming-conventions
 ```
 
-### 方法 3: 回滚特定文件
+### 方法 3: 回滚单个文件
 
 ```bash
-# 回滚单个文件
-git checkout backup-before-refactor-YYYYMMDD_HHMMSS -- <file_path>
+git checkout backup-before-naming-20251113XXXXXX -- path/to/file.py
 ```
 
 ## 常见问题
@@ -288,18 +293,26 @@ A: 文件重命名和导入路径更新不会影响功能，但需要充分测�
 ### Q: 重构需要多长时间？
 
 A: 
-- 自动化脚本执行: 5-10 分钟
-- 测试验证: 1-2 小时
-- 手动函数/类重命名: 3-5 天
-- 总计: 3-7 天（取决于范围）
+- 文件与目录重命名：半天内可完成（含引用排查）
+- 函数重命名：约 2-3 天，需要更新所有调用
+- 类/变量优化：按模块切分，预计 1-2 天
+- 验证与回归：1 天
+
+整体周期取决于并行度和代码评审安排，通常 5-7 天即可完成一次集中重构。
 
 ### Q: 可以分阶段执行吗？
 
-A: 可以。建议按优先级分阶段执行：
-1. 第一阶段: 文件重命名（使用自动化脚本）
-2. 第二阶段: 函数重命名（手动执行）
-3. 第三阶段: 类重命名（手动执行）
-4. 第四阶段: 变量优化（可选）
+A: 可以。建议按优先级分阶段推进：
+1. 目录 → 文件（后端/前端）
+2. 函数命名（API、聚合函数、optimized 后缀）
+3. 类与变量命名
+4. 文档与注释收尾
+
+每个阶段完成后立即合并，避免长期分叉。
+
+### Q: 可以自动化吗？
+
+A: 可以。使用 `scripts/refactor_naming.sh` 即可完成目录/文件重命名、引用替换、测试与报告生成。如需定制，可在该脚本基础上扩展更多校验逻辑。
 
 ### Q: 如何确保不遗漏任何引用？
 
@@ -341,8 +354,8 @@ A: 是的，需要更新：
 
 ## 更新日志
 
-- 2025-11-12: 创建初始重构文档和自动化脚本
-- 待更新: 执行重构后的实际结果
+- 2025-11-13: 同步最新代码状态、恢复 `scripts/refactor_naming.sh` 并补充 dry-run / 报告能力。
+- 2025-11-12: 创建初始重构文档。
 
 ---
 
