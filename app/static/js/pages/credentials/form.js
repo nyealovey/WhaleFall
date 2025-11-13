@@ -114,7 +114,7 @@
         event.target.submit();
       })
       .onFail(() => {
-        window.toast?.error('请检查表单填写');
+        window.toast.error('请检查表单填写');
       });
   }
 

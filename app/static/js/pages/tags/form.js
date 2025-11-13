@@ -44,7 +44,7 @@
                 event.target.submit();
             })
             .onFail(function () {
-                window.toast?.error('请检查标签表单填写');
+                window.toast.error('请检查标签表单填写');
             });
 
         setupRealtimeValidation();

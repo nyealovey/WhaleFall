@@ -41,15 +41,15 @@
         http.delete(`/users/api/users/${userId}`)
             .then((data) => {
                 if (data.success) {
-                    window.toast?.success(data.message || '用户删除成功');
+                    window.toast.success(data.message || '用户删除成功');
                     window.location.reload();
                 } else {
-                    window.toast?.error(data.message || '删除用户失败');
+                    window.toast.error(data.message || '删除用户失败');
                 }
             })
             .catch((error) => {
                 console.error('删除用户失败', error);
-                window.toast?.error('删除用户失败');
+                window.toast.error('删除用户失败');
             })
             .finally(() => {
                 hideLoadingState(trigger, '删除');
