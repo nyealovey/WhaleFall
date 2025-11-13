@@ -22,6 +22,7 @@ from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
 _scheduler_lock_handle = None
+_scheduler_lock_pid: int | None = None
 
 
 # 配置日志
@@ -136,11 +137,24 @@ def get_scheduler() -> Any:  # noqa: ANN401
 
 def _acquire_scheduler_lock() -> bool:
     """通过文件锁确保只有一个进程初始化调度器。"""
-    global _scheduler_lock_handle
+    global _scheduler_lock_handle, _scheduler_lock_pid
 
     if fcntl is None:
         logger.warning("当前平台不支持fcntl，无法加文件锁，可能存在多个调度器实例并发运行")
         return True
+
+    current_pid = os.getpid()
+
+    if _scheduler_lock_handle:
+        if _scheduler_lock_pid == current_pid:
+            return True
+        # 子进程继承了锁句柄，但并未真正持有锁，需要重新获取
+        try:
+            _scheduler_lock_handle.close()
+        except Exception:  # pragma: no cover - 防御性释放
+            pass
+        _scheduler_lock_handle = None
+        _scheduler_lock_pid = None
 
     if _scheduler_lock_handle:
         return True
@@ -153,6 +167,7 @@ def _acquire_scheduler_lock() -> bool:
         handle.write(str(os.getpid()))
         handle.flush()
         _scheduler_lock_handle = handle
+        _scheduler_lock_pid = current_pid
         logger.info("调度器锁已获取，当前进程负责运行定时任务", pid=os.getpid())
         return True
     except BlockingIOError:
@@ -166,7 +181,7 @@ def _acquire_scheduler_lock() -> bool:
 
 
 def _release_scheduler_lock() -> None:
-    global _scheduler_lock_handle
+    global _scheduler_lock_handle, _scheduler_lock_pid
     if fcntl is None or not _scheduler_lock_handle:
         return
     try:
@@ -179,6 +194,7 @@ def _release_scheduler_lock() -> None:
         pass
     finally:
         _scheduler_lock_handle = None
+        _scheduler_lock_pid = None
 
 
 atexit.register(_release_scheduler_lock)

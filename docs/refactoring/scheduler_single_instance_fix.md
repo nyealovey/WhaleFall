@@ -34,6 +34,8 @@
 - `app.py`、`wsgi.py`：入口显式启用调度器。
 - 所有任务脚本/API 线程：`create_app(init_scheduler_on_start=False)`。
 - 测试与密码脚本：同样禁用调度器。
+- `app/scheduler.py`：文件锁记录持有 PID，子进程继承时会重新争抢锁，防止预加载或多进程模式下重复初始化。
+- `nginx/gunicorn/gunicorn-prod.conf.py`：生产模式关闭 `preload_app`，确保调度器只在真实的工作进程内启动。
 
 ## 验证步骤
 1. **启动 Flask/Gunicorn**：`python app.py` 或 `gunicorn wsgi:application`，日志应仅出现一次 “调度器初始化完成”。
