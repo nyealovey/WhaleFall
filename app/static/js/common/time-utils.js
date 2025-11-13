@@ -1,403 +1,449 @@
-/**
- * 统一时间处理工具 - 前端版本（强制统一版）
- * 与后端 time_utils.py 保持完全一致的时间处理逻辑
- * 删除所有兼容函数，强制使用统一的时间处理方式
- */
+(function (window) {
+  "use strict";
 
-// 时区配置 - 与后端保持一致
-const TIMEZONE = 'Asia/Shanghai';
-const LOCALE = 'zh-CN';
+  const TIMEZONE = "Asia/Shanghai";
+  const LOCALE = "zh-cn";
+  const PARSE_FORMATS = [
+    "YYYY-MM-DD HH:mm:ss",
+    "YYYY-MM-DDTHH:mm:ss",
+    "YYYY/MM/DD HH:mm:ss",
+    "YYYY-MM-DD",
+    "YYYY/MM/DD",
+    "YYYY-MM-DD HH:mm",
+    "YYYY-MM-DDTHH:mm:ss.SSSZ",
+    "YYYY-MM-DDTHH:mm:ss[Z]",
+    "YYYY-MM-DDTHH:mm:ss.SSS",
+  ];
 
-// 时间格式常量 - 与后端 TimeFormats 类完全一致
-const TimeFormats = {
-    DATETIME_FORMAT: '%Y-%m-%d %H:%M:%S',
-    DATE_FORMAT: '%Y-%m-%d',
-    TIME_FORMAT: '%H:%M:%S',
-    DATETIME_MS_FORMAT: '%Y-%m-%d %H:%M:%S.%f',
-    ISO_FORMAT: '%Y-%m-%dT%H:%M:%S.%fZ',
-    CHINESE_DATETIME_FORMAT: '%Y年%m月%d日 %H:%M:%S',
-    CHINESE_DATE_FORMAT: '%Y年%m月%d日'
-};
+  const TimeFormats = {
+    DATETIME_FORMAT: "%Y-%m-%d %H:%M:%S",
+    DATE_FORMAT: "%Y-%m-%d",
+    TIME_FORMAT: "%H:%M:%S",
+    DATETIME_MS_FORMAT: "%Y-%m-%d %H:%M:%S.%f",
+    ISO_FORMAT: "%Y-%m-%dT%H:%M:%S.%fZ",
+    CHINESE_DATETIME_FORMAT: "%Y年%m月%d日 %H:%M:%S",
+    CHINESE_DATE_FORMAT: "%Y年%m月%d日",
+  };
 
-// 创建统一的格式化器
-const formatters = {
-    datetime: new Intl.DateTimeFormat(LOCALE, {
-        timeZone: TIMEZONE,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-        formatMatcher: 'basic'
-    }),
-    date: new Intl.DateTimeFormat(LOCALE, {
-        timeZone: TIMEZONE,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    }),
-    time: new Intl.DateTimeFormat(LOCALE, {
-        timeZone: TIMEZONE,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    }),
-    relative: new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' })
-};
+  const CUSTOM_PARSE_ENABLED = Boolean(window.dayjs_plugin_customParseFormat);
 
-/**
- * 前端时间工具类 - 与后端 TimeUtils 类保持一致
- */
-const TimeUtils = {
-    /**
-     * 统一时间格式化函数 - 与后端 time_utils.format_china_time 保持一致
-     * @param {string|Date} timestamp - 时间戳
-     * @param {string} type - 格式类型: 'datetime', 'date', 'time', 'chinese'
-     * @returns {string} 格式化后的时间字符串
-     */
-    formatTime: function(timestamp, type = 'datetime') {
-        if (!timestamp) return '-';
-        
-        try {
-            const date = new Date(timestamp);
-            if (isNaN(date.getTime())) return '-';
-            
-            // 后端已经返回中国时区时间，前端直接格式化
-            switch (type) {
-                case 'datetime':
-                    return this.formatDateTimeString(date);
-                case 'date':
-                    return this.formatDateString(date);
-                case 'time':
-                    return this.formatTimeString(date);
-                case 'chinese':
-                    return this.formatChineseDateTimeString(date);
-                default:
-                    return this.formatDateTimeString(date);
-            }
-        } catch (e) {
-            console.error('时间格式化错误:', e, '输入:', timestamp);
-            return '-';
-        }
-    },
+  function registerZhCnLocale(dayjs) {
+    const localeConfig = {
+      name: LOCALE,
+      weekdays: "星期日_星期一_星期二_星期三_星期四_星期五_星期六".split("_"),
+      weekdaysShort: "周日_周一_周二_周三_周四_周五_周六".split("_"),
+      weekdaysMin: "日_一_二_三_四_五_六".split("_"),
+      months: "一月_二月_三月_四月_五月_六月_七月_八月_九月_十月_十一月_十二月".split("_"),
+      monthsShort: "1月_2月_3月_4月_5月_6月_7月_8月_9月_10月_11月_12月".split("_"),
+      weekStart: 1,
+      formats: {
+        LT: "HH:mm",
+        LTS: "HH:mm:ss",
+        L: "YYYY/MM/DD",
+        LL: "YYYY年M月D日",
+        LLL: "YYYY年M月D日 HH:mm",
+        LLLL: "YYYY年M月D日dddd HH:mm",
+        l: "YYYY/M/D",
+        ll: "YYYY年M月D日",
+        lll: "YYYY年M月D日 HH:mm",
+        llll: "YYYY年M月D日dddd HH:mm",
+      },
+      relativeTime: {
+        future: "%s后",
+        past: "%s前",
+        s: "几秒",
+        m: "1 分钟",
+        mm: "%d 分钟",
+        h: "1 小时",
+        hh: "%d 小时",
+        d: "1 天",
+        dd: "%d 天",
+        M: "1 个月",
+        MM: "%d 个月",
+        y: "1 年",
+        yy: "%d 年",
+      },
+    };
+    dayjs.locale(localeConfig, null, true);
+  }
 
-    /**
-     * 格式化日期时间字符串 (YYYY-MM-DD HH:mm:ss)
-     * @param {Date} date - 日期对象
-     * @returns {string} 格式化后的字符串
-     */
-    formatDateTimeString: function(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    },
-
-    /**
-     * 格式化日期字符串 (YYYY-MM-DD)
-     * @param {Date} date - 日期对象
-     * @returns {string} 格式化后的字符串
-     */
-    formatDateString: function(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    },
-
-    /**
-     * 格式化时间字符串 (HH:mm:ss)
-     * @param {Date} date - 日期对象
-     * @returns {string} 格式化后的字符串
-     */
-    formatTimeString: function(date) {
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${hours}:${minutes}:${seconds}`;
-    },
-
-    /**
-     * 格式化中文日期时间字符串 (YYYY年MM月DD日 HH:mm:ss)
-     * @param {Date} date - 日期对象
-     * @returns {string} 格式化后的字符串
-     */
-    formatChineseDateTimeString: function(date) {
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
-    },
-
-    /**
-     * 格式化日期时间（默认格式）- 与后端 time_utils.format_china_time 保持一致
-     * @param {string|Date} timestamp - 时间戳
-     * @returns {string} 格式化后的日期时间字符串
-     */
-    formatDateTime: function(timestamp) {
-        return this.formatTime(timestamp, 'datetime');
-    },
-
-    /**
-     * 格式化日期（不包含时间）
-     * @param {string|Date} timestamp - 时间戳
-     * @returns {string} 格式化后的日期字符串
-     */
-    formatDate: function(timestamp) {
-        return this.formatTime(timestamp, 'date');
-    },
-
-    /**
-     * 格式化时间（不包含日期）
-     * @param {string|Date} timestamp - 时间戳
-     * @returns {string} 格式化后的时间字符串
-     */
-    formatTimeOnly: function(timestamp) {
-        return this.formatTime(timestamp, 'time');
-    },
-
-    /**
-     * 相对时间格式化（如：2小时前）- 与后端 time_utils.get_relative_time 保持一致
-     * @param {string|Date} timestamp - 时间戳
-     * @returns {string} 相对时间字符串
-     */
-    formatRelativeTime: function(timestamp) {
-        if (!timestamp) return '-';
-        
-        try {
-            const date = new Date(timestamp);
-            if (isNaN(date.getTime())) return '-';
-            
-            const now = new Date();
-            const diffMs = now - date; // 注意：这里是 now - date，表示过去的时间
-            const diffSeconds = Math.round(diffMs / 1000);
-            
-            if (diffSeconds < 60) {
-                return '刚刚';
-            } else if (diffSeconds < 3600) {
-                const minutes = Math.floor(diffSeconds / 60);
-                return `${minutes}分钟前`;
-            } else if (diffSeconds < 86400) {
-                const hours = Math.floor(diffSeconds / 3600);
-                return `${hours}小时前`;
-            } else if (diffSeconds < 604800) { // 7天
-                const days = Math.floor(diffSeconds / 86400);
-                return `${days}天前`;
-            } else {
-                // 超过7天显示完整时间
-                return this.formatDateTime(timestamp);
-            }
-        } catch (e) {
-            console.error('相对时间格式化错误:', e, '输入:', timestamp);
-            return '-';
-        }
-    },
-
-    /**
-     * 判断是否为今天 - 与后端 time_utils.is_today 保持一致
-     * @param {string|Date} timestamp - 时间戳
-     * @returns {boolean} 是否为今天
-     */
-    isToday: function(timestamp) {
-        if (!timestamp) return false;
-        
-        try {
-            const date = new Date(timestamp);
-            if (isNaN(date.getTime())) return false;
-            
-            const now = new Date();
-            
-            // 比较年月日
-            return date.getFullYear() === now.getFullYear() &&
-                   date.getMonth() === now.getMonth() &&
-                   date.getDate() === now.getDate();
-        } catch (e) {
-            console.error('判断是否为今天时出错:', e, '输入:', timestamp);
-            return false;
-        }
-    },
-
-    /**
-     * 判断是否为昨天
-     * @param {string|Date} timestamp - 时间戳
-     * @returns {boolean} 是否为昨天
-     */
-    isYesterday: function(timestamp) {
-        if (!timestamp) return false;
-        
-        try {
-            const date = new Date(timestamp);
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            
-            return date.toDateString() === yesterday.toDateString();
-        } catch (e) {
-            return false;
-        }
-    },
-
-    /**
-     * 获取时间范围 - 与后端 time_utils.get_time_range 保持一致
-     * @param {number} hours - 小时数
-     * @returns {Object} 时间范围对象
-     */
-    getTimeRange: function(hours = 24) {
-        const now = new Date();
-        let start;
-        
-        if (hours < 24) {
-            // 小于24小时，从当前时间往前推
-            start = new Date(now.getTime() - hours * 60 * 60 * 1000);
-        } else {
-            // 24小时或更多，从今天0点开始
-            start = new Date(now);
-            start.setHours(0, 0, 0, 0);
-            if (hours > 24) {
-                start.setTime(start.getTime() - (hours - 24) * 60 * 60 * 1000);
-            }
-        }
-        
-        return {
-            start: start.toISOString(),
-            end: now.toISOString(),
-            startFormatted: this.formatDateTime(start),
-            endFormatted: this.formatDateTime(now),
-            startDate: this.formatDate(start),
-            endDate: this.formatDate(now)
-        };
-    },
-
-    /**
-     * 智能时间显示（根据时间远近选择合适格式）- 与后端模板过滤器保持一致
-     * @param {string|Date} timestamp - 时间戳
-     * @returns {string} 智能格式化的时间字符串
-     */
-    formatSmartTime: function(timestamp) {
-        if (!timestamp) return '-';
-        
-        try {
-            const date = new Date(timestamp);
-            if (isNaN(date.getTime())) return '-';
-            
-            if (this.isToday(timestamp)) {
-                // 今天显示时间
-                return this.formatTimeOnly(timestamp);
-            } else {
-                // 其他日期显示完整日期时间
-                return this.formatDateTime(timestamp);
-            }
-        } catch (e) {
-            console.error('智能时间格式化错误:', e, '输入:', timestamp);
-            return '-';
-        }
-    },
-
-    /**
-     * 验证时间格式
-     * @param {string} timeString - 时间字符串
-     * @returns {boolean} 是否为有效时间格式
-     */
-    isValidTime: function(timeString) {
-        if (!timeString) return false;
-        
-        try {
-            const date = new Date(timeString);
-            return !isNaN(date.getTime());
-        } catch (e) {
-            return false;
-        }
-    },
-
-    /**
-     * 获取当前中国时间 - 与后端 time_utils.now_china 保持一致
-     * @returns {Date} 当前中国时间
-     */
-    getChinaTime: function() {
-        // 注意：JavaScript 中直接 new Date() 已经是本地时间
-        // 如果需要确保是中国时区，可以使用 Intl API
-        return new Date();
-    },
-
-    /**
-     * 将UTC时间转换为中国时间 - 与后端 time_utils.to_china 保持一致
-     * @param {string|Date} utcTime - UTC时间
-     * @returns {Date|null} 中国时间
-     */
-    toChina: function(utcTime) {
-        if (!utcTime) return null;
-        
-        try {
-            const date = new Date(utcTime);
-            if (isNaN(date.getTime())) return null;
-            
-            // 如果输入已经是中国时区时间（后端返回），直接返回
-            return date;
-        } catch (e) {
-            console.error('UTC转中国时间错误:', e, '输入:', utcTime);
-            return null;
-        }
-    },
-
-    /**
-     * 验证并解析时间字符串 - 与后端 time_utils.to_china 保持一致
-     * @param {string|Date} timeString - 时间字符串或Date对象
-     * @returns {Date|null} 解析后的Date对象
-     */
-    parseTime: function(timeString) {
-        if (!timeString) return null;
-        
-        try {
-            if (timeString instanceof Date) {
-                return isNaN(timeString.getTime()) ? null : timeString;
-            }
-            
-            // 处理ISO格式字符串
-            let dateStr = timeString;
-            if (typeof dateStr === 'string') {
-                if (dateStr.endsWith('Z')) {
-                    dateStr = dateStr.slice(0, -1) + '+00:00';
-                }
-            }
-            
-            const date = new Date(dateStr);
-            return isNaN(date.getTime()) ? null : date;
-        } catch (e) {
-            console.error('时间解析错误:', e, '输入:', timeString);
-            return null;
-        }
+  function setupDayjs() {
+    if (typeof window.dayjs !== "function") {
+      console.warn("Day.js 未加载，timeUtils 将回退至原生 Date 实现");
+      return null;
     }
-};
 
-// 创建全局实例 - 与后端 time_utils 实例保持一致
-window.timeUtils = TimeUtils;
+    const dayjs = window.dayjs;
+    const pluginMap = [
+      window.dayjs_plugin_utc,
+      window.dayjs_plugin_timezone,
+      window.dayjs_plugin_relativeTime,
+      window.dayjs_plugin_duration,
+      window.dayjs_plugin_customParseFormat,
+      window.dayjs_plugin_localizedFormat,
+    ];
 
-// 导出时间格式常量
-window.TimeFormats = TimeFormats;
+    pluginMap.forEach((plugin) => {
+      if (typeof plugin === "function") {
+        dayjs.extend(plugin);
+      }
+    });
 
-// 为了保持向后兼容，提供全局函数（强制统一后逐步迁移）
-window.formatTime = TimeUtils.formatTime.bind(TimeUtils);
-window.formatDateTime = TimeUtils.formatDateTime.bind(TimeUtils);
-window.formatDate = TimeUtils.formatDate.bind(TimeUtils);
-window.formatTimeOnly = TimeUtils.formatTimeOnly.bind(TimeUtils);
-window.formatRelativeTime = TimeUtils.formatRelativeTime.bind(TimeUtils);
-window.isToday = TimeUtils.isToday.bind(TimeUtils);
-window.isYesterday = TimeUtils.isYesterday.bind(TimeUtils);
-window.getTimeRange = TimeUtils.getTimeRange.bind(TimeUtils);
-window.formatSmartTime = TimeUtils.formatSmartTime.bind(TimeUtils);
-window.isValidTime = TimeUtils.isValidTime.bind(TimeUtils);
-window.getChinaTime = TimeUtils.getChinaTime.bind(TimeUtils);
-window.parseTime = TimeUtils.parseTime.bind(TimeUtils);
+    if (!dayjs.Ls || !dayjs.Ls[LOCALE]) {
+      registerZhCnLocale(dayjs);
+    }
+    dayjs.locale(LOCALE);
 
-// 删除兼容函数，强制使用统一方式
-// 不再提供：formatTimestamp, formatChinaTime, utcToChina 等兼容函数
+    if (dayjs.tz && typeof dayjs.tz.setDefault === "function") {
+      dayjs.tz.setDefault(TIMEZONE);
+    }
 
-// 初始化完成提示
+    return dayjs;
+  }
+
+  const dayjsLib = setupDayjs();
+  const hasDayjs = Boolean(dayjsLib);
+
+  function applyTimezone(instance) {
+    if (!instance) {
+      return null;
+    }
+    if (dayjsLib && dayjsLib.tz && typeof instance.tz === "function") {
+      return instance.tz(TIMEZONE);
+    }
+    return instance;
+  }
+
+  function tryCustomFormats(value) {
+    if (!hasDayjs || !CUSTOM_PARSE_ENABLED) {
+      return null;
+    }
+    for (let i = 0; i < PARSE_FORMATS.length; i += 1) {
+      const parsed = dayjsLib(value, PARSE_FORMATS[i], true);
+      if (parsed.isValid()) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
+  function toDayjs(value) {
+    if (!hasDayjs || value === undefined || value === null || value === "") {
+      return null;
+    }
+
+    if (dayjsLib.isDayjs && dayjsLib.isDayjs(value)) {
+      return applyTimezone(value);
+    }
+
+    let instance = null;
+
+    if (value instanceof Date) {
+      instance = dayjsLib(value);
+    } else if (typeof value === "number") {
+      instance = dayjsLib(value);
+    } else if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return null;
+      }
+      if (/^\d+$/.test(trimmed)) {
+        instance = dayjsLib(Number(trimmed));
+      } else {
+        instance = tryCustomFormats(trimmed);
+        if (!instance || !instance.isValid()) {
+          instance = dayjsLib(trimmed);
+        }
+        if ((!instance || !instance.isValid()) && dayjsLib.tz) {
+          instance = dayjsLib.tz(trimmed, TIMEZONE);
+        }
+      }
+    } else {
+      return null;
+    }
+
+    if (!instance || !instance.isValid()) {
+      return null;
+    }
+
+    return applyTimezone(instance);
+  }
+
+  function toNativeDate(value) {
+    if (value === undefined || value === null || value === "") {
+      return null;
+    }
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+    if (typeof value === "number") {
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? null : date;
+    }
+    if (typeof value === "string") {
+      let normalized = value.trim();
+      if (!normalized) {
+        return null;
+      }
+      if (normalized.endsWith("Z")) {
+        normalized = normalized;
+      } else if (!/[+-]\d{2}:?\d{2}$/.test(normalized) && normalized.length === 19) {
+        normalized = normalized.replace(" ", "T");
+      }
+      const date = new Date(normalized);
+      return isNaN(date.getTime()) ? null : date;
+    }
+    return null;
+  }
+
+  function formatWithPattern(value, pattern, fallback = "-") {
+    const instance = toDayjs(value);
+    if (!instance) {
+      const nativeDate = toNativeDate(value);
+      if (!nativeDate) {
+        return fallback;
+      }
+      return formatWithNativePattern(nativeDate, pattern, fallback);
+    }
+    return instance.format(pattern);
+  }
+
+  function formatWithNativePattern(date, pattern, fallback = "-") {
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      return fallback;
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    switch (pattern) {
+      case "YYYY-MM-DD HH:mm:ss":
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      case "YYYY-MM-DD":
+        return `${year}-${month}-${day}`;
+      case "HH:mm:ss":
+        return `${hours}:${minutes}:${seconds}`;
+      case "YYYY年MM月DD日 HH:mm:ss":
+        return `${year}年${date.getMonth() + 1}月${date.getDate()}日 ${hours}:${minutes}:${seconds}`;
+      default:
+        return date.toISOString();
+    }
+  }
+
+  function formatChineseDateTimeString(value) {
+    const instance = toDayjs(value);
+    if (instance) {
+      return `${instance.year()}年${instance.month() + 1}月${instance.date()}日 ${instance.format(
+        "HH:mm:ss",
+      )}`;
+    }
+    const nativeDate = toNativeDate(value);
+    if (!nativeDate) {
+      return "-";
+    }
+    return formatWithNativePattern(nativeDate, "YYYY年MM月DD日 HH:mm:ss");
+  }
+
+  function diffInSeconds(timestamp) {
+    if (hasDayjs) {
+      const instance = toDayjs(timestamp);
+      if (!instance) {
+        return null;
+      }
+      return Math.round(dayjsLib().diff(instance, "second"));
+    }
+    const native = toNativeDate(timestamp);
+    if (!native) {
+      return null;
+    }
+    return Math.round((Date.now() - native.getTime()) / 1000);
+  }
+
+  function isSameDay(value, comparator = "today") {
+    if (hasDayjs) {
+      const instance = toDayjs(value);
+      if (!instance) {
+        return false;
+      }
+      const reference = comparator === "yesterday" ? dayjsLib().subtract(1, "day") : dayjsLib();
+      return instance.isSame(reference, "day");
+    }
+    const native = toNativeDate(value);
+    if (!native) {
+      return false;
+    }
+    const reference = new Date();
+    if (comparator === "yesterday") {
+      reference.setDate(reference.getDate() - 1);
+    }
+    return (
+      native.getFullYear() === reference.getFullYear() &&
+      native.getMonth() === reference.getMonth() &&
+      native.getDate() === reference.getDate()
+    );
+  }
+
+  function buildTimeRange(hours = 24) {
+    if (hasDayjs) {
+      const now = dayjsLib();
+      let start;
+      if (hours < 24) {
+        start = now.subtract(hours, "hour");
+      } else {
+        start = now.startOf("day");
+        if (hours > 24) {
+          start = start.subtract(hours - 24, "hour");
+        }
+      }
+      return {
+        start: start.toISOString(),
+        end: now.toISOString(),
+        startFormatted: start.format("YYYY-MM-DD HH:mm:ss"),
+        endFormatted: now.format("YYYY-MM-DD HH:mm:ss"),
+        startDate: start.format("YYYY-MM-DD"),
+        endDate: now.format("YYYY-MM-DD"),
+      };
+    }
+
+    const now = new Date();
+    let start;
+    if (hours < 24) {
+      start = new Date(now.getTime() - hours * 60 * 60 * 1000);
+    } else {
+      start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      if (hours > 24) {
+        start = new Date(start.getTime() - (hours - 24) * 60 * 60 * 1000);
+      }
+    }
+    return {
+      start: start.toISOString(),
+      end: now.toISOString(),
+      startFormatted: formatWithNativePattern(start, "YYYY-MM-DD HH:mm:ss"),
+      endFormatted: formatWithNativePattern(now, "YYYY-MM-DD HH:mm:ss"),
+      startDate: formatWithNativePattern(start, "YYYY-MM-DD"),
+      endDate: formatWithNativePattern(now, "YYYY-MM-DD"),
+    };
+  }
+
+  const TimeUtils = {
+    formatTime(timestamp, type = "datetime") {
+      switch (type) {
+        case "date":
+          return this.formatDate(timestamp);
+        case "time":
+          return this.formatTimeOnly(timestamp);
+        case "chinese":
+          return this.formatChineseDateTime(timestamp);
+        default:
+          return this.formatDateTime(timestamp);
+      }
+    },
+
+    formatDateTime(timestamp) {
+      return formatWithPattern(timestamp, "YYYY-MM-DD HH:mm:ss");
+    },
+
+    formatDate(timestamp) {
+      return formatWithPattern(timestamp, "YYYY-MM-DD");
+    },
+
+    formatTimeOnly(timestamp) {
+      return formatWithPattern(timestamp, "HH:mm:ss");
+    },
+
+    formatChineseDateTime(timestamp) {
+      return formatChineseDateTimeString(timestamp);
+    },
+
+    formatRelativeTime(timestamp) {
+      const diffSeconds = diffInSeconds(timestamp);
+      if (diffSeconds === null) {
+        return "-";
+      }
+      if (diffSeconds < 60) {
+        return "刚刚";
+      }
+      if (diffSeconds < 3600) {
+        const minutes = Math.floor(diffSeconds / 60);
+        return `${minutes}分钟前`;
+      }
+      if (diffSeconds < 86400) {
+        const hours = Math.floor(diffSeconds / 3600);
+        return `${hours}小时前`;
+      }
+      if (diffSeconds < 604800) {
+        const days = Math.floor(diffSeconds / 86400);
+        return `${days}天前`;
+      }
+      return this.formatDateTime(timestamp);
+    },
+
+    isToday(timestamp) {
+      return isSameDay(timestamp, "today");
+    },
+
+    isYesterday(timestamp) {
+      return isSameDay(timestamp, "yesterday");
+    },
+
+    getTimeRange(hours = 24) {
+      return buildTimeRange(hours);
+    },
+
+    formatSmartTime(timestamp) {
+      if (!timestamp) {
+        return "-";
+      }
+      if (this.isToday(timestamp)) {
+        return this.formatTimeOnly(timestamp);
+      }
+      return this.formatDateTime(timestamp);
+    },
+
+    isValidTime(timeString) {
+      if (toDayjs(timeString)) {
+        return true;
+      }
+      return Boolean(toNativeDate(timeString));
+    },
+
+    getChinaTime() {
+      if (hasDayjs) {
+        return dayjsLib().toDate();
+      }
+      return new Date();
+    },
+
+    toChina(timeString) {
+      const instance = toDayjs(timeString);
+      if (instance) {
+        return instance.toDate();
+      }
+      return toNativeDate(timeString);
+    },
+
+    parseTime(timeString) {
+      return this.toChina(timeString);
+    },
+  };
+
+  window.timeUtils = TimeUtils;
+  window.TimeFormats = TimeFormats;
+
+  window.formatTime = TimeUtils.formatTime.bind(TimeUtils);
+  window.formatDateTime = TimeUtils.formatDateTime.bind(TimeUtils);
+  window.formatDate = TimeUtils.formatDate.bind(TimeUtils);
+  window.formatTimeOnly = TimeUtils.formatTimeOnly.bind(TimeUtils);
+  window.formatRelativeTime = TimeUtils.formatRelativeTime.bind(TimeUtils);
+  window.isToday = TimeUtils.isToday.bind(TimeUtils);
+  window.isYesterday = TimeUtils.isYesterday.bind(TimeUtils);
+  window.getTimeRange = TimeUtils.getTimeRange.bind(TimeUtils);
+  window.formatSmartTime = TimeUtils.formatSmartTime.bind(TimeUtils);
+  window.isValidTime = TimeUtils.isValidTime.bind(TimeUtils);
+  window.getChinaTime = TimeUtils.getChinaTime.bind(TimeUtils);
+  window.parseTime = TimeUtils.parseTime.bind(TimeUtils);
+})(window);
