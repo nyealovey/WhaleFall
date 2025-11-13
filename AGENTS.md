@@ -9,9 +9,12 @@ Flask 服务位于 `app/`，拆分为若干聚焦模块：`api/` 负责服务端
 ## 编码风格与命名约定
 统一使用四个空格缩进，单行不超过 120 个字符。将 `app` 视为一方导入根目录，依赖 `black`、`isort`、`ruff` 完成格式化与静态检查。模块、函数、变量采用 `snake_case`，类名使用 `CapWords`，蓝图名称需与对应的路由模块保持一致。尽量使用结构化日志工具而非 `print`。
 
-### 命名规范守卫（强制要求）
-- **来源**: 所有命名规则以 `docs/refactoring/命名规范重构指南.md` 为准，禁止新增偏离该文档的文件、函数或目录命名。
-- **禁止示例**: 新增 `*_aggr.py`、`*_form_service.py`、函数前缀 `api_*`、后缀 `_api`、方法名带 `_optimized` 等都将被直接拒绝。`app/services/form_service/change_password_form_service.py` 虽为近期引入，但已列入重命名计划；类似命名不可再次出现。
+- **命名规范守卫（强制要求）**
+  - **模块/文件**: 使用完整单词加 `snake_case`，禁止缩写，如 `database_aggr.py`、`instance_aggr.py`。服务目录 `app/services/form_service/` 内文件名称不得再使用 `_form_service` 后缀，必须改为 `resource_service.py`、`password_service.py` 等。
+  - **路由/视图**: 蓝图函数必须以动词短语命名，例如 `list_instances`、`get_user`；禁止 `api_list`、`statistics_api` 之类前后缀。任何 `_api`、`api_` 前后缀均视为违规。
+  - **函数**: 不允许带实现细节的后缀，如 `_optimized`；聚合函数需使用单数：`get_database_aggregations`、`get_instance_aggregations`，不得出现 `databases_aggregations` 等复数嵌套。
+  - **前端资源**: JS/CSS/目录一律使用 kebab-case（`capacity-stats/database-aggregations.js`），禁止新增下划线命名。
+  - **最近违规示例**: `app/services/form_service/change_password_form_service.py`、`app/routes/users.py` 中的 `api_get_users()`。类似命名再次出现将直接驳回。
 - **提交前检查**: 在提交任何涉及命名/结构的改动前，必须运行 `./scripts/refactor_naming.sh --dry-run`，确认输出为“无需要替换的内容”；若脚本提示命名违规，需先修复再提交。
 - **代码评审清单**: PR 审查必须包含“命名规范”检查项；若发现新命名与指南不符，直接要求作者对齐或运行脚本修正。
 - **CI/质量门禁**: 若在 CI 中新增命名检测（建议扩展 `make quality`），脚本输出告警视为阻断条件，直至命名与文档一致。
