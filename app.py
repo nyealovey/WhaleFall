@@ -21,7 +21,7 @@ from app import create_app  # noqa: E402
 def main() -> None:
     """主函数"""
     # 创建Flask应用
-    app = create_app()
+    app = create_app(init_scheduler_on_start=True)
 
     # 获取配置
     host = os.environ.get("FLASK_HOST", "0.0.0.0")  # 容器内必须使用0.0.0.0

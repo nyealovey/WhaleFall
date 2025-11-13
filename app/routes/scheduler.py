@@ -331,7 +331,7 @@ def run_job(job_id: str) -> Response:
                     else:
                         from app import create_app
 
-                        app = create_app()  # type: ignore
+                        app = create_app(init_scheduler_on_start=False)  # type: ignore
                         with app.app_context():
                             job.func(*job.args, **(job.kwargs or {}))
 

@@ -17,7 +17,7 @@ from app.utils.time_utils import time_utils
 
 def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwargs: Any) -> None:  # noqa: ANN401
     """同步账户任务 - 同步所有实例的账户信息"""
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
 

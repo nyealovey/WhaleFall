@@ -16,7 +16,7 @@ keepalive = 2
 # 重启
 max_requests = 1000
 max_requests_jitter = 50
-preload_app = True
+preload_app = False
 
 # 日志配置
 accesslog = "/app/userdata/logs/gunicorn_access.log"
