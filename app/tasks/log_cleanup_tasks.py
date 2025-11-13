@@ -15,7 +15,7 @@ def cleanup_old_logs() -> None:
     """清理旧日志任务 - 清理30天前的日志和临时文件"""
     task_logger = get_task_logger()
 
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
             cutoff_date = time_utils.now() - timedelta(days=30)

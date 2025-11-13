@@ -25,7 +25,7 @@ def generate_random_password(length=12):
 
 def reset_admin_password(new_password=None):
     """重置管理员密码"""
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     
     with app.app_context():
         system_logger = get_system_logger()

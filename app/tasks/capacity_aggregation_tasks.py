@@ -94,7 +94,7 @@ def calculate_database_size_aggregations(
     from app.utils.time_utils import time_utils
     from app.utils.structlog_config import get_sync_logger
 
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
         session = None
@@ -456,7 +456,7 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
     """
     from app import create_app
     
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
             log_info(
@@ -521,7 +521,7 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
     """
     from app import create_app
     
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
             log_info(
@@ -573,7 +573,7 @@ def get_aggregation_status() -> Dict[str, Any]:
     """
     from app import create_app
     
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
             from app.models.database_size_aggregation import DatabaseSizeAggregation
