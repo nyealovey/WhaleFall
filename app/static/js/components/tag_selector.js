@@ -1,7 +1,10 @@
 (function (window, document) {
   "use strict";
 
-  const LodashUtils = window.LodashUtils || null;
+  const LodashUtils = window.LodashUtils;
+  if (!LodashUtils) {
+    throw new Error("LodashUtils 未初始化");
+  }
 
   const DEFAULT_ENDPOINTS = {
     tags: "/tags/api/tags",
@@ -37,54 +40,22 @@
 
   function orderCategories(items) {
     const collection = Array.isArray(items) ? items.filter(Boolean) : [];
-    let processed = collection;
-    if (LodashUtils?.uniqBy) {
-      processed = LodashUtils.uniqBy(processed, "value");
-    } else {
-      const seen = new Set();
-      processed = processed.filter((item) => {
-        const key = (item?.value ?? "").toString();
-        if (seen.has(key)) {
-          return false;
-        }
-        seen.add(key);
-        return true;
-      });
-    }
-    if (LodashUtils?.orderBy) {
-      return LodashUtils.orderBy(processed, ["label"], ["asc"]);
-    }
-    return processed.slice().sort((a, b) => {
-      const aLabel = (a?.label || "").toLowerCase();
-      const bLabel = (b?.label || "").toLowerCase();
-      return aLabel.localeCompare(bLabel);
-    });
+    const deduplicated = LodashUtils.uniqBy(collection, "value");
+    return LodashUtils.orderBy(deduplicated, ["label"], ["asc"]);
   }
 
   function orderTags(items) {
     if (!Array.isArray(items)) {
       return [];
     }
-    if (LodashUtils?.orderBy) {
-      return LodashUtils.orderBy(
-        items,
-        [
-          (tag) => (tag.is_active === false ? 1 : 0),
-          (tag) => (tag.display_name || tag.name || "").toLowerCase(),
-        ],
-        ["asc", "asc"],
-      );
-    }
-    return items.slice().sort((a, b) => {
-      const aInactive = a.is_active === false ? 1 : 0;
-      const bInactive = b.is_active === false ? 1 : 0;
-      if (aInactive !== bInactive) {
-        return aInactive - bInactive;
-      }
-      const aName = (a.display_name || a.name || "").toLowerCase();
-      const bName = (b.display_name || b.name || "").toLowerCase();
-      return aName.localeCompare(bName);
-    });
+    return LodashUtils.orderBy(
+      items,
+      [
+        (tag) => (tag.is_active === false ? 1 : 0),
+        (tag) => (tag.display_name || tag.name || "").toLowerCase(),
+      ],
+      ["asc", "asc"],
+    );
   }
 
   function formatNumber(value) {
