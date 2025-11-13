@@ -26,7 +26,7 @@ os.environ.setdefault("FLASK_ENV", "production")
 from app import create_app
 
 # 创建Flask应用实例
-application = app = create_app()
+application = app = create_app(init_scheduler_on_start=True)
 
 if __name__ == "__main__":
     # 开发环境直接运行

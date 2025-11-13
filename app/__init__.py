@@ -56,12 +56,17 @@ csrf = CSRFProtect()
 app_start_time = time_utils.now_china()
 
 
-def create_app(config_name: str | None = None) -> Flask:  # noqa: ARG001
+def create_app(
+    config_name: str | None = None,
+    *,
+    init_scheduler_on_start: bool = True,
+) -> Flask:  # noqa: ARG001
     """
     创建Flask应用实例
 
     Args:
         config_name: 配置名称，默认为None
+        init_scheduler_on_start: 是否在创建应用时初始化调度器
 
     Returns:
         Flask: Flask应用实例
@@ -433,16 +438,17 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(instance_aggr_bp, url_prefix='/instance_aggr')
     app.register_blueprint(files_bp)
 
-    # 初始化定时任务调度器
-    from app.scheduler import init_scheduler
+    if init_scheduler_on_start:
+        from app.scheduler import init_scheduler
 
-    try:
-        init_scheduler(app)
-    except Exception as e:
-        # 调度器初始化失败不影响应用启动
-        from app.utils.structlog_config import get_system_logger
-        scheduler_logger = get_system_logger()
-        scheduler_logger.error("调度器初始化失败，应用将继续启动: %s", str(e))
+        try:
+            init_scheduler(app)
+        except Exception as e:
+            # 调度器初始化失败不影响应用启动
+            from app.utils.structlog_config import get_system_logger
+
+            scheduler_logger = get_system_logger()
+            scheduler_logger.error("调度器初始化失败，应用将继续启动: %s", str(e))
 
 
 def configure_logging(app: Flask) -> None:
@@ -522,9 +528,6 @@ def configure_template_filters(app: Flask) -> None:
         return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
 
 
-# 创建应用实例
-app = create_app()
-
 # 导入模型（确保模型被注册）
 from app.models import (  # noqa: F401, E402
     credential,
@@ -536,9 +539,3 @@ from app.models import (  # noqa: F401, E402
     instance_size_stat,
     user,
 )
-
-if __name__ == "__main__":
-    debug_mode = os.getenv("FLASK_DEBUG", "False").lower() == "true"
-    host = os.getenv("FLASK_HOST", "127.0.0.1")  # 默认绑定本地接口
-    port = int(os.getenv("FLASK_PORT", 5001))
-    app.run(debug=debug_mode, host=host, port=port)

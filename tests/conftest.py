@@ -13,7 +13,7 @@ os.environ['JWT_SECRET_KEY'] = 'test-jwt-secret'
 @pytest.fixture(scope='session')
 def app():
     """Create and configure a new app instance for each test session."""
-    app = create_app('testing') # Use a 'testing' configuration
+    app = create_app('testing', init_scheduler_on_start=False) # Use a 'testing' configuration
     with app.app_context():
         yield app
 
