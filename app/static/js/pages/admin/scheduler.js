@@ -177,8 +177,12 @@ function initializeSchedulerValidators() {
             .useRules('#cronWeekday', ValidationRules.scheduler.cronField)
             .useRules('#cronYear', ValidationRules.scheduler.cronYear)
             .onSuccess(function (event) {
-                event.preventDefault();
-                addJob(event.target);
+                if (event && event.preventDefault) {
+                    event.preventDefault();
+                    addJob(event.target);
+                } else {
+                    addJob(addForm);
+                }
             })
             .onFail(function () {
                 toast.error('请检查任务信息填写');
@@ -210,8 +214,12 @@ function initializeSchedulerValidators() {
             .useRules('#editCronWeekday', ValidationRules.scheduler.cronField)
             .useRules('#editCronYear', ValidationRules.scheduler.cronYear)
             .onSuccess(function (event) {
-                event.preventDefault();
-                updateJob(event.target);
+                if (event && event.preventDefault) {
+                    event.preventDefault();
+                    updateJob(event.target);
+                } else {
+                    updateJob(editForm);
+                }
             })
             .onFail(function () {
                 toast.error('请检查任务信息填写');
