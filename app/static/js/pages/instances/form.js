@@ -50,7 +50,7 @@
         event.target.submit();
       })
       .onFail(() => {
-        window.toast?.error('请检查实例表单填写');
+        window.toast.error('请检查实例表单填写');
       });
 
     const dbTypeSelect = document.getElementById('db_type');
