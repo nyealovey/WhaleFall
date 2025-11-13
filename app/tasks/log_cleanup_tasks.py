@@ -86,6 +86,6 @@ def _cleanup_temp_files() -> int:
                         pass
 
     except Exception as exc:  # noqa: BLE001
-        get_task_logger().warning("清理临时文件时出错: %s", exc)
+        get_task_logger().warning(f"清理临时文件时出错: {exc}")
 
     return cleaned_count

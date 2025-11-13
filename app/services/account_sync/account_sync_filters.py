@@ -29,7 +29,7 @@ class DatabaseFilterManager:
     def _load_filter_rules(self) -> dict[str, dict[str, Any]]:
         """从配置文件加载过滤规则配置"""
         if not self.config_file.exists():
-            logger.error("账户过滤规则配置文件不存在: %s", self.config_path_str)
+            logger.error(f"账户过滤规则配置文件不存在: {self.config_path_str}")
             raise FileNotFoundError(f"账户过滤规则配置文件不存在: {self.config_path_str}")
 
         try:
@@ -41,16 +41,16 @@ class DatabaseFilterManager:
                 raise ValueError("配置文件格式错误，缺少 account_filters 节点")
 
             filter_rules = config["account_filters"] or {}
-            logger.info("成功加载账户过滤规则配置文件: %s", self.config_path_str)
-            logger.info("加载的数据库类型: %s", list(filter_rules.keys()))
+            logger.info(f"成功加载账户过滤规则配置文件: {self.config_path_str}")
+            logger.info(f"加载的数据库类型: {list(filter_rules.keys())}")
 
             return filter_rules
 
         except yaml.YAMLError as exc:
-            logger.error("解析配置文件失败: %s", exc)
+            logger.error(f"解析配置文件失败: {exc}")
             raise ValueError(f"解析配置文件失败: {exc}") from exc
         except Exception as exc:  # noqa: BLE001
-            logger.error("加载过滤规则配置文件失败: %s", exc)
+            logger.error(f"加载过滤规则配置文件失败: {exc}")
             raise
 
     def get_safe_sql_filter_conditions(self, db_type: str, username_field: str = "username") -> tuple[str, list[Any]]:
@@ -85,7 +85,7 @@ class DatabaseFilterManager:
             regex_pattern = f"^{regex_pattern}$"
             return bool(re.match(regex_pattern, text, re.IGNORECASE))
         except Exception as exc:  # noqa: BLE001
-            logger.error("模式匹配失败: %s -> %s, 错误: %s", pattern, text, exc)
+            logger.error(f"模式匹配失败: {pattern} -> {text}, 错误: {exc}")
             return False
 
     def get_filter_rules(self, db_type: str = None) -> dict[str, Any]:

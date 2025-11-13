@@ -105,7 +105,7 @@ class BaseResourceService(Generic[TModel]):
             db.session.commit()
         except SQLAlchemyError as exc:  # noqa: BLE001
             db.session.rollback()
-            current_app.logger.exception("资源表单保存失败: %s", self.__class__.__name__)
+            current_app.logger.exception(f"资源表单保存失败: {self.__class__.__name__}")
             return ServiceResult.fail("保存失败，请稍后再试", extra={"exception": str(exc)})
 
         self.after_save(instance, validation.data or sanitized)
