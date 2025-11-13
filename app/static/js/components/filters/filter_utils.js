@@ -1,6 +1,11 @@
 (function (window, document) {
   "use strict";
 
+  const LodashUtils = window.LodashUtils;
+  if (!LodashUtils) {
+    throw new Error("LodashUtils 未初始化");
+  }
+
   const DEFAULT_TOM_SELECT_CONFIG = {
     create: false,
     allowEmptyOption: true,
@@ -50,19 +55,7 @@
     if (!delay) {
       return fn;
     }
-    if (window.LodashUtils && typeof window.LodashUtils.debounce === "function") {
-      return window.LodashUtils.debounce(fn, delay);
-    }
-    let timer = null;
-    return function debounced(...args) {
-      if (timer) {
-        clearTimeout(timer);
-      }
-      timer = setTimeout(() => {
-        timer = null;
-        fn.apply(this, args);
-      }, delay);
-    };
+    return LodashUtils.debounce(fn, delay);
   }
 
   function requestFormSubmit(form) {

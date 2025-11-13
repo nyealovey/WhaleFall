@@ -44,20 +44,12 @@ async function loadInstanceTotalSizes() {
 
 // 格式化文件大小 - 统一使用GB单位，保留3位小数
 function formatSize(bytes) {
-    if (window.NumberFormat) {
-        return window.NumberFormat.formatBytes(bytes, {
-            unit: 'GB',
-            precision: 3,
-            trimZero: false,
-            fallback: '0 GB',
-        });
-    }
-    if (bytes === 0) {
-        return '0 GB';
-    }
-    const gb = bytes / (1024 * 1024 * 1024);
-    const rounded = Math.round(gb * 1000) / 1000;
-    return `${rounded} GB`;
+    return window.NumberFormat.formatBytes(bytes, {
+        unit: 'GB',
+        precision: 3,
+        trimZero: false,
+        fallback: '0 GB',
+    });
 }
 
 function initializeTagFilter() {
@@ -399,14 +391,12 @@ function handleFileSelect(event) {
         // 显示文件信息
         const fileInfo = document.createElement('div');
         fileInfo.className = 'mt-2 text-muted file-info';
-        const sizeLabel = window.NumberFormat
-            ? window.NumberFormat.formatBytes(file.size, {
+        const sizeLabel = window.NumberFormat.formatBytes(file.size, {
                 unit: 'KB',
                 precision: 1,
                 trimZero: true,
                 fallback: '0 KB',
-              })
-            : `${Math.round((file.size / 1024) * 10) / 10} KB`;
+              });
         fileInfo.innerHTML = `<i class="fas fa-file-csv me-1"></i>已选择文件: ${file.name} (${sizeLabel})`;
 
         // 移除之前的文件信息

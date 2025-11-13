@@ -377,16 +377,12 @@ function getInstanceName() {
 
 function formatGbLabelFromMb(mbValue) {
     const numeric = Number(mbValue) || 0;
-    if (window.NumberFormat) {
-        return window.NumberFormat.formatBytesFromMB(numeric, {
-            unit: 'GB',
-            precision: 3,
-            trimZero: false,
-            fallback: '0 GB',
-        });
-    }
-    const gbValue = Math.round((numeric / 1024) * 1000) / 1000;
-    return `${gbValue} GB`;
+    return window.NumberFormat.formatBytesFromMB(numeric, {
+        unit: 'GB',
+        precision: 3,
+        trimZero: false,
+        fallback: '0 GB',
+    });
 }
 
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数

@@ -69,8 +69,7 @@
 
   function setupDayjs() {
     if (typeof window.dayjs !== "function") {
-      console.warn("Day.js 未加载，timeUtils 将回退至原生 Date 实现");
-      return null;
+      throw new Error("Day.js 未加载，无法初始化 TimeUtils");
     }
 
     const dayjs = window.dayjs;
@@ -102,13 +101,12 @@
   }
 
   const dayjsLib = setupDayjs();
-  const hasDayjs = Boolean(dayjsLib);
 
   function applyTimezone(instance) {
     if (!instance) {
       return null;
     }
-    if (dayjsLib && dayjsLib.tz && typeof instance.tz === "function") {
+    if (dayjsLib.tz && typeof instance.tz === "function") {
       return instance.tz(TIMEZONE);
     }
     return instance;
@@ -128,7 +126,7 @@
   }
 
   function toDayjs(value) {
-    if (!hasDayjs || value === undefined || value === null || value === "") {
+    if (value === undefined || value === null || value === "") {
       return null;
     }
 
@@ -169,68 +167,12 @@
     return applyTimezone(instance);
   }
 
-  function toNativeDate(value) {
-    if (value === undefined || value === null || value === "") {
-      return null;
-    }
-    if (value instanceof Date) {
-      return isNaN(value.getTime()) ? null : value;
-    }
-    if (typeof value === "number") {
-      const date = new Date(value);
-      return isNaN(date.getTime()) ? null : date;
-    }
-    if (typeof value === "string") {
-      let normalized = value.trim();
-      if (!normalized) {
-        return null;
-      }
-      if (normalized.endsWith("Z")) {
-        normalized = normalized;
-      } else if (!/[+-]\d{2}:?\d{2}$/.test(normalized) && normalized.length === 19) {
-        normalized = normalized.replace(" ", "T");
-      }
-      const date = new Date(normalized);
-      return isNaN(date.getTime()) ? null : date;
-    }
-    return null;
-  }
-
   function formatWithPattern(value, pattern, fallback = "-") {
     const instance = toDayjs(value);
     if (!instance) {
-      const nativeDate = toNativeDate(value);
-      if (!nativeDate) {
-        return fallback;
-      }
-      return formatWithNativePattern(nativeDate, pattern, fallback);
-    }
-    return instance.format(pattern);
-  }
-
-  function formatWithNativePattern(date, pattern, fallback = "-") {
-    if (!(date instanceof Date) || isNaN(date.getTime())) {
       return fallback;
     }
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const seconds = String(date.getSeconds()).padStart(2, "0");
-
-    switch (pattern) {
-      case "YYYY-MM-DD HH:mm:ss":
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      case "YYYY-MM-DD":
-        return `${year}-${month}-${day}`;
-      case "HH:mm:ss":
-        return `${hours}:${minutes}:${seconds}`;
-      case "YYYY年MM月DD日 HH:mm:ss":
-        return `${year}年${date.getMonth() + 1}月${date.getDate()}日 ${hours}:${minutes}:${seconds}`;
-      default:
-        return date.toISOString();
-    }
+    return instance.format(pattern);
   }
 
   function formatChineseDateTimeString(value) {
@@ -240,26 +182,15 @@
         "HH:mm:ss",
       )}`;
     }
-    const nativeDate = toNativeDate(value);
-    if (!nativeDate) {
-      return "-";
-    }
-    return formatWithNativePattern(nativeDate, "YYYY年MM月DD日 HH:mm:ss");
+    return "-";
   }
 
   function diffInSeconds(timestamp) {
-    if (hasDayjs) {
-      const instance = toDayjs(timestamp);
-      if (!instance) {
-        return null;
-      }
-      return Math.round(dayjsLib().diff(instance, "second"));
-    }
-    const native = toNativeDate(timestamp);
-    if (!native) {
+    const instance = toDayjs(timestamp);
+    if (!instance) {
       return null;
     }
-    return Math.round((Date.now() - native.getTime()) / 1000);
+    return Math.round(dayjsLib().diff(instance, "second"));
   }
 
   function isSameDay(value, comparator = "today") {
@@ -287,45 +218,23 @@
   }
 
   function buildTimeRange(hours = 24) {
-    if (hasDayjs) {
-      const now = dayjsLib();
-      let start;
-      if (hours < 24) {
-        start = now.subtract(hours, "hour");
-      } else {
-        start = now.startOf("day");
-        if (hours > 24) {
-          start = start.subtract(hours - 24, "hour");
-        }
-      }
-      return {
-        start: start.toISOString(),
-        end: now.toISOString(),
-        startFormatted: start.format("YYYY-MM-DD HH:mm:ss"),
-        endFormatted: now.format("YYYY-MM-DD HH:mm:ss"),
-        startDate: start.format("YYYY-MM-DD"),
-        endDate: now.format("YYYY-MM-DD"),
-      };
-    }
-
-    const now = new Date();
+    const now = dayjsLib();
     let start;
     if (hours < 24) {
-      start = new Date(now.getTime() - hours * 60 * 60 * 1000);
+      start = now.subtract(hours, "hour");
     } else {
-      start = new Date(now);
-      start.setHours(0, 0, 0, 0);
+      start = now.startOf("day");
       if (hours > 24) {
-        start = new Date(start.getTime() - (hours - 24) * 60 * 60 * 1000);
+        start = start.subtract(hours - 24, "hour");
       }
     }
     return {
       start: start.toISOString(),
       end: now.toISOString(),
-      startFormatted: formatWithNativePattern(start, "YYYY-MM-DD HH:mm:ss"),
-      endFormatted: formatWithNativePattern(now, "YYYY-MM-DD HH:mm:ss"),
-      startDate: formatWithNativePattern(start, "YYYY-MM-DD"),
-      endDate: formatWithNativePattern(now, "YYYY-MM-DD"),
+      startFormatted: start.format("YYYY-MM-DD HH:mm:ss"),
+      endFormatted: now.format("YYYY-MM-DD HH:mm:ss"),
+      startDate: start.format("YYYY-MM-DD"),
+      endDate: now.format("YYYY-MM-DD"),
     };
   }
 
@@ -405,17 +314,11 @@
     },
 
     isValidTime(timeString) {
-      if (toDayjs(timeString)) {
-        return true;
-      }
-      return Boolean(toNativeDate(timeString));
+      return Boolean(toDayjs(timeString));
     },
 
     getChinaTime() {
-      if (hasDayjs) {
-        return dayjsLib().toDate();
-      }
-      return new Date();
+      return dayjsLib().toDate();
     },
 
     toChina(timeString) {
@@ -423,7 +326,7 @@
       if (instance) {
         return instance.toDate();
       }
-      return toNativeDate(timeString);
+      return null;
     },
 
     parseTime(timeString) {

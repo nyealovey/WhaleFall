@@ -80,40 +80,31 @@
                 return `${label}: 无数据`;
               }
               switch (unit) {
-                case "size":
-                  if (window.NumberFormat) {
-                    const formatted = window.NumberFormat.formatPlain(
-                      value,
-                      "0,0.00",
-                      "0",
-                    );
-                    return `${label}: ${formatted} GB`;
-                  }
-                  return `${label}: ${value} GB`;
-                case "change":
-                  if (window.NumberFormat) {
-                    const formatted = window.NumberFormat.formatPlain(
-                      value,
-                      "+0,0.00",
-                      "0",
-                    );
-                    return `${label}: ${formatted} GB`;
-                  }
-                  return `${label}: ${value >= 0 ? "+" : ""}${value} GB`;
+                case "size": {
+                  const formatted = window.NumberFormat.formatPlain(
+                    value,
+                    "0,0.00",
+                    "0",
+                  );
+                  return `${label}: ${formatted} GB`;
+                }
+                case "change": {
+                  const formatted = window.NumberFormat.formatPlain(
+                    value,
+                    "+0,0.00",
+                    "0",
+                  );
+                  return `${label}: ${formatted} GB`;
+                }
                 case "percent":
-                  if (window.NumberFormat) {
-                    return `${label}: ${window.NumberFormat.formatPercent(value, {
-                      precision: 2,
-                      showSign: true,
-                    })}`;
-                  }
-                  return `${label}: ${value >= 0 ? "+" : ""}${value}%`;
-                default:
-                  if (window.NumberFormat) {
-                    const fallback = window.NumberFormat.formatPlain(value, "0,0.[00]", "0");
-                    return `${label}: ${fallback}`;
-                  }
-                  return `${label}: ${value}`;
+                  return `${label}: ${window.NumberFormat.formatPercent(value, {
+                    precision: 2,
+                    showSign: true,
+                  })}`;
+                default: {
+                  const fallback = window.NumberFormat.formatPlain(value, "0,0.[00]", "0");
+                  return `${label}: ${fallback}`;
+                }
               }
             },
           },

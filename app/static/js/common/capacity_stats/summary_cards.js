@@ -3,34 +3,17 @@
 
   const defaultFormatters = {
     number(value) {
-      if (window.NumberFormat) {
-        return window.NumberFormat.formatInteger(value, { fallback: "0" });
-      }
-      const numeric = Number(value);
-      return Number.isFinite(numeric) ? `${Math.round(numeric)}` : "0";
+      return window.NumberFormat.formatInteger(value, { fallback: "0" });
     },
     sizeFromMB(value, options = {}) {
-      if (window.NumberFormat) {
-        return window.NumberFormat.formatBytesFromMB(value, {
-          unit: options.unit || "auto",
-          precision:
-            Number.isInteger(options.precision) && options.precision >= 0
-              ? options.precision
-              : 2,
-          fallback: "0 B",
-        });
-      }
-      const numeric = Number(value);
-      if (!Number.isFinite(numeric) || numeric <= 0) {
-        return "0 B";
-      }
-      if (numeric < 1024) {
-        return `${numeric} MB`;
-      }
-      if (numeric < 1024 * 1024) {
-        return `${numeric / 1024} GB`;
-      }
-      return `${numeric / (1024 * 1024)} TB`;
+      return window.NumberFormat.formatBytesFromMB(value, {
+        unit: options.unit || "auto",
+        precision:
+          Number.isInteger(options.precision) && options.precision >= 0
+            ? options.precision
+            : 2,
+        fallback: "0 B",
+      });
     },
     passthrough(value) {
       if (value === undefined || value === null) {
