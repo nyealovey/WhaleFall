@@ -6,6 +6,7 @@
   const SummaryCards = window.CapacityStatsSummaryCards;
   const Filters = window.CapacityStatsFilters;
   const ChartRenderer = window.CapacityStatsChartRenderer;
+  const LodashUtils = window.LodashUtils || null;
   const toast = window.toast || null;
 
   const DEFAULT_CONFIG = {
@@ -160,7 +161,14 @@
 
   class CapacityStatsManager {
     constructor(userConfig) {
-      this.config = Object.assign({}, DEFAULT_CONFIG, userConfig || {});
+      const userOverrides = userConfig
+        ? LodashUtils?.cloneDeep
+          ? LodashUtils.cloneDeep(userConfig)
+          : Object.assign({}, userConfig)
+        : {};
+      this.config = LodashUtils?.merge
+        ? LodashUtils.merge({}, DEFAULT_CONFIG, userOverrides)
+        : Object.assign({}, DEFAULT_CONFIG, userOverrides);
 
       if (!this.config.labelExtractor || typeof this.config.labelExtractor !== "function") {
         throw new Error("CapacityStatsManager: 缺少 labelExtractor 配置");

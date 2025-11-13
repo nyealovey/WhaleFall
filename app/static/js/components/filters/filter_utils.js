@@ -50,6 +50,9 @@
     if (!delay) {
       return fn;
     }
+    if (window.LodashUtils && typeof window.LodashUtils.debounce === "function") {
+      return window.LodashUtils.debounce(fn, delay);
+    }
     let timer = null;
     return function debounced(...args) {
       if (timer) {
