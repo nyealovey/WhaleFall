@@ -135,29 +135,38 @@ class CapacityPersistence:
 
         china_now = time_utils.now_china()
         collected_date = china_now.date()
+        now_utc = time_utils.now()
+
+        payload = {
+            "instance_id": instance.id,
+            "total_size_mb": total_size,
+            "database_count": database_count,
+            "collected_date": collected_date,
+            "collected_at": now_utc,
+            "is_deleted": False,
+            "deleted_at": None,
+            "created_at": now_utc,
+            "updated_at": now_utc,
+        }
+
+        insert_stmt = pg_insert(InstanceSizeStat).values(payload)
+        upsert_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=[
+                InstanceSizeStat.instance_id,
+                InstanceSizeStat.collected_date,
+            ],
+            set_={
+                "total_size_mb": insert_stmt.excluded.total_size_mb,
+                "database_count": insert_stmt.excluded.database_count,
+                "collected_at": insert_stmt.excluded.collected_at,
+                "updated_at": insert_stmt.excluded.updated_at,
+                "is_deleted": False,
+                "deleted_at": None,
+            },
+        )
 
         try:
-            existing = InstanceSizeStat.query.filter_by(
-                instance_id=instance.id,
-                collected_date=collected_date,
-            ).first()
-
-            if existing:
-                existing.total_size_mb = total_size
-                existing.database_count = database_count
-                existing.collected_at = time_utils.now()
-                existing.updated_at = time_utils.now()
-            else:
-                new_stat = InstanceSizeStat(
-                    instance_id=instance.id,
-                    total_size_mb=total_size,
-                    database_count=database_count,
-                    collected_date=collected_date,
-                    collected_at=time_utils.now(),
-                    is_deleted=False,
-                )
-                db.session.add(new_stat)
-
+            db.session.execute(upsert_stmt)
             self.logger.info(
                 "save_instance_stats_success",
                 instance=instance.name,
