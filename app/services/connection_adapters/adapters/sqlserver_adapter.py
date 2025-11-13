@@ -1,0 +1,135 @@
+"""SQL Server 数据库连接适配器。"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
+
+from .base import DatabaseConnection, get_default_schema
+
+
+class SQLServerConnection(DatabaseConnection):
+    """SQL Server 数据库连接。"""
+
+    def __init__(self, instance: Any) -> None:  # noqa: ANN401
+        super().__init__(instance)
+        self.driver_type: str | None = None
+
+    def connect(self) -> bool:
+        password = self.instance.credential.get_plain_password() if self.instance.credential else ""
+        username = self.instance.credential.username if self.instance.credential else ""
+        database_name = self.instance.database_name or get_default_schema("sqlserver") or "master"
+
+        try:
+            return self._try_pymssql_connection(username, password, database_name)
+        except Exception as exc:  # noqa: BLE001
+            self.db_logger.error(
+                "SQL Server连接失败",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="SQL Server",
+                host=self.instance.host,
+                port=self.instance.port,
+                database=database_name,
+                username=username,
+                error=str(exc),
+                error_type=type(exc).__name__,
+            )
+            return False
+
+    def _try_pymssql_connection(self, username: str, password: str, database_name: str) -> bool:
+        try:
+            import pymssql
+
+            self.connection = pymssql.connect(
+                server=self.instance.host,
+                port=self.instance.port,
+                user=username,
+                password=password,
+                database=database_name,
+                timeout=300,
+                login_timeout=20,
+                tds_version="7.2",
+            )
+            self.is_connected = True
+            self.driver_type = "pymssql"
+            return True
+        except ImportError:
+            self.db_logger.error(
+                "pymssql模块未安装",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="SQL Server",
+            )
+            return False
+        except Exception as exc:  # noqa: BLE001
+            diagnosis = sqlserver_connection_utils.diagnose_connection_error(
+                str(exc), self.instance.host, self.instance.port
+            )
+            self.db_logger.error(
+                "SQL Server连接失败",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="SQL Server",
+                host=self.instance.host,
+                port=self.instance.port,
+                database=database_name,
+                username=username,
+                error=str(exc),
+                error_type=type(exc).__name__,
+                diagnosis=diagnosis,
+            )
+            return False
+
+    def disconnect(self) -> None:
+        if self.connection:
+            try:
+                self.connection.close()
+            except Exception as exc:  # noqa: BLE001
+                self.db_logger.warning(
+                    "SQL Server断开连接出现异常",
+                    module="connection",
+                    instance_id=self.instance.id,
+                    db_type="SQL Server",
+                    error=str(exc),
+                )
+            finally:
+                self.connection = None
+                self.is_connected = False
+
+    def test_connection(self) -> dict[str, Any]:
+        try:
+            if not self.connect():
+                return {"success": False, "error": "无法建立连接"}
+
+            version = self.get_version()
+            return {
+                "success": True,
+                "message": f"SQL Server连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
+                "database_version": version,
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {"success": False, "error": str(exc)}
+        finally:
+            self.disconnect()
+
+    def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
+        if not self.is_connected and not self.connect():
+            raise Exception("无法建立数据库连接")
+
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(query, params or ())
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+
+    def get_version(self) -> str | None:
+        try:
+            result = self.execute_query("SELECT @@VERSION")
+            if result:
+                return result[0][0]
+            return None
+        except Exception:  # noqa: BLE001
+            return None
