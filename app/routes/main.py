@@ -18,7 +18,7 @@ main_bp = Blueprint("main", __name__)
 @main_bp.route("/admin/api/app-info", methods=["GET"])
 def app_info() -> tuple[Response, int]:
     """获取应用信息（供前端展示应用名称等）"""
-    return jsonify_unified_success(data={"app_name": "鲸落", "app_version": "1.2.1"})
+    return jsonify_unified_success(data={"app_name": "鲸落", "app_version": "1.2.2"})
 
 
 @main_bp.route("/")
