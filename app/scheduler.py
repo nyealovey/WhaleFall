@@ -210,12 +210,10 @@ def _should_start_scheduler() -> bool:
     server_software = os.environ.get("SERVER_SOFTWARE", "")
     if server_software.startswith("gunicorn"):
         parent_pid = os.getppid()
-        if parent_pid != 1:
-            logger.info(
-                "检测到 gunicorn worker 进程 (ppid=%s)，跳过调度器初始化",
-                parent_pid,
-            )
-            return False
+        logger.info(
+            "检测到 gunicorn 环境，ppid=%s，将通过文件锁保证单实例",
+            parent_pid,
+        )
 
     # Flask reloader: 只有子进程 (WERKZEUG_RUN_MAIN=true) 才运行调度器
     if os.environ.get("FLASK_RUN_FROM_CLI") == "true":
