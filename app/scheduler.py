@@ -3,9 +3,15 @@
 使用APScheduler实现轻量级定时任务
 """
 
+import atexit
 import os
 from pathlib import Path
 from typing import Any
+
+try:
+    import fcntl  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover - Windows 环境不会加载
+    fcntl = None
 
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -15,6 +21,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
+_scheduler_lock_handle = None
 
 
 # 配置日志
@@ -127,6 +134,56 @@ def get_scheduler() -> Any:  # noqa: ANN401
     return scheduler.scheduler
 
 
+def _acquire_scheduler_lock() -> bool:
+    """通过文件锁确保只有一个进程初始化调度器。"""
+    global _scheduler_lock_handle
+
+    if fcntl is None:
+        logger.warning("当前平台不支持fcntl，无法加文件锁，可能存在多个调度器实例并发运行")
+        return True
+
+    if _scheduler_lock_handle:
+        return True
+
+    lock_path = Path("userdata") / "scheduler.lock"
+    lock_path.parent.mkdir(exist_ok=True)
+    handle = open(lock_path, "w+")  # noqa: P202
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        handle.write(str(os.getpid()))
+        handle.flush()
+        _scheduler_lock_handle = handle
+        logger.info("调度器锁已获取，当前进程负责运行定时任务", pid=os.getpid())
+        return True
+    except BlockingIOError:
+        handle.close()
+        logger.info("检测到其他进程正在运行调度器，跳过当前进程的调度器初始化")
+        return False
+    except Exception as exc:  # pragma: no cover - 极端情况
+        handle.close()
+        logger.error("获取调度器锁失败: %s", exc)
+        return False
+
+
+def _release_scheduler_lock() -> None:
+    global _scheduler_lock_handle
+    if fcntl is None or not _scheduler_lock_handle:
+        return
+    try:
+        fcntl.flock(_scheduler_lock_handle, fcntl.LOCK_UN)
+    except Exception:  # pragma: no cover
+        pass
+    try:
+        _scheduler_lock_handle.close()
+    except Exception:  # pragma: no cover
+        pass
+    finally:
+        _scheduler_lock_handle = None
+
+
+atexit.register(_release_scheduler_lock)
+
+
 def _should_start_scheduler() -> bool:
     """根据运行环境判断是否应启动调度器。"""
     enable_flag = os.environ.get("ENABLE_SCHEDULER", "true").strip().lower()
@@ -159,6 +216,9 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
     global scheduler
 
     if not _should_start_scheduler():
+        return None
+
+    if not _acquire_scheduler_lock():
         return None
 
     try:

@@ -140,11 +140,6 @@ function batchTestConnections() {
     }
     
     // 显示批量测试进度容器
-    const progressContainer = document.getElementById('batch-test-progress');
-    if (progressContainer) {
-        progressContainer.style.display = 'block';
-    }
-    
     // 使用连接管理API进行批量测试
     connectionManager
         .batchTestConnections(selectedInstances, {
