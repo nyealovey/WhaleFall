@@ -217,6 +217,15 @@
     <!-- Numeral.js 及统一数字格式化工具 -->
     <script src="{{ url_for('static', filename='vendor/numeral/numeral.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/number-format.js') }}"></script>
+
+    <!-- Day.js 及插件 -->
+    <script src="{{ url_for('static', filename='vendor/dayjs/dayjs.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/dayjs/plugin/utc.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/dayjs/plugin/timezone.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/dayjs/plugin/relativeTime.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/dayjs/plugin/duration.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/dayjs/plugin/customParseFormat.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/dayjs/plugin/localizedFormat.min.js') }}"></script>
     
     <!-- HTTP 客户端配置（必须在其他JS之前加载） -->
     <script src="{{ url_for('static', filename='js/common/http-client.js') }}"></script>
