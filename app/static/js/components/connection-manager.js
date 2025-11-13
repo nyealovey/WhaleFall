@@ -168,48 +168,8 @@ class ConnectionManager {
         `;
     }
 
-    /**
-     * 显示批量测试进度
-     * @param {Object} result - 批量测试结果
-     * @param {string} containerId - 容器ID
-     */
-    showBatchTestProgress(result, containerId = 'batch-test-progress') {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        if (result.summary) {
-            const { total, success, failed } = result.summary;
-            const successRate = ((success / total) * 100).toFixed(1);
-            
-            container.innerHTML = `
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="mb-0">批量测试结果</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <div class="h4 text-primary">${total}</div>
-                                <small class="text-muted">总计</small>
-                            </div>
-                            <div class="col-4">
-                                <div class="h4 text-success">${success}</div>
-                                <small class="text-muted">成功</small>
-                            </div>
-                            <div class="col-4">
-                                <div class="h4 text-danger">${failed}</div>
-                                <small class="text-muted">失败</small>
-                            </div>
-                        </div>
-                        <div class="progress mt-3">
-                            <div class="progress-bar" role="progressbar" style="width: ${successRate}%"></div>
-                        </div>
-                        <small class="text-muted">成功率: ${successRate}%</small>
-                    </div>
-                </div>
-            `;
-        }
-    }
+    // showBatchTestProgress 已废弃，保留空实现兼容老代码
+    showBatchTestProgress() {}
 }
 
 // 创建全局实例
