@@ -9,6 +9,13 @@ Flask 服务位于 `app/`，拆分为若干聚焦模块：`api/` 负责服务端
 ## 编码风格与命名约定
 统一使用四个空格缩进，单行不超过 120 个字符。将 `app` 视为一方导入根目录，依赖 `black`、`isort`、`ruff` 完成格式化与静态检查。模块、函数、变量采用 `snake_case`，类名使用 `CapWords`，蓝图名称需与对应的路由模块保持一致。尽量使用结构化日志工具而非 `print`。
 
+### 命名规范守卫（强制要求）
+- **来源**: 所有命名规则以 `docs/refactoring/命名规范重构指南.md` 为准，禁止新增偏离该文档的文件、函数或目录命名。
+- **禁止示例**: 新增 `*_aggr.py`、`*_form_service.py`、函数前缀 `api_*`、后缀 `_api`、方法名带 `_optimized` 等都将被直接拒绝。`app/services/form_service/change_password_form_service.py` 虽为近期引入，但已列入重命名计划；类似命名不可再次出现。
+- **提交前检查**: 在提交任何涉及命名/结构的改动前，必须运行 `./scripts/refactor_naming.sh --dry-run`，确认输出为“无需要替换的内容”；若脚本提示命名违规，需先修复再提交。
+- **代码评审清单**: PR 审查必须包含“命名规范”检查项；若发现新命名与指南不符，直接要求作者对齐或运行脚本修正。
+- **CI/质量门禁**: 若在 CI 中新增命名检测（建议扩展 `make quality`），脚本输出告警视为阻断条件，直至命名与文档一致。
+
 ## 测试规范
 为测试用例添加 `@pytest.mark.unit`、`integration` 或 `slow` 标记，便于执行 `pytest -m "unit"` 等选择性测试。集成测试需在执行 `make dev start` 后对 Docker 组合运行，并确保夹具对外部系统无残留影响。关键代码路径建议执行 `pytest --cov=app --cov-report=term-missing`，关注覆盖率缺口。
 
