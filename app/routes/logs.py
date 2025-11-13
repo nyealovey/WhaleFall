@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
-from sqlalchemy import asc, desc, distinct, or_
+from sqlalchemy import asc, desc, distinct, or_, cast, Text
 
 from app import db
 from app.errors import AuthorizationError, SystemError, ValidationError
@@ -107,7 +107,7 @@ def search_logs() -> Response:
         if search_term:
             search_filter = or_(
                 UnifiedLog.message.like(f"%{search_term}%"),
-                UnifiedLog.context.like(f"%{search_term}%"),
+                cast(UnifiedLog.context, Text).like(f"%{search_term}%"),
             )
             query = query.filter(search_filter)
 
