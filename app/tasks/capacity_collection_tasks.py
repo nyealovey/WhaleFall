@@ -23,7 +23,7 @@ def collect_database_sizes():
     from app.services.sync_session_service import sync_session_service
     from app.utils.time_utils import time_utils
     # 创建Flask应用上下文，确保数据库操作正常
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
         
@@ -351,7 +351,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]
     from app.services.database_sync import DatabaseSizeCollectorService
     
     # 创建Flask应用上下文
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
             sync_logger = get_sync_logger()
@@ -516,7 +516,7 @@ def collect_database_sizes_by_type(db_type: str) -> Dict[str, Any]:
     from app import create_app
     
     # 创建Flask应用上下文
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
         try:
@@ -596,7 +596,7 @@ def get_collection_status() -> Dict[str, Any]:
     from app.utils.time_utils import time_utils
     
     # 创建Flask应用上下文
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
             # 统计采集数据

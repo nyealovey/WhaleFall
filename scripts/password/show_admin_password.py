@@ -18,7 +18,7 @@ from app.utils.structlog_config import get_system_logger
 
 def show_admin_password():
     """显示管理员密码信息"""
-    app = create_app()
+    app = create_app(init_scheduler_on_start=False)
     
     with app.app_context():
         system_logger = get_system_logger()
