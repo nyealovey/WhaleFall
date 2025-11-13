@@ -139,165 +139,36 @@
 
         <!-- 右侧：更新日志 -->
         <div class="col-6">
+            {% set version_timeline = [
+                {"version": "1.2.2", "date": "2025-11-13", "summary": "大幅重构与精简：调度器按需初始化 + 文件锁防并发，Scheduler 表单/日志全面瘦身，统一日志支持 JSONB 搜索。"},
+                {"version": "1.2.1", "date": "2025-11-05", "summary": "重构核心服务：统一账户同步、权限差异与变更日志链路，提升数据一致性与可观察性。"},
+                {"version": "1.2.0", "date": "2025-10-31", "summary": "聚合服务职责梳理，手动/定时聚合流程统一，容量统计体验升级。"},
+                {"version": "1.1.4", "date": "2025-10-17", "summary": "时间处理和日志中心显示统一，聚合与日志体验优化。"},
+                {"version": "1.1.3", "date": "2025-10-14", "summary": "容量统计页面上线，日志中心体验优化，统计功能重构。"},
+                {"version": "1.1.2", "date": "2025-10-13", "summary": "版本统一更新、样式优化、文档同步更新。"},
+                {"version": "1.1.1", "date": "2025-10-09", "summary": "容量同步修复脚本、容量趋势图交互优化以及分区与仪表板稳定性修复。"},
+                {"version": "1.1.0", "date": "2025-09-25", "summary": "自动分类、标签管理、权限 API 与 JS 模块化修复。"},
+                {"version": "1.0.8", "date": "2025-09-24", "summary": "新增批量标签管理功能、标签分组显示、实例分组管理。"},
+                {"version": "1.0.7", "date": "2025-09-24", "summary": "自动分类规则与定时任务修复、用户管理增强、代码分离优化。"},
+                {"version": "1.0.6", "date": "2025-09-22", "summary": "权限 API 修复、SQL Server 权限修复、日志优化。"},
+                {"version": "1.0.5", "date": "2025-09-21", "summary": "账户分类分页功能、SQL Server 权限修复、生产环境优化与关于页面。"},
+                {"version": "1.0.2", "date": "2025-09-20", "summary": "版本升级、生产环境部署、页脚版本号显示。"},
+                {"version": "1.0.0", "date": "2025-09-19", "summary": "正式版本发布、统一版本号、依赖升级。"}
+            ] %}
             <div class="card h-100">
                 <div class="card-header bg-dark text-white">
                     <h5 class="mb-0"><i class="fas fa-history me-2"></i>更新日志</h5>
                 </div>
                 <div class="card-body" style="max-height: 600px; overflow-y: auto;">
-                    <!-- 版本 1.2.2 -->
+                    {% for item in version_timeline %}
                     <div class="mb-4">
                         <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.2.2
-                            <small class="text-muted">(2025-11-13)</small>
+                            <i class="fas fa-tag me-2"></i>版本 {{ item.version }}
+                            <small class="text-muted">({{ item.date }})</small>
                         </h6>
-                        <p class="small text-muted mb-0">
-                            大幅重构与精简：调度器按需初始化 + 文件锁防并发、Scheduler 表单/日志全面瘦身，统一日志支持 JSONB 搜索。
-                        </p>
+                        <p class="small text-muted mb-0">{{ item.summary }}</p>
                     </div>
-
-                    <!-- 版本 1.2.1 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.2.1
-                            <small class="text-muted">(2025-11-05)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            重构核心服务：统一账户同步、权限差异与变更日志链路，提升数据一致性与可观察性。
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.2.0 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.2.0
-                            <small class="text-muted">(2025-10-31)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            聚合服务职责梳理，手动聚合流程统一，容量统计体验升级。
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.1.4 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.1.4
-                            <small class="text-muted">(2025-10-17)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            统一时间设置 - 全面统一应用时间处理机制，修复前后端时间格式不一致问题，优化时区处理，修复聚合API错误
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.1.3 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.1.3
-                            <small class="text-muted">(2025-10-14)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            新增容量统计功能、日志中心显示优化、统计功能职责重新分配、CSRF Token统一处理、前端API调用修复
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.1.2 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.1.2
-                            <small class="text-muted">(2025-10-13)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            版本统一更新、样式优化、文档同步更新
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.1.1 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.1.1
-                            <small class="text-muted">(2025-10-09)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            新增容量同步修复脚本、数据库容量统计页面、容量趋势图交互优化以及分区与仪表板稳定性修复
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.1.0 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.1.0
-                            <small class="text-muted">(2025-09-25)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            修复自动分类功能BUG、优化标签管理页面、修复Jinja2模板语法错误、解决JavaScript重复加载问题、优化实例显示布局
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.0.8 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.0.8
-                            <small class="text-muted">(2025-09-24)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            新增批量标签管理功能、标签分组显示、实例分组管理、简化移除模式、日志页面优化
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.0.7 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.0.7
-                            <small class="text-muted">(2025-09-24)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            修复自动分类规则匹配BUG、定时任务问题修复、用户管理功能增强、代码分离优化
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.0.6 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.0.6
-                            <small class="text-muted">(2025-09-22)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            权限API修复、SQL Server重复权限修复、标签日志优化、PostgreSQL枚举类型修复、权限模态框修复
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.0.5 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.0.5
-                            <small class="text-muted">(2025-09-21)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            账户分类分页功能、SQL Server权限修复、生产环境优化、关于页面
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.0.2 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.0.2
-                            <small class="text-muted">(2025-09-20)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            版本升级、生产环境部署、页脚版本号显示
-                        </p>
-                    </div>
-
-                    <!-- 版本 1.0.0 -->
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 1.0.0
-                            <small class="text-muted">(2025-09-19)</small>
-                        </h6>
-                        <p class="small text-muted mb-0">
-                            正式版本发布、统一版本号、依赖升级
-                        </p>
-                    </div>
-
+                    {% endfor %}
                 </div>
             </div>
         </div>
