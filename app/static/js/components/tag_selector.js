@@ -59,10 +59,7 @@
   }
 
   function formatNumber(value) {
-    if (window.NumberFormat) {
-      return window.NumberFormat.formatInteger(value, { fallback: "0" });
-    }
-    return `${Math.round(Number(value || 0))}`;
+    return window.NumberFormat.formatInteger(value, { fallback: "0" });
   }
 
   function resolveBadge(tag) {

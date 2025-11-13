@@ -532,13 +532,10 @@ class AggregationsChartManager {
      * 格式化大小（从MB）
      */
     static formatSizeFromMB(mb) {
-        if (window.NumberFormat) {
-            return window.NumberFormat.formatBytesFromMB(mb, {
-                precision: 2,
-                fallback: '0 B'
-            });
-        }
-        return `${mb || 0} MB`;
+        return window.NumberFormat.formatBytesFromMB(mb, {
+            precision: 2,
+            fallback: '0 B'
+        });
     }
     
     /**
