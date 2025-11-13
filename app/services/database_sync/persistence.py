@@ -155,6 +155,7 @@ class CapacityPersistence:
                 InstanceSizeStat.instance_id,
                 InstanceSizeStat.collected_date,
             ],
+            index_where=InstanceSizeStat.is_deleted.is_(False),
             set_={
                 "total_size_mb": insert_stmt.excluded.total_size_mb,
                 "database_count": insert_stmt.excluded.database_count,
