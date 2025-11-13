@@ -40,7 +40,7 @@ if oracle_instant_client_path and os.path.exists(oracle_instant_client_path):
     current_dyld_path = os.environ.get("DYLD_LIBRARY_PATH", "")
     if oracle_instant_client_path not in current_dyld_path:
         os.environ["DYLD_LIBRARY_PATH"] = f"{oracle_instant_client_path}:{current_dyld_path}"
-        logger.info("🔧 已设置Oracle Instant Client环境变量: %s", oracle_instant_client_path)
+        logger.info(f"🔧 已设置Oracle Instant Client环境变量: {oracle_instant_client_path}")
 
 # 初始化扩展
 db = SQLAlchemy()
@@ -126,7 +126,7 @@ def create_app(
             from app.utils.structlog_config import get_system_logger
 
             scheduler_logger = get_system_logger()
-            scheduler_logger.error("调度器初始化失败，应用将继续启动: %s", str(e))
+            scheduler_logger.error(f"调度器初始化失败，应用将继续启动: {e}")
 
     return app
 

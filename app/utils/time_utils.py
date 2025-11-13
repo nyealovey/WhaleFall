@@ -71,7 +71,7 @@ class TimeUtils:
         except (ValueError, TypeError) as e:
             from app.utils.structlog_config import get_system_logger
 
-            get_system_logger().warning("时间转换错误: %s", e)
+            get_system_logger().warning(f"时间转换错误: {e}")
             return None
 
     @staticmethod
@@ -96,7 +96,7 @@ class TimeUtils:
         except (ValueError, TypeError) as e:
             from app.utils.structlog_config import get_system_logger
 
-            get_system_logger().warning("时间转换错误: %s", e)
+            get_system_logger().warning(f"时间转换错误: {e}")
             return None
 
     @staticmethod

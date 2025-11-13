@@ -34,14 +34,14 @@ class CacheService:
         """清除用户的所有缓存"""
         # Flask-Caching不支持模式匹配，简化实现
         # 这里返回True，表示操作成功
-        logger.info("清除用户缓存: %s", username)
+        logger.info(f"清除用户缓存: {username}")
         return True
 
     def invalidate_instance_cache(self, instance_id: int) -> bool:
         """清除实例的所有缓存"""
         # Flask-Caching不支持模式匹配，简化实现
         # 这里返回True，表示操作成功
-        logger.info("清除实例缓存: %s", instance_id)
+        logger.info(f"清除实例缓存: {instance_id}")
         return True
 
     def get_cache_stats(self) -> dict[str, Any]:
@@ -68,13 +68,19 @@ class CacheService:
 
             if cached_data:
                 data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
-                logger.debug("规则评估缓存命中: rule_id=%s, account_id=%s", rule_id, account_id, cache_key=cache_key)
+                logger.debug(
+                    f"规则评估缓存命中: rule_id={rule_id}, account_id={account_id}",
+                    cache_key=cache_key,
+                )
                 return data.get("result")
 
             return None
 
         except Exception as e:
-            logger.warning("获取规则评估缓存失败: rule_id=%s, account_id=%s", rule_id, account_id, error=str(e))
+            logger.warning(
+                f"获取规则评估缓存失败: rule_id={rule_id}, account_id={account_id}",
+                error=str(e),
+            )
             return None
 
     def set_rule_evaluation_cache(self, rule_id: int, account_id: int, result: bool, ttl: int = None) -> bool:
@@ -93,11 +99,18 @@ class CacheService:
 
             ttl = ttl or Config.CACHE_RULE_EVALUATION_TTL  # 规则评估缓存1天
             self.cache.set(cache_key, cache_data, timeout=ttl)
-            logger.debug("规则评估缓存已设置: rule_id=%s, account_id=%s", rule_id, account_id, cache_key=cache_key, ttl=ttl)
+            logger.debug(
+                f"规则评估缓存已设置: rule_id={rule_id}, account_id={account_id}",
+                cache_key=cache_key,
+                ttl=ttl,
+            )
             return True
 
         except Exception as e:
-            logger.warning("设置规则评估缓存失败: rule_id=%s, account_id=%s", rule_id, account_id, error=str(e))
+            logger.warning(
+                f"设置规则评估缓存失败: rule_id={rule_id}, account_id={account_id}",
+                error=str(e),
+            )
             return False
 
     def get_classification_rules_cache(self) -> list[dict[str, Any]] | None:
@@ -154,11 +167,11 @@ class CacheService:
             
             # 清除该账户的所有规则评估缓存
             # 注意：这里简化处理，实际应该遍历所有规则ID
-            logger.info("清除账户缓存: account_id=%s", account_id)
+            logger.info(f"清除账户缓存: account_id={account_id}")
             return True
 
         except Exception as e:
-            logger.warning("清除账户缓存失败: account_id=%s", account_id, error=str(e))
+            logger.warning(f"清除账户缓存失败: account_id={account_id}", error=str(e))
             return False
 
     def invalidate_classification_cache(self) -> bool:
@@ -209,19 +222,30 @@ class CacheService:
                 data = json.loads(cached_data) if isinstance(cached_data, str) else cached_data
                 # 处理不同的缓存数据格式
                 if isinstance(data, dict) and "rules" in data:
-                    logger.debug("数据库类型规则缓存命中: %s", db_type, cache_key=cache_key, count=len(data["rules"]))
+                    logger.debug(
+                        f"数据库类型规则缓存命中: {db_type}",
+                        cache_key=cache_key,
+                        count=len(data["rules"]),
+                    )
                     return data["rules"]
                 elif isinstance(data, list):
-                    logger.debug("数据库类型规则缓存命中（旧格式）: %s", db_type, cache_key=cache_key, count=len(data))
+                    logger.debug(
+                        f"数据库类型规则缓存命中（旧格式）: {db_type}",
+                        cache_key=cache_key,
+                        count=len(data),
+                    )
                     return data
                 else:
-                    logger.warning("数据库类型规则缓存格式错误: %s", db_type, cache_key=cache_key)
+                    logger.warning(
+                        f"数据库类型规则缓存格式错误: {db_type}",
+                        cache_key=cache_key,
+                    )
                     return None
 
             return None
 
         except Exception as e:
-            logger.warning("获取数据库类型规则缓存失败: %s", db_type, error=str(e))
+            logger.warning(f"获取数据库类型规则缓存失败: {db_type}", error=str(e))
             return None
 
     def set_classification_rules_by_db_type_cache(self, db_type: str, rules: list[dict[str, Any]], ttl: int = None) -> bool:
@@ -240,11 +264,16 @@ class CacheService:
 
             ttl = ttl or Config.CACHE_RULE_TTL  # 规则缓存2小时
             self.cache.set(cache_key, cache_data, timeout=ttl)
-            logger.debug("数据库类型规则缓存已设置: %s", db_type, cache_key=cache_key, ttl=ttl, count=len(rules))
+            logger.debug(
+                f"数据库类型规则缓存已设置: {db_type}",
+                cache_key=cache_key,
+                ttl=ttl,
+                count=len(rules),
+            )
             return True
 
         except Exception as e:
-            logger.warning("设置数据库类型规则缓存失败: %s", db_type, error=str(e))
+            logger.warning(f"设置数据库类型规则缓存失败: {db_type}", error=str(e))
             return False
 
     def invalidate_db_type_cache(self, db_type: str) -> bool:
@@ -256,11 +285,11 @@ class CacheService:
             rules_key = f"classification_rules:{db_type}"
             self.cache.delete(rules_key)
             
-            logger.info("清除数据库类型缓存: %s", db_type)
+            logger.info(f"清除数据库类型缓存: {db_type}")
             return True
 
         except Exception as e:
-            logger.warning("清除数据库类型缓存失败: %s", db_type, error=str(e))
+            logger.warning(f"清除数据库类型缓存失败: {db_type}", error=str(e))
             return False
 
     def invalidate_all_db_type_cache(self) -> bool:
