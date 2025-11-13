@@ -162,50 +162,5 @@ class Credential(db.Model):
 
         return data
 
-    def soft_delete(self) -> None:
-        """软删除凭据"""
-        self.deleted_at = time_utils.now()
-        db.session.commit()
-        from app.utils.structlog_config import get_system_logger
-
-        system_logger = get_system_logger()
-        system_logger.info(
-            "凭据删除",
-            module="model",
-            operation="credential_delete",
-            credential_id=self.id,
-            name=self.name,
-        )
-
-    def restore(self) -> None:
-        """恢复凭据"""
-        self.deleted_at = None
-        db.session.commit()
-        from app.utils.structlog_config import get_system_logger
-
-        system_logger = get_system_logger()
-        system_logger.info(
-            "凭据恢复",
-            module="model",
-            operation="credential_restore",
-            credential_id=self.id,
-            name=self.name,
-        )
-
-    @staticmethod
-    def get_active_credentials() -> list:
-        """获取所有活跃凭据"""
-        return Credential.query.filter_by(deleted_at=None).all()
-
-    @staticmethod
-    def get_by_type(credential_type: str) -> list:
-        """根据类型获取凭据"""
-        return Credential.query.filter_by(credential_type=credential_type, deleted_at=None).all()
-
-    @staticmethod
-    def get_by_db_type(db_type: str) -> list:
-        """根据数据库类型获取凭据"""
-        return Credential.query.filter_by(db_type=db_type, deleted_at=None).all()
-
     def __repr__(self) -> str:
         return f"<Credential {self.name}>"

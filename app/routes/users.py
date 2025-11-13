@@ -10,7 +10,7 @@ from app import db
 from app.errors import ConflictError, ValidationError
 from app.constants import FlashCategory, HttpStatus, UserRole
 from app.models.user import User
-from app.routes.user_form_view import UserFormView
+from app.views.user_form_view import UserFormView
 from app.services.users import UserFormService
 from app.utils.decorators import (
     create_required,

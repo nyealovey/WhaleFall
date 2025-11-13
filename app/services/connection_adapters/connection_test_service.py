@@ -3,7 +3,6 @@
 from typing import Any
 
 from app import db
-from app.constants import DatabaseType
 from app.models import Instance
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_sync_logger
@@ -27,16 +26,16 @@ class ConnectionTestService:
         Returns:
             测试结果
         """
-        connection_obj = None
+        connection_obj: Any | None = None
         try:
             # 创建连接
             connection_obj = ConnectionFactory.create_connection(instance)
-            if not connection_obj.connect():
+            if not connection_obj or not connection_obj.connect():
                 self._update_last_connected(instance)
                 return {"success": False, "error": "无法建立数据库连接"}
 
             # 获取数据库版本信息
-            version_info = self._get_database_version(instance, connection_obj)
+            version_info = connection_obj.get_version() or "未知版本"
 
             parsed_version = DatabaseVersionParser.parse_version(instance.db_type.lower(), version_info)
             formatted_version = DatabaseVersionParser.format_version_display(
@@ -101,19 +100,15 @@ class ConnectionTestService:
 
             return {"success": False, "error": f"连接失败: {error_message}"}
         finally:
-            # 确保连接被正确关闭，防止资源泄漏
             if connection_obj is not None:
                 try:
-                    if hasattr(connection_obj, "disconnect"):
-                        connection_obj.disconnect()
-                    elif hasattr(connection_obj, "close"):
-                        connection_obj.close()
-                except Exception as close_error:
+                    connection_obj.disconnect()
+                except Exception as close_error:  # noqa: BLE001
                     self.test_logger.warning(
                         "关闭数据库连接时发生错误",
                         module="connection_test",
                         instance_id=instance.id,
-                        error=str(close_error)
+                        error=str(close_error),
                     )
 
     def _update_last_connected(self, instance: Instance) -> None:
@@ -130,66 +125,7 @@ class ConnectionTestService:
                 error=str(update_error),
             )
 
-    def _get_database_version(self, instance: Instance, connection: Any) -> str:  # noqa: ANN401
-        """
-        获取数据库版本信息
-
-        Args:
-            instance: 数据库实例
-            connection: 数据库连接
-
-        Returns:
-            版本信息字符串
-        """
-        try:
-            if instance.db_type == DatabaseType.MYSQL:
-                result = connection.execute_query("SELECT VERSION()")
-                return result[0][0] if result else "未知版本"
-            if instance.db_type == DatabaseType.POSTGRESQL:
-                result = connection.execute_query("SELECT version()")
-                return result[0][0] if result else "未知版本"
-            if instance.db_type == DatabaseType.SQLSERVER:
-                result = connection.execute_query("SELECT @@VERSION")
-                return result[0][0] if result else "未知版本"
-            if instance.db_type == DatabaseType.ORACLE:
-                result = connection.execute_query("SELECT * FROM v$version WHERE rownum = 1")
-                return result[0][0] if result else "未知版本"
-            return "未知数据库类型"
-        except Exception as e:
-            # 记录具体的错误类型
-            error_type = type(e).__name__
-            error_message = str(e)
-            
-            # 检查是否可能是SQL注入攻击
-            suspicious_patterns = [
-                "union", "select", "insert", "update", "delete", "drop", "create",
-                "alter", "exec", "execute", "script", "javascript", "vbscript"
-            ]
-            
-            is_suspicious = any(pattern in error_message.lower() for pattern in suspicious_patterns)
-            
-            if is_suspicious:
-                self.test_logger.warning(
-                    "检测到可疑的版本查询错误，可能存在安全威胁",
-                    module="connection_test",
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    db_type=instance.db_type,
-                    error_type=error_type,
-                    error_message=error_message,
-                    security_alert=True
-                )
-            else:
-                self.test_logger.warning(
-                    "获取数据库版本失败",
-                    module="connection_test",
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    db_type=instance.db_type,
-                    error_type=error_type,
-                    error_message=error_message,
-                )
-            return "版本获取失败"
+    # `_get_database_version` 已移除，版本查询由各适配器自行实现。
 
 
 # 创建全局实例

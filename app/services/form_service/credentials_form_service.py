@@ -10,7 +10,7 @@ from flask_login import current_user
 
 from app.constants.filter_options import CREDENTIAL_TYPES, DATABASE_TYPES
 from app.models.credential import Credential
-from app.services.resource_form_service import BaseResourceService, ServiceResult
+from app.services.form_service.resource_form_service import BaseResourceService, ServiceResult
 from app.utils.data_validator import (
     sanitize_form_data,
     validate_credential_type,

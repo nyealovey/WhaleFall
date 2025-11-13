@@ -4,7 +4,7 @@
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
 from app.forms.definitions.account_classification_rule_constants import DB_TYPE_OPTIONS, OPERATOR_OPTIONS
-from app.services.account_classification.rule_form_service import ClassificationRuleFormService
+from app.services.form_service.classification_rule_form_service import ClassificationRuleFormService
 
 CLASSIFICATION_RULE_FORM_DEFINITION = ResourceFormDefinition(
     name="classification_rule",

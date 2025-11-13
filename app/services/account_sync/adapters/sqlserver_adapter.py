@@ -11,7 +11,6 @@ from app.models.instance import Instance
 from app.services.account_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.account_sync.account_sync_filters import DatabaseFilterManager
 from app.utils.structlog_config import get_sync_logger
-from app.services.cache_service import cache_manager
 
 
 class SQLServerAccountAdapter(BaseAccountAdapter):
@@ -216,31 +215,19 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         precomputed_db_roles: Dict[str, Dict[str, List[str]]] | None = None,
         precomputed_db_permissions: Dict[str, Dict[str, Any]] | None = None,
     ) -> Dict[str, Any]:
-        if precomputed_server_roles is not None and login_name in precomputed_server_roles:
-            server_roles = self._deduplicate_preserve_order(precomputed_server_roles.get(login_name, []))
-        else:
-            server_roles = self._deduplicate_preserve_order(self._get_server_roles(connection, login_name))
-
-        if precomputed_server_permissions is not None and login_name in precomputed_server_permissions:
-            server_permissions = self._deduplicate_preserve_order(precomputed_server_permissions.get(login_name, []))
-        else:
-            server_permissions = self._deduplicate_preserve_order(self._get_server_permissions(connection, login_name))
-
-        if precomputed_db_roles is not None and login_name in precomputed_db_roles:
-            database_roles = {
-                db_name: self._deduplicate_preserve_order(roles or [])
-                for db_name, roles in (precomputed_db_roles.get(login_name) or {}).items()
-            }
-        else:
-            database_roles = {
-                db_name: self._deduplicate_preserve_order(roles or [])
-                for db_name, roles in self._get_database_roles(connection, login_name).items()
-            }
-
-        if precomputed_db_permissions is not None and login_name in precomputed_db_permissions:
-            database_permissions = self._copy_database_permissions(precomputed_db_permissions.get(login_name) or {})
-        else:
-            database_permissions = self._copy_database_permissions(self._get_database_permissions(connection, login_name))
+        server_roles = self._deduplicate_preserve_order(
+            (precomputed_server_roles or {}).get(login_name, [])
+        )
+        server_permissions = self._deduplicate_preserve_order(
+            (precomputed_server_permissions or {}).get(login_name, [])
+        )
+        database_roles = {
+            db_name: self._deduplicate_preserve_order(roles or [])
+            for db_name, roles in ((precomputed_db_roles or {}).get(login_name) or {}).items()
+        }
+        database_permissions = self._copy_database_permissions(
+            (precomputed_db_permissions or {}).get(login_name) or {}
+        )
 
         permissions = {
             "server_roles": server_roles,
@@ -303,27 +290,6 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 copied[db_name] = self._deduplicate_preserve_order(perms)
         return copied
 
-    def _get_server_roles(self, connection: Any, login_name: str) -> List[str]:
-        sql = """
-            SELECT DISTINCT role.name
-            FROM sys.server_role_members rm
-            JOIN sys.server_principals role ON rm.role_principal_id = role.principal_id
-            JOIN sys.server_principals member ON rm.member_principal_id = member.principal_id
-            WHERE member.name = %s
-        """
-        rows = connection.execute_query(sql, (login_name,))
-        return [row[0] for row in rows if row and row[0]]
-
-    def _get_server_permissions(self, connection: Any, login_name: str) -> List[str]:
-        sql = """
-            SELECT DISTINCT permission_name
-            FROM sys.server_permissions perm
-            JOIN sys.server_principals sp ON perm.grantee_principal_id = sp.principal_id
-            WHERE sp.name = %s
-        """
-        rows = connection.execute_query(sql, (login_name,))
-        return [row[0] for row in rows if row and row[0]]
-
     def _get_server_roles_bulk(self, connection: Any, usernames: Sequence[str]) -> Dict[str, List[str]]:
         normalized = [name for name in usernames if name]
         if not normalized:
@@ -368,90 +334,6 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         for login_name, permissions in result.items():
             result[login_name] = self._deduplicate_preserve_order(permissions)
         return result
-
-    def _get_database_roles(self, connection: Any, login_name: str) -> Dict[str, List[str]]:
-        sql = """
-            SELECT dp.name AS database_name, mp.name AS role_name
-            FROM sys.server_principals sp
-            JOIN sys.database_principals mp ON mp.sid = sp.sid
-            JOIN sys.databases dp ON dp.owner_sid = mp.sid
-            WHERE sp.name = %s
-        """
-        rows = connection.execute_query(sql, (login_name,))
-        db_roles: Dict[str, List[str]] = {}
-        for row in rows:
-            database = row[0]
-            role = row[1]
-            if not database or not role:
-                continue
-            db_roles.setdefault(database, []).append(role)
-        return db_roles
-
-    def _get_database_permissions(self, connection: Any, login_name: str) -> Dict[str, List[str]]:
-        sql = """
-            DECLARE @login NVARCHAR(256);
-            SET @login = %s;
-
-            IF OBJECT_ID('tempdb..#perm_table') IS NOT NULL
-                DROP TABLE #perm_table;
-
-            CREATE TABLE #perm_table (
-                database_name NVARCHAR(128),
-                permission_name NVARCHAR(128)
-            );
-
-            DECLARE @db NVARCHAR(128);
-            DECLARE db_cursor CURSOR FAST_FORWARD FOR
-                SELECT name FROM sys.databases WHERE state_desc = 'ONLINE';
-
-            OPEN db_cursor;
-            FETCH NEXT FROM db_cursor INTO @db;
-
-            WHILE @@FETCH_STATUS = 0
-            BEGIN
-                DECLARE @sql NVARCHAR(MAX) = N'
-                    INSERT INTO #perm_table (database_name, permission_name)
-                    SELECT N''' + @db + N''', perm.permission_name
-                    FROM ' + QUOTENAME(@db) + N'.sys.database_permissions perm
-                    JOIN ' + QUOTENAME(@db) + N'.sys.database_principals dp
-                        ON perm.grantee_principal_id = dp.principal_id
-                    WHERE dp.name = @login';
-
-                BEGIN TRY
-                    EXEC sp_executesql @sql, N'@login NVARCHAR(256)', @login=@login;
-                END TRY
-                BEGIN CATCH
-                    PRINT ERROR_MESSAGE();
-                END CATCH
-
-                FETCH NEXT FROM db_cursor INTO @db;
-            END
-
-            CLOSE db_cursor;
-            DEALLOCATE db_cursor;
-
-            SELECT database_name, permission_name FROM #perm_table;
-        """
-
-        rows: List[tuple[Any, Any]] = []
-        try:
-            rows = connection.execute_query(sql, (login_name,))
-        except Exception as exc:  # noqa: BLE001
-            self.logger.error(
-                "fetch_sqlserver_db_permissions_failed",
-                module="sqlserver_account_adapter",
-                login=login_name,
-                error=str(exc),
-                exc_info=True,
-            )
-        db_perms: Dict[str, List[str]] = {}
-        for row in rows:
-            database = row[0]
-            permission = row[1]
-            if not database or not permission:
-                continue
-            db_perms.setdefault(database, []).append(permission)
-        return db_perms
 
     def _get_all_users_database_permissions_batch_optimized(
         self,
@@ -702,25 +584,3 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
 
     # 缓存操作
-    def clear_user_cache(self, instance: Instance, username: str) -> bool:
-        try:
-            return cache_manager.invalidate_user_cache(instance.id, username)
-        except Exception as exc:  # noqa: BLE001
-            self.logger.error(
-                "clear_sqlserver_user_cache_failed",
-                instance=instance.name,
-                username=username,
-                error=str(exc),
-            )
-            return False
-
-    def clear_instance_cache(self, instance: Instance) -> bool:
-        try:
-            return cache_manager.invalidate_instance_cache(instance.id)
-        except Exception as exc:  # noqa: BLE001
-            self.logger.error(
-                "clear_sqlserver_instance_cache_failed",
-                instance=instance.name,
-                error=str(exc),
-            )
-            return False

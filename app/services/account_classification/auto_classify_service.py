@@ -1,0 +1,176 @@
+"""
+账户自动分类服务，将路由层与编排器解耦。
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from app.services.account_classification.orchestrator import AccountClassificationService
+from app.utils.structlog_config import log_error, log_info
+
+
+class AutoClassifyError(Exception):
+    """自动分类过程中出现业务或系统错误。"""
+
+
+@dataclass(slots=True)
+class AutoClassifyResult:
+    """自动分类结果载体，便于在路由与服务之间传递。"""
+
+    message: str
+    classified_accounts: int = 0
+    total_classifications_added: int = 0
+    failed_count: int = 0
+    errors: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_payload(self) -> dict[str, Any]:
+        """对外统一的响应载体。"""
+        return {
+            "classified_accounts": self.classified_accounts,
+            "total_classifications_added": self.total_classifications_added,
+            "failed_count": self.failed_count,
+            "message": self.message,
+        }
+
+
+class AutoClassifyService:
+    """封装账户分类调度逻辑，负责参数校验、日志与错误管理。"""
+
+    def __init__(self, classification_service: AccountClassificationService | None = None) -> None:
+        self.classification_service = classification_service or AccountClassificationService()
+
+    def auto_classify(
+        self,
+        *,
+        instance_id: Any,
+        created_by: int | None,
+        use_optimized: Any = True,
+    ) -> AutoClassifyResult:
+        normalized_instance_id = self._normalize_instance_id(instance_id)
+        normalized_use_optimized = self._coerce_bool(use_optimized, default=True)
+
+        log_info(
+            "auto_classify_triggered",
+            module="account_classification",
+            instance_id=normalized_instance_id,
+            use_optimized=normalized_use_optimized,
+            created_by=created_by,
+        )
+
+        try:
+            raw_result = self._run_engine(
+                instance_id=normalized_instance_id,
+                created_by=created_by,
+                use_optimized=normalized_use_optimized,
+            )
+        except Exception as exc:  # noqa: BLE001
+            log_error(
+                "auto_classify_service_failed",
+                module="account_classification",
+                instance_id=normalized_instance_id,
+                use_optimized=normalized_use_optimized,
+                exception=exc,
+            )
+            raise AutoClassifyError("自动分类执行失败") from exc
+
+        if not raw_result.get("success"):
+            error_message = raw_result.get("error") or raw_result.get("message") or "自动分类失败"
+            log_error(
+                "auto_classify_failed",
+                module="account_classification",
+                instance_id=normalized_instance_id,
+                use_optimized=normalized_use_optimized,
+                error=error_message,
+            )
+            raise AutoClassifyError(error_message)
+
+        result = AutoClassifyResult(
+            message=raw_result.get("message") or "自动分类成功",
+            classified_accounts=self._as_int(raw_result.get("classified_accounts")),
+            total_classifications_added=self._as_int(raw_result.get("total_classifications_added")),
+            failed_count=self._as_int(raw_result.get("failed_count")),
+            errors=self._normalize_errors(raw_result.get("errors")),
+            metadata={
+                "total_accounts": self._as_int(raw_result.get("total_accounts")),
+                "total_rules": self._as_int(raw_result.get("total_rules")),
+                "total_matches": self._as_int(raw_result.get("total_matches")),
+                "db_type_results": raw_result.get("db_type_results") or {},
+            },
+        )
+
+        log_info(
+            "auto_classify_completed",
+            module="account_classification",
+            instance_id=normalized_instance_id,
+            use_optimized=normalized_use_optimized,
+            classified_accounts=result.classified_accounts,
+            total_classifications_added=result.total_classifications_added,
+            failed_count=result.failed_count,
+        )
+        return result
+
+    def _run_engine(
+        self,
+        *,
+        instance_id: int | None,
+        created_by: int | None,
+        use_optimized: bool,
+    ) -> dict[str, Any]:
+        # 目前仅存在优化版本，未来可在此切换不同实现。
+        if use_optimized:
+            return self.classification_service.auto_classify_accounts_optimized(
+                instance_id=instance_id,
+                created_by=created_by,
+            )
+        return self.classification_service.auto_classify_accounts_optimized(
+            instance_id=instance_id,
+            created_by=created_by,
+        )
+
+    @staticmethod
+    def _as_int(value: Any) -> int:
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    def _normalize_instance_id(self, raw_value: Any) -> int | None:
+        if raw_value in (None, ""):
+            return None
+        if isinstance(raw_value, bool):
+            raise AutoClassifyError("instance_id 参数无效")
+        try:
+            return int(raw_value)
+        except (TypeError, ValueError) as exc:
+            raise AutoClassifyError("instance_id 必须为整数") from exc
+
+    def _coerce_bool(self, value: Any, *, default: bool) -> bool:
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if not normalized:
+                return default
+            if normalized in {"true", "1", "yes", "on"}:
+                return True
+            if normalized in {"false", "0", "no", "off"}:
+                return False
+        raise AutoClassifyError("use_optimized 参数无效")
+
+    @staticmethod
+    def _normalize_errors(errors: Any) -> list[str]:
+        if not errors:
+            return []
+        if isinstance(errors, str):
+            return [errors]
+        try:
+            return [str(item) for item in errors if item]
+        except TypeError:
+            return []

@@ -9,16 +9,19 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
 from app import db
-from app.constants import TaskStatus
+from app.constants import HttpStatus
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
     ClassificationRule,
 )
-from app.services.account_classification.orchestrator import AccountClassificationService
-from app.services.account_classification.classification_form_service import ClassificationFormService
-from app.services.account_classification.rule_form_service import ClassificationRuleFormService
-from app.routes.account_classification_form_view import (
+from app.services.account_classification.auto_classify_service import (
+    AutoClassifyError,
+    AutoClassifyService,
+)
+from app.services.form_service.classification_form_service import ClassificationFormService
+from app.services.form_service.classification_rule_form_service import ClassificationRuleFormService
+from app.views.account_classification_form_view import (
     AccountClassificationFormView,
     ClassificationRuleFormView,
 )
@@ -39,6 +42,7 @@ from app.utils.structlog_config import log_error, log_info
 account_classification_bp = Blueprint("account_classification", __name__)
 _classification_form_service = ClassificationFormService()
 _classification_rule_form_service = ClassificationRuleFormService()
+_auto_classify_service = AutoClassifyService()
 
 
 @account_classification_bp.route("/")
@@ -413,58 +417,18 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
 def auto_classify() -> tuple[Response, int]:
     """自动分类账户 - 使用优化后的服务"""
     data = request.get_json(silent=True) or {}
-    instance_id = data.get("instance_id")
+    created_by = current_user.id if current_user.is_authenticated else None
 
-    use_optimized = data.get("use_optimized", True)
-
-    log_info(
-        "开始自动分类账户",
-        module="account_classification",
-        instance_id=instance_id,
-        use_optimized=use_optimized,
-    )
-
-    service = AccountClassificationService()
     try:
-        result = service.auto_classify_accounts_optimized(
-            instance_id=instance_id,
-            created_by=current_user.id if current_user.is_authenticated else None,
+        result = _auto_classify_service.auto_classify(
+            instance_id=data.get("instance_id"),
+            created_by=created_by,
+            use_optimized=data.get("use_optimized"),
         )
-    except Exception as exc:
-        log_error(
-            "自动分类服务调用异常",
-            module="account_classification",
-            instance_id=instance_id,
-            exception=exc,
-        )
-        raise SystemError("自动分类失败") from exc
+    except AutoClassifyError as exc:
+        raise SystemError(str(exc)) from exc
 
-    if not result.get("success", False):
-        log_error(
-            "自动分类失败",
-            module="account_classification",
-            instance_id=instance_id,
-            error=result.get("error", "未知错误"),
-            use_optimized=use_optimized,
-        )
-        raise SystemError(result.get("error", "自动分类失败"))
-
-    log_info(
-        "自动分类完成",
-        module="account_classification",
-        instance_id=instance_id,
-        classified_count=result.get("classified_accounts", 0),
-        total_classifications=result.get("total_classifications_added", 0),
-        failed_count=result.get("failed_count", 0),
-        use_optimized=use_optimized,
-    )
-
-    payload = {
-        "classified_accounts": result.get("classified_accounts", 0),
-        "total_classifications_added": result.get("total_classifications_added", 0),
-        "failed_count": result.get("failed_count", 0),
-        "message": result.get("message", "自动分类成功"),
-    }
+    payload = result.to_payload()
 
     return jsonify_unified_success(data=payload, message=payload["message"])
 
