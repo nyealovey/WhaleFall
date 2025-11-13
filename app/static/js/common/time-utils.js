@@ -113,7 +113,7 @@
   }
 
   function tryCustomFormats(value) {
-    if (!hasDayjs || !CUSTOM_PARSE_ENABLED) {
+    if (!CUSTOM_PARSE_ENABLED) {
       return null;
     }
     for (let i = 0; i < PARSE_FORMATS.length; i += 1) {
@@ -194,27 +194,12 @@
   }
 
   function isSameDay(value, comparator = "today") {
-    if (hasDayjs) {
-      const instance = toDayjs(value);
-      if (!instance) {
-        return false;
-      }
-      const reference = comparator === "yesterday" ? dayjsLib().subtract(1, "day") : dayjsLib();
-      return instance.isSame(reference, "day");
-    }
-    const native = toNativeDate(value);
-    if (!native) {
+    const instance = toDayjs(value);
+    if (!instance) {
       return false;
     }
-    const reference = new Date();
-    if (comparator === "yesterday") {
-      reference.setDate(reference.getDate() - 1);
-    }
-    return (
-      native.getFullYear() === reference.getFullYear() &&
-      native.getMonth() === reference.getMonth() &&
-      native.getDate() === reference.getDate()
-    );
+    const reference = comparator === "yesterday" ? dayjsLib().subtract(1, "day") : dayjsLib();
+    return instance.isSame(reference, "day");
   }
 
   function buildTimeRange(hours = 24) {
