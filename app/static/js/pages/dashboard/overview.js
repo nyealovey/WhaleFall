@@ -175,7 +175,11 @@ function updateResourceUsage(type, percent) {
     if (!element.badge || !element.bar) return;
     
     // 更新徽章
-    element.badge.textContent = `${percent.toFixed(1)}%`;
+    const fallbackPercent = Math.round(percent * 10) / 10;
+    const badgeText = window.NumberFormat
+        ? window.NumberFormat.formatPercent(percent, { precision: 1, trimZero: true })
+        : `${fallbackPercent}%`;
+    element.badge.textContent = badgeText;
     const badgeClass = getResourceBadgeClass(percent);
     element.badge.className = `badge ${badgeClass}`;
     

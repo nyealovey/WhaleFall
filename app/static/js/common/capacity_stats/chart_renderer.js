@@ -81,12 +81,38 @@
               }
               switch (unit) {
                 case "size":
-                  return `${label}: ${value.toFixed(2)} GB`;
+                  if (window.NumberFormat) {
+                    const formatted = window.NumberFormat.formatPlain(
+                      value,
+                      "0,0.00",
+                      "0",
+                    );
+                    return `${label}: ${formatted} GB`;
+                  }
+                  return `${label}: ${value} GB`;
                 case "change":
-                  return `${label}: ${value >= 0 ? "+" : ""}${value.toFixed(2)} GB`;
+                  if (window.NumberFormat) {
+                    const formatted = window.NumberFormat.formatPlain(
+                      value,
+                      "+0,0.00",
+                      "0",
+                    );
+                    return `${label}: ${formatted} GB`;
+                  }
+                  return `${label}: ${value >= 0 ? "+" : ""}${value} GB`;
                 case "percent":
-                  return `${label}: ${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+                  if (window.NumberFormat) {
+                    return `${label}: ${window.NumberFormat.formatPercent(value, {
+                      precision: 2,
+                      showSign: true,
+                    })}`;
+                  }
+                  return `${label}: ${value >= 0 ? "+" : ""}${value}%`;
                 default:
+                  if (window.NumberFormat) {
+                    const fallback = window.NumberFormat.formatPlain(value, "0,0.[00]", "0");
+                    return `${label}: ${fallback}`;
+                  }
                   return `${label}: ${value}`;
               }
             },
