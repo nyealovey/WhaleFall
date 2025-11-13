@@ -72,12 +72,12 @@ class TaskScheduler:
 
     def _job_executed(self, event: Any) -> None:  # noqa: ANN401
         """任务执行成功事件"""
-        logger.info("任务执行成功: %s - %s", event.job_id, event.retval)
+        logger.info(f"任务执行成功: {event.job_id} - {event.retval}")
 
     def _job_error(self, event: Any) -> None:  # noqa: ANN401
         """任务执行错误事件"""
         exception_str = str(event.exception) if event.exception else "未知错误"
-        logger.error("任务执行失败: %s - %s", event.job_id, exception_str)
+        logger.error(f"任务执行失败: {event.job_id} - {exception_str}")
 
     def start(self) -> None:
         """启动调度器"""
@@ -101,10 +101,10 @@ class TaskScheduler:
         """删除任务"""
         try:
             self.scheduler.remove_job(job_id)
-            logger.info("任务已删除: %s", job_id)
+            logger.info(f"任务已删除: {job_id}")
         except Exception as e:
             error_str = str(e) if e else "未知错误"
-            logger.error("删除任务失败: %s - %s", job_id, error_str)
+            logger.error(f"删除任务失败: {job_id} - {error_str}")
 
     def get_jobs(self) -> list:
         """获取所有任务"""
@@ -117,12 +117,12 @@ class TaskScheduler:
     def pause_job(self, job_id: str) -> None:
         """暂停任务"""
         self.scheduler.pause_job(job_id)
-        logger.info("任务已暂停: %s", job_id)
+        logger.info(f"任务已暂停: {job_id}")
 
     def resume_job(self, job_id: str) -> None:
         """恢复任务"""
         self.scheduler.resume_job(job_id)
-        logger.info("任务已恢复: %s", job_id)
+        logger.info(f"任务已恢复: {job_id}")
 
 
 # 全局调度器实例
@@ -176,7 +176,7 @@ def _acquire_scheduler_lock() -> bool:
         return False
     except Exception as exc:  # pragma: no cover - 极端情况
         handle.close()
-        logger.error("获取调度器锁失败: %s", exc)
+        logger.error(f"获取调度器锁失败: {exc}")
         return False
 
 
@@ -204,16 +204,13 @@ def _should_start_scheduler() -> bool:
     """根据运行环境判断是否应启动调度器。"""
     enable_flag = os.environ.get("ENABLE_SCHEDULER", "true").strip().lower()
     if enable_flag not in ("true", "1", "yes"):
-        logger.info("检测到 ENABLE_SCHEDULER=%s，跳过调度器初始化", enable_flag)
+        logger.info(f"检测到 ENABLE_SCHEDULER={enable_flag}，跳过调度器初始化")
         return False
 
     server_software = os.environ.get("SERVER_SOFTWARE", "")
     if server_software.startswith("gunicorn"):
         parent_pid = os.getppid()
-        logger.info(
-            "检测到 gunicorn 环境，ppid=%s，将通过文件锁保证单实例",
-            parent_pid,
-        )
+        logger.info(f"检测到 gunicorn 环境，ppid={parent_pid}，将通过文件锁保证单实例")
 
     # Flask reloader: 只有子进程 (WERKZEUG_RUN_MAIN=true) 才运行调度器
     if os.environ.get("FLASK_RUN_FROM_CLI") == "true":
@@ -265,7 +262,7 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
         logger.info("调度器初始化完成")
         return scheduler
     except Exception as e:
-        logger.error("调度器初始化失败: %s", str(e))
+        logger.error(f"调度器初始化失败: {e}")
         # 不抛出异常，让应用继续启动
         return None
 
@@ -293,19 +290,19 @@ def _load_existing_jobs() -> None:
         try:
             existing_jobs = scheduler.get_jobs()
             if existing_jobs:
-                logger.info("从SQLite数据库加载了 %d 个现有任务", len(existing_jobs))
+                logger.info(f"从SQLite数据库加载了 {len(existing_jobs)} 个现有任务")
                 for job in existing_jobs:
-                    logger.info("加载任务: %s (%s)", job.name, job.id)
+                    logger.info(f"加载任务: {job.name} ({job.id})")
             else:
                 logger.info("SQLite数据库中没有找到任务")
         except KeyboardInterrupt:
             logger.warning("加载任务时被中断，跳过加载现有任务")
             return
         except Exception as e:
-            logger.error("获取任务列表失败: %s", str(e))
+            logger.error(f"获取任务列表失败: {e}")
             return
     except Exception as e:
-        logger.error("加载现有任务失败: %s", str(e))
+        logger.error(f"加载现有任务失败: {e}")
         # 不抛出异常，让应用继续启动
 
 
@@ -334,13 +331,13 @@ def _load_tasks_from_config(force: bool = False) -> None:
         try:
             existing_jobs = scheduler.get_jobs()
             if existing_jobs:
-                logger.info("发现 %d 个现有任务，跳过创建默认任务", len(existing_jobs))
+                logger.info(f"发现 {len(existing_jobs)} 个现有任务，跳过创建默认任务")
                 return
         except KeyboardInterrupt:
             logger.warning("检查现有任务时被中断，跳过创建默认任务")
             return
         except Exception as e:
-            logger.error("检查现有任务失败: %s", str(e))
+            logger.error(f"检查现有任务失败: {e}")
             return
 
     # 从配置文件读取默认任务
@@ -373,7 +370,7 @@ def _load_tasks_from_config(force: bool = False) -> None:
 
             func = task_func_map.get(function_name)
             if not func:
-                logger.warning("未知的任务函数: %s", function_name)
+                logger.warning(f"未知的任务函数: {function_name}")
                 continue
 
             # 创建任务
@@ -382,7 +379,7 @@ def _load_tasks_from_config(force: bool = False) -> None:
                 if force:
                     try:
                         scheduler.remove_job(task_id)
-                        logger.info("强制模式-删除现有任务: %s (%s)", task_name, task_id)
+                        logger.info(f"强制模式-删除现有任务: {task_name} ({task_id})")
                     except Exception:
                         pass  # 任务不存在，忽略错误
                 
@@ -422,18 +419,18 @@ def _load_tasks_from_config(force: bool = False) -> None:
                         name=task_name,
                         **trigger_params,
                     )
-                logger.info("添加任务: %s (%s)", task_name, task_id)
+                logger.info(f"添加任务: {task_name} ({task_id})")
             except Exception as e:
                 if force:
-                    logger.error("强制模式-创建任务失败: %s (%s) - %s", task_name, task_id, str(e))
+                    logger.error(f"强制模式-创建任务失败: {task_name} ({task_id}) - {e}")
                 else:
-                    logger.warning("任务已存在，跳过创建: %s (%s) - %s", task_name, task_id, str(e))
+                    logger.warning(f"任务已存在，跳过创建: {task_name} ({task_id}) - {e}")
 
     except FileNotFoundError:
-        logger.error("配置文件不存在: %s，无法加载默认任务", config_file)
+        logger.error(f"配置文件不存在: {config_file}，无法加载默认任务")
         return
     except Exception as e:
-        logger.error("读取配置文件失败: %s", str(e))
+        logger.error(f"读取配置文件失败: {e}")
         return
 
     logger.info("默认定时任务已添加")
