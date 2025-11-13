@@ -11,7 +11,7 @@ from flask_login import current_user, login_required  # type: ignore
 
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
-from app.routes.scheduler_job_form_view import SchedulerJobFormView
+from app.views.scheduler_job_form_view import SchedulerJobFormView
 from app.scheduler import get_scheduler
 from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
 from app.utils.response_utils import jsonify_unified_success

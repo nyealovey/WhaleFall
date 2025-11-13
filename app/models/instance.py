@@ -2,13 +2,8 @@
 鲸落 - 实例模型
 """
 
-from typing import TYPE_CHECKING
-
 from app import db
 from app.utils.time_utils import time_utils
-
-if TYPE_CHECKING:
-    from app.models.tag import Tag
 
 
 class Instance(db.Model):
@@ -109,12 +104,6 @@ class Instance(db.Model):
         # environment 字段已移除，使用标签系统替代
         # 标签将在创建后通过关系添加
 
-    def test_connection(self) -> dict:
-        """调用统一的连接测试服务"""
-        from app.services.connection_adapters.connection_test_service import connection_test_service
-
-        return connection_test_service.test_connection(self)
-
     def to_dict(self, *, include_password: bool = False) -> dict:
         """
         转换为字典格式
@@ -166,90 +155,6 @@ class Instance(db.Model):
                 }
 
         return data
-
-    def soft_delete(self) -> None:
-        """软删除实例"""
-        self.deleted_at = time_utils.now()
-        self.is_active = False
-        db.session.commit()
-        from app.utils.structlog_config import get_system_logger
-
-        system_logger = get_system_logger()
-        system_logger.info(
-            "实例删除",
-            module="model",
-            operation="instance_delete",
-            instance_id=self.id,
-            name=self.name,
-        )
-
-    def restore(self) -> None:
-        """恢复实例"""
-        self.deleted_at = None
-        self.is_active = True
-        db.session.commit()
-        from app.utils.structlog_config import get_system_logger
-
-        system_logger = get_system_logger()
-        system_logger.info(
-            "实例恢复",
-            module="model",
-            operation="instance_restore",
-            instance_id=self.id,
-            name=self.name,
-        )
-
-    @staticmethod
-    def get_active_instances() -> list:
-        """获取所有活跃实例"""
-        return (
-            Instance.query.filter(
-                Instance.deleted_at.is_(None),
-                Instance.is_active.is_(True),
-            ).all()
-        )
-
-    @staticmethod
-    def get_by_db_type(db_type: str) -> list:
-        """根据数据库类型获取实例"""
-        return Instance.query.filter_by(db_type=db_type, deleted_at=None).all()
-
-    # 标签相关方法
-    def add_tag(self, tag: "Tag") -> None:
-        """添加标签"""
-        if tag not in self.tags:
-            self.tags.append(tag)
-            db.session.commit()
-
-    def remove_tag(self, tag: "Tag") -> None:
-        """移除标签"""
-        if tag in self.tags:
-            self.tags.remove(tag)
-            db.session.commit()
-
-    def has_tag(self, tag_name: str) -> bool:
-        """检查是否有指定标签"""
-        return self.tags.filter(Tag.name == tag_name).first() is not None
-
-    def get_tags_by_category(self, category: str) -> list:
-        """获取指定分类的标签"""
-        return self.tags.filter(Tag.category == category).all()
-
-    @staticmethod
-    def get_by_tag(tag_name: str) -> list:
-        """根据标签获取实例"""
-        return Instance.query.join(Instance.tags).filter(Tag.name == tag_name, Instance.deleted_at.is_(None)).all()
-
-    @staticmethod
-    def get_by_tags(tag_names: list) -> list:
-        """根据多个标签获取实例"""
-        return Instance.query.join(Instance.tags).filter(Tag.name.in_(tag_names), Instance.deleted_at.is_(None)).all()
-
-    @staticmethod
-    def get_tag_choices() -> list:
-        """获取标签选项（从Tag模型获取）"""
-        from app.models.tag import Tag
-        return Tag.get_tag_choices()
 
     def __repr__(self) -> str:
         return f"<Instance {self.name}>"

@@ -10,7 +10,7 @@ from app import db
 from app.models.instance import Instance
 from app.models.credential import Credential
 from app.models.tag import Tag
-from app.services.resource_form_service import BaseResourceService, ServiceResult
+from app.services.form_service.resource_form_service import BaseResourceService, ServiceResult
 from app.utils.data_validator import DataValidator
 from app.services.database_type_service import DatabaseTypeService
 from app.utils.structlog_config import log_error, log_info

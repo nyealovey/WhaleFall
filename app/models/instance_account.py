@@ -41,37 +41,3 @@ class InstanceAccount(db.Model):
             f"<InstanceAccount(id={self.id}, instance_id={self.instance_id}, "
             f"username='{self.username}', is_active={self.is_active})>"
         )
-
-    @classmethod
-    def mark_as_deleted(cls, instance_id: int, username: str, db_type: str) -> bool:
-        """标记账户为已删除"""
-        account = cls.query.filter_by(
-            instance_id=instance_id,
-            db_type=db_type,
-            username=username,
-        ).first()
-        if not account:
-            return False
-
-        account.is_active = False
-        account.deleted_at = time_utils.now()
-        account.updated_at = time_utils.now()
-        db.session.commit()
-        return True
-
-    @classmethod
-    def reactivate(cls, instance_id: int, username: str, db_type: str) -> bool:
-        """重新激活已删除账户"""
-        account = cls.query.filter_by(
-            instance_id=instance_id,
-            db_type=db_type,
-            username=username,
-        ).first()
-        if not account:
-            return False
-
-        account.is_active = True
-        account.deleted_at = None
-        account.updated_at = time_utils.now()
-        db.session.commit()
-        return True

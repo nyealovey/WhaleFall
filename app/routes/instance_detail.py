@@ -26,7 +26,7 @@ from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
-from app.routes.instance_form_view import InstanceFormView
+from app.views.instance_form_view import InstanceFormView
 
 instance_detail_bp = Blueprint("instance_detail", __name__, url_prefix="/instances")
 

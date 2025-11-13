@@ -8,11 +8,10 @@ from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
 
 from app.utils.decorators import admin_required, require_csrf, update_required, view_required
-from app.constants import DatabaseType, TaskStatus
+from app.constants import TaskStatus
 
 from app.models import Instance
 from app.services.cache_service import cache_manager
-from app.services.account_sync.adapters.sqlserver_adapter import SQLServerAccountAdapter
 from app.services.account_classification.orchestrator import AccountClassificationService
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.utils.response_utils import jsonify_unified_success
@@ -53,11 +52,7 @@ def clear_user_cache() -> Response:
         raise NotFoundError("实例不存在")
 
     try:
-        if instance.db_type == DatabaseType.SQLSERVER:
-            adapter = SQLServerAccountAdapter()
-            success = adapter.clear_user_cache(instance, username)
-        else:
-            success = cache_manager.invalidate_user_cache(instance_id, username)
+        success = cache_manager.invalidate_user_cache(instance_id, username)
     except Exception as exc:
         log_error(f"清除用户缓存失败: {exc}", module="cache", instance_id=instance_id, username=username)
         raise SystemError("清除用户缓存失败") from exc
@@ -92,11 +87,7 @@ def clear_instance_cache() -> Response:
         raise NotFoundError("实例不存在")
 
     try:
-        if instance.db_type == DatabaseType.SQLSERVER:
-            adapter = SQLServerSyncAdapter()
-            success = adapter.clear_instance_cache(instance)
-        else:
-            success = cache_manager.invalidate_instance_cache(instance_id)
+        success = cache_manager.invalidate_instance_cache(instance_id)
     except Exception as exc:
         log_error(f"清除实例缓存失败: {exc}", module="cache", instance_id=instance_id)
         raise SystemError("清除实例缓存失败") from exc
@@ -128,13 +119,8 @@ def clear_all_cache() -> Response:
     cleared_count = 0
     for instance in instances:
         try:
-            if instance.db_type == DatabaseType.SQLSERVER:
-                adapter = SQLServerSyncAdapter()
-                if adapter.clear_instance_cache(instance):
-                    cleared_count += 1
-            else:
-                if cache_manager.invalidate_instance_cache(instance.id):
-                    cleared_count += 1
+            if cache_manager.invalidate_instance_cache(instance.id):
+                cleared_count += 1
         except Exception as exc:
             log_error(f"清除实例 {instance.id} 缓存失败: {exc}", module="cache")
 
