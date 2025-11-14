@@ -1,11 +1,16 @@
 /**
- * 实例管理页面JavaScript
- * 处理实例的连接测试、批量操作等功能
+ * 实例管理页面脚本
+ * 处理标签筛选、批量操作等功能
  */
 
-// 页面加载完成后初始化
+const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
+const AUTO_APPLY_FILTER_CHANGE = true;
+let instanceFilterEventHandler = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     initializeTagFilter();
+    registerInstanceFilterForm();
+    subscribeInstanceFilters();
     setupEventListeners();
     loadInstanceTotalSizes();
     
@@ -74,19 +79,20 @@ function initializeTagFilter() {
         hiddenValueKey: 'name',
         initialValues,
         onConfirm: () => {
-            const form = document.getElementById('instance-filter-form');
-            if (form) {
-                if (window.EventBus) {
-                    EventBus.emit('filters:change', {
-                        formId: form.id,
-                        source: 'instance-tag-selector',
-                        values: collectFormValues(form),
-                    });
-                } else if (typeof form.requestSubmit === 'function') {
-                    form.requestSubmit();
-                } else {
-                    form.submit();
-                }
+            const form = document.getElementById(INSTANCE_FILTER_FORM_ID);
+            if (!form) {
+                return;
+            }
+            if (window.EventBus) {
+                EventBus.emit('filters:change', {
+                    formId: form.id,
+                    source: 'instance-tag-selector',
+                    values: collectFormValues(form),
+                });
+            } else if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                form.submit();
             }
         },
     });
@@ -112,6 +118,113 @@ function collectFormValues(form) {
         }
     });
     return result;
+}
+
+function registerInstanceFilterForm() {
+    if (!window.FilterUtils) {
+        console.warn('FilterUtils 未加载，跳过实例筛选初始化');
+        return;
+    }
+    const selector = `#${INSTANCE_FILTER_FORM_ID}`;
+    const form = document.querySelector(selector);
+    if (!form) {
+        return;
+    }
+    window.FilterUtils.registerFilterForm(selector, {
+        onSubmit: ({ form, event }) => {
+            event?.preventDefault?.();
+            applyInstanceFilters(form);
+        },
+        onClear: ({ form, event }) => {
+            event?.preventDefault?.();
+            resetInstanceFilters(form);
+        },
+        autoSubmitOnChange: true,
+    });
+}
+
+function subscribeInstanceFilters() {
+    if (!window.EventBus) {
+        return;
+    }
+    const form = document.getElementById(INSTANCE_FILTER_FORM_ID);
+    if (!form) {
+        return;
+    }
+    const handler = (detail) => {
+        if (!detail) {
+            return;
+        }
+        const incoming = (detail.formId || '').replace(/^#/, '');
+        if (incoming !== INSTANCE_FILTER_FORM_ID) {
+            return;
+        }
+        switch (detail.action) {
+            case 'clear':
+                resetInstanceFilters(form);
+                break;
+            case 'change':
+                if (AUTO_APPLY_FILTER_CHANGE) {
+                    applyInstanceFilters(form, detail.values);
+                }
+                break;
+            case 'submit':
+                applyInstanceFilters(form, detail.values);
+                break;
+            default:
+                break;
+        }
+    };
+    ['change', 'submit', 'clear'].forEach((action) => {
+        EventBus.on(`filters:${action}`, handler);
+    });
+    instanceFilterEventHandler = handler;
+    window.addEventListener('beforeunload', () => cleanupInstanceFilters(), { once: true });
+}
+
+function cleanupInstanceFilters() {
+    if (!window.EventBus || !instanceFilterEventHandler) {
+        return;
+    }
+    ['change', 'submit', 'clear'].forEach((action) => {
+        EventBus.off(`filters:${action}`, instanceFilterEventHandler);
+    });
+    instanceFilterEventHandler = null;
+}
+
+function applyInstanceFilters(form, values) {
+    const targetForm = form || document.getElementById(INSTANCE_FILTER_FORM_ID);
+    if (!targetForm) {
+        return;
+    }
+    const data = values && Object.keys(values || {}).length ? values : collectFormValues(targetForm);
+    const params = new URLSearchParams();
+    Object.entries(data || {}).forEach(([key, value]) => {
+        if (key === 'csrf_token') {
+            return;
+        }
+        if (value === undefined || value === null) {
+            return;
+        }
+        if (Array.isArray(value)) {
+            value.filter((item) => item !== '' && item !== null).forEach((item) => {
+                params.append(key, item);
+            });
+        } else if (String(value).trim() !== '') {
+            params.append(key, value);
+        }
+    });
+    const action = targetForm.getAttribute('action') || window.location.pathname;
+    const query = params.toString();
+    window.location.href = query ? `${action}?${query}` : action;
+}
+
+function resetInstanceFilters(form) {
+    const targetForm = form || document.getElementById(INSTANCE_FILTER_FORM_ID);
+    if (targetForm) {
+        targetForm.reset();
+    }
+    applyInstanceFilters(targetForm, {});
 }
 
 // 初始化标签选择器
