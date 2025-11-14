@@ -332,11 +332,4 @@
     {% include 'components/tag_selector.html' %}
 </div>
 <script src="{{ url_for('static', filename='js/pages/instances/list.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (window.FilterUtils) {
-        FilterUtils.registerFilterForm('#instance-filter-form');
-    }
-});
-</script>
 {% endblock %}
