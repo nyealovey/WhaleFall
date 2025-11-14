@@ -1,6 +1,11 @@
 (function (window) {
   "use strict";
 
+  const LodashUtils = window.LodashUtils;
+  if (!LodashUtils) {
+    throw new Error("LodashUtils 未初始化");
+  }
+
   const COLOR_PALETTE = [
     "#FF6384",
     "#36A2EB",
@@ -201,9 +206,12 @@
       labelExtractor,
       (item) => normalizeValue(item.total_size_mb ?? item.avg_size_mb)
     );
-    const labels = Array.from(dateMatrix.keys()).sort();
-    const sortedKeys = Array.from(labelMaxValue.entries())
-      .sort((a, b) => b[1] - a[1])
+    const labels = LodashUtils.sortBy(Array.from(dateMatrix.keys()));
+    const sortedKeys = LodashUtils.orderBy(
+      Array.from(labelMaxValue.entries()),
+      [(entry) => entry[1]],
+      ["desc"]
+    )
       .slice(0, topN)
       .map(([key]) => key);
 
@@ -234,9 +242,12 @@
       labelExtractor,
       (item) => normalizeValue(item[valueField] ?? item.size_change_mb)
     );
-    const labels = Array.from(dateMatrix.keys()).sort();
-    const sortedKeys = Array.from(labelMaxValue.entries())
-      .sort((a, b) => b[1] - a[1])
+    const labels = LodashUtils.sortBy(Array.from(dateMatrix.keys()));
+    const sortedKeys = LodashUtils.orderBy(
+      Array.from(labelMaxValue.entries()),
+      [(entry) => entry[1]],
+      ["desc"]
+    )
       .slice(0, topN)
       .map(([key]) => key);
 
@@ -267,9 +278,12 @@
       labelExtractor,
       (item) => normalizeValue(item[valueField] ?? item.size_change_percent)
     );
-    const labels = Array.from(dateMatrix.keys()).sort();
-    const sortedKeys = Array.from(labelMaxValue.entries())
-      .sort((a, b) => b[1] - a[1])
+    const labels = LodashUtils.sortBy(Array.from(dateMatrix.keys()));
+    const sortedKeys = LodashUtils.orderBy(
+      Array.from(labelMaxValue.entries()),
+      [(entry) => entry[1]],
+      ["desc"]
+    )
       .slice(0, topN)
       .map(([key]) => key);
 

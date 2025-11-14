@@ -3,6 +3,11 @@
  * 处理图表初始化、系统状态更新等功能
  */
 
+const LodashUtils = window.LodashUtils;
+if (!LodashUtils) {
+    throw new Error('LodashUtils 未初始化');
+}
+
 // 全局变量
 let logTrendChart = null;
 
@@ -56,22 +61,25 @@ function initLogTrendChart() {
     http.get('/dashboard/api/charts?type=logs')
         .then(data => {
             const payload = data?.data ?? data ?? {};
-            const logTrend = payload.log_trend ?? [];
+            const logTrend = LodashUtils.get(payload, 'log_trend', []);
+            const labels = LodashUtils.map(logTrend, (item, index) => LodashUtils.safeGet(item, 'date', `未知 ${index + 1}`));
+            const errorSeries = LodashUtils.map(logTrend, (item) => Number(item?.error_count) || 0);
+            const warningSeries = LodashUtils.map(logTrend, (item) => Number(item?.warning_count) || 0);
             
             logTrendChart = new Chart(context, {
                 type: 'line',
                 data: {
-                    labels: logTrend.map(item => item.date),
+                    labels,
                     datasets: [{
                         label: '错误日志',
-                        data: logTrend.map(item => item.error_count),
+                        data: errorSeries,
                         borderColor: dangerColor,
                         backgroundColor: colorWithAlpha(dangerColor, 0.2),
                         tension: 0.1,
                         fill: true
                     }, {
                         label: '告警日志',
-                        data: logTrend.map(item => item.warning_count),
+                        data: warningSeries,
                         borderColor: warningColor,
                         backgroundColor: colorWithAlpha(warningColor, 0.2),
                         tension: 0.1,

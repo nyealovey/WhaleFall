@@ -2,6 +2,11 @@
  * 批量分配标签页面逻辑
  */
 
+const LodashUtils = window.LodashUtils;
+if (!LodashUtils) {
+    throw new Error('LodashUtils 未初始化');
+}
+
 class BatchAssignManager {
     constructor() {
         this.selectedInstances = new Set();
@@ -9,6 +14,8 @@ class BatchAssignManager {
         this.currentMode = 'assign'; // assign | remove
         this.instances = [];
         this.tags = [];
+        this.instanceLookup = {};
+        this.tagLookup = {};
         this.instancesByDbType = {};
         this.tagsByCategory = {};
         this.form = document.getElementById('batchAssignForm');
@@ -108,6 +115,7 @@ class BatchAssignManager {
         try {
             const { data: payload } = await http.get('/tags/api/instances');
             this.instances = Array.isArray(payload?.instances) ? payload.instances : [];
+            this.instanceLookup = LodashUtils.keyBy(this.instances, 'id');
             this.instancesByDbType = this.groupInstancesByDbType(this.instances);
         } catch (error) {
             console.error('加载实例失败:', error);
@@ -122,6 +130,7 @@ class BatchAssignManager {
         try {
             const { data: payload } = await http.get('/tags/api/all_tags');
             this.tags = Array.isArray(payload?.tags) ? payload.tags : [];
+            this.tagLookup = LodashUtils.keyBy(this.tags, 'id');
             this.tagsByCategory = this.groupTagsByCategory(this.tags);
 
         } catch (error) {
@@ -134,50 +143,32 @@ class BatchAssignManager {
      * 按数据库类型分组实例
      */
     groupInstancesByDbType(instances) {
-        const grouped = {};
-        instances.forEach(instance => {
-            const dbType = instance.db_type || 'unknown';
-            if (!grouped[dbType]) {
-                grouped[dbType] = [];
-            }
-            grouped[dbType].push(instance);
-        });
-
-        // 对每个分组内的实例按名称排序
-        Object.keys(grouped).forEach(dbType => {
-            grouped[dbType].sort((a, b) => {
-                const nameA = a.name || '';
-                const nameB = b.name || '';
-                return nameA.localeCompare(nameB, 'zh-CN', { numeric: true });
-            });
-        });
-
-        return grouped;
+        const grouped = LodashUtils.groupBy(instances || [], (instance) => instance?.db_type || 'unknown');
+        return LodashUtils.mapValues(grouped, (items) =>
+            LodashUtils.orderBy(
+                items,
+                [
+                    (instance) => this.normalizeText(instance?.name),
+                ],
+                ['asc']
+            )
+        );
     }
 
     /**
      * 按分类分组标签
      */
     groupTagsByCategory(tags) {
-        const grouped = {};
-        tags.forEach(tag => {
-            const category = tag.category || '未分类';
-            if (!grouped[category]) {
-                grouped[category] = [];
-            }
-            grouped[category].push(tag);
-        });
-
-        // 对每个分组内的标签按显示名称排序
-        Object.keys(grouped).forEach(category => {
-            grouped[category].sort((a, b) => {
-                const nameA = a.display_name || a.name || '';
-                const nameB = b.display_name || b.name || '';
-                return nameA.localeCompare(nameB, 'zh-CN', { numeric: true });
-            });
-        });
-
-        return grouped;
+        const grouped = LodashUtils.groupBy(tags || [], (tag) => tag?.category || '未分类');
+        return LodashUtils.mapValues(grouped, (items) =>
+            LodashUtils.orderBy(
+                items,
+                [
+                    (tag) => this.normalizeText(tag?.display_name || tag?.name),
+                ],
+                ['asc']
+            )
+        );
     }
 
     /**
@@ -195,7 +186,7 @@ class BatchAssignManager {
         }
 
         let html = '';
-        Object.keys(this.instancesByDbType).sort().forEach(dbType => {
+        this.getSortedKeys(this.instancesByDbType).forEach(dbType => {
             const instances = this.instancesByDbType[dbType];
             const dbTypeDisplay = this.getDbTypeDisplayName(dbType);
 
@@ -264,7 +255,7 @@ class BatchAssignManager {
         }
 
         let html = '';
-        Object.keys(this.tagsByCategory).sort().forEach(category => {
+        this.getSortedKeys(this.tagsByCategory).forEach(category => {
             const tags = this.tagsByCategory[category];
 
             html += `
@@ -348,7 +339,7 @@ class BatchAssignManager {
      * 收起所有实例分组
      */
     collapseAllInstanceGroups() {
-        Object.keys(this.instancesByDbType).forEach(dbType => {
+        this.getSortedKeys(this.instancesByDbType).forEach(dbType => {
             const content = document.getElementById(`instanceGroupContent_${dbType}`);
             if (content && content.classList.contains('show')) {
                 content.classList.remove('show');
@@ -365,7 +356,7 @@ class BatchAssignManager {
      * 收起所有标签分组
      */
     collapseAllTagGroups() {
-        Object.keys(this.tagsByCategory).forEach(category => {
+        this.getSortedKeys(this.tagsByCategory).forEach(category => {
             const content = document.getElementById(`tagGroupContent_${category}`);
             if (content && content.classList.contains('show')) {
                 content.classList.remove('show');
@@ -484,7 +475,7 @@ class BatchAssignManager {
      */
     updateGroupCheckboxState(type) {
         if (type === 'instance') {
-            Object.keys(this.instancesByDbType).forEach(dbType => {
+            this.getSortedKeys(this.instancesByDbType).forEach(dbType => {
                 const groupCheckbox = document.getElementById(`instanceGroup_${dbType}`);
                 const instanceCheckboxes = document.querySelectorAll(`#instanceGroupContent_${dbType} input[type="checkbox"]`);
                 const checkedCount = Array.from(instanceCheckboxes).filter(cb => cb.checked).length;
@@ -493,7 +484,7 @@ class BatchAssignManager {
                 groupCheckbox.indeterminate = checkedCount > 0 && checkedCount < instanceCheckboxes.length;
             });
         } else if (type === 'tag') {
-            Object.keys(this.tagsByCategory).forEach(category => {
+            this.getSortedKeys(this.tagsByCategory).forEach(category => {
                 const groupCheckbox = document.getElementById(`tagGroup_${category}`);
                 const tagCheckboxes = document.querySelectorAll(`#tagGroupContent_${category} input[type="checkbox"]`);
                 const checkedCount = Array.from(tagCheckboxes).filter(cb => cb.checked).length;
@@ -587,8 +578,8 @@ class BatchAssignManager {
 
         // 更新实例列表
         const instanceNames = Array.from(this.selectedInstances).map(id => {
-            const instance = this.instances.find(i => i.id === id);
-            return instance ? instance.name : `实例 ${id}`;
+            const instance = this.instanceLookup[id];
+            return LodashUtils.safeGet(instance, 'name', `实例 ${id}`);
         });
 
         selectedInstancesList.innerHTML = instanceNames.map(name =>
@@ -598,13 +589,10 @@ class BatchAssignManager {
         // 更新标签列表（仅在分配模式下显示）
         if (this.currentMode === 'assign') {
             const tagItems = Array.from(this.selectedTags).map(id => {
-                const tag = this.tags.find(t => t.id === id);
-                return tag ? {
-                    name: tag.display_name || tag.name,
-                    color: tag.color || 'primary'
-                } : {
-                    name: `标签 ${id}`,
-                    color: 'secondary'
+                const tag = this.tagLookup[id];
+                return {
+                    name: LodashUtils.safeGet(tag, 'display_name', LodashUtils.safeGet(tag, 'name', `标签 ${id}`)),
+                    color: LodashUtils.safeGet(tag, 'color', tag ? 'primary' : 'secondary'),
                 };
             });
 
@@ -793,6 +781,28 @@ class BatchAssignManager {
                 <p>暂无${type}数据</p>
             </div>
         `;
+    }
+
+    getSortedKeys(collection) {
+        const keys = Object.keys(collection || {});
+        if (!keys.length) {
+            return [];
+        }
+        return LodashUtils.orderBy(
+            keys,
+            [
+                (key) => this.normalizeText(key),
+            ],
+            ['asc']
+        );
+    }
+
+    normalizeText(value) {
+        const text = (value || '').toString();
+        if (typeof LodashUtils.toLower === 'function') {
+            return LodashUtils.toLower(text);
+        }
+        return text.toLowerCase();
     }
 
     /**
