@@ -1,148 +1,163 @@
 /**
- * 登录页面 JavaScript
- * 统一使用 Just-Validate 进行表单验证。
+ * 登录页面脚本：统一使用 Umbrella JS 处理 DOM/事件，并依赖表单校验封装。
  */
+(function (global) {
+    'use strict';
 
-let loginFormValidator = null;
+    const helpers = global.DOMHelpers;
 
-document.addEventListener('DOMContentLoaded', function () {
-    initializeLoginPage();
-});
-
-function initializeLoginPage() {
-    initializePasswordToggle();
-    initializeFormValidation();
-    initializePasswordStrengthWatcher();
-}
-
-function initializePasswordToggle() {
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('password');
-
-    if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', function () {
-            togglePasswordVisibility(passwordInput, this);
-        });
-    }
-}
-
-function togglePasswordVisibility(passwordInput, toggleButton) {
-    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-    passwordInput.setAttribute('type', type);
-
-    const icon = toggleButton.querySelector('i');
-    if (icon) {
-        icon.classList.toggle('fa-eye');
-        icon.classList.toggle('fa-eye-slash');
-    }
-
-    toggleButton.setAttribute('title', type === 'password' ? '显示密码' : '隐藏密码');
-}
-
-function initializeFormValidation() {
-    if (!window.FormValidator || !window.ValidationRules) {
-        console.error('表单校验模块未正确加载');
+    if (!helpers) {
+        console.error('DOMHelpers 未初始化，无法加载登录页面脚本');
         return;
     }
 
-    loginFormValidator = window.FormValidator.create('#loginForm');
-    if (!loginFormValidator) {
-        return;
-    }
+    const { ready, selectOne, from, value } = helpers;
+    let loginFormValidator = null;
 
-    loginFormValidator
-        .useRules('#username', window.ValidationRules.auth.login.username)
-        .useRules('#password', window.ValidationRules.auth.login.password)
-        .onSuccess(function (event) {
-            const form = event.target;
-            showLoadingState(form);
-            form.submit();
-        })
-        .onFail(function () {
-            toast.error('请输入正确的用户名和密码');
-        });
-}
-
-function initializePasswordStrengthWatcher() {
-    const passwordInput = document.getElementById('password');
-
-    if (!passwordInput) {
-        return;
-    }
-
-    passwordInput.addEventListener('input', function () {
-        updatePasswordStrength(this.value);
+    ready(() => {
+        initializePasswordToggle();
+        initializeFormValidation();
+        initializePasswordStrengthWatcher();
     });
 
-    updatePasswordStrength(passwordInput.value || '');
-}
+    function initializePasswordToggle() {
+        const togglePassword = selectOne('#togglePassword');
+        const passwordInput = selectOne('#password');
 
-function showLoadingState(form) {
-    const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>登录中...';
-        submitBtn.disabled = true;
-    }
-}
+        if (!togglePassword.length || !passwordInput.length) {
+            return;
+        }
 
-function hideLoadingState(form) {
-    const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>登录';
-        submitBtn.disabled = false;
-    }
-}
-
-function checkPasswordStrength(password) {
-    var strength = 0;
-    var feedback = '';
-
-    if (password.length >= 6) strength++;
-    if (password.length >= 8) strength++;
-    if (/[a-z]/.test(password)) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
-
-    if (strength < 2) {
-        feedback = '密码强度：弱';
-    } else if (strength < 4) {
-        feedback = '密码强度：中等';
-    } else if (strength < 6) {
-        feedback = '密码强度：良好';
-    } else {
-        feedback = '密码强度：强';
+        togglePassword.on('click', (event) => {
+            const trigger = from(event.currentTarget);
+            togglePasswordVisibility(passwordInput, trigger);
+        });
     }
 
-    return { strength: strength, feedback: feedback };
-}
+    function togglePasswordVisibility(passwordInput, toggleButton) {
+        const currentType = passwordInput.attr('type') === 'password' ? 'text' : 'password';
+        passwordInput.attr('type', currentType);
 
-function updatePasswordStrength(password) {
-    const strengthBar = document.querySelector('.password-strength-bar');
-    const strengthText = document.querySelector('.password-strength-text');
+        const icon = toggleButton.find('i');
+        if (icon.length) {
+            icon.toggleClass('fa-eye');
+            icon.toggleClass('fa-eye-slash');
+        }
 
-    if (!strengthBar) {
-        return;
+        toggleButton.attr('title', currentType === 'password' ? '显示密码' : '隐藏密码');
     }
 
-    const result = checkPasswordStrength(password);
+    function initializeFormValidation() {
+        if (!global.FormValidator || !global.ValidationRules) {
+            console.error('表单校验模块未正确加载');
+            return;
+        }
 
-    strengthBar.className = 'password-strength-bar';
-    if (result.strength < 2) {
-        strengthBar.classList.add('weak');
-    } else if (result.strength < 4) {
-        strengthBar.classList.add('fair');
-    } else if (result.strength < 6) {
-        strengthBar.classList.add('good');
-    } else {
-        strengthBar.classList.add('strong');
+        loginFormValidator = global.FormValidator.create('#loginForm');
+        if (!loginFormValidator) {
+            return;
+        }
+
+        loginFormValidator
+            .useRules('#username', global.ValidationRules.auth.login.username)
+            .useRules('#password', global.ValidationRules.auth.login.password)
+            .onSuccess((event) => {
+                const form = event.target;
+                showLoadingState(form);
+                form.submit();
+            })
+            .onFail(() => {
+                global.toast.error('请输入正确的用户名和密码');
+            });
     }
 
-    if (strengthText) {
-        strengthText.textContent = result.feedback;
-    }
-}
+    function initializePasswordStrengthWatcher() {
+        const passwordInput = selectOne('#password');
+        if (!passwordInput.length) {
+            return;
+        }
 
-window.togglePasswordVisibility = togglePasswordVisibility;
-window.hideLoadingState = hideLoadingState;
-window.updatePasswordStrength = updatePasswordStrength;
+        passwordInput.on('input', (event) => {
+            updatePasswordStrength(event.target.value);
+        });
+
+        updatePasswordStrength(value(passwordInput) || '');
+    }
+
+    function showLoadingState(form) {
+        const formWrapper = from(form);
+        const submitBtn = formWrapper.find('button[type="submit"]');
+        if (!submitBtn.length) {
+            return;
+        }
+        submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>登录中...');
+        submitBtn.attr('disabled', 'disabled');
+    }
+
+    function hideLoadingState(form) {
+        const formWrapper = from(form);
+        const submitBtn = formWrapper.find('button[type="submit"]');
+        if (!submitBtn.length) {
+            return;
+        }
+        submitBtn.html('<i class="fas fa-sign-in-alt me-2"></i>登录');
+        submitBtn.attr('disabled', null);
+    }
+
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        let feedback = '';
+
+        if (password.length >= 6) strength++;
+        if (password.length >= 8) strength++;
+        if (/[a-z]/.test(password)) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+        if (strength < 2) {
+            feedback = '密码强度：弱';
+        } else if (strength < 4) {
+            feedback = '密码强度：中等';
+        } else if (strength < 6) {
+            feedback = '密码强度：良好';
+        } else {
+            feedback = '密码强度：强';
+        }
+
+        return { strength, feedback };
+    }
+
+    function resetStrengthBarClasses(strengthBar) {
+        strengthBar.attr('class', 'password-strength-bar');
+    }
+
+    function updatePasswordStrength(password) {
+        const strengthBar = selectOne('.password-strength-bar');
+        if (!strengthBar.length) {
+            return;
+        }
+        const strengthText = selectOne('.password-strength-text');
+        const result = checkPasswordStrength(password || '');
+
+        resetStrengthBarClasses(strengthBar);
+
+        if (result.strength < 2) {
+            strengthBar.addClass('weak');
+        } else if (result.strength < 4) {
+            strengthBar.addClass('fair');
+        } else if (result.strength < 6) {
+            strengthBar.addClass('good');
+        } else {
+            strengthBar.addClass('strong');
+        }
+
+        if (strengthText.length) {
+            strengthText.text(result.feedback);
+        }
+    }
+
+    global.togglePasswordVisibility = togglePasswordVisibility;
+    global.hideLoadingState = hideLoadingState;
+    global.updatePasswordStrength = updatePasswordStrength;
+})(window);

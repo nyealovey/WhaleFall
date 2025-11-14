@@ -1,20 +1,29 @@
 /**
  * 实例表单页面（新建 & 编辑）
  */
-(function (window, document) {
+(function (window) {
   'use strict';
+
+  const helpers = window.DOMHelpers;
+  if (!helpers) {
+    console.error('DOMHelpers 未初始化，无法加载实例表单脚本');
+    return;
+  }
+
+  const { ready, selectOne, from } = helpers;
 
   let instanceFormValidator = null;
   let formController = null;
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('instanceForm');
-    if (!form) {
+  ready(() => {
+    const formWrapper = selectOne('#instanceForm');
+    if (!formWrapper.length) {
       return;
     }
+    const form = formWrapper.first();
 
-    const root = document.getElementById('instance-form-root');
-    const mode = root?.dataset.formMode || 'create';
+    const root = selectOne('#instance-form-root');
+    const mode = root.length ? root.data('formMode') || root.attr('data-form-mode') || 'create' : 'create';
 
     if (window.ResourceFormController) {
       formController = new window.ResourceFormController(form, {
@@ -53,40 +62,48 @@
         window.toast.error('请检查实例表单填写');
       });
 
-    const dbTypeSelect = document.getElementById('db_type');
-    const nameInput = document.getElementById('name');
-    const hostInput = document.getElementById('host');
-    const portInput = document.getElementById('port');
-    const credentialSelect = document.getElementById('credential_id');
+    const dbTypeSelect = selectOne('#db_type');
+    const nameInput = selectOne('#name');
+    const hostInput = selectOne('#host');
+    const portInput = selectOne('#port');
+    const credentialSelect = selectOne('#credential_id');
 
-    dbTypeSelect?.addEventListener('change', (event) => {
-      handleDbTypeChange(event.currentTarget);
-      instanceFormValidator.revalidateField('#db_type');
-      instanceFormValidator.revalidateField('#port');
-    });
-    nameInput?.addEventListener('blur', () => instanceFormValidator.revalidateField('#name'));
-    hostInput?.addEventListener('blur', () => instanceFormValidator.revalidateField('#host'));
-    portInput?.addEventListener('input', () => instanceFormValidator.revalidateField('#port'));
-    credentialSelect?.addEventListener('change', () =>
-      instanceFormValidator.revalidateField('#credential_id'),
-    );
+    if (dbTypeSelect.length) {
+      dbTypeSelect.on('change', (event) => {
+        handleDbTypeChange(event.currentTarget);
+        instanceFormValidator.revalidateField('#db_type');
+        instanceFormValidator.revalidateField('#port');
+      });
+    }
+    if (nameInput.length) {
+      nameInput.on('blur', () => instanceFormValidator.revalidateField('#name'));
+    }
+    if (hostInput.length) {
+      hostInput.on('blur', () => instanceFormValidator.revalidateField('#host'));
+    }
+    if (portInput.length) {
+      portInput.on('input', () => instanceFormValidator.revalidateField('#port'));
+    }
+    if (credentialSelect.length) {
+      credentialSelect.on('change', () => instanceFormValidator.revalidateField('#credential_id'));
+    }
   }
 
   function initializeDbTypeBehavior() {
-    const select = document.getElementById('db_type');
-    if (select) {
-      handleDbTypeChange(select);
+    const select = selectOne('#db_type');
+    if (select.length) {
+      handleDbTypeChange(select.first());
     }
   }
 
   function handleDbTypeChange(selectElement) {
-    const select = selectElement || document.getElementById('db_type');
+    const select = selectElement || selectOne('#db_type').first();
     if (!select) {
       return;
     }
 
-    const portInput = document.getElementById('port');
-    const databaseNameInput = document.getElementById('database_name');
+    const portInput = selectOne('#port').first();
+    const databaseNameInput = selectOne('#database_name').first();
     const selectedOption = select.options[select.selectedIndex];
     const dbType = select.value;
 
@@ -113,9 +130,13 @@
       return;
     }
 
-    const hiddenInput = document.getElementById('selected-tag-names');
-    const initialValues = hiddenInput?.value
-      ? hiddenInput.value.split(',').map((value) => value.trim()).filter(Boolean)
+    const hiddenInput = selectOne('#selected-tag-names');
+    const initialValues = hiddenInput.length && hiddenInput.first().value
+      ? hiddenInput
+          .first()
+          .value.split(',')
+          .map((value) => value.trim())
+          .filter(Boolean)
       : [];
 
     window.TagSelectorHelper.setupForForm({
@@ -132,14 +153,15 @@
   }
 
   function bindConnectionTestButton() {
-    const button = document.querySelector('button[data-action="test-connection"]');
-    if (!button || !window.connectionManager) {
+    const buttonWrapper = selectOne('button[data-action="test-connection"]');
+    if (!buttonWrapper.length || !window.connectionManager) {
       return;
     }
+    const button = buttonWrapper.first();
 
-    button.addEventListener('click', () => {
-      const root = document.getElementById('instance-form-root');
-      const instanceId = root?.dataset.instanceId;
+    buttonWrapper.on('click', () => {
+      const root = selectOne('#instance-form-root');
+      const instanceId = root.length ? root.attr('data-instance-id') : null;
       if (!instanceId) {
         return;
       }
@@ -161,11 +183,12 @@
   }
 
   function showConnectionResult(result) {
-    const container = document.getElementById('testResult');
-    if (!container) {
+    const containerWrapper = selectOne('#testResult');
+    if (!containerWrapper.length) {
       return;
     }
+    const container = containerWrapper.first();
     container.style.display = 'block';
     window.connectionManager.showTestResult(result, 'testResultContent');
   }
-})(window, document);
+})(window);

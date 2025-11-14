@@ -16,24 +16,12 @@
    - 官网: https://ricostacruz.com/nprogress/
    - 大小: ~2KB (gzipped)
 
-4. Ladda v2.0.0
-   - 文件: ladda/ladda.min.js, ladda/ladda.min.css
-   - 官网: https://ladda.dev/
-   - 大小: ~5KB (gzipped)
-   - 依赖: spin.js (已包含)
-
-5. SweetAlert2 v11.x
-   - 文件: sweetalert2/sweetalert2.all.min.js
-   - 官网: https://sweetalert2.github.io/
-   - 大小: ~40KB (gzipped)
-   - 注: all.min.js 包含 CSS，无需单独引入
-
-6. Tom Select v2.3.1
+4. Tom Select v2.3.1
    - 文件: tom-select/tom-select.complete.min.js, tom-select/tom-select.bootstrap5.min.css
    - 官网: https://tom-select.js.org/
    - 大小: ~20KB (gzipped)
 
-总大小: ~90KB (gzipped ~27KB)
+总大小: ~45KB (gzipped ~15KB)
 
 现有库（保留）:
 - jQuery (已有)

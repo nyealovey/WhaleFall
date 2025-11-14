@@ -1,6 +1,14 @@
 (function (window) {
   "use strict";
 
+  const helpers = window.DOMHelpers;
+  if (!helpers) {
+    console.error("DOMHelpers 未初始化，无法渲染容量统计图表");
+    return;
+  }
+
+  const { selectOne } = helpers;
+
   const DEFAULT_EMPTY_DATASET = {
     label: "暂无数据",
     data: [0],
@@ -158,7 +166,7 @@
   }) {
     const canvas =
       typeof canvasSelector === "string"
-        ? document.querySelector(canvasSelector)
+        ? selectOne(canvasSelector).first()
         : canvasSelector;
     if (!canvas) {
       return previousChart || null;

@@ -649,7 +649,7 @@
       `;
 
       try {
-        const response = await http.get(`/account_classification/api/permissions/${dbType}`);
+        const response = await httpU.get(`/account_classification/api/permissions/${dbType}`);
         if (!response.success) {
           throw new Error(response.error || "加载权限配置失败");
         }

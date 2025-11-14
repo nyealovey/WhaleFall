@@ -203,16 +203,10 @@
         </div>
     </footer>
 
-    <!-- 引入 jQuery -->
-    <script src="{{ url_for('static', filename='vendor/jquery/jquery.min.js') }}"></script>
-
     <!-- 引入 Bootstrap JS -->
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 
     <!-- 通用工具组件 -->
-
-    <!-- Axios 库（必须在 http-client.js 之前加载） -->
-    <script src="{{ url_for('static', filename='vendor/axios/axios.min.js') }}"></script>
 
     <!-- Numeral.js 及统一数字格式化工具 -->
     <script src="{{ url_for('static', filename='vendor/numeral/numeral.min.js') }}"></script>
@@ -226,6 +220,11 @@
     <script src="{{ url_for('static', filename='vendor/lodash/lodash.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/lodash-utils.js') }}"></script>
 
+    <!-- Umbrella JS 及 DOM/HTTP 封装 -->
+    <script src="{{ url_for('static', filename='vendor/umbrella/umbrella.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/dom.helpers.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/http-u.js') }}"></script>
+
     <!-- Day.js 及插件 -->
     <script src="{{ url_for('static', filename='vendor/dayjs/dayjs.min.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/dayjs/plugin/utc.min.js') }}"></script>
@@ -235,8 +234,6 @@
     <script src="{{ url_for('static', filename='vendor/dayjs/plugin/customParseFormat.min.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/dayjs/plugin/localizedFormat.min.js') }}"></script>
     
-    <!-- HTTP 客户端配置（必须在其他JS之前加载） -->
-    <script src="{{ url_for('static', filename='js/common/http-client.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/toast.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/just-validate/just-validate.production.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils/form-validator.js') }}"></script>
@@ -257,43 +254,49 @@
 
     <!-- 动态加载应用信息 -->
     <script>
-        // 加载应用信息
-        async function loadAppInfo() {
-            try {
-                const response = await fetch('/admin/api/app-info');
-                const data = await response.json();
+        (function (global) {
+            'use strict';
 
-                if (data.success && data.data) {
-                    const appName = data.data.app_name;
+            const helpers = global.DOMHelpers;
+            const client = global.httpU;
 
-                    // 更新左上角logo中的应用名称
-                    const appNameElement = document.getElementById('app-name');
-                    if (appNameElement) {
-                        appNameElement.textContent = appName;
-                    }
-
-                    // 更新底部版权信息中的应用名称
-                    const footerAppNameElement = document.getElementById('footer-app-name');
-                    if (footerAppNameElement) {
-                        footerAppNameElement.textContent = appName;
-                    }
-
-                    // 更新页面标题中的应用名称
-                    const pageTitleElement = document.getElementById('page-title');
-                    if (pageTitleElement) {
-                        pageTitleElement.textContent = appName + ' - 数据同步管理平台';
-                    }
-                }
-            } catch (error) {
-                console.error('加载应用信息失败:', error);
+            if (!helpers || !client) {
+                console.error('DOMHelpers 或 httpU 未正确加载，无法拉取应用信息');
+                return;
             }
-        }
 
-        // 页面加载完成后获取应用信息
-        document.addEventListener('DOMContentLoaded', function () {
-            loadAppInfo();
+            const { ready, selectOne } = helpers;
 
-        });
+            async function loadAppInfo() {
+                try {
+                    const payload = await client.get('/admin/api/app-info');
+                    if (!payload || !payload.success || !payload.data) {
+                        return;
+                    }
+
+                    const appName = payload.data.app_name;
+
+                    const appNameElement = selectOne('#app-name');
+                    if (appNameElement.length) {
+                        appNameElement.text(appName);
+                    }
+
+                    const footerAppNameElement = selectOne('#footer-app-name');
+                    if (footerAppNameElement.length) {
+                        footerAppNameElement.text(appName);
+                    }
+
+                    const pageTitleElement = selectOne('#page-title');
+                    if (pageTitleElement.length) {
+                        pageTitleElement.text(`${appName} - 数据同步管理平台`);
+                    }
+                } catch (error) {
+                    console.error('加载应用信息失败:', error);
+                }
+            }
+
+            ready(loadAppInfo);
+        })(window);
     </script>
 
     {% block extra_js %}{% endblock %}

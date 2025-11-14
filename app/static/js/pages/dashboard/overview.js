@@ -1,258 +1,272 @@
-/**
- * 系统仪表板页面JavaScript
- * 处理图表初始化、系统状态更新等功能
- */
+(function (global) {
+    /**
+     * 系统仪表板页面 JavaScript
+     * 处理图表初始化、系统状态更新等功能
+     */
+    'use strict';
 
-const LodashUtils = window.LodashUtils;
-if (!LodashUtils) {
-    throw new Error('LodashUtils 未初始化');
-}
-
-// 全局变量
-let logTrendChart = null;
-
-// 页面加载完成后初始化图表
-document.addEventListener('DOMContentLoaded', function() {
-    initializePage();
-});
-
-// 初始化页面
-function initializePage() {
-    initCharts();
-}
-
-// 初始化图表
-function initCharts() {
-    // 初始化日志趋势图
-    initLogTrendChart();
-}
-
-// 获取CSS变量值
-function getCssVariable(variable) {
-    return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
-}
-
-// 将RGB或Hex颜色转换为带有alpha通道的RGBA字符串
-function colorWithAlpha(color, alpha) {
-    if (color.startsWith('#')) {
-        const r = parseInt(color.slice(1, 3), 16);
-        const g = parseInt(color.slice(3, 5), 16);
-        const b = parseInt(color.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    const helpers = global.DOMHelpers;
+    if (!helpers) {
+        console.error('DOMHelpers 未初始化，无法加载仪表盘脚本');
+        return;
     }
-    if (color.startsWith('rgb')) { // rgb(r, g, b)
-        return `rgba(${color.substring(color.indexOf('(') + 1, color.indexOf(')'))}, ${alpha})`;
+
+    const LodashUtils = global.LodashUtils;
+    if (!LodashUtils) {
+        throw new Error('LodashUtils 未初始化');
     }
-    return color; // Fallback
-}
 
-// 初始化日志趋势图
-function initLogTrendChart() {
-    const ctx = document.getElementById('logTrendChart');
-    if (!ctx) return;
-    
-    const context = ctx.getContext('2d');
-    
-    // 获取颜色
-    const dangerColor = getCssVariable('--danger-color');
-    const warningColor = getCssVariable('--warning-color');
+    const { ready, selectOne, select, from } = helpers;
+    let logTrendChart = null;
 
-    // 获取日志趋势数据
-    http.get('/dashboard/api/charts?type=logs')
-        .then(data => {
-            const payload = data?.data ?? data ?? {};
-            const logTrend = LodashUtils.get(payload, 'log_trend', []);
-            const labels = LodashUtils.map(logTrend, (item, index) => LodashUtils.safeGet(item, 'date', `未知 ${index + 1}`));
-            const errorSeries = LodashUtils.map(logTrend, (item) => Number(item?.error_count) || 0);
-            const warningSeries = LodashUtils.map(logTrend, (item) => Number(item?.warning_count) || 0);
-            
-            logTrendChart = new Chart(context, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: '错误日志',
-                        data: errorSeries,
-                        borderColor: dangerColor,
-                        backgroundColor: colorWithAlpha(dangerColor, 0.2),
-                        tension: 0.1,
-                        fill: true
-                    }, {
-                        label: '告警日志',
-                        data: warningSeries,
-                        borderColor: warningColor,
-                        backgroundColor: colorWithAlpha(warningColor, 0.2),
-                        tension: 0.1,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                        }
-                    },
-                    scales: {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: '日期'
-                            }
-                        },
-                        y: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: '日志数量'
+    ready(() => {
+        initCharts();
+    });
+
+    function initCharts() {
+        initLogTrendChart();
+    }
+
+    function getCssVariable(variable) {
+        return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+    }
+
+    function colorWithAlpha(color, alpha) {
+        if (color.startsWith('#')) {
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        if (color.startsWith('rgb')) {
+            return `rgba(${color.substring(color.indexOf('(') + 1, color.indexOf(')'))}, ${alpha})`;
+        }
+        return color;
+    }
+
+    function initLogTrendChart() {
+        const canvasWrapper = selectOne('#logTrendChart');
+        if (!canvasWrapper.length) {
+            return;
+        }
+        const canvas = canvasWrapper.first();
+        const context = canvas.getContext('2d');
+
+        const dangerColor = getCssVariable('--danger-color');
+        const warningColor = getCssVariable('--warning-color');
+
+        global.httpU
+            .get('/dashboard/api/charts?type=logs')
+            .then((data) => {
+                const payload = data?.data ?? data ?? {};
+                const logTrend = LodashUtils.get(payload, 'log_trend', []);
+                const labels = LodashUtils.map(logTrend, (item, index) =>
+                    LodashUtils.safeGet(item, 'date', `未知 ${index + 1}`),
+                );
+                const errorSeries = LodashUtils.map(logTrend, (item) => Number(item?.error_count) || 0);
+                const warningSeries = LodashUtils.map(logTrend, (item) => Number(item?.warning_count) || 0);
+
+                logTrendChart = new global.Chart(context, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: '错误日志',
+                                data: errorSeries,
+                                borderColor: dangerColor,
+                                backgroundColor: colorWithAlpha(dangerColor, 0.2),
+                                tension: 0.1,
+                                fill: true,
                             },
-                            beginAtZero: true
-                        }
+                            {
+                                label: '告警日志',
+                                data: warningSeries,
+                                borderColor: warningColor,
+                                backgroundColor: colorWithAlpha(warningColor, 0.2),
+                                tension: 0.1,
+                                fill: true,
+                            },
+                        ],
                     },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
-                    }
-                }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                            },
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: '日期',
+                                },
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: '日志数量',
+                                },
+                                beginAtZero: true,
+                            },
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false,
+                        },
+                    },
+                });
+            })
+            .catch((error) => {
+                console.error('加载日志趋势数据失败:', error);
+                showError('加载日志趋势数据失败');
             });
-        })
-        .catch(error => {
-            console.error('加载日志趋势数据失败:', error);
-            showError('加载日志趋势数据失败');
-        });
-}
-
-// 刷新仪表板
-function refreshDashboard() {
-    const button = event.target;
-    const originalText = button.innerHTML;
-    
-    // 显示加载状态
-    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>刷新中...';
-    button.disabled = true;
-    
-    // 刷新页面数据
-    setTimeout(() => {
-        location.reload();
-    }, 1000);
-}
-
-// 更新系统状态
-function updateSystemStatus(status) {
-    // 更新CPU使用率
-    updateResourceUsage('cpu', status.system.cpu);
-    
-    // 更新内存使用率
-    updateResourceUsage('memory', status.system.memory.percent);
-    
-    // 更新磁盘使用率
-    updateResourceUsage('disk', status.system.disk.percent);
-    
-    // 更新系统运行时间
-    updateUptime(status.uptime);
-    
-    // 显示数据更新通知
-    showDataUpdatedNotification('数据已更新');
-}
-
-// 更新资源使用率
-function updateResourceUsage(type, percent) {
-    const elements = {
-        cpu: {
-            badge: document.querySelector('.card-body .mb-3:first-child .badge'),
-            bar: document.querySelector('.card-body .mb-3:first-child .progress-bar')
-        },
-        memory: {
-            badge: document.querySelector('.card-body .mb-3:nth-child(2) .badge'),
-            bar: document.querySelector('.card-body .mb-3:nth-child(2) .progress-bar')
-        },
-        disk: {
-            badge: document.querySelector('.card-body .mb-3:nth-child(3) .badge'),
-            bar: document.querySelector('.card-body .mb-3:nth-child(3) .progress-bar')
-        }
-    };
-    
-    const element = elements[type];
-    if (!element.badge || !element.bar) return;
-    
-    // 更新徽章
-    const badgeText = window.NumberFormat.formatPercent(percent, { precision: 1, trimZero: true });
-    element.badge.textContent = badgeText;
-    const badgeClass = getResourceBadgeClass(percent);
-    element.badge.className = `badge ${badgeClass}`;
-    
-    // 更新进度条
-    element.bar.style.width = `${percent}%`;
-    const barClass = getResourceBarClass(percent);
-    element.bar.className = `progress-bar ${barClass}`;
-}
-
-// 获取资源徽章样式类
-function getResourceBadgeClass(percent) {
-    if (percent > 80) return 'bg-danger';
-    if (percent > 60) return 'bg-warning';
-    return 'bg-success';
-}
-
-// 获取资源进度条样式类
-function getResourceBarClass(percent) {
-    if (percent > 80) return 'bg-danger';
-    if (percent > 60) return 'bg-warning';
-    return 'bg-success';
-}
-
-// 更新系统运行时间
-function updateUptime(uptime) {
-    const uptimeElement = document.querySelector('.card-body .mt-3 small');
-    if (uptimeElement) {
-        uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i>系统运行时间: ${uptime || '未知'}`;
     }
-}
 
-// 显示数据更新通知
-function showDataUpdatedNotification(message) {
-    // 移除已存在的通知
-    const existingNotification = document.querySelector('.data-updated');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-    
-    // 创建新通知
-    const notification = document.createElement('div');
-    notification.className = 'data-updated';
-    notification.innerHTML = `<i class="fas fa-sync me-2"></i>${message}`;
-    
-    document.body.appendChild(notification);
-    
-    // 3秒后自动移除
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
+    function resolveButton(reference) {
+        if (!reference && global.event && global.event.target) {
+            return global.event.target;
         }
-    }, 3000);
-}
+        if (!reference) {
+            return null;
+        }
+        if (reference instanceof Element) {
+            return reference;
+        }
+        if (reference.currentTarget) {
+            return reference.currentTarget;
+        }
+        if (reference.target) {
+            return reference.target;
+        }
+        return null;
+    }
 
-// 显示错误信息
-function showError(message) {
-    toast.error(message);
-}
+    function refreshDashboard(trigger) {
+        const button = resolveButton(trigger);
+        const buttonWrapper = button ? from(button) : null;
+        const originalText = buttonWrapper ? buttonWrapper.html() : null;
 
-// 显示成功信息
-function showSuccess(message) {
-    toast.success(message);
-}
+        if (buttonWrapper) {
+            buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>刷新中...');
+            buttonWrapper.attr('disabled', 'disabled');
+        }
 
-// 显示警告信息
-function showWarning(message) {
-    toast.warning(message);
-}
+        global.setTimeout(() => {
+            global.location.reload();
+        }, 1000);
 
-// 导出函数供全局使用
-window.refreshDashboard = refreshDashboard;
+        if (buttonWrapper) {
+            global.setTimeout(() => {
+                buttonWrapper.html(originalText || '刷新');
+                buttonWrapper.attr('disabled', null);
+            }, 1000);
+        }
+    }
+
+    function updateSystemStatus(status) {
+        updateResourceUsage('cpu', status.system.cpu);
+        updateResourceUsage('memory', status.system.memory.percent);
+        updateResourceUsage('disk', status.system.disk.percent);
+        updateUptime(status.uptime);
+        showDataUpdatedNotification('数据已更新');
+    }
+
+    function updateResourceUsage(type, percent) {
+        const selectors = {
+            cpu: {
+                badge: '.card-body .mb-3:first-child .badge',
+                bar: '.card-body .mb-3:first-child .progress-bar',
+            },
+            memory: {
+                badge: '.card-body .mb-3:nth-child(2) .badge',
+                bar: '.card-body .mb-3:nth-child(2) .progress-bar',
+            },
+            disk: {
+                badge: '.card-body .mb-3:nth-child(3) .badge',
+                bar: '.card-body .mb-3:nth-child(3) .progress-bar',
+            },
+        };
+
+        const current = selectors[type];
+        if (!current) {
+            return;
+        }
+        const badge = selectOne(current.badge);
+        const bar = selectOne(current.bar);
+        if (!badge.length || !bar.length) {
+            return;
+        }
+
+        const badgeText = global.NumberFormat.formatPercent(percent, { precision: 1, trimZero: true });
+        badge.text(badgeText);
+        const badgeClass = getResourceBadgeClass(percent);
+        badge.attr('class', `badge ${badgeClass}`);
+
+        bar.first().style.width = `${percent}%`;
+        const barClass = getResourceBarClass(percent);
+        bar.attr('class', `progress-bar ${barClass}`);
+    }
+
+    function getResourceBadgeClass(percent) {
+        if (percent > 80) return 'bg-danger';
+        if (percent > 60) return 'bg-warning';
+        return 'bg-success';
+    }
+
+    function getResourceBarClass(percent) {
+        if (percent > 80) return 'bg-danger';
+        if (percent > 60) return 'bg-warning';
+        return 'bg-success';
+    }
+
+    function updateUptime(uptime) {
+        const uptimeElement = selectOne('.card-body .mt-3 small');
+        if (!uptimeElement.length) {
+            return;
+        }
+        uptimeElement.html(`<i class="fas fa-clock me-1"></i>系统运行时间: ${uptime || '未知'}`);
+    }
+
+    function showDataUpdatedNotification(message) {
+        select('.data-updated').remove();
+
+        const notification = document.createElement('div');
+        notification.className = 'data-updated';
+        notification.innerHTML = `<i class="fas fa-sync me-2"></i>${message}`;
+        document.body.appendChild(notification);
+
+        global.setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
+    }
+
+    function showError(message) {
+        global.toast.error(message);
+    }
+
+    function showSuccess(message) {
+        global.toast.success(message);
+    }
+
+    function showWarning(message) {
+        global.toast.warning(message);
+    }
+
+    global.refreshDashboard = refreshDashboard;
+    global.updateSystemStatus = updateSystemStatus;
+    global.showDashboardError = showError;
+    global.showDashboardSuccess = showSuccess;
+    global.showDashboardWarning = showWarning;
+})(window);

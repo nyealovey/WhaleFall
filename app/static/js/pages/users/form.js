@@ -1,24 +1,32 @@
 /**
  * 用户表单脚本（创建/编辑）
  */
-
-(function () {
+(function (window) {
     'use strict';
+
+    const helpers = window.DOMHelpers;
+    if (!helpers) {
+        console.error('DOMHelpers 未初始化，无法加载用户表单脚本');
+        return;
+    }
+
+    const { ready, selectOne } = helpers;
 
     let validator = null;
     let controller = null;
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('userForm');
-        if (!form) {
+    ready(() => {
+        const form = selectOne('#userForm');
+        const formElement = form.first();
+        if (!formElement) {
             return;
         }
 
-        const root = document.getElementById('user-form-root');
-        const mode = root?.dataset.formMode || 'create';
+        const root = selectOne('#user-form-root').first();
+        const mode = root?.dataset?.formMode || 'create';
 
         if (window.ResourceFormController) {
-            controller = new window.ResourceFormController(form, {
+            controller = new window.ResourceFormController(formElement, {
                 loadingText: mode === 'edit' ? '保存中...' : '创建中...',
             });
         }
@@ -43,11 +51,11 @@
         }
 
         validator
-            .onSuccess(function (event) {
+            .onSuccess((event) => {
                 controller?.toggleLoading(true);
                 event.target.submit();
             })
-            .onFail(function () {
+            .onFail(() => {
                 window.toast.error('请检查用户表单填写');
             });
 
@@ -55,20 +63,20 @@
     });
 
     function setupRealtimeValidation() {
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const roleSelect = document.getElementById('role');
+        const fields = [
+            { selector: '#username', eventName: 'blur' },
+            { selector: '#password', eventName: 'blur' },
+            { selector: '#role', eventName: 'change' },
+        ];
 
-        usernameInput?.addEventListener('blur', function () {
-            validator?.revalidateField('#username');
-        });
-
-        passwordInput?.addEventListener('blur', function () {
-            validator?.revalidateField('#password');
-        });
-
-        roleSelect?.addEventListener('change', function () {
-            validator?.revalidateField('#role');
+        fields.forEach(({ selector, eventName }) => {
+            const input = selectOne(selector);
+            if (!input.length) {
+                return;
+            }
+            input.on(eventName, () => {
+                validator?.revalidateField(selector);
+            });
         });
     }
-})();
+})(window);

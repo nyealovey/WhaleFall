@@ -1,314 +1,295 @@
-/**
- * 实例统计页面JavaScript
- * 处理统计数据的显示、图表渲染和自动刷新功能
- */
+(function (global) {
+    /**
+     * 实例统计页面 JavaScript
+     * 负责图表渲染、自动刷新与状态提示
+     */
+    'use strict';
 
-const LodashUtils = window.LodashUtils;
-if (!LodashUtils) {
-    throw new Error('LodashUtils 未初始化');
-}
-
-// 全局变量
-let versionChart = null;
-let refreshInterval = null;
-
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    createVersionChart();
-    startAutoRefresh();
-});
-
-// 创建版本分布图表
-function createVersionChart() {
-    const ctx = document.getElementById('versionChart');
-    if (!ctx) return;
-    
-    // 获取版本统计数据
-    const versionStats = getVersionStats();
-    
-    if (!versionStats || versionStats.length === 0) {
-        showEmptyChart(ctx);
+    const helpers = global.DOMHelpers;
+    if (!helpers) {
+        console.error('DOMHelpers 未初始化，无法加载实例统计页面脚本');
         return;
     }
-    
-    // 按数据库类型分组
-    const groupedStats = groupStatsByDbType(versionStats);
-    
-    // 创建图表数据
-    const chartData = createChartData(groupedStats);
-    
-    // 创建图表
-    versionChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: chartData,
-        options: getChartOptions()
-    });
-}
 
-// 获取版本统计数据
-function getVersionStats() {
-    // 从页面中获取版本统计数据
-    const versionStatsElement = document.querySelector('[data-version-stats]');
-    if (versionStatsElement) {
-        try {
-            return JSON.parse(versionStatsElement.dataset.versionStats);
-        } catch (error) {
-            console.error('解析版本统计数据失败:', error);
-            return null;
+    const LodashUtils = global.LodashUtils;
+    if (!LodashUtils) {
+        throw new Error('LodashUtils 未初始化');
+    }
+
+    const { ready, selectOne, select, from } = helpers;
+
+    let versionChart = null;
+    let refreshInterval = null;
+
+    ready(() => {
+        createVersionChart();
+        startAutoRefresh();
+
+        from(global).on('beforeunload', stopAutoRefresh);
+        from(document).on('visibilitychange', handleVisibilityChange);
+    });
+
+    function handleVisibilityChange() {
+        if (document.hidden) {
+            stopAutoRefresh();
+        } else {
+            startAutoRefresh();
         }
     }
-    
-    // 如果没有data属性，尝试从全局变量获取
-    if (typeof window.versionStats !== 'undefined') {
-        return window.versionStats;
-    }
-    
-    return null;
-}
 
-// 按数据库类型分组统计数据
-function groupStatsByDbType(versionStats) {
-    if (!Array.isArray(versionStats)) {
-        return {};
-    }
-    return LodashUtils.groupBy(versionStats, (stat) => stat?.db_type || 'unknown');
-}
+    function createVersionChart() {
+        const ctxWrapper = selectOne('#versionChart');
+        if (!ctxWrapper.length) {
+            return;
+        }
+        const ctx = ctxWrapper.first();
+        const versionStats = getVersionStats();
 
-// 创建图表数据
-function createChartData(groupedStats) {
-    const dbTypeColors = {
-        mysql: 'rgba(40, 167, 69, 0.8)',
-        postgresql: 'rgba(0, 123, 255, 0.8)',
-        sqlserver: 'rgba(255, 193, 7, 0.8)',
-        oracle: 'rgba(23, 162, 184, 0.8)',
-        default: 'rgba(108, 117, 125, 0.8)'
-    };
+        if (!versionStats || versionStats.length === 0) {
+            showEmptyChart(ctx);
+            return;
+        }
 
-    const flattened = LodashUtils.flatMap(Object.entries(groupedStats || {}), ([dbType, stats]) => {
-        return (stats || []).map((stat) => {
-            const normalizedType = (stat?.db_type || dbType || 'unknown').toLowerCase();
-            return {
-                dbType: normalizedType,
-                version: stat?.version || 'unknown',
-                count: Number(stat?.count) || 0,
-                color: dbTypeColors[normalizedType] || dbTypeColors.default
-            };
+        const groupedStats = groupStatsByDbType(versionStats);
+        const chartData = createChartData(groupedStats);
+
+        versionChart = new global.Chart(ctx, {
+            type: 'doughnut',
+            data: chartData,
+            options: getChartOptions(),
         });
-    });
-
-    const ordered = LodashUtils.orderBy(
-        flattened,
-        [
-            (item) => item.dbType,
-            (item) => item.version,
-        ],
-        ['asc', 'asc']
-    );
-
-    const labels = ordered.map((item) => `${item.dbType.toUpperCase()} ${item.version}`);
-    const data = ordered.map((item) => item.count);
-    const colors = ordered.map((item) => item.color);
-
-    return {
-        labels,
-        datasets: [{
-            data,
-            backgroundColor: colors,
-            borderColor: colors.map(toOpaqueColor),
-            borderWidth: 2,
-        }],
-    };
-}
-
-function toOpaqueColor(color) {
-    if (typeof color !== 'string') {
-        return 'rgba(108, 117, 125, 1)';
     }
-    if (color.startsWith('rgba')) {
-        return color.replace(/rgba\(([^,]+,\s*[^,]+,\s*[^,]+),\s*[^)]+\)/, 'rgba($1, 1)');
-    }
-    return color;
-}
 
-// 获取图表配置选项
-function getChartOptions() {
-    return {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    usePointStyle: true,
-                    padding: 20
-                }
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        const valueLabel = window.NumberFormat.formatInteger(context.parsed, { fallback: '0' });
-                        let percentLabel = '0%';
-                        if (total > 0) {
-                            const ratio = context.parsed / total;
-                            percentLabel = window.NumberFormat.formatPercent(ratio, {
-                                    precision: 1,
-                                    trimZero: true,
-                                    inputType: 'ratio'
-                                  });
-                        }
-                        return `${context.label}: ${valueLabel} 个实例 (${percentLabel})`;
-                    }
-                }
+    function getVersionStats() {
+        const versionStatsElement = selectOne('[data-version-stats]');
+        if (versionStatsElement.length) {
+            try {
+                return JSON.parse(versionStatsElement.first().dataset.versionStats);
+            } catch (error) {
+                console.error('解析版本统计数据失败:', error);
             }
         }
-    };
-}
-
-// 显示空图表提示
-function showEmptyChart(ctx) {
-    const canvas = ctx.getContext('2d');
-    canvas.font = '16px Arial';
-    canvas.fillStyle = '#666';
-    canvas.textAlign = 'center';
-    canvas.fillText('暂无版本数据', ctx.width / 2, ctx.height / 2);
-}
-
-// 开始自动刷新
-function startAutoRefresh() {
-    // 每60秒刷新一次统计数据
-    refreshInterval = setInterval(() => {
-        refreshStatistics();
-    }, 60000);
-}
-
-// 停止自动刷新
-function stopAutoRefresh() {
-    if (refreshInterval) {
-        clearInterval(refreshInterval);
-        refreshInterval = null;
-    }
-}
-
-// 刷新统计数据
-function refreshStatistics() {
-    http.get('/instances/api/statistics')
-        .then(data => {
-            // 更新统计数据显示
-            updateStatistics(data);
-            showDataUpdatedNotification();
-        })
-        .catch(error => {
-            console.error('刷新统计数据失败:', error);
-            showErrorNotification('刷新统计数据失败');
-        });
-}
-
-// 更新统计数据显示
-function updateStatistics(stats) {
-    // 更新统计卡片
-    const totalInstancesElement = document.querySelector('.card.bg-primary .card-title');
-    const activeInstancesElement = document.querySelector('.card.bg-success .card-title');
-    const inactiveInstancesElement = document.querySelector('.card.bg-warning .card-title');
-    const dbTypesCountElement = document.querySelector('.card.bg-info .card-title');
-    
-    if (totalInstancesElement) totalInstancesElement.textContent = stats.total_instances;
-    if (activeInstancesElement) activeInstancesElement.textContent = stats.active_instances;
-    if (inactiveInstancesElement) inactiveInstancesElement.textContent = stats.inactive_instances;
-    if (dbTypesCountElement) dbTypesCountElement.textContent = stats.db_types_count;
-    
-    // 更新版本统计图表
-    if (stats.version_stats && versionChart) {
-        updateVersionChart(stats.version_stats);
-    }
-}
-
-// 更新版本统计图表
-function updateVersionChart(versionStats) {
-    if (!versionChart || !versionStats || versionStats.length === 0) return;
-    
-    const groupedStats = groupStatsByDbType(versionStats);
-    const chartData = createChartData(groupedStats);
-    
-    versionChart.data = chartData;
-    versionChart.update();
-}
-
-// 显示数据更新通知
-function showDataUpdatedNotification() {
-    // 移除已存在的通知
-    const existingNotification = document.querySelector('.data-updated');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-    
-    // 创建新通知
-    const notification = document.createElement('div');
-    notification.className = 'data-updated';
-    notification.innerHTML = '<i class="fas fa-sync me-2"></i>数据已更新';
-    
-    document.body.appendChild(notification);
-    
-    // 3秒后自动移除
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
+        if (typeof global.versionStats !== 'undefined') {
+            return global.versionStats;
         }
-    }, 3000);
-}
-
-// 显示错误通知
-function showErrorNotification(message) {
-    // 移除已存在的通知
-    const existingNotification = document.querySelector('.data-updated');
-    if (existingNotification) {
-        existingNotification.remove();
+        return null;
     }
-    
-    // 创建错误通知
-    const notification = document.createElement('div');
-    notification.className = 'data-updated';
-    notification.style.backgroundColor = '#dc3545';
-    notification.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${message}`;
-    
-    document.body.appendChild(notification);
-    
-    // 5秒后自动移除
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
-        }
-    }, 5000);
-}
 
-// 手动刷新数据
-function manualRefresh() {
-    const refreshBtn = document.querySelector('.refresh-btn');
-    if (refreshBtn) {
-        const originalContent = refreshBtn.innerHTML;
-        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>刷新中...';
-        refreshBtn.disabled = true;
-        
+    function groupStatsByDbType(versionStats) {
+        if (!Array.isArray(versionStats)) {
+            return {};
+        }
+        return LodashUtils.groupBy(versionStats, (stat) => stat?.db_type || 'unknown');
+    }
+
+    function createChartData(groupedStats) {
+        const dbTypeColors = {
+            mysql: 'rgba(40, 167, 69, 0.8)',
+            postgresql: 'rgba(0, 123, 255, 0.8)',
+            sqlserver: 'rgba(255, 193, 7, 0.8)',
+            oracle: 'rgba(23, 162, 184, 0.8)',
+            default: 'rgba(108, 117, 125, 0.8)',
+        };
+
+        const flattened = LodashUtils.flatMap(Object.entries(groupedStats || {}), ([dbType, stats]) =>
+            (stats || []).map((stat) => {
+                const normalizedType = (stat?.db_type || dbType || 'unknown').toLowerCase();
+                return {
+                    dbType: normalizedType,
+                    version: stat?.version || 'unknown',
+                    count: Number(stat?.count) || 0,
+                    color: dbTypeColors[normalizedType] || dbTypeColors.default,
+                };
+            }),
+        );
+
+        const ordered = LodashUtils.orderBy(
+            flattened,
+            [
+                (item) => item.dbType,
+                (item) => item.version,
+            ],
+            ['asc', 'asc'],
+        );
+
+        const labels = ordered.map((item) => `${item.dbType.toUpperCase()} ${item.version}`);
+        const data = ordered.map((item) => item.count);
+        const colors = ordered.map((item) => item.color);
+
+        return {
+            labels,
+            datasets: [
+                {
+                    data,
+                    backgroundColor: colors,
+                    borderColor: colors.map(toOpaqueColor),
+                    borderWidth: 2,
+                },
+            ],
+        };
+    }
+
+    function toOpaqueColor(color) {
+        if (typeof color !== 'string') {
+            return 'rgba(108, 117, 125, 1)';
+        }
+        if (color.startsWith('rgba')) {
+            return color.replace(/rgba\(([^,]+,\s*[^,]+,\s*[^,]+),\s*[^)]+\)/, 'rgba($1, 1)');
+        }
+        return color;
+    }
+
+    function getChartOptions() {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                    },
+                },
+                tooltip: {
+                    callbacks: {
+                        label(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const valueLabel = global.NumberFormat.formatInteger(context.parsed, { fallback: '0' });
+                            let percentLabel = '0%';
+                            if (total > 0) {
+                                const ratio = context.parsed / total;
+                                percentLabel = global.NumberFormat.formatPercent(ratio, {
+                                    precision: 1,
+                                    trimZero: true,
+                                    inputType: 'ratio',
+                                });
+                            }
+                            return `${context.label}: ${valueLabel} 个实例 (${percentLabel})`;
+                        },
+                    },
+                },
+            },
+        };
+    }
+
+    function showEmptyChart(ctx) {
+        const canvas = ctx.getContext('2d');
+        canvas.font = '16px Arial';
+        canvas.fillStyle = '#666';
+        canvas.textAlign = 'center';
+        canvas.fillText('暂无版本数据', ctx.width / 2, ctx.height / 2);
+    }
+
+    function startAutoRefresh() {
+        if (refreshInterval) {
+            return;
+        }
+        refreshInterval = global.setInterval(() => {
+            refreshStatistics();
+        }, 60000);
+    }
+
+    function stopAutoRefresh() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+        }
+    }
+
+    function refreshStatistics() {
+        global.httpU
+            .get('/instances/api/statistics')
+            .then((data) => {
+                updateStatistics(data);
+                showDataUpdatedNotification();
+            })
+            .catch((error) => {
+                console.error('刷新统计数据失败:', error);
+                showErrorNotification('刷新统计数据失败');
+            });
+    }
+
+    function updateStatistics(stats) {
+        const totalInstancesElement = selectOne('.card.bg-primary .card-title');
+        const activeInstancesElement = selectOne('.card.bg-success .card-title');
+        const inactiveInstancesElement = selectOne('.card.bg-warning .card-title');
+        const dbTypesCountElement = selectOne('.card.bg-info .card-title');
+
+        if (totalInstancesElement.length) totalInstancesElement.text(stats.total_instances);
+        if (activeInstancesElement.length) activeInstancesElement.text(stats.active_instances);
+        if (inactiveInstancesElement.length) inactiveInstancesElement.text(stats.inactive_instances);
+        if (dbTypesCountElement.length) dbTypesCountElement.text(stats.db_types_count);
+
+        if (stats.version_stats && versionChart) {
+            updateVersionChart(stats.version_stats);
+        }
+    }
+
+    function updateVersionChart(versionStats) {
+        if (!versionChart || !versionStats || versionStats.length === 0) {
+            return;
+        }
+        const groupedStats = groupStatsByDbType(versionStats);
+        versionChart.data = createChartData(groupedStats);
+        versionChart.update();
+    }
+
+    function removeExistingNotification() {
+        select('.data-updated').remove();
+    }
+
+    function showDataUpdatedNotification() {
+        removeExistingNotification();
+
+        const notification = document.createElement('div');
+        notification.className = 'data-updated';
+        notification.innerHTML = '<i class="fas fa-sync me-2"></i>数据已更新';
+
+        document.body.appendChild(notification);
+
+        global.setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
+    }
+
+    function showErrorNotification(message) {
+        removeExistingNotification();
+
+        const notification = document.createElement('div');
+        notification.className = 'data-updated';
+        notification.style.backgroundColor = '#dc3545';
+        notification.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${message}`;
+
+        document.body.appendChild(notification);
+
+        global.setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    function manualRefresh(trigger) {
+        const buttonWrapper = trigger ? from(trigger) : selectOne('.refresh-btn');
+        if (!buttonWrapper.length) {
+            refreshStatistics();
+            return;
+        }
+        const button = buttonWrapper.first();
+        const originalContent = buttonWrapper.html();
+        buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>刷新中...');
+        buttonWrapper.attr('disabled', 'disabled');
+
         refreshStatistics();
-        
-        // 2秒后恢复按钮状态
-        setTimeout(() => {
-            refreshBtn.innerHTML = originalContent;
-            refreshBtn.disabled = false;
+
+        global.setTimeout(() => {
+            buttonWrapper.html(originalContent);
+            buttonWrapper.attr('disabled', null);
         }, 2000);
     }
-}
 
-// 页面卸载时清理
-window.addEventListener('beforeunload', function() {
-    stopAutoRefresh();
-});
-
-// 页面隐藏时暂停自动刷新，显示时恢复
-document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-        stopAutoRefresh();
-    } else {
-        startAutoRefresh();
-    }
-});
+    global.manualRefresh = manualRefresh;
+})(window);
