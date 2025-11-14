@@ -2,6 +2,11 @@
 // 依赖：bootstrap, toast.js, time-utils.js
 
 (function () {
+  const LodashUtils = window.LodashUtils;
+  if (!LodashUtils) {
+    throw new Error("LodashUtils 未初始化");
+  }
+
   const SYNC_FILTER_FORM_ID = "sync-sessions-filter-form";
   const AUTO_APPLY_FILTER_CHANGE = true;
 
@@ -16,26 +21,106 @@
   let totalPages = 1;
   let pagination = null;
   let syncFilterEventHandler = null;
+  let autoRefreshTimer = null;
+  let debouncedAutoRefresh = null;
+
+  function sanitizePrimitiveValue(value) {
+    if (value instanceof File) {
+      return value.name;
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed === '' ? null : trimmed;
+    }
+    if (value === undefined || value === null) {
+      return null;
+    }
+    return value;
+  }
+
+  function sanitizeFilterValue(value) {
+    if (Array.isArray(value)) {
+      return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
+    }
+    return sanitizePrimitiveValue(value);
+  }
+
+  function resolveSyncFilters(form, overrideValues) {
+    const baseForm = form || document.getElementById(SYNC_FILTER_FORM_ID);
+    const rawValues = overrideValues && Object.keys(overrideValues || {}).length
+      ? overrideValues
+      : collectFormValues(baseForm);
+    return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
+      if (key === 'csrf_token') {
+        return result;
+      }
+      const normalized = sanitizeFilterValue(value);
+      if (normalized === null || normalized === undefined) {
+        return result;
+      }
+      if (Array.isArray(normalized) && normalized.length === 0) {
+        return result;
+      }
+      result[key] = normalized;
+      return result;
+    }, {});
+  }
+
+  function buildSyncQueryParams(filters) {
+    const params = new URLSearchParams();
+    Object.entries(filters || {}).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        value.forEach((item) => params.append(key, item));
+      } else {
+        params.append(key, value);
+      }
+    });
+    return params;
+  }
 
   document.addEventListener('DOMContentLoaded', function () {
     loadSessions();
-    setInterval(loadSessions, 30000);
+    setupAutoRefresh();
     registerSyncFilterForm();
     subscribeSyncFilters();
   });
 
-  window.loadSessions = function (page = 1) {
+  function setupAutoRefresh() {
+    if (debouncedAutoRefresh) {
+      debouncedAutoRefresh.cancel?.();
+    }
+    debouncedAutoRefresh = LodashUtils.debounce(() => {
+      loadSessions(currentPage, { silent: true });
+    }, 500, { leading: false, trailing: true });
+
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = setInterval(() => {
+      debouncedAutoRefresh();
+    }, 30000);
+
+    window.addEventListener('beforeunload', () => {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+      if (debouncedAutoRefresh) {
+        debouncedAutoRefresh.cancel?.();
+      }
+    }, { once: true });
+  }
+
+  window.loadSessions = function (page = 1, options = {}) {
     currentPage = page;
-    const params = new URLSearchParams();
-    if (currentFilters.sync_type !== undefined) params.append('sync_type', currentFilters.sync_type);
-    if (currentFilters.sync_category !== undefined) params.append('sync_category', currentFilters.sync_category);
-    if (currentFilters.status !== undefined) params.append('status', currentFilters.status);
-    params.append('page', page);
-    params.append('per_page', 20);
+    const params = buildSyncQueryParams({
+      ...currentFilters,
+      page,
+      per_page: 20,
+    });
 
-
-    // 显示加载状态
-    showLoadingState();
+    const silent = Boolean(options.silent);
+    if (!silent) {
+      showLoadingState();
+    }
 
     http.get(`/sync_sessions/api/sessions?${params.toString()}`)
       .then(data => {
@@ -53,17 +138,23 @@
           }
           renderSessions(currentSessions);
           renderPagination(pagination);
-          hideLoadingState();
+          if (!silent) {
+            hideLoadingState();
+          }
         } else {
           console.error('加载会话列表失败:', data.message);
           notifyAlert('加载会话列表失败: ' + data.message, 'error');
-          hideLoadingState();
+          if (!silent) {
+            hideLoadingState();
+          }
         }
       })
       .catch(err => {
         console.error('加载会话列表出错:', err);
         notifyAlert('加载会话列表出错', 'error');
-        hideLoadingState();
+        if (!silent) {
+          hideLoadingState();
+        }
       });
   }
 
@@ -483,12 +574,7 @@
     if (!targetForm) {
       return;
     }
-    const data = values && Object.keys(values || {}).length ? values : collectFormValues(targetForm);
-    currentFilters = {
-      sync_type: data.sync_type || '',
-      sync_category: data.sync_category || '',
-      status: data.status || '',
-    };
+    currentFilters = resolveSyncFilters(targetForm, values);
     currentPage = 1;
     loadSessions(1);
   }

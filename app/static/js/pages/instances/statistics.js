@@ -3,6 +3,11 @@
  * 处理统计数据的显示、图表渲染和自动刷新功能
  */
 
+const LodashUtils = window.LodashUtils;
+if (!LodashUtils) {
+    throw new Error('LodashUtils 未初始化');
+}
+
 // 全局变量
 let versionChart = null;
 let refreshInterval = null;
@@ -63,45 +68,66 @@ function getVersionStats() {
 
 // 按数据库类型分组统计数据
 function groupStatsByDbType(versionStats) {
-    const groupedStats = {};
-    versionStats.forEach(stat => {
-        if (!groupedStats[stat.db_type]) {
-            groupedStats[stat.db_type] = [];
-        }
-        groupedStats[stat.db_type].push(stat);
-    });
-    return groupedStats;
+    if (!Array.isArray(versionStats)) {
+        return {};
+    }
+    return LodashUtils.groupBy(versionStats, (stat) => stat?.db_type || 'unknown');
 }
 
 // 创建图表数据
 function createChartData(groupedStats) {
-    const labels = [];
-    const data = [];
-    const colors = [];
     const dbTypeColors = {
-        'mysql': 'rgba(40, 167, 69, 0.8)',
-        'postgresql': 'rgba(0, 123, 255, 0.8)',
-        'sqlserver': 'rgba(255, 193, 7, 0.8)',
-        'oracle': 'rgba(23, 162, 184, 0.8)'
+        mysql: 'rgba(40, 167, 69, 0.8)',
+        postgresql: 'rgba(0, 123, 255, 0.8)',
+        sqlserver: 'rgba(255, 193, 7, 0.8)',
+        oracle: 'rgba(23, 162, 184, 0.8)',
+        default: 'rgba(108, 117, 125, 0.8)'
     };
-    
-    Object.keys(groupedStats).forEach(dbType => {
-        groupedStats[dbType].forEach(stat => {
-            labels.push(`${stat.db_type.toUpperCase()} ${stat.version}`);
-            data.push(stat.count);
-            colors.push(dbTypeColors[stat.db_type] || 'rgba(108, 117, 125, 0.8)');
+
+    const flattened = LodashUtils.flatMap(Object.entries(groupedStats || {}), ([dbType, stats]) => {
+        return (stats || []).map((stat) => {
+            const normalizedType = (stat?.db_type || dbType || 'unknown').toLowerCase();
+            return {
+                dbType: normalizedType,
+                version: stat?.version || 'unknown',
+                count: Number(stat?.count) || 0,
+                color: dbTypeColors[normalizedType] || dbTypeColors.default
+            };
         });
     });
-    
+
+    const ordered = LodashUtils.orderBy(
+        flattened,
+        [
+            (item) => item.dbType,
+            (item) => item.version,
+        ],
+        ['asc', 'asc']
+    );
+
+    const labels = ordered.map((item) => `${item.dbType.toUpperCase()} ${item.version}`);
+    const data = ordered.map((item) => item.count);
+    const colors = ordered.map((item) => item.color);
+
     return {
-        labels: labels,
+        labels,
         datasets: [{
-            data: data,
+            data,
             backgroundColor: colors,
-            borderColor: colors.map(color => color.replace('0.8', '1')),
-            borderWidth: 2
-        }]
+            borderColor: colors.map(toOpaqueColor),
+            borderWidth: 2,
+        }],
     };
+}
+
+function toOpaqueColor(color) {
+    if (typeof color !== 'string') {
+        return 'rgba(108, 117, 125, 1)';
+    }
+    if (color.startsWith('rgba')) {
+        return color.replace(/rgba\(([^,]+,\s*[^,]+,\s*[^,]+),\s*[^)]+\)/, 'rgba($1, 1)');
+    }
+    return color;
 }
 
 // 获取图表配置选项

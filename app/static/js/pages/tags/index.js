@@ -3,12 +3,74 @@
  * 处理标签删除、搜索、筛选、状态切换等功能
  */
 
+const LodashUtils = window.LodashUtils;
+if (!LodashUtils) {
+    throw new Error('LodashUtils 未初始化');
+}
+
 // 全局变量
 window.currentTags = window.currentTags || [];
 window.currentFilters = window.currentFilters || {};
 const TAG_FILTER_FORM_ID = 'tag-filter-form';
 const AUTO_APPLY_FILTER_CHANGE = true;
 let tagFilterEventHandler = null;
+
+function sanitizePrimitiveValue(value) {
+    if (value instanceof File) {
+        return value.name;
+    }
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return trimmed === '' ? null : trimmed;
+    }
+    if (value === undefined || value === null) {
+        return null;
+    }
+    return value;
+}
+
+function sanitizeFilterValue(value) {
+    if (Array.isArray(value)) {
+        return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
+    }
+    return sanitizePrimitiveValue(value);
+}
+
+function resolveTagFilterValues(form, overrideValues) {
+    const rawValues = overrideValues && Object.keys(overrideValues || {}).length
+        ? overrideValues
+        : collectFormValues(form);
+    return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
+        if (key === 'csrf_token') {
+            return result;
+        }
+        const normalized = sanitizeFilterValue(value);
+        if (normalized === null || normalized === undefined) {
+            return result;
+        }
+        if (Array.isArray(normalized) && normalized.length === 0) {
+            return result;
+        }
+        result[key] = normalized;
+        return result;
+    }, {});
+}
+
+function buildTagQueryParams(filters) {
+    const params = new URLSearchParams();
+    Object.entries(filters || {}).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+            value.forEach((item) => params.append(key, item));
+        } else {
+            params.append(key, value);
+        }
+    });
+    return params;
+}
+
+function getTagFilterForm() {
+    return document.getElementById(TAG_FILTER_FORM_ID);
+}
 
 // 防止重复初始化
 if (window.tagsPageInitialized) {
@@ -229,27 +291,12 @@ function cleanupFilterEvents() {
 }
 
 function applyTagFilters(form, values) {
-    const targetForm = form || document.getElementById(TAG_FILTER_FORM_ID);
+    const targetForm = form || getTagFilterForm();
     if (!targetForm) {
         return;
     }
-    const data = values && Object.keys(values).length ? values : collectFormValues(targetForm);
-    const params = new URLSearchParams();
-    Object.entries(data || {}).forEach(([key, value]) => {
-        if (key === 'csrf_token') {
-            return;
-        }
-        if (value === undefined || value === null) {
-            return;
-        }
-        if (Array.isArray(value)) {
-            value.filter((item) => item !== '' && item !== null).forEach((item) => {
-                params.append(key, item);
-            });
-        } else if (String(value).trim() !== '') {
-            params.append(key, value);
-        }
-    });
+    const filters = resolveTagFilterValues(targetForm, values);
+    const params = buildTagQueryParams(filters);
     const action = targetForm.getAttribute('action') || window.location.pathname;
     const query = params.toString();
     window.location.href = query ? `${action}?${query}` : action;
@@ -299,26 +346,10 @@ function handleBatchExport() {
 
 // 导出标签
 function exportTags(tagIds = null) {
-    const params = new URLSearchParams();
-    if (tagIds && tagIds.length > 0) {
+    const params = buildTagQueryParams(resolveTagFilterValues(getTagFilterForm()));
+    if (Array.isArray(tagIds) && tagIds.length > 0) {
         params.append('tag_ids', tagIds.join(','));
     }
-    
-    // 添加当前筛选条件
-    const searchInput = document.querySelector('input[name="search"]');
-    const categorySelect = document.querySelector('select[name="category"]');
-    const statusSelect = document.querySelector('select[name="status"]');
-    
-    if (searchInput && searchInput.value) {
-        params.append('search', searchInput.value);
-    }
-    if (categorySelect && categorySelect.value) {
-        params.append('category', categorySelect.value);
-    }
-    if (statusSelect && statusSelect.value && statusSelect.value !== 'all') {
-        params.append('status', statusSelect.value);
-    }
-    
     const exportUrl = `/tags/export?${params.toString()}`;
     window.open(exportUrl, '_blank');
 }

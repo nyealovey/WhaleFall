@@ -3,10 +3,23 @@
  * 处理账户同步、权限查看、标签选择等功能
  */
 
+const LodashUtils = window.LodashUtils;
+if (!LodashUtils) {
+    throw new Error('LodashUtils 未初始化');
+}
+
+const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
+const AUTO_APPLY_FILTER_CHANGE = true;
+let accountFilterEventHandler = null;
+
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', initializeAccountsListPage);
+
+function initializeAccountsListPage() {
     initializeTagFilter();
-});
+    registerAccountFilterForm();
+    subscribeAccountFilters();
+}
 
 // 同步所有账户
 function syncAllAccounts() {
@@ -59,19 +72,8 @@ function initializeTagFilter() {
         return;
     }
 
-const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
-const AUTO_APPLY_FILTER_CHANGE = true;
-let accountFilterEventHandler = null;
-
-document.addEventListener("DOMContentLoaded", () => {
-  initializeAccountsListPage();
-});
-
-function initializeAccountsListPage() {
-  initializeTagFilter();
-  registerAccountFilterForm();
-  subscribeAccountFilters();
-}
+    const hiddenInput = document.getElementById('selected-tag-names');
+    const initialValues = parseInitialTagValues(hiddenInput?.value);
 
     TagSelectorHelper.setupForForm({
         modalSelector: '#tagSelectorModal',
@@ -226,23 +228,8 @@ function applyAccountFilters(form, values) {
     if (!targetForm) {
         return;
     }
-    const data = values && Object.keys(values || {}).length ? values : collectFormValues(targetForm);
-    const params = new URLSearchParams();
-    Object.entries(data || {}).forEach(([key, value]) => {
-        if (key === 'csrf_token') {
-            return;
-        }
-        if (value === undefined || value === null) {
-            return;
-        }
-        if (Array.isArray(value)) {
-            value
-                .filter((item) => item !== '' && item !== null)
-                .forEach((item) => params.append(key, item));
-        } else if (String(value).trim() !== '') {
-            params.append(key, value);
-        }
-    });
+    const filters = resolveAccountFilterValues(targetForm, values);
+    const params = buildAccountSearchParams(filters);
     const action = targetForm.getAttribute('action') || window.location.pathname;
     const query = params.toString();
     window.location.href = query ? `${action}?${query}` : action;
@@ -254,6 +241,76 @@ function resetAccountFilters(form) {
         targetForm.reset();
     }
     applyAccountFilters(targetForm, {});
+}
+
+function buildAccountSearchParams(filters) {
+    const params = new URLSearchParams();
+    Object.entries(filters || {}).forEach(([key, value]) => {
+        if (value === undefined || value === null) {
+            return;
+        }
+        if (Array.isArray(value)) {
+            value.forEach((item) => {
+                if (item !== null && item !== undefined) {
+                    params.append(key, item);
+                }
+            });
+        } else {
+            params.append(key, value);
+        }
+    });
+    return params;
+}
+
+function resolveAccountFilterValues(form, overrideValues) {
+    const rawValues = overrideValues && Object.keys(overrideValues || {}).length
+        ? overrideValues
+        : collectFormValues(form);
+    return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
+        if (key === 'csrf_token') {
+            return result;
+        }
+        const normalized = sanitizeFilterValue(value);
+        if (normalized === null || normalized === undefined) {
+            return result;
+        }
+        if (Array.isArray(normalized) && normalized.length === 0) {
+            return result;
+        }
+        result[key] = normalized;
+        return result;
+    }, {});
+}
+
+function sanitizeFilterValue(value) {
+    if (Array.isArray(value)) {
+        return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
+    }
+    return sanitizePrimitiveValue(value);
+}
+
+function sanitizePrimitiveValue(value) {
+    if (value instanceof File) {
+        return value.name;
+    }
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return trimmed === '' ? null : trimmed;
+    }
+    if (value === undefined || value === null) {
+        return null;
+    }
+    return value;
+}
+
+function parseInitialTagValues(rawValue) {
+    if (!rawValue) {
+        return [];
+    }
+    return rawValue
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
 }
 
 function collectFormValues(form) {
