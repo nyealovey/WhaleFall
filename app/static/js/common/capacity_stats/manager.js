@@ -764,27 +764,3 @@
   window.CapacityStats = window.CapacityStats || {};
   window.CapacityStats.Manager = CapacityStatsManager;
 })(window, document);
-    handleFilterEvent(detail) {
-      if (!detail || !this.filterFormId) {
-        return;
-      }
-      const incoming = (detail.formId || "").replace(/^#/, "");
-      if (!incoming || incoming !== this.filterFormId) {
-        return;
-      }
-      switch (detail.action) {
-        case "clear":
-          this.resetFilters();
-          break;
-        case "change":
-          if (this.config.autoApplyOnFilterChange) {
-            this.applyFilters();
-          }
-          break;
-        case "submit":
-          this.applyFilters();
-          break;
-        default:
-          break;
-      }
-    }
