@@ -11,6 +11,7 @@
     throw new Error("LodashUtils 未初始化");
   }
   const toast = window.toast || null;
+  const EventBus = window.EventBus || null;
 
   const DEFAULT_CONFIG = {
     selectors: {
@@ -42,6 +43,8 @@
     includeDatabaseName: false,
     supportsDatabaseFilter: false,
     scope: "instance",
+    filterFormId: null,
+    autoApplyOnFilterChange: true,
   };
 
   const PERIOD_TEXT = {
@@ -163,6 +166,20 @@
     constructor(userConfig) {
       const userOverrides = userConfig ? LodashUtils.cloneDeep(userConfig) : {};
       this.config = LodashUtils.merge({}, DEFAULT_CONFIG, userOverrides);
+      this.config.autoApplyOnFilterChange =
+        userOverrides?.autoApplyOnFilterChange !== undefined
+          ? Boolean(userOverrides.autoApplyOnFilterChange)
+          : DEFAULT_CONFIG.autoApplyOnFilterChange;
+      this.filterFormId = (this.config.filterFormId || "").replace(/^#/, "") || null;
+      this.handleFilterEvent = this.handleFilterEvent.bind(this);
+      this.eventBusUnsubscribers = [];
+      if (EventBus && this.filterFormId) {
+        ["change", "submit", "clear"].forEach((action) => {
+          const channel = `filters:${action}`;
+          EventBus.on(channel, this.handleFilterEvent);
+          this.eventBusUnsubscribers.push(() => EventBus.off(channel, this.handleFilterEvent));
+        });
+      }
 
       if (!this.config.labelExtractor || typeof this.config.labelExtractor !== "function") {
         throw new Error("CapacityStatsManager: 缺少 labelExtractor 配置");
@@ -190,6 +207,8 @@
       };
 
       this.initialize();
+
+      window.addEventListener("beforeunload", () => this.destroy(), { once: true });
     }
 
     async initialize() {
@@ -727,8 +746,45 @@
         console.error(message);
       }
     }
+
+    destroy() {
+      if (this.eventBusUnsubscribers && this.eventBusUnsubscribers.length) {
+        this.eventBusUnsubscribers.forEach((unsubscribe) => {
+          try {
+            unsubscribe();
+          } catch (error) {
+            console.warn("解除事件总线订阅失败:", error);
+          }
+        });
+        this.eventBusUnsubscribers = [];
+      }
+    }
   }
 
   window.CapacityStats = window.CapacityStats || {};
   window.CapacityStats.Manager = CapacityStatsManager;
 })(window, document);
+    handleFilterEvent(detail) {
+      if (!detail || !this.filterFormId) {
+        return;
+      }
+      const incoming = (detail.formId || "").replace(/^#/, "");
+      if (!incoming || incoming !== this.filterFormId) {
+        return;
+      }
+      switch (detail.action) {
+        case "clear":
+          this.resetFilters();
+          break;
+        case "change":
+          if (this.config.autoApplyOnFilterChange) {
+            this.applyFilters();
+          }
+          break;
+        case "submit":
+          this.applyFilters();
+          break;
+        default:
+          break;
+      }
+    }
