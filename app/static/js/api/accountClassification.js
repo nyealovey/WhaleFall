@@ -5,9 +5,9 @@
 (function registerAccountClassificationAPI(global) {
     'use strict';
 
-    const http = global.http;
+    const http = global.httpU;
     if (!http) {
-        console.error('AccountClassificationAPI: http client is required.');
+        console.error('AccountClassificationAPI: httpU client is required.');
         return;
     }
 
@@ -35,29 +35,29 @@
 
     const classifications = {
         list() {
-            return request(httpU.get('/account_classification/api/classifications'), '加载分类');
+            return request(http.get('/account_classification/api/classifications'), '加载分类');
         },
         detail(id) {
             return request(
-                httpU.get(`/account_classification/api/classifications/${id}`),
+                http.get(`/account_classification/api/classifications/${id}`),
                 '获取分类详情'
             );
         },
         create(payload) {
             return request(
-                httpU.post('/account_classification/api/classifications', payload),
+                http.post('/account_classification/api/classifications', payload),
                 '创建分类'
             );
         },
         update(id, payload) {
             return request(
-                httpU.put(`/account_classification/api/classifications/${id}`, payload),
+                http.put(`/account_classification/api/classifications/${id}`, payload),
                 '更新分类'
             );
         },
         remove(id) {
             return request(
-                httpU.delete(`/account_classification/api/classifications/${id}`),
+                http.delete(`/account_classification/api/classifications/${id}`),
                 '删除分类'
             );
         }
@@ -65,26 +65,26 @@
 
     const rules = {
         list() {
-            return request(httpU.get('/account_classification/api/rules'), '加载规则');
+            return request(http.get('/account_classification/api/rules'), '加载规则');
         },
         detail(id) {
             return request(
-                httpU.get(`/account_classification/api/rules/${id}`),
+                http.get(`/account_classification/api/rules/${id}`),
                 '获取规则详情'
             );
         },
         create(payload) {
-            return request(httpU.post('/account_classification/api/rules', payload), '创建规则');
+            return request(http.post('/account_classification/api/rules', payload), '创建规则');
         },
         update(id, payload) {
             return request(
-                httpU.put(`/account_classification/api/rules/${id}`, payload),
+                http.put(`/account_classification/api/rules/${id}`, payload),
                 '更新规则'
             );
         },
         remove(id) {
             return request(
-                httpU.delete(`/account_classification/api/rules/${id}`),
+                http.delete(`/account_classification/api/rules/${id}`),
                 '删除规则'
             );
         },
@@ -94,7 +94,7 @@
             }
             const query = encodeURIComponent(ruleIds.join(','));
             return request(
-                httpU.get(`/account_classification/api/rules/stats?rule_ids=${query}`),
+                http.get(`/account_classification/api/rules/stats?rule_ids=${query}`),
                 '加载规则统计'
             );
         }
@@ -103,7 +103,7 @@
     const automation = {
         trigger(payload) {
             return request(
-                httpU.post('/account_classification/api/auto-classify', payload || {}),
+                http.post('/account_classification/api/auto-classify', payload || {}),
                 '触发自动分类'
             );
         }
