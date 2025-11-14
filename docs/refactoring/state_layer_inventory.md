@@ -14,16 +14,16 @@
 app/static/js/modules/
 ├── services/
 └── stores/
-    ├── accounts/
-    │   └── account_classification_store.js
-    ├── admin/
-    │   └── scheduler_store.js
-    ├── history/
-    │   └── sync_sessions_store.js
-    └── tags/
-        └── tag_management_store.js
+    ├── sync_sessions_store.js
+    ├── tag_management_store.js
+    ├── account_classification_store.js
+    ├── scheduler_store.js
+    ├── instance_store.js
+    ├── logs_store.js
+    ├── partition_store.js
+    └── credentials_store.js
 ```
-- **文件名**：snake_case；**导出**：`createXStore()` 或 `ClassNameStore`（CapWords），遵守命名规范指南。
+- **文件名**：snake_case；**导出**：`createXStore()` 或 `XStore`（CapWords），遵守命名规范指南。日后若 store 数量继续扩张，再考虑子目录分层。
 - **Store 公共 README**：创建 `app/static/js/modules/stores/README.md`，记录编码规范（状态字段命名、订阅 API、Mitt 使用方式等）。
 
 ## 3. Store 设计约定
@@ -42,7 +42,22 @@ app/static/js/modules/
 2. **桥接全局 EventBus**：当需要与全局联动（例如筛选组件的 `filters:change`），store 可以在内部 `window.EventBus.on(...)` 并在 `destroy()` 中解除绑定。
 3. **事件命名规范**：`<domain>:<action>`，如 `tags:selectionChanged`、`scheduler:jobsUpdated`。需在 README 中列出。
 
-## 4. 渐进迁移策略（S1 阶段）
+## 4. Store 清单与状态
+
+| 优先级 | Store | 覆盖范围 | 主要状态/动作 | 进度 |
+| --- | --- | --- | --- | --- |
+| S1-1 | **SyncSessionsStore** | `pages/history/sync_sessions.js` | `sessions`, `filters`, `pagination`, `autoRefresh`; actions：`loadSessions`、`cancelSession`、`viewDetail` | ⏳ 规划 |
+| S1-2 | **TagManagementStore** | `components/tag_selector.js`, `pages/tags/batch_assign.js`, `pages/tags/index.js`, `pages/accounts/list.js` | 标签/分类/实例数据、已选项；actions：`loadTags`、`applySelection`、`batchAssign`、`batchDelete` | ⏳ 规划 |
+| S1-3 | **AccountClassificationStore** | `pages/accounts/account_classification.js`, `common/permission_policy_center.js` | `classifications`, `rules`, `permissions`, `stats`; actions：CRUD、`loadPermissions`、`autoClassify` | ⏳ 规划 |
+| S1-4 | **SchedulerStore** | `pages/admin/scheduler.js` | `currentJobs`, `filters`, `modalState`; actions：`loadJobs`、`resumeJob`、`pauseJob`、`runJob`、`updateJob` | ⏳ 规划 |
+| S1-5 | **InstanceStore**（可拆三子 store） | `pages/instances/detail.js`, `pages/instances/list.js`, `pages/instances/statistics.js`, `pages/accounts/list.js` | 实例/账户/容量/批量状态；actions：`syncAccounts`、`syncCapacity`、`batchDelete`、`batchCreate`、`loadStats` | ⏳ 规划 |
+| S1-6 | **LogsStore** | `pages/history/logs.js` | `modules`, `filters`, `logs`, `pagination`; actions：`loadModules`、`loadStats`、`searchLogs`、`loadDetail` | ⏳ 规划 |
+| S1-7 | **PartitionStore** | `pages/admin/partitions.js`, `pages/admin/aggregations_chart.js` | `partitions`, `stats`, `charts`; actions：`loadInfo`、`createPartition`、`cleanupPartitions`、`loadCoreMetrics` | ⏳ 规划 |
+| S1-8 | **CredentialsStore** | `pages/credentials/list.js` | `credentials`, `filters`, `modalState`; actions：`deleteCredential`、`loadList` | ⏳ 规划 |
+
+> 说明：表格列举的是当前需要迁移到 Store 的页面/组件。落地过程中可依据场景复杂度拆细（例如 InstanceStore 拆成 detail/list/statistics 子 store）。
+
+## 5. 渐进迁移策略（S1 阶段）
 顺序建议参考服务层核心场景：
 1. **SyncSessionsStore**（历史会话页面）：状态包括 `sessions`, `filters`, `pagination`, `autoRefresh`. Actions：`loadSessions`, `viewDetail`, `viewErrors`, `cancelSession`.
 2. **TagManagementStore**（标签页面 + 批量分配 + TagSelector）：维护标签、分类、实例及选择集，向不同视图暴露订阅点。
@@ -56,7 +71,7 @@ app/static/js/modules/
 3. **视图层订阅**：使用 `store.subscribe('scheduler:jobsUpdated', renderJobs);`；DOM 事件触发时调用 `store.actions.resumeJob(id)` 等。
 4. **清理遗留逻辑**：将页面内的 `let currentJobs = []` 等局部状态删除，避免“双写”。
 
-## 5. Store 示例
+## 6. Store 示例
 ```js
 // app/static/js/modules/stores/history/sync_sessions_store.js
 import mitt from 'mitt';
@@ -101,16 +116,15 @@ export function createSyncSessionsStore({ service, emitter = mitt() }) {
 }
 ```
 
-## 6. 验收标准
+## 7. 验收标准
 - 页面脚本中的 `let state = ...`、`currentJobs`, `selectedTags` 等本地状态逐步收敛到 store。
 - 视图层通过订阅事件或 `store.getState()` 获取数据，不直接依赖服务层。
 - Store 的 action 覆盖原先的网络调用，并在 `docs/refactoring/service_layer_inventory.md` 中同步状态层的完成情况（可新增“Store 进度”列）。
 - Mitt 事件命名与 README 一致，`destroy()` 能正确解除订阅，防止内存泄漏。
 
-## 7. 下一步
+## 8. 下一步
 1. 创建 `modules/stores/README.md` 与首个 store（建议 `sync_sessions_store.js`），提交 PR 验证模式。
 2. 在 `frontend_script_refactor_plan.md` 中新增 S1 表格，列出 store 迁移优先级与负责人。
 3. 视图层拆解（S2）时可直接依赖 store，避免重复重构。
 
 借助现有服务层与 Mitt 事件总线，状态层可渐进式落地，最终实现“服务层 -> Store -> 视图层”的清晰分层。
-
