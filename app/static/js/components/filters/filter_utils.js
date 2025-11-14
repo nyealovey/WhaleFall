@@ -58,6 +58,42 @@
     return LodashUtils.debounce(fn, delay);
   }
 
+  function serializeForm(element) {
+    if (!(element instanceof HTMLFormElement)) {
+      return {};
+    }
+    const result = {};
+    const formData = new FormData(element);
+    formData.forEach((value, key) => {
+      const normalizedValue = value instanceof File ? value.name : value;
+      if (result[key] === undefined) {
+        result[key] = normalizedValue;
+      } else if (Array.isArray(result[key])) {
+        result[key].push(normalizedValue);
+      } else {
+        result[key] = [result[key], normalizedValue];
+      }
+    });
+    return result;
+  }
+
+  function emitFilterEvent(element, action, extra = {}) {
+    if (!window.EventBus || !(element instanceof HTMLFormElement)) {
+      return;
+    }
+    const detail = Object.assign(
+      {
+        action,
+        formId: element.id || null,
+        formName: element.getAttribute("name") || null,
+        source: element.dataset.filterName || element.id || null,
+        values: serializeForm(element),
+      },
+      extra || {},
+    );
+    window.EventBus.emit(`filters:${action}`, detail);
+  }
+
   function requestFormSubmit(form) {
     if (!form) {
       return;
@@ -82,6 +118,9 @@
     if (!element) {
       return;
     }
+    emitFilterEvent(element, "submit", {
+      trigger: event?.type || "manual",
+    });
     if (config.onSubmit) {
       config.onSubmit({ form: element, event });
     } else {
@@ -129,6 +168,10 @@
 
       const eventName = control.dataset.autoSubmitEvent || (control.tagName === "INPUT" && control.type === "text" ? "change" : "change");
       const handler = createDebounced((event) => {
+        emitFilterEvent(element, "change", {
+          trigger: event?.type || eventName,
+          targetName: control.name || control.id || null,
+        });
         performSubmit(entry, event);
       }, config.autoSubmitDebounce);
 
@@ -216,6 +259,8 @@
         hidden.value = "";
       }
     });
+
+    emitFilterEvent(element, "clear");
   }
 
   function registerFilterForm(form, config) {
@@ -238,6 +283,9 @@
       const submitHandler = (event) => {
         if (entry.config.onSubmit) {
           event.preventDefault();
+          emitFilterEvent(element, "submit", {
+            trigger: event?.type || "submit",
+          });
           entry.config.onSubmit({ form: element, event });
         }
       };
@@ -273,6 +321,9 @@
     entry.config = mergedConfig;
     attachAutoSubmit(entry);
     element.dataset.filterRegistered = "true";
+    emitFilterEvent(element, "register", {
+      values: serializeForm(element),
+    });
     return entry;
   }
 
