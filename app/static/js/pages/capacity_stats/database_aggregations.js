@@ -32,6 +32,8 @@
       supportsDatabaseFilter: true,
       includeDatabaseName: true,
       scope: "database",
+      filterFormId: "#database-aggregations-filter-form",
+      autoApplyOnFilterChange: false,
       selectors: {
         charts: {
           trend: "#databaseChart",
@@ -95,8 +97,8 @@
 
     if (window.FilterUtils) {
       window.FilterUtils.registerFilterForm("#database-aggregations-filter-form", {
-        onSubmit: () => window.databaseCapacityStatsManager.applyFilters(),
-        onClear: () => window.databaseCapacityStatsManager.resetFilters(),
+        onSubmit: ({ event }) => event?.preventDefault?.(),
+        onClear: ({ event }) => event?.preventDefault?.(),
         autoSubmitOnChange: false,
       });
     }

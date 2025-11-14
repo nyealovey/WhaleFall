@@ -26,6 +26,8 @@
     window.instanceCapacityStatsManager = new window.CapacityStats.Manager({
       labelExtractor,
       scope: "instance",
+      filterFormId: "#instance-aggregations-filter-form",
+      autoApplyOnFilterChange: false,
       api: {
         summaryEndpoint: "/instance_aggr/api/instances/aggregations/summary",
         trendEndpoint: "/instance_aggr/api/instances/aggregations",
@@ -65,8 +67,8 @@
 
     if (window.FilterUtils) {
       window.FilterUtils.registerFilterForm("#instance-aggregations-filter-form", {
-        onSubmit: () => window.instanceCapacityStatsManager.applyFilters(),
-        onClear: () => window.instanceCapacityStatsManager.resetFilters(),
+        onSubmit: ({ event }) => event?.preventDefault?.(),
+        onClear: ({ event }) => event?.preventDefault?.(),
         autoSubmitOnChange: false,
       });
     }
