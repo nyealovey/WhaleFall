@@ -1,14 +1,25 @@
 (function (window) {
   "use strict";
 
+  const helpers = window.DOMHelpers;
+  if (!helpers) {
+    console.error("DOMHelpers 未初始化，无法加载 CapacityStatsFilters");
+    return;
+  }
+
+  const { selectOne, select } = helpers;
+
   function getElement(selector) {
     if (!selector) {
       return null;
     }
     if (typeof selector === "string") {
-      return document.querySelector(selector);
+      return selectOne(selector).first();
     }
-    return selector instanceof Element ? selector : null;
+    if (selector instanceof Element) {
+      return selector;
+    }
+    return null;
   }
 
   function readSelectValue(selector) {
@@ -23,7 +34,7 @@
     if (!name) {
       return fallback;
     }
-    const checked = document.querySelector(`input[name="${name}"]:checked`);
+    const checked = select(`input[name="${name}"]:checked`).first();
     return checked ? checked.value : fallback;
   }
 
@@ -96,9 +107,7 @@
       getOptionLabel,
     } = options || {};
 
-    while (target.firstChild) {
-      target.removeChild(target.firstChild);
-    }
+    target.innerHTML = "";
 
     if (allowEmpty) {
       const emptyOption = document.createElement("option");
@@ -132,6 +141,7 @@
       return;
     }
     element.value = value ?? "";
+    element.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   function setDisabled(selector, disabled) {

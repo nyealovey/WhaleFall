@@ -1,25 +1,27 @@
-(function (window, document) {
+(function (global) {
   "use strict";
 
-  /**
-   * 凭据列表页面脚本
-   * 处理筛选、搜索、导出、批量操作等功能
-   */
+  const helpers = global.DOMHelpers;
+  if (!helpers) {
+    console.error("DOMHelpers 未初始化，无法加载凭据列表脚本");
+    return;
+  }
 
-  const LodashUtils = window.LodashUtils;
+  const LodashUtils = global.LodashUtils;
   if (!LodashUtils) {
     throw new Error("LodashUtils 未初始化");
   }
+
+  const { ready, select, selectOne, from } = helpers;
 
   const CREDENTIAL_FILTER_FORM_ID = "credential-filter-form";
   const AUTO_APPLY_FILTER_CHANGE = true;
 
   let deleteCredentialId = null;
   let credentialFilterEventHandler = null;
+  let confirmDeleteButton = null;
 
-  document.addEventListener("DOMContentLoaded", () => {
-    initializeCredentialsListPage();
-  });
+  ready(initializeCredentialsListPage);
 
   function initializeCredentialsListPage() {
     initializeDeleteConfirmation();
@@ -29,82 +31,90 @@
   }
 
   function initializeDeleteConfirmation() {
-    const confirmDeleteBtn = document.getElementById("confirmDelete");
-    if (confirmDeleteBtn) {
-      confirmDeleteBtn.addEventListener("click", handleDeleteConfirmation);
+    confirmDeleteButton = selectOne("#confirmDelete");
+    if (!confirmDeleteButton.length) {
+      return;
     }
+    confirmDeleteButton.on("click", handleDeleteConfirmation);
   }
 
-  function handleDeleteConfirmation() {
+  function handleDeleteConfirmation(event) {
+    event.preventDefault();
     if (!deleteCredentialId) {
       return;
     }
-    showLoadingState("confirmDelete", "删除中...");
-    http
+    showLoadingState(confirmDeleteButton, "删除中...");
+    global.httpU
       .post(`/credentials/api/credentials/${deleteCredentialId}/delete`)
       .then((data) => {
         if (data.message) {
-          toast.success(data.message);
-          setTimeout(() => location.reload(), 1000);
+          global.toast.success(data.message);
+          global.setTimeout(() => global.location.reload(), 1000);
         } else if (data.error) {
-          toast.error(data.error);
+          global.toast.error(data.error);
         }
       })
       .catch((error) => {
         console.error("删除凭据失败:", error);
-        toast.error("删除失败，请稍后重试");
+        global.toast.error("删除失败，请稍后重试");
       })
       .finally(() => {
-        hideLoadingState("confirmDelete", "确认删除");
+        hideLoadingState(confirmDeleteButton, "确认删除");
       });
   }
 
   function deleteCredential(credentialId, credentialName) {
     deleteCredentialId = credentialId;
-    const deleteModal = document.getElementById("deleteModal");
-    const credentialNameElement = document.getElementById("deleteCredentialName");
-    if (credentialNameElement) {
-      credentialNameElement.textContent = credentialName;
+    const credentialNameElement = selectOne("#deleteCredentialName");
+    if (credentialNameElement.length) {
+      credentialNameElement.text(credentialName || "");
     }
-    if (deleteModal) {
-      new bootstrap.Modal(deleteModal).show();
-    }
-  }
-
-  function showLoadingState(element, text) {
-    const target = typeof element === "string" ? document.getElementById(element) : element;
-    if (target) {
-      target.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>${text}`;
-      target.disabled = true;
+    const modalElement = selectOne("#deleteModal").first();
+    if (modalElement && global.bootstrap?.Modal) {
+      const instance = global.bootstrap.Modal.getOrCreateInstance(modalElement);
+      instance.show();
     }
   }
 
-  function hideLoadingState(element, originalText) {
-    const target = typeof element === "string" ? document.getElementById(element) : element;
-    if (target) {
-      target.innerHTML = originalText;
-      target.disabled = false;
+  function showLoadingState(target, text) {
+    const element = from(target);
+    if (!element.length) {
+      return;
     }
+    element.attr("data-original-text", element.html());
+    element.html(`<i class="fas fa-spinner fa-spin me-2"></i>${text}`);
+    element.attr("disabled", "disabled");
+  }
+
+  function hideLoadingState(target, fallbackText) {
+    const element = from(target);
+    if (!element.length) {
+      return;
+    }
+    const original = element.attr("data-original-text");
+    element.html(original || fallbackText || "");
+    element.attr("disabled", null);
+    element.attr("data-original-text", null);
   }
 
   function exportCredentials(format = "csv") {
-    const filters = resolveCredentialFilters(document.getElementById(CREDENTIAL_FILTER_FORM_ID));
+    const formElement = selectOne(`#${CREDENTIAL_FILTER_FORM_ID}`).first();
+    const filters = resolveCredentialFilters(formElement);
     const params = buildCredentialQueryParams({ ...filters, export: format });
-    const url = `${window.location.pathname}?${params.toString()}`;
-    window.open(url, "_blank");
+    const url = `${global.location.pathname}?${params.toString()}`;
+    global.open(url, "_blank", "noopener");
   }
 
   function sortTable(column, direction = "asc") {
-    const table = document.querySelector(".credentials-table .table");
-    if (!table) {
+    const table = selectOne(".credentials-table .table");
+    if (!table.length) {
       return;
     }
-    const tbody = table.querySelector("tbody");
+    const tbody = table.find("tbody").first();
     if (!tbody) {
       return;
     }
-
-    const rows = Array.from(tbody.querySelectorAll("tr"));
+    const rows = from(tbody).find("tr").nodes;
     if (!rows.length) {
       return;
     }
@@ -114,8 +124,8 @@
       rows,
       [
         (row) => {
-          const text = LodashUtils.safeGet(row.querySelector(`td:nth-child(${column})`), "textContent", "");
-          return normalizeText(text);
+          const cell = from(row).find(`td:nth-child(${column})`).text();
+          return normalizeText(cell);
         },
       ],
       [normalizedDirection],
@@ -125,23 +135,21 @@
   }
 
   function filterTable(filterValue) {
-    const table = document.querySelector(".credentials-table .table");
-    if (!table) {
+    const table = selectOne(".credentials-table .table");
+    if (!table.length) {
       return;
     }
-    const rows = table.querySelectorAll("tbody tr");
+    const rows = table.find("tbody tr");
     const normalizedFilter = normalizeText(filterValue || "");
-
-    rows.forEach((row) => {
+    rows.each((row) => {
       const text = normalizeText(row.textContent || "");
-      const shouldShow = !normalizedFilter || text.includes(normalizedFilter);
-      row.style.display = shouldShow ? "" : "none";
+      row.style.display = !normalizedFilter || text.includes(normalizedFilter) ? "" : "none";
     });
   }
 
   function initializeRealTimeSearch() {
-    const searchInput = document.querySelector('input[name="search"]');
-    if (!searchInput) {
+    const searchInput = selectOne('input[name="search"]');
+    if (!searchInput.length) {
       return;
     }
 
@@ -167,27 +175,27 @@
       if (typeof debouncedFilter.cancel === "function") {
         debouncedFilter.cancel();
       }
-      searchInput.removeEventListener("input", handleInput);
-      searchInput.removeEventListener("blur", handleBlur);
-      window.removeEventListener("beforeunload", cleanup);
+      searchInput.off("input", handleInput);
+      searchInput.off("blur", handleBlur);
+      from(global).off("beforeunload", cleanup);
     };
 
-    searchInput.addEventListener("input", handleInput);
-    searchInput.addEventListener("blur", handleBlur);
-    window.addEventListener("beforeunload", cleanup, { once: true });
+    searchInput.on("input", handleInput);
+    searchInput.on("blur", handleBlur);
+    from(global).on("beforeunload", cleanup);
   }
 
   function registerCredentialFilterForm() {
-    if (!window.FilterUtils) {
+    if (!global.FilterUtils) {
       console.warn("FilterUtils 未加载，跳过凭据筛选初始化");
       return;
     }
     const selector = `#${CREDENTIAL_FILTER_FORM_ID}`;
-    const form = document.querySelector(selector);
-    if (!form) {
+    const form = selectOne(selector);
+    if (!form.length) {
       return;
     }
-    window.FilterUtils.registerFilterForm(selector, {
+    global.FilterUtils.registerFilterForm(selector, {
       onSubmit: ({ form, event }) => {
         event?.preventDefault?.();
         applyCredentialFilters(form);
@@ -201,13 +209,14 @@
   }
 
   function subscribeCredentialFilters() {
-    if (!window.EventBus) {
+    if (!global.EventBus) {
       return;
     }
-    const form = document.getElementById(CREDENTIAL_FILTER_FORM_ID);
-    if (!form) {
+    const formElement = selectOne(`#${CREDENTIAL_FILTER_FORM_ID}`).first();
+    if (!formElement) {
       return;
     }
+
     const handler = (detail) => {
       if (!detail) {
         return;
@@ -218,59 +227,65 @@
       }
       switch (detail.action) {
         case "clear":
-          resetCredentialFilters(form);
+          resetCredentialFilters(formElement);
           break;
         case "change":
           if (AUTO_APPLY_FILTER_CHANGE) {
-            applyCredentialFilters(form, detail.values);
+            applyCredentialFilters(formElement, detail.values);
           }
           break;
         case "submit":
-          applyCredentialFilters(form, detail.values);
+          applyCredentialFilters(formElement, detail.values);
           break;
         default:
           break;
       }
     };
+
     ["change", "submit", "clear"].forEach((action) => {
-      EventBus.on(`filters:${action}`, handler);
+      global.EventBus.on(`filters:${action}`, handler);
     });
     credentialFilterEventHandler = handler;
-    window.addEventListener("beforeunload", cleanupCredentialFilters, { once: true });
+
+    const unloadHandler = () => {
+      cleanupCredentialFilters();
+      from(global).off("beforeunload", unloadHandler);
+    };
+    from(global).on("beforeunload", unloadHandler);
   }
 
   function cleanupCredentialFilters() {
-    if (!window.EventBus || !credentialFilterEventHandler) {
+    if (!global.EventBus || !credentialFilterEventHandler) {
       return;
     }
     ["change", "submit", "clear"].forEach((action) => {
-      EventBus.off(`filters:${action}`, credentialFilterEventHandler);
+      global.EventBus.off(`filters:${action}`, credentialFilterEventHandler);
     });
     credentialFilterEventHandler = null;
   }
 
   function applyCredentialFilters(form, values) {
-    const targetForm = form || document.getElementById(CREDENTIAL_FILTER_FORM_ID);
+    const targetForm = resolveFormElement(form);
     if (!targetForm) {
       return;
     }
+
     const filters = resolveCredentialFilters(targetForm, values);
     const searchTerm = filters.search || "";
     if (typeof searchTerm === "string" && searchTerm.trim().length > 0 && searchTerm.trim().length < 2) {
-      toast.warning("搜索关键词至少需要2个字符");
+      global.toast.warning("搜索关键词至少需要2个字符");
       return;
     }
 
     const params = buildCredentialQueryParams(filters);
-    const action = targetForm.getAttribute("action") || window.location.pathname;
+    const action = targetForm.getAttribute("action") || global.location.pathname;
     const query = params.toString();
-    window.location.href = query ? `${action}?${query}` : action;
+    global.location.href = query ? `${action}?${query}` : action;
   }
 
   function resolveCredentialFilters(form, overrideValues) {
-    const rawValues = overrideValues && Object.keys(overrideValues || {}).length
-      ? overrideValues
-      : collectFormValues(form);
+    const rawValues =
+      overrideValues && Object.keys(overrideValues || {}).length ? overrideValues : collectFormValues(form);
     return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
       if (key === "csrf_token") {
         return result;
@@ -321,19 +336,35 @@
   }
 
   function resetCredentialFilters(form) {
-    const targetForm = form || document.getElementById(CREDENTIAL_FILTER_FORM_ID);
+    const targetForm = resolveFormElement(form);
     if (targetForm) {
       targetForm.reset();
     }
     applyCredentialFilters(targetForm, {});
   }
 
+  function resolveFormElement(form) {
+    if (!form) {
+      return selectOne(`#${CREDENTIAL_FILTER_FORM_ID}`).first();
+    }
+    if (form instanceof Element) {
+      return form;
+    }
+    if (form && typeof form.current === "function") {
+      return form.current();
+    }
+    if (form && typeof form.first === "function") {
+      return form.first();
+    }
+    return form;
+  }
+
   function collectFormValues(form) {
     if (!form) {
       return {};
     }
-    if (window.FilterUtils && typeof window.FilterUtils.serializeForm === "function") {
-      return window.FilterUtils.serializeForm(form);
+    if (global.FilterUtils && typeof global.FilterUtils.serializeForm === "function") {
+      return global.FilterUtils.serializeForm(form);
     }
     const formData = new FormData(form);
     const result = {};
@@ -358,8 +389,8 @@
     return text.toLowerCase();
   }
 
-  window.deleteCredential = deleteCredential;
-  window.exportCredentials = exportCredentials;
-  window.sortTable = sortTable;
-  window.filterTable = filterTable;
-})(window, document);
+  global.deleteCredential = deleteCredential;
+  global.exportCredentials = exportCredentials;
+  global.sortTable = sortTable;
+  global.filterTable = filterTable;
+})(window);

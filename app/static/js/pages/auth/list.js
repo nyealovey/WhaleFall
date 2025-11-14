@@ -1,24 +1,31 @@
 /**
- * 用户管理列表页脚本
+ * 用户管理列表页脚本（Umbrella 版本）
  */
-
-(function () {
+(function (global) {
     'use strict';
 
-    document.addEventListener('DOMContentLoaded', function () {
+    const helpers = global.DOMHelpers;
+    if (!helpers) {
+        console.error('DOMHelpers 未初始化，无法加载用户列表脚本');
+        return;
+    }
+
+    const { ready, select, selectOne, from } = helpers;
+
+    ready(() => {
         initDeleteUserHandlers();
     });
 
     function initDeleteUserHandlers() {
-        const buttons = document.querySelectorAll('[data-action="delete-user"]');
-        buttons.forEach(function (button) {
-            button.addEventListener('click', function (event) {
+        select('[data-action="delete-user"]').each((button) => {
+            const wrapper = from(button);
+            wrapper.on('click', (event) => {
                 event.preventDefault();
                 if (button.disabled) {
                     return;
                 }
-                const userId = button.getAttribute('data-user-id');
-                const username = button.getAttribute('data-username') || '';
+                const userId = wrapper.attr('data-user-id');
+                const username = wrapper.attr('data-username') || '';
                 if (!userId) {
                     return;
                 }
@@ -29,27 +36,28 @@
 
     function confirmDeleteUser(userId, username) {
         const displayName = username || '';
-        if (window.confirm(`确定要删除用户 "${displayName}" 吗？此操作不可撤销。`)) {
+        if (global.confirm(`确定要删除用户 "${displayName}" 吗？此操作不可撤销。`)) {
             performDeleteUser(userId);
         }
     }
 
     function performDeleteUser(userId) {
-        const trigger = document.querySelector(`[data-action="delete-user"][data-user-id="${userId}"]`);
+        const trigger = selectOne(`[data-action="delete-user"][data-user-id="${userId}"]`);
         showLoadingState(trigger, '删除中...');
 
-        http.delete(`/users/api/users/${userId}`)
+        global.httpU
+            .delete(`/users/api/users/${userId}`)
             .then((data) => {
                 if (data.success) {
-                    window.toast.success(data.message || '用户删除成功');
-                    window.location.reload();
+                    global.toast.success(data.message || '用户删除成功');
+                    global.location.reload();
                 } else {
-                    window.toast.error(data.message || '删除用户失败');
+                    global.toast.error(data.message || '删除用户失败');
                 }
             })
             .catch((error) => {
                 console.error('删除用户失败', error);
-                window.toast.error('删除用户失败');
+                global.toast.error('删除用户失败');
             })
             .finally(() => {
                 hideLoadingState(trigger, '删除');
@@ -57,21 +65,25 @@
     }
 
     function showLoadingState(element, text) {
-        if (!element) {
+        const target = from(element);
+        if (!target.length) {
             return;
         }
-        element.dataset.originalText = element.innerHTML;
-        element.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>${text}`;
-        element.disabled = true;
+        const node = target.first();
+        node.dataset.originalText = target.html();
+        target.html(`<i class="fas fa-spinner fa-spin me-2"></i>${text}`);
+        target.attr('disabled', 'disabled');
     }
 
     function hideLoadingState(element, fallbackText) {
-        if (!element) {
+        const target = from(element);
+        if (!target.length) {
             return;
         }
-        const original = element.dataset.originalText;
-        element.innerHTML = original || fallbackText || '删除';
-        element.disabled = false;
-        delete element.dataset.originalText;
+        const node = target.first();
+        const original = node.dataset.originalText;
+        target.html(original || fallbackText || '删除');
+        target.attr('disabled', null);
+        delete node.dataset.originalText;
     }
-})();
+})(window);

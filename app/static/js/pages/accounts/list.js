@@ -1,336 +1,356 @@
-/**
- * 账户列表页面JavaScript
- * 处理账户同步、权限查看、标签选择等功能
- */
+(function (global) {
+    /**
+     * 账户列表页面 JavaScript
+     * 处理账户同步、权限查看、标签选择等功能
+     */
+    'use strict';
 
-const LodashUtils = window.LodashUtils;
-if (!LodashUtils) {
-    throw new Error('LodashUtils 未初始化');
-}
-
-const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
-const AUTO_APPLY_FILTER_CHANGE = true;
-let accountFilterEventHandler = null;
-
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', initializeAccountsListPage);
-
-function initializeAccountsListPage() {
-    initializeTagFilter();
-    registerAccountFilterForm();
-    subscribeAccountFilters();
-}
-
-// 同步所有账户
-function syncAllAccounts() {
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
-    btn.disabled = true;
-
-    http.post('/account_sync/api/sync-all')
-    .then(data => {
-        if (data.success) {
-            toast.success(data.message || '批量同步任务已启动');
-            if (data.data?.manual_job_id) {
-                toast.info(`任务线程: ${data.data.manual_job_id}`);
-            }
-        } else if (data.error) {
-            toast.error(data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        toast.error('同步失败');
-    })
-    .finally(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    });
-}
-
-// 保持向后兼容
-function syncAllInstances() {
-    syncAllAccounts();
-}
-
-// 查看账户详情
-function viewAccount(accountId) {
-    toast.info(`查看账户 ${accountId} 的详情`);
-}
-
-// 显示账户统计
-function showAccountStatistics() {
-    // 直接跳转到账户统计页面
-    window.location.href = '/account-static/';
-}
-
-function initializeTagFilter() {
-    if (!window.TagSelectorHelper) {
-        console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
+    const helpers = global.DOMHelpers;
+    if (!helpers) {
+        console.error('DOMHelpers 未初始化，无法加载账户列表页面脚本');
         return;
     }
 
-    const hiddenInput = document.getElementById('selected-tag-names');
-    const initialValues = parseInitialTagValues(hiddenInput?.value);
-
-    TagSelectorHelper.setupForForm({
-        modalSelector: '#tagSelectorModal',
-        rootSelector: '[data-tag-selector]',
-        openButtonSelector: '#open-tag-filter-btn',
-        previewSelector: '#selected-tags-preview',
-        countSelector: '#selected-tags-count',
-        chipsSelector: '#selected-tags-chips',
-        hiddenInputSelector: '#selected-tag-names',
-        hiddenValueKey: 'name',
-        initialValues,
-        onConfirm: () => {
-            const form = document.getElementById(ACCOUNT_FILTER_FORM_ID);
-            if (!form) {
-                return;
-            }
-            if (window.EventBus) {
-                EventBus.emit('filters:change', {
-                    formId: form.id,
-                    source: 'account-tag-selector',
-                    values: collectFormValues(form),
-                });
-            } else if (typeof form.requestSubmit === 'function') {
-                form.requestSubmit();
-            } else {
-                form.submit();
-            }
-        },
-    });
-}
-
-// 辅助函数：判断颜色是否为深色
-function isColorDark(colorStr) {
-    if (!colorStr) return false;
-
-    // 创建一个临时元素来解析颜色
-    const tempDiv = document.createElement('div');
-    tempDiv.style.color = colorStr;
-    document.body.appendChild(tempDiv);
-
-    const rgbColor = window.getComputedStyle(tempDiv).color;
-    document.body.removeChild(tempDiv);
-
-    const rgb = rgbColor.match(/\d+/g).map(Number);
-    const r = rgb[0];
-    const g = rgb[1];
-    const b = rgb[2];
-
-    // 使用 HSP（高敏感度池）方程计算亮度
-    const hsp = Math.sqrt(
-        0.299 * (r * r) +
-        0.587 * (g * g) +
-        0.114 * (b * b)
-    );
-
-    return hsp < 127.5;
-}
-
-// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
-
-// 权限调试功能
-function debugPermissionFunctions() {
-}
-
-
-// 页面卸载时清理
-window.addEventListener('beforeunload', function() {
-    // 清理资源
-});
-
-// 导出函数供全局使用
-window.syncAllAccounts = syncAllAccounts;
-window.syncAllInstances = syncAllInstances;
-window.viewAccount = viewAccount;
-window.showAccountStatistics = showAccountStatistics;
-window.debugPermissionFunctions = debugPermissionFunctions;
-
-function registerAccountFilterForm() {
-    if (!window.FilterUtils) {
-        console.warn('FilterUtils 未加载，跳过账户筛选初始化');
-        return;
+    const LodashUtils = global.LodashUtils;
+    if (!LodashUtils) {
+        throw new Error('LodashUtils 未初始化');
     }
-    const selector = `#${ACCOUNT_FILTER_FORM_ID}`;
-    const form = document.querySelector(selector);
-    if (!form) {
-        return;
-    }
-    window.FilterUtils.registerFilterForm(selector, {
-        onSubmit: ({ form, event }) => {
-            event?.preventDefault?.();
-            applyAccountFilters(form);
-        },
-        onClear: ({ form, event }) => {
-            event?.preventDefault?.();
-            resetAccountFilters(form);
-        },
-        autoSubmitOnChange: true,
-    });
-}
 
-function subscribeAccountFilters() {
-    if (!window.EventBus) {
-        return;
+    const { ready, selectOne, select, from } = helpers;
+
+    const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
+    const AUTO_APPLY_FILTER_CHANGE = true;
+
+    let accountFilterEventHandler = null;
+    let unloadCleanupHandler = null;
+
+    ready(initializeAccountsListPage);
+
+    function initializeAccountsListPage() {
+        initializeTagFilter();
+        registerAccountFilterForm();
+        subscribeAccountFilters();
     }
-    const form = document.getElementById(ACCOUNT_FILTER_FORM_ID);
-    if (!form) {
-        return;
-    }
-    const handler = (detail) => {
-        if (!detail) {
-            return;
+
+    function resolveButton(reference) {
+        if (!reference && global.event && global.event.target) {
+            return global.event.target;
         }
-        const incoming = (detail.formId || '').replace(/^#/, '');
-        if (incoming !== ACCOUNT_FILTER_FORM_ID) {
-            return;
+        if (!reference) {
+            return null;
         }
-        switch (detail.action) {
-            case 'clear':
-                resetAccountFilters(form);
-                break;
-            case 'change':
-                if (AUTO_APPLY_FILTER_CHANGE) {
-                    applyAccountFilters(form, detail.values);
-                }
-                break;
-            case 'submit':
-                applyAccountFilters(form, detail.values);
-                break;
-            default:
-                break;
+        if (reference instanceof Element) {
+            return reference;
         }
-    };
-    ['change', 'submit', 'clear'].forEach((action) => {
-        EventBus.on(`filters:${action}`, handler);
-    });
-    accountFilterEventHandler = handler;
-    window.addEventListener('beforeunload', cleanupAccountFilters, { once: true });
-}
-
-function cleanupAccountFilters() {
-    if (!window.EventBus || !accountFilterEventHandler) {
-        return;
-    }
-    ['change', 'submit', 'clear'].forEach((action) => {
-        EventBus.off(`filters:${action}`, accountFilterEventHandler);
-    });
-    accountFilterEventHandler = null;
-}
-
-function applyAccountFilters(form, values) {
-    const targetForm = form || document.getElementById(ACCOUNT_FILTER_FORM_ID);
-    if (!targetForm) {
-        return;
-    }
-    const filters = resolveAccountFilterValues(targetForm, values);
-    const params = buildAccountSearchParams(filters);
-    const action = targetForm.getAttribute('action') || window.location.pathname;
-    const query = params.toString();
-    window.location.href = query ? `${action}?${query}` : action;
-}
-
-function resetAccountFilters(form) {
-    const targetForm = form || document.getElementById(ACCOUNT_FILTER_FORM_ID);
-    if (targetForm) {
-        targetForm.reset();
-    }
-    applyAccountFilters(targetForm, {});
-}
-
-function buildAccountSearchParams(filters) {
-    const params = new URLSearchParams();
-    Object.entries(filters || {}).forEach(([key, value]) => {
-        if (value === undefined || value === null) {
-            return;
+        if (reference.currentTarget) {
+            return reference.currentTarget;
         }
-        if (Array.isArray(value)) {
-            value.forEach((item) => {
-                if (item !== null && item !== undefined) {
-                    params.append(key, item);
-                }
-            });
-        } else {
-            params.append(key, value);
+        if (reference.target) {
+            return reference.target;
         }
-    });
-    return params;
-}
-
-function resolveAccountFilterValues(form, overrideValues) {
-    const rawValues = overrideValues && Object.keys(overrideValues || {}).length
-        ? overrideValues
-        : collectFormValues(form);
-    return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
-        if (key === 'csrf_token') {
-            return result;
-        }
-        const normalized = sanitizeFilterValue(value);
-        if (normalized === null || normalized === undefined) {
-            return result;
-        }
-        if (Array.isArray(normalized) && normalized.length === 0) {
-            return result;
-        }
-        result[key] = normalized;
-        return result;
-    }, {});
-}
-
-function sanitizeFilterValue(value) {
-    if (Array.isArray(value)) {
-        return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
-    }
-    return sanitizePrimitiveValue(value);
-}
-
-function sanitizePrimitiveValue(value) {
-    if (value instanceof File) {
-        return value.name;
-    }
-    if (typeof value === 'string') {
-        const trimmed = value.trim();
-        return trimmed === '' ? null : trimmed;
-    }
-    if (value === undefined || value === null) {
         return null;
     }
-    return value;
-}
 
-function parseInitialTagValues(rawValue) {
-    if (!rawValue) {
-        return [];
-    }
-    return rawValue
-        .split(',')
-        .map((value) => value.trim())
-        .filter(Boolean);
-}
+    function syncAllAccounts(trigger) {
+        const button = resolveButton(trigger);
+        const buttonWrapper = button ? from(button) : null;
+        const originalText = buttonWrapper ? buttonWrapper.html() : null;
 
-function collectFormValues(form) {
-    if (!form) {
-        return {};
-    }
-    if (window.FilterUtils && typeof window.FilterUtils.serializeForm === 'function') {
-        return window.FilterUtils.serializeForm(form);
-    }
-    const formData = new FormData(form);
-    const result = {};
-    formData.forEach((value, key) => {
-        const normalized = value instanceof File ? value.name : value;
-        if (result[key] === undefined) {
-            result[key] = normalized;
-        } else if (Array.isArray(result[key])) {
-            result[key].push(normalized);
-        } else {
-            result[key] = [result[key], normalized];
+        if (buttonWrapper) {
+            buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
+            buttonWrapper.attr('disabled', 'disabled');
         }
-    });
-    return result;
-}
+
+        return global.httpU
+            .post('/account_sync/api/sync-all')
+            .then((data) => {
+                if (data.success) {
+                    global.toast.success(data.message || '批量同步任务已启动');
+                    if (data.data?.manual_job_id) {
+                        global.toast.info(`任务线程: ${data.data.manual_job_id}`);
+                    }
+                } else if (data.error) {
+                    global.toast.error(data.error);
+                }
+            })
+            .catch((error) => {
+                console.error('账户同步失败:', error);
+                global.toast.error('同步失败');
+            })
+            .finally(() => {
+                if (buttonWrapper) {
+                    buttonWrapper.html(originalText || '同步');
+                    buttonWrapper.attr('disabled', null);
+                }
+            });
+    }
+
+    function syncAllInstances(trigger) {
+        return syncAllAccounts(trigger);
+    }
+
+    function viewAccount(accountId) {
+        global.toast.info(`查看账户 ${accountId} 的详情`);
+    }
+
+    function showAccountStatistics() {
+        global.location.href = '/account-static/';
+    }
+
+    function initializeTagFilter() {
+        if (!global.TagSelectorHelper) {
+            console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
+            return;
+        }
+
+        const hiddenInput = selectOne('#selected-tag-names');
+        const initialValues = parseInitialTagValues(hiddenInput.length ? hiddenInput.attr('value') : null);
+
+        global.TagSelectorHelper.setupForForm({
+            modalSelector: '#tagSelectorModal',
+            rootSelector: '[data-tag-selector]',
+            openButtonSelector: '#open-tag-filter-btn',
+            previewSelector: '#selected-tags-preview',
+            countSelector: '#selected-tags-count',
+            chipsSelector: '#selected-tags-chips',
+            hiddenInputSelector: '#selected-tag-names',
+            hiddenValueKey: 'name',
+            initialValues,
+            onConfirm: () => {
+                const form = selectOne(`#${ACCOUNT_FILTER_FORM_ID}`).first();
+                if (!form) {
+                    return;
+                }
+                if (global.EventBus) {
+                    global.EventBus.emit('filters:change', {
+                        formId: form.id,
+                        source: 'account-tag-selector',
+                        values: collectFormValues(form),
+                    });
+                } else if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                } else {
+                    form.submit();
+                }
+            },
+        });
+    }
+
+    function registerAccountFilterForm() {
+        if (!global.FilterUtils) {
+            console.warn('FilterUtils 未加载，跳过账户筛选初始化');
+            return;
+        }
+
+        const selector = `#${ACCOUNT_FILTER_FORM_ID}`;
+        const form = selectOne(selector);
+        if (!form.length) {
+            return;
+        }
+
+        global.FilterUtils.registerFilterForm(selector, {
+            onSubmit: ({ form, event }) => {
+                event?.preventDefault?.();
+                applyAccountFilters(form);
+            },
+            onClear: ({ form, event }) => {
+                event?.preventDefault?.();
+                resetAccountFilters(form);
+            },
+            autoSubmitOnChange: true,
+        });
+    }
+
+    function subscribeAccountFilters() {
+        if (!global.EventBus) {
+            return;
+        }
+        const form = selectOne(`#${ACCOUNT_FILTER_FORM_ID}`).first();
+        if (!form) {
+            return;
+        }
+        const handler = (detail) => {
+            if (!detail) {
+                return;
+            }
+            const incoming = (detail.formId || '').replace(/^#/, '');
+            if (incoming !== ACCOUNT_FILTER_FORM_ID) {
+                return;
+            }
+            switch (detail.action) {
+                case 'clear':
+                    resetAccountFilters(form);
+                    break;
+                case 'change':
+                    if (AUTO_APPLY_FILTER_CHANGE) {
+                        applyAccountFilters(form, detail.values);
+                    }
+                    break;
+                case 'submit':
+                    applyAccountFilters(form, detail.values);
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        ['change', 'submit', 'clear'].forEach((action) => {
+            global.EventBus.on(`filters:${action}`, handler);
+        });
+        accountFilterEventHandler = handler;
+
+        unloadCleanupHandler = () => {
+            cleanupAccountFilters();
+            from(global).off('beforeunload', unloadCleanupHandler);
+        };
+        from(global).on('beforeunload', unloadCleanupHandler);
+    }
+
+    function cleanupAccountFilters() {
+        if (!global.EventBus || !accountFilterEventHandler) {
+            return;
+        }
+        ['change', 'submit', 'clear'].forEach((action) => {
+            global.EventBus.off(`filters:${action}`, accountFilterEventHandler);
+        });
+        accountFilterEventHandler = null;
+    }
+
+    function applyAccountFilters(form, values) {
+        const targetForm = form || selectOne(`#${ACCOUNT_FILTER_FORM_ID}`).first();
+        if (!targetForm) {
+            return;
+        }
+        const filters = resolveAccountFilterValues(targetForm, values);
+        const params = buildAccountSearchParams(filters);
+        const action = targetForm.getAttribute('action') || global.location.pathname;
+        const query = params.toString();
+        global.location.href = query ? `${action}?${query}` : action;
+    }
+
+    function resetAccountFilters(form) {
+        const targetForm = form || selectOne(`#${ACCOUNT_FILTER_FORM_ID}`).first();
+        if (targetForm) {
+            targetForm.reset();
+        }
+        applyAccountFilters(targetForm, {});
+    }
+
+    function buildAccountSearchParams(filters) {
+        const params = new URLSearchParams();
+        Object.entries(filters || {}).forEach(([key, value]) => {
+            if (value === undefined || value === null) {
+                return;
+            }
+            if (Array.isArray(value)) {
+                value.forEach((item) => {
+                    if (item !== null && item !== undefined) {
+                        params.append(key, item);
+                    }
+                });
+            } else {
+                params.append(key, value);
+            }
+        });
+        return params;
+    }
+
+    function resolveAccountFilterValues(form, overrideValues) {
+        const rawValues =
+            overrideValues && Object.keys(overrideValues || {}).length
+                ? overrideValues
+                : collectFormValues(form);
+        return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
+            if (key === 'csrf_token') {
+                return result;
+            }
+            const normalized = sanitizeFilterValue(value);
+            if (normalized === null || normalized === undefined) {
+                return result;
+            }
+            if (Array.isArray(normalized) && normalized.length === 0) {
+                return result;
+            }
+            result[key] = normalized;
+            return result;
+        }, {});
+    }
+
+    function sanitizeFilterValue(value) {
+        if (Array.isArray(value)) {
+            return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
+        }
+        return sanitizePrimitiveValue(value);
+    }
+
+    function sanitizePrimitiveValue(value) {
+        if (value instanceof File) {
+            return value.name;
+        }
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            return trimmed === '' ? null : trimmed;
+        }
+        if (value === undefined || value === null) {
+            return null;
+        }
+        return value;
+    }
+
+    function parseInitialTagValues(rawValue) {
+        if (!rawValue) {
+            return [];
+        }
+        return rawValue
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean);
+    }
+
+    function collectFormValues(form) {
+        if (!form) {
+            return {};
+        }
+        if (global.FilterUtils && typeof global.FilterUtils.serializeForm === 'function') {
+            return global.FilterUtils.serializeForm(form);
+        }
+        const formData = new FormData(form);
+        const result = {};
+        formData.forEach((value, key) => {
+            const normalized = value instanceof File ? value.name : value;
+            if (result[key] === undefined) {
+                result[key] = normalized;
+            } else if (Array.isArray(result[key])) {
+                result[key].push(normalized);
+            } else {
+                result[key] = [result[key], normalized];
+            }
+        });
+        return result;
+    }
+
+    function isColorDark(colorStr) {
+        if (!colorStr) {
+            return false;
+        }
+        const tempDiv = document.createElement('div');
+        tempDiv.style.color = colorStr;
+        document.body.appendChild(tempDiv);
+
+        const rgbColor = global.getComputedStyle(tempDiv).color;
+        document.body.removeChild(tempDiv);
+
+        const rgb = rgbColor.match(/\d+/g).map(Number);
+        const [r, g, b] = rgb;
+        const hsp = Math.sqrt(0.299 * (r * r) + 0.587 * (g * g) + 0.114 * (b * b));
+        return hsp < 127.5;
+    }
+
+    function debugPermissionFunctions() {}
+
+    global.syncAllAccounts = syncAllAccounts;
+    global.syncAllInstances = syncAllInstances;
+    global.viewAccount = viewAccount;
+    global.showAccountStatistics = showAccountStatistics;
+    global.debugPermissionFunctions = debugPermissionFunctions;
+})(window);

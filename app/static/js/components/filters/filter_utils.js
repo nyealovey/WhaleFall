@@ -1,10 +1,18 @@
-(function (window, document) {
+(function (global) {
   "use strict";
 
-  const LodashUtils = window.LodashUtils;
+  const LodashUtils = global.LodashUtils;
   if (!LodashUtils) {
     throw new Error("LodashUtils 未初始化");
   }
+
+  const helpers = global.DOMHelpers;
+  if (!helpers) {
+    console.error("DOMHelpers 未初始化，无法加载 FilterUtils");
+    return;
+  }
+
+  const { ready, select, selectOne, from } = helpers;
 
   const DEFAULT_TOM_SELECT_CONFIG = {
     create: false,
@@ -78,7 +86,7 @@
   }
 
   function emitFilterEvent(element, action, extra = {}) {
-    if (!window.EventBus || !(element instanceof HTMLFormElement)) {
+    if (!global.EventBus || !(element instanceof HTMLFormElement)) {
       return;
     }
     const detail = Object.assign(
@@ -91,7 +99,7 @@
       },
       extra || {},
     );
-    window.EventBus.emit(`filters:${action}`, detail);
+    global.EventBus.emit(`filters:${action}`, detail);
   }
 
   function requestFormSubmit(form) {
@@ -134,7 +142,7 @@
     }
     entry.autoSubmitListeners.forEach(({ target, handler, eventName }) => {
       if (target && handler) {
-        target.removeEventListener(eventName, handler);
+        from(target).off(eventName, handler);
       }
     });
     entry.autoSubmitListeners = [];
@@ -157,7 +165,7 @@
     }
 
     const selectors = config.autoSubmitSelectors || DEFAULT_AUTO_SUBMIT_SELECTORS;
-    const controls = selectors ? element.querySelectorAll(selectors) : [];
+    const controls = selectors ? from(element).find(selectors).nodes : [];
 
     entry.autoSubmitListeners = [];
 
@@ -166,7 +174,10 @@
         return;
       }
 
-      const eventName = control.dataset.autoSubmitEvent || (control.tagName === "INPUT" && control.type === "text" ? "change" : "change");
+      const eventName =
+        control.dataset.autoSubmitEvent ||
+        (control.tagName === "INPUT" && control.type === "text" ? "change" : "change");
+
       const handler = createDebounced((event) => {
         emitFilterEvent(element, "change", {
           trigger: event?.type || eventName,
@@ -175,14 +186,17 @@
         performSubmit(entry, event);
       }, config.autoSubmitDebounce);
 
-      control.addEventListener(eventName, handler);
+      from(control).on(eventName, handler);
       entry.autoSubmitListeners.push({ target: control, handler, eventName });
     });
   }
 
   function resolveElement(target) {
     if (typeof target === "string") {
-      return document.querySelector(target);
+      return selectOne(target).first();
+    }
+    if (target && typeof target.first === "function") {
+      return target.first();
     }
     return target;
   }
@@ -236,29 +250,35 @@
       return;
     }
 
-    element.querySelectorAll("input[type='text'], input[type='search'], input[type='number']").forEach((input) => {
-      input.value = "";
-    });
+    from(element)
+      .find("input[type='text'], input[type='search'], input[type='number']")
+      .each((input) => {
+        input.value = "";
+      });
 
-    element.querySelectorAll("select").forEach((select) => {
-      if (select.multiple) {
-        Array.from(select.options).forEach((option) => {
-          option.selected = false;
-        });
-      } else {
-        select.selectedIndex = 0;
-      }
-      if (select.tomselect) {
-        select.tomselect.clear(true);
-        select.tomselect.refreshOptions(false);
-      }
-    });
+    from(element)
+      .find("select")
+      .each((selectElement) => {
+        if (selectElement.multiple) {
+          Array.from(selectElement.options).forEach((option) => {
+            option.selected = false;
+          });
+        } else {
+          selectElement.selectedIndex = 0;
+        }
+        if (selectElement.tomselect) {
+          selectElement.tomselect.clear(true);
+          selectElement.tomselect.refreshOptions(false);
+        }
+      });
 
-    element.querySelectorAll("input[type='hidden']").forEach((hidden) => {
-      if (!hidden.dataset.preserve) {
-        hidden.value = "";
-      }
-    });
+    from(element)
+      .find("input[type='hidden']")
+      .each((hidden) => {
+        if (!hidden.dataset.preserve) {
+          hidden.value = "";
+        }
+      });
 
     emitFilterEvent(element, "clear");
   }
@@ -289,12 +309,14 @@
           entry.config.onSubmit({ form: element, event });
         }
       };
-      element.addEventListener("submit", submitHandler);
+      from(element).on("submit", submitHandler);
       entry.submitHandler = submitHandler;
 
-      const submitButton = element.querySelector(mergedConfig.submitButtonSelector);
+      const submitButton = from(element)
+        .find(mergedConfig.submitButtonSelector)
+        .first();
       if (submitButton) {
-        submitButton.addEventListener("click", (event) => {
+        from(submitButton).on("click", (event) => {
           if (entry.config.onSubmit) {
             event.preventDefault();
             entry.config.onSubmit({ form: element, event });
@@ -302,9 +324,11 @@
         });
       }
 
-      const clearButton = element.querySelector(mergedConfig.clearButtonSelector);
+      const clearButton = from(element)
+        .find(mergedConfig.clearButtonSelector)
+        .first();
       if (clearButton) {
-        clearButton.addEventListener("click", (event) => {
+        from(clearButton).on("click", (event) => {
           event.preventDefault();
           clearForm(element);
           if (entry.config.onClear) {
@@ -348,7 +372,7 @@
     }
   }
 
-  window.FilterUtils = {
+  global.FilterUtils = {
     initTomSelect,
     destroyTomSelect,
     clearForm,
@@ -359,8 +383,9 @@
     formRegistry,
     serializeForm,
   };
-  document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll("[data-tom-select]").forEach((element) => {
+
+  ready(() => {
+    select("[data-tom-select]").each((element) => {
       let config = {};
       if (element.dataset.tomSelectConfig) {
         try {
@@ -371,11 +396,11 @@
       }
       initTomSelect(element, config);
     });
-    document.querySelectorAll("form.filter-form").forEach((form) => {
+    select("form.filter-form").each((form) => {
       if (form.dataset.filterAuto === "false") {
         return;
       }
       registerFilterForm(form);
     });
   });
-})(window, document);
+})(window);
