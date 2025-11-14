@@ -555,5 +555,7 @@ function renderDefaultPermissions(permissions, dbType) {
 
 // 导出到全局作用域
 window.showPermissionsModal = showPermissionsModal;
-window.createPermissionsModal = createPermissionsModal;
+window.createPermissionsModal = function () {
+    return getOrCreateModal().first();
+};
 window.renderPermissionsByType = renderPermissionsByType;

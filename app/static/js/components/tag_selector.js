@@ -6,6 +6,11 @@
     throw new Error("LodashUtils 未初始化");
   }
 
+  const httpClient = window.httpU;
+  if (!httpClient) {
+    throw new Error("httpU 未初始化，无法加载标签数据");
+  }
+
   const DEFAULT_ENDPOINTS = {
     tags: "/tags/api/tags",
     categories: "/tags/api/categories",
@@ -33,8 +38,8 @@
   }
 
   function ensureHttp() {
-    if (!window.http || typeof window.httpU.get !== "function") {
-      throw new Error("window.http 未初始化，无法加载标签数据");
+    if (!httpClient || typeof httpClient.get !== "function") {
+      throw new Error("httpU 未初始化，无法加载标签数据");
     }
   }
 
@@ -233,7 +238,7 @@
 
       try {
         ensureHttp();
-        const response = await window.httpU.get(
+        const response = await httpClient.get(
           this.options.endpoints.categories,
         );
         const categories =
@@ -319,7 +324,7 @@
 
       try {
         ensureHttp();
-        const response = await window.httpU.get(this.options.endpoints.tags);
+        const response = await httpClient.get(this.options.endpoints.tags);
         const tags =
           response?.data?.tags ??
           response?.tags ??
