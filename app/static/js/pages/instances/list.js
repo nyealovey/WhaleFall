@@ -76,7 +76,15 @@ function initializeTagFilter() {
         onConfirm: () => {
             const form = document.getElementById('instance-filter-form');
             if (form) {
-                if (typeof form.requestSubmit === 'function') {
+                if (window.EventBus) {
+                    EventBus.emit('filters:change', {
+                        formId: form.id,
+                        source: 'instance-tag-selector',
+                        values: (window.FilterUtils && window.FilterUtils.serializeForm)
+                            ? window.FilterUtils.serializeForm(form)
+                            : new FormData(form),
+                    });
+                } else if (typeof form.requestSubmit === 'function') {
                     form.requestSubmit();
                 } else {
                     form.submit();
