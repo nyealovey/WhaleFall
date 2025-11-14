@@ -193,7 +193,8 @@
         const config = Object.assign({}, DEFAULT_OPTIONS, options);
         const position = resolvePosition(config.position);
         const container = getContainer(position);
-        const toastElement = buildToastElement(type, normalizedMessage, config);
+        const toastElementWrapper = buildToastElement(type, normalizedMessage, config);
+        const toastElement = toastElementWrapper.first();
 
         mountToastElement(container, toastElement);
         trimStack(
