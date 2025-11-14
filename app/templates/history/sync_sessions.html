@@ -101,5 +101,6 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/services/sync_sessions_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/history/sync_sessions.js') }}"></script>
 {% endblock %}

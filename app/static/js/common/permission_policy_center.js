@@ -1,6 +1,13 @@
 (function (window, document) {
   "use strict";
 
+  const AccountClassificationService = window.AccountClassificationService;
+  if (!AccountClassificationService) {
+    console.error("AccountClassificationService 未初始化，权限策略中心无法加载");
+    return;
+  }
+  const accountClassificationService = new AccountClassificationService(window.httpU);
+
   class PermissionStrategy {
     constructor(dbType) {
       this.dbType = dbType;
@@ -649,8 +656,8 @@
       `;
 
       try {
-        const response = await httpU.get(`/account_classification/api/permissions/${dbType}`);
-        if (!response.success) {
+        const response = await accountClassificationService.fetchPermissions(dbType);
+        if (response && response.success === false) {
           throw new Error(response.error || "加载权限配置失败");
         }
         const permissions = response?.data?.permissions ?? response.permissions ?? {};
@@ -713,4 +720,3 @@
 
   window.PermissionPolicyCenter = PermissionPolicyCenter;
 })(window, document);
-

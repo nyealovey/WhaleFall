@@ -7,9 +7,17 @@
     throw new Error("LodashUtils 未初始化");
   }
 
-  const httpClient = window.httpU;
-  if (!httpClient) {
-    throw new Error("httpU 未初始化，无法加载会话数据");
+  const SyncSessionsService = window.SyncSessionsService;
+  if (!SyncSessionsService) {
+    throw new Error("SyncSessionsService 未加载，无法进行会话请求");
+  }
+
+  let syncSessionsService = null;
+  try {
+    syncSessionsService = new SyncSessionsService(window.httpU);
+  } catch (error) {
+    console.error("初始化 SyncSessionsService 失败:", error);
+    return;
   }
 
   const SYNC_FILTER_FORM_ID = "sync-sessions-filter-form";
@@ -127,7 +135,7 @@
       showLoadingState();
     }
 
-    httpClient.get(`/sync_sessions/api/sessions?${params.toString()}`)
+    syncSessionsService.list(params)
       .then(data => {
         if (data.success) {
           const payload = data?.data ?? {};
@@ -341,7 +349,7 @@
   }
 
   window.viewSessionDetail = function (sessionId) {
-    httpClient.get(`/sync_sessions/api/sessions/${sessionId}`)
+    syncSessionsService.detail(sessionId)
       .then(data => {
         if (data.success) {
           const session = data?.data?.session ?? data.session ?? data ?? {};
@@ -354,7 +362,7 @@
   }
 
   window.viewErrorLogs = function (sessionId) {
-    httpClient.get(`/sync_sessions/api/sessions/${sessionId}/error-logs`)
+    syncSessionsService.errorLogs(sessionId)
       .then(data => {
         if (data.success) {
           const payload = data?.data ?? data ?? {};
@@ -464,7 +472,7 @@
 
   window.cancelSession = function (sessionId) {
     if (confirm('确定要取消这个同步会话吗？')) {
-      httpClient.post(`/sync_sessions/api/sessions/${sessionId}/cancel`)
+      syncSessionsService.cancel(sessionId)
         .then(data => {
           if (data.success) { notifyAlert('会话已取消', 'success'); loadSessions(); }
           else { notifyAlert('取消会话失败: ' + data.message, 'error'); }

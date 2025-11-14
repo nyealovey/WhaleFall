@@ -13,6 +13,13 @@
 
     const { ready, selectOne, from } = helpers;
 
+    const PartitionService = global.PartitionService;
+    if (!PartitionService) {
+        console.error('PartitionService 未初始化，无法加载分区管理脚本');
+        return;
+    }
+    const partitionService = new PartitionService(global.httpU);
+
     ready(() => {
         loadPartitionData();
         bindEvents();
@@ -29,7 +36,7 @@
         try {
             showLoadingState();
 
-            const data = await global.httpU.get('/partition/api/info');
+            const data = await partitionService.fetchInfo();
 
             if (data.success) {
                 const payload = data?.data?.data ?? data?.data ?? data ?? {};
@@ -159,7 +166,7 @@
         const date = `${selectedYear}-${selectedMonth.padStart(2, '0')}-01`;
 
         try {
-            const data = await global.httpU.post('/partition/api/create', { date });
+        const data = await partitionService.createPartition({ date });
             if (data.success) {
                 global.alert('分区创建成功');
                 const modal = global.bootstrap.Modal.getInstance(selectOne('#createPartitionModal').first());
@@ -188,7 +195,7 @@
         }
 
         try {
-            const data = await global.httpU.post('/partition/api/cleanup', {
+            const data = await partitionService.cleanupPartitions({
                 retention_months: parseInt(retentionMonths, 10),
             });
             if (data.success) {

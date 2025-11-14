@@ -2,11 +2,12 @@
 (function initAccountClassificationPage(window, document) {
     'use strict';
 
-    const api = window.AccountClassificationAPI;
-    if (!api) {
-        console.error('AccountClassificationAPI 未加载，账户分类页面无法初始化');
+    const AccountClassificationService = window.AccountClassificationService;
+    if (!AccountClassificationService) {
+        console.error('AccountClassificationService 未加载，账户分类页面无法初始化');
         return;
     }
+    const api = new AccountClassificationService(window.httpU);
 
     const toast = window.toast || {
         success: message => console.log(message),
