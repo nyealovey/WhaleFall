@@ -17,7 +17,7 @@
         return;
     }
 
-    const { selectOne } = helpers;
+    const { selectOne, from } = helpers;
 
     const POSITION_CLASS_MAP = {
         'top-right': ['top-0', 'end-0'],
@@ -82,13 +82,15 @@
         }
 
         const body = selectOne('body');
-        const container = selectOne('<div class="toast-container position-fixed p-3"></div>');
-        container.attr('data-position', normalized);
+        const element = document.createElement('div');
+        element.className = 'toast-container position-fixed p-3';
+        element.setAttribute('data-position', normalized);
+        element.style.zIndex = '1080';
+        const container = from(element);
         POSITION_CLASS_MAP[normalized].forEach((cls) => container.addClass(cls));
-        container.css('z-index', '1080');
-        body.append(container);
-        containers.set(normalized, container.first());
-        return container.first();
+        body.append(element);
+        containers.set(normalized, element);
+        return element;
     }
 
     function createCloseButton(typeConfig) {
