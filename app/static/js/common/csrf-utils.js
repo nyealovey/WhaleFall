@@ -7,6 +7,13 @@ class CSRFManager {
     constructor() {
         this.token = null;
         this.tokenPromise = null;
+        this.httpClient = window.httpU || null;
+    }
+
+    ensureHttpClient() {
+        if (!this.httpClient) {
+            throw new Error('httpU 未初始化');
+        }
     }
 
     /**
@@ -41,21 +48,19 @@ class CSRFManager {
      * @returns {Promise<string>} CSRF令牌
      */
     async _fetchToken() {
+        if (!this.httpClient || typeof this.httpClient.get !== 'function') {
+            throw new Error('httpU 未初始化，无法获取 CSRF 令牌');
+        }
         try {
-            const response = await fetch('/api/csrf-token', {
-                method: 'GET',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+            const data = await this.httpClient.get('/api/csrf-token', {
+                responseType: 'json',
+                withCredentials: true,
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const token = data?.csrf_token ?? data?.data?.csrf_token;
+            if (!token) {
+                throw new Error('响应中缺少 CSRF 令牌');
             }
-
-            const data = await response.json();
-            return data.csrf_token;
+            return token;
         } catch (error) {
             console.error('获取CSRF令牌失败:', error);
             throw error;
@@ -77,16 +82,10 @@ class CSRFManager {
      */
     async addTokenToRequest(options = {}) {
         const token = await this.getToken();
-        
-        const headers = {
-            ...options.headers,
-            'X-CSRFToken': token
-        };
-
-        return {
-            ...options,
-            headers
-        };
+        const headers = Object.assign({}, options.headers, {
+            'X-CSRFToken': token,
+        });
+        return Object.assign({}, options, { headers });
     }
 
     /**
@@ -97,21 +96,10 @@ class CSRFManager {
      * @returns {Promise<Response>} 响应对象
      */
     async post(url, data, options = {}) {
+        this.ensureHttpClient();
         const token = await this.getToken();
-        
-        const requestOptions = {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': token,
-                ...options.headers
-            },
-            body: JSON.stringify(data),
-            ...options
-        };
-
-        return fetch(url, requestOptions);
+        const config = this._normalizeRequestConfig(options, token);
+        return this.httpClient.post(url, data, config);
     }
 
     /**
@@ -122,21 +110,10 @@ class CSRFManager {
      * @returns {Promise<Response>} 响应对象
      */
     async put(url, data, options = {}) {
+        this.ensureHttpClient();
         const token = await this.getToken();
-        
-        const requestOptions = {
-            method: 'PUT',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': token,
-                ...options.headers
-            },
-            body: JSON.stringify(data),
-            ...options
-        };
-
-        return fetch(url, requestOptions);
+        const config = this._normalizeRequestConfig(options, token);
+        return this.httpClient.put(url, data, config);
     }
 
     /**
@@ -146,20 +123,28 @@ class CSRFManager {
      * @returns {Promise<Response>} 响应对象
      */
     async delete(url, options = {}) {
+        this.ensureHttpClient();
         const token = await this.getToken();
-        
-        const requestOptions = {
-            method: 'DELETE',
-            credentials: 'same-origin',
-            headers: {
+        const config = this._normalizeRequestConfig(options, token);
+        return this.httpClient.delete(url, config);
+    }
+
+    _normalizeRequestConfig(options = {}, token) {
+        const headers = Object.assign(
+            {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': token,
-                ...options.headers
             },
-            ...options
+            options.headers || {}
+        );
+        return {
+            params: options.params,
+            responseType: options.responseType || 'json',
+            withCredentials:
+                typeof options.withCredentials === 'boolean' ? options.withCredentials : true,
+            headers,
+            timeout: options.timeout,
         };
-
-        return fetch(url, requestOptions);
     }
 }
 
@@ -168,19 +153,24 @@ window.csrfManager = new CSRFManager();
 
 // 提供向后兼容的全局函数
 window.getCSRFToken = function() {
-    // 优先从meta标签获取（同步方式）
-    const metaToken = document.querySelector('meta[name="csrf-token"]');
+    const helpers = window.DOMHelpers;
+    const query = (selector) => {
+        if (helpers && typeof helpers.selectOne === 'function') {
+            return helpers.selectOne(selector).first();
+        }
+        return document.querySelector(selector);
+    };
+
+    const metaToken = query('meta[name="csrf-token"]');
     if (metaToken) {
         return metaToken.getAttribute('content');
     }
 
-    // 尝试从隐藏输入框获取
-    const inputToken = document.querySelector('input[name="csrf_token"]');
+    const inputToken = query('input[name="csrf_token"]');
     if (inputToken) {
         return inputToken.value;
     }
 
-    // 如果都没有找到，返回空字符串
     console.warn('CSRF token not found');
     return '';
 };

@@ -1,115 +1,128 @@
-/**
- * 权限查看核心逻辑
- * 提供统一的权限查看功能，支持所有数据库类型
- */
+(function (window) {
+    /**
+     * 权限查看核心逻辑
+     * 提供统一的权限查看功能，支持所有数据库类型
+     */
+    'use strict';
 
-/**
- * 查看账户权限
- * @param {number} accountId - 账户ID
- * @param {Object} options - 选项
- * @param {string} options.apiUrl - API URL，默认为 `/account/api/${accountId}/permissions`
- * @param {Function} options.onSuccess - 成功回调
- * @param {Function} options.onError - 错误回调
- * @param {Function} options.onFinally - 完成回调
- */
-function viewAccountPermissions(accountId, options = {}) {
-    const {
-        apiUrl = `/account/api/${accountId}/permissions`,
-        onSuccess,
-        onError,
-        onFinally
-    } = options;
-    
-    // 如果apiUrl包含模板字符串，则替换为实际的accountId
-    const finalApiUrl = apiUrl.replace('${accountId}', accountId);
-    
-    // 获取CSRF token
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
-                     document.querySelector('input[name="csrf_token"]')?.value;
-    
-    // 显示加载状态
-    const button = event?.target;
-    let originalText = '';
-    if (button) {
-        originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>加载中...';
-        button.disabled = true;
+    const helpers = window.DOMHelpers;
+    if (!helpers) {
+        console.error('DOMHelpers 未初始化，无法加载 PermissionViewer');
+        return;
     }
-    
-    http.get(finalApiUrl)
-    .then(data => {
-        const responsePayload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
-            ? data.data
-            : data;
+    const { selectOne, from } = helpers;
 
-        if (data && data.success) {
-            // 调用权限模态框显示
-            if (window.showPermissionsModal) {
-                window.showPermissionsModal(responsePayload?.permissions, responsePayload?.account);
-            } else {
-                console.error('showPermissionsModal 函数未定义');
-            }
-            
-            // 调用成功回调
-            if (onSuccess) {
-                onSuccess(responsePayload);
-            }
+    function resolveButton(trigger) {
+        if (trigger) {
+            return trigger;
+        }
+        if (window.event && window.event.currentTarget) {
+            return window.event.currentTarget;
+        }
+        if (window.event && window.event.target) {
+            return window.event.target;
+        }
+        return null;
+    }
+
+    function toggleButtonLoading(button, isLoading) {
+        if (!button) {
+            return;
+        }
+        const element = from(button);
+        if (!element.length) {
+            return;
+        }
+        if (isLoading) {
+            element.attr('data-original-html', element.html());
+            element.html('<i class="fas fa-spinner fa-spin me-1"></i>加载中...');
+            element.attr('disabled', 'disabled');
         } else {
-            const errorMsg = data?.error || data?.message || '获取权限信息失败';
-            toast.error(errorMsg);
-            
-            // 调用错误回调
-            if (onError) {
-                onError(data);
+            const original = element.attr('data-original-html');
+            if (original) {
+                element.html(original);
+                element.attr('data-original-html', null);
             }
+            element.attr('disabled', null);
         }
-    })
-    .catch(error => {
-        const errorMsg = '获取权限信息失败';
-        toast.error(errorMsg);
-        
-        // 调用错误回调
-        if (onError) {
-            onError(error);
-        }
-    })
-    .finally(() => {
-        // 恢复按钮状态
-        if (button) {
-            button.innerHTML = originalText;
-            button.disabled = false;
-        }
-        
-        // 调用完成回调
-        if (onFinally) {
-            onFinally();
-        }
-    });
-}
+    }
 
-/**
- * 获取账户权限数据
- * @param {number} accountId - 账户ID
- * @param {string} apiUrl - API URL
- * @returns {Promise} 权限数据Promise
- */
-function fetchAccountPermissions(accountId, apiUrl = `/account/api/${accountId}/permissions`) {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
-                     document.querySelector('input[name="csrf_token"]')?.value;
-    
-    // 如果apiUrl包含模板字符串，则替换为实际的accountId
-    const finalApiUrl = apiUrl.replace('${accountId}', accountId);
-    
-    return http.get(finalApiUrl)
-    .then(data => {
-        if (data && data.success) {
-            const responsePayload = (data.data && typeof data.data === 'object') ? data.data : data;
-            return responsePayload;
+    function resolveCsrfToken() {
+        if (!selectOne || !helpers) {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta) {
+                return meta.getAttribute('content');
+            }
+            const input = document.querySelector('input[name="csrf_token"]');
+            return input ? input.value : '';
         }
-        throw new Error(data?.error || data?.message || '获取权限信息失败');
-    });
-}
+        const meta = selectOne('meta[name="csrf-token"]');
+        if (meta.length) {
+            return meta.attr('content');
+        }
+        const input = selectOne('input[name="csrf_token"]');
+        return input.length ? input.first().value : '';
+    }
 
-// 导出到全局作用域
-window.viewAccountPermissions = viewAccountPermissions;
-window.fetchAccountPermissions = fetchAccountPermissions;
+    function viewAccountPermissions(accountId, options = {}) {
+        const {
+            apiUrl = `/account/api/${accountId}/permissions`,
+            onSuccess,
+            onError,
+            onFinally,
+            trigger,
+        } = options;
+
+        const finalApiUrl = apiUrl.replace('${accountId}', accountId);
+        resolveCsrfToken(); // 保持兼容，尽管 httpU 已处理 CSRF
+
+        const triggerButton = resolveButton(trigger);
+        toggleButtonLoading(triggerButton, true);
+
+        window.httpU
+            .get(finalApiUrl)
+            .then((data) => {
+                const responsePayload =
+                    data && typeof data === 'object' && data.data && typeof data.data === 'object'
+                        ? data.data
+                        : data;
+
+                if (data && data.success) {
+                    if (window.showPermissionsModal) {
+                        window.showPermissionsModal(responsePayload?.permissions, responsePayload?.account);
+                    } else {
+                        console.error('showPermissionsModal 函数未定义');
+                    }
+                    onSuccess?.(responsePayload);
+                } else {
+                    const errorMsg = data?.error || data?.message || '获取权限信息失败';
+                    window.toast.error(errorMsg);
+                    onError?.(data);
+                }
+            })
+            .catch((error) => {
+                window.toast.error('获取权限信息失败');
+                onError?.(error);
+            })
+            .finally(() => {
+                toggleButtonLoading(triggerButton, false);
+                onFinally?.();
+            });
+    }
+
+    function fetchAccountPermissions(accountId, apiUrl = `/account/api/${accountId}/permissions`) {
+        resolveCsrfToken();
+        const finalApiUrl = apiUrl.replace('${accountId}', accountId);
+
+        return window.httpU.get(finalApiUrl).then((data) => {
+            if (data && data.success) {
+                const responsePayload = data.data && typeof data.data === 'object' ? data.data : data;
+                return responsePayload;
+            }
+            throw new Error(data?.error || data?.message || '获取权限信息失败');
+        });
+    }
+
+    window.viewAccountPermissions = viewAccountPermissions;
+    window.fetchAccountPermissions = fetchAccountPermissions;
+})(window);

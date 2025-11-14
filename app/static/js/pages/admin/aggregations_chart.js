@@ -8,6 +8,13 @@ if (!LodashUtils) {
     throw new Error('LodashUtils 未初始化');
 }
 
+const DOMHelpers = window.DOMHelpers;
+if (!DOMHelpers) {
+    throw new Error('DOMHelpers 未初始化');
+}
+
+const { selectOne, ready } = DOMHelpers;
+
 function buildChartQueryParams(values) {
     const params = new URLSearchParams();
     Object.entries(values || {}).forEach(([key, value]) => {
@@ -66,8 +73,8 @@ class AggregationsChartManager {
      * 创建图例说明
      */
     createLegend() {
-        const legendContainer = document.getElementById('chartLegend');
-        if (!legendContainer) return;
+        const legendContainer = selectOne('#chartLegend');
+        if (!legendContainer.length) return;
         
         // 根据当前统计周期生成图例说明
         const periodType = this.currentPeriodType;
@@ -163,7 +170,7 @@ class AggregationsChartManager {
             `;
         }
         
-        legendContainer.innerHTML = legendHtml;
+        legendContainer.html(legendHtml);
     }
     
     bindEvents() {
@@ -200,8 +207,8 @@ class AggregationsChartManager {
             'quarterly': '最近7个季度的核心指标统计'
         };
         
-        $('#chartTitle').text(periodNames[this.currentPeriodType]);
-        $('#chartSubtitle').text(periodSubtitles[this.currentPeriodType]);
+        selectOne('#chartTitle').text(periodNames[this.currentPeriodType] || '');
+        selectOne('#chartSubtitle').text(periodSubtitles[this.currentPeriodType] || '');
     }
     
     /**
@@ -216,7 +223,7 @@ class AggregationsChartManager {
                 days: 7,
             });
             
-            const raw = await http.get(`/partition/api/aggregations/core-metrics?${params}`);
+            const raw = await httpU.get(`/partition/api/aggregations/core-metrics?${params}`);
             if (raw.success !== false) {
                 const payload = raw?.data ?? raw ?? {};
                 this.currentData = payload;
@@ -238,7 +245,12 @@ class AggregationsChartManager {
      * 渲染图表
      */
     renderChart(data) {
-        const ctx = document.getElementById('aggregationsChart').getContext('2d');
+        const canvas = selectOne('#aggregationsChart').first();
+        if (!canvas) {
+            this.showError('找不到图表容器');
+            return;
+        }
+        const ctx = canvas.getContext('2d');
         
         // 销毁现有图表
         if (this.chart) {
@@ -525,20 +537,22 @@ class AggregationsChartManager {
      * 显示图表加载状态
      */
     showChartLoading(show) {
-        const loading = $('#chartLoading');
-        if (show) {
-            loading.removeClass('d-none');
-        } else {
-            loading.addClass('d-none');
+        const loading = selectOne('#chartLoading');
+        if (!loading.length) {
+            return;
         }
+        loading.toggleClass('d-none', !show);
     }
     
     /**
      * 显示图表消息
      */
     showChartMessage(message) {
-        const messageDiv = $('#chartMessage');
-        const messageText = $('#chartMessageText');
+        const messageDiv = selectOne('#chartMessage');
+        const messageText = selectOne('#chartMessageText');
+        if (!messageDiv.length || !messageText.length) {
+            return;
+        }
         messageText.text(message);
         messageDiv.removeClass('d-none');
     }
@@ -547,7 +561,10 @@ class AggregationsChartManager {
      * 隐藏图表消息
      */
     hideChartMessage() {
-        const messageDiv = $('#chartMessage');
+        const messageDiv = selectOne('#chartMessage');
+        if (!messageDiv.length) {
+            return;
+        }
         messageDiv.addClass('d-none');
     }
     
@@ -578,17 +595,14 @@ class AggregationsChartManager {
 }
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 等待Chart.js加载完成
+ready(() => {
     function initManager() {
         if (typeof Chart !== 'undefined' && typeof AggregationsChartManager !== 'undefined') {
-            // 初始化聚合数据图表管理器
             window.aggregationsChartManager = new AggregationsChartManager();
         } else {
-            // 如果依赖还没加载完成，等待100ms后重试
-            setTimeout(initManager, 100);
+            window.setTimeout(initManager, 100);
         }
     }
-    
+
     initManager();
 });

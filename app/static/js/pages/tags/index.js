@@ -1,378 +1,371 @@
 /**
- * 标签管理页面JavaScript
- * 处理标签删除、搜索、筛选、状态切换等功能
+ * 标签管理页面脚本：统一通过 Umbrella/DOMHelpers 操作 DOM 与事件。
  */
+(function (global) {
+    'use strict';
 
-const LodashUtils = window.LodashUtils;
-if (!LodashUtils) {
-    throw new Error('LodashUtils 未初始化');
-}
-
-// 全局变量
-window.currentTags = window.currentTags || [];
-window.currentFilters = window.currentFilters || {};
-const TAG_FILTER_FORM_ID = 'tag-filter-form';
-const AUTO_APPLY_FILTER_CHANGE = true;
-let tagFilterEventHandler = null;
-
-function sanitizePrimitiveValue(value) {
-    if (value instanceof File) {
-        return value.name;
+    const helpers = global.DOMHelpers;
+    if (!helpers) {
+        console.error('DOMHelpers 未初始化，无法加载标签管理页面');
+        return;
     }
-    if (typeof value === 'string') {
-        const trimmed = value.trim();
-        return trimmed === '' ? null : trimmed;
+
+    const LodashUtils = global.LodashUtils;
+    if (!LodashUtils) {
+        throw new Error('LodashUtils 未初始化');
     }
-    if (value === undefined || value === null) {
-        return null;
-    }
-    return value;
-}
 
-function sanitizeFilterValue(value) {
-    if (Array.isArray(value)) {
-        return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
-    }
-    return sanitizePrimitiveValue(value);
-}
+    const { ready, select, selectOne, from } = helpers;
 
-function resolveTagFilterValues(form, overrideValues) {
-    const rawValues = overrideValues && Object.keys(overrideValues || {}).length
-        ? overrideValues
-        : collectFormValues(form);
-    return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
-        if (key === 'csrf_token') {
-            return result;
+    const TAG_FILTER_FORM_ID = 'tag-filter-form';
+    const AUTO_APPLY_FILTER_CHANGE = true;
+
+    let tagFilterEventHandler = null;
+    let unloadFilterCleanupHandler = null;
+
+    global.currentTags = global.currentTags || [];
+    global.currentFilters = global.currentFilters || {};
+
+    ready(() => {
+        if (global.tagsPageInitialized) {
+            console.warn('标签管理页面已经初始化，跳过重复初始化');
+            return;
         }
-        const normalized = sanitizeFilterValue(value);
-        if (normalized === null || normalized === undefined) {
-            return result;
-        }
-        if (Array.isArray(normalized) && normalized.length === 0) {
-            return result;
-        }
-        result[key] = normalized;
-        return result;
-    }, {});
-}
-
-function buildTagQueryParams(filters) {
-    const params = new URLSearchParams();
-    Object.entries(filters || {}).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-            value.forEach((item) => params.append(key, item));
-        } else {
-            params.append(key, value);
-        }
-    });
-    return params;
-}
-
-function getTagFilterForm() {
-    return document.getElementById(TAG_FILTER_FORM_ID);
-}
-
-// 防止重复初始化
-if (window.tagsPageInitialized) {
-    console.warn('标签管理页面已经初始化，跳过重复初始化');
-} else {
-    // 页面加载完成后初始化
-    document.addEventListener('DOMContentLoaded', function() {
         initializeTagsPage();
+        global.tagsPageInitialized = true;
     });
-}
 
-// 初始化标签管理页面
-function initializeTagsPage() {
-    if (window.tagsPageInitialized) {
-        console.warn('标签管理页面已经初始化，跳过重复初始化');
-        return;
-    }
-    
-    initializeEventHandlers();
-    initializeTagActions();
-    registerTagFilterForm();
-    subscribeFilterEvents();
-    window.tagsPageInitialized = true;
-}
-
-// 初始化事件处理器
-function initializeEventHandlers() {
-    // 批量操作
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const tagCheckboxes = document.querySelectorAll('input[name="tag_ids"]');
-    const batchActions = document.querySelector('.batch-actions');
-
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            toggleAllTags(this.checked);
-        });
+    function initializeTagsPage() {
+        initializeEventHandlers();
+        initializeTagActions();
+        registerTagFilterForm();
+        subscribeFilterEvents();
     }
 
-    if (tagCheckboxes.length > 0) {
-        tagCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                updateBatchActions();
+    function initializeEventHandlers() {
+        const selectAllCheckbox = selectOne('#selectAll');
+        if (selectAllCheckbox.length) {
+            selectAllCheckbox.on('change', (event) => {
+                toggleAllTags(event.target.checked);
             });
-        });
-    }
-
-    // 批量删除
-    const batchDeleteBtn = document.getElementById('batchDelete');
-    if (batchDeleteBtn) {
-        batchDeleteBtn.addEventListener('click', function() {
-            handleBatchDelete();
-        });
-    }
-
-    // 批量导出
-    const batchExportBtn = document.getElementById('batchExport');
-    if (batchExportBtn) {
-        batchExportBtn.addEventListener('click', function() {
-            handleBatchExport();
-        });
-    }
-
-    // 删除确认
-    const deleteModal = document.getElementById('deleteModal');
-    if (deleteModal) {
-        deleteModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const tagId = button.getAttribute('data-tag-id');
-            const tagName = button.getAttribute('data-tag-name');
-            
-            document.getElementById('deleteTagName').textContent = tagName;
-            document.getElementById('deleteForm').action = `/tags/api/delete/${tagId}`;
-        });
-    }
-}
-
-// 初始化标签操作
-function initializeTagActions() {
-    // 标签操作相关的初始化逻辑
-}
-
-// 切换所有标签选择
-function toggleAllTags(checked) {
-    const tagCheckboxes = document.querySelectorAll('input[name="tag_ids"]');
-    tagCheckboxes.forEach(checkbox => {
-        checkbox.checked = checked;
-    });
-    updateBatchActions();
-}
-
-// 更新批量操作按钮状态
-function updateBatchActions() {
-    const selectedCheckboxes = document.querySelectorAll('input[name="tag_ids"]:checked');
-    const batchActions = document.querySelector('.batch-actions');
-    
-    if (batchActions) {
-        if (selectedCheckboxes.length > 0) {
-            batchActions.style.display = 'block';
-        } else {
-            batchActions.style.display = 'none';
         }
-    }
-}
 
-// 处理批量删除
-function handleBatchDelete() {
-    const selectedCheckboxes = document.querySelectorAll('input[name="tag_ids"]:checked');
-    if (selectedCheckboxes.length === 0) {
-        toast.warning('请选择要删除的标签');
-        return;
-    }
-    
-    const tagIds = Array.from(selectedCheckboxes).map(cb => cb.value);
-    const confirmText = `确定要删除选中的 ${tagIds.length} 个标签吗？此操作不可撤销！`;
-    
-    if (confirm(confirmText)) {
-        // 执行批量删除
-        performBatchDelete(tagIds);
-    }
-}
+        select('input[name="tag_ids"]').on('change', () => {
+            updateBatchActions();
+        });
 
-// 执行批量删除
-async function performBatchDelete(tagIds) {
-    try {
-        showLoadingState('batchDelete', '删除中...');
-        
-        const data = await http.post('/tags/api/batch_delete', { tag_ids: tagIds });
-        
-        if (data.success) {
-            toast.success(data.message);
-            // 刷新页面
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        } else {
-            toast.error(`批量删除失败: ${data.error}`);
+        const batchDeleteBtn = selectOne('#batchDelete');
+        if (batchDeleteBtn.length) {
+            batchDeleteBtn.on('click', handleBatchDelete);
         }
-    } catch (error) {
-        console.error('Error during batch delete:', error);
-        toast.error('批量删除失败，请检查网络或服务器日志。');
-    } finally {
-        hideLoadingState('batchDelete', '批量删除');
-    }
-}
 
-function registerTagFilterForm() {
-    if (!window.FilterUtils) {
-        console.warn('FilterUtils 未加载，跳过标签筛选初始化');
-        return;
-    }
-    const selector = `#${TAG_FILTER_FORM_ID}`;
-    const form = document.querySelector(selector);
-    if (!form) {
-        return;
-    }
-    window.FilterUtils.registerFilterForm(selector, {
-        onSubmit: ({ form, event }) => {
-            event?.preventDefault?.();
-            applyTagFilters(form);
-        },
-        onClear: ({ form, event }) => {
-            event?.preventDefault?.();
-            resetTagFilters(form);
-        },
-        autoSubmitOnChange: false,
-    });
-}
+        const batchExportBtn = selectOne('#batchExport');
+        if (batchExportBtn.length) {
+            batchExportBtn.on('click', handleBatchExport);
+        }
 
-function subscribeFilterEvents() {
-    if (!window.EventBus) {
-        return;
-    }
-    const form = document.getElementById(TAG_FILTER_FORM_ID);
-    if (!form) {
-        return;
-    }
-    const handler = (detail) => {
-        if (!detail) {
-            return;
-        }
-        const incoming = (detail.formId || '').replace(/^#/, '');
-        if (incoming !== TAG_FILTER_FORM_ID) {
-            return;
-        }
-        switch (detail.action) {
-            case 'clear':
-                resetTagFilters(form);
-                break;
-            case 'change':
-                if (AUTO_APPLY_FILTER_CHANGE) {
-                    applyTagFilters(form, detail.values);
+        const deleteModalElement = selectOne('#deleteModal').first();
+        if (deleteModalElement) {
+            deleteModalElement.addEventListener('show.bs.modal', (event) => {
+                const button = event.relatedTarget;
+                if (!button) {
+                    return;
                 }
-                break;
-            case 'submit':
-                applyTagFilters(form, detail.values);
-                break;
-            default:
-                break;
+                const tagId = button.getAttribute('data-tag-id');
+                const tagName = button.getAttribute('data-tag-name');
+
+                selectOne('#deleteTagName').text(tagName || '');
+                const deleteForm = selectOne('#deleteForm').first();
+                if (deleteForm) {
+                    deleteForm.action = `/tags/api/delete/${tagId}`;
+                }
+            });
         }
-    };
-    ['change', 'submit', 'clear'].forEach((action) => {
-        EventBus.on(`filters:${action}`, handler);
-    });
-    tagFilterEventHandler = handler;
-    window.addEventListener('beforeunload', () => {
-        cleanupFilterEvents();
-    }, { once: true });
-}
+    }
 
-function cleanupFilterEvents() {
-    if (!window.EventBus || !tagFilterEventHandler) {
-        return;
+    function initializeTagActions() {
+        // 预留扩展
     }
-    ['change', 'submit', 'clear'].forEach((action) => {
-        EventBus.off(`filters:${action}`, tagFilterEventHandler);
-    });
-    tagFilterEventHandler = null;
-}
 
-function applyTagFilters(form, values) {
-    const targetForm = form || getTagFilterForm();
-    if (!targetForm) {
-        return;
+    function toggleAllTags(checked) {
+        select('input[name="tag_ids"]').each((checkbox) => {
+            checkbox.checked = checked;
+        });
+        updateBatchActions();
     }
-    const filters = resolveTagFilterValues(targetForm, values);
-    const params = buildTagQueryParams(filters);
-    const action = targetForm.getAttribute('action') || window.location.pathname;
-    const query = params.toString();
-    window.location.href = query ? `${action}?${query}` : action;
-}
 
-function resetTagFilters(form) {
-    const targetForm = form || document.getElementById(TAG_FILTER_FORM_ID);
-    if (targetForm) {
-        targetForm.reset();
+    function updateBatchActions() {
+        const selectedCheckboxes = select('input[name="tag_ids"]:checked');
+        const batchActions = selectOne('.batch-actions');
+        if (!batchActions.length) {
+            return;
+        }
+        batchActions.first().style.display = selectedCheckboxes.length ? 'block' : 'none';
     }
-    applyTagFilters(targetForm, {});
-}
 
-function collectFormValues(form) {
-    if (!form) {
-        return {};
+    function handleBatchDelete(event) {
+        event?.preventDefault?.();
+        const selectedCheckboxes = select('input[name="tag_ids"]:checked').nodes;
+        if (!selectedCheckboxes.length) {
+            global.toast.warning('请选择要删除的标签');
+            return;
+        }
+        const tagIds = selectedCheckboxes.map((cb) => cb.value);
+        const confirmText = `确定要删除选中的 ${tagIds.length} 个标签吗？此操作不可撤销！`;
+        if (global.confirm(confirmText)) {
+            performBatchDelete(tagIds);
+        }
     }
-    if (window.FilterUtils && typeof window.FilterUtils.serializeForm === 'function') {
-        return window.FilterUtils.serializeForm(form);
+
+    async function performBatchDelete(tagIds) {
+        try {
+            showLoadingState('#batchDelete', '删除中...');
+            const data = await global.httpU.post('/tags/api/batch_delete', { tag_ids: tagIds });
+            if (data.success) {
+                global.toast.success(data.message);
+                global.setTimeout(() => global.location.reload(), 1000);
+            } else {
+                global.toast.error(`批量删除失败: ${data.error}`);
+            }
+        } catch (error) {
+            console.error('批量删除失败:', error);
+            global.toast.error('批量删除失败，请检查网络或服务器日志。');
+        } finally {
+            hideLoadingState('#batchDelete', '批量删除');
+        }
     }
-    const formData = new FormData(form);
-    const result = {};
-    formData.forEach((value, key) => {
-        const normalized = value instanceof File ? value.name : value;
-        if (result[key] === undefined) {
+
+    function registerTagFilterForm() {
+        if (!global.FilterUtils) {
+            console.warn('FilterUtils 未加载，跳过标签筛选初始化');
+            return;
+        }
+        const selector = `#${TAG_FILTER_FORM_ID}`;
+        const form = selectOne(selector);
+        if (!form.length) {
+            return;
+        }
+        global.FilterUtils.registerFilterForm(selector, {
+            onSubmit: ({ form, event }) => {
+                event?.preventDefault?.();
+                applyTagFilters(form);
+            },
+            onClear: ({ form, event }) => {
+                event?.preventDefault?.();
+                resetTagFilters(form);
+            },
+            autoSubmitOnChange: false,
+        });
+    }
+
+    function subscribeFilterEvents() {
+        if (!global.EventBus) {
+            return;
+        }
+        const formElement = getTagFilterForm();
+        if (!formElement) {
+            return;
+        }
+        const handler = (detail) => {
+            if (!detail) {
+                return;
+            }
+            const incoming = (detail.formId || '').replace(/^#/, '');
+            if (incoming !== TAG_FILTER_FORM_ID) {
+                return;
+            }
+            switch (detail.action) {
+                case 'clear':
+                    resetTagFilters(formElement);
+                    break;
+                case 'change':
+                    if (AUTO_APPLY_FILTER_CHANGE) {
+                        applyTagFilters(formElement, detail.values);
+                    }
+                    break;
+                case 'submit':
+                    applyTagFilters(formElement, detail.values);
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        ['change', 'submit', 'clear'].forEach((action) => {
+            global.EventBus.on(`filters:${action}`, handler);
+        });
+        tagFilterEventHandler = handler;
+
+        unloadFilterCleanupHandler = () => {
+            cleanupFilterEvents();
+            from(global).off('beforeunload', unloadFilterCleanupHandler);
+        };
+        from(global).on('beforeunload', unloadFilterCleanupHandler);
+    }
+
+    function cleanupFilterEvents() {
+        if (!global.EventBus || !tagFilterEventHandler) {
+            return;
+        }
+        ['change', 'submit', 'clear'].forEach((action) => {
+            global.EventBus.off(`filters:${action}`, tagFilterEventHandler);
+        });
+        tagFilterEventHandler = null;
+    }
+
+    function applyTagFilters(form, values) {
+        const targetForm = resolveForm(form) || getTagFilterForm();
+        if (!targetForm) {
+            return;
+        }
+        const filters = resolveTagFilterValues(targetForm, values);
+        const params = buildTagQueryParams(filters);
+        const action = targetForm.getAttribute('action') || global.location.pathname;
+        const query = params.toString();
+        global.location.href = query ? `${action}?${query}` : action;
+    }
+
+    function resetTagFilters(form) {
+        const targetForm = resolveForm(form) || getTagFilterForm();
+        if (targetForm) {
+            targetForm.reset();
+        }
+        applyTagFilters(targetForm, {});
+    }
+
+    function handleBatchExport(event) {
+        event?.preventDefault?.();
+        const selectedCheckboxes = select('input[name="tag_ids"]:checked').nodes;
+        if (!selectedCheckboxes.length) {
+            global.toast.warning('请选择要导出的标签');
+            return;
+        }
+        const tagIds = selectedCheckboxes.map((cb) => cb.value);
+        exportTags(tagIds);
+    }
+
+    function exportTags(tagIds = null) {
+        const params = buildTagQueryParams(resolveTagFilterValues(getTagFilterForm()));
+        if (Array.isArray(tagIds) && tagIds.length > 0) {
+            params.append('tag_ids', tagIds.join(','));
+        }
+        const exportUrl = `/tags/export?${params.toString()}`;
+        global.open(exportUrl, '_blank', 'noopener');
+    }
+
+    function showLoadingState(target, text) {
+        const button = typeof target === 'string' ? selectOne(target) : from(target);
+        if (!button.length) {
+            return;
+        }
+        button.attr('data-original-text', button.html());
+        button.html(`<i class="fas fa-spinner fa-spin me-1"></i>${text}`);
+        button.attr('disabled', 'disabled');
+    }
+
+    function hideLoadingState(target, originalText) {
+        const button = typeof target === 'string' ? selectOne(target) : from(target);
+        if (!button.length) {
+            return;
+        }
+        const fallback = button.attr('data-original-text');
+        button.html(fallback || originalText || '');
+        button.attr('disabled', null);
+        button.attr('data-original-text', null);
+    }
+
+    function getTagFilterForm() {
+        return selectOne(`#${TAG_FILTER_FORM_ID}`).first();
+    }
+
+    function resolveForm(form) {
+        if (!form) {
+            return null;
+        }
+        if (form instanceof Element) {
+            return form;
+        }
+        if (form && typeof form.first === 'function') {
+            return form.first();
+        }
+        return form;
+    }
+
+    function resolveTagFilterValues(form, overrideValues) {
+        const rawValues =
+            overrideValues && Object.keys(overrideValues || {}).length
+                ? overrideValues
+                : collectFormValues(form);
+        return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
+            if (key === 'csrf_token') {
+                return result;
+            }
+            const normalized = sanitizeFilterValue(value);
+            if (normalized === null || normalized === undefined) {
+                return result;
+            }
+            if (Array.isArray(normalized) && normalized.length === 0) {
+                return result;
+            }
             result[key] = normalized;
-        } else if (Array.isArray(result[key])) {
-            result[key].push(normalized);
-        } else {
-            result[key] = [result[key], normalized];
+            return result;
+        }, {});
+    }
+
+    function sanitizeFilterValue(value) {
+        if (Array.isArray(value)) {
+            return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
         }
-    });
-    return result;
-}
-
-// 处理批量导出
-function handleBatchExport() {
-    const selectedCheckboxes = document.querySelectorAll('input[name="tag_ids"]:checked');
-    if (selectedCheckboxes.length === 0) {
-        toast.warning('请选择要导出的标签');
-        return;
+        return sanitizePrimitiveValue(value);
     }
-    
-    const tagIds = Array.from(selectedCheckboxes).map(cb => cb.value);
-    exportTags(tagIds);
-}
 
-// 导出标签
-function exportTags(tagIds = null) {
-    const params = buildTagQueryParams(resolveTagFilterValues(getTagFilterForm()));
-    if (Array.isArray(tagIds) && tagIds.length > 0) {
-        params.append('tag_ids', tagIds.join(','));
+    function sanitizePrimitiveValue(value) {
+        if (value instanceof File) {
+            return value.name;
+        }
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            return trimmed === '' ? null : trimmed;
+        }
+        if (value === undefined || value === null) {
+            return null;
+        }
+        return value;
     }
-    const exportUrl = `/tags/export?${params.toString()}`;
-    window.open(exportUrl, '_blank');
-}
 
-// 显示加载状态
-function showLoadingState(buttonId, text) {
-    const button = document.getElementById(buttonId);
-    if (button) {
-        button.disabled = true;
-        button.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>${text}`;
+    function buildTagQueryParams(filters) {
+        const params = new URLSearchParams();
+        Object.entries(filters || {}).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+                value.forEach((item) => params.append(key, item));
+            } else {
+                params.append(key, value);
+            }
+        });
+        return params;
     }
-}
 
-// 隐藏加载状态
-function hideLoadingState(buttonId, originalText) {
-    const button = document.getElementById(buttonId);
-    if (button) {
-        button.disabled = false;
-        button.innerHTML = originalText;
+    function collectFormValues(form) {
+        if (!form) {
+            return {};
+        }
+        if (global.FilterUtils && typeof global.FilterUtils.serializeForm === 'function') {
+            return global.FilterUtils.serializeForm(form);
+        }
+        const formData = new FormData(form);
+        const result = {};
+        formData.forEach((value, key) => {
+            const normalized = value instanceof File ? value.name : value;
+            if (result[key] === undefined) {
+                result[key] = normalized;
+            } else if (Array.isArray(result[key])) {
+                result[key].push(normalized);
+            } else {
+                result[key] = [result[key], normalized];
+            }
+        });
+        return result;
     }
-}
 
-// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
-
-// 导出函数到全局作用域
-window.exportTags = exportTags;
+    global.exportTags = exportTags;
+})(window);

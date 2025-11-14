@@ -1,23 +1,30 @@
 /**
  * 凭据表单（创建/编辑）
  */
-(function (window, document) {
+(function (window) {
   'use strict';
 
+  const helpers = window.DOMHelpers;
+  if (!helpers) {
+    console.error('DOMHelpers 未初始化，无法挂载凭据表单逻辑');
+    return;
+  }
+
+  const { ready, selectOne, from, value } = helpers;
   let credentialValidator = null;
   let formController = null;
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('credentialForm');
-    if (!form) {
+  ready(() => {
+    const form = selectOne('#credentialForm');
+    if (!form.length) {
       return;
     }
 
-    const root = document.getElementById('credential-form-root');
-    const mode = root?.dataset.formMode || 'create';
+    const root = selectOne('#credential-form-root');
+    const mode = root.length ? root.data('formMode') || root.attr('data-form-mode') || 'create' : 'create';
 
     if (window.ResourceFormController) {
-      formController = new window.ResourceFormController(form, {
+      formController = new window.ResourceFormController(form.first(), {
         loadingText: mode === 'edit' ? '保存中...' : '创建中...',
       });
     }
@@ -29,47 +36,54 @@
   });
 
   function initializePasswordToggle() {
-    const toggleButton = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('password');
-    if (!toggleButton || !passwordInput) {
+    const toggleButton = selectOne('#togglePassword');
+    const passwordInput = selectOne('#password');
+    if (!toggleButton.length || !passwordInput.length) {
       return;
     }
-    toggleButton.addEventListener('click', () => {
-      const current = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-      passwordInput.setAttribute('type', current);
-      const icon = toggleButton.querySelector('i');
-      if (icon) {
-        icon.classList.toggle('fa-eye');
-        icon.classList.toggle('fa-eye-slash');
-      }
-      toggleButton.setAttribute('title', current === 'password' ? '显示密码' : '隐藏密码');
+    toggleButton.on('click', (event) => {
+      const current = passwordInput.attr('type') === 'password' ? 'text' : 'password';
+      passwordInput.attr('type', current);
+      from(event.currentTarget)
+        .find('i')
+        .each((icon) => {
+          icon.classList.toggle('fa-eye');
+          icon.classList.toggle('fa-eye-slash');
+        });
+      from(event.currentTarget).attr('title', current === 'password' ? '显示密码' : '隐藏密码');
     });
   }
 
   function initializeCredentialTypeToggle() {
-    const credentialTypeSelect = document.getElementById('credential_type');
-    const dbTypeSelect = document.getElementById('db_type');
-    if (!credentialTypeSelect || !dbTypeSelect) {
+    const credentialTypeSelect = selectOne('#credential_type');
+    const dbTypeSelect = selectOne('#db_type');
+    if (!credentialTypeSelect.length || !dbTypeSelect.length) {
       return;
     }
 
     const toggleDbField = () => {
       const container = dbTypeSelect.closest('.mb-3');
-      if (!container) {
+      if (!container.length) {
         return;
       }
-      if (credentialTypeSelect.value === 'database') {
-        container.style.display = 'block';
-        dbTypeSelect.required = true;
+
+      const dbNode = dbTypeSelect.first();
+      if (!dbNode) {
+        return;
+      }
+
+      if (value(credentialTypeSelect) === 'database') {
+        container.first().style.display = 'block';
+        dbNode.required = true;
       } else {
-        container.style.display = 'none';
-        dbTypeSelect.required = false;
-        dbTypeSelect.value = '';
+        container.first().style.display = 'none';
+        dbNode.required = false;
+        dbNode.value = '';
       }
       credentialValidator?.revalidateField('#db_type');
     };
 
-    credentialTypeSelect.addEventListener('change', toggleDbField);
+    credentialTypeSelect.on('change', toggleDbField);
     toggleDbField();
   }
 
@@ -119,17 +133,18 @@
   }
 
   function normalizeIsActive(form) {
-    const checkbox = form.querySelector('#is_active');
+    const formWrapper = from(form);
+    const checkbox = formWrapper.find('#is_active').first();
     if (!checkbox) {
       return;
     }
-    let hidden = form.querySelector('input[name="is_active"][type="hidden"].generated');
+    let hidden = formWrapper.find('input[name="is_active"][type="hidden"].generated').first();
     if (!hidden) {
       hidden = document.createElement('input');
       hidden.type = 'hidden';
       hidden.name = 'is_active';
       hidden.classList.add('generated');
-      form.appendChild(hidden);
+      formWrapper.first().appendChild(hidden);
     }
     hidden.value = checkbox.checked ? 'true' : 'false';
   }
@@ -138,22 +153,25 @@
     if (mode !== 'edit') {
       return;
     }
-    const input = document.getElementById('password');
-    const bar = document.getElementById('passwordStrength');
-    const text = document.getElementById('passwordStrengthText');
-    if (!input || !bar || !text) {
+    const input = selectOne('#password');
+    const bar = selectOne('#passwordStrength');
+    const text = selectOne('#passwordStrengthText');
+    if (!input.length || !bar.length || !text.length) {
       return;
     }
 
     const updateStrength = (password) => {
       const metrics = calculateStrength(password);
-      bar.style.width = metrics.percent + '%';
-      bar.className = 'password-strength-fill ' + metrics.color;
-      text.textContent = metrics.feedback;
+      const barNode = bar.first();
+      if (barNode) {
+        barNode.style.width = metrics.percent + '%';
+        bar.attr('class', 'password-strength-fill ' + metrics.color);
+      }
+      text.text(metrics.feedback);
     };
 
-    input.addEventListener('input', (event) => updateStrength(event.target.value));
-    updateStrength(input.value || '');
+    input.on('input', (event) => updateStrength(event.target.value));
+    updateStrength(value(input) || '');
   }
 
   function calculateStrength(password) {
@@ -176,4 +194,4 @@
     }
     return { percent: 100, color: 'bg-success', feedback: '密码强度：强' };
   }
-})(window, document);
+})(window);

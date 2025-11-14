@@ -1,5 +1,13 @@
-(function (window, document) {
+(function (window) {
   "use strict";
+
+  const helpers = window.DOMHelpers;
+  if (!helpers) {
+    console.error("DOMHelpers 未初始化，无法加载实例容量统计页面");
+    return;
+  }
+
+  const { ready } = helpers;
 
   function labelExtractor(item) {
     const instanceName =
@@ -74,5 +82,5 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", initManager);
-})(window, document);
+  ready(initManager);
+})(window);

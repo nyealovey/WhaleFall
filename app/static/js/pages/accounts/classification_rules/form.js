@@ -1,22 +1,30 @@
 /**
  * 账户分类规则表单
  */
-(function (window, document) {
+(function (window) {
   'use strict';
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('ruleForm');
-    if (!form) {
+  const helpers = window.DOMHelpers;
+  if (!helpers) {
+    console.error('DOMHelpers 未初始化，无法加载账户分类规则表单脚本');
+    return;
+  }
+
+  const { ready, selectOne } = helpers;
+
+  ready(() => {
+    const formWrapper = selectOne('#ruleForm');
+    if (!formWrapper.length) {
       return;
     }
 
-    const root = document.getElementById('rule-form-root');
-    const mode = root?.dataset.formMode || 'create';
+    const root = selectOne('#rule-form-root');
+    const mode = root.length ? root.data('formMode') || root.attr('data-form-mode') || 'create' : 'create';
 
     if (window.ResourceFormController) {
-      new window.ResourceFormController(form, {
+      new window.ResourceFormController(formWrapper.first(), {
         loadingText: mode === 'edit' ? '保存中...' : '创建中...',
       });
     }
   });
-})(window, document);
+})(window);

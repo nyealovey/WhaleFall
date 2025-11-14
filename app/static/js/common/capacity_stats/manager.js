@@ -1,4 +1,4 @@
-(function (window, document) {
+(function (window) {
   "use strict";
 
   const DataSource = window.CapacityStatsDataSource;
@@ -7,6 +7,11 @@
   const Filters = window.CapacityStatsFilters;
   const ChartRenderer = window.CapacityStatsChartRenderer;
   const LodashUtils = window.LodashUtils;
+  const helpers = window.DOMHelpers;
+  if (!helpers) {
+    throw new Error("DOMHelpers 未初始化");
+  }
+  const { selectOne, select } = helpers;
   if (!LodashUtils) {
     throw new Error("LodashUtils 未初始化");
   }
@@ -322,22 +327,24 @@
     }
 
     attach(selector, eventName, handler) {
-      const element = document.querySelector(selector);
-      if (!element) {
+      const element = selectOne(selector);
+      if (!element.length) {
         return;
       }
-      element.addEventListener(eventName, handler);
+      element.on(eventName, handler);
     }
 
     attachGroup(name, handler) {
       if (!name) {
         return;
       }
-      const inputs = document.querySelectorAll(`input[name="${name}"]`);
-      inputs.forEach((input) => {
-        input.addEventListener("change", (event) => {
-          handler(event.target.value);
-        });
+      const inputs = select(`input[name="${name}"]`);
+      if (!inputs.length) {
+        return;
+      }
+      inputs.on("change", (event) => {
+        const value = event?.target?.value ?? event?.currentTarget?.value ?? "";
+        handler(value);
       });
     }
 
@@ -529,7 +536,7 @@
       if (!selector) {
         return;
       }
-      const element = document.querySelector(selector);
+      const element = selectOne(selector).first();
       if (!element) {
         return;
       }
@@ -537,7 +544,7 @@
     }
 
     async handleCalculateToday() {
-      const modalElement = document.getElementById("calculationModal");
+      const modalElement = selectOne("#calculationModal").first();
       let modalInstance = null;
       const periodType = (this.state.filters.periodType || "daily").toLowerCase();
       const textConfig = PERIOD_TEXT[periodType] || PERIOD_TEXT.default;

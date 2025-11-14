@@ -2,24 +2,32 @@
  * 标签表单公共脚本（创建 / 编辑）
  * 统一接入 Just-Validate 并处理提交状态。
  */
-
-(function () {
+(function (window) {
     'use strict';
+
+    const helpers = window.DOMHelpers;
+    if (!helpers) {
+        console.error('DOMHelpers 未初始化，无法加载标签表单脚本');
+        return;
+    }
+
+    const { ready, selectOne } = helpers;
 
     let validator = null;
     let controller = null;
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('tagForm');
-        if (!form) {
+    ready(() => {
+        const form = selectOne('#tagForm');
+        const formElement = form.first();
+        if (!formElement) {
             return;
         }
 
-        const root = document.getElementById('tag-form-root');
-        const mode = root?.dataset.formMode || 'create';
+        const root = selectOne('#tag-form-root').first();
+        const mode = root?.dataset?.formMode || 'create';
 
         if (window.ResourceFormController) {
-            controller = new window.ResourceFormController(form, {
+            controller = new window.ResourceFormController(formElement, {
                 loadingText: mode === 'edit' ? '保存中...' : '创建中...',
             });
         }
@@ -39,11 +47,11 @@
             .useRules('#display_name', window.ValidationRules.tag.displayName)
             .useRules('#category', window.ValidationRules.tag.category)
             .useRules('#sort_order', window.ValidationRules.tag.sortOrder)
-            .onSuccess(function (event) {
+            .onSuccess((event) => {
                 controller?.toggleLoading(true);
                 event.target.submit();
             })
-            .onFail(function () {
+            .onFail(() => {
                 window.toast.error('请检查标签表单填写');
             });
 
@@ -52,35 +60,40 @@
     });
 
     function setupRealtimeValidation() {
-        const map = {
-            '#name': 'blur',
-            '#display_name': 'blur',
-            '#category': 'change',
-            '#sort_order': 'input',
-        };
-        Object.entries(map).forEach(([selector, eventName]) => {
-            const element = document.querySelector(selector);
-            if (element) {
-                element.addEventListener(eventName, function () {
-                    validator?.revalidateField(selector);
-                });
+        const map = [
+            { selector: '#name', eventName: 'blur' },
+            { selector: '#display_name', eventName: 'blur' },
+            { selector: '#category', eventName: 'change' },
+            { selector: '#sort_order', eventName: 'input' },
+        ];
+
+        map.forEach(({ selector, eventName }) => {
+            const element = selectOne(selector);
+            if (!element.length) {
+                return;
             }
+            element.on(eventName, () => {
+                validator?.revalidateField(selector);
+            });
         });
     }
 
     function initializeColorPreview() {
-        const select = document.getElementById('color');
-        const preview = document.getElementById('colorPreview');
-        if (!select || !preview) {
+        const select = selectOne('#color');
+        const preview = selectOne('#colorPreview');
+        const selectEl = select.first();
+        const previewEl = preview.first();
+
+        if (!selectEl || !previewEl) {
             return;
         }
 
         const updatePreview = () => {
-            const value = select.value || 'primary';
-            preview.className = 'badge bg-' + value;
+            const value = selectEl.value || 'primary';
+            preview.attr('class', `badge bg-${value}`);
         };
 
-        select.addEventListener('change', updatePreview);
+        select.on('change', updatePreview);
         updatePreview();
     }
-})();
+})(window);

@@ -8,21 +8,33 @@ if (!LodashUtils) {
     throw new Error('LodashUtils 未初始化');
 }
 
+const DOMHelpers = window.DOMHelpers;
+if (!DOMHelpers) {
+    throw new Error('DOMHelpers 未初始化');
+}
+
+const { ready, selectOne, select, from } = DOMHelpers;
+
 // 页面加载完成，不自动测试连接
-document.addEventListener('DOMContentLoaded', function () {
-    // 页面加载完成，等待用户手动测试连接
-    // 默认隐藏已删除账户（复选框未勾选状态）
-    const checkbox = document.getElementById('showDeletedAccounts');
-    if (checkbox) {
-        checkbox.checked = false;
+ready(() => {
+    const checkbox = selectOne('#showDeletedAccounts');
+    if (checkbox.length) {
+        const element = checkbox.first();
+        element.checked = false;
         toggleDeletedAccounts();
     }
 });
 
 // 测试连接 - 使用新的连接管理API
-function testConnection() {
-    const testBtn = event ? event.target : document.querySelector('button[onclick="testConnection()"]');
-    const originalText = testBtn.innerHTML;
+function testConnection(event) {
+    const fallbackBtn = selectOne('button[onclick="testConnection()"]').first();
+    const testBtn = event?.currentTarget || event?.target || fallbackBtn;
+    if (!testBtn) {
+        console.warn('未找到测试连接按钮');
+        return;
+    }
+    const buttonWrapper = from(testBtn);
+    const originalText = buttonWrapper.html();
 
     // 记录操作开始日志
     console.info('开始测试连接', {
@@ -31,8 +43,8 @@ function testConnection() {
         instance_name: getInstanceName()
     });
 
-    testBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>测试中...';
-    testBtn.disabled = true;
+    buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>测试中...');
+    buttonWrapper.attr('disabled', 'disabled');
 
     // 使用新的连接管理API
     connectionManager.testInstanceConnection(getInstanceId(), {
@@ -46,15 +58,15 @@ function testConnection() {
                 message: data.message || '数据库连接正常'
             });
 
-            const statusBadge = document.getElementById('connectionStatus');
-            const resultDiv = document.getElementById('testResult');
+            const statusBadge = selectOne('#connectionStatus');
+            const resultDiv = selectOne('#testResult');
 
-            statusBadge.textContent = '正常';
-            statusBadge.className = 'badge bg-success';
+            statusBadge.text('正常');
+            statusBadge.attr('class', 'badge bg-success');
 
             // 使用连接管理组件的显示方法
             connectionManager.showTestResult(data, 'testResultContent');
-            resultDiv.style.display = 'block';
+            resultDiv.css('display', 'block');
         },
         onError: (error) => {
             // 记录失败日志
@@ -66,26 +78,32 @@ function testConnection() {
                 error: error.error
             });
 
-            const statusBadge = document.getElementById('connectionStatus');
-            const resultDiv = document.getElementById('testResult');
+            const statusBadge = selectOne('#connectionStatus');
+            const resultDiv = selectOne('#testResult');
 
-            statusBadge.textContent = '失败';
-            statusBadge.className = 'badge bg-danger';
+            statusBadge.text('失败');
+            statusBadge.attr('class', 'badge bg-danger');
 
             // 使用连接管理组件的显示方法
             connectionManager.showTestResult(error, 'testResultContent');
-            resultDiv.style.display = 'block';
+            resultDiv.css('display', 'block');
         }
     }).finally(() => {
-        testBtn.innerHTML = originalText;
-        testBtn.disabled = false;
+        buttonWrapper.html(originalText || '测试连接');
+        buttonWrapper.attr('disabled', null);
     });
 }
 
 // 同步账户
-function syncAccounts() {
-    const syncBtn = event ? event.target : document.querySelector('button[onclick="syncAccounts()"]');
-    const originalText = syncBtn.innerHTML;
+function syncAccounts(event) {
+    const fallbackBtn = selectOne('button[onclick="syncAccounts()"]').first();
+    const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
+    if (!syncBtn) {
+        console.warn('未找到同步账户按钮');
+        return;
+    }
+    const buttonWrapper = from(syncBtn);
+    const originalText = buttonWrapper.html();
 
     // 记录操作开始日志
     console.info('开始同步账户', {
@@ -94,10 +112,10 @@ function syncAccounts() {
         instance_name: getInstanceName()
     });
 
-    syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
-    syncBtn.disabled = true;
+    buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
+    buttonWrapper.attr('disabled', 'disabled');
 
-    http.post(`/account_sync/api/instances/${getInstanceId()}/sync`)
+    httpU.post(`/account_sync/api/instances/${getInstanceId()}/sync`)
         .then(data => {
             const isSuccess = data?.success || Boolean(data?.message);
             const successMessage = data?.message || data?.data?.result?.message || '账户同步成功';
@@ -136,15 +154,21 @@ function syncAccounts() {
             toast.error('同步账户失败: ' + (error?.message || '未知错误'));
         })
         .finally(() => {
-            syncBtn.innerHTML = originalText;
-            syncBtn.disabled = false;
+            buttonWrapper.html(originalText || '同步账户');
+            buttonWrapper.attr('disabled', null);
         });
 }
 
 // 同步容量
-function syncCapacity(instanceId, instanceName) {
-    const syncBtn = event ? event.target : document.querySelector('button[onclick*="syncCapacity"]');
-    const originalText = syncBtn.innerHTML;
+function syncCapacity(instanceId, instanceName, event) {
+    const fallbackBtn = selectOne('button[onclick*="syncCapacity"]').first();
+    const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
+    if (!syncBtn) {
+        console.warn('未找到同步容量按钮');
+        return;
+    }
+    const buttonWrapper = from(syncBtn);
+    const originalText = buttonWrapper.html();
 
     // 记录操作开始日志
     console.info('开始同步容量', {
@@ -153,10 +177,10 @@ function syncCapacity(instanceId, instanceName) {
         instance_name: instanceName
     });
 
-    syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>同步中...';
-    syncBtn.disabled = true;
+    buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
+    buttonWrapper.attr('disabled', 'disabled');
 
-    http.post(`/capacity/api/instances/${instanceId}/sync-capacity`)
+    httpU.post(`/capacity/api/instances/${instanceId}/sync-capacity`)
         .then(data => {
             if (data.success) {
                 // 记录成功日志
@@ -196,8 +220,8 @@ function syncCapacity(instanceId, instanceName) {
             toast.error('同步容量失败: ' + (error.message || '未知错误'));
         })
         .finally(() => {
-            syncBtn.innerHTML = originalText;
-            syncBtn.disabled = false;
+            buttonWrapper.html(originalText || '同步容量');
+            buttonWrapper.attr('disabled', null);
         });
 }
 
@@ -270,7 +294,7 @@ function renderOtherDiffEntries(diffEntries) {
 
 // 查看账户变更历史
 function viewAccountChangeHistory(accountId) {
-    http.get(`/instances/api/${getInstanceId()}/accounts/${accountId}/change-history`)
+    httpU.get(`/instances/api/${getInstanceId()}/accounts/${accountId}/change-history`)
         .then(data => {
             const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
                 ? data.data
@@ -279,8 +303,13 @@ function viewAccountChangeHistory(accountId) {
 
             if (data && data.success) {
                 // 显示变更历史模态框
-                const modal = new bootstrap.Modal(document.getElementById('historyModal'));
-                const historyContent = document.getElementById('historyContent');
+                const modalEl = selectOne('#historyModal').first();
+                const historyContentWrapper = selectOne('#historyContent');
+                if (!modalEl || !historyContentWrapper.length) {
+                    console.error('未找到历史记录模态框元素');
+                    return;
+                }
+                const modal = new bootstrap.Modal(modalEl);
 
                 if (history && history.length > 0) {
                     let html = '<div class="timeline">';
@@ -304,19 +333,9 @@ function viewAccountChangeHistory(accountId) {
                     });
                     html += '</div>';
                     // 安全地设置HTML内容，避免XSS攻击
-                    historyContent.innerHTML = '';
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = html;
-                    while (tempDiv.firstChild) {
-                        historyContent.appendChild(tempDiv.firstChild);
-                    }
+                    historyContentWrapper.html(html);
                 } else {
-                    // 安全地设置HTML内容，避免XSS攻击
-                    const p = document.createElement('p');
-                    p.className = 'text-muted';
-                    p.textContent = '暂无变更记录';
-                    historyContent.innerHTML = '';
-                    historyContent.appendChild(p);
+                    historyContentWrapper.html('<p class="text-muted">暂无变更记录</p>');
                 }
 
                 modal.show();
@@ -332,33 +351,28 @@ function viewAccountChangeHistory(accountId) {
 
 // 切换已删除账户显示
 function toggleDeletedAccounts() {
-    const checkbox = document.getElementById('showDeletedAccounts');
-    const accountRows = document.querySelectorAll('.account-row');
-    const accountCount = document.getElementById('accountCount');
+    const checkbox = selectOne('#showDeletedAccounts');
+    const accountRows = select('.account-row');
+    const accountCount = selectOne('#accountCount');
+    if (!checkbox.length || !accountRows.length) {
+        return;
+    }
 
     let visibleCount = 0;
+    const showAll = checkbox.first().checked;
 
-    accountRows.forEach(row => {
+    accountRows.each((row) => {
         const isDeleted = row.getAttribute('data-is-deleted') === 'true';
-
-        if (checkbox.checked) {
-            // 显示所有账户（包括已删除的）
+        if (showAll || !isDeleted) {
             row.style.display = '';
             visibleCount++;
         } else {
-            // 只显示非已删除账户
-            if (isDeleted) {
-                row.style.display = 'none';
-            } else {
-                row.style.display = '';
-                visibleCount++;
-            }
+            row.style.display = 'none';
         }
     });
 
-    // 更新账户计数
-    if (accountCount) {
-        accountCount.textContent = `共 ${visibleCount} 个账户`;
+    if (accountCount.length) {
+        accountCount.text(`共 ${visibleCount} 个账户`);
     }
 }
 
@@ -372,10 +386,9 @@ function getInstanceId() {
 }
 
 function getInstanceName() {
-    // 从页面标题或数据属性中获取实例名称
-    const titleElement = document.querySelector('h2');
-    if (titleElement) {
-        return titleElement.textContent.trim();
+    const titleElement = selectOne('h2');
+    if (titleElement.length) {
+        return (titleElement.text() || '').trim();
     }
     return '未知实例';
 }
@@ -395,22 +408,21 @@ function formatGbLabelFromMb(mbValue) {
 // 数据库容量相关函数
 function loadDatabaseSizes() {
     const instanceId = getInstanceId();
-    const contentDiv = document.getElementById('databaseSizesContent');
-
-    if (!contentDiv) {
+    const contentDiv = selectOne('#databaseSizesContent');
+    if (!contentDiv.length) {
         console.error('找不到数据库容量内容容器');
         return;
     }
 
     // 显示加载状态
-    contentDiv.innerHTML = `
+    contentDiv.html(`
         <div class="text-center py-4">
             <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
             <p class="text-muted">正在加载数据库容量信息...</p>
         </div>
-    `;
+    `);
 
-    http.get(`/instances/api/databases/${instanceId}/sizes?latest_only=true&include_inactive=true`)
+    httpU.get(`/instances/api/databases/${instanceId}/sizes?latest_only=true&include_inactive=true`)
         .then(data => {
             const payload = data && typeof data === 'object'
                 ? (data.data && typeof data.data === 'object' ? data.data : data)
@@ -430,17 +442,20 @@ function loadDatabaseSizes() {
 }
 
 function displayDatabaseSizes(payload) {
-    const contentDiv = document.getElementById('databaseSizesContent');
+    const contentDiv = selectOne('#databaseSizesContent');
+    if (!contentDiv.length) {
+        return;
+    }
     const rawDatabases = Array.isArray(payload?.databases) ? payload.databases : [];
 
     if (!rawDatabases.length) {
-        contentDiv.innerHTML = `
+        contentDiv.html(`
             <div class="text-center py-4">
                 <i class="fas fa-database fa-3x text-muted mb-3"></i>
                 <p class="text-muted">暂无数据库容量信息</p>
                 <p class="text-muted">点击"同步容量"按钮获取容量信息</p>
             </div>
-        `;
+        `);
         return;
     }
 
@@ -575,18 +590,21 @@ function displayDatabaseSizes(payload) {
         </div>
     `;
 
-    contentDiv.innerHTML = html;
+    contentDiv.html(html);
 
-    const checkbox = document.getElementById('showDeletedDatabases');
-    if (checkbox) {
-        checkbox.checked = false;
+    const checkbox = selectOne('#showDeletedDatabases');
+    if (checkbox.length) {
+        checkbox.first().checked = false;
     }
     toggleDeletedDatabases();
 }
 
 function displayDatabaseSizesError(error) {
-    const contentDiv = document.getElementById('databaseSizesContent');
-    contentDiv.innerHTML = `
+    const contentDiv = selectOne('#databaseSizesContent');
+    if (!contentDiv.length) {
+        return;
+    }
+    contentDiv.html(`
         <div class="text-center py-4">
             <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
             <p class="text-muted">加载数据库容量信息失败</p>
@@ -595,7 +613,7 @@ function displayDatabaseSizesError(error) {
                 <i class="fas fa-redo me-1"></i>重试
             </button>
         </div>
-    `;
+    `);
 }
 
 function refreshDatabaseSizes() {
@@ -604,19 +622,21 @@ function refreshDatabaseSizes() {
 
 // 切换已删除数据库显示/隐藏
 function toggleDeletedDatabases() {
-    const checkbox = document.getElementById('showDeletedDatabases');
-    const rows = document.querySelectorAll('#databaseSizesContent tbody tr[data-is-active]');
-
-    rows.forEach(row => {
+    const checkbox = selectOne('#showDeletedDatabases');
+    const rows = select('#databaseSizesContent tbody tr[data-is-active]');
+    if (!checkbox.length || !rows.length) {
+        return;
+    }
+    const showDeleted = checkbox.first().checked;
+    rows.each((row) => {
         const isActive = row.getAttribute('data-is-active') !== 'false';
         if (!isActive) {
-            row.style.display = checkbox.checked ? '' : 'none';
+            row.style.display = showDeleted ? '' : 'none';
         }
     });
 }
 
 // 页面加载完成后自动加载数据库容量信息
-document.addEventListener('DOMContentLoaded', function () {
-    // 延迟加载，确保页面完全渲染
-    setTimeout(loadDatabaseSizes, 500);
+ready(() => {
+    window.setTimeout(loadDatabaseSizes, 500);
 });
