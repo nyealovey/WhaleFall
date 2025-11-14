@@ -80,9 +80,7 @@ function initializeTagFilter() {
                     EventBus.emit('filters:change', {
                         formId: form.id,
                         source: 'instance-tag-selector',
-                        values: (window.FilterUtils && window.FilterUtils.serializeForm)
-                            ? window.FilterUtils.serializeForm(form)
-                            : new FormData(form),
+                        values: collectFormValues(form),
                     });
                 } else if (typeof form.requestSubmit === 'function') {
                     form.requestSubmit();
@@ -92,6 +90,28 @@ function initializeTagFilter() {
             }
         },
     });
+}
+
+function collectFormValues(form) {
+    if (!form) {
+        return {};
+    }
+    if (window.FilterUtils && typeof window.FilterUtils.serializeForm === 'function') {
+        return window.FilterUtils.serializeForm(form);
+    }
+    const formData = new FormData(form);
+    const result = {};
+    formData.forEach((value, key) => {
+        const normalized = value instanceof File ? value.name : value;
+        if (result[key] === undefined) {
+            result[key] = normalized;
+        } else if (Array.isArray(result[key])) {
+            result[key].push(normalized);
+        } else {
+            result[key] = [result[key], normalized];
+        }
+    });
+    return result;
 }
 
 // 初始化标签选择器

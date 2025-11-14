@@ -6,6 +6,9 @@
 // 全局变量
 window.currentTags = window.currentTags || [];
 window.currentFilters = window.currentFilters || {};
+const TAG_FILTER_FORM_ID = 'tag-filter-form';
+const AUTO_APPLY_FILTER_CHANGE = true;
+let tagFilterEventHandler = null;
 
 // 防止重复初始化
 if (window.tagsPageInitialized) {
@@ -25,29 +28,14 @@ function initializeTagsPage() {
     }
     
     initializeEventHandlers();
-    initializeSearchForm();
     initializeTagActions();
+    registerTagFilterForm();
+    subscribeFilterEvents();
     window.tagsPageInitialized = true;
 }
 
 // 初始化事件处理器
 function initializeEventHandlers() {
-    // 搜索表单提交
-    const searchForm = document.querySelector('form[method="GET"]');
-    if (searchForm) {
-        searchForm.addEventListener('submit', function(e) {
-            handleSearchSubmit(e, this);
-        });
-    }
-
-    // 清除搜索
-    const clearSearchBtn = document.getElementById('clearSearch');
-    if (clearSearchBtn) {
-        clearSearchBtn.addEventListener('click', function() {
-            clearSearch();
-        });
-    }
-
     // 批量操作
     const selectAllCheckbox = document.getElementById('selectAll');
     const tagCheckboxes = document.querySelectorAll('input[name="tag_ids"]');
@@ -97,48 +85,9 @@ function initializeEventHandlers() {
     }
 }
 
-// 初始化搜索表单
-function initializeSearchForm() {
-    // 搜索表单的初始化逻辑
-    const searchInput = document.querySelector('input[name="search"]');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            // 实时搜索逻辑（如果需要）
-        });
-    }
-}
-
 // 初始化标签操作
 function initializeTagActions() {
     // 标签操作相关的初始化逻辑
-}
-
-// 处理搜索提交
-function handleSearchSubmit(event, form) {
-    // 搜索表单提交处理
-    const formData = new FormData(form);
-    const searchParams = new URLSearchParams(formData);
-    
-    // 构建新的URL
-    const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
-    window.location.href = newUrl;
-}
-
-// 清除搜索
-function clearSearch() {
-    const searchInput = document.querySelector('input[name="search"]');
-    const categorySelect = document.querySelector('select[name="category"]');
-    const statusSelect = document.querySelector('select[name="status"]');
-    
-    if (searchInput) searchInput.value = '';
-    if (categorySelect) categorySelect.value = '';
-    if (statusSelect) statusSelect.value = 'all';
-    
-    // 提交表单
-    const form = document.querySelector('form[method="GET"]');
-    if (form) {
-        form.submit();
-    }
 }
 
 // 切换所有标签选择
@@ -205,6 +154,137 @@ async function performBatchDelete(tagIds) {
     }
 }
 
+function registerTagFilterForm() {
+    if (!window.FilterUtils) {
+        console.warn('FilterUtils 未加载，跳过标签筛选初始化');
+        return;
+    }
+    const selector = `#${TAG_FILTER_FORM_ID}`;
+    const form = document.querySelector(selector);
+    if (!form) {
+        return;
+    }
+    window.FilterUtils.registerFilterForm(selector, {
+        onSubmit: ({ form, event }) => {
+            event?.preventDefault?.();
+            applyTagFilters(form);
+        },
+        onClear: ({ form, event }) => {
+            event?.preventDefault?.();
+            resetTagFilters(form);
+        },
+        autoSubmitOnChange: false,
+    });
+}
+
+function subscribeFilterEvents() {
+    if (!window.EventBus) {
+        return;
+    }
+    const form = document.getElementById(TAG_FILTER_FORM_ID);
+    if (!form) {
+        return;
+    }
+    const handler = (detail) => {
+        if (!detail) {
+            return;
+        }
+        const incoming = (detail.formId || '').replace(/^#/, '');
+        if (incoming !== TAG_FILTER_FORM_ID) {
+            return;
+        }
+        switch (detail.action) {
+            case 'clear':
+                resetTagFilters(form);
+                break;
+            case 'change':
+                if (AUTO_APPLY_FILTER_CHANGE) {
+                    applyTagFilters(form, detail.values);
+                }
+                break;
+            case 'submit':
+                applyTagFilters(form, detail.values);
+                break;
+            default:
+                break;
+        }
+    };
+    ['change', 'submit', 'clear'].forEach((action) => {
+        EventBus.on(`filters:${action}`, handler);
+    });
+    tagFilterEventHandler = handler;
+    window.addEventListener('beforeunload', () => {
+        cleanupFilterEvents();
+    }, { once: true });
+}
+
+function cleanupFilterEvents() {
+    if (!window.EventBus || !tagFilterEventHandler) {
+        return;
+    }
+    ['change', 'submit', 'clear'].forEach((action) => {
+        EventBus.off(`filters:${action}`, tagFilterEventHandler);
+    });
+    tagFilterEventHandler = null;
+}
+
+function applyTagFilters(form, values) {
+    const targetForm = form || document.getElementById(TAG_FILTER_FORM_ID);
+    if (!targetForm) {
+        return;
+    }
+    const data = values && Object.keys(values).length ? values : collectFormValues(targetForm);
+    const params = new URLSearchParams();
+    Object.entries(data || {}).forEach(([key, value]) => {
+        if (key === 'csrf_token') {
+            return;
+        }
+        if (value === undefined || value === null) {
+            return;
+        }
+        if (Array.isArray(value)) {
+            value.filter((item) => item !== '' && item !== null).forEach((item) => {
+                params.append(key, item);
+            });
+        } else if (String(value).trim() !== '') {
+            params.append(key, value);
+        }
+    });
+    const action = targetForm.getAttribute('action') || window.location.pathname;
+    const query = params.toString();
+    window.location.href = query ? `${action}?${query}` : action;
+}
+
+function resetTagFilters(form) {
+    const targetForm = form || document.getElementById(TAG_FILTER_FORM_ID);
+    if (targetForm) {
+        targetForm.reset();
+    }
+    applyTagFilters(targetForm, {});
+}
+
+function collectFormValues(form) {
+    if (!form) {
+        return {};
+    }
+    if (window.FilterUtils && typeof window.FilterUtils.serializeForm === 'function') {
+        return window.FilterUtils.serializeForm(form);
+    }
+    const formData = new FormData(form);
+    const result = {};
+    formData.forEach((value, key) => {
+        const normalized = value instanceof File ? value.name : value;
+        if (result[key] === undefined) {
+            result[key] = normalized;
+        } else if (Array.isArray(result[key])) {
+            result[key].push(normalized);
+        } else {
+            result[key] = [result[key], normalized];
+        }
+    });
+    return result;
+}
+
 // 处理批量导出
 function handleBatchExport() {
     const selectedCheckboxes = document.querySelectorAll('input[name="tag_ids"]:checked');
@@ -264,5 +344,4 @@ function hideLoadingState(buttonId, originalText) {
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
 // 导出函数到全局作用域
-window.clearSearch = clearSearch;
 window.exportTags = exportTags;
