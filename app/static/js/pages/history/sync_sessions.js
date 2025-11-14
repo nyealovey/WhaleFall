@@ -2,6 +2,9 @@
 // 依赖：bootstrap, toast.js, time-utils.js
 
 (function () {
+  const SYNC_FILTER_FORM_ID = "sync-sessions-filter-form";
+  const AUTO_APPLY_FILTER_CHANGE = true;
+
   function notifyAlert(message, type = 'info') {
     toast.show(type, message);
   }
@@ -12,41 +15,14 @@
   let currentPage = 1;
   let totalPages = 1;
   let pagination = null;
+  let syncFilterEventHandler = null;
 
   document.addEventListener('DOMContentLoaded', function () {
     loadSessions();
     setInterval(loadSessions, 30000);
-
-    setupFilterForm();
+    registerSyncFilterForm();
+    subscribeSyncFilters();
   });
-
-  function setupFilterForm() {
-    if (!window.FilterUtils) {
-      return;
-    }
-
-    const entry = FilterUtils.registerFilterForm('#sync-sessions-filter-form', {
-      onSubmit: () => {
-        applyFilters();
-      },
-      onClear: () => {
-        currentFilters = {};
-        loadSessions(1);
-      },
-      autoSubmitOnChange: false,
-    });
-
-    const form = entry?.element || document.getElementById('sync-sessions-filter-form');
-    if (!form) {
-      return;
-    }
-
-    form.querySelectorAll('select').forEach((select) => {
-      select.addEventListener('change', () => {
-        applyFilters();
-      });
-    });
-  }
 
   window.loadSessions = function (page = 1) {
     currentPage = page;
@@ -403,26 +379,7 @@
 
   // 应用筛选条件
   function applyFilters() {
-    // 从统一搜索组件获取筛选条件
-    const syncTypeEl = document.getElementById('sync_type');
-    const syncCategoryEl = document.getElementById('sync_category');
-    const statusEl = document.getElementById('status');
-
-    // 获取筛选值，空字符串表示不过滤
-    const syncType = syncTypeEl?.value || '';
-    const syncCategory = syncCategoryEl?.value || '';
-    const status = statusEl?.value || '';
-
-  currentFilters = {
-    sync_type: syncType,
-    sync_category: syncCategory,
-    status: status
-  };
-
-    currentPage = 1;
-    // 重置到第一页并加载会话数据
-    loadSessions(1);
-
+    applySyncFilters();
   }
 
   // 将函数暴露到全局作用域
@@ -431,8 +388,7 @@
 
 
   window.clearFilters = function () {
-    currentFilters = {};
-    loadSessions(1);
+    resetSyncFilters();
   }
 
   window.getProgressInfo = function (successRate, totalInstances, successfulInstances, failedInstances) {
@@ -448,6 +404,124 @@
     } else {
       return { barClass: 'bg-danger', textClass: 'text-danger', icon: 'fas fa-exclamation-triangle', tooltip: `大部分失败 (${successfulInstances}成功, ${failedInstances}失败)` };
     }
+  }
+
+  function registerSyncFilterForm() {
+    if (!window.FilterUtils) {
+      console.warn('FilterUtils 未加载，跳过同步会筛选初始化');
+      return;
+    }
+    const selector = `#${SYNC_FILTER_FORM_ID}`;
+    const form = document.querySelector(selector);
+    if (!form) {
+      return;
+    }
+    window.FilterUtils.registerFilterForm(selector, {
+      onSubmit: ({ form, event }) => {
+        event?.preventDefault?.();
+        applySyncFilters(form);
+      },
+      onClear: ({ form, event }) => {
+        event?.preventDefault?.();
+        resetSyncFilters(form);
+      },
+      autoSubmitOnChange: true,
+    });
+  }
+
+  function subscribeSyncFilters() {
+    if (!window.EventBus) {
+      return;
+    }
+    const form = document.getElementById(SYNC_FILTER_FORM_ID);
+    if (!form) {
+      return;
+    }
+    const handler = (detail) => {
+      if (!detail) {
+        return;
+      }
+      const incoming = (detail.formId || '').replace(/^#/, '');
+      if (incoming !== SYNC_FILTER_FORM_ID) {
+        return;
+      }
+      switch (detail.action) {
+        case 'clear':
+          resetSyncFilters(form);
+          break;
+        case 'change':
+          if (AUTO_APPLY_FILTER_CHANGE) {
+            applySyncFilters(form, detail.values);
+          }
+          break;
+        case 'submit':
+          applySyncFilters(form, detail.values);
+          break;
+        default:
+          break;
+      }
+    };
+    ['change', 'submit', 'clear'].forEach((action) => {
+      EventBus.on(`filters:${action}`, handler);
+    });
+    syncFilterEventHandler = handler;
+    window.addEventListener('beforeunload', () => cleanupSyncFilters(), { once: true });
+  }
+
+  function cleanupSyncFilters() {
+    if (!window.EventBus || !syncFilterEventHandler) {
+      return;
+    }
+    ['change', 'submit', 'clear'].forEach((action) => {
+      EventBus.off(`filters:${action}`, syncFilterEventHandler);
+    });
+    syncFilterEventHandler = null;
+  }
+
+  function applySyncFilters(form, values) {
+    const targetForm = form || document.getElementById(SYNC_FILTER_FORM_ID);
+    if (!targetForm) {
+      return;
+    }
+    const data = values && Object.keys(values || {}).length ? values : collectFormValues(targetForm);
+    currentFilters = {
+      sync_type: data.sync_type || '',
+      sync_category: data.sync_category || '',
+      status: data.status || '',
+    };
+    currentPage = 1;
+    loadSessions(1);
+  }
+
+  function resetSyncFilters(form) {
+    const targetForm = form || document.getElementById(SYNC_FILTER_FORM_ID);
+    if (targetForm) {
+      targetForm.reset();
+    }
+    currentFilters = {};
+    loadSessions(1);
+  }
+
+  function collectFormValues(form) {
+    if (!form) {
+      return {};
+    }
+    if (window.FilterUtils && typeof window.FilterUtils.serializeForm === 'function') {
+      return window.FilterUtils.serializeForm(form);
+    }
+    const formData = new FormData(form);
+    const result = {};
+    formData.forEach((value, key) => {
+      const normalized = value instanceof File ? value.name : value;
+      if (result[key] === undefined) {
+        result[key] = normalized;
+      } else if (Array.isArray(result[key])) {
+        result[key].push(normalized);
+      } else {
+        result[key] = [result[key], normalized];
+      }
+    });
+    return result;
   }
 
   window.getStatusClass = function (status) {
