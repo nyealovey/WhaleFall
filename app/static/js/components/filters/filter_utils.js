@@ -357,6 +357,7 @@
     setTagCache,
     getTagCache,
     formRegistry,
+    serializeForm,
   };
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-tom-select]").forEach((element) => {

@@ -244,11 +244,4 @@
     {% include 'components/tag_selector.html' %}
 </div>
 <script src="{{ url_for('static', filename='js/pages/accounts/list.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (window.FilterUtils) {
-        FilterUtils.registerFilterForm('#account-filter-form');
-    }
-});
-</script>
 {% endblock %}

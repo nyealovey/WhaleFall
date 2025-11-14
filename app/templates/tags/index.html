@@ -189,11 +189,4 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/pages/tags/index.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (window.FilterUtils) {
-        FilterUtils.registerFilterForm('#tag-filter-form');
-    }
-});
-</script>
 {% endblock %}
