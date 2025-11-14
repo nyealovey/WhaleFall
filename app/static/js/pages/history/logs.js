@@ -3,14 +3,16 @@
  * 处理日志搜索、筛选、分页、详情查看等功能
  */
 
-// 全局变量
+const LOG_FILTER_FORM_ID = "logs-filter-form";
+const AUTO_APPLY_FILTER_CHANGE = true;
+
 let currentPage = 1;
 let currentFilters = {};
+let logFilterEventHandler = null;
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function () {
     initializePage();
-    setupFilterForm();
 });
 
 // 初始化页面
@@ -20,44 +22,8 @@ function initializePage() {
     setDefaultTimeRange();
     loadStats();
     searchLogs();
-}
-
-function setupFilterForm() {
-    if (!window.FilterUtils) {
-        return;
-    }
-    const entry = FilterUtils.registerFilterForm('#logs-filter-form', {
-        onSubmit: () => {
-            currentPage = 1;
-            applyFilters();
-        },
-        onClear: () => {
-            currentFilters = {};
-            clearFilters();
-        },
-        autoSubmitOnChange: false,
-    });
-
-    const form = entry?.element || document.getElementById('logs-filter-form');
-    if (!form) {
-        return;
-    }
-
-    const searchInput = form.querySelector('#search');
-    if (searchInput) {
-        searchInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                applyFilters();
-            }
-        });
-    }
-
-    form.querySelectorAll('select').forEach((select) => {
-        select.addEventListener('change', () => {
-            applyFilters();
-        });
-    });
+    registerLogFilterForm();
+    subscribeLogFilters();
 }
 
 // 设置默认时间范围
@@ -558,32 +524,7 @@ function showSuccess(message) {
 
 // 应用筛选条件
 function applyFilters() {
-    // 从统一搜索组件获取筛选条件
-    const levelEl = document.getElementById('level');
-    const moduleEl = document.getElementById('module');
-    const searchEl = document.getElementById('search');
-    const timeRangeEl = document.getElementById('time_range');
-
-    // 获取筛选值，空字符串表示不过滤
-    const level = levelEl?.value || '';
-    const module = moduleEl?.value || '';
-    const search = searchEl?.value || '';
-    const timeRange = timeRangeEl?.value || '1d';
-
-    // 将时间范围转换为小时数
-    const hours = getHoursFromTimeRange(timeRange);
-
-    currentFilters = {
-        level: level,
-        module: module,
-        q: search,
-        hours: hours || 24
-    };
-
-    currentPage = 1;
-    // 更新统计卡片和日志列表
-    loadStats();
-    searchLogs(1);
+    applyLogFilters();
 }
 
 // 将函数暴露到全局作用域
@@ -591,23 +532,141 @@ window.applyFilters = applyFilters;
 
 // 清除筛选条件
 window.clearFilters = function () {
-    currentFilters = {};
-    // 重置时间范围为最近1天
-    const timeRangeEl = document.getElementById('time_range');
-    if (timeRangeEl) {
-        if (timeRangeEl.tomselect) {
-            timeRangeEl.tomselect.setValue('1d', true);
-        } else {
-            timeRangeEl.value = '1d';
-        }
-    }
-    // 更新统计卡片和日志列表
-    loadStats();
-    searchLogs(1);
-}
+    resetLogFilters();
+};
 
 // 导出函数供全局使用
 window.searchLogs = searchLogs;
 window.viewLogDetail = viewLogDetail;
 window.resetFilters = resetFilters;
 window.copyLogDetail = copyLogDetail;
+
+function registerLogFilterForm() {
+    if (!window.FilterUtils) {
+        return;
+    }
+    const selector = `#${LOG_FILTER_FORM_ID}`;
+    const form = document.querySelector(selector);
+    if (!form) {
+        return;
+    }
+    window.FilterUtils.registerFilterForm(selector, {
+        onSubmit: ({ form, event }) => {
+            event?.preventDefault?.();
+            applyLogFilters(form);
+        },
+        onClear: ({ form, event }) => {
+            event?.preventDefault?.();
+            resetLogFilters(form);
+        },
+        autoSubmitOnChange: true,
+    });
+}
+
+function subscribeLogFilters() {
+    if (!window.EventBus) {
+        return;
+    }
+    const form = document.getElementById(LOG_FILTER_FORM_ID);
+    if (!form) {
+        return;
+    }
+    const handler = (detail) => {
+        if (!detail) {
+            return;
+        }
+        const incoming = (detail.formId || "").replace(/^#/, "");
+        if (incoming !== LOG_FILTER_FORM_ID) {
+            return;
+        }
+        switch (detail.action) {
+            case "clear":
+                resetLogFilters(form);
+                break;
+            case "change":
+                if (AUTO_APPLY_FILTER_CHANGE) {
+                    applyLogFilters(form, detail.values);
+                }
+                break;
+            case "submit":
+                applyLogFilters(form, detail.values);
+                break;
+            default:
+                break;
+        }
+    };
+    ["change", "submit", "clear"].forEach((action) => {
+        EventBus.on(`filters:${action}`, handler);
+    });
+    logFilterEventHandler = handler;
+    window.addEventListener("beforeunload", cleanupLogFilters, { once: true });
+}
+
+function cleanupLogFilters() {
+    if (!window.EventBus || !logFilterEventHandler) {
+        return;
+    }
+    ["change", "submit", "clear"].forEach((action) => {
+        EventBus.off(`filters:${action}`, logFilterEventHandler);
+    });
+    logFilterEventHandler = null;
+}
+
+function applyLogFilters(form, values) {
+    const targetForm = form || document.getElementById(LOG_FILTER_FORM_ID);
+    if (!targetForm) {
+        return;
+    }
+    const data = values && Object.keys(values || {}).length ? values : collectFormValues(targetForm);
+    const timeRange = data.time_range || "1d";
+    const hours = getHoursFromTimeRange(timeRange);
+    currentFilters = {
+        level: data.level || "",
+        module: data.module || "",
+        q: data.search || data.q || "",
+        hours: hours || 24,
+    };
+    currentPage = 1;
+    loadStats();
+    searchLogs(1);
+}
+
+function resetLogFilters(form) {
+    const targetForm = form || document.getElementById(LOG_FILTER_FORM_ID);
+    if (targetForm) {
+        targetForm.reset();
+    }
+    const timeRangeEl = targetForm?.querySelector("#time_range");
+    if (timeRangeEl) {
+        if (timeRangeEl.tomselect) {
+            timeRangeEl.tomselect.setValue("1d", true);
+        } else {
+            timeRangeEl.value = "1d";
+        }
+    }
+    currentFilters = {};
+    loadStats();
+    searchLogs(1);
+}
+
+function collectFormValues(form) {
+    if (!form) {
+        return {};
+    }
+    if (window.FilterUtils && typeof window.FilterUtils.serializeForm === "function") {
+        return window.FilterUtils.serializeForm(form);
+    }
+    const formData = new FormData(form);
+    const result = {};
+    formData.forEach((value, key) => {
+        const normalized = value instanceof File ? value.name : value;
+        if (result[key] === undefined) {
+            result[key] = normalized;
+        } else if (Array.isArray(result[key])) {
+            result[key].push(normalized);
+        } else {
+            result[key] = [result[key], normalized];
+        }
+    });
+    return result;
+}
