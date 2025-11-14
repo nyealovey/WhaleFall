@@ -14,6 +14,18 @@
 
   const { ready, select, selectOne, from } = helpers;
 
+  const CredentialsService = global.CredentialsService;
+  let credentialsService = null;
+  try {
+    if (CredentialsService) {
+      credentialsService = new CredentialsService(global.httpU);
+    } else {
+      throw new Error('CredentialsService 未加载');
+    }
+  } catch (error) {
+    console.error('初始化 CredentialsService 失败:', error);
+  }
+
   const CREDENTIAL_FILTER_FORM_ID = "credential-filter-form";
   const AUTO_APPLY_FILTER_CHANGE = true;
 
@@ -44,8 +56,13 @@
       return;
     }
     showLoadingState(confirmDeleteButton, "删除中...");
-    global.httpU
-      .post(`/credentials/api/credentials/${deleteCredentialId}/delete`)
+    if (!credentialsService) {
+      console.error('CredentialsService 未初始化');
+      hideLoadingState(confirmDeleteButton, "确认删除");
+      return;
+    }
+    credentialsService
+      .deleteCredential(deleteCredentialId)
       .then((data) => {
         if (data.message) {
           global.toast.success(data.message);

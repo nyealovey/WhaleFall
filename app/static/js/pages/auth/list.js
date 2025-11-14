@@ -11,6 +11,12 @@
     }
 
     const { ready, select, selectOne, from } = helpers;
+    const UserService = global.UserService;
+    if (!UserService) {
+        console.error('UserService 未初始化，无法加载用户列表脚本');
+        return;
+    }
+    const userService = new UserService(global.httpU);
 
     ready(() => {
         initDeleteUserHandlers();
@@ -45,8 +51,8 @@
         const trigger = selectOne(`[data-action="delete-user"][data-user-id="${userId}"]`);
         showLoadingState(trigger, '删除中...');
 
-        global.httpU
-            .delete(`/users/api/users/${userId}`)
+        userService
+            .deleteUser(userId)
             .then((data) => {
                 if (data.success) {
                     global.toast.success(data.message || '用户删除成功');

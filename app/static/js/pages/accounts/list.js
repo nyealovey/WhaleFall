@@ -16,9 +16,33 @@
         throw new Error('LodashUtils 未初始化');
     }
 
-    const { ready, selectOne, select, from } = helpers;
+const { ready, selectOne, select, from } = helpers;
 
-    const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
+const InstanceManagementService = global.InstanceManagementService;
+let instanceService = null;
+try {
+    if (InstanceManagementService) {
+        instanceService = new InstanceManagementService(global.httpU);
+    } else {
+        throw new Error('InstanceManagementService 未加载');
+    }
+} catch (error) {
+    console.error('初始化 InstanceManagementService 失败:', error);
+}
+
+function ensureInstanceService() {
+    if (!instanceService) {
+        if (global.toast?.error) {
+            global.toast.error('实例管理服务未初始化');
+        } else {
+            console.error('实例管理服务未初始化');
+        }
+        return false;
+    }
+    return true;
+}
+
+const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
     const AUTO_APPLY_FILTER_CHANGE = true;
 
     let accountFilterEventHandler = null;
@@ -52,6 +76,9 @@
     }
 
     function syncAllAccounts(trigger) {
+        if (!ensureInstanceService()) {
+            return;
+        }
         const button = resolveButton(trigger);
         const buttonWrapper = button ? from(button) : null;
         const originalText = buttonWrapper ? buttonWrapper.html() : null;
@@ -61,8 +88,8 @@
             buttonWrapper.attr('disabled', 'disabled');
         }
 
-        return global.httpU
-            .post('/account_sync/api/sync-all')
+        return instanceService
+            .syncAllAccounts()
             .then((data) => {
                 if (data.success) {
                     global.toast.success(data.message || '批量同步任务已启动');

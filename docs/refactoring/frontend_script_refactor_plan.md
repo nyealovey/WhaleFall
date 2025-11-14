@@ -47,21 +47,47 @@ app/static/js/
   3. 挂载各视图组件。
   4. 在 `DOMContentLoaded`/`document.ready` 触发。
 
-## 5. 拆分示例与优先级
-| 顺序 | 目标脚本 | 主要场景 | 关键拆分动作 |
+## 5. 阶段规划（服务层优先）
+服务层是所有页面的“共同地基”，一旦提炼到位，其余层的拆分才能共享接口约定并复用缓存逻辑。因此按先服务、后 store、再视图的顺序推进：
+
+### 阶段 S0：统一服务层
+- **资产盘点**：梳理所有 `httpClient`/`httpU` 请求，按领域（账户分类、调度任务、标签管理、同步会话、容量统计等）归档到表格，并记录 API 地址、HTTP 方法、调用位置。
+- **抽离实现**：在 `app/static/js/modules/services/` 下创建领域服务文件，例如：
+  - `account_classifications_service.js`
+  - `scheduler_service.js`
+  - `tag_management_service.js`
+  - `sync_sessions_service.js`
+  - `capacity_stats_service.js`
+- **进度同步**：当前 S0 所列服务已全部下沉至 `modules/services/`（详见 `docs/refactoring/service_layer_inventory.md`），后续接入新页面时保持同一入口。
+- **对接方式**：每个服务导出纯函数或类，接受 `httpClient` 以及可选的配置；文件内仅包含请求与错误处理，禁止引用 DOM。
+- **落地顺序**：优先覆盖“公共 API 多页面共用”的领域（标签、权限、会话、容量统计），然后处理只被单页使用的接口。
+- **验收**：现有页面仍保留大文件结构，只需将内部 `httpClient.xxx` 调用替换为新服务，确保功能一致并通过 `make quality`。
+
+### 阶段 S1：store 抽离
+- 在确保所有数据请求都经过服务层后，再创建 `modules/stores/**`。Store 只依赖前述服务，任何页面状态（筛选条件、分页、模态显隐等）在 store 内集中管理。
+- 先为“服务层覆盖完成 + 业务复杂度高”的场景提供 store（如账户分类、调度任务、容量统计）；简单页面暂时直接调用服务层。
+
+### 阶段 S2：视图与入口拆分
+- 当某个页面的服务层和 store 都具备后，再将原页面脚本拆成视图组件与 `bootstrap` 入口。
+- 视图层文件放在 `modules/views/**` 并由 `bootstrap/<page>.js` 调用。
+- 完成拆分的页面可把旧 `pages/*.js` 移至 `legacy/`，最终统一删掉。
+
+### 服务层优先顺序建议
+| 顺序 | 领域服务 | 涉及 API | 当前主要消费方 |
 | --- | --- | --- | --- |
-| P0 | `pages/accounts/account_classification.js` | 分类与规则管理 | - `modules/services/account_classifications_service.js`：封装分类、规则、权限 API<br>- `modules/stores/account_classification_store.js`：集中管理 `classifications`, `rulesByDbType`, `permissions` 等状态<br>- 视图拆为 `classification_list_view.js`, `rule_table_view.js`, `modals/form_controller.js` |
-| P1 | `pages/admin/scheduler.js` | 定时任务 | - 提供 `scheduler_service.js`（jobs CRUD、reload）<br>- `scheduler_store.js` 管理 `currentJobs`, 表单初始值<br>- 视图组件：`jobs_table_view.js`, `cron_form.js`；移除模板中的独立 jQuery 依赖，入口内按需加载 |
-| P1 | `components/tag_selector.js` | 标签选择组件 | - `tag_service.js` 提供 tags/categories 数据<br>- `tag_selector_store.js` 负责筛选、统计<br>- DOM 组件拆成列表、统计卡、选中列，入口返回 `TagSelector` 类供其他页面复用 |
-| P2 | `pages/tags/batch_assign.js` | 批量分配 | - 服务：实例、标签、批量操作<br>- Store：选中集合、当前模式<br>- 视图：实例列表、标签列表、操作条、表单 |
-| P3 | `common/capacity_stats/manager.js` | 容量统计仪表 | - 服务：统计数据查询<br>- Store：期间、过滤器、图表缓存<br>- 视图：摘要卡、图表渲染器、筛选条 |
+| S0-1 | `sync_sessions_service` | `/sync_sessions/api/**` | 会话中心、告警通知 |
+| S0-2 | `tag_management_service` | `/tags/api/**` | 标签管理、批量分配、标签选择器 |
+| S0-3 | `account_classifications_service` | `/account_classification/api/**` | 账户分类、账户统计 |
+| S0-4 | `scheduler_service` | `/scheduler/api/**` | 定时任务页面 |
+| S0-5 | `capacity_stats_service` | `/capacity_stats/api/**` | 容量仪表盘、统计页面 |
 
 ## 6. 渐进式迁移策略
 1. **建立模块目录与导出规范**：新增 `app/static/js/modules/{services,stores,views}`，补充 `README` 说明命名与依赖（引用命名规范指南）。
-2. **复制式迁移**：首个目标页面（账户分类）创建 bootstrap，内部先导入旧脚本的一部分逻辑；拆分完成后删除原 `pages/...` 文件。
-3. **公共依赖封装**：将 `httpU`、`DOMHelpers`、`EventBus` 改为 ESM 形式并在全局入口上临时挂载（减少 break change），最终页面只通过 import 使用。
-4. **模板减负**：`base.html` 保留第三方库（Bootstrap、FontAwesome），业务脚本只加载入口文件；入口内部再引用共享模块。
-5. **验证流程**：每个阶段需执行 `pytest -k <module>`（如有相关后端）、`npm run lint`（未来引入打包器后）或现有 `make quality`，并运行 `./scripts/refactor_naming.sh --dry-run` 确认命名。
+2. **服务层替换行动**：按 S0 顺序，将页面中的 `httpClient` 调用逐个替换为新服务；替换后立即回归测试，保持页面剩余逻辑不变。
+3. **Store/视图拆分准入**：只有当相关服务层完成且被页面稳定使用后，才启动 store 与视图的拆分，避免“边拆视图边调 API”造成的反复。
+4. **公共依赖封装**：将 `httpU`、`DOMHelpers`、`EventBus` 改为 ESM 形式并在全局入口上临时挂载（减少 break change），最终页面只通过 import 使用。
+5. **模板减负**：`base.html` 保留第三方库（Bootstrap、FontAwesome），业务脚本只加载入口文件；入口内部再引用共享模块。
+6. **验证流程**：每轮替换需执行 `make quality`、相关 `pytest`，并运行 `./scripts/refactor_naming.sh --dry-run` 确认命名。
 
 ## 7. 页面接入指南
 1. 在模板中插入 `<script type="application/json" id="page-context">...</script>`，由后端填充初始状态（如当前用户角色、默认筛选），入口读取 JSON。
@@ -90,4 +116,3 @@ app/static/js/
 - 评估引入 Vite/ESBuild 以支持原生 ES Modules 和 Tree-shaking。
 - 输出 `modules/README.md` 与代码示例，降低新成员学习成本。
 - 根据迁移进度调整 `重构优先级清单.md`，保持与后端改造工作的依赖关系同步。
-

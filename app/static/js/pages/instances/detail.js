@@ -15,6 +15,30 @@ if (!DOMHelpers) {
 
 const { ready, selectOne, select, from } = DOMHelpers;
 
+const InstanceManagementService = window.InstanceManagementService;
+let instanceService = null;
+try {
+    if (InstanceManagementService) {
+        instanceService = new InstanceManagementService(window.httpU);
+    } else {
+        throw new Error('InstanceManagementService 未加载');
+    }
+} catch (error) {
+    console.error('初始化 InstanceManagementService 失败:', error);
+}
+
+function ensureInstanceService() {
+    if (!instanceService) {
+        if (window.toast?.error) {
+            window.toast.error('实例管理服务未初始化');
+        } else {
+            console.error('实例管理服务未初始化');
+        }
+        return false;
+    }
+    return true;
+}
+
 // 页面加载完成，不自动测试连接
 ready(() => {
     const checkbox = selectOne('#showDeletedAccounts');
@@ -96,6 +120,9 @@ function testConnection(event) {
 
 // 同步账户
 function syncAccounts(event) {
+    if (!ensureInstanceService()) {
+        return;
+    }
     const fallbackBtn = selectOne('button[onclick="syncAccounts()"]').first();
     const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
     if (!syncBtn) {
@@ -115,7 +142,7 @@ function syncAccounts(event) {
     buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
     buttonWrapper.attr('disabled', 'disabled');
 
-    httpU.post(`/account_sync/api/instances/${getInstanceId()}/sync`)
+    instanceService.syncInstanceAccounts(getInstanceId())
         .then(data => {
             const isSuccess = data?.success || Boolean(data?.message);
             const successMessage = data?.message || data?.data?.result?.message || '账户同步成功';
@@ -161,6 +188,9 @@ function syncAccounts(event) {
 
 // 同步容量
 function syncCapacity(instanceId, instanceName, event) {
+    if (!ensureInstanceService()) {
+        return;
+    }
     const fallbackBtn = selectOne('button[onclick*="syncCapacity"]').first();
     const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
     if (!syncBtn) {
@@ -180,7 +210,7 @@ function syncCapacity(instanceId, instanceName, event) {
     buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
     buttonWrapper.attr('disabled', 'disabled');
 
-    httpU.post(`/capacity/api/instances/${instanceId}/sync-capacity`)
+    instanceService.syncInstanceCapacity(instanceId)
         .then(data => {
             if (data.success) {
                 // 记录成功日志
@@ -294,7 +324,10 @@ function renderOtherDiffEntries(diffEntries) {
 
 // 查看账户变更历史
 function viewAccountChangeHistory(accountId) {
-    httpU.get(`/instances/api/${getInstanceId()}/accounts/${accountId}/change-history`)
+    if (!ensureInstanceService()) {
+        return;
+    }
+    instanceService.fetchAccountChangeHistory(getInstanceId(), accountId)
         .then(data => {
             const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
                 ? data.data
@@ -407,6 +440,9 @@ function formatGbLabelFromMb(mbValue) {
 
 // 数据库容量相关函数
 function loadDatabaseSizes() {
+    if (!ensureInstanceService()) {
+        return;
+    }
     const instanceId = getInstanceId();
     const contentDiv = selectOne('#databaseSizesContent');
     if (!contentDiv.length) {
@@ -422,7 +458,10 @@ function loadDatabaseSizes() {
         </div>
     `);
 
-    httpU.get(`/instances/api/databases/${instanceId}/sizes?latest_only=true&include_inactive=true`)
+    instanceService.fetchDatabaseSizes(instanceId, {
+        latest_only: true,
+        include_inactive: true
+    })
         .then(data => {
             const payload = data && typeof data === 'object'
                 ? (data.data && typeof data.data === 'object' ? data.data : data)
