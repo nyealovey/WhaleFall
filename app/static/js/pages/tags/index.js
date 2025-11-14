@@ -4,6 +4,13 @@
 (function (global) {
     'use strict';
 
+    const TagManagementService = global.TagManagementService;
+    if (!TagManagementService) {
+        console.error('TagManagementService 未初始化，无法加载标签管理页面');
+        return;
+    }
+
+    const tagService = new TagManagementService(global.httpU);
     const helpers = global.DOMHelpers;
     if (!helpers) {
         console.error('DOMHelpers 未初始化，无法加载标签管理页面');
@@ -120,7 +127,7 @@
     async function performBatchDelete(tagIds) {
         try {
             showLoadingState('#batchDelete', '删除中...');
-            const data = await global.httpU.post('/tags/api/batch_delete', { tag_ids: tagIds });
+            const data = await tagService.batchDelete({ tag_ids: tagIds });
             if (data.success) {
                 global.toast.success(data.message);
                 global.setTimeout(() => global.location.reload(), 1000);

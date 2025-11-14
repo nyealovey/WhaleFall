@@ -15,6 +15,30 @@ if (!DOMHelpers) {
 
 const { ready, selectOne, select, from } = DOMHelpers;
 
+const InstanceManagementService = window.InstanceManagementService;
+let instanceService = null;
+try {
+    if (InstanceManagementService) {
+        instanceService = new InstanceManagementService(window.httpU);
+    } else {
+        throw new Error('InstanceManagementService 未加载');
+    }
+} catch (error) {
+    console.error('初始化 InstanceManagementService 失败:', error);
+}
+
+function ensureInstanceService() {
+    if (!instanceService) {
+        if (window.toast?.error) {
+            window.toast.error('实例管理服务未初始化');
+        } else {
+            console.error('实例管理服务未初始化');
+        }
+        return false;
+    }
+    return true;
+}
+
 const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
 const AUTO_APPLY_FILTER_CHANGE = true;
 let instanceFilterEventHandler = null;
@@ -90,14 +114,17 @@ function buildInstanceQueryParams(filters) {
 
 // 加载实例总大小
 async function loadInstanceTotalSizes() {
+    if (!ensureInstanceService()) {
+        return;
+    }
     try {
         const elements = select('.instance-total-size').nodes || [];
         for (const element of elements) {
             const instanceId = element.getAttribute('data-instance-id');
             if (!instanceId) continue;
-            
+
             try {
-                const data = await httpU.get(`/database_aggr/api/instances/${instanceId}/database-sizes/total`);
+                const data = await instanceService.fetchDatabaseTotalSize(instanceId);
                 
                 if (data.success && data.total_size_mb !== undefined) {
                     // API返回的是MB，需要转换为字节再格式化
@@ -397,6 +424,9 @@ function getSelectedInstances() {
 
 // 同步容量
 function syncCapacity(instanceId, instanceName) {
+    if (!ensureInstanceService()) {
+        return;
+    }
     const btn = event.target.closest('button');
     const originalHtml = btn.innerHTML;
 
@@ -410,7 +440,7 @@ function syncCapacity(instanceId, instanceName) {
         instance_name: instanceName
     });
 
-    httpU.post(`/capacity/api/instances/${instanceId}/sync-capacity`)
+    instanceService.syncInstanceCapacity(instanceId)
     .then(data => {
         if (data.success) {
             // 记录成功日志
@@ -493,6 +523,9 @@ function updateBatchButtons() {
 }
 
 function batchDelete() {
+    if (!ensureInstanceService()) {
+        return;
+    }
     const selectedCheckboxes = select('.instance-checkbox:checked').nodes || [];
     const instanceIds = selectedCheckboxes
         .map((cb) => parseInt(cb.value, 10))
@@ -520,7 +553,7 @@ function batchDelete() {
     btn.textContent = '删除中...';
     btn.disabled = true;
 
-    httpU.post('/instances/api/batch-delete', { instance_ids: instanceIds })
+    instanceService.batchDeleteInstances(instanceIds)
     .then(data => {
         if (data.success) {
             // 记录成功日志
@@ -610,6 +643,9 @@ function submitBatchCreate() {
 }
 
 function submitFileUpload() {
+    if (!ensureInstanceService()) {
+        return;
+    }
     const fileInput = document.getElementById('csvFile');
     const file = fileInput.files[0];
 
@@ -627,11 +663,7 @@ function submitFileUpload() {
     btn.textContent = '创建中...';
     btn.disabled = true;
 
-    httpU.post('/instances/api/batch-create', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    })
+    instanceService.batchCreateInstances(formData)
     .then(data => {
         if (data.success) {
             toast.success(data.message);

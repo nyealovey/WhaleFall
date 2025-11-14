@@ -6,9 +6,9 @@
     throw new Error("LodashUtils 未初始化");
   }
 
-  const httpClient = window.httpU;
-  if (!httpClient) {
-    throw new Error("httpU 未初始化，无法加载标签数据");
+  const TagManagementService = window.TagManagementService;
+  if (!TagManagementService) {
+    throw new Error("TagManagementService 未初始化");
   }
 
   const DEFAULT_ENDPOINTS = {
@@ -35,12 +35,6 @@
       return document.querySelector(target);
     }
     return null;
-  }
-
-  function ensureHttp() {
-    if (!httpClient || typeof httpClient.get !== "function") {
-      throw new Error("httpU 未初始化，无法加载标签数据");
-    }
   }
 
   function orderCategories(items) {
@@ -131,6 +125,7 @@
       };
 
       this.pendingSelection = null;
+      this.tagService = new TagManagementService(window.httpU, this.options.endpoints);
       this.ignoreNextCancel = false;
       this.readyPromise = this.initialize();
     }
@@ -237,10 +232,7 @@
       }
 
       try {
-        ensureHttp();
-        const response = await httpClient.get(
-          this.options.endpoints.categories,
-        );
+        const response = await this.tagService.listCategories();
         const categories =
           response?.categories ??
           response?.data?.categories ??
@@ -323,8 +315,7 @@
       }
 
       try {
-        ensureHttp();
-        const response = await httpClient.get(this.options.endpoints.tags);
+        const response = await this.tagService.listTags();
         const tags =
           response?.data?.tags ??
           response?.tags ??

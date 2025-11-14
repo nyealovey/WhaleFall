@@ -18,6 +18,30 @@
 
     const { ready, selectOne, select, from } = helpers;
 
+    const InstanceManagementService = global.InstanceManagementService;
+    let instanceService = null;
+    try {
+        if (InstanceManagementService) {
+            instanceService = new InstanceManagementService(global.httpU);
+        } else {
+            throw new Error('InstanceManagementService 未加载');
+        }
+    } catch (error) {
+        console.error('初始化 InstanceManagementService 失败:', error);
+    }
+
+    function ensureInstanceService() {
+        if (!instanceService) {
+            if (global.toast?.error) {
+                global.toast.error('实例管理服务未初始化');
+            } else {
+                console.error('实例管理服务未初始化');
+            }
+            return false;
+        }
+        return true;
+    }
+
     let versionChart = null;
     let refreshInterval = null;
 
@@ -198,8 +222,11 @@
     }
 
     function refreshStatistics() {
-        global.httpU
-            .get('/instances/api/statistics')
+        if (!ensureInstanceService()) {
+            return;
+        }
+        instanceService
+            .fetchStatistics()
             .then((data) => {
                 updateStatistics(data);
                 showDataUpdatedNotification();

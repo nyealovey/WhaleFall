@@ -3,6 +3,29 @@
  * 处理任务加载、状态切换、执行控制、配置管理等功能
  */
 
+const SchedulerService = window.SchedulerService;
+let schedulerService = null;
+try {
+    if (!SchedulerService) {
+        throw new Error('SchedulerService 未加载');
+    }
+    schedulerService = new SchedulerService(window.httpU);
+} catch (error) {
+    console.error('初始化 SchedulerService 失败:', error);
+}
+
+function ensureSchedulerService() {
+    if (!schedulerService) {
+        if (window.toast?.error) {
+            window.toast.error('定时任务服务未初始化');
+        } else {
+            console.error('定时任务服务未初始化');
+        }
+        return false;
+    }
+    return true;
+}
+
 // 全局变量
 let currentJobs = [];
 let addJobValidator = null;
@@ -37,6 +60,10 @@ $(document).ready(function () {
 
 // 初始化定时任务管理页面（移除自动刷新）
 function initializeSchedulerPage() {
+    if (!schedulerService) {
+        console.error('SchedulerService 未初始化，无法加载任务页面');
+        return;
+    }
     loadJobs();
     initializeEventHandlers();
     initializeSchedulerValidators();
@@ -110,32 +137,30 @@ function initializeEventHandlers() {
         const original = $btn.html();
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>重新初始化中...');
 
-        $.ajax({
-            url: '/scheduler/api/jobs/reload',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({}),
-            headers: {
-                'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function (resp) {
+        if (!ensureSchedulerService()) {
+            $btn.prop('disabled', false).html(original);
+            return;
+        }
+
+        schedulerService.reloadJobs()
+            .then(function (resp) {
                 if (resp && resp.success) {
-                    const deletedCount = (resp.data && resp.data.deleted_count) ? resp.data.deleted_count : 0;
-                    const reloadedCount = (resp.data && resp.data.reloaded_count) ? resp.data.reloaded_count : 0;
+                    const deletedCount = resp?.data?.deleted_count || 0;
+                    const reloadedCount = resp?.data?.reloaded_count || 0;
                     toast.success(`重新初始化完成：删除了 ${deletedCount} 个任务，重新加载了 ${reloadedCount} 个任务`, 'success');
                     loadJobs();
                 } else {
                     toast.error('重新初始化失败: ' + (resp ? resp.message : '未知错误'));
                 }
-            },
-            error: function (xhr) {
-                const error = xhr.responseJSON;
-                toast.error('重新初始化失败: ' + (error ? error.message : '网络或服务器错误'));
-            },
-            complete: function () {
+            })
+            .catch(function (error) {
+                console.error('重新初始化失败:', error);
+                const message = error?.response?.message || error?.message || '网络或服务器错误';
+                toast.error('重新初始化失败: ' + message);
+            })
+            .finally(function () {
                 $btn.prop('disabled', false).html(original);
-            }
-        });
+            });
     });
 
     // 恢复表单提交事件（交给 FormValidator 控制）
@@ -240,44 +265,35 @@ function initializeSchedulerValidators() {
 
 // 加载任务列表（移除统计更新）
 function loadJobs() {
+    if (!ensureSchedulerService()) {
+        return;
+    }
     $('#loadingRow').show();
     $('#activeJobsContainer').empty();
     $('#pausedJobsContainer').empty();
     $('#emptyRow').hide();
 
-    $.ajax({
-        url: '/scheduler/api/jobs',
-        method: 'GET',
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function (response) {
+    schedulerService.listJobs()
+        .then(function (response) {
             $('#loadingRow').hide();
             if (response.success === true) {
                 currentJobs = response.data;
                 displayJobs(response.data);
-                // 移除: updateStats(response.data);
             } else {
-                toast.error('加载任务失败: ' + response.message);
+                toast.error('加载任务失败: ' + (response?.message || '未知错误'));
             }
-        },
-        error: function (xhr) {
+        })
+        .catch(function (error) {
             $('#loadingRow').hide();
-            console.error('API调用失败:', xhr);
-            console.error('状态码:', xhr.status);
-            console.error('响应文本:', xhr.responseText);
-
-            if (xhr.status === 401 || xhr.status === 403 || xhr.status === 302) {
+            const status = error?.status;
+            const errorMsg = error?.response?.message || error?.message || '网络或服务器错误';
+            if (status === 401 || status === 403 || status === 302) {
                 toast.warning('请先登录或检查管理员权限');
                 window.location.href = '/auth/login';
             } else {
-                const error = xhr.responseJSON;
-                const errorMsg = error ? error.message : `HTTP ${xhr.status}: ${xhr.statusText}`;
                 toast.error('加载任务失败: ' + errorMsg);
-                console.error('详细错误:', error);
             }
-        }
-    });
+        });
 }
 
 // 显示任务列表
@@ -492,86 +508,77 @@ function getActionButtons(job) {
 
 // 启用任务
 function enableJob(jobId) {
+    if (!ensureSchedulerService()) {
+        return;
+    }
     showLoadingState($(`[data-job-id="${jobId}"].btn-enable-job`), '启用中...');
 
-    $.ajax({
-        url: `/scheduler/api/jobs/${jobId}/resume`,
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function (response) {
+    schedulerService.resumeJob(jobId)
+        .then(function (response) {
             if (response.success) {
                 toast.success('任务已启用');
                 loadJobs();
             } else {
                 toast.error('启用失败: ' + response.message);
             }
-        },
-        error: function (xhr) {
-            const error = xhr.responseJSON;
-            toast.error('启用失败: ' + (error ? error.message : '未知错误'));
-        },
-        complete: function () {
+        })
+        .catch(function (error) {
+            const message = error?.response?.message || error?.message || '未知错误';
+            toast.error('启用失败: ' + message);
+        })
+        .finally(function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-enable-job`), '启用');
-        }
-    });
+        });
 }
 
 // 禁用任务
 function disableJob(jobId) {
+    if (!ensureSchedulerService()) {
+        return;
+    }
     showLoadingState($(`[data-job-id="${jobId}"].btn-disable-job`), '禁用中...');
 
-    $.ajax({
-        url: `/scheduler/api/jobs/${jobId}/pause`,
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function (response) {
+    schedulerService.pauseJob(jobId)
+        .then(function (response) {
             if (response.success) {
                 toast.success('任务已禁用');
                 loadJobs();
             } else {
                 toast.error('禁用失败: ' + response.message);
             }
-        },
-        error: function (xhr) {
-            const error = xhr.responseJSON;
-            toast.error('禁用失败: ' + (error ? error.message : '未知错误'));
-        },
-        complete: function () {
+        })
+        .catch(function (error) {
+            const message = error?.response?.message || error?.message || '未知错误';
+            toast.error('禁用失败: ' + message);
+        })
+        .finally(function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-disable-job`), '禁用');
-        }
-    });
+        });
 }
 
 // 立即执行任务
 function runJobNow(jobId) {
+    if (!ensureSchedulerService()) {
+        return;
+    }
     showLoadingState($(`[data-job-id="${jobId}"].btn-run-job`), '执行中...');
 
-    $.ajax({
-        url: `/scheduler/api/jobs/${jobId}/run`,
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function (response) {
+    schedulerService.runJob(jobId)
+        .then(function (response) {
             if (response.success) {
                 toast.success('任务已开始执行');
                 loadJobs();
             } else {
                 toast.error('执行失败: ' + response.message);
             }
-        },
-        error: function (xhr) {
-            const error = xhr.responseJSON;
-            toast.error('执行失败: ' + (error ? error.message : '未知错误'));
-        },
-        complete: function () {
+        })
+        .catch(function (error) {
+            const message = error?.response?.message || error?.message || '未知错误';
+            toast.error('执行失败: ' + message);
+        })
+        .finally(function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-run-job`), '执行');
-        }
-    });
+        });
 }
 
 // 编辑任务
@@ -686,6 +693,9 @@ function editJob(jobId) {
 
 // 更新任务
 function updateJob(form) {
+    if (!ensureSchedulerService()) {
+        return;
+    }
     const formElement = form instanceof HTMLFormElement ? form : $('#editJobForm')[0];
     if (!formElement) {
         return;
@@ -770,15 +780,8 @@ function updateJob(form) {
     const submitButton = $(formElement).find('button[type="submit"]');
     showLoadingState(submitButton, '保存中...');
 
-    $.ajax({
-        url: `/scheduler/api/jobs/${jobId}`,
-        method: 'PUT',
-        data: JSON.stringify(payload),
-        contentType: 'application/json',
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function (response) {
+    schedulerService.updateJob(jobId, payload)
+        .then(function (response) {
             if (response.success) {
                 toast.success('任务更新成功');
                 $('#editJobModal').modal('hide');
@@ -789,19 +792,21 @@ function updateJob(form) {
             } else {
                 toast.error('更新失败: ' + response.message);
             }
-        },
-        error: function (xhr) {
-            const error = xhr.responseJSON;
-            toast.error('更新失败: ' + (error ? error.message : '未知错误'));
-        },
-        complete: function () {
+        })
+        .catch(function (error) {
+            const message = error?.response?.message || error?.message || '未知错误';
+            toast.error('更新失败: ' + message);
+        })
+        .finally(function () {
             hideLoadingState(submitButton, '保存更改');
-        }
-    });
+        });
 }
 
 // 删除任务
 function deleteJob(jobId) {
+    if (!ensureSchedulerService()) {
+        return;
+    }
     const job = currentJobs.find(j => j.id === jobId);
     if (!job) {
         toast.error('任务不存在');
@@ -814,28 +819,22 @@ function deleteJob(jobId) {
 
     showLoadingState($(`[data-job-id="${jobId}"].btn-delete-job`), '删除中...');
 
-    $.ajax({
-        url: `/scheduler/api/jobs/${jobId}`,
-        method: 'DELETE',
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function (response) {
+    schedulerService.deleteJob(jobId)
+        .then(function (response) {
             if (response.success) {
                 toast.success('任务已删除');
                 loadJobs();
             } else {
                 toast.error('删除失败: ' + response.message);
             }
-        },
-        error: function (xhr) {
-            const error = xhr.responseJSON;
-            toast.error('删除失败: ' + (error ? error.message : '未知错误'));
-        },
-        complete: function () {
+        })
+        .catch(function (error) {
+            const message = error?.response?.message || error?.message || '未知错误';
+            toast.error('删除失败: ' + message);
+        })
+        .finally(function () {
             hideLoadingState($(`[data-job-id="${jobId}"].btn-delete-job`), '删除');
-        }
-    });
+        });
 }
 
 // 查看任务日志
@@ -852,6 +851,9 @@ function viewJobLogs(jobId) {
 
 // 添加任务
 function addJob(form) {
+    if (!ensureSchedulerService()) {
+        return;
+    }
     /**
      * 新增任务提交逻辑（基于后端 “按函数创建任务” 接口）
      * 1. 读取表单数据
@@ -902,15 +904,8 @@ function addJob(form) {
     const submitButton = $(formElement).find('button[type="submit"]');
     showLoadingState(submitButton, '添加中...');
 
-    $.ajax({
-        url: '/scheduler/api/jobs/by-func',
-        method: 'POST',
-        data: JSON.stringify(payload),
-        contentType: 'application/json',
-        headers: {
-            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function (response) {
+    schedulerService.createJobByFunction(payload)
+        .then(function (response) {
             if (response.success) {
                 toast.success('任务添加成功');
                 $('#addJobModal').modal('hide');
@@ -922,15 +917,14 @@ function addJob(form) {
             } else {
                 toast.error('添加失败: ' + response.message);
             }
-        },
-        error: function (xhr) {
-            const error = xhr.responseJSON;
-            toast.error('添加失败: ' + (error ? error.message : '未知错误'));
-        },
-        complete: function () {
+        })
+        .catch(function (error) {
+            const message = error?.response?.message || error?.message || '未知错误';
+            toast.error('添加失败: ' + message);
+        })
+        .finally(function () {
             hideLoadingState(submitButton, '添加任务');
-        }
-    });
+        });
 }
 
 

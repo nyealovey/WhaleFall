@@ -11,6 +11,10 @@ class ConnectionManager {
         if (!this.helpers) {
             console.error('DOMHelpers 未初始化，连接管理组件无法渲染提示');
         }
+        if (!window.ConnectionService) {
+            throw new Error('ConnectionService 未初始化');
+        }
+        this.connectionService = new window.ConnectionService(window.httpU);
     }
 
     /**
@@ -28,10 +32,8 @@ class ConnectionManager {
      */
     async testInstanceConnection(instanceId, options = {}) {
         try {
-            const result = await httpU.post(`${this.baseUrl}/test`, {
-                instance_id: instanceId,
-                ...options
-            });
+            const payload = options.payload || {};
+            const result = await this.connectionService.testInstanceConnection(instanceId, payload);
             
             if (options.onSuccess && result.success) {
                 options.onSuccess(result);
@@ -62,7 +64,7 @@ class ConnectionManager {
      */
     async testNewConnection(connectionParams, options = {}) {
         try {
-            const result = await httpU.post(`${this.baseUrl}/test`, connectionParams);
+            const result = await this.connectionService.testNewConnection(connectionParams);
             
             if (options.onSuccess && result.success) {
                 options.onSuccess(result);
@@ -92,7 +94,7 @@ class ConnectionManager {
      */
     async validateConnectionParams(params) {
         try {
-            return await httpU.post(`${this.baseUrl}/validate-params`, params);
+            return await this.connectionService.validateConnectionParams(params);
         } catch (error) {
             return {
                 success: false,
@@ -109,9 +111,7 @@ class ConnectionManager {
      */
     async batchTestConnections(instanceIds, options = {}) {
         try {
-            const result = await httpU.post(`${this.baseUrl}/batch-test`, {
-                instance_ids: instanceIds
-            });
+            const result = await this.connectionService.batchTestConnections(instanceIds);
             
             if (options.onProgress) {
                 options.onProgress(result);
@@ -139,7 +139,7 @@ class ConnectionManager {
      */
     async getConnectionStatus(instanceId) {
         try {
-            return await httpU.get(`${this.baseUrl}/status/${instanceId}`);
+            return await this.connectionService.getConnectionStatus(instanceId);
 
         } catch (error) {
             return {

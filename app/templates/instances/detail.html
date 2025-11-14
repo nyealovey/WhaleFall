@@ -698,6 +698,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/permission-viewer.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/permission-modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/instances/detail.js') }}"></script>
