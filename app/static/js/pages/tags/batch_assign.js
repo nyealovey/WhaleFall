@@ -7,10 +7,12 @@ if (!LodashUtils) {
     throw new Error('LodashUtils 未初始化');
 }
 
-const httpClient = window.httpU;
-if (!httpClient) {
-    throw new Error('httpU 未初始化');
+const TagManagementService = window.TagManagementService;
+if (!TagManagementService) {
+    throw new Error('TagManagementService 未初始化');
 }
+
+const tagService = new TagManagementService(window.httpU);
 
 class BatchAssignManager {
     constructor() {
@@ -118,7 +120,8 @@ class BatchAssignManager {
      */
     async loadInstances() {
         try {
-            const { data: payload } = await httpClient.get('/tags/api/instances');
+            const response = await tagService.listInstances();
+            const payload = response?.data ?? response;
             this.instances = Array.isArray(payload?.instances) ? payload.instances : [];
             this.instanceLookup = LodashUtils.keyBy(this.instances, 'id');
             this.instancesByDbType = this.groupInstancesByDbType(this.instances);
@@ -133,7 +136,8 @@ class BatchAssignManager {
      */
     async loadTags() {
         try {
-            const { data: payload } = await httpClient.get('/tags/api/all_tags');
+            const response = await tagService.listAllTags();
+            const payload = response?.data ?? response;
             this.tags = Array.isArray(payload?.tags) ? payload.tags : [];
             this.tagLookup = LodashUtils.keyBy(this.tags, 'id');
             this.tagsByCategory = this.groupTagsByCategory(this.tags);
@@ -687,7 +691,7 @@ class BatchAssignManager {
      * 执行批量分配
      */
     async performBatchAssign() {
-        const result = await httpClient.post('/tags/api/batch_assign_tags', {
+        const result = await tagService.batchAssign({
             instance_ids: Array.from(this.selectedInstances),
             tag_ids: Array.from(this.selectedTags)
         });
@@ -698,7 +702,7 @@ class BatchAssignManager {
      * 执行批量移除
      */
     async performBatchRemove() {
-        const result = await httpClient.post('/tags/api/batch_remove_all_tags', {
+        const result = await tagService.batchRemoveAll({
             instance_ids: Array.from(this.selectedInstances)
         });
         if (!result.success) {

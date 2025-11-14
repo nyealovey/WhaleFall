@@ -15,6 +15,12 @@ if (!DOMHelpers) {
 
 const { selectOne, ready } = DOMHelpers;
 
+const PartitionService = window.PartitionService;
+if (!PartitionService) {
+    throw new Error('PartitionService 未初始化');
+}
+const partitionService = new PartitionService(window.httpU);
+
 function buildChartQueryParams(values) {
     const params = new URLSearchParams();
     Object.entries(values || {}).forEach(([key, value]) => {
@@ -223,7 +229,7 @@ class AggregationsChartManager {
                 days: 7,
             });
             
-            const raw = await httpU.get(`/partition/api/aggregations/core-metrics?${params}`);
+            const raw = await partitionService.fetchCoreMetrics(params);
             if (raw.success !== false) {
                 const payload = raw?.data ?? raw ?? {};
                 this.currentData = payload;

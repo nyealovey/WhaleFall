@@ -17,11 +17,12 @@
     }
 
     const { ready, selectOne, select, from } = helpers;
-    const httpClient = global.httpU || global.http;
-    if (!httpClient) {
-        console.error('httpU 未初始化，无法加载仪表盘数据');
+    const DashboardService = global.DashboardService;
+    if (!DashboardService) {
+        console.error('DashboardService 未初始化，无法加载仪表盘数据');
         return;
     }
+    const dashboardService = new DashboardService(global.httpU);
 
     let logTrendChart = null;
 
@@ -61,8 +62,8 @@
         const dangerColor = getCssVariable('--danger-color');
         const warningColor = getCssVariable('--warning-color');
 
-        httpClient
-            .get('/dashboard/api/charts?type=logs')
+        dashboardService
+            .fetchCharts({ type: 'logs' })
             .then((data) => {
                 const payload = data?.data ?? data ?? {};
                 const logTrend = LodashUtils.get(payload, 'log_trend', []);

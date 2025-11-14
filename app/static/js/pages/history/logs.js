@@ -17,6 +17,13 @@
 
     const { ready, selectOne, select, from } = helpers;
 
+    const LogsService = global.LogsService;
+    if (!LogsService) {
+        console.error('LogsService 未初始化，无法加载日志页面');
+        return;
+    }
+    const logsService = new LogsService(global.httpU);
+
     const LOG_FILTER_FORM_ID = 'logs-filter-form';
     const AUTO_APPLY_FILTER_CHANGE = true;
 
@@ -118,8 +125,8 @@
     }
 
     function loadModules() {
-        global.httpU
-            .get('/logs/api/modules')
+        logsService
+            .fetchModules()
             .then((data) => {
                 if (data.success) {
                     updateModuleFilter(data.data.modules);
@@ -171,8 +178,8 @@
         const filters = ensureCurrentFilters();
         const params = buildLogQueryParams({ ...filters });
 
-        global.httpU
-            .get(`/logs/api/stats?${params.toString()}`)
+        logsService
+            .fetchStats(params)
             .then((data) => {
                 if (data.success) {
                     updateStatsDisplay(data.data);
@@ -238,8 +245,8 @@
 
         showLoadingState();
 
-        global.httpU
-            .get(`/logs/api/search?${params}`)
+        logsService
+            .searchLogs(params)
             .then((data) => {
                 if (data.success) {
                     displayLogs(data.data.logs);
@@ -543,8 +550,8 @@
     }
 
     function viewLogDetail(logId) {
-        global.httpU
-            .get(`/logs/api/detail/${logId}`)
+        logsService
+            .fetchLogDetail(logId)
             .then((data) => {
                 if (data.success) {
                     displayLogDetail(data.data.log || data.log || data.data);

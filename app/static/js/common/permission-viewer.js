@@ -12,6 +12,19 @@
     }
     const { selectOne, from } = helpers;
 
+    const PermissionService = window.PermissionService;
+    if (!PermissionService) {
+        console.error('PermissionService 未初始化，无法加载 PermissionViewer');
+        return;
+    }
+    let permissionService = null;
+    try {
+        permissionService = new PermissionService(window.httpU);
+    } catch (error) {
+        console.error('初始化 PermissionService 失败:', error);
+        return;
+    }
+
     function resolveButton(trigger) {
         if (trigger) {
             return trigger;
@@ -79,8 +92,8 @@
         const triggerButton = resolveButton(trigger);
         toggleButtonLoading(triggerButton, true);
 
-        window.httpU
-            .get(finalApiUrl)
+        permissionService
+            .fetchByUrl(finalApiUrl)
             .then((data) => {
                 const responsePayload =
                     data && typeof data === 'object' && data.data && typeof data.data === 'object'
@@ -114,7 +127,7 @@
         resolveCsrfToken();
         const finalApiUrl = apiUrl.replace('${accountId}', accountId);
 
-        return window.httpU.get(finalApiUrl).then((data) => {
+        return permissionService.fetchByUrl(finalApiUrl).then((data) => {
             if (data && data.success) {
                 const responsePayload = data.data && typeof data.data === 'object' ? data.data : data;
                 return responsePayload;

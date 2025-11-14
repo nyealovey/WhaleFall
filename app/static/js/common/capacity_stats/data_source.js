@@ -1,60 +1,11 @@
 (function (window) {
   "use strict";
 
-  function ensureHttp() {
-    if (!window.httpU || typeof window.httpU.get !== "function") {
-      throw new Error("httpU 未初始化，无法发起容量统计请求");
-    }
+  const CapacityStatsService = window.CapacityStatsService;
+  if (!CapacityStatsService) {
+    throw new Error("CapacityStatsService 未初始化，无法发起容量统计请求");
   }
-
-  function toSearchParams(params, defaults) {
-    const search = new URLSearchParams();
-
-    const append = (source) => {
-      if (!source) {
-        return;
-      }
-      if (source instanceof URLSearchParams) {
-        source.forEach((value, key) => {
-          if (value !== undefined && value !== null && value !== "") {
-            search.append(key, value);
-          }
-        });
-        return;
-      }
-      Object.entries(source).forEach(([key, value]) => {
-        if (value === undefined || value === null || value === "") {
-          return;
-        }
-        if (Array.isArray(value)) {
-          value.forEach((item) => {
-            if (item !== undefined && item !== null && item !== "") {
-              search.append(key, item);
-            }
-          });
-        } else {
-          search.append(key, value);
-        }
-      });
-    };
-
-    append(defaults);
-    append(params);
-    return search;
-  }
-
-  async function get(url, params, defaults) {
-    ensureHttp();
-    const searchParams = toSearchParams(params, defaults);
-    const queryString = searchParams.toString();
-    const requestUrl = queryString ? `${url}?${queryString}` : url;
-    return window.httpU.get(requestUrl);
-  }
-
-  async function post(url, payload) {
-    ensureHttp();
-    return window.httpU.post(url, payload);
-  }
+  const capacityStatsService = new CapacityStatsService(window.httpU);
 
   function unwrapItems(response) {
     const candidates = [
@@ -89,7 +40,7 @@
   }
 
   async function fetchSummary(config, params) {
-    const response = await get(
+    const response = await capacityStatsService.get(
       config.summaryEndpoint,
       params,
       config.summaryDefaults
@@ -98,7 +49,7 @@
   }
 
   async function fetchTrend(config, params) {
-    const response = await get(
+    const response = await capacityStatsService.get(
       config.trendEndpoint,
       params,
       config.trendDefaults
@@ -107,7 +58,7 @@
   }
 
   async function fetchChange(config, params) {
-    const response = await get(
+    const response = await capacityStatsService.get(
       config.changeEndpoint,
       params,
       config.changeDefaults
@@ -116,7 +67,7 @@
   }
 
   async function fetchPercentChange(config, params) {
-    const response = await get(
+    const response = await capacityStatsService.get(
       config.percentEndpoint,
       params,
       config.percentDefaults
@@ -125,11 +76,11 @@
   }
 
   async function calculateCurrent(url, payload) {
-    await post(url, payload || {});
+    await capacityStatsService.post(url, payload || {});
   }
 
   async function fetchInstances(url, params) {
-    const response = await get(url, params);
+    const response = await capacityStatsService.get(url, params);
     const instances =
       response?.data?.instances ??
       response?.instances ??
@@ -139,7 +90,7 @@
   }
 
   async function fetchDatabases(url, params) {
-    const response = await get(url, params);
+    const response = await capacityStatsService.get(url, params);
     const databases =
       response?.data?.databases ??
       response?.databases ??
