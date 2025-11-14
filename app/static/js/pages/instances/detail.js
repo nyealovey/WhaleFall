@@ -3,6 +3,11 @@
  * 处理连接测试、账户同步、权限查看等功能
  */
 
+const LodashUtils = window.LodashUtils;
+if (!LodashUtils) {
+    throw new Error('LodashUtils 未初始化');
+}
+
 // 页面加载完成，不自动测试连接
 document.addEventListener('DOMContentLoaded', function () {
     // 页面加载完成，等待用户手动测试连接
@@ -426,9 +431,9 @@ function loadDatabaseSizes() {
 
 function displayDatabaseSizes(payload) {
     const contentDiv = document.getElementById('databaseSizesContent');
-    const databases = Array.isArray(payload?.databases) ? payload.databases : [];
+    const rawDatabases = Array.isArray(payload?.databases) ? payload.databases : [];
 
-    if (!databases.length) {
+    if (!rawDatabases.length) {
         contentDiv.innerHTML = `
             <div class="text-center py-4">
                 <i class="fas fa-database fa-3x text-muted mb-3"></i>
@@ -439,14 +444,19 @@ function displayDatabaseSizes(payload) {
         return;
     }
 
+    const databases = LodashUtils.orderBy(
+        rawDatabases,
+        [
+            (item) => Number(item?.size_mb) || 0,
+        ],
+        ['desc']
+    );
+
     const totalSize = Number(payload?.total_size_mb ?? 0) || 0;
     const totalSizeLabel = formatGbLabelFromMb(totalSize);
 
     const filteredCount = Number(payload?.filtered_count ?? 0) || 0;
     const activeCount = Number(payload?.active_count ?? (databases.length - filteredCount));
-
-    // 按数据库大小从大到小排序
-    databases.sort((a, b) => (Number(b.size_mb) || 0) - (Number(a.size_mb) || 0));
 
     const deletedCount = filteredCount || databases.filter(db => db.is_active === false).length;
     const onlineCount = activeCount;

@@ -689,14 +689,17 @@
           endpoint,
           params
         );
+        const sortedDatabases = LodashUtils.orderBy(
+          databases || [],
+          [
+            (item) => (item?.database_name || "").toLowerCase(),
+          ],
+          ["asc"],
+        );
         Filters.updateSelectOptions("#database", {
           placeholder: "所有数据库",
           allowEmpty: true,
-          items: databases.sort((a, b) => {
-            const nameA = (a.database_name || "").toLowerCase();
-            const nameB = (b.database_name || "").toLowerCase();
-            return nameA.localeCompare(nameB);
-          }),
+          items: sortedDatabases,
           selected: options?.preserveSelection ? this.state.filters.databaseId : "",
           getOptionValue: (item) => item?.id,
           getOptionLabel: (item) => item?.database_name || "未知数据库",

@@ -3,6 +3,11 @@
  * 处理标签筛选、批量操作等功能
  */
 
+const LodashUtils = window.LodashUtils;
+if (!LodashUtils) {
+    throw new Error('LodashUtils 未初始化');
+}
+
 const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
 const AUTO_APPLY_FILTER_CHANGE = true;
 let instanceFilterEventHandler = null;
@@ -17,6 +22,60 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化批量操作按钮状态
     updateBatchButtons();
 });
+
+function sanitizePrimitiveValue(value) {
+    if (value instanceof File) {
+        return value.name;
+    }
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return trimmed === '' ? null : trimmed;
+    }
+    if (value === undefined || value === null) {
+        return null;
+    }
+    return value;
+}
+
+function sanitizeFilterValue(value) {
+    if (Array.isArray(value)) {
+        return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
+    }
+    return sanitizePrimitiveValue(value);
+}
+
+function resolveInstanceFilterValues(form, overrideValues) {
+    const baseForm = form || document.getElementById(INSTANCE_FILTER_FORM_ID);
+    const rawValues = overrideValues && Object.keys(overrideValues || {}).length
+        ? overrideValues
+        : collectFormValues(baseForm);
+    return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
+        if (key === 'csrf_token') {
+            return result;
+        }
+        const normalized = sanitizeFilterValue(value);
+        if (normalized === null || normalized === undefined) {
+            return result;
+        }
+        if (Array.isArray(normalized) && normalized.length === 0) {
+            return result;
+        }
+        result[key] = normalized;
+        return result;
+    }, {});
+}
+
+function buildInstanceQueryParams(filters) {
+    const params = new URLSearchParams();
+    Object.entries(filters || {}).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+            value.forEach((item) => params.append(key, item));
+        } else {
+            params.append(key, value);
+        }
+    });
+    return params;
+}
 
 // 加载实例总大小
 async function loadInstanceTotalSizes() {
@@ -64,9 +123,7 @@ function initializeTagFilter() {
     }
 
     const hiddenInput = document.getElementById('selected-tag-names');
-    const initialValues = hiddenInput?.value
-        ? hiddenInput.value.split(',').map((value) => value.trim()).filter(Boolean)
-        : [];
+    const initialValues = parseInitialTagValues(hiddenInput?.value);
 
     TagSelectorHelper.setupForForm({
         modalSelector: '#tagSelectorModal',
@@ -96,6 +153,16 @@ function initializeTagFilter() {
             }
         },
     });
+}
+
+function parseInitialTagValues(rawValue) {
+    if (!rawValue) {
+        return [];
+    }
+    return rawValue
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
 }
 
 function collectFormValues(form) {
@@ -197,23 +264,8 @@ function applyInstanceFilters(form, values) {
     if (!targetForm) {
         return;
     }
-    const data = values && Object.keys(values || {}).length ? values : collectFormValues(targetForm);
-    const params = new URLSearchParams();
-    Object.entries(data || {}).forEach(([key, value]) => {
-        if (key === 'csrf_token') {
-            return;
-        }
-        if (value === undefined || value === null) {
-            return;
-        }
-        if (Array.isArray(value)) {
-            value.filter((item) => item !== '' && item !== null).forEach((item) => {
-                params.append(key, item);
-            });
-        } else if (String(value).trim() !== '') {
-            params.append(key, value);
-        }
-    });
+    const filters = resolveInstanceFilterValues(targetForm, values);
+    const params = buildInstanceQueryParams(filters);
     const action = targetForm.getAttribute('action') || window.location.pathname;
     const query = params.toString();
     window.location.href = query ? `${action}?${query}` : action;
