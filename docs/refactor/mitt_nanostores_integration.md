@@ -1,49 +1,39 @@
-# Mitt & Nanostores 重构方案
+# Mitt 事件总线整合方案
+
+> 尽管文件名沿用“mitt_nanostores”，本方案仅采用 Mitt 来统一事件通信；不再引入 Nanostores。
 
 ## 背景
 
-当前前端在“事件通知”和“跨模块共享状态”方面依赖自建的 EventBus/appStore。随着页面增多：
+现有前端在跨模块通信上依赖多种自定义方式（手写 EventBus、DOM 自定义事件、直接函数调用）。随着页面增多：
 
-- 组件之间需要互相引用才能联动（如下拉筛选 → 图表/表格刷新），耦合度高；
-- 自定义 EventBus 缺乏统一 API，订阅/解绑分散，容易遗忘导致内存泄露；
-- 状态更新后需要显式调用刷新函数，无法“数据驱动 UI”。
+- 筛选组件与图表/表格之间耦合度高，难以复用；
+- 事件订阅与解绑分散，容易遗漏导致内存泄露；
+- 下拉框更新后常常忘记通知所有依赖模块，导致数据不同步。
 
-引入轻量、成熟的事件与状态库可以降低维护成本，并为“筛选条件变化后自动刷新图表和表格”提供可靠基础。
+引入一个统一、轻量的事件总线有助于把“谁触发”“谁响应”解耦，实现“筛选变动 → 图表/表格自动刷新”的目标。
 
-## 推荐组合
+## 推荐库
 
 | 功能 | 库 | 核心特性 | 体积（gzip） | 快速示例 |
 | --- | --- | --- | --- | --- |
-| 事件总线 | [Mitt](https://github.com/developit/mitt) | 极简 `on/off/emit` API，无需实例化；适合一次性事件广播 | `<1KB` | `const bus = mitt(); bus.on('filter', handler); bus.emit('filter', payload);` |
-| 状态管理 | [Nanostores](https://nanostores.org/) | 原子 store + 订阅模型，极小（<1KB），可渐进式应用；无框架依赖 | `<1KB` | `const filtersStore = atom({ period: 'daily' }); filtersStore.subscribe(render); filtersStore.set({ period: 'weekly' });` |
+| 事件总线 | [Mitt](https://github.com/developit/mitt) | 极简 `on/off/emit` API，无需实例化；任何对象都可发事件 | `<1KB` | `const bus = mitt(); bus.on('filter', handler); bus.emit('filter', payload);` |
 
-## 依赖下载
+## 下载与加载
 
 ```bash
-# Mitt
 mkdir -p app/static/vendor/mitt
 curl -L https://unpkg.com/mitt@3.0.1/dist/mitt.umd.js \
   -o app/static/vendor/mitt/mitt.umd.js
-
-# Nanostores
-mkdir -p app/static/vendor/nanostores
-curl -L https://unpkg.com/nanostores@0.9.5/index.js \
-  -o app/static/vendor/nanostores/nanostores.umd.js
 ```
 
-在 `app/templates/base.html` 中加载（建议放在 `axios` 之后、业务脚本之前）：
+在 `app/templates/base.html`（建议放在 `axios` 之后、业务脚本之前）添加：
 
 ```html
 <script src="{{ url_for('static', filename='vendor/mitt/mitt.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/event-bus.js') }}"></script>
-
-<script src="{{ url_for('static', filename='vendor/nanostores/nanostores.umd.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/app-state.js') }}"></script>
 ```
 
-## 封装入口
-
-### EventBus（Mitt）
+## 封装
 
 `app/static/js/common/event-bus.js`：
 
@@ -62,84 +52,64 @@ curl -L https://unpkg.com/nanostores@0.9.5/index.js \
 })(window);
 ```
 
-### AppState（Nanostores）
+> 只暴露 `on/off/emit`，避免直接泄露 mitt 实例，便于后续扩展（如记录日志、自动解绑等）。
 
-`app/static/js/common/app-state.js`：
+## 使用模式
 
-```js
-(function (window) {
-  "use strict";
-  const nanostores = window.nanostores || window;
-  const atom = nanostores.atom;
-  if (typeof atom !== "function") {
-    throw new Error("Nanostores 未加载");
-  }
+1. **事件命名**：推荐使用 `模块:动作` 形式（如 `filters:changed`、`charts:refresh`），方便调试。
+2. **统一负载**：payload 建议为结构化对象，例如：
+   ```js
+   EventBus.emit("filters:changed", {
+     source: "capacity-filter",
+     values: { period: "weekly", dbType: "mysql" },
+   });
+   ```
+3. **集中订阅/解绑**：模块初始化时 `EventBus.on`；销毁/离开页面时 `EventBus.off`，确保不会泄露。
 
-  const filtersStore = atom({
-    instanceId: null,
-    period: "daily",
-  });
-
-  window.AppState = {
-    filters: filtersStore,
-    subscribe: filtersStore.subscribe,
-    setFilters: (next) => filtersStore.set({ ...filtersStore.get(), ...next }),
-  };
-})(window);
-```
-
-> 可根据需要扩展更多 store（如 `selectionStore`, `chartStore`），或使用 `map`, `persistentAtom` 等高级 API。
-
-## 重构路线
-
-1. **事件广播（Mitt）**
-   - 替换自建 EventBus/DOM 自定义事件，统一使用 `EventBus.emit('filter-change', payload)`。
-   - 各模块通过 `EventBus.on('filter-change', handler)` 接收事件；卸载时 `EventBus.off`。
-   - 适合一次性通知（例如“刷新完成”“导出成功”）。
-
-2. **共享状态（Nanostores）**
-   - 将常用筛选、分页、图表配置等放入对应 store。
-   - 组件通过 `store.subscribe` 监听变化；store 更新后，所有订阅者在回调中自动刷新 UI，无需手动调用刷新函数。
-   - 适合“下拉框 → 图表/表格联动”这类需要响应式的场景。
-
-3. **联动示例**
+## 实现“下拉 → 图表/表格自动刷新”
 
 ```js
-// 下拉组件：更新 store
+// 筛选组件
 document.getElementById("period").addEventListener("change", (event) => {
-  AppState.setFilters({ period: event.target.value });
+  EventBus.emit("filters:changed", {
+    source: "capacity-filter",
+    values: { period: event.target.value },
+  });
 });
 
-// 图表模块：订阅 store
-AppState.filters.subscribe((filters) => {
-  reloadCharts(filters);
-});
+// 图表模块
+const onFiltersChange = ({ values }) => {
+  reloadCharts(values);
+};
+EventBus.on("filters:changed", onFiltersChange);
+
+// 表格模块
+const onTableFilters = ({ values }) => {
+  reloadTable(values);
+};
+EventBus.on("filters:changed", onTableFilters);
+
+// 模块销毁时记得解绑
+// EventBus.off("filters:changed", onFiltersChange);
+// EventBus.off("filters:changed", onTableFilters);
 ```
 
-4. **渐进迁移**
-   - 先在新模块或重点页面中使用 Nanostores/Mitt，观察效果。
-   - 稳定后逐步移除旧的 EventBus/appStore，避免双轨复杂度。
+这样，筛选条件变化后所有订阅者都会收到同一条事件并刷新自身数据，无需互相引用或调用。
 
 ## 验证步骤
 
-1. 执行 `./scripts/refactor_naming.sh --dry-run`，确保命名规范。
-2. 手动验证关键页面：选中筛选项后图表/表格是否自动刷新；事件广播是否触发。
-3. 运行现有测试或手动用例，确保改动不影响其他功能。
-
-## 对“下拉 → 图表/表格自动刷新”的帮助
-
-- **Mitt**：筛选组件只需 `emit` 一次事件，所有监听者即可刷新，无需层级传参。
-- **Nanostores**：状态更新后，订阅者自动得到新值并刷新视图，实现真正的数据驱动 UI。
-- 组合使用后，可大幅减少因未手动调用刷新函数而导致的数据不同步问题。
+1. 运行 `./scripts/refactor_naming.sh --dry-run`，确保新增文件/命名符合规范。
+2. 手动验证关键页面：切换筛选条件后，图表/表格/统计卡是否自动刷新。
+3. 检查模块卸载是否正确解绑事件，防止内存泄露。
 
 ## 风险与缓解
 
-- **依赖缺失**：若 Mitt 或 Nanostores 未加载，将在初始化阶段抛错；需保证模板加载顺序正确。
-- **迁移期间的重复状态**：若旧的 appStore 与新 store 并存，要注意保持数据同步或尽快彻底迁移。
-- **调试新范式**：响应式状态意味着数据流动方式改变，建议在订阅回调中添加日志，辅助调试。
+- **依赖缺失**：若 mitt 未加载，`event-bus.js` 会抛错并阻断初始化；务必保证模板加载顺序。
+- **事件风暴**：大量组件频繁 `emit` 可能导致性能问题，可结合 `LodashUtils.debounce`/`throttle` 对输入做节流。
+- **未解绑**：频繁创建/销毁的组件（如弹窗）要在销毁时调用 `EventBus.off`，否则事件处理函数会持续驻留。
 
 ## 后续计划
 
-1. 落地 `event-bus.js` 与 `app-state.js`，先在核心页面验证。
-2. 分模块替换旧的 EventBus/appStore，完成后清理冗余代码。
-3. 在团队开发规范中明确：“广播型事件使用 EventBus，跨模块状态使用 Nanostores”，避免重复造轮子。
+1. 在容量统计、实例列表等页面优先替换成 Mitt 事件模式，实现筛选 → 图表/表格联动。
+2. 清理旧的自定义 EventBus/DOM 事件，统一依赖 `window.EventBus`。
+3. 在团队开发规范中补充：“跨模块事件通信必须通过 Mitt 事件总线”，避免重复造轮子。
