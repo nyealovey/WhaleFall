@@ -33,7 +33,7 @@
   }
 
   function ensureHttp() {
-    if (!window.http || typeof window.http.get !== "function") {
+    if (!window.http || typeof window.httpU.get !== "function") {
       throw new Error("window.http 未初始化，无法加载标签数据");
     }
   }
@@ -233,7 +233,7 @@
 
       try {
         ensureHttp();
-        const response = await window.http.get(
+        const response = await window.httpU.get(
           this.options.endpoints.categories,
         );
         const categories =
@@ -319,7 +319,7 @@
 
       try {
         ensureHttp();
-        const response = await window.http.get(this.options.endpoints.tags);
+        const response = await window.httpU.get(this.options.endpoints.tags);
         const tags =
           response?.data?.tags ??
           response?.tags ??

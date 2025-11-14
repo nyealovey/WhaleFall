@@ -7,6 +7,10 @@ class ConnectionManager {
     constructor() {
         this.baseUrl = '/connections/api';
         this.csrfToken = this.getCSRFToken();
+        this.helpers = window.DOMHelpers;
+        if (!this.helpers) {
+            console.error('DOMHelpers 未初始化，连接管理组件无法渲染提示');
+        }
     }
 
     /**
@@ -24,7 +28,7 @@ class ConnectionManager {
      */
     async testInstanceConnection(instanceId, options = {}) {
         try {
-            const result = await http.post(`${this.baseUrl}/test`, {
+            const result = await httpU.post(`${this.baseUrl}/test`, {
                 instance_id: instanceId,
                 ...options
             });
@@ -58,7 +62,7 @@ class ConnectionManager {
      */
     async testNewConnection(connectionParams, options = {}) {
         try {
-            const result = await http.post(`${this.baseUrl}/test`, connectionParams);
+            const result = await httpU.post(`${this.baseUrl}/test`, connectionParams);
             
             if (options.onSuccess && result.success) {
                 options.onSuccess(result);
@@ -88,7 +92,7 @@ class ConnectionManager {
      */
     async validateConnectionParams(params) {
         try {
-            return await http.post(`${this.baseUrl}/validate-params`, params);
+            return await httpU.post(`${this.baseUrl}/validate-params`, params);
         } catch (error) {
             return {
                 success: false,
@@ -105,7 +109,7 @@ class ConnectionManager {
      */
     async batchTestConnections(instanceIds, options = {}) {
         try {
-            const result = await http.post(`${this.baseUrl}/batch-test`, {
+            const result = await httpU.post(`${this.baseUrl}/batch-test`, {
                 instance_ids: instanceIds
             });
             
@@ -135,7 +139,7 @@ class ConnectionManager {
      */
     async getConnectionStatus(instanceId) {
         try {
-            return await http.get(`${this.baseUrl}/status/${instanceId}`);
+            return await httpU.get(`${this.baseUrl}/status/${instanceId}`);
 
         } catch (error) {
             return {
@@ -151,13 +155,19 @@ class ConnectionManager {
      * @param {string} containerId - 容器ID
      */
     showTestResult(result, containerId = 'connection-test-result') {
-        const container = document.getElementById(containerId);
-        if (!container) return;
+        if (!this.helpers) {
+            return;
+        }
+
+        const container = this.helpers.selectOne(`#${containerId}`);
+        if (!container.length) {
+            return;
+        }
 
         const alertClass = result.success ? 'alert-success' : 'alert-danger';
         const icon = result.success ? 'fa-check-circle' : 'fa-exclamation-circle';
         
-        container.innerHTML = `
+        container.html(`
             <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
                 <i class="fas ${icon} me-2"></i>
                 <strong>${result.success ? '连接成功' : '连接失败'}</strong>
@@ -165,7 +175,7 @@ class ConnectionManager {
                 ${result.version ? `<small class="text-muted">数据库版本: ${result.version}</small>` : ''}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-        `;
+        `);
     }
 
     // showBatchTestProgress 已废弃，保留空实现兼容老代码

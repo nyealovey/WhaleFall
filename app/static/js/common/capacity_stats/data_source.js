@@ -1,11 +1,9 @@
 (function (window) {
   "use strict";
 
-  const http = window.http;
-
   function ensureHttp() {
-    if (!http || typeof http.get !== "function") {
-      throw new Error("window.http 未初始化，无法发起请求");
+    if (!window.httpU || typeof window.httpU.get !== "function") {
+      throw new Error("httpU 未初始化，无法发起容量统计请求");
     }
   }
 
@@ -50,12 +48,12 @@
     const searchParams = toSearchParams(params, defaults);
     const queryString = searchParams.toString();
     const requestUrl = queryString ? `${url}?${queryString}` : url;
-    return http.get(requestUrl);
+    return window.httpU.get(requestUrl);
   }
 
   async function post(url, payload) {
     ensureHttp();
-    return http.post(url, payload);
+    return window.httpU.post(url, payload);
   }
 
   function unwrapItems(response) {

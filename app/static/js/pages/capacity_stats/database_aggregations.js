@@ -1,5 +1,13 @@
-(function (window, document) {
+(function (window) {
   "use strict";
+
+  const helpers = window.DOMHelpers;
+  if (!helpers) {
+    console.error("DOMHelpers 未初始化，无法加载数据库容量统计页面");
+    return;
+  }
+
+  const { ready } = helpers;
 
   function labelExtractor(item) {
     const databaseName =
@@ -104,5 +112,5 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", initManager);
-})(window, document);
+  ready(initManager);
+})(window);

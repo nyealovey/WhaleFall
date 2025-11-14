@@ -29,26 +29,13 @@ function showPermissionsModal(permissions, account) {
         // 检查权限对象的所有属性
 
         // 创建或获取模态框
-        let modal = document.getElementById('permissionsModal');
-        if (!modal) {
-            modal = createPermissionsModal();
-            document.body.appendChild(modal);
-        }
+        let modal = getOrCreateModal();
+        const modalElement = modal.first();
 
-        // 更新模态框标题
-        const titleElement = document.getElementById('permissionsModalTitle');
-        if (titleElement) {
-            titleElement.textContent = `账户权限详情 - ${account.username}`;
-        }
-
-        // 渲染权限内容
-        const bodyElement = document.getElementById('permissionsModalBody');
-        if (bodyElement) {
-            bodyElement.innerHTML = renderPermissionsByType(permissions, dbType);
-        }
+        updateModalContent(modalElement, permissions, account, dbType);
 
         // 显示模态框
-        const bsModal = new bootstrap.Modal(modal);
+        const bsModal = new bootstrap.Modal(modalElement);
         bsModal.show();
     } catch (error) {
         console.error('showPermissionsModal 函数执行出错:', error);
@@ -61,7 +48,15 @@ function showPermissionsModal(permissions, account) {
  * 创建权限模态框HTML
  * @returns {HTMLElement} 模态框元素
  */
-function createPermissionsModal() {
+function getOrCreateModal() {
+    const helpers = window.DOMHelpers;
+    if (!helpers || typeof helpers.selectOne !== 'function') {
+        throw new Error('DOMHelpers 未初始化，无法创建权限模态框');
+    }
+    const existing = helpers.selectOne('#permissionsModal');
+    if (existing.length) {
+        return existing;
+    }
     const modalHtml = `
         <div class="modal fade" id="permissionsModal" tabindex="-1" aria-labelledby="permissionsModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -91,9 +86,18 @@ function createPermissionsModal() {
         </div>
     `;
 
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = modalHtml;
-    return tempDiv.firstElementChild;
+    const modal = helpers.selectOne(modalHtml);
+    helpers.selectOne('body').append(modal);
+    return modal;
+}
+
+function updateModalContent(modal, permissions, account, dbType) {
+    const helpers = window.DOMHelpers;
+    const title = helpers.selectOne('#permissionsModalTitle', modal);
+    title.text(`账户权限详情 - ${account.username}`);
+
+    const body = helpers.selectOne('#permissionsModalBody', modal);
+    body.html(renderPermissionsByType(permissions, dbType));
 }
 
 /**

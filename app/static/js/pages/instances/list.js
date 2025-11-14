@@ -8,11 +8,22 @@ if (!LodashUtils) {
     throw new Error('LodashUtils 未初始化');
 }
 
+const DOMHelpers = window.DOMHelpers;
+if (!DOMHelpers) {
+    throw new Error('DOMHelpers 未初始化');
+}
+
+const { ready, selectOne, select, from } = DOMHelpers;
+
 const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
 const AUTO_APPLY_FILTER_CHANGE = true;
 let instanceFilterEventHandler = null;
 
-document.addEventListener('DOMContentLoaded', function() {
+function getInstanceFilterForm() {
+    return selectOne(`#${INSTANCE_FILTER_FORM_ID}`).first();
+}
+
+ready(() => {
     initializeTagFilter();
     registerInstanceFilterForm();
     subscribeInstanceFilters();
@@ -45,7 +56,7 @@ function sanitizeFilterValue(value) {
 }
 
 function resolveInstanceFilterValues(form, overrideValues) {
-    const baseForm = form || document.getElementById(INSTANCE_FILTER_FORM_ID);
+    const baseForm = form || selectOne(`#${INSTANCE_FILTER_FORM_ID}`).first();
     const rawValues = overrideValues && Object.keys(overrideValues || {}).length
         ? overrideValues
         : collectFormValues(baseForm);
@@ -80,14 +91,13 @@ function buildInstanceQueryParams(filters) {
 // 加载实例总大小
 async function loadInstanceTotalSizes() {
     try {
-        const sizeElements = document.querySelectorAll('.instance-total-size');
-        
-        for (const element of sizeElements) {
+        const elements = select('.instance-total-size').nodes || [];
+        for (const element of elements) {
             const instanceId = element.getAttribute('data-instance-id');
             if (!instanceId) continue;
             
             try {
-                const data = await http.get(`/database_aggr/api/instances/${instanceId}/database-sizes/total`);
+                const data = await httpU.get(`/database_aggr/api/instances/${instanceId}/database-sizes/total`);
                 
                 if (data.success && data.total_size_mb !== undefined) {
                     // API返回的是MB，需要转换为字节再格式化
@@ -122,7 +132,7 @@ function initializeTagFilter() {
         return;
     }
 
-    const hiddenInput = document.getElementById('selected-tag-names');
+    const hiddenInput = selectOne('#selected-tag-names').first();
     const initialValues = parseInitialTagValues(hiddenInput?.value);
 
     TagSelectorHelper.setupForForm({
@@ -136,7 +146,7 @@ function initializeTagFilter() {
         hiddenValueKey: 'name',
         initialValues,
         onConfirm: () => {
-            const form = document.getElementById(INSTANCE_FILTER_FORM_ID);
+            const form = selectOne(`#${INSTANCE_FILTER_FORM_ID}`).first();
             if (!form) {
                 return;
             }
@@ -193,7 +203,7 @@ function registerInstanceFilterForm() {
         return;
     }
     const selector = `#${INSTANCE_FILTER_FORM_ID}`;
-    const form = document.querySelector(selector);
+    const form = selectOne(selector).first();
     if (!form) {
         return;
     }
@@ -214,7 +224,7 @@ function subscribeInstanceFilters() {
     if (!window.EventBus) {
         return;
     }
-    const form = document.getElementById(INSTANCE_FILTER_FORM_ID);
+    const form = getInstanceFilterForm();
     if (!form) {
         return;
     }
@@ -260,7 +270,7 @@ function cleanupInstanceFilters() {
 }
 
 function applyInstanceFilters(form, values) {
-    const targetForm = form || document.getElementById(INSTANCE_FILTER_FORM_ID);
+    const targetForm = form || getInstanceFilterForm();
     if (!targetForm) {
         return;
     }
@@ -272,7 +282,7 @@ function applyInstanceFilters(form, values) {
 }
 
 function resetInstanceFilters(form) {
-    const targetForm = form || document.getElementById(INSTANCE_FILTER_FORM_ID);
+    const targetForm = form || getInstanceFilterForm();
     if (targetForm) {
         targetForm.reset();
     }
@@ -283,16 +293,15 @@ function resetInstanceFilters(form) {
 // 设置事件监听器
 function setupEventListeners() {
     // 批量操作相关
-    const selectAllCheckbox = document.getElementById('selectAll');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', toggleSelectAll);
+    const selectAllCheckbox = selectOne('#selectAll');
+    if (selectAllCheckbox.length) {
+        selectAllCheckbox.on('change', toggleSelectAll);
     }
 
-    const instanceCheckboxes = document.querySelectorAll('.instance-checkbox');
-    instanceCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateBatchButtons);
-    });
-
+    const instanceCheckboxes = select('.instance-checkbox');
+    if (instanceCheckboxes.length) {
+        instanceCheckboxes.on('change', updateBatchButtons);
+    }
 }
 
 // 测试连接 - 使用新的连接管理API
@@ -382,8 +391,8 @@ function batchTestConnections() {
 
 // 获取选中的实例ID列表
 function getSelectedInstances() {
-    const checkboxes = document.querySelectorAll('input.instance-checkbox:checked');
-    return Array.from(checkboxes).map(checkbox => parseInt(checkbox.value));
+    const checkboxes = select('input.instance-checkbox:checked').nodes || [];
+    return checkboxes.map((checkbox) => parseInt(checkbox.value, 10)).filter((id) => !Number.isNaN(id));
 }
 
 // 同步容量
@@ -401,7 +410,7 @@ function syncCapacity(instanceId, instanceName) {
         instance_name: instanceName
     });
 
-    http.post(`/capacity/api/instances/${instanceId}/sync-capacity`)
+    httpU.post(`/capacity/api/instances/${instanceId}/sync-capacity`)
     .then(data => {
         if (data.success) {
             // 记录成功日志
@@ -454,46 +463,40 @@ function syncCapacity(instanceId, instanceName) {
 
 // 批量操作功能
 function toggleSelectAll() {
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const instanceCheckboxes = document.querySelectorAll('.instance-checkbox');
-
-    instanceCheckboxes.forEach(checkbox => {
-        checkbox.checked = selectAllCheckbox.checked;
+    const selectAllCheckbox = selectOne('#selectAll');
+    const instanceCheckboxes = select('.instance-checkbox');
+    if (!selectAllCheckbox.length || !instanceCheckboxes.length) {
+        return;
+    }
+    const checked = selectAllCheckbox.first().checked;
+    instanceCheckboxes.each((checkbox) => {
+        checkbox.checked = checked;
     });
 
     updateBatchButtons();
 }
 
 function updateBatchButtons() {
-    const selectedCheckboxes = document.querySelectorAll('.instance-checkbox:checked');
-    const batchDeleteBtn = document.getElementById('batchDeleteBtn');
-    const batchTestBtn = document.getElementById('batchTestBtn');
+    const selectedCount = (select('.instance-checkbox:checked').length) || 0;
+    const batchDeleteBtn = selectOne('#batchDeleteBtn');
+    const batchTestBtn = selectOne('#batchTestBtn');
 
-    if (batchDeleteBtn) {
-        if (selectedCheckboxes.length > 0) {
-            batchDeleteBtn.disabled = false;
-            batchDeleteBtn.textContent = `批量删除 (${selectedCheckboxes.length})`;
-        } else {
-            batchDeleteBtn.disabled = true;
-            batchDeleteBtn.textContent = '批量删除';
-        }
+    if (batchDeleteBtn.length) {
+        batchDeleteBtn.attr('disabled', selectedCount === 0 ? 'disabled' : null);
+        batchDeleteBtn.text(selectedCount > 0 ? `批量删除 (${selectedCount})` : '批量删除');
     }
     
-    // 更新批量测试连接按钮状态
-    if (batchTestBtn) {
-        if (selectedCheckboxes.length > 0) {
-            batchTestBtn.disabled = false;
-            batchTestBtn.textContent = `批量测试连接 (${selectedCheckboxes.length})`;
-        } else {
-            batchTestBtn.disabled = true;
-            batchTestBtn.textContent = '批量测试连接';
-        }
+    if (batchTestBtn.length) {
+        batchTestBtn.attr('disabled', selectedCount === 0 ? 'disabled' : null);
+        batchTestBtn.text(selectedCount > 0 ? `批量测试连接 (${selectedCount})` : '批量测试连接');
     }
 }
 
 function batchDelete() {
-    const selectedCheckboxes = document.querySelectorAll('.instance-checkbox:checked');
-    const instanceIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+    const selectedCheckboxes = select('.instance-checkbox:checked').nodes || [];
+    const instanceIds = selectedCheckboxes
+        .map((cb) => parseInt(cb.value, 10))
+        .filter((id) => !Number.isNaN(id));
 
     if (instanceIds.length === 0) {
         toast.warning('请选择要删除的实例');
@@ -517,7 +520,7 @@ function batchDelete() {
     btn.textContent = '删除中...';
     btn.disabled = true;
 
-    http.post('/instances/api/batch-delete', { instance_ids: instanceIds })
+    httpU.post('/instances/api/batch-delete', { instance_ids: instanceIds })
     .then(data => {
         if (data.success) {
             // 记录成功日志
@@ -624,7 +627,7 @@ function submitFileUpload() {
     btn.textContent = '创建中...';
     btn.disabled = true;
 
-    http.post('/instances/api/batch-create', formData, {
+    httpU.post('/instances/api/batch-create', formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
         }

@@ -1,6 +1,14 @@
 (function (window) {
   "use strict";
 
+  const helpers = window.DOMHelpers;
+  if (!helpers) {
+    console.error("DOMHelpers 未初始化，无法更新容量统计卡片");
+    return;
+  }
+
+  const { selectOne } = helpers;
+
   const defaultFormatters = {
     number(value) {
       return window.NumberFormat.formatInteger(value, { fallback: "0" });
@@ -41,8 +49,8 @@
       if (!definition || !definition.selector) {
         return;
       }
-      const element = document.querySelector(definition.selector);
-      if (!element) {
+      const element = selectOne(definition.selector);
+      if (!element.length) {
         return;
       }
       const formatter = resolveFormatter(definition);
@@ -50,7 +58,7 @@
       if (definition.resolve) {
         value = definition.resolve(summary);
       }
-      element.textContent = formatter(value);
+      element.text(formatter(value));
     });
   }
 
