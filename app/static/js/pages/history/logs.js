@@ -3,12 +3,79 @@
  * 处理日志搜索、筛选、分页、详情查看等功能
  */
 
+const LodashUtils = window.LodashUtils;
+if (!LodashUtils) {
+    throw new Error("LodashUtils 未初始化");
+}
+
 const LOG_FILTER_FORM_ID = "logs-filter-form";
 const AUTO_APPLY_FILTER_CHANGE = true;
 
 let currentPage = 1;
 let currentFilters = {};
 let logFilterEventHandler = null;
+
+function normalizeText(value) {
+    if (typeof value !== "string") {
+        return "";
+    }
+    return value.trim().toLowerCase();
+}
+
+function hasMeaningfulValue(value) {
+    if (value === undefined || value === null) {
+        return false;
+    }
+    if (typeof value === "string") {
+        return value.trim() !== "";
+    }
+    if (Array.isArray(value)) {
+        return value.length > 0;
+    }
+    return true;
+}
+
+function prepareModuleOptions(modules) {
+    const collection = Array.isArray(modules) ? modules : [];
+    const compacted = LodashUtils.compact(collection);
+    const uniqueModules = LodashUtils.uniq(compacted);
+    return LodashUtils.orderBy(uniqueModules, [normalizeText], ["asc"]);
+}
+
+function buildFilterParams(rawValues) {
+    const sourceValues = rawValues && Object.keys(rawValues || {}).length
+        ? rawValues
+        : collectFormValues(document.getElementById(LOG_FILTER_FORM_ID));
+    const timeRangeValue = sourceValues?.time_range || sourceValues?.timeRange || "";
+    const hoursValue = sourceValues?.hours || (timeRangeValue ? getHoursFromTimeRange(timeRangeValue) : undefined);
+
+    const candidate = {
+        level: sourceValues?.level,
+        module: sourceValues?.module,
+        q: sourceValues?.search || sourceValues?.q,
+        hours: hoursValue,
+    };
+
+    const result = {};
+    Object.entries(candidate).forEach(([key, value]) => {
+        if (hasMeaningfulValue(value)) {
+            result[key] = typeof value === "string" ? value.trim() : value;
+        }
+    });
+
+    if (!hasMeaningfulValue(result.hours)) {
+        result.hours = 24;
+    }
+
+    return result;
+}
+
+function ensureCurrentFilters() {
+    if (!Object.keys(currentFilters).length) {
+        currentFilters = buildFilterParams();
+    }
+    return currentFilters;
+}
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function () {
@@ -64,7 +131,7 @@ function updateModuleFilter(modules) {
         return;
     }
 
-    const options = modules || [];
+    const options = prepareModuleOptions(modules);
     const previousValue = moduleSelect.value;
 
     if (moduleSelect.tomselect) {
@@ -72,8 +139,8 @@ function updateModuleFilter(modules) {
         const currentValue = ts.getValue();
         ts.clearOptions();
         ts.addOption({ value: '', text: '全部模块' });
-        options.forEach((module) => {
-            ts.addOption({ value: module, text: module });
+        options.forEach((moduleName) => {
+            ts.addOption({ value: moduleName, text: moduleName });
         });
         ts.refreshOptions(false);
         if (currentValue && options.includes(currentValue)) {
@@ -83,10 +150,10 @@ function updateModuleFilter(modules) {
         }
     } else {
         moduleSelect.innerHTML = '<option value="">全部模块</option>';
-        options.forEach((module) => {
+        options.forEach((moduleName) => {
             const option = document.createElement('option');
-            option.value = module;
-            option.textContent = module;
+            option.value = moduleName;
+            option.textContent = moduleName;
             moduleSelect.appendChild(option);
         });
         if (previousValue && options.includes(previousValue)) {
@@ -97,23 +164,8 @@ function updateModuleFilter(modules) {
 
 // 加载统计信息
 function loadStats() {
-    // 构建查询参数，包含当前的筛选条件
-    const params = new URLSearchParams();
-
-    // 获取当前筛选条件
-    const levelEl = document.getElementById('level');
-    const moduleEl = document.getElementById('module');
-    const searchEl = document.getElementById('search');
-    const timeRangeEl = document.getElementById('time_range');
-
-    if (levelEl && levelEl.value) params.append('level', levelEl.value);
-    if (moduleEl && moduleEl.value) params.append('module', moduleEl.value);
-    if (searchEl && searchEl.value) params.append('q', searchEl.value);
-    if (timeRangeEl && timeRangeEl.value) {
-        // 将时间范围转换为小时数
-        const hours = getHoursFromTimeRange(timeRangeEl.value);
-        if (hours) params.append('hours', hours);
-    }
+    const filters = ensureCurrentFilters();
+    const params = buildLogQueryParams({ ...filters });
 
     http.get(`/logs/api/stats?${params.toString()}`)
         .then(data => {
@@ -163,33 +215,14 @@ function updateStatsDisplay(stats) {
 // 搜索日志
 function searchLogs(page = 1) {
     currentPage = page;
-
-    // 如果currentFilters为空，从DOM元素获取（兼容旧代码）
-    if (Object.keys(currentFilters).length === 0) {
-        const levelFilter = document.getElementById('level');
-        const moduleFilter = document.getElementById('module');
-        const searchInput = document.getElementById('search');
-        const timeRange = document.getElementById('time_range');
-
-        currentFilters = {
-            level: levelFilter ? levelFilter.value : '',
-            module: moduleFilter ? moduleFilter.value : '',
-            q: searchInput ? searchInput.value : '',
-            hours: timeRange ? getHoursFromTimeRange(timeRange.value) : 24
-        };
-    }
+    const filters = ensureCurrentFilters();
 
     // 构建查询参数
-    const params = new URLSearchParams();
-    params.append('page', page);
-    params.append('per_page', '20');
-
-    // 添加筛选条件
-    if (currentFilters.level) params.append('level', currentFilters.level);
-    if (currentFilters.module) params.append('module', currentFilters.module);
-    if (currentFilters.q) params.append('q', currentFilters.q);
-    if (currentFilters.hours) params.append('hours', currentFilters.hours);
-
+    const params = buildLogQueryParams({
+        ...filters,
+        page,
+        per_page: 20,
+    });
 
     // 显示加载状态
     showLoadingState();
@@ -227,9 +260,10 @@ function displayLogs(logs) {
         return;
     }
 
+    const filters = ensureCurrentFilters();
     let html = '<div class="logs-wrapper">';
     logs.forEach(log => {
-        html += createLogEntryHTML(log);
+        html += createLogEntryHTML(log, filters.q);
     });
     html += '</div>';
 
@@ -237,12 +271,12 @@ function displayLogs(logs) {
 }
 
 // 创建日志条目HTML
-function createLogEntryHTML(log) {
+function createLogEntryHTML(log, searchTerm) {
     const levelClass = `log-level-${log.level}`;
     const levelBadge = getLevelBadgeHTML(log.level);
     const moduleBadge = log.module ? `<span class="module-badge">${log.module}</span>` : '<span class="module-badge empty">-</span>';
     const timestamp = timeUtils.formatTime(log.timestamp, 'datetime');
-    const message = highlightSearchTerm(log.message, currentFilters.q);
+    const message = highlightSearchTerm(log.message, searchTerm);
 
     return `
         <div class="log-entry ${levelClass}" onclick="viewLogDetail(${log.id})">
@@ -276,10 +310,22 @@ function getLevelBadgeHTML(level) {
 
 // 高亮搜索词
 function highlightSearchTerm(text, searchTerm) {
-    if (!searchTerm) return text;
-
-    const regex = new RegExp(`(${searchTerm})`, 'gi');
-    return text.replace(regex, '<span class="search-highlight">$1</span>');
+    if (!searchTerm) {
+        return text;
+    }
+    const normalizedText = text == null ? '' : String(text);
+    const trimmed = searchTerm.trim();
+    if (!trimmed) {
+        return normalizedText;
+    }
+    const escaped = typeof LodashUtils.escapeRegExp === 'function'
+        ? LodashUtils.escapeRegExp(trimmed)
+        : trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (!escaped) {
+        return normalizedText;
+    }
+    const regex = new RegExp(`(${escaped})`, 'gi');
+    return normalizedText.replace(regex, '<span class="search-highlight">$1</span>');
 }
 
 // 显示分页
@@ -612,24 +658,32 @@ function cleanupLogFilters() {
     logFilterEventHandler = null;
 }
 
-function applyLogFilters(form, values) {
+  function applyLogFilters(form, values) {
     const targetForm = form || document.getElementById(LOG_FILTER_FORM_ID);
     if (!targetForm) {
         return;
     }
     const data = values && Object.keys(values || {}).length ? values : collectFormValues(targetForm);
-    const timeRange = data.time_range || "1d";
-    const hours = getHoursFromTimeRange(timeRange);
-    currentFilters = {
-        level: data.level || "",
-        module: data.module || "",
-        q: data.search || data.q || "",
-        hours: hours || 24,
-    };
+    currentFilters = buildFilterParams(data);
     currentPage = 1;
     loadStats();
     searchLogs(1);
-}
+  }
+
+  function buildLogQueryParams(filters) {
+    const params = new URLSearchParams();
+    Object.entries(filters || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) {
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.forEach((item) => params.append(key, item));
+      } else {
+        params.append(key, value);
+      }
+    });
+    return params;
+  }
 
 function resetLogFilters(form) {
     const targetForm = form || document.getElementById(LOG_FILTER_FORM_ID);

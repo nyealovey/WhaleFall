@@ -3,6 +3,35 @@
  * 基于 Chart.js 4.4.0 和 jQuery 3.7.1
  */
 
+const LodashUtils = window.LodashUtils;
+if (!LodashUtils) {
+    throw new Error('LodashUtils 未初始化');
+}
+
+function buildChartQueryParams(values) {
+    const params = new URLSearchParams();
+    Object.entries(values || {}).forEach(([key, value]) => {
+        if (value === undefined || value === null) {
+            return;
+        }
+        if (Array.isArray(value)) {
+            value.forEach((item) => {
+                if (item !== undefined && item !== null) {
+                    params.append(key, item);
+                }
+            });
+        } else if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (trimmed !== '') {
+                params.append(key, trimmed);
+            }
+        } else {
+            params.append(key, value);
+        }
+    });
+    return params;
+}
+
 class AggregationsChartManager {
     constructor() {
         this.chart = null;
@@ -182,9 +211,9 @@ class AggregationsChartManager {
         this.showChartLoading(true);
         
         try {
-            const params = new URLSearchParams({
+            const params = buildChartQueryParams({
                 period_type: this.currentPeriodType,
-                days: 7
+                days: 7,
             });
             
             const raw = await http.get(`/partition/api/aggregations/core-metrics?${params}`);
@@ -356,19 +385,18 @@ class AggregationsChartManager {
         
         // 按日期分组数据
         const groupedData = this.groupDataByDate(data);
-        const labels = Object.keys(groupedData).sort();
-        
-        // 收集所有数据库名称
-        const allDatabases = new Set();
-        Object.values(groupedData).forEach(dateData => {
-            Object.keys(dateData).forEach(dbName => {
-                allDatabases.add(dbName);
-            });
-        });
-        
+        const labels = LodashUtils.sortBy(Object.keys(groupedData || {}));
+
+        // 收集所有数据库名称并保持唯一
+        const allDatabases = LodashUtils.uniq(
+            LodashUtils.flatMap(Object.values(groupedData || {}), (dateData) =>
+                Object.keys(dateData || {})
+            )
+        );
+
         const datasets = [];
         let colorIndex = 0;
-        
+
         // 为每个数据库创建数据集
         allDatabases.forEach(dbName => {
             const dataPoints = labels.map(date => groupedData[date][dbName] || 0);
@@ -454,7 +482,9 @@ class AggregationsChartManager {
         }
         
         // 统一使用period_end作为日期显示
-        const dates = data.map(item => item.period_end).filter(Boolean).sort();
+        const dates = LodashUtils.sortBy(
+            LodashUtils.compact(data.map(item => item.period_end))
+        );
         const dataPointCount = data.length;
         
         let timeRange = '-';
