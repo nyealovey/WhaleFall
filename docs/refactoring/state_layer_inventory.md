@@ -23,7 +23,7 @@ app/static/js/modules/
     ├── partition_store.js
     └── credentials_store.js
 ```
-- **文件名**：snake_case；**导出**：`createXStore()` 或 `XStore`（CapWords），遵守命名规范指南。日后若 store 数量继续扩张，再考虑子目录分层。
+- **文件名**：snake_case；**导出**：`createXStore()` 或 `XStore`（CapWords），遵守命名规范指南。`stores/` 目录保持扁平，不新增子目录，通过文件名体现领域。
 - **Store 公共 README**：创建 `app/static/js/modules/stores/README.md`，记录编码规范（状态字段命名、订阅 API、Mitt 使用方式等）。
 
 ## 3. Store 设计约定
@@ -46,14 +46,14 @@ app/static/js/modules/
 
 | 优先级 | Store | 覆盖范围 | 主要状态/动作 | 进度 |
 | --- | --- | --- | --- | --- |
-| S1-1 | **SyncSessionsStore** | `pages/history/sync_sessions.js` | `sessions`, `filters`, `pagination`, `autoRefresh`; actions：`loadSessions`、`cancelSession`、`viewDetail` | ⏳ 规划 |
-| S1-2 | **TagManagementStore** | `components/tag_selector.js`, `pages/tags/batch_assign.js`, `pages/tags/index.js`, `pages/accounts/list.js` | 标签/分类/实例数据、已选项；actions：`loadTags`、`applySelection`、`batchAssign`、`batchDelete` | ⏳ 规划 |
-| S1-3 | **AccountClassificationStore** | `pages/accounts/account_classification.js`, `common/permission_policy_center.js` | `classifications`, `rules`, `permissions`, `stats`; actions：CRUD、`loadPermissions`、`autoClassify` | ⏳ 规划 |
-| S1-4 | **SchedulerStore** | `pages/admin/scheduler.js` | `currentJobs`, `filters`, `modalState`; actions：`loadJobs`、`resumeJob`、`pauseJob`、`runJob`、`updateJob` | ⏳ 规划 |
-| S1-5 | **InstanceStore**（可拆三子 store） | `pages/instances/detail.js`, `pages/instances/list.js`, `pages/instances/statistics.js`, `pages/accounts/list.js` | 实例/账户/容量/批量状态；actions：`syncAccounts`、`syncCapacity`、`batchDelete`、`batchCreate`、`loadStats` | ⏳ 规划 |
-| S1-6 | **LogsStore** | `pages/history/logs.js` | `modules`, `filters`, `logs`, `pagination`; actions：`loadModules`、`loadStats`、`searchLogs`、`loadDetail` | ⏳ 规划 |
-| S1-7 | **PartitionStore** | `pages/admin/partitions.js`, `pages/admin/aggregations_chart.js` | `partitions`, `stats`, `charts`; actions：`loadInfo`、`createPartition`、`cleanupPartitions`、`loadCoreMetrics` | ⏳ 规划 |
-| S1-8 | **CredentialsStore** | `pages/credentials/list.js` | `credentials`, `filters`, `modalState`; actions：`deleteCredential`、`loadList` | ⏳ 规划 |
+| S1-1 | **SyncSessionsStore** | `pages/history/sync_sessions.js` | `sessions`, `filters`, `pagination`, `autoRefresh`; actions：`loadSessions`、`cancelSession`、`viewDetail` | ✅ 已完成 |
+| S1-2 | **TagManagementStore** | `components/tag_selector.js`, `pages/tags/batch_assign.js`, `pages/tags/index.js`, `pages/accounts/list.js` | 标签/分类/实例数据、已选项；actions：`loadTags`、`applySelection`、`batchAssign`、`batchDelete` | ✅ 已完成（TagSelector/批量分配/标签列表全量走 store） |
+| S1-3 | **AccountClassificationStore** | `pages/accounts/account_classification.js`, `common/permission_policy_center.js` | `classifications`, `rules`, `permissions`, `stats`; actions：CRUD、`loadPermissions`、`autoClassify` | ✅ 已完成（页面创建/更新/删除/自动分类均走 store） |
+| S1-4 | **SchedulerStore** | `pages/admin/scheduler.js` | `currentJobs`, `filters`, `modalState`; actions：`loadJobs`、`resumeJob`、`pauseJob`、`runJob`、`updateJob` | ✅ 已完成 |
+| S1-5 | **InstanceStore**（可拆三子 store） | `pages/instances/detail.js`, `pages/instances/list.js`, `pages/instances/statistics.js`, `pages/accounts/list.js` | 实例/账户/容量/批量状态；actions：`syncAccounts`、`syncCapacity`、`batchDelete`、`batchCreate`、`loadStats` | ✅ 已完成（列表/详情/统计页面和账户列表同步均走 store） |
+| S1-6 | **LogsStore** | `pages/history/logs.js` | `modules`, `filters`, `logs`, `pagination`; actions：`loadModules`、`loadStats`、`searchLogs`、`loadDetail` | ✅ 已完成 |
+| S1-7 | **PartitionStore** | `pages/admin/partitions.js`, `pages/admin/aggregations_chart.js` | `partitions`, `stats`, `charts`; actions：`loadInfo`、`createPartition`、`cleanupPartitions`、`loadCoreMetrics` | ✅ 已完成（管理页 + 核心指标图表共用同一 store） |
+| S1-8 | **CredentialsStore** | `pages/credentials/list.js` | `credentials`, `filters`, `modalState`; actions：`deleteCredential`、`loadList` | ✅ 已完成（列表/删除接入 Store） |
 
 > 说明：表格列举的是当前需要迁移到 Store 的页面/组件。落地过程中可依据场景复杂度拆细（例如 InstanceStore 拆成 detail/list/statistics 子 store）。
 
@@ -73,7 +73,7 @@ app/static/js/modules/
 
 ## 6. Store 示例
 ```js
-// app/static/js/modules/stores/history/sync_sessions_store.js
+// app/static/js/modules/stores/sync_sessions_store.js
 import mitt from 'mitt';
 
 export function createSyncSessionsStore({ service, emitter = mitt() }) {
