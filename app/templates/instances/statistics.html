@@ -267,7 +267,9 @@
 <!-- 引入 Chart.js -->
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/instances/statistics.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/instance_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/instances/statistics.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap/instances/statistics.js') }}"></script>
 <!-- 将版本统计数据传递给JavaScript -->
 <script>
     window.versionStats = {{ stats.version_stats | tojson }};

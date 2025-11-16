@@ -14,3 +14,8 @@ Store 的职责：
 
 在添加新 store 前，请更新 `docs/refactoring/state_layer_inventory.md`，同步迁移进度。
 
+## 事件命名示例
+
+- 会话、日志等场景沿用 `<domain>:<action>` 约定，例如 `syncSessions:updated`、`logs:error`。
+- 实例相关事件使用 `instances:*` 前缀（如 `instances:selectionChanged`, `instances:batchDelete:success`），确保批量操作/同步事件在不同页面中保持一致。
+- 分区/聚合场景使用 `partitions:*`，例如 `partitions:infoUpdated`、`partitions:metricsUpdated`、`partitions:create:success`。

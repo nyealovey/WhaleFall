@@ -1,28 +1,6 @@
 {% macro filter_card(form_id='filter-form', action='', method='GET', submit_label='筛选', clear_label='清除', extra_classes='', auto_register=True) -%}
-<div class="card filter-card {{ extra_classes }}">
-    <div class="card-body">
-        <form id="{{ form_id }}"
-              method="{{ method }}"
-              action="{{ action }}"
-              class="filter-form"
-              data-filter-auto="{{ 'true' if auto_register else 'false' }}"
-              novalidate>
-            <div class="row g-3 align-items-end">
-                {{ caller() }}
-                <div class="col-2">
-                    <div class="filter-actions">
-                        <button type="submit" class="btn btn-primary" data-filter-submit>
-                            <i class="fas fa-filter me-1"></i>{{ submit_label }}
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" data-filter-clear>
-                            <i class="fas fa-times me-1"></i>{{ clear_label }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+    {% set fields = caller() %}
+    {% include 'components/ui/filter_card.html' %}
 {%- endmacro %}
 
 {% macro search_input(label='搜索', field_id='search', field_name='search', placeholder='搜索关键词', value='', col_class='col-3') -%}
