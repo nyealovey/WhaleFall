@@ -43,14 +43,16 @@ app/static/js/modules/
 
 ## 4. 视图层清单
 
-| 优先级 | 页面 / 组件 | 说明 | Store / Service 依赖 | 进度 |
+| 优先级 | 页面 / 组件 | 已落地视图 | Store / Service 依赖 | 进度 |
 | --- | --- | --- | --- | --- |
-| V1-1 | **SyncSessionsPage** | 列表、分页、详情模态分拆为 view 组件，入口仅负责初始化。 | `SyncSessionsStore`, `SyncSessionsService` | ⏳ 规划 |
-| V1-2 | **TagManagementViews** | 标签列表、批量操作面板、TagSelector 重构为 view 组件，可被 accounts/tags 页面复用。 | `TagManagementStore`, `TagManagementService` | ⏳ 规划 |
-| V1-3 | **AccountClassificationViews** | 分类列表、规则表格、权限配置区拆分，入口仅 glue store + 组件。 | `AccountClassificationStore`, `AccountClassificationService` | ⏳ 规划 |
-| V1-4 | **SchedulerViews** | job card、统计面板、编辑/新增模态统一封装，去除 jQuery 依赖。 | `SchedulerStore`, `SchedulerService` | ⏳ 规划 |
-| V1-5 | **InstanceViews** | 实例列表/详情/统计图表拆解，复用连接按钮、同步按钮等子组件。 | `InstanceStore`, `InstanceManagementService` | ⏳ 规划 |
-| V1-6 | **LogsViews** | 模块下拉、统计卡、日志表格、详情抽屉拆开，方便单独复用。 | `LogsStore`, `LogsService` | ⏳ 规划 |
+| V1-1 | **SyncSessionsPage** | `modules/views/history/sync_sessions.js` + `bootstrap/history/sync-sessions.js` 负责列表/分页/模态，模板已接入。 | `SyncSessionsStore`, `SyncSessionsService` | ✅ 视图层完成；待后续将校验/过滤面板完全模块化。 |
+| V1-2 | **TagManagementViews** | 标签列表（`tags/index.js`）、标签表单（`tags/form.js`）、批量分配（`tags/batch_assign.js`）及 TagSelector 组件均在 `modules/views/`；账户列表页面也复用该视图。 | `TagManagementStore`, `TagManagementService` | ✅ 完成；仍依赖全局 FormValidator，未来需改为局部校验。 |
+| V1-3 | **AccountClassificationViews** | `accounts/account-classification/index.js`、`accounts/classifications/form.js`、`accounts/classification-rules/form.js` 全量迁移。 | `AccountClassificationStore`, `AccountClassificationService` | ✅ 完成；权限配置区已模块化，需继续清理旧权限组件对全局脚本的依赖。 |
+| V1-4 | **SchedulerViews** | `modules/views/admin/scheduler.js`（任务列表/模态）和 `admin/aggregations-chart.js`（统计卡片）覆盖全部交互。 | `SchedulerStore`, `SchedulerService`, `PartitionStore/Service` | ✅ 完成；下一步是把表单校验局部化、减少全局脚本。 |
+| V1-5 | **InstanceViews** | `instances/list.js`、`instances/detail.js`、`instances/statistics.js` 已拆分；账户列表复用其中的按钮/模态。 | `InstanceStore`, `InstanceManagementService`, `ConnectionService` | ✅ 完成；部分表单仍引用全局 FormValidator，需要逐步替换。 |
+| V1-6 | **LogsViews** | `modules/views/history/logs.js` 负责模块筛选、统计卡、日志表格与详情抽屉。 | `LogsStore`, `LogsService` | ✅ 完成；后续可考虑进一步拆成子视图以支持按需加载。 |
+| V1-7 | **Credentials/Users/Auth** | 凭据（`credentials/form.js`, `list.js`）、用户表单（`users/form.js`）、登录/改密（`auth/login.js`, `auth/change_password.js`）均已迁移至视图层。 | 各自对应的 Store/Service（`CredentialsStore`、`PermissionService` 等） | ✅ 完成；与其它视图一样，校验逻辑尚依赖全局封装。 |
+| V1-8 | **仪表盘 / 容量统计** | `dashboard/overview.js`、`capacity-stats/*.js` 负责渲染统计卡片与图表，入口脚本瘦身。 | `DashboardService`, `CapacityStatsService` | ✅ 完成；命名已改为 kebab-case，后续可拆出更细粒度组件。 |
 
 > 说明：视图层迁移需在对应 store 准备就绪后进行，表格中 Store/Service 即依赖项。
 
@@ -72,3 +74,11 @@ app/static/js/modules/
 - 选择首个试点页面（建议 SyncSessions 或 TagManagement），实现 store + view 的全链路，验证模式。
 - 结合构建工具（未来引入 Vite/ESM）进一步优化加载与按需渲染。
 
+## 8. 近期进展（2025-11）
+- **命名规范**：容量统计、账户分类、标签等视图脚本与样式已全部切换为 kebab-case，并同步更新模板引用，避免旧路径混用。
+- **权限组件**：`PermissionViewer`/`PermissionModal` 不再在 `base.html` 全局注入，仅在账户列表与实例详情页面按需加载，减少无用脚本。
+- **UI 组件化**：FilterCard 已替换所有筛选列表，`UI.createModal` + `components/ui/modal.html` 当前试点部署在凭据删除、标签删除与日志详情后端，下一步扩展到会话、实例等模态；进度记录同步到 `docs/refactoring/ui_componentization_plan.md`，方便每次推广都有文档依据。
+- **校验脚本**：`form-validator.js`、`validation-rules.js` 仍由 `base.html` 注入；正在评估将各视图内联改为模块化 JustValidate 实例，以便逐步弃用全局校验文件。
+- **公共目录收敛**：原 `js/utils/` 已移除，其内容并入 `js/common/`，`core/` 保持承载基础封装（DOMHelpers、http-u、ResourceFormController）。
+
+> 后续行动：逐步将上述依赖全局校验器的视图（实例/凭据/标签/调度/账户分类等）改为在各自模块内部创建 JustValidate 实例，完成后即可删除 `common/form-validator.js` 与 `validation-rules.js` 的全局注入，并在本清单中更新状态。
