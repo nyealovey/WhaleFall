@@ -27,7 +27,7 @@
     <!-- Tom Select 样式 -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select/tom-select.bootstrap5.min.css') }}">
     <!-- 筛选组件通用样式 -->
-    <link href="{{ url_for('static', filename='css/components/filters/filter_common.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/components/filters/filter-common.css') }}" rel="stylesheet">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -236,20 +236,19 @@
     
     <script src="{{ url_for('static', filename='js/common/toast.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/just-validate/just-validate.production.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/utils/form-validator.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/utils/validation-rules.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common/form-validator.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common/validation-rules.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/csrf-utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/time-utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/resource-form-controller.js') }}"></script>
     <!-- 引入 Tom Select -->
     <script src="{{ url_for('static', filename='vendor/tom-select/tom-select.complete.min.js') }}"></script>
     <!-- 筛选组件通用脚本 -->
-    <script src="{{ url_for('static', filename='js/components/filters/filter_utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/ui/filter-card.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/ui/modal.js') }}"></script>
 
     <!-- 权限查看组件 -->
     <script src="{{ url_for('static', filename='js/modules/services/permission_service.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/common/permission-viewer.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/common/permission-modal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/permission-button.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/services/connection_service.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/connection-manager.js') }}"></script>
