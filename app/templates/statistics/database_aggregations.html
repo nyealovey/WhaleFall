@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, database_filter, period_type_filter %}
+{% from 'components/ui/macros.html' import stats_card %}
 
 {% block title %}容量统计(数据库) - 数据库大小监控{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/capacity_stats/database_aggregations.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/capacity-stats/database-aggregations.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -42,68 +43,11 @@
 
     <!-- 统计概览 -->
     <div class="row mb-4">
-        <div class="col-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="card-title">总数据库数</h6>
-                            <h3 class="mb-0" id="totalDatabases">-</h3>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-database fa-2x opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="card-title">总容量</h6>
-                            <h3 class="mb-0" id="totalCapacity">-</h3>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-hdd fa-2x opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="card-title">平均容量</h6>
-                            <h3 class="mb-0" id="averageSize">-</h3>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-chart-line fa-2x opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="card-title">最大容量</h6>
-                            <h3 class="mb-0" id="maxSize">-</h3>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-expand-arrows-alt fa-2x opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {{ stats_card('总数据库数', 'totalDatabases', 'fas fa-database', 'bg-primary text-white') }}
+        {{ stats_card('总容量', 'totalCapacity', 'fas fa-hdd', 'bg-success text-white') }}
+        {{ stats_card('平均容量', 'averageSize', 'fas fa-chart-line', 'bg-info text-white') }}
+        {{ stats_card('最大容量', 'maxSize', 'fas fa-expand-arrows-alt', 'bg-warning text-white') }}
     </div>
-
     <!-- 容量统计趋势图 -->
     <div class="row mb-4">
         <div class="col-12">
@@ -321,11 +265,12 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/capacity_stats_service.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity_stats/data_source.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity_stats/transformers.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity_stats/summary_cards.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity_stats/filters.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity_stats/chart_renderer.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity_stats/manager.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/capacity_stats/database_aggregations.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity-stats/data-source.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity-stats/transformers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity-stats/summary-cards.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity-stats/filters.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity-stats/chart-renderer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/capacity-stats/manager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/capacity-stats/database_aggregations.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap/capacity-stats/database-aggregations.js') }}"></script>
 {% endblock %}
