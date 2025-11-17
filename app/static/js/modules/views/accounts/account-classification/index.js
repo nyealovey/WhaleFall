@@ -56,8 +56,8 @@ function mountAccountClassificationPage(window, document) {
         createRule: null,
     };
 
-    document.addEventListener('DOMContentLoaded', function onReady() {
-        debugLog('DOM Ready，开始初始化页面');
+    function startPageInitialization() {
+        debugLog('开始初始化账户分类页面');
         initializeModals();
         setupColorPreviewListeners();
         setupGlobalSearchListener();
@@ -76,7 +76,13 @@ function mountAccountClassificationPage(window, document) {
         loadPermissions().catch(error => {
             debugLog('权限配置加载失败', error);
         });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startPageInitialization, { once: true });
+    } else {
+        startPageInitialization();
+    }
 
     function initializeModals() {
         const factory = window.UI?.createModal;
