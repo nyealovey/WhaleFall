@@ -71,7 +71,17 @@
         <i class="fas fa-copy me-2"></i>复制详情
     </button>
 {% endset %}
-{% include 'components/ui/modal.html' with modal_id='logDetailModal' modal_label_id='logDetailModalLabel' title='<i class="fas fa-info-circle me-2"></i>日志详情' body=log_modal_body footer=log_modal_footer modal_class='log-detail-modal' dialog_class='modal-xl modal-dialog-scrollable' %}
+{% with
+    modal_id='logDetailModal',
+    modal_label_id='logDetailModalLabel',
+    title='<i class="fas fa-info-circle me-2"></i>日志详情',
+    body=log_modal_body,
+    footer=log_modal_footer,
+    modal_class='log-detail-modal',
+    dialog_class='modal-xl modal-dialog-scrollable'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 {% endblock %}
 
 {% block extra_js %}

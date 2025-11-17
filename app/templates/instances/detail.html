@@ -678,19 +678,22 @@
 {% include 'components/permission_modal.html' %}
 
 <!-- 变更历史模态框 -->
-<div class="modal fade" id="historyModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">变更历史</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="historyContent"></div>
-            </div>
-        </div>
-    </div>
-</div>
+{% set history_modal_body %}
+    <div id="historyContent"></div>
+{% endset %}
+{% set history_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>关闭</button>
+{% endset %}
+{% with
+    modal_id='historyModal',
+    modal_label_id='historyModalLabel',
+    title='变更历史',
+    body=history_modal_body,
+    footer=history_modal_footer,
+    size='lg'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 {% endblock %}
 
 {% block extra_css %}

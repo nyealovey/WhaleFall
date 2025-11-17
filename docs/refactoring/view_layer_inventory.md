@@ -77,7 +77,7 @@ app/static/js/modules/
 ## 8. 近期进展（2025-11）
 - **命名规范**：容量统计、账户分类、标签等视图脚本与样式已全部切换为 kebab-case，并同步更新模板引用，避免旧路径混用。
 - **权限组件**：`PermissionViewer`/`PermissionModal` 不再在 `base.html` 全局注入，仅在账户列表与实例详情页面按需加载，减少无用脚本。
-- **UI 组件化**：FilterCard 已替换所有筛选列表，`UI.createModal` + `components/ui/modal.html` 当前试点部署在凭据删除、标签删除与日志详情后端，下一步扩展到会话、实例等模态；进度记录同步到 `docs/refactoring/ui_componentization_plan.md`，方便每次推广都有文档依据。
+- **UI 组件化**：FilterCard 已替换所有筛选列表，`UI.createModal` + `components/ui/modal.html` 已在凭据删除、标签删除、日志详情、实例批量创建与同步会话详情/错误日志场景落地，下一步继续扩展实例详情等模态；进度记录同步到 `docs/refactoring/ui_componentization_plan.md`，方便每次推广都有文档依据。
 - **校验脚本**：`form-validator.js`、`validation-rules.js` 仍由 `base.html` 注入；正在评估将各视图内联改为模块化 JustValidate 实例，以便逐步弃用全局校验文件。
 - **公共目录收敛**：原 `js/utils/` 已移除，其内容并入 `js/common/`，`core/` 保持承载基础封装（DOMHelpers、http-u、ResourceFormController）。
 
