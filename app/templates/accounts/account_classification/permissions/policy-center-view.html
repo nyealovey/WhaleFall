@@ -1,0 +1,62 @@
+{# 权限配置视图模板（嵌入在分类规则表单/模态中） #}
+<div class="permission-policy-center" id="{{ permissions_id|default('permissionsConfig') }}">
+  <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+    <i class="fas fa-info-circle"></i>
+    <span>请选择数据库类型后加载对应的权限项，勾选需要匹配的权限。</span>
+  </div>
+
+  <div class="row">
+    <div class="col-6">
+      <div class="permission-group">
+        <h6 class="text-uppercase text-muted">
+          <i class="fas fa-globe-asia me-2 text-primary"></i>全局权限
+        </h6>
+        <ul class="list-unstyled mt-2">
+          {# 这里的具体权限项可通过 JS 注入；占位符展示一些示例 #}
+          <li class="d-flex align-items-center mb-2">
+            <input class="form-check-input me-2" type="checkbox" disabled>
+            <div>
+              <strong>ALTER</strong>
+              <div class="text-muted small">修改表结构</div>
+            </div>
+          </li>
+          <li class="d-flex align-items-center mb-2">
+            <input class="form-check-input me-2" type="checkbox" disabled>
+            <div>
+              <strong>CREATE USER</strong>
+              <div class="text-muted small">创建用户权限</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-6">
+      <div class="permission-group">
+        <h6 class="text-uppercase text-muted">
+          <i class="fas fa-database me-2 text-success"></i>数据库权限
+        </h6>
+        <ul class="list-unstyled mt-2">
+          <li class="d-flex align-items-center mb-2">
+            <input class="form-check-input me-2" type="checkbox" disabled>
+            <div>
+              <strong>CREATE</strong>
+              <div class="text-muted small">创建数据库和表</div>
+            </div>
+          </li>
+          <li class="d-flex align-items-center mb-2">
+            <input class="form-check-input me-2" type="checkbox" disabled>
+            <div>
+              <strong>DROP</strong>
+              <div class="text-muted small">删除数据库和表</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-muted small mt-3">
+    <i class="fas fa-info-circle me-1"></i>
+    实际权限项由 JavaScript 加载并渲染，此模板仅提供结构与样式占位。
+  </div>
+</div>

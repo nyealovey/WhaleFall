@@ -17,9 +17,6 @@
     if (!document) {
       throw new Error("classification-modals: document is required");
     }
-    if (!UI?.createModal) {
-      throw new Error("classification-modals: UI.createModal 未加载");
-    }
     if (!api) {
       throw new Error("classification-modals: api is required");
     }
@@ -34,6 +31,9 @@
     };
 
     function init() {
+      if (!UI?.createModal) {
+        throw new Error("classification-modals: UI.createModal 未加载");
+      }
       debug("初始化分类模态控制器");
       modals.create = UI.createModal({
         modalSelector: "#createClassificationModal",
@@ -221,18 +221,18 @@
     }
 
     function setupColorPreviewListeners() {
-      const createColorSelect = document.getElementById("classificationColor");
-      if (createColorSelect) {
-        createColorSelect.addEventListener("change", function () {
-          updateColorPreview("colorPreview", this);
-        });
+      bindColorPreview(document.getElementById("classificationColor"), "colorPreview");
+      bindColorPreview(document.getElementById("editClassificationColor"), "editColorPreview");
+    }
+
+    function bindColorPreview(selectElement, previewId) {
+      if (!selectElement || !previewId) {
+        return;
       }
-      const editColorSelect = document.getElementById("editClassificationColor");
-      if (editColorSelect) {
-        editColorSelect.addEventListener("change", function () {
-          updateColorPreview("editColorPreview", this);
-        });
-      }
+      selectElement.addEventListener("change", function () {
+        updateColorPreview(previewId, selectElement);
+      });
+      updateColorPreview(previewId, selectElement);
     }
 
     function updateColorPreview(previewId, selectElement) {

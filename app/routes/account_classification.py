@@ -52,7 +52,7 @@ def index() -> str:
     """账户分类管理首页"""
     # 传递颜色选项到模板
     color_options = ThemeColors.COLOR_MAP
-    return render_template("accounts/account_classification.html", color_options=color_options)
+    return render_template("accounts/account_classification/index.html", color_options=color_options)
 
 
 @account_classification_bp.route("/api/colors")
