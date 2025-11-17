@@ -2,6 +2,21 @@
 function mountAccountClassificationPage(window, document) {
     'use strict';
 
+    const debugEnabled = window.DEBUG_ACCOUNT_CLASSIFICATION ?? true;
+    window.DEBUG_ACCOUNT_CLASSIFICATION = debugEnabled;
+
+    function debugLog(message, payload) {
+        if (!debugEnabled) {
+            return;
+        }
+        const prefix = '[AccountClassificationPage]';
+        if (payload !== undefined) {
+            console.debug(`${prefix} ${message}`, payload);
+        } else {
+            console.debug(`${prefix} ${message}`);
+        }
+    }
+
     const AccountClassificationService = window.AccountClassificationService;
     if (!AccountClassificationService) {
         console.error('AccountClassificationService 未加载，账户分类页面无法初始化');
@@ -42,16 +57,25 @@ function mountAccountClassificationPage(window, document) {
     };
 
     document.addEventListener('DOMContentLoaded', function onReady() {
+        debugLog('DOM Ready，开始初始化页面');
         initializeModals();
         setupColorPreviewListeners();
         setupGlobalSearchListener();
         initFormValidators();
 
         loadClassifications()
-            .then(() => loadClassificationsForRules())
-            .catch(() => loadClassificationsForRules());
+            .then(() => {
+                debugLog('分类加载完成，填充规则下拉');
+                return loadClassificationsForRules();
+            })
+            .catch(error => {
+                debugLog('分类加载失败，依旧尝试填充规则下拉', error);
+                return loadClassificationsForRules();
+            });
         loadRules();
-        loadPermissions().catch(() => {});
+        loadPermissions().catch(error => {
+            debugLog('权限配置加载失败', error);
+        });
     });
 
     function initializeModals() {
@@ -59,6 +83,7 @@ function mountAccountClassificationPage(window, document) {
         if (!factory) {
             throw new Error('UI.createModal 未加载，账户分类模态无法初始化');
         }
+        debugLog('初始化模态...');
         modals.createClassification = factory({
             modalSelector: '#createClassificationModal',
             onConfirm: () => triggerCreateClassification(),
@@ -103,9 +128,11 @@ function mountAccountClassificationPage(window, document) {
     /* ========== 数据加载 ========== */
     async function loadClassifications() {
         try {
+            debugLog('开始加载分类');
             const response = await api.classifications.list();
             const list = extractClassifications(response);
             state.classifications = list;
+            debugLog('分类加载成功', { count: list.length });
             renderClassifications(list);
             populateRuleClassificationSelect('ruleClassification', list);
             populateRuleClassificationSelect('editRuleClassification', list);
@@ -113,20 +140,24 @@ function mountAccountClassificationPage(window, document) {
         } catch (error) {
             handleRequestError(error, '加载分类失败', 'load_classifications');
             renderClassifications([]);
+            debugLog('分类加载失败', error);
             throw error;
         }
     }
 
     async function loadRules() {
         try {
+            debugLog('开始加载规则');
             const response = await api.rules.list();
             const rulesByDbType = extractRules(response);
             const enriched = await attachRuleStats(rulesByDbType);
             state.rulesByDbType = enriched;
+            debugLog('规则加载成功', { dbTypes: Object.keys(enriched).length });
             renderRules(enriched);
         } catch (error) {
             handleRequestError(error, '加载规则失败', 'load_rules');
             renderRules({});
+            debugLog('规则加载失败', error);
         }
     }
 
@@ -827,8 +858,12 @@ function triggerCreateRule() {
         }
 
         console.info('开始自动分类所有账户', { operation: 'auto_classify_all' });
+        debugLog('触发自动分类所有账户操作', { filters: state.classifications.length });
 
         try {
+            if (!api.automation || typeof api.automation.trigger !== 'function') {
+                throw new Error('AccountClassificationService.automation.trigger 未定义');
+            }
             const response = await api.automation.trigger({});
             console.info('自动分类所有账户成功', { operation: 'auto_classify_all', result: 'success' });
             toast.success(response?.message || '自动分类任务已启动');
@@ -836,6 +871,7 @@ function triggerCreateRule() {
         } catch (error) {
             console.error('自动分类所有账户失败', error);
             toast.error(error?.response?.error || error.message || '自动分类失败');
+            debugLog('自动分类失败', error);
         } finally {
             if (btn) {
                 btn.innerHTML = originalText;
