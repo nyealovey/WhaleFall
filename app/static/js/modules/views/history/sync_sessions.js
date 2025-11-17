@@ -12,11 +12,27 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     throw new Error("SyncSessionsService 未加载，无法进行会话请求");
   }
 
+  const debugEnabled = window.DEBUG_SYNC_SESSIONS ?? true;
+  window.DEBUG_SYNC_SESSIONS = debugEnabled;
+
+  function debugLog(message, payload) {
+    if (!debugEnabled) {
+      return;
+    }
+    const prefix = "[SyncSessionsPage]";
+    if (payload !== undefined) {
+      console.debug(`${prefix} ${message}`, payload);
+    } else {
+      console.debug(`${prefix} ${message}`);
+    }
+  }
+
   let syncSessionsService = null;
   try {
     syncSessionsService = new SyncSessionsService(window.httpU);
   } catch (error) {
     console.error("初始化 SyncSessionsService 失败:", error);
+    debugLog("SyncSessionsService 初始化失败", error);
     return;
   }
 
@@ -82,9 +98,17 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    initializeSyncSessionsStore();
-    initializeSyncFilterCard();
-    initializeSyncModals();
+    debugLog("DOM Ready，开始初始化会话中心");
+    try {
+      initializeSyncSessionsStore();
+      initializeSyncFilterCard();
+      initializeSyncModals();
+      debugLog("会话中心初始化完成");
+    } catch (error) {
+      console.error("会话中心初始化失败:", error);
+      debugLog("会话中心初始化失败", error);
+      notifyAlert('会话中心初始化失败，请查看控制台日志', 'error');
+    }
   });
 
   function initializeSyncModals() {
@@ -92,6 +116,7 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     if (!factory) {
       throw new Error('UI.createModal 未加载，会话中心模态无法初始化');
     }
+    debugLog("初始化会话详情/错误日志模态");
     sessionDetailModal = factory({
       modalSelector: SESSION_DETAIL_MODAL_SELECTOR,
       onClose: clearSessionDetailContent,
@@ -105,9 +130,11 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   function initializeSyncSessionsStore() {
     if (!window.createSyncSessionsStore) {
       console.error("createSyncSessionsStore 未加载");
+      debugLog("createSyncSessionsStore 未加载");
       return;
     }
     try {
+      debugLog("开始创建 SyncSessionsStore");
       syncSessionsStore = window.createSyncSessionsStore({
         service: syncSessionsService,
         emitter: window.mitt ? window.mitt() : null,
@@ -115,10 +142,18 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       });
     } catch (error) {
       console.error("初始化 SyncSessionsStore 失败:", error);
+      debugLog("SyncSessionsStore 创建失败", error);
       return;
     }
     bindStoreEvents();
-    syncSessionsStore.init();
+    debugLog("SyncSessionsStore 初始化中");
+    syncSessionsStore
+      .init()
+      .then(() => debugLog("SyncSessionsStore 初始化完成"))
+      .catch(error => {
+        console.error("SyncSessionsStore 初始化过程出现错误:", error);
+        debugLog("SyncSessionsStore 初始化失败", error);
+      });
     window.syncSessionsStore = syncSessionsStore;
     window.addEventListener('beforeunload', () => {
       teardownStore();
@@ -126,10 +161,16 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   }
 
   function bindStoreEvents() {
+    debugLog("绑定 SyncSessionsStore 事件");
     subscribeToStoreEvent('syncSessions:loading', () => {
+      debugLog("收到事件 syncSessions:loading");
       showLoadingState();
     });
     subscribeToStoreEvent('syncSessions:updated', (state) => {
+      debugLog("收到事件 syncSessions:updated", {
+        sessionCount: state?.sessions?.length,
+        pagination: state?.pagination,
+      });
       hideLoadingState();
       renderSessions(state.sessions);
       renderPagination(state.pagination);
@@ -139,21 +180,34 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       const message = payload?.error?.message || '会话操作失败';
       if (payload?.error) {
         console.error('SyncSessionsStore error:', payload.error);
+        debugLog("收到事件 syncSessions:error", payload.error);
       }
       notifyAlert(message, 'error');
     });
     subscribeToStoreEvent('syncSessions:detailLoaded', (payload) => {
+      debugLog("收到事件 syncSessions:detailLoaded", {
+        sessionId: payload?.session?.session_id,
+      });
       showSessionDetail(payload?.session || {});
     });
     subscribeToStoreEvent('syncSessions:errorLogsLoaded', (payload) => {
+      debugLog("收到事件 syncSessions:errorLogsLoaded", {
+        recordCount: payload?.errorRecords?.length,
+      });
       showErrorLogs({ error_records: payload?.errorRecords || [] });
     });
     subscribeToStoreEvent('syncSessions:sessionCancelled', () => {
+      debugLog("收到事件 syncSessions:sessionCancelled");
       notifyAlert('会话已取消', 'success');
     });
   }
 
   function subscribeToStoreEvent(eventName, handler) {
+    if (!syncSessionsStore) {
+      debugLog(`尝试订阅 ${eventName} 但 store 未初始化`);
+      return;
+    }
+    debugLog(`订阅 Store 事件: ${eventName}`);
     storeSubscriptions.push({ eventName, handler });
     syncSessionsStore.subscribe(eventName, handler);
   }
@@ -172,8 +226,10 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
 
   window.loadSessions = function (page = 1, options = {}) {
     if (!syncSessionsStore) {
+      debugLog("loadSessions 调用但 store 未准备");
       return;
     }
+    debugLog("loadSessions 调用", { page, options });
     syncSessionsStore.actions.loadSessions({
       page,
       silent: Boolean(options.silent),
@@ -511,8 +567,10 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     const factory = window.UI?.createFilterCard;
     if (!factory) {
       console.error('UI.createFilterCard 未加载，会话筛选无法初始化');
+      debugLog('UI.createFilterCard 未加载');
       return;
     }
+    debugLog('初始化筛选卡片');
     syncFilterCard = factory({
       formSelector: `#${SYNC_FILTER_FORM_ID}`,
       autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
@@ -529,6 +587,7 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       window.removeEventListener('beforeunload', filterUnloadHandler);
     }
     filterUnloadHandler = () => {
+      debugLog('销毁筛选卡片');
       destroySyncFilterCard();
       window.removeEventListener('beforeunload', filterUnloadHandler);
       filterUnloadHandler = null;
@@ -546,9 +605,11 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   function applySyncFilters(form, values) {
     const targetForm = resolveSyncForm(form);
     if (!targetForm || !syncSessionsStore) {
+      debugLog('applySyncFilters 忽略，form或store未准备');
       return;
     }
     const nextFilters = resolveSyncFilters(targetForm, values);
+    debugLog('应用筛选条件', nextFilters);
     syncSessionsStore.actions.applyFilters(nextFilters);
   }
 
@@ -558,8 +619,10 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       targetForm.reset();
     }
     if (!syncSessionsStore) {
+      debugLog('resetSyncFilters 忽略，store未准备');
       return;
     }
+    debugLog('重置筛选条件');
     syncSessionsStore.actions.resetFilters();
   }
 
