@@ -723,10 +723,17 @@ function toggleDeletedDatabases() {
 // 页面加载完成后自动加载数据库容量信息
 ready(() => {
     window.setTimeout(loadDatabaseSizes, 500);
+    Object.assign(window, {
+        testConnection,
+        syncAccounts,
+        syncCapacity,
+        viewInstanceAccountPermissions,
+        viewAccountChangeHistory,
+        loadDatabaseSizes,
+        toggleDeletedAccounts,
+        toggleDeletedDatabases,
+    });
 });
-    // 将函数暴露到全局，供模板内联 onclick 调用
-    window.viewInstanceAccountPermissions = viewInstanceAccountPermissions;
-    window.viewAccountChangeHistory = viewAccountChangeHistory;
 }
 
 window.InstanceDetailPage = {
