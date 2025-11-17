@@ -119,6 +119,7 @@ function mountSyncSessionsPage() {
     }
     bindStoreEvents();
     syncSessionsStore.init();
+    window.syncSessionsStore = syncSessionsStore;
     window.addEventListener('beforeunload', () => {
       teardownStore();
     }, { once: true });
