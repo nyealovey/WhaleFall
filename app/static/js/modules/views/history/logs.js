@@ -564,6 +564,14 @@ function buildFilterParams(rawValues) {
                 <strong>消息：</strong>
                 <pre class="bg-light p-3 rounded">${escapeHtml(safeLog.message || '')}</pre>
             </div>
+            ${
+                safeLog.traceback
+                    ? `<div class="mb-3">
+                        <strong>堆栈：</strong>
+                        <pre class="bg-dark text-light p-3 rounded overflow-auto">${escapeHtml(safeLog.traceback)}</pre>
+                    </div>`
+                    : ''
+            }
             <div class="mb-3">
                 <strong>${detailTitle}：</strong>
                 ${contextHtml}
