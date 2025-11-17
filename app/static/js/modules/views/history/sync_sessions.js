@@ -37,6 +37,7 @@ function mountSyncSessionsPage() {
   let filterUnloadHandler = null;
   let sessionDetailModal = null;
   let errorLogsModal = null;
+  global.syncSessionsStore = null;
 
   function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
