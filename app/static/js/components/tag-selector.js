@@ -112,6 +112,7 @@
         toElement(options.modalElement) ||
         this.root.closest("[data-tag-selector-modal]") ||
         null;
+      this.modalAPI = null;
 
       this.elements = this.cacheElements();
 
@@ -226,15 +227,22 @@
       if (!this.modal) {
         return;
       }
-      this.modal.addEventListener("hidden.bs.modal", () => {
-        if (this.ignoreNextCancel) {
-          this.ignoreNextCancel = false;
-          return;
-        }
-        this.emitCancel({
-          reason: "modal-hidden",
-          hideModal: false,
-        });
+      const factory = window.UI?.createModal;
+      if (!factory) {
+        throw new Error("UI.createModal 未加载，无法初始化标签选择模态");
+      }
+      this.modalAPI = factory({
+        modalSelector: this.modal,
+        onClose: () => {
+          if (this.ignoreNextCancel) {
+            this.ignoreNextCancel = false;
+            return;
+          }
+          this.emitCancel({
+            reason: "modal-hidden",
+            hideModal: false,
+          });
+        },
       });
     }
 
@@ -606,7 +614,7 @@
       const modalInstance = this.getModalInstance();
       if (modalInstance) {
         this.ignoreNextCancel = true;
-        modalInstance.hide();
+        modalInstance.close();
       }
     }
 
@@ -631,19 +639,27 @@
         const modalInstance = this.getModalInstance();
         if (modalInstance) {
           this.ignoreNextCancel = true;
-          modalInstance.hide();
+          modalInstance.close();
         }
       }
     }
 
     getModalInstance() {
-      if (!this.modal || typeof bootstrap?.Modal !== "function") {
-        return null;
+      return this.modalAPI || null;
+    }
+
+    openModal(payload) {
+      const modal = this.getModalInstance();
+      if (modal?.open) {
+        modal.open(payload);
       }
-      return (
-        bootstrap.Modal.getInstance(this.modal) ||
-        new bootstrap.Modal(this.modal)
-      );
+    }
+
+    closeModal() {
+      const modal = this.getModalInstance();
+      if (modal?.close) {
+        modal.close();
+      }
     }
 
     getSelectedTags() {
@@ -831,17 +847,11 @@
         };
 
         const openButton = toElement(openButtonSelector);
-        if (openButton && modal?.id) {
-          openButton.setAttribute("data-bs-toggle", "modal");
-          openButton.setAttribute("data-bs-target", `#${modal.id}`);
-          openButton.addEventListener("click", () => {
-            ensureInstance();
-          });
-        }
-
-        if (modal) {
-          modal.addEventListener("show.bs.modal", () => {
-            ensureInstance();
+        if (openButton) {
+          openButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            const instance = ensureInstance();
+            instance?.openModal();
           });
         }
 
@@ -910,17 +920,11 @@
         };
 
         const openButton = toElement(openButtonSelector);
-        if (openButton && modal?.id) {
-          openButton.setAttribute("data-bs-toggle", "modal");
-          openButton.setAttribute("data-bs-target", `#${modal.id}`);
-          openButton.addEventListener("click", () => {
-            ensureInstance();
-          });
-        }
-
-        if (modal) {
-          modal.addEventListener("show.bs.modal", () => {
-            ensureInstance();
+        if (openButton) {
+          openButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            const instance = ensureInstance();
+            instance?.openModal();
           });
         }
 

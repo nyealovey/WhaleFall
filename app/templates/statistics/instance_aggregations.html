@@ -232,31 +232,30 @@
 </div>
 
 
-<!-- 计算进度模态框 -->
-<div class="modal fade" id="calculationModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-calculator me-2"></i>
-                    <span class="calculation-modal-title-text">统计当前周期</span>
-                </h5>
-            </div>
-            <div class="modal-body">
-                <div class="text-center">
-                    <div class="spinner-border text-primary mb-3" role="status">
-                        <span class="visually-hidden">计算中...</span>
-                    </div>
-                    <p class="mb-0 calculation-modal-message">正在统计当前周期，请稍候...</p>
-                    <div class="progress mt-3">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                             role="progressbar" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
+{% set calculation_modal_body %}
+    <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">计算中...</span>
+        </div>
+        <p class="mb-0 calculation-modal-message">正在统计当前周期，请稍候...</p>
+        <div class="progress mt-3">
+            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                 role="progressbar" style="width: 0%"></div>
         </div>
     </div>
-</div>
+{% endset %}
+{% with
+    modal_id='calculationModal',
+    modal_label_id='calculationModalLabel',
+    title='<i class="fas fa-calculator me-2"></i><span class="calculation-modal-title-text">统计当前周期</span>',
+    body=calculation_modal_body,
+    footer='',
+    backdrop='static',
+    keyboard='false',
+    close_button_class='d-none'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 {% endblock %}
 
 {% block extra_js %}

@@ -27,6 +27,14 @@ function mountAccountClassificationPage(window, document) {
         rulesByDbType: {},
     };
 
+    const modals = {
+        createClassification: null,
+        editClassification: null,
+        createRule: null,
+        editRule: null,
+        viewRule: null,
+    };
+
     const validators = {
         createClassification: null,
         editClassification: null,
@@ -34,6 +42,7 @@ function mountAccountClassificationPage(window, document) {
     };
 
     document.addEventListener('DOMContentLoaded', function onReady() {
+        initializeModals();
         setupColorPreviewListeners();
         setupGlobalSearchListener();
         initFormValidators();
@@ -44,6 +53,52 @@ function mountAccountClassificationPage(window, document) {
         loadRules();
         loadPermissions().catch(() => {});
     });
+
+    function initializeModals() {
+        const factory = window.UI?.createModal;
+        if (!factory) {
+            throw new Error('UI.createModal 未加载，账户分类模态无法初始化');
+        }
+        modals.createClassification = factory({
+            modalSelector: '#createClassificationModal',
+            onConfirm: () => triggerCreateClassification(),
+            onClose: resetCreateClassificationForm,
+        });
+        modals.editClassification = factory({
+            modalSelector: '#editClassificationModal',
+            onConfirm: () => triggerUpdateClassification(),
+            onClose: resetEditClassificationForm,
+        });
+        modals.createRule = factory({
+            modalSelector: '#createRuleModal',
+            onConfirm: () => triggerCreateRule(),
+            onClose: resetCreateRuleForm,
+            size: 'lg',
+        });
+        modals.editRule = factory({
+            modalSelector: '#editRuleModal',
+            onConfirm: () => submitUpdateRule(),
+            onClose: resetEditRuleForm,
+            size: 'lg',
+        });
+        modals.viewRule = factory({
+            modalSelector: '#viewRuleModal',
+            onClose: resetViewRuleModal,
+            size: 'lg',
+        });
+    }
+
+    function ensureModalInstance(key) {
+        const instance = modals[key];
+        if (!instance) {
+            console.error(`模态未初始化: ${key}`);
+            return {
+                open: () => {},
+                close: () => {},
+            };
+        }
+        return instance;
+    }
 
     /* ========== 数据加载 ========== */
     async function loadClassifications() {
@@ -239,6 +294,24 @@ function mountAccountClassificationPage(window, document) {
         return `<i class="${iconClass}" style="color: ${color || '#6c757d'};"></i>`;
     }
 
+    function openCreateClassificationModal(eventArg) {
+        eventArg?.preventDefault?.();
+        resetCreateClassificationForm();
+        ensureModalInstance('createClassification').open();
+    }
+
+    function openCreateRuleModal(eventArg) {
+        eventArg?.preventDefault?.();
+        resetCreateRuleForm();
+        ensureModalInstance('createRule').open();
+    }
+
+    function openEditClassificationModal(eventArg) {
+        eventArg?.preventDefault?.();
+        resetEditClassificationForm();
+        ensureModalInstance('editClassification').open();
+    }
+
     async function handleEditClassification(id) {
         try {
             const response = await api.classifications.detail(id);
@@ -250,8 +323,7 @@ function mountAccountClassificationPage(window, document) {
 
             fillEditClassificationForm(classification);
 
-            const modal = new bootstrap.Modal(document.getElementById('editClassificationModal'));
-            modal.show();
+            openEditClassificationModal();
         } catch (error) {
             handleRequestError(error, '获取分类信息失败', 'edit_classification');
         }
@@ -294,7 +366,7 @@ function mountAccountClassificationPage(window, document) {
         }
     }
 
-    function triggerCreateClassification() {
+function triggerCreateClassification() {
         if (validators.createClassification) {
             validators.createClassification.revalidate();
             return;
@@ -340,7 +412,7 @@ function mountAccountClassificationPage(window, document) {
         try {
             const response = await api.classifications.create(payload);
             toast.success(response?.message || '分类创建成功');
-            bootstrap.Modal.getInstance(document.getElementById('createClassificationModal')).hide();
+            ensureModalInstance('createClassification').close();
             form.reset();
             resetColorPreview('colorPreview');
             refreshValidator(validators.createClassification);
@@ -369,7 +441,7 @@ function mountAccountClassificationPage(window, document) {
         try {
             const response = await api.classifications.update(id, payload);
             toast.success(response?.message || '分类更新成功');
-            bootstrap.Modal.getInstance(document.getElementById('editClassificationModal')).hide();
+            ensureModalInstance('editClassification').close();
             resetColorPreview('editColorPreview');
             refreshValidator(validators.editClassification);
             await loadClassifications();
@@ -539,7 +611,7 @@ function mountAccountClassificationPage(window, document) {
         return 'normal';
     }
 
-    function triggerCreateRule() {
+function triggerCreateRule() {
         if (validators.createRule) {
             validators.createRule.revalidate();
             return;
@@ -568,7 +640,7 @@ function mountAccountClassificationPage(window, document) {
         try {
             const response = await api.rules.create(payload);
             toast.success(response?.message || '规则创建成功');
-            bootstrap.Modal.getInstance(document.getElementById('createRuleModal')).hide();
+            ensureModalInstance('createRule').close();
             form.reset();
             refreshValidator(validators.createRule);
             await loadRules();
@@ -585,8 +657,10 @@ function mountAccountClassificationPage(window, document) {
                 toast.error('未获取到规则信息');
                 return;
             }
+            resetViewRuleModal();
 
             await loadClassificationsForRules('edit');
+            resetEditRuleForm();
 
             document.getElementById('editRuleId').value = rule.id;
             document.getElementById('editRuleName').value = rule.rule_name || '';
@@ -596,30 +670,22 @@ function mountAccountClassificationPage(window, document) {
             document.getElementById('editRuleOperator').value =
                 (rule.rule_expression && rule.rule_expression.operator) || 'OR';
 
-            const editModalEl = document.getElementById('editRuleModal');
-            const editModal = new bootstrap.Modal(editModalEl);
-
-            const onShown = () => {
-                loadPermissions('edit')
-                    .then(() => {
-                        if (
-                            window.PermissionPolicyCenter &&
-                            typeof window.PermissionPolicyCenter.setSelected === 'function'
-                        ) {
-                            window.PermissionPolicyCenter.setSelected(
-                                rule.db_type,
-                                rule.rule_expression,
-                                'editPermissionsConfig',
-                                'edit'
-                            );
-                        }
-                    })
-                    .catch(err => handleRequestError(err, '加载权限配置失败', 'edit_rule_permissions'));
-                editModalEl.removeEventListener('shown.bs.modal', onShown);
-            };
-
-            editModalEl.addEventListener('shown.bs.modal', onShown);
-            editModal.show();
+            ensureModalInstance('editRule').open();
+            loadPermissions('edit')
+                .then(() => {
+                    if (
+                        window.PermissionPolicyCenter &&
+                        typeof window.PermissionPolicyCenter.setSelected === 'function'
+                    ) {
+                        window.PermissionPolicyCenter.setSelected(
+                            rule.db_type,
+                            rule.rule_expression,
+                            'editPermissionsConfig',
+                            'edit'
+                        );
+                    }
+                })
+                .catch(err => handleRequestError(err, '加载权限配置失败', 'edit_rule_permissions'));
         } catch (error) {
             handleRequestError(error, '获取规则信息失败', 'edit_rule');
         }
@@ -650,7 +716,7 @@ function mountAccountClassificationPage(window, document) {
         try {
             const response = await api.rules.update(ruleId, payload);
             toast.success(response?.message || '规则更新成功');
-            bootstrap.Modal.getInstance(document.getElementById('editRuleModal')).hide();
+            ensureModalInstance('editRule').close();
             await loadRules();
         } catch (error) {
             handleRequestError(error, '更新规则失败', 'update_rule');
@@ -729,8 +795,7 @@ function mountAccountClassificationPage(window, document) {
                 );
             }
 
-            const modal = new bootstrap.Modal(modalEl);
-            modal.show();
+            ensureModalInstance('viewRule').open();
         } catch (error) {
             handleRequestError(error, '获取规则信息失败', 'view_rule');
         }
@@ -948,6 +1013,78 @@ function mountAccountClassificationPage(window, document) {
         });
     }
 
+    function resetCreateClassificationForm() {
+        const form = document.getElementById('createClassificationForm');
+        if (form) {
+            form.reset();
+        }
+        resetColorPreview('colorPreview');
+        refreshValidator(validators.createClassification);
+    }
+
+    function resetEditClassificationForm() {
+        const form = document.getElementById('editClassificationForm');
+        if (form) {
+            form.reset();
+        }
+        resetColorPreview('editColorPreview');
+        refreshValidator(validators.editClassification);
+    }
+
+    function resetCreateRuleForm() {
+        const form = document.getElementById('createRuleForm');
+        if (form) {
+            form.reset();
+        }
+        if (ensurePermissionCenter()) {
+            window.PermissionPolicyCenter.reset?.('permissionsConfig');
+        }
+        refreshValidator(validators.createRule);
+    }
+
+    function resetEditRuleForm() {
+        const form = document.getElementById('editRuleForm');
+        if (form) {
+            form.reset();
+            const hiddenDbType = form.querySelector('#editRuleDbTypeHidden');
+            if (hiddenDbType) {
+                hiddenDbType.value = '';
+            }
+        }
+        if (ensurePermissionCenter()) {
+            window.PermissionPolicyCenter.reset?.('editPermissionsConfig', 'edit');
+        }
+    }
+
+    function resetViewRuleModal() {
+        const modal = document.getElementById('viewRuleModal');
+        if (modal?.dataset) {
+            delete modal.dataset.ruleId;
+        }
+        const fields = [
+            'viewRuleName',
+            'viewRuleClassification',
+            'viewRuleDbType',
+            'viewRuleOperator',
+            'viewRuleCreatedAt',
+            'viewRuleUpdatedAt',
+        ];
+        fields.forEach(id => {
+            const node = document.getElementById(id);
+            if (node) {
+                node.textContent = '-';
+            }
+        });
+        const status = document.getElementById('viewRuleStatus');
+        if (status) {
+            status.innerHTML = '-';
+        }
+        const permissionsContainer = document.getElementById('viewPermissionsConfig');
+        if (permissionsContainer) {
+            permissionsContainer.innerHTML = '<div class="text-center text-muted">未加载权限配置</div>';
+        }
+    }
+
     function refreshValidator(validator) {
         if (validator?.instance?.refresh) {
             validator.instance.refresh();
@@ -986,11 +1123,13 @@ function mountAccountClassificationPage(window, document) {
     }
 
     /* ========== 对外暴露（保持旧接口兼容） ========== */
+    window.openCreateClassificationModal = openCreateClassificationModal;
+    window.openCreateRuleModal = openCreateRuleModal;
+    window.openEditClassificationModal = openEditClassificationModal;
     window.createClassification = triggerCreateClassification;
     window.editClassification = handleEditClassification;
     window.updateClassification = triggerUpdateClassification;
     window.deleteClassification = handleDeleteClassification;
-
     window.createRule = triggerCreateRule;
     window.editRule = handleEditRule;
     window.updateRule = submitUpdateRule;

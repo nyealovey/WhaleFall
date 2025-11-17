@@ -210,6 +210,7 @@
         change: null,
         percent: null,
       };
+      this.calculationModal = null;
 
       this.initialize();
 
@@ -218,6 +219,7 @@
 
     async initialize() {
       this.bindEvents();
+      this.initializeModals();
       try {
         await this.prepareInitialOptions();
       } catch (error) {
@@ -545,7 +547,7 @@
 
     async handleCalculateToday() {
       const modalElement = selectOne("#calculationModal").first();
-      let modalInstance = null;
+      const modalInstance = this.calculationModal;
       const periodType = (this.state.filters.periodType || "daily").toLowerCase();
       const textConfig = PERIOD_TEXT[periodType] || PERIOD_TEXT.default;
 
@@ -559,17 +561,7 @@
           messageNode.textContent = textConfig.message;
         }
 
-        if (window.bootstrap?.Modal) {
-          modalInstance = window.bootstrap.Modal.getOrCreateInstance(modalElement);
-          modalInstance.show();
-        } else if (window.$) {
-          window.$(modalElement).modal("show");
-          modalInstance = {
-            hide() {
-              window.$(modalElement).modal("hide");
-            },
-          };
-        }
+        modalInstance?.open();
       }
 
       try {
@@ -582,9 +574,7 @@
       } catch (error) {
         this.notifyError(`聚合计算失败: ${error.message}`);
       } finally {
-        if (modalInstance && typeof modalInstance.hide === "function") {
-          modalInstance.hide();
-        }
+        modalInstance?.close();
       }
     }
 
@@ -799,3 +789,18 @@
   window.CapacityStats = window.CapacityStats || {};
   window.CapacityStats.Manager = CapacityStatsManager;
 })(window, document);
+    initializeModals() {
+      const factory = window.UI?.createModal;
+      if (!factory) {
+        throw new Error("UI.createModal 未加载，容量统计模态无法初始化");
+      }
+      const modalElement = selectOne("#calculationModal");
+      if (!modalElement.length) {
+        return;
+      }
+      this.calculationModal = factory({
+        modalSelector: modalElement.first(),
+        confirmSelector: null,
+        cancelSelector: null,
+      });
+    }

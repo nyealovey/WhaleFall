@@ -159,8 +159,7 @@ function initializeInstanceStore() {
 function initializeBatchCreateModal() {
     const factory = window.UI?.createModal;
     if (!factory) {
-        console.warn('UI.createModal 未加载，批量创建模态采用回退实现');
-        return;
+        throw new Error('UI.createModal 未加载，实例列表批量创建模态无法初始化');
     }
     batchCreateModal = factory({
         modalSelector: '#batchCreateModal',
@@ -169,6 +168,13 @@ function initializeBatchCreateModal() {
         onClose: resetBatchCreateModalState,
         onConfirm: () => submitBatchCreate(),
     });
+}
+
+function ensureBatchCreateModal() {
+    if (!batchCreateModal) {
+        throw new Error('批量创建模态未初始化');
+    }
+    return batchCreateModal;
 }
 
 function collectInstanceMetadata() {
@@ -725,18 +731,9 @@ function resetBatchCreateModalState() {
 
 // 批量创建相关功能
 function showBatchCreateModal() {
-    if (batchCreateModal) {
-        batchCreateModal.open();
-        return;
-    }
+    const modal = ensureBatchCreateModal();
     resetBatchCreateModalState();
-    const modalElement = document.getElementById('batchCreateModal');
-    const bootstrap = window.bootstrap;
-    if (modalElement && bootstrap?.Modal) {
-        bootstrap.Modal.getOrCreateInstance(modalElement).show();
-        return;
-    }
-    console.error('批量创建模态未初始化，无法开启模态窗口');
+    modal.open();
 }
 
 function handleFileSelect(event) {
@@ -778,6 +775,7 @@ function submitFileUpload() {
     if (!ensureInstanceService()) {
         return;
     }
+    const modalInstance = ensureBatchCreateModal();
     const fileInput = document.getElementById('csvFile');
     const file = fileInput.files[0];
 
@@ -789,16 +787,7 @@ function submitFileUpload() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const confirmButton = document.querySelector('#batchCreateModal [data-modal-confirm]');
-    const bootstrap = window.bootstrap;
-
-    if (batchCreateModal) {
-        batchCreateModal.setLoading(true, BATCH_CREATE_LOADING_TEXT);
-    } else if (confirmButton) {
-        confirmButton.dataset.originalText = confirmButton.textContent;
-        confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>创建中...';
-        confirmButton.disabled = true;
-    }
+    modalInstance.setLoading(true, BATCH_CREATE_LOADING_TEXT);
 
     const submitAction = instanceStore
         ? instanceStore.actions.batchCreateInstances(formData)
@@ -814,12 +803,7 @@ function submitFileUpload() {
                 if (errors && errors.length > 0) {
                     toast.warning(`部分实例创建失败：\n${errors.join('\n')}`);
                 }
-                if (batchCreateModal) {
-                    batchCreateModal.close();
-                } else if (bootstrap?.Modal) {
-                    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('batchCreateModal'));
-                    modalInstance?.hide();
-                }
+                modalInstance.close();
                 setTimeout(() => location.reload(), 1000);
                 return;
             }
@@ -829,13 +813,7 @@ function submitFileUpload() {
             toast.error(error?.message || '批量创建失败');
         })
         .finally(() => {
-            if (batchCreateModal) {
-                batchCreateModal.setLoading(false);
-            } else if (confirmButton) {
-                confirmButton.innerHTML = confirmButton.dataset.originalText || '创建实例';
-                confirmButton.disabled = false;
-                delete confirmButton.dataset.originalText;
-            }
+            modalInstance.setLoading(false);
         });
 }
 

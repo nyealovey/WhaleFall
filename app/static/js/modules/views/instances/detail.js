@@ -30,6 +30,7 @@ try {
 }
 
 let instanceStore = null;
+let historyModal = null;
 
 function ensureInstanceService() {
     if (!instanceService) {
@@ -46,6 +47,7 @@ function ensureInstanceService() {
 // 页面加载完成，不自动测试连接
 ready(() => {
     initializeInstanceStore();
+    initializeHistoryModal();
     const checkbox = selectOne('#showDeletedAccounts');
     if (checkbox.length) {
         const element = checkbox.first();
@@ -387,14 +389,11 @@ function viewAccountChangeHistory(accountId) {
 
             if (data && data.success) {
                 // 显示变更历史模态框
-                const modalEl = selectOne('#historyModal').first();
                 const historyContentWrapper = selectOne('#historyContent');
-                if (!modalEl || !historyContentWrapper.length) {
+                if (!historyContentWrapper.length) {
                     console.error('未找到历史记录模态框元素');
                     return;
                 }
-                const modal = new bootstrap.Modal(modalEl);
-
                 if (history && history.length > 0) {
                     let html = '<div class="timeline">';
                     history.forEach(change => {
@@ -419,10 +418,10 @@ function viewAccountChangeHistory(accountId) {
                     // 安全地设置HTML内容，避免XSS攻击
                     historyContentWrapper.html(html);
                 } else {
-                    historyContentWrapper.html('<p class="text-muted">暂无变更记录</p>');
+                historyContentWrapper.html('<p class="text-muted">暂无变更记录</p>');
                 }
 
-                modal.show();
+                ensureHistoryModal().open();
             } else {
                 console.error('获取变更历史失败:', data?.error || data?.message);
                 toast.error(data?.error || data?.message || '获取变更历史失败');
@@ -745,3 +744,27 @@ ready(() => {
 window.InstanceDetailPage = {
     mount: mountInstanceDetailPage,
 };
+function initializeHistoryModal() {
+    const factory = window.UI?.createModal;
+    if (!factory) {
+        throw new Error('UI.createModal 未加载，实例详情模态无法初始化');
+    }
+    historyModal = factory({
+        modalSelector: '#historyModal',
+        onClose: resetHistoryContent,
+    });
+}
+
+function ensureHistoryModal() {
+    if (!historyModal) {
+        throw new Error('变更历史模态未初始化');
+    }
+    return historyModal;
+}
+
+function resetHistoryContent() {
+    const wrapper = selectOne('#historyContent');
+    if (wrapper.length) {
+        wrapper.html('');
+    }
+}

@@ -14,7 +14,8 @@
 2. **Modal 组件（逐步推广中）**
    - JS：`app/static/js/modules/ui/modal.js` 暴露 `UI.createModal`，合并 open/close/loading/confirm 逻辑。
    - 模板：`app/templates/components/ui/modal.html`，可配置对话框尺寸/滚动/页脚内容。
-   - 已接入：凭据删除（credentials/list）、标签删除（tags/index）、日志详情查看（history/logs）、实例批量创建（instances/list）、同步会话详情与错误日志（history/sync_sessions）。下一步继续覆盖 tags 批量操作、实例详情等模态。
+   - 已接入：凭据删除（credentials/list）、标签删除（tags/index）、日志详情查看（history/logs）、实例批量创建（instances/list）、同步会话详情与错误日志（history/sync_sessions）、账户分类（创建/编辑分类、创建/编辑/查看规则）、分区管理（创建/清理）。
+   - 策略要求：**不再使用 `bootstrap.Modal` 兜底**，所有新老模态统一走 `UI.createModal`（含确认回调与关闭重置），模板也必须使用 `components/ui/modal.html`。
 
 > 这一模式验证了“JS 行为 + 模板结构”的组合是可行的，可作为后续组件的蓝本。
 

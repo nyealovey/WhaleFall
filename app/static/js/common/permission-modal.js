@@ -28,15 +28,9 @@ function showPermissionsModal(permissions, account) {
 
         // 检查权限对象的所有属性
 
-        // 创建或获取模态框
-        let modal = getOrCreateModal();
-        const modalElement = modal.first();
-
-        updateModalContent(modalElement, permissions, account, dbType);
-
-        // 显示模态框
-        const bsModal = new bootstrap.Modal(modalElement);
-        bsModal.show();
+        ensurePermissionModal();
+        updateModalContent(permissions, account, dbType);
+        openPermissionModal();
     } catch (error) {
         console.error('showPermissionsModal 函数执行出错:', error);
         console.error('错误堆栈:', error.stack);
@@ -48,55 +42,57 @@ function showPermissionsModal(permissions, account) {
  * 创建权限模态框HTML
  * @returns {HTMLElement} 模态框元素
  */
-function getOrCreateModal() {
-    const helpers = window.DOMHelpers;
-    if (!helpers || typeof helpers.selectOne !== 'function') {
-        throw new Error('DOMHelpers 未初始化，无法创建权限模态框');
+function ensurePermissionModal() {
+    if (window.PermissionModalInstance) {
+        return window.PermissionModalInstance;
     }
-    const existing = helpers.selectOne('#permissionsModal');
-    if (existing.length) {
-        return existing;
+    const factory = window.UI?.createModal;
+    if (!factory) {
+        throw new Error('UI.createModal 未加载，无法初始化权限模态框');
     }
-    const modalHtml = `
-        <div class="modal fade" id="permissionsModal" tabindex="-1" aria-labelledby="permissionsModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="permissionsModalLabel">
-                            <i class="fas fa-shield-alt me-2"></i>
-                            <span id="permissionsModalTitle">账户权限详情</span>
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" id="permissionsModalBody">
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">加载中...</span>
-                            </div>
-                            <p class="mt-2">正在加载权限信息...</p>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>关闭
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    const modal = helpers.selectOne(modalHtml);
-    helpers.selectOne('body').append(modal);
-    return modal;
+    window.PermissionModalInstance = factory({
+        modalSelector: '#permissionsModal',
+        onClose: resetPermissionModal,
+    });
+    return window.PermissionModalInstance;
 }
 
-function updateModalContent(modal, permissions, account, dbType) {
+function openPermissionModal() {
+    const instance = ensurePermissionModal();
+    instance.open();
+}
+
+function resetPermissionModal() {
     const helpers = window.DOMHelpers;
-    const title = helpers.selectOne('#permissionsModalTitle', modal);
+    if (!helpers) {
+        return;
+    }
+    const body = helpers.selectOne('#permissionsModalBody');
+    if (body.length) {
+        body.html(`
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+                <p class="mt-2">正在加载权限信息...</p>
+            </div>
+        `);
+    }
+    const title = helpers.selectOne('#permissionsModalTitle');
+    if (title.length) {
+        title.text('账户权限详情');
+    }
+}
+
+function updateModalContent(permissions, account, dbType) {
+    const helpers = window.DOMHelpers;
+    if (!helpers) {
+        throw new Error('DOMHelpers 未初始化');
+    }
+    const title = helpers.selectOne('#permissionsModalTitle');
     title.text(`账户权限详情 - ${account.username}`);
 
-    const body = helpers.selectOne('#permissionsModalBody', modal);
+    const body = helpers.selectOne('#permissionsModalBody');
     body.html(renderPermissionsByType(permissions, dbType));
 }
 

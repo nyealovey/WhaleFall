@@ -44,7 +44,7 @@
                             <i class="fas fa-list me-2"></i>账户分类
                         </h5>
                         {% if current_user.role == 'admin' %}
-                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createClassificationModal">
+                        <button class="btn btn-primary btn-sm" type="button" onclick="openCreateClassificationModal(event)">
                             <i class="fas fa-plus me-1"></i>新建分类
                         </button>
                         {% endif %}
@@ -67,7 +67,7 @@
                             <i class="fas fa-cogs me-2"></i>规则管理
                         </h5>
                         {% if current_user.role == 'admin' %}
-                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createRuleModal">
+                        <button class="btn btn-primary btn-sm" type="button" onclick="openCreateRuleModal(event)">
                             <i class="fas fa-plus me-1"></i>新建规则
                         </button>
                         {% endif %}
@@ -90,452 +90,402 @@
 </div>
 
 <!-- 创建分类模态框 -->
-<div class="modal fade" id="createClassificationModal" tabindex="-1" aria-labelledby="createClassificationModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createClassificationModalLabel">
-                    <i class="fas fa-plus me-2"></i>新建账户分类
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+{% set create_classification_modal_body %}
+    <form id="createClassificationForm">
+        <div class="mb-3">
+            <label for="classificationName" class="form-label">分类名称 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="classificationName" required>
+        </div>
+        <div class="mb-3">
+            <label for="classificationDescription" class="form-label">描述</label>
+            <textarea class="form-control" id="classificationDescription" rows="3"></textarea>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="riskLevel" class="form-label">风险等级</label>
+                    <select class="form-select" id="riskLevel">
+                        <option value="low">低风险</option>
+                        <option value="medium" selected>中风险</option>
+                        <option value="high">高风险</option>
+                        <option value="critical">极高风险</option>
+                    </select>
+                </div>
             </div>
-            <div class="modal-body">
-                <form id="createClassificationForm">
-                    <div class="mb-3">
-                        <label for="classificationName" class="form-label">分类名称 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="classificationName" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="classificationDescription" class="form-label">描述</label>
-                        <textarea class="form-control" id="classificationDescription" rows="3"></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="mb-3">
-                                <label for="riskLevel" class="form-label">风险等级</label>
-                                <select class="form-select" id="riskLevel">
-                                    <option value="low">低风险</option>
-                                    <option value="medium" selected>中风险</option>
-                                    <option value="high">高风险</option>
-                                    <option value="critical">极高风险</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="mb-3">
-                                <label for="classificationColor" class="form-label">显示颜色</label>
-                                <select class="form-select" id="classificationColor" required>
-                                    <option value="">请选择颜色</option>
-                                    {% for key, info in color_options.items() %}
-                                    <option value="{{ key }}" data-color="{{ info.value }}">
-                                        {{ info.name }} - {{ info.description }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                                <div class="form-text">
-                                    <div id="colorPreview" class="color-preview-container mt-2" style="display: none;">
-                                        <span class="color-preview-dot"></span>
-                                        <span class="color-preview-text"></span>
-                                    </div>
-                                </div>
-                            </div>
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="classificationColor" class="form-label">显示颜色</label>
+                    <select class="form-select" id="classificationColor" required>
+                        <option value="">请选择颜色</option>
+                        {% for key, info in color_options.items() %}
+                        <option value="{{ key }}" data-color="{{ info.value }}">
+                            {{ info.name }} - {{ info.description }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">
+                        <div id="colorPreview" class="color-preview-container mt-2" style="display: none;">
+                            <span class="color-preview-dot"></span>
+                            <span class="color-preview-text"></span>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="classificationIcon" class="form-label">图标选择</label>
-                        <div class="row">
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="classificationIcon" id="iconCrown" value="fa-crown">
-                                    <label class="form-check-label" for="iconCrown">
-                                        <i class="fas fa-crown text-warning"></i> 皇冠
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="classificationIcon" id="iconShield" value="fa-shield-alt">
-                                    <label class="form-check-label" for="iconShield">
-                                        <i class="fas fa-shield-alt text-primary"></i> 盾牌
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="classificationIcon" id="iconWarning" value="fa-exclamation-triangle">
-                                    <label class="form-check-label" for="iconWarning">
-                                        <i class="fas fa-exclamation-triangle text-danger"></i> 警告
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="classificationIcon" id="iconUser" value="fa-user">
-                                    <label class="form-check-label" for="iconUser">
-                                        <i class="fas fa-user text-info"></i> 用户
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="classificationIcon" id="iconEye" value="fa-eye">
-                                    <label class="form-check-label" for="iconEye">
-                                        <i class="fas fa-eye text-success"></i> 眼睛
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="classificationIcon" id="iconTag" value="fa-tag" checked>
-                                    <label class="form-check-label" for="iconTag">
-                                        <i class="fas fa-tag text-secondary"></i> 标签
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="priority" class="form-label">优先级</label>
-                        <input type="number" class="form-control" id="priority" value="0" min="0" max="100">
-                        <div class="form-text">数字越大优先级越高</div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="createClassification()">创建</button>
+                </div>
             </div>
         </div>
-    </div>
-</div>
+        <div class="mb-3">
+            <label class="form-label d-block">图标选择</label>
+            <div class="row">
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconCrown" value="fa-crown">
+                        <label class="form-check-label" for="iconCrown">
+                            <i class="fas fa-crown text-warning"></i> 皇冠
+                        </label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconShield" value="fa-shield-alt">
+                        <label class="form-check-label" for="iconShield">
+                            <i class="fas fa-shield-alt text-primary"></i> 盾牌
+                        </label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconWarning" value="fa-exclamation-triangle">
+                        <label class="form-check-label" for="iconWarning">
+                            <i class="fas fa-exclamation-triangle text-danger"></i> 警告
+                        </label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconUser" value="fa-user">
+                        <label class="form-check-label" for="iconUser">
+                            <i class="fas fa-user text-info"></i> 用户
+                        </label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconEye" value="fa-eye">
+                        <label class="form-check-label" for="iconEye">
+                            <i class="fas fa-eye text-success"></i> 眼睛
+                        </label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconTag" value="fa-tag" checked>
+                        <label class="form-check-label" for="iconTag">
+                            <i class="fas fa-tag text-secondary"></i> 标签
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="priority" class="form-label">优先级</label>
+            <input type="number" class="form-control" id="priority" value="0" min="0" max="100">
+            <div class="form-text">数字越大优先级越高</div>
+        </div>
+    </form>
+{% endset %}
+{% set create_classification_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="button" class="btn btn-primary" data-modal-confirm id="createClassificationConfirm">创建</button>
+{% endset %}
+{% with
+    modal_id='createClassificationModal',
+    modal_label_id='createClassificationModalLabel',
+    title='<i class="fas fa-plus me-2"></i>新建账户分类',
+    body=create_classification_modal_body,
+    footer=create_classification_modal_footer
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 
 <!-- 创建规则模态框 -->
-<div class="modal fade" id="createRuleModal" tabindex="-1" aria-labelledby="createRuleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createRuleModalLabel">
-                    <i class="fas fa-cogs me-2"></i>新建分类规则
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+{% set create_rule_modal_body %}
+    <form id="createRuleForm">
+        <div class="row">
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="ruleClassification" class="form-label">分类 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="ruleClassification" required>
+                        <option value="">请选择分类</option>
+                    </select>
+                </div>
             </div>
-            <div class="modal-body">
-                <form id="createRuleForm">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="mb-3">
-                                <label for="ruleClassification" class="form-label">分类 <span class="text-danger">*</span></label>
-                                <select class="form-select" id="ruleClassification" required>
-                                    <option value="">请选择分类</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="mb-3">
-                                <label for="ruleName" class="form-label">规则名称 <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="ruleName" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-6">
-                    <div class="mb-3">
-                        <label for="ruleDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="ruleDbType" required onchange="loadPermissions()">
-                            <option value="">请选择数据库类型</option>
-                            <option value="mysql">MySQL</option>
-                            <option value="postgresql">PostgreSQL</option>
-                            <option value="sqlserver">SQL Server</option>
-                            <option value="oracle">Oracle</option>
-                        </select>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="mb-3">
-                                <label for="ruleOperator" class="form-label">匹配逻辑 <span class="text-danger">*</span></label>
-                                <select class="form-select" id="ruleOperator" required>
-                                    <option value="OR">OR (任一条件满足即可)</option>
-                                    <option value="AND">AND (所有条件都必须满足)</option>
-                                </select>
-                                <div class="form-text">选择权限匹配的逻辑关系</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">权限配置</label>
-                        <div id="permissionsConfig">
-                            <div class="text-center text-muted py-3">
-                                <i class="fas fa-info-circle me-2"></i>请先选择数据库类型
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="createRule()">创建</button>
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="ruleName" class="form-label">规则名称 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="ruleName" required>
+                </div>
             </div>
         </div>
-    </div>
-</div>
+        <div class="row">
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="ruleDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="ruleDbType" required onchange="loadPermissions()">
+                        <option value="">请选择数据库类型</option>
+                        <option value="mysql">MySQL</option>
+                        <option value="postgresql">PostgreSQL</option>
+                        <option value="sqlserver">SQL Server</option>
+                        <option value="oracle">Oracle</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="ruleOperator" class="form-label">匹配逻辑 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="ruleOperator" required>
+                        <option value="OR">OR (任一条件满足即可)</option>
+                        <option value="AND">AND (所有条件都必须满足)</option>
+                    </select>
+                    <div class="form-text">选择权限匹配的逻辑关系</div>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">权限配置</label>
+            <div id="permissionsConfig">
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-info-circle me-2"></i>请先选择数据库类型
+                </div>
+            </div>
+        </div>
+    </form>
+{% endset %}
+{% set create_rule_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="button" class="btn btn-primary" data-modal-confirm id="createRuleConfirm">创建</button>
+{% endset %}
+{% with
+    modal_id='createRuleModal',
+    modal_label_id='createRuleModalLabel',
+    title='<i class="fas fa-cogs me-2"></i>新建分类规则',
+    body=create_rule_modal_body,
+    footer=create_rule_modal_footer,
+    size='lg'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 
 <!-- 编辑分类模态框 -->
-<div class="modal fade" id="editClassificationModal" tabindex="-1" aria-labelledby="editClassificationModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editClassificationModalLabel">
-                    <i class="fas fa-edit me-2"></i>编辑账户分类
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+{% set edit_classification_modal_body %}
+    <form id="editClassificationForm">
+        <input type="hidden" id="editClassificationId">
+        <div class="mb-3">
+            <label for="editClassificationName" class="form-label">分类名称 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="editClassificationName" required>
+        </div>
+        <div class="mb-3">
+            <label for="editClassificationDescription" class="form-label">描述</label>
+            <textarea class="form-control" id="editClassificationDescription" rows="3"></textarea>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="editClassificationRiskLevel" class="form-label">风险等级</label>
+                    <select class="form-select" id="editClassificationRiskLevel">
+                        <option value="low">低风险</option>
+                        <option value="medium">中风险</option>
+                        <option value="high">高风险</option>
+                        <option value="critical">极高风险</option>
+                    </select>
+                </div>
             </div>
-            <div class="modal-body">
-                <form id="editClassificationForm">
-                    <input type="hidden" id="editClassificationId">
-                    <div class="mb-3">
-                        <label for="editClassificationName" class="form-label">分类名称 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="editClassificationName" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editClassificationDescription" class="form-label">描述</label>
-                        <textarea class="form-control" id="editClassificationDescription" rows="3"></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="mb-3">
-                                <label for="editClassificationRiskLevel" class="form-label">风险等级</label>
-                                <select class="form-select" id="editClassificationRiskLevel">
-                                    <option value="low">低风险</option>
-                                    <option value="medium">中风险</option>
-                                    <option value="high">高风险</option>
-                                    <option value="critical">极高风险</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="mb-3">
-                                <label for="editClassificationColor" class="form-label">显示颜色</label>
-                                <select class="form-select" id="editClassificationColor" required>
-                                    <option value="">请选择颜色</option>
-                                    {% for key, info in color_options.items() %}
-                                    <option value="{{ key }}" data-color="{{ info.value }}">
-                                        {{ info.name }} - {{ info.description }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                                <div class="form-text">
-                                    <div id="editColorPreview" class="color-preview-container mt-2" style="display: none;">
-                                        <span class="color-preview-dot"></span>
-                                        <span class="color-preview-text"></span>
-                                    </div>
-                                </div>
-                            </div>
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="editClassificationColor" class="form-label">显示颜色 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="editClassificationColor" required>
+                        <option value="">请选择颜色</option>
+                        {% for key, info in color_options.items() %}
+                        <option value="{{ key }}" data-color="{{ info.value }}">
+                            {{ info.name }} - {{ info.description }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">
+                        <div id="editColorPreview" class="color-preview-container mt-2" style="display: none;">
+                            <span class="color-preview-dot"></span>
+                            <span class="color-preview-text"></span>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="editClassificationIcon" class="form-label">图标选择</label>
-                        <div class="row">
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconCrown" value="fa-crown">
-                                    <label class="form-check-label" for="editIconCrown">
-                                        <i class="fas fa-crown text-warning"></i> 皇冠
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconShield" value="fa-shield-alt">
-                                    <label class="form-check-label" for="editIconShield">
-                                        <i class="fas fa-shield-alt text-primary"></i> 盾牌
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconWarning" value="fa-exclamation-triangle">
-                                    <label class="form-check-label" for="editIconWarning">
-                                        <i class="fas fa-exclamation-triangle text-danger"></i> 警告
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconUser" value="fa-user">
-                                    <label class="form-check-label" for="editIconUser">
-                                        <i class="fas fa-user text-info"></i> 用户
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconEye" value="fa-eye">
-                                    <label class="form-check-label" for="editIconEye">
-                                        <i class="fas fa-eye text-success"></i> 眼睛
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="editClassificationIcon" id="editIconTag" value="fa-tag">
-                                    <label class="form-check-label" for="editIconTag">
-                                        <i class="fas fa-tag text-secondary"></i> 标签
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editClassificationPriority" class="form-label">优先级</label>
-                        <input type="number" class="form-control" id="editClassificationPriority" value="0" min="0" max="100">
-                        <div class="form-text">数字越大优先级越高，用于控制分类显示顺序和规则匹配优先级</div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="updateClassification()">保存</button>
+                </div>
             </div>
         </div>
-    </div>
-</div>
-
+        <div class="mb-3">
+            <label class="form-label">图标选择</label>
+            <div class="row">
+                {% set icons = [
+                    ('editIconCrown', 'fa-crown', 'text-warning', '皇冠'),
+                    ('editIconShield', 'fa-shield-alt', 'text-primary', '盾牌'),
+                    ('editIconWarning', 'fa-exclamation-triangle', 'text-danger', '警告'),
+                    ('editIconUser', 'fa-user', 'text-info', '用户'),
+                    ('editIconEye', 'fa-eye', 'text-success', '眼睛'),
+                    ('editIconTag', 'fa-tag', 'text-secondary', '标签')
+                ] %}
+                {% for control_id, icon_name, icon_class, label in icons %}
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="editClassificationIcon" id="{{ control_id }}" value="{{ icon_name }}">
+                        <label class="form-check-label" for="{{ control_id }}">
+                            <i class="fas {{ icon_name }} {{ icon_class }}"></i> {{ label }}
+                        </label>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="editClassificationPriority" class="form-label">优先级</label>
+            <input type="number" class="form-control" id="editClassificationPriority" value="0" min="0" max="100">
+        </div>
+    </form>
+{% endset %}
+{% set edit_classification_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="button" class="btn btn-primary" data-modal-confirm id="editClassificationConfirm">保存</button>
+{% endset %}
+{% with
+    modal_id='editClassificationModal',
+    modal_label_id='editClassificationModalLabel',
+    title='<i class="fas fa-edit me-2"></i>编辑账户分类',
+    body=edit_classification_modal_body,
+    footer=edit_classification_modal_footer
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 
 <!-- 编辑规则模态框 -->
-<div class="modal fade" id="editRuleModal" tabindex="-1" aria-labelledby="editRuleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editRuleModalLabel">
-                    <i class="fas fa-edit me-2"></i>编辑分类规则
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editRuleForm">
-                    <input type="hidden" id="editRuleId">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="mb-3">
-                                <label for="editRuleClassification" class="form-label">分类 <span class="text-danger">*</span></label>
-                                <select class="form-select" id="editRuleClassification" required>
-                                    <option value="">请选择分类</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="mb-3">
-                                <label for="editRuleName" class="form-label">规则名称 <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editRuleName" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-6">
-                    <div class="mb-3">
-                        <label for="editRuleDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="editRuleDbType" required disabled>
-                            <option value="">请选择数据库类型</option>
-                            <option value="mysql">MySQL</option>
-                            <option value="postgresql">PostgreSQL</option>
-                            <option value="sqlserver">SQL Server</option>
-                            <option value="oracle">Oracle</option>
-                        </select>
-                        <input type="hidden" id="editRuleDbTypeHidden" name="db_type">
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="mb-3">
-                                <label for="editRuleOperator" class="form-label">匹配逻辑 <span class="text-danger">*</span></label>
-                                <select class="form-select" id="editRuleOperator" required>
-                                    <option value="OR">OR (任一条件满足即可)</option>
-                                    <option value="AND">AND (所有条件都必须满足)</option>
-                                </select>
-                                <div class="form-text">选择权限匹配的逻辑关系</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">权限配置 <span class="text-danger">*</span></label>
-                        <div id="editPermissionsConfig">
-                            <div class="text-center text-muted py-3">
-                                <i class="fas fa-spinner fa-spin me-2"></i>加载权限配置中...
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="updateRule()">更新</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 查看规则模态框 -->
-<div class="modal fade" id="viewRuleModal" tabindex="-1" aria-labelledby="viewRuleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="viewRuleModalLabel">
-                    <i class="fas fa-eye me-2"></i>查看规则详情
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <label class="form-label fw-bold">规则名称</label>
-                        <p class="form-control-plaintext" id="viewRuleName">-</p>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label fw-bold">分类</label>
-                        <p class="form-control-plaintext" id="viewRuleClassification">-</p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-4">
-                        <label class="form-label fw-bold">数据库类型</label>
-                        <p class="form-control-plaintext" id="viewRuleDbType">-</p>
-                    </div>
-                    <div class="col-4">
-                        <label class="form-label fw-bold">匹配逻辑</label>
-                        <p class="form-control-plaintext" id="viewRuleOperator">-</p>
-                    </div>
-                    <div class="col-4">
-                        <label class="form-label fw-bold">状态</label>
-                        <p class="form-control-plaintext" id="viewRuleStatus">-</p>
-                    </div>
-                </div>
+{% set edit_rule_modal_body %}
+    <form id="editRuleForm">
+        <input type="hidden" id="editRuleId">
+        <input type="hidden" id="editRuleDbTypeHidden">
+        <div class="row">
+            <div class="col-6">
                 <div class="mb-3">
-                    <label class="form-label fw-bold">权限配置</label>
-                    <div id="viewPermissionsConfig" class="border rounded p-3 bg-light">
-                        <div class="text-center text-muted py-3">
-                            <i class="fas fa-spinner fa-spin me-2"></i>加载中...
-                        </div>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <label class="form-label fw-bold">创建时间</label>
-                        <p class="form-control-plaintext" id="viewRuleCreatedAt">-</p>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label fw-bold">更新时间</label>
-                        <p class="form-control-plaintext" id="viewRuleUpdatedAt">-</p>
-                    </div>
+                    <label for="editRuleClassification" class="form-label">分类</label>
+                    <select class="form-select" id="editRuleClassification">
+                        <option value="">请选择分类</option>
+                    </select>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="editRuleName" class="form-label">规则名称</label>
+                    <input type="text" class="form-control" id="editRuleName" required>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="editRuleDbType" class="form-label">数据库类型</label>
+                    <select class="form-select" id="editRuleDbType" disabled>
+                        <option value="mysql">MySQL</option>
+                        <option value="postgresql">PostgreSQL</option>
+                        <option value="sqlserver">SQL Server</option>
+                        <option value="oracle">Oracle</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="editRuleOperator" class="form-label">匹配逻辑</label>
+                    <select class="form-select" id="editRuleOperator">
+                        <option value="OR">OR (任一条件满足即可)</option>
+                        <option value="AND">AND (所有条件都必须满足)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">权限配置</label>
+            <div id="editPermissionsConfig">
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-info-circle me-2"></i>加载中，请稍候...
+                </div>
+            </div>
+        </div>
+    </form>
+{% endset %}
+{% set edit_rule_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="button" class="btn btn-primary" data-modal-confirm id="editRuleConfirm">保存</button>
+{% endset %}
+{% with
+    modal_id='editRuleModal',
+    modal_label_id='editRuleModalLabel',
+    title='<i class="fas fa-edit me-2"></i>编辑规则',
+    body=edit_rule_modal_body,
+    footer=edit_rule_modal_footer,
+    size='lg'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
+<!-- 查看规则模态框 -->
+{% set view_rule_modal_body %}
+    <div>
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">规则名称</label>
+                <p class="form-control-plaintext" id="viewRuleName">-</p>
+            </div>
+            <div class="col-6">
+                <label class="form-label">分类</label>
+                <p class="form-control-plaintext" id="viewRuleClassification">-</p>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-4">
+                <label class="form-label">数据库类型</label>
+                <p class="form-control-plaintext" id="viewRuleDbType">-</p>
+            </div>
+            <div class="col-4">
+                <label class="form-label">匹配逻辑</label>
+                <p class="form-control-plaintext" id="viewRuleOperator">-</p>
+            </div>
+            <div class="col-4">
+                <label class="form-label">状态</label>
+                <div id="viewRuleStatus">-</div>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">创建时间</label>
+                <p class="form-control-plaintext" id="viewRuleCreatedAt">-</p>
+            </div>
+            <div class="col-6">
+                <label class="form-label">更新时间</label>
+                <p class="form-control-plaintext" id="viewRuleUpdatedAt">-</p>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">权限配置</label>
+            <div id="viewPermissionsConfig" class="border rounded p-3">
+                <div class="text-center text-muted">未加载权限配置</div>
             </div>
         </div>
     </div>
-</div>
-
-
-
+{% endset %}
+{% set view_rule_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>关闭</button>
+{% endset %}
+{% with
+    modal_id='viewRuleModal',
+    modal_label_id='viewRuleModalLabel',
+    title='<i class="fas fa-eye me-2"></i>规则详情',
+    body=view_rule_modal_body,
+    footer=view_rule_modal_footer,
+    size='lg'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 {% endblock %}
 
 {% block extra_js %}
