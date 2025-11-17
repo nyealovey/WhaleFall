@@ -167,6 +167,19 @@
       emit("syncSessions:error", { error: error, state: cloneState(state) });
     }
 
+    const debugEnabled = window.DEBUG_SYNC_SESSIONS ?? false;
+    function debugLog(message, payload) {
+      if (!debugEnabled) {
+        return;
+      }
+      const prefix = "[SyncSessionsStore]";
+      if (payload !== undefined) {
+        console.debug(`${prefix} ${message}`, payload);
+      } else {
+        console.debug(`${prefix} ${message}`);
+      }
+    }
+
     const api = {
       init: function (initialFilters) {
         if (initialFilters && typeof initialFilters === "object") {
@@ -175,6 +188,7 @@
         if (state.autoRefresh.enabled) {
           scheduleAutoRefresh();
         }
+        debugLog("init 调用，开始首次加载", { filters: state.filters });
         return api.actions.loadSessions({ page: 1 });
       },
       getState: function () {
@@ -212,9 +226,16 @@
             per_page: state.pagination.perPage,
           });
 
+          debugLog("loadSessions 请求会话列表", { query, silent });
+
           return service
             .list(query)
             .then(function (response) {
+              debugLog("loadSessions 返回数据", {
+                hasSessions: Array.isArray(response?.data?.sessions),
+                sessionCount: Array.isArray(response?.data?.sessions) ? response.data.sessions.length : null,
+                pagination: response?.data?.pagination || response?.pagination,
+              });
               if (!response || response.success === false) {
                 const error = new Error(response?.message || "加载会话列表失败");
                 error.raw = response;
@@ -226,10 +247,12 @@
               return cloneState(state);
             })
             .catch(function (error) {
+              debugLog("loadSessions 请求失败", error);
               handleRequestFailure(error);
               throw error;
             })
             .finally(function () {
+              debugLog("loadSessions 完成", { page: state.pagination.page, total: state.pagination.totalItems });
               state.loading = false;
             });
         },
