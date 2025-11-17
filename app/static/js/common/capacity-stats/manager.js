@@ -217,6 +217,22 @@
       window.addEventListener("beforeunload", () => this.destroy(), { once: true });
     }
 
+    initializeModals() {
+      const factory = window.UI?.createModal;
+      if (!factory) {
+        throw new Error("UI.createModal 未加载，容量统计模态无法初始化");
+      }
+      const modalElement = selectOne("#calculationModal");
+      if (!modalElement.length) {
+        return;
+      }
+      this.calculationModal = factory({
+        modalSelector: modalElement.first(),
+        confirmSelector: null,
+        cancelSelector: null,
+      });
+    }
+
     async initialize() {
       this.bindEvents();
       this.initializeModals();
@@ -789,18 +805,3 @@
   window.CapacityStats = window.CapacityStats || {};
   window.CapacityStats.Manager = CapacityStatsManager;
 })(window, document);
-    initializeModals() {
-      const factory = window.UI?.createModal;
-      if (!factory) {
-        throw new Error("UI.createModal 未加载，容量统计模态无法初始化");
-      }
-      const modalElement = selectOne("#calculationModal");
-      if (!modalElement.length) {
-        return;
-      }
-      this.calculationModal = factory({
-        modalSelector: modalElement.first(),
-        confirmSelector: null,
-        cancelSelector: null,
-      });
-    }
