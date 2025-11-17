@@ -724,7 +724,9 @@ function toggleDeletedDatabases() {
 ready(() => {
     window.setTimeout(loadDatabaseSizes, 500);
 });
-
+    // 将函数暴露到全局，供模板内联 onclick 调用
+    window.viewInstanceAccountPermissions = viewInstanceAccountPermissions;
+    window.viewAccountChangeHistory = viewAccountChangeHistory;
 }
 
 window.InstanceDetailPage = {

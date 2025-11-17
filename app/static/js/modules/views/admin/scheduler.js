@@ -49,19 +49,20 @@ function ensureSchedulerStore() {
     return true;
 }
 
-// 全局变量
-let addJobValidator = null;
-let editJobValidator = null;
+// 页面加载完成后初始化
+$(document).ready(function () {
+    initializeSchedulerPage();
+});
 
-// 全局函数
-/**
- * 更新“编辑任务”表单中的 Cron 预览。
- * 支持 5/6/7 段 Cron 表达式，顺序为：
- *   7段: second minute hour day month day_of_week year
- *   6段: second minute hour day month day_of_week（无year）
- *   5段: minute hour day month day_of_week（默认second=0，无year）
- * 该函数会根据当前输入生成 cron_expression 预览字符串。
- */
+}
+
+window.SchedulerPage = {
+    mount: mountSchedulerPage,
+};
+
+var addJobValidator = null;
+var editJobValidator = null;
+
 function updateEditCronPreview() {
     const second = $('#editCronSecond').val() || '0';
     const minute = $('#editCronMinute').val() || '0';
@@ -74,17 +75,6 @@ function updateEditCronPreview() {
     const cronExpression = year && year.trim() !== '' ? `${base} ${year}` : base;
     $('#editCronPreview').val(cronExpression);
 }
-
-// 页面加载完成后初始化
-$(document).ready(function () {
-    initializeSchedulerPage();
-});
-
-}
-
-window.SchedulerPage = {
-    mount: mountSchedulerPage,
-};
 
 // 初始化定时任务管理页面（移除自动刷新）
 function initializeSchedulerPage() {
