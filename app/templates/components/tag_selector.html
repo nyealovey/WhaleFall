@@ -1,91 +1,87 @@
 <!-- 标签选择器组件 -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag-selector.css') }}">
 
-<div class="modal fade tag-selector-modal"
-     id="tagSelectorModal"
-     tabindex="-1"
-     aria-labelledby="tagSelectorModalLabel"
-     aria-hidden="true"
-     data-tag-selector-modal>
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header border-0 pb-0">
-        <div>
-          <h5 class="modal-title fw-semibold" id="tagSelectorModalLabel">
-            <i class="fas fa-tags me-2 text-primary"></i>选择标签
-          </h5>
-          <p class="text-muted small mb-0">按分类快速筛选并批量选择标签</p>
+{% set tag_selector_modal_body %}
+    <div class="tag-selector d-flex flex-column gap-3" data-tag-selector>
+      <section class="tag-selector__selected">
+        <h6 class="text-muted text-uppercase fs-7 mb-2">已选择</h6>
+        <div class="bg-light border rounded p-3" data-role="selected-container">
+          <div class="d-flex flex-wrap gap-2" data-role="selected-list"></div>
+          <p class="text-muted text-center my-2" data-role="selected-empty">
+            <i class="fas fa-tag me-2"></i>暂无选择的标签
+          </p>
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
-      </div>
-      <div class="modal-body pt-3">
-        <div class="tag-selector d-flex flex-column gap-3" data-tag-selector>
-          <section class="tag-selector__selected">
-            <h6 class="text-muted text-uppercase fs-7 mb-2">已选择</h6>
-            <div class="bg-light border rounded p-3" data-role="selected-container">
-              <div class="d-flex flex-wrap gap-2" data-role="selected-list"></div>
-              <p class="text-muted text-center my-2" data-role="selected-empty">
-                <i class="fas fa-tag me-2"></i>暂无选择的标签
-              </p>
-            </div>
-          </section>
+      </section>
 
-          <section class="tag-selector__filters">
-            <label class="form-label text-muted small mb-2">标签分类</label>
-            <div class="tag-selector__categories d-flex flex-nowrap gap-2 overflow-auto" data-role="category-group">
-              <div class="d-flex align-items-center gap-2 text-muted small" data-role="category-loading">
-                <div class="spinner-border spinner-border-sm" role="status">
-                  <span class="visually-hidden">加载中...</span>
-                </div>
-                <span>正在加载分类</span>
-              </div>
+      <section class="tag-selector__filters">
+        <label class="form-label text-muted small mb-2">标签分类</label>
+        <div class="tag-selector__categories d-flex flex-nowrap gap-2 overflow-auto" data-role="category-group">
+          <div class="d-flex align-items-center gap-2 text-muted small" data-role="category-loading">
+            <div class="spinner-border spinner-border-sm" role="status">
+              <span class="visually-hidden">加载中...</span>
             </div>
-          </section>
-
-          <section class="tag-selector__stats" data-role="stats" hidden>
-            <div class="d-flex flex-wrap gap-2">
-              <span class="badge text-bg-light">
-                总标签 <span class="fw-semibold ms-1" data-role="stat-total">0</span>
-              </span>
-              <span class="badge text-bg-light">
-                已选择 <span class="fw-semibold ms-1" data-role="stat-selected">0</span>
-              </span>
-              <span class="badge text-bg-light">
-                已激活 <span class="fw-semibold ms-1" data-role="stat-active">0</span>
-              </span>
-              <span class="badge text-bg-light">
-                当前可见 <span class="fw-semibold ms-1" data-role="stat-filtered">0</span>
-              </span>
-            </div>
-          </section>
-
-          <section class="tag-selector__list">
-            <div class="list-group shadow-sm" data-role="tag-list">
-              <div class="text-center text-muted py-5">
-                <div class="spinner-border text-primary mb-3" role="status">
-                  <span class="visually-hidden">加载中...</span>
-                </div>
-                <div>正在加载标签...</div>
-              </div>
-            </div>
-          </section>
+            <span>正在加载分类</span>
+          </div>
         </div>
-      </div>
-      <div class="modal-footer border-0 pt-0">
-        <button type="button"
-                class="btn btn-outline-secondary"
-                data-bs-dismiss="modal"
-                data-tag-selector-action="cancel">
-          <i class="fas fa-times me-1"></i>取消
-        </button>
-        <button type="button"
-                class="btn btn-primary"
-                data-tag-selector-action="confirm">
-          <i class="fas fa-check me-1"></i>确认选择
-        </button>
-      </div>
+      </section>
+
+      <section class="tag-selector__stats" data-role="stats" hidden>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge text-bg-light">
+            总标签 <span class="fw-semibold ms-1" data-role="stat-total">0</span>
+          </span>
+          <span class="badge text-bg-light">
+            已选择 <span class="fw-semibold ms-1" data-role="stat-selected">0</span>
+          </span>
+          <span class="badge text-bg-light">
+            已激活 <span class="fw-semibold ms-1" data-role="stat-active">0</span>
+          </span>
+          <span class="badge text-bg-light">
+            当前可见 <span class="fw-semibold ms-1" data-role="stat-filtered">0</span>
+          </span>
+        </div>
+      </section>
+
+      <section class="tag-selector__list">
+        <div class="list-group shadow-sm" data-role="tag-list">
+          <div class="text-center text-muted py-5">
+            <div class="spinner-border text-primary mb-3" role="status">
+              <span class="visually-hidden">加载中...</span>
+            </div>
+            <div>正在加载标签...</div>
+          </div>
+        </div>
+      </section>
     </div>
-  </div>
+{% endset %}
+
+{% set tag_selector_modal_footer %}
+    <button type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+            data-tag-selector-action="cancel">
+      <i class="fas fa-times me-1"></i>取消
+    </button>
+    <button type="button"
+            class="btn btn-primary"
+            data-tag-selector-action="confirm">
+      <i class="fas fa-check me-1"></i>确认选择
+    </button>
+{% endset %}
+
+<div data-tag-selector-modal>
+  {% with
+      modal_id='tagSelectorModal',
+      modal_label_id='tagSelectorModalLabel',
+      title='<i class="fas fa-tags me-2 text-primary"></i>选择标签',
+      body=tag_selector_modal_body,
+      footer=tag_selector_modal_footer,
+      size='lg',
+      dialog_class='modal-lg modal-dialog-scrollable',
+      modal_class='tag-selector-modal'
+  %}
+    {% include 'components/ui/modal.html' %}
+  {% endwith %}
 </div>
 
 <script src="{{ url_for('static', filename='js/modules/services/tag_management_service.js') }}"></script>

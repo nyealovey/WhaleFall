@@ -21,8 +21,11 @@ function mountAdminPartitionsPage(global) {
     const partitionService = new PartitionService(global.httpU);
     let partitionStore = null;
     const partitionStoreSubscriptions = [];
+    let createPartitionModal = null;
+    let cleanupPartitionsModal = null;
 
     ready(() => {
+        initializeModals();
         const initialized = initializePartitionStore();
         if (!initialized) {
             loadPartitionData();
@@ -97,10 +100,36 @@ function mountAdminPartitionsPage(global) {
     }
 
     function bindEvents() {
-        selectOne('#createPartitionBtn').on('click', showCreatePartitionModal);
-        selectOne('#cleanupPartitionsBtn').on('click', showCleanupPartitionsModal);
-        selectOne('#confirmCreatePartition').on('click', createPartition);
-        selectOne('#confirmCleanupPartitions').on('click', cleanupPartitions);
+        selectOne('#createPartitionBtn').on('click', openCreatePartitionModal);
+        selectOne('#cleanupPartitionsBtn').on('click', openCleanupPartitionsModal);
+    }
+
+    function initializeModals() {
+        const factory = global.UI?.createModal;
+        if (!factory) {
+            throw new Error('UI.createModal 未加载，分区管理模态无法初始化');
+        }
+        createPartitionModal = factory({
+            modalSelector: '#createPartitionModal',
+            onOpen: prepareCreatePartitionForm,
+            onConfirm: () => createPartition(),
+        });
+        cleanupPartitionsModal = factory({
+            modalSelector: '#cleanupPartitionsModal',
+            onConfirm: () => cleanupPartitions(),
+        });
+    }
+
+    function ensureModalInstance(key) {
+        const map = {
+            create: createPartitionModal,
+            cleanup: cleanupPartitionsModal,
+        };
+        const instance = map[key];
+        if (!instance) {
+            throw new Error(`分区管理模态未初始化: ${key}`);
+        }
+        return instance;
     }
 
     async function loadPartitionData() {
@@ -175,14 +204,13 @@ function mountAdminPartitionsPage(global) {
         });
     }
 
-    function showCreatePartitionModal() {
-        const modalElement = selectOne('#createPartitionModal').first();
-        if (!modalElement || !global.bootstrap?.Modal) {
-            return;
-        }
-        const modal = global.bootstrap.Modal.getOrCreateInstance(modalElement);
-        modal.show();
+    function openCreatePartitionModal(event) {
+        event?.preventDefault?.();
+        prepareCreatePartitionForm();
+        ensureModalInstance('create').open();
+    }
 
+    function prepareCreatePartitionForm() {
         const yearSelect = selectOne('#partitionYear').first();
         const monthSelect = selectOne('#partitionMonth').first();
         if (!yearSelect || !monthSelect) {
@@ -217,13 +245,9 @@ function mountAdminPartitionsPage(global) {
         updateMonthOptions();
     }
 
-    function showCleanupPartitionsModal() {
-        const modalElement = selectOne('#cleanupPartitionsModal').first();
-        if (!modalElement || !global.bootstrap?.Modal) {
-            return;
-        }
-        const modal = global.bootstrap.Modal.getOrCreateInstance(modalElement);
-        modal.show();
+    function openCleanupPartitionsModal(event) {
+        event?.preventDefault?.();
+        ensureModalInstance('cleanup').open();
     }
 
     async function createPartition() {
@@ -239,8 +263,6 @@ function mountAdminPartitionsPage(global) {
 
         const date = `${selectedYear}-${selectedMonth.padStart(2, '0')}-01`;
 
-        const modal = global.bootstrap.Modal.getInstance(selectOne('#createPartitionModal').first());
-
         const executor = partitionStore
             ? partitionStore.actions.createPartition({ date })
             : partitionService.createPartition({ date });
@@ -248,7 +270,7 @@ function mountAdminPartitionsPage(global) {
             const data = await executor;
             if (partitionStore || data.success) {
                 global.alert('分区创建成功');
-                modal?.hide();
+                ensureModalInstance('create').close();
                 if (!partitionStore) {
                     loadPartitionData();
                 }
@@ -274,8 +296,6 @@ function mountAdminPartitionsPage(global) {
             return;
         }
 
-        const modal = global.bootstrap.Modal.getInstance(selectOne('#cleanupPartitionsModal').first());
-
         const executor = partitionStore
             ? partitionStore.actions.cleanupPartitions({ retention_months: parseInt(retentionMonths, 10) })
             : partitionService.cleanupPartitions({
@@ -285,7 +305,7 @@ function mountAdminPartitionsPage(global) {
             const data = await executor;
             if (partitionStore || data.success) {
                 global.alert('分区清理成功');
-                modal?.hide();
+                ensureModalInstance('cleanup').close();
                 if (!partitionStore) {
                     loadPartitionData();
                 }
@@ -387,14 +407,12 @@ function mountAdminPartitionsPage(global) {
     }
 
     function handleCreateSuccess() {
-        const modal = global.bootstrap.Modal.getInstance(selectOne('#createPartitionModal').first());
-        modal?.hide();
+        ensureModalInstance('create').close();
         global.toast?.success?.('分区创建成功') || global.alert('分区创建成功');
     }
 
     function handleCleanupSuccess() {
-        const modal = global.bootstrap.Modal.getInstance(selectOne('#cleanupPartitionsModal').first());
-        modal?.hide();
+        ensureModalInstance('cleanup').close();
         global.toast?.success?.('分区清理成功') || global.alert('分区清理成功');
     }
 }

@@ -1,5 +1,5 @@
 // 会话中心页脚本（从模板抽离）
-// 依赖：bootstrap, toast.js, time-utils.js
+// 依赖：toast.js, time-utils.js, UI.createModal
 
 function mountSyncSessionsPage(window = globalThis.window, document = globalThis.document) {
   const LodashUtils = window.LodashUtils;
@@ -37,7 +37,7 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   let filterUnloadHandler = null;
   let sessionDetailModal = null;
   let errorLogsModal = null;
-  global.syncSessionsStore = null;
+  window.syncSessionsStore = null;
 
   function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
@@ -90,8 +90,7 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   function initializeSyncModals() {
     const factory = window.UI?.createModal;
     if (!factory) {
-      console.warn('UI.createModal 未加载，会话中心模态回退到 bootstrap');
-      return;
+      throw new Error('UI.createModal 未加载，会话中心模态无法初始化');
     }
     sessionDetailModal = factory({
       modalSelector: SESSION_DETAIL_MODAL_SELECTOR,
@@ -400,7 +399,7 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       content.innerHTML = recordsHtml;
     }
 
-    openModal(errorLogsModal, ERROR_LOGS_MODAL_SELECTOR);
+    openModal(errorLogsModal, 'errorLogs');
   }
 
   window.showSessionDetail = function (session) {
@@ -467,7 +466,7 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       <h6>实例记录</h6>
       <div class="max-height-400 overflow-auto">${recordsHtml || '<div class="text-muted">暂无实例记录</div>'}</div>`;
 
-    openModal(sessionDetailModal, SESSION_DETAIL_MODAL_SELECTOR);
+    openModal(sessionDetailModal, 'sessionDetail');
   }
 
   window.cancelSession = function (sessionId) {
@@ -642,16 +641,12 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     return window.NumberFormat.formatDurationSeconds(sec);
   }
 
-  function openModal(instance, selector) {
-    if (instance) {
+  function openModal(instance, name) {
+    if (instance?.open) {
       instance.open();
       return;
     }
-    const bootstrap = window.bootstrap;
-    const element = document.querySelector(selector);
-    if (element && bootstrap?.Modal) {
-      bootstrap.Modal.getOrCreateInstance(element).show();
-    }
+    console.error(`模态未初始化: ${name}`);
   }
 
   function clearSessionDetailContent() {
