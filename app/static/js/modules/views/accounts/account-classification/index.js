@@ -22,7 +22,27 @@ function mountAccountClassificationPage(window, document) {
         console.error('AccountClassificationService 未加载，账户分类页面无法初始化');
         return;
     }
-    const api = new AccountClassificationService(window.httpU);
+    const service = new AccountClassificationService(window.httpU);
+    const api = {
+        classifications: {
+            list: () => service.listClassifications(),
+            detail: id => service.getClassification(id),
+            create: payload => service.createClassification(payload),
+            update: (id, payload) => service.updateClassification(id, payload),
+            remove: id => service.deleteClassification(id),
+        },
+        rules: {
+            list: () => service.listRules(),
+            stats: ids => service.ruleStats(ids),
+            create: payload => service.createRule(payload),
+            detail: id => service.getRule(id),
+            update: (id, payload) => service.updateRule(id, payload),
+            remove: id => service.deleteRule(id),
+        },
+        automation: {
+            trigger: payload => service.triggerAutomation(payload),
+        },
+    };
 
     const toast = window.toast || {
         success: message => console.log(message),
