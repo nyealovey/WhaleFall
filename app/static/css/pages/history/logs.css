@@ -121,45 +121,49 @@
     background: var(--gray-100);
 }
 
-/* 统计卡片 */
-.card {
-    border: none;
+/* 统计卡片统一样式（与容量统计对齐） */
+.stats-card {
     border-radius: var(--border-radius-lg);
-    overflow: hidden;
-    transition: var(--transition-base);
     box-shadow: var(--shadow-md);
+    transition: var(--transition-base);
 }
 
-.card:hover {
+.stats-card:hover {
     box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
 }
 
-.card.bg-primary {
+.stats-card.bg-primary {
     background: var(--gradient-primary) !important;
 }
 
-.card.bg-danger {
-    background: var(--gradient-danger) !important;
+.stats-card.bg-success {
+    background: var(--gradient-success) !important;
 }
 
-.card.bg-warning {
-    background: var(--gradient-warning) !important;
-}
-
-.card.bg-info {
+.stats-card.bg-info {
     background: var(--gradient-info) !important;
 }
 
-.card-title {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: var(--spacing-xs);
+.stats-card.bg-warning {
+    background: var(--gradient-warning) !important;
+    color: #fff;
 }
 
-.card-text {
-    font-size: 0.9rem;
-    opacity: 0.9;
+.stats-card.bg-danger {
+    background: var(--gradient-danger) !important;
+}
+
+.stats-card .card-subtitle {
+    letter-spacing: 0.5px;
+}
+
+.stats-card .card-body {
+    padding: 1.25rem;
+}
+
+.stats-card h3 {
+    font-size: 2rem;
 }
 
 /* 日志详情模态框样式 */
