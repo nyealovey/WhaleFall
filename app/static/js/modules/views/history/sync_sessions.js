@@ -23,6 +23,8 @@ function mountSyncSessionsPage() {
   const SYNC_FILTER_FORM_ID = "sync-sessions-filter-form";
   const AUTO_APPLY_FILTER_CHANGE = true;
   const AUTO_REFRESH_INTERVAL_MS = 30000;
+  const SESSION_DETAIL_MODAL_SELECTOR = '#sessionDetailModal';
+  const ERROR_LOGS_MODAL_SELECTOR = '#errorLogsModal';
 
   function notifyAlert(message, type = 'info') {
     toast.show(type, message);
@@ -33,6 +35,8 @@ function mountSyncSessionsPage() {
   const storeSubscriptions = [];
   let syncFilterCard = null;
   let filterUnloadHandler = null;
+  let sessionDetailModal = null;
+  let errorLogsModal = null;
 
   function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
@@ -79,7 +83,24 @@ function mountSyncSessionsPage() {
   document.addEventListener('DOMContentLoaded', function () {
     initializeSyncSessionsStore();
     initializeSyncFilterCard();
+    initializeSyncModals();
   });
+
+  function initializeSyncModals() {
+    const factory = window.UI?.createModal;
+    if (!factory) {
+      console.warn('UI.createModal 未加载，会话中心模态回退到 bootstrap');
+      return;
+    }
+    sessionDetailModal = factory({
+      modalSelector: SESSION_DETAIL_MODAL_SELECTOR,
+      onClose: clearSessionDetailContent,
+    });
+    errorLogsModal = factory({
+      modalSelector: ERROR_LOGS_MODAL_SELECTOR,
+      onClose: clearErrorLogsContent,
+    });
+  }
 
   function initializeSyncSessionsStore() {
     if (!window.createSyncSessionsStore) {
@@ -377,8 +398,7 @@ function mountSyncSessionsPage() {
       content.innerHTML = recordsHtml;
     }
 
-    const modal = new bootstrap.Modal(document.getElementById('errorLogsModal'));
-    modal.show();
+    openModal(errorLogsModal, ERROR_LOGS_MODAL_SELECTOR);
   }
 
   window.showSessionDetail = function (session) {
@@ -445,8 +465,7 @@ function mountSyncSessionsPage() {
       <h6>实例记录</h6>
       <div class="max-height-400 overflow-auto">${recordsHtml || '<div class="text-muted">暂无实例记录</div>'}</div>`;
 
-    const modal = new bootstrap.Modal(document.getElementById('sessionDetailModal'));
-    modal.show();
+    openModal(sessionDetailModal, SESSION_DETAIL_MODAL_SELECTOR);
   }
 
   window.cancelSession = function (sessionId) {
@@ -619,6 +638,32 @@ function mountSyncSessionsPage() {
     
     const sec = (e - s) / 1000;
     return window.NumberFormat.formatDurationSeconds(sec);
+  }
+
+  function openModal(instance, selector) {
+    if (instance) {
+      instance.open();
+      return;
+    }
+    const bootstrap = window.bootstrap;
+    const element = document.querySelector(selector);
+    if (element && bootstrap?.Modal) {
+      bootstrap.Modal.getOrCreateInstance(element).show();
+    }
+  }
+
+  function clearSessionDetailContent() {
+    const container = document.getElementById('session-detail-content');
+    if (container) {
+      container.innerHTML = '';
+    }
+  }
+
+  function clearErrorLogsContent() {
+    const container = document.getElementById('error-logs-content');
+    if (container) {
+      container.innerHTML = '';
+    }
   }
 }
 

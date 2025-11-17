@@ -58,46 +58,46 @@
 </div>
 
 <!-- 会话详情模态框 -->
-<div class="modal fade" id="sessionDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">会话详情</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="session-detail-content">
-                    <!-- 会话详情将在这里动态加载 -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-            </div>
-        </div>
+{% set session_detail_modal_body %}
+    <div id="session-detail-content">
+        <!-- 会话详情将在这里动态加载 -->
     </div>
-</div>
+{% endset %}
+{% set session_detail_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>关闭</button>
+{% endset %}
+{% with
+    modal_id='sessionDetailModal',
+    modal_label_id='sessionDetailModalLabel',
+    title='会话详情',
+    body=session_detail_modal_body,
+    footer=session_detail_modal_footer,
+    size='xl'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 
 <!-- 错误日志模态框 -->
-<div class="modal fade" id="errorLogsModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle me-2"></i>错误
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="error-logs-content">
-                    <!-- 错误日志将在这里动态加载 -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-            </div>
-        </div>
+{% set error_logs_modal_body %}
+    <div id="error-logs-content">
+        <!-- 错误日志将在这里动态加载 -->
     </div>
-</div>
+{% endset %}
+{% set error_logs_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>关闭</button>
+{% endset %}
+{% with
+    modal_id='errorLogsModal',
+    modal_label_id='errorLogsModalLabel',
+    title='<i class=\"fas fa-exclamation-triangle me-2\"></i>错误',
+    body=error_logs_modal_body,
+    footer=error_logs_modal_footer,
+    size='xl',
+    header_class='bg-danger text-white',
+    close_button_class='btn-close-white'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
 {% endblock %}
 
 {% block extra_js %}

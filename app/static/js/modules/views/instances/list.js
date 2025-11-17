@@ -31,6 +31,7 @@ try {
 
 let instanceStore = null;
 const instanceStoreSubscriptions = [];
+let batchCreateModal = null;
 
 function ensureInstanceService() {
     if (!instanceService) {
@@ -46,6 +47,7 @@ function ensureInstanceService() {
 
 const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
 const AUTO_APPLY_FILTER_CHANGE = true;
+const BATCH_CREATE_LOADING_TEXT = '创建中...';
 let instanceFilterCard = null;
 let unloadCleanupHandler = null;
 
@@ -57,6 +59,7 @@ ready(() => {
     initializeInstanceStore();
     initializeTagFilter();
     initializeInstanceFilterCard();
+    initializeBatchCreateModal();
     setupEventListeners();
     loadInstanceTotalSizes();
     registerUnloadCleanup();
@@ -149,6 +152,21 @@ function initializeInstanceStore() {
             instanceStore.actions.loadStats({ silent: true }).catch(() => {});
         });
     window.addEventListener('beforeunload', teardownInstanceStore, { once: true });
+}
+
+function initializeBatchCreateModal() {
+    const factory = window.UI?.createModal;
+    if (!factory) {
+        console.warn('UI.createModal 未加载，批量创建模态采用回退实现');
+        return;
+    }
+    batchCreateModal = factory({
+        modalSelector: '#batchCreateModal',
+        loadingText: BATCH_CREATE_LOADING_TEXT,
+        onOpen: resetBatchCreateModalState,
+        onClose: resetBatchCreateModalState,
+        onConfirm: () => submitBatchCreate(),
+    });
 }
 
 function collectInstanceMetadata() {
@@ -692,17 +710,31 @@ function batchDelete() {
         });
 }
 
-// 批量创建相关功能
-function showBatchCreateModal() {
-    // 重置表单
+function resetBatchCreateModalState() {
     const csvFileInput = document.getElementById('csvFile');
     if (csvFileInput) {
         csvFileInput.value = '';
         const info = csvFileInput.parentNode.querySelector('.file-info');
-        if (info) info.remove();
+        if (info) {
+            info.remove();
+        }
     }
+}
 
-    new bootstrap.Modal(document.getElementById('batchCreateModal')).show();
+// 批量创建相关功能
+function showBatchCreateModal() {
+    if (batchCreateModal) {
+        batchCreateModal.open();
+        return;
+    }
+    resetBatchCreateModalState();
+    const modalElement = document.getElementById('batchCreateModal');
+    const bootstrap = window.bootstrap;
+    if (modalElement && bootstrap?.Modal) {
+        bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        return;
+    }
+    console.error('批量创建模态未初始化，无法开启模态窗口');
 }
 
 function handleFileSelect(event) {
@@ -755,11 +787,16 @@ function submitFileUpload() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const btn = document.querySelector('#batchCreateModal .btn-primary');
-    const originalText = btn.textContent;
+    const confirmButton = document.querySelector('#batchCreateModal [data-modal-confirm]');
+    const bootstrap = window.bootstrap;
 
-    btn.textContent = '创建中...';
-    btn.disabled = true;
+    if (batchCreateModal) {
+        batchCreateModal.setLoading(true, BATCH_CREATE_LOADING_TEXT);
+    } else if (confirmButton) {
+        confirmButton.dataset.originalText = confirmButton.textContent;
+        confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>创建中...';
+        confirmButton.disabled = true;
+    }
 
     const submitAction = instanceStore
         ? instanceStore.actions.batchCreateInstances(formData)
@@ -775,8 +812,12 @@ function submitFileUpload() {
                 if (errors && errors.length > 0) {
                     toast.warning(`部分实例创建失败：\n${errors.join('\n')}`);
                 }
-                const modal = bootstrap.Modal.getInstance(document.getElementById('batchCreateModal'));
-                if (modal) modal.hide();
+                if (batchCreateModal) {
+                    batchCreateModal.close();
+                } else if (bootstrap?.Modal) {
+                    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('batchCreateModal'));
+                    modalInstance?.hide();
+                }
                 setTimeout(() => location.reload(), 1000);
                 return;
             }
@@ -786,8 +827,13 @@ function submitFileUpload() {
             toast.error(error?.message || '批量创建失败');
         })
         .finally(() => {
-            btn.textContent = originalText;
-            btn.disabled = false;
+            if (batchCreateModal) {
+                batchCreateModal.setLoading(false);
+            } else if (confirmButton) {
+                confirmButton.innerHTML = confirmButton.dataset.originalText || '创建实例';
+                confirmButton.disabled = false;
+                delete confirmButton.dataset.originalText;
+            }
         });
 }
 
