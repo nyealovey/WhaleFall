@@ -1,7 +1,7 @@
 // 会话中心页脚本（从模板抽离）
 // 依赖：bootstrap, toast.js, time-utils.js
 
-function mountSyncSessionsPage() {
+function mountSyncSessionsPage(window = globalThis.window, document = globalThis.document) {
   const LodashUtils = window.LodashUtils;
   if (!LodashUtils) {
     throw new Error("LodashUtils 未初始化");
