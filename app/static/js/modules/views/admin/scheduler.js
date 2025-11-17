@@ -3,11 +3,12 @@
  * 处理任务加载、状态切换、执行控制、配置管理等功能
  */
 
+var schedulerService = null;
+var schedulerStore = null;
+
 function mountSchedulerPage() {
 
 const SchedulerService = window.SchedulerService;
-let schedulerService = null;
-let schedulerStore = null;
 try {
     if (!SchedulerService) {
         throw new Error('SchedulerService 未加载');

@@ -543,7 +543,10 @@ function buildFilterParams(rawValues) {
         if (!contentWrapper.length) {
             return;
         }
-        const safeLog = log || {};
+        const safeLog = log && typeof log === 'object' ? log : {};
+        const detailPayload = safeLog.context || safeLog.metadata || {};
+        const detailTitle = safeLog.context ? '上下文' : safeLog.metadata ? '元数据' : '详情';
+        const contextHtml = buildContextContent(detailPayload);
         const detailHtml = `
             <div class="mb-3">
                 <strong>日志 ID：</strong>${safeLog.id || '-'}
@@ -562,13 +565,40 @@ function buildFilterParams(rawValues) {
                 <pre class="bg-light p-3 rounded">${escapeHtml(safeLog.message || '')}</pre>
             </div>
             <div class="mb-3">
-                <strong>详情：</strong>
-                <pre class="bg-light p-3 rounded">${escapeHtml(JSON.stringify(safeLog.context || safeLog.metadata || {}, null, 2))}</pre>
+                <strong>${detailTitle}：</strong>
+                ${contextHtml}
             </div>
         `;
         contentWrapper.html(detailHtml);
 
         logDetailModal?.open?.({ logId: safeLog.id });
+    }
+
+    function buildContextContent(payload) {
+        if (payload === null || payload === undefined) {
+            return '<div class="text-muted">暂无上下文数据</div>';
+        }
+        if (typeof payload === 'string') {
+            return `<pre class="bg-light p-3 rounded">${escapeHtml(payload)}</pre>`;
+        }
+        if (typeof payload === 'object') {
+            const entries = Object.entries(payload);
+            if (entries.length === 0) {
+                return '<div class="text-muted">暂无上下文数据</div>';
+            }
+            const rows = entries
+                .map(([key, value]) => {
+                    const normalizedValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : value;
+                    return `
+                        <div class="mb-2">
+                            <div class="text-muted small">${escapeHtml(key)}</div>
+                            <pre class="bg-light p-3 rounded mb-0">${escapeHtml(String(normalizedValue ?? ''))}</pre>
+                        </div>`;
+                })
+                .join('');
+            return `<div class="log-context-section">${rows}</div>`;
+        }
+        return `<pre class="bg-light p-3 rounded">${escapeHtml(String(payload))}</pre>`;
     }
 
     function escapeHtml(value) {
