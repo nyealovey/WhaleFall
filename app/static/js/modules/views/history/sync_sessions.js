@@ -97,8 +97,8 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     }, {});
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    debugLog("DOM Ready，开始初始化会话中心");
+  function startInitialization() {
+    debugLog("开始初始化会话中心");
     try {
       initializeSyncSessionsStore();
       initializeSyncFilterCard();
@@ -109,7 +109,13 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       debugLog("会话中心初始化失败", error);
       notifyAlert('会话中心初始化失败，请查看控制台日志', 'error');
     }
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startInitialization, { once: true });
+  } else {
+    startInitialization();
+  }
 
   function initializeSyncModals() {
     const factory = window.UI?.createModal;
