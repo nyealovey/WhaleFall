@@ -501,8 +501,8 @@ function batchTestConnections() {
         .batchTestConnections(selectedInstances, {
             onProgress: (result) => {
                 const payload = result?.data || result;
-                if (progressContainer) {
-                    connectionManager.showBatchTestProgress(payload, 'batch-test-progress');
+                if (payload?.summary) {
+                    console.info('批量测试进度', payload.summary);
                 }
             },
             onError: (error) => {

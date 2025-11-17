@@ -129,7 +129,10 @@ function testConnection(event) {
 
             // 使用连接管理组件的显示方法
             connectionManager.showTestResult(data, 'testResultContent');
-            resultDiv.css('display', 'block');
+            const resultElement = resultDiv.first();
+            if (resultElement) {
+                resultElement.style.display = 'block';
+            }
         },
         onError: (error) => {
             // 记录失败日志
@@ -149,7 +152,10 @@ function testConnection(event) {
 
             // 使用连接管理组件的显示方法
             connectionManager.showTestResult(error, 'testResultContent');
-            resultDiv.css('display', 'block');
+            const resultElement = resultDiv.first();
+            if (resultElement) {
+                resultElement.style.display = 'block';
+            }
         }
     }).finally(() => {
         buttonWrapper.html(originalText || '测试连接');
