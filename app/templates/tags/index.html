@@ -163,37 +163,25 @@
 </div>
 
 <!-- 删除确认模态框 -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">确认删除</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>确定要删除标签 <strong id="deleteTagName"></strong> 吗？</p>
-                <p class="text-danger">此操作不可撤销！</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <form id="deleteForm" method="POST" action="{{ url_for('tags.delete', tag_id=0) }}" style="display: inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                    <button type="submit" class="btn btn-danger">确认删除</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+{% set delete_modal_body %}
+    <p>确定要删除标签 <strong id="deleteTagName"></strong> 吗？</p>
+    <p class="text-danger">此操作不可撤销！</p>
+{% endset %}
+{% set delete_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <form id="deleteForm" method="POST" action="{{ url_for('tags.delete', tag_id=0) }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="btn btn-danger" id="confirmDeleteTag">确认删除</button>
+    </form>
+{% endset %}
+{% include 'components/ui/modal.html' with modal_id='deleteModal' modal_label_id='deleteModalLabel' title='确认删除' body=delete_modal_body footer=delete_modal_footer %}
 
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/pages/tags/index.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (window.FilterUtils) {
-        FilterUtils.registerFilterForm('#tag-filter-form');
-    }
-});
-</script>
+<script src="{{ url_for('static', filename='js/modules/services/tag_management_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/tag_management_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/tag_list_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/tags/index.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap/tags/index.js') }}"></script>
 {% endblock %}

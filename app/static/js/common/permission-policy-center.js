@@ -1,0 +1,722 @@
+(function (window, document) {
+  "use strict";
+
+  const AccountClassificationService = window.AccountClassificationService;
+  if (!AccountClassificationService) {
+    console.error("AccountClassificationService 未初始化，权限策略中心无法加载");
+    return;
+  }
+  const accountClassificationService = new AccountClassificationService(window.httpU);
+
+  class PermissionStrategy {
+    constructor(dbType) {
+      this.dbType = dbType;
+    }
+
+    renderSelector() {
+      return `<div class="alert alert-info">当前数据库类型 (${this.dbType}) 暂未提供权限策略。</div>`;
+    }
+
+    collectSelected(container) {
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+      const permissions = Array.from(checkboxes).map((checkbox) => checkbox.value);
+      return { permissions };
+    }
+
+    buildExpression(selected, operator) {
+      return {
+        type: "permissions",
+        permissions: selected.permissions || [],
+        operator: operator || "OR",
+      };
+    }
+
+    setSelected(ruleExpression, container) {
+      const permissions = ruleExpression?.permissions || [];
+      permissions.forEach((perm) => {
+        const checkbox = container.querySelector(`#perm_${perm}`);
+        if (checkbox) checkbox.checked = true;
+      });
+    }
+
+    renderDisplay(ruleExpression) {
+      const permissions = ruleExpression?.permissions || [];
+      if (permissions.length === 0) {
+        return '<div class="text-muted">无权限配置</div>';
+      }
+      return `
+        <div class="row">
+          <div class="col-12">
+            <h6 class="mb-2"><i class="fas fa-key me-2"></i>权限</h6>
+            <div class="mb-2">
+              ${permissions.map((item) => `<span class="badge bg-primary me-1 mb-1">${item}</span>`).join("")}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    hasSelection(selected) {
+      if (!selected) return false;
+      return Object.values(selected).some((value) => Array.isArray(value) && value.length > 0);
+    }
+  }
+
+  class MySQLPermissionStrategy extends PermissionStrategy {
+    constructor() {
+      super("mysql");
+    }
+
+    renderSelector(permissions = {}, prefix = "") {
+      const globals = Array.isArray(permissions.global_privileges) ? permissions.global_privileges : [];
+      const databases = Array.isArray(permissions.database_privileges) ? permissions.database_privileges : [];
+
+      return `
+        <div class="row">
+          <div class="col-6">
+            <h6 class="text-primary mb-3"><i class="fas fa-globe me-2"></i>全局权限</h6>
+            <div class="permission-section">
+              ${globals
+                .map(
+                  (perm) => `
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" value="${perm.name}" id="${prefix}global_${perm.name}">
+                  <label class="form-check-label d-flex align-items-center" for="${prefix}global_${perm.name}">
+                    <i class="fas fa-globe text-primary me-2"></i>
+                    <div>
+                      <div class="fw-bold">${perm.name}</div>
+                      <small class="text-muted">${perm.description || "全局权限"}</small>
+                    </div>
+                  </label>
+                </div>
+              `
+                )
+                .join("") || '<div class="text-muted">暂无全局权限</div>'}
+            </div>
+          </div>
+          <div class="col-6">
+            <h6 class="text-success mb-3"><i class="fas fa-database me-2"></i>数据库权限</h6>
+            <div class="permission-section">
+              ${databases
+                .map(
+                  (perm) => `
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" value="${perm.name}" id="${prefix}db_${perm.name}">
+                  <label class="form-check-label d-flex align-items-center" for="${prefix}db_${perm.name}">
+                    <i class="fas fa-database text-success me-2"></i>
+                    <div>
+                      <div class="fw-bold">${perm.name}</div>
+                      <small class="text-muted">${perm.description || "数据库权限"}</small>
+                    </div>
+                  </label>
+                </div>
+              `
+                )
+                .join("") || '<div class="text-muted">暂无数据库权限</div>'}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    collectSelected(container, prefix = "") {
+      const globalPrivileges = [];
+      const databasePrivileges = [];
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+
+      checkboxes.forEach((checkbox) => {
+        if (checkbox.id.startsWith(`${prefix}global_`)) {
+          globalPrivileges.push(checkbox.value);
+        } else if (checkbox.id.startsWith(`${prefix}db_`)) {
+          databasePrivileges.push(checkbox.value);
+        }
+      });
+
+      return {
+        global_privileges: globalPrivileges,
+        database_privileges: databasePrivileges,
+      };
+    }
+
+    buildExpression(selected, operator) {
+      return {
+        type: "mysql_permissions",
+        global_privileges: selected.global_privileges || [],
+        database_privileges: selected.database_privileges || [],
+        operator: operator || "OR",
+      };
+    }
+
+    setSelected(ruleExpression, container, prefix = "") {
+      (ruleExpression.global_privileges || []).forEach((perm) => {
+        const checkbox = container.querySelector(`#${prefix}global_${perm}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      (ruleExpression.database_privileges || []).forEach((perm) => {
+        const checkbox = container.querySelector(`#${prefix}db_${perm}`);
+        if (checkbox) checkbox.checked = true;
+      });
+    }
+
+    renderDisplay(ruleExpression = {}) {
+      const sections = [];
+      if (Array.isArray(ruleExpression.global_privileges) && ruleExpression.global_privileges.length > 0) {
+        sections.push({
+          title: "全局权限",
+          icon: "fas fa-globe",
+          color: "primary",
+          items: ruleExpression.global_privileges,
+        });
+      }
+      if (Array.isArray(ruleExpression.database_privileges) && ruleExpression.database_privileges.length > 0) {
+        sections.push({
+          title: "数据库权限",
+          icon: "fas fa-database",
+          color: "success",
+          items: ruleExpression.database_privileges,
+        });
+      }
+      return renderDisplaySections(sections);
+    }
+
+    hasSelection(selected) {
+      return (
+        Array.isArray(selected.global_privileges) && selected.global_privileges.length > 0 ||
+        Array.isArray(selected.database_privileges) && selected.database_privileges.length > 0
+      );
+    }
+  }
+
+  class SQLServerPermissionStrategy extends PermissionStrategy {
+    constructor() {
+      super("sqlserver");
+    }
+
+    renderSelector(permissions = {}, prefix = "") {
+      const serverRoles = Array.isArray(permissions.server_roles) ? permissions.server_roles : [];
+      const databaseRoles = Array.isArray(permissions.database_roles) ? permissions.database_roles : [];
+      const serverPermissions = Array.isArray(permissions.server_permissions) ? permissions.server_permissions : [];
+      const databasePermissions = Array.isArray(permissions.database_privileges) ? permissions.database_privileges : [];
+
+      const renderGroup = (items, idPrefix, icon, color, fallback) =>
+        items
+          .map(
+            (item) => `
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" value="${item.name}" id="${prefix}${idPrefix}_${item.name}">
+          <label class="form-check-label d-flex align-items-center" for="${prefix}${idPrefix}_${item.name}">
+            <i class="${icon} text-${color} me-2"></i>
+            <div>
+              <div class="fw-bold">${item.name}</div>
+              <small class="text-muted">${item.description || fallback}</small>
+            </div>
+          </label>
+        </div>
+      `
+          )
+          .join("") || `<div class="text-muted">${fallback}暂无配置</div>`;
+
+      return `
+        <div class="row">
+          <div class="col-6">
+            <h6 class="text-info mb-3"><i class="fas fa-users me-2"></i>服务器角色</h6>
+            <div class="permission-section">
+              ${renderGroup(serverRoles, "server_role", "fas fa-users", "info", "服务器角色")}
+            </div>
+          </div>
+          <div class="col-6">
+            <h6 class="text-warning mb-3"><i class="fas fa-user-shield me-2"></i>服务器权限</h6>
+            <div class="permission-section">
+              ${renderGroup(serverPermissions, "server_perm", "fas fa-user-shield", "warning", "服务器权限")}
+            </div>
+          </div>
+          <div class="col-6">
+            <h6 class="text-success mb-3"><i class="fas fa-database me-2"></i>数据库角色</h6>
+            <div class="permission-section">
+              ${renderGroup(databaseRoles, "db_role", "fas fa-database", "success", "数据库角色")}
+            </div>
+          </div>
+          <div class="col-6">
+            <h6 class="text-primary mb-3"><i class="fas fa-key me-2"></i>数据库权限</h6>
+            <div class="permission-section">
+              ${renderGroup(databasePermissions, "db_perm", "fas fa-key", "primary", "数据库权限")}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    collectSelected(container, prefix = "") {
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+      const server_roles = [];
+      const server_permissions = [];
+      const database_roles = [];
+      const database_privileges = [];
+
+      checkboxes.forEach((checkbox) => {
+        if (checkbox.id.startsWith(`${prefix}server_role_`)) {
+          server_roles.push(checkbox.value);
+        } else if (checkbox.id.startsWith(`${prefix}server_perm_`)) {
+          server_permissions.push(checkbox.value);
+        } else if (checkbox.id.startsWith(`${prefix}db_role_`)) {
+          database_roles.push(checkbox.value);
+        } else if (checkbox.id.startsWith(`${prefix}db_perm_`)) {
+          database_privileges.push(checkbox.value);
+        }
+      });
+
+      return {
+        server_roles,
+        server_permissions,
+        database_roles,
+        database_privileges,
+      };
+    }
+
+    buildExpression(selected, operator) {
+      return {
+        type: "sqlserver_permissions",
+        server_roles: selected.server_roles || [],
+        server_permissions: selected.server_permissions || [],
+        database_roles: selected.database_roles || [],
+        database_privileges: selected.database_privileges || [],
+        operator: operator || "OR",
+      };
+    }
+
+    setSelected(ruleExpression, container, prefix = "") {
+      (ruleExpression.server_roles || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}server_role_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      (ruleExpression.server_permissions || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}server_perm_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      (ruleExpression.database_roles || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}db_role_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      (ruleExpression.database_privileges || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}db_perm_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+    }
+
+    renderDisplay(ruleExpression = {}) {
+      const sections = [];
+      pushBadgeSection(sections, "服务器角色", "fas fa-users", "info", ruleExpression.server_roles);
+      pushBadgeSection(sections, "服务器权限", "fas fa-user-shield", "warning", ruleExpression.server_permissions);
+      pushBadgeSection(sections, "数据库角色", "fas fa-database", "success", ruleExpression.database_roles);
+      pushBadgeSection(sections, "数据库权限", "fas fa-key", "primary", ruleExpression.database_privileges);
+      return renderDisplaySections(sections);
+    }
+
+    hasSelection(selected) {
+      return (
+        (selected.server_roles && selected.server_roles.length > 0) ||
+        (selected.server_permissions && selected.server_permissions.length > 0) ||
+        (selected.database_roles && selected.database_roles.length > 0) ||
+        (selected.database_privileges && selected.database_privileges.length > 0)
+      );
+    }
+  }
+
+  class PostgreSQLPermissionStrategy extends PermissionStrategy {
+    constructor() {
+      super("postgresql");
+    }
+
+    renderSelector(permissions = {}, prefix = "") {
+      const predefinedRoles = Array.isArray(permissions.predefined_roles) ? permissions.predefined_roles : [];
+      const roleAttributes = Array.isArray(permissions.role_attributes) ? permissions.role_attributes : [];
+      const databasePrivileges = Array.isArray(permissions.database_privileges) ? permissions.database_privileges : [];
+      const tablespacePrivileges = Array.isArray(permissions.tablespace_privileges) ? permissions.tablespace_privileges : [];
+
+      const renderGroup = (items, idPrefix, icon, color, fallback) =>
+        items
+          .map(
+            (item) => `
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" value="${item.name}" id="${prefix}${idPrefix}_${item.name}">
+          <label class="form-check-label d-flex align-items-center" for="${prefix}${idPrefix}_${item.name}">
+            <i class="${icon} text-${color} me-2"></i>
+            <div>
+              <div class="fw-bold">${item.name}</div>
+              <small class="text-muted">${item.description || fallback}</small>
+            </div>
+          </label>
+        </div>
+      `
+          )
+          .join("") || `<div class="text-muted">${fallback}暂无配置</div>`;
+
+      return `
+        <div class="row">
+          <div class="col-6">
+            <h6 class="text-primary mb-3"><i class="fas fa-user-tag me-2"></i>预定义角色</h6>
+            <div class="permission-section">
+              ${renderGroup(predefinedRoles, "predefined_role", "fas fa-user-tag", "primary", "预定义角色")}
+            </div>
+          </div>
+          <div class="col-6">
+            <h6 class="text-success mb-3"><i class="fas fa-user-check me-2"></i>角色属性</h6>
+            <div class="permission-section">
+              ${renderGroup(roleAttributes, "role_attr", "fas fa-user-check", "success", "角色属性")}
+            </div>
+          </div>
+          <div class="col-6">
+            <h6 class="text-warning mb-3"><i class="fas fa-database me-2"></i>数据库权限</h6>
+            <div class="permission-section">
+              ${renderGroup(databasePrivileges, "db_perm", "fas fa-database", "warning", "数据库权限")}
+            </div>
+          </div>
+          <div class="col-6">
+            <h6 class="text-info mb-3"><i class="fas fa-layer-group me-2"></i>表空间权限</h6>
+            <div class="permission-section">
+              ${renderGroup(tablespacePrivileges, "tablespace_perm", "fas fa-layer-group", "info", "表空间权限")}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    collectSelected(container, prefix = "") {
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+      const predefined_roles = [];
+      const role_attributes = [];
+      const database_privileges = [];
+      const tablespace_privileges = [];
+
+      checkboxes.forEach((checkbox) => {
+        if (checkbox.id.startsWith(`${prefix}predefined_role_`)) {
+          predefined_roles.push(checkbox.value);
+        } else if (checkbox.id.startsWith(`${prefix}role_attr_`)) {
+          role_attributes.push(checkbox.value);
+        } else if (checkbox.id.startsWith(`${prefix}db_perm_`)) {
+          database_privileges.push(checkbox.value);
+        } else if (checkbox.id.startsWith(`${prefix}tablespace_perm_`)) {
+          tablespace_privileges.push(checkbox.value);
+        }
+      });
+
+      return {
+        predefined_roles,
+        role_attributes,
+        database_privileges,
+        tablespace_privileges,
+      };
+    }
+
+    buildExpression(selected, operator) {
+      return {
+        type: "postgresql_permissions",
+        predefined_roles: selected.predefined_roles || [],
+        role_attributes: selected.role_attributes || [],
+        database_privileges: selected.database_privileges || [],
+        tablespace_privileges: selected.tablespace_privileges || [],
+        operator: operator || "OR",
+      };
+    }
+
+    setSelected(ruleExpression, container, prefix = "") {
+      (ruleExpression.predefined_roles || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}predefined_role_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      (ruleExpression.role_attributes || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}role_attr_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      (ruleExpression.database_privileges || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}db_perm_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      (ruleExpression.tablespace_privileges || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}tablespace_perm_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+    }
+
+    renderDisplay(ruleExpression = {}) {
+      const sections = [];
+      pushBadgeSection(sections, "预定义角色", "fas fa-user-tag", "primary", ruleExpression.predefined_roles);
+      pushBadgeSection(sections, "角色属性", "fas fa-user-check", "success", ruleExpression.role_attributes);
+      pushBadgeSection(sections, "数据库权限", "fas fa-database", "warning", ruleExpression.database_privileges);
+      pushBadgeSection(sections, "表空间权限", "fas fa-layer-group", "info", ruleExpression.tablespace_privileges);
+      return renderDisplaySections(sections);
+    }
+
+    hasSelection(selected) {
+      return (
+        (selected.predefined_roles && selected.predefined_roles.length > 0) ||
+        (selected.role_attributes && selected.role_attributes.length > 0) ||
+        (selected.database_privileges && selected.database_privileges.length > 0) ||
+        (selected.tablespace_privileges && selected.tablespace_privileges.length > 0)
+      );
+    }
+  }
+
+  class OraclePermissionStrategy extends PermissionStrategy {
+    constructor() {
+      super("oracle");
+    }
+
+    renderSelector(permissions = {}, prefix = "") {
+      const roles = Array.isArray(permissions.roles) ? permissions.roles : [];
+      const systemPermissions = Array.isArray(permissions.system_privileges) ? permissions.system_privileges : [];
+      const tablespacePermissions = Array.isArray(permissions.tablespace_privileges) ? permissions.tablespace_privileges : [];
+      const tablespaceQuotas = Array.isArray(permissions.tablespace_quotas) ? permissions.tablespace_quotas : [];
+
+      const renderGroup = (items, idPrefix, icon, color, fallback) =>
+        items
+          .map(
+            (item) => `
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" value="${item.name}" id="${prefix}${idPrefix}_${item.name}">
+          <label class="form-check-label d-flex align-items-center" for="${prefix}${idPrefix}_${item.name}">
+            <i class="${icon} text-${color} me-2"></i>
+            <div>
+              <div class="fw-bold">${item.name}</div>
+              <small class="text-muted">${item.description || fallback}</small>
+            </div>
+          </label>
+        </div>
+      `
+          )
+          .join("") || `<div class="text-muted">${fallback}暂无配置</div>`;
+
+      return `
+        <div class="row">
+          <div class="col-6">
+            <h6 class="text-primary mb-3"><i class="fas fa-user-shield me-2"></i>角色</h6>
+            <div class="permission-section">
+              ${renderGroup(roles, "role", "fas fa-user-shield", "primary", "角色")}
+            </div>
+          </div>
+          <div class="col-6">
+            <h6 class="text-success mb-3"><i class="fas fa-cogs me-2"></i>系统权限</h6>
+            <div class="permission-section">
+              ${renderGroup(systemPermissions, "sys_perm", "fas fa-cogs", "success", "系统权限")}
+            </div>
+          </div>
+          <div class="col-6">
+            <h6 class="text-warning mb-3"><i class="fas fa-layer-group me-2"></i>表空间权限</h6>
+            <div class="permission-section">
+              ${renderGroup(tablespacePermissions, "tablespace_perm", "fas fa-layer-group", "warning", "表空间权限")}
+            </div>
+          </div>
+          <div class="col-6">
+            <h6 class="text-info mb-3"><i class="fas fa-balance-scale me-2"></i>表空间配额</h6>
+            <div class="permission-section">
+              ${renderGroup(tablespaceQuotas, "tablespace_quota", "fas fa-balance-scale", "info", "表空间配额")}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    collectSelected(container, prefix = "") {
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+      const roles = [];
+      const system_privileges = [];
+      const tablespace_privileges = [];
+      const tablespace_quotas = [];
+
+      checkboxes.forEach((checkbox) => {
+        if (checkbox.id.startsWith(`${prefix}role_`)) {
+          roles.push(checkbox.value);
+        } else if (checkbox.id.startsWith(`${prefix}sys_perm_`)) {
+          system_privileges.push(checkbox.value);
+        } else if (checkbox.id.startsWith(`${prefix}tablespace_perm_`)) {
+          tablespace_privileges.push(checkbox.value);
+        } else if (checkbox.id.startsWith(`${prefix}tablespace_quota_`)) {
+          tablespace_quotas.push(checkbox.value);
+        }
+      });
+
+      return {
+        roles,
+        system_privileges,
+        tablespace_privileges,
+        tablespace_quotas,
+      };
+    }
+
+    buildExpression(selected, operator) {
+      return {
+        type: "oracle_permissions",
+        roles: selected.roles || [],
+        system_privileges: selected.system_privileges || [],
+        tablespace_privileges: selected.tablespace_privileges || [],
+        tablespace_quotas: selected.tablespace_quotas || [],
+        operator: operator || "OR",
+      };
+    }
+
+    setSelected(ruleExpression, container, prefix = "") {
+      (ruleExpression.roles || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}role_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      (ruleExpression.system_privileges || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}sys_perm_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      (ruleExpression.tablespace_privileges || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}tablespace_perm_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+      (ruleExpression.tablespace_quotas || []).forEach((item) => {
+        const checkbox = container.querySelector(`#${prefix}tablespace_quota_${item}`);
+        if (checkbox) checkbox.checked = true;
+      });
+    }
+
+    renderDisplay(ruleExpression = {}) {
+      const sections = [];
+      pushBadgeSection(sections, "角色", "fas fa-user-shield", "primary", ruleExpression.roles);
+      pushBadgeSection(sections, "系统权限", "fas fa-cogs", "success", ruleExpression.system_privileges);
+      pushBadgeSection(sections, "表空间权限", "fas fa-layer-group", "warning", ruleExpression.tablespace_privileges);
+      pushBadgeSection(sections, "表空间配额", "fas fa-balance-scale", "info", ruleExpression.tablespace_quotas);
+      return renderDisplaySections(sections);
+    }
+
+    hasSelection(selected) {
+      return (
+        (selected.roles && selected.roles.length > 0) ||
+        (selected.system_privileges && selected.system_privileges.length > 0) ||
+        (selected.tablespace_privileges && selected.tablespace_privileges.length > 0) ||
+        (selected.tablespace_quotas && selected.tablespace_quotas.length > 0)
+      );
+    }
+  }
+
+  function pushBadgeSection(sections, title, icon, color, items) {
+    if (Array.isArray(items) && items.length > 0) {
+      sections.push({ title, icon, color, items });
+    }
+  }
+
+  function renderDisplaySections(sections) {
+    if (!Array.isArray(sections) || sections.length === 0) {
+      return '<div class="text-muted">无权限配置</div>';
+    }
+    const columns = sections
+      .map(
+        (section) => `
+      <div class="col-6">
+        <h6 class="text-${section.color} mb-2"><i class="${section.icon} me-2"></i>${section.title}</h6>
+        <div class="mb-3">
+          ${section.items.map((item) => `<span class="badge bg-${section.color} me-1 mb-1">${item}</span>`).join("")}
+        </div>
+      </div>
+    `
+      )
+      .join("");
+    return `<div class="row">${columns}</div>`;
+  }
+
+  function getStrategy(dbType) {
+    switch (dbType) {
+      case "mysql":
+        return new MySQLPermissionStrategy();
+      case "sqlserver":
+        return new SQLServerPermissionStrategy();
+      case "postgresql":
+        return new PostgreSQLPermissionStrategy();
+      case "oracle":
+        return new OraclePermissionStrategy();
+      default:
+        return new PermissionStrategy(dbType);
+    }
+  }
+
+  class PermissionPolicyCenter {
+    static async load(dbType, containerId, prefix = "") {
+      const container = document.getElementById(containerId);
+      if (!container) {
+        console.error(`PermissionPolicyCenter: 找不到容器元素 ${containerId}`);
+        return Promise.resolve();
+      }
+
+      if (!dbType) {
+        container.innerHTML = `
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-info-circle me-2"></i>请先选择数据库类型
+          </div>
+        `;
+        return Promise.resolve();
+      }
+
+      container.innerHTML = `
+        <div class="text-center text-muted py-3">
+          <i class="fas fa-spinner fa-spin me-2"></i>加载中...
+        </div>
+      `;
+
+      try {
+        const response = await accountClassificationService.fetchPermissions(dbType);
+        if (response && response.success === false) {
+          throw new Error(response.error || "加载权限配置失败");
+        }
+        const permissions = response?.data?.permissions ?? response.permissions ?? {};
+        const strategy = getStrategy(dbType);
+        container.innerHTML = strategy.renderSelector(permissions, prefix);
+      } catch (error) {
+        console.error("加载权限配置失败:", error);
+        container.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            加载权限配置失败：${error.message || "未知错误"}
+          </div>
+        `;
+        throw error;
+      }
+    }
+
+    static collectSelected(dbType, containerId, prefix = "") {
+      const container = document.getElementById(containerId);
+      if (!container) {
+        console.error(`PermissionPolicyCenter: collectSelected 时找不到容器 ${containerId}`);
+        return {};
+      }
+      return getStrategy(dbType).collectSelected(container, prefix);
+    }
+
+    static hasSelection(selected) {
+      if (!selected) return false;
+      if (Array.isArray(selected)) {
+        return selected.length > 0;
+      }
+      return Object.values(selected).some((value) => {
+        if (Array.isArray(value)) {
+          return value.length > 0;
+        }
+        if (value && typeof value === "object") {
+          return PermissionPolicyCenter.hasSelection(value);
+        }
+        return Boolean(value);
+      });
+    }
+
+    static buildExpression(dbType, selectedPermissions, operator) {
+      return getStrategy(dbType).buildExpression(selectedPermissions, operator);
+    }
+
+    static setSelected(dbType, ruleExpression, containerId, prefix = "") {
+      const container = document.getElementById(containerId);
+      if (!container) {
+        console.error(`PermissionPolicyCenter: setSelected 时找不到容器 ${containerId}`);
+        return;
+      }
+      getStrategy(dbType).setSelected(ruleExpression || {}, container, prefix);
+    }
+
+    static renderDisplay(dbType, ruleExpression) {
+      return getStrategy(dbType).renderDisplay(ruleExpression || {});
+    }
+  }
+
+  window.PermissionPolicyCenter = PermissionPolicyCenter;
+})(window, document);

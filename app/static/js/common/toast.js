@@ -11,6 +11,14 @@
         return;
     }
 
+    const helpers = global.DOMHelpers;
+    if (!helpers || typeof helpers.selectOne !== 'function') {
+        console.error('DOMHelpers 未初始化，无法挂载 toast 容器');
+        return;
+    }
+
+    const { selectOne, from } = helpers;
+
     const POSITION_CLASS_MAP = {
         'top-right': ['top-0', 'end-0'],
         'top-left': ['top-0', 'start-0'],
@@ -73,25 +81,21 @@
             return containers.get(normalized);
         }
 
-        const container = document.createElement('div');
-        container.className = 'toast-container position-fixed p-3';
-        container.setAttribute('data-position', normalized);
-
-        POSITION_CLASS_MAP[normalized].forEach((cls) => container.classList.add(cls));
-        container.style.zIndex = '1080';
-
-        document.body.appendChild(container);
-        containers.set(normalized, container);
-        return container;
+        const body = selectOne('body');
+        const element = document.createElement('div');
+        element.className = 'toast-container position-fixed p-3';
+        element.setAttribute('data-position', normalized);
+        element.style.zIndex = '1080';
+        const container = from(element);
+        POSITION_CLASS_MAP[normalized].forEach((cls) => container.addClass(cls));
+        body.append(element);
+        containers.set(normalized, element);
+        return element;
     }
 
     function createCloseButton(typeConfig) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'btn-close';
-        button.setAttribute('data-bs-dismiss', 'toast');
-        button.setAttribute('aria-label', '关闭');
-        typeConfig.close.forEach((cls) => button.classList.add(cls));
+        const button = selectOne('<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="关闭"></button>');
+        typeConfig.close.forEach((cls) => button.addClass(cls));
         return button;
     }
 
@@ -99,67 +103,58 @@
         if (!icon) {
             return null;
         }
-        const span = document.createElement('span');
-        span.className = typeof icon === 'string' ? icon : '';
-        span.setAttribute('aria-hidden', 'true');
+        const span = selectOne('<span aria-hidden="true"></span>');
+        span.attr('class', typeof icon === 'string' ? icon : '');
         return span;
     }
 
     function buildToastElement(type, message, options) {
         const typeKey = normalizeType(type);
         const typeConfig = TYPE_CLASS_MAP[typeKey];
-        const toastElement = document.createElement('div');
-        toastElement.className = 'toast border-0 shadow-sm';
-        toastElement.setAttribute('role', 'status');
-        toastElement.setAttribute('aria-atomic', 'true');
+        const toastElement = selectOne('<div class="toast border-0 shadow-sm" role="status" aria-atomic="true"></div>');
 
-        typeConfig.toast.forEach((cls) => toastElement.classList.add(cls));
+        typeConfig.toast.forEach((cls) => toastElement.addClass(cls));
 
         const ariaLive = options.ariaLive || typeConfig.ariaLive || 'polite';
-        toastElement.setAttribute('aria-live', ariaLive);
+        toastElement.attr('aria-live', ariaLive);
 
         if (options.title) {
-            const header = document.createElement('div');
-            header.className = 'toast-header border-0';
+            const header = selectOne('<div class="toast-header border-0"></div>');
 
             const iconElement = createIconElement(options.icon);
             if (iconElement) {
-                iconElement.classList.add('me-2');
-                header.appendChild(iconElement);
+                iconElement.addClass('me-2');
+                header.append(iconElement);
             }
 
-            const strong = document.createElement('strong');
-            strong.className = 'me-auto';
-            strong.textContent = options.title;
-            header.appendChild(strong);
+            const strong = selectOne('<strong class="me-auto"></strong>');
+            strong.text(options.title);
+            header.append(strong);
 
             if (options.closable) {
-                header.appendChild(createCloseButton(typeConfig));
+                header.append(createCloseButton(typeConfig));
             }
 
-            toastElement.appendChild(header);
+            toastElement.append(header);
 
-            const body = document.createElement('div');
-            body.className = 'toast-body';
-            body.textContent = message;
-            toastElement.appendChild(body);
+            const body = selectOne('<div class="toast-body"></div>');
+            body.text(message);
+            toastElement.append(body);
         } else {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'd-flex';
+            const wrapper = selectOne('<div class="d-flex"></div>');
 
-            const body = document.createElement('div');
-            body.className = 'toast-body';
-            body.textContent = message;
-            typeConfig.body.forEach((cls) => body.classList.add(cls));
-            wrapper.appendChild(body);
+            const body = selectOne('<div class="toast-body"></div>');
+            body.text(message);
+        typeConfig.body.forEach((cls) => body.addClass(cls));
+            wrapper.append(body);
 
             if (options.closable) {
                 const closeButton = createCloseButton(typeConfig);
-                closeButton.classList.add('me-2', 'm-auto');
-                wrapper.appendChild(closeButton);
+                closeButton.addClass('me-2', 'm-auto');
+                wrapper.append(closeButton);
             }
 
-            toastElement.appendChild(wrapper);
+            toastElement.append(wrapper);
         }
 
         return toastElement;
@@ -198,7 +193,8 @@
         const config = Object.assign({}, DEFAULT_OPTIONS, options);
         const position = resolvePosition(config.position);
         const container = getContainer(position);
-        const toastElement = buildToastElement(type, normalizedMessage, config);
+        const toastElementWrapper = buildToastElement(type, normalizedMessage, config);
+        const toastElement = toastElementWrapper.first();
 
         mountToastElement(container, toastElement);
         trimStack(

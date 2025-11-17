@@ -3,7 +3,7 @@
 {% block title %}账户分类管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/account_classification.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/account-classification.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -543,7 +543,9 @@
     // 设置用户角色，供JavaScript使用
     window.currentUserRole = '{{ current_user.role }}';
 </script>
-<script src="{{ url_for('static', filename='js/common/permission_policy_center.js') }}"></script>
-<script src="{{ url_for('static', filename='js/api/accountClassification.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/accounts/account_classification.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/account_classification_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/account_classification_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/permission-policy-center.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/accounts/account-classification/index.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap/accounts/account-classification.js') }}"></script>
 {% endblock %}
