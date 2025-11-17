@@ -322,6 +322,133 @@ function mountAccountClassificationPage(window, document) {
         return `<i class="${iconClass}" style="color: ${color || '#6c757d'};"></i>`;
     }
 
+    function renderRules(rulesByDbType) {
+        const container = document.getElementById('rulesList');
+        if (!container) {
+            return;
+        }
+
+        const entries = Object.entries(rulesByDbType || {});
+        if (entries.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-info-circle"></i>
+                    <h5 class="mb-2">暂无规则</h5>
+                    <p class="mb-0">点击"新建规则"按钮创建第一个分类规则</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = entries
+            .map(([dbType, rulesRaw]) => {
+                const rules = Array.isArray(rulesRaw) ? rulesRaw : [];
+                const dbIcons = {
+                    mysql: 'fas fa-database',
+                    postgresql: 'fas fa-elephant',
+                    sqlserver: 'fas fa-server',
+                    oracle: 'fas fa-database',
+                };
+                const dbIcon = dbIcons[dbType] || 'fas fa-database';
+
+                return `
+                    <div class="rule-group-card">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>
+                                    <i class="${dbIcon} me-2 text-primary"></i>${dbType.toUpperCase()} 规则
+                                    <span class="badge bg-primary ms-2 rounded-pill">${rules.length}</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                ${
+                                    rules.length > 0
+                                        ? `
+                                        <div class="rule-list">
+                                            ${rules.map(rule => renderRuleRow(rule)).join('')}
+                                        </div>
+                                    `
+                                        : `
+                                        <div class="text-center text-muted py-5">
+                                            <i class="fas fa-info-circle fa-3x mb-3 text-muted"></i>
+                                            <p class="mb-0">暂无${dbType.toUpperCase()}规则</p>
+                                            <small class="text-muted">点击"新建规则"按钮创建第一个规则</small>
+                                        </div>
+                                    `
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            })
+            .join('');
+    }
+
+    function renderRuleRow(rule) {
+        const classificationBadge = `
+            <span class="rule-classification-badge ${getClassificationClass(rule.classification_name)}">
+                ${rule.classification_name || '未分类'}
+            </span>
+        `;
+        const count = typeof rule.matched_accounts_count === 'number' ? rule.matched_accounts_count : 0;
+
+        const actions =
+            window.currentUserRole === 'admin'
+                ? `
+                    <button class="btn btn-outline-info" onclick="viewRule(${rule.id})" title="查看详情">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="editRule(${rule.id})" title="编辑规则">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="deleteRule(${rule.id})" title="删除规则">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `
+                : `
+                    <span class="btn btn-outline-secondary disabled" title="只读模式">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                `;
+
+        return `
+            <div class="rule-item">
+                <div class="rule-card">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-3">
+                                <h6 class="card-title mb-0">${rule.rule_name}</h6>
+                            </div>
+                            <div class="col-4">
+                                <div class="d-flex align-items-center justify-content-center gap-1">
+                                    ${classificationBadge}
+                                    <span class="db-type-badge">${(rule.db_type || '').toUpperCase()}</span>
+                                </div>
+                            </div>
+                            <div class="col-3 text-center">
+                                <span class="badge accounts-count-badge" data-count="${count}">
+                                    <i class="fas fa-users me-1"></i>${count} 个账户
+                                </span>
+                            </div>
+                            <div class="col-2">
+                                <div class="rule-actions">${actions}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function getClassificationClass(name) {
+        if (!name) return 'normal';
+        if (name.includes('特权')) return 'privileged';
+        if (name.includes('敏感')) return 'sensitive';
+        if (name.includes('风险')) return 'risk';
+        if (name.includes('只读')) return 'readonly';
+        return 'normal';
+    }
+
     async function handleDeleteClassification(id) {
         if (!confirm('确定要删除这个分类吗？')) {
             return;
