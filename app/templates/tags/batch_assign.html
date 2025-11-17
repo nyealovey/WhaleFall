@@ -3,7 +3,7 @@
 {% block title %}批量分配标签 - 鲸落{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tags/batch_assign.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tags/batch-assign.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -147,5 +147,8 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/pages/tags/batch_assign.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/tag_management_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/tag_batch_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/tags/batch_assign.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap/tags/batch-assign.js') }}"></script>
 {% endblock %}

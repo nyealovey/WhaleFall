@@ -1,15 +1,22 @@
-(function (window, document) {
+(function (global) {
   'use strict';
 
-  if (window.ResourceFormController) {
+  if (global.ResourceFormController) {
     return;
   }
+
+  const helpers = global.DOMHelpers;
+  if (!helpers) {
+    console.error('DOMHelpers 未初始化，无法注册 ResourceFormController');
+    return;
+  }
+  const { select, selectOne, from } = helpers;
 
   class ResourceFormController {
     constructor(formSelector, options = {}) {
       this.form =
         typeof formSelector === 'string'
-          ? document.querySelector(formSelector)
+          ? selectOne(formSelector).first()
           : formSelector;
 
       if (!this.form) {
@@ -21,22 +28,23 @@
         {
           submitButtonSelector: '[data-resource-submit]',
           loadingText: '保存中...',
-          toast: window.toast || null,
+          toast: global.toast || null,
           beforeSubmit: null,
           afterSubmit: null,
         },
         options,
       );
 
-      this.submitButtons = Array.from(
-        this.form.querySelectorAll(this.options.submitButtonSelector),
-      );
+      this.submitButtons = select(
+        this.options.submitButtonSelector,
+        this.form,
+      ).nodes;
 
       this._bindEvents();
     }
 
     _bindEvents() {
-      this.form.addEventListener('submit', (event) => {
+      from(this.form).on('submit', (event) => {
         if (typeof this.options.beforeSubmit === 'function') {
           const shouldContinue = this.options.beforeSubmit(event, this);
           if (shouldContinue === false) {
@@ -72,5 +80,5 @@
     }
   }
 
-  window.ResourceFormController = ResourceFormController;
-})(window, document);
+  global.ResourceFormController = ResourceFormController;
+})(window);

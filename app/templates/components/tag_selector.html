@@ -1,5 +1,5 @@
 <!-- 标签选择器组件 -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag-selector.css') }}">
 
 <div class="modal fade tag-selector-modal"
      id="tagSelectorModal"
@@ -88,4 +88,6 @@
   </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/components/tag_selector.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/tag_management_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/tag_management_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/tag-selector.js') }}"></script>

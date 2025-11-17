@@ -24,70 +24,10 @@
 
 <!-- 总体统计卡片 -->
 <div class="row mb-4">
-    <div class="col-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.total_accounts }}</h4>
-                        <p class="card-text mb-2">总账户数（含已删除）</p>
-                        <small class="text-white-75">活跃：{{ stats.active_accounts }} ｜ 已删除：{{ stats.deleted_accounts | default(0) }}</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-users fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.active_accounts }}</h4>
-                        <p class="card-text mb-2">活跃账户</p>
-                        <small class="text-white-75">正常：{{ stats.normal_accounts | default(stats.active_accounts) }} ｜ 禁用/锁定：{{ stats.locked_accounts }}</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-user-check fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.locked_accounts }}</h4>
-                        <p class="card-text">锁定/禁用账户</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-user-lock fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.total_instances }}</h4>
-                        <p class="card-text mb-2">数据库实例总数（含已删除）</p>
-                        <small class="d-block text-white-75">活跃：{{ stats.active_instances }} ｜ 已删除：{{ stats.deleted_instances | default(0) }}</small>
-                        <small class="text-white-75">正常运行：{{ stats.normal_instances | default(stats.active_instances) }} ｜ 已禁用：{{ stats.disabled_instances | default(0) }}</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-database fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    {{ stats_card('总账户数（含已删除）', 'totalAccountsStat', 'fas fa-users', 'bg-primary text-white', default_value=stats.total_accounts) }}
+    {{ stats_card('活跃账户', 'activeAccountsStat', 'fas fa-user-check', 'bg-success text-white', default_value=stats.active_accounts) }}
+    {{ stats_card('锁定/禁用账户', 'lockedAccountsStat', 'fas fa-user-lock', 'bg-danger text-white', default_value=stats.locked_accounts) }}
+    {{ stats_card('数据库实例总数（含已删除）', 'totalInstancesStat', 'fas fa-database', 'bg-info text-white', default_value=stats.total_instances) }}
 </div>
 
 <!-- 按数据库类型统计 -->

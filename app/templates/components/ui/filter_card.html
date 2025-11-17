@@ -1,0 +1,24 @@
+<div class="card filter-card {{ extra_classes }}">
+    <div class="card-body">
+        <form id="{{ form_id }}"
+              method="{{ method }}"
+              action="{{ action }}"
+              class="filter-form"
+              data-filter-auto="{{ 'true' if auto_register else 'false' }}"
+              novalidate>
+            <div class="row g-3 align-items-end">
+                {{ fields | safe }}
+                <div class="col-2">
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary" data-filter-submit>
+                            <i class="fas fa-filter me-1"></i>{{ submit_label }}
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-filter-clear>
+                            <i class="fas fa-times me-1"></i>{{ clear_label }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

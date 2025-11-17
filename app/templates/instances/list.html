@@ -5,7 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/list.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag_selector.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag-selector.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -331,12 +331,8 @@
 <div id="list-page-tag-selector">
     {% include 'components/tag_selector.html' %}
 </div>
-<script src="{{ url_for('static', filename='js/pages/instances/list.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (window.FilterUtils) {
-        FilterUtils.registerFilterForm('#instance-filter-form');
-    }
-});
-</script>
+<script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/instance_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/instances/list.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap/instances/list.js') }}"></script>
 {% endblock %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from 'components/filters/macros.html' import filter_card, search_input, log_level_filter, module_filter, time_range_filter %}
+{% from 'components/ui/macros.html' import stats_card %}
 
 {% block title %}日志中心{% endblock %}
 
@@ -24,66 +25,10 @@
 
     <!-- 统计信息 -->
     <div class="row mb-4">
-        <div class="mb-3 col-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title" id="totalLogs">-</h4>
-                            <p class="card-text">总日志数</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-file-alt fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="mb-3 col-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title" id="errorLogs">-</h4>
-                            <p class="card-text">错误日志</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-exclamation-triangle fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="mb-3 col-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title" id="warningLogs">-</h4>
-                            <p class="card-text">警告日志</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-exclamation-circle fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="mb-3 col-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title" id="modulesCount">-</h4>
-                            <p class="card-text">模块数量</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-cubes fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {{ stats_card('总日志数', 'totalLogs', 'fas fa-file-alt', 'bg-primary text-white', default_value='0') }}
+        {{ stats_card('错误日志', 'errorLogs', 'fas fa-exclamation-triangle', 'bg-danger text-white', default_value='0') }}
+        {{ stats_card('警告日志', 'warningLogs', 'fas fa-exclamation-circle', 'bg-warning text-white text-dark', default_value='0') }}
+        {{ stats_card('模块数量', 'modulesCount', 'fas fa-cubes', 'bg-info text-white', default_value='0') }}
     </div>
 
     <!-- 搜索和筛选 -->
@@ -113,33 +58,25 @@
 </div>
 
 <!-- 日志详情模态框 -->
-<div class="modal fade log-detail-modal" id="logDetailModal" tabindex="-1" aria-labelledby="logDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="logDetailModalLabel">
-                    <i class="fas fa-info-circle me-2"></i>日志详情
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="logDetailContent">
-                    <!-- 日志详情内容将在这里动态加载 -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>关闭
-                </button>
-                <button type="button" class="btn btn-primary" onclick="copyLogDetail()">
-                    <i class="fas fa-copy me-2"></i>复制详情
-                </button>
-            </div>
-        </div>
+{% set log_modal_body %}
+    <div id="logDetailContent">
+        <!-- 日志详情内容将在这里动态加载 -->
     </div>
-</div>
+{% endset %}
+{% set log_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>
+        <i class="fas fa-times me-2"></i>关闭
+    </button>
+    <button type="button" class="btn btn-primary" id="copyLogDetailButton">
+        <i class="fas fa-copy me-2"></i>复制详情
+    </button>
+{% endset %}
+{% include 'components/ui/modal.html' with modal_id='logDetailModal' modal_label_id='logDetailModalLabel' title='<i class="fas fa-info-circle me-2"></i>日志详情' body=log_modal_body footer=log_modal_footer modal_class='log-detail-modal' dialog_class='modal-xl modal-dialog-scrollable' %}
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/pages/history/logs.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/logs_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/logs_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/history/logs.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap/history/logs.js') }}"></script>
 {% endblock %}
