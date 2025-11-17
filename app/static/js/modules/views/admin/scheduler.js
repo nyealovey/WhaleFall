@@ -7,6 +7,31 @@ var schedulerService = null;
 var schedulerStore = null;
 var addJobValidator = null;
 var editJobValidator = null;
+var schedulerExports = {};
+
+function ensureSchedulerService() {
+    if (schedulerService) {
+        return true;
+    }
+    if (window.toast?.error) {
+        window.toast.error('定时任务服务未初始化');
+    } else {
+        console.error('定时任务服务未初始化');
+    }
+    return false;
+}
+
+function ensureSchedulerStore() {
+    if (schedulerStore) {
+        return true;
+    }
+    if (window.toast?.error) {
+        window.toast.error('SchedulerStore 未初始化');
+    } else {
+        console.error('SchedulerStore 未初始化');
+    }
+    return false;
+}
 
 function mountSchedulerPage() {
 
