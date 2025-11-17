@@ -3,6 +3,8 @@
  * 处理标签筛选、批量操作等功能
  */
 
+const instanceListExports = {};
+
 function mountInstanceListPage() {
 
 const LodashUtils = window.LodashUtils;
@@ -838,12 +840,44 @@ function submitFileUpload() {
 }
 
 // 标签选择器相关功能
-// 导出到全局作用域
-
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
+    Object.assign(instanceListExports, {
+        testConnection,
+        batchTestConnections,
+        batchDelete,
+        showBatchCreateModal,
+        submitBatchCreate,
+        handleFileSelect,
+        toggleSelectAll,
+        updateBatchButtons,
+        syncAccounts,
+        syncCapacity,
+    });
 }
 
 window.InstancesListPage = {
     mount: mountInstanceListPage,
 };
+
+function createDeferredExportInvoker(methodName) {
+    return function (...args) {
+        const handler = instanceListExports[methodName];
+        if (typeof handler === 'function') {
+            return handler(...args);
+        }
+        console.error(`InstancesListPage: ${methodName} 尚未初始化`);
+        return undefined;
+    };
+}
+
+window.testConnection = createDeferredExportInvoker('testConnection');
+window.batchTestConnections = createDeferredExportInvoker('batchTestConnections');
+window.batchDelete = createDeferredExportInvoker('batchDelete');
+window.showBatchCreateModal = createDeferredExportInvoker('showBatchCreateModal');
+window.submitBatchCreate = createDeferredExportInvoker('submitBatchCreate');
+window.handleFileSelect = createDeferredExportInvoker('handleFileSelect');
+window.toggleSelectAll = createDeferredExportInvoker('toggleSelectAll');
+window.updateBatchButtons = createDeferredExportInvoker('updateBatchButtons');
+window.syncAccounts = createDeferredExportInvoker('syncAccounts');
+window.syncCapacity = createDeferredExportInvoker('syncCapacity');

@@ -5,6 +5,8 @@
 
 var schedulerService = null;
 var schedulerStore = null;
+var addJobValidator = null;
+var editJobValidator = null;
 
 function mountSchedulerPage() {
 
@@ -25,30 +27,6 @@ try {
     console.error('初始化 SchedulerService/SchedulerStore 失败:', error);
 }
 
-function ensureSchedulerService() {
-    if (!schedulerService) {
-        if (window.toast?.error) {
-            window.toast.error('定时任务服务未初始化');
-        } else {
-            console.error('定时任务服务未初始化');
-        }
-        return false;
-    }
-    return true;
-}
-
-function ensureSchedulerStore() {
-    if (!schedulerStore) {
-        if (window.toast?.error) {
-            window.toast.error('定时任务状态未初始化');
-        } else {
-            console.error('SchedulerStore 未初始化');
-        }
-        return false;
-    }
-    return true;
-}
-
 // 页面加载完成后初始化
 $(document).ready(function () {
     initializeSchedulerPage();
@@ -59,9 +37,6 @@ $(document).ready(function () {
 window.SchedulerPage = {
     mount: mountSchedulerPage,
 };
-
-var addJobValidator = null;
-var editJobValidator = null;
 
 function updateEditCronPreview() {
     const second = $('#editCronSecond').val() || '0';
@@ -974,3 +949,4 @@ window.deleteJob = deleteJob;
 window.viewJobLogs = viewJobLogs;
 window.addJob = addJob;
 window.formatTime = formatTime;
+window.getSchedulerJob = getSchedulerJob;
