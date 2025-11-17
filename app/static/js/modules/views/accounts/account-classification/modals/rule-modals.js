@@ -19,9 +19,6 @@
     if (!document) {
       throw new Error("rule-modals: document is required");
     }
-    if (!UI?.createModal) {
-      throw new Error("rule-modals: UI.createModal 未加载");
-    }
     if (!api) {
       throw new Error("rule-modals: api is required");
     }
@@ -39,6 +36,9 @@
     };
 
     function init() {
+      if (!UI?.createModal) {
+        throw new Error("rule-modals: UI.createModal 未加载");
+      }
       debug("初始化规则模态控制器");
       state.modals.create = UI.createModal({
         modalSelector: "#createRuleModal",
@@ -386,6 +386,10 @@
         : Promise.resolve();
     }
 
+    /**
+     * 独立页面表单挂载
+     * @param {{form?: HTMLFormElement, mode?: 'create'|'edit', redirectUrl?: string}} opts
+     */
     function debug(message, payload) {
       if (typeof debugLog === "function") {
         debugLog(message, payload);

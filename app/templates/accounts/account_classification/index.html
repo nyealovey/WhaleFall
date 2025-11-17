@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}账户分类管理 - 鲸落{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/account-classification.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- 页面头部 -->
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-tags me-2"></i>账户分类管理</h2>
+                {% if current_user.role == 'admin' %}
+                <p class="mb-0">管理账户分类和规则，包括增删改查和自动分类</p>
+                {% else %}
+                <p class="mb-0">查看账户分类和规则信息（只读模式）</p>
+                {% endif %}
+            </div>
+            <div class="btn-group">
+                {% if current_user.role == 'admin' %}
+                <button class="btn btn-light" onclick="autoClassifyAll(event)">
+                    <i class="fas fa-magic me-2"></i>自动分类
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+
+
+    <!-- 主要内容区域 -->
+    <div class="row">
+        <!-- 左侧：分类列表 -->
+        <div class="col-4">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>账户分类
+                        </h5>
+                        {% if current_user.role == 'admin' %}
+                        <button class="btn btn-primary btn-sm" type="button" onclick="openCreateClassificationModal(event)">
+                            <i class="fas fa-plus me-1"></i>新建分类
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="classificationsList">
+                        <!-- 分类列表将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：规则管理 -->
+        <div class="col-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>规则管理
+                        </h5>
+                        {% if current_user.role == 'admin' %}
+                        <button class="btn btn-primary btn-sm" type="button" onclick="openCreateRuleModal(event)">
+                            <i class="fas fa-plus me-1"></i>新建规则
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+
+                    <!-- 规则列表 -->
+                    <div id="rulesList">
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+                            <p>加载规则中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 创建分类模态框 -->
+{% include 'accounts/account_classification/modals/classification-modals.html' %}
+
+{% include 'accounts/account_classification/modals/rule-modals.html' %}
+
+{% set view_rule_modal_body %}
+    <div>
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">规则名称</label>
+                <p class="form-control-plaintext" id="viewRuleName">-</p>
+            </div>
+            <div class="col-6">
+                <label class="form-label">分类</label>
+                <p class="form-control-plaintext" id="viewRuleClassification">-</p>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-4">
+                <label class="form-label">数据库类型</label>
+                <p class="form-control-plaintext" id="viewRuleDbType">-</p>
+            </div>
+            <div class="col-4">
+                <label class="form-label">匹配逻辑</label>
+                <p class="form-control-plaintext" id="viewRuleOperator">-</p>
+            </div>
+            <div class="col-4">
+                <label class="form-label">状态</label>
+                <div id="viewRuleStatus">-</div>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label">创建时间</label>
+                <p class="form-control-plaintext" id="viewRuleCreatedAt">-</p>
+            </div>
+            <div class="col-6">
+                <label class="form-label">更新时间</label>
+                <p class="form-control-plaintext" id="viewRuleUpdatedAt">-</p>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">权限配置</label>
+            <div id="viewPermissionsConfig" class="border rounded p-3">
+                <div class="text-center text-muted">未加载权限配置</div>
+            </div>
+        </div>
+    </div>
+{% endset %}
+{% set view_rule_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>关闭</button>
+{% endset %}
+{% with
+    modal_id='viewRuleModal',
+    modal_label_id='viewRuleModalLabel',
+    title='<i class="fas fa-eye me-2"></i>规则详情',
+    body=view_rule_modal_body,
+    footer=view_rule_modal_footer,
+    size='lg'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 设置用户角色，供JavaScript使用
+    window.currentUserRole = '{{ current_user.role }}';
+</script>
+    <script src="{{ url_for('static', filename='js/modules/services/account_classification_service.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/stores/account_classification_store.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common/permission-policy-center.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/views/accounts/account-classification/permissions/policy-center-view.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/views/accounts/account-classification/modals/classification-modals.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/views/accounts/account-classification/modals/rule-modals.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/views/accounts/account-classification/index.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap/accounts/account-classification.js') }}"></script>
+{% endblock %}

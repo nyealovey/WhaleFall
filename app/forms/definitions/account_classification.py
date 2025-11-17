@@ -8,7 +8,7 @@ from app.services.form_service.classification_form_service import Classification
 
 CLASSIFICATION_FORM_DEFINITION = ResourceFormDefinition(
     name="account_classification",
-    template="accounts/classifications/form.html",
+    template="accounts/account_classification/classifications_form.html",
     service_class=ClassificationFormService,
     success_message="账户分类保存成功",
     redirect_endpoint="account_classification.index",
