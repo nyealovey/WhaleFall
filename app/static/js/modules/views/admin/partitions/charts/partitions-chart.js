@@ -191,17 +191,20 @@ class AggregationsChartManager {
     
     bindEvents() {
         // 周期类型切换
-        $('input[name="periodType"]').on('change', (e) => {
-            this.currentPeriodType = e.target.value;
-            this.updateChartInfo();
-            this.createLegend(); // 重新创建图例
-            this.loadChartData();
+        const periodInputs = document.querySelectorAll('input[name="periodType"]');
+        periodInputs.forEach((input) => {
+            input.addEventListener('change', (event) => {
+                this.currentPeriodType = event.target.value;
+                this.updateChartInfo();
+                this.createLegend();
+                this.loadChartData();
+            });
         });
-        
-        // 刷新按钮
-        $('#refreshAggregations').on('click', () => {
-            this.refreshAllData();
-        });
+
+        const refreshButton = document.getElementById('refreshAggregations');
+        if (refreshButton) {
+            refreshButton.addEventListener('click', () => this.refreshAllData());
+        }
     }
     
     
@@ -510,15 +513,15 @@ class AggregationsChartManager {
     updateChartStats(data) {
         // 检查新格式数据
         if (data.dataPointCount !== undefined && data.timeRange !== undefined) {
-            $('#dataPointCount').text(data.dataPointCount);
-            $('#timeRange').text(data.timeRange);
+            selectOne('#dataPointCount').text(data.dataPointCount);
+            selectOne('#timeRange').text(data.timeRange);
             return;
         }
         
         // 旧格式数据处理
         if (!data || !data.length) {
-            $('#dataPointCount').text('0');
-            $('#timeRange').text('-');
+            selectOne('#dataPointCount').text('0');
+            selectOne('#timeRange').text('-');
             return;
         }
         
@@ -536,8 +539,8 @@ class AggregationsChartManager {
             timeRange = `${startDate} - ${endDate}`;
         }
         
-        $('#dataPointCount').text(dataPointCount);
-        $('#timeRange').text(timeRange);
+        selectOne('#dataPointCount').text(dataPointCount);
+        selectOne('#timeRange').text(timeRange);
     }
     
     
