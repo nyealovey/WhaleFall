@@ -3,6 +3,12 @@
  * 处理任务加载、状态切换、执行控制、配置管理等功能
  */
 
+const DOMHelpers = window.DOMHelpers;
+if (!DOMHelpers) {
+    throw new Error('DOMHelpers 未初始化');
+}
+const { ready, select, selectOne, value, from } = DOMHelpers;
+
 var schedulerService = null;
 var schedulerStore = null;
 var addJobValidator = null;
@@ -38,43 +44,41 @@ function ensureSchedulerStore() {
 // 页面入口：初始化服务、store 与模态
 function mountSchedulerPage() {
 
-const SchedulerService = window.SchedulerService;
-try {
-    if (!SchedulerService) {
-        throw new Error('SchedulerService 未加载');
+    const SchedulerService = window.SchedulerService;
+    try {
+        if (!SchedulerService) {
+            throw new Error('SchedulerService 未加载');
+        }
+        schedulerService = new SchedulerService(window.httpU);
+        if (window.createSchedulerStore) {
+            schedulerStore = window.createSchedulerStore({
+                service: schedulerService,
+                emitter: window.mitt ? window.mitt() : null,
+            });
+            bindSchedulerStoreEvents();
+        }
+        if (window.SchedulerModals?.createController) {
+            schedulerModalsController = window.SchedulerModals.createController({
+                FormValidator: window.FormValidator,
+                ValidationRules: window.ValidationRules,
+                toast: window.toast,
+                getJob: getSchedulerJob,
+                ensureStore: ensureSchedulerStore,
+                getStore: function () {
+                    return schedulerStore;
+                },
+                showLoadingState: showLoadingState,
+                hideLoadingState: hideLoadingState,
+            });
+        } else {
+            console.warn('SchedulerModals 未加载，编辑模态将无法使用');
+        }
+    } catch (error) {
+        console.error('初始化 SchedulerService/SchedulerStore 失败:', error);
     }
-    schedulerService = new SchedulerService(window.httpU);
-    if (window.createSchedulerStore) {
-        schedulerStore = window.createSchedulerStore({
-            service: schedulerService,
-            emitter: window.mitt ? window.mitt() : null,
-        });
-        bindSchedulerStoreEvents();
-    }
-    if (window.SchedulerModals?.createController) {
-        schedulerModalsController = window.SchedulerModals.createController({
-            FormValidator: window.FormValidator,
-            ValidationRules: window.ValidationRules,
-            toast: window.toast,
-            getJob: getSchedulerJob,
-            ensureStore: ensureSchedulerStore,
-            getStore: function () {
-                return schedulerStore;
-            },
-            showLoadingState: showLoadingState,
-            hideLoadingState: hideLoadingState,
-        });
-    } else {
-        console.warn('SchedulerModals 未加载，编辑模态将无法使用');
-    }
-} catch (error) {
-    console.error('初始化 SchedulerService/SchedulerStore 失败:', error);
-}
 
 // 页面加载完成后初始化
-$(document).ready(function () {
-    initializeSchedulerPage();
-});
+ready(initializeSchedulerPage);
 
 }
 
@@ -100,44 +104,49 @@ function initializeEventHandlers() {
     const now = timeUtils.getChinaTime();
     // 转换为本地时间输入格式
     const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-    $('#runDate').val(localTime.toISOString().slice(0, 16));
+    value('#runDate', localTime.toISOString().slice(0, 16));
 
     // Cron表达式生成和预览
     function updateCronPreview() {
-        const second = $('#cronSecond').val() || '0';
-        const minute = $('#cronMinute').val() || '0';
-        const hour = $('#cronHour').val() || '0';
-        const day = $('#cronDay').val() || '*';
-        const month = $('#cronMonth').val() || '*';
-        const weekday = $('#cronWeekday').val() || '*';
-        const year = $('#cronYear').val() || '';
+        const second = value('#cronSecond') || '0';
+        const minute = value('#cronMinute') || '0';
+        const hour = value('#cronHour') || '0';
+        const day = value('#cronDay') || '*';
+        const month = value('#cronMonth') || '*';
+        const weekday = value('#cronWeekday') || '*';
+        const year = value('#cronYear') || '';
         const base = `${second} ${minute} ${hour} ${day} ${month} ${weekday}`;
         const cronExpression = year && year.trim() !== '' ? `${base} ${year}` : base;
-        $('#cronPreview').val(cronExpression);
+        value('#cronPreview', cronExpression);
     }
 
     // 监听cron输入框变化（新增 second 与 year）
-    $('#cronSecond, #cronMinute, #cronHour, #cronDay, #cronMonth, #cronWeekday, #cronYear').on('input', updateCronPreview);
+    select('#cronSecond, #cronMinute, #cronHour, #cronDay, #cronMonth, #cronWeekday, #cronYear').on('input', updateCronPreview);
 
     // 初始化预览
     updateCronPreview();
 
     // 恢复任务操作按钮事件
-    $(document).on('click', '.btn-enable-job', function () {
-        const jobId = $(this).data('job-id');
-        enableJob(jobId);
-    });
-    $(document).on('click', '.btn-disable-job', function () {
-        const jobId = $(this).data('job-id');
-        disableJob(jobId);
-    });
-    $(document).on('click', '.btn-run-job', function () {
-        const jobId = $(this).data('job-id');
-        runJobNow(jobId);
-    });
-    $(document).on('click', '.btn-edit-job', function () {
-        const jobId = $(this).data('job-id');
-        schedulerModalsController?.openEdit(jobId);
+    document.addEventListener('click', function (event) {
+        const enableButton = event.target.closest('.btn-enable-job');
+        if (enableButton) {
+            enableJob(enableButton.dataset.jobId);
+            return;
+        }
+        const disableButton = event.target.closest('.btn-disable-job');
+        if (disableButton) {
+            disableJob(disableButton.dataset.jobId);
+            return;
+        }
+        const runButton = event.target.closest('.btn-run-job');
+        if (runButton) {
+            runJobNow(runButton.dataset.jobId);
+            return;
+        }
+        const editButton = event.target.closest('.btn-edit-job');
+        if (editButton) {
+            schedulerModalsController?.openEdit(editButton.dataset.jobId);
+        }
     });
 
     // 新增：重新初始化任务按钮事件
@@ -148,19 +157,22 @@ function initializeEventHandlers() {
      * - 确保任务名称和配置都是最新的
      * - 成功后刷新任务列表并给出提示
      */
-    $(document).on('click', '#purgeKeepBuiltinBtn', function () {
+    const purgeButton = selectOne('#purgeKeepBuiltinBtn').first();
+    if (purgeButton) {
+        purgeButton.addEventListener('click', function () {
         // 二次确认
         const confirmMsg = '此操作将删除所有现有任务，重新从配置文件加载任务。\n这将确保任务名称和配置都是最新的。\n确定继续吗？';
         if (!window.confirm(confirmMsg)) {
             return;
         }
         // 显示加载态
-        const $btn = $(this);
-        const original = $btn.html();
-        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>重新初始化中...');
+        const original = purgeButton.innerHTML;
+        purgeButton.disabled = true;
+        purgeButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>重新初始化中...';
 
         if (!ensureSchedulerStore()) {
-            $btn.prop('disabled', false).html(original);
+            purgeButton.disabled = false;
+            purgeButton.innerHTML = original;
             return;
         }
 
@@ -176,19 +188,24 @@ function initializeEventHandlers() {
             toast.error('重新初始化失败: ' + message);
         })
         .finally(function () {
-            $btn.prop('disabled', false).html(original);
+                purgeButton.disabled = false;
+                purgeButton.innerHTML = original;
+            });
         });
-    });
+    }
 
     // 恢复表单提交事件（交给 FormValidator 控制）
-    $('#addJobForm').on('submit', function (e) {
-        e.preventDefault();
-        if (addJobValidator && addJobValidator.instance && typeof addJobValidator.instance.revalidate === 'function') {
-            addJobValidator.instance.revalidate();
-        } else {
-            addJob(e.target);
-        }
-    });
+    const addJobForm = selectOne('#addJobForm').first();
+    if (addJobForm) {
+        addJobForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            if (addJobValidator && addJobValidator.instance && typeof addJobValidator.instance.revalidate === 'function') {
+                addJobValidator.instance.revalidate();
+            } else {
+                addJob(event.target);
+            }
+        });
+    }
 }
 
 function initializeSchedulerValidators() {
@@ -241,9 +258,9 @@ function loadJobs() {
     if (!ensureSchedulerStore()) {
         return;
     }
-    $('#activeJobsContainer').empty();
-    $('#pausedJobsContainer').empty();
-    $('#emptyRow').hide();
+    clearContainer('#activeJobsContainer');
+    clearContainer('#pausedJobsContainer');
+    hideElement('#emptyRow');
     schedulerStore.actions.loadJobs();
 }
 
@@ -251,13 +268,13 @@ function loadJobs() {
 function displayJobs(jobs) {
     const list = Array.isArray(jobs) ? jobs : [];
     if (list.length === 0) {
-        $('#emptyRow').show();
+        showElement('#emptyRow');
         return;
     }
 
     // 清空所有容器
-    $('#activeJobsContainer').empty();
-    $('#pausedJobsContainer').empty();
+    clearContainer('#activeJobsContainer');
+    clearContainer('#pausedJobsContainer');
 
     // 分离进行中和已暂停的任务
     const activeJobs = [];
@@ -271,44 +288,51 @@ function displayJobs(jobs) {
         }
     });
 
+    const activeContainer = document.getElementById('activeJobsContainer');
+    const pausedContainer = document.getElementById('pausedJobsContainer');
+
     // 显示进行中的任务
     activeJobs.forEach(function (job) {
         const jobCard = createJobCard(job);
-        $('#activeJobsContainer').append(jobCard);
+        activeContainer?.appendChild(jobCard);
     });
 
     // 显示已暂停的任务
     pausedJobs.forEach(function (job) {
         const jobCard = createJobCard(job);
-        $('#pausedJobsContainer').append(jobCard);
+        pausedContainer?.appendChild(jobCard);
     });
 
     // 更新计数
-    $('#activeJobsCount').text(activeJobs.length);
-    $('#pausedJobsCount').text(pausedJobs.length);
+    selectOne('#activeJobsCount').text(activeJobs.length);
+    selectOne('#pausedJobsCount').text(pausedJobs.length);
 
     // 如果没有进行中的任务，显示提示
     if (activeJobs.length === 0) {
-        $('#activeJobsContainer').html(`
+        if (activeContainer) {
+            activeContainer.innerHTML = `
             <div class="col-12">
                 <div class="text-center text-muted py-4">
                     <i class="fas fa-play-circle fa-2x mb-2"></i>
                     <p>暂无进行中的任务</p>
                 </div>
             </div>
-        `);
+            `;
+        }
     }
 
     // 如果没有已暂停的任务，显示提示
     if (pausedJobs.length === 0) {
-        $('#pausedJobsContainer').html(`
+        if (pausedContainer) {
+            pausedContainer.innerHTML = `
             <div class="col-12">
                 <div class="text-center text-muted py-4">
                     <i class="fas fa-pause-circle fa-2x mb-2"></i>
                     <p>暂无已暂停的任务</p>
                 </div>
             </div>
-        `);
+            `;
+        }
     }
 }
 
@@ -319,44 +343,43 @@ function createJobCard(job) {
     const nextRunTime = job.next_run_time ? formatTime(job.next_run_time) : '未计划';
     const lastRunTime = job.last_run_time ? formatTime(job.last_run_time) : '从未运行';
 
-    return $(`
-        <div class="col-4">
-            <div class="job-card ${statusClass}">
-                <div class="job-info">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h5 class="job-title">${job.name}</h5>
-                        <span class="job-status status-${statusClass}">${statusText}</span>
-                    </div>
-                    
-                    <p class="job-description">${job.description || '无描述'}</p>
-                    
-                    <div class="job-meta">
-                        <div class="job-meta-item">
-                            <i class="fas fa-clock"></i>
-                            <span>下次运行: ${nextRunTime}</span>
-                        </div>
-                        <div class="job-meta-item">
-                            <i class="fas fa-history"></i>
-                            <span>上次运行: ${lastRunTime}</span>
-                        </div>
-                        <div class="job-meta-item">
-                            <i class="fas fa-tag"></i>
-                            <span>触发器: ${job.trigger_type}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="trigger-info">
-                        <strong>触发器配置:</strong><br>
-                        ${formatTriggerInfo(job.trigger_args)}
-                    </div>
-                    
-                    <div class="job-actions">
-                        ${getActionButtons(job)}
-                    </div>
+    const wrapper = document.createElement('div');
+    wrapper.className = 'col-4';
+    wrapper.innerHTML = `
+        <div class="job-card ${statusClass}">
+            <div class="job-info">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="job-title">${job.name}</h5>
+                    <span class="job-status status-${statusClass}">${statusText}</span>
+                </div>
+                <p class="job-description">${job.description || '无描述'}</p>
+            </div>
+            <div class="job-details">
+                <div class="detail-row">
+                    <i class="fas fa-clock"></i>
+                    <span>下次运行: ${nextRunTime}</span>
+                </div>
+                <div class="detail-row">
+                    <i class="fas fa-history"></i>
+                    <span>上次运行: ${lastRunTime}</span>
+                </div>
+                <div class="detail-row">
+                    <i class="fas fa-cog"></i>
+                    <span>触发器: ${job.trigger_type}</span>
                 </div>
             </div>
+            <div class="job-meta">
+                <strong>触发器参数:</strong>
+                <div class="meta-text">
+                    ${formatTriggerInfo(job.trigger_args)}
+                </div>
+            </div>
+            <div class="job-actions">
+                ${getActionButtons(job)}
+            </div>
         </div>
-    `);
+    `;
+    return wrapper;
 }
 
 // 获取状态样式类
@@ -463,7 +486,7 @@ function enableJob(jobId) {
     if (!ensureSchedulerStore()) {
         return;
     }
-    const button = $(`[data-job-id="${jobId}"].btn-enable-job`);
+    const button = select(`[data-job-id="${jobId}"].btn-enable-job`);
     showLoadingState(button, '启用中...');
 
     schedulerStore.actions.resumeJob(jobId)
@@ -484,7 +507,7 @@ function disableJob(jobId) {
     if (!ensureSchedulerStore()) {
         return;
     }
-    const button = $(`[data-job-id="${jobId}"].btn-disable-job`);
+    const button = select(`[data-job-id="${jobId}"].btn-disable-job`);
     showLoadingState(button, '禁用中...');
 
     schedulerStore.actions.pauseJob(jobId)
@@ -505,7 +528,7 @@ function runJobNow(jobId) {
     if (!ensureSchedulerStore()) {
         return;
     }
-    const button = $(`[data-job-id="${jobId}"].btn-run-job`);
+    const button = select(`[data-job-id="${jobId}"].btn-run-job`);
     showLoadingState(button, '执行中...');
 
     schedulerStore.actions.runJob(jobId)
@@ -536,7 +559,7 @@ function deleteJob(jobId) {
         return;
     }
 
-    const button = $(`[data-job-id="${jobId}"].btn-delete-job`);
+    const button = select(`[data-job-id="${jobId}"].btn-delete-job`);
     showLoadingState(button, '删除中...');
 
     schedulerStore.actions.deleteJob(jobId)
@@ -576,7 +599,11 @@ function addJob(form) {
      * 3. 若为 cron 触发器则生成 cron_expression 并附带单字段
      * 4. 调用后端 /scheduler/api/jobs/by-func 接口进行创建
      */
-    const formElement = form instanceof HTMLFormElement ? form : $('#addJobForm')[0];
+    const formElement = form instanceof HTMLFormElement ? form : selectOne('#addJobForm').first();
+    if (!formElement) {
+        console.error('找不到新增任务表单，无法提交');
+        return;
+    }
     if (!formElement) {
         return;
     }
@@ -616,13 +643,13 @@ function addJob(form) {
     }
 
     // 加载中态
-    const submitButton = $(formElement).find('button[type="submit"]');
+    const submitButton = from(formElement).find('button[type="submit"]');
     showLoadingState(submitButton, '添加中...');
 
     schedulerStore.actions.createJob(payload)
         .then(function () {
             toast.success('任务添加成功');
-            $('#addJobModal').modal('hide');
+            hideAddJobModal();
             formElement.reset();
             if (addJobValidator && addJobValidator.instance) {
                 addJobValidator.instance.refresh();
@@ -643,27 +670,30 @@ function addJob(form) {
 
 // 显示加载状态
 function showLoadingState(element, text) {
-    if (typeof element === 'string') {
-        element = $(element);
+    const normalized = normalizeElements(element);
+    if (!normalized.length) {
+        return;
     }
-
-    if (element.length) {
-        element.data('original-text', element.text());
-        element.html(`<i class="fas fa-spinner fa-spin me-2"></i>${text}`);
-        element.prop('disabled', true);
+    const node = normalized.first();
+    const originalText = normalized.text();
+    normalized.data('original-text', originalText);
+    normalized.html(`<i class="fas fa-spinner fa-spin me-2"></i>${text}`);
+    if (node) {
+        node.disabled = true;
     }
 }
 
 // 隐藏加载状态
 function hideLoadingState(element, originalText) {
-    if (typeof element === 'string') {
-        element = $(element);
+    const normalized = normalizeElements(element);
+    if (!normalized.length) {
+        return;
     }
-
-    if (element.length) {
-        const text = originalText || element.data('original-text');
-        element.html(text);
-        element.prop('disabled', false);
+    const textContent = originalText || normalized.data('original-text');
+    normalized.html(textContent);
+    const node = normalized.first();
+    if (node) {
+        node.disabled = false;
     }
 }
 
@@ -680,17 +710,17 @@ function bindSchedulerStoreEvents() {
     }
     schedulerStore.subscribe('scheduler:loading', function (payload) {
         if (payload?.target === 'jobs') {
-            $('#loadingRow').show();
-            $('#emptyRow').hide();
+            showElement('#loadingRow');
+            hideElement('#emptyRow');
         }
     });
     schedulerStore.subscribe('scheduler:updated', function (payload) {
-        $('#loadingRow').hide();
+        hideElement('#loadingRow');
         const jobs = payload?.jobs || schedulerStore.getState().jobs || [];
         displayJobs(jobs);
     });
     schedulerStore.subscribe('scheduler:error', function (payload) {
-        $('#loadingRow').hide();
+        hideElement('#loadingRow');
         const message = payload?.error?.message || '定时任务操作失败';
         toast.error(message);
     });
@@ -718,3 +748,47 @@ window.viewJobLogs = viewJobLogs;
 window.addJob = addJob;
 window.formatTime = formatTime;
 window.getSchedulerJob = getSchedulerJob;
+
+function normalizeElements(target) {
+    if (typeof target === 'string') {
+        return select(target);
+    }
+    return from(target);
+}
+
+function showElement(target) {
+    const element = normalizeElements(target);
+    if (!element.length) {
+        return;
+    }
+    element.each((node) => {
+        node.style.display = '';
+    });
+}
+
+function hideElement(target) {
+    const element = normalizeElements(target);
+    if (!element.length) {
+        return;
+    }
+    element.each((node) => {
+        node.style.display = 'none';
+    });
+}
+
+function clearContainer(target) {
+    const element = normalizeElements(target);
+    if (!element.length) {
+        return;
+    }
+    element.html('');
+}
+
+function hideAddJobModal() {
+    const modalEl = document.getElementById('addJobModal');
+    if (!modalEl || typeof bootstrap === 'undefined') {
+        return;
+    }
+    const instance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    instance.hide();
+}

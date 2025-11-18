@@ -1,20 +1,24 @@
-# 命名规范重构文档
+# 命名规范重构文档（2025-11-18 更新）
 
-> 基于代码扫描，识别出 **79 项命名问题**，提供完整重构方案
+> 基于实际代码扫描，识别出 **约 60 项命名问题**
 
 ## 📊 问题统计
 
-| 类别 | 数量 |
-|-----|------|
-| 后端文件命名 | 18 个 |
-| 前端目录命名 | 5 个 |
-| 前端 JS 文件 | 13 个 |
-| 前端 CSS 文件 | 8 个 |
-| 函数命名 | 38 个 |
-| **总计** | **79 项** |
+| 类别 | 数量 | 状态 |
+|-----|------|------|
+| 后端文件命名 | 16 个 | 🔴 待重构 |
+| 前端目录命名 | 0 个 | ✅ 已完成 |
+| 前端文件命名 | 0 个 | ✅ 已完成 |
+| 函数命名 | 约 40 个 | 🔴 待重构 |
+| **总计** | **约 60 项** | - |
 
-**预计工作量**: 5-7 天  
+**预计工作量**: 3-5 天  
 **风险等级**: 低-中
+
+## ✅ 已完成的重构
+
+- 前端目录已使用 kebab-case（`capacity-stats/`, `classification-rules/`）
+- 前端文件已使用 kebab-case（`database-aggregations.js`, `tag-selector.css` 等）
 
 ---
 
@@ -41,94 +45,92 @@ ls docs/refactoring/重构执行报告_*.md | tail -n 1
 
 ## 📋 重构清单
 
-### 后端文件（18 个）
+### 后端文件（16 个）
 
 ```bash
 # 路由文件（2 个）
-database_aggr.py → database_aggregations.py
-instance_aggr.py → instance_aggregations.py
+app/routes/database_aggr.py → database_aggregations.py
+app/routes/instance_aggr.py → instance_aggregations.py
 
 # 视图文件（7 个）
-account_classification_form_view.py → classification_forms.py
-change_password_form_view.py → password_forms.py
-credential_form_view.py → credential_forms.py
-instance_form_view.py → instance_forms.py
-scheduler_job_form_view.py → scheduler_forms.py
-tag_form_view.py → tag_forms.py
-user_form_view.py → user_forms.py
+app/views/account_classification_form_view.py → classification_forms.py
+app/views/change_password_form_view.py → password_forms.py
+app/views/credential_form_view.py → credential_forms.py
+app/views/instance_form_view.py → instance_forms.py
+app/views/scheduler_job_form_view.py → scheduler_forms.py
+app/views/tag_form_view.py → tag_forms.py
+app/views/user_form_view.py → user_forms.py
 
 # 服务文件（9 个）
-app/services/form_service/ 下所有 *_form_service.py → *_service.py
+app/services/form_service/change_password_form_service.py → password_service.py
+app/services/form_service/classification_form_service.py → classification_service.py
+app/services/form_service/classification_rule_form_service.py → classification_rule_service.py
+app/services/form_service/credentials_form_service.py → credential_service.py
+app/services/form_service/instances_form_service.py → instance_service.py
+app/services/form_service/resource_form_service.py → resource_service.py
+app/services/form_service/scheduler_job_form_service.py → scheduler_job_service.py
+app/services/form_service/tags_form_service.py → tag_service.py
+app/services/form_service/users_form_service.py → user_service.py
 ```
 
-### 前端目录（5 个）
-
-```bash
-capacity_stats/ → capacity-stats/
-classification_rules/ → classification-rules/
-```
-
-### 前端文件（21 个）
-
-```bash
-# JavaScript（13 个）
-permission_policy_center.js → permission-policy-center.js
-chart_renderer.js → chart-renderer.js
-# ... 其他下划线改为连字符
-
-# CSS（8 个）
-tag_selector.css → tag-selector.css
-filter_common.css → filter-common.css
-# ... 其他下划线改为连字符
-```
-
-### 函数重命名（38 个）
+### 函数重命名（约 40 个）
 
 ```python
-# 移除 api_ 前缀（28 个）
-api_get_users() → get_users()
+# 移除 api_ 前缀（约 25 个）
+# routes/users.py
+api_get_users() → list_users()
+api_get_user() → get_user()
+api_create_user() → create_user()
+api_update_user() → update_user()
+api_delete_user() → delete_user()
+api_get_stats() → get_stats()
+
+# routes/instance.py
 api_list() → list_instances()
 api_detail() → get_instance()
+api_get_accounts() → get_accounts()
 
-# 修复语法错误（4 个）
-get_databases_aggregations() → get_database_aggregations()
-get_instances_aggregations() → get_instance_aggregations()
+# routes/credentials.py
+api_list() → list_credentials()
+api_detail() → get_credential()
 
-# 移除 _optimized 后缀（2 个）
-auto_classify_accounts_optimized() → auto_classify_accounts()
+# routes/tags.py
+api_tags() → list_tags()
+api_categories() → list_categories()
+api_tag_detail() → get_tag()
 
-# 统一 _api 后缀（4 个）
+# routes/dashboard.py
+api_overview() → get_overview()
+api_charts() → get_charts()
+api_activities() → get_activities()
+api_status() → get_status()
+
+# ... 其他文件
+
+# 统一 _api 后缀（约 10 个）
+# routes/account_stat.py
 statistics_api() → get_statistics()
+statistics_summary_api() → get_statistics_summary()
+statistics_db_type_api() → get_statistics_by_db_type()
+statistics_classification_api() → get_classification_statistics()
+
+# routes/auth.py
+login_api() → login()
+change_password_api() → change_password()
+
+# ... 其他文件
+
+# 修复语法错误（2 个）
+# routes/database_aggr.py
+get_databases_aggregations() → get_database_aggregations()
+get_databases_aggregations_summary() → get_database_aggregations_summary()
 ```
-
----
-
-## ⚠️ 执行顺序（重要）
-
-**正确顺序**：
-1. ✅ 先重命名目录 → 文件自动跟随
-2. ✅ 再重命名文件 → 在新目录下操作
-3. ✅ 最后更新引用 → 只需更新一次
-
-**错误顺序**（不推荐）：
-- ❌ 先重命名文件，再重命名目录 → 需要修改两次引用
 
 ---
 
 ## 🔧 命令模板
 
-### 1. 重命名目录
-
-```bash
-# 前端目录（优先执行）
-git mv app/static/css/pages/capacity_stats app/static/css/pages/capacity-stats
-git mv app/static/js/common/capacity_stats app/static/js/common/capacity-stats
-git mv app/static/js/pages/capacity_stats app/static/js/pages/capacity-stats
-git mv app/static/js/pages/accounts/classification_rules app/static/js/pages/accounts/classification-rules
-git mv app/templates/accounts/classification_rules app/templates/accounts/classification-rules
-```
-
-### 2. 重命名后端文件
+### 1. 重命名后端文件
 
 ```bash
 # 路由文件
@@ -140,28 +142,33 @@ git mv app/views/account_classification_form_view.py app/views/classification_fo
 # ... 其他文件
 ```
 
-### 3. 重命名前端文件
+### 2. 更新引用
 
 ```bash
-# JavaScript 文件（在新目录下）
-git mv app/static/js/common/capacity-stats/chart_renderer.js \
-     app/static/js/common/capacity-stats/chart-renderer.js
-# ... 其他文件
-```
-
-### 4. 更新引用
-
-```bash
-# 更新后端导入
+# 更新后端导入（macOS）
 find app -name "*.py" -type f -exec sed -i '' \
   -e 's/from app\.routes\.database_aggr/from app.routes.database_aggregations/g' \
+  -e 's/from app\.routes\.instance_aggr/from app.routes.instance_aggregations/g' \
+  -e 's/import database_aggr/import database_aggregations/g' \
+  -e 's/import instance_aggr/import instance_aggregations/g' \
+  -e 's/database_aggr\./database_aggregations./g' \
+  -e 's/instance_aggr\./instance_aggregations./g' \
   -e 's/from app\.views\.account_classification_form_view/from app.views.classification_forms/g' \
-  {} +
-
-# 更新前端引用
-find app/templates -name "*.html" -type f -exec sed -i '' \
-  -e 's/capacity_stats\//capacity-stats\//g' \
-  -e 's/chart_renderer\.js/chart-renderer.js/g' \
+  -e 's/from app\.views\.change_password_form_view/from app.views.password_forms/g' \
+  -e 's/from app\.views\.credential_form_view/from app.views.credential_forms/g' \
+  -e 's/from app\.views\.instance_form_view/from app.views.instance_forms/g' \
+  -e 's/from app\.views\.scheduler_job_form_view/from app.views.scheduler_forms/g' \
+  -e 's/from app\.views\.tag_form_view/from app.views.tag_forms/g' \
+  -e 's/from app\.views\.user_form_view/from app.views.user_forms/g' \
+  -e 's/from app\.services\.form_service\.change_password_form_service/from app.services.form_service.password_service/g' \
+  -e 's/from app\.services\.form_service\.classification_form_service/from app.services.form_service.classification_service/g' \
+  -e 's/from app\.services\.form_service\.classification_rule_form_service/from app.services.form_service.classification_rule_service/g' \
+  -e 's/from app\.services\.form_service\.credentials_form_service/from app.services.form_service.credential_service/g' \
+  -e 's/from app\.services\.form_service\.instances_form_service/from app.services.form_service.instance_service/g' \
+  -e 's/from app\.services\.form_service\.resource_form_service/from app.services.form_service.resource_service/g' \
+  -e 's/from app\.services\.form_service\.scheduler_job_form_service/from app.services.form_service.scheduler_job_service/g' \
+  -e 's/from app\.services\.form_service\.tags_form_service/from app.services.form_service.tag_service/g' \
+  -e 's/from app\.services\.form_service\.users_form_service/from app.services.form_service.user_service/g' \
   {} +
 ```
 
@@ -180,9 +187,14 @@ find app/templates -name "*.html" -type f -exec sed -i '' \
 ### 搜索残留
 
 ```bash
-# 搜索旧名称
-rg "database_aggr" app/
-rg "capacity_stats/" app/templates/ app/static/
+# 搜索旧的导入路径
+rg "from app\.routes\.database_aggr" app/
+rg "from app\.routes\.instance_aggr" app/
+rg "from app\.views\.\w+_form_view" app/
+rg "from app\.services\.form_service\.\w+_form_service" app/
+
+# 搜索 api_ 前缀函数
+rg "def api_" app/routes/
 ```
 
 ---

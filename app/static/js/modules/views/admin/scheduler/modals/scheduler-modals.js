@@ -159,7 +159,7 @@
             }
 
             const payload = buildPayload(formElement, formData, originalJob);
-            const submitButton = $(formElement).find('button[type="submit"]');
+            const submitButton = formElement.querySelector('button[type="submit"]');
             showLoadingState?.(submitButton, '保存中...');
 
             getStore()
