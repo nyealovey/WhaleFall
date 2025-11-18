@@ -355,6 +355,7 @@ function createJobCard(job) {
     const statusText = getStatusText(job.state);
     const nextRunTime = job.next_run_time ? formatTime(job.next_run_time) : '未计划';
     const lastRunTime = job.last_run_time ? formatTime(job.last_run_time) : '从未运行';
+    const triggerInfo = formatTriggerInfo(job.trigger_args);
 
     const template = document.createElement('template');
     template.innerHTML = `
@@ -364,30 +365,28 @@ function createJobCard(job) {
                     <h5 class="job-title">${job.name}</h5>
                     <span class="job-status status-${statusClass}">${statusText}</span>
                 </div>
-                <p class="job-description">${job.description || '无描述'}</p>
-            </div>
-            <div class="job-details">
-                <div class="detail-row">
-                    <i class="fas fa-clock"></i>
-                    <span>下次运行: ${nextRunTime}</span>
+                <p class="job-description mb-3">${job.description || '无描述'}</p>
+                <div class="job-meta">
+                    <div class="job-meta-item">
+                        <i class="fas fa-clock"></i>
+                        <span>下次运行: ${nextRunTime}</span>
+                    </div>
+                    <div class="job-meta-item">
+                        <i class="fas fa-history"></i>
+                        <span>上次运行: ${lastRunTime}</span>
+                    </div>
+                    <div class="job-meta-item">
+                        <i class="fas fa-cog"></i>
+                        <span>触发器: ${job.trigger_type}</span>
+                    </div>
                 </div>
-                <div class="detail-row">
-                    <i class="fas fa-history"></i>
-                    <span>上次运行: ${lastRunTime}</span>
+                <div class="trigger-info">
+                    <strong class="d-block mb-1">触发器参数</strong>
+                    <div class="meta-text">${triggerInfo}</div>
                 </div>
-                <div class="detail-row">
-                    <i class="fas fa-cog"></i>
-                    <span>触发器: ${job.trigger_type}</span>
+                <div class="job-actions">
+                    ${getActionButtons(job)}
                 </div>
-            </div>
-            <div class="job-meta">
-                <strong>触发器参数:</strong>
-                <div class="meta-text">
-                    ${formatTriggerInfo(job.trigger_args)}
-                </div>
-            </div>
-            <div class="job-actions">
-                ${getActionButtons(job)}
             </div>
         </div>
     `.trim();
