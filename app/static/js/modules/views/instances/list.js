@@ -79,7 +79,6 @@ ready(() => {
     initializeTagFilter();
     initializeInstanceFilterCard();
     initializeBatchCreateModal();
-    initializeInstanceModals();
     setupEventListeners();
     bindModalTriggers();
     loadInstanceTotalSizes();
