@@ -86,7 +86,7 @@
         form.dataset.formMode = 'edit';
         titleEl.textContent = '编辑标签';
         submitBtn.textContent = '保存';
-        const payload = await http.get(`/tags/api/tags/${tagId}`);
+        const payload = await http.get(`/tags/api/${tagId}`);
         if (!payload?.success || !payload?.data?.tag) {
           throw new Error(payload?.message || '加载标签失败');
         }
