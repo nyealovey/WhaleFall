@@ -602,73 +602,6 @@ function getSelectedInstances() {
     return checkboxes.map((checkbox) => parseInt(checkbox.value, 10)).filter((id) => !Number.isNaN(id));
 }
 
-// 同步容量
-function syncCapacity(instanceId, instanceName) {
-    if (!ensureInstanceService()) {
-        return;
-    }
-    const btn = event.target.closest('button');
-    const originalHtml = btn.innerHTML;
-
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    btn.disabled = true;
-
-    // 记录操作开始日志
-    console.info('开始同步实例容量', {
-        operation: 'sync_instance_capacity',
-        instance_id: instanceId,
-        instance_name: instanceName
-    });
-
-    instanceService.syncInstanceCapacity(instanceId)
-    .then(data => {
-        if (data.success) {
-            // 记录成功日志
-            console.info('同步实例容量成功', {
-                operation: 'sync_instance_capacity',
-                instance_id: instanceId,
-                instance_name: instanceName,
-                result: 'success',
-                message: data.message,
-                data: data.data
-            });
-            
-            toast.success(data.message);
-            
-            // 刷新页面以更新容量显示
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            // 记录失败日志
-            console.error('同步实例容量失败', {
-                operation: 'sync_instance_capacity',
-                instance_id: instanceId,
-                instance_name: instanceName,
-                result: 'failed',
-                error: data.error
-            });
-            toast.error(data.error);
-        }
-    })
-    .catch(error => {
-        // 记录异常日志
-        console.error('同步实例容量异常', error, {
-            operation: 'sync_instance_capacity',
-            instance_id: instanceId,
-            instance_name: instanceName,
-            result: 'exception'
-        });
-        toast.error('同步容量失败');
-    })
-    .finally(() => {
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-    });
-}
-
-
-
 // 显示提示信息
 
 // 批量操作功能
@@ -874,7 +807,6 @@ Object.assign(instanceListExports, {
     toggleSelectAll,
     updateBatchButtons,
     syncAccounts,
-    syncCapacity,
 });
 }
 
@@ -902,4 +834,3 @@ window.handleFileSelect = createDeferredExportInvoker('handleFileSelect');
 window.toggleSelectAll = createDeferredExportInvoker('toggleSelectAll');
 window.updateBatchButtons = createDeferredExportInvoker('updateBatchButtons');
 window.syncAccounts = createDeferredExportInvoker('syncAccounts');
-window.syncCapacity = createDeferredExportInvoker('syncCapacity');
