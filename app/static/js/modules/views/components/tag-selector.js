@@ -108,10 +108,17 @@
         `tag-selector-${++instanceCounter}`;
       this.root.dataset.tagSelectorId = this.id;
 
-      this.modal =
+      const modalContainer =
         toElement(options.modalElement) ||
         this.root.closest("[data-tag-selector-modal]") ||
         null;
+      if (modalContainer) {
+        this.modal = modalContainer.matches(".modal")
+          ? modalContainer
+          : modalContainer.querySelector(".modal");
+      } else {
+        this.modal = null;
+      }
       this.modalAPI = null;
 
       this.elements = this.cacheElements();
