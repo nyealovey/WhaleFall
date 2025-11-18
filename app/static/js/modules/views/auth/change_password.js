@@ -13,7 +13,7 @@ function mountChangePasswordPage(global) {
     const { ready, selectOne, from, value } = helpers;
 
     let changePasswordValidator = null;
-    let changePasswordController = null;
+    let submitButton = null;
 
     ready(initializeChangePasswordPage);
 
@@ -23,11 +23,7 @@ function mountChangePasswordPage(global) {
             return;
         }
 
-        if (global.ResourceFormController) {
-            changePasswordController = new global.ResourceFormController(form.first(), {
-                loadingText: '更新中...',
-            });
-        }
+        submitButton = form.find('[type="submit"]').first();
 
         initializePasswordToggles();
         initializePasswordStrength();
@@ -216,7 +212,7 @@ function mountChangePasswordPage(global) {
             .useRules('#confirm_password', global.ValidationRules.auth.changePassword.confirmPassword)
             .onSuccess((event) => {
                 const form = event.target;
-                changePasswordController?.toggleLoading(true);
+                toggleSubmitLoading(true);
                 form.submit();
             })
             .onFail(() => {
@@ -236,6 +232,20 @@ function mountChangePasswordPage(global) {
             confirmPasswordInput.on('input', () => {
                 changePasswordValidator.revalidateField('#confirm_password');
             });
+        }
+    }
+
+    function toggleSubmitLoading(loading) {
+        if (!submitButton) {
+            return;
+        }
+        if (loading) {
+            submitButton.dataset.originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>更新中...';
+            submitButton.disabled = true;
+        } else {
+            submitButton.innerHTML = submitButton.dataset.originalText || '<i class="fas fa-save me-2"></i>更新密码';
+            submitButton.disabled = false;
         }
     }
 
