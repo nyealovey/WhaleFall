@@ -176,10 +176,13 @@
                                    class="btn btn-outline-primary" title="查看详情">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ url_for('instance_detail.edit', instance_id=instance.id) }}"
-                                   class="btn btn-outline-warning" title="编辑">
+                                <button type="button"
+                                        class="btn btn-outline-warning"
+                                        data-action="edit-instance"
+                                        data-instance-id="{{ instance.id }}"
+                                        title="编辑">
                                     <i class="fas fa-edit"></i>
-                                </a>
+                                </button>
                                 <button type="button" class="btn btn-outline-success"
                                         onclick="testConnection({{ instance.id }})" title="测试连接">
                                     <i class="fas fa-plug"></i>

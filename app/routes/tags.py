@@ -214,5 +214,17 @@ def api_tag_detail(tag_name: str) -> tuple[Response, int]:
     )
 
 
+@tags_bp.route("/api/<int:tag_id>")
+@login_required
+@view_required
+def api_tag_detail_by_id(tag_id: int) -> tuple[Response, int]:
+    """根据 ID 获取标签详情"""
+    tag = Tag.query.get_or_404(tag_id)
+    return jsonify_unified_success(
+        data={"tag": tag.to_dict()},
+        message="获取标签详情成功",
+    )
+
+
 # ---------------------------------------------------------------------------
 # 表单页面已退役，全部通过列表页模态 + API 处理
