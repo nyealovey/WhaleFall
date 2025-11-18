@@ -248,12 +248,13 @@
 
 <!-- 权限查看组件 -->
 <script src="{{ url_for('static', filename='js/modules/services/permission_service.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/views/components/permissions/permission-button.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/connection_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/components/connection-manager.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/tag_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/tag_management_store.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/views/components/tag-selector.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/tags/tag-selector-view.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/tags/tag-selector-modal-adapter.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/tags/tag-selector-controller.js') }}"></script>
 
     <!-- 动态加载应用信息 -->
     <script>
