@@ -290,17 +290,30 @@ function displayJobs(jobs) {
 
     const activeContainer = document.getElementById('activeJobsContainer');
     const pausedContainer = document.getElementById('pausedJobsContainer');
+    const createColumn = () => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'col-4';
+        return wrapper;
+    };
 
     // 显示进行中的任务
     activeJobs.forEach(function (job) {
         const jobCard = createJobCard(job);
-        activeContainer?.appendChild(jobCard);
+        if (activeContainer) {
+            const column = createColumn();
+            column.appendChild(jobCard);
+            activeContainer.appendChild(column);
+        }
     });
 
     // 显示已暂停的任务
     pausedJobs.forEach(function (job) {
         const jobCard = createJobCard(job);
-        pausedContainer?.appendChild(jobCard);
+        if (pausedContainer) {
+            const column = createColumn();
+            column.appendChild(jobCard);
+            pausedContainer.appendChild(column);
+        }
     });
 
     // 更新计数
@@ -343,9 +356,8 @@ function createJobCard(job) {
     const nextRunTime = job.next_run_time ? formatTime(job.next_run_time) : '未计划';
     const lastRunTime = job.last_run_time ? formatTime(job.last_run_time) : '从未运行';
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'col-4';
-    wrapper.innerHTML = `
+    const template = document.createElement('template');
+    template.innerHTML = `
         <div class="job-card ${statusClass}">
             <div class="job-info">
                 <div class="d-flex justify-content-between align-items-start mb-2">
@@ -378,8 +390,8 @@ function createJobCard(job) {
                 ${getActionButtons(job)}
             </div>
         </div>
-    `;
-    return wrapper;
+    `.trim();
+    return template.content.firstElementChild;
 }
 
 // 获取状态样式类
