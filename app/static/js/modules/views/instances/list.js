@@ -71,19 +71,20 @@ function initializeInstanceModals() {
         DOMHelpers: window.DOMHelpers,
     });
     instanceModals.init?.();
+    bindModalTriggers();
 }
 
-ready(() => {
-    initializeInstanceStore();
-    initializeInstanceModals();
-    initializeTagFilter();
-    initializeInstanceFilterCard();
-    initializeBatchCreateModal();
-    setupEventListeners();
-    loadInstanceTotalSizes();
-    registerUnloadCleanup();
-    updateBatchButtons();
-});
+    ready(() => {
+        initializeInstanceStore();
+        initializeInstanceModals();
+        initializeTagFilter();
+        initializeInstanceFilterCard();
+        initializeBatchCreateModal();
+        setupEventListeners();
+        loadInstanceTotalSizes();
+        registerUnloadCleanup();
+        updateBatchButtons();
+    });
 
 function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
@@ -466,6 +467,30 @@ function resetInstanceFilters(form) {
     applyInstanceFilters(targetForm, {});
 }
 
+function bindModalTriggers() {
+    if (!instanceModals) {
+        return;
+    }
+    const createBtn = selectOne('[data-action="create-instance"]');
+    if (createBtn.length) {
+        createBtn.on('click', (event) => {
+            event.preventDefault();
+            instanceModals.openCreate();
+        });
+    }
+    select('[data-action="edit-instance"]').each((button) => {
+        const wrapper = from(button);
+        wrapper.on('click', (event) => {
+            event.preventDefault();
+            const row = button.closest('tr');
+            const id = wrapper.attr('data-instance-id') || row?.getAttribute('data-instance-id');
+            if (id) {
+                instanceModals.openEdit(id);
+            }
+        });
+    });
+}
+
 // 初始化标签选择器
 // 设置事件监听器
 function setupEventListeners() {
@@ -839,18 +864,18 @@ function submitFileUpload() {
 // 标签选择器相关功能
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
-    Object.assign(instanceListExports, {
-        testConnection,
-        batchTestConnections,
-        batchDelete,
-        showBatchCreateModal,
-        submitBatchCreate,
-        handleFileSelect,
-        toggleSelectAll,
-        updateBatchButtons,
-        syncAccounts,
-        syncCapacity,
-    });
+Object.assign(instanceListExports, {
+    testConnection,
+    batchTestConnections,
+    batchDelete,
+    showBatchCreateModal,
+    submitBatchCreate,
+    handleFileSelect,
+    toggleSelectAll,
+    updateBatchButtons,
+    syncAccounts,
+    syncCapacity,
+});
 }
 
 window.InstancesListPage = {
@@ -878,28 +903,3 @@ window.toggleSelectAll = createDeferredExportInvoker('toggleSelectAll');
 window.updateBatchButtons = createDeferredExportInvoker('updateBatchButtons');
 window.syncAccounts = createDeferredExportInvoker('syncAccounts');
 window.syncCapacity = createDeferredExportInvoker('syncCapacity');
-
-
-function bindModalTriggers() {
-    if (!instanceModals) {
-        return;
-    }
-    const createBtn = selectOne('[data-action="create-instance"]');
-    if (createBtn.length) {
-        createBtn.on('click', (event) => {
-            event.preventDefault();
-            instanceModals.openCreate();
-        });
-    }
-    select('[data-action="edit-instance"]').each((button) => {
-        const wrapper = from(button);
-        wrapper.on('click', (event) => {
-            event.preventDefault();
-            const row = button.closest('tr');
-            const id = wrapper.attr('data-instance-id') || row?.getAttribute('data-instance-id');
-            if (id) {
-                instanceModals.openEdit(id);
-            }
-        });
-    });
-}
