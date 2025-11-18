@@ -33,7 +33,6 @@ from app.services.account_sync.account_query_service import get_accounts_by_inst
 from app.services.instances import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
-from app.views.instance_form_view import InstanceFormView
 
 # 创建蓝图
 instance_bp = Blueprint("instance", __name__)
@@ -563,21 +562,6 @@ def api_get_accounts(instance_id: int) -> Response:
             exception=exc,
         )
         raise SystemError("获取权限失败") from exc
-
-
-# ---------------------------------------------------------------------------
-# 表单路由注册
-# ---------------------------------------------------------------------------
-_instance_create_view = InstanceFormView.as_view("instance_create_form")
-_instance_create_view = login_required(create_required(require_csrf(_instance_create_view)))
-
-instance_bp.add_url_rule(
-    "/create",
-    view_func=_instance_create_view,
-    methods=["GET", "POST"],
-    defaults={"resource_id": None},
-    endpoint="create",
-)
 
 
 # 注册额外路由模块

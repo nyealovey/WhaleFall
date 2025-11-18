@@ -43,7 +43,9 @@
         </div>
         <div class="mb-3">
             <label class="form-label">权限配置</label>
-            {% include 'accounts/account_classification/permissions/policy-center-view.html' with permissions_id='permissionsConfig' %}
+            {% with permissions_id='permissionsConfig' %}
+                {% include 'accounts/account_classification/permissions/policy-center-view.html' %}
+            {% endwith %}
         </div>
     </form>
 {% endset %}
@@ -106,7 +108,9 @@
         </div>
         <div class="mb-3">
             <label class="form-label">权限配置</label>
-            {% include 'accounts/account_classification/permissions/policy-center-view.html' with permissions_id='editPermissionsConfig' %}
+            {% with permissions_id='editPermissionsConfig' %}
+                {% include 'accounts/account_classification/permissions/policy-center-view.html' %}
+            {% endwith %}
         </div>
     </form>
 {% endset %}
@@ -124,4 +128,3 @@
 %}
     {% include 'components/ui/modal.html' %}
 {% endwith %}
-

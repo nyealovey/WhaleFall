@@ -34,7 +34,7 @@ scheduler_bp.add_url_rule(
 @scheduler_view_required  # type: ignore
 def index() -> str:
     """定时任务管理页面"""
-    return render_template("admin/scheduler.html")
+    return render_template("admin/scheduler/index.html")
 
 
 @scheduler_bp.route("/api/jobs")

@@ -26,7 +26,6 @@ from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
-from app.views.instance_form_view import InstanceFormView
 
 instance_detail_bp = Blueprint("instance_detail", __name__, url_prefix="/instances")
 
@@ -567,15 +566,3 @@ def _fetch_historical_database_sizes(
     }
 
 
-# ---------------------------------------------------------------------------
-# 表单路由注册
-# ---------------------------------------------------------------------------
-_instance_edit_view = InstanceFormView.as_view("instance_edit_form")
-_instance_edit_view = login_required(update_required(require_csrf(_instance_edit_view)))
-
-instance_detail_bp.add_url_rule(
-    "/<int:instance_id>/edit",
-    view_func=_instance_edit_view,
-    methods=["GET", "POST"],
-    endpoint="edit",
-)

@@ -1,0 +1,62 @@
+{# 创建分区模态 #}
+{% set create_partition_modal_body %}
+    <form id="createPartitionForm">
+        <div class="mb-3">
+            <label for="partitionYear" class="form-label">年份</label>
+            <select class="form-select" id="partitionYear" required>
+                <option value="">请选择年份</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="partitionMonth" class="form-label">月份</label>
+            <select class="form-select" id="partitionMonth" required>
+                <option value="">请选择月份</option>
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}">{{ m }}月</option>
+                {% endfor %}
+            </select>
+            <div class="form-text">选择要创建分区的年月（将创建该月的分区）</div>
+        </div>
+    </form>
+{% endset %}
+{% set create_partition_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="button" class="btn btn-primary" id="confirmCreatePartition" data-modal-confirm>创建</button>
+{% endset %}
+{% with
+    modal_id='createPartitionModal',
+    modal_label_id='createPartitionModalLabel',
+    title='创建分区',
+    body=create_partition_modal_body,
+    footer=create_partition_modal_footer
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
+
+{# 清理分区模态 #}
+{% set cleanup_partition_modal_body %}
+    <form id="cleanupPartitionsForm">
+        <div class="mb-3">
+            <label for="retentionMonths" class="form-label">保留月数</label>
+            <input type="number" class="form-control" id="retentionMonths" min="1" max="60" value="12">
+            <div class="form-text">保留最近几个月的分区，超过此期限的分区将被删除</div>
+        </div>
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>警告：</strong>此操作将永久删除旧分区及其数据，请谨慎操作！
+        </div>
+    </form>
+{% endset %}
+{% set cleanup_partition_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="button" class="btn btn-danger" id="confirmCleanupPartitions" data-modal-confirm>清理</button>
+{% endset %}
+{% with
+    modal_id='cleanupPartitionsModal',
+    modal_label_id='cleanupPartitionsModalLabel',
+    title='清理旧分区',
+    body=cleanup_partition_modal_body,
+    footer=cleanup_partition_modal_footer
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}

@@ -40,6 +40,10 @@ def index() -> str:
         )
 
         users = User.query.order_by(User.created_at.desc()).all()
+        role_options = [
+            {"value": role, "label": UserRole.get_display_name(role)}
+            for role in UserRole.ALL
+        ]
         log_info(
             "成功获取用户列表",
             module="users",
@@ -47,7 +51,7 @@ def index() -> str:
             total=len(users),
         )
 
-        return render_template("auth/list.html", users=users)
+        return render_template("auth/list.html", users=users, role_options=role_options)
 
     except Exception as e:
         log_error(

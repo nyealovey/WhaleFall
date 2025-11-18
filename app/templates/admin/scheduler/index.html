@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}定时任务管理 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/scheduler.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- 页面头部 -->
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-clock me-2"></i>定时任务管理</h2>
+                <p class="mb-0">管理和监控系统定时任务的执行状态</p>
+            </div>
+            <div class="btn-group">
+                {% if current_user.is_admin() %}
+                <!-- 暂时隐藏添加任务功能 -->
+                <!-- <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addJobModal">
+                    <i class="fas fa-plus me-1"></i>添加任务
+                </button> -->
+                {% endif %}
+                <!-- 重新初始化任务 -->
+                <button id="purgeKeepBuiltinBtn" class="btn btn-outline-light" type="button" title="删除所有现有任务，重新从配置文件加载任务">
+                    <i class="fas fa-sync-alt me-1"></i>重新初始化任务
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+
+    <!-- 任务列表 -->
+    <div class="row">
+        <div class="col-12">
+            <!-- 加载状态 -->
+            <div id="loadingRow" class="row" style="display: none;">
+                <div class="col-12">
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>加载任务中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div id="emptyRow" class="row" style="display: none;">
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="fas fa-tasks"></i>
+                        <h4>暂无任务</h4>
+                        <p>还没有任何定时任务</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 进行中的任务 -->
+            <div id="activeJobsSection" class="mb-4">
+                <div class="d-flex align-items-center mb-3">
+                    <h5 class="mb-0 me-3">
+                        <i class="fas fa-play-circle text-success me-2"></i>进行中的任务
+                    </h5>
+                    <span id="activeJobsCount" class="badge bg-success">0</span>
+                </div>
+                <div id="activeJobsContainer" class="row">
+                    <!-- 进行中的任务卡片将在这里动态生成 -->
+                </div>
+            </div>
+
+            <!-- 分割线 -->
+            <div class="border-top my-4"></div>
+
+            <!-- 已暂停的任务 -->
+            <div id="pausedJobsSection" class="mb-4">
+                <div class="d-flex align-items-center mb-3">
+                    <h5 class="mb-0 me-3">
+                        <i class="fas fa-pause-circle text-warning me-2"></i>已暂停的任务
+                    </h5>
+                    <span id="pausedJobsCount" class="badge bg-warning">0</span>
+                </div>
+                <div id="pausedJobsContainer" class="row">
+                    <!-- 已暂停的任务卡片将在这里动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'admin/scheduler/modals/scheduler-modals.html' %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/jquery/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/scheduler_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/stores/scheduler_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/admin/scheduler/modals/scheduler-modals.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/admin/scheduler/index.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap/admin/scheduler.js') }}"></script>
+{% endblock %}

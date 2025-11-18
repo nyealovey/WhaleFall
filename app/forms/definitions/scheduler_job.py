@@ -7,7 +7,7 @@ from app.services.form_service.scheduler_job_form_service import SchedulerJobFor
 
 SCHEDULER_JOB_FORM_DEFINITION = ResourceFormDefinition(
     name="scheduler_job",
-    template="admin/scheduler.html",
+    template="admin/scheduler/index.html",
     service_class=SchedulerJobFormService,
     success_message="任务更新成功",
     fields=[

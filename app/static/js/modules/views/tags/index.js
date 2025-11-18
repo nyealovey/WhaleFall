@@ -52,6 +52,7 @@
 
     function initializeTagsPage() {
         initializeDeleteModal();
+        initializeTagModals();
         initializeEventHandlers();
         initializeTagActions();
         initializeTagFilterCard();
@@ -122,6 +123,7 @@
         }
 
         bindDeleteButtons();
+        bindModalTriggers();
     }
 
     function initializeTagActions() {
@@ -175,6 +177,44 @@
             const tagId = button.getAttribute('data-tag-id');
             const tagName = button.getAttribute('data-tag-name');
             tagDeleteModal.open({ tagId, tagName });
+        });
+    }
+
+    function initializeTagModals() {
+        if (!global.TagModals?.createController) {
+            console.warn('TagModals 未加载，创建/编辑模态不可用');
+            return;
+        }
+        global.tagModals = global.TagModals.createController({
+            http: global.httpU,
+            FormValidator: global.FormValidator,
+            ValidationRules: global.ValidationRules,
+            toast: global.toast,
+            DOMHelpers: global.DOMHelpers,
+        });
+        global.tagModals.init?.();
+    }
+
+    function bindModalTriggers() {
+        if (!global.tagModals) {
+            return;
+        }
+        const createBtn = selectOne('[data-action="create-tag"]');
+        if (createBtn.length) {
+            createBtn.on('click', (event) => {
+                event.preventDefault();
+                global.tagModals.openCreate();
+            });
+        }
+        select('[data-action="edit-tag"]').each((button) => {
+            const wrapper = from(button);
+            wrapper.on('click', (event) => {
+                event.preventDefault();
+                const tagId = wrapper.attr('data-tag-id');
+                if (tagId) {
+                    global.tagModals.openEdit(tagId);
+                }
+            });
         });
     }
 

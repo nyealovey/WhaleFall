@@ -34,6 +34,7 @@ try {
 let instanceStore = null;
 const instanceStoreSubscriptions = [];
 let batchCreateModal = null;
+let instanceModals = null;
 
 function ensureInstanceService() {
     if (!instanceService) {
@@ -57,12 +58,30 @@ function getInstanceFilterForm() {
     return instanceFilterCard?.form || selectOne(`#${INSTANCE_FILTER_FORM_ID}`).first();
 }
 
+function initializeInstanceModals() {
+    if (!window.InstanceModals?.createController) {
+        console.warn('InstanceModals 未加载，创建/编辑模态不可用');
+        return;
+    }
+    instanceModals = window.InstanceModals.createController({
+        http: window.httpU,
+        FormValidator: window.FormValidator,
+        ValidationRules: window.ValidationRules,
+        toast: window.toast,
+        DOMHelpers: window.DOMHelpers,
+    });
+    instanceModals.init?.();
+}
+
 ready(() => {
     initializeInstanceStore();
+    initializeInstanceModals();
     initializeTagFilter();
     initializeInstanceFilterCard();
     initializeBatchCreateModal();
+    initializeInstanceModals();
     setupEventListeners();
+    bindModalTriggers();
     loadInstanceTotalSizes();
     registerUnloadCleanup();
     updateBatchButtons();
@@ -859,3 +878,28 @@ window.toggleSelectAll = createDeferredExportInvoker('toggleSelectAll');
 window.updateBatchButtons = createDeferredExportInvoker('updateBatchButtons');
 window.syncAccounts = createDeferredExportInvoker('syncAccounts');
 window.syncCapacity = createDeferredExportInvoker('syncCapacity');
+
+
+function bindModalTriggers() {
+    if (!instanceModals) {
+        return;
+    }
+    const createBtn = selectOne('[data-action="create-instance"]');
+    if (createBtn.length) {
+        createBtn.on('click', (event) => {
+            event.preventDefault();
+            instanceModals.openCreate();
+        });
+    }
+    select('[data-action="edit-instance"]').each((button) => {
+        const wrapper = from(button);
+        wrapper.on('click', (event) => {
+            event.preventDefault();
+            const row = button.closest('tr');
+            const id = wrapper.attr('data-instance-id') || row?.getAttribute('data-instance-id');
+            if (id) {
+                instanceModals.openEdit(id);
+            }
+        });
+    });
+}
