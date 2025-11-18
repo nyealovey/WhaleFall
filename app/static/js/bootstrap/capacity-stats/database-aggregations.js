@@ -1,3 +1,4 @@
+// 数据库容量统计入口：将 server 渲染数据交给 DatabaseAggregationsPage 处理
 (function (global) {
   "use strict";
 

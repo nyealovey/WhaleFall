@@ -1,3 +1,4 @@
+// 仪表盘总览入口：统一触发 DashboardOverviewPage.mount（包含统计/图表装配）
 (function (global) {
   "use strict";
 

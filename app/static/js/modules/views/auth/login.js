@@ -37,6 +37,9 @@ function mountLoginPage(global) {
         });
     }
 
+    /**
+     * 切换密码可见性，同时更新图标与标题提示。
+     */
     function togglePasswordVisibility(passwordInput, toggleButton) {
         const currentType = passwordInput.attr('type') === 'password' ? 'text' : 'password';
         passwordInput.attr('type', currentType);
@@ -93,6 +96,9 @@ function mountLoginPage(global) {
         updatePasswordStrength(value(passwordInput) || '');
     }
 
+    /**
+     * 提交时禁用按钮并展示加载态，防止重复提交。
+     */
     function showLoadingState(form) {
         const formWrapper = from(form);
         const submitBtn = formWrapper.find('button[type="submit"]');
@@ -103,6 +109,9 @@ function mountLoginPage(global) {
         submitBtn.attr('disabled', 'disabled');
     }
 
+    /**
+     * 恢复提交按钮的默认文案和可用状态。
+     */
     function hideLoadingState(form) {
         const formWrapper = from(form);
         const submitBtn = formWrapper.find('button[type="submit"]');
@@ -113,6 +122,9 @@ function mountLoginPage(global) {
         submitBtn.attr('disabled', null);
     }
 
+    /**
+     * 简易密码强度评分：长度/大小写/数字/特殊符号。
+     */
     function checkPasswordStrength(password) {
         let strength = 0;
         let feedback = '';
@@ -137,10 +149,16 @@ function mountLoginPage(global) {
         return { strength, feedback };
     }
 
+    /**
+     * 重置强度条样式，避免叠加 class。
+     */
     function resetStrengthBarClasses(strengthBar) {
         strengthBar.attr('class', 'password-strength-bar');
     }
 
+    /**
+     * 根据密码强度更新提示文案与样式。
+     */
     function updatePasswordStrength(password) {
         const strengthBar = selectOne('.password-strength-bar');
         if (!strengthBar.length) {

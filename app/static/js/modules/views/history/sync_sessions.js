@@ -132,6 +132,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     startInitialization();
   }
 
+  /**
+   * 创建会话详情/错误日志模态，并设定关闭时清理内容。
+   */
   function initializeSyncModals() {
     const factory = window.UI?.createModal;
     if (!factory) {
@@ -148,6 +151,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     });
   }
 
+  /**
+   * 初始化会话 store，开启自动刷新并注册卸载清理。
+   */
   function initializeSyncSessionsStore() {
     if (!window.createSyncSessionsStore) {
       console.error("createSyncSessionsStore 未加载");
@@ -181,6 +187,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     }, { once: true });
   }
 
+  /**
+   * 订阅 store 事件，更新列表、统计与提示。
+   */
   function bindStoreEvents() {
     debugLog("绑定 SyncSessionsStore 事件");
     subscribeToStoreEvent('syncSessions:loading', () => {
@@ -223,6 +232,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     });
   }
 
+  /**
+   * 统一订阅并记录 handler，便于 teardown 时移除。
+   */
   function subscribeToStoreEvent(eventName, handler) {
     if (!syncSessionsStore) {
       debugLog(`尝试订阅 ${eventName} 但 store 未初始化`);
@@ -233,6 +245,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     syncSessionsStore.subscribe(eventName, handler);
   }
 
+  /**
+   * 解除订阅并销毁 store，防止泄漏。
+   */
   function teardownStore() {
     if (!syncSessionsStore) {
       return;
@@ -245,6 +260,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     syncSessionsStore = null;
   }
 
+  /**
+   * 外部调用入口：按页加载会话列表（支持 silent 刷新）。
+   */
   window.loadSessions = function (page = 1, options = {}) {
     if (!syncSessionsStore) {
       debugLog("loadSessions 调用但 store 未准备");
@@ -273,6 +291,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     if (container) container.style.display = 'block';
   }
 
+  /**
+   * 渲染会话列表，包含状态/进度/指标展示。
+   */
   window.renderSessions = function (sessions) {
     const container = document.getElementById('sessions-container');
     if (!container) return;
@@ -359,6 +380,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   }
 
   // 渲染分页控件
+  /**
+   * 构建分页，调用 store actions 切换页码。
+   */
   function renderPagination(paginationData) {
     const container = document.getElementById('pagination-container');
     if (!container || !paginationData) {
@@ -438,6 +462,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     container.style.display = 'block';
   }
 
+  /**
+   * 查看单个会话详情，触发 store 拉取后展示模态。
+   */
   window.viewSessionDetail = function (sessionId) {
     if (!syncSessionsStore) {
       return;
@@ -445,6 +472,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     syncSessionsStore.actions.loadSessionDetail(sessionId);
   };
 
+  /**
+   * 查看会话错误日志，触发 store 拉取后展示模态。
+   */
   window.viewErrorLogs = function (sessionId) {
     if (!syncSessionsStore) {
       return;
@@ -452,6 +482,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     syncSessionsStore.actions.loadErrorLogs(sessionId);
   };
 
+  /**
+   * 将错误日志数据渲染到模态内容区域。
+   */
   window.showErrorLogs = function (data) {
     const content = document.getElementById('error-logs-content');
     if (!content) return;
@@ -479,6 +512,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     openModal(errorLogsModal, 'errorLogs');
   }
 
+  /**
+   * 将会话详情渲染到模态内容区域。
+   */
   window.showSessionDetail = function (session) {
     const content = document.getElementById('session-detail-content');
     if (!content) return;
@@ -546,6 +582,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     openModal(sessionDetailModal, 'sessionDetail');
   }
 
+  /**
+   * 请求取消会话，成功后刷新列表。
+   */
   window.cancelSession = function (sessionId) {
     if (!syncSessionsStore) {
       return;
@@ -556,6 +595,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   };
 
   // 应用筛选条件
+  /**
+   * 将当前表单筛选应用到列表（重置页码为 1）。
+   */
   function applyFilters() {
     applySyncFilters();
   }
@@ -565,10 +607,16 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
 
 
 
+  /**
+   * 清空筛选表单并刷新列表。
+   */
   window.clearFilters = function () {
     resetSyncFilters();
   }
 
+  /**
+   * 根据成功率计算进度条样式与提示。
+   */
   window.getProgressInfo = function (successRate, totalInstances, successfulInstances, failedInstances) {
     if (totalInstances === 0) {
       return { barClass: 'bg-secondary', textClass: 'text-muted', icon: 'fas fa-question-circle', tooltip: '无实例数据' };
@@ -584,6 +632,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     }
   }
 
+  /**
+   * 构建筛选卡片：自动提交变更并注册卸载清理。
+   */
   function initializeSyncFilterCard() {
     const factory = window.UI?.createFilterCard;
     if (!factory) {
@@ -616,6 +667,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     window.addEventListener('beforeunload', filterUnloadHandler);
   }
 
+  /**
+   * 销毁筛选卡片实例，解除 beforeunload 监听。
+   */
   function destroySyncFilterCard() {
     if (syncFilterCard?.destroy) {
       syncFilterCard.destroy();
@@ -623,6 +677,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     syncFilterCard = null;
   }
 
+  /**
+   * 组合筛选参数并刷新页面或请求。
+   */
   function applySyncFilters(form, values) {
     const targetForm = resolveSyncForm(form);
     if (!targetForm || !syncSessionsStore) {
@@ -634,6 +691,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     syncSessionsStore.actions.applyFilters(nextFilters);
   }
 
+  /**
+   * 重置筛选表单并应用空过滤。
+   */
   function resetSyncFilters(form) {
     const targetForm = resolveSyncForm(form);
     if (targetForm) {
@@ -647,6 +707,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     syncSessionsStore.actions.resetFilters();
   }
 
+  /**
+   * 将多种 form 输入（原生/umbrella）归一化为 HTMLElement。
+   */
   function resolveSyncForm(form) {
     if (!form && syncFilterCard?.form) {
       return syncFilterCard.form;
@@ -657,6 +720,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     return form;
   }
 
+  /**
+   * 序列化筛选表单，兼容 FilterCard/原生 FormData。
+   */
   function collectFormValues(form) {
     if (syncFilterCard?.serialize) {
       return syncFilterCard.serialize();
@@ -683,15 +749,24 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     return result;
   }
 
+  /**
+   * 将状态映射为卡片 CSS class。
+   */
   window.getStatusClass = function (status) {
     const map = { running: 'running', completed: 'completed', failed: 'failed', cancelled: 'cancelled' };
     return map[status] || '';
   }
   window.getStatusText = function (status) { return status; }
+  /**
+   * 将状态映射为 badge 颜色。
+   */
   window.getStatusColor = function (status) {
     const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning' };
     return map[status] || 'secondary';
   }
+  /**
+   * 同步类型 -> 展示文案。
+   */
   window.getSyncTypeText = function (type) {
     const typeMap = {
       'manual_single': '手动单台',
@@ -701,6 +776,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     };
     return typeMap[type] || type;
   }
+  /**
+   * 同步分类 -> 展示文案。
+   */
   window.getSyncCategoryText = function (category) {
     const categoryMap = {
       'account': '账户同步',
@@ -712,6 +790,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     return categoryMap[category] || category;
   }
 
+  /**
+   * 计算耗时徽标文本（包含起止时间）。
+   */
   window.getDurationBadge = function (startedAt, completedAt) {
     if (!startedAt || !completedAt) return '<span class="text-muted">-</span>';
     

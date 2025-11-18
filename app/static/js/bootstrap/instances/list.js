@@ -1,3 +1,4 @@
+// 实例列表入口：负责初始化 InstancesListPage（筛选/批量操作/分页）
 (function (global) {
   "use strict";
 

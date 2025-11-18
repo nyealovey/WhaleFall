@@ -1,3 +1,4 @@
+// 调度管理入口：挂载 modules/views/dashboard/scheduler? (SchedulerPage) 以启用任务控制台
 (function (global) {
   "use strict";
 

@@ -170,10 +170,10 @@
         return LodashUtils.orderBy(uniqueModules, [normalizeText], ['asc']);
     }
 
-function buildFilterParams(rawValues) {
-    const sourceValues =
-        rawValues && Object.keys(rawValues || {}).length
-            ? rawValues
+    function buildFilterParams(rawValues) {
+        const sourceValues =
+            rawValues && Object.keys(rawValues || {}).length
+                ? rawValues
                 : collectFormValues(selectOne(`#${LOG_FILTER_FORM_ID}`).first());
         const timeRangeValue = sourceValues?.time_range || sourceValues?.timeRange || '';
         const hoursValue = sourceValues?.hours || (timeRangeValue ? getHoursFromTimeRange(timeRangeValue) : undefined);
@@ -198,6 +198,9 @@ function buildFilterParams(rawValues) {
         return result;
     }
 
+    /**
+     * 设置时间范围筛选的默认值（优先保持 TomSelect 状态）。
+     */
     function setDefaultTimeRange() {
         const timeRangeSelect = selectOne('#time_range');
         if (!timeRangeSelect.length) {
@@ -216,6 +219,9 @@ function buildFilterParams(rawValues) {
         }
     }
 
+    /**
+     * 将模块列表填充到下拉框，保留用户选择。
+     */
     function updateModuleFilter(modules) {
         const moduleSelectWrapper = selectOne('#module');
         if (!moduleSelectWrapper.length) {
@@ -253,6 +259,9 @@ function buildFilterParams(rawValues) {
         }
     }
 
+    /**
+     * 将快捷时间范围转换为小时数，用于图表或统计。
+     */
     function getHoursFromTimeRange(timeRange) {
         switch (timeRange) {
             case '1h':
@@ -268,6 +277,9 @@ function buildFilterParams(rawValues) {
         }
     }
 
+    /**
+     * 刷新顶部统计面板数字并应用过渡效果。
+     */
     function updateStatsDisplay(stats) {
         const elements = {
             totalLogs: stats.total_logs || 0,
@@ -285,6 +297,9 @@ function buildFilterParams(rawValues) {
         });
     }
 
+    /**
+     * 在日志容器显示加载提示。
+     */
     function showLoadingState() {
         const container = selectOne('#logsContainer');
         if (container.length) {
@@ -292,6 +307,9 @@ function buildFilterParams(rawValues) {
         }
     }
 
+    /**
+     * 统一错误提示：优先 toast，回退 console。
+     */
     function showError(message) {
         if (global.toast && typeof global.toast.error === 'function') {
             global.toast.error(message);
@@ -300,6 +318,9 @@ function buildFilterParams(rawValues) {
         }
     }
 
+    /**
+     * 调用 store 执行搜索，支持分页参数。
+     */
     function searchLogs(page = 1) {
         if (!logsStore) {
             return;
@@ -307,6 +328,9 @@ function buildFilterParams(rawValues) {
         logsStore.actions.searchLogs({ page });
     }
 
+    /**
+     * 将日志列表渲染到 DOM，并高亮搜索关键词。
+     */
     function displayLogs(logs, searchTerm = '') {
         const container = selectOne('#logsContainer');
         if (!container.length) {
@@ -325,6 +349,9 @@ function buildFilterParams(rawValues) {
         });
     }
 
+    /**
+     * 构建单条日志 DOM 片段并绑定详情点击。
+     */
     function createLogEntryElement(log, searchTerm) {
         const levelClass = `log-level-${log.level}`;
         const levelBadge = getLevelBadgeHTML(log.level);
@@ -354,6 +381,9 @@ function buildFilterParams(rawValues) {
         return entry;
     }
 
+    /**
+     * 获取日志级别 badge HTML。
+     */
     function getLevelBadgeHTML(level) {
         const colors = {
             DEBUG: 'secondary',
@@ -366,6 +396,9 @@ function buildFilterParams(rawValues) {
         return `<span class="badge bg-${color} log-level-badge">${level}</span>`;
     }
 
+    /**
+     * 在日志 message 中高亮搜索关键词。
+     */
     function highlightSearchTerm(text, searchTerm) {
         if (!searchTerm) {
             return text;
@@ -386,6 +419,9 @@ function buildFilterParams(rawValues) {
         return normalizedText.replace(regex, '<span class="search-highlight">$1</span>');
     }
 
+    /**
+     * 渲染分页控件并绑定跳转事件。
+     */
     function displayPagination(pagination) {
         const container = selectOne('#paginationContainer');
         if (!container.length) {
@@ -425,6 +461,9 @@ function buildFilterParams(rawValues) {
         });
     }
 
+    /**
+     * 构造分页按钮结构，含前后页和省略号。
+     */
     function buildPaginationPages(pagination) {
         const safe = pagination || {};
         const current = safe.page || 1;
@@ -473,6 +512,9 @@ function buildFilterParams(rawValues) {
         return pages;
     }
 
+    /**
+     * 初始化筛选卡片，绑定提交/重置/变更回调。
+     */
     function initializeLogFilterCard() {
         const factory = global.UI?.createFilterCard;
         if (!factory) {
@@ -492,6 +534,9 @@ function buildFilterParams(rawValues) {
         });
     }
 
+    /**
+     * 销毁筛选卡片实例，释放事件监听。
+     */
     function destroyLogFilterCard() {
         if (logFilterCard?.destroy) {
             logFilterCard.destroy();
@@ -499,6 +544,9 @@ function buildFilterParams(rawValues) {
         logFilterCard = null;
     }
 
+    /**
+     * 应用筛选参数并驱动 store 查询。
+     */
     function applyLogFilters(form, values) {
         const targetForm = form || logFilterCard?.form || selectOne(`#${LOG_FILTER_FORM_ID}`).first();
         if (!targetForm || !logsStore) {
@@ -512,6 +560,9 @@ function buildFilterParams(rawValues) {
         logsStore.actions.applyFilters(filters);
     }
 
+    /**
+     * 重置筛选表单并恢复默认过滤。
+     */
     function resetLogFilters(form) {
         const targetForm = form || logFilterCard?.form || selectOne(`#${LOG_FILTER_FORM_ID}`).first();
         if (targetForm) {
@@ -523,6 +574,9 @@ function buildFilterParams(rawValues) {
         logsStore.actions.resetFilters();
     }
 
+    /**
+     * 将 form 序列化为对象，兼容 FilterCard/原生 FormData。
+     */
     function collectFormValues(form) {
         if (logFilterCard?.serialize) {
             return logFilterCard.serialize();
@@ -549,6 +603,9 @@ function buildFilterParams(rawValues) {
         return result;
     }
 
+    /**
+     * 请求日志详情数据。
+     */
     function viewLogDetail(logId) {
         if (!logsStore) {
             return;
@@ -556,6 +613,9 @@ function buildFilterParams(rawValues) {
         logsStore.actions.loadLogDetail(logId);
     }
 
+    /**
+     * 渲染日志详情模态内容。
+     */
     function displayLogDetail(log) {
         const contentWrapper = selectOne('#logDetailContent');
         if (!contentWrapper.length) {
@@ -600,6 +660,9 @@ function buildFilterParams(rawValues) {
         logDetailModal?.open?.({ logId: safeLog.id });
     }
 
+    /**
+     * 将 context/metadata 渲染为分组的 pre 块。
+     */
     function buildContextContent(payload) {
         if (payload === null || payload === undefined) {
             return '<div class="text-muted">暂无上下文数据</div>';
@@ -627,6 +690,9 @@ function buildFilterParams(rawValues) {
         return `<pre class="bg-light p-3 rounded">${escapeHtml(String(payload))}</pre>`;
     }
 
+    /**
+     * 基础 HTML 转义。
+     */
     function escapeHtml(value) {
         if (value === null || value === undefined) {
             return '';
@@ -665,6 +731,9 @@ function buildFilterParams(rawValues) {
         }
     }
 
+    /**
+     * 复制日志详情的回退方案。
+     */
     function fallbackCopyText(text) {
         const textarea = document.createElement('textarea');
         textarea.value = text;
@@ -684,6 +753,9 @@ function buildFilterParams(rawValues) {
         }
     }
 
+    /**
+     * 初始化日志详情模态与复制按钮事件。
+     */
     function initializeLogDetailModal() {
         const factory = global.UI?.createModal;
         if (!factory) {
@@ -702,6 +774,9 @@ function buildFilterParams(rawValues) {
         }
     }
 
+    /**
+     * 销毁日志详情模态，释放资源。
+     */
     function destroyLogDetailModal() {
         if (logDetailModal?.destroy) {
             logDetailModal.destroy();

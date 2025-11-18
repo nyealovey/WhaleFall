@@ -114,6 +114,7 @@ function mountAuthListPage(global) {
             });
     }
 
+    // 在删除按钮上展示加载态，防止重复提交
     function showLoadingState(element, text) {
         const target = from(element);
         if (!target.length) {
@@ -125,6 +126,7 @@ function mountAuthListPage(global) {
         target.attr('disabled', 'disabled');
     }
 
+    // 恢复删除按钮的文案和可用状态
     function hideLoadingState(element, fallbackText) {
         const target = from(element);
         if (!target.length) {

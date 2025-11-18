@@ -1,3 +1,4 @@
+// 标签管理首页入口：触发 modules/views/tags/index.js 渲染全量交互
 (function (global) {
   "use strict";
 

@@ -1,3 +1,4 @@
+// 登录态用户列表入口：等待 DOM ready 后挂载 AuthListPage（modules/views/auth/list.js）
 (function (global) {
   "use strict";
 
