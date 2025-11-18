@@ -5,6 +5,9 @@ function mountAccountClassificationPage(window, document) {
     const debugEnabled = window.DEBUG_ACCOUNT_CLASSIFICATION ?? true;
     window.DEBUG_ACCOUNT_CLASSIFICATION = debugEnabled;
 
+    /**
+     * 统一的调试日志输出。
+     */
     function debugLog(message, payload) {
         if (!debugEnabled) {
             return;
@@ -23,6 +26,9 @@ function mountAccountClassificationPage(window, document) {
         return;
     }
     const service = new AccountClassificationService(window.httpU);
+    /**
+     * 将服务的各 API 封装为前端调用入口。
+     */
     const api = {
         classifications: {
             list: () => service.listClassifications(),
@@ -103,6 +109,9 @@ function mountAccountClassificationPage(window, document) {
           })
         : null;
 
+    /**
+     * 页面入口：初始化模态、加载分类与规则。
+     */
     function startPageInitialization() {
         debugLog('开始初始化账户分类页面');
         setupGlobalSearchListener();
@@ -123,6 +132,9 @@ function mountAccountClassificationPage(window, document) {
     }
 
     /* ========== 数据加载 ========== */
+    /**
+     * 拉取分类列表并渲染，同时缓存 state。
+     */
     async function loadClassifications() {
         try {
             debugLog('开始加载分类');
@@ -139,6 +151,9 @@ function mountAccountClassificationPage(window, document) {
         }
     }
 
+    /**
+     * 拉取规则列表，附加统计信息后渲染。
+     */
     async function loadRules() {
         try {
             debugLog('开始加载规则');
@@ -154,16 +169,25 @@ function mountAccountClassificationPage(window, document) {
         }
     }
 
+    /**
+     * 从接口响应提取分类数组，兼容多种结构。
+     */
     function extractClassifications(response) {
         const collection = response?.data?.classifications ?? response?.classifications ?? [];
         return Array.isArray(collection) ? collection : [];
     }
 
+    /**
+     * 从接口响应提取按 db_type 分类的规则对象。
+     */
     function extractRules(response) {
         const raw = response?.data?.rules_by_db_type ?? response?.rules_by_db_type ?? {};
         return typeof raw === 'object' && raw !== null ? raw : {};
     }
 
+    /**
+     * 为规则字典附加匹配账户数统计。
+     */
     async function attachRuleStats(rulesByDbType) {
         const ids = collectRuleIds(rulesByDbType);
         if (ids.length === 0) {
@@ -197,6 +221,9 @@ function mountAccountClassificationPage(window, document) {
         return rulesByDbType;
     }
 
+    /**
+     * 将 rulesByDbType 拆平，收集规则 ID 列表。
+     */
     function collectRuleIds(rulesByDbType) {
         const ids = [];
         Object.values(rulesByDbType || {}).forEach(ruleGroup => {
@@ -211,6 +238,9 @@ function mountAccountClassificationPage(window, document) {
         return ids;
     }
 
+    /**
+     * 分类列表渲染。
+     */
     function renderClassifications(classifications) {
         const container = document.getElementById('classificationsList');
         if (!container) {
@@ -308,6 +338,9 @@ function mountAccountClassificationPage(window, document) {
             .join('');
     }
 
+    /**
+     * 根据配置生成分类图标 HTML。
+     */
     function getClassificationIcon(iconName, color) {
         const iconMap = {
             'fa-crown': 'fas fa-crown',
@@ -322,6 +355,9 @@ function mountAccountClassificationPage(window, document) {
         return `<i class="${iconClass}" style="color: ${color || '#6c757d'};"></i>`;
     }
 
+    /**
+     * 渲染按 DB 类型分组的规则卡片。
+     */
     function renderRules(rulesByDbType) {
         const container = document.getElementById('rulesList');
         if (!container) {
@@ -384,6 +420,9 @@ function mountAccountClassificationPage(window, document) {
             .join('');
     }
 
+    /**
+     * 单条规则的渲染行。
+     */
     function renderRuleRow(rule) {
         const classificationBadge = `
             <span class="rule-classification-badge ${getClassificationClass(rule.classification_name)}">
@@ -440,6 +479,9 @@ function mountAccountClassificationPage(window, document) {
         `;
     }
 
+    /**
+     * 简单根据名称判断分类样式。
+     */
     function getClassificationClass(name) {
         if (!name) return 'normal';
         if (name.includes('特权')) return 'privileged';
@@ -449,6 +491,9 @@ function mountAccountClassificationPage(window, document) {
         return 'normal';
     }
 
+    /**
+     * 删除分类后刷新列表并同步规则模态选择项。
+     */
     async function handleDeleteClassification(id) {
         if (!confirm('确定要删除这个分类吗？')) {
             return;

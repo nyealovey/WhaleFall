@@ -32,6 +32,9 @@ function mountAuthListPage(global) {
         initDeleteUserHandlers();
     });
 
+    /**
+     * 初始化新建/编辑用户模态触发器。
+     */
     function bindModalTriggers() {
         if (!userModals) {
             console.warn('UserModals 未加载，创建/编辑模态不可用');
@@ -54,6 +57,9 @@ function mountAuthListPage(global) {
         userModals.init?.();
     }
 
+    /**
+     * 绑定删除按钮事件。
+     */
     function initDeleteUserHandlers() {
         select('[data-action="delete-user"]').each((button) => {
             const wrapper = from(button);
@@ -72,6 +78,9 @@ function mountAuthListPage(global) {
         });
     }
 
+    /**
+     * 弹出确认对话框。
+     */
     function confirmDeleteUser(userId, username) {
         const displayName = username || '';
         if (global.confirm(`确定要删除用户 "${displayName}" 吗？此操作不可撤销。`)) {
@@ -79,6 +88,9 @@ function mountAuthListPage(global) {
         }
     }
 
+    /**
+     * 调用服务删除用户并处理反馈。
+     */
     function performDeleteUser(userId) {
         const trigger = selectOne(`[data-action="delete-user"][data-user-id="${userId}"]`);
         showLoadingState(trigger, '删除中...');

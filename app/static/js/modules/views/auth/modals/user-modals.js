@@ -1,6 +1,9 @@
 (function (window, document) {
   'use strict';
 
+  /**
+   * 用户新建/编辑模态控制器。
+   */
   function createController(options) {
     const {
       http = window.httpU,
@@ -31,6 +34,9 @@
     let mode = 'create';
     let validator = null;
 
+    /**
+     * 初始化表单验证与事件。
+     */
     function init() {
       if (!FormValidator || !ValidationRules) {
         console.warn('UserModals: FormValidator 或 ValidationRules 未加载');
@@ -47,6 +53,9 @@
       modalEl.addEventListener('hidden.bs.modal', resetForm);
     }
 
+    /**
+     * 重置表单状态为创建模式。
+     */
     function resetForm() {
       form.reset();
       form.dataset.formMode = 'create';
@@ -59,11 +68,17 @@
       validator?.instance?.refresh?.();
     }
 
+    /**
+     * 打开新建模态。
+     */
     function openCreate() {
       resetForm();
       bootstrapModal.show();
     }
 
+    /**
+     * 打开编辑模态并填充数据。
+     */
     async function openEdit(userId) {
       if (!userId) {
         return;
@@ -93,6 +108,9 @@
       }
     }
 
+    /**
+     * 表单提交入口，按模式调用创建/更新。
+     */
     function handleSubmit(event) {
       event.preventDefault();
       const payload = buildPayload();
@@ -107,6 +125,9 @@
       }
     }
 
+    /**
+     * 将表单值组装为 payload。
+     */
     function buildPayload() {
       const data = new FormData(form);
       const payload = {
@@ -124,6 +145,9 @@
       return payload;
     }
 
+    /**
+     * 调用后端创建用户。
+     */
     function submitCreate(payload) {
       http.post('/users/api/users', payload)
         .then((resp) => {
@@ -141,6 +165,9 @@
         .finally(() => toggleLoading(false));
     }
 
+    /**
+     * 调用后端更新用户。
+     */
     function submitUpdate(payload) {
       const userId = payload.id;
       if (!userId) {
@@ -164,6 +191,9 @@
         .finally(() => toggleLoading(false));
     }
 
+    /**
+     * 切换提交按钮 loading 状态。
+     */
     function toggleLoading(loading) {
       if (!submitBtn) {
         return;

@@ -31,9 +31,6 @@ class BatchAssignManager {
         this.init();
     }
 
-    /**
-     * 初始化页面
-     */
     init() {
         this.bindEvents();
         this.initializeValidator();
@@ -42,10 +39,7 @@ class BatchAssignManager {
         this.updateHiddenFields();
     }
 
-    /**
-     * 绑定事件监听器
-     */
-    bindEvents() {
+   bindEvents() {
         // 模式切换
         document.querySelectorAll('input[name="batchMode"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
@@ -99,10 +93,7 @@ class BatchAssignManager {
             });
     }
 
-    /**
-     * 加载数据
-     */
-    async loadData() {
+   async loadData() {
         try {
             await Promise.all([
                 this.loadInstances(),
@@ -115,10 +106,7 @@ class BatchAssignManager {
         }
     }
 
-    /**
-     * 加载实例数据
-     */
-    async loadInstances() {
+   async loadInstances() {
         try {
             const response = await tagService.listInstances();
             const payload = response?.data ?? response;
@@ -131,10 +119,7 @@ class BatchAssignManager {
         }
     }
 
-    /**
-     * 加载标签数据
-     */
-    async loadTags() {
+   async loadTags() {
         try {
             const response = await tagService.listAllTags();
             const payload = response?.data ?? response;

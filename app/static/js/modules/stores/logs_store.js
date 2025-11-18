@@ -4,6 +4,9 @@
   const DEFAULT_PER_PAGE = 20;
   const DEFAULT_FILTERS = { hours: 24 };
 
+  /**
+   * 校验 service 是否实现日志模块接口。
+   */
   function ensureService(service) {
     if (!service) {
       throw new Error("createLogsStore: service is required");
@@ -16,6 +19,9 @@
     return service;
   }
 
+  /**
+   * 获取 mitt 事件总线。
+   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -26,6 +32,9 @@
     return window.mitt();
   }
 
+  /**
+   * 清洗过滤条件并填充默认值。
+   */
   function normalizeFilters(filters) {
     const base = filters && typeof filters === "object" ? filters : {};
     const normalized = {};
@@ -41,6 +50,9 @@
     return normalized;
   }
 
+  /**
+   * 拷贝 state 用于事件 payload。
+   */
   function cloneState(state) {
     return {
       modules: state.modules.slice(),
@@ -54,6 +66,9 @@
     };
   }
 
+  /**
+   * 标准化分页数据。
+   */
   function normalizePagination(data, fallback) {
     const source = data || {};
     const base = fallback || {};
@@ -100,6 +115,9 @@
     };
   }
 
+  /**
+   * 提取日志数组。
+   */
   function extractLogs(response) {
     if (!response) {
       return [];
@@ -112,12 +130,18 @@
     return list;
   }
 
+  /**
+   * 从响应推断分页信息。
+   */
   function resolvePagination(response, fallback) {
     const payload = response?.data ?? response ?? {};
     const pagination = payload.pagination ?? response?.pagination ?? null;
     return normalizePagination(pagination, fallback);
   }
 
+  /**
+   * 提取模块列表。
+   */
   function extractModules(response) {
     const payload = response?.data ?? response ?? {};
     const modules = payload.modules ?? payload.items ?? payload;
@@ -127,6 +151,9 @@
     return modules.slice();
   }
 
+  /**
+   * 提取统计对象。
+   */
   function extractStats(response) {
     const payload = response?.data ?? response ?? {};
     if (payload.stats) {

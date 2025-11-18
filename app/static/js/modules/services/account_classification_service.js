@@ -3,6 +3,9 @@
 
   const BASE_PATH = "/account_classification/api";
 
+  /**
+   * 选用 http 客户端，默认使用 httpU。
+   */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
     if (!resolved || typeof resolved.get !== "function") {
@@ -11,6 +14,9 @@
     return resolved;
   }
 
+  /**
+   * 将对象或字符串拼接为 query string。
+   */
   function buildQueryString(params) {
     if (!params) {
       return "";
@@ -41,6 +47,9 @@
     return serialized ? `?${serialized}` : "";
   }
 
+  /**
+   * 账户分类/规则/自动化相关接口封装。
+   */
   class AccountClassificationService {
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
@@ -125,4 +134,3 @@
 
   global.AccountClassificationService = AccountClassificationService;
 })(window);
-

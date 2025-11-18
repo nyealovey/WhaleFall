@@ -75,10 +75,16 @@
     },
   };
 
+  /**
+   * 统一日期格式化工具，封装 window.formatDate。
+   */
   function formatDate(date) {
     return window.formatDate(date);
   }
 
+  /**
+   * 根据基准日和周期类型计算当前周期的起止时间。
+   */
   function getCurrentPeriodRange(baseDate, periodType) {
     const normalized = (periodType || "daily").toLowerCase();
     const current = new Date(baseDate);
@@ -117,6 +123,9 @@
     return { start, end };
   }
 
+  /**
+   * 计算跨多个周期的起止时间范围，用于批量查询。
+   */
   function calculateDateRange(periodType, periods) {
     const normalizedPeriod = (periodType || "daily").toLowerCase();
     const count = Math.max(1, Number(periods) || 1);
@@ -167,6 +176,9 @@
     };
   }
 
+  /**
+   * 容量统计总控：负责筛选、数据加载与图表渲染。
+   */
   class CapacityStatsManager {
     constructor(userConfig) {
       const userOverrides = userConfig ? LodashUtils.cloneDeep(userConfig) : {};
@@ -217,6 +229,9 @@
       window.addEventListener("beforeunload", () => this.destroy(), { once: true });
     }
 
+    /**
+     * 初始化计算提示模态。
+     */
     initializeModals() {
       const factory = window.UI?.createModal;
       if (!factory) {
@@ -233,6 +248,9 @@
       });
     }
 
+    /**
+     * 初始流程：事件绑定、模态初始化、默认加载数据。
+     */
     async initialize() {
       this.bindEvents();
       this.initializeModals();
@@ -244,6 +262,9 @@
       await this.refreshAll();
     }
 
+    /**
+     * 首次加载时，填充实例/数据库等下拉选项。
+     */
     async prepareInitialOptions() {
       await this.refreshInstanceOptions({ preserveSelection: true });
       if (this.config.supportsDatabaseFilter) {
@@ -253,6 +274,9 @@
       }
     }
 
+    /**
+     * 响应 filter-card 事件，支持 clear/change/submit。
+     */
     handleFilterEvent(detail) {
       if (!detail || !this.filterFormId) {
         return;
@@ -278,6 +302,9 @@
       }
     }
 
+    /**
+     * 绑定页面交互事件，更新 state 并触发重绘。
+     */
     bindEvents() {
       this.attach("#refreshData", "click", (event) => {
         event.preventDefault();
@@ -344,6 +371,9 @@
       });
     }
 
+    /**
+     * 工具：按选择器为单个元素绑定事件。
+     */
     attach(selector, eventName, handler) {
       const element = selectOne(selector);
       if (!element.length) {
@@ -352,6 +382,9 @@
       element.on(eventName, handler);
     }
 
+    /**
+     * 工具：为同名 radio/checkbox 组绑定事件。
+     */
     attachGroup(name, handler) {
       if (!name) {
         return;
@@ -366,6 +399,9 @@
       });
     }
 
+    /**
+     * 同步刷新所有图表和摘要。
+     */
     async refreshAll() {
       try {
         await Promise.all([
@@ -380,6 +416,9 @@
       }
     }
 
+    /**
+     * 拉取顶部汇总卡片的数据。
+     */
     async loadSummaryData() {
       try {
         const params = this.buildCommonParams();
@@ -396,6 +435,9 @@
       }
     }
 
+    /**
+     * 拉取趋势图数据并渲染。
+     */
     async loadTrendData() {
       this.toggleLoader("trend", true);
       try {
@@ -412,6 +454,9 @@
       }
     }
 
+    /**
+     * 使用最新数据重绘容量趋势图。
+     */
     renderTrendChart() {
       this.charts.trend = ChartRenderer.renderTrendChart({
         canvas: this.config.selectors.charts.trend,
@@ -428,6 +473,9 @@
       });
     }
 
+    /**
+     * 拉取容量变化数据并渲染。
+     */
     async loadChangeData() {
       this.toggleLoader("change", true);
       try {
@@ -444,6 +492,9 @@
       }
     }
 
+    /**
+     * 重绘容量变化图（绝对值）。
+     */
     renderChangeChart() {
       this.charts.change = ChartRenderer.renderChangeChart({
         canvas: this.config.selectors.charts.change,
@@ -461,6 +512,9 @@
       });
     }
 
+    /**
+     * 拉取容量变化百分比数据并渲染。
+     */
     async loadPercentChangeData() {
       this.toggleLoader("percent", true);
       try {
@@ -477,6 +531,9 @@
       }
     }
 
+    /**
+     * 重绘容量变化百分比图。
+     */
     renderChangePercentChart() {
       this.charts.percent = ChartRenderer.renderChangePercentChart({
         canvas: this.config.selectors.charts.percent,
@@ -494,6 +551,9 @@
       });
     }
 
+    /**
+     * 构造所有接口共享的查询参数。
+     */
     buildCommonParams() {
       const params = {};
       const filters = this.state.filters;
@@ -514,6 +574,9 @@
       return params;
     }
 
+    /**
+     * 构造趋势图接口参数。
+     */
     buildTrendParams() {
       const params = this.buildCommonParams();
       const range = calculateDateRange(
@@ -525,6 +588,9 @@
       return params;
     }
 
+    /**
+     * 构造变化图接口参数。
+     */
     buildChangeParams() {
       const params = this.buildCommonParams();
       const range = calculateDateRange(
@@ -537,6 +603,9 @@
       return params;
     }
 
+    /**
+     * 构造变化百分比接口参数。
+     */
     buildPercentParams() {
       const params = this.buildCommonParams();
       const range = calculateDateRange(
@@ -646,6 +715,9 @@
       await this.refreshAll();
     }
 
+    /**
+     * 拉取实例下拉数据，options 可指定是否保留原选择。
+     */
     async refreshInstanceOptions(options) {
       const endpoint = this.config.api.instanceOptionsEndpoint;
       if (!endpoint) {
@@ -679,6 +751,9 @@
       }
     }
 
+    /**
+     * 根据选中的实例加载数据库下拉。
+     */
     async refreshDatabaseOptions(instanceId, options) {
       const endpoint = this.config.api.databaseOptionsEndpoint;
       if (!endpoint) {
@@ -730,6 +805,9 @@
       this.refreshAll();
     }
 
+    /**
+     * 重置筛选表单，并刷新实例/数据库的选项。
+     */
     async resetFilters() {
       this.state.filters = {
         dbType: "",
@@ -752,6 +830,9 @@
       await this.refreshAll();
     }
 
+    /**
+     * 正式应用当前筛选，并刷新实例/数据库选项。
+     */
     async applyFilters() {
       const latest = Filters.readInitialFilters(this.config);
       this.state.filters.dbType = latest.dbType || "";
@@ -766,6 +847,9 @@
       await this.refreshAll();
     }
 
+    /**
+     * Toast 成功提示。
+     */
     notifySuccess(message) {
       if (!message) {
         return;
@@ -777,6 +861,9 @@
       }
     }
 
+    /**
+     * Toast 错误提示。
+     */
     notifyError(message) {
       if (!message) {
         return;
@@ -788,6 +875,9 @@
       }
     }
 
+    /**
+     * 清理事件与模态，释放资源。
+     */
     destroy() {
       if (this.eventBusUnsubscribers && this.eventBusUnsubscribers.length) {
         this.eventBusUnsubscribers.forEach((unsubscribe) => {

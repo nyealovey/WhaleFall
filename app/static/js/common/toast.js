@@ -65,16 +65,25 @@
 
     const containers = new Map();
 
+    /**
+     * 确保类型在支持范围内，默认 info。
+     */
     function normalizeType(type) {
         const normalized = String(type || 'info').toLowerCase();
         return TYPE_CLASS_MAP[normalized] ? normalized : 'info';
     }
 
+    /**
+     * 解析位置字符串，回退到默认。
+     */
     function resolvePosition(position) {
         const normalized = String(position || DEFAULT_OPTIONS.position).toLowerCase();
         return POSITION_CLASS_MAP[normalized] ? normalized : 'top-right';
     }
 
+    /**
+     * 获取/创建指定位置的 toast 容器。
+     */
     function getContainer(position) {
         const normalized = resolvePosition(position);
         if (containers.has(normalized)) {
@@ -93,12 +102,18 @@
         return element;
     }
 
+    /**
+     * 生成关闭按钮，按类型配置附加类名。
+     */
     function createCloseButton(typeConfig) {
         const button = selectOne('<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="关闭"></button>');
         typeConfig.close.forEach((cls) => button.addClass(cls));
         return button;
     }
 
+    /**
+     * 可选图标元素。
+     */
     function createIconElement(icon) {
         if (!icon) {
             return null;
@@ -108,6 +123,9 @@
         return span;
     }
 
+    /**
+     * 构造 toast DOM（含标题或纯文本布局）。
+     */
     function buildToastElement(type, message, options) {
         const typeKey = normalizeType(type);
         const typeConfig = TYPE_CLASS_MAP[typeKey];
@@ -160,6 +178,9 @@
         return toastElement;
     }
 
+    /**
+     * 限制同一位置的 toast 堆栈数量。
+     */
     function trimStack(container, stackLimit, position) {
         if (stackLimit <= 0) {
             return;
@@ -175,6 +196,9 @@
         }
     }
 
+    /**
+     * 根据位置将 toast 插入容器头部或尾部。
+     */
     function mountToastElement(container, toastElement) {
         const position = container.getAttribute('data-position') || 'top-right';
         if (position.includes('top')) {
@@ -184,6 +208,9 @@
         }
     }
 
+    /**
+     * 公共入口，渲染并展示 toast。
+     */
     function showToast(type, message, options = {}) {
         const normalizedMessage = message != null ? String(message) : '';
         if (!normalizedMessage) {

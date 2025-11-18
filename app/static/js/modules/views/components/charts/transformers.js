@@ -28,6 +28,9 @@
     "#82E0AA",
   ];
 
+  /**
+   * 将 hex 颜色转换为带透明度的 rgba。
+   */
   function colorWithAlpha(hexColor, alpha) {
     const normalized = hexColor.startsWith("#")
       ? hexColor.slice(1)
@@ -41,6 +44,9 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  /**
+   * 解析标签，支持函数或字段名。
+   */
   function normalizeLabel(extractor, item) {
     if (typeof extractor === "function") {
       const result = extractor(item) || {};
@@ -53,6 +59,9 @@
     return { key: label, label };
   }
 
+  /**
+   * 将值转换为 number，无法解析返回 null。
+   */
   function normalizeValue(value) {
     if (value === null || value === undefined) {
       return null;
@@ -61,6 +70,9 @@
     return Number.isFinite(numeric) ? numeric : null;
   }
 
+  /**
+   * 将数据按日期与标签 key 组织成矩阵，便于生成 datasets。
+   */
   function collectDateMatrix(items, labelExtractor, valueAccessor) {
     const dateMatrix = new Map(); // date -> Map(key -> value)
     const labelMaxValue = new Map(); // key -> max absolute value
@@ -93,6 +105,9 @@
     return { dateMatrix, labelMaxValue, labelNames };
   }
 
+  /**
+   * 根据矩阵与配色生成 Chart.js datasets。
+   */
   function buildDatasets({
     labels,
     sortedKeys,
@@ -200,6 +215,9 @@
     return datasets;
   }
 
+  /**
+   * 构造容量趋势图的数据。
+   */
   function prepareTrendChartData({ items, labelExtractor, topN, chartType }) {
     const { dateMatrix, labelMaxValue, labelNames } = collectDateMatrix(
       items,
@@ -230,6 +248,9 @@
     return { labels, datasets };
   }
 
+  /**
+   * 构造容量变化（绝对值）图的数据。
+   */
   function prepareChangeChartData({
     items,
     labelExtractor,
@@ -266,6 +287,9 @@
     return { labels, datasets };
   }
 
+  /**
+   * 构造容量变化百分比图的数据。
+   */
   function prepareChangePercentChartData({
     items,
     labelExtractor,

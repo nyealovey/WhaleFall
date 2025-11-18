@@ -27,6 +27,9 @@
 
   const CUSTOM_PARSE_ENABLED = Boolean(window.dayjs_plugin_customParseFormat);
 
+  /**
+   * 注入 zh-cn locale 配置，确保 dayjs 可显示中文。
+   */
   function registerZhCnLocale(dayjs) {
     const localeConfig = {
       name: LOCALE,
@@ -67,6 +70,9 @@
     dayjs.locale(localeConfig, null, true);
   }
 
+  /**
+   * 注册所有 dayjs 插件并设置默认时区。
+   */
   function setupDayjs() {
     if (typeof window.dayjs !== "function") {
       throw new Error("Day.js 未加载，无法初始化 TimeUtils");
@@ -102,6 +108,9 @@
 
   const dayjsLib = setupDayjs();
 
+  /**
+   * 将 dayjs 实例转换到默认时区。
+   */
   function applyTimezone(instance) {
     if (!instance) {
       return null;
@@ -112,6 +121,9 @@
     return instance;
   }
 
+  /**
+   * 尝试使用自定义格式解析字符串。
+   */
   function tryCustomFormats(value) {
     if (!CUSTOM_PARSE_ENABLED) {
       return null;
@@ -125,6 +137,9 @@
     return null;
   }
 
+  /**
+   * 将多种输入类型转换成 dayjs 实例。
+   */
   function toDayjs(value) {
     if (value === undefined || value === null || value === "") {
       return null;
@@ -167,6 +182,9 @@
     return applyTimezone(instance);
   }
 
+  /**
+   * 统一的格式化工具，接受任意值并确保返回字符串/回退值。
+   */
   function formatWithPattern(value, pattern, fallback = "-") {
     const instance = toDayjs(value);
     if (!instance) {
@@ -175,6 +193,9 @@
     return instance.format(pattern);
   }
 
+  /**
+   * 输出“YYYY年MM月DD日 HH:mm:ss”格式。
+   */
   function formatChineseDateTimeString(value) {
     const instance = toDayjs(value);
     if (instance) {
@@ -185,6 +206,9 @@
     return "-";
   }
 
+  /**
+   * 与当前时间对比的秒级差值。
+   */
   function diffInSeconds(timestamp) {
     const instance = toDayjs(timestamp);
     if (!instance) {
@@ -193,6 +217,9 @@
     return Math.round(dayjsLib().diff(instance, "second"));
   }
 
+  /**
+   * 判断是否与指定日期同一天，默认与今日对比。
+   */
   function isSameDay(value, comparator = "today") {
     const instance = toDayjs(value);
     if (!instance) {

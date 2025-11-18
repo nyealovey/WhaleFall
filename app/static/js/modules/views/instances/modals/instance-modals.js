@@ -1,6 +1,9 @@
 (function (window, document) {
   'use strict';
 
+  /**
+   * 实例模态控制器：负责创建/编辑实例。
+   */
   function createController(options) {
     const {
       http = window.httpU,

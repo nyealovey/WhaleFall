@@ -1,6 +1,9 @@
 (function (global) {
   "use strict";
 
+  /**
+   * 选用 http 客户端，默认使用全局 httpU。
+   */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
     if (!resolved || typeof resolved.get !== "function") {
@@ -9,6 +12,9 @@
     return resolved;
   }
 
+  /**
+   * 构造查询字符串，兼容对象/URLSearchParams/字符串。
+   */
   function toQueryString(params) {
     if (!params) {
       return "";
@@ -39,6 +45,9 @@
     return serialized ? `?${serialized}` : "";
   }
 
+  /**
+   * 实例管理 API 封装：同步、批量操作、统计等。
+   */
   class InstanceManagementService {
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
@@ -122,4 +131,3 @@
 
   global.InstanceManagementService = InstanceManagementService;
 })(window);
-

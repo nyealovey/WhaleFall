@@ -3,6 +3,9 @@
 
   const BASE_PATH = "/partition/api";
 
+  /**
+   * 统一选择 httpU 客户端。
+   */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
     if (!resolved || typeof resolved.get !== "function") {
@@ -11,6 +14,9 @@
     return resolved;
   }
 
+  /**
+   * 构造 query string。
+   */
   function toQueryString(params) {
     if (!params) {
       return "";
@@ -33,6 +39,9 @@
     return serialized ? `?${serialized}` : "";
   }
 
+  /**
+   * 分区管理服务，包含创建/清理/核心指标等接口。
+   */
   class PartitionService {
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
@@ -58,4 +67,3 @@
 
   global.PartitionService = PartitionService;
 })(window);
-

@@ -9,6 +9,7 @@ var addJobValidator = null;
 var schedulerModalsController = null;
 var schedulerExports = {};
 
+// 校验 SchedulerService 是否已初始化
 function ensureSchedulerService() {
     if (schedulerService) {
         return true;
@@ -21,6 +22,7 @@ function ensureSchedulerService() {
     return false;
 }
 
+// 校验 SchedulerStore 是否已初始化
 function ensureSchedulerStore() {
     if (schedulerStore) {
         return true;
@@ -33,6 +35,7 @@ function ensureSchedulerStore() {
     return false;
 }
 
+// 页面入口：初始化服务、store 与模态
 function mountSchedulerPage() {
 
 const SchedulerService = window.SchedulerService;

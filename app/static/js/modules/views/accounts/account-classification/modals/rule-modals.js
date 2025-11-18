@@ -1,6 +1,9 @@
 (function (global) {
   "use strict";
 
+  /**
+   * 规则模态控制器，负责新建/编辑/查看。
+   */
   function createController(options) {
     const {
       document,
@@ -35,6 +38,9 @@
       classifications: [],
     };
 
+    /**
+     * 初始化所有模态与验证器。
+     */
     function init() {
       if (!UI?.createModal) {
         throw new Error("rule-modals: UI.createModal 未加载");
@@ -61,6 +67,9 @@
       syncClassificationOptions();
     }
 
+    /**
+     * 同步分类下拉选项，来自外部 state 或内部缓存。
+     */
     function syncClassificationOptions(list) {
       if (Array.isArray(list)) {
         state.classifications = list.slice();
@@ -74,6 +83,9 @@
       populateClassificationSelect("editRuleClassification", state.classifications);
     }
 
+    /**
+     * 渲染分类下拉列表。
+     */
     function populateClassificationSelect(elementId, classifications) {
       const select = document.getElementById(elementId);
       if (!select) {
@@ -88,6 +100,9 @@
       });
     }
 
+    /**
+     * 打开新建模态。
+     */
     function openCreate(event) {
       event?.preventDefault?.();
       syncClassificationOptions();
@@ -95,6 +110,9 @@
       state.modals.create?.open();
     }
 
+    /**
+     * 打开编辑模态并填充数据。
+     */
     async function openEditById(id, event) {
       event?.preventDefault?.();
       if (!id) {
@@ -134,6 +152,9 @@
       }
     }
 
+    /**
+     * 打开查看模态，展示详细信息。
+     */
     async function openViewById(id, event) {
       event?.preventDefault?.();
       if (!id) {

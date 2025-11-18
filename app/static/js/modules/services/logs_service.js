@@ -3,6 +3,9 @@
 
   const BASE_PATH = "/logs/api";
 
+  /**
+   * 统一选择 http 客户端。
+   */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
     if (!resolved || typeof resolved.get !== "function") {
@@ -11,6 +14,9 @@
     return resolved;
   }
 
+  /**
+   * 构造查询字符串。
+   */
   function toQueryString(params) {
     if (!params) {
       return "";
@@ -41,6 +47,9 @@
     return serialized ? `?${serialized}` : "";
   }
 
+  /**
+   * 日志模块 API 封装。
+   */
   class LogsService {
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
@@ -70,4 +79,3 @@
 
   global.LogsService = LogsService;
 })(window);
-

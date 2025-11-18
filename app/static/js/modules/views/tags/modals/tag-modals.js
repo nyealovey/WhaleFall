@@ -1,6 +1,9 @@
 (function (window, document) {
   'use strict';
 
+  /**
+   * 标签新建/编辑模态控制器。
+   */
   function createController(options) {
     const {
       http = window.httpU,
@@ -32,6 +35,9 @@
     let mode = 'create';
     let validator = null;
 
+    /**
+     * 初始化表单验证与颜色预览。
+     */
     function init() {
       if (!FormValidator || !ValidationRules) {
         console.warn('TagModals: FormValidator 或 ValidationRules 未加载');

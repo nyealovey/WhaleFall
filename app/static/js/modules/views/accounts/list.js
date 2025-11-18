@@ -53,6 +53,12 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
 
     ready(initializeAccountsListPage);
 
+    /**
+     * 入口：初始化实例 store、标签筛选与筛选卡片。
+     */
+    /**
+     * 页面入口：初始化 store、标签筛选、筛选卡片。
+     */
     function initializeAccountsListPage() {
         initializeInstanceStore();
         initializeTagFilter();
@@ -60,6 +66,12 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         registerUnloadCleanup();
     }
 
+    /**
+     * 创建实例 store（若存在），用于同步操作。
+     */
+    /**
+     * 仅在可用时创建实例 store，用于批量同步等操作。
+     */
     function initializeInstanceStore() {
         if (!global.createInstanceStore) {
             console.warn('createInstanceStore 未加载，跳过实例 Store 初始化');
@@ -83,6 +95,12 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         });
     }
 
+    /**
+     * 页面卸载时释放 store。
+     */
+    /**
+     * 页面卸载时销毁实例 store。
+     */
     function teardownInstanceStore() {
         if (!instanceStore) {
             return;
@@ -91,6 +109,12 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         instanceStore = null;
     }
 
+    /**
+     * 从事件或传入引用解析出触发按钮。
+     */
+    /**
+     * 通用工具：从事件/引用解析出实际按钮 DOM。
+     */
     function resolveButton(reference) {
         if (!reference && global.event && global.event.target) {
             return global.event.target;
@@ -110,6 +134,12 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         return null;
     }
 
+    /**
+     * 触发全部账户同步。
+     */
+    /**
+     * 触发所有账户同步，并在按钮上展示 loading。
+     */
     function syncAllAccounts(trigger) {
         if (!ensureInstanceService()) {
             return;
@@ -149,18 +179,42 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
             });
     }
 
+    /**
+     * 别名：保持与历史调用兼容。
+     */
+    /**
+     * 历史兼容别名。
+     */
     function syncAllInstances(trigger) {
         return syncAllAccounts(trigger);
     }
 
+    /**
+     * 查看账户详情（占位逻辑，可扩展为跳转）。
+     */
+    /**
+     * 查看账户详情（占位，可进一步实现）。
+     */
     function viewAccount(accountId) {
         global.toast.info(`查看账户 ${accountId} 的详情`);
     }
 
+    /**
+     * 跳转到账户统计页。
+     */
+    /**
+     * 跳转到账户统计页面。
+     */
     function showAccountStatistics() {
         global.location.href = '/account-static/';
     }
 
+    /**
+     * 初始化标签筛选器并处理确认事件。
+     */
+    /**
+     * 初始化标签选择器，确认后触发表单提交/事件总线。
+     */
     function initializeTagFilter() {
         if (!global.TagSelectorHelper) {
             console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
@@ -204,6 +258,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         });
     }
 
+    /**
+     * 绑定 filter-card，自动/手动触发筛选。
+     */
     function initializeAccountFilterCard() {
         const selector = `#${ACCOUNT_FILTER_FORM_ID}`;
         const formWrapper = selectOne(selector);
@@ -228,6 +285,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         });
     }
 
+    /**
+     * 销毁筛选卡片实例。
+     */
     function destroyAccountFilterCard() {
         if (accountFilterCard && typeof accountFilterCard.destroy === 'function') {
             accountFilterCard.destroy();
@@ -235,6 +295,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         accountFilterCard = null;
     }
 
+    /**
+     * 注册 beforeunload 钩子做清理。
+     */
     function registerUnloadCleanup() {
         if (unloadCleanupHandler) {
             from(global).off('beforeunload', unloadCleanupHandler);
@@ -248,6 +311,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         from(global).on('beforeunload', unloadCleanupHandler);
     }
 
+    /**
+     * 应用筛选表单值并刷新页面。
+     */
     function applyAccountFilters(form, values) {
         const targetForm = form || accountFilterCard?.form || selectOne(`#${ACCOUNT_FILTER_FORM_ID}`).first();
         if (!targetForm) {
@@ -260,6 +326,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         global.location.href = query ? `${action}?${query}` : action;
     }
 
+    /**
+     * 重置表单并重新应用筛选。
+     */
     function resetAccountFilters(form) {
         const targetForm = form || accountFilterCard?.form || selectOne(`#${ACCOUNT_FILTER_FORM_ID}`).first();
         if (targetForm) {
@@ -268,6 +337,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         applyAccountFilters(targetForm, {});
     }
 
+    /**
+     * 序列化账户筛选参数为 URLSearchParams。
+     */
     function buildAccountSearchParams(filters) {
         const params = new URLSearchParams();
         Object.entries(filters || {}).forEach(([key, value]) => {
@@ -287,6 +359,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         return params;
     }
 
+    /**
+     * 组合 form 与覆盖值，过滤空值。
+     */
     function resolveAccountFilterValues(form, overrideValues) {
         const rawValues =
             overrideValues && Object.keys(overrideValues || {}).length
@@ -308,6 +383,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         }, {});
     }
 
+    /**
+     * 递归清洗筛选值。
+     */
     function sanitizeFilterValue(value) {
         if (Array.isArray(value)) {
             return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
@@ -315,6 +393,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         return sanitizePrimitiveValue(value);
     }
 
+    /**
+     * 基础值清洗，剔除空字符串和 File。
+     */
     function sanitizePrimitiveValue(value) {
         if (value instanceof File) {
             return value.name;
@@ -329,6 +410,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         return value;
     }
 
+    /**
+     * 将标签隐藏域拆分成数组。
+     */
     function parseInitialTagValues(rawValue) {
         if (!rawValue) {
             return [];
@@ -339,6 +423,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
             .filter(Boolean);
     }
 
+    /**
+     * 通用表单序列化，fallback 到 FormData。
+     */
     function collectFormValues(form) {
         const serializer = global.UI?.serializeForm;
         if (serializer) {
@@ -362,6 +449,9 @@ const ACCOUNT_FILTER_FORM_ID = 'account-filter-form';
         return result;
     }
 
+    /**
+     * 简单判断颜色深浅，供 UI 显示使用。
+     */
     function isColorDark(colorStr) {
         if (!colorStr) {
             return false;

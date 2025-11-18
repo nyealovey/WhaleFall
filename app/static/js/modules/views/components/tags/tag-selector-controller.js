@@ -17,6 +17,9 @@
     categories: "/tags/api/categories",
   };
 
+  /**
+   * 解析输入为 DOM 元素，兼容字符串/Element/umbrella 对象。
+   */
   function toElement(target) {
     if (!target) {
       return null;
@@ -33,6 +36,9 @@
     return null;
   }
 
+  /**
+   * 排序工具，供 controller 和 view 共享。
+   */
   function orderTags(items) {
     if (!Array.isArray(items)) {
       return [];
@@ -50,6 +56,9 @@
     return items.slice();
   }
 
+  /**
+   * 视图与 store 的中间层，负责数据同步与外部 API。
+   */
   class TagSelectorController {
     constructor(root, options = {}) {
       this.root = toElement(root);
@@ -104,6 +113,9 @@
       this.readyPromise = this.initialize();
     }
 
+    /**
+     * 初始化 store 订阅并同步初始状态。
+     */
     async initialize() {
       this.bindStoreEvents();
       await this.store.init();
@@ -115,6 +127,9 @@
       return this;
     }
 
+    /**
+     * 订阅 store 事件，捕获分类/标签/选择的变化。
+     */
     bindStoreEvents() {
       this.store.subscribe("tagManagement:categoriesUpdated", (payload) => {
         this.state.categories = payload?.categories || [];
@@ -140,6 +155,9 @@
       });
     }
 
+    /**
+     * 将当前 store 状态同步到 controller 内部 state。
+     */
     syncFromStore() {
       const current = this.store.getState();
       this.state.categories = current.categories || [];
@@ -149,6 +167,9 @@
       this.state.stats = current.stats || this.state.stats;
     }
 
+    /**
+     * 初次渲染所有区域。
+     */
     renderAll() {
       this.renderCategories();
       this.renderTags();
@@ -156,28 +177,46 @@
       this.renderStats();
     }
 
+    /**
+     * 分类区域渲染。
+     */
     renderCategories() {
       this.view.renderCategories(this.state.categories);
     }
 
+    /**
+     * 标签列表渲染。
+     */
     renderTags() {
       this.view.renderTagList(this.state.filteredTags, this.state.selection);
     }
 
+    /**
+     * 已选标签区域渲染与隐藏域同步。
+     */
     renderSelection() {
       const selectedTags = this.getSelectedTags();
       this.view.updateSelectedDisplay(selectedTags);
       this.syncHiddenInput(selectedTags);
     }
 
+    /**
+     * 统计信息渲染。
+     */
     renderStats() {
       this.view.updateStats(this.state.stats);
     }
 
+    /**
+     * 分类筛选切换处理。
+     */
     handleCategory(value) {
       this.store.actions.setCategory(value || "all");
     }
 
+    /**
+     * 点击标签的切换逻辑。
+     */
     toggleTag(tagId) {
       const numericId = Number(tagId);
       if (!Number.isFinite(numericId)) {
@@ -190,10 +229,16 @@
       }
     }
 
+    /**
+     * 从已选中移除标签。
+     */
     removeTag(tagId) {
       this.store.actions.removeTag(tagId);
     }
 
+    /**
+     * 点击确认后分发事件并关闭模态。
+     */
     confirmSelection() {
       const selectedTags = this.getSelectedTags();
       this.syncHiddenInput(selectedTags);
@@ -205,6 +250,9 @@
       this.modal?.close?.();
     }
 
+    /**
+     * 关闭或取消模态时的统一处理。
+     */
     emitCancel(options = {}) {
       const detail = {
         reason: options.reason || "cancel",
@@ -219,11 +267,17 @@
       }
     }
 
+    /**
+     * 对外派发自定义事件，供监听方使用。
+     */
     dispatchCustomEvent(name, detail) {
       const event = new CustomEvent(name, { bubbles: true, detail });
       this.root.dispatchEvent(event);
     }
 
+    /**
+     * 将已选标签写回隐藏 input，供表单提交使用。
+     */
     syncHiddenInput(tags) {
       const hiddenInput = toElement(this.options.hiddenInputSelector);
       if (!hiddenInput) {
@@ -236,6 +290,9 @@
         .join(",");
     }
 
+    /**
+     * 根据 selection id 列表返回完整标签对象数组。
+     */
     getSelectedTags() {
       const ids = Array.from(this.state.selection);
       const tags = ids
@@ -244,10 +301,16 @@
       return orderTags(tags);
     }
 
+    /**
+     * 对外暴露的打开模态方法。
+     */
     openModal() {
       this.modal?.open?.();
     }
 
+    /**
+     * 返回初始化 promise，方便外部等待。
+     */
     ready() {
       return this.readyPromise;
     }
@@ -261,6 +324,9 @@
       document.addEventListener("DOMContentLoaded", () => this.markReady());
     }
 
+    /**
+     * DOMContentLoaded 后执行等待队列。
+     */
     markReady() {
       this.isReady = true;
       this.queue.splice(0).forEach((cb) => {
@@ -272,6 +338,9 @@
       });
     }
 
+    /**
+     * 提供延迟 ready 的回调。
+     */
     whenReady(callback) {
       if (this.isReady) {
         callback();
@@ -280,6 +349,9 @@
       }
     }
 
+    /**
+     * 创建或返回一个标签选择器 controller 实例。
+     */
     create(root, options) {
       const element = toElement(root);
       if (!element) {
@@ -294,6 +366,9 @@
       return controller;
     }
 
+    /**
+     * 按 root 查找已有实例。
+     */
     get(root) {
       const element = toElement(root);
       if (!element) {
@@ -321,6 +396,7 @@
         onConfirm = null,
       } = options;
 
+      // DOM 就绪后再创建实例，保证模态节点已经存在
       manager.whenReady(() => {
         const container = toElement(modalSelector)?.closest("[data-tag-selector-modal]") || toElement(modalSelector);
         const root = container ? container.querySelector(rootSelector) : toElement(rootSelector);
@@ -362,6 +438,7 @@
         onConfirm = null,
       } = options;
 
+      // 过滤模式同样等待 DOMReady，确保隐藏域已渲染
       manager.whenReady(() => {
         const modal = toElement(modalSelector)?.closest("[data-tag-selector-modal]") || toElement(modalSelector);
         const root = modal ? modal.querySelector(rootSelector) : toElement(rootSelector);

@@ -15,6 +15,7 @@ if (!DOMHelpers) {
 
 const { selectOne, ready, from } = DOMHelpers;
 
+// 分区聚合图表入口
 function mountAggregationsChart() {
 const PartitionService = window.PartitionService;
 if (!PartitionService) {

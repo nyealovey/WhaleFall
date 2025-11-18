@@ -42,6 +42,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   const SESSION_DETAIL_MODAL_SELECTOR = '#sessionDetailModal';
   const ERROR_LOGS_MODAL_SELECTOR = '#errorLogsModal';
 
+  /**
+   * 统一 toast 提示。
+   */
   function notifyAlert(message, type = 'info') {
     toast.show(type, message);
   }
@@ -55,6 +58,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   let errorLogsModal = null;
   window.syncSessionsStore = null;
 
+  /**
+   * 基础值清洗，去除空白。
+   */
   function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
       return value.name;
@@ -69,6 +75,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     return value;
   }
 
+  /**
+   * 过滤值标准化，支持数组。
+   */
   function sanitizeFilterValue(value) {
     if (Array.isArray(value)) {
       return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
@@ -76,6 +85,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     return sanitizePrimitiveValue(value);
   }
 
+  /**
+   * 组合表单与覆盖值生成过滤参数。
+   */
   function resolveSyncFilters(form, overrideValues) {
     const baseForm = form || document.getElementById(SYNC_FILTER_FORM_ID);
     const rawValues = overrideValues && Object.keys(overrideValues || {}).length
@@ -97,6 +109,9 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     }, {});
   }
 
+  /**
+   * 页面初始化入口。
+   */
   function startInitialization() {
     debugLog("开始初始化会话中心");
     try {

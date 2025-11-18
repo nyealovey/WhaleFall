@@ -10,6 +10,9 @@
     error: "partitions:error",
   };
 
+  /**
+   * 校验 service 是否实现分区接口。
+   */
   function ensureService(service) {
     if (!service) {
       throw new Error("createPartitionStore: service is required");
@@ -22,6 +25,9 @@
     return service;
   }
 
+  /**
+   * 获取 mitt 事件总线。
+   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -32,12 +38,18 @@
     return window.mitt();
   }
 
+  /**
+   * 深拷贝分区列表。
+   */
   function clonePartitions(items) {
     return (items || []).map(function (partition) {
       return Object.assign({}, partition);
     });
   }
 
+  /**
+   * 拷贝 metrics 结构。
+   */
   function cloneMetrics(metrics) {
     if (!metrics) {
       return { periodType: "daily", payload: [] };
@@ -48,6 +60,9 @@
     };
   }
 
+  /**
+   * 简单位 JSON 深拷贝。
+   */
   function cloneJSON(value) {
     if (value === null || value === undefined) {
       return value;
@@ -65,6 +80,9 @@
     return value;
   }
 
+  /**
+   * 构造 state 快照。
+   */
   function cloneState(state) {
     return {
       stats: Object.assign({}, state.stats),
@@ -75,6 +93,9 @@
     };
   }
 
+  /**
+   * 提取后端返回的分区信息。
+   */
   function extractInfo(response) {
     const payload = response?.data?.data ?? response?.data ?? response ?? {};
     return {
@@ -88,6 +109,9 @@
     };
   }
 
+  /**
+   * 提取核心指标数据。
+   */
   function extractMetrics(response) {
     const payload = response?.data ?? response ?? {};
     if (payload.labels && payload.datasets) {
@@ -102,6 +126,9 @@
     return [];
   }
 
+  /**
+   * 检查后端是否 success=false。
+   */
   function ensureSuccess(response, fallbackMessage) {
     if (response && response.success === false) {
       const error = new Error(response.message || fallbackMessage || "操作失败");

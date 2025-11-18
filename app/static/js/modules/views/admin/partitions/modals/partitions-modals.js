@@ -1,6 +1,9 @@
 (function (global) {
   'use strict';
 
+  /**
+   * 分区创建/清理模态控制器。
+   */
   function createController(options) {
     const {
       document,

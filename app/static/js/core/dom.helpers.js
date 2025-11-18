@@ -8,6 +8,9 @@
 
     const umbrella = global.u;
 
+    /**
+     * 将输入转换为 umbrella 对象，支持选择器、Element 与现有实例。
+     */
     function toUmbrella(target, context) {
         if (target instanceof umbrella) {
             return target;
@@ -30,20 +33,32 @@
         return umbrella([]);
     }
 
+    /**
+     * 便捷方法：返回 umbrella 选择结果。
+     */
     function select(selector, context) {
         return toUmbrella(selector, context);
     }
 
+    /**
+     * 只取首个匹配的元素，返回 umbrella。
+     */
     function selectOne(selector, context) {
         const scoped = toUmbrella(selector, context);
         const first = scoped.first();
         return first ? umbrella(first) : umbrella([]);
     }
 
+    /**
+     * 将任意输入包装成 umbrella，供内部复用。
+     */
     function from(target, context) {
         return toUmbrella(target, context);
     }
 
+    /**
+     * DOMContentLoaded 就绪封装，直接执行或注册回调。
+     */
     function ready(callback) {
         if (typeof callback !== 'function') {
             return;
@@ -55,6 +70,9 @@
         }
     }
 
+    /**
+     * 读取或设置文本内容。
+     */
     function text(target, value) {
         const element = from(target);
         if (!element.length) {
@@ -63,6 +81,9 @@
         return typeof value === 'undefined' ? element.text() : element.text(value);
     }
 
+    /**
+     * 读取或设置 innerHTML。
+     */
     function html(target, value) {
         const element = from(target);
         if (!element.length) {
@@ -71,6 +92,9 @@
         return typeof value === 'undefined' ? element.html() : element.html(value);
     }
 
+    /**
+     * 表单值 getter/setter。
+     */
     function value(target, newValue) {
         const element = from(target);
         if (!element.length) {
@@ -88,6 +112,9 @@
         return element;
     }
 
+    /**
+     * 切换 disabled 属性。
+     */
     function toggleDisabled(target, disabled) {
         const element = from(target);
         if (!element.length) {

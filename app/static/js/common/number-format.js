@@ -14,11 +14,17 @@
     TB: 1024 * 1024 * 1024 * 1024,
   };
 
+  /**
+   * 将任意输入转换为有限数值。
+   */
   function toFiniteNumber(value) {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : null;
   }
 
+  /**
+   * 根据精度与是否保留尾零生成 Numeral 模式。
+   */
   function buildDecimalPattern(precision, trimZero) {
     if (precision <= 0) {
       return "0,0";
@@ -30,6 +36,9 @@
     return `0,0.${zeros}`;
   }
 
+  /**
+   * 通用格式化函数，value 不可解析时返回 fallback。
+   */
   function formatWithPattern(value, pattern, fallback) {
     const numeric = toFiniteNumber(value);
     if (numeric === null) {
@@ -38,6 +47,9 @@
     return numeralLib(numeric).format(pattern);
   }
 
+  /**
+   * 千分位整数格式化，非数字时回退 fallback。
+   */
   function formatInteger(value, options = {}) {
     const numeric = toFiniteNumber(value);
     if (numeric === null) {
@@ -47,6 +59,9 @@
     return numeralLib(rounded).format("0,0");
   }
 
+  /**
+   * 保留指定小数的数值格式化。
+   */
   function formatDecimal(value, options = {}) {
     const precision =
       Number.isInteger(options.precision) && options.precision >= 0
@@ -57,10 +72,16 @@
     return formatWithPattern(value, pattern, options.fallback);
   }
 
+  /**
+   * 直接使用 Numeral pattern 的封装。
+   */
   function formatPlain(value, pattern = "0,0.00", fallback) {
     return formatWithPattern(value, pattern, fallback);
   }
 
+  /**
+   * 规范化单位，确保只返回 B/KB/MB/GB/TB。
+   */
   function normalizeUnit(unit) {
     if (!unit) {
       return null;
@@ -69,6 +90,9 @@
     return UNIT_IN_BYTES[upper] ? upper : null;
   }
 
+  /**
+   * 将字节数格式化为可读字符串，可指定单位或自动选择。
+   */
   function formatBytes(bytes, options = {}) {
     const numeric = toFiniteNumber(bytes);
     if (numeric === null || numeric === 0) {
@@ -88,6 +112,9 @@
     return `${numeralLib(value).format(pattern)} ${targetUnit}`;
   }
 
+  /**
+   * MB 转字节再格式化，常用于容量接口返回 MB。
+   */
   function formatBytesFromMB(value, options = {}) {
     const numeric = toFiniteNumber(value);
     if (numeric === null || numeric === 0) {
@@ -97,6 +124,9 @@
     return formatBytes(bytes, options);
   }
 
+  /**
+   * 以 GB 为单位输出字符串。
+   */
   function formatGigabytes(value, options = {}) {
     const precision =
       Number.isInteger(options.precision) && options.precision >= 0
@@ -110,6 +140,9 @@
     return `${formatted} GB`;
   }
 
+  /**
+   * 百分比格式化，可选择输入为 ratio 或 percent。
+   */
   function formatPercent(value, options = {}) {
     const numeric = toFiniteNumber(value);
     if (numeric === null) {
@@ -126,6 +159,9 @@
     return numeralLib(ratio).format(pattern);
   }
 
+  /**
+   * 将秒数格式化为中文 badge 文本。
+   */
   function formatDurationSeconds(value) {
     const seconds = toFiniteNumber(value);
     if (seconds === null) {

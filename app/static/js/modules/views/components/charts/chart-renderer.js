@@ -17,6 +17,9 @@
     borderWidth: 1,
   };
 
+  /**
+   * 根据数据集估算 y 轴范围，避免曲线贴边。
+   */
   function computeRange(datasets) {
     const values = [];
     (datasets || []).forEach((dataset) => {
@@ -41,6 +44,9 @@
     };
   }
 
+  /**
+   * 当没有数据时渲染提示占位图表。
+   */
   function renderEmptyChart(ctx, title) {
     return new window.Chart(ctx, {
       type: "bar",
@@ -64,6 +70,9 @@
     });
   }
 
+  /**
+   * 构造 Chart.js 配置，支持不同单位与类型。
+   */
   function buildOptions({ title, yLabel, unit, chartType, range }) {
     return {
       responsive: true,
@@ -156,6 +165,9 @@
     };
   }
 
+  /**
+   * 通用图表渲染入口，负责销毁旧实例与渲染新图。
+   */
   function renderChart({
     canvasSelector,
     previousChart,

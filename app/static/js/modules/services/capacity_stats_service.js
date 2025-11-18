@@ -1,6 +1,9 @@
 (function (global) {
   "use strict";
 
+  /**
+   * 统一选择 http 客户端。
+   */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
     if (!resolved || typeof resolved.get !== "function") {
@@ -9,6 +12,9 @@
     return resolved;
   }
 
+  /**
+   * 组合 defaults 与 params，生成 URLSearchParams。
+   */
   function toSearchParams(params, defaults) {
     const search = new URLSearchParams();
 
@@ -45,6 +51,9 @@
     return search;
   }
 
+  /**
+   * 容量统计服务封装，支持 get/post。
+   */
   class CapacityStatsService {
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
@@ -64,4 +73,3 @@
 
   global.CapacityStatsService = CapacityStatsService;
 })(window);
-

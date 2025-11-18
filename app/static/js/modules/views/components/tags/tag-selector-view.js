@@ -4,6 +4,9 @@
   const LodashUtils = window.LodashUtils;
   const NumberFormat = window.NumberFormat;
 
+  /**
+   * 将多种输入转换为 DOM 元素，方便外部引用选择器。
+   */
   function toElement(target) {
     if (!target) {
       return null;
@@ -17,6 +20,9 @@
     return null;
   }
 
+  /**
+   * 对分类列表进行去重和排序，保持 UI 稳定。
+   */
   function orderCategories(items) {
     const collection = Array.isArray(items) ? items.filter(Boolean) : [];
     const deduped = LodashUtils?.uniqBy ? LodashUtils.uniqBy(collection, "value") : collection;
@@ -25,6 +31,9 @@
       : deduped;
   }
 
+  /**
+   * 按激活状态与名称排序标签，用于列表与已选区。
+   */
   function orderTags(items) {
     if (!Array.isArray(items)) {
       return [];
@@ -42,6 +51,9 @@
     );
   }
 
+  /**
+   * 将标签颜色转成 badge 的 class/style。
+   */
   function resolveBadge(tag) {
     const color = tag?.color || "";
     if (color.startsWith("bg-")) {
@@ -56,12 +68,18 @@
     return { className: "badge rounded-pill bg-secondary", style: "" };
   }
 
+  /**
+   * 使用统一的数字格式化工具展示统计数。
+   */
   function formatNumber(value) {
     return NumberFormat?.formatInteger
       ? NumberFormat.formatInteger(value, { fallback: "0" })
       : value;
   }
 
+  /**
+   * 负责标签选择器的 DOM 渲染与用户交互绑定。
+   */
   class TagSelectorView {
     constructor(root, handlers = {}) {
       this.root = toElement(root);
@@ -77,6 +95,9 @@
       this.bindEvents();
     }
 
+    /**
+     * 缓存组件用到的核心节点，避免重复查询。
+     */
     cacheElements() {
       return {
         categoryGroup: this.root.querySelector('[data-role="category-group"]'),
@@ -92,6 +113,9 @@
       };
     }
 
+    /**
+     * 绑定分类切换、标签点击与已选标签删除等交互。
+     */
     bindEvents() {
       const { categoryGroup, tagList, selectedList } = this.elements;
       if (categoryGroup) {
@@ -128,6 +152,9 @@
       }
     }
 
+    /**
+     * 渲染分类按钮，出现错误时输出告警文案。
+     */
     renderCategories(categories = [], error) {
       const group = this.elements.categoryGroup;
       if (!group) {
@@ -166,6 +193,9 @@
       group.innerHTML = radios.join("");
     }
 
+    /**
+     * 渲染标签列表，结合当前选择状态展示。
+     */
     renderTagList(tags = [], selection = new Set(), options = {}) {
       const list = this.elements.tagList;
       if (!list) {
@@ -206,6 +236,9 @@
       list.innerHTML = html;
     }
 
+    /**
+     * 返回用于标签列表的加载占位 DOM 片段。
+     */
     renderLoadingState() {
       return `
         <div class="text-center text-muted py-5">
@@ -216,6 +249,9 @@
         </div>`;
     }
 
+    /**
+     * 返回“暂无标签”占位 DOM 片段。
+     */
     renderEmptyState() {
       return `
         <div class="text-center text-muted py-5">
@@ -224,6 +260,9 @@
         </div>`;
     }
 
+    /**
+     * 返回错误态占位 DOM 片段。
+     */
     renderErrorState(message) {
       return `
         <div class="alert alert-warning mb-0">
@@ -231,6 +270,9 @@
         </div>`;
     }
 
+    /**
+     * 根据已选标签渲染 chips 区域。
+     */
     updateSelectedDisplay(tags = []) {
       const selectedList = this.elements.selectedList;
       const selectedEmpty = this.elements.selectedEmpty;
@@ -256,6 +298,9 @@
       selectedList.innerHTML = chips;
     }
 
+    /**
+     * 更新统计条展示。
+     */
     updateStats(stats = {}) {
       if (!this.elements.statsWrapper) {
         return;

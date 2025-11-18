@@ -3,6 +3,9 @@
 
   const BASE_PATH = "/users/api";
 
+  /**
+   * 统一选择 http 客户端。
+   */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
     if (!resolved || typeof resolved.get !== "function") {
@@ -11,6 +14,9 @@
     return resolved;
   }
 
+  /**
+   * 用户管理 API 服务。
+   */
   class UserService {
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);

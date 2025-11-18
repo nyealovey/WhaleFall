@@ -3,6 +3,9 @@
 
   const BASE_PATH = "/connections/api";
 
+  /**
+   * 确保 http 客户端存在，默认使用 httpU。
+   */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
     if (!resolved || typeof resolved.get !== "function") {
@@ -11,6 +14,9 @@
     return resolved;
   }
 
+  /**
+   * 连接测试/状态查询服务。
+   */
   class ConnectionService {
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
@@ -53,4 +59,3 @@
 
   global.ConnectionService = ConnectionService;
 })(window);
-

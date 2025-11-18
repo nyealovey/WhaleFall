@@ -20,6 +20,9 @@ function mountLoginPage(global) {
         initializePasswordStrengthWatcher();
     });
 
+    /**
+     * 绑定密码显示/隐藏按钮。
+     */
     function initializePasswordToggle() {
         const togglePassword = selectOne('#togglePassword');
         const passwordInput = selectOne('#password');
@@ -47,6 +50,9 @@ function mountLoginPage(global) {
         toggleButton.attr('title', currentType === 'password' ? '显示密码' : '隐藏密码');
     }
 
+    /**
+     * 初始化 JustValidate，校验用户名/密码。
+     */
     function initializeFormValidation() {
         if (!global.FormValidator || !global.ValidationRules) {
             console.error('表单校验模块未正确加载');
@@ -71,6 +77,9 @@ function mountLoginPage(global) {
             });
     }
 
+    /**
+     * 监听密码输入并更新强度条。
+     */
     function initializePasswordStrengthWatcher() {
         const passwordInput = selectOne('#password');
         if (!passwordInput.length) {

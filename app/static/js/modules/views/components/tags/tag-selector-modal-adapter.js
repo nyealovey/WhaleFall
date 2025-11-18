@@ -4,6 +4,9 @@
   const DOMHelpers = window.DOMHelpers;
   const UI = window.UI || {};
 
+  /**
+   * 解析目标为 DOM 元素，兼容选择器和 umbrella 的 first()。
+   */
   function toElement(target) {
     if (!target) {
       return null;
@@ -20,6 +23,9 @@
     return null;
   }
 
+  /**
+   * 在容器中解析实际的 .modal 元素，支持直接传入 modal 节点。
+   */
   function resolveModalElement(container) {
     if (!container) {
       return null;
@@ -30,6 +36,9 @@
     return container.querySelector ? container.querySelector(".modal") : null;
   }
 
+  /**
+   * 为标签选择器创建模态适配层，统一封装 open/close/setLoading。
+   */
   function createModalAdapter(container, hooks = {}) {
     const modalElement = resolveModalElement(container);
     if (!modalElement) {

@@ -1,6 +1,9 @@
 (function (window) {
   "use strict";
 
+  /**
+   * 校验 service 提供 store 运行所需的方法。
+   */
   function ensureService(service) {
     if (!service) {
       throw new Error("createAccountClassificationStore: service is required");
@@ -34,6 +37,9 @@
     return service;
   }
 
+  /**
+   * 统一获得 mitt 事件总线。
+   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -44,12 +50,18 @@
     return window.mitt();
   }
 
+  /**
+   * 深拷贝分类数组。
+   */
   function cloneClassifications(items) {
     return (items || []).map(function (classification) {
       return Object.assign({}, classification);
     });
   }
 
+  /**
+   * 深拷贝规则字典。
+   */
   function cloneRulesMap(source) {
     const result = {};
     Object.keys(source || {}).forEach(function (key) {
@@ -60,6 +72,9 @@
     return result;
   }
 
+  /**
+   * 构造 state 快照，供事件附带。
+   */
   function cloneState(state) {
     return {
       classifications: cloneClassifications(state.classifications),
@@ -70,16 +85,25 @@
     };
   }
 
+  /**
+   * 保证返回数组。
+   */
   function ensureArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
+  /**
+   * 从响应中提取分类数组。
+   */
   function extractClassifications(response) {
     const collection =
       response?.data?.classifications ?? response?.classifications ?? [];
     return ensureArray(collection);
   }
 
+  /**
+   * 从响应提取规则 map。
+   */
   function extractRules(response) {
     const raw =
       response?.data?.rules_by_db_type ?? response?.rules_by_db_type ?? {};
@@ -93,6 +117,9 @@
     return map;
   }
 
+  /**
+   * 汇总所有规则 ID，便于请求统计。
+   */
   function collectRuleIds(rulesByDbType) {
     const ids = [];
     Object.values(rulesByDbType || {}).forEach(function (rules) {

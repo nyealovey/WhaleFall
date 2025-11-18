@@ -56,6 +56,7 @@ ready(() => {
     }
 });
 
+// 初始化实例 store
 function initializeInstanceStore() {
     if (!window.createInstanceStore) {
         console.warn('createInstanceStore 未加载，跳过实例 Store 初始化');
@@ -82,6 +83,7 @@ function initializeInstanceStore() {
     window.addEventListener('beforeunload', teardownInstanceStore, { once: true });
 }
 
+// 页面卸载时销毁 store
 function teardownInstanceStore() {
     if (!instanceStore) {
         return;
