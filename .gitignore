@@ -20,21 +20,18 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
 # Virtual Environment
 venv/
 env/
 ENV/
 env.bak/
 venv.bak/
-
 # Environment variables
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-
 # Database
 *.db-shm
 *.db-wal
@@ -44,21 +41,16 @@ venv.bak/
 # 用户数据目录 - 包含日志、备份、上传文件、定时任务数据库等
 userdata/
 migrations/versions/*.py
-
 # Logs
 *.log
 /logs/
-
 # Reports
-reports/
-
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
 # OS
 .DS_Store
 .DS_Store?
@@ -67,11 +59,9 @@ reports/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
 # Flask
 instance/
 .webassets-cache
-
 # Coverage reports
 htmlcov/
 .tox/
@@ -83,23 +73,17 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
-
 # Jupyter Notebook
 .ipynb_checkpoints
-
 # pyenv
 .python-version
-
 # pipenv
 Pipfile.lock
-
 # Docker
 .dockerignore
-
 # Temporary files
 *.tmp
 *.temp
 cookies.txt
-
 # Frontend (temporarily disabled)
 frontend/
