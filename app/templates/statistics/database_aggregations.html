@@ -261,12 +261,12 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/capacity_stats_service.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity-stats/data-source.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity-stats/transformers.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity-stats/summary-cards.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity-stats/filters.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity-stats/chart-renderer.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/capacity-stats/manager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/data-source.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/transformers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/summary-cards.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/filters.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/chart-renderer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/manager.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/capacity-stats/database_aggregations.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap/capacity-stats/database-aggregations.js') }}"></script>
 {% endblock %}
