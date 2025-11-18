@@ -423,7 +423,7 @@ function mountAccountClassificationPage(window, document) {
     /**
      * 单条规则的渲染行。
      */
-    function renderRuleRow(rule) {
+function renderRuleRow(rule) {
         const classificationBadge = `
             <span class="rule-classification-badge ${getClassificationClass(rule.classification_name)}">
                 ${rule.classification_name || '未分类'}
@@ -508,90 +508,6 @@ function mountAccountClassificationPage(window, document) {
         } catch (error) {
             handleRequestError(error, '删除分类失败', 'delete_classification');
         }
-    }
-
-    function renderRules(rulesByDbType) {
-        const container = document.getElementById('rulesList');
-        if (!container) {
-            return;
-        }
-
-        const entries = Object.entries(rulesByDbType || {});
-        if (entries.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-info-circle"></i>
-                    <h5 class="mb-2">暂无规则</h5>
-                    <p class="mb-0">点击"新建规则"按钮创建第一个分类规则</p>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = entries
-            .map(([dbType, rulesRaw]) => {
-                const rules = Array.isArray(rulesRaw) ? rulesRaw : [];
-                const dbIcons = {
-                    mysql: 'fas fa-database',
-                    postgresql: 'fas fa-elephant',
-                    sqlserver: 'fas fa-server',
-                    oracle: 'fas fa-database',
-                };
-                const dbIcon = dbIcons[dbType] || 'fas fa-database';
-
-                return `
-                    <div class="rule-group-card">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>
-                                    <i class="${dbIcon} me-2 text-primary"></i>${dbType.toUpperCase()} 规则
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                ${
-                                    rules.length
-                                        ? rules.map(rule => renderRuleRow(rule)).join('')
-                                        : '<p class="text-muted mb-0">暂无规则</p>'
-                                }
-                            </div>
-                        </div>
-                    </div>
-                `;
-            })
-            .join('');
-    }
-
-    function renderRuleRow(rule) {
-        const matched = rule.matched_accounts_count ?? 0;
-        return `
-            <div class="rule-row">
-                <div>
-                    <h6 class="mb-1">${rule.rule_name || '未命名规则'}</h6>
-                    <div class="text-muted small">
-                        <span class="me-2">分类：${rule.classification_name || '未分类'}</span>
-                        <span class="me-2">数据库：${(rule.db_type || '').toUpperCase()}</span>
-                        <span>匹配账户：${matched}</span>
-                    </div>
-                </div>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary" onclick="viewRule(${rule.id})">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    ${
-                        window.currentUserRole === 'admin'
-                            ? `
-                                <button class="btn btn-outline-secondary" onclick="editRule(${rule.id})">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-outline-danger" onclick="deleteRule(${rule.id})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            `
-                            : ''
-                    }
-                </div>
-            </div>
-        `;
     }
 
     /* ========== 自动分类 ========== */
