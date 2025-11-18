@@ -8,6 +8,9 @@
   }
   const accountClassificationService = new AccountClassificationService(window.httpU);
 
+  /**
+   * 基础策略类，提供默认渲染/选择逻辑。
+   */
   class PermissionStrategy {
     constructor(dbType) {
       this.dbType = dbType;
@@ -62,6 +65,9 @@
     }
   }
 
+  /**
+   * MySQL 专属策略，支持全局/数据库权限选择。
+   */
   class MySQLPermissionStrategy extends PermissionStrategy {
     constructor() {
       super("mysql");
@@ -187,6 +193,9 @@
     }
   }
 
+  /**
+   * SQL Server 权限策略。
+   */
   class SQLServerPermissionStrategy extends PermissionStrategy {
     constructor() {
       super("sqlserver");

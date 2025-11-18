@@ -6,6 +6,7 @@
     throw new Error("Lodash 未加载，无法初始化 LodashUtils");
   }
 
+  // 绑定 lodash this，避免直接引用时上下文丢失
   const wrap = (method) => method.bind(lodash);
   const methodsToExpose = [
     "cloneDeep",
@@ -40,6 +41,7 @@
     "toLower",
   ];
 
+  // 只暴露常用且确认存在的 lodash 方法
   const LodashUtils = methodsToExpose.reduce((accumulator, methodName) => {
     const method = lodash[methodName];
     if (typeof method === "function") {
@@ -48,6 +50,9 @@
     return accumulator;
   }, {});
 
+  /**
+   * 安全读取，兼容 get 缺失时返回默认值。
+   */
   LodashUtils.safeGet = function safeGet(source, path, defaultValue) {
     const value = LodashUtils.get ? LodashUtils.get(source, path) : undefined;
     return value === undefined || value === null ? defaultValue : value;

@@ -3,6 +3,9 @@
  * 提供CSRF令牌的获取和管理功能
  */
 
+/**
+ * 负责拉取、缓存并注入 CSRF Token 的管理器。
+ */
 class CSRFManager {
     constructor() {
         this.token = null;
@@ -10,6 +13,9 @@ class CSRFManager {
         this.httpClient = window.httpU || null;
     }
 
+    /**
+     * 确保 httpU 可用，否则抛错。
+     */
     ensureHttpClient() {
         if (!this.httpClient) {
             throw new Error('httpU 未初始化');
@@ -47,6 +53,9 @@ class CSRFManager {
      * @private
      * @returns {Promise<string>} CSRF令牌
      */
+    /**
+     * 实际向后端请求 CSRF Token。
+     */
     async _fetchToken() {
         if (!this.httpClient || typeof this.httpClient.get !== 'function') {
             throw new Error('httpU 未初始化，无法获取 CSRF 令牌');
@@ -70,6 +79,9 @@ class CSRFManager {
     /**
      * 清除缓存的令牌
      */
+    /**
+     * 清空本地 token 缓存。
+     */
     clearToken() {
         this.token = null;
         this.tokenPromise = null;
@@ -79,6 +91,9 @@ class CSRFManager {
      * 为请求添加CSRF令牌
      * @param {Object} options - fetch选项
      * @returns {Promise<Object>} 包含CSRF令牌的选项
+     */
+    /**
+     * 注入 X-CSRFToken 头，返回新的请求配置。
      */
     async addTokenToRequest(options = {}) {
         const token = await this.getToken();
@@ -95,6 +110,9 @@ class CSRFManager {
      * @param {Object} options - 额外选项
      * @returns {Promise<Response>} 响应对象
      */
+    /**
+     * 带 CSRF 头的 POST 请求。
+     */
     async post(url, data, options = {}) {
         this.ensureHttpClient();
         const token = await this.getToken();
@@ -109,6 +127,9 @@ class CSRFManager {
      * @param {Object} options - 额外选项
      * @returns {Promise<Response>} 响应对象
      */
+    /**
+     * 带 CSRF 头的 PUT 请求。
+     */
     async put(url, data, options = {}) {
         this.ensureHttpClient();
         const token = await this.getToken();
@@ -122,6 +143,9 @@ class CSRFManager {
      * @param {Object} options - 额外选项
      * @returns {Promise<Response>} 响应对象
      */
+    /**
+     * 带 CSRF 头的 DELETE 请求。
+     */
     async delete(url, options = {}) {
         this.ensureHttpClient();
         const token = await this.getToken();
@@ -129,6 +153,9 @@ class CSRFManager {
         return this.httpClient.delete(url, config);
     }
 
+    /**
+     * 统一请求 headers 与配置。
+     */
     _normalizeRequestConfig(options = {}, token) {
         const headers = Object.assign(
             {

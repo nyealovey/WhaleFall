@@ -128,6 +128,7 @@ function resolveInstanceFilterValues(form, overrideValues) {
     }, {});
 }
 
+// 将筛选对象转成 URLSearchParams
 function buildInstanceQueryParams(filters) {
     const params = new URLSearchParams();
     Object.entries(filters || {}).forEach(([key, value]) => {
@@ -140,6 +141,7 @@ function buildInstanceQueryParams(filters) {
     return params;
 }
 
+// 初始化实例 store，从 DOM 收集初始选择/筛选
 function initializeInstanceStore() {
     if (!window.createInstanceStore) {
         console.warn('createInstanceStore 未加载，跳过实例 Store 初始化');
@@ -174,6 +176,7 @@ function initializeInstanceStore() {
     window.addEventListener('beforeunload', teardownInstanceStore, { once: true });
 }
 
+// 批量创建实例模态初始化
 function initializeBatchCreateModal() {
     const factory = window.UI?.createModal;
     if (!factory) {
@@ -188,6 +191,7 @@ function initializeBatchCreateModal() {
     });
 }
 
+// 获取批量创建模态实例
 function ensureBatchCreateModal() {
     if (!batchCreateModal) {
         throw new Error('批量创建模态未初始化');
@@ -195,6 +199,7 @@ function ensureBatchCreateModal() {
     return batchCreateModal;
 }
 
+// 从列表复选框收集实例 ID/名称，用于 store 初始化
 function collectInstanceMetadata() {
     const rows = [];
     const checkboxes = select('.instance-checkbox').nodes || [];
@@ -216,6 +221,7 @@ function collectInstanceMetadata() {
     return rows;
 }
 
+// 当前 DOM 选中的实例 ID
 function collectSelectedInstanceIds() {
     const checkboxes = select('input.instance-checkbox:checked').nodes || [];
     return checkboxes
@@ -223,6 +229,7 @@ function collectSelectedInstanceIds() {
         .filter((id) => Number.isFinite(id));
 }
 
+// 绑定实例 store 事件，监听选择变化
 function bindInstanceStoreEvents() {
     if (!instanceStore) {
         return;
@@ -230,6 +237,7 @@ function bindInstanceStoreEvents() {
     subscribeToInstanceStore('instances:selectionChanged', handleInstanceSelectionChanged);
 }
 
+// 订阅 store 并记录以便 teardown
 function subscribeToInstanceStore(eventName, handler) {
     if (!instanceStore) {
         return;
@@ -238,6 +246,7 @@ function subscribeToInstanceStore(eventName, handler) {
     instanceStoreSubscriptions.push({ eventName, handler });
 }
 
+// store selection 变化时同步 DOM
 function handleInstanceSelectionChanged(payload) {
     const selectedIds = new Set((payload?.selectedIds || []).map((id) => Number(id)));
     const availableIds = payload?.availableInstanceIds || [];
@@ -255,6 +264,7 @@ function handleInstanceSelectionChanged(payload) {
     renderBatchControls(selectedIds.size);
 }
 
+// 根据已选择数量更新批量操作按钮
 function renderBatchControls(selectedCount) {
     const batchDeleteBtn = selectOne('#batchDeleteBtn');
     if (batchDeleteBtn.length) {
@@ -268,6 +278,7 @@ function renderBatchControls(selectedCount) {
     }
 }
 
+// 将 DOM 中勾选的实例同步回 store
 function syncSelectionFromDom() {
     if (!instanceStore) {
         renderBatchControls(collectSelectedInstanceIds().length);
@@ -276,6 +287,7 @@ function syncSelectionFromDom() {
     instanceStore.actions.setSelection(collectSelectedInstanceIds(), { reason: 'domChange' });
 }
 
+// 卸载事件并销毁 store
 function teardownInstanceStore() {
     if (!instanceStore) {
         return;
@@ -288,7 +300,7 @@ function teardownInstanceStore() {
     instanceStore = null;
 }
 
-// 加载实例总大小
+// 加载实例总大小并渲染
 async function loadInstanceTotalSizes() {
     if (!ensureInstanceService()) {
         return;
@@ -329,6 +341,7 @@ function formatSize(bytes) {
     });
 }
 
+// 初始化标签筛选器，确认后触发表单 submit
 function initializeTagFilter() {
     if (!window.TagSelectorHelper) {
         console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
@@ -372,6 +385,7 @@ function initializeTagFilter() {
     });
 }
 
+// 构建 filter-card 控件，自动提交筛选
 function initializeInstanceFilterCard() {
     const factory = window.UI?.createFilterCard;
     if (!factory) {
@@ -391,6 +405,7 @@ function initializeInstanceFilterCard() {
     });
 }
 
+// 销毁 filter-card，避免内存泄露
 function destroyInstanceFilterCard() {
     if (instanceFilterCard && typeof instanceFilterCard.destroy === 'function') {
         instanceFilterCard.destroy();
@@ -398,6 +413,7 @@ function destroyInstanceFilterCard() {
     instanceFilterCard = null;
 }
 
+// 注册 beforeunload 钩子清理资源
 function registerUnloadCleanup() {
     if (unloadCleanupHandler) {
         window.removeEventListener('beforeunload', unloadCleanupHandler);
@@ -411,6 +427,7 @@ function registerUnloadCleanup() {
     window.addEventListener('beforeunload', unloadCleanupHandler);
 }
 
+// 将初始隐藏域值转换为数组
 function parseInitialTagValues(rawValue) {
     if (!rawValue) {
         return [];
@@ -421,6 +438,7 @@ function parseInitialTagValues(rawValue) {
         .filter(Boolean);
 }
 
+// 序列化表单为键值对
 function collectFormValues(form) {
     if (instanceFilterCard?.serialize) {
         return instanceFilterCard.serialize();
@@ -447,6 +465,7 @@ function collectFormValues(form) {
     return result;
 }
 
+// 应用筛选值并刷新页面
 function applyInstanceFilters(form, values) {
     const targetForm = form || getInstanceFilterForm();
     if (!targetForm) {
@@ -459,6 +478,7 @@ function applyInstanceFilters(form, values) {
     window.location.href = query ? `${action}?${query}` : action;
 }
 
+// 重置筛选表单
 function resetInstanceFilters(form) {
     const targetForm = form || getInstanceFilterForm();
     if (targetForm) {
@@ -467,6 +487,7 @@ function resetInstanceFilters(form) {
     applyInstanceFilters(targetForm, {});
 }
 
+// 绑定新建/编辑模态按钮
 function bindModalTriggers() {
     if (!instanceModals) {
         return;

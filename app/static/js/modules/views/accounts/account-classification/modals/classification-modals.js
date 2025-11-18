@@ -1,6 +1,9 @@
 (function (global) {
   "use strict";
 
+  /**
+   * 分类模态控制器，负责新建/编辑分类。
+   */
   function createController(options) {
     const {
       document,
@@ -30,6 +33,9 @@
       edit: null,
     };
 
+    /**
+     * 初始化模态与表单验证。
+     */
     function init() {
       if (!UI?.createModal) {
         throw new Error("classification-modals: UI.createModal 未加载");

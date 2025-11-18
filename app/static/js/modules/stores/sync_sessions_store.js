@@ -4,6 +4,9 @@
   const DEFAULT_PER_PAGE = 20;
   const DEFAULT_AUTO_REFRESH_INTERVAL = 30000;
 
+  /**
+   * 确保 service 提供同步会话所需接口。
+   */
   function ensureService(service) {
     if (!service) {
       throw new Error("createSyncSessionsStore: service is required");
@@ -16,6 +19,9 @@
     return service;
   }
 
+  /**
+   * 统一获取 mitt 实例。
+   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -26,6 +32,9 @@
     return window.mitt();
   }
 
+  /**
+   * 拷贝当前 state。
+   */
   function cloneState(state) {
     return {
       sessions: state.sessions.slice(),
@@ -39,6 +48,9 @@
     };
   }
 
+  /**
+   * 将分页信息转换为统一结构。
+   */
   function normalizePagination(data, fallback) {
     const source = data || {};
     const base = fallback || {};
@@ -75,6 +87,9 @@
     };
   }
 
+  /**
+   * 从响应体提取会话数组。
+   */
   function extractSessions(response) {
     if (!response) {
       return [];

@@ -9,6 +9,9 @@ function mountInstanceAggregationsPage(window) {
 
   const { ready } = helpers;
 
+  /**
+   * 统一从接口数据解析实例标签/键。
+   */
   function labelExtractor(item) {
     const instanceName =
       item?.instance?.name ||
@@ -25,6 +28,9 @@ function mountInstanceAggregationsPage(window) {
     };
   }
 
+  /**
+   * 懒加载 CapacityStats.Manager 并初始化配置。
+   */
   function initManager() {
     if (!window.CapacityStats || !window.CapacityStats.Manager) {
       setTimeout(initManager, 50);

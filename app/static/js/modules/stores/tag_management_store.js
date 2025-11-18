@@ -11,6 +11,9 @@
     error: "tagManagement:error",
   };
 
+  /**
+   * 校验 service 是否具备 store 运行所需的 API。
+   */
   function ensureService(service) {
     if (!service) {
       throw new Error("createTagManagementStore: service is required");
@@ -23,6 +26,9 @@
     return service;
   }
 
+  /**
+   * 补全一个 mitt 事件总线，若未传入则退回全局 mitt。
+   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -33,6 +39,9 @@
     return window.mitt();
   }
 
+  /**
+   * 统一处理分类/搜索过滤器，避免大小写或空白差异。
+   */
   function normalizeFilters(filters) {
     const source = filters && typeof filters === "object" ? filters : {};
     return {
@@ -41,6 +50,9 @@
     };
   }
 
+  /**
+   * 按激活状态与名称对标签排序，确保 UI 展示一致。
+   */
   function orderTags(items) {
     if (!Array.isArray(items)) {
       return [];
@@ -71,6 +83,9 @@
     });
   }
 
+  /**
+   * 深拷贝 store 状态的核心字段，用于事件派发。
+   */
   function cloneState(state) {
     return {
       categories: state.categories.slice(),
@@ -84,6 +99,9 @@
     };
   }
 
+  /**
+   * 标签管理 store，负责缓存分类/标签列表与用户选择。
+   */
   function createTagManagementStore(options) {
     const opts = options || {};
     const service = ensureService(opts.service);
@@ -110,10 +128,16 @@
       lastError: null,
     };
 
+    /**
+     * 向 mitt 广播事件，默认附带当前状态快照。
+     */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
     }
 
+    /**
+     * 统一错误处理，记录目标并广播 error 事件。
+     */
     function handleError(error, target) {
       state.lastError = error;
       emit(EVENT_NAMES.error, {
@@ -123,6 +147,9 @@
       });
     }
 
+    /**
+     * 根据当前标签/选择更新统计数据。
+     */
     function updateStats() {
       const total = state.tags.length;
       const selected = state.selection.size;
@@ -133,6 +160,9 @@
       state.stats = { total, selected, active, filtered };
     }
 
+    /**
+     * 应用分类与搜索过滤，生成 filteredTags。
+     */
     function updateFilteredTags() {
       const filters = state.filters;
       const filtered = state.tags.filter(function (tag) {
@@ -160,6 +190,9 @@
       updateStats();
     }
 
+    /**
+     * 广播标签变化事件，供订阅方刷新 UI。
+     */
     function emitTagsUpdated() {
       emit(EVENT_NAMES.tagsUpdated, {
         tags: state.tags.slice(),
@@ -170,6 +203,9 @@
       });
     }
 
+    /**
+     * 广播选择变化，附带原因与额外上下文。
+     */
     function emitSelectionChanged(reason, meta) {
       emit(EVENT_NAMES.selectionChanged, {
         reason: reason || "update",
@@ -179,6 +215,9 @@
       });
     }
 
+    /**
+     * 根据 id 或 name 同步已有选择；数据未加载时暂存。
+     */
     function applySelection(values, key) {
       const normalizedValues = Array.isArray(values)
         ? values
@@ -218,6 +257,9 @@
       emitSelectionChanged("sync");
     }
 
+    /**
+     * 当标签列表加载完成后应用暂存的选择。
+     */
     function applyPendingSelection() {
       if (!pendingSelection) {
         return;

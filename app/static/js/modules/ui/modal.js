@@ -7,6 +7,9 @@
     return;
   }
 
+  /**
+   * 解析多种输入为 DOM 元素。
+   */
   function toElement(target) {
     if (!target) {
       return null;
@@ -23,6 +26,9 @@
     return null;
   }
 
+  /**
+   * 确保 bootstrap.Modal 已加载。
+   */
   function ensureBootstrap() {
     const bootstrap = global.bootstrap;
     if (!bootstrap?.Modal) {
@@ -31,6 +37,9 @@
     return bootstrap;
   }
 
+  /**
+   * 通用模态包装器：支持 onOpen/onClose/onConfirm/onCancel。
+   */
   function createModal({
     modalSelector,
     onOpen,

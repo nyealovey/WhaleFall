@@ -6,6 +6,7 @@
 (function (global) {
     'use strict';
 
+    // justValidate 规则构造器
     var helpers = {
         required: function required(message) {
             return {
@@ -61,6 +62,7 @@
         },
     };
 
+    // 集中定义的提示文案
     var messages = {
         required: '此字段不能为空',
         minLength: function minLength(length) {
@@ -109,6 +111,7 @@
         userRoleRequired: '请选择用户角色',
     };
 
+    // 凭据表单规则
     var credentialRules = {
         name: [
             helpers.required('凭据名称不能为空'),
@@ -136,6 +139,7 @@
         ],
     };
 
+    // 登录/修改密码等认证相关规则
     var authRules = {
         login: {
             username: [
@@ -164,6 +168,7 @@
         },
     };
 
+    // 实例创建/编辑规则
     var instanceRules = {
         name: [
             helpers.required(messages.instanceName),
@@ -180,6 +185,7 @@
         credential: [helpers.required(messages.credential)],
     };
 
+    // 分类基础信息规则
     var classificationRules = {
         name: [
             helpers.required(messages.classificationName),

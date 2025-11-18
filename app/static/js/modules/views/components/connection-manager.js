@@ -3,6 +3,9 @@
  * 统一的数据库连接测试和管理功能
  */
 
+/**
+ * 提供统一连接测试/校验的前端控制器。
+ */
 class ConnectionManager {
     constructor() {
         this.baseUrl = '/connections/api';
@@ -29,6 +32,9 @@ class ConnectionManager {
      * @param {number} instanceId - 实例ID
      * @param {Object} options - 选项
      * @returns {Promise<Object>} 测试结果
+     */
+    /**
+     * 测试已存在实例的连接。
      */
     async testInstanceConnection(instanceId, options = {}) {
         try {
@@ -62,6 +68,9 @@ class ConnectionManager {
      * @param {Object} options - 选项
      * @returns {Promise<Object>} 测试结果
      */
+    /**
+     * 针对新建实例参数的连接测试。
+     */
     async testNewConnection(connectionParams, options = {}) {
         try {
             const result = await this.connectionService.testNewConnection(connectionParams);
@@ -92,6 +101,9 @@ class ConnectionManager {
      * @param {Object} params - 连接参数
      * @returns {Promise<Object>} 验证结果
      */
+    /**
+     * 校验连接参数合法性。
+     */
     async validateConnectionParams(params) {
         try {
             return await this.connectionService.validateConnectionParams(params);
@@ -108,6 +120,9 @@ class ConnectionManager {
      * @param {Array<number>} instanceIds - 实例ID列表
      * @param {Object} options - 选项
      * @returns {Promise<Object>} 批量测试结果
+     */
+    /**
+     * 批量连接测试。
      */
     async batchTestConnections(instanceIds, options = {}) {
         try {
@@ -137,6 +152,9 @@ class ConnectionManager {
      * @param {number} instanceId - 实例ID
      * @returns {Promise<Object>} 连接状态
      */
+    /**
+     * 查询实例当前连接状态。
+     */
     async getConnectionStatus(instanceId) {
         try {
             return await this.connectionService.getConnectionStatus(instanceId);
@@ -153,6 +171,9 @@ class ConnectionManager {
      * 显示连接测试结果
      * @param {Object} result - 测试结果
      * @param {string} containerId - 容器ID
+     */
+    /**
+     * 在指定容器渲染测试结果提示。
      */
     showTestResult(result, containerId = 'connection-test-result') {
         if (!this.helpers) {

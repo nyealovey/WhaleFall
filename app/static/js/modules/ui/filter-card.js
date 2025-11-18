@@ -12,6 +12,9 @@
     "select:not([data-no-auto-submit]), input[type='radio']:not([data-no-auto-submit]), input[type='checkbox']:not([data-no-auto-submit]), input[data-auto-submit]:not([data-no-auto-submit])";
   const LodashUtils = global.LodashUtils;
 
+  /**
+   * 使用 lodash 的 debounce，若不可用则退回简单实现。
+   */
   function createDebounced(fn, wait) {
     if (!wait) {
       return fn;
@@ -26,6 +29,9 @@
     };
   }
 
+  /**
+   * 将 form 数据序列化为对象。
+   */
   function serializeForm(element) {
     if (!element) {
       return {};
@@ -45,6 +51,9 @@
     return result;
   }
 
+  /**
+   * 触发表单提交，兼容 requestSubmit。
+   */
   function requestFormSubmit(form) {
     if (!form) {
       return;
@@ -56,6 +65,9 @@
     }
   }
 
+  /**
+   * 统一处理事件绑定并记录，用于销毁。
+   */
   function addListener(target, eventName, handler, registry) {
     if (!target || typeof target.addEventListener !== "function" || !handler) {
       return;
@@ -64,6 +76,9 @@
     registry.push({ target, eventName, handler });
   }
 
+  /**
+   * 解析 formSelector（字符串或 umbrella 对象）。
+   */
   function normalizeForm(formSelector) {
     if (typeof formSelector === "string") {
       return selectOne(formSelector).first();

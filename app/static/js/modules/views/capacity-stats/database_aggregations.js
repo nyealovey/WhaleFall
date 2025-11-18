@@ -9,6 +9,9 @@ function mountDatabaseAggregationsPage(window) {
 
   const { ready } = helpers;
 
+  /**
+   * 解析数据库标签，输出 key/label。
+   */
   function labelExtractor(item) {
     const databaseName =
       item?.database_name ||
@@ -29,6 +32,9 @@ function mountDatabaseAggregationsPage(window) {
     };
   }
 
+  /**
+   * 初始化 CapacityStats.Manager（数据库维度）。
+   */
   function initManager() {
     if (!window.CapacityStats || !window.CapacityStats.Manager) {
       setTimeout(initManager, 50);

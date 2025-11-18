@@ -17,6 +17,9 @@ function mountChangePasswordPage(global) {
 
     ready(initializeChangePasswordPage);
 
+    /**
+     * 页面入口：绑定事件、校验与强度提示。
+     */
     function initializeChangePasswordPage() {
         const form = selectOne('#changePasswordForm');
         if (!form.length) {
@@ -30,6 +33,9 @@ function mountChangePasswordPage(global) {
         initializeFormValidation();
     }
 
+    /**
+     * 绑定密码显示/隐藏切换。
+     */
     function initializePasswordToggles() {
         const toggles = [
             { button: '#toggleOldPassword', input: '#old_password' },
@@ -50,6 +56,9 @@ function mountChangePasswordPage(global) {
         });
     }
 
+    /**
+     * 切换 input type 并同步图标提示。
+     */
     function togglePasswordVisibility(inputElement, toggleButton) {
         const currentType = inputElement.attr('type') === 'password' ? 'text' : 'password';
         inputElement.attr('type', currentType);
@@ -63,6 +72,9 @@ function mountChangePasswordPage(global) {
         toggleButton.attr('title', title);
     }
 
+    /**
+     * 监听新密码输入，实时显示强度与要求。
+     */
     function initializePasswordStrength() {
         const newPasswordInput = selectOne('#new_password');
         if (!newPasswordInput.length) {
@@ -84,6 +96,9 @@ function mountChangePasswordPage(global) {
         updatePasswordRequirements(value(newPasswordInput) || '');
     }
 
+    /**
+     * 计算复杂度评分与提示文字。
+     */
     function getPasswordStrength(password) {
         let strength = 0;
         let feedback = '';
@@ -110,6 +125,9 @@ function mountChangePasswordPage(global) {
         return { strength, feedback };
     }
 
+    /**
+     * 渲染强度进度条与提示文案。
+     */
     function updatePasswordStrength(strengthData) {
         const strengthBar = selectOne('#passwordStrength');
         const strengthText = selectOne('#passwordStrengthText');

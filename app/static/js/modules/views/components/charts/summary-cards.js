@@ -9,6 +9,9 @@
 
   const { selectOne } = helpers;
 
+  /**
+   * 常用卡片值格式化器。
+   */
   const defaultFormatters = {
     number(value) {
       return window.NumberFormat.formatInteger(value, { fallback: "0" });
@@ -31,6 +34,9 @@
     },
   };
 
+  /**
+   * 根据 definition 解析 formatter。
+   */
   function resolveFormatter(definition) {
     if (!definition || !definition.formatter) {
       return defaultFormatters.passthrough;
@@ -41,6 +47,9 @@
     return defaultFormatters[definition.formatter] || defaultFormatters.passthrough;
   }
 
+  /**
+   * 遍历 definitions，写入格式化后的值。
+   */
   function updateCards(summary, definitions) {
     if (!definitions || !Array.isArray(definitions)) {
       return;

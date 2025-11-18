@@ -10,6 +10,9 @@
 
     const umbrella = global.u;
 
+    /**
+     * 将对象/数组/URLSearchParams 转成查询字符串。
+     */
     function serializeParams(data) {
         if (!data) {
             return '';
@@ -31,6 +34,9 @@
         return params.toString();
     }
 
+    /**
+     * 确保 umbrella 上存在 ajax 实现，若无则注入.
+     */
     function ensureAjax() {
         if (typeof umbrella.ajax === 'function') {
             return umbrella.ajax;
@@ -122,6 +128,9 @@
 
     const ajax = ensureAjax();
 
+    /**
+     * 将 query 参数拼接到 URL。
+     */
     function appendParams(url, params) {
         if (!params || (typeof params === 'object' && !Object.keys(params).length)) {
             return url;
@@ -133,6 +142,9 @@
         return url + (url.includes('?') ? '&' : '?') + serialized;
     }
 
+    /**
+     * JSON.parse 封装，失败时返回原字符串。
+     */
     function parseJSON(raw) {
         if (!raw) {
             return null;
@@ -144,6 +156,9 @@
         }
     }
 
+    /**
+     * 根据 responseType 解析响应体。
+     */
     function parseResponseBody(raw, responseType) {
         if (responseType === 'text') {
             return raw;
@@ -157,6 +172,9 @@
         return parseJSON(raw);
     }
 
+    /**
+     * 解析接口返回的错误消息。
+     */
     function resolveErrorMessage(body, fallbackStatus) {
         if (!body) {
             return fallbackStatus >= 500 ? '服务器错误' : '请求失败';
@@ -167,6 +185,9 @@
         return body.message || body.error || (fallbackStatus >= 500 ? '服务器错误' : '请求失败');
     }
 
+    /**
+     * 将底层 ajax 错误包装成统一的 Error 对象。
+     */
     function buildError(payload, responseType) {
         const body = parseResponseBody(payload && payload.response, responseType);
         const error = new Error(resolveErrorMessage(body, payload ? payload.status : 0));
@@ -177,6 +198,9 @@
         return error;
     }
 
+    /**
+     * 基础请求封装，注入 CSRF 与默认头。
+     */
     function request(config = {}) {
         const {
             url,
@@ -218,6 +242,9 @@
             });
     }
 
+    /**
+     * 生成便捷方法（get/post/put...），支持 params 拼接。
+     */
     function createRequest(method) {
         return (url, dataOrConfig, maybeConfig) => {
             if (method === 'GET' || method === 'DELETE') {

@@ -6,6 +6,9 @@
 (function (global) {
     'use strict';
 
+    /**
+     * 确保 JustValidate 已加载。
+     */
     function ensureLibrary() {
         if (!global.JustValidate) {
             console.error('JustValidate 未加载，无法初始化表单校验');
@@ -14,6 +17,9 @@
         return true;
     }
 
+    /**
+     * 接受单个/数组/工厂函数，统一成数组。
+     */
     function toArray(rules) {
         if (!rules) {
             return [];
@@ -27,6 +33,9 @@
         return [rules];
     }
 
+    /**
+     * 创建表单校验实例，封装常用链式 API。
+     */
     function createValidator(formSelector, options) {
         if (!ensureLibrary()) {
             return null;

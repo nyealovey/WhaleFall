@@ -13,6 +13,9 @@
     error: "instances:error",
   };
 
+  /**
+   * 校验 service 是否具备实例 store 依赖的方法。
+   */
   function ensureService(service) {
     if (!service) {
       throw new Error("createInstanceStore: service is required");
@@ -32,6 +35,9 @@
     return service;
   }
 
+  /**
+   * 获取 mitt 实例。
+   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -42,6 +48,9 @@
     return window.mitt();
   }
 
+  /**
+   * 将输入转换为 ID 数组。
+   */
   function normalizeIds(ids) {
     if (!ids) {
       return [];
@@ -55,6 +64,9 @@
     return ids;
   }
 
+  /**
+   * 安全解析 ID。
+   */
   function toNumericId(value) {
     if (typeof value === "number" && Number.isFinite(value)) {
       return value;
@@ -63,6 +75,9 @@
     return Number.isFinite(numeric) ? numeric : null;
   }
 
+  /**
+   * 将实例元数据统一为 {id,name,dbType}。
+   */
   function normalizeInstanceMeta(items) {
     return (items || [])
       .map(function (item) {
@@ -86,12 +101,18 @@
       .filter(Boolean);
   }
 
+  /**
+   * 深拷贝实例元数据数组。
+   */
   function cloneInstancesMeta(items) {
     return normalizeInstanceMeta(items).map(function (item) {
       return Object.assign({}, item);
     });
   }
 
+  /**
+   * 生成 state 副本，供事件 payload 使用。
+   */
   function cloneState(state) {
     return {
       filters: Object.assign({}, state.filters),
@@ -110,6 +131,9 @@
     };
   }
 
+  /**
+   * 从响应中提取统计字段。
+   */
   function extractStats(response) {
     const payload = response?.data ?? response ?? {};
     if (payload.stats) {
@@ -118,6 +142,9 @@
     return Object.assign({}, payload);
   }
 
+  /**
+   * 后端返回 success=false 时抛错。
+   */
   function ensureSuccess(response, fallbackMessage) {
     if (response && response.success === false) {
       const error = new Error(response.message || fallbackMessage || "操作失败");

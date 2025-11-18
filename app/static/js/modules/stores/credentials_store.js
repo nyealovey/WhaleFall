@@ -1,6 +1,9 @@
 (function (window) {
   "use strict";
 
+  /**
+   * 校验 service 是否实现删除接口。
+   */
   function ensureService(service) {
     if (!service) {
       throw new Error("createCredentialsStore: service is required");
@@ -11,6 +14,9 @@
     return service;
   }
 
+  /**
+   * 获取 mitt 实例。
+   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -21,6 +27,9 @@
     return window.mitt();
   }
 
+  /**
+   * 检查删除响应是否成功。
+   */
   function ensureDeleteResponse(response) {
     if (response && response.success === false) {
       const error = new Error(response.message || "删除凭据失败");
@@ -30,6 +39,9 @@
     return response;
   }
 
+  /**
+   * 复制 state，用于事件传值。
+   */
   function cloneState(state) {
     return {
       deletingIds: new Set(state.deletingIds),

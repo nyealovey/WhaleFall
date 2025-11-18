@@ -55,6 +55,9 @@ function mountCredentialsListPage(global) {
 
   ready(initializeCredentialsListPage);
 
+  /**
+   * 页面入口：初始化模态、删除确认、筛选、实时搜索。
+   */
   function initializeCredentialsListPage() {
     bindModalTriggers();
     initializeDeleteConfirmation();
@@ -63,6 +66,9 @@ function mountCredentialsListPage(global) {
     bindCredentialsStoreEvents();
   }
 
+  /**
+   * 初始化新建/编辑凭据模态触发器。
+   */
   function bindModalTriggers() {
     if (!credentialModals) {
       console.warn('CredentialModals 未加载，创建/编辑模态不可用');

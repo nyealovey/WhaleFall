@@ -25,6 +25,9 @@
         return;
     }
 
+    /**
+     * 从事件或传入引用解析出按钮。
+     */
     function resolveButton(trigger) {
         if (trigger) {
             return trigger;
@@ -38,6 +41,9 @@
         return null;
     }
 
+    /**
+     * 控制按钮 loading 状态，防重复点击。
+     */
     function toggleButtonLoading(button, isLoading) {
         if (!button) {
             return;
@@ -60,6 +66,9 @@
         }
     }
 
+    /**
+     * 向后兼容的 CSRF 读取（httpU 已处理）。
+     */
     function resolveCsrfToken() {
         if (!selectOne || !helpers) {
             const meta = document.querySelector('meta[name="csrf-token"]');
@@ -77,6 +86,9 @@
         return input.length ? input.first().value : '';
     }
 
+    /**
+     * 入口：查看账户权限并展示模态。
+     */
     function viewAccountPermissions(accountId, options = {}) {
         const {
             apiUrl = `/account/api/${accountId}/permissions`,
@@ -123,6 +135,9 @@
             });
     }
 
+    /**
+     * 直接拉取账户权限数据（返回 Promise）。
+     */
     function fetchAccountPermissions(accountId, apiUrl = `/account/api/${accountId}/permissions`) {
         resolveCsrfToken();
         const finalApiUrl = apiUrl.replace('${accountId}', accountId);

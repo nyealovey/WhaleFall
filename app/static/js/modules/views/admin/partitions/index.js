@@ -32,6 +32,9 @@ function mountAdminPartitionsPage(global) {
         bindEvents();
     });
 
+    /**
+     * 初始化分区 store，如缺失则退回直连服务。
+     */
     function initializePartitionStore() {
         if (!global.createPartitionStore) {
             console.warn('createPartitionStore 未加载，回退到直接调用服务');
@@ -70,6 +73,9 @@ function mountAdminPartitionsPage(global) {
         return true;
     }
 
+    /**
+     * 订阅分区 store 事件。
+     */
     function bindPartitionStoreEvents() {
         if (!partitionStore) {
             return;

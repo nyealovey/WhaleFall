@@ -50,6 +50,9 @@
             global.tagsPageInitialized = true;
         });
 
+    /**
+     * 页面入口：初始化 modal、事件与筛选卡片。
+     */
     function initializeTagsPage() {
         initializeDeleteModal();
         initializeTagModals();
@@ -58,6 +61,9 @@
         initializeTagFilterCard();
     }
 
+    /**
+     * 初始化 tagListStore，用于批量选择。
+     */
     function initializeTagStore() {
         if (!createTagListStore) {
             console.error('createTagListStore 未加载，无法管理列表选择');
@@ -72,6 +78,9 @@
         updateBatchActions();
     }
 
+    /**
+     * 初始化 TagManagementStore，拉取标签数据。
+     */
     function initializeTagManagementStore() {
         if (!createTagManagementStore) {
             console.error('createTagManagementStore 未加载');
@@ -91,6 +100,9 @@
         }
     }
 
+    /**
+     * 绑定列表勾选、批量操作等事件。
+     */
     function initializeEventHandlers() {
         const selectAllCheckbox = selectOne('#selectAll');
         if (selectAllCheckbox.length) {
@@ -130,6 +142,9 @@
         // 预留扩展
     }
 
+    /**
+     * 删除确认模态的初始化。
+     */
     function initializeDeleteModal() {
         const factory = global.UI?.createModal;
         if (!factory) {
@@ -268,6 +283,9 @@
         }
     }
 
+    /**
+     * 构建标签筛选卡片，自动提交筛选。
+     */
     function initializeTagFilterCard() {
         const factory = global.UI?.createFilterCard;
         if (!factory) {

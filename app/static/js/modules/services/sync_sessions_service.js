@@ -3,6 +3,9 @@
 
   const BASE_PATH = "/sync_sessions/api/sessions";
 
+  /**
+   * 统一选择 http 客户端。
+   */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
     if (!resolved || typeof resolved.get !== "function") {
@@ -11,6 +14,9 @@
     return resolved;
   }
 
+  /**
+   * 将过滤条件转换为查询字符串。
+   */
   function toQueryString(filters) {
     if (!filters) {
       return "";
@@ -41,6 +47,9 @@
     return query ? `?${query}` : "";
   }
 
+  /**
+   * 同步会话 API 封装。
+   */
   class SyncSessionsService {
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
@@ -75,4 +84,3 @@
 
   global.SyncSessionsService = SyncSessionsService;
 })(window);
-

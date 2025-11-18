@@ -30,14 +30,23 @@ function mountDashboardOverview(global) {
         initCharts();
     });
 
+    /**
+     * 页面入口：初始化仪表盘图表。
+     */
     function initCharts() {
         initLogTrendChart();
     }
 
+    /**
+     * 读取 CSS 变量值。
+     */
     function getCssVariable(variable) {
         return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
     }
 
+    /**
+     * 带透明度的颜色转换。
+     */
     function colorWithAlpha(color, alpha) {
         if (color.startsWith('#')) {
             const r = parseInt(color.slice(1, 3), 16);
@@ -51,6 +60,9 @@ function mountDashboardOverview(global) {
         return color;
     }
 
+    /**
+     * 初始化日志趋势图表。
+     */
     function initLogTrendChart() {
         const canvasWrapper = selectOne('#logTrendChart');
         if (!canvasWrapper.length) {

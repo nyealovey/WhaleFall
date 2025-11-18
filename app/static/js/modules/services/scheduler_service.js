@@ -3,6 +3,9 @@
 
   const BASE_PATH = "/scheduler/api";
 
+  /**
+   * 统一选择 http 客户端。
+   */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
     if (!resolved || typeof resolved.get !== "function") {
@@ -11,12 +14,18 @@
     return resolved;
   }
 
+  /**
+   * 校验 jobId 是否有效。
+   */
   function assertJobId(jobId, action) {
     if (jobId === undefined || jobId === null || jobId === "") {
       throw new Error(`SchedulerService: ${action} 需要有效的 jobId`);
     }
   }
 
+  /**
+   * 定时任务管理服务。
+   */
   class SchedulerService {
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
@@ -62,4 +71,3 @@
 
   global.SchedulerService = SchedulerService;
 })(window);
-

@@ -3,6 +3,9 @@
 
   const ACTIVE_STATES = ["STATE_RUNNING", "STATE_EXECUTING"];
 
+  /**
+   * 校验服务对象是否实现所有 scheduler 相关 API。
+   */
   function ensureService(service) {
     if (!service) {
       throw new Error("createSchedulerStore: service is required");
@@ -24,6 +27,9 @@
     return service;
   }
 
+  /**
+   * 获取 mitt 事件总线。
+   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -34,6 +40,9 @@
     return window.mitt();
   }
 
+  /**
+   * 后端 success=false 时抛错。
+   */
   function ensureSuccess(response, fallbackMessage) {
     if (!response || response.success === false) {
       const error = new Error(response?.message || fallbackMessage || "操作失败");
@@ -43,12 +52,18 @@
     return response;
   }
 
+  /**
+   * 深拷贝任务列表。
+   */
   function cloneJobs(jobs) {
     return (jobs || []).map(function (job) {
       return Object.assign({}, job);
     });
   }
 
+  /**
+   * 统计当前运行/暂停数量。
+   */
   function computeStats(jobs) {
     const stats = { active: 0, paused: 0 };
     (jobs || []).forEach(function (job) {

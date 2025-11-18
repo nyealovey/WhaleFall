@@ -38,6 +38,9 @@
             initializePage();
         });
 
+    /**
+     * 页面入口：store/filter/modal 初始化。
+     */
     function initializePage() {
         setDefaultTimeRange();
         initializeLogsStore();
@@ -46,6 +49,9 @@
         registerUnloadHandlers();
     }
 
+    /**
+     * 创建日志 store 并绑定事件。
+     */
     function initializeLogsStore() {
         if (!global.createLogsStore) {
             console.error('createLogsStore 未加载');
@@ -67,6 +73,9 @@
         // 卸载由 registerUnloadHandlers 统一处理
     }
 
+    /**
+     * 订阅 store 事件，更新模块、统计、列表等。
+     */
     function bindStoreEvents() {
         subscribeToStoreEvent('logs:modulesUpdated', (payload) => {
             updateModuleFilter(payload?.modules || []);
@@ -95,11 +104,17 @@
         });
     }
 
+    /**
+     * 记录订阅，便于销毁。
+     */
     function subscribeToStoreEvent(eventName, handler) {
         storeSubscriptions.push({ eventName, handler });
         logsStore.subscribe(eventName, handler);
     }
 
+    /**
+     * 卸载日志 store。
+     */
     function teardownLogsStore() {
         if (logsStore) {
             storeSubscriptions.forEach(({ eventName, handler }) => {
@@ -111,6 +126,9 @@
         }
     }
 
+    /**
+     * beforeunload 清理。
+     */
     function registerUnloadHandlers() {
         if (storeUnloadHandler) {
             from(global).off('beforeunload', storeUnloadHandler);

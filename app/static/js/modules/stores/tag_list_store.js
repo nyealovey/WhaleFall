@@ -1,6 +1,9 @@
 (function (window) {
   "use strict";
 
+  /**
+   * 统一获取 mitt 实例。
+   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -11,6 +14,9 @@
     return window.mitt();
   }
 
+  /**
+   * 将 id 列表转换成数值数组。
+   */
   function normalizeIds(ids) {
     if (!Array.isArray(ids)) {
       return [];
@@ -25,6 +31,9 @@
       });
   }
 
+  /**
+   * 拷贝 state，方便事件 payload 传递。
+   */
   function cloneState(state) {
     return {
       allIds: Array.from(state.allIds),

@@ -1,6 +1,9 @@
 (function (window) {
   "use strict";
 
+  /**
+   * 验证 service 是否实现批量打标签所需的方法。
+   */
   function ensureService(service) {
     if (!service) {
       throw new Error("createTagBatchStore: service is required");
@@ -13,6 +16,9 @@
     return service;
   }
 
+  /**
+   * 获取 mitt 事件总线。
+   */
   function ensureEmitter(emitter) {
     if (emitter) {
       return emitter;
@@ -23,6 +29,9 @@
     return window.mitt();
   }
 
+  /**
+   * 拷贝 state，以便事件 payload 使用。
+   */
   function cloneState(state) {
     return {
       instances: state.instances.slice(),
@@ -35,6 +44,9 @@
     };
   }
 
+  /**
+   * 将 id 列表转换为数值数组。
+   */
   function normalizeIds(ids) {
     if (!Array.isArray(ids)) {
       return [];
