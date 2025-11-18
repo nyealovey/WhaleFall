@@ -80,7 +80,6 @@ ready(() => {
     initializeInstanceFilterCard();
     initializeBatchCreateModal();
     setupEventListeners();
-    bindModalTriggers();
     loadInstanceTotalSizes();
     registerUnloadCleanup();
     updateBatchButtons();
@@ -480,6 +479,8 @@ function setupEventListeners() {
     if (instanceCheckboxes.length) {
         instanceCheckboxes.on('change', updateBatchButtons);
     }
+
+    bindModalTriggers();
 }
 
 // 测试连接 - 使用新的连接管理API
