@@ -1,0 +1,49 @@
+{% set create_user_modal_body %}
+<form id="userModalForm" data-form-mode="create">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="user_id" id="userIdInput" />
+
+    <div class="mb-3">
+        <label for="userUsername" class="form-label">用户名 <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="userUsername" name="username" placeholder="仅支持字母、数字和下划线" required />
+        <div class="form-text">长度 3-20 位，仅可包含字母、数字和下划线</div>
+    </div>
+
+    <div class="mb-3">
+        <label for="userPassword" class="form-label">密码 <span class="text-danger">*</span></label>
+        <input type="password" class="form-control" id="userPassword" name="password" placeholder="至少 8 位，包含大小写字母和数字" required />
+        <div class="form-text">至少8位且包含大小写字母与数字</div>
+    </div>
+
+    <div class="mb-3">
+        <label for="userRole" class="form-label">角色 <span class="text-danger">*</span></label>
+        <select class="form-select" id="userRole" name="role" required>
+            <option value="">请选择角色</option>
+            {% for role in role_options %}
+            <option value="{{ role.value }}">{{ role.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" role="switch" id="userIsActive" name="is_active" value="1" checked />
+        <label class="form-check-label" for="userIsActive">激活用户</label>
+    </div>
+</form>
+{% endset %}
+
+{% set create_user_modal_footer %}
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+<button type="button" class="btn btn-primary" data-modal-confirm id="userModalSubmit">创建用户</button>
+{% endset %}
+
+{% with
+    modal_id='userModal',
+    modal_label_id='userModalLabel',
+    title='<i class="fas fa-user-plus me-2"></i><span id="userModalTitle">新建用户</span>',
+    body=create_user_modal_body,
+    footer=create_user_modal_footer,
+    size='lg'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}

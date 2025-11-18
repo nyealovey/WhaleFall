@@ -17,10 +17,42 @@ function mountAuthListPage(global) {
         return;
     }
     const userService = new UserService(global.httpU);
+    const userModals = global.UserModals?.createController
+        ? global.UserModals.createController({
+              http: global.httpU,
+              FormValidator: global.FormValidator,
+              ValidationRules: global.ValidationRules,
+              toast: global.toast,
+              DOMHelpers: global.DOMHelpers,
+          })
+        : null;
 
     ready(() => {
+        bindModalTriggers();
         initDeleteUserHandlers();
     });
+
+    function bindModalTriggers() {
+        if (!userModals) {
+            console.warn('UserModals 未加载，创建/编辑模态不可用');
+            return;
+        }
+        selectOne('[data-action="create-user"]').on('click', (event) => {
+            event.preventDefault();
+            userModals.openCreate();
+        });
+        select('[data-action="edit-user"]').each((button) => {
+            const wrapper = from(button);
+            wrapper.on('click', (event) => {
+                event.preventDefault();
+                const userId = wrapper.attr('data-user-id');
+                if (userId) {
+                    userModals.openEdit(userId);
+                }
+            });
+        });
+        userModals.init?.();
+    }
 
     function initDeleteUserHandlers() {
         select('[data-action="delete-user"]').each((button) => {

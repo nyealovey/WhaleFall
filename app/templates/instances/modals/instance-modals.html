@@ -1,0 +1,83 @@
+{% set instance_modal_body %}
+<form id="instanceModalForm" data-form-mode="create">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" name="instance_id" id="instanceIdInput"/>
+
+    <div class="row">
+        <div class="col-6">
+            <div class="mb-3">
+                <label for="instanceName" class="form-label">实例名称 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="instanceName" name="name" placeholder="唯一的实例名称" required>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="mb-3">
+                <label for="instanceDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
+                <select class="form-select" id="instanceDbType" name="db_type" required>
+                    <option value="">请选择数据库类型</option>
+                    {% for option in database_type_options %}
+                    <option value="{{ option.value }}">{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-6">
+            <div class="mb-3">
+                <label for="instanceHost" class="form-label">主机 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="instanceHost" name="host" placeholder="例如 127.0.0.1" required>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="mb-3">
+                <label for="instancePort" class="form-label">端口 <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="instancePort" name="port" min="1" max="65535" required>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="mb-3">
+                <label for="instanceDatabase" class="form-label">数据库名称</label>
+                <input type="text" class="form-control" id="instanceDatabase" name="database_name" placeholder="mysql / postgres / master / orcl">
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="instanceCredential" class="form-label">凭据</label>
+        <select class="form-select" id="instanceCredential" name="credential_id">
+            <option value="">请选择凭据</option>
+            {% for cred in credentials %}
+            <option value="{{ cred.id }}">#{{ cred.id }} - {{ cred.name }} ({{ cred.credential_type }})</option>
+            {% endfor %}
+        </select>
+        <div class="form-text">凭据未选时可后续再补充</div>
+    </div>
+
+    <div class="mb-3">
+        <label for="instanceDescription" class="form-label">描述</label>
+        <textarea class="form-control" id="instanceDescription" name="description" rows="3" placeholder="请输入实例描述"></textarea>
+    </div>
+
+    <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="instanceIsActive" name="is_active" value="1" checked>
+        <label class="form-check-label" for="instanceIsActive">启用此实例</label>
+    </div>
+</form>
+{% endset %}
+
+{% set instance_modal_footer %}
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+<button type="button" class="btn btn-primary" id="instanceModalSubmit">保存</button>
+{% endset %}
+
+{% with
+    modal_id='instanceModal',
+    modal_label_id='instanceModalLabel',
+    title='<i class="fas fa-database me-2"></i><span id="instanceModalTitle">添加实例</span>',
+    body=instance_modal_body,
+    footer=instance_modal_footer,
+    size='xl'\n%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}

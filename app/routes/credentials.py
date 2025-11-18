@@ -29,7 +29,6 @@ from app.utils.data_validator import sanitize_form_data
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.query_filter_utils import get_active_tag_options
-from app.views.credential_form_view import CredentialFormView
 from app.services.form_service.credentials_form_service import CredentialFormService
 
 # 创建蓝图
@@ -311,25 +310,4 @@ def api_detail(credential_id: int) -> "Response":
 
 
 # ---------------------------------------------------------------------------
-# 表单路由注册
-# ---------------------------------------------------------------------------
-_credential_create_view = CredentialFormView.as_view("credential_create_form")
-_credential_create_view = login_required(create_required(require_csrf(_credential_create_view)))
-
-credentials_bp.add_url_rule(
-    "/create",
-    view_func=_credential_create_view,
-    methods=["GET", "POST"],
-    defaults={"resource_id": None},
-    endpoint="create",
-)
-
-_credential_edit_view = CredentialFormView.as_view("credential_edit_form")
-_credential_edit_view = login_required(update_required(require_csrf(_credential_edit_view)))
-
-credentials_bp.add_url_rule(
-    "/<int:credential_id>/edit",
-    view_func=_credential_edit_view,
-    methods=["GET", "POST"],
-    endpoint="edit",
-)
+# 表单路由已由前端模态替代，不再暴露独立页面入口

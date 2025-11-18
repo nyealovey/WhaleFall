@@ -16,6 +16,34 @@
       this.httpClient = ensureHttpClient(httpClient);
     }
 
+    listUsers(params) {
+      return this.httpClient.get(`${BASE_PATH}/users`, params || {});
+    }
+
+    getUser(userId) {
+      if (userId === undefined || userId === null || userId === "") {
+        throw new Error("UserService: getUser 需要 userId");
+      }
+      return this.httpClient.get(`${BASE_PATH}/users/${userId}`);
+    }
+
+    createUser(payload) {
+      if (!payload) {
+        throw new Error("UserService: createUser 需要 payload");
+      }
+      return this.httpClient.post(`${BASE_PATH}/users`, payload);
+    }
+
+    updateUser(userId, payload) {
+      if (userId === undefined || userId === null || userId === "") {
+        throw new Error("UserService: updateUser 需要 userId");
+      }
+      if (!payload) {
+        throw new Error("UserService: updateUser 需要 payload");
+      }
+      return this.httpClient.put(`${BASE_PATH}/users/${userId}`, payload);
+    }
+
     deleteUser(userId) {
       if (userId === undefined || userId === null || userId === "") {
         throw new Error("UserService: deleteUser 需要 userId");
@@ -26,4 +54,3 @@
 
   global.UserService = UserService;
 })(window);
-

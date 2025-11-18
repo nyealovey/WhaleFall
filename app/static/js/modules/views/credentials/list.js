@@ -13,6 +13,15 @@ function mountCredentialsListPage(global) {
   }
 
   const { ready, select, selectOne, from } = helpers;
+  const credentialModals = global.CredentialModals?.createController
+    ? global.CredentialModals.createController({
+        http: global.httpU,
+        FormValidator: global.FormValidator,
+        ValidationRules: global.ValidationRules,
+        toast: global.toast,
+        DOMHelpers: global.DOMHelpers,
+      })
+    : null;
 
   const CredentialsService = global.CredentialsService;
   const createCredentialsStore = global.createCredentialsStore;
@@ -47,10 +56,37 @@ function mountCredentialsListPage(global) {
   ready(initializeCredentialsListPage);
 
   function initializeCredentialsListPage() {
+    bindModalTriggers();
     initializeDeleteConfirmation();
     initializeCredentialFilterCard();
     initializeRealTimeSearch();
     bindCredentialsStoreEvents();
+  }
+
+  function bindModalTriggers() {
+    if (!credentialModals) {
+      console.warn('CredentialModals 未加载，创建/编辑模态不可用');
+      return;
+    }
+    const createBtn = document.querySelector('[data-action="create-credential"]');
+    if (createBtn) {
+      createBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        credentialModals.openCreate();
+      });
+    }
+    select('[data-action="edit-credential"]').each((button) => {
+      const wrapper = from(button);
+      wrapper.on('click', (event) => {
+        event.preventDefault();
+        const row = button.closest('tr');
+        const credentialId = row?.getAttribute('data-credential-id') || wrapper.attr('data-credential-id');
+        if (credentialId) {
+          credentialModals.openEdit(credentialId);
+        }
+      });
+    });
+    credentialModals.init?.();
   }
 
   function initializeDeleteConfirmation() {
@@ -92,6 +128,9 @@ function mountCredentialsListPage(global) {
   }
 
   function deleteCredential(credentialId, credentialName) {
+    if (!credentialId) {
+      return;
+    }
     deleteCredentialId = credentialId;
     const credentialNameElement = selectOne("#deleteCredentialName");
     if (credentialNameElement.length) {

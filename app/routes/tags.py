@@ -15,7 +15,6 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.constants.filter_options import STATUS_ACTIVE_OPTIONS
 from app.utils.query_filter_utils import get_tag_categories
-from app.views.tag_form_view import TagFormView
 from app.services.form_service.tags_form_service import TagFormService
 from app.utils.data_validator import sanitize_form_data
 
@@ -216,25 +215,4 @@ def api_tag_detail(tag_name: str) -> tuple[Response, int]:
 
 
 # ---------------------------------------------------------------------------
-# 表单路由注册
-# ---------------------------------------------------------------------------
-_tag_create_view = TagFormView.as_view("tag_create_form")
-_tag_create_view = login_required(create_required(require_csrf(_tag_create_view)))
-
-tags_bp.add_url_rule(
-    "/create",
-    view_func=_tag_create_view,
-    methods=["GET", "POST"],
-    defaults={"resource_id": None},
-    endpoint="create",
-)
-
-_tag_edit_view = TagFormView.as_view("tag_edit_form")
-_tag_edit_view = login_required(update_required(require_csrf(_tag_edit_view)))
-
-tags_bp.add_url_rule(
-    "/<int:tag_id>/edit",
-    view_func=_tag_edit_view,
-    methods=["GET", "POST"],
-    endpoint="edit",
-)
+# 表单页面已退役，全部通过列表页模态 + API 处理

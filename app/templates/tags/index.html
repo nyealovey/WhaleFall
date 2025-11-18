@@ -22,9 +22,9 @@
             </div>
             {% if current_user.role == 'admin' %}
             <div class="btn-group">
-                <a href="{{ url_for('tags.create') }}" class="btn btn-light">
+                <button class="btn btn-light" type="button" data-action="create-tag">
                     <i class="fas fa-plus me-2"></i>添加标签
-                </a>
+                </button>
                 <a href="{{ url_for('tags_batch.batch_assign') }}" class="btn btn-light">
                     <i class="fas fa-tasks me-2"></i>批量分配
                 </a>
@@ -96,10 +96,13 @@
                         <td>
                             {% if current_user.role == 'admin' %}
                             <div class="btn-group btn-group-sm" role="group">
-                                <a href="{{ url_for('tags.edit', tag_id=tag.id) }}"
-                                   class="btn btn-outline-warning" title="编辑">
+                                <button type="button"
+                                        class="btn btn-outline-warning"
+                                        data-action="edit-tag"
+                                        data-tag-id="{{ tag.id }}"
+                                        title="编辑">
                                     <i class="fas fa-edit"></i>
-                                </a>
+                                </button>
                                 <button type="button" class="btn btn-outline-danger"
                                         data-tag-id="{{ tag.id }}" data-tag-name="{{ tag.display_name }}" title="删除">
                                     <i class="fas fa-trash"></i>
@@ -184,12 +187,14 @@
     {% include 'components/ui/modal.html' %}
 {% endwith %}
 
+{% include 'tags/modals/tag-modals.html' %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/modules/services/tag_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/tag_management_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/tag_list_store.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/tags/modals/tag-modals.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/tags/index.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap/tags/index.js') }}"></script>
 {% endblock %}
