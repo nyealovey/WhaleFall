@@ -1,3 +1,4 @@
+// 账户分类入口：挂载 AccountClassificationPage 以驱动分类管理交互
 (function (global) {
   "use strict";
 

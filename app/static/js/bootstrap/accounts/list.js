@@ -1,3 +1,4 @@
+// 账户列表入口：等待 DOM ready 后委托 AccountsListPage.mount 管理筛选/分页
 (function (global) {
   "use strict";
 

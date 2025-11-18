@@ -1,3 +1,4 @@
+// 凭据列表入口：挂载 CredentialsListPage，驱动凭据增删改查交互
 (function (global) {
   "use strict";
 

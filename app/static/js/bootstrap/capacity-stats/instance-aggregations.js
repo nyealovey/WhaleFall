@@ -1,3 +1,4 @@
+// 实例容量统计入口：挂载 modules/views/capacity-stats/instance_aggregations.js 暴露的页面对象
 (function (global) {
   "use strict";
 

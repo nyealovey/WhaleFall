@@ -138,6 +138,9 @@
         bindModalTriggers();
     }
 
+    /**
+     * 预留其他批量操作按钮（编辑、导出等）的初始化挂钩。
+     */
     function initializeTagActions() {
         // 预留扩展
     }
@@ -170,6 +173,9 @@
         });
     }
 
+    /**
+     * 将每个标签行的删除按钮与删除模态绑定，传递标签元信息。
+     */
     function bindDeleteButtons() {
         const deleteButtons = select('button[data-tag-id][data-tag-name]');
         if (!deleteButtons.length) {
@@ -195,6 +201,9 @@
         });
     }
 
+    /**
+     * 初始化标签新建/编辑模态控制器。
+     */
     function initializeTagModals() {
         if (!global.TagModals?.createController) {
             console.warn('TagModals 未加载，创建/编辑模态不可用');
@@ -210,6 +219,9 @@
         global.tagModals.init?.();
     }
 
+    /**
+     * 绑定新增/编辑标签按钮，触发对应模态。
+     */
     function bindModalTriggers() {
         if (!global.tagModals) {
             return;
@@ -233,6 +245,9 @@
         });
     }
 
+    /**
+     * 根据“全选”状态更新 tagListStore。
+     */
     function toggleAllTags(checked) {
         if (!tagListStore) {
             return;
@@ -244,6 +259,9 @@
         }
     }
 
+    /**
+     * 根据当前选择数量控制批量操作区域的显隐。
+     */
     function updateBatchActions() {
         const selectedIds = getSelectedTagIds();
         const batchActions = selectOne('.batch-actions');
@@ -253,6 +271,9 @@
         batchActions.first().style.display = selectedIds.length ? 'block' : 'none';
     }
 
+    /**
+     * 批量删除点击事件，收集标签 ID 并确认。
+     */
     function handleBatchDelete(event) {
         event?.preventDefault?.();
         const tagIds = getSelectedTagIds();
@@ -266,6 +287,9 @@
         }
     }
 
+    /**
+     * 调用 store 执行批量删除并处理 UI 提示。
+     */
     async function performBatchDelete(tagIds) {
         if (!tagManagementStore) {
             throw new Error('TagManagementStore 未初始化');
@@ -319,6 +343,9 @@
         tagFilterCard = null;
     }
 
+    /**
+     * 组合筛选表单参数并刷新页面。
+     */
     function applyTagFilters(form, values) {
         const targetForm = resolveForm(form) || getTagFilterForm();
         if (!targetForm) {
@@ -331,6 +358,9 @@
         global.location.href = query ? `${action}?${query}` : action;
     }
 
+    /**
+     * 清空筛选表单并跳转至默认列表。
+     */
     function resetTagFilters(form) {
         const targetForm = resolveForm(form) || getTagFilterForm();
         if (targetForm) {
@@ -339,6 +369,9 @@
         applyTagFilters(targetForm, {});
     }
 
+    /**
+     * 批量导出按钮事件，支持选择全部或当前筛选结果。
+     */
     function handleBatchExport(event) {
         event?.preventDefault?.();
         const tagIds = getSelectedTagIds();
@@ -349,6 +382,9 @@
         exportTags(tagIds);
     }
 
+    /**
+     * 生成导出 URL 并新开窗口下载。
+     */
     function exportTags(tagIds = null) {
         const params = buildTagQueryParams(resolveTagFilterValues(getTagFilterForm()));
         const ids = Array.isArray(tagIds) && tagIds.length > 0 ? tagIds : getSelectedTagIds();
@@ -359,6 +395,9 @@
         global.open(exportUrl, '_blank', 'noopener');
     }
 
+    /**
+     * 在按钮上显示加载状态（用于批量操作）。
+     */
     function showLoadingState(target, text) {
         const button = typeof target === 'string' ? selectOne(target) : from(target);
         if (!button.length) {
@@ -369,6 +408,9 @@
         button.attr('disabled', 'disabled');
     }
 
+    /**
+     * 恢复按钮原始文案和可用性。
+     */
     function hideLoadingState(target, originalText) {
         const button = typeof target === 'string' ? selectOne(target) : from(target);
         if (!button.length) {
@@ -380,6 +422,9 @@
         button.attr('data-original-text', null);
     }
 
+    /**
+     * 获取筛选表单 DOM（优先复用 FilterCard 提供的引用）。
+     */
     function getTagFilterForm() {
         if (tagFilterCard?.form) {
             return tagFilterCard.form;
@@ -387,6 +432,9 @@
         return selectOne(`#${TAG_FILTER_FORM_ID}`).first();
     }
 
+    /**
+     * 将多种 form 输入（原生元素/umbrella）归一化。
+     */
     function resolveForm(form) {
         if (!form) {
             return null;
@@ -400,6 +448,9 @@
         return form;
     }
 
+    /**
+     * 收集筛选值并去掉空值/CSRF 字段。
+     */
     function resolveTagFilterValues(form, overrideValues) {
         const rawValues =
             overrideValues && Object.keys(overrideValues || {}).length
@@ -421,6 +472,9 @@
         }, {});
     }
 
+    /**
+     * 标准化筛选项：去空白、过滤空数组。
+     */
     function sanitizeFilterValue(value) {
         if (Array.isArray(value)) {
             return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
@@ -428,6 +482,9 @@
         return sanitizePrimitiveValue(value);
     }
 
+    /**
+     * 处理基本类型，保留文件名/数字，剔除空字符串。
+     */
     function sanitizePrimitiveValue(value) {
         if (value instanceof File) {
             return value.name;
@@ -442,6 +499,9 @@
         return value;
     }
 
+    /**
+     * 将筛选对象转换为 URLSearchParams，支持数组值。
+     */
     function buildTagQueryParams(filters) {
         const params = new URLSearchParams();
         Object.entries(filters || {}).forEach(([key, value]) => {
@@ -454,6 +514,9 @@
         return params;
     }
 
+    /**
+     * 根据过滤卡或回退逻辑序列化表单。
+     */
     function collectFormValues(form) {
         if (tagFilterCard?.serialize) {
             return tagFilterCard.serialize();
@@ -480,6 +543,9 @@
         return result;
     }
 
+    /**
+     * 监听列表 store 的 selection/updated 事件并同步 UI。
+     */
     function bindTagListStoreEvents() {
         if (!tagListStore) {
             return;
@@ -493,6 +559,9 @@
         });
     }
 
+    /**
+     * 根据 store selection 结果同步 checkbox 状态。
+     */
     function syncSelectionView(selection) {
         const selectedSet = new Set(Array.isArray(selection) ? selection : []);
         select('input[name="tag_ids"]').each((checkbox) => {
@@ -508,12 +577,18 @@
         }
     }
 
+    /**
+     * 从 DOM 中收集列表展示的全部标签 ID。
+     */
     function getAllTagIds() {
         return select('input[name="tag_ids"]').nodes
             .map((checkbox) => Number(checkbox.value))
             .filter((value) => Number.isFinite(value));
     }
 
+    /**
+     * 读取 store 当前选中集合，统一返回数组。
+     */
     function getSelectedTagIds() {
         if (!tagListStore) {
             return [];

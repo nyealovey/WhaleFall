@@ -1,3 +1,4 @@
+// 实例详情入口：绑定 InstanceDetailPage.mount，用于渲染实例信息与操作面板
 (function (global) {
   "use strict";
 

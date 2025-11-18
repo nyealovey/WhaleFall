@@ -1,3 +1,4 @@
+// 标签批量分配入口：挂载 modules/views/tags/batch_assign.js 暴露的页面对象
 (function (global) {
   "use strict";
 

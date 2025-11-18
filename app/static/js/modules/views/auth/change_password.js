@@ -168,6 +168,9 @@ function mountChangePasswordPage(global) {
         strengthText.text(feedback);
     }
 
+    /**
+     * 高亮密码要求项，提示用户满足条件。
+     */
     function updatePasswordRequirements(password) {
         const requirementsContainer = selectOne('#passwordRequirements');
         if (!requirementsContainer.length) {
@@ -253,6 +256,9 @@ function mountChangePasswordPage(global) {
         }
     }
 
+    /**
+     * 控制提交按钮的加载态，防止重复提交。
+     */
     function toggleSubmitLoading(loading) {
         if (!submitButton) {
             return;

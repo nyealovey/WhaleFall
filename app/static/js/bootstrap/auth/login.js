@@ -1,3 +1,4 @@
+// 登录页面入口脚本：挂载 modules/views/auth/login.js 暴露的 LoginPage
 (function (global) {
   "use strict";
 

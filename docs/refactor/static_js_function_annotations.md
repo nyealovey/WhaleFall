@@ -56,3 +56,45 @@
 4. **阶段 4**：`core/`、`common/` 与零散脚本
 
 每阶段完成后更新该文档，记录覆盖范围与 TODO。
+
+## 注释应覆盖的信息
+- 作用：函数/类提供什么能力、在哪个上下文被使用。
+- 输入：关键参数类型/取值范围/必填可选，事件对象或外部依赖（如全局 store、DOM 选择器）。
+- 输出：返回值形态、Promise 逻辑、是否有副作用（修改 DOM、全局状态、触发事件）。
+- 边界：节流/防抖、错误处理路径、缓存命中等特殊分支。
+
+## 模块示例片段
+### 服务层（modules/services）
+```js
+// 通过 Grid.js 服务端分页获取实例列表；保留筛选器的查询字符串
+export const fetchInstances = (params = {}) => {
+  // params: { page, limit, sort, order, filters }
+  return request.get('/api/instances', { params });
+};
+```
+
+### 视图层事件处理（modules/views/**）
+```js
+// 处理标签筛选变更，重置页码并刷新表格
+const handleTagFilterChange = (tagId) => {
+  currentPage.value = 1;
+  grid.forceRender({ tag_id: tagId });
+};
+```
+
+### 状态存储（modules/stores）
+```js
+// 保存最近一次同步结果，供实例详情页复用
+export const setLastSyncResult = (instanceId, result) => {
+  state.syncResults[instanceId] = result;
+};
+```
+
+## 分批进度记录（草案）
+- [x] services：`modules/services/*.js`（抽检 connection_service.js、instance_management_service.js 均已覆盖用途/参数/异常）
+- [x] stores：`modules/stores/*.js`（instance_store.js、tag_list_store.js 等已标注状态流转与事件）
+- [x] 核心 UI：`modules/ui/**`（modal.js、filter-card.js 已补充初始化依赖、事件绑定说明）
+- [x] 通用组件：`modules/views/components/**`（如 connection-manager.js 已为导出方法补充用途与回调参数）
+- [x] 视图入口：`bootstrap/**`（已为各入口脚本补充“挂载对象 + 依赖条件”描述）
+- [x] 其他页面视图：`modules/views/**`（抽检 tags/index.js、auth/login.js、capacity-stats/* 均有注释，建议后续走查剩余页面）
+- [x] 核心工具：`core/`、`common/`（dom.helpers.js、http-u.js、csrf-utils.js 等已添加用途与边界处理说明）

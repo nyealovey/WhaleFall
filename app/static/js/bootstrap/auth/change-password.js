@@ -1,3 +1,4 @@
+// 修改密码入口：监听 DOM ready 后启动 ChangePasswordPage（modules/views/auth/change_password.js）
 (function (global) {
   "use strict";
 

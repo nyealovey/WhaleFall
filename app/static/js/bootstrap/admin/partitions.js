@@ -1,3 +1,4 @@
+// 管理端分区页入口：顺序初始化 AdminPartitionsPage 与聚合图表挂载点
 (function (global) {
   "use strict";
 

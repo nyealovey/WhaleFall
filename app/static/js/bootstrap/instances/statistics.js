@@ -1,3 +1,4 @@
+// 实例统计入口：触发 InstanceStatisticsPage.mount，渲染仪表数据
 (function (global) {
   "use strict";
 
