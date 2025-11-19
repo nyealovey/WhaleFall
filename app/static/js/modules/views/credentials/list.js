@@ -81,11 +81,11 @@ function mountCredentialsListPage(global) {
     }
     canManageCredentials = container.dataset.canManage === "true";
     credentialsGrid = new global.GridWrapper(container, {
+      sort: false,
       columns: [
         {
           name: "ID",
           id: "id",
-          width: "90px",
           formatter: (cell) =>
             gridHtml
               ? gridHtml(`<span class="badge bg-secondary">#${cell}</span>`)
@@ -94,7 +94,6 @@ function mountCredentialsListPage(global) {
         {
           name: "名称",
           id: "name",
-          width: "220px",
           formatter: (cell, row) => {
             const meta = row?.cells?.[8]?.data || {};
             const description = meta.description
@@ -107,7 +106,6 @@ function mountCredentialsListPage(global) {
         {
           name: "类型",
           id: "credential_type",
-          width: "120px",
           formatter: (cell) => {
             if (!gridHtml) {
               return cell || "-";
@@ -125,7 +123,6 @@ function mountCredentialsListPage(global) {
         {
           name: "数据库类型",
           id: "db_type",
-          width: "140px",
           formatter: (cell) => {
             if (!cell) {
               return gridHtml ? gridHtml('<span class="text-muted">-</span>') : "-";
@@ -134,11 +131,10 @@ function mountCredentialsListPage(global) {
             return gridHtml ? gridHtml(`<span class="badge bg-info">${display}</span>`) : display;
           },
         },
-        { name: "用户名", id: "username", width: "160px" },
+        { name: "用户名", id: "username" },
         {
           name: "绑定实例",
           id: "instance_count",
-          width: "140px",
           formatter: (cell) => {
             if (!gridHtml) {
               return `${cell || 0} 个`;
@@ -151,7 +147,6 @@ function mountCredentialsListPage(global) {
         {
           name: "状态",
           id: "is_active",
-          width: "100px",
           formatter: (cell) => {
             const isActive = Boolean(cell);
             if (!gridHtml) {
@@ -165,12 +160,10 @@ function mountCredentialsListPage(global) {
         {
           name: "创建时间",
           id: "created_at",
-          width: "180px",
           formatter: (cell) => cell || "-",
         },
         {
           name: "操作",
-          width: "160px",
           sort: false,
           formatter: (cell, row) => {
             const credentialId = row?.cells?.[0]?.data;
@@ -195,7 +188,7 @@ function mountCredentialsListPage(global) {
         },
       ],
       server: {
-        url: "/credentials/api/credentials",
+        url: "/credentials/api/credentials?sort=id&order=desc",
         headers: {
           "X-Requested-With": "XMLHttpRequest",
         },
