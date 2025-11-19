@@ -1,4 +1,4 @@
-// 同步会话历史入口：挂载 modules/views/history/sync-sessions.js 输出的页面对象
+// 同步会话历史入口：挂载 modules/views/history/sessions/sync-sessions.js 输出的页面对象
 (function (global) {
   "use strict";
 

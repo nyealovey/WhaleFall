@@ -40,6 +40,7 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   const AUTO_APPLY_FILTER_CHANGE = true;
   const AUTO_REFRESH_INTERVAL_MS = 30000;
   const SESSION_DETAIL_MODAL_SELECTOR = '#sessionDetailModal';
+  const SESSION_DETAIL_CONTENT_SELECTOR = '#session-detail-content';
   const ERROR_LOGS_MODAL_SELECTOR = '#errorLogsModal';
 
   /**
@@ -54,7 +55,7 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   const storeSubscriptions = [];
   let syncFilterCard = null;
   let filterUnloadHandler = null;
-  let sessionDetailModal = null;
+  let sessionDetailModalController = null;
   let errorLogsModal = null;
   window.syncSessionsStore = null;
 
@@ -141,10 +142,24 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       throw new Error('UI.createModal 未加载，会话中心模态无法初始化');
     }
     debugLog("初始化会话详情/错误日志模态");
-    sessionDetailModal = factory({
-      modalSelector: SESSION_DETAIL_MODAL_SELECTOR,
-      onClose: clearSessionDetailContent,
-    });
+    if (!window.SyncSessionDetailModal?.createController) {
+      throw new Error('SyncSessionDetailModal 未加载，会话详情模态无法初始化');
+    }
+    try {
+      sessionDetailModalController = window.SyncSessionDetailModal.createController({
+        ui: window.UI,
+        timeUtils: window.timeUtils,
+        modalSelector: SESSION_DETAIL_MODAL_SELECTOR,
+        contentSelector: SESSION_DETAIL_CONTENT_SELECTOR,
+        getStatusColor,
+        getStatusText,
+        getSyncTypeText,
+        getSyncCategoryText,
+      });
+    } catch (error) {
+      console.error('初始化 SyncSessionDetailModal 失败:', error);
+      debugLog('会话详情模态初始化失败', error);
+    }
     errorLogsModal = factory({
       modalSelector: ERROR_LOGS_MODAL_SELECTOR,
       onClose: clearErrorLogsContent,
@@ -184,6 +199,7 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     window.syncSessionsStore = syncSessionsStore;
     window.addEventListener('beforeunload', () => {
       teardownStore();
+      sessionDetailModalController?.destroy?.();
     }, { once: true });
   }
 
@@ -516,70 +532,11 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
    * 将会话详情渲染到模态内容区域。
    */
   window.showSessionDetail = function (session) {
-    const content = document.getElementById('session-detail-content');
-    if (!content) return;
-    const safeSession = session && typeof session === 'object' ? session : {};
-    const records = Array.isArray(safeSession.instance_records) ? safeSession.instance_records : [];
-
-    const recordsHtml = records.map(record => {
-      const statusClass = getStatusClass(record.status);
-      const statusText = getStatusText(record.status);
-      // 使用统一的时间解析计算持续时间
-      let duration = '-';
-      if (record.started_at && record.completed_at) {
-          const startTime = timeUtils.parseTime(record.started_at);
-          const endTime = timeUtils.parseTime(record.completed_at);
-          if (startTime && endTime) {
-              duration = Math.round((endTime - startTime) / 1000) + '秒';
-          }
-      }
-      const startedAt = timeUtils.formatTime(record.started_at, 'datetime');
-      const completedAt = record.completed_at ? timeUtils.formatTime(record.completed_at, 'datetime') : '-';
-
-      return `
-        <div class="card mb-2">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col-3">
-                <h6 class="mb-1"><strong>ID: ${record.instance_id}</strong> &nbsp;&nbsp; ${record.instance_name}</h6>
-              </div>
-              <div class="col-2">
-                <span class="badge status-badge bg-${getStatusColor(record.status)}">${statusText}</span>
-              </div>
-              <div class="col-7">
-                <small class="text-muted">
-                  开始: ${startedAt} &nbsp;&nbsp; | &nbsp;&nbsp; 完成: ${completedAt} &nbsp;&nbsp; | &nbsp;&nbsp; 耗时: ${duration}
-                  ${record.error_message ? ` &nbsp;&nbsp; | &nbsp;&nbsp; 错误: ${record.error_message}` : ''}
-                </small>
-              </div>
-            </div>
-          </div>
-        </div>`;
-    }).join('');
-
-    content.innerHTML = `
-      <div class="row mb-3">
-        <div class="col-6"><strong>会话ID:</strong> ${safeSession.session_id || '未知'}</div>
-        <div class="col-6"><strong>状态:</strong> <span class="badge bg-${getStatusColor(safeSession.status)}">${getStatusText(safeSession.status)}</span></div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-6"><strong>操作方式:</strong> ${getSyncTypeText(safeSession.sync_type)}</div>
-        <div class="col-6"><strong>同步分类:</strong> ${getSyncCategoryText(safeSession.sync_category)}</div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-6"><strong>开始时间:</strong> ${timeUtils.formatTime(safeSession.started_at, 'datetime')}</div>
-        <div class="col-6"><strong>完成时间:</strong> ${safeSession.completed_at ? timeUtils.formatTime(safeSession.completed_at, 'datetime') : '未完成'}</div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-4"><strong>总实例数:</strong> ${safeSession.total_instances ?? 0}</div>
-        <div class="col-4"><strong>成功:</strong> ${safeSession.successful_instances ?? 0}</div>
-        <div class="col-4"><strong>失败:</strong> ${safeSession.failed_instances ?? 0}</div>
-      </div>
-      <hr>
-      <h6>实例记录</h6>
-      <div class="max-height-400 overflow-auto">${recordsHtml || '<div class="text-muted">暂无实例记录</div>'}</div>`;
-
-    openModal(sessionDetailModal, 'sessionDetail');
+    if (sessionDetailModalController) {
+      sessionDetailModalController.open(session);
+      return;
+    }
+    console.warn('sessionDetailModalController 未初始化');
   }
 
   /**
@@ -752,34 +709,40 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   /**
    * 将状态映射为卡片 CSS class。
    */
-  window.getStatusClass = function (status) {
+  function getStatusClass(status) {
     const map = { running: 'running', completed: 'completed', failed: 'failed', cancelled: 'cancelled' };
     return map[status] || '';
   }
-  window.getStatusText = function (status) { return status; }
+
+  function getStatusText(status) {
+    return status || '-';
+  }
+
   /**
    * 将状态映射为 badge 颜色。
    */
-  window.getStatusColor = function (status) {
+  function getStatusColor(status) {
     const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning' };
     return map[status] || 'secondary';
   }
+
   /**
    * 同步类型 -> 展示文案。
    */
-  window.getSyncTypeText = function (type) {
+  function getSyncTypeText(type) {
     const typeMap = {
       'manual_single': '手动单台',
       'manual_batch': '手动批量',
       'manual_task': '手动任务',
       'scheduled_task': '定时任务'
     };
-    return typeMap[type] || type;
+    return typeMap[type] || type || '-';
   }
+
   /**
    * 同步分类 -> 展示文案。
    */
-  window.getSyncCategoryText = function (category) {
+  function getSyncCategoryText(category) {
     const categoryMap = {
       'account': '账户同步',
       'capacity': '容量同步',
@@ -787,13 +750,13 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       'aggregation': '统计聚合',
       'other': '其他'
     };
-    return categoryMap[category] || category;
+    return categoryMap[category] || category || '-';
   }
 
   /**
    * 计算耗时徽标文本（包含起止时间）。
    */
-  window.getDurationBadge = function (startedAt, completedAt) {
+  function getDurationBadge(startedAt, completedAt) {
     if (!startedAt || !completedAt) return '<span class="text-muted">-</span>';
     
     // 使用统一的时间解析
@@ -806,19 +769,19 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     return window.NumberFormat.formatDurationSeconds(sec);
   }
 
+  window.getStatusClass = getStatusClass;
+  window.getStatusText = getStatusText;
+  window.getStatusColor = getStatusColor;
+  window.getSyncTypeText = getSyncTypeText;
+  window.getSyncCategoryText = getSyncCategoryText;
+  window.getDurationBadge = getDurationBadge;
+
   function openModal(instance, name) {
     if (instance?.open) {
       instance.open();
       return;
     }
     console.error(`模态未初始化: ${name}`);
-  }
-
-  function clearSessionDetailContent() {
-    const container = document.getElementById('session-detail-content');
-    if (container) {
-      container.innerHTML = '';
-    }
   }
 
   function clearErrorLogsContent() {
