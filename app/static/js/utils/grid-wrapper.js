@@ -242,14 +242,19 @@
     if (typeof url === "string") {
       return url;
     }
-    if (url instanceof Request) {
-      return url.url || url.href || url.toString();
-    }
-    if (url instanceof URL) {
-      return url.toString();
-    }
-    if (typeof url === "object" && typeof url.toString === "function") {
-      return url.toString();
+    if (typeof url === "object") {
+      if (typeof url.url === "string") {
+        return url.url;
+      }
+      if (typeof url.href === "string") {
+        return url.href;
+      }
+      if (typeof url.toString === "function") {
+        const value = url.toString();
+        if (value && value !== "[object Object]" && value !== "[object Request]") {
+          return value;
+        }
+      }
     }
     try {
       return String(url);
