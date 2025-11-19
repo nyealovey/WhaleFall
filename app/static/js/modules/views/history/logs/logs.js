@@ -32,7 +32,7 @@
         const storeSubscriptions = [];
         let storeUnloadHandler = null;
         let logFilterCard = null;
-        let logDetailModal = null;
+        let logDetailModalController = null;
 
         ready(() => {
             initializePage();
@@ -617,160 +617,32 @@
      * 渲染日志详情模态内容。
      */
     function displayLogDetail(log) {
-        const contentWrapper = selectOne('#logDetailContent');
-        if (!contentWrapper.length) {
+        if (!logDetailModalController) {
+            console.warn('日志详情模态未初始化');
             return;
         }
-        const safeLog = log && typeof log === 'object' ? log : {};
-        const detailPayload = safeLog.context || safeLog.metadata || {};
-        const detailTitle = safeLog.context ? '上下文' : safeLog.metadata ? '元数据' : '详情';
-        const contextHtml = buildContextContent(detailPayload);
-        const detailHtml = `
-            <div class="mb-3">
-                <strong>日志 ID：</strong>${safeLog.id || '-'}
-            </div>
-            <div class="mb-3">
-                <strong>级别：</strong>${safeLog.level || '-'}
-            </div>
-            <div class="mb-3">
-                <strong>模块：</strong>${safeLog.module || '-'}
-            </div>
-            <div class="mb-3">
-                <strong>时间：</strong>${safeLog.timestamp ? global.timeUtils.formatTime(safeLog.timestamp, 'datetime') : '-'}
-            </div>
-            <div class="mb-3">
-                <strong>消息：</strong>
-                <pre class="bg-light p-3 rounded">${escapeHtml(safeLog.message || '')}</pre>
-            </div>
-            ${
-                safeLog.traceback
-                    ? `<div class="mb-3">
-                        <strong>堆栈：</strong>
-                        <pre class="bg-dark text-light p-3 rounded overflow-auto">${escapeHtml(safeLog.traceback)}</pre>
-                    </div>`
-                    : ''
-            }
-            <div class="mb-3">
-                <strong>${detailTitle}：</strong>
-                ${contextHtml}
-            </div>
-        `;
-        contentWrapper.html(detailHtml);
-
-        logDetailModal?.open?.({ logId: safeLog.id });
+        logDetailModalController.open(log);
     }
 
     /**
-     * 将 context/metadata 渲染为分组的 pre 块。
-     */
-    function buildContextContent(payload) {
-        if (payload === null || payload === undefined) {
-            return '<div class="text-muted">暂无上下文数据</div>';
-        }
-        if (typeof payload === 'string') {
-            return `<pre class="bg-light p-3 rounded">${escapeHtml(payload)}</pre>`;
-        }
-        if (typeof payload === 'object') {
-            const entries = Object.entries(payload);
-            if (entries.length === 0) {
-                return '<div class="text-muted">暂无上下文数据</div>';
-            }
-            const rows = entries
-                .map(([key, value]) => {
-                    const normalizedValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : value;
-                    return `
-                        <div class="mb-2">
-                            <div class="text-muted small">${escapeHtml(key)}</div>
-                            <pre class="bg-light p-3 rounded mb-0">${escapeHtml(String(normalizedValue ?? ''))}</pre>
-                        </div>`;
-                })
-                .join('');
-            return `<div class="log-context-section">${rows}</div>`;
-        }
-        return `<pre class="bg-light p-3 rounded">${escapeHtml(String(payload))}</pre>`;
-    }
-
-    /**
-     * 基础 HTML 转义。
-     */
-    function escapeHtml(value) {
-        if (value === null || value === undefined) {
-            return '';
-        }
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
-    function copyLogDetail() {
-        const content = document.getElementById('logDetailContent');
-        if (!content) {
-            return;
-        }
-        const text = content.innerText || content.textContent || '';
-        if (!text) {
-            if (global.toast && typeof global.toast.info === 'function') {
-                global.toast.info('暂无可复制的日志详情');
-            }
-            return;
-        }
-        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-            navigator.clipboard
-                .writeText(text)
-                .then(() => {
-                    if (global.toast && typeof global.toast.success === 'function') {
-                        global.toast.success('日志详情已复制');
-                    }
-                })
-                .catch(() => fallbackCopyText(text));
-        } else {
-            fallbackCopyText(text);
-        }
-    }
-
-    /**
-     * 复制日志详情的回退方案。
-     */
-    function fallbackCopyText(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-            document.execCommand('copy');
-            if (global.toast && typeof global.toast.success === 'function') {
-                global.toast.success('日志详情已复制');
-            }
-        } catch (error) {
-            console.error('复制日志详情失败:', error);
-        } finally {
-            document.body.removeChild(textarea);
-        }
-    }
-
-    /**
-     * 初始化日志详情模态与复制按钮事件。
+     * 初始化日志详情模态。
      */
     function initializeLogDetailModal() {
-        const factory = global.UI?.createModal;
-        if (!factory) {
-            console.error('UI.createModal 未加载，无法初始化日志详情模态框');
+        if (!global.LogsLogDetailModal?.createController) {
+            console.error('LogsLogDetailModal 未加载，无法初始化日志详情模态');
             return;
         }
-        logDetailModal = factory({
-            modalSelector: '#logDetailModal',
-        });
-        const copyButton = selectOne('#copyLogDetailButton');
-        if (copyButton.length) {
-            copyButton.on('click', (event) => {
-                event?.preventDefault?.();
-                copyLogDetail();
+        try {
+            logDetailModalController = global.LogsLogDetailModal.createController({
+                ui: global.UI,
+                toast: global.toast,
+                timeUtils: global.timeUtils,
+                modalSelector: '#logDetailModal',
+                contentSelector: '#logDetailContent',
+                copyButtonSelector: '#copyLogDetailButton',
             });
+        } catch (error) {
+            console.error('初始化日志详情模态失败:', error);
         }
     }
 
@@ -778,13 +650,11 @@
      * 销毁日志详情模态，释放资源。
      */
     function destroyLogDetailModal() {
-        if (logDetailModal?.destroy) {
-            logDetailModal.destroy();
+        if (logDetailModalController?.destroy) {
+            logDetailModalController.destroy();
         }
-        logDetailModal = null;
+        logDetailModalController = null;
     }
-
-    global.copyLogDetail = copyLogDetail;
     }
 
     global.LogsPage = {

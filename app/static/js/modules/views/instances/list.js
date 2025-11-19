@@ -33,7 +33,7 @@ try {
 
 let instanceStore = null;
 const instanceStoreSubscriptions = [];
-let batchCreateModal = null;
+let batchCreateController = null;
 let instanceModals = null;
 
 function ensureInstanceService() {
@@ -50,7 +50,6 @@ function ensureInstanceService() {
 
 const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
 const AUTO_APPLY_FILTER_CHANGE = true;
-const BATCH_CREATE_LOADING_TEXT = '创建中...';
 let instanceFilterCard = null;
 let unloadCleanupHandler = null;
 
@@ -79,7 +78,7 @@ function initializeInstanceModals() {
         initializeInstanceModals();
         initializeTagFilter();
         initializeInstanceFilterCard();
-        initializeBatchCreateModal();
+        initializeBatchCreateController();
         setupEventListeners();
         loadInstanceTotalSizes();
         registerUnloadCleanup();
@@ -177,26 +176,23 @@ function initializeInstanceStore() {
 }
 
 // 批量创建实例模态初始化
-function initializeBatchCreateModal() {
-    const factory = window.UI?.createModal;
-    if (!factory) {
-        throw new Error('UI.createModal 未加载，实例列表批量创建模态无法初始化');
+function initializeBatchCreateController() {
+    if (!window.BatchCreateInstanceModal?.createController) {
+        console.warn('BatchCreateInstanceModal 未加载，批量创建不可用');
+        return;
     }
-    batchCreateModal = factory({
-        modalSelector: '#batchCreateModal',
-        loadingText: BATCH_CREATE_LOADING_TEXT,
-        onOpen: resetBatchCreateModalState,
-        onClose: resetBatchCreateModalState,
-        onConfirm: () => submitBatchCreate(),
-    });
-}
-
-// 获取批量创建模态实例
-function ensureBatchCreateModal() {
-    if (!batchCreateModal) {
-        throw new Error('批量创建模态未初始化');
+    try {
+        batchCreateController = window.BatchCreateInstanceModal.createController({
+            ui: window.UI,
+            toast: window.toast,
+            numberFormat: window.NumberFormat,
+            instanceService,
+            instanceStore,
+            getInstanceStore: () => instanceStore,
+        });
+    } catch (error) {
+        console.error('初始化 BatchCreateInstanceModal 失败:', error);
     }
-    return batchCreateModal;
 }
 
 // 从列表复选框收集实例 ID/名称，用于 store 初始化
@@ -716,105 +712,6 @@ function batchDelete() {
         });
 }
 
-function resetBatchCreateModalState() {
-    const csvFileInput = document.getElementById('csvFile');
-    if (csvFileInput) {
-        csvFileInput.value = '';
-        const info = csvFileInput.parentNode.querySelector('.file-info');
-        if (info) {
-            info.remove();
-        }
-    }
-}
-
-// 批量创建相关功能
-function showBatchCreateModal() {
-    const modal = ensureBatchCreateModal();
-    resetBatchCreateModalState();
-    modal.open();
-}
-
-function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (file) {
-        // 验证文件类型
-        if (!file.name.toLowerCase().endsWith('.csv')) {
-            toast.warning('请选择CSV格式文件');
-            event.target.value = '';
-            return;
-        }
-
-        // 显示文件信息
-        const fileInfo = document.createElement('div');
-        fileInfo.className = 'mt-2 text-muted file-info';
-        const sizeLabel = window.NumberFormat.formatBytes(file.size, {
-                unit: 'KB',
-                precision: 1,
-                trimZero: true,
-                fallback: '0 KB',
-              });
-        fileInfo.innerHTML = `<i class="fas fa-file-csv me-1"></i>已选择文件: ${file.name} (${sizeLabel})`;
-
-        // 移除之前的文件信息
-        const existingInfo = event.target.parentNode.querySelector('.file-info');
-        if (existingInfo) {
-            existingInfo.remove();
-        }
-
-        event.target.parentNode.appendChild(fileInfo);
-    }
-}
-
-function submitBatchCreate() {
-    submitFileUpload();
-}
-
-function submitFileUpload() {
-    if (!ensureInstanceService()) {
-        return;
-    }
-    const modalInstance = ensureBatchCreateModal();
-    const fileInput = document.getElementById('csvFile');
-    const file = fileInput.files[0];
-
-    if (!file) {
-        toast.warning('请选择CSV文件');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    modalInstance.setLoading(true, BATCH_CREATE_LOADING_TEXT);
-
-    const submitAction = instanceStore
-        ? instanceStore.actions.batchCreateInstances(formData)
-        : instanceService.batchCreateInstances(formData);
-
-    submitAction
-        .then((data) => {
-            if (instanceStore || data.success) {
-                const result = data?.response || data;
-                const message = result?.message || data?.message || '批量创建成功';
-                toast.success(message);
-                const errors = result?.errors || data?.errors;
-                if (errors && errors.length > 0) {
-                    toast.warning(`部分实例创建失败：\n${errors.join('\n')}`);
-                }
-                modalInstance.close();
-                setTimeout(() => location.reload(), 1000);
-                return;
-            }
-            toast.error(data.error || '批量创建失败');
-        })
-        .catch((error) => {
-            toast.error(error?.message || '批量创建失败');
-        })
-        .finally(() => {
-            modalInstance.setLoading(false);
-        });
-}
-
 // 标签选择器相关功能
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
@@ -822,9 +719,6 @@ Object.assign(instanceListExports, {
     testConnection,
     batchTestConnections,
     batchDelete,
-    showBatchCreateModal,
-    submitBatchCreate,
-    handleFileSelect,
     toggleSelectAll,
     updateBatchButtons,
     syncAccounts,
@@ -849,9 +743,6 @@ function createDeferredExportInvoker(methodName) {
 window.testConnection = createDeferredExportInvoker('testConnection');
 window.batchTestConnections = createDeferredExportInvoker('batchTestConnections');
 window.batchDelete = createDeferredExportInvoker('batchDelete');
-window.showBatchCreateModal = createDeferredExportInvoker('showBatchCreateModal');
-window.submitBatchCreate = createDeferredExportInvoker('submitBatchCreate');
-window.handleFileSelect = createDeferredExportInvoker('handleFileSelect');
 window.toggleSelectAll = createDeferredExportInvoker('toggleSelectAll');
 window.updateBatchButtons = createDeferredExportInvoker('updateBatchButtons');
 window.syncAccounts = createDeferredExportInvoker('syncAccounts');
