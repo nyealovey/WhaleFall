@@ -163,13 +163,45 @@
     // 更新 Grid 的服务端配置
     this.grid.config.server = newServerConfig;
     
-    // 清除缓存（如果存在）
-    if (this.grid.config.store && typeof this.grid.config.store.clearCache === "function") {
-      console.log('[GridWrapper] 清除缓存');
-      this.grid.config.store.clearCache();
+    // 尝试使用 updateConfig (Grid.js 5.x+)
+    if (typeof this.grid.updateConfig === "function") {
+      console.log('[GridWrapper] 使用 updateConfig 方法');
+      this.grid.updateConfig({
+        server: newServerConfig,
+      }).forceRender();
+      return this;
     }
     
-    // 强制重新渲染（会触发新的数据请求）
+    // 清除缓存并重置页码
+    if (this.grid.config.store) {
+      console.log('[GridWrapper] 清除缓存');
+      if (typeof this.grid.config.store.clearCache === "function") {
+        this.grid.config.store.clearCache();
+      }
+      // 重置到第一页
+      if (this.grid.config.pagination) {
+        this.grid.config.pagination.page = 0;
+      }
+    }
+    
+    // 尝试直接操作 pipeline
+    if (this.grid.config.pipeline) {
+      console.log('[GridWrapper] 触发 pipeline 处理');
+      const pipeline = this.grid.config.pipeline;
+      if (pipeline.clearCache && typeof pipeline.clearCache === "function") {
+        pipeline.clearCache();
+      }
+      if (pipeline.process && typeof pipeline.process === "function") {
+        pipeline.process().then(() => {
+          if (typeof this.grid.forceRender === "function") {
+            this.grid.forceRender();
+          }
+        });
+        return this;
+      }
+    }
+    
+    // 最后尝试 forceRender
     if (typeof this.grid.forceRender === "function") {
       console.log('[GridWrapper] 触发 forceRender');
       this.grid.forceRender();
