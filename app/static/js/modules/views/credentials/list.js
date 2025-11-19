@@ -217,8 +217,10 @@ function mountCredentialsListPage(global) {
       },
     });
     const initialFilters = normalizeGridFilters(resolveCredentialFilters(resolveFormElement()));
+    console.log('[Credentials] 初始筛选条件:', initialFilters);
     credentialsGrid.init();
     if (initialFilters && Object.keys(initialFilters).length > 0) {
+      console.log('[Credentials] 应用初始筛选条件');
       credentialsGrid.setFilters(initialFilters);
     }
   }
@@ -392,16 +394,19 @@ function mountCredentialsListPage(global) {
   function applyCredentialFilters(form, values) {
     const targetForm = resolveFormElement(form);
     if (!targetForm) {
+      console.warn('[Credentials] 未找到筛选表单');
       return;
     }
 
     const filters = normalizeGridFilters(resolveCredentialFilters(targetForm, values));
+    console.log('[Credentials] 应用筛选条件:', filters);
     const searchTerm = filters.search || "";
     if (typeof searchTerm === "string" && searchTerm.trim().length > 0 && searchTerm.trim().length < 2) {
       global.toast.warning("搜索关键词至少需要2个字符");
       return;
     }
     if (credentialsGrid) {
+      console.log('[Credentials] 调用 updateFilters');
       credentialsGrid.updateFilters(filters);
       return;
     }

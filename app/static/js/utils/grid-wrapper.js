@@ -95,12 +95,15 @@
   GridWrapper.prototype.buildServerConfig = function buildServerConfig(baseServer) {
     const originalUrl = baseServer.url;
     const urlResolver = typeof originalUrl === "function" ? originalUrl : () => originalUrl;
+    const self = this;
 
     const serverConfig = {
       ...baseServer,
       url: (...args) => {
         const prev = urlResolver(...args);
-        return this.appendFilters(prev, this.currentFilters);
+        const result = self.appendFilters(prev, self.currentFilters);
+        console.log('[GridWrapper] URL 构建:', { prev, filters: self.currentFilters, result });
+        return result;
       },
     };
     serverConfig.__baseUrlResolver = urlResolver;
@@ -128,6 +131,7 @@
   };
 
   GridWrapper.prototype.setFilters = function setFilters(filters = {}, options = {}) {
+    console.log('[GridWrapper] setFilters 调用:', { filters, options, silent: options.silent });
     this.currentFilters = { ...(filters || {}) };
     if (!options.silent) {
       this.refresh();
@@ -140,8 +144,11 @@
   };
 
   GridWrapper.prototype.refresh = function refresh() {
+    console.log('[GridWrapper] refresh 调用, currentFilters:', this.currentFilters);
     if (this.grid && typeof this.grid.forceRender === "function") {
       this.grid.forceRender();
+    } else {
+      console.warn('[GridWrapper] Grid 实例未初始化或 forceRender 不可用');
     }
     return this;
   };
