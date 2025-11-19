@@ -38,7 +38,7 @@
       const failedRecords = records.filter((record) => record.status === 'failed' || record.status === 'error');
       const successRecords = records.filter((record) => record.status !== 'failed' && record.status !== 'error');
       const failedListHtml = failedRecords.map((record) => renderRecord(record, 'danger')).join('');
-      const successListHtml = successRecords.map((record) => renderRecord(record, 'secondary')).join('');
+      const successListHtml = successRecords.map((record) => renderRecord(record, 'table')).join('');
       contentElement.innerHTML = `
         <div class="row mb-3">
           <div class="col-6"><strong>会话ID:</strong> ${escapeHtml(safeSession.session_id || '未知')}</div>
@@ -75,8 +75,20 @@
           <h6 class="text-success d-flex align-items-center">
             <i class="fas fa-check-circle me-2"></i>成功实例
           </h6>
-          <div class="max-height-400 overflow-auto">
-            ${successHtml || '<div class="text-muted">暂无成功实例</div>'}
+          <div class="table-responsive max-height-400 overflow-auto">
+            ${successHtml
+              ? `<table class="table table-sm mb-0">
+                  <thead>
+                    <tr>
+                      <th>机器名</th>
+                      <th>开始时间</th>
+                      <th>完成时间</th>
+                      <th>耗时</th>
+                    </tr>
+                  </thead>
+                  <tbody>${successHtml}</tbody>
+                </table>`
+              : '<div class="text-muted">暂无成功实例</div>'}
           </div>
         </div>`;
       return `${failedSection}<hr>${successSection}`;
@@ -86,46 +98,46 @@
       const duration = calculateDuration(record.started_at, record.completed_at);
       const startedAt = formatTime(record.started_at);
       const completedAt = record.completed_at ? formatTime(record.completed_at) : '-';
-      const cardClasses = ['card', 'mb-2', 'session-record-card'];
       if (highlightClass === 'danger') {
-        cardClasses.push('border', 'border-danger');
-      } else {
-        cardClasses.push('border-0', 'bg-light');
-      }
-      return `
-        <div class="${cardClasses.join(' ')}">
-          <div class="card-body">
+        return `
+          <div class="session-record-danger mb-3">
             <div class="row g-3">
-              <div class="col-md-4">
+              <div class="col-md-3">
                 <div class="fw-semibold mb-1">ID: ${escapeHtml(record.instance_id)}</div>
                 <div class="text-muted">${escapeHtml(record.instance_name || '')}</div>
               </div>
-              <div class="col-md-8">
-                <div class="row text-muted record-meta-row">
-                  <div class="col-sm-4">
+              <div class="col-md-9">
+                <div class="row text-muted record-meta-row align-items-center">
+                  <div class="col-lg-3">
                     <div class="record-meta-label">开始</div>
                     <div class="record-meta-value">${startedAt}</div>
                   </div>
-                  <div class="col-sm-4">
+                  <div class="col-lg-3">
                     <div class="record-meta-label">完成</div>
                     <div class="record-meta-value">${completedAt}</div>
                   </div>
-                  <div class="col-sm-4">
+                  <div class="col-lg-2">
                     <div class="record-meta-label">耗时</div>
                     <div class="record-meta-value">${duration}</div>
                   </div>
-                </div>
-                ${record.error_message ? `
-                  <div class="mt-3">
-                    <div class="record-meta-label text-danger">错误信息</div>
-                    <div class="alert alert-danger mt-2 mb-0">
-                      <pre class="mb-0" style="white-space: pre-wrap;">${escapeHtml(record.error_message)}</pre>
+                  <div class="col-lg-4">
+                    <div class="record-meta-label text-danger">错误</div>
+                    <div class="alert alert-danger mb-0 mt-1">
+                      <pre class="mb-0" style="white-space: pre-wrap;">${escapeHtml(record.error_message || '')}</pre>
                     </div>
-                  </div>` : ''}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>`;
+          </div>`;
+      }
+      return `
+        <tr>
+          <td class="fw-semibold">ID: ${escapeHtml(record.instance_id)}<div class="text-muted small">${escapeHtml(record.instance_name || '')}</div></td>
+          <td>${startedAt}</td>
+          <td>${completedAt}</td>
+          <td>${duration}</td>
+        </tr>`;
     }
 
     function formatTime(value) {
