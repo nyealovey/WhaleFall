@@ -145,11 +145,38 @@
 
   GridWrapper.prototype.refresh = function refresh() {
     console.log('[GridWrapper] refresh 调用, currentFilters:', this.currentFilters);
-    if (this.grid && typeof this.grid.forceRender === "function") {
+    
+    if (!this.grid) {
+      console.warn('[GridWrapper] Grid 实例未初始化');
+      return this;
+    }
+    
+    if (!this.grid.config) {
+      console.warn('[GridWrapper] Grid config 不可用');
+      return this;
+    }
+    
+    // 重新构建服务端配置（包含最新的筛选参数）
+    const newServerConfig = this.buildServerConfig(this.options.server || {});
+    console.log('[GridWrapper] 更新服务端配置');
+    
+    // 更新 Grid 的服务端配置
+    this.grid.config.server = newServerConfig;
+    
+    // 清除缓存（如果存在）
+    if (this.grid.config.store && typeof this.grid.config.store.clearCache === "function") {
+      console.log('[GridWrapper] 清除缓存');
+      this.grid.config.store.clearCache();
+    }
+    
+    // 强制重新渲染（会触发新的数据请求）
+    if (typeof this.grid.forceRender === "function") {
+      console.log('[GridWrapper] 触发 forceRender');
       this.grid.forceRender();
     } else {
-      console.warn('[GridWrapper] Grid 实例未初始化或 forceRender 不可用');
+      console.warn('[GridWrapper] forceRender 方法不可用');
     }
+    
     return this;
   };
 
