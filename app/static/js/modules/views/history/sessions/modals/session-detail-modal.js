@@ -35,7 +35,10 @@
     function renderContent(session) {
       const safeSession = session && typeof session === 'object' ? session : {};
       const records = Array.isArray(safeSession.instance_records) ? safeSession.instance_records : [];
-      const recordsHtml = records.map(renderRecord).join('');
+      const failedRecords = records.filter((record) => record.status === 'failed' || record.status === 'error');
+      const successRecords = records.filter((record) => !failedRecords.includes(record));
+      const failedListHtml = failedRecords.map((record) => renderRecord(record, 'danger')).join('');
+      const successListHtml = successRecords.map((record) => renderRecord(record, 'secondary')).join('');
       contentElement.innerHTML = `
         <div class="row mb-3">
           <div class="col-6"><strong>会话ID:</strong> ${escapeHtml(safeSession.session_id || '未知')}</div>
@@ -54,18 +57,44 @@
           <div class="col-4"><strong>成功:</strong> ${safeSession.successful_instances ?? 0}</div>
           <div class="col-4"><strong>失败:</strong> ${safeSession.failed_instances ?? 0}</div>
         </div>
-        <hr>
-        <h6>实例记录</h6>
-        <div class="max-height-400 overflow-auto">${recordsHtml || '<div class="text-muted">暂无实例记录</div>'}</div>`;
+        ${buildRecordSections(failedListHtml, successListHtml)}`;
     }
 
-    function renderRecord(record) {
+    function buildRecordSections(failedHtml, successHtml) {
+      const failedSection = `
+        <div class="session-detail-section mb-3">
+          <h6 class="text-danger d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle me-2"></i>失败实例
+          </h6>
+          <div class="max-height-400 overflow-auto">
+            ${failedHtml || '<div class="text-muted">暂无失败实例</div>'}
+          </div>
+        </div>`;
+      const successSection = `
+        <div class="session-detail-section">
+          <h6 class="text-success d-flex align-items-center">
+            <i class="fas fa-check-circle me-2"></i>成功实例
+          </h6>
+          <div class="max-height-400 overflow-auto">
+            ${successHtml || '<div class="text-muted">暂无成功实例</div>'}
+          </div>
+        </div>`;
+      return `${failedSection}<hr>${successSection}`;
+    }
+
+    function renderRecord(record, highlightClass = '') {
       const statusText = getStatusText(record.status);
       const duration = calculateDuration(record.started_at, record.completed_at);
       const startedAt = formatTime(record.started_at);
       const completedAt = record.completed_at ? formatTime(record.completed_at) : '-';
+      const cardClasses = ['card', 'mb-2'];
+      if (highlightClass === 'danger') {
+        cardClasses.push('border', 'border-danger', 'shadow-sm');
+      } else if (highlightClass === 'secondary') {
+        cardClasses.push('border-0', 'bg-light');
+      }
       return `
-        <div class="card mb-2">
+        <div class="${cardClasses.join(' ')}">
           <div class="card-body">
             <div class="row align-items-center">
               <div class="col-3">
