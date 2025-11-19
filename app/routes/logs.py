@@ -33,7 +33,7 @@ def logs_dashboard() -> str | tuple[dict, int]:
         module_values = load_log_modules()
         module_options = [{"value": value, "label": value} for value in module_values]
         return render_template(
-            "history/logs.html",
+            "history/logs/logs.html",
             log_level_options=LOG_LEVELS,
             module_options=module_options,
             time_range_options=TIME_RANGES,
