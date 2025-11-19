@@ -121,6 +121,35 @@
     background: var(--gray-100);
 }
 
+.log-entry.logs-header {
+    border-left-color: transparent;
+    background: var(--gray-100);
+    cursor: default;
+    box-shadow: none;
+    margin-bottom: var(--spacing-sm);
+}
+
+.log-entry.logs-header:hover {
+    box-shadow: none;
+    transform: none;
+    background: var(--gray-100);
+}
+
+.log-entry.logs-header .log-message,
+.log-entry.logs-header .log-id,
+.log-entry.logs-header .log-header-label {
+    font-weight: 600;
+    color: var(--gray-600);
+    white-space: normal;
+    text-transform: none;
+}
+
+.log-header-label {
+    min-width: 70px;
+    font-size: 0.85em;
+    text-transform: uppercase;
+}
+
 /* 统计卡片统一样式（与容量统计对齐） */
 .stats-card {
     border-radius: var(--border-radius-lg);

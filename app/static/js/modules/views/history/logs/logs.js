@@ -342,11 +342,34 @@
             return;
         }
 
-        container.html('<div class="logs-wrapper"></div>');
+        container.html(`
+            <div class="logs-list">
+                ${createLogsHeader()}
+                <div class="logs-wrapper"></div>
+            </div>
+        `);
         const wrapper = container.find('.logs-wrapper');
         logs.forEach((log) => {
             wrapper.append(createLogEntryElement(log, searchTerm));
         });
+    }
+
+    function createLogsHeader() {
+        return `
+            <div class="log-entry logs-header" role="presentation">
+                <div class="log-entry-content">
+                    <span class="log-id">ID</span>
+                    <div class="log-main-info">
+                        <div class="log-message">消息</div>
+                        <div class="log-header">
+                            <span class="log-header-label">级别</span>
+                            <span class="log-header-label">模块</span>
+                            <span class="log-header-label">时间</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     /**
