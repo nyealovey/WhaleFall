@@ -158,52 +158,51 @@
     
     // 重新构建服务端配置（包含最新的筛选参数）
     const newServerConfig = this.buildServerConfig(this.options.server || {});
-    console.log('[GridWrapper] 更新服务端配置');
+    console.log('[GridWrapper] 更新服务端配置, 新筛选参数:', this.currentFilters);
     
-    // 更新 Grid 的服务端配置
-    this.grid.config.server = newServerConfig;
-    
-    // 尝试使用 updateConfig (Grid.js 5.x+)
-    if (typeof this.grid.updateConfig === "function") {
-      console.log('[GridWrapper] 使用 updateConfig 方法');
-      this.grid.updateConfig({
-        server: newServerConfig,
-      }).forceRender();
-      return this;
+    // 直接更新 Grid 的 server.url 函数（避免 updateConfig 导致插件重复）
+    if (this.grid.config.server) {
+      this.grid.config.server.url = newServerConfig.url;
+      this.grid.config.server.__baseUrlResolver = newServerConfig.__baseUrlResolver;
+      console.log('[GridWrapper] 已更新 server.url 函数');
     }
     
-    // 清除缓存并重置页码
+    // 清除缓存
     if (this.grid.config.store) {
-      console.log('[GridWrapper] 清除缓存');
+      console.log('[GridWrapper] 清除 store 缓存');
       if (typeof this.grid.config.store.clearCache === "function") {
         this.grid.config.store.clearCache();
       }
-      // 重置到第一页
-      if (this.grid.config.pagination) {
-        this.grid.config.pagination.page = 0;
-      }
     }
     
-    // 尝试直接操作 pipeline
+    // 尝试直接操作 pipeline 重新加载数据
     if (this.grid.config.pipeline) {
-      console.log('[GridWrapper] 触发 pipeline 处理');
+      console.log('[GridWrapper] 触发 pipeline 重新处理');
       const pipeline = this.grid.config.pipeline;
+      
+      // 清除 pipeline 缓存
       if (pipeline.clearCache && typeof pipeline.clearCache === "function") {
         pipeline.clearCache();
       }
+      
+      // 重新处理数据
       if (pipeline.process && typeof pipeline.process === "function") {
+        console.log('[GridWrapper] 调用 pipeline.process()');
         pipeline.process().then(() => {
+          console.log('[GridWrapper] pipeline 处理完成，触发渲染');
           if (typeof this.grid.forceRender === "function") {
             this.grid.forceRender();
           }
+        }).catch((error) => {
+          console.error('[GridWrapper] pipeline 处理失败:', error);
         });
         return this;
       }
     }
     
-    // 最后尝试 forceRender
+    // 如果没有 pipeline，尝试 forceRender
+    console.log('[GridWrapper] 触发 forceRender');
     if (typeof this.grid.forceRender === "function") {
-      console.log('[GridWrapper] 触发 forceRender');
       this.grid.forceRender();
     } else {
       console.warn('[GridWrapper] forceRender 方法不可用');
