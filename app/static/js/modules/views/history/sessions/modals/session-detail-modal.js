@@ -36,7 +36,7 @@
       const safeSession = session && typeof session === 'object' ? session : {};
       const records = Array.isArray(safeSession.instance_records) ? safeSession.instance_records : [];
       const failedRecords = records.filter((record) => record.status === 'failed' || record.status === 'error');
-      const successRecords = records.filter((record) => !failedRecords.includes(record));
+      const successRecords = records.filter((record) => record.status !== 'failed' && record.status !== 'error');
       const failedListHtml = failedRecords.map((record) => renderRecord(record, 'danger')).join('');
       const successListHtml = successRecords.map((record) => renderRecord(record, 'secondary')).join('');
       contentElement.innerHTML = `
@@ -83,31 +83,45 @@
     }
 
     function renderRecord(record, highlightClass = '') {
-      const statusText = getStatusText(record.status);
       const duration = calculateDuration(record.started_at, record.completed_at);
       const startedAt = formatTime(record.started_at);
       const completedAt = record.completed_at ? formatTime(record.completed_at) : '-';
-      const cardClasses = ['card', 'mb-2'];
+      const cardClasses = ['card', 'mb-2', 'session-record-card'];
       if (highlightClass === 'danger') {
-        cardClasses.push('border', 'border-danger', 'shadow-sm');
-      } else if (highlightClass === 'secondary') {
+        cardClasses.push('border', 'border-danger');
+      } else {
         cardClasses.push('border-0', 'bg-light');
       }
       return `
         <div class="${cardClasses.join(' ')}">
           <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col-3">
-                <h6 class="mb-1"><strong>ID: ${escapeHtml(record.instance_id)}</strong> &nbsp;&nbsp; ${escapeHtml(record.instance_name || '')}</h6>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="fw-semibold mb-1">ID: ${escapeHtml(record.instance_id)}</div>
+                <div class="text-muted">${escapeHtml(record.instance_name || '')}</div>
               </div>
-              <div class="col-2">
-                <span class="badge status-badge bg-${getStatusColor(record.status)}">${escapeHtml(statusText)}</span>
-              </div>
-              <div class="col-7">
-                <small class="text-muted">
-                  开始: ${startedAt} &nbsp;&nbsp; | &nbsp;&nbsp; 完成: ${completedAt} &nbsp;&nbsp; | &nbsp;&nbsp; 耗时: ${duration}
-                  ${record.error_message ? ` &nbsp;&nbsp; | &nbsp;&nbsp; 错误: ${escapeHtml(record.error_message)}` : ''}
-                </small>
+              <div class="col-md-8">
+                <div class="row text-muted record-meta-row">
+                  <div class="col-sm-4">
+                    <div class="record-meta-label">开始</div>
+                    <div class="record-meta-value">${startedAt}</div>
+                  </div>
+                  <div class="col-sm-4">
+                    <div class="record-meta-label">完成</div>
+                    <div class="record-meta-value">${completedAt}</div>
+                  </div>
+                  <div class="col-sm-4">
+                    <div class="record-meta-label">耗时</div>
+                    <div class="record-meta-value">${duration}</div>
+                  </div>
+                </div>
+                ${record.error_message ? `
+                  <div class="mt-3">
+                    <div class="record-meta-label text-danger">错误信息</div>
+                    <div class="alert alert-danger mt-2 mb-0">
+                      <pre class="mb-0" style="white-space: pre-wrap;">${escapeHtml(record.error_message)}</pre>
+                    </div>
+                  </div>` : ''}
               </div>
             </div>
           </div>
