@@ -104,6 +104,14 @@
         const prev = urlResolver(...args);
         return this.appendFilters(prev, this.currentFilters);
       },
+      fetch: (url, fetchOptions) => {
+        const baseOptions = fetchOptions || {};
+        const merged = {
+          ...baseOptions,
+          ...(this.options.fetchOptions || {}),
+        };
+        return fetch(url, merged);
+      },
     };
   };
 
