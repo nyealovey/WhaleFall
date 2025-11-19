@@ -41,31 +41,24 @@
 }
 
 .log-entry-content {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--spacing-md);
+    display: grid;
+    grid-template-columns: 110px 1fr 110px 140px 180px;
+    align-items: center;
+    gap: var(--spacing-sm);
     width: 100%;
-    max-width: 100%; /* 防止溢出 */
-    overflow: hidden; /* 防止内容溢出 */
+    max-width: 100%;
+}
+
+.log-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .log-id {
     color: var(--gray-500);
     font-size: 0.8em;
     font-family: 'Courier New', monospace;
-    width: 80px;
-    flex-shrink: 0;
-    padding-top: 2px; /* 与消息文本对齐 */
-}
-
-.log-main-info {
-    flex: 1;
-    min-width: 0; /* 允许flex子元素收缩 */
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--spacing-md);
-    overflow: hidden; /* 防止内容溢出 */
 }
 
 .log-message {
@@ -73,25 +66,14 @@
     line-height: 1.4;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    word-break: break-word; /* 强制长单词换行 */
-    width: 100%;
-    max-width: 100%; /* 防止溢出 */
-    margin-bottom: 0;
-    overflow: hidden; /* 防止溢出 */
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    word-break: break-word;
 }
 
-.log-header {
+.log-level, .log-module, .log-time {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    flex-wrap: nowrap;
-    min-height: 24px; /* 确保一致的高度 */
+    gap: var(--spacing-xs);
     justify-content: flex-start;
-    width: auto;
-    max-width: 100%; /* 防止溢出 */
-    margin-left: auto;
 }
 
 .log-entry:hover {
@@ -135,19 +117,11 @@
     background: var(--gray-100);
 }
 
-.log-entry.logs-header .log-message,
-.log-entry.logs-header .log-id,
-.log-entry.logs-header .log-header-label {
+.log-entry.logs-header .log-cell {
     font-weight: 600;
     color: var(--gray-600);
     white-space: normal;
     text-transform: none;
-}
-
-.log-header-label {
-    min-width: 70px;
-    font-size: 0.85em;
-    text-transform: uppercase;
 }
 
 /* 统计卡片统一样式（与容量统计对齐） */
