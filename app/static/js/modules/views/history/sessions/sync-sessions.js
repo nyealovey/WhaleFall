@@ -41,7 +41,6 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   const AUTO_REFRESH_INTERVAL_MS = 30000;
   const SESSION_DETAIL_MODAL_SELECTOR = '#sessionDetailModal';
   const SESSION_DETAIL_CONTENT_SELECTOR = '#session-detail-content';
-  const ERROR_LOGS_MODAL_SELECTOR = '#errorLogsModal';
 
   /**
    * 统一 toast 提示。
@@ -56,7 +55,6 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   let syncFilterCard = null;
   let filterUnloadHandler = null;
   let sessionDetailModalController = null;
-  let errorLogsModal = null;
   window.syncSessionsStore = null;
 
   /**
@@ -160,10 +158,6 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       console.error('初始化 SyncSessionDetailModal 失败:', error);
       debugLog('会话详情模态初始化失败', error);
     }
-    errorLogsModal = factory({
-      modalSelector: ERROR_LOGS_MODAL_SELECTOR,
-      onClose: clearErrorLogsContent,
-    });
   }
 
   /**
@@ -235,12 +229,6 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
         sessionId: payload?.session?.session_id,
       });
       showSessionDetail(payload?.session || {});
-    });
-    subscribeToStoreEvent('syncSessions:errorLogsLoaded', (payload) => {
-      debugLog("收到事件 syncSessions:errorLogsLoaded", {
-        recordCount: payload?.errorRecords?.length,
-      });
-      showErrorLogs({ error_records: payload?.errorRecords || [] });
     });
     subscribeToStoreEvent('syncSessions:sessionCancelled', () => {
       debugLog("收到事件 syncSessions:sessionCancelled");
@@ -365,10 +353,6 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
                 <button class="btn btn-sm btn-outline-primary" data-action="view" data-id="${session.session_id}">
                   <i class="fas fa-eye"></i> 详情
                 </button>
-                ${failedInstances > 0 ? `
-                <button class="btn btn-sm btn-outline-warning" data-action="error" data-id="${session.session_id}" title="查看错误">
-                  <i class="fas fa-exclamation-triangle"></i> 错误
-                </button>` : ''}
                 ${session.status === 'running' ? `
                 <button class="btn btn-sm btn-outline-danger" data-action="cancel" data-id="${session.session_id}">
                   <i class="fas fa-stop"></i> 取消
@@ -384,10 +368,6 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     container.querySelectorAll('[data-action="view"]').forEach(btn => btn.addEventListener('click', e => {
       const id = e.currentTarget.getAttribute('data-id');
       viewSessionDetail(id);
-    }));
-    container.querySelectorAll('[data-action="error"]').forEach(btn => btn.addEventListener('click', e => {
-      const id = e.currentTarget.getAttribute('data-id');
-      viewErrorLogs(id);
     }));
     container.querySelectorAll('[data-action="cancel"]').forEach(btn => btn.addEventListener('click', e => {
       const id = e.currentTarget.getAttribute('data-id');
@@ -488,45 +468,6 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     syncSessionsStore.actions.loadSessionDetail(sessionId);
   };
 
-  /**
-   * 查看会话错误日志，触发 store 拉取后展示模态。
-   */
-  window.viewErrorLogs = function (sessionId) {
-    if (!syncSessionsStore) {
-      return;
-    }
-    syncSessionsStore.actions.loadErrorLogs(sessionId);
-  };
-
-  /**
-   * 将错误日志数据渲染到模态内容区域。
-   */
-  window.showErrorLogs = function (data) {
-    const content = document.getElementById('error-logs-content');
-    if (!content) return;
-    const errorRecords = data.error_records || [];
-
-    if (errorRecords.length === 0) {
-      content.innerHTML = '<div class="text-center py-4 text-muted">没有发现错误记录</div>';
-    } else {
-      const recordsHtml = errorRecords.map(record => `
-        <div class="card mb-3 border-danger">
-          <div class="card-header bg-danger text-white">
-            <h6 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>${record.instance_name} (ID: ${record.instance_id})</h6>
-          </div>
-          <div class="card-body">
-            ${record.error_message ? `
-            <div class="alert alert-danger mb-0">
-              <h6 class="alert-heading"><i class="fas fa-bug me-2"></i>错误信息</h6>
-              <pre class="mb-0" style="white-space: pre-wrap; word-wrap: break-word;">${record.error_message}</pre>
-            </div>` : '<div class="text-muted">没有具体错误信息</div>'}
-          </div>
-        </div>`).join('');
-      content.innerHTML = recordsHtml;
-    }
-
-    openModal(errorLogsModal, 'errorLogs');
-  }
 
   /**
    * 将会话详情渲染到模态内容区域。
@@ -776,20 +717,6 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
   window.getSyncCategoryText = getSyncCategoryText;
   window.getDurationBadge = getDurationBadge;
 
-  function openModal(instance, name) {
-    if (instance?.open) {
-      instance.open();
-      return;
-    }
-    console.error(`模态未初始化: ${name}`);
-  }
-
-  function clearErrorLogsContent() {
-    const container = document.getElementById('error-logs-content');
-    if (container) {
-      container.innerHTML = '';
-    }
-  }
 }
 
 window.SyncSessionsPage = {

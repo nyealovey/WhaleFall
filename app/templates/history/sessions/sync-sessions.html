@@ -58,28 +58,6 @@
 </div>
 
 {% include 'history/sessions/modals/session-detail-modal.html' %}
-
-<!-- 错误日志模态框 -->
-{% set error_logs_modal_body %}
-    <div id="error-logs-content">
-        <!-- 错误日志将在这里动态加载 -->
-    </div>
-{% endset %}
-{% set error_logs_modal_footer %}
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>关闭</button>
-{% endset %}
-{% with
-    modal_id='errorLogsModal',
-    modal_label_id='errorLogsModalLabel',
-    title='<i class=\"fas fa-exclamation-triangle me-2\"></i>错误',
-    body=error_logs_modal_body,
-    footer=error_logs_modal_footer,
-    size='xl',
-    header_class='bg-danger text-white',
-    close_button_class='btn-close-white'
-%}
-    {% include 'components/ui/modal.html' %}
-{% endwith %}
 {% endblock %}
 
 {% block extra_js %}
