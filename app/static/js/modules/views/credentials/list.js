@@ -109,26 +109,23 @@ function mountCredentialsListPage(global) {
           formatter: (cell, row) => {
             const meta = row?.cells?.[row.cells.length - 1]?.data || {};
             const credentialType = (cell || meta.credential_type || "-").toString().toUpperCase();
-            const dbType = (meta.db_type || "").toString().toLowerCase();
+            const dbBadgeMeta = getDbBadgeMeta(meta.db_type);
             const credentialBadgeMap = {
               database: "bg-success",
               api: "bg-primary",
               ssh: "bg-warning",
             };
-            const credentialClass = credentialBadgeMap[(cell || "").toString().toLowerCase()] || "bg-secondary";
-            const dbBadgeMeta = getDbBadgeMeta(dbType);
+            const credentialClass =
+              credentialBadgeMap[(cell || "").toString().toLowerCase()] || "bg-secondary";
             if (!gridHtml) {
               return `${credentialType} - ${dbBadgeMeta.label}`;
             }
-            const dbBadge = `
-              <span class="credential-db-badge ${dbBadgeMeta.className}">
-                <i class="${dbBadgeMeta.icon} me-1"></i>${dbBadgeMeta.label}
-              </span>
-            `;
             return gridHtml(`
               <div class="credential-type-cell">
-                <span class="badge ${credentialClass} me-2">${escapeHtmlValue(credentialType)}</span>
-                ${dbBadge}
+                <span class="badge ${credentialClass}">${escapeHtmlValue(credentialType)}</span>
+                <span class="credential-db-badge ${dbBadgeMeta.className}">
+                  <i class="${dbBadgeMeta.icon} me-1"></i>${dbBadgeMeta.label}
+                </span>
               </div>
             `);
           },
@@ -138,11 +135,13 @@ function mountCredentialsListPage(global) {
           name: "绑定实例",
           id: "instance_count",
           formatter: (cell) => {
+            const count = Number(cell) || 0;
+            const suffix = count === 1 ? "个实例" : "个实例";
             if (!gridHtml) {
-              return `${cell || 0} 个`;
+              return `${count} ${suffix}`;
             }
             return gridHtml(
-              `<span class="badge bg-info"><i class="fas fa-database me-1"></i>${cell || 0} 个实例</span>`,
+              `<span class="badge bg-info instance-count-badge"><i class="fas fa-database me-1"></i>${count} ${suffix}</span>`,
             );
           },
         },
@@ -162,7 +161,10 @@ function mountCredentialsListPage(global) {
         {
           name: "创建时间",
           id: "created_at",
-          formatter: (cell) => cell || "-",
+          formatter: (cell, row) => {
+            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
+            return meta.created_at_display || cell || "-";
+          },
         },
         {
           name: "操作",
