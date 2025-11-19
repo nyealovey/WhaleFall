@@ -117,7 +117,7 @@
   };
 
   GridWrapper.prototype.appendFilters = function appendFilters(url, filters = {}) {
-    let result = url;
+    let result = this.normalizeUrlString(url);
     Object.entries(filters || {}).forEach(([key, value]) => {
       if (value === undefined || value === null || value === "") {
         return;
@@ -208,7 +208,7 @@
   };
 
   GridWrapper.prototype.appendParam = function appendParam(url, param) {
-    let target = url;
+    let target = this.normalizeUrlString(url);
     if (!target || target === "?") {
       target = this.resolveBaseUrl();
     }
@@ -233,6 +233,30 @@
       return server.url;
     }
     return "";
+  };
+
+  GridWrapper.prototype.normalizeUrlString = function normalizeUrlString(url) {
+    if (!url) {
+      return "";
+    }
+    if (typeof url === "string") {
+      return url;
+    }
+    if (url instanceof Request) {
+      return url.url || url.href || url.toString();
+    }
+    if (url instanceof URL) {
+      return url.toString();
+    }
+    if (typeof url === "object" && typeof url.toString === "function") {
+      return url.toString();
+    }
+    try {
+      return String(url);
+    } catch (error) {
+      console.error("GridWrapper: 无法解析 URL", error);
+      return "";
+    }
   };
 
   GridWrapper.prototype.deepMerge = function deepMerge(target, source) {
