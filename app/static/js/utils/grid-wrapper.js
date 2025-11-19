@@ -98,20 +98,17 @@
 
     const serverConfig = {
       ...baseServer,
+      url: (...args) => {
+        const prev = urlResolver(...args);
+        return this.appendFilters(prev, this.currentFilters);
+      },
       fetch: (url, fetchOptions) => {
         const baseOptions = fetchOptions || {};
         const mergedOptions = {
           ...baseOptions,
           ...(this.options.fetchOptions || {}),
         };
-        const baseRequestUrl = urlResolver();
-        const normalizedBase = this.normalizeBaseUrl(baseRequestUrl, url);
-        const withGridParams = this.mergeGridQueryParams(normalizedBase, url);
-        const finalUrl =
-          this.appendFilters(withGridParams, this.currentFilters) ||
-          this.normalizeBaseUrl(baseRequestUrl, url) ||
-          url;
-        return fetch(finalUrl, mergedOptions);
+        return fetch(url, mergedOptions);
       },
     };
     serverConfig.__baseUrlResolver = urlResolver;
