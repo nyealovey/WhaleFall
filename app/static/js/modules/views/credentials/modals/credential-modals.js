@@ -118,7 +118,7 @@
         if (!response?.success || !response?.data) {
           throw new Error(response?.message || '获取凭据失败');
         }
-        const credential = response.data;
+        const credential = response.data?.credential || response.data;
         form.credential_id.value = credential.id;
         form.name.value = credential.name || '';
         form.credential_type.value = credential.credential_type || '';
