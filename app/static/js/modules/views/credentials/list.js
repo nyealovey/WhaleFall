@@ -331,14 +331,6 @@ function mountCredentialsListPage(global) {
     element.attr("data-original-text", null);
   }
 
-  function exportCredentials(format = "csv") {
-    const formElement = selectOne(`#${CREDENTIAL_FILTER_FORM_ID}`).first();
-    const filters = resolveCredentialFilters(formElement);
-    const params = buildCredentialQueryParams({ ...filters, export: format });
-    const url = `${global.location.pathname}?${params.toString()}`;
-    global.open(url, "_blank", "noopener");
-  }
-
   function initializeCredentialFilterCard() {
     const factory = global.UI?.createFilterCard;
     if (!factory) {
@@ -564,7 +556,6 @@ function mountCredentialsListPage(global) {
   }
 
   global.deleteCredential = deleteCredential;
-  global.exportCredentials = exportCredentials;
   global.openCredentialEditor = openCredentialEditor;
 }
 
