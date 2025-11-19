@@ -46,7 +46,7 @@ app/static/js/modules/
 
 | 优先级 | Store | 覆盖范围 | 主要状态/动作 | 进度 |
 | --- | --- | --- | --- | --- |
-| S1-1 | **SyncSessionsStore** | `pages/history/sync_sessions.js` | `sessions`, `filters`, `pagination`, `autoRefresh`; actions：`loadSessions`、`cancelSession`、`viewDetail` | ✅ 已完成 |
+| S1-1 | **SyncSessionsStore** | `modules/views/history/sessions/sync-sessions.js` | `sessions`, `filters`, `pagination`, `autoRefresh`; actions：`loadSessions`、`cancelSession`、`viewDetail` | ✅ 已完成 |
 | S1-2 | **TagManagementStore** | `components/tag_selector.js`, `pages/tags/batch_assign.js`, `pages/tags/index.js`, `pages/accounts/list.js` | 标签/分类/实例数据、已选项；actions：`loadTags`、`applySelection`、`batchAssign`、`batchDelete` | ✅ 已完成（TagSelector/批量分配/标签列表全量走 store） |
 | S1-3 | **AccountClassificationStore** | `pages/accounts/account_classification.js`, `common/permission_policy_center.js` | `classifications`, `rules`, `permissions`, `stats`; actions：CRUD、`loadPermissions`、`autoClassify` | ✅ 已完成（页面创建/更新/删除/自动分类均走 store） |
 | S1-4 | **SchedulerStore** | `pages/admin/scheduler.js` | `currentJobs`, `filters`, `modalState`; actions：`loadJobs`、`resumeJob`、`pauseJob`、`runJob`、`updateJob` | ✅ 已完成 |

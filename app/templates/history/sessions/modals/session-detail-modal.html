@@ -1,0 +1,18 @@
+{% set session_detail_modal_body %}
+    <div id="session-detail-content">
+        <!-- 会话详情将在这里动态加载 -->
+    </div>
+{% endset %}
+{% set session_detail_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>关闭</button>
+{% endset %}
+{% with
+    modal_id='sessionDetailModal',
+    modal_label_id='sessionDetailModalLabel',
+    title='会话详情',
+    body=session_detail_modal_body,
+    footer=session_detail_modal_footer,
+    size='xl'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}

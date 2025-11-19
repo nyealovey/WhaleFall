@@ -8,7 +8,7 @@
 - **视图层**：只负责 DOM 渲染、事件绑定、交互反馈，直接订阅 Store 事件或调用 Store actions。
 
 视图层的实现可分为三类：
-1. **页面入口（bootstrap）**：如 `app/static/js/pages/history/sync_sessions.js`，负责初始化 store、挂载组件、解析后端注入的上下文。
+1. **页面入口（bootstrap）**：如 `app/static/js/modules/views/history/sessions/sync-sessions.js`，负责初始化 store、挂载组件、解析后端注入的上下文。
 2. **UI 组件（views/）**：如列表视图、统计卡片、模态窗口的渲染器，不包含服务调用，只消费 store/state。
 3. **共享组件**：如 TagSelector、FilterBar，可被多个页面复用，需暴露 `mount(container, store)` 等接口。
 
@@ -45,7 +45,7 @@ app/static/js/modules/
 
 | 优先级 | 页面 / 组件 | 已落地视图 | Store / Service 依赖 | 进度 |
 | --- | --- | --- | --- | --- |
-| V1-1 | **SyncSessionsPage** | `modules/views/history/sync_sessions.js` + `bootstrap/history/sync-sessions.js` 负责列表/分页/模态，模板已接入且所有模态统一走 `UI.createModal`（无 Bootstrap 回退）。 | `SyncSessionsStore`, `SyncSessionsService` | ✅ 视图层完成；待后续将校验/过滤面板完全模块化。 |
+| V1-1 | **SyncSessionsPage** | `modules/views/history/sessions/sync-sessions.js` + `bootstrap/history/sync-sessions.js` 负责列表/分页/模态，模板已接入且所有模态统一走 `UI.createModal`（无 Bootstrap 回退）。 | `SyncSessionsStore`, `SyncSessionsService` | ✅ 视图层完成；待后续将校验/过滤面板完全模块化。 |
 | V1-2 | **TagManagementViews** | 标签列表（`tags/index.js`）、标签表单（`tags/form.js`）、批量分配（`tags/batch_assign.js`）及 TagSelector 组件均在 `modules/views/`；账户列表页面也复用该视图。 | `TagManagementStore`, `TagManagementService` | ✅ 完成；仍依赖全局 FormValidator，未来需改为局部校验。 |
 | V1-3 | **AccountClassificationViews** | `accounts/account-classification/index.js`、`accounts/classifications/form.js`、`accounts/classification-rules/form.js` 全量迁移，并完成所有模态（创建/编辑分类、创建/编辑/查看规则）的 `UI.createModal` + 组件模板改造，彻底移除 `bootstrap.Modal` 兜底。 | `AccountClassificationStore`, `AccountClassificationService` | ✅ 完成；权限配置区已模块化，需继续清理旧权限组件对全局脚本的依赖。 |
 | V1-4 | **SchedulerViews** | `modules/views/admin/scheduler.js`（任务列表/模态）和 `admin/aggregations-chart.js`（统计卡片）覆盖全部交互；模态统一使用 `UI.createModal`，不再回退 `bootstrap.Modal`。 | `SchedulerStore`, `SchedulerService`, `PartitionStore/Service` | ✅ 完成；下一步是把表单校验局部化、减少全局脚本。 |

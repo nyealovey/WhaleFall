@@ -24,7 +24,7 @@ def index() -> str:
     """会话中心首页"""
     try:
         return render_template(
-            "history/sync_sessions.html",
+            "history/sessions/sync-sessions.html",
             sync_type_options=SYNC_TYPES,
             sync_category_options=SYNC_CATEGORIES,
             status_options=STATUS_SYNC_OPTIONS,
