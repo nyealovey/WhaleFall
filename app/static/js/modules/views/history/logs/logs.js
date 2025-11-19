@@ -358,15 +358,11 @@
         return `
             <div class="log-entry logs-header" role="presentation">
                 <div class="log-entry-content">
-                    <span class="log-id">ID</span>
-                    <div class="log-main-info">
-                        <div class="log-message">消息</div>
-                        <div class="log-header">
-                            <span class="log-header-label">级别</span>
-                            <span class="log-header-label">模块</span>
-                            <span class="log-header-label">时间</span>
-                        </div>
-                    </div>
+                    <span class="log-cell log-id">ID</span>
+                    <div class="log-cell log-message">消息</div>
+                    <span class="log-cell log-level">级别</span>
+                    <span class="log-cell log-module">模块</span>
+                    <span class="log-cell log-time">时间</span>
                 </div>
             </div>
         `;
@@ -389,15 +385,11 @@
         entry.setAttribute('data-log-id', log.id);
         entry.innerHTML = `
             <div class="log-entry-content">
-                <span class="log-id">ID: ${log.id}</span>
-                <div class="log-main-info">
-                    <div class="log-message">${message}</div>
-                    <div class="log-header">
-                        ${levelBadge}
-                        ${moduleBadge}
-                        <span class="log-timestamp">${timestamp}</span>
-                    </div>
-                </div>
+                <span class="log-cell log-id">ID: ${log.id}</span>
+                <div class="log-cell log-message">${message}</div>
+                <span class="log-cell log-level">${levelBadge}</span>
+                <span class="log-cell log-module">${moduleBadge}</span>
+                <span class="log-cell log-time">${timestamp}</span>
             </div>
         `;
         from(entry).on('click', () => viewLogDetail(log.id));
