@@ -52,6 +52,7 @@
       fetchOptions: {
         credentials: "same-origin",
         headers: {
+          Accept: "application/json",
           "X-Requested-With": "XMLHttpRequest",
         },
       },
@@ -82,9 +83,9 @@
       throw new Error("GridWrapper: server.url 未配置");
     }
     const resolvedServer = this.buildServerConfig(baseServer);
+    this.options.server = resolvedServer;
     const gridOptions = {
       ...this.options,
-      server: resolvedServer,
     };
     this.grid = new Grid(gridOptions);
     this.grid.render(this.container);
@@ -93,26 +94,28 @@
 
   GridWrapper.prototype.buildServerConfig = function buildServerConfig(baseServer) {
     const originalUrl = baseServer.url;
-    const urlResolver =
-      typeof originalUrl === "function"
-        ? originalUrl
-        : () => originalUrl;
+    const urlResolver = typeof originalUrl === "function" ? originalUrl : () => originalUrl;
 
-    return {
+    const serverConfig = {
       ...baseServer,
-      url: (...args) => {
-        const prev = urlResolver(...args);
-        return this.appendFilters(prev, this.currentFilters);
-      },
       fetch: (url, fetchOptions) => {
         const baseOptions = fetchOptions || {};
-        const merged = {
+        const mergedOptions = {
           ...baseOptions,
           ...(this.options.fetchOptions || {}),
         };
-        return fetch(url, merged);
+        const baseRequestUrl = urlResolver();
+        const normalizedBase = this.normalizeBaseUrl(baseRequestUrl, url);
+        const withGridParams = this.mergeGridQueryParams(normalizedBase, url);
+        const finalUrl =
+          this.appendFilters(withGridParams, this.currentFilters) ||
+          this.normalizeBaseUrl(baseRequestUrl, url) ||
+          url;
+        return fetch(finalUrl, mergedOptions);
       },
     };
+    serverConfig.__baseUrlResolver = urlResolver;
+    return serverConfig;
   };
 
   GridWrapper.prototype.appendFilters = function appendFilters(url, filters = {}) {
@@ -154,12 +157,84 @@
     return this;
   };
 
-  GridWrapper.prototype.appendParam = function appendParam(url, param) {
-    if (!url) {
-      return `?${param}`;
+  GridWrapper.prototype.mergeGridQueryParams = function mergeGridQueryParams(baseUrl, sourceUrl) {
+    const query = this.extractQueryString(sourceUrl);
+    const normalizedBase = baseUrl || this.normalizeBaseUrl("", sourceUrl);
+    if (!query) {
+      return normalizedBase || sourceUrl || "";
     }
-    const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}${param}`;
+    if (!normalizedBase) {
+      return `?${query}`;
+    }
+    const separator = normalizedBase.includes("?") ? "&" : "?";
+    return `${normalizedBase}${separator}${query}`;
+  };
+
+  GridWrapper.prototype.normalizeBaseUrl = function normalizeBaseUrl(baseUrl, fallbackUrl) {
+    if (baseUrl) {
+      return baseUrl;
+    }
+    if (!fallbackUrl) {
+      return "";
+    }
+    const trimmed = fallbackUrl.trim();
+    if (!trimmed) {
+      return "";
+    }
+    const questionIndex = trimmed.indexOf("?");
+    const hashIndex = trimmed.indexOf("#");
+    const endIndex =
+      questionIndex >= 0 ? questionIndex : hashIndex >= 0 ? hashIndex : trimmed.length;
+    return trimmed.slice(0, endIndex);
+  };
+
+  GridWrapper.prototype.extractQueryString = function extractQueryString(sourceUrl) {
+    if (!sourceUrl) {
+      return "";
+    }
+    const trimmed = sourceUrl.trim();
+    if (!trimmed) {
+      return "";
+    }
+    if (trimmed.startsWith("?")) {
+      return trimmed.slice(1).split("#")[0];
+    }
+    const questionIndex = trimmed.indexOf("?");
+    if (questionIndex >= 0) {
+      return trimmed.slice(questionIndex + 1).split("#")[0];
+    }
+    if (!trimmed.startsWith("http") && trimmed.includes("=")) {
+      return trimmed.split("#")[0];
+    }
+    return "";
+  };
+
+  GridWrapper.prototype.appendParam = function appendParam(url, param) {
+    let target = url;
+    if (!target || target === "?") {
+      target = this.resolveBaseUrl();
+    }
+    if (!target) {
+      target = "";
+    }
+    const separator = target.includes("?") ? "&" : "?";
+    return `${target}${separator}${param}`;
+  };
+
+  GridWrapper.prototype.resolveBaseUrl = function resolveBaseUrl() {
+    const server = this.options?.server;
+    const resolver = server?.__baseUrlResolver;
+    if (typeof resolver === "function") {
+      try {
+        return resolver();
+      } catch (error) {
+        console.error("GridWrapper: 解析基础请求地址失败", error);
+      }
+    }
+    if (typeof server?.url === "string") {
+      return server.url;
+    }
+    return "";
   };
 
   GridWrapper.prototype.deepMerge = function deepMerge(target, source) {
