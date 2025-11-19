@@ -328,22 +328,49 @@ function mountCredentialsListPage(global) {
   }
 
   function initializeCredentialFilterCard() {
-    const factory = global.UI?.createFilterCard;
-    if (!factory) {
-      console.error("UI.createFilterCard 未加载，凭据筛选无法初始化");
+    const form = document.getElementById(CREDENTIAL_FILTER_FORM_ID);
+    if (!form) {
+      console.warn("凭据筛选表单缺失，搜索无法初始化");
       return;
     }
-    credentialFilterCard = factory({
-      formSelector: `#${CREDENTIAL_FILTER_FORM_ID}`,
-      autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
-      onSubmit: ({ values }) => applyCredentialFilters(null, values),
-      onClear: () => applyCredentialFilters(null, {}),
-      onChange: ({ values }) => {
-        if (AUTO_APPLY_FILTER_CHANGE) {
-          applyCredentialFilters(null, values);
-        }
-      },
+
+    credentialFilterCard = { form };
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      applyCredentialFilters(form);
     });
+
+    const clearButton = form.querySelector("[data-filter-clear]");
+    if (clearButton) {
+      clearButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        resetCredentialFilters(form);
+      });
+    }
+
+    const autoInputs = form.querySelectorAll("[data-auto-submit]");
+    if (autoInputs.length) {
+      const debouncedSubmit =
+        typeof LodashUtils.debounce === "function"
+          ? LodashUtils.debounce(() => applyCredentialFilters(form), 400)
+          : null;
+      autoInputs.forEach((input) => {
+        input.addEventListener("input", () => {
+          if (debouncedSubmit) {
+            debouncedSubmit();
+          } else {
+            applyCredentialFilters(form);
+          }
+        });
+      });
+    }
+
+    if (AUTO_APPLY_FILTER_CHANGE) {
+      form.querySelectorAll("select, input[type='checkbox'], input[type='radio']").forEach((element) => {
+        element.addEventListener("change", () => applyCredentialFilters(form));
+      });
+    }
 
     if (filterUnloadHandler) {
       from(global).off("beforeunload", filterUnloadHandler);
@@ -357,9 +384,6 @@ function mountCredentialsListPage(global) {
   }
 
   function destroyCredentialFilterCard() {
-    if (credentialFilterCard?.destroy) {
-      credentialFilterCard.destroy();
-    }
     credentialFilterCard = null;
   }
 
