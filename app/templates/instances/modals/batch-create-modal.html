@@ -1,0 +1,54 @@
+{% set batch_create_modal_body %}
+    <div id="fileUploadArea" class="upload-method">
+        <div class="mb-3">
+            <label for="csvFile" class="form-label">选择CSV文件</label>
+            <input type="file" class="form-control" id="csvFile" accept=".csv">
+            <div class="form-text">
+                请上传CSV格式文件，或
+                <a href="{{ url_for('files.download_instances_template') }}" class="text-decoration-none">
+                    <i class="fas fa-download me-1"></i>下载模板文件
+                </a>
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <h6><i class="fas fa-info-circle me-2"></i>CSV文件格式说明：</h6>
+            <p class="mb-2">CSV文件应包含以下列（必填字段用*标记）：</p>
+            <ul class="mb-0">
+                <li><code>name*</code> - 实例名称</li>
+                <li><code>db_type*</code> - 数据库类型 (mysql, postgresql, sqlserver, oracle)</li>
+                <li><code>host*</code> - 主机地址</li>
+                <li><code>port*</code> - 端口号</li>
+                <li><code>database_name</code> - 数据库名称（可选，默认: mysql/postgres/master/orcl）</li>
+                <li><code>description</code> - 描述（可选）</li>
+                <li><code>credential_id</code> - 凭据ID（可选）</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h6>数据库类型：</h6>
+        <ul class="list-unstyled">
+            <li><span class="badge bg-primary me-2">postgresql</span>PostgreSQL</li>
+            <li><span class="badge bg-success me-2">mysql</span>MySQL</li>
+            <li><span class="badge bg-warning me-2">sqlserver</span>SQL Server</li>
+            <li><span class="badge bg-info me-2">oracle</span>Oracle</li>
+        </ul>
+    </div>
+{% endset %}
+
+{% set batch_create_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="button" class="btn btn-primary" data-modal-confirm>创建实例</button>
+{% endset %}
+
+{% with
+    modal_id='batchCreateModal',
+    modal_label_id='batchCreateModalLabel',
+    title='<i class="fas fa-plus me-2"></i>批量创建实例',
+    body=batch_create_modal_body,
+    footer=batch_create_modal_footer,
+    size='xl'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}

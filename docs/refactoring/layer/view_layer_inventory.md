@@ -50,7 +50,7 @@ app/static/js/modules/
 | V1-3 | **AccountClassificationViews** | `accounts/account-classification/index.js`、`accounts/classifications/form.js`、`accounts/classification-rules/form.js` 全量迁移，并完成所有模态（创建/编辑分类、创建/编辑/查看规则）的 `UI.createModal` + 组件模板改造，彻底移除 `bootstrap.Modal` 兜底。 | `AccountClassificationStore`, `AccountClassificationService` | ✅ 完成；权限配置区已模块化，需继续清理旧权限组件对全局脚本的依赖。 |
 | V1-4 | **SchedulerViews** | `modules/views/admin/scheduler.js`（任务列表/模态）和 `admin/aggregations-chart.js`（统计卡片）覆盖全部交互；模态统一使用 `UI.createModal`，不再回退 `bootstrap.Modal`。 | `SchedulerStore`, `SchedulerService`, `PartitionStore/Service` | ✅ 完成；下一步是把表单校验局部化、减少全局脚本。 |
 | V1-5 | **InstanceViews** | `instances/list.js`、`instances/detail.js`、`instances/statistics.js` 已拆分；账户列表复用其中的按钮/模态。 | `InstanceStore`, `InstanceManagementService`, `ConnectionService` | ✅ 完成；部分表单仍引用全局 FormValidator，需要逐步替换。 |
-| V1-6 | **LogsViews** | `modules/views/history/logs.js` 负责模块筛选、统计卡、日志表格与详情抽屉。 | `LogsStore`, `LogsService` | ✅ 完成；后续可考虑进一步拆成子视图以支持按需加载。 |
+| V1-6 | **LogsViews** | `modules/views/history/logs/logs.js` 负责模块筛选、统计卡、日志表格与详情抽屉。 | `LogsStore`, `LogsService` | ✅ 完成；后续可考虑进一步拆成子视图以支持按需加载。 |
 | V1-7 | **Credentials/Users/Auth** | 凭据（`credentials/form.js`, `list.js`）、用户表单（`users/form.js`）、登录/改密（`auth/login.js`, `auth/change_password.js`）均已迁移至视图层。 | 各自对应的 Store/Service（`CredentialsStore`、`PermissionService` 等） | ✅ 完成；与其它视图一样，校验逻辑尚依赖全局封装。 |
 | V1-8 | **仪表盘 / 容量统计** | `dashboard/overview.js`、`capacity-stats/*.js` 负责渲染统计卡片与图表，入口脚本瘦身。 | `DashboardService`, `CapacityStatsService` | ✅ 完成；命名已改为 kebab-case，后续可拆出更细粒度组件。 |
 

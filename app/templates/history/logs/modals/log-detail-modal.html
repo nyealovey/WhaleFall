@@ -1,0 +1,24 @@
+{% set log_modal_body %}
+    <div id="logDetailContent">
+        <!-- 日志详情内容将在这里动态加载 -->
+    </div>
+{% endset %}
+{% set log_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>
+        <i class="fas fa-times me-2"></i>关闭
+    </button>
+    <button type="button" class="btn btn-primary" id="copyLogDetailButton">
+        <i class="fas fa-copy me-2"></i>复制详情
+    </button>
+{% endset %}
+{% with
+    modal_id='logDetailModal',
+    modal_label_id='logDetailModalLabel',
+    title='<i class="fas fa-info-circle me-2"></i>日志详情',
+    body=log_modal_body,
+    footer=log_modal_footer,
+    modal_class='log-detail-modal',
+    dialog_class='modal-xl modal-dialog-scrollable'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}

@@ -1,4 +1,4 @@
-// 操作日志入口：初始化 modules/views/history/logs.js 提供的 LogsPage
+// 操作日志入口：初始化 modules/views/history/logs/logs.js 提供的 LogsPage
 (function (global) {
   "use strict";
 

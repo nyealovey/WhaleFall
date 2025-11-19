@@ -45,8 +45,6 @@
         {% endcall %}
     </div>
 
-<!-- 批量测试进度显示 -->
-
 <!-- 实例列表 -->
 <div class="card">
     <div class="card-body">
@@ -60,7 +58,7 @@
                 <button type="button" class="btn btn-outline-danger btn-sm me-2" onclick="batchDelete()" disabled id="batchDeleteBtn">
                     <i class="fas fa-trash me-1"></i>批量删除
                 </button>
-                <button type="button" class="btn btn-outline-success btn-sm me-2" onclick="showBatchCreateModal()">
+                <button type="button" class="btn btn-outline-success btn-sm me-2" data-action="create-instance-batch">
                     <i class="fas fa-plus me-1"></i>批量添加
                 </button>
                 <button type="button" class="btn btn-outline-info btn-sm" id="batchTestBtn" onclick="batchTestConnections()">
@@ -271,63 +269,7 @@
 </div>
 
 
-<!-- 批量创建模态框 -->
-{% set batch_create_modal_body %}
-    <!-- CSV文件上传区域 -->
-    <div id="fileUploadArea" class="upload-method">
-        <div class="mb-3">
-            <label for="csvFile" class="form-label">选择CSV文件</label>
-            <input type="file" class="form-control" id="csvFile" accept=".csv" onchange="handleFileSelect(event)">
-            <div class="form-text">
-                请上传CSV格式文件，或
-                <a href="{{ url_for('files.download_instances_template') }}" class="text-decoration-none">
-                    <i class="fas fa-download me-1"></i>下载模板文件
-                </a>
-            </div>
-        </div>
-
-        <div class="alert alert-info">
-            <h6><i class="fas fa-info-circle me-2"></i>CSV文件格式说明：</h6>
-            <p class="mb-2">CSV文件应包含以下列（必填字段用*标记）：</p>
-            <ul class="mb-0">
-                <li><code>name*</code> - 实例名称</li>
-                <li><code>db_type*</code> - 数据库类型 (mysql, postgresql, sqlserver, oracle)</li>
-                <li><code>host*</code> - 主机地址</li>
-                <li><code>port*</code> - 端口号</li>
-                <li><code>database_name</code> - 数据库名称（可选，默认: mysql/postgres/master/orcl）</li>
-                <li><code>description</code> - 描述（可选）</li>
-                <li><code>credential_id</code> - 凭据ID（可选）</li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="mt-4">
-        <h6>数据库类型：</h6>
-        <ul class="list-unstyled">
-            <li><span class="badge bg-primary me-2">postgresql</span>PostgreSQL</li>
-            <li><span class="badge bg-success me-2">mysql</span>MySQL</li>
-            <li><span class="badge bg-warning me-2">sqlserver</span>SQL Server</li>
-            <li><span class="badge bg-info me-2">oracle</span>Oracle</li>
-        </ul>
-    </div>
-{% endset %}
-
-{% set batch_create_modal_footer %}
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
-    <button type="button" class="btn btn-primary" data-modal-confirm>创建实例</button>
-{% endset %}
-
-{% with
-    modal_id='batchCreateModal',
-    modal_label_id='batchCreateModalLabel',
-    title='<i class="fas fa-plus me-2"></i>批量创建实例',
-    body=batch_create_modal_body,
-    footer=batch_create_modal_footer,
-    size='xl'
-%}
-    {% include 'components/ui/modal.html' %}
-{% endwith %}
-
+{% include 'instances/modals/batch-create-modal.html' %}
 {% include 'instances/modals/instance-modals.html' %}
 {% endblock %}
 
@@ -339,6 +281,7 @@
 <script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/instance_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/instances/modals/instance-modals.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/instances/modals/batch-create-modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/instances/list.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap/instances/list.js') }}"></script>
 {% endblock %}
