@@ -49,6 +49,12 @@
           },
         },
       },
+      fetchOptions: {
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      },
       language: {
         pagination: {
           previous: "上一页",
