@@ -125,7 +125,7 @@
         form.username.value = credential.username || '';
         form.description.value = credential.description || '';
         form.is_active.checked = Boolean(credential.is_active);
-        form.db_type.value = credential.db_type || '';
+        form.db_type.value = (credential.db_type || '').toString().toLowerCase();
         handleCredentialTypeChange();
         modal.show();
       } catch (error) {
@@ -135,7 +135,7 @@
     }
 
     function handleSubmit(event) {
-      event.preventDefault();
+      event?.preventDefault?.();
       const payload = buildPayload();
       if (!payload) {
         return;
