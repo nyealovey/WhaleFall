@@ -106,29 +106,31 @@ function mountCredentialsListPage(global) {
         {
           name: "类型",
           id: "credential_type",
-          formatter: (cell) => {
-            if (!gridHtml) {
-              return cell || "-";
-            }
-            const map = {
-              database: "primary",
-              api: "success",
-              ssh: "warning",
+          formatter: (cell, row) => {
+            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
+            const credentialType = (cell || meta.credential_type || "-").toString().toUpperCase();
+            const dbType = (meta.db_type || "").toString().toLowerCase();
+            const credentialBadgeMap = {
+              database: "bg-success",
+              api: "bg-primary",
+              ssh: "bg-warning",
             };
-            const color = map[cell] || "secondary";
-            const label = escapeHtmlValue((cell || "-").toString().toUpperCase());
-            return gridHtml(`<span class="badge bg-${color}">${label}</span>`);
-          },
-        },
-        {
-          name: "数据库类型",
-          id: "db_type",
-          formatter: (cell) => {
-            if (!cell) {
-              return gridHtml ? gridHtml('<span class="text-muted">-</span>') : "-";
+            const credentialClass = credentialBadgeMap[(cell || "").toString().toLowerCase()] || "bg-secondary";
+            const dbBadgeMeta = getDbBadgeMeta(dbType);
+            if (!gridHtml) {
+              return `${credentialType} - ${dbBadgeMeta.label}`;
             }
-            const display = escapeHtmlValue(cell.toString().toUpperCase());
-            return gridHtml ? gridHtml(`<span class="badge bg-info">${display}</span>`) : display;
+            const dbBadge = `
+              <span class="credential-db-badge ${dbBadgeMeta.className}">
+                <i class="${dbBadgeMeta.icon} me-1"></i>${dbBadgeMeta.label}
+              </span>
+            `;
+            return gridHtml(`
+              <div class="credential-type-cell">
+                <span class="badge ${credentialClass} me-2">${escapeHtmlValue(credentialType)}</span>
+                ${dbBadge}
+              </div>
+            `);
           },
         },
         { name: "用户名", id: "username" },
@@ -525,6 +527,50 @@ function mountCredentialsListPage(global) {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function getDbBadgeMeta(dbType) {
+    const normalized = (dbType || "").toLowerCase();
+    const map = {
+      mysql: {
+        className: "credential-db-badge--mysql",
+        icon: "fas fa-database",
+        label: "MySQL",
+      },
+      postgresql: {
+        className: "credential-db-badge--postgresql",
+        icon: "fas fa-database",
+        label: "PostgreSQL",
+      },
+      pgsql: {
+        className: "credential-db-badge--postgresql",
+        icon: "fas fa-database",
+        label: "PostgreSQL",
+      },
+      sqlserver: {
+        className: "credential-db-badge--sqlserver",
+        icon: "fas fa-server",
+        label: "SQL Server",
+      },
+      oracle: {
+        className: "credential-db-badge--oracle",
+        icon: "fas fa-database",
+        label: "Oracle",
+      },
+    };
+    const fallbackLabel = normalized ? normalized.toUpperCase() : "未指定";
+    const base = map[normalized];
+    if (base) {
+      return {
+        ...base,
+        className: `credential-db-badge ${base.className}`,
+      };
+    }
+    return {
+      className: "credential-db-badge credential-db-badge--default",
+      icon: "fas fa-database",
+      label: fallbackLabel,
+    };
   }
 
   function bindCredentialsStoreEvents() {
