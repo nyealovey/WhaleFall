@@ -203,7 +203,6 @@ function mountCredentialsListPage(global) {
             item.id,
             item.name,
             item.credential_type,
-            item.db_type,
             item.username,
             item.instance_count ?? 0,
             item.is_active,
