@@ -108,7 +108,8 @@
           ...baseOptions,
           ...(this.options.fetchOptions || {}),
         };
-        return fetch(url, mergedOptions);
+        const finalUrl = this.appendFilters(url, this.currentFilters);
+        return fetch(finalUrl, mergedOptions);
       },
     };
     serverConfig.__baseUrlResolver = urlResolver;
