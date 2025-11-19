@@ -13,6 +13,8 @@ function mountCredentialsListPage(global) {
   }
 
   const { ready, select, selectOne, from } = helpers;
+  const gridjs = global.gridjs;
+  const gridHtml = gridjs?.html;
   const credentialModals = global.CredentialModals?.createController
     ? global.CredentialModals.createController({
         http: global.httpU,
@@ -52,6 +54,8 @@ function mountCredentialsListPage(global) {
   let confirmDeleteButton = null;
   let credentialFilterCard = null;
   let filterUnloadHandler = null;
+  let credentialsGrid = null;
+  let canManageCredentials = false;
 
   ready(initializeCredentialsListPage);
 
@@ -59,13 +63,167 @@ function mountCredentialsListPage(global) {
    * 页面入口：初始化模态、删除确认、筛选、实时搜索。
    */
   function initializeCredentialsListPage() {
+    initializeCredentialsGrid();
     bindModalTriggers();
     initializeDeleteConfirmation();
     initializeCredentialFilterCard();
-    initializeRealTimeSearch();
     bindCredentialsStoreEvents();
   }
 
+  function initializeCredentialsGrid() {
+    const container = document.getElementById("credentials-grid");
+    if (!container) {
+      return;
+    }
+    if (!global.GridWrapper || !gridjs) {
+      console.error("Grid.js 或 GridWrapper 未加载，无法初始化凭据表格");
+      return;
+    }
+    canManageCredentials = container.dataset.canManage === "true";
+    credentialsGrid = new global.GridWrapper(container, {
+      columns: [
+        {
+          name: "ID",
+          id: "id",
+          width: "90px",
+          formatter: (cell) =>
+            gridHtml
+              ? gridHtml(`<span class="badge bg-secondary">#${cell}</span>`)
+              : `#${cell}`,
+        },
+        {
+          name: "名称",
+          id: "name",
+          width: "220px",
+          formatter: (cell, row) => {
+            const meta = row?.cells?.[8]?.data || {};
+            const description = meta.description
+              ? `<br><small class="text-muted">${escapeHtmlValue(meta.description)}</small>`
+              : "";
+            const displayName = escapeHtmlValue(cell || "-");
+            return gridHtml ? gridHtml(`<div class="fw-semibold">${displayName}</div>${description}`) : displayName;
+          },
+        },
+        {
+          name: "类型",
+          id: "credential_type",
+          width: "120px",
+          formatter: (cell) => {
+            if (!gridHtml) {
+              return cell || "-";
+            }
+            const map = {
+              database: "primary",
+              api: "success",
+              ssh: "warning",
+            };
+            const color = map[cell] || "secondary";
+            const label = escapeHtmlValue((cell || "-").toString().toUpperCase());
+            return gridHtml(`<span class="badge bg-${color}">${label}</span>`);
+          },
+        },
+        {
+          name: "数据库类型",
+          id: "db_type",
+          width: "140px",
+          formatter: (cell) => {
+            if (!cell) {
+              return gridHtml ? gridHtml('<span class="text-muted">-</span>') : "-";
+            }
+            const display = escapeHtmlValue(cell.toString().toUpperCase());
+            return gridHtml ? gridHtml(`<span class="badge bg-info">${display}</span>`) : display;
+          },
+        },
+        { name: "用户名", id: "username", width: "160px" },
+        {
+          name: "绑定实例",
+          id: "instance_count",
+          width: "140px",
+          formatter: (cell) => {
+            if (!gridHtml) {
+              return `${cell || 0} 个`;
+            }
+            return gridHtml(
+              `<span class="badge bg-info"><i class="fas fa-database me-1"></i>${cell || 0} 个实例</span>`,
+            );
+          },
+        },
+        {
+          name: "状态",
+          id: "is_active",
+          width: "100px",
+          formatter: (cell) => {
+            const isActive = Boolean(cell);
+            if (!gridHtml) {
+              return isActive ? "启用" : "禁用";
+            }
+            const color = isActive ? "success" : "secondary";
+            const text = isActive ? "启用" : "禁用";
+            return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
+          },
+        },
+        {
+          name: "创建时间",
+          id: "created_at",
+          width: "180px",
+          formatter: (cell) => cell || "-",
+        },
+        {
+          name: "操作",
+          width: "160px",
+          sort: false,
+          formatter: (cell, row) => {
+            const credentialId = row?.cells?.[0]?.data;
+            const meta = row?.cells?.[8]?.data || {};
+            if (!canManageCredentials) {
+              return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : "";
+            }
+            const credentialNameLiteral = JSON.stringify(meta.name || "");
+            return gridHtml
+              ? gridHtml(`
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-warning" onclick="openCredentialEditor(${credentialId})" title="编辑">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-danger" onclick="deleteCredential(${credentialId}, ${credentialNameLiteral})" title="删除">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              `)
+              : "";
+          },
+        },
+      ],
+      server: {
+        url: "/credentials/api/credentials",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        then: (response) => {
+          const payload = response?.data || response || {};
+          const items = payload.items || [];
+          return items.map((item) => [
+            item.id,
+            item.name,
+            item.credential_type,
+            item.db_type,
+            item.username,
+            item.instance_count ?? 0,
+            item.is_active,
+            item.created_at_display || "",
+            item,
+          ]);
+        },
+        total: (response) => {
+          const payload = response?.data || response || {};
+          return payload.total || 0;
+        },
+      },
+    });
+    const initialFilters = normalizeGridFilters(resolveCredentialFilters(resolveFormElement()));
+    credentialsGrid.setFilters(initialFilters || {}, { silent: true });
+    credentialsGrid.init();
+  }
   /**
    * 初始化新建/编辑凭据模态触发器。
    */
@@ -145,6 +303,13 @@ function mountCredentialsListPage(global) {
     deleteModal?.open();
   }
 
+  function openCredentialEditor(credentialId) {
+    if (!credentialModals || !credentialId) {
+      return;
+    }
+    credentialModals.openEdit(credentialId);
+  }
+
   function showLoadingState(target, text) {
     const element = from(target);
     if (!element.length) {
@@ -172,86 +337,6 @@ function mountCredentialsListPage(global) {
     const params = buildCredentialQueryParams({ ...filters, export: format });
     const url = `${global.location.pathname}?${params.toString()}`;
     global.open(url, "_blank", "noopener");
-  }
-
-  function sortTable(column, direction = "asc") {
-    const table = selectOne(".credentials-table .table");
-    if (!table.length) {
-      return;
-    }
-    const tbody = table.find("tbody").first();
-    if (!tbody) {
-      return;
-    }
-    const rows = from(tbody).find("tr").nodes;
-    if (!rows.length) {
-      return;
-    }
-
-    const normalizedDirection = direction === "desc" ? "desc" : "asc";
-    const sortedRows = LodashUtils.orderBy(
-      rows,
-      [
-        (row) => {
-          const cell = from(row).find(`td:nth-child(${column})`).text();
-          return normalizeText(cell);
-        },
-      ],
-      [normalizedDirection],
-    );
-
-    sortedRows.forEach((row) => tbody.appendChild(row));
-  }
-
-  function filterTable(filterValue) {
-    const table = selectOne(".credentials-table .table");
-    if (!table.length) {
-      return;
-    }
-    const rows = table.find("tbody tr");
-    const normalizedFilter = normalizeText(filterValue || "");
-    rows.each((row) => {
-      const text = normalizeText(row.textContent || "");
-      row.style.display = !normalizedFilter || text.includes(normalizedFilter) ? "" : "none";
-    });
-  }
-
-  function initializeRealTimeSearch() {
-    const searchInput = selectOne('input[name="search"]');
-    if (!searchInput.length) {
-      return;
-    }
-
-    const debouncedFilter = LodashUtils.debounce(
-      (value) => {
-        filterTable(value ? value.trim() : "");
-      },
-      300,
-      { leading: false, trailing: true },
-    );
-
-    const handleInput = (event) => {
-      debouncedFilter(event.target.value || "");
-    };
-
-    const handleBlur = () => {
-      if (typeof debouncedFilter.flush === "function") {
-        debouncedFilter.flush();
-      }
-    };
-
-    const cleanup = () => {
-      if (typeof debouncedFilter.cancel === "function") {
-        debouncedFilter.cancel();
-      }
-      searchInput.off("input", handleInput);
-      searchInput.off("blur", handleBlur);
-      from(global).off("beforeunload", cleanup);
-    };
-
-    searchInput.on("input", handleInput);
-    searchInput.on("blur", handleBlur);
-    from(global).on("beforeunload", cleanup);
   }
 
   function initializeCredentialFilterCard() {
@@ -296,13 +381,16 @@ function mountCredentialsListPage(global) {
       return;
     }
 
-    const filters = resolveCredentialFilters(targetForm, values);
+    const filters = normalizeGridFilters(resolveCredentialFilters(targetForm, values));
     const searchTerm = filters.search || "";
     if (typeof searchTerm === "string" && searchTerm.trim().length > 0 && searchTerm.trim().length < 2) {
       global.toast.warning("搜索关键词至少需要2个字符");
       return;
     }
-
+    if (credentialsGrid) {
+      credentialsGrid.updateFilters(filters);
+      return;
+    }
     const params = buildCredentialQueryParams(filters);
     const action = targetForm.getAttribute("action") || global.location.pathname;
     const query = params.toString();
@@ -326,6 +414,26 @@ function mountCredentialsListPage(global) {
       result[key] = normalized;
       return result;
     }, {});
+  }
+
+  function normalizeGridFilters(filters) {
+    const normalized = { ...(filters || {}) };
+    ["credential_type", "db_type", "status"].forEach((key) => {
+      if (normalized[key] === "all") {
+        delete normalized[key];
+      }
+    });
+    if (Array.isArray(normalized.tags)) {
+      const cleaned = normalized.tags.filter((item) => item && item.trim());
+      if (cleaned.length === 0) {
+        delete normalized.tags;
+      } else {
+        normalized.tags = cleaned;
+      }
+    } else if (typeof normalized.tags === "string" && normalized.tags.trim() === "") {
+      delete normalized.tags;
+    }
+    return normalized;
   }
 
   function sanitizeFilterValue(value) {
@@ -422,31 +530,33 @@ function mountCredentialsListPage(global) {
     return text.toLowerCase();
   }
 
+  function escapeHtmlValue(value) {
+    if (value === undefined || value === null) {
+      return "";
+    }
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function bindCredentialsStoreEvents() {
     if (!credentialsStore) {
       return;
     }
     credentialsStore.subscribe("credentials:deleted", ({ credentialId, response }) => {
-      removeCredentialRow(credentialId);
       closeDeleteModal();
       deleteCredentialId = null;
       const message = response?.message || "凭据已删除";
       global.toast.success(message);
+      credentialsGrid?.refresh?.();
     });
     credentialsStore.subscribe("credentials:error", (payload) => {
       const message = payload?.error?.message || "凭据操作失败";
       global.toast.error(message);
     });
-  }
-
-  function removeCredentialRow(credentialId) {
-    if (!credentialId && credentialId !== 0) {
-      return;
-    }
-    const row = document.querySelector(`[data-credential-id="${credentialId}"]`);
-    if (row && row.parentNode) {
-      row.parentNode.removeChild(row);
-    }
   }
 
   function closeDeleteModal() {
@@ -455,8 +565,7 @@ function mountCredentialsListPage(global) {
 
   global.deleteCredential = deleteCredential;
   global.exportCredentials = exportCredentials;
-  global.sortTable = sortTable;
-  global.filterTable = filterTable;
+  global.openCredentialEditor = openCredentialEditor;
 }
 
 window.CredentialsListPage = {
