@@ -86,3 +86,61 @@
     font-size: 0.8em;
     padding: 0.25rem 0.5rem;
 }
+.session-card-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 0.8fr 1.4fr 1.1fr 1.1fr 0.8fr 1fr;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 12px;
+  margin-bottom: var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  background: #f8fbfd;
+  border: 1px solid var(--gray-200);
+}
+
+.session-card-grid.session-card-header {
+  background: var(--gray-100);
+  font-weight: 600;
+  color: var(--gray-600);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.session-card-grid .session-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-card-grid .session-info .session-id {
+  font-weight: 600;
+}
+
+.session-card-grid .session-progress .progress {
+  min-width: 120px;
+}
+
+.session-card-grid .session-duration {
+  font-weight: 600;
+}
+
+.session-card-grid .session-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.session-card-grid.running {
+  border-left: 4px solid var(--success-color);
+}
+
+.session-card-grid.completed {
+  border-left: 4px solid var(--info-color);
+}
+
+.session-card-grid.failed {
+  border-left: 4px solid var(--danger-color);
+}
+
+.session-card-grid.cancelled {
+  border-left: 4px solid var(--gray-400);
+}
