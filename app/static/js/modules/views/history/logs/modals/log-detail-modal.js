@@ -129,39 +129,65 @@
         .replace(/'/g, '&#39;');
     }
 
-    function handleCopyClick(event) {
+    async function handleCopyClick(event) {
       event?.preventDefault?.();
       const text = contentElement.innerText || contentElement.textContent || '';
-      if (!text.trim()) {
+      if (!text || !text.trim()) {
         toast?.info?.('暂无可复制的日志详情');
         return;
       }
-      if (navigator.clipboard?.writeText) {
-        navigator.clipboard
-          .writeText(text)
-          .then(() => toast?.success?.('日志详情已复制'))
-          .catch(() => fallbackCopy(text));
-      } else {
-        fallbackCopy(text);
-      }
-    }
-
-    function fallbackCopy(text) {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
       try {
-        document.execCommand('copy');
+        await copyToClipboard(text);
         toast?.success?.('日志详情已复制');
       } catch (error) {
         console.error('复制日志详情失败:', error);
         toast?.error?.('复制失败，请手动选择文本');
-      } finally {
-        document.body.removeChild(textarea);
       }
+    }
+
+    async function copyToClipboard(text) {
+      if (navigator.clipboard?.writeText && global.isSecureContext !== false) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      if (copyUsingTextarea(text)) {
+        return;
+      }
+      if (copyUsingSelection(contentElement)) {
+        return;
+      }
+      throw new Error('COPY_UNSUPPORTED');
+    }
+
+    function copyUsingTextarea(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      textarea.style.pointerEvents = 'none';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return successful;
+    }
+
+    function copyUsingSelection(target) {
+      if (!target) {
+        return false;
+      }
+      const selection = window.getSelection();
+      if (!selection) {
+        return false;
+      }
+      selection.removeAllRanges();
+      const range = document.createRange();
+      range.selectNodeContents(target);
+      selection.addRange(range);
+      const successful = document.execCommand('copy');
+      selection.removeAllRanges();
+      return successful;
     }
 
     function destroy() {
