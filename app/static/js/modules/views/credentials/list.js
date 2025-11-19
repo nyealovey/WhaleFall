@@ -217,8 +217,10 @@ function mountCredentialsListPage(global) {
       },
     });
     const initialFilters = normalizeGridFilters(resolveCredentialFilters(resolveFormElement()));
-    credentialsGrid.setFilters(initialFilters || {}, { silent: true });
     credentialsGrid.init();
+    if (initialFilters && Object.keys(initialFilters).length > 0) {
+      credentialsGrid.setFilters(initialFilters);
+    }
   }
   /**
    * 初始化新建/编辑凭据模态触发器。

@@ -102,15 +102,6 @@
         const prev = urlResolver(...args);
         return this.appendFilters(prev, this.currentFilters);
       },
-      fetch: (url, fetchOptions) => {
-        const baseOptions = fetchOptions || {};
-        const mergedOptions = {
-          ...baseOptions,
-          ...(this.options.fetchOptions || {}),
-        };
-        const finalUrl = this.appendFilters(url, this.currentFilters);
-        return fetch(finalUrl, mergedOptions);
-      },
     };
     serverConfig.__baseUrlResolver = urlResolver;
     return serverConfig;
