@@ -94,7 +94,6 @@
       titleEl.textContent = '添加凭据';
       submitBtn.textContent = '添加凭据';
       handleCredentialTypeChange();
-      validator?.revalidate?.();
       validator?.instance?.refresh?.();
     }
 
@@ -169,7 +168,7 @@
     }
 
     function submitCreate(payload) {
-      http.post('/credentials/api/credentials', payload)
+      http.post('/credentials/api/create', payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '添加凭据失败');
@@ -192,7 +191,7 @@
         toggleLoading(false);
         return;
       }
-      http.put(`/credentials/api/credentials/${credentialId}`, payload)
+      http.post(`/credentials/api/${credentialId}/edit`, payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '保存凭据失败');
