@@ -737,15 +737,3 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
 window.SyncSessionsPage = {
   mount: mountSyncSessionsPage,
 };
-  function createSessionsHeader() {
-    return `
-      <div class="session-card-grid session-card-header" role="presentation">
-        <div class="session-cell">会话</div>
-        <div class="session-cell">状态</div>
-        <div class="session-cell">进度</div>
-        <div class="session-cell">开始时间</div>
-        <div class="session-cell">完成时间</div>
-        <div class="session-cell">耗时</div>
-        <div class="session-cell text-end">操作</div>
-      </div>`;
-  }

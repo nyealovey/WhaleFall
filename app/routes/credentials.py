@@ -29,6 +29,7 @@ from app.utils.data_validator import sanitize_form_data
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.query_filter_utils import get_active_tag_options
+from app.utils.time_utils import time_utils
 from app.services.form_service.credentials_form_service import CredentialFormService
 
 # 创建蓝图
@@ -281,9 +282,94 @@ def delete(credential_id: int) -> "Response":
 @view_required
 def api_list() -> "Response":
     """获取凭据列表API"""
-    credentials = Credential.query.filter_by(is_active=True).all()
+    page = request.args.get("page", 1, type=int)
+    limit = request.args.get("limit", 20, type=int)
+    sort_field = request.args.get("sort", "created_at")
+    sort_order = request.args.get("order", "desc")
+    search = request.args.get("search", "", type=str).strip()
+    credential_type = request.args.get("credential_type", "", type=str).strip()
+    db_type = request.args.get("db_type", "", type=str).strip()
+    status = request.args.get("status", "", type=str).strip()
+    tag_params = request.args.getlist("tags")
+    if not tag_params:
+        tags_str = request.args.get("tags", "", type=str)
+        if tags_str:
+            tag_params = [tag.strip() for tag in tags_str.split(",") if tag.strip()]
+
+    query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
+        Instance, Credential.id == Instance.credential_id
+    )
+
+    if search:
+        query = query.filter(
+            db.or_(
+                Credential.name.contains(search),
+                Credential.username.contains(search),
+                Credential.description.contains(search),
+            )
+        )
+
+    if credential_type and credential_type != "all":
+        query = query.filter(Credential.credential_type == credential_type)
+
+    if db_type and db_type != "all":
+        query = query.filter(Credential.db_type == db_type)
+
+    if status and status != "all":
+        if status == "active":
+            query = query.filter(Credential.is_active.is_(True))
+        elif status == "inactive":
+            query = query.filter(Credential.is_active.is_(False))
+
+    if tag_params:
+        from app.models.tag import Tag
+        query = query.join(Credential.tags).filter(Tag.name.in_(tag_params))
+
+    query = query.group_by(Credential.id)
+
+    sortable_fields = {
+        "id": Credential.id,
+        "name": Credential.name,
+        "credential_type": Credential.credential_type,
+        "db_type": Credential.db_type,
+        "username": Credential.username,
+        "created_at": Credential.created_at,
+        "instance_count": db.func.count(Instance.id),
+        "is_active": Credential.is_active,
+    }
+    order_column = sortable_fields.get(sort_field, Credential.created_at)
+    if sort_order == "desc":
+        query = query.order_by(order_column.desc())
+    else:
+        query = query.order_by(order_column.asc())
+
+    pagination = query.paginate(page=page, per_page=limit, error_out=False)
+
+    items = []
+    for credential, instance_count in pagination.items:
+        data = credential.to_dict()
+        data.update(
+            {
+                "description": credential.description,
+                "is_active": credential.is_active,
+                "instance_count": instance_count or 0,
+                "created_at_display": time_utils.format_china_time(
+                    credential.created_at, "%Y-%m-%d %H:%M:%S"
+                )
+                if credential.created_at
+                else "",
+                "name": credential.name,
+            }
+        )
+        items.append(data)
+
     return jsonify_unified_success(
-        data={"credentials": [cred.to_dict() for cred in credentials]},
+        data={
+            "items": items,
+            "total": pagination.total,
+            "page": pagination.page,
+            "pages": pagination.pages,
+        },
         message=SuccessMessages.OPERATION_SUCCESS,
     )
 
