@@ -307,7 +307,8 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       return;
     }
 
-    const html = sessions.map(session => {
+    const header = createSessionsHeader();
+    const rows = sessions.map(session => {
       const statusClass = getStatusClass(session.status);
       const statusText = getStatusText(session.status);
       const startedAt = timeUtils.formatTime(session.started_at, 'datetime');
@@ -320,59 +321,73 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
       const progressInfo = getProgressInfo(successRate, totalInstances, successfulInstances, failedInstances);
 
       return `
-        <div class="card session-card ${statusClass} mb-3">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col-2">
-                <h6 class="mb-1">${session.session_id.substring(0, 8)}...</h6>
-                <small class="text-muted">${getSyncTypeText(session.sync_type)} - ${getSyncCategoryText(session.sync_category)}</small>
-              </div>
-              <div class="col-2">
-                <span class="badge status-badge bg-${getStatusColor(session.status)}">${statusText}</span>
-              </div>
-              <div class="col-3">
-                <div class="progress" style="height: 12px;">
-                  <div class="progress-bar ${progressInfo.barClass}" role="progressbar" style="width: ${successRate}%" title="${progressInfo.tooltip}"></div>
-                </div>
-                <small class="text-muted">
-                  <span class="${progressInfo.textClass}">
-                    <i class="${progressInfo.icon}"></i> ${successRate}% (${successfulInstances}/${totalInstances})
-                  </span>
-                </small>
-              </div>
-              <div class="col-2">
-                <small class="text-muted">
-                  <i class="fas fa-clock"></i> ${startedAt}<br>
-                  <i class="fas fa-check-circle"></i> ${completedAt}
-                </small>
-              </div>
-              <div class="col-1">
-                ${getDurationBadge(session.started_at, session.completed_at)}
-              </div>
-              <div class="text-end col-2">
-                <button class="btn btn-sm btn-outline-primary" data-action="view" data-id="${session.session_id}">
-                  <i class="fas fa-eye"></i> 详情
-                </button>
-                ${session.status === 'running' ? `
-                <button class="btn btn-sm btn-outline-danger" data-action="cancel" data-id="${session.session_id}">
-                  <i class="fas fa-stop"></i> 取消
-                </button>` : ''}
-              </div>
+        <div class="session-card-grid ${statusClass}">
+          <div class="session-cell session-info">
+            <div class="session-id">${session.session_id.substring(0, 8)}...</div>
+            <div class="text-muted small">${getSyncTypeText(session.sync_type)} • ${getSyncCategoryText(session.sync_category)}</div>
+          </div>
+          <div class="session-cell session-status">
+            <span class="badge bg-${getStatusColor(session.status)}">${statusText}</span>
+          </div>
+          <div class="session-cell session-progress">
+            <div class="progress" style="height: 10px;">
+              <div class="progress-bar ${progressInfo.barClass}" role="progressbar" style="width: ${successRate}%" title="${progressInfo.tooltip}"></div>
             </div>
+            <div class="text-muted small mt-1">
+              <span class="${progressInfo.textClass}">
+                <i class="${progressInfo.icon}"></i> ${successRate}% (${successfulInstances}/${totalInstances})
+              </span>
+            </div>
+          </div>
+          <div class="session-cell">
+            <div class="text-muted small">${startedAt}</div>
+          </div>
+          <div class="session-cell">
+            <div class="text-muted small">${completedAt}</div>
+          </div>
+          <div class="session-cell session-duration">
+            ${getDurationBadge(session.started_at, session.completed_at)}
+          </div>
+          <div class="session-cell session-actions">
+            <button class="btn btn-sm btn-outline-primary" data-action="view" data-id="${session.session_id}">
+              <i class="fas fa-eye"></i> 详情
+            </button>
+            ${session.status === 'running' ? `
+            <button class="btn btn-sm btn-outline-danger" data-action="cancel" data-id="${session.session_id}">
+              <i class="fas fa-stop"></i> 取消
+            </button>` : ''}
           </div>
         </div>`;
     }).join('');
 
-    container.innerHTML = html;
+    container.innerHTML = header + rows;
 
-    container.querySelectorAll('[data-action="view"]').forEach(btn => btn.addEventListener('click', e => {
-      const id = e.currentTarget.getAttribute('data-id');
-      viewSessionDetail(id);
-    }));
-    container.querySelectorAll('[data-action="cancel"]').forEach(btn => btn.addEventListener('click', e => {
-      const id = e.currentTarget.getAttribute('data-id');
-      cancelSession(id);
-    }));
+    container.querySelectorAll('[data-action="view"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        viewSessionDetail(id);
+      });
+    });
+    container.querySelectorAll('[data-action="cancel"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        cancelSession(id);
+      });
+    });
+
+  }
+
+  function createSessionsHeader() {
+    return `
+      <div class="session-card-grid session-card-header" role="presentation">
+        <div class="session-cell">会话</div>
+        <div class="session-cell">状态</div>
+        <div class="session-cell">进度</div>
+        <div class="session-cell">开始时间</div>
+        <div class="session-cell">完成时间</div>
+        <div class="session-cell">耗时</div>
+        <div class="session-cell text-end">操作</div>
+      </div>`;
   }
 
   // 渲染分页控件
@@ -722,3 +737,15 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
 window.SyncSessionsPage = {
   mount: mountSyncSessionsPage,
 };
+  function createSessionsHeader() {
+    return `
+      <div class="session-card-grid session-card-header" role="presentation">
+        <div class="session-cell">会话</div>
+        <div class="session-cell">状态</div>
+        <div class="session-cell">进度</div>
+        <div class="session-cell">开始时间</div>
+        <div class="session-cell">完成时间</div>
+        <div class="session-cell">耗时</div>
+        <div class="session-cell text-end">操作</div>
+      </div>`;
+  }
