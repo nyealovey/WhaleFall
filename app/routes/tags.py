@@ -7,8 +7,8 @@ from flask import Blueprint, Response, flash, redirect, render_template, request
 from flask_login import current_user, login_required
 
 from app import db
-from app.models.tag import Tag
-from app.constants import FlashCategory, HttpMethod
+from app.models.tag import Tag, instance_tags
+from app.constants import FlashCategory, HttpMethod, HttpStatus
 from app.errors import ConflictError, ValidationError, NotFoundError
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -28,41 +28,10 @@ _tag_form_service = TagFormService()
 @view_required
 def index() -> str:
     """标签管理首页"""
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
     search = request.args.get("search", "", type=str)
     category = request.args.get("category", "", type=str)
     status_param = request.args.get("status", "all", type=str)
     status_filter = status_param if status_param not in {"", "all"} else ""
-
-    # 构建查询
-    query = Tag.query
-
-    if search:
-        query = query.filter(
-            db.or_(
-                Tag.name.contains(search),
-                Tag.display_name.contains(search),
-                Tag.description.contains(search),
-            )
-        )
-
-    if category:
-        query = query.filter(Tag.category == category)
-
-    if status_filter == "active":
-        query = query.filter_by(is_active=True)
-    elif status_filter == "inactive":
-        query = query.filter_by(is_active=False)
-    # 移除软删除相关逻辑，因为现在使用硬删除
-
-    # 排序
-    query = query.order_by(Tag.category, Tag.sort_order, Tag.name)
-
-    # 分页
-    tags = query.paginate(
-        page=page, per_page=per_page, error_out=False
-    )
 
     # 获取分类选项
     category_options = [{"value": "", "label": "全部分类"}] + get_tag_categories()
@@ -70,7 +39,6 @@ def index() -> str:
 
     return render_template(
         "tags/index.html",
-        tags=tags,
         search=search,
         category=category,
         status=status_param,
@@ -151,6 +119,13 @@ def delete(tag_id: int) -> Response:
             display_name=tag.display_name,
         )
 
+        prefers_json = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        if prefers_json:
+            return jsonify_unified_success(
+                data={"tag_id": tag_id},
+                message="标签删除成功",
+            )
+
         flash("标签删除成功", FlashCategory.SUCCESS)
         return redirect(url_for("tags.index"))
 
@@ -162,8 +137,87 @@ def delete(tag_id: int) -> Response:
             tag_id=tag_id,
             error=str(e),
         )
+        prefers_json = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        if prefers_json:
+            raise
         flash(f"标签删除失败: {str(e)}", FlashCategory.ERROR)
         return redirect(url_for("tags.index"))
+
+
+@tags_bp.route("/api/list")
+@login_required
+@view_required
+def list_tags_api() -> tuple[Response, int]:
+    """Grid.js 标签列表 API"""
+    page = request.args.get("page", 1, type=int)
+    limit = request.args.get("limit", 20, type=int)
+    sort_field = request.args.get("sort", "sort_order")
+    sort_order = request.args.get("order", "asc")
+    search = request.args.get("search", "", type=str)
+    category = request.args.get("category", "", type=str)
+    status_param = request.args.get("status", "all", type=str)
+    status_filter = status_param if status_param not in {"", "all"} else ""
+
+    instance_count_expr = db.func.count(instance_tags.c.instance_id)
+    query = (
+        db.session.query(Tag, instance_count_expr.label("instance_count"))
+        .outerjoin(instance_tags, Tag.id == instance_tags.c.tag_id)
+    )
+
+    if search:
+        query = query.filter(
+            db.or_(
+                Tag.name.contains(search),
+                Tag.display_name.contains(search),
+                Tag.description.contains(search),
+            )
+        )
+
+    if category:
+        query = query.filter(Tag.category == category)
+
+    if status_filter == "active":
+        query = query.filter(Tag.is_active.is_(True))
+    elif status_filter == "inactive":
+        query = query.filter(Tag.is_active.is_(False))
+
+    sortable_fields = {
+        "sort_order": Tag.sort_order,
+        "name": Tag.name,
+        "display_name": Tag.display_name,
+        "category": Tag.category,
+        "is_active": Tag.is_active,
+        "instance_count": instance_count_expr,
+        "created_at": Tag.created_at,
+        "updated_at": Tag.updated_at,
+    }
+    order_column = sortable_fields.get(sort_field, Tag.sort_order)
+    if sort_order == "desc":
+        query = query.order_by(order_column.desc())
+    else:
+        query = query.order_by(order_column.asc())
+
+    pagination = query.group_by(Tag.id).paginate(page=page, per_page=limit, error_out=False)
+    items = []
+    for tag, instance_count in pagination.items:
+        payload = tag.to_dict()
+        payload.update(
+            {
+                "instance_count": instance_count or 0,
+                "sort_order": tag.sort_order,
+                "category": tag.category,
+            }
+        )
+        items.append(payload)
+
+    return jsonify_unified_success(
+        data={
+            "items": items,
+            "total": pagination.total,
+            "page": pagination.page,
+            "pages": pagination.pages,
+        }
+    )
 
 
 @tags_bp.route("/api/tags")

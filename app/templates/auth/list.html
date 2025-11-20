@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% from 'components/filters/macros.html' import filter_card, search_input, select_filter, status_active_filter %}
 
 {% block title %}用户管理 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth/list.css') }}">
 {% endblock %}
 
@@ -29,103 +31,32 @@
     </div>
 </div>
 
+<!-- 筛选 -->
+<div class="users-page">
+    {% call filter_card(form_id='user-filter-form', action='#', auto_register=False) %}
+        {{ search_input(value=search, placeholder='搜索用户名或邮箱', col_class='col-4') }}
+        {{ select_filter('角色', 'userRole', 'role', role_options, role, '全部角色', col_class='col-3', allow_empty=True) }}
+        {{ status_active_filter(status_options, status, col_class='col-2') }}
+    {% endcall %}
+</div>
+
 <!-- 用户列表 -->
 <div class="container-fluid">
     <div class="card">
         <div class="card-body">
-            {% if users %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>用户</th>
-                            <th>角色</th>
-                            <th>状态</th>
-                            <th>创建时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users %}
-                        <tr>
-                            <td>
-                                <span class="badge bg-secondary" title="用户ID">
-                                    #{{ user.id }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="user-avatar me-3">
-                                        {{ user.username[0].upper() }}
-                                    </div>
-                                    <div>
-                                        <strong>{{ user.username }}</strong>
-                                        {% if user.email %}
-                                        <br><small class="text-muted">{{ user.email }}</small>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-{{ 'primary' if user.role == 'admin' else 'info' }}">
-                                    <i class="fas fa-{{ 'crown' if user.role == 'admin' else 'user' }} me-1"></i>
-                                    {{ '管理员' if user.role == 'admin' else '普通用户' }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">
-                                    <i class="fas fa-{{ 'check-circle' if user.is_active else 'times-circle' }} me-1"></i>
-                                    {{ '活跃' if user.is_active else '停用' }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="text-muted">
-                                    {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '-' }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-primary me-1"
-                                            data-action="edit-user"
-                                            data-user-id="{{ user.id }}"
-                                            title="编辑用户">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    {% set is_self = current_user.is_authenticated and current_user.id == user.id %}
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-danger user-delete-btn"
-                                            data-action="delete-user"
-                                            data-user-id="{{ user.id }}"
-                                            data-username="{{ user.username }}"
-                                            title="{{ '不能删除当前登录用户' if is_self else '删除用户' }}"
-                                            {% if is_self %}disabled{% endif %}>
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <i class="fas fa-users"></i>
-                <h4>暂无用户</h4>
-                <p>还没有任何用户，点击上方按钮添加第一个用户</p>
-            </div>
-            {% endif %}
+            <div id="users-grid"
+                 data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"
+                 data-current-user="{{ current_user.id if current_user.is_authenticated else '' }}"></div>
         </div>
     </div>
-
 </div>
 
 {% include 'auth/modals/user-modals.html' %}
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/user_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/auth/modals/user-modals.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/auth/list.js') }}"></script>

@@ -4,6 +4,7 @@
 {% block title %}标签管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tags/index.css') }}">
 {% endblock %}
 
@@ -46,122 +47,7 @@
 <!-- 标签列表 -->
 <div class="card">
     <div class="card-body">
-        {% if tags.items %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>排序</th>
-                        <th>标签代码</th>
-                        <th>显示名称</th>
-                        <th>分类</th>
-                        <th>描述</th>
-                        <th>状态</th>
-                        <th>实例数量</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for tag in tags.items %}
-                    <tr>
-                        <td>{{ tag.sort_order }}</td>
-                        <td>
-                            <code>{{ tag.name }}</code>
-                        </td>
-                        <td>
-                            <span class="badge bg-{{ tag.color }}">
-                                {{ tag.display_name }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge bg-secondary">{{ tag.category }}</span>
-                        </td>
-                        <td>
-                            {% if tag.description %}
-                                <small class="text-muted">{{ tag.description }}</small>
-                            {% else %}
-                                <span class="text-muted">无</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if tag.is_active %}
-                                <span class="badge bg-success">激活</span>
-                            {% else %}
-                                <span class="badge bg-secondary">禁用</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge bg-info">{{ tag.instances|length }}</span>
-                        </td>
-                        <td>
-                            {% if current_user.role == 'admin' %}
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button"
-                                        class="btn btn-outline-warning"
-                                        data-action="edit-tag"
-                                        data-tag-id="{{ tag.id }}"
-                                        title="编辑">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-danger"
-                                        data-tag-id="{{ tag.id }}" data-tag-name="{{ tag.display_name }}" title="删除">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                            {% else %}
-                            <span class="text-muted">只读模式</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- 分页 -->
-        {% if tags.pages > 1 %}
-        <nav aria-label="标签分页">
-            <ul class="pagination justify-content-center">
-                {% if tags.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('tags.index', page=tags.prev_num, search=search, category=category, status=status) }}">
-                        上一页
-                    </a>
-                </li>
-                {% endif %}
-
-                {% for page_num in tags.iter_pages() %}
-                {% if page_num %}
-                <li class="page-item {% if page_num == tags.page %}active{% endif %}">
-                    <a class="page-link" href="{{ url_for('tags.index', page=page_num, search=search, category=category, status=status) }}">
-                        {{ page_num }}
-                    </a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">…</span>
-                </li>
-                {% endif %}
-                {% endfor %}
-
-                {% if tags.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('tags.index', page=tags.next_num, search=search, category=category, status=status) }}">
-                        下一页
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
-
-        {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-tags fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted">暂无标签数据</h5>
-            <p class="text-muted">点击上方"添加标签"按钮创建第一个标签</p>
-        </div>
-        {% endif %}
+        <div id="tags-grid" data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"></div>
     </div>
 </div>
 
@@ -191,9 +77,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/tag_management_service.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/stores/tag_management_store.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/stores/tag_list_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/tags/modals/tag-modals.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/tags/index.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap/tags/index.js') }}"></script>
