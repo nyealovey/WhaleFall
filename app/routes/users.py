@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.errors import ConflictError, ValidationError
-from app.constants import FlashCategory, HttpStatus, UserRole
+from app.constants import FlashCategory, HttpStatus, UserRole, STATUS_ACTIVE_OPTIONS
 from app.models.user import User
 from app.views.user_form_view import UserFormView
 from app.services.users import UserFormService
@@ -33,25 +33,18 @@ _user_form_service = UserFormService()
 def index() -> str:
     """用户管理首页"""
     try:
-        log_info(
-            "加载用户管理页面",
-            module="users",
-            user_id=current_user.id if current_user.is_authenticated else None,
-        )
-
-        users = User.query.order_by(User.created_at.desc()).all()
         role_options = [
             {"value": role, "label": UserRole.get_display_name(role)}
             for role in UserRole.ALL
         ]
-        log_info(
-            "成功获取用户列表",
-            module="users",
-            user_id=current_user.id if current_user.is_authenticated else None,
-            total=len(users),
+        return render_template(
+            "auth/list.html",
+            role_options=role_options,
+            status_options=STATUS_ACTIVE_OPTIONS,
+            search=request.args.get("search", "", type=str),
+            role=request.args.get("role", "", type=str),
+            status=request.args.get("status", "all", type=str),
         )
-
-        return render_template("auth/list.html", users=users, role_options=role_options)
 
     except Exception as e:
         log_error(
@@ -61,7 +54,7 @@ def index() -> str:
             user_id=current_user.id if current_user.is_authenticated else None,
         )
         flash(f"获取用户列表失败: {str(e)}", FlashCategory.ERROR)
-        return render_template("auth/list.html", users=None, stats={})
+        return render_template("auth/list.html", role_options=[], status_options=STATUS_ACTIVE_OPTIONS)
 
 
 @users_bp.route("/api/users")
@@ -70,7 +63,11 @@ def index() -> str:
 def api_get_users() -> tuple[Response, int]:
     """获取用户列表API"""
     page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 10, type=int)
+    limit = request.args.get("limit", type=int)
+    if limit is None:
+        limit = request.args.get("per_page", 10, type=int)
+    sort_field = request.args.get("sort", "created_at")
+    sort_order = request.args.get("order", "desc")
     search = request.args.get("search", "", type=str)
     role_filter = request.args.get("role", "", type=str)
     status_filter = request.args.get("status", "", type=str)
@@ -89,21 +86,30 @@ def api_get_users() -> tuple[Response, int]:
         elif status_filter == "inactive":
             query = query.filter(User.is_active.is_(False))
 
-    users_pagination = query.order_by(User.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    sortable_fields = {
+        "id": User.id,
+        "username": User.username,
+        "role": User.role,
+        "is_active": User.is_active,
+        "created_at": User.created_at,
+    }
+    order_column = sortable_fields.get(sort_field, User.created_at)
+    if sort_order == "asc":
+        query = query.order_by(order_column.asc())
+    else:
+        query = query.order_by(order_column.desc())
+
+    users_pagination = query.paginate(page=page, per_page=limit, error_out=False)
     users_data = [user.to_dict() for user in users_pagination.items]
 
-    payload = {
-        "users": users_data,
-        "pagination": {
+    return jsonify_unified_success(
+        data={
+            "items": users_data,
+            "total": users_pagination.total,
             "page": users_pagination.page,
             "pages": users_pagination.pages,
-            "per_page": users_pagination.per_page,
-            "total": users_pagination.total,
-            "has_next": users_pagination.has_next,
-            "has_prev": users_pagination.has_prev,
-        },
-    }
-    return jsonify_unified_success(data=payload)
+        }
+    )
 
 
 @users_bp.route("/api/users/<int:user_id>")
