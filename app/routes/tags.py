@@ -8,12 +8,11 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.models.tag import Tag, instance_tags
-from app.constants import FlashCategory, HttpMethod, HttpStatus
+from app.constants import FlashCategory, HttpMethod, HttpStatus, STATUS_ACTIVE_OPTIONS
 from app.errors import ConflictError, ValidationError, NotFoundError
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
-from app.constants.filter_options import STATUS_ACTIVE_OPTIONS
 from app.utils.query_filter_utils import get_tag_categories
 from app.services.form_service.tags_form_service import TagFormService
 from app.utils.data_validator import sanitize_form_data

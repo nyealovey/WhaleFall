@@ -7,8 +7,7 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
 from app.errors import NotFoundError, SystemError
-from app.constants import SyncStatus
-from app.constants.filter_options import SYNC_TYPES, SYNC_CATEGORIES, STATUS_SYNC_OPTIONS
+from app.constants import SyncStatus, SYNC_TYPES, SYNC_CATEGORIES, STATUS_SYNC_OPTIONS
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success

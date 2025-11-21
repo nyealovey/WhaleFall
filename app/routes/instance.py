@@ -10,8 +10,14 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from app import db
-from app.constants import HttpStatus, TaskStatus, FlashCategory, HttpMethod
-from app.constants.database_types import DatabaseType
+from app.constants import (
+    DatabaseType,
+    FlashCategory,
+    HttpMethod,
+    HttpStatus,
+    STATUS_ACTIVE_OPTIONS,
+    TaskStatus,
+)
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -19,7 +25,6 @@ from app.models.instance_database import InstanceDatabase
 from app.models.instance_account import InstanceAccount
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag
-from app.constants.filter_options import STATUS_ACTIVE_OPTIONS
 from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.data_validator import (
