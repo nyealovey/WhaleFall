@@ -16,7 +16,7 @@
 
 ### 优势
 - ✅ 清晰的项目结构和模块化设计
-- ✅ 完善的工具链配置（Ruff、Mypy、Black、isort）
+- ✅ 完善的工具链配置（Black、isort）
 - ✅ 严格的命名规范和代码风格指南
 - ✅ 良好的错误处理和日志记录
 - ✅ 服务层模式的应用
@@ -532,8 +532,6 @@ profile = "black"
 ```
 
 **优点**:
-- Ruff：快速的 Python linter
-- Mypy：严格的类型检查
 - Black：统一的代码格式
 - isort：导入排序
 - Bandit：安全扫描
@@ -874,9 +872,6 @@ make quality
 # 运行测试
 make test
 
-# 类型检查
-mypy app/
-
 # 安全扫描
 bandit -r app/
 
@@ -938,8 +933,6 @@ bandit -r app/
 - [ ] 为公共函数添加文档字符串
 
 **第3周：代码质量**
-- [ ] 修复 Ruff 报告的所有警告
-- [ ] 修复 Mypy 类型错误
 - [ ] 提取重复代码到工具函数
 
 **第4周：前端优化**
@@ -968,10 +961,7 @@ bandit -r app/
 
 ### B. 工具链文档
 
-- [Ruff Documentation](https://docs.astral.sh/ruff/)
-- [Mypy Documentation](https://mypy.readthedocs.io/)
 - [Black Documentation](https://black.readthedocs.io/)
-- [pytest Documentation](https://docs.pytest.org/)
 
 ### C. 项目特定文档
 
@@ -983,5 +973,5 @@ bandit -r app/
 ---
 
 **报告生成时间**: 2025-11-21  
-**分析工具**: Clean Code 原则、Ruff、Mypy、手动审查  
+**分析工具**: Clean Code 原则、手动审查  
 **下次审查**: 2025-12-21

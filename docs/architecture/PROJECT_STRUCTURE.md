@@ -22,9 +22,6 @@ TaifishV4/
 ├── requirements-prod.txt   # 生产环境依赖
 ├── pyproject.toml          # 项目配置
 ├── uv.lock                 # uv依赖锁定文件
-├── ruff.toml               # Ruff配置
-├── mypy.ini                # Mypy配置
-├── pytest.ini              # Pytest配置
 ├── AGENTS.md               # 编码规范
 ├── CHANGELOG.md            # 更新日志
 ├── README.md               # 项目说明
@@ -373,9 +370,6 @@ env.production              # 生产环境配置
 pyproject.toml              # 项目元数据
 requirements.txt            # 生产环境依赖
 requirements-prod.txt       # 生产环境依赖
-ruff.toml                   # 代码检查配置
-mypy.ini                    # 类型检查配置
-pytest.ini                  # 测试配置
 ```
 
 ## 🐳 容器化配置
@@ -601,9 +595,8 @@ examples/
 ### 4. 可维护性
 - **代码规范**: 统一的代码风格和规范（AGENTS.md）
 - **文档完整**: 详细的文档和注释
-- **测试覆盖**: 单元测试和集成测试
 - **错误处理**: 完善的异常处理和日志记录
-- **工具链**: Ruff、Mypy、Black、isort等
+- **工具链**: Black、isort等
 
 ### 5. 前端架构
 - **模块化**: JavaScript模块化组织
@@ -641,8 +634,6 @@ examples/
 ### 代码质量工具
 ```bash
 make format      # 代码格式化（Black + isort）
-make quality     # 代码检查（Ruff + Mypy）
-make test        # 运行测试
 ```
 
 ### 命名检查

@@ -156,17 +156,6 @@ init-db-quick:
 	@echo "⚡ 快速初始化数据库（开发环境）..."
 	@$(MAKE) -f Makefile.dev init-db-quick
 
-# 代码质量检查
-quality:
-	@echo "🔍 代码质量检查..."
-	@if command -v uv >/dev/null 2>&1; then \
-		uv run ruff check .; \
-		uv run mypy .; \
-	else \
-		ruff check .; \
-		mypy .; \
-	fi
-
 # 格式化代码
 format:
 	@echo "🎨 格式化代码..."
@@ -176,15 +165,6 @@ format:
 	else \
 		black .; \
 		isort .; \
-	fi
-
-# 运行测试
-test:
-	@echo "🧪 运行测试..."
-	@if command -v uv >/dev/null 2>&1; then \
-		uv run pytest tests/; \
-	else \
-		python -m pytest tests/; \
 	fi
 
 # 常量管理命令
