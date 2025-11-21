@@ -1,24 +1,64 @@
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>核心指标</h5>
+        <div>
+            <h5 class="mb-0" id="chartTitle"><i class="fas fa-chart-area me-2"></i>核心指标</h5>
+            <small class="text-muted" id="chartSubtitle">最近7天的核心指标统计</small>
+        </div>
+        <div class="btn-group" role="group">
+            <input type="radio" class="btn-check" name="periodType" id="periodDaily" value="daily" checked>
+            <label class="btn btn-outline-primary btn-sm" for="periodDaily">日</label>
+            
+            <input type="radio" class="btn-check" name="periodType" id="periodWeekly" value="weekly">
+            <label class="btn btn-outline-primary btn-sm" for="periodWeekly">周</label>
+            
+            <input type="radio" class="btn-check" name="periodType" id="periodMonthly" value="monthly">
+            <label class="btn btn-outline-primary btn-sm" for="periodMonthly">月</label>
+            
+            <input type="radio" class="btn-check" name="periodType" id="periodQuarterly" value="quarterly">
+            <label class="btn btn-outline-primary btn-sm" for="periodQuarterly">季</label>
+        </div>
     </div>
     <div class="card-body">
-        <div class="row">
-            <div class="col-6">
+        <div class="row mb-3">
+            <div class="col-md-3">
                 <div class="metric-card">
                     <h6 class="text-muted">分区总数</h6>
                     <div id="totalPartitions" class="fs-4 fw-bold">-</div>
                 </div>
             </div>
-            <div class="col-6">
+            <div class="col-md-3">
                 <div class="metric-card">
                     <h6 class="text-muted">总大小</h6>
                     <div id="totalSize" class="fs-4 fw-bold">-</div>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h6 class="text-muted">数据点数</h6>
+                    <div id="dataPointCount" class="fs-4 fw-bold">-</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h6 class="text-muted">时间范围</h6>
+                    <div id="timeRange" class="fs-6 fw-bold">-</div>
+                </div>
+            </div>
         </div>
-        <div class="mt-3">
-            <canvas id="partitionsChart" height="120"></canvas>
+        
+        <div class="position-relative" style="height: 400px;">
+            <div id="chartLoading" class="d-none position-absolute top-50 start-50 translate-middle">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </div>
+            <div id="chartMessage" class="d-none position-absolute top-50 start-50 translate-middle text-center">
+                <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                <p class="text-muted" id="chartMessageText">暂无数据</p>
+            </div>
+            <canvas id="aggregationsChart"></canvas>
         </div>
+        
+        <div id="chartLegend" class="mt-3"></div>
     </div>
 </div>
