@@ -8,7 +8,7 @@ from typing import Any, Mapping
 
 from flask_login import current_user
 
-from app.constants.filter_options import CREDENTIAL_TYPES, DATABASE_TYPES
+from app.constants import CREDENTIAL_TYPES, DATABASE_TYPES
 from app.models.credential import Credential
 from app.services.form_service.resource_form_service import BaseResourceService, ServiceResult
 from app.utils.data_validator import (
