@@ -41,8 +41,8 @@ echo ""
 
 # 3. 查看最近的访问日志
 echo -e "${BLUE}📝 最近的访问日志（最后10行）：${NC}"
-if docker compose -f docker-compose.prod.yml exec whalefall test -f /var/log/gunicorn/access.log; then
-    docker compose -f docker-compose.prod.yml exec whalefall tail -10 /var/log/gunicorn/access.log
+if docker compose -f docker-compose.prod.yml exec whalefall test -f /app/userdata/logs/gunicorn_access.log; then
+    docker compose -f docker-compose.prod.yml exec whalefall tail -10 /app/userdata/logs/gunicorn_access.log
 else
     echo -e "${YELLOW}⚠️  访问日志文件不存在${NC}"
 fi
@@ -50,8 +50,8 @@ echo ""
 
 # 4. 查看最近的错误日志
 echo -e "${BLUE}❌ 最近的错误日志（最后10行）：${NC}"
-if docker compose -f docker-compose.prod.yml exec whalefall test -f /var/log/gunicorn/error.log; then
-    docker compose -f docker-compose.prod.yml exec whalefall tail -10 /var/log/gunicorn/error.log
+if docker compose -f docker-compose.prod.yml exec whalefall test -f /app/userdata/logs/gunicorn_error.log; then
+    docker compose -f docker-compose.prod.yml exec whalefall tail -10 /app/userdata/logs/gunicorn_error.log
 else
     echo -e "${YELLOW}⚠️  错误日志文件不存在${NC}"
 fi
@@ -65,9 +65,11 @@ echo ""
 
 # 6. 快捷命令提示
 echo -e "${BLUE}🔧 常用命令：${NC}"
-echo "  查看完整访问日志: docker compose -f docker-compose.prod.yml exec whalefall cat /var/log/gunicorn/access.log"
-echo "  查看完整错误日志: docker compose -f docker-compose.prod.yml exec whalefall cat /var/log/gunicorn/error.log"
-echo "  实时监控访问日志: docker compose -f docker-compose.prod.yml exec whalefall tail -f /var/log/gunicorn/access.log"
-echo "  实时监控错误日志: docker compose -f docker-compose.prod.yml exec whalefall tail -f /var/log/gunicorn/error.log"
+echo "  查看完整访问日志: docker compose -f docker-compose.prod.yml exec whalefall cat /app/userdata/logs/gunicorn_access.log"
+echo "  查看完整错误日志: docker compose -f docker-compose.prod.yml exec whalefall cat /app/userdata/logs/gunicorn_error.log"
+echo "  实时监控访问日志: docker compose -f docker-compose.prod.yml exec whalefall tail -f /app/userdata/logs/gunicorn_access.log"
+echo "  实时监控错误日志: docker compose -f docker-compose.prod.yml exec whalefall tail -f /app/userdata/logs/gunicorn_error.log"
+echo "  清空访问日志: docker compose -f docker-compose.prod.yml exec whalefall truncate -s 0 /app/userdata/logs/gunicorn_access.log"
+echo "  清空错误日志: docker compose -f docker-compose.prod.yml exec whalefall truncate -s 0 /app/userdata/logs/gunicorn_error.log"
 echo "  重启Flask服务: docker compose -f docker-compose.prod.yml restart whalefall"
 echo ""
