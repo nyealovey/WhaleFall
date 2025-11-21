@@ -95,7 +95,8 @@ class User(UserMixin, db.Model):
             "id": self.id,
             "username": self.username,
             "role": self.role,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": self.created_at.strftime('%Y-%m-%d') if self.created_at else None,
+            "created_at_display": self.created_at.strftime('%Y-%m-%d') if self.created_at else None,
             "last_login": self.last_login.isoformat() if self.last_login else None,
             "is_active": self.is_active,
         }
