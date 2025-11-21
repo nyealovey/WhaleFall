@@ -168,7 +168,7 @@ function mountAuthListPage(global) {
           const items = payload.items || payload.users || [];
           return items.map((item) => [
             item.id,
-            item,
+            item.username || '-',
             item.role,
             item.is_active,
             item.created_at_display || item.created_at || '-',

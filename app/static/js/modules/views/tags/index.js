@@ -60,7 +60,8 @@ function mountTagsIndexPage(global) {
           name: "显示名称",
           id: "display_name",
           formatter: (cell, row) => {
-            const color = row?.cells?.[2]?.data?.color || row?.cells?.[row.cells.length - 1]?.data?.color || "primary";
+            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
+            const color = meta.color || "primary";
             const name = escapeHtmlValue(cell || "-");
             return gridHtml
               ? gridHtml(`<span class="badge bg-${escapeHtmlValue(color)}">${name}</span>`)
@@ -135,7 +136,7 @@ function mountTagsIndexPage(global) {
           return items.map((item) => [
             item.sort_order ?? "-",
             item.name || "-",
-            { value: item.display_name, color: item.color || "primary" },
+            item.display_name || "-",
             item.category || "-",
             item.description || "",
             item.is_active,
