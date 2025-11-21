@@ -54,7 +54,7 @@ cd /path/to/TaifishV4
 脚本会更新以下文件和目录：
 
 ```
-app/                    # 应用代码
+app/                    # 应用代码（包括路由、模型、模板、静态资源等）
 migrations/            # 数据库迁移
 sql/                   # SQL脚本
 docs/                  # 文档
@@ -69,6 +69,44 @@ scripts/               # 脚本文件
 *.sh                   # Shell脚本
 *.ini                  # INI配置
 *.lock                 # 锁定文件
+```
+
+### 常见更新场景
+
+#### 1. 前端资源更新（模板、JS、CSS）
+
+当更新前端资源时，热更新会自动同步：
+
+```bash
+# 更新的文件示例
+app/templates/admin/partitions/index.html
+app/templates/admin/partitions/charts/partitions-charts.html
+app/static/js/modules/views/admin/partitions/index.js
+app/static/css/pages/admin/partitions.css
+```
+
+**注意**：前端资源更新后，用户需要刷新浏览器（Ctrl+F5 强制刷新）才能看到最新效果。
+
+#### 2. 后端代码更新（路由、模型、服务）
+
+后端代码更新会在容器重启后立即生效：
+
+```bash
+# 更新的文件示例
+app/routes/partition.py
+app/models/user.py
+app/services/partition_management_service.py
+```
+
+**注意**：如果修改了模型字段，可能需要执行数据库迁移。
+
+#### 3. 数据库迁移更新
+
+如果更新包含数据库结构变更，需要额外执行迁移：
+
+```bash
+# 热更新后执行迁移
+docker exec whalefall_app_prod flask db upgrade
 ```
 
 ## ⚠️ 注意事项
@@ -86,6 +124,25 @@ scripts/               # 脚本文件
 2. **不更新数据库结构** - 如需数据库迁移，需单独执行
 3. **不更新配置文件** - 容器内配置文件不会更新
 4. **不更新Docker镜像** - 使用现有镜像，不重新构建
+
+### 浏览器缓存问题
+
+更新前端资源（HTML、JS、CSS）后，用户可能看不到最新效果，需要：
+
+1. **强制刷新浏览器** - 按 `Ctrl+F5`（Windows/Linux）或 `Cmd+Shift+R`（Mac）
+2. **清除浏览器缓存** - 在浏览器设置中清除缓存
+3. **使用隐私模式** - 在隐私/无痕模式下测试新功能
+
+### 数据模型变更
+
+如果更新涉及数据模型变更（如 `app/models/user.py`），需要注意：
+
+1. **字段添加** - 通常安全，但需要设置默认值
+2. **字段删除** - 需要先执行数据库迁移
+3. **字段类型变更** - 需要数据迁移脚本
+4. **关系变更** - 可能影响现有数据，需要谨慎测试
+
+**示例**：本次更新修改了 `User.to_dict()` 方法，将 `created_at` 格式从完整时间戳改为仅日期，这是安全的更新，不影响数据库结构。
 
 ## 🔍 故障排除
 
@@ -158,6 +215,32 @@ docker compose -f docker-compose.prod.yml logs -f whalefall
 
 # 检查健康状态
 curl http://localhost:5001/health/api/basic
+```
+
+### 更新后验证清单
+
+完成热更新后，建议执行以下验证：
+
+- [ ] 访问主页，确认应用正常响应
+- [ ] 测试登录功能
+- [ ] 检查更新的页面/功能是否正常
+- [ ] 查看应用日志，确认无错误
+- [ ] 测试关键业务流程
+- [ ] 强制刷新浏览器，确认前端资源已更新
+
+**本次更新验证示例**：
+```bash
+# 1. 访问用户管理页面
+curl -I http://localhost:5001/users/
+
+# 2. 检查创建时间格式（应为 YYYY-MM-DD）
+# 登录后访问用户管理页面，查看创建时间列
+
+# 3. 访问分区管理页面
+curl -I http://localhost:5001/partition/
+
+# 4. 检查统计卡片和图表是否正常显示
+# 登录后访问分区管理页面，确认卡片和图表正常
 ```
 
 ## 🔧 高级用法
