@@ -100,12 +100,9 @@
 - **Oracle**: oracledb 3.3+
 
 ### 开发工具
-- **代码检查**: Ruff 0.13+
-- **类型检查**: Mypy 1.18+
 - **代码格式化**: Black 25.1+
 - **导入排序**: isort 6.0+
 - **安全扫描**: Bandit 1.8+
-- **测试框架**: pytest 8.4+
 
 ---
 
@@ -219,8 +216,7 @@ TaifishV4/
 - **命名规范**: 
   - Python: `snake_case`（模块/函数/变量）、`CapWords`（类名）
   - JavaScript: `kebab-case`（文件/目录）、`camelCase`（函数/变量）
-- **代码风格**: 使用 Black、isort、Ruff 统一格式
-- **类型检查**: 使用 Mypy 进行严格类型检查
+- **代码风格**: 使用 Black、isort 统一格式
 - **提交规范**: 使用 `fix:`、`feat:`、`refactor:` 等前缀
 
 ### 提交前检查
@@ -318,9 +314,7 @@ make test
 所有 PR 需要通过以下检查：
 
 - ✅ 代码格式检查（Black、isort）
-- ✅ 代码质量检查（Ruff、Mypy）
 - ✅ 命名规范检查
-- ✅ 测试通过
 - ✅ 文档更新
 
 ### 问题反馈

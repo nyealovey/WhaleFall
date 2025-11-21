@@ -1320,8 +1320,6 @@ connection_adapters/
 #### 代码质量工具
 - **Black**: 代码格式化 (line-length=120)
 - **isort**: 导入排序
-- **MyPy**: 类型检查
-- **Ruff**: 代码检查
 - **Bandit**: 安全扫描
 
 ### 测试规范

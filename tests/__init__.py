@@ -1,1 +1,0 @@
-# This file can be empty. Its presence makes Python treat the `tests` directory as a package.
