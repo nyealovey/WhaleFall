@@ -463,7 +463,16 @@ function mountAccountsListPage() {
             hiddenValueKey: 'name',
             initialValues,
             onConfirm: () => {
-                accountFilterCard?.emit?.('change', { source: 'account-tag-filter' });
+                try {
+                    if (accountFilterCard?.emit) {
+                        accountFilterCard.emit('change', { source: 'account-tag-selector' });
+                    } else {
+                        handleFilterChange(resolveFilters());
+                    }
+                } catch (error) {
+                    console.error('应用标签筛选失败:', error);
+                    handleFilterChange(resolveFilters());
+                }
             },
         });
     }
