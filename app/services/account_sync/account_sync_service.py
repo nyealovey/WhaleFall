@@ -15,17 +15,20 @@ from app.utils.time_utils import time_utils
 
 
 class AccountSyncService:
-    """
-    账户同步服务 - 统一入口
+    """账户同步服务 - 统一入口。
 
-    支持四种同步类型：
-    - MANUAL_SINGLE: 手动单实例同步 (无会话)
-    - MANUAL_BATCH: 手动批量同步 (有会话)
-    - MANUAL_TASK: 手动任务同步 (有会话)
-    - SCHEDULED_TASK: 定时任务同步 (有会话)
+    提供账户同步的统一入口，支持四种同步类型：
+    - MANUAL_SINGLE: 手动单实例同步（无会话）
+    - MANUAL_BATCH: 手动批量同步（有会话）
+    - MANUAL_TASK: 手动任务同步（有会话）
+    - SCHEDULED_TASK: 定时任务同步（有会话）
+
+    Attributes:
+        sync_logger: 同步日志记录器。
     """
 
     def __init__(self) -> None:
+        """初始化账户同步服务。"""
         self.sync_logger = get_sync_logger()
         # 协调器按需创建
 
@@ -36,17 +39,37 @@ class AccountSyncService:
         session_id: str | None = None,
         created_by: int | None = None,
     ) -> dict[str, Any]:
-        """
-        统一账户同步入口
+        """统一账户同步入口。
+
+        根据同步类型执行相应的同步流程，支持单实例同步和批量同步。
 
         Args:
-            instance: 数据库实例
-            sync_type: 同步操作方式 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
-            session_id: 同步会话ID（batch类型需要）
-            created_by: 创建者ID（手动同步需要）
+            instance: 数据库实例对象。
+            sync_type: 同步操作方式，可选值：'manual_single'、'manual_batch'、
+                'manual_task'、'scheduled_task'，默认为 'manual_single'。
+            session_id: 同步会话 ID，批量同步时需要提供。
+            created_by: 创建者用户 ID，手动同步时需要提供。
 
         Returns:
-            Dict: 同步结果
+            同步结果字典，格式如下：
+            {
+                'success': True,
+                'message': '同步 100 个账户、新增 10 个、更新 5 个',
+                'synced_count': 100,
+                'added_count': 10,
+                'modified_count': 5,
+                'removed_count': 2,
+                'details': {...}  # 详细的同步信息
+            }
+            失败时返回：
+            {
+                'success': False,
+                'error': '错误信息',
+                'synced_count': 0,
+                'added_count': 0,
+                'modified_count': 0,
+                'removed_count': 0
+            }
         """
         try:
             self.sync_logger.info(
@@ -110,9 +133,15 @@ class AccountSyncService:
             }
 
     def _sync_single_instance(self, instance: Instance) -> dict[str, Any]:
-        """
-        单实例同步 - 无会话管理
-        用于实例页面的直接同步调用
+        """单实例同步 - 无会话管理。
+
+        用于实例页面的直接同步调用，不创建持久化会话记录。
+
+        Args:
+            instance: 数据库实例对象。
+
+        Returns:
+            同步结果字典，包含成功状态、消息和统计信息。
         """
         temp_session_id = str(uuid4())
         try:
@@ -151,8 +180,17 @@ class AccountSyncService:
             return failure_result
 
     def _sync_with_session(self, instance: Instance, sync_type: str, created_by: int | None) -> dict[str, Any]:
-        """
-        带会话管理的同步 - 用于批量同步
+        """带会话管理的同步 - 用于批量同步。
+
+        创建新的同步会话，执行同步并记录结果。
+
+        Args:
+            instance: 数据库实例对象。
+            sync_type: 同步操作方式。
+            created_by: 创建者用户 ID。
+
+        Returns:
+            同步结果字典，包含成功状态、消息和统计信息。
         """
         try:
             # 创建同步会话
@@ -223,8 +261,17 @@ class AccountSyncService:
         *,
         sync_type: str | None = None,
     ) -> dict[str, Any]:
-        """
-        使用现有会话ID进行同步
+        """使用现有会话 ID 进行同步。
+
+        在已有会话的上下文中执行同步操作。
+
+        Args:
+            instance: 数据库实例对象。
+            session_id: 已存在的会话 ID。
+            sync_type: 同步操作方式，可选。
+
+        Returns:
+            同步结果字典，包含成功状态、消息和统计信息。
         """
         try:
             with AccountSyncCoordinator(instance) as coordinator:
@@ -263,6 +310,16 @@ class AccountSyncService:
             return failure_result
 
     def _build_result(self, summary: Dict[str, Dict[str, int]]) -> Dict[str, Any]:
+        """构建同步结果字典。
+
+        从同步汇总信息中提取关键指标，构建统一的结果格式。
+
+        Args:
+            summary: 同步汇总信息，包含 inventory 和 collection 两部分。
+
+        Returns:
+            格式化的同步结果字典。
+        """
         inventory = summary.get("inventory", {})
         collection = summary.get("collection", {})
 
@@ -305,6 +362,16 @@ class AccountSyncService:
         sync_type: str,
         result: dict[str, Any],
     ) -> None:
+        """记录同步完成日志。
+
+        根据同步结果记录成功或失败日志。
+
+        Args:
+            instance: 数据库实例对象。
+            session_id: 会话 ID，可选。
+            sync_type: 同步操作方式。
+            result: 同步结果字典。
+        """
         message = result.get("message") or result.get("error") or "账户同步完成"
         log_kwargs: Dict[str, Any] = {
             "module": "account_sync",
