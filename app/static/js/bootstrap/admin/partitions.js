@@ -9,6 +9,12 @@
       console.error("AdminPartitionsPage 未注册，无法初始化分区管理");
     }
 
+    if (global.PartitionsListGrid && typeof global.PartitionsListGrid.mount === "function") {
+      global.PartitionsListGrid.mount();
+    } else {
+      console.error("PartitionsListGrid 未注册，无法初始化分区列表");
+    }
+
     if (global.AggregationsChartPage && typeof global.AggregationsChartPage.mount === "function") {
       global.AggregationsChartPage.mount();
     } else {

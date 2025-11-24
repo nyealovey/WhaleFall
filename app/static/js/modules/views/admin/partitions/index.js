@@ -133,31 +133,27 @@ function mountAdminPartitionsPage(global) {
             return partitionStore.actions.loadInfo();
         }
         try {
-            showLoadingState();
-
             const data = await partitionService.fetchInfo();
-
             if (data.success) {
                 const payload = data?.data?.data ?? data?.data ?? data ?? {};
                 updatePartitionStats(payload);
-                renderPartitionTable(Array.isArray(payload.partitions) ? payload.partitions : []);
             } else {
                 console.error('加载分区数据失败:', data);
-                showError(`加载分区数据失败: ${data.error || '未知错误'}`);
+                notifyStatsError(`加载分区数据失败: ${data.error || '未知错误'}`);
             }
         } catch (error) {
             console.error('加载分区数据异常:', error);
-            showError(`加载分区数据异常: ${error.message}`);
-        } finally {
-            hideLoadingState();
+            notifyStatsError(`加载分区数据异常: ${error.message}`);
         }
     }
 
-    function refreshPartitionData() {
-        if (partitionStore) {
-            return partitionStore.actions.loadInfo({ silent: true });
-        }
-        return loadPartitionData();
+    function refreshPartitionData(options = {}) {
+        const loadPromise = partitionStore
+            ? partitionStore.actions.loadInfo({ silent: options.silent ?? true })
+            : loadPartitionData();
+        return Promise.resolve(loadPromise).finally(() => {
+            requestPartitionGridRefresh();
+        });
     }
 
     function updatePartitionStats(data) {
@@ -166,80 +162,6 @@ function mountAdminPartitionsPage(global) {
         selectOne('#totalSize').text(stats.total_size ?? '0 B');
         selectOne('#totalRecords').text(stats.total_records ?? 0);
         selectOne('#partitionStatus').text('正常');
-    }
-
-    function renderPartitionTable(partitions) {
-        const tbodyWrapper = selectOne('#partitionsTableBody');
-        if (!tbodyWrapper.length) {
-            return;
-        }
-        const tbody = tbodyWrapper.first();
-        tbody.innerHTML = '';
-
-        if (!partitions || partitions.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center text-muted">
-                        <i class="fas fa-inbox me-2"></i>
-                        暂无分区数据
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        partitions.forEach((partition) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>
-                    <span class="badge bg-secondary">${partition.table_type || '未知'}</span>
-                </td>
-                <td>${partition.name || '-'}</td>
-                <td>${partition.size || '0 B'}</td>
-                <td>${partition.record_count || 0}</td>
-                <td>
-                    <span class="badge bg-${getStatusColor(partition.status)}">
-                        ${partition.status || '未知'}
-                    </span>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-
-    function showLoadingState() {
-        const tbody = selectOne('#partitionsTableBody');
-        if (!tbody.length) {
-            return;
-        }
-        tbody.html(`
-            <tr>
-                <td colspan="7" class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">加载中...</span>
-                    </div>
-                </td>
-            </tr>
-        `);
-    }
-
-    function hideLoadingState() {
-        // 渲染函数会覆盖加载状态
-    }
-
-    function showError(message) {
-        const tbody = selectOne('#partitionsTableBody');
-        if (!tbody.length) {
-            return;
-        }
-        tbody.html(`
-            <tr>
-                <td colspan="5" class="text-center text-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    ${message}
-                </td>
-            </tr>
-        `);
     }
 
     function getStatusColor(status) {
@@ -262,28 +184,22 @@ function mountAdminPartitionsPage(global) {
         });
     };
 
-    
     function handleInfoUpdated(payload) {
         const stats = payload?.stats || payload?.state?.stats || {};
-        const partitions = payload?.partitions || payload?.state?.partitions || [];
         updatePartitionStats(stats);
-        renderPartitionTable(partitions);
     }
 
     function handlePartitionLoading(payload) {
         const target = payload?.target;
-        const loading = payload?.loading || {};
         if (target === 'info') {
-            if (loading.info) {
-                showLoadingState();
-            }
+            selectOne('#partitionStatus').text('加载中...');
         }
     }
 
     function handlePartitionError(payload) {
         const target = payload?.meta?.target;
         if (target === 'info') {
-            showError(payload?.error?.message || '加载分区数据失败');
+            notifyStatsError(payload?.error?.message || '加载分区统计失败');
         } else if (target === 'create') {
             global.alert(payload?.error?.message || '创建分区失败');
         } else if (target === 'cleanup') {
@@ -301,6 +217,18 @@ function mountAdminPartitionsPage(global) {
     function handleCleanupSuccess() {
         global.toast?.success?.('分区清理成功') || global.alert('分区清理成功');
         refreshPartitionData();
+    }
+
+    function notifyStatsError(message) {
+        if (global.toast?.error) {
+            global.toast.error(message);
+        } else {
+            console.error(message);
+        }
+    }
+
+    function requestPartitionGridRefresh() {
+        global.dispatchEvent?.(new CustomEvent('partitionList:refresh'));
     }
 }
 
