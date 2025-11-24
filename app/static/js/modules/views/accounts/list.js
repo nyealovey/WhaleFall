@@ -292,7 +292,28 @@ function mountAccountsListPage() {
             formSelector: `#${ACCOUNT_FILTER_FORM_ID}`,
             autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
             onSubmit: ({ values }) => handleFilterChange(values),
-            onClear: () => handleFilterChange({}),
+            onClear: () => {
+                // 清除标签选择器
+                const hiddenInput = document.getElementById('selected-tag-names');
+                if (hiddenInput) {
+                    hiddenInput.value = '';
+                }
+                // 清除标签显示
+                const chipsContainer = document.getElementById('selected-tags-chips');
+                if (chipsContainer) {
+                    chipsContainer.innerHTML = '';
+                }
+                const countElement = document.getElementById('selected-tags-count');
+                if (countElement) {
+                    countElement.textContent = '0';
+                }
+                const previewElement = document.getElementById('selected-tags-preview');
+                if (previewElement) {
+                    previewElement.textContent = '未选择标签';
+                }
+                // 刷新页面
+                window.location.href = window.location.pathname;
+            },
             onChange: ({ values }) => {
                 if (AUTO_APPLY_FILTER_CHANGE) {
                     handleFilterChange(values);
