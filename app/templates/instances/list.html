@@ -38,7 +38,6 @@
 
 <div class="container-fluid"
      id="instances-page-root"
-     data-current-db-type="{{ current_db_type or 'all' }}"
      data-export-url="{{ url_for('files.export_instances') }}"
      data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"
      data-db-type-map='{{ database_type_map | tojson | safe }}'
@@ -52,29 +51,6 @@
             {{ status_active_filter(status_options, status) }}
             {{ tag_selector_filter(tag_options, selected_tags) }}
         {% endcall %}
-    </div>
-
-    <!-- 数据库类型切换按钮 -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="btn-group flex-wrap" role="group">
-                <button type="button"
-                        class="btn {% if not current_db_type or current_db_type == 'all' %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
-                        data-db-type-btn
-                        data-db-type="all">
-                    <i class="fas fa-database me-1"></i>全部
-                </button>
-                {% for db_type_option in database_type_options %}
-                <button type="button"
-                        class="btn {% if current_db_type == db_type_option.value %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
-                        data-db-type-btn
-                        data-db-type="{{ db_type_option.value }}">
-                    <i class="fas {{ db_type_option.icon }} me-1"></i>
-                    {{ db_type_option.label }}
-                </button>
-                {% endfor %}
-            </div>
-        </div>
     </div>
 
     <!-- 实例列表（Grid.js） -->

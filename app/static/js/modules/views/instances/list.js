@@ -31,7 +31,6 @@ function mountInstancesListPage() {
         return;
     }
 
-    let currentDbType = pageRoot.dataset.currentDbType || 'all';
     const exportEndpoint = pageRoot.dataset.exportUrl || '/files/export_instances';
     const canManage = pageRoot.dataset.canManage === 'true';
     const detailBase = pageRoot.dataset.detailBase || '/instances';
@@ -53,7 +52,6 @@ function mountInstancesListPage() {
         initializeTagFilter();
         initializeFilterCard();
         initializeGrid();
-        bindDatabaseTypeButtons();
         bindToolbarActions();
         subscribeToStoreEvents();
         exposeGlobalActions();
@@ -148,9 +146,6 @@ function mountInstancesListPage() {
         });
 
         const initialFilters = normalizeFilters(resolveFilters());
-        if (currentDbType && currentDbType !== 'all') {
-            initialFilters.db_type = currentDbType;
-        }
         instancesGrid.setFilters(initialFilters, { silent: true });
         instancesGrid.init();
 
@@ -405,9 +400,6 @@ function mountInstancesListPage() {
             return;
         }
         const filters = normalizeFilters(resolveFilters(values));
-        if (currentDbType && currentDbType !== 'all') {
-            filters.db_type = currentDbType;
-        }
         instancesGrid.updateFilters(filters);
         instanceStore?.actions?.applyFilters?.(filters);
         syncUrl(filters);
@@ -492,34 +484,9 @@ function mountInstancesListPage() {
         return [];
     }
 
-    function bindDatabaseTypeButtons() {
-        const buttons = select('[data-db-type-btn]');
-        buttons.each((el) => {
-            const button = el instanceof Element ? el : el?.first();
-            if (!button) {
-                return;
-            }
-            button.addEventListener('click', (event) => {
-                event.preventDefault();
-                const dbType = button.getAttribute('data-db-type') || 'all';
-                switchDatabaseType(dbType);
-            });
-        });
-    }
-
-    function switchDatabaseType(dbType) {
-        currentDbType = dbType;
-        const filters = normalizeFilters(resolveFilters());
-        filters.db_type = dbType && dbType !== 'all' ? dbType : '';
-        const params = buildSearchParams(filters);
-        const query = params.toString();
-        const nextUrl = query ? `/instances?${query}` : '/instances';
-        global.location.href = nextUrl;
-    }
-
     function buildBaseUrl() {
-        const base = currentDbType && currentDbType !== 'all' ? `/instances/api/instances?db_type=${encodeURIComponent(currentDbType)}` : '/instances/api/instances';
-        return base.includes('?') ? `${base}&sort=id&order=desc` : `${base}?sort=id&order=desc`;
+        const base = '/instances/api/instances';
+        return `${base}?sort=id&order=desc`;
     }
 
     function buildSearchParams(filters) {
@@ -670,9 +637,6 @@ function mountInstancesListPage() {
 
     function exportInstances() {
         const filters = normalizeFilters(resolveFilters());
-        if (currentDbType && currentDbType !== 'all') {
-            filters.db_type = currentDbType;
-        }
         const params = buildSearchParams(filters);
         const query = params.toString();
         const url = query ? `${exportEndpoint}?${query}` : exportEndpoint;
