@@ -16,14 +16,33 @@ logger = get_logger("cache_service")
 
 
 class CacheService:
-    """缓存服务"""
+    """缓存服务。
+
+    提供统一的 Flask-Caching 接口，支持规则评估缓存、分类规则缓存等功能。
+
+    Attributes:
+        cache: Flask-Caching 实例。
+        default_ttl: 默认缓存过期时间（秒）。
+    """
 
     def __init__(self, cache: Cache = None) -> None:
         self.cache = cache
         self.default_ttl = Config.CACHE_DEFAULT_TTL  # 7天，按用户要求
 
     def _generate_cache_key(self, prefix: str, instance_id: int, username: str, db_name: str = None) -> str:
-        """生成缓存键"""
+        """生成缓存键。
+
+        使用 SHA-256 哈希确保键名长度合理且安全。
+
+        Args:
+            prefix: 缓存键前缀。
+            instance_id: 实例 ID。
+            username: 用户名。
+            db_name: 可选的数据库名称。
+
+        Returns:
+            生成的缓存键，格式为 'whalefall:{hash}'。
+        """
         key_data = f"{prefix}:{instance_id}:{username}:{db_name}" if db_name else f"{prefix}:{instance_id}:{username}"
 
         # 使用SHA-256哈希确保键名长度合理且安全
@@ -45,7 +64,15 @@ class CacheService:
         return True
 
     def get_cache_stats(self) -> dict[str, Any]:
-        """获取缓存统计信息"""
+        """获取缓存统计信息。
+
+        Returns:
+            包含缓存状态和信息的字典，格式如下：
+            {
+                'status': 'connected',  # 或 'no_cache'、'error'
+                'info': {...}           # 缓存详细信息
+            }
+        """
         try:
             if not self.cache:
                 return {"status": "no_cache", "info": "未配置缓存实例"}
@@ -310,7 +337,13 @@ class CacheService:
             return False
 
     def health_check(self) -> bool:
-        """缓存健康检查"""
+        """缓存健康检查。
+
+        通过设置和获取测试键来验证缓存是否正常工作。
+
+        Returns:
+            如果缓存正常返回 True，否则返回 False。
+        """
         try:
             if not self.cache:
                 return False
@@ -334,7 +367,14 @@ cache_manager: CacheService | None = None  # 向后兼容
 
 
 def init_cache_service(cache: Cache) -> CacheService:
-    """初始化缓存服务"""
+    """初始化缓存服务。
+
+    Args:
+        cache: Flask-Caching 实例。
+
+    Returns:
+        初始化后的 CacheService 实例。
+    """
     global cache_service, cache_manager
     cache_service = CacheService(cache)
     cache_manager = cache_service
