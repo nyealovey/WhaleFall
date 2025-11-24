@@ -1,3 +1,11 @@
+/**
+ * 挂载实例容量聚合统计页面。
+ *
+ * 初始化实例维度的容量统计管理器，配置图表、筛选器和数据端点。
+ *
+ * @param {Window} window - 全局 window 对象
+ * @return {void}
+ */
 function mountInstanceAggregationsPage(window) {
   "use strict";
 
@@ -11,6 +19,17 @@ function mountInstanceAggregationsPage(window) {
 
   /**
    * 统一从接口数据解析实例标签/键。
+   *
+   * 从数据项中提取实例名称和 ID，生成唯一键和显示标签。
+   *
+   * @param {Object} item - 数据项对象
+   * @param {Object} [item.instance] - 实例对象
+   * @param {string} [item.instance_name] - 实例名称
+   * @param {string} [item.name] - 名称
+   * @param {number} [item.instance_id] - 实例 ID
+   * @return {Object} 包含 key 和 label 的对象
+   * @return {string} return.key - 唯一键（实例 ID 字符串）
+   * @return {string} return.label - 显示标签（实例名称）
    */
   function labelExtractor(item) {
     const instanceName =
@@ -30,6 +49,11 @@ function mountInstanceAggregationsPage(window) {
 
   /**
    * 懒加载 CapacityStats.Manager 并初始化配置。
+   *
+   * 创建实例容量统计管理器实例，配置图表选择器、API 端点、
+   * 汇总卡片和筛选器。如果 CapacityStats.Manager 未加载，则延迟重试。
+   *
+   * @return {void}
    */
   function initManager() {
     if (!window.CapacityStats || !window.CapacityStats.Manager) {
