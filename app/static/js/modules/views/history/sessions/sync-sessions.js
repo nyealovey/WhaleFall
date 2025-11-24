@@ -116,7 +116,8 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         limit: 20,
         server: {
           url: (prev, page, limit) => {
-            const url = new URL(prev, global.location.origin);
+            const baseUrl = prev || '/sync_sessions/api/sessions';
+            const url = new URL(baseUrl, global.location.origin);
             url.searchParams.set('page', page + 1);
             url.searchParams.set('limit', limit);
             return url.toString();
@@ -136,7 +137,8 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   }
 
   function buildSortUrl(prev, columns) {
-    const url = new URL(prev, global.location.origin);
+    const baseUrl = prev || '/sync_sessions/api/sessions';
+    const url = new URL(baseUrl, global.location.origin);
     if (!columns.length) {
       url.searchParams.set('sort', 'started_at');
       url.searchParams.set('order', 'desc');
