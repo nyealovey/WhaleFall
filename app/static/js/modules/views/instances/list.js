@@ -139,7 +139,6 @@ function mountInstancesListPage() {
                 total: (response) => {
                     const payload = response?.data || response || {};
                     const total = payload.total || 0;
-                    updateInstanceTotal(total);
                     return total;
                 },
             },
@@ -360,9 +359,6 @@ function mountInstancesListPage() {
         if (canManage) {
             buttons.push(
                 `<button type="button" class="btn btn-outline-warning btn-sm" onclick="InstanceListActions.openEdit(${meta.id})" title="编辑"><i class="fas fa-edit"></i></button>`,
-            );
-            buttons.push(
-                `<button type="button" class="btn btn-outline-info btn-sm" onclick="InstanceListActions.sync(${meta.id}, this)" title="同步账户"><i class="fas fa-sync"></i></button>`,
             );
         }
         return gridHtml(`<div class="btn-group btn-group-sm" role="group">${buttons.join('')}</div>`);
@@ -592,6 +588,7 @@ function mountInstancesListPage() {
             global.toast?.warning?.('请先选择要删除的实例');
             return;
         }
+        syncStoreSelection();
         instanceStore.actions
             .batchDeleteSelected()
             .then((response) => {
@@ -658,13 +655,6 @@ function mountInstancesListPage() {
         });
     }
 
-    function updateInstanceTotal(total) {
-        const element = document.getElementById('instances-total');
-        if (element) {
-            element.textContent = `共 ${total} 个实例`;
-        }
-    }
-
     function updateSelectionSummary() {
         const element = document.getElementById('instances-selection-summary');
         if (!element) {
@@ -682,32 +672,55 @@ function mountInstancesListPage() {
             return;
         }
         const checkboxes = pageRoot.querySelectorAll('.grid-instance-checkbox');
-        const state = instanceStore?.getState?.();
-        const availableIds = new Set(state?.availableInstanceIds || []);
         checkboxes.forEach((checkbox) => {
             checkbox.removeEventListener('change', handleRowSelectionChange);
             const id = Number(checkbox.value);
             checkbox.checked = selectedInstanceIds.has(id);
             checkbox.addEventListener('change', handleRowSelectionChange);
         });
+        updateSelectAllCheckbox(checkboxes);
+        updateBatchActionState();
+    }
+
+    function updateSelectAllCheckbox(checkboxes) {
         const selectAll = document.getElementById('grid-select-all');
-        if (selectAll) {
-            selectAll.removeEventListener('change', handleSelectAllChange);
-            if (!availableIds.size) {
-                selectAll.checked = false;
-                selectAll.indeterminate = false;
-            } else if (selectedInstanceIds.size === availableIds.size) {
-                selectAll.checked = true;
-                selectAll.indeterminate = false;
-            } else if (selectedInstanceIds.size > 0) {
-                selectAll.checked = false;
-                selectAll.indeterminate = true;
-            } else {
-                selectAll.checked = false;
-                selectAll.indeterminate = false;
-            }
-            selectAll.addEventListener('change', handleSelectAllChange);
+        if (!selectAll) {
+            return;
         }
+        const availableIds = collectAvailableInstanceIds(checkboxes);
+        const total = availableIds.length;
+        selectAll.removeEventListener('change', handleSelectAllChange);
+        if (!total) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        } else if (selectedInstanceIds.size === total) {
+            selectAll.checked = true;
+            selectAll.indeterminate = false;
+        } else if (selectedInstanceIds.size > 0) {
+            selectAll.checked = false;
+            selectAll.indeterminate = true;
+        } else {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        }
+        selectAll.addEventListener('change', handleSelectAllChange);
+    }
+
+    function collectAvailableInstanceIds(checkboxes) {
+        const state = instanceStore?.getState?.();
+        const fromState = Array.isArray(state?.availableInstanceIds) ? state.availableInstanceIds : [];
+        if (fromState.length) {
+            return fromState
+                .map((value) => Number(value))
+                .filter((id) => Number.isFinite(id));
+        }
+        const elements = checkboxes || pageRoot.querySelectorAll('.grid-instance-checkbox');
+        return Array.from(elements)
+            .map((checkbox) => Number(checkbox.value))
+            .filter((id) => Number.isFinite(id));
+    }
+
+    function updateBatchActionState() {
         const batchDeleteBtn = selectOne('[data-action="batch-delete"]').first();
         const batchTestBtn = selectOne('[data-action="batch-test"]').first();
         const disabled = !selectedInstanceIds.size;
@@ -719,27 +732,47 @@ function mountInstancesListPage() {
         }
     }
 
+    function syncStoreSelection() {
+        if (!instanceStore?.actions?.setSelection) {
+            return;
+        }
+        const ids = Array.from(selectedInstanceIds);
+        try {
+            instanceStore.actions.setSelection(ids, { reason: 'manualSync' });
+        } catch (error) {
+            console.warn('同步实例选择状态失败:', error);
+        }
+    }
+
     function handleRowSelectionChange(event) {
         const checkbox = event.currentTarget;
         const id = Number(checkbox.value);
         if (!Number.isFinite(id)) {
             return;
         }
-        if (instanceStore?.actions?.toggleSelection) {
-            instanceStore.actions.toggleSelection(id);
+        if (checkbox.checked) {
+            selectedInstanceIds.add(id);
+        } else {
+            selectedInstanceIds.delete(id);
         }
+        syncStoreSelection();
+        updateSelectionSummary();
+        updateBatchActionState();
+        updateSelectAllCheckbox();
     }
 
     function handleSelectAllChange(event) {
-        if (!instanceStore?.actions) {
-            return;
-        }
         const checked = event.currentTarget.checked;
+        const availableIds = collectAvailableInstanceIds();
         if (checked) {
-            instanceStore.actions.selectAll?.();
+            availableIds.forEach((id) => selectedInstanceIds.add(id));
         } else {
-            instanceStore.actions.clearSelection?.();
+            availableIds.forEach((id) => selectedInstanceIds.delete(id));
         }
+        syncStoreSelection();
+        updateSelectionSummary();
+        updateBatchActionState();
+        syncSelectionCheckboxes();
     }
 
     function handleTestConnection(instanceId, trigger) {
@@ -763,32 +796,6 @@ function mountInstancesListPage() {
             .catch((error) => {
                 console.error('测试连接失败:', error);
                 global.toast?.error?.('测试连接失败');
-            })
-            .finally(() => {
-                toggleButtonLoading(button, false, original);
-            });
-    }
-
-    function handleSyncInstance(instanceId, trigger) {
-        if (!instanceStore?.actions?.syncInstanceAccounts) {
-            return;
-        }
-        const button = trigger instanceof Element ? trigger : null;
-        const original = button ? button.innerHTML : null;
-        toggleButtonLoading(button, true, '<i class="fas fa-spinner fa-spin"></i>');
-        instanceStore.actions
-            .syncInstanceAccounts(instanceId)
-            .then((result) => {
-                if (result?.success === false) {
-                    global.toast?.error?.(result?.message || '同步失败');
-                    return;
-                }
-                global.toast?.success?.(result?.message || '同步任务已启动');
-                setTimeout(() => instancesGrid?.refresh?.(), 1200);
-            })
-            .catch((error) => {
-                console.error('同步实例失败:', error);
-                global.toast?.error?.(error?.message || '同步失败');
             })
             .finally(() => {
                 toggleButtonLoading(button, false, original);
@@ -853,7 +860,6 @@ function mountInstancesListPage() {
             },
             openEdit: (instanceId) => instanceModalController?.openEdit?.(instanceId),
             testConnection: (instanceId, trigger) => handleTestConnection(instanceId, trigger),
-            sync: (instanceId, trigger) => handleSyncInstance(instanceId, trigger),
         };
     }
 
