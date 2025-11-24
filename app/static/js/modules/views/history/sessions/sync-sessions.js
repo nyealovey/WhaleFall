@@ -1,69 +1,422 @@
-// 会话中心页脚本（从模板抽离）
-// 依赖：toast.js, time-utils.js, UI.createModal
+// 会话中心 Grid.js 版本
+function mountSyncSessionsPage(global = window, documentRef = document) {
+  'use strict';
 
-function mountSyncSessionsPage(window = globalThis.window, document = globalThis.document) {
-  const LodashUtils = window.LodashUtils;
-  if (!LodashUtils) {
-    throw new Error("LodashUtils 未初始化");
+  const gridjs = global.gridjs;
+  const GridWrapper = global.GridWrapper;
+  const SyncSessionsService = global.SyncSessionsService;
+  const gridHtml = gridjs?.html;
+
+  if (!gridjs || !GridWrapper) {
+    console.error('Grid.js 或 GridWrapper 未加载，会话中心无法初始化');
+    return;
   }
-
-  const SyncSessionsService = window.SyncSessionsService;
   if (!SyncSessionsService) {
-    throw new Error("SyncSessionsService 未加载，无法进行会话请求");
-  }
-
-  const debugEnabled = window.DEBUG_SYNC_SESSIONS ?? true;
-  window.DEBUG_SYNC_SESSIONS = debugEnabled;
-
-  function debugLog(message, payload) {
-    if (!debugEnabled) {
-      return;
-    }
-    const prefix = "[SyncSessionsPage]";
-    if (payload !== undefined) {
-      console.debug(`${prefix} ${message}`, payload);
-    } else {
-      console.debug(`${prefix} ${message}`);
-    }
-  }
-
-  let syncSessionsService = null;
-  try {
-    syncSessionsService = new SyncSessionsService(window.httpU);
-  } catch (error) {
-    console.error("初始化 SyncSessionsService 失败:", error);
-    debugLog("SyncSessionsService 初始化失败", error);
+    console.error('SyncSessionsService 未加载，会话中心无法初始化');
     return;
   }
 
-  const SYNC_FILTER_FORM_ID = "sync-sessions-filter-form";
-  const AUTO_APPLY_FILTER_CHANGE = true;
-  const AUTO_REFRESH_INTERVAL_MS = 30000;
-  const SESSION_DETAIL_MODAL_SELECTOR = '#sessionDetailModal';
-  const SESSION_DETAIL_CONTENT_SELECTOR = '#session-detail-content';
+  const FILTER_FORM_ID = 'sync-sessions-filter-form';
+  const GRID_CONTAINER_ID = 'sessions-grid';
+  const AUTO_REFRESH_INTERVAL = 30000;
 
-  /**
-   * 统一 toast 提示。
-   */
-  function notifyAlert(message, type = 'info') {
-    toast.show(type, message);
-  }
-  // 防抖/节流等工具可后续抽到 shared/utils
-
-  let syncSessionsStore = null;
-  const storeSubscriptions = [];
-  let syncFilterCard = null;
-  let filterUnloadHandler = null;
+  let sessionsGrid = null;
+  let filterCard = null;
+  let syncSessionsService = null;
   let sessionDetailModalController = null;
-  window.syncSessionsStore = null;
+  let autoRefreshTimer = null;
 
-  /**
-   * 基础值清洗，去除空白。
-   */
-  function sanitizePrimitiveValue(value) {
-    if (value instanceof File) {
-      return value.name;
+  const ready = () => {
+    if (!initializeService()) {
+      return;
     }
+    initializeModals();
+    initializeFilterCard();
+    initializeSessionsGrid();
+    bindGridEvents();
+    setupAutoRefresh();
+  };
+
+  if (documentRef.readyState === 'loading') {
+    documentRef.addEventListener('DOMContentLoaded', ready, { once: true });
+  } else {
+    ready();
+  }
+
+  function initializeService() {
+    try {
+      syncSessionsService = new SyncSessionsService(global.httpU);
+      return true;
+    } catch (error) {
+      console.error('初始化 SyncSessionsService 失败:', error);
+      return false;
+    }
+  }
+
+  function initializeModals() {
+    if (!global.SyncSessionDetailModal?.createController) {
+      console.warn('SyncSessionDetailModal 未加载，将无法查看详情');
+      return;
+    }
+    try {
+      sessionDetailModalController = global.SyncSessionDetailModal.createController({
+        ui: global.UI,
+        timeUtils: global.timeUtils,
+        modalSelector: '#sessionDetailModal',
+        contentSelector: '#session-detail-content',
+        getStatusColor,
+        getStatusText,
+        getSyncTypeText,
+        getSyncCategoryText,
+      });
+    } catch (error) {
+      console.error('初始化会话详情模态失败:', error);
+    }
+  }
+
+  function initializeFilterCard() {
+    const factory = global.UI?.createFilterCard;
+    if (!factory) {
+      console.warn('UI.createFilterCard 未加载，筛选无法自动应用');
+      return;
+    }
+    filterCard = factory({
+      formSelector: `#${FILTER_FORM_ID}`,
+      autoSubmitOnChange: true,
+      onSubmit: ({ values }) => applySyncFilters(values),
+      onChange: ({ values }) => applySyncFilters(values),
+      onClear: () => applySyncFilters({}),
+    });
+  }
+
+  function initializeSessionsGrid() {
+    const container = documentRef.getElementById(GRID_CONTAINER_ID);
+    if (!container) {
+      console.error('未找到 sessions-grid 容器');
+      return;
+    }
+
+    sessionsGrid = new GridWrapper(container, {
+      search: false,
+      sort: {
+        multiColumn: false,
+        server: {
+          url: (prev, columns) => buildSortUrl(prev, columns),
+        },
+      },
+      columns: buildColumns(),
+      server: {
+        url: '/sync_sessions/api/sessions',
+        then: handleServerResponse,
+        total: (response) => {
+          const payload = response?.data || response || {};
+          return Number(payload.total) || 0;
+        },
+      },
+      pagination: {
+        enabled: true,
+        limit: 20,
+        server: {
+          url: (prev, page, limit) => {
+            const url = new URL(prev, global.location.origin);
+            url.searchParams.set('page', page + 1);
+            url.searchParams.set('limit', limit);
+            return url.toString();
+          },
+        },
+      },
+      className: {
+        table: 'table table-hover align-middle sessions-grid-table',
+      },
+    });
+
+    const initialFilters = normalizeFilters(resolveSyncFilters());
+    if (Object.keys(initialFilters).length) {
+      sessionsGrid.setFilters(initialFilters, { silent: true });
+    }
+    sessionsGrid.init();
+  }
+
+  function buildSortUrl(prev, columns) {
+    const url = new URL(prev, global.location.origin);
+    if (!columns.length) {
+      url.searchParams.set('sort', 'started_at');
+      url.searchParams.set('order', 'desc');
+      return url.toString();
+    }
+    const column = columns[0];
+    const allowed = new Set(['started_at', 'completed_at', 'status']);
+    const selected = allowed.has(column.id) ? column.id : 'started_at';
+    url.searchParams.set('sort', selected);
+    url.searchParams.set('order', column.direction === 1 ? 'asc' : 'desc');
+    return url.toString();
+  }
+
+  function buildColumns() {
+    return [
+      {
+        id: 'session_info',
+        name: '会话',
+        formatter: (cell, row) => renderSessionInfo(resolveRowMeta(row), cell),
+      },
+      {
+        id: 'status',
+        name: '状态',
+        width: '110px',
+        formatter: (cell, row) => renderStatusBadge(resolveRowMeta(row)),
+      },
+      {
+        id: 'progress',
+        name: '进度',
+        width: '220px',
+        sort: false,
+        formatter: (cell, row) => renderProgress(resolveRowMeta(row)),
+      },
+      {
+        id: 'started_at',
+        name: '开始时间',
+        width: '160px',
+        formatter: (cell) => renderTimestamp(cell),
+      },
+      {
+        id: 'completed_at',
+        name: '完成时间',
+        width: '160px',
+        formatter: (cell) => renderTimestamp(cell),
+      },
+      {
+        id: 'duration',
+        name: '耗时',
+        width: '120px',
+        sort: false,
+        formatter: (cell, row) => renderDuration(resolveRowMeta(row)),
+      },
+      {
+        id: 'actions',
+        name: '操作',
+        width: '160px',
+        sort: false,
+        formatter: (cell, row) => renderActions(resolveRowMeta(row)),
+      },
+      { id: '__meta__', hidden: true },
+    ];
+  }
+
+  function handleServerResponse(response) {
+    const payload = response?.data || response || {};
+    const items = payload.items || [];
+    return items.map((item) => [
+      item.session_id || '-',
+      item.status || '-',
+      null,
+      item.started_at || '',
+      item.completed_at || '',
+      null,
+      null,
+      item,
+    ]);
+  }
+
+  function resolveRowMeta(row) {
+    return row?.cells?.[row.cells.length - 1]?.data || {};
+  }
+
+  function renderSessionInfo(meta) {
+    if (!gridHtml) {
+      return meta.session_id || '-';
+    }
+    const rawId = meta.session_id || '-';
+    const truncated = rawId.length > 12 ? `${rawId.substring(0, 12)}…` : rawId;
+    const sessionId = escapeHtml(truncated);
+    const type = escapeHtml(getSyncTypeText(meta.sync_type));
+    const category = escapeHtml(getSyncCategoryText(meta.sync_category));
+    return gridHtml(`
+      <div class="session-info">
+        <div class="session-id">${sessionId}</div>
+        <div class="text-muted small">${type} • ${category}</div>
+      </div>
+    `);
+  }
+
+  function renderStatusBadge(meta) {
+    if (!gridHtml) {
+      return getStatusText(meta.status);
+    }
+    const color = getStatusColor(meta.status);
+    const text = escapeHtml(getStatusText(meta.status));
+    return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
+  }
+
+  function renderProgress(meta) {
+    if (!gridHtml) {
+      return '-';
+    }
+    const total = meta.total_instances || 0;
+    const success = meta.successful_instances || 0;
+    const failed = meta.failed_instances || 0;
+    const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
+    const info = getProgressInfo(successRate, total, success, failed);
+    return gridHtml(`
+      <div class="session-progress">
+        <div class="progress" style="height:10px;">
+          <div class="progress-bar ${info.barClass}" role="progressbar" style="width:${successRate}%" title="${escapeHtml(info.tooltip)}"></div>
+        </div>
+        <div class="text-muted small mt-1">
+          <span class="${info.textClass}">
+            <i class="${info.icon}"></i> ${successRate}% (${success}/${total})
+          </span>
+        </div>
+      </div>
+    `);
+  }
+
+  function renderTimestamp(value) {
+    if (!gridHtml) {
+      return value || '-';
+    }
+    if (!value) {
+      return gridHtml('<span class="text-muted">-</span>');
+    }
+    const formatter = global.timeUtils?.formatTime;
+    const formatted = formatter ? formatter(value, 'datetime') : value;
+    return gridHtml(`<span class="text-muted small">${escapeHtml(formatted || value)}</span>`);
+  }
+
+  function renderDuration(meta) {
+    if (!gridHtml) {
+      return getDurationBadge(meta.started_at, meta.completed_at);
+    }
+    return gridHtml(getDurationBadge(meta.started_at, meta.completed_at));
+  }
+
+  function renderActions(meta) {
+    if (!gridHtml) {
+      return '';
+    }
+    const viewBtn = `<button class="btn btn-sm btn-outline-primary" data-action="view" data-id="${escapeHtml(meta.session_id)}">
+        <i class="fas fa-eye"></i> 详情
+      </button>`;
+    const cancelBtn = meta.status === 'running'
+      ? `<button class="btn btn-sm btn-outline-danger" data-action="cancel" data-id="${escapeHtml(meta.session_id)}">
+            <i class="fas fa-stop"></i> 取消
+          </button>`
+      : '';
+    return gridHtml(`<div class="d-flex gap-2">${viewBtn}${cancelBtn}</div>`);
+  }
+
+  function bindGridEvents() {
+    const container = documentRef.getElementById(GRID_CONTAINER_ID);
+    if (!container) {
+      return;
+    }
+    container.addEventListener('click', (event) => {
+      const actionBtn = event.target.closest('[data-action]');
+      if (!actionBtn) {
+        return;
+      }
+      const sessionId = actionBtn.getAttribute('data-id');
+      const action = actionBtn.getAttribute('data-action');
+      if (action === 'view') {
+        viewSessionDetail(sessionId);
+      } else if (action === 'cancel') {
+        cancelSession(sessionId);
+      }
+    });
+  }
+
+  function setupAutoRefresh() {
+    if (!sessionsGrid) {
+      return;
+    }
+    clearAutoRefresh();
+    autoRefreshTimer = global.setInterval(() => {
+      sessionsGrid?.refresh?.();
+    }, AUTO_REFRESH_INTERVAL);
+    global.addEventListener('beforeunload', clearAutoRefresh, { once: true });
+  }
+
+  function clearAutoRefresh() {
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  }
+
+  function applySyncFilters(values) {
+    if (!sessionsGrid) {
+      return;
+    }
+    const filters = normalizeFilters(resolveSyncFilters(values));
+    sessionsGrid.updateFilters(filters);
+  }
+
+  function resolveSyncFilters(overrideValues) {
+    const rawValues = overrideValues && Object.keys(overrideValues || {}).length
+      ? overrideValues
+      : collectFormValues();
+    const result = {};
+    Object.entries(rawValues || {}).forEach(([key, value]) => {
+      if (key === 'csrf_token') {
+        return;
+      }
+      const normalized = sanitizeFilterValue(value);
+      if (normalized === null || normalized === undefined) {
+        return;
+      }
+      if (Array.isArray(normalized) && !normalized.length) {
+        return;
+      }
+      result[key] = normalized;
+    });
+    return result;
+  }
+
+  function collectFormValues() {
+    if (filterCard?.serialize) {
+      return filterCard.serialize();
+    }
+    const form = documentRef.getElementById(FILTER_FORM_ID);
+    if (!form) {
+      return {};
+    }
+    if (global.UI?.serializeForm) {
+      return global.UI.serializeForm(form);
+    }
+    const formData = new FormData(form);
+    const result = {};
+    formData.forEach((value, key) => {
+      if (result[key] === undefined) {
+        result[key] = value;
+      } else if (Array.isArray(result[key])) {
+        result[key].push(value);
+      } else {
+        result[key] = [result[key], value];
+      }
+    });
+    return result;
+  }
+
+  function normalizeFilters(raw) {
+    const filters = { ...(raw || {}) };
+    Object.keys(filters).forEach((key) => {
+      const value = filters[key];
+      if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)) {
+        delete filters[key];
+      }
+    });
+    return filters;
+  }
+
+  function sanitizeFilterValue(value) {
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => sanitizePrimitiveValue(item))
+        .filter((item) => item !== null && item !== undefined);
+    }
+    return sanitizePrimitiveValue(value);
+  }
+
+  function sanitizePrimitiveValue(value) {
     if (typeof value === 'string') {
       const trimmed = value.trim();
       return trimmed === '' ? null : trimmed;
@@ -74,664 +427,162 @@ function mountSyncSessionsPage(window = globalThis.window, document = globalThis
     return value;
   }
 
-  /**
-   * 过滤值标准化，支持数组。
-   */
-  function sanitizeFilterValue(value) {
-    if (Array.isArray(value)) {
-      return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
+  function viewSessionDetail(sessionId) {
+    if (!sessionId) {
+      return;
     }
-    return sanitizePrimitiveValue(value);
-  }
-
-  /**
-   * 组合表单与覆盖值生成过滤参数。
-   */
-  function resolveSyncFilters(form, overrideValues) {
-    const baseForm = form || document.getElementById(SYNC_FILTER_FORM_ID);
-    const rawValues = overrideValues && Object.keys(overrideValues || {}).length
-      ? overrideValues
-      : collectFormValues(baseForm);
-    return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
-      if (key === 'csrf_token') {
-        return result;
-      }
-      const normalized = sanitizeFilterValue(value);
-      if (normalized === null || normalized === undefined) {
-        return result;
-      }
-      if (Array.isArray(normalized) && normalized.length === 0) {
-        return result;
-      }
-      result[key] = normalized;
-      return result;
-    }, {});
-  }
-
-  /**
-   * 页面初始化入口。
-   */
-  function startInitialization() {
-    debugLog("开始初始化会话中心");
-    try {
-      initializeSyncSessionsStore();
-      initializeSyncFilterCard();
-      initializeSyncModals();
-      debugLog("会话中心初始化完成");
-    } catch (error) {
-      console.error("会话中心初始化失败:", error);
-      debugLog("会话中心初始化失败", error);
-      notifyAlert('会话中心初始化失败，请查看控制台日志', 'error');
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startInitialization, { once: true });
-  } else {
-    startInitialization();
-  }
-
-  /**
-   * 创建会话详情/错误日志模态，并设定关闭时清理内容。
-   */
-  function initializeSyncModals() {
-    const factory = window.UI?.createModal;
-    if (!factory) {
-      throw new Error('UI.createModal 未加载，会话中心模态无法初始化');
-    }
-    debugLog("初始化会话详情/错误日志模态");
-    if (!window.SyncSessionDetailModal?.createController) {
-      throw new Error('SyncSessionDetailModal 未加载，会话详情模态无法初始化');
-    }
-    try {
-      sessionDetailModalController = window.SyncSessionDetailModal.createController({
-        ui: window.UI,
-        timeUtils: window.timeUtils,
-        modalSelector: SESSION_DETAIL_MODAL_SELECTOR,
-        contentSelector: SESSION_DETAIL_CONTENT_SELECTOR,
-        getStatusColor,
-        getStatusText,
-        getSyncTypeText,
-        getSyncCategoryText,
+    syncSessionsService
+      .detail(sessionId)
+      .then((response) => {
+        const payload = response?.data || response || {};
+        const session = payload.session || payload;
+        showSessionDetail(session);
+      })
+      .catch((error) => {
+        console.error('获取会话详情失败:', error);
+        notifyError(error?.message || '获取会话详情失败');
       });
-    } catch (error) {
-      console.error('初始化 SyncSessionDetailModal 失败:', error);
-      debugLog('会话详情模态初始化失败', error);
-    }
   }
 
-  /**
-   * 初始化会话 store，开启自动刷新并注册卸载清理。
-   */
-  function initializeSyncSessionsStore() {
-    if (!window.createSyncSessionsStore) {
-      console.error("createSyncSessionsStore 未加载");
-      debugLog("createSyncSessionsStore 未加载");
-      return;
-    }
-    try {
-      debugLog("开始创建 SyncSessionsStore");
-      syncSessionsStore = window.createSyncSessionsStore({
-        service: syncSessionsService,
-        emitter: window.mitt ? window.mitt() : null,
-        autoRefreshInterval: AUTO_REFRESH_INTERVAL_MS,
-      });
-    } catch (error) {
-      console.error("初始化 SyncSessionsStore 失败:", error);
-      debugLog("SyncSessionsStore 创建失败", error);
-      return;
-    }
-    bindStoreEvents();
-    debugLog("SyncSessionsStore 初始化中");
-    syncSessionsStore
-      .init()
-      .then(() => debugLog("SyncSessionsStore 初始化完成"))
-      .catch(error => {
-        console.error("SyncSessionsStore 初始化过程出现错误:", error);
-        debugLog("SyncSessionsStore 初始化失败", error);
-      });
-    window.syncSessionsStore = syncSessionsStore;
-    window.addEventListener('beforeunload', () => {
-      teardownStore();
-      sessionDetailModalController?.destroy?.();
-    }, { once: true });
-  }
-
-  /**
-   * 订阅 store 事件，更新列表、统计与提示。
-   */
-  function bindStoreEvents() {
-    debugLog("绑定 SyncSessionsStore 事件");
-    subscribeToStoreEvent('syncSessions:loading', () => {
-      debugLog("收到事件 syncSessions:loading");
-      showLoadingState();
-    });
-    subscribeToStoreEvent('syncSessions:updated', (state) => {
-      debugLog("收到事件 syncSessions:updated", {
-        sessionCount: state?.sessions?.length,
-        pagination: state?.pagination,
-      });
-      hideLoadingState();
-      renderSessions(state.sessions);
-      renderPagination(state.pagination);
-    });
-    subscribeToStoreEvent('syncSessions:error', (payload) => {
-      hideLoadingState();
-      const message = payload?.error?.message || '会话操作失败';
-      if (payload?.error) {
-        console.error('SyncSessionsStore error:', payload.error);
-        debugLog("收到事件 syncSessions:error", payload.error);
-      }
-      notifyAlert(message, 'error');
-    });
-    subscribeToStoreEvent('syncSessions:detailLoaded', (payload) => {
-      debugLog("收到事件 syncSessions:detailLoaded", {
-        sessionId: payload?.session?.session_id,
-      });
-      showSessionDetail(payload?.session || {});
-    });
-    subscribeToStoreEvent('syncSessions:sessionCancelled', () => {
-      debugLog("收到事件 syncSessions:sessionCancelled");
-      notifyAlert('会话已取消', 'success');
-    });
-  }
-
-  /**
-   * 统一订阅并记录 handler，便于 teardown 时移除。
-   */
-  function subscribeToStoreEvent(eventName, handler) {
-    if (!syncSessionsStore) {
-      debugLog(`尝试订阅 ${eventName} 但 store 未初始化`);
-      return;
-    }
-    debugLog(`订阅 Store 事件: ${eventName}`);
-    storeSubscriptions.push({ eventName, handler });
-    syncSessionsStore.subscribe(eventName, handler);
-  }
-
-  /**
-   * 解除订阅并销毁 store，防止泄漏。
-   */
-  function teardownStore() {
-    if (!syncSessionsStore) {
-      return;
-    }
-    storeSubscriptions.forEach(({ eventName, handler }) => {
-      syncSessionsStore.unsubscribe(eventName, handler);
-    });
-    storeSubscriptions.length = 0;
-    syncSessionsStore.destroy?.();
-    syncSessionsStore = null;
-  }
-
-  /**
-   * 外部调用入口：按页加载会话列表（支持 silent 刷新）。
-   */
-  window.loadSessions = function (page = 1, options = {}) {
-    if (!syncSessionsStore) {
-      debugLog("loadSessions 调用但 store 未准备");
-      return;
-    }
-    debugLog("loadSessions 调用", { page, options });
-    syncSessionsStore.actions.loadSessions({
-      page,
-      silent: Boolean(options.silent),
-    });
-  };
-
-  // 显示加载状态
-  function showLoadingState() {
-    const loading = document.getElementById('sessions-loading');
-    const container = document.getElementById('sessions-container');
-    if (loading) loading.style.display = 'block';
-    if (container) container.style.display = 'none';
-  }
-
-  // 隐藏加载状态
-  function hideLoadingState() {
-    const loading = document.getElementById('sessions-loading');
-    const container = document.getElementById('sessions-container');
-    if (loading) loading.style.display = 'none';
-    if (container) container.style.display = 'block';
-  }
-
-  /**
-   * 渲染会话列表，包含状态/进度/指标展示。
-   */
-  window.renderSessions = function (sessions) {
-    const container = document.getElementById('sessions-container');
-    if (!container) return;
-
-    if (!sessions || sessions.length === 0) {
-      container.innerHTML = '<div class="text-center py-4 text-muted">暂无同步会话</div>';
-      return;
-    }
-
-    const header = createSessionsHeader();
-    const rows = sessions.map(session => {
-      const statusClass = getStatusClass(session.status);
-      const statusText = getStatusText(session.status);
-      const startedAt = timeUtils.formatTime(session.started_at, 'datetime');
-      const completedAt = session.completed_at ? timeUtils.formatTime(session.completed_at, 'datetime') : '-';
-
-      const totalInstances = session.total_instances || 0;
-      const successfulInstances = session.successful_instances || 0;
-      const failedInstances = session.failed_instances || 0;
-      const successRate = totalInstances > 0 ? Math.round((successfulInstances / totalInstances) * 100) : 0;
-      const progressInfo = getProgressInfo(successRate, totalInstances, successfulInstances, failedInstances);
-
-      return `
-        <div class="session-card-grid ${statusClass}">
-          <div class="session-cell session-info">
-            <div class="session-id">${session.session_id.substring(0, 8)}...</div>
-            <div class="text-muted small">${getSyncTypeText(session.sync_type)} • ${getSyncCategoryText(session.sync_category)}</div>
-          </div>
-          <div class="session-cell session-status">
-            <span class="badge bg-${getStatusColor(session.status)}">${statusText}</span>
-          </div>
-          <div class="session-cell session-progress">
-            <div class="progress" style="height: 10px;">
-              <div class="progress-bar ${progressInfo.barClass}" role="progressbar" style="width: ${successRate}%" title="${progressInfo.tooltip}"></div>
-            </div>
-            <div class="text-muted small mt-1">
-              <span class="${progressInfo.textClass}">
-                <i class="${progressInfo.icon}"></i> ${successRate}% (${successfulInstances}/${totalInstances})
-              </span>
-            </div>
-          </div>
-          <div class="session-cell">
-            <div class="text-muted small">${startedAt}</div>
-          </div>
-          <div class="session-cell">
-            <div class="text-muted small">${completedAt}</div>
-          </div>
-          <div class="session-cell session-duration">
-            ${getDurationBadge(session.started_at, session.completed_at)}
-          </div>
-          <div class="session-cell session-actions">
-            <button class="btn btn-sm btn-outline-primary" data-action="view" data-id="${session.session_id}">
-              <i class="fas fa-eye"></i> 详情
-            </button>
-            ${session.status === 'running' ? `
-            <button class="btn btn-sm btn-outline-danger" data-action="cancel" data-id="${session.session_id}">
-              <i class="fas fa-stop"></i> 取消
-            </button>` : ''}
-          </div>
-        </div>`;
-    }).join('');
-
-    container.innerHTML = header + rows;
-
-    container.querySelectorAll('[data-action="view"]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        viewSessionDetail(id);
-      });
-    });
-    container.querySelectorAll('[data-action="cancel"]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        cancelSession(id);
-      });
-    });
-
-  }
-
-  function createSessionsHeader() {
-    return `
-      <div class="session-card-grid session-card-header" role="presentation">
-        <div class="session-cell">会话</div>
-        <div class="session-cell">状态</div>
-        <div class="session-cell">进度</div>
-        <div class="session-cell">开始时间</div>
-        <div class="session-cell">完成时间</div>
-        <div class="session-cell">耗时</div>
-        <div class="session-cell text-end">操作</div>
-      </div>`;
-  }
-
-  // 渲染分页控件
-  /**
-   * 构建分页，调用 store actions 切换页码。
-   */
-  function renderPagination(paginationData) {
-    const container = document.getElementById('pagination-container');
-    if (!container || !paginationData) {
-      if (container) container.style.display = 'none';
-      return;
-    }
-
-    const page = paginationData.page ?? paginationData.current_page ?? 1;
-    const pages = paginationData.pages ?? paginationData.total_pages ?? 1;
-    const hasPrev = (typeof paginationData.hasPrev === 'boolean')
-      ? paginationData.hasPrev
-      : (paginationData.has_prev ?? paginationData.has_previous ?? page > 1);
-    const hasNext = (typeof paginationData.hasNext === 'boolean')
-      ? paginationData.hasNext
-      : (paginationData.has_next ?? paginationData.has_more ?? page < pages);
-    const prevPage = paginationData.prevPage ?? paginationData.prev_num ?? paginationData.previous_page ?? (hasPrev ? page - 1 : 1);
-    const nextPage = paginationData.nextPage ?? paginationData.next_num ?? paginationData.next_page ?? (hasNext ? page + 1 : pages);
-
-    if (pages <= 1) {
-      container.style.display = 'none';
-      return;
-    }
-
-    let html = '<nav aria-label="会话分页"><ul class="pagination">';
-
-    // 上一页
-    if (hasPrev) {
-      html += `<li class="page-item">
-        <a class="page-link" href="#" onclick="loadSessions(${prevPage}); return false;">
-          <i class="fas fa-chevron-left"></i>
-        </a>
-      </li>`;
-    } else {
-      html += '<li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-left"></i></span></li>';
-    }
-
-    // 页码
-    const startPage = Math.max(1, page - 2);
-    const endPage = Math.min(pages, page + 2);
-
-    if (startPage > 1) {
-      html += `<li class="page-item"><a class="page-link" href="#" onclick="loadSessions(1); return false;">1</a></li>`;
-      if (startPage > 2) {
-        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-      }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      if (i === page) {
-        html += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
-      } else {
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadSessions(${i}); return false;">${i}</a></li>`;
-      }
-    }
-
-    if (endPage < pages) {
-      if (endPage < pages - 1) {
-        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-      }
-      html += `<li class="page-item"><a class="page-link" href="#" onclick="loadSessions(${pages}); return false;">${pages}</a></li>`;
-    }
-
-    // 下一页
-    if (hasNext) {
-      html += `<li class="page-item">
-        <a class="page-link" href="#" onclick="loadSessions(${nextPage}); return false;">
-          <i class="fas fa-chevron-right"></i>
-        </a>
-      </li>`;
-    } else {
-      html += '<li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-right"></i></span></li>';
-    }
-
-    html += '</ul></nav>';
-
-    container.innerHTML = html;
-    container.style.display = 'block';
-  }
-
-  /**
-   * 查看单个会话详情，触发 store 拉取后展示模态。
-   */
-  window.viewSessionDetail = function (sessionId) {
-    if (!syncSessionsStore) {
-      return;
-    }
-    syncSessionsStore.actions.loadSessionDetail(sessionId);
-  };
-
-
-  /**
-   * 将会话详情渲染到模态内容区域。
-   */
-  window.showSessionDetail = function (session) {
+  function showSessionDetail(session) {
     if (sessionDetailModalController) {
       sessionDetailModalController.open(session);
       return;
     }
-    console.warn('sessionDetailModalController 未初始化');
+    console.warn('会话详情模态未初始化');
   }
 
-  /**
-   * 请求取消会话，成功后刷新列表。
-   */
-  window.cancelSession = function (sessionId) {
-    if (!syncSessionsStore) {
+  function cancelSession(sessionId) {
+    if (!sessionId) {
       return;
     }
-    if (confirm('确定要取消这个同步会话吗？')) {
-      syncSessionsStore.actions.cancelSession(sessionId);
+    if (!global.confirm?.('确定要取消这个同步会话吗？')) {
+      return;
     }
-  };
-
-  // 应用筛选条件
-  /**
-   * 将当前表单筛选应用到列表（重置页码为 1）。
-   */
-  function applyFilters() {
-    applySyncFilters();
+    syncSessionsService
+      .cancel(sessionId, {})
+      .then((response) => {
+        const payload = response?.data || response || {};
+        notifySuccess(payload?.message || '会话已取消');
+        sessionsGrid?.refresh?.();
+      })
+      .catch((error) => {
+        console.error('取消会话失败:', error);
+        notifyError(error?.message || '取消会话失败');
+      });
   }
 
-  // 将函数暴露到全局作用域
-  window.applyFilters = applyFilters;
-
-
-
-  /**
-   * 清空筛选表单并刷新列表。
-   */
-  window.clearFilters = function () {
-    resetSyncFilters();
-  }
-
-  /**
-   * 根据成功率计算进度条样式与提示。
-   */
-  window.getProgressInfo = function (successRate, totalInstances, successfulInstances, failedInstances) {
-    if (totalInstances === 0) {
-      return { barClass: 'bg-secondary', textClass: 'text-muted', icon: 'fas fa-question-circle', tooltip: '无实例数据' };
-    }
-    if (successRate === 100) {
-      return { barClass: 'bg-success', textClass: 'text-success', icon: 'fas fa-check-circle', tooltip: '全部成功' };
-    } else if (successRate === 0) {
-      return { barClass: 'bg-danger', textClass: 'text-danger', icon: 'fas fa-times-circle', tooltip: '全部失败' };
-    } else if (successRate >= 70) {
-      return { barClass: 'bg-warning', textClass: 'text-warning', icon: 'fas fa-exclamation-triangle', tooltip: `部分成功 (${successfulInstances}成功, ${failedInstances}失败)` };
+  function notifySuccess(message) {
+    if (global.toast?.success) {
+      global.toast.success(message);
     } else {
-      return { barClass: 'bg-danger', textClass: 'text-danger', icon: 'fas fa-exclamation-triangle', tooltip: `大部分失败 (${successfulInstances}成功, ${failedInstances}失败)` };
+      console.info(message);
     }
   }
 
-  /**
-   * 构建筛选卡片：自动提交变更并注册卸载清理。
-   */
-  function initializeSyncFilterCard() {
-    const factory = window.UI?.createFilterCard;
-    if (!factory) {
-      console.error('UI.createFilterCard 未加载，会话筛选无法初始化');
-      debugLog('UI.createFilterCard 未加载');
-      return;
+  function notifyError(message) {
+    if (global.toast?.error) {
+      global.toast.error(message);
+    } else {
+      console.error(message);
     }
-    debugLog('初始化筛选卡片');
-    syncFilterCard = factory({
-      formSelector: `#${SYNC_FILTER_FORM_ID}`,
-      autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
-      onSubmit: ({ values }) => applySyncFilters(null, values),
-      onClear: () => resetSyncFilters(),
-      onChange: ({ values }) => {
-        if (AUTO_APPLY_FILTER_CHANGE) {
-          applySyncFilters(null, values);
-        }
-      },
-    });
+  }
 
-    if (filterUnloadHandler) {
-      window.removeEventListener('beforeunload', filterUnloadHandler);
+  function escapeHtml(value) {
+    if (value === undefined || value === null) {
+      return '';
     }
-    filterUnloadHandler = () => {
-      debugLog('销毁筛选卡片');
-      destroySyncFilterCard();
-      window.removeEventListener('beforeunload', filterUnloadHandler);
-      filterUnloadHandler = null;
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // 暴露给其他模块（如详情模态）
+  global.viewSessionDetail = viewSessionDetail;
+  global.cancelSession = cancelSession;
+  global.getProgressInfo = getProgressInfo;
+  global.getStatusText = getStatusText;
+  global.getStatusColor = getStatusColor;
+  global.getSyncTypeText = getSyncTypeText;
+  global.getSyncCategoryText = getSyncCategoryText;
+  global.getDurationBadge = getDurationBadge;
+}
+
+function getProgressInfo(successRate, totalInstances, successfulInstances, failedInstances) {
+  if (totalInstances === 0) {
+    return { barClass: 'bg-secondary', textClass: 'text-muted', icon: 'fas fa-question-circle', tooltip: '无实例数据' };
+  }
+  if (successRate === 100) {
+    return { barClass: 'bg-success', textClass: 'text-success', icon: 'fas fa-check-circle', tooltip: '全部成功' };
+  }
+  if (successRate === 0) {
+    return { barClass: 'bg-danger', textClass: 'text-danger', icon: 'fas fa-times-circle', tooltip: '全部失败' };
+  }
+  if (successRate >= 70) {
+    return {
+      barClass: 'bg-warning',
+      textClass: 'text-warning',
+      icon: 'fas fa-exclamation-triangle',
+      tooltip: `部分成功 (${successfulInstances} 成功, ${failedInstances} 失败)`,
     };
-    window.addEventListener('beforeunload', filterUnloadHandler);
   }
+  return {
+    barClass: 'bg-danger',
+    textClass: 'text-danger',
+    icon: 'fas fa-exclamation-triangle',
+    tooltip: `大部分失败 (${successfulInstances} 成功, ${failedInstances} 失败)`,
+  };
+}
 
-  /**
-   * 销毁筛选卡片实例，解除 beforeunload 监听。
-   */
-  function destroySyncFilterCard() {
-    if (syncFilterCard?.destroy) {
-      syncFilterCard.destroy();
-    }
-    syncFilterCard = null;
+function getStatusText(status) {
+  return status || '-';
+}
+
+function getStatusColor(status) {
+  const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning' };
+  return map[status] || 'secondary';
+}
+
+function getSyncTypeText(type) {
+  const typeMap = {
+    manual_single: '手动单台',
+    manual_batch: '手动批量',
+    manual_task: '手动任务',
+    scheduled_task: '定时任务',
+  };
+  return typeMap[type] || type || '-';
+}
+
+function getSyncCategoryText(category) {
+  const categoryMap = {
+    account: '账户同步',
+    capacity: '容量同步',
+    config: '配置同步',
+    aggregation: '统计聚合',
+    other: '其他',
+  };
+  return categoryMap[category] || category || '-';
+}
+
+function getDurationBadge(startedAt, completedAt) {
+  if (!startedAt || !completedAt) {
+    return '<span class="text-muted">-</span>';
   }
-
-  /**
-   * 组合筛选参数并刷新页面或请求。
-   */
-  function applySyncFilters(form, values) {
-    const targetForm = resolveSyncForm(form);
-    if (!targetForm || !syncSessionsStore) {
-      debugLog('applySyncFilters 忽略，form或store未准备');
-      return;
-    }
-    const nextFilters = resolveSyncFilters(targetForm, values);
-    debugLog('应用筛选条件', nextFilters);
-    syncSessionsStore.actions.applyFilters(nextFilters);
+  const timeUtils = window.timeUtils;
+  const NumberFormat = window.NumberFormat;
+  const start = timeUtils?.parseTime ? timeUtils.parseTime(startedAt) : new Date(startedAt);
+  const end = timeUtils?.parseTime ? timeUtils.parseTime(completedAt) : new Date(completedAt);
+  if (!start || !end || Number.isNaN(start) || Number.isNaN(end)) {
+    return '<span class="text-muted">-</span>';
   }
-
-  /**
-   * 重置筛选表单并应用空过滤。
-   */
-  function resetSyncFilters(form) {
-    const targetForm = resolveSyncForm(form);
-    if (targetForm) {
-      targetForm.reset();
-    }
-    if (!syncSessionsStore) {
-      debugLog('resetSyncFilters 忽略，store未准备');
-      return;
-    }
-    debugLog('重置筛选条件');
-    syncSessionsStore.actions.resetFilters();
+  const seconds = Math.max(0, (end - start) / 1000);
+  if (NumberFormat?.formatDurationSeconds) {
+    return NumberFormat.formatDurationSeconds(seconds);
   }
-
-  /**
-   * 将多种 form 输入（原生/umbrella）归一化为 HTMLElement。
-   */
-  function resolveSyncForm(form) {
-    if (!form && syncFilterCard?.form) {
-      return syncFilterCard.form;
-    }
-    if (!form) {
-      return document.getElementById(SYNC_FILTER_FORM_ID);
-    }
-    return form;
-  }
-
-  /**
-   * 序列化筛选表单，兼容 FilterCard/原生 FormData。
-   */
-  function collectFormValues(form) {
-    if (syncFilterCard?.serialize) {
-      return syncFilterCard.serialize();
-    }
-    if (!form) {
-      return {};
-    }
-    const serializer = window.UI?.serializeForm;
-    if (serializer) {
-      return serializer(form);
-    }
-    const formData = new FormData(form);
-    const result = {};
-    formData.forEach((value, key) => {
-      const normalized = value instanceof File ? value.name : value;
-      if (result[key] === undefined) {
-        result[key] = normalized;
-      } else if (Array.isArray(result[key])) {
-        result[key].push(normalized);
-      } else {
-        result[key] = [result[key], normalized];
-      }
-    });
-    return result;
-  }
-
-  /**
-   * 将状态映射为卡片 CSS class。
-   */
-  function getStatusClass(status) {
-    const map = { running: 'running', completed: 'completed', failed: 'failed', cancelled: 'cancelled' };
-    return map[status] || '';
-  }
-
-  function getStatusText(status) {
-    return status || '-';
-  }
-
-  /**
-   * 将状态映射为 badge 颜色。
-   */
-  function getStatusColor(status) {
-    const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning' };
-    return map[status] || 'secondary';
-  }
-
-  /**
-   * 同步类型 -> 展示文案。
-   */
-  function getSyncTypeText(type) {
-    const typeMap = {
-      'manual_single': '手动单台',
-      'manual_batch': '手动批量',
-      'manual_task': '手动任务',
-      'scheduled_task': '定时任务'
-    };
-    return typeMap[type] || type || '-';
-  }
-
-  /**
-   * 同步分类 -> 展示文案。
-   */
-  function getSyncCategoryText(category) {
-    const categoryMap = {
-      'account': '账户同步',
-      'capacity': '容量同步',
-      'config': '配置同步',
-      'aggregation': '统计聚合',
-      'other': '其他'
-    };
-    return categoryMap[category] || category || '-';
-  }
-
-  /**
-   * 计算耗时徽标文本（包含起止时间）。
-   */
-  function getDurationBadge(startedAt, completedAt) {
-    if (!startedAt || !completedAt) return '<span class="text-muted">-</span>';
-    
-    // 使用统一的时间解析
-    const s = timeUtils.parseTime(startedAt);
-    const e = timeUtils.parseTime(completedAt);
-    
-    if (!s || !e) return '<span class="text-muted">-</span>';
-    
-    const sec = (e - s) / 1000;
-    return window.NumberFormat.formatDurationSeconds(sec);
-  }
-
-  window.getStatusClass = getStatusClass;
-  window.getStatusText = getStatusText;
-  window.getStatusColor = getStatusColor;
-  window.getSyncTypeText = getSyncTypeText;
-  window.getSyncCategoryText = getSyncCategoryText;
-  window.getDurationBadge = getDurationBadge;
-
+  return `<span class="text-muted">${seconds.toFixed(1)} s</span>`;
 }
 
 window.SyncSessionsPage = {

@@ -4,6 +4,7 @@
 {% block title %}会话中心 - 鲸落{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history/sync-sessions.css') }}">
 {% endblock %}
 
@@ -39,18 +40,7 @@
                     <h5 class="mb-0"><i class="fas fa-list"></i> 同步会话列表</h5>
                 </div>
                 <div class="card-body">
-                    <div id="sessions-loading" class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">加载中...</span>
-                        </div>
-                        <p class="mt-2">正在加载会话数据...</p>
-                    </div>
-                    <div id="sessions-container" style="display: none;">
-                        <!-- 会话列表将在这里动态加载 -->
-                    </div>
-                    <div id="pagination-container" class="d-flex justify-content-center mt-4" style="display: none;">
-                        <!-- 分页控件将在这里动态加载 -->
-                    </div>
+                    <div id="sessions-grid"></div>
                 </div>
             </div>
         </div>
@@ -61,8 +51,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/sync_sessions_service.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/stores/sync_sessions_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/modals/session-detail-modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/sync-sessions.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap/history/sync-sessions.js') }}"></script>
