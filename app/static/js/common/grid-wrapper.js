@@ -70,8 +70,23 @@
         error: "加载数据失败",
       },
       className: {
-        table: "table table-hover align-middle mb-0",
+        table: "table table-hover align-middle mb-0 compact-table",
         thead: "table-light",
+        td: "compact-cell",
+        th: "compact-header",
+      },
+      style: {
+        table: {
+          'font-size': '13px'
+        },
+        td: {
+          'padding': '6px 12px',
+          'line-height': '1.4'
+        },
+        th: {
+          'padding': '8px 12px',
+          'font-size': '13px'
+        }
       },
     };
     return this.deepMerge(defaults, userOptions);
