@@ -17,7 +17,27 @@ from app.utils.time_utils import time_utils
 
 
 def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
-    """获取实例数汇总（总数=活跃+已删除，活跃=正常+禁用）。"""
+    """获取实例数量汇总统计。
+
+    统计实例总数、活跃数、正常数、禁用数和已删除数。
+    可选择性地只统计指定数据库类型的实例。
+
+    Args:
+        db_type: 可选的数据库类型筛选，如 'mysql'、'postgresql'。
+
+    Returns:
+        包含实例统计信息的字典，格式如下：
+        {
+            'total_instances': 100,      # 实例总数
+            'active_instances': 85,      # 活跃实例数（未删除）
+            'normal_instances': 80,      # 正常实例数（活跃且启用）
+            'disabled_instances': 5,     # 禁用实例数
+            'deleted_instances': 15      # 已删除实例数
+        }
+
+    Raises:
+        SystemError: 当数据库查询失败时抛出。
+    """
     try:
         query = Instance.query
         if db_type:
@@ -45,7 +65,24 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
 
 
 def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
-    """汇总实例容量信息，返回总容量与使用率。"""
+    """汇总实例容量信息。
+
+    基于最近指定天数的容量统计数据，计算所有活跃实例的总容量。
+    对每个实例取最新的一条统计记录。
+
+    Args:
+        recent_days: 统计最近多少天的数据，默认 7 天。
+
+    Returns:
+        包含容量统计信息的字典，格式如下：
+        {
+            'total_gb': 1024.5,        # 总容量（GB）
+            'usage_percent': 0         # 使用率（暂未实现）
+        }
+
+    Raises:
+        SystemError: 当数据库查询失败时抛出。
+    """
     try:
         from app.models.instance_size_stat import InstanceSizeStat
 
@@ -78,7 +115,39 @@ def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
 
 
 def build_aggregated_statistics() -> dict[str, Any]:
-    """构建实例统计页面需要的详细数据。"""
+    """构建实例统计页面的详细数据。
+
+    汇总实例的基本统计、数据库类型分布、端口分布和版本分布。
+
+    Returns:
+        包含详细统计信息的字典，格式如下：
+        {
+            'total_instances': 100,
+            'active_instances': 85,
+            'normal_instances': 80,
+            'disabled_instances': 5,
+            'deleted_instances': 15,
+            'inactive_instances': 5,
+            'db_types_count': 3,
+            'db_type_stats': [
+                {'db_type': 'mysql', 'count': 50},
+                {'db_type': 'postgresql', 'count': 30},
+                ...
+            ],
+            'port_stats': [
+                {'port': 3306, 'count': 50},
+                {'port': 5432, 'count': 30},
+                ...
+            ],
+            'version_stats': [
+                {'db_type': 'mysql', 'version': '8.0', 'count': 30},
+                ...
+            ]
+        }
+
+    Raises:
+        SystemError: 当数据库查询失败时抛出。
+    """
     try:
         totals = fetch_summary()
 
@@ -131,7 +200,11 @@ def build_aggregated_statistics() -> dict[str, Any]:
 
 
 def empty_statistics() -> dict[str, Any]:
-    """构造空的实例统计结果。"""
+    """构造空的实例统计结果。
+
+    Returns:
+        所有统计值为 0 或空数组的字典，格式与 build_aggregated_statistics 返回值相同。
+    """
     return {
         "total_instances": 0,
         "active_instances": 0,
