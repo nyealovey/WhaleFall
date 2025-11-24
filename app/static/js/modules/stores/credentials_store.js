@@ -2,7 +2,24 @@
   "use strict";
 
   /**
+   * @typedef {Object} CredentialsState
+   * @property {Set<number>} deletingIds - 正在删除的凭据 ID 集合
+   * @property {Error|null} lastError - 最后的错误
+   */
+
+  /**
+   * @typedef {Object} CredentialsService
+   * @property {Function} deleteCredential - 删除凭据的方法
+   */
+
+  /**
    * 校验 service 是否实现删除接口。
+   *
+   * 检查服务对象是否存在，并验证是否实现了 deleteCredential 方法。
+   *
+   * @param {CredentialsService} service - 服务对象
+   * @return {CredentialsService} 校验后的服务对象
+   * @throws {Error} 当 service 为空或缺少 deleteCredential 方法时抛出
    */
   function ensureService(service) {
     if (!service) {
@@ -15,7 +32,13 @@
   }
 
   /**
-   * 获取 mitt 实例。
+   * 获取 mitt 事件总线实例。
+   *
+   * 如果提供了 emitter 则直接返回，否则尝试从 window.mitt 创建新实例。
+   *
+   * @param {Object} [emitter] - 可选的 mitt 实例
+   * @return {Object} mitt 事件总线实例
+   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
    */
   function ensureEmitter(emitter) {
     if (emitter) {
@@ -29,6 +52,10 @@
 
   /**
    * 检查删除响应是否成功。
+   *
+   * @param {Object} response - 后端响应对象
+   * @return {Object} 响应对象
+   * @throws {Error} 当 response.success 为 false 时抛出
    */
   function ensureDeleteResponse(response) {
     if (response && response.success === false) {
@@ -41,6 +68,9 @@
 
   /**
    * 复制 state，用于事件传值。
+   *
+   * @param {CredentialsState} state - 状态对象
+   * @return {CredentialsState} 深拷贝后的状态快照
    */
   function cloneState(state) {
     return {
@@ -49,6 +79,25 @@
     };
   }
 
+  /**
+   * 创建凭据管理 Store。
+   *
+   * 提供凭据删除操作的状态管理和事件发布订阅。
+   * 支持删除凭据、跟踪删除状态和错误处理。
+   *
+   * @param {Object} options - 配置选项
+   * @param {CredentialsService} options.service - 凭据服务实例
+   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
+   * @return {Object} Store API 对象
+   * @throws {Error} 当 service 无效或 emitter 不可用时抛出
+   *
+   * @example
+   * const store = createCredentialsStore({
+   *   service: new CredentialsService(httpU),
+   *   emitter: mitt()
+   * });
+   * store.actions.deleteCredential(123);
+   */
   function createCredentialsStore(options) {
     const opts = options || {};
     const service = ensureService(opts.service);
