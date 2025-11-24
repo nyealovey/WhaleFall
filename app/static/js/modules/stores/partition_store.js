@@ -1,6 +1,56 @@
 (function (window) {
   "use strict";
 
+  /**
+   * @typedef {Object} PartitionStats
+   * @property {number} total_partitions - 分区总数
+   * @property {string} total_size - 总大小，格式化字符串如 '1.5 GB'
+   * @property {number} total_records - 总记录数
+   * @property {string} status - 状态描述
+   */
+
+  /**
+   * @typedef {Object} PartitionInfo
+   * @property {string} name - 分区名称
+   * @property {string} table - 表名
+   * @property {string} table_type - 表类型
+   * @property {string} display_name - 显示名称
+   * @property {string} size - 格式化的大小
+   * @property {number} size_bytes - 字节大小
+   * @property {number} record_count - 记录数
+   * @property {string} date - 日期字符串
+   * @property {string} status - 状态：'current'、'past'、'future'
+   */
+
+  /**
+   * @typedef {Object} MetricsPayload
+   * @property {Array<string>} labels - 标签数组
+   * @property {Array<Object>} datasets - 数据集数组
+   */
+
+  /**
+   * @typedef {Object} PartitionMetrics
+   * @property {string} periodType - 统计周期类型：'daily'、'weekly'、'monthly'
+   * @property {MetricsPayload|Array} payload - 指标数据
+   */
+
+  /**
+   * @typedef {Object} PartitionState
+   * @property {PartitionStats} stats - 统计信息
+   * @property {Array<PartitionInfo>} partitions - 分区列表
+   * @property {PartitionMetrics} metrics - 指标数据
+   * @property {Object} loading - 加载状态
+   * @property {Error|null} lastError - 最后的错误
+   */
+
+  /**
+   * @typedef {Object} PartitionService
+   * @property {Function} fetchInfo - 获取分区信息
+   * @property {Function} createPartition - 创建分区
+   * @property {Function} cleanupPartitions - 清理分区
+   * @property {Function} fetchCoreMetrics - 获取核心指标
+   */
+
   const EVENT_NAMES = {
     loading: "partitions:loading",
     infoUpdated: "partitions:infoUpdated",
@@ -12,6 +62,13 @@
 
   /**
    * 校验 service 是否实现分区接口。
+   *
+   * 检查服务对象是否存在，并验证是否实现了所有必需的方法。
+   * 如果校验失败，将抛出错误并阻止 store 初始化。
+   *
+   * @param {PartitionService} service - 服务对象
+   * @return {PartitionService} 校验后的服务对象
+   * @throws {Error} 当 service 为空或缺少必需方法时抛出
    */
   function ensureService(service) {
     if (!service) {
@@ -27,6 +84,12 @@
 
   /**
    * 获取 mitt 事件总线。
+   *
+   * 如果提供了 emitter 则直接返回，否则尝试从 window.mitt 创建新实例。
+   *
+   * @param {Object} [emitter] - 可选的 mitt 实例
+   * @return {Object} mitt 事件总线实例
+   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
    */
   function ensureEmitter(emitter) {
     if (emitter) {
@@ -40,6 +103,9 @@
 
   /**
    * 深拷贝分区列表。
+   *
+   * @param {Array<PartitionInfo>} items - 分区对象数组
+   * @return {Array<PartitionInfo>} 深拷贝后的分区数组
    */
   function clonePartitions(items) {
     return (items || []).map(function (partition) {
@@ -49,6 +115,9 @@
 
   /**
    * 拷贝 metrics 结构。
+   *
+   * @param {PartitionMetrics} metrics - 指标数据对象
+   * @return {PartitionMetrics} 深拷贝后的指标数据
    */
   function cloneMetrics(metrics) {
     if (!metrics) {
@@ -61,7 +130,10 @@
   }
 
   /**
-   * 简单位 JSON 深拷贝。
+   * 简单的 JSON 深拷贝。
+   *
+   * @param {*} value - 要拷贝的值
+   * @return {*} 深拷贝后的值
    */
   function cloneJSON(value) {
     if (value === null || value === undefined) {
@@ -82,6 +154,9 @@
 
   /**
    * 构造 state 快照。
+   *
+   * @param {PartitionState} state - 状态对象
+   * @return {PartitionState} 深拷贝后的状态快照
    */
   function cloneState(state) {
     return {
@@ -95,6 +170,9 @@
 
   /**
    * 提取后端返回的分区信息。
+   *
+   * @param {Object} response - 后端响应对象
+   * @return {Object} 包含 stats 和 partitions 的对象
    */
   function extractInfo(response) {
     const payload = response?.data?.data ?? response?.data ?? response ?? {};
@@ -111,6 +189,9 @@
 
   /**
    * 提取核心指标数据。
+   *
+   * @param {Object} response - 后端响应对象
+   * @return {MetricsPayload|Array} 指标数据
    */
   function extractMetrics(response) {
     const payload = response?.data ?? response ?? {};
@@ -127,7 +208,12 @@
   }
 
   /**
-   * 检查后端是否 success=false。
+   * 检查后端响应是否成功。
+   *
+   * @param {Object} response - 后端响应对象
+   * @param {string} fallbackMessage - 默认错误消息
+   * @return {Object} 响应对象
+   * @throws {Error} 当 response.success 为 false 时抛出
    */
   function ensureSuccess(response, fallbackMessage) {
     if (response && response.success === false) {
@@ -138,6 +224,25 @@
     return response;
   }
 
+  /**
+   * 创建分区管理 Store。
+   *
+   * 提供分区信息的状态管理、事件发布订阅和操作接口。
+   * 支持加载分区信息、创建分区、清理分区和获取核心指标。
+   *
+   * @param {Object} options - 配置选项
+   * @param {PartitionService} options.service - 分区服务实例
+   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
+   * @return {Object} Store API 对象
+   * @throws {Error} 当 service 无效或 emitter 不可用时抛出
+   *
+   * @example
+   * const store = createPartitionStore({
+   *   service: new PartitionService(httpU),
+   *   emitter: mitt()
+   * });
+   * store.init({ autoLoad: true });
+   */
   function createPartitionStore(options) {
     const opts = options || {};
     const service = ensureService(opts.service);
