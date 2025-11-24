@@ -34,9 +34,10 @@
       return;
     }
     partitionGrid = new global.GridWrapper(container, {
+      sort: false,
       columns: buildColumns(),
       server: {
-        url: "/partition/api/partitions?sort=date&order=desc",
+        url: "/partition/api/partitions?sort=name&order=asc",
         headers: {
           "X-Requested-With": "XMLHttpRequest",
         },
@@ -79,11 +80,9 @@
       {
         name: "分区名称",
         id: "name",
-        formatter: (cell, row) => {
-          const meta = resolveRowMeta(row);
-          const date = meta.date ? `<div class="text-muted small">${escapeHtml(meta.date)}</div>` : "";
+        formatter: (cell) => {
           const text = escapeHtml(cell || "-");
-          return gridHtml ? gridHtml(`<div class="fw-semibold">${text}</div>${date}`) : `${text}`;
+          return gridHtml ? gridHtml(`<div class="fw-semibold">${text}</div>`) : `${text}`;
         },
       },
       {
@@ -106,7 +105,7 @@
           if (!gridHtml) {
             return count.toLocaleString();
           }
-          return gridHtml(`<span class="badge bg-info text-dark">${count.toLocaleString()}</span>`);
+          return gridHtml(`<span class="badge bg-info text-white">${count.toLocaleString()}</span>`);
         },
       },
       {

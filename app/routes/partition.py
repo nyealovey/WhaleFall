@@ -156,8 +156,8 @@ def list_partitions() -> Response:
             or search_term in (partition.get('display_name') or '').lower()
         ]
 
-    sort_field = (request.args.get('sort') or 'date').lower()
-    sort_order = (request.args.get('order') or 'desc').lower()
+    sort_field = (request.args.get('sort') or 'name').lower()
+    sort_order = (request.args.get('order') or 'asc').lower()
     sortable_fields = {
         'name': lambda item: (item.get('name') or '').lower(),
         'table_type': lambda item: (item.get('table_type') or '').lower(),
