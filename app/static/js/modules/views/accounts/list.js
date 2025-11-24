@@ -124,6 +124,18 @@ function mountAccountsListPage() {
                 },
             },
             {
+                name: '状态',
+                id: 'is_locked',
+                width: '80px',
+                formatter: (cell) => renderStatusBadge(Boolean(cell)),
+            },
+            {
+                name: '分类',
+                id: 'classifications',
+                sort: false,
+                formatter: (cell) => renderClassifications(Array.isArray(cell) ? cell : []),
+            },
+            {
                 name: '实例信息',
                 id: 'instance_name',
                 formatter: (cell) => {
@@ -143,35 +155,23 @@ function mountAccountsListPage() {
                 id: 'instance_host',
                 formatter: (cell) => (gridHtml ? gridHtml(`<small class="text-muted">${escapeHtml(cell || '-')}</small>`) : cell || '-'),
             },
-            {
-                name: '标签',
-                id: 'tags',
-                sort: false,
-                formatter: (cell) => renderTags(Array.isArray(cell) ? cell : []),
-            },
         ];
 
         if (includeDbTypeColumn) {
             columns.push({
                 name: '数据库类型',
                 id: 'db_type',
-                width: '140px',
+                width: '120px',
                 formatter: (cell) => renderDbTypeBadge(cell),
             });
         }
 
         columns.push(
             {
-                name: '分类',
-                id: 'classifications',
+                name: '标签',
+                id: 'tags',
                 sort: false,
-                formatter: (cell) => renderClassifications(Array.isArray(cell) ? cell : []),
-            },
-            {
-                name: '状态',
-                id: 'is_locked',
-                width: '100px',
-                formatter: (cell) => renderStatusBadge(Boolean(cell)),
+                formatter: (cell) => renderTags(Array.isArray(cell) ? cell : []),
             },
             {
                 name: '操作',
