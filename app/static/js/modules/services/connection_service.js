@@ -4,7 +4,11 @@
   const BASE_PATH = "/connections/api";
 
   /**
-   * 确保 http 客户端存在，默认使用 httpU。
+   * 确保 http 客户端存在。
+   *
+   * @param {Object} client - HTTP 客户端实例
+   * @return {Object} HTTP 客户端实例
+   * @throws {Error} 当客户端未初始化时抛出
    */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
@@ -15,13 +19,31 @@
   }
 
   /**
-   * 连接测试/状态查询服务。
+   * 连接测试服务。
+   *
+   * 提供数据库连接测试、参数验证和状态查询接口。
+   *
+   * @class
    */
   class ConnectionService {
+    /**
+     * 构造函数。
+     *
+     * @constructor
+     * @param {Object} httpClient - HTTP 客户端实例
+     */
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
     }
 
+    /**
+     * 测试实例连接。
+     *
+     * @param {number|string} instanceId - 实例 ID
+     * @param {Object} [options] - 可选的测试参数
+     * @return {Promise<Object>} 测试结果响应
+     * @throws {Error} 当 instanceId 无效时抛出
+     */
     testInstanceConnection(instanceId, options) {
       if (instanceId === undefined || instanceId === null || instanceId === "") {
         throw new Error("ConnectionService: testInstanceConnection 需要 instanceId");
@@ -32,14 +54,33 @@
       });
     }
 
+    /**
+     * 测试新连接。
+     *
+     * @param {Object} params - 连接参数
+     * @return {Promise<Object>} 测试结果响应
+     */
     testNewConnection(params) {
       return this.httpClient.post(`${BASE_PATH}/test`, params || {});
     }
 
+    /**
+     * 验证连接参数。
+     *
+     * @param {Object} params - 连接参数
+     * @return {Promise<Object>} 验证结果响应
+     */
     validateConnectionParams(params) {
       return this.httpClient.post(`${BASE_PATH}/validate-params`, params || {});
     }
 
+    /**
+     * 批量测试连接。
+     *
+     * @param {Array<number>} instanceIds - 实例 ID 数组
+     * @return {Promise<Object>} 批量测试结果响应
+     * @throws {Error} 当 instanceIds 不是数组时抛出
+     */
     batchTestConnections(instanceIds) {
       if (!Array.isArray(instanceIds)) {
         throw new Error("ConnectionService: batchTestConnections 需要 instanceIds 数组");
@@ -49,6 +90,13 @@
       });
     }
 
+    /**
+     * 获取连接状态。
+     *
+     * @param {number|string} instanceId - 实例 ID
+     * @return {Promise<Object>} 连接状态响应
+     * @throws {Error} 当 instanceId 无效时抛出
+     */
     getConnectionStatus(instanceId) {
       if (instanceId === undefined || instanceId === null || instanceId === "") {
         throw new Error("ConnectionService: getConnectionStatus 需要 instanceId");
