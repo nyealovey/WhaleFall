@@ -607,14 +607,6 @@ function mountInstancesListPage() {
             batchTestBtn.addEventListener('click', handleBatchTest);
         }
 
-        const refreshBtn = selectOne('[data-action="refresh-grid"]').first();
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', (event) => {
-                event.preventDefault();
-                instancesGrid?.refresh?.();
-            });
-        }
-
         const exportBtn = selectOne('[data-action="export"]').first();
         if (exportBtn) {
             exportBtn.addEventListener('click', (event) => {
