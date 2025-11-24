@@ -120,9 +120,22 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   function buildColumns() {
     return [
       {
-        id: 'session_info',
-        name: '会话',
-        formatter: (cell, row) => renderSessionInfo(resolveRowMeta(row), cell),
+        id: 'session_id',
+        name: '会话ID',
+        width: '140px',
+        formatter: (cell, row) => renderSessionId(resolveRowMeta(row)),
+      },
+      {
+        id: 'sync_type',
+        name: '操作方式',
+        width: '110px',
+        formatter: (cell, row) => renderSyncType(resolveRowMeta(row)),
+      },
+      {
+        id: 'sync_category',
+        name: '分类',
+        width: '110px',
+        formatter: (cell, row) => renderSyncCategory(resolveRowMeta(row)),
       },
       {
         id: 'status',
@@ -172,6 +185,8 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     const items = payload.items || [];
     return items.map((item) => [
       item.session_id || '-',
+      item.sync_type || '-',
+      item.sync_category || '-',
       item.status || '-',
       null,
       item.started_at || '',
@@ -186,21 +201,38 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return row?.cells?.[row.cells.length - 1]?.data || {};
   }
 
-  function renderSessionInfo(meta) {
+  function renderSessionId(meta) {
     if (!gridHtml) {
       return meta.session_id || '-';
     }
     const rawId = meta.session_id || '-';
     const truncated = rawId.length > 12 ? `${rawId.substring(0, 12)}…` : rawId;
     const sessionId = escapeHtml(truncated);
-    const type = escapeHtml(getSyncTypeText(meta.sync_type));
-    const category = escapeHtml(getSyncCategoryText(meta.sync_category));
-    return gridHtml(`
-      <div class="session-info">
-        <div class="session-id">${sessionId}</div>
-        <div class="text-muted small">${type} • ${category}</div>
-      </div>
-    `);
+    return gridHtml(`<span class="font-monospace small" title="${escapeHtml(rawId)}">${sessionId}</span>`);
+  }
+
+  function renderSyncType(meta) {
+    if (!gridHtml) {
+      return getSyncTypeText(meta.sync_type);
+    }
+    const text = escapeHtml(getSyncTypeText(meta.sync_type));
+    return gridHtml(`<span class="badge bg-primary">${text}</span>`);
+  }
+
+  function renderSyncCategory(meta) {
+    if (!gridHtml) {
+      return getSyncCategoryText(meta.sync_category);
+    }
+    const text = escapeHtml(getSyncCategoryText(meta.sync_category));
+    const colorMap = {
+      '账户同步': 'info',
+      '容量同步': 'warning',
+      '配置同步': 'secondary',
+      '统计聚合': 'success',
+      '其他': 'light text-dark',
+    };
+    const color = colorMap[text] || 'secondary';
+    return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
   }
 
   function renderStatusBadge(meta) {
