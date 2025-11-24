@@ -63,6 +63,11 @@
       const query = toQueryString(params);
       return this.httpClient.get(`/partition/api/aggregations/core-metrics${query}`);
     }
+
+    fetchPartitions(params) {
+      const query = toQueryString(params);
+      return this.httpClient.get(`${BASE_PATH}/partitions${query}`);
+    }
   }
 
   global.PartitionService = PartitionService;

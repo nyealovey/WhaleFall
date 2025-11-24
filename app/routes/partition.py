@@ -51,6 +51,20 @@ def get_partition_info() -> Response:
 
 # API 路由
 
+
+def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int = 100) -> int:
+    """解析并限制整数参数范围"""
+    try:
+        parsed = int(value) if value is not None else default
+    except (TypeError, ValueError):
+        return default
+    if parsed < minimum:
+        return minimum
+    if parsed > maximum:
+        return maximum
+    return parsed
+
+
 def _build_partition_status(stats_service: PartitionStatisticsService) -> dict[str, object]:
     partition_info = stats_service.get_partition_info()
     stats = stats_service.get_partition_statistics()
@@ -104,6 +118,83 @@ def get_partition_status() -> Response:
     }
     log_info("获取分区状态成功", module="partition")
     return jsonify_unified_success(data=payload, message="分区状态获取成功")
+
+
+@partition_bp.route('/api/partitions', methods=['GET'])
+@login_required
+@view_required
+def list_partitions() -> Response:
+    """分页返回分区列表，供 Grid.js 使用"""
+
+    stats_service = PartitionStatisticsService()
+    partition_info = stats_service.get_partition_info()
+    partitions = list(partition_info.get('partitions', []))
+
+    search_term = (request.args.get('search') or '').strip().lower()
+    table_type = (request.args.get('table_type') or '').strip().lower()
+    status_filter = (request.args.get('status') or '').strip().lower()
+
+    if table_type:
+        partitions = [
+            partition
+            for partition in partitions
+            if (partition.get('table_type') or '').lower() == table_type
+        ]
+
+    if status_filter:
+        partitions = [
+            partition
+            for partition in partitions
+            if (partition.get('status') or '').lower() == status_filter
+        ]
+
+    if search_term:
+        partitions = [
+            partition
+            for partition in partitions
+            if search_term in (partition.get('name') or '').lower()
+            or search_term in (partition.get('display_name') or '').lower()
+        ]
+
+    sort_field = (request.args.get('sort') or 'date').lower()
+    sort_order = (request.args.get('order') or 'desc').lower()
+    sortable_fields = {
+        'name': lambda item: (item.get('name') or '').lower(),
+        'table_type': lambda item: (item.get('table_type') or '').lower(),
+        'size': lambda item: item.get('size_bytes') or 0,
+        'size_bytes': lambda item: item.get('size_bytes') or 0,
+        'record_count': lambda item: item.get('record_count') or 0,
+        'status': lambda item: (item.get('status') or '').lower(),
+        'date': lambda item: item.get('date') or '',
+    }
+    sort_resolver = sortable_fields.get(sort_field, sortable_fields['date'])
+    partitions.sort(key=sort_resolver, reverse=(sort_order == 'desc'))
+
+    limit = _safe_int(request.args.get('limit'), default=20, minimum=1, maximum=200)
+    total = len(partitions)
+    pages = max((total + limit - 1) // limit, 1)
+    page = _safe_int(request.args.get('page'), default=1, minimum=1, maximum=pages)
+
+    start = (page - 1) * limit
+    end = start + limit
+    items = partitions[start:end]
+
+    payload = {
+        'items': items,
+        'total': total,
+        'page': page,
+        'pages': pages,
+        'limit': limit,
+    }
+
+    log_info(
+        "获取分区列表成功",
+        module="partition",
+        total=total,
+        page=page,
+        limit=limit,
+    )
+    return jsonify_unified_success(data=payload, message="分区列表获取成功")
 
 
 
