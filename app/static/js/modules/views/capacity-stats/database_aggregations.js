@@ -1,3 +1,11 @@
+/**
+ * 挂载数据库容量聚合统计页面。
+ *
+ * 初始化数据库维度的容量统计管理器，配置图表、筛选器和数据端点。
+ *
+ * @param {Window} window - 全局 window 对象
+ * @return {void}
+ */
 function mountDatabaseAggregationsPage(window) {
   "use strict";
 
@@ -11,6 +19,17 @@ function mountDatabaseAggregationsPage(window) {
 
   /**
    * 解析数据库标签，输出 key/label。
+   *
+   * 从数据项中提取数据库名称和实例名称，生成唯一键和显示标签。
+   *
+   * @param {Object} item - 数据项对象
+   * @param {string} [item.database_name] - 数据库名称
+   * @param {Object} [item.database] - 数据库对象
+   * @param {Object} [item.instance] - 实例对象
+   * @param {string} [item.instance_name] - 实例名称
+   * @return {Object} 包含 key 和 label 的对象
+   * @return {string} return.key - 唯一键，格式为 'instanceId::databaseName'
+   * @return {string} return.label - 显示标签，格式为 'databaseName (instanceName)'
    */
   function labelExtractor(item) {
     const databaseName =
@@ -34,6 +53,11 @@ function mountDatabaseAggregationsPage(window) {
 
   /**
    * 初始化 CapacityStats.Manager（数据库维度）。
+   *
+   * 创建数据库容量统计管理器实例，配置图表选择器、API 端点、
+   * 汇总卡片和筛选器。如果 CapacityStats.Manager 未加载，则延迟重试。
+   *
+   * @return {void}
    */
   function initManager() {
     if (!window.CapacityStats || !window.CapacityStats.Manager) {

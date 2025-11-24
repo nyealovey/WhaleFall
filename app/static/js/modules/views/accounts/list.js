@@ -1,3 +1,11 @@
+/**
+ * 挂载账户列表页面。
+ *
+ * 初始化账户列表页面的所有组件，包括数据表格、筛选器、标签选择器、
+ * 数据库类型切换按钮和导出功能。
+ *
+ * @return {void}
+ */
 function mountAccountsListPage() {
     'use strict';
 
@@ -44,6 +52,11 @@ function mountAccountsListPage() {
         exposeGlobalActions();
     });
 
+    /**
+     * 初始化实例管理服务。
+     *
+     * @return {void}
+     */
     function initializeInstanceService() {
         if (!global.InstanceManagementService) {
             console.warn('InstanceManagementService 未加载，跳过同步能力');
@@ -57,6 +70,11 @@ function mountAccountsListPage() {
         }
     }
 
+    /**
+     * 初始化实例状态管理器。
+     *
+     * @return {void}
+     */
     function initializeInstanceStore() {
         if (!global.createInstanceStore || !instanceService) {
             return;
@@ -75,6 +93,13 @@ function mountAccountsListPage() {
         }
     }
 
+    /**
+     * 初始化账户数据表格。
+     *
+     * 创建 Grid.js 表格实例，配置列定义、服务端数据源和分页。
+     *
+     * @return {void}
+     */
     function initializeGrid() {
         const container = document.getElementById('accounts-grid');
         if (!container) {
@@ -106,6 +131,12 @@ function mountAccountsListPage() {
         accountsGrid.init();
     }
 
+    /**
+     * 构建表格列定义。
+     *
+     * @param {boolean} includeDbTypeColumn - 是否包含数据库类型列
+     * @return {Array<Object>} 列定义数组
+     */
     function buildColumns(includeDbTypeColumn) {
         const columns = [
             {
@@ -186,6 +217,12 @@ function mountAccountsListPage() {
         return columns;
     }
 
+    /**
+     * 处理服务端响应数据。
+     *
+     * @param {boolean} includeDbTypeColumn - 是否包含数据库类型列
+     * @return {Function} 响应处理函数
+     */
     function handleServerResponse(includeDbTypeColumn) {
         return (response) => {
             const payload = response?.data || response || {};
