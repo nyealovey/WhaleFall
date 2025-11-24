@@ -277,8 +277,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     if (!value) {
       return gridHtml('<span class="text-muted">-</span>');
     }
-    const formatter = global.timeUtils?.formatTime;
-    const formatted = formatter ? formatter(value, 'datetime') : value;
+    const formatted = global.timeUtils ? global.timeUtils.formatDateTime(value) : value;
     return gridHtml(`<span class="text-muted small">${escapeHtml(formatted || value)}</span>`);
   }
 
