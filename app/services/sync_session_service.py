@@ -18,7 +18,15 @@ from app.utils.time_utils import time_utils
 
 
 class SyncSessionService:
-    """同步会话服务 - 管理批量同步会话"""
+    """同步会话服务。
+
+    管理批量同步会话和实例记录的业务逻辑，包括会话创建、实例记录管理、
+    同步状态更新和统计信息维护。
+
+    Attributes:
+        system_logger: 系统日志记录器。
+        sync_logger: 同步日志记录器。
+    """
 
     def __init__(self):
         self.system_logger = get_system_logger()
@@ -282,7 +290,16 @@ class SyncSessionService:
             return False
 
     def _update_session_statistics(self, session_id: str) -> None:
-        """更新会话统计信息"""
+        """更新会话统计信息。
+
+        统计会话中成功和失败的实例数量，并更新会话对象。
+
+        Args:
+            session_id: 会话 ID。
+
+        Raises:
+            Exception: 当数据库操作失败时抛出。
+        """
         try:
             session = db.session.query(SyncSession).filter_by(session_id=session_id).with_for_update().one()
             
