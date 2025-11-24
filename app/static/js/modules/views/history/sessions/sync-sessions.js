@@ -96,32 +96,13 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
     sessionsGrid = new GridWrapper(container, {
       search: false,
-      sort: {
-        multiColumn: false,
-        server: {
-          url: (prev, columns) => buildSortUrl(prev, columns),
-        },
-      },
       columns: buildColumns(),
       server: {
-        url: '/sync_sessions/api/sessions',
+        url: '/sync_sessions/api/sessions?sort=started_at&order=desc',
         then: handleServerResponse,
         total: (response) => {
           const payload = response?.data || response || {};
           return Number(payload.total) || 0;
-        },
-      },
-      pagination: {
-        enabled: true,
-        limit: 20,
-        server: {
-          url: (prev, page, limit) => {
-            const baseUrl = prev || '/sync_sessions/api/sessions';
-            const url = new URL(baseUrl, global.location.origin);
-            url.searchParams.set('page', page + 1);
-            url.searchParams.set('limit', limit);
-            return url.toString();
-          },
         },
       },
       className: {
@@ -134,22 +115,6 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       sessionsGrid.setFilters(initialFilters, { silent: true });
     }
     sessionsGrid.init();
-  }
-
-  function buildSortUrl(prev, columns) {
-    const baseUrl = prev || '/sync_sessions/api/sessions';
-    const url = new URL(baseUrl, global.location.origin);
-    if (!columns.length) {
-      url.searchParams.set('sort', 'started_at');
-      url.searchParams.set('order', 'desc');
-      return url.toString();
-    }
-    const column = columns[0];
-    const allowed = new Set(['started_at', 'completed_at', 'status']);
-    const selected = allowed.has(column.id) ? column.id : 'started_at';
-    url.searchParams.set('sort', selected);
-    url.searchParams.set('order', column.direction === 1 ? 'asc' : 'desc');
-    return url.toString();
   }
 
   function buildColumns() {
