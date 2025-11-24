@@ -26,6 +26,7 @@ function mountAccountsListPage() {
     const AUTO_APPLY_FILTER_CHANGE = true;
     const pageRoot = document.getElementById('accounts-page-root');
     let currentDbType = pageRoot?.dataset.currentDbType || 'all';
+    const exportEndpoint = pageRoot?.dataset.exportUrl || '/api/account-export';
 
     let accountsGrid = null;
     let accountFilterCard = null;
@@ -522,7 +523,9 @@ function mountAccountsListPage() {
         const filters = normalizeFilters(resolveFilters());
         filters.db_type = currentDbType;
         const params = buildSearchParams(filters);
-        const url = `/files/api/account-export${params.toString() ? `?${params.toString()}` : ''}`;
+        const base = exportEndpoint || '/api/account-export';
+        const query = params.toString();
+        const url = query ? `${base}?${query}` : base;
         global.location.href = url;
     }
 

@@ -30,7 +30,7 @@
     </div>
 </div>
 
-<div class="container-fluid" id="accounts-page-root" data-current-db-type="{{ current_db_type or 'all' }}">
+<div class="container-fluid" id="accounts-page-root" data-current-db-type="{{ current_db_type or 'all' }}" data-export-url="{{ url_for('files.export_accounts') }}">
 
     <!-- 搜索和筛选 -->
     <div class="accounts-page">

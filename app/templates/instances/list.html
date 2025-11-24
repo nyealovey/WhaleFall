@@ -4,6 +4,7 @@
 {% block title %}实例管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/list.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag-selector.css') }}">
 {% endblock %}
@@ -12,7 +13,7 @@
 <!-- 页面头部 -->
 <div class="page-header">
     <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <h2><i class="fas fa-database me-2"></i>数据库实例管理</h2>
                 {% if current_user.role == 'admin' %}
@@ -35,239 +36,95 @@
     </div>
 </div>
 
+<div class="container-fluid"
+     id="instances-page-root"
+     data-current-db-type="{{ current_db_type or 'all' }}"
+     data-export-url="{{ url_for('files.export_instances') }}"
+     data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"
+     data-db-type-map='{{ database_type_map | tojson | safe }}'
+     data-detail-base="{{ url_for('instance_detail.detail', instance_id=0)[:-1] }}">
+
     <!-- 搜索和筛选 -->
     <div class="instances-page">
-        {% call filter_card(form_id='instance-filter-form', action=url_for('instance.index')) %}
-            {{ search_input(value=search, col_class='col-2') }}
+        {% call filter_card(form_id='instance-filter-form', action='#', auto_register=False) %}
+            {{ search_input(value=search, placeholder='搜索实例 / 主机') }}
             {{ db_type_filter(database_type_options, db_type) }}
             {{ status_active_filter(status_options, status) }}
             {{ tag_selector_filter(tag_options, selected_tags) }}
         {% endcall %}
     </div>
 
-<!-- 实例列表 -->
-<div class="card">
-    <div class="card-body">
-        {% if instances.items %}
-        <!-- 批量操作工具栏 -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="d-flex align-items-center">
-                {% if current_user.role == 'admin' %}
-                <input type="checkbox" class="form-check-input me-2" id="selectAll" onchange="toggleSelectAll()">
-                <label for="selectAll" class="form-check-label me-3">全选</label>
-                <button type="button" class="btn btn-outline-danger btn-sm me-2" onclick="batchDelete()" disabled id="batchDeleteBtn">
-                    <i class="fas fa-trash me-1"></i>批量删除
+    <!-- 数据库类型切换按钮 -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="btn-group flex-wrap" role="group">
+                <button type="button"
+                        class="btn {% if not current_db_type or current_db_type == 'all' %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
+                        data-db-type-btn
+                        data-db-type="all">
+                    <i class="fas fa-database me-1"></i>全部
                 </button>
-                <button type="button" class="btn btn-outline-success btn-sm me-2" data-action="create-instance-batch">
-                    <i class="fas fa-plus me-1"></i>批量添加
+                {% for db_type_option in database_type_options %}
+                <button type="button"
+                        class="btn {% if current_db_type == db_type_option.value %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
+                        data-db-type-btn
+                        data-db-type="{{ db_type_option.value }}">
+                    <i class="fas {{ db_type_option.icon }} me-1"></i>
+                    {{ db_type_option.label }}
                 </button>
-                <button type="button" class="btn btn-outline-info btn-sm" id="batchTestBtn" onclick="batchTestConnections()">
-                    <i class="fas fa-plug me-1"></i>批量测试连接
-                </button>
-                <a href="{{ url_for('files.export_instances', search=search, db_type=db_type) }}" class="btn btn-outline-primary btn-sm ms-2">
-                    <i class="fas fa-download me-1"></i>导出CSV
-                </a>
-                {% else %}
-                <span class="text-muted">只读模式 - 无法进行批量操作</span>
-                {% endif %}
-            </div>
-            <div class="text-muted">
-                共 {{ instances.total }} 个实例
-            </div>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        {% if current_user.role == 'admin' %}
-                        <th width="50">选择</th>
-                        {% endif %}
-                        <th>名称</th>
-                        <th>类型</th>
-                        <th>主机</th>
-                        <th>版本信息</th>
-                        <th>活跃</th>
-                        <th>标签</th>
-                        <th>状态</th>
-                        <th>最后同步</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for instance in instances.items %}
-                    <tr>
-                        {% if current_user.role == 'admin' %}
-                        <td>
-                            <input type="checkbox" class="form-check-input instance-checkbox"
-                                   value="{{ instance.id }}" onchange="updateBatchButtons()">
-                        </td>
-                        {% endif %}
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-database text-primary me-2"></i>
-                                <small class="text-muted">{{ instance.name }}</small>
-                            </div>
-                        </td>
-                        <td>
-                            {% set db_type_config = database_type_map.get(instance.db_type) %}
-                            {% if db_type_config %}
-                            <span class="badge bg-{{ db_type_config.color }}">
-                                <i class="fas {{ db_type_config.icon }} me-1"></i>{{ db_type_config.display_name }}
-                            </span>
-                            {% else %}
-                            <span class="badge bg-secondary">
-                                <i class="fas fa-database me-1"></i>{{ instance.db_type.upper() }}
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td><small class="text-muted">{{ instance.host }}</small></td>
-                        <td>
-                            {% if instance.main_version %}
-                                <span class="badge bg-primary">{{ instance.main_version }}</span>
-                            {% else %}
-                                <small class="text-muted">未检测</small>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% set db_count = active_database_counts.get(instance.id, 0) %}
-                            {% set account_count = active_account_counts.get(instance.id, 0) %}
-                            <div class="d-flex align-items-center">
-                                <span class="badge bg-primary me-2" style="min-width: 58px; justify-content: center; display: inline-flex; align-items: center;">
-                                    <i class="fas fa-database me-1"></i>{{ db_count }}
-                                </span>
-                                <span class="badge bg-info text-white" style="min-width: 58px; justify-content: center; display: inline-flex; align-items: center;">
-                                    <i class="fas fa-user me-1"></i>{{ account_count }}
-                                </span>
-                            </div>
-                        </td>
-                        <td>
-                            {% if instance.tags.all() %}
-                                {% for tag in instance.tags.all() %}
-                                    <span class="badge bg-{{ tag.color }} me-1 mb-1">
-                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted">无标签</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if instance.is_active %}
-                            <span class="badge bg-success">正常</span>
-                            {% else %}
-                            <span class="badge bg-danger">禁用</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% set last_sync = last_sync_times.get(instance.id) %}
-                            {% if last_sync %}
-                                <small class="text-muted">{{ last_sync | china_time('%Y-%m-%d %H:%M') }}</small>
-                            {% else %}
-                                <small class="text-muted">暂无同步记录</small>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if current_user.role == 'admin' %}
-                            <div class="btn-group btn-group-sm" role="group">
-                                <a href="{{ url_for('instance_detail.detail', instance_id=instance.id) }}"
-                                   class="btn btn-outline-primary" title="查看详情">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <button type="button"
-                                        class="btn btn-outline-warning"
-                                        data-action="edit-instance"
-                                        data-instance-id="{{ instance.id }}"
-                                        title="编辑">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-success"
-                                        onclick="testConnection({{ instance.id }})" title="测试连接">
-                                    <i class="fas fa-plug"></i>
-                                </button>
-                            </div>
-                            {% else %}
-                            <div class="btn-group btn-group-sm" role="group">
-                                <a href="{{ url_for('instance_detail.detail', instance_id=instance.id) }}"
-                                   class="btn btn-outline-primary" title="查看详情">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <button type="button" class="btn btn-outline-success"
-                                        onclick="testConnection({{ instance.id }})" title="测试连接">
-                                    <i class="fas fa-plug"></i>
-                                </button>
-                                <span class="btn btn-outline-secondary disabled" title="只读模式">
-                                    <i class="fas fa-lock"></i>
-                                </span>
-                            </div>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- 分页 -->
-        {% if instances.pages > 1 %}
-        <nav aria-label="实例分页">
-            <ul class="pagination justify-content-center">
-                {% if instances.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('instance.index', page=instances.prev_num, search=search, db_type=db_type, status=status, tags=','.join(selected_tags)) }}">
-                        上一页
-                    </a>
-                </li>
-                {% endif %}
-
-                {% for page_num in instances.iter_pages() %}
-                    {% if page_num %}
-                        {% if page_num != instances.page %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for('instance.index', page=page_num, search=search, db_type=db_type, status=status, tags=','.join(selected_tags)) }}">
-                                {{ page_num }}
-                            </a>
-                        </li>
-                        {% else %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ page_num }}</span>
-                        </li>
-                        {% endif %}
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">…</span>
-                    </li>
-                    {% endif %}
                 {% endfor %}
-
-                {% if instances.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('instance.index', page=instances.next_num, search=search, db_type=db_type, status=status, tags=','.join(selected_tags)) }}">
-                        下一页
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
-
-        {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-database fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted">暂无数据库实例</h5>
-            {% if current_user.role == 'admin' %}
-            <p class="text-muted">点击“添加实例”按钮创建第一个数据库实例</p>
-            <button class="btn btn-primary" type="button" data-action="create-instance">
-                <i class="fas fa-plus me-2"></i>添加实例
-            </button>
-            {% else %}
-            <p class="text-muted">当前没有可查看的数据库实例</p>
-            {% endif %}
+            </div>
         </div>
-        {% endif %}
+    </div>
+
+    <!-- 实例列表（Grid.js） -->
+    <div class="card instances-card">
+        <div class="card-body">
+            <div class="instances-toolbar d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    {% if current_user.role == 'admin' %}
+                    <div class="text-muted" id="instances-selection-summary">未选择实例</div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-danger" data-action="batch-delete" disabled>
+                            <i class="fas fa-trash me-1"></i>批量删除
+                        </button>
+                        <button type="button" class="btn btn-outline-info" data-action="batch-test" disabled>
+                            <i class="fas fa-plug me-1"></i>批量测试连接
+                        </button>
+                        <button type="button" class="btn btn-outline-success" data-action="create-instance-batch">
+                            <i class="fas fa-file-upload me-1"></i>批量导入
+                        </button>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">只读模式 - 无法进行批量操作</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-action="refresh-grid">
+                        <i class="fas fa-sync me-1"></i>刷新
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-action="export">
+                        <i class="fas fa-download me-1"></i>导出CSV
+                    </button>
+                    {% if current_user.role == 'admin' %}
+                    <button type="button" class="btn btn-primary btn-sm" data-action="create-instance">
+                        <i class="fas fa-plus me-1"></i>新增实例
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <span class="text-muted" id="instances-total">加载中...</span>
+                <a href="{{ url_for('instance.statistics') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-chart-bar me-1"></i>查看实例统计
+                </a>
+            </div>
+
+            <div id="instances-grid"></div>
+        </div>
     </div>
 </div>
-
 
 {% include 'instances/modals/batch-create-modal.html' %}
 {% include 'instances/modals/instance-modals.html' %}
@@ -278,6 +135,9 @@
 <div id="list-page-tag-selector">
     {% include 'components/tag_selector.html' %}
 </div>
+<script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/instance_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/instance_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/instances/modals/instance-modals.js') }}"></script>
