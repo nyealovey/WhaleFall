@@ -354,6 +354,16 @@ def empty_statistics() -> dict[str, Any]:
 
 
 def _query_classification_rows() -> list[dict[str, Any]]:
+    """查询账户分类统计行。
+
+    查询所有活跃分类及其关联的账户数量，按优先级降序排列。
+
+    Returns:
+        分类统计行列表，每行包含分类名称、颜色、显示名称、优先级和账户数量。
+
+    Raises:
+        DatabaseError: 当数据库查询失败时抛出。
+    """
     display_name_column = (
         AccountClassification.display_name
         if hasattr(AccountClassification, "display_name")
@@ -410,6 +420,16 @@ def _query_classification_rows() -> list[dict[str, Any]]:
 
 
 def _query_auto_classified_count() -> int:
+    """查询自动分类的账户数量。
+
+    统计通过规则自动分类的活跃账户数量。
+
+    Returns:
+        自动分类的账户数量。
+
+    Raises:
+        DatabaseError: 当数据库查询失败时抛出。
+    """
     return (
         db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
         .join(AccountPermission, AccountPermission.id == AccountClassificationAssignment.account_id)
