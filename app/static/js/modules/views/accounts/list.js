@@ -193,14 +193,15 @@ function mountAccountsListPage() {
             return items.map((item) => {
                 const row = [
                     item.username || '-',
+                    item.is_locked,
+                    item.classifications || [],
                     item.instance_name || '-',
                     item.instance_host || '-',
-                    item.tags || [],
                 ];
                 if (includeDbTypeColumn) {
                     row.push(item.db_type || '-');
                 }
-                row.push(item.classifications || [], item.is_locked, null, item);
+                row.push(item.tags || [], null, item);
                 return row;
             });
         };
@@ -251,8 +252,9 @@ function mountAccountsListPage() {
             sqlserver: { color: 'warning', label: 'SQL Server', icon: 'fa-server' },
             oracle: { color: 'info', label: 'Oracle', icon: 'fa-database' },
         };
-        const normalized = (dbType || '').toLowerCase();
-        const meta = map[normalized] || { color: 'secondary', label: (dbType || '').toUpperCase(), icon: 'fa-database' };
+        const typeStr = typeof dbType === 'string' ? dbType : String(dbType || '');
+        const normalized = typeStr.toLowerCase();
+        const meta = map[normalized] || { color: 'secondary', label: typeStr.toUpperCase() || '-', icon: 'fa-database' };
         if (!gridHtml) {
             return meta.label || '-';
         }

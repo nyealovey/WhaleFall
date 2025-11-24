@@ -298,12 +298,12 @@ function mountInstancesListPage() {
             }
             row.push(
                 item.name || '-',
-                item.host || '',
                 item.db_type || '-',
-                item.main_version || '',
-                null,
-                item.tags || [],
+                item.host || '',
                 item.is_active,
+                null,
+                item.main_version || '',
+                item.tags || [],
                 item.last_sync_time || '',
                 null,
                 item,
@@ -313,13 +313,14 @@ function mountInstancesListPage() {
     }
 
     function renderDbTypeBadge(dbType) {
-        const meta = dbTypeMap[dbType] || {};
+        const typeStr = typeof dbType === 'string' ? dbType : (dbType || '').toString();
+        const meta = dbTypeMap[typeStr] || {};
         if (!gridHtml) {
-            return meta.display_name || dbType || '-';
+            return meta.display_name || typeStr || '-';
         }
         const color = meta.color || 'secondary';
         const icon = meta.icon || 'fa-database';
-        const label = meta.display_name || (dbType ? dbType.toUpperCase() : '-');
+        const label = meta.display_name || (typeStr ? typeStr.toUpperCase() : '-');
         return gridHtml(`<span class="badge bg-${color}"><i class="fas ${icon} me-1"></i>${escapeHtml(label)}</span>`);
     }
 

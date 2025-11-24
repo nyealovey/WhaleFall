@@ -153,19 +153,6 @@ function mountCredentialsListPage(global) {
         {
           name: "创建时间",
           id: "created_at",
-          formatter: (cell) => {
-            const isActive = Boolean(cell);
-            if (!gridHtml) {
-              return isActive ? "启用" : "禁用";
-            }
-            const color = isActive ? "success" : "secondary";
-            const text = isActive ? "启用" : "禁用";
-            return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
-          },
-        },
-        {
-          name: "创建时间",
-          id: "created_at",
           formatter: (cell, row) => {
             const meta = row?.cells?.[row.cells.length - 1]?.data || {};
             return meta.created_at_display || cell || "-";
