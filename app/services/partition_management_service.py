@@ -74,9 +74,38 @@ class PartitionManagementService:
     # 创建与清理分区
     # ------------------------------------------------------------------------------
     def create_partition(self, partition_date: date) -> dict[str, Any]:
-        """
-        创建指定日期所在月份的分区（包含四张相关表）
-        返回生成的分区信息；若任何分区创建失败将抛出 DatabaseError
+        """创建指定日期所在月份的分区。
+
+        为四张相关表（database_size_stats、database_size_aggregations、
+        instance_size_stats、instance_size_aggregations）创建月度分区。
+        如果分区已存在则跳过，如果创建失败则回滚所有操作。
+
+        Args:
+            partition_date: 分区日期，将创建该日期所在月份的分区。
+                例如传入 2025-11-15，将创建 2025-11 月份的分区。
+
+        Returns:
+            包含分区创建结果的字典，格式如下：
+            {
+                'partition_window': {
+                    'start': '2025-11-01',
+                    'end': '2025-12-01'
+                },
+                'actions': [
+                    {
+                        'table': 'stats',
+                        'table_name': 'database_size_stats',
+                        'partition_name': 'database_size_stats_2025_11',
+                        'display_name': '数据库统计表',
+                        'status': 'created'  # 或 'exists'
+                    },
+                    ...
+                ]
+            }
+
+        Raises:
+            DatabaseError: 当分区创建失败或提交事务失败时抛出，
+                包含失败的分区信息和错误详情。
         """
         month_start, month_end = self._month_window(partition_date)
         actions: list[PartitionAction] = []
@@ -200,9 +229,30 @@ class PartitionManagementService:
         }
 
     def create_future_partitions(self, months_ahead: int = 3) -> dict[str, Any]:
-        """
-        批量创建未来几个月的分区
-        若任一月份创建失败，会收集错误并抛出 DatabaseError
+        """批量创建未来几个月的分区。
+
+        从当前月份开始，创建未来指定月数的分区。如果某个月份的分区创建失败，
+        会继续尝试创建其他月份，最后收集所有错误并抛出异常。
+
+        Args:
+            months_ahead: 要创建的未来月份数量，默认为 3 个月。
+
+        Returns:
+            包含创建结果的字典，格式如下：
+            {
+                'months_processed': 3,
+                'created': [
+                    {
+                        'month': '2025-11-01',
+                        'result': {...}  # create_partition 的返回值
+                    },
+                    ...
+                ]
+            }
+
+        Raises:
+            DatabaseError: 当任一月份的分区创建失败时抛出，
+                包含所有失败的月份信息和已成功创建的月份列表。
         """
         created: list[dict[str, Any]] = []
         issues: list[dict[str, Any]] = []
@@ -243,9 +293,34 @@ class PartitionManagementService:
         }
 
     def cleanup_old_partitions(self, retention_months: int = 12) -> dict[str, Any]:
-        """
-        清理超过保留期的旧分区
-        全部成功返回删除记录列表，若有失败则抛出 DatabaseError
+        """清理超过保留期的旧分区。
+
+        删除所有早于保留期的分区表。保留期从当前日期往前推算指定月数。
+        如果任何分区删除失败，会回滚所有操作并抛出异常。
+
+        Args:
+            retention_months: 保留月数，默认为 12 个月。
+                例如设置为 12，则保留最近 12 个月的分区，删除更早的分区。
+
+        Returns:
+            包含清理结果的字典，格式如下：
+            {
+                'cutoff_date': '2024-11-01',
+                'dropped': [
+                    {
+                        'table': 'stats',
+                        'table_name': 'database_size_stats',
+                        'partition_name': 'database_size_stats_2024_10',
+                        'display_name': '数据库统计表',
+                        'status': 'dropped'
+                    },
+                    ...
+                ]
+            }
+
+        Raises:
+            DatabaseError: 当分区删除失败或提交事务失败时抛出，
+                包含失败的分区信息和已删除的分区列表。
         """
         cutoff_date = (date.today() - timedelta(days=retention_months * 31)).replace(day=1)
         dropped: list[PartitionAction] = []
@@ -334,7 +409,19 @@ class PartitionManagementService:
     # 内部辅助方法
     # ------------------------------------------------------------------------------
     def _month_window(self, target_date: date) -> tuple[date, date]:
-        """计算目标日期所在月份的开始和结束"""
+        """计算目标日期所在月份的开始和结束日期。
+
+        Args:
+            target_date: 目标日期。
+
+        Returns:
+            包含月份开始和结束日期的元组 (month_start, month_end)。
+            month_start 为该月第一天，month_end 为下月第一天。
+
+        Example:
+            >>> service._month_window(date(2025, 11, 15))
+            (date(2025, 11, 1), date(2025, 12, 1))
+        """
         month_start = target_date.replace(day=1)
         if month_start.month == 12:
             month_end = month_start.replace(year=month_start.year + 1, month=1)
@@ -343,7 +430,18 @@ class PartitionManagementService:
         return month_start, month_end
 
     def _get_table_partitions(self, table_key: str, table_config: dict[str, str]) -> list[dict[str, Any]]:
-        """查询单张表的分区信息"""
+        """查询单张表的所有分区信息。
+
+        Args:
+            table_key: 表的键名，如 'stats'、'aggregations'。
+            table_config: 表配置字典，包含 table_name、partition_prefix 等信息。
+
+        Returns:
+            分区信息列表，每个元素包含分区名称、大小、记录数、日期、状态等信息。
+
+        Raises:
+            DatabaseError: 当数据库查询失败时抛出。
+        """
         pattern = f"{table_config['partition_prefix']}%"
         query = """
         SELECT 
@@ -405,7 +503,17 @@ class PartitionManagementService:
         return partitions
 
     def _partition_exists(self, partition_name: str) -> bool:
-        """检查指定分区是否存在"""
+        """检查指定分区表是否存在。
+
+        Args:
+            partition_name: 分区表名称。
+
+        Returns:
+            如果分区存在返回 True，否则返回 False。
+
+        Raises:
+            DatabaseError: 当数据库查询失败时抛出。
+        """
         query = """
         SELECT EXISTS (
             SELECT 1 FROM information_schema.tables 
@@ -420,7 +528,18 @@ class PartitionManagementService:
             raise DatabaseError(message="检查分区是否存在失败", extra={"partition_name": partition_name}) from exc
 
     def _get_partitions_to_cleanup(self, cutoff_date: date, table_config: dict[str, str]) -> list[str]:
-        """返回需要清理的分区名称"""
+        """获取需要清理的分区名称列表。
+
+        Args:
+            cutoff_date: 截止日期，早于此日期的分区将被清理。
+            table_config: 表配置字典，包含 table_name、partition_prefix 等信息。
+
+        Returns:
+            需要清理的分区名称列表。
+
+        Raises:
+            DatabaseError: 当数据库查询失败时抛出。
+        """
         query = """
         SELECT tablename 
         FROM pg_tables 
@@ -455,7 +574,16 @@ class PartitionManagementService:
         return partitions
 
     def _extract_date_from_partition_name(self, partition_name: str, prefix: str) -> Optional[str]:
-        """从分区名称中解析出日期字符串"""
+        """从分区名称中解析出日期字符串。
+
+        Args:
+            partition_name: 分区表名称，如 'database_size_stats_2025_11'。
+            prefix: 分区前缀，如 'database_size_stats_'。
+
+        Returns:
+            日期字符串，格式为 'YYYY/MM/DD'，如 '2025/11/01'。
+            如果解析失败返回 None。
+        """
         try:
             date_part = partition_name.replace(prefix, "")
             year, month, *_ = date_part.split("_")
@@ -464,7 +592,14 @@ class PartitionManagementService:
             return None
 
     def _get_partition_record_count(self, partition_name: str) -> int:
-        """查询单个分区的记录数"""
+        """查询单个分区的记录数。
+
+        Args:
+            partition_name: 分区表名称。
+
+        Returns:
+            分区中的记录总数。如果查询失败返回 0。
+        """
         query = f"SELECT COUNT(*) FROM {partition_name};"
         try:
             result = db.session.execute(text(query)).scalar()
@@ -479,7 +614,15 @@ class PartitionManagementService:
             return 0
 
     def _get_partition_status(self, date_str: Optional[str]) -> str:
-        """根据日期推断分区状态"""
+        """根据日期推断分区状态。
+
+        Args:
+            date_str: 日期字符串，格式为 'YYYY/MM/DD'。
+
+        Returns:
+            分区状态：'current'（当前月）、'past'（过去月）、
+            'future'（未来月）或 'unknown'（无法解析）。
+        """
         if not date_str:
             return "unknown"
         try:
@@ -497,7 +640,17 @@ class PartitionManagementService:
         return "future"
 
     def _create_partition_indexes(self, partition_name: str, table_config: dict[str, str]) -> None:
-        """为不同分区表创建必要索引"""
+        """为分区表创建必要的索引。
+
+        根据表类型创建不同的索引组合，以优化查询性能。
+
+        Args:
+            partition_name: 分区表名称。
+            table_config: 表配置字典，包含 table_name 等信息。
+
+        Returns:
+            None
+        """
         table_name = table_config["table_name"]
         index_sql_list: list[str] = []
 
@@ -542,7 +695,14 @@ class PartitionManagementService:
             db.session.execute(text(index_sql))
 
     def _format_size(self, size_bytes: int) -> str:
-        """将字节数格式化为可读字符串"""
+        """将字节数格式化为可读的大小字符串。
+
+        Args:
+            size_bytes: 字节数。
+
+        Returns:
+            格式化后的大小字符串，如 '1.5 GB'、'256 MB'。
+        """
         if size_bytes < 1024:
             return f"{size_bytes} B"
         if size_bytes < 1024**2:
@@ -553,7 +713,15 @@ class PartitionManagementService:
 
     @staticmethod
     def _rollback_on_error():
-        """提供一个上下文管理器式的回滚封装"""
+        """提供一个上下文管理器用于异常时自动回滚事务。
+
+        Returns:
+            上下文管理器对象，在退出时自动执行 db.session.rollback()。
+
+        Example:
+            >>> with self._rollback_on_error():
+            ...     raise DatabaseError("操作失败")
+        """
         class _RollbackContext:
             def __enter__(self_inner):
                 return self_inner
