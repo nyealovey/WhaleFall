@@ -1,226 +1,109 @@
-/* 账户列表页面样式 - 优化版本，利用Flatly主题和全局样式 */
+/* 账户列表页面样式 */
 
-/* 页面头部样式已移至全局样式 (global.css) */
-
-/* 数据库类型筛选按钮样式 - 利用全局按钮样式 */
-.btn-group .btn-outline-primary {
-    color: var(--primary-color) !important;
-    border-color: var(--primary-color) !important;
-    background-color: rgba(52, 144, 220, 0.1) !important;
-    font-weight: 600 !important;
-    transition: var(--transition-base);
-}
-
-.btn-group .btn-outline-primary:hover {
-    color: var(--light-color) !important;
-    background-color: var(--primary-color) !important;
-    border-color: var(--primary-color) !important;
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-}
-
-.btn-group .btn-primary {
-    box-shadow: var(--shadow-sm);
-}
-
-.btn-group .btn {
-    transition: var(--transition-base);
+.btn-group [data-db-type-btn] {
+    transition: all 0.2s ease;
     min-width: 100px;
     border-radius: var(--border-radius-sm);
 }
 
-/* 权限按钮样式 - 利用全局按钮样式 */
-.btn-outline-primary.btn-sm {
-    border: 1px solid var(--primary-color);
-    color: var(--primary-color);
-    background-color: transparent;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    box-shadow: var(--shadow-sm);
-    border-radius: var(--border-radius-sm);
-    transition: var(--transition-base);
-}
-
-.btn-outline-primary.btn-sm:hover {
-    background-color: var(--primary-color);
-    color: var(--light-color);
-    border-color: var(--primary-color);
+.btn-group [data-db-type-btn]:hover {
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-}
-
-.btn-outline-primary.btn-sm:active {
-    transform: translateY(0);
     box-shadow: var(--shadow-sm);
 }
 
-/* 账户表格样式 - 参考实例管理的美观设计 */
-.table {
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-    margin-bottom: 0;
+.btn-group [data-db-type-btn].btn-primary {
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
 }
 
-.table thead th {
-    background-color: var(--gray-50);
-    border-bottom: 2px solid var(--gray-200);
+#accounts-grid .gridjs-wrapper {
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+#accounts-grid .gridjs-table {
+    width: 100%;
+}
+
+#accounts-grid tbody tr:hover {
+    background-color: rgba(24, 188, 156, 0.05);
+}
+
+#accounts-grid td[data-column-id="username"] {
     font-weight: 600;
-    color: var(--gray-700);
-    padding: var(--spacing-md);
+}
+
+#accounts-grid td[data-column-id="instance_name"],
+#accounts-grid td[data-column-id="instance_host"] {
     font-size: 0.9rem;
 }
 
-.table tbody td {
-    padding: var(--spacing-md);
-    vertical-align: middle;
-    border-bottom: 1px solid var(--gray-200);
+#accounts-grid td[data-column-id="tags"],
+#accounts-grid td[data-column-id="classifications"] {
+    white-space: normal;
+    line-height: 1.8;
 }
 
-.table tbody tr:hover {
-    background-color: rgba(24, 188, 156, 0.05);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: all 0.2s ease;
-}
-
-/* 表格行动画效果 */
-.table tbody tr {
-    transition: all 0.2s ease;
-}
-
-/* 操作按钮组样式 */
-.btn-group-sm .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-    border-radius: var(--border-radius-sm);
-}
-
-/* 账户状态徽章 */
-.account-status {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.account-status.active {
-    background-color: rgba(24, 188, 156, 0.1);
-    color: var(--success-color);
-    border: 1px solid var(--success-color);
-}
-
-.account-status.locked {
-    background-color: rgba(231, 76, 60, 0.1);
-    color: var(--danger-color);
-    border: 1px solid var(--danger-color);
-}
-
-.account-status.expired {
-    background-color: rgba(243, 156, 18, 0.1);
-    color: var(--warning-color);
-    border: 1px solid var(--warning-color);
-}
-
-/* 账户类型徽章 */
-.account-type {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.account-type.superuser {
-    background-color: rgba(231, 76, 60, 0.1);
-    color: var(--danger-color);
-    border: 1px solid var(--danger-color);
-}
-
-.account-type.normal {
-    background-color: rgba(52, 144, 220, 0.1);
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-}
-
-/* 操作按钮组 */
-.action-buttons {
-    display: flex;
-    gap: var(--spacing-xs);
-    flex-wrap: wrap;
-}
-
-.action-buttons .btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
+#accounts-grid td[data-column-id="tags"] .badge,
+#accounts-grid td[data-column-id="classifications"] .badge {
     font-size: 0.75rem;
-    min-width: auto;
-    border-radius: var(--border-radius-sm);
+    padding: 4px 8px;
 }
 
-/* 同步进度显示 */
-.sync-progress {
-    margin-top: var(--spacing-lg);
-    padding: var(--spacing-md);
-    background: var(--gray-50);
-    border-radius: var(--border-radius-md);
-    border: 1px solid var(--gray-300);
-}
-
-.progress {
-    height: 8px;
-    border-radius: var(--border-radius-sm);
-    background-color: var(--gray-200);
-    overflow: hidden;
-}
-
-.progress-bar {
-    background: var(--gradient-primary);
-    transition: width 0.3s ease;
-}
-
-/* 统计卡片 */
-.stats-card {
-    transition: var(--transition-base);
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-md);
-    border: none;
-}
-
-.stats-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-/* 空状态 */
-.empty-state {
+#accounts-grid td[data-column-id="db_type"] {
     text-align: center;
-    padding: var(--spacing-xxl) var(--spacing-xl);
-    color: var(--gray-600);
 }
 
-.empty-state i {
-    font-size: 4rem;
-    color: var(--gray-300);
+#accounts-grid td[data-column-id="db_type"] .badge,
+#accounts-grid td[data-column-id="is_locked"] .badge {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    min-width: 80px;
+}
+
+#accounts-grid td[data-column-id="actions"] {
+    text-align: center;
+    white-space: nowrap;
+}
+
+#accounts-grid td[data-column-id="actions"] .btn {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.75rem;
+}
+
+.card-body > .d-flex.justify-content-between {
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--gray-200);
     margin-bottom: var(--spacing-md);
-    animation: float 3s ease-in-out infinite;
 }
 
-.empty-state h4 {
-    color: var(--gray-700);
-    margin-bottom: var(--spacing-sm);
+#accounts-total {
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
-.empty-state p {
-    color: var(--gray-500);
-    margin: 0;
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.3px;
 }
 
-/* 浮动动画 */
-@keyframes float {
-    0%, 100% { 
-        transform: translateY(0px); 
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
     }
-    50% { 
-        transform: translateY(-10px); 
+
+    .btn-group [data-db-type-btn] {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .card-body > .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .card-body > .d-flex.justify-content-between > div {
+        margin-bottom: 0.5rem;
     }
 }
-
-/* 响应式调整 */
