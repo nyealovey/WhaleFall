@@ -40,58 +40,50 @@ def index() -> str:
 @sync_sessions_bp.route("/api/sessions")
 @login_required
 @view_required
-def api_list_sessions() -> Response:
+def list_sessions() -> Response:
     """获取同步会话列表 API"""
     try:
-        # 获取查询参数
-        sync_type = request.args.get("sync_type", "")
-        sync_category = request.args.get("sync_category", "")
-        status = request.args.get("status", "")
-        page = int(request.args.get("page", 1))
-        per_page = int(request.args.get("per_page", 20))
-        
-        # 获取所有会话（这里可能需要根据实际情况调整获取数量）
-        all_sessions = sync_session_service.get_recent_sessions(1000)  # 获取更多数据用于分页
+        sync_type = (request.args.get("sync_type", "") or "").strip()
+        sync_category = (request.args.get("sync_category", "") or "").strip()
+        status = (request.args.get("status", "") or "").strip()
+        page = max(int(request.args.get("page", 1)), 1)
+        limit = int(request.args.get("limit", request.args.get("per_page", 20)))
+        limit = max(1, min(limit, 100))
+        sort_field = (request.args.get("sort", "started_at") or "started_at").strip()
+        sort_order = (request.args.get("order", "desc") or "desc").lower()
 
-        # 过滤结果
+        all_sessions = sync_session_service.get_recent_sessions(1000)
+
         filtered_sessions = all_sessions
-        if sync_type and sync_type.strip():
+        if sync_type:
             filtered_sessions = [s for s in filtered_sessions if s.sync_type == sync_type]
-        if sync_category and sync_category.strip():
+        if sync_category:
             filtered_sessions = [s for s in filtered_sessions if s.sync_category == sync_category]
-        if status and status.strip():
+        if status:
             filtered_sessions = [s for s in filtered_sessions if s.status == status]
 
-        # 计算分页
-        total = len(filtered_sessions)
-        start = (page - 1) * per_page
-        end = start + per_page
-        sessions_page = filtered_sessions[start:end]
-
-        # 转换为字典
-        sessions_data = [session.to_dict() for session in sessions_page]
-        
-        # 计算分页信息
-        total_pages = (total + per_page - 1) // per_page
-        has_prev = page > 1
-        has_next = page < total_pages
-
-        pagination_info = {
-            "page": page,
-            "per_page": per_page,
-            "total": total,
-            "pages": total_pages,
-            "has_prev": has_prev,
-            "has_next": has_next,
-            "prev_num": page - 1 if has_prev else None,
-            "next_num": page + 1 if has_next else None
+        reverse = sort_order != "asc"
+        sort_key_map = {
+            "started_at": lambda s: s.started_at or "",
+            "completed_at": lambda s: s.completed_at or "",
+            "status": lambda s: s.status or "",
         }
+        sort_key = sort_key_map.get(sort_field, sort_key_map["started_at"])
+        filtered_sessions.sort(key=sort_key, reverse=reverse)
+
+        total = len(filtered_sessions)
+        start = (page - 1) * limit
+        end = start + limit
+        sessions_page = filtered_sessions[start:end]
+        sessions_data = [session.to_dict() for session in sessions_page]
+        total_pages = (total + limit - 1) // limit
 
         return jsonify_unified_success(
             data={
-                "sessions": sessions_data,
-                "pagination": pagination_info,
+                "items": sessions_data,
                 "total": total,
+                "page": page,
+                "pages": total_pages,
             },
             message="获取同步会话列表成功",
         )
