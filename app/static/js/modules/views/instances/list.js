@@ -55,6 +55,7 @@ function mountInstancesListPage() {
         bindToolbarActions();
         subscribeToStoreEvents();
         exposeGlobalActions();
+        updateBatchActionState();
     });
 
     function initializeServices() {
@@ -161,7 +162,7 @@ function mountInstancesListPage() {
         if (canManage) {
             columns.push({
                 id: 'select',
-                name: gridHtml('<input type="checkbox" class="form-check-input" id="grid-select-all">'),
+                name: '',
                 width: '48px',
                 sort: false,
                 formatter: (cell, row) => {
