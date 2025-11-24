@@ -100,25 +100,14 @@
                     {% endif %}
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-action="refresh-grid">
-                        <i class="fas fa-sync me-1"></i>刷新
-                    </button>
                     <button type="button" class="btn btn-outline-primary btn-sm" data-action="export">
                         <i class="fas fa-download me-1"></i>导出CSV
                     </button>
-                    {% if current_user.role == 'admin' %}
-                    <button type="button" class="btn btn-primary btn-sm" data-action="create-instance">
-                        <i class="fas fa-plus me-1"></i>新增实例
-                    </button>
-                    {% endif %}
                 </div>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div class="mb-3">
                 <span class="text-muted" id="instances-total">加载中...</span>
-                <a href="{{ url_for('instance.statistics') }}" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-chart-bar me-1"></i>查看实例统计
-                </a>
             </div>
 
             <div id="instances-grid"></div>
