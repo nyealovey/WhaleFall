@@ -25,6 +25,11 @@ from app.utils.structlog_config import log_error, log_info
 
 
 def _init_deletion_stats() -> Dict[str, int]:
+    """初始化删除统计字典。
+
+    Returns:
+        包含所有删除计数器的字典，初始值均为 0。
+    """
     return {
         "deleted_assignments": 0,
         "deleted_account_permissions": 0,
@@ -41,7 +46,10 @@ def _init_deletion_stats() -> Dict[str, int]:
 
 
 class InstanceBatchCreationService:
-    """负责批量创建实例的服务。"""
+    """负责批量创建实例的服务。
+
+    提供批量创建实例的功能，包括数据校验、重复检查和批量插入。
+    """
 
     def create_instances(
         self,
@@ -49,6 +57,28 @@ class InstanceBatchCreationService:
         *,
         operator_id: int | None = None,
     ) -> Dict[str, Any]:
+        """批量创建实例。
+
+        校验实例数据，检查重复名称，批量插入数据库。
+
+        Args:
+            instances_data: 实例数据列表，每个元素包含实例的字段信息。
+            operator_id: 操作者用户 ID，可选。
+
+        Returns:
+            包含创建结果的字典，格式如下：
+            {
+                'created_count': 3,
+                'errors': [],
+                'duplicate_names': [],
+                'skipped_existing_names': [],
+                'message': '成功创建 3 个实例'
+            }
+
+        Raises:
+            ValidationError: 当实例数据为空时抛出。
+            SystemError: 当数据库操作失败时抛出。
+        """
         if not instances_data:
             raise ValidationError("请提供实例数据")
 
@@ -130,6 +160,17 @@ class InstanceBatchCreationService:
 
     @staticmethod
     def _build_instance_from_payload(payload: Dict[str, Any]) -> Instance:
+        """从数据字典构建实例对象。
+
+        Args:
+            payload: 实例数据字典。
+
+        Returns:
+            构建的 Instance 对象。
+
+        Raises:
+            ValidationError: 当端口号或凭据 ID 无效时抛出。
+        """
         try:
             port = int(payload["port"])
         except (TypeError, ValueError, KeyError) as exc:
@@ -156,7 +197,10 @@ class InstanceBatchCreationService:
 
 
 class InstanceBatchDeletionService:
-    """负责批量删除实例及其关联数据的服务。"""
+    """负责批量删除实例及其关联数据的服务。
+
+    提供批量删除实例的功能，包括级联删除所有关联数据。
+    """
 
     def delete_instances(
         self,
@@ -164,6 +208,38 @@ class InstanceBatchDeletionService:
         *,
         operator_id: int | None = None,
     ) -> Dict[str, Any]:
+        """批量删除实例及其关联数据。
+
+        删除指定的实例及其所有关联数据，包括账户权限、同步记录、
+        容量统计、标签关联等。
+
+        Args:
+            instance_ids: 实例 ID 列表。
+            operator_id: 操作者用户 ID，可选。
+
+        Returns:
+            包含删除统计的字典，格式如下：
+            {
+                'deleted_count': 2,
+                'deleted_assignments': 10,
+                'deleted_account_permissions': 50,
+                'deleted_sync_records': 5,
+                'deleted_change_logs': 20,
+                'deleted_instance_accounts': 30,
+                'deleted_instance_databases': 15,
+                'deleted_instance_size_stats': 100,
+                'deleted_instance_size_aggregations': 50,
+                'deleted_database_size_stats': 200,
+                'deleted_database_size_aggregations': 100,
+                'deleted_tag_links': 5,
+                'missing_instance_ids': [],
+                'deleted_sync_data': 50
+            }
+
+        Raises:
+            ValidationError: 当实例 ID 列表为空或无效时抛出。
+            SystemError: 当数据库操作失败时抛出。
+        """
         if not instance_ids:
             raise ValidationError("请选择要删除的实例")
 
@@ -213,6 +289,14 @@ class InstanceBatchDeletionService:
             raise SystemError("批量删除实例失败") from exc
 
     def _delete_single_instance(self, instance: Instance) -> Dict[str, int]:
+        """删除单个实例的所有关联数据。
+
+        Args:
+            instance: 要删除的实例对象。
+
+        Returns:
+            包含各类关联数据删除数量的字典。
+        """
         stats = _init_deletion_stats()
 
         account_ids_subquery = (
