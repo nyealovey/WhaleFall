@@ -43,6 +43,27 @@ def logs_dashboard() -> str | tuple[dict, int]:
         raise SystemError("日志仪表盘加载失败") from e
 
 
+def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int | None = None) -> int:
+    try:
+        parsed = int(value) if value is not None else default
+    except (TypeError, ValueError):
+        return default
+    if parsed < minimum:
+        return minimum
+    if maximum is not None and parsed > maximum:
+        return maximum
+    return parsed
+
+
+def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
+    if not raw_value:
+        return None
+    try:
+        return datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
 @logs_bp.route("/api/search", methods=["GET"])
 @login_required
 def search_logs() -> Response:
@@ -150,6 +171,114 @@ def search_logs() -> Response:
     except Exception as e:
         log_error("日志查询失败", module="logs", error=str(e))
         raise SystemError("日志查询失败") from e
+
+
+@logs_bp.route("/api/list", methods=["GET"])
+@login_required
+def list_logs() -> Response:
+    """Grid.js 日志列表 API"""
+
+    try:
+        page = _safe_int(request.args.get("page"), default=1, minimum=1)
+        limit = _safe_int(request.args.get("limit"), default=50, minimum=1, maximum=200)
+        sort_field = (request.args.get("sort") or "timestamp").lower()
+        sort_order = (request.args.get("order") or "desc").lower()
+
+        level_value = request.args.get("level")
+        module_value = request.args.get("module")
+        search_term = (request.args.get("search") or request.args.get("q") or "").strip()
+        hours_param = request.args.get("hours")
+        start_time_param = request.args.get("start_time")
+        end_time_param = request.args.get("end_time")
+
+        query = UnifiedLog.query
+
+        start_dt = _parse_iso_datetime(start_time_param)
+        end_dt = _parse_iso_datetime(end_time_param)
+
+        if start_dt:
+            query = query.filter(UnifiedLog.timestamp >= start_dt)
+        if end_dt:
+            query = query.filter(UnifiedLog.timestamp <= end_dt)
+
+        if not start_dt and not end_dt:
+            hours_value = _safe_int(hours_param, default=24, minimum=1, maximum=24 * 90)
+            start_time = time_utils.now() - timedelta(hours=hours_value)
+            query = query.filter(UnifiedLog.timestamp >= start_time)
+
+        if level_value:
+            try:
+                log_level = LogLevel(level_value.upper())
+                query = query.filter(UnifiedLog.level == log_level)
+            except ValueError as exc:
+                raise ValidationError("日志级别参数无效") from exc
+
+        if module_value:
+            query = query.filter(UnifiedLog.module.like(f"%{module_value}%"))
+
+        if search_term:
+            query = query.filter(
+                or_(
+                    UnifiedLog.message.like(f"%{search_term}%"),
+                    cast(UnifiedLog.context, Text).like(f"%{search_term}%"),
+                )
+            )
+
+        sortable_fields = {
+            "id": UnifiedLog.id,
+            "timestamp": UnifiedLog.timestamp,
+            "level": UnifiedLog.level,
+            "module": UnifiedLog.module,
+            "message": UnifiedLog.message,
+        }
+        order_column = sortable_fields.get(sort_field, UnifiedLog.timestamp)
+        query = query.order_by(asc(order_column)) if sort_order == "asc" else query.order_by(desc(order_column))
+
+        pagination = query.paginate(page=page, per_page=limit, error_out=False)
+
+        items: list[dict[str, object]] = []
+        for log_entry in pagination.items:
+            china_timestamp = time_utils.to_china(log_entry.timestamp) if log_entry.timestamp else None
+            timestamp_display = (
+                time_utils.format_china_time(china_timestamp, "%Y-%m-%d %H:%M:%S")
+                if china_timestamp
+                else "-"
+            )
+            items.append(
+                {
+                    "id": log_entry.id,
+                    "timestamp": china_timestamp.isoformat() if china_timestamp else None,
+                    "timestamp_display": timestamp_display,
+                    "level": log_entry.level.value if log_entry.level else None,
+                    "module": log_entry.module,
+                    "message": log_entry.message,
+                    "traceback": log_entry.traceback,
+                    "context": log_entry.context,
+                }
+            )
+
+        payload = {
+            "items": items,
+            "total": pagination.total,
+            "page": pagination.page,
+            "pages": pagination.pages,
+            "limit": pagination.per_page,
+        }
+
+        log_info(
+            "日志列表获取成功",
+            module="logs",
+            page=pagination.page,
+            per_page=pagination.per_page,
+            total=pagination.total,
+        )
+        return jsonify_unified_success(data=payload, message="日志列表获取成功")
+
+    except ValidationError:
+        raise
+    except Exception as error:  # noqa: BLE001
+        log_error("获取日志列表失败", module="logs", error=str(error))
+        raise SystemError("获取日志列表失败") from error
 
 
 @logs_bp.route("/api/statistics", methods=["GET"])
