@@ -409,7 +409,46 @@
           hiddenInputSelector,
           hiddenValueKey,
           initialValues,
-          onConfirm,
+          onConfirm: (detail) => {
+            // 更新显示区域
+            const selectedTags = detail.selectedTags || [];
+            
+            // 更新 chips 显示
+            const chipsEl = toElement(chipsSelector);
+            if (chipsEl) {
+              if (selectedTags.length === 0) {
+                chipsEl.innerHTML = '';
+              } else {
+                chipsEl.innerHTML = selectedTags.map(tag => {
+                  const displayName = tag.display_name || tag.name || '';
+                  const color = tag.color || 'bg-primary';
+                  const badgeClass = color.startsWith('bg-') ? color : 'bg-primary';
+                  return `<span class="badge ${badgeClass} me-1">${displayName}</span>`;
+                }).join('');
+              }
+            }
+            
+            // 更新计数
+            const countEl = toElement(countSelector);
+            if (countEl) {
+              countEl.textContent = selectedTags.length;
+            }
+            
+            // 更新预览文本
+            const previewEl = toElement(previewSelector);
+            if (previewEl) {
+              if (selectedTags.length === 0) {
+                previewEl.textContent = '未选择标签';
+              } else {
+                previewEl.textContent = `已选择 ${selectedTags.length} 个标签`;
+              }
+            }
+            
+            // 调用用户提供的 onConfirm
+            if (typeof onConfirm === 'function') {
+              onConfirm(detail);
+            }
+          },
         });
 
         const openBtn = toElement(openButtonSelector);
