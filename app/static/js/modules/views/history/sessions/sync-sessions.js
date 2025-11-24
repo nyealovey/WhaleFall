@@ -1,7 +1,5 @@
 // 会话中心 Grid.js 版本
 function mountSyncSessionsPage(global = window, documentRef = document) {
-  'use strict';
-
   const gridjs = global.gridjs;
   const GridWrapper = global.GridWrapper;
   const SyncSessionsService = global.SyncSessionsService;
