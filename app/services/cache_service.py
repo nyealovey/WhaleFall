@@ -50,14 +50,29 @@ class CacheService:
         return f"whalefall:{key_hash}"
 
     def invalidate_user_cache(self, instance_id: int, username: str) -> bool:
-        """清除用户的所有缓存"""
+        """清除用户的所有缓存。
+
+        Args:
+            instance_id: 实例 ID。
+            username: 用户名。
+
+        Returns:
+            始终返回 True。
+        """
         # Flask-Caching不支持模式匹配，简化实现
         # 这里返回True，表示操作成功
         logger.info(f"清除用户缓存: {username}")
         return True
 
     def invalidate_instance_cache(self, instance_id: int) -> bool:
-        """清除实例的所有缓存"""
+        """清除实例的所有缓存。
+
+        Args:
+            instance_id: 实例 ID。
+
+        Returns:
+            始终返回 True。
+        """
         # Flask-Caching不支持模式匹配，简化实现
         # 这里返回True，表示操作成功
         logger.info(f"清除实例缓存: {instance_id}")
@@ -85,7 +100,15 @@ class CacheService:
             return {"status": "error", "error": str(e)}
 
     def get_rule_evaluation_cache(self, rule_id: int, account_id: int) -> bool | None:
-        """获取规则评估缓存"""
+        """获取规则评估缓存。
+
+        Args:
+            rule_id: 规则 ID。
+            account_id: 账户 ID。
+
+        Returns:
+            缓存的评估结果（True/False），缓存未命中或出错时返回 None。
+        """
         try:
             if not self.cache:
                 return None
@@ -111,7 +134,17 @@ class CacheService:
             return None
 
     def set_rule_evaluation_cache(self, rule_id: int, account_id: int, result: bool, ttl: int = None) -> bool:
-        """设置规则评估缓存"""
+        """设置规则评估缓存。
+
+        Args:
+            rule_id: 规则 ID。
+            account_id: 账户 ID。
+            result: 评估结果。
+            ttl: 缓存过期时间（秒），默认使用配置的规则评估缓存时间。
+
+        Returns:
+            成功返回 True，失败返回 False。
+        """
         try:
             if not self.cache:
                 return False
@@ -141,7 +174,11 @@ class CacheService:
             return False
 
     def get_classification_rules_cache(self) -> list[dict[str, Any]] | None:
-        """获取分类规则缓存"""
+        """获取分类规则缓存。
+
+        Returns:
+            缓存的规则列表，缓存未命中或出错时返回 None。
+        """
         try:
             if not self.cache:
                 return None
@@ -161,7 +198,15 @@ class CacheService:
             return None
 
     def set_classification_rules_cache(self, rules: list[dict[str, Any]], ttl: int = None) -> bool:
-        """设置分类规则缓存"""
+        """设置分类规则缓存。
+
+        Args:
+            rules: 规则列表。
+            ttl: 缓存过期时间（秒），默认使用配置的规则缓存时间。
+
+        Returns:
+            成功返回 True，失败返回 False。
+        """
         try:
             if not self.cache:
                 return False
@@ -183,7 +228,14 @@ class CacheService:
             return False
 
     def invalidate_account_cache(self, account_id: int) -> bool:
-        """清除账户相关缓存"""
+        """清除账户相关缓存。
+
+        Args:
+            account_id: 账户 ID。
+
+        Returns:
+            成功返回 True，失败返回 False。
+        """
         try:
             if not self.cache:
                 return True
@@ -202,7 +254,11 @@ class CacheService:
             return False
 
     def invalidate_classification_cache(self) -> bool:
-        """清除分类相关缓存"""
+        """清除分类相关缓存。
+
+        Returns:
+            成功返回 True，失败返回 False。
+        """
         try:
             if not self.cache:
                 return True
@@ -222,7 +278,11 @@ class CacheService:
             return False
 
     def invalidate_all_rule_evaluation_cache(self) -> bool:
-        """清除所有规则评估缓存"""
+        """清除所有规则评估缓存。
+
+        Returns:
+            成功返回 True，失败返回 False。
+        """
         try:
             if not self.cache:
                 return True
@@ -237,7 +297,14 @@ class CacheService:
             return False
 
     def get_classification_rules_by_db_type_cache(self, db_type: str) -> list[dict[str, Any]] | None:
-        """获取按数据库类型分类的规则缓存"""
+        """获取按数据库类型分类的规则缓存。
+
+        Args:
+            db_type: 数据库类型，如 'mysql'、'postgresql'。
+
+        Returns:
+            缓存的规则列表，缓存未命中或出错时返回 None。
+        """
         try:
             if not self.cache:
                 return None
@@ -276,7 +343,16 @@ class CacheService:
             return None
 
     def set_classification_rules_by_db_type_cache(self, db_type: str, rules: list[dict[str, Any]], ttl: int = None) -> bool:
-        """设置按数据库类型分类的规则缓存"""
+        """设置按数据库类型分类的规则缓存。
+
+        Args:
+            db_type: 数据库类型，如 'mysql'、'postgresql'。
+            rules: 规则列表。
+            ttl: 缓存过期时间（秒），默认使用配置的规则缓存时间。
+
+        Returns:
+            成功返回 True，失败返回 False。
+        """
         try:
             if not self.cache:
                 return False
@@ -304,7 +380,14 @@ class CacheService:
             return False
 
     def invalidate_db_type_cache(self, db_type: str) -> bool:
-        """清除特定数据库类型的缓存"""
+        """清除特定数据库类型的缓存。
+
+        Args:
+            db_type: 数据库类型，如 'mysql'、'postgresql'。
+
+        Returns:
+            成功返回 True，失败返回 False。
+        """
         try:
             if not self.cache:
                 return True
@@ -320,7 +403,11 @@ class CacheService:
             return False
 
     def invalidate_all_db_type_cache(self) -> bool:
-        """清除所有数据库类型的规则缓存"""
+        """清除所有数据库类型的规则缓存。
+
+        Returns:
+            成功返回 True，失败返回 False。
+        """
         try:
             if not self.cache:
                 return True
@@ -383,5 +470,12 @@ def init_cache_service(cache: Cache) -> CacheService:
 
 
 def init_cache_manager(cache: Cache) -> CacheService:
-    """兼容旧入口，内部调用新的初始化方法"""
+    """兼容旧入口，内部调用新的初始化方法。
+
+    Args:
+        cache: Flask-Caching 实例。
+
+    Returns:
+        初始化后的 CacheService 实例。
+    """
     return init_cache_service(cache)

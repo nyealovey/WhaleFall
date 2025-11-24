@@ -13,7 +13,10 @@
 
   /**
    * 选择一个可用的 http 客户端，若调用方未传递则退回全局 httpU/http。
-   * @param {object} client - 可能注入的 http 客户端
+   *
+   * @param {Object} client - 可能注入的 http 客户端
+   * @return {Object} HTTP 客户端实例
+   * @throws {Error} 当客户端未初始化时抛出
    */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
@@ -25,7 +28,9 @@
 
   /**
    * 将对象、字符串或 URLSearchParams 统一转换成查询字符串。
-   * @param {object|string|URLSearchParams} params - 要拼接的查询参数
+   *
+   * @param {Object|string|URLSearchParams} params - 要拼接的查询参数
+   * @return {string} 格式化的查询字符串
    */
   function buildQueryString(params) {
     if (!params) {
@@ -59,8 +64,17 @@
 
   /**
    * 标签中心 API 代理，封装对后端标签相关接口的调用。
+   *
+   * @class
    */
   class TagManagementService {
+    /**
+     * 构造函数。
+     *
+     * @constructor
+     * @param {Object} httpClient - HTTP 客户端实例
+     * @param {Object} [endpoints] - 可选的端点配置，用于覆盖默认端点
+     */
     constructor(httpClient, endpoints) {
       this.httpClient = ensureHttpClient(httpClient);
       this.endpoints = { ...DEFAULT_ENDPOINTS, ...(endpoints || {}) };
@@ -68,6 +82,9 @@
 
     /**
      * 获取标签列表，支持附带查询参数。
+     *
+     * @param {Object} params - 查询参数
+     * @return {Promise<Object>} 标签列表响应
      */
     listTags(params) {
       return this.httpClient.get(
@@ -77,6 +94,9 @@
 
     /**
      * 拉取所有标签分类。
+     *
+     * @param {Object} params - 查询参数
+     * @return {Promise<Object>} 标签分类列表响应
      */
     listCategories(params) {
       return this.httpClient.get(
@@ -86,6 +106,9 @@
 
     /**
      * 查询带标签的实例信息。
+     *
+     * @param {Object} params - 查询参数
+     * @return {Promise<Object>} 实例列表响应
      */
     listInstances(params) {
       return this.httpClient.get(
@@ -95,6 +118,9 @@
 
     /**
      * 一次拉取全量标签列表（常用于选择器初始化）。
+     *
+     * @param {Object} params - 查询参数
+     * @return {Promise<Object>} 全量标签列表响应
      */
     listAllTags(params) {
       return this.httpClient.get(
@@ -104,6 +130,9 @@
 
     /**
      * 将标签批量绑定到资源上。
+     *
+     * @param {Object} payload - 批量分配数据
+     * @return {Promise<Object>} 分配结果响应
      */
     batchAssign(payload) {
       return this.httpClient.post(this.endpoints.batchAssign, payload);
@@ -111,6 +140,9 @@
 
     /**
      * 将资源上的所有标签批量移除。
+     *
+     * @param {Object} payload - 批量移除数据
+     * @return {Promise<Object>} 移除结果响应
      */
     batchRemoveAll(payload) {
       return this.httpClient.post(this.endpoints.batchRemoveAll, payload);
@@ -118,11 +150,21 @@
 
     /**
      * 批量删除标签。
+     *
+     * @param {Object} payload - 批量删除数据
+     * @return {Promise<Object>} 删除结果响应
      */
     batchDelete(payload) {
       return this.httpClient.post(this.endpoints.batchDelete, payload);
     }
 
+    /**
+     * 删除单个标签，后端接口要求 POST。
+     *
+     * @param {number|string} tagId - 标签 ID
+     * @return {Promise<Object>} 删除结果响应
+     * @throws {Error} 当 tagId 为空时抛出
+     */
     deleteTag(tagId) {
       if (tagId === undefined || tagId === null) {
         throw new Error("TagManagementService: deleteTag 需要 tagId");
@@ -133,6 +175,3 @@
 
   global.TagManagementService = TagManagementService;
 })(window);
-    /**
-     * 删除单个标签，后端接口要求 POST。
-     */
