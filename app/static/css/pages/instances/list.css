@@ -28,9 +28,10 @@
     min-width: 130px;
 }
 
-/* 实例名称列加粗 */
+/* 实例名称列加粗且不换行 */
 #instances-grid td[data-column-id="name"] {
     font-weight: 600;
+    white-space: nowrap;
 }
 
 /* 标签列特殊处理 */

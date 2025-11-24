@@ -212,14 +212,14 @@ function mountInstancesListPage() {
             },
             {
                 id: 'main_version',
-                name: '版本信息',
-                width: '120px',
+                name: '版本',
+                width: '90px',
                 formatter: (cell) => {
                     if (!gridHtml) {
                         return cell || '未检测';
                     }
                     if (!cell) {
-                        return gridHtml('<small class="text-muted">未检测</small>');
+                        return gridHtml('<small class="text-muted">-</small>');
                     }
                     return gridHtml(`<span class="badge bg-primary">${escapeHtml(cell)}</span>`);
                 },
@@ -227,6 +227,7 @@ function mountInstancesListPage() {
             {
                 id: 'active_counts',
                 name: '活跃',
+                width: '80px',
                 sort: false,
                 formatter: (cell, row) => {
                     const meta = resolveRowMeta(row);
@@ -236,8 +237,8 @@ function mountInstancesListPage() {
                         return `${dbCount}/${accountCount}`;
                     }
                     return gridHtml(`
-                        <div class="d-flex align-items-center">
-                            <span class="badge bg-primary me-2 stat-badge">
+                        <div class="d-flex flex-column gap-1">
+                            <span class="badge bg-primary stat-badge">
                                 <i class="fas fa-database me-1"></i>${dbCount}
                             </span>
                             <span class="badge bg-info text-white stat-badge">
@@ -269,7 +270,7 @@ function mountInstancesListPage() {
                 id: 'actions',
                 name: '操作',
                 sort: false,
-                width: '180px',
+                width: '100px',
                 formatter: (cell, row) => renderActions(resolveRowMeta(row)),
             },
             { id: '__meta__', hidden: true },
