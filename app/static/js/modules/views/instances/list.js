@@ -194,6 +194,12 @@ function mountInstancesListPage() {
                 },
             },
             {
+                id: 'db_type',
+                name: '类型',
+                width: '100px',
+                formatter: (cell) => renderDbTypeBadge(cell),
+            },
+            {
                 id: 'host',
                 name: '主机/IP',
                 formatter: (cell, row) => {
@@ -206,24 +212,10 @@ function mountInstancesListPage() {
                 },
             },
             {
-                id: 'db_type',
-                name: '类型',
-                width: '120px',
-                formatter: (cell) => renderDbTypeBadge(cell),
-            },
-            {
-                id: 'main_version',
-                name: '版本',
-                width: '70px',
-                formatter: (cell) => {
-                    if (!gridHtml) {
-                        return cell || '未检测';
-                    }
-                    if (!cell) {
-                        return gridHtml('<small class="text-muted">-</small>');
-                    }
-                    return gridHtml(`<span class="badge bg-primary">${escapeHtml(cell)}</span>`);
-                },
+                id: 'status',
+                name: '状态',
+                width: '80px',
+                formatter: (cell, row) => renderStatusBadge(Boolean(resolveRowMeta(row).is_active)),
             },
             {
                 id: 'active_counts',
@@ -250,28 +242,36 @@ function mountInstancesListPage() {
                 },
             },
             {
+                id: 'main_version',
+                name: '版本',
+                width: '90px',
+                formatter: (cell) => {
+                    if (!gridHtml) {
+                        return cell || '未检测';
+                    }
+                    if (!cell) {
+                        return gridHtml('<small class="text-muted">-</small>');
+                    }
+                    return gridHtml(`<span class="badge bg-primary">${escapeHtml(cell)}</span>`);
+                },
+            },
+            {
                 id: 'tags',
                 name: '标签',
                 sort: false,
                 formatter: (cell, row) => renderTags(resolveRowMeta(row).tags || []),
             },
             {
-                id: 'status',
-                name: '状态',
-                width: '80px',
-                formatter: (cell, row) => renderStatusBadge(Boolean(resolveRowMeta(row).is_active)),
-            },
-            {
                 id: 'last_sync_time',
                 name: '最后同步',
-                width: '120px',
+                width: '140px',
                 formatter: (cell) => renderLastSync(cell),
             },
             {
                 id: 'actions',
                 name: '操作',
                 sort: false,
-                width: '120px',
+                width: '100px',
                 formatter: (cell, row) => renderActions(resolveRowMeta(row)),
             },
             { id: '__meta__', hidden: true },
