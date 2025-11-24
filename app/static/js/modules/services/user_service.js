@@ -5,6 +5,10 @@
 
   /**
    * 统一选择 http 客户端。
+   *
+   * @param {Object} client - HTTP 客户端实例
+   * @return {Object} HTTP 客户端实例
+   * @throws {Error} 当客户端未初始化时抛出
    */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
@@ -15,17 +19,40 @@
   }
 
   /**
-   * 用户管理 API 服务。
+   * 用户管理服务。
+   *
+   * 提供用户的增删改查接口。
+   *
+   * @class
    */
   class UserService {
+    /**
+     * 构造函数。
+     *
+     * @constructor
+     * @param {Object} httpClient - HTTP 客户端实例
+     */
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
     }
 
+    /**
+     * 获取用户列表。
+     *
+     * @param {Object} params - 查询参数
+     * @return {Promise<Object>} 用户列表响应
+     */
     listUsers(params) {
       return this.httpClient.get(`${BASE_PATH}/users`, params || {});
     }
 
+    /**
+     * 获取单个用户详情。
+     *
+     * @param {number|string} userId - 用户 ID
+     * @return {Promise<Object>} 用户详情响应
+     * @throws {Error} 当 userId 为空时抛出
+     */
     getUser(userId) {
       if (userId === undefined || userId === null || userId === "") {
         throw new Error("UserService: getUser 需要 userId");
@@ -33,6 +60,13 @@
       return this.httpClient.get(`${BASE_PATH}/users/${userId}`);
     }
 
+    /**
+     * 创建用户。
+     *
+     * @param {Object} payload - 用户数据
+     * @return {Promise<Object>} 创建结果响应
+     * @throws {Error} 当 payload 为空时抛出
+     */
     createUser(payload) {
       if (!payload) {
         throw new Error("UserService: createUser 需要 payload");
@@ -40,6 +74,14 @@
       return this.httpClient.post(`${BASE_PATH}/users`, payload);
     }
 
+    /**
+     * 更新用户。
+     *
+     * @param {number|string} userId - 用户 ID
+     * @param {Object} payload - 更新数据
+     * @return {Promise<Object>} 更新结果响应
+     * @throws {Error} 当 userId 或 payload 为空时抛出
+     */
     updateUser(userId, payload) {
       if (userId === undefined || userId === null || userId === "") {
         throw new Error("UserService: updateUser 需要 userId");
@@ -50,6 +92,13 @@
       return this.httpClient.put(`${BASE_PATH}/users/${userId}`, payload);
     }
 
+    /**
+     * 删除用户。
+     *
+     * @param {number|string} userId - 用户 ID
+     * @return {Promise<Object>} 删除结果响应
+     * @throws {Error} 当 userId 为空时抛出
+     */
     deleteUser(userId) {
       if (userId === undefined || userId === null || userId === "") {
         throw new Error("UserService: deleteUser 需要 userId");
