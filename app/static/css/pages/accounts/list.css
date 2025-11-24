@@ -54,6 +54,10 @@
     text-align: center;
 }
 
+#accounts-grid td[data-column-id="is_locked"] {
+    text-align: center;
+}
+
 #accounts-grid td[data-column-id="db_type"] .badge,
 #accounts-grid td[data-column-id="is_locked"] .badge {
     font-size: 0.75rem;
@@ -64,11 +68,16 @@
 #accounts-grid td[data-column-id="actions"] {
     text-align: center;
     white-space: nowrap;
+    width: 70px;
 }
 
 #accounts-grid td[data-column-id="actions"] .btn {
     font-size: 0.85rem;
-    padding: 0.25rem 0.75rem;
+    padding: 0.25rem 0.5rem;
+    width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .card-body > .d-flex.justify-content-between {
