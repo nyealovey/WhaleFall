@@ -1,5 +1,6 @@
-/* 账户列表页面样式 */
+/* 账户列表页面特定样式 */
 
+/* 数据库类型按钮组 */
 .btn-group [data-db-type-btn] {
     transition: all 0.2s ease;
     min-width: 100px;
@@ -16,70 +17,25 @@
     box-shadow: var(--shadow-sm);
 }
 
-#accounts-grid .gridjs-wrapper {
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-sm);
-}
-
-#accounts-grid .gridjs-table {
-    width: 100%;
-}
-
-#accounts-grid tbody tr:hover {
-    background-color: rgba(24, 188, 156, 0.05);
-}
-
+/* 用户名列加粗 */
 #accounts-grid td[data-column-id="username"] {
     font-weight: 600;
 }
 
+/* 实例信息列字体 */
 #accounts-grid td[data-column-id="instance_name"],
 #accounts-grid td[data-column-id="instance_host"] {
     font-size: 0.9rem;
 }
 
+/* 标签/分类列特殊布局 */
 #accounts-grid td[data-column-id="tags"],
 #accounts-grid td[data-column-id="classifications"] {
     white-space: normal;
     line-height: 1.8;
 }
 
-#accounts-grid td[data-column-id="tags"] .badge,
-#accounts-grid td[data-column-id="classifications"] .badge {
-    font-size: 0.75rem;
-    padding: 4px 8px;
-}
-
-#accounts-grid td[data-column-id="db_type"] {
-    text-align: center;
-}
-
-#accounts-grid td[data-column-id="is_locked"] {
-    text-align: center;
-}
-
-#accounts-grid td[data-column-id="db_type"] .badge,
-#accounts-grid td[data-column-id="is_locked"] .badge {
-    font-size: 0.75rem;
-    padding: 4px 10px;
-    min-width: 80px;
-}
-
-#accounts-grid td[data-column-id="actions"] {
-    text-align: center;
-    white-space: nowrap;
-    width: 70px;
-}
-
-#accounts-grid td[data-column-id="actions"] .btn {
-    font-size: 0.85rem;
-    padding: 0.25rem 0.5rem;
-    width: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
+/* 统计信息 */
 .card-body > .d-flex.justify-content-between {
     padding-bottom: var(--spacing-md);
     border-bottom: 1px solid var(--gray-200);
@@ -89,11 +45,6 @@
 #accounts-total {
     font-size: 0.9rem;
     font-weight: 500;
-}
-
-.badge {
-    font-weight: 500;
-    letter-spacing: 0.3px;
 }
 
 @media (max-width: 768px) {

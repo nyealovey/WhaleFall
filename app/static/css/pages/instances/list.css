@@ -1,5 +1,6 @@
-/* 实例列表页面样式 */
+/* 实例列表页面特定样式 */
 
+/* 数据库类型按钮组 */
 .btn-group [data-db-type-btn] {
     transition: all 0.2s ease;
     min-width: 110px;
@@ -27,47 +28,18 @@
     min-width: 130px;
 }
 
-#instances-grid .gridjs-wrapper {
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-xs);
-}
-
-#instances-grid .gridjs-table {
-    width: 100%;
-}
-
-#instances-grid .gridjs-tr:hover {
-    background-color: rgba(24, 188, 156, 0.05);
-}
-
+/* 实例名称列加粗 */
 #instances-grid td[data-column-id="name"] {
     font-weight: 600;
 }
 
+/* 标签列特殊处理 */
 #instances-grid td[data-column-id="tags"] {
     white-space: normal;
     line-height: 1.8;
 }
 
-#instances-grid td[data-column-id="status"],
-#instances-grid td[data-column-id="db_type"],
-#instances-grid td[data-column-id="last_sync_time"] {
-    text-align: center;
-}
-
-#instances-grid td[data-column-id="actions"] {
-    text-align: center;
-}
-
-#instances-grid td[data-column-id="actions"] .btn {
-    width: 36px;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-}
-
+/* 统计徽章 */
 .stat-badge {
     min-width: 64px;
     display: inline-flex;

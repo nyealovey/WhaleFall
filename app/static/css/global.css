@@ -314,6 +314,40 @@ body {
     background-color: var(--info-color) !important;
 }
 
+/* 统一表格样式 */
+
+/* 表格容器 */
+.table-responsive {
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Bootstrap 表格紧凑化 */
+.table-sm th,
+.table-sm td {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+/* 表格徽章统一样式 */
+.table .badge {
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* 表格操作按钮统一样式 */
+.table .btn-sm {
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+/* 表格图标统一大小 */
+.table i {
+    font-size: 13px;
+}
+
 /* 动画效果 */
 @keyframes fadeIn {
     from {
