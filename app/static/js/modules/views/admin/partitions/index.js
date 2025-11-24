@@ -161,7 +161,7 @@ function mountAdminPartitionsPage(global) {
         selectOne('#totalPartitions').text(stats.total_partitions ?? 0);
         selectOne('#totalSize').text(stats.total_size ?? '0 B');
         selectOne('#totalRecords').text(stats.total_records ?? 0);
-        selectOne('#partitionStatus').text('正常');
+        selectOne('#partitionStatus').text(resolvePartitionStatusLabel(stats.status));
     }
 
     function getStatusColor(status) {
@@ -229,6 +229,20 @@ function mountAdminPartitionsPage(global) {
 
     function requestPartitionGridRefresh() {
         global.dispatchEvent?.(new CustomEvent('partitionList:refresh'));
+    }
+
+    function resolvePartitionStatusLabel(status) {
+        const normalized = (status || '').toLowerCase();
+        if (normalized === 'healthy') {
+            return '正常';
+        }
+        if (normalized === 'warning') {
+            return '告警';
+        }
+        if (normalized) {
+            return normalized;
+        }
+        return '正常';
     }
 }
 

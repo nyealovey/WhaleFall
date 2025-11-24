@@ -42,6 +42,9 @@ def get_partition_info() -> Response:
     log_info("开始获取分区信息", module="partition", user_id=getattr(current_user, "id", None))
     stats_service = PartitionStatisticsService()
     result = stats_service.get_partition_info()
+    status_snapshot = _build_partition_status(stats_service, partition_info=result)
+    result["status"] = status_snapshot.get("status", "healthy")
+    result["missing_partitions"] = status_snapshot.get("missing_partitions", [])
     payload = {
         'data': result,
         'timestamp': time_utils.now().isoformat(),
@@ -65,9 +68,12 @@ def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int
     return parsed
 
 
-def _build_partition_status(stats_service: PartitionStatisticsService) -> dict[str, object]:
-    partition_info = stats_service.get_partition_info()
-    stats = stats_service.get_partition_statistics()
+def _build_partition_status(
+    stats_service: PartitionStatisticsService,
+    partition_info: dict[str, object] | None = None,
+) -> dict[str, object]:
+    info = partition_info or stats_service.get_partition_info()
+    partitions = info.get("partitions", [])
 
     current_date = date.today()
     required_partitions: list[str] = []
@@ -77,17 +83,17 @@ def _build_partition_status(stats_service: PartitionStatisticsService) -> dict[s
             f"database_size_stats_{time_utils.format_china_time(month_date, '%Y_%m')}"
         )
 
-    existing_partitions = {partition["name"] for partition in partition_info["partitions"]}
+    existing_partitions = {partition["name"] for partition in partitions}
     missing_partitions = [name for name in required_partitions if name not in existing_partitions]
 
     status = "healthy" if not missing_partitions else "warning"
     return {
         "status": status,
-        "total_partitions": stats["total_partitions"],
-        "total_size": stats["total_size"],
-        "total_records": stats["total_records"],
+        "total_partitions": info.get("total_partitions", 0),
+        "total_size": info.get("total_size", "0 B"),
+        "total_records": info.get("total_records", 0),
         "missing_partitions": missing_partitions,
-        "partitions": partition_info["partitions"],
+        "partitions": partitions,
     }
 
 
