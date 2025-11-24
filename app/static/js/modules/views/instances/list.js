@@ -257,20 +257,20 @@ function mountInstancesListPage() {
             {
                 id: 'status',
                 name: '状态',
-                width: '100px',
+                width: '80px',
                 formatter: (cell, row) => renderStatusBadge(Boolean(resolveRowMeta(row).is_active)),
             },
             {
                 id: 'last_sync_time',
                 name: '最后同步',
-                width: '150px',
+                width: '120px',
                 formatter: (cell) => renderLastSync(cell),
             },
             {
                 id: 'actions',
                 name: '操作',
                 sort: false,
-                width: '100px',
+                width: '120px',
                 formatter: (cell, row) => renderActions(resolveRowMeta(row)),
             },
             { id: '__meta__', hidden: true },
