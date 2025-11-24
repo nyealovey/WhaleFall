@@ -85,6 +85,7 @@ function mountAccountsListPage() {
 
         accountsGrid = new GridWrapper(container, {
             search: false,
+            sort: false,
             columns,
             server: {
                 url: buildBaseUrl(),
@@ -512,7 +513,7 @@ function mountAccountsListPage() {
         const filters = normalizeFilters(resolveFilters());
         filters.db_type = currentDbType;
         const params = buildSearchParams(filters);
-        const url = `/files/export_accounts${params.toString() ? `?${params.toString()}` : ''}`;
+        const url = `/files/api/account-export${params.toString() ? `?${params.toString()}` : ''}`;
         global.location.href = url;
     }
 
