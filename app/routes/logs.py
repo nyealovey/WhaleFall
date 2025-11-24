@@ -265,13 +265,6 @@ def list_logs() -> Response:
             "limit": pagination.per_page,
         }
 
-        log_info(
-            "日志列表获取成功",
-            module="logs",
-            page=pagination.page,
-            per_page=pagination.per_page,
-            total=pagination.total,
-        )
         return jsonify_unified_success(data=payload, message="日志列表获取成功")
 
     except ValidationError:

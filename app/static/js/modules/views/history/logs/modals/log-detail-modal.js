@@ -137,7 +137,10 @@
         return;
       }
       try {
-        await copyToClipboard(text);
+        const success = await copyToClipboard(text);
+        if (!success) {
+          throw new Error('COPY_FALLBACK_FAILED');
+        }
         toast?.success?.('日志详情已复制');
       } catch (error) {
         console.error('复制日志详情失败:', error);
@@ -148,46 +151,56 @@
     async function copyToClipboard(text) {
       if (navigator.clipboard?.writeText && global.isSecureContext !== false) {
         await navigator.clipboard.writeText(text);
-        return;
+        return true;
       }
       if (copyUsingTextarea(text)) {
-        return;
+        return true;
       }
       if (copyUsingSelection(contentElement)) {
-        return;
+        return true;
       }
-      throw new Error('COPY_UNSUPPORTED');
+      return false;
     }
 
     function copyUsingTextarea(text) {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      textarea.style.pointerEvents = 'none';
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      const successful = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      return successful;
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return successful;
+      } catch (error) {
+        console.warn('copyUsingTextarea 失败:', error);
+        return false;
+      }
     }
 
     function copyUsingSelection(target) {
       if (!target) {
         return false;
       }
-      const selection = window.getSelection();
-      if (!selection) {
+      try {
+        const selection = window.getSelection();
+        if (!selection) {
+            return false;
+        }
+        selection.removeAllRanges();
+        const range = document.createRange();
+        range.selectNodeContents(target);
+        selection.addRange(range);
+        const successful = document.execCommand('copy');
+        selection.removeAllRanges();
+        return successful;
+      } catch (error) {
+        console.warn('copyUsingSelection 失败:', error);
         return false;
       }
-      selection.removeAllRanges();
-      const range = document.createRange();
-      range.selectNodeContents(target);
-      selection.addRange(range);
-      const successful = document.execCommand('copy');
-      selection.removeAllRanges();
-      return successful;
     }
 
     function destroy() {
