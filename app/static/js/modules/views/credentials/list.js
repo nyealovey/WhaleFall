@@ -84,18 +84,10 @@ function mountCredentialsListPage(global) {
       sort: false,
       columns: [
         {
-          name: "ID",
-          id: "id",
-          formatter: (cell) =>
-            gridHtml
-              ? gridHtml(`<span class="badge bg-secondary">#${cell}</span>`)
-              : `#${cell}`,
-        },
-        {
           name: "名称",
           id: "name",
           formatter: (cell, row) => {
-            const meta = row?.cells?.[8]?.data || {};
+            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
             const description = meta.description
               ? `<br><small class="text-muted">${escapeHtmlValue(meta.description)}</small>`
               : "";
@@ -132,11 +124,24 @@ function mountCredentialsListPage(global) {
         },
         { name: "用户名", id: "username" },
         {
+          name: "状态",
+          id: "is_active",
+          formatter: (cell) => {
+            const isActive = Boolean(cell);
+            if (!gridHtml) {
+              return isActive ? "启用" : "禁用";
+            }
+            const color = isActive ? "success" : "secondary";
+            const text = isActive ? "启用" : "禁用";
+            return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
+          },
+        },
+        {
           name: "绑定实例",
           id: "instance_count",
           formatter: (cell) => {
             const count = Number(cell) || 0;
-            const suffix = count === 1 ? "个实例" : "个实例";
+            const suffix = "个实例";
             if (!gridHtml) {
               return `${count} ${suffix}`;
             }
@@ -146,8 +151,8 @@ function mountCredentialsListPage(global) {
           },
         },
         {
-          name: "状态",
-          id: "is_active",
+          name: "创建时间",
+          id: "created_at",
           formatter: (cell) => {
             const isActive = Boolean(cell);
             if (!gridHtml) {
@@ -170,8 +175,8 @@ function mountCredentialsListPage(global) {
           name: "操作",
           sort: false,
           formatter: (cell, row) => {
-            const credentialId = row?.cells?.[0]?.data;
-            const meta = row?.cells?.[8]?.data || {};
+            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
+            const credentialId = meta.id;
             if (!canManageCredentials) {
               return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : "";
             }
@@ -200,12 +205,11 @@ function mountCredentialsListPage(global) {
           const payload = response?.data || response || {};
           const items = payload.items || [];
           return items.map((item) => [
-            item.id,
             item.name,
             item.credential_type,
             item.username,
-            item.instance_count ?? 0,
             item.is_active,
+            item.instance_count ?? 0,
             item.created_at_display || "",
             item,
           ]);
