@@ -131,6 +131,7 @@ function mountInstancesListPage() {
 
         instancesGrid = new GridWrapper(container, {
             search: false,
+            sort: false,
             columns: buildColumns(),
             server: {
                 url: buildBaseUrl(),
@@ -182,17 +183,25 @@ function mountInstancesListPage() {
                     if (!gridHtml) {
                         return cell || '-';
                     }
-                    const host = escapeHtml(meta.host || '');
                     const name = escapeHtml(cell || '-');
                     return gridHtml(`
                         <div class="d-flex align-items-start">
                             <i class="fas fa-database text-primary me-2 mt-1"></i>
-                            <div>
-                                <div class="fw-semibold">${name}</div>
-                                <small class="text-muted">${host}</small>
-                            </div>
+                            <div class="fw-semibold">${name}</div>
                         </div>
                     `);
+                },
+            },
+            {
+                id: 'host',
+                name: '主机/IP',
+                formatter: (cell, row) => {
+                    const meta = resolveRowMeta(row);
+                    const host = cell || meta.host || '';
+                    if (!gridHtml) {
+                        return host || '-';
+                    }
+                    return gridHtml(`<span class="text-monospace">${escapeHtml(host || '-')}</span>`);
                 },
             },
             {
@@ -287,6 +296,7 @@ function mountInstancesListPage() {
             }
             row.push(
                 item.name || '-',
+                item.host || '',
                 item.db_type || '-',
                 item.main_version || '',
                 null,
