@@ -15,7 +15,22 @@ MODULE = "account_sync"
 
 
 class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
-    """账户同步协调器，负责两阶段流程。"""
+    """账户同步协调器，负责两阶段流程。
+
+    协调账户同步的两个阶段：
+    1. 清单阶段（Inventory）：同步账户基本信息，标记活跃/非活跃状态
+    2. 权限阶段（Collection）：同步活跃账户的权限信息
+
+    支持上下文管理器协议，自动管理数据库连接的建立和释放。
+
+    Attributes:
+        instance: 数据库实例对象。
+        logger: 结构化日志记录器。
+
+    Example:
+        >>> with AccountSyncCoordinator(instance) as coordinator:
+        ...     result = coordinator.sync_all()
+    """
 
     def __init__(self, instance: Instance) -> None:
         self.instance = instance
@@ -44,6 +59,14 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         self.disconnect()
 
     def connect(self) -> bool:
+        """建立到数据库实例的连接。
+
+        如果连接已存在且有效，则复用现有连接。
+        如果之前连接失败，则直接返回 False 不再重试。
+
+        Returns:
+            连接成功返回 True，失败返回 False。
+        """
         if self._connection and getattr(self._connection, "is_connected", False):
             self.logger.info(
                 "account_sync_connection_reuse",
@@ -121,6 +144,11 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             return False
 
     def disconnect(self) -> None:
+        """断开数据库连接并清理资源。
+
+        Returns:
+            None
+        """
         if self._connection:
             try:
                 self._connection.disconnect()
@@ -134,6 +162,11 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 )
 
     def _ensure_connection(self) -> None:
+        """确保数据库连接有效，如果无效则尝试重新连接。
+
+        Raises:
+            RuntimeError: 当连接失败时抛出，包含连接错误信息。
+        """
         if not self._connection or not getattr(self._connection, "is_connected", False):
             if not self.connect():
                 error_message = self._connection_error or "数据库连接未建立"
@@ -143,6 +176,17 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
     # 同步阶段
     # ------------------------------------------------------------------
     def fetch_remote_accounts(self) -> List[dict]:
+        """从远程数据库获取账户列表。
+
+        使用缓存机制，同一实例的账户列表只获取一次。
+        确保连接有效后，通过适配器获取账户数据。
+
+        Returns:
+            账户字典列表，每个字典包含账户的基本信息。
+
+        Raises:
+            RuntimeError: 当数据库连接失败时抛出。
+        """
         if self._cached_accounts is None:
             self._ensure_connection()
             self.logger.info(
@@ -164,6 +208,28 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         return self._cached_accounts
 
     def synchronize_inventory(self) -> Dict:
+        """执行清单阶段同步，同步账户基本信息。
+
+        获取远程账户列表，与本地数据库对比，创建新账户、刷新现有账户、
+        标记活跃/非活跃状态。同步结果会缓存活跃账户列表供权限阶段使用。
+
+        Returns:
+            清单同步结果字典，格式如下：
+            {
+                'status': 'completed',
+                'created': 5,           # 新建账户数
+                'refreshed': 10,        # 刷新账户数
+                'reactivated': 2,       # 重新激活账户数
+                'deactivated': 3,       # 停用账户数
+                'processed_records': 20,
+                'total_remote': 20,
+                'active_accounts': ['user1', 'user2', ...],
+                'active_count': 17
+            }
+
+        Raises:
+            RuntimeError: 当数据库连接失败时抛出。
+        """
         remote_accounts = self.fetch_remote_accounts()
         summary, active_accounts = self._inventory_manager.synchronize(self.instance, remote_accounts)
         inventory_summary = {
@@ -189,6 +255,31 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         return inventory_summary
 
     def synchronize_permissions(self, *, session_id: str | None = None) -> Dict:
+        """执行权限阶段同步，同步活跃账户的权限信息。
+
+        如果清单阶段未执行，会先自动执行清单同步。
+        只为活跃账户同步权限信息，跳过非活跃账户。
+        按需补全权限信息（enrich_permissions），避免重复获取。
+
+        Args:
+            session_id: 可选的同步会话 ID，用于关联日志和错误追踪。
+
+        Returns:
+            权限同步结果字典，格式如下：
+            {
+                'status': 'completed',  # 或 'skipped'
+                'created': 15,          # 新建权限记录数
+                'updated': 5,           # 更新权限记录数
+                'skipped': 2,           # 跳过记录数
+                'processed_records': 20,
+                'errors': [],           # 错误列表
+                'message': '同步完成'
+            }
+
+        Raises:
+            RuntimeError: 当数据库连接失败时抛出。
+            PermissionSyncError: 当权限同步失败时抛出，包含详细错误信息。
+        """
         remote_accounts = self.fetch_remote_accounts()
         active_accounts = getattr(self, "_active_accounts_cache", None)
         if active_accounts is None:
@@ -282,6 +373,24 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         return collection_summary
 
     def sync_all(self, *, session_id: str | None = None) -> Dict:
+        """执行完整的两阶段同步流程。
+
+        依次执行清单阶段和权限阶段，返回两个阶段的汇总结果。
+
+        Args:
+            session_id: 可选的同步会话 ID，用于关联日志和错误追踪。
+
+        Returns:
+            包含两个阶段结果的字典，格式如下：
+            {
+                'inventory': {...},    # synchronize_inventory 的返回值
+                'collection': {...}    # synchronize_permissions 的返回值
+            }
+
+        Raises:
+            RuntimeError: 当数据库连接失败时抛出。
+            PermissionSyncError: 当权限同步失败时抛出。
+        """
         inventory_summary = self.synchronize_inventory()
         permissions_summary = self.synchronize_permissions(session_id=session_id)
         return {
