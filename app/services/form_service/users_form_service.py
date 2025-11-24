@@ -17,7 +17,16 @@ from app.utils.structlog_config import log_info
 
 
 class UserFormService(BaseResourceService[User]):
-    """负责用户创建与编辑的服务。"""
+    """负责用户创建与编辑的服务。
+
+    提供用户的表单校验、密码强度验证和数据保存功能。
+
+    Attributes:
+        model: 关联的 User 模型类。
+        USERNAME_PATTERN: 用户名的正则表达式模式。
+        ALLOWED_ROLES: 允许的角色集合。
+        MESSAGE_USERNAME_EXISTS: 用户名已存在的消息键。
+    """
 
     model = User
     USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_]{3,20}$")
@@ -25,9 +34,28 @@ class UserFormService(BaseResourceService[User]):
     MESSAGE_USERNAME_EXISTS = "USERNAME_EXISTS"
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        """清理表单数据。
+
+        Args:
+            payload: 原始表单数据。
+
+        Returns:
+            清理后的数据字典。
+        """
         return sanitize_form_data(payload or {})
 
     def validate(self, data: dict[str, Any], *, resource: User | None) -> ServiceResult[dict[str, Any]]:
+        """校验用户数据。
+
+        校验用户名格式、角色有效性、密码强度和唯一性。
+
+        Args:
+            data: 清理后的数据。
+            resource: 已存在的用户实例（编辑场景），创建时为 None。
+
+        Returns:
+            校验结果，成功时返回规范化的数据，失败时返回错误信息。
+        """
         normalized = self._normalize_payload(data, resource)
 
         if not normalized["username"]:
@@ -57,6 +85,12 @@ class UserFormService(BaseResourceService[User]):
         return ServiceResult.ok(normalized)
 
     def assign(self, instance: User, data: dict[str, Any]) -> None:
+        """将数据赋值给用户实例。
+
+        Args:
+            instance: 用户实例。
+            data: 已校验的数据。
+        """
         instance.username = data["username"]
         instance.role = data["role"]
         instance.is_active = data["is_active"]
@@ -66,6 +100,12 @@ class UserFormService(BaseResourceService[User]):
             instance.set_password(password)
 
     def after_save(self, instance: User, data: dict[str, Any]) -> None:
+        """保存后记录日志。
+
+        Args:
+            instance: 已保存的用户实例。
+            data: 已校验的数据。
+        """
         action = "创建用户成功" if data.get("_is_create") else "更新用户成功"
         log_info(
             action,
@@ -78,6 +118,14 @@ class UserFormService(BaseResourceService[User]):
         )
 
     def build_context(self, *, resource: User | None) -> dict[str, Any]:
+        """构建模板渲染上下文。
+
+        Args:
+            resource: 用户实例，创建时为 None。
+
+        Returns:
+            包含角色选项的上下文字典。
+        """
         return {
             "role_options": [
                 {"value": UserRole.ADMIN, "label": "管理员"},
@@ -89,6 +137,15 @@ class UserFormService(BaseResourceService[User]):
     # Helpers
     # ------------------------------------------------------------------ #
     def _normalize_payload(self, data: Mapping[str, Any], resource: User | None) -> dict[str, Any]:
+        """规范化表单数据。
+
+        Args:
+            data: 原始数据。
+            resource: 已存在的用户实例，创建时为 None。
+
+        Returns:
+            规范化后的数据字典。
+        """
         normalized: dict[str, Any] = {}
 
         username_value = data.get("username")
@@ -112,6 +169,15 @@ class UserFormService(BaseResourceService[User]):
         return normalized
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
+        """将值转换为布尔类型。
+
+        Args:
+            value: 待转换的值。
+            default: 默认值。
+
+        Returns:
+            转换后的布尔值。
+        """
         if value is None:
             return default
         if isinstance(value, bool):
@@ -128,6 +194,16 @@ class UserFormService(BaseResourceService[User]):
         return default
 
     def _validate_password_strength(self, password: str) -> str | None:
+        """验证密码强度。
+
+        密码必须满足：至少8位、包含大写字母、小写字母和数字。
+
+        Args:
+            password: 待验证的密码。
+
+        Returns:
+            验证失败时返回错误信息，成功时返回 None。
+        """
         if len(password) < 8:
             return "密码长度至少8位"
         if not any(char.isupper() for char in password):
