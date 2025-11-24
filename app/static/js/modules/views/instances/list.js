@@ -735,10 +735,18 @@ function mountInstancesListPage() {
         const batchTestBtn = selectOne('[data-action="batch-test"]').first();
         const disabled = !selectedInstanceIds.size;
         if (batchDeleteBtn) {
-            batchDeleteBtn.disabled = disabled;
+            if (disabled) {
+                batchDeleteBtn.setAttribute('disabled', 'disabled');
+            } else {
+                batchDeleteBtn.removeAttribute('disabled');
+            }
         }
         if (batchTestBtn) {
-            batchTestBtn.disabled = disabled;
+            if (disabled) {
+                batchTestBtn.setAttribute('disabled', 'disabled');
+            } else {
+                batchTestBtn.removeAttribute('disabled');
+            }
         }
     }
 
