@@ -51,6 +51,8 @@
     }
     const modal = factory({
       modalSelector: modalElement,
+      confirmSelector: '[data-tag-selector-action="confirm"]',
+      cancelSelector: '[data-tag-selector-action="cancel"]',
       onOpen: hooks.onOpen,
       onClose: hooks.onClose,
       onConfirm: hooks.onConfirm,

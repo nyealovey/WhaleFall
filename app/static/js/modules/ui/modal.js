@@ -112,13 +112,13 @@
       modalElement.removeEventListener("hidden.bs.modal", handleHidden);
     });
 
-    const confirmEl = toElement(confirmSelector) || confirmButton;
+    const confirmEl = modalElement.querySelector(confirmSelector) || confirmButton;
     if (confirmEl) {
       confirmEl.addEventListener("click", handleConfirm);
       listeners.push(() => confirmEl.removeEventListener("click", handleConfirm));
     }
 
-    const cancelEl = toElement(cancelSelector) || modalElement.querySelector("[data-bs-dismiss='modal']");
+    const cancelEl = modalElement.querySelector(cancelSelector) || modalElement.querySelector("[data-bs-dismiss='modal']");
     if (cancelEl) {
       cancelEl.addEventListener("click", handleCancel);
       listeners.push(() => cancelEl.removeEventListener("click", handleCancel));
