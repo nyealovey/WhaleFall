@@ -12,9 +12,9 @@
 
 | 语言 | 总文件数 | 已修复 | 进度 | 更新时间 |
 |------|----------|--------|------|----------|
-| Python | 50 | 11 | 22% | 2025-11-24 18:30 |
+| Python | 50 | 13 | 26% | 2025-11-24 19:00 |
 | JavaScript | 32 | 16 | 50% | 2025-11-24 18:45 |
-| **总计** | **82** | **27** | **32.9%** | 2025-11-24 18:45 |
+| **总计** | **82** | **29** | **35.4%** | 2025-11-24 19:00 |
 
 ---
 
@@ -571,7 +571,59 @@
   - `app/static/js/modules/views/capacity-stats/instance_aggregations.js` - 3 个函数文档
   - `app/static/js/modules/views/accounts/list.js` - 主要函数文档（进行中）
 
+#### 18:50 - 19:00
+- ✅ 完成 2 个 Python 服务文件的修复
+  - `app/services/form_service/resource_form_service.py` - 基类和工具类完整文档
+  - `app/services/instances/batch_service.py` - 批量操作服务完整文档
+
 ---
 
 **最后更新**：2025-11-24  
 **下次更新**：每完成一个文件后更新
+
+#### 8. app/services/form_service/resource_form_service.py
+
+- **状态**：✅ 已修复
+- **修复人**：Kiro
+- **开始时间**：2025-11-24 18:50
+- **完成时间**：2025-11-24 18:55
+- **修复内容**：
+  - [x] `ServiceResult` 类 - 补充完整类文档字符串和属性说明
+  - [x] `ServiceResult.ok()` - 补充完整文档字符串
+  - [x] `ServiceResult.fail()` - 补充完整文档字符串
+  - [x] `BaseResourceService` 类 - 补充完整类文档字符串
+  - [x] `load()` - 补充完整文档字符串（Args/Returns/Raises）
+  - [x] `sanitize()` - 补充完整文档字符串
+  - [x] `validate()` - 补充完整文档字符串
+  - [x] `assign()` - 补充完整文档字符串
+  - [x] `after_save()` - 补充完整文档字符串
+  - [x] `build_context()` - 补充完整文档字符串
+  - [x] `upsert()` - 补充完整文档字符串
+  - [x] `_create_instance()` - 补充完整文档字符串
+- **审查人**：待审查
+- **审查时间**：-
+- **备注**：通用资源表单服务基类，所有方法均已补充完整文档
+- **提交记录**：6ff057f9
+
+---
+
+#### 9. app/services/instances/batch_service.py
+
+- **状态**：✅ 已修复
+- **修复人**：Kiro
+- **开始时间**：2025-11-24 18:55
+- **完成时间**：2025-11-24 19:00
+- **修复内容**：
+  - [x] `_init_deletion_stats()` - 补充完整文档字符串
+  - [x] `InstanceBatchCreationService` 类 - 补充完整类文档字符串
+  - [x] `create_instances()` - 补充完整文档字符串（Args/Returns/Raises）
+  - [x] `_build_instance_from_payload()` - 补充完整文档字符串
+  - [x] `InstanceBatchDeletionService` 类 - 补充完整类文档字符串
+  - [x] `delete_instances()` - 补充完整文档字符串（Args/Returns/Raises）
+  - [x] `_delete_single_instance()` - 补充完整文档字符串
+- **审查人**：待审查
+- **审查时间**：-
+- **备注**：实例批量操作服务，所有方法均已补充完整文档
+- **提交记录**：6ff057f9
+
+---
