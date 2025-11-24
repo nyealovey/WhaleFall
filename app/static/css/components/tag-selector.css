@@ -27,6 +27,9 @@
 [data-tag-selector] .tag-chip .btn-close {
   width: 0.85rem;
   height: 0.85rem;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
 }
 
 [data-tag-selector] .tag-chip .btn-close:hover {
