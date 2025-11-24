@@ -213,7 +213,7 @@ function mountInstancesListPage() {
             {
                 id: 'main_version',
                 name: '版本',
-                width: '90px',
+                width: '70px',
                 formatter: (cell) => {
                     if (!gridHtml) {
                         return cell || '未检测';
