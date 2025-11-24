@@ -1,11 +1,12 @@
 
-"""
-鲸落 - 账户管理路由
-"""
+"""鲸落 - 账户管理路由"""
 
-from flask import Blueprint, Response, render_template, request
+from flask import Blueprint, Response, jsonify, render_template, request
 from flask_login import current_user, login_required
 
+from sqlalchemy import or_
+
+from app import db
 from app.constants import DatabaseType, DATABASE_TYPES
 from app.models.account_classification import (
     AccountClassification,
@@ -14,6 +15,7 @@ from app.models.account_classification import (
 from app.errors import SystemError
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
+from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
 from app.services.account_sync import account_sync_service
 from app.utils.decorators import update_required, view_required
@@ -48,8 +50,6 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     classification_param = request.args.get("classification", "").strip()
     classification_filter = classification_param if classification_param not in {"", "all"} else ""
     classification = classification_param
-
-    from app.models.instance_account import InstanceAccount
 
     # 构建查询
     query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
@@ -290,6 +290,152 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
             exception=exc,
         )
         raise SystemError("获取账户权限失败") from exc
+
+
+@account_bp.route("/api/list", methods=["GET"])
+@login_required
+@view_required
+def list_accounts_api() -> Response:
+    """Grid.js 账户列表 API"""
+
+    page = request.args.get("page", 1, type=int)
+    limit = request.args.get("limit", 20, type=int)
+    sort_field = request.args.get("sort", "username")
+    sort_order = request.args.get("order", "asc").lower()
+
+    db_type = (request.args.get("db_type") or "").strip()
+    search = (request.args.get("search") or request.args.get("q") or "").strip()
+    instance_id = request.args.get("instance_id", type=int)
+    is_locked = request.args.get("is_locked")
+    is_superuser = request.args.get("is_superuser")
+    classification_param = (request.args.get("classification") or "").strip()
+    classification_filter = classification_param if classification_param not in {"", "all"} else ""
+    tags = [tag for tag in request.args.getlist("tags") if tag.strip()]
+    if not tags:
+        raw_tags = request.args.get("tags", "")
+        if raw_tags:
+            tags = [tag.strip() for tag in raw_tags.split(",") if tag.strip()]
+
+    query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+    query = query.filter(InstanceAccount.is_active.is_(True))
+
+    if db_type and db_type != "all":
+        query = query.filter(AccountPermission.db_type == db_type)
+
+    if instance_id:
+        query = query.filter(AccountPermission.instance_id == instance_id)
+
+    if search:
+        query = query.join(Instance, AccountPermission.instance_id == Instance.id)
+        query = query.filter(
+            or_(
+                AccountPermission.username.contains(search),
+                Instance.name.contains(search),
+                Instance.host.contains(search),
+            )
+        )
+
+    if is_locked is not None and is_locked != "":
+        if is_locked == "true":
+            query = query.filter(AccountPermission.is_locked.is_(True))
+        elif is_locked == "false":
+            query = query.filter(AccountPermission.is_locked.is_(False))
+
+    if is_superuser is not None and is_superuser != "":
+        query = query.filter(AccountPermission.is_superuser == (is_superuser == "true"))
+
+    if tags:
+        try:
+            query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+        except Exception as exc:  # noqa: BLE001
+            log_error(
+                "标签过滤失败",
+                module="account",
+                tags=tags,
+                error=str(exc),
+            )
+
+    if classification_filter:
+        try:
+            classification_id = int(classification_filter)
+            query = (
+                query.join(AccountClassificationAssignment)
+                .join(AccountClassification)
+                .filter(
+                    AccountClassification.id == classification_id,
+                    AccountClassificationAssignment.is_active.is_(True),
+                )
+            )
+        except (ValueError, TypeError) as exc:
+            log_error(
+                "分类ID转换失败",
+                module="account",
+                classification=classification_filter,
+                error=str(exc),
+            )
+
+    sortable_fields = {
+        "username": AccountPermission.username,
+        "db_type": AccountPermission.db_type,
+        "is_locked": AccountPermission.is_locked,
+        "is_superuser": AccountPermission.is_superuser,
+    }
+    order_column = sortable_fields.get(sort_field, AccountPermission.username)
+    query = query.order_by(order_column.desc() if sort_order == "desc" else order_column.asc())
+
+    pagination = query.paginate(page=page, per_page=limit, error_out=False)
+
+    classifications = {}
+    if pagination.items:
+        account_ids = [account.id for account in pagination.items]
+        assignments = AccountClassificationAssignment.query.filter(
+            AccountClassificationAssignment.account_id.in_(account_ids),
+            AccountClassificationAssignment.is_active.is_(True),
+        ).all()
+        for assignment in assignments:
+            classifications.setdefault(assignment.account_id, []).append(
+                {
+                    "name": assignment.classification.name,
+                    "color": assignment.classification.color_value,
+                }
+            )
+
+    items: list[dict[str, object]] = []
+    for account in pagination.items:
+        instance = account.instance
+        item_tags = []
+        if instance and instance.tags:
+            item_tags = [
+                {
+                    "name": tag.name,
+                    "display_name": tag.display_name,
+                    "color": tag.color,
+                }
+                for tag in instance.tags
+            ]
+        items.append(
+            {
+                "id": account.id,
+                "username": account.username,
+                "instance_name": instance.name if instance else "未知实例",
+                "instance_host": instance.host if instance else "未知主机",
+                "db_type": account.db_type,
+                "is_locked": account.is_locked,
+                "is_superuser": account.is_superuser,
+                "tags": item_tags,
+                "classifications": classifications.get(account.id, []),
+            }
+        )
+
+    payload = {
+        "items": items,
+        "total": pagination.total,
+        "page": pagination.page,
+        "pages": pagination.pages,
+        "limit": pagination.per_page,
+    }
+
+    return jsonify_unified_success(data=payload, message="获取账户列表成功")
 
 
 # 注册统计相关路由

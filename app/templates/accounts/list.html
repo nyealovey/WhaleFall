@@ -4,6 +4,7 @@
 {% block title %}账户管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/list.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag-selector.css') }}">
 {% endblock %}
@@ -29,210 +30,57 @@
     </div>
 </div>
 
-<div class="container-fluid">
+<div class="container-fluid" id="accounts-page-root" data-current-db-type="{{ current_db_type or 'all' }}">
 
     <!-- 搜索和筛选 -->
     <div class="accounts-page">
-        {% call filter_card(form_id='account-filter-form', action=request.path) %}
+        {% call filter_card(form_id='account-filter-form', action='#', auto_register=False) %}
             {{ search_input(value=search, placeholder='搜索账户 / 实例') }}
             {{ classification_filter(classification_options, classification) }}
             {{ tag_selector_filter(tag_options, selected_tags, field_id='account-tag-selector') }}
         {% endcall %}
     </div>
 
-
     <!-- 数据库类型切换按钮 -->
     <div class="row mb-3">
         <div class="col-12">
             <div class="btn-group" role="group">
-                <a href="{{ url_for('account.list_accounts') }}"
-                   class="btn {% if not current_db_type %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}">
+                <button type="button"
+                        class="btn {% if not current_db_type or current_db_type == 'all' %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
+                        data-db-type-btn
+                        data-db-type="all">
                     <i class="fas fa-database me-1"></i>全部
-                </a>
+                </button>
                 {% for db_type in database_type_options %}
-                <a href="{{ url_for('account.list_accounts', db_type=db_type.value) }}"
-                   class="btn {% if current_db_type == db_type.value %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}">
+                <button type="button"
+                        class="btn {% if current_db_type == db_type.value %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
+                        data-db-type-btn
+                        data-db-type="{{ db_type.value }}">
                     <i class="fas {{ db_type.icon }} me-1"></i>
                     {{ db_type.label }}
-                </a>
+                </button>
                 {% endfor %}
             </div>
         </div>
     </div>
 
-<!-- 账户列表 -->
-<div class="card">
-    <div class="card-body">
-        {% if accounts.items %}
-        <!-- 批量操作工具栏 -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="d-flex align-items-center">
-                <span class="text-muted">账户管理</span>
-                <a href="{{ url_for('files.export_accounts', db_type=current_db_type, search=search, instance_id=instance_id, is_locked=is_locked, is_superuser=is_superuser, plugin=plugin, classification=classification) }}" class="btn btn-outline-primary btn-sm ms-3">
-                    <i class="fas fa-download me-1"></i>导出CSV
-                </a>
+    <!-- 账户列表（Grid.js） -->
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center">
+                    <span class="text-muted">账户管理</span>
+                    <button type="button"
+                            class="btn btn-outline-primary btn-sm ms-3"
+                            onclick="AccountsActions.exportCSV()">
+                        <i class="fas fa-download me-1"></i>导出CSV
+                    </button>
+                </div>
+                <div class="text-muted" id="accounts-total">加载中...</div>
             </div>
-            <div class="text-muted">
-                共 {{ accounts.total }} 个账户
-            </div>
+            <div id="accounts-grid"></div>
         </div>
-
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>账户名称</th>
-                        <th>实例信息</th>
-                        <th>IP地址</th>
-                        <th>标签</th>
-                        {% if not current_db_type %}
-                        <th>数据库类型</th>
-                        {% endif %}
-                        <th>分类</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for account in accounts.items %}
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-user text-primary me-2"></i>
-                                <strong>{{ account.username }}</strong>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-database text-info me-2"></i>
-                                <small class="text-muted">{{ account.instance.name if account.instance else '未知实例' }}</small>
-                            </div>
-                        </td>
-                        <td>
-                            <small class="text-muted">{{ account.instance.host if account.instance else '未知主机' }}</small>
-                        </td>
-                        <td>
-                            {% if account.instance and account.instance.tags %}
-                                {% for tag in account.instance.tags %}
-                                    <span class="badge bg-{{ tag.color }} me-1 mb-1">
-                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted">无标签</span>
-                            {% endif %}
-                        </td>
-                        {% if not current_db_type %}
-                        <td>
-                            {% if account.db_type == 'mysql' %}
-                            <span class="badge bg-success">
-                                <i class="fas fa-database me-1"></i>MySQL
-                            </span>
-                            {% elif account.db_type == 'postgresql' %}
-                            <span class="badge bg-primary">
-                                <i class="fas fa-database me-1"></i>PostgreSQL
-                            </span>
-                            {% elif account.db_type == 'sqlserver' %}
-                            <span class="badge bg-warning">
-                                <i class="fas fa-server me-1"></i>SQL Server
-                            </span>
-                            {% elif account.db_type == 'oracle' %}
-                            <span class="badge bg-info">
-                                <i class="fas fa-database me-1"></i>Oracle
-                            </span>
-                            {% else %}
-                            <span class="badge bg-secondary">
-                                <i class="fas fa-database me-1"></i>{{ account.db_type.upper() }}
-                            </span>
-                            {% endif %}
-                        </td>
-                        {% endif %}
-                        <td>
-                            {% if classifications.get(account.id) %}
-                                {% for classification in classifications[account.id] %}
-                                    <span class="badge me-1 mb-1" style="background-color: {{ classification.color or '#6c757d' }}; color: white;">
-                                        {{ classification.name }}
-                                    </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted">未分类</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if not account.is_locked %}
-                                <span class="badge bg-success">正常</span>
-                            {% else %}
-                                <span class="badge bg-danger">已锁定</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-primary" 
-                                        onclick="viewAccountPermissions({{ account.id }})" title="查看权限">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-users fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted">暂无账户数据</h5>
-            <p class="text-muted">当前筛选条件下没有找到账户记录</p>
-            <button type="button" class="btn btn-primary" onclick="syncAllAccounts()">
-                <i class="fas fa-sync me-2"></i>同步账户数据
-            </button>
-        </div>
-        {% endif %}
     </div>
-</div>
-
-        <!-- 分页 -->
-        {% if accounts.pages > 1 %}
-        <nav aria-label="账户分页">
-            <ul class="pagination justify-content-center">
-                {% if accounts.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('account.list_accounts', page=accounts.prev_num, **persist_query_args) }}">
-                        上一页
-                    </a>
-                </li>
-                {% endif %}
-
-                {% for page_num in accounts.iter_pages() %}
-                    {% if page_num %}
-                        {% if page_num != accounts.page %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for('account.list_accounts', page=page_num, **persist_query_args) }}">
-                                {{ page_num }}
-                            </a>
-                        </li>
-                        {% else %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ page_num }}</span>
-                        </li>
-                        {% endif %}
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">…</span>
-                    </li>
-                    {% endif %}
-                {% endfor %}
-
-                {% if accounts.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('account.list_accounts', page=accounts.next_num, **persist_query_args) }}">
-                        下一页
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
 
 </div>
 
@@ -243,6 +91,8 @@
 <div id="list-page-tag-selector">
     {% include 'components/tag_selector.html' %}
 </div>
+<script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/instance_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/components/permissions/permission-viewer.js') }}"></script>
