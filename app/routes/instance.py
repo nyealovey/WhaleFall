@@ -98,7 +98,6 @@ def index() -> str:
         db_type=db_type,
         status=status_param,
         selected_tags=tags,
-        current_db_type=db_type or "all",
     )
 
 
