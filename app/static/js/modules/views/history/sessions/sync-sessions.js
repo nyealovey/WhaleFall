@@ -96,6 +96,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
     sessionsGrid = new GridWrapper(container, {
       search: false,
+      sort: false,
       columns: buildColumns(),
       server: {
         url: '/sync_sessions/api/sessions?sort=started_at&order=desc',
