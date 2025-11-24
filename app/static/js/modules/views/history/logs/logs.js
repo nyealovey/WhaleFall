@@ -133,7 +133,9 @@
                     }
                     return gridHtml
                         ? gridHtml(
-                              `<button type="button" class="btn btn-link btn-sm p-0" data-log-id="${meta.id}" onclick="window.LogsPage.openDetail(${meta.id})">详情</button>`
+                              `<button class="btn btn-sm btn-outline-primary" data-log-id="${meta.id}" onclick="window.LogsPage.openDetail(${meta.id})">
+                                <i class="fas fa-eye"></i> 详情
+                              </button>`
                           )
                         : '详情';
                 },
