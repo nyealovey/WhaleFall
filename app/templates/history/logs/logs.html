@@ -6,6 +6,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history/logs.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -44,15 +45,7 @@
     <!-- 日志列表 -->
     <div class="card logs-container">
         <div class="card-body">
-            <div id="logsContainer">
-                <div class="loading">
-                    <i class="fas fa-spinner fa-spin"></i><br>
-                    加载中...
-                </div>
-            </div>
-            
-            <!-- 分页 -->
-            <div id="paginationContainer"></div>
+            <div id="logs-grid"></div>
         </div>
     </div>
 </div>
@@ -62,8 +55,9 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/modules/services/logs_service.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/stores/logs_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/logs/modals/log-detail-modal.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/logs/logs.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap/history/logs.js') }}"></script>
 {% endblock %}

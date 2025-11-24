@@ -69,6 +69,11 @@
       return this.httpClient.get(`${BASE_PATH}/search${query}`);
     }
 
+    fetchLogList(params) {
+      const query = toQueryString(params);
+      return this.httpClient.get(`${BASE_PATH}/list${query}`);
+    }
+
     fetchLogDetail(logId) {
       if (!logId && logId !== 0) {
         throw new Error("LogsService: fetchLogDetail 需要 logId");
