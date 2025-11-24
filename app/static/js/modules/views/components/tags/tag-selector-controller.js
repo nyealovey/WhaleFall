@@ -421,26 +421,42 @@
               } else {
                 chipsEl.innerHTML = selectedTags.map(tag => {
                   const displayName = tag.display_name || tag.name || '';
-                  const color = tag.color || 'bg-primary';
-                  const badgeClass = color.startsWith('bg-') ? color : 'bg-primary';
-                  return `<span class="badge ${badgeClass} me-1">${displayName}</span>`;
+                  const color = tag.color || '';
+                  let badgeClass = 'badge me-1 mb-1';
+                  
+                  // 处理颜色
+                  if (color.startsWith('bg-')) {
+                    badgeClass += ' ' + color;
+                  } else if (color.startsWith('#')) {
+                    badgeClass += ' bg-secondary';
+                  } else if (color) {
+                    badgeClass += ' bg-' + color;
+                  } else {
+                    badgeClass += ' bg-secondary';
+                  }
+                  
+                  return `<span class="${badgeClass}">${displayName}</span>`;
                 }).join('');
               }
             }
             
-            // 更新计数
+            // 更新计数文本
             const countEl = toElement(countSelector);
             if (countEl) {
-              countEl.textContent = selectedTags.length;
+              if (selectedTags.length === 0) {
+                countEl.textContent = '未选择标签';
+              } else {
+                countEl.textContent = `已选择 ${selectedTags.length} 个标签`;
+              }
             }
             
-            // 更新预览文本
+            // 更新预览容器显示/隐藏
             const previewEl = toElement(previewSelector);
             if (previewEl) {
               if (selectedTags.length === 0) {
-                previewEl.textContent = '未选择标签';
+                previewEl.style.display = 'none';
               } else {
-                previewEl.textContent = `已选择 ${selectedTags.length} 个标签`;
+                previewEl.style.display = '';
               }
             }
             
