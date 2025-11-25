@@ -3,6 +3,10 @@
 
   /**
    * 统一获取 mitt 实例。
+   *
+   * @param {Object} [emitter] - 可选的 mitt 实例
+   * @return {Object} mitt 事件总线实例
+   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
    */
   function ensureEmitter(emitter) {
     if (emitter) {
@@ -16,6 +20,9 @@
 
   /**
    * 将 id 列表转换成数值数组。
+   *
+   * @param {Array} ids - ID 数组
+   * @return {Array} 规范化后的数字 ID 数组
    */
   function normalizeIds(ids) {
     if (!Array.isArray(ids)) {
@@ -33,6 +40,9 @@
 
   /**
    * 拷贝 state，方便事件 payload 传递。
+   *
+   * @param {Object} state - 状态对象
+   * @return {Object} 状态对象的拷贝
    */
   function cloneState(state) {
     return {
@@ -42,6 +52,26 @@
     };
   }
 
+  /**
+   * 创建标签列表状态管理 Store。
+   *
+   * 提供标签选择管理功能，支持添加、移除、切换、全选等操作。
+   * 适用于需要管理标签选择状态的场景。
+   *
+   * @param {Object} options - 配置选项
+   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
+   * @param {Array} [options.initialTagIds] - 初始可用标签 ID 列表
+   * @param {Array} [options.initialSelection] - 初始选中的标签 ID 列表
+   * @return {Object} Store API 对象
+   *
+   * @example
+   * const store = createTagListStore({
+   *   initialTagIds: [1, 2, 3],
+   *   initialSelection: [1]
+   * });
+   * store.actions.addTag(2);
+   * console.log(store.getState());
+   */
   function createTagListStore(options) {
     const opts = options || {};
     const emitter = ensureEmitter(opts.emitter);
