@@ -5,8 +5,18 @@
 
 /**
  * 提供统一连接测试/校验的前端控制器。
+ *
+ * 封装数据库连接测试和管理功能，提供统一的接口和错误处理。
+ *
+ * @class
  */
 class ConnectionManager {
+    /**
+     * 构造函数。
+     *
+     * @constructor
+     * @throws {Error} 当 ConnectionService 未初始化时抛出
+     */
     constructor() {
         this.baseUrl = '/connections/api';
         this.csrfToken = this.getCSRFToken();
@@ -21,20 +31,23 @@ class ConnectionManager {
     }
 
     /**
-     * 获取CSRF令牌 - 使用全局函数
+     * 获取CSRF令牌 - 使用全局函数。
+     *
+     * @return {string} CSRF 令牌
      */
     getCSRFToken() {
         return window.getCSRFToken();
     }
 
     /**
-     * 测试现有实例连接
-     * @param {number} instanceId - 实例ID
-     * @param {Object} options - 选项
-     * @returns {Promise<Object>} 测试结果
-     */
-    /**
      * 测试已存在实例的连接。
+     *
+     * @param {number} instanceId - 实例 ID
+     * @param {Object} [options] - 选项配置
+     * @param {Object} [options.payload] - 测试参数
+     * @param {Function} [options.onSuccess] - 成功回调函数
+     * @param {Function} [options.onError] - 错误回调函数
+     * @return {Promise<Object>} 测试结果
      */
     async testInstanceConnection(instanceId, options = {}) {
         try {

@@ -178,8 +178,22 @@
 
   /**
    * 容量统计总控：负责筛选、数据加载与图表渲染。
+   *
+   * 统一管理容量统计的筛选器、数据加载和图表渲染，支持趋势图、变化图和百分比图。
+   *
+   * @class
    */
   class CapacityStatsManager {
+    /**
+     * 构造函数。
+     *
+     * @constructor
+     * @param {Object} userConfig - 用户配置对象
+     * @param {Function} userConfig.labelExtractor - 标签提取函数（必需）
+     * @param {string} [userConfig.filterFormId] - 筛选表单 ID
+     * @param {boolean} [userConfig.autoApplyOnFilterChange=true] - 是否自动应用筛选
+     * @throws {Error} 当缺少 labelExtractor 配置时抛出
+     */
     constructor(userConfig) {
       const userOverrides = userConfig ? LodashUtils.cloneDeep(userConfig) : {};
       this.config = LodashUtils.merge({}, DEFAULT_CONFIG, userOverrides);

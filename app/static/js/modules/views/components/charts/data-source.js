@@ -9,6 +9,9 @@
 
   /**
    * 按常见字段尝试提取列表数据。
+   *
+   * @param {Object} response - API 响应对象
+   * @return {Array} 数据数组
    */
   function unwrapItems(response) {
     const candidates = [
@@ -35,6 +38,9 @@
 
   /**
    * 提取汇总对象，兼容不同返回结构。
+   *
+   * @param {Object} response - API 响应对象
+   * @return {Object} 汇总数据对象
    */
   function unwrapSummary(response) {
     return (
