@@ -11,20 +11,46 @@ from app.utils.version_parser import DatabaseVersionParser
 
 
 class ConnectionTestService:
-    """数据库连接测试服务"""
+    """数据库连接测试服务。
+
+    负责测试数据库实例的连接状态，获取版本信息，并更新实例的连接时间。
+
+    Attributes:
+        test_logger: 同步日志记录器。
+
+    Example:
+        >>> service = ConnectionTestService()
+        >>> result = service.test_connection(instance)
+        >>> result['success']
+        True
+    """
 
     def __init__(self) -> None:
+        """初始化连接测试服务。"""
         self.test_logger = get_sync_logger()
 
     def test_connection(self, instance: Instance) -> dict[str, Any]:
-        """
-        测试数据库连接
+        """测试数据库连接。
+
+        创建数据库连接，获取版本信息，并更新实例的连接状态。
 
         Args:
-            instance: 数据库实例
+            instance: 数据库实例对象。
 
         Returns:
-            测试结果
+            测试结果字典，包含以下字段：
+            - success: 连接是否成功
+            - message/error: 成功消息或错误信息
+            - version: 格式化的版本字符串（成功时）
+            - database_version: 原始版本字符串（成功时）
+            - main_version: 主版本号（成功时）
+            - detailed_version: 详细版本号（成功时）
+
+        Example:
+            >>> service = ConnectionTestService()
+            >>> result = service.test_connection(instance)
+            >>> if result['success']:
+            ...     print(f"版本: {result['version']}")
         """
         connection_obj: Any | None = None
         try:
@@ -112,7 +138,16 @@ class ConnectionTestService:
                     )
 
     def _update_last_connected(self, instance: Instance) -> None:
-        """更新最后连接时间，不影响已有版本信息"""
+        """更新最后连接时间。
+
+        更新实例的最后连接时间戳，不影响已有的版本信息。
+
+        Args:
+            instance: 数据库实例对象。
+
+        Returns:
+            None
+        """
         try:
             instance.last_connected = time_utils.now()
             db.session.commit()

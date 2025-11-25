@@ -27,6 +27,9 @@
 
     /**
      * 从事件或传入引用解析出按钮。
+     *
+     * @param {Element|Event|Object} trigger - 按钮引用或事件对象
+     * @return {Element|null} 按钮元素，未找到则返回 null
      */
     function resolveButton(trigger) {
         if (trigger) {
@@ -43,6 +46,10 @@
 
     /**
      * 控制按钮 loading 状态，防重复点击。
+     *
+     * @param {Element} button - 按钮元素
+     * @param {boolean} isLoading - 是否显示加载状态
+     * @return {void}
      */
     function toggleButtonLoading(button, isLoading) {
         if (!button) {
@@ -68,6 +75,8 @@
 
     /**
      * 向后兼容的 CSRF 读取（httpU 已处理）。
+     *
+     * @return {string} CSRF token 值
      */
     function resolveCsrfToken() {
         if (!selectOne || !helpers) {
@@ -88,6 +97,15 @@
 
     /**
      * 入口：查看账户权限并展示模态。
+     *
+     * @param {number|string} accountId - 账户 ID
+     * @param {Object} [options] - 配置选项
+     * @param {string} [options.apiUrl] - API 地址
+     * @param {Function} [options.onSuccess] - 成功回调
+     * @param {Function} [options.onError] - 错误回调
+     * @param {Function} [options.onFinally] - 完成回调
+     * @param {Element|Event} [options.trigger] - 触发元素
+     * @return {void}
      */
     function viewAccountPermissions(accountId, options = {}) {
         const {
@@ -137,6 +155,11 @@
 
     /**
      * 直接拉取账户权限数据（返回 Promise）。
+     *
+     * @param {number|string} accountId - 账户 ID
+     * @param {string} [apiUrl] - API 地址
+     * @return {Promise<Object>} 权限数据 Promise
+     * @throws {Error} 当获取失败时抛出
      */
     function fetchAccountPermissions(accountId, apiUrl = `/account/api/${accountId}/permissions`) {
         resolveCsrfToken();

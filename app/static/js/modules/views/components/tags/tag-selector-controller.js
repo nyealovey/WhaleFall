@@ -19,6 +19,9 @@
 
   /**
    * 解析输入为 DOM 元素，兼容字符串/Element/umbrella 对象。
+   *
+   * @param {string|Element|Object} target - 目标元素
+   * @return {Element|null} DOM 元素，未找到则返回 null
    */
   function toElement(target) {
     if (!target) {
@@ -38,6 +41,11 @@
 
   /**
    * 排序工具，供 controller 和 view 共享。
+   *
+   * 按激活状态和显示名称排序标签。
+   *
+   * @param {Array<Object>} items - 标签数组
+   * @return {Array<Object>} 排序后的标签数组
    */
   function orderTags(items) {
     if (!Array.isArray(items)) {
@@ -58,8 +66,25 @@
 
   /**
    * 视图与 store 的中间层，负责数据同步与外部 API。
+   *
+   * @class
    */
   class TagSelectorController {
+    /**
+     * 构造函数。
+     *
+     * @constructor
+     * @param {string|Element} root - 根元素选择器或元素
+     * @param {Object} [options] - 配置选项
+     * @param {Object} [options.endpoints] - API 端点配置
+     * @param {string} [options.hiddenInputSelector] - 隐藏输入框选择器
+     * @param {string} [options.hiddenValueKey] - 隐藏值字段名
+     * @param {Array} [options.initialValues] - 初始选中值
+     * @param {Function} [options.onConfirm] - 确认回调
+     * @param {Function} [options.onCancel] - 取消回调
+     * @param {Element} [options.modalElement] - 模态框元素
+     * @throws {Error} 当 root 未找到时抛出
+     */
     constructor(root, options = {}) {
       this.root = toElement(root);
       if (!this.root) {
@@ -115,6 +140,8 @@
 
     /**
      * 初始化 store 订阅并同步初始状态。
+     *
+     * @return {Promise<TagSelectorController>} 返回自身实例
      */
     async initialize() {
       this.bindStoreEvents();
@@ -129,6 +156,8 @@
 
     /**
      * 订阅 store 事件，捕获分类/标签/选择的变化。
+     *
+     * @return {void}
      */
     bindStoreEvents() {
       this.store.subscribe("tagManagement:categoriesUpdated", (payload) => {
@@ -157,6 +186,8 @@
 
     /**
      * 将当前 store 状态同步到 controller 内部 state。
+     *
+     * @return {void}
      */
     syncFromStore() {
       const current = this.store.getState();
@@ -169,6 +200,8 @@
 
     /**
      * 初次渲染所有区域。
+     *
+     * @return {void}
      */
     renderAll() {
       this.renderCategories();
@@ -179,6 +212,8 @@
 
     /**
      * 分类区域渲染。
+     *
+     * @return {void}
      */
     renderCategories() {
       this.view.renderCategories(this.state.categories);
@@ -186,6 +221,8 @@
 
     /**
      * 标签列表渲染。
+     *
+     * @return {void}
      */
     renderTags() {
       this.view.renderTagList(this.state.filteredTags, this.state.selection);
@@ -193,6 +230,8 @@
 
     /**
      * 已选标签区域渲染与隐藏域同步。
+     *
+     * @return {void}
      */
     renderSelection() {
       const selectedTags = this.getSelectedTags();
@@ -202,6 +241,8 @@
 
     /**
      * 统计信息渲染。
+     *
+     * @return {void}
      */
     renderStats() {
       this.view.updateStats(this.state.stats);
@@ -209,6 +250,9 @@
 
     /**
      * 分类筛选切换处理。
+     *
+     * @param {string} value - 分类值
+     * @return {void}
      */
     handleCategory(value) {
       this.store.actions.setCategory(value || "all");
@@ -216,6 +260,9 @@
 
     /**
      * 点击标签的切换逻辑。
+     *
+     * @param {number|string} tagId - 标签 ID
+     * @return {void}
      */
     toggleTag(tagId) {
       const numericId = Number(tagId);
@@ -231,6 +278,9 @@
 
     /**
      * 从已选中移除标签。
+     *
+     * @param {number} tagId - 标签 ID
+     * @return {void}
      */
     removeTag(tagId) {
       this.store.actions.removeTag(tagId);
@@ -238,6 +288,8 @@
 
     /**
      * 点击确认后分发事件并关闭模态。
+     *
+     * @return {void}
      */
     confirmSelection() {
       const selectedTags = this.getSelectedTags();
@@ -252,6 +304,11 @@
 
     /**
      * 关闭或取消模态时的统一处理。
+     *
+     * @param {Object} [options] - 配置选项
+     * @param {string} [options.reason] - 取消原因
+     * @param {boolean} [options.hideModal] - 是否隐藏模态框
+     * @return {void}
      */
     emitCancel(options = {}) {
       const detail = {
@@ -269,6 +326,10 @@
 
     /**
      * 对外派发自定义事件，供监听方使用。
+     *
+     * @param {string} name - 事件名称
+     * @param {Object} detail - 事件详情
+     * @return {void}
      */
     dispatchCustomEvent(name, detail) {
       const event = new CustomEvent(name, { bubbles: true, detail });
@@ -277,6 +338,9 @@
 
     /**
      * 将已选标签写回隐藏 input，供表单提交使用。
+     *
+     * @param {Array<Object>} tags - 标签数组
+     * @return {void}
      */
     syncHiddenInput(tags) {
       const hiddenInput = toElement(this.options.hiddenInputSelector);
@@ -292,6 +356,8 @@
 
     /**
      * 根据 selection id 列表返回完整标签对象数组。
+     *
+     * @return {Array<Object>} 已选标签数组
      */
     getSelectedTags() {
       const ids = Array.from(this.state.selection);
@@ -303,6 +369,8 @@
 
     /**
      * 对外暴露的打开模态方法。
+     *
+     * @return {void}
      */
     openModal() {
       this.modal?.open?.();
@@ -310,6 +378,8 @@
 
     /**
      * 返回初始化 promise，方便外部等待。
+     *
+     * @return {Promise<TagSelectorController>} 初始化 Promise
      */
     ready() {
       return this.readyPromise;

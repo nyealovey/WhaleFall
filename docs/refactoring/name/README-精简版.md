@@ -1,4 +1,4 @@
-# 命名规范重构文档（2025-11-18 更新）
+# 命名规范重构文档（2025-11-18 再次扫描版）
 
 > 基于实际代码扫描，识别出 **约 60 项命名问题**
 
@@ -7,9 +7,8 @@
 | 类别 | 数量 | 状态 |
 |-----|------|------|
 | 后端文件命名 | 16 个 | 🔴 待重构 |
-| 前端目录命名 | 0 个 | ✅ 已完成 |
-| 前端文件命名 | 0 个 | ✅ 已完成 |
-| 函数命名 | 约 40 个 | 🔴 待重构 |
+| 前端目录/文件 | 0 个 | ✅ 已完成（已采用 kebab-case） |
+| 函数命名 | 35+ 个 | 🔴 待重构（含新增函数） |
 | **总计** | **约 60 项** | - |
 
 **预计工作量**: 3-5 天  
@@ -73,58 +72,50 @@ app/services/form_service/tags_form_service.py → tag_service.py
 app/services/form_service/users_form_service.py → user_service.py
 ```
 
-### 函数重命名（约 40 个）
+### 函数重命名（再扫描结果）
 
-```python
-# 移除 api_ 前缀（约 25 个）
-# routes/users.py
-api_get_users() → list_users()
-api_get_user() → get_user()
-api_create_user() → create_user()
-api_update_user() → update_user()
-api_delete_user() → delete_user()
-api_get_stats() → get_stats()
+> 以下列表取自 `./scripts/refactor_naming.sh --dry-run` 的最新输出，请按模块依次修复并随手运行脚本确认。
 
-# routes/instance.py
-api_list() → list_instances()
-api_detail() → get_instance()
-api_get_accounts() → get_accounts()
+#### 1. `api_` 前缀（共 26 个）
 
-# routes/credentials.py
-api_list() → list_credentials()
-api_detail() → get_credential()
+- `routes/users.py`：`api_get_users / api_get_user / api_create_user / api_update_user / api_delete_user / api_get_stats`
+- `routes/instance.py`：`api_detail / api_get_accounts`
+- `routes/credentials.py`：`api_list / api_detail`
+- `routes/tags.py`：`api_tags / api_categories / api_tag_detail / api_tag_detail_by_id`
+- `routes/tags_batch.py`：`api_instance_tags / api_instances / api_all_tags`
+- `routes/sync_sessions.py`：`api_get_session_detail / api_cancel_session / api_get_error_logs`
+- `routes/dashboard.py`：`api_overview / api_charts / api_activities / api_status`
+- `routes/health.py`：`api_health / api_cache_health`
+- `routes/instance_statistics.py`：`api_statistics`
 
-# routes/tags.py
-api_tags() → list_tags()
-api_categories() → list_categories()
-api_tag_detail() → get_tag()
+统一规则：改为 REST 风格动词，如 `list_tags()`、`get_session_detail()`。
 
-# routes/dashboard.py
-api_overview() → get_overview()
-api_charts() → get_charts()
-api_activities() → get_activities()
-api_status() → get_status()
+#### 2. `_api` 后缀（共 16 个）
 
-# ... 其他文件
+- `routes/account.py`：`list_accounts_api`
+- `routes/logs.py`：`get_log_modules_api`
+- `routes/instance_detail.py`：`edit_api`
+- `routes/credentials.py`：`create_api / edit_api`
+- `routes/account_stat.py`：`statistics_api / statistics_summary_api / statistics_db_type_api / statistics_classification_api`
+- `routes/instance.py`：`create_api / list_instances_api`
+- `routes/auth.py`：`login_api / change_password_api`
+- `routes/tags.py`：`create_api / edit_api / list_tags_api`
 
-# 统一 _api 后缀（约 10 个）
-# routes/account_stat.py
-statistics_api() → get_statistics()
-statistics_summary_api() → get_statistics_summary()
-statistics_db_type_api() → get_statistics_by_db_type()
-statistics_classification_api() → get_classification_statistics()
+统一规则：保持动词 + 资源名，例如 `create_credential()`, `get_log_modules()`。
 
-# routes/auth.py
-login_api() → login()
-change_password_api() → change_password()
+#### 3. `_optimized` 后缀（2 个）
 
-# ... 其他文件
+- `services/account_classification/orchestrator.py`: `auto_classify_accounts_optimized`
+- `services/account_sync/adapters/sqlserver_adapter.py`: `_get_all_users_database_permissions_batch_optimized`
 
-# 修复语法错误（2 个）
-# routes/database_aggr.py
-get_databases_aggregations() → get_database_aggregations()
-get_databases_aggregations_summary() → get_database_aggregations_summary()
-```
+统一改为无实现细节的名称（例如 `auto_classify_accounts` / `_get_all_users_database_permissions_batch`）。
+
+#### 4. 复数错误函数名（4 个）
+
+- `routes/database_aggr.py`：`get_databases_aggregations`, `get_databases_aggregations_summary`
+- `routes/instance_aggr.py`：`get_instances_aggregations`, `get_instances_aggregations_summary`
+
+改为 `database`/`instance` 单数 + `aggregations`。
 
 ---
 

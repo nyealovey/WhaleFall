@@ -2,7 +2,16 @@
   'use strict';
 
   /**
-   * 实例模态控制器：负责创建/编辑实例。
+   * 创建实例新建/编辑模态控制器。
+   *
+   * @param {Object} [options] - 配置选项
+   * @param {Object} [options.http] - HTTP 请求工具
+   * @param {Object} [options.FormValidator] - 表单验证器
+   * @param {Object} [options.ValidationRules] - 验证规则
+   * @param {Object} [options.toast] - Toast 通知工具
+   * @param {Object} [options.DOMHelpers] - DOM 辅助工具
+   * @return {Object} 控制器对象，包含 init、openCreate、openEdit 方法
+   * @throws {Error} 当必需的依赖未初始化时抛出
    */
   function createController(options) {
     const {
@@ -27,6 +36,11 @@
     let mode = 'create';
     let validator = null;
 
+    /**
+     * 初始化表单验证与事件。
+     *
+     * @return {void}
+     */
     function init() {
       if (!FormValidator || !ValidationRules) {
         console.warn('InstanceModals: FormValidator/ValidationRules 未加载');
@@ -46,6 +60,11 @@
       modalEl.addEventListener('hidden.bs.modal', resetForm);
     }
 
+    /**
+     * 重置表单状态为创建模式。
+     *
+     * @return {void}
+     */
     function resetForm() {
       form.reset();
       form.dataset.formMode = 'create';
@@ -58,11 +77,22 @@
       }
     }
 
+    /**
+     * 打开新建模态。
+     *
+     * @return {void}
+     */
     function openCreate() {
       resetForm();
       modal.show();
     }
 
+    /**
+     * 打开编辑模态并填充数据。
+     *
+     * @param {number|string} instanceId - 实例 ID
+     * @return {Promise<void>}
+     */
     async function openEdit(instanceId) {
       if (!instanceId) return;
       try {
@@ -83,6 +113,12 @@
       }
     }
 
+    /**
+     * 填充表单数据。
+     *
+     * @param {Object} instance - 实例对象
+     * @return {void}
+     */
     function fillForm(instance) {
       form.instance_id.value = instance.id;
       form.name.value = instance.name || '';
@@ -98,6 +134,12 @@
       form.is_active.checked = Boolean(instance.is_active);
     }
 
+    /**
+     * 表单提交入口，按模式调用创建/更新。
+     *
+     * @param {Event} event - 提交事件
+     * @return {void}
+     */
     function handleSubmit(event) {
       event.preventDefault();
       const payload = buildPayload();
@@ -110,6 +152,11 @@
       }
     }
 
+    /**
+     * 将表单值组装为 payload。
+     *
+     * @return {Object|null} 表单数据对象
+     */
     function buildPayload() {
       const data = new FormData(form);
       const payload = {
@@ -128,6 +175,12 @@
       return payload;
     }
 
+    /**
+     * 调用后端创建实例。
+     *
+     * @param {Object} payload - 实例数据
+     * @return {void}
+     */
     function submitCreate(payload) {
       http.post('/instances/api/create', payload)
         .then((resp) => {
@@ -143,6 +196,12 @@
         .finally(() => toggleLoading(false));
     }
 
+    /**
+     * 调用后端更新实例。
+     *
+     * @param {Object} payload - 实例数据
+     * @return {void}
+     */
     function submitUpdate(payload) {
       const id = payload.id;
       if (!id) {
@@ -164,6 +223,12 @@
         .finally(() => toggleLoading(false));
     }
 
+    /**
+     * 切换提交按钮 loading 状态。
+     *
+     * @param {boolean} loading - 是否显示加载状态
+     * @return {void}
+     */
     function toggleLoading(loading) {
       if (!submitBtn) return;
       submitBtn.disabled = loading;

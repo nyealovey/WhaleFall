@@ -1,5 +1,6 @@
-"""
-鲸落 - 同步实例记录模型
+"""同步实例记录模型。
+
+记录每个实例在同步会话中的详细执行情况，包括状态、统计数据和错误信息。
 """
 
 from app import db
@@ -7,14 +8,31 @@ from app.utils.time_utils import time_utils
 
 
 class SyncInstanceRecord(db.Model):
-    """同步实例记录模型 - 记录每个实例的同步详情
-    
-    支持多种同步类型：
-    - account: 账户同步
-    - capacity: 容量同步  
-    - aggregation: 聚合统计
-    - config: 配置同步
-    - other: 其他同步类型
+    """同步实例记录模型。
+
+    记录每个实例的同步详情，包括同步状态、时间、统计数据和错误信息。
+
+    Attributes:
+        id: 记录 ID。
+        session_id: 关联的同步会话 ID。
+        instance_id: 关联的实例 ID。
+        instance_name: 实例名称。
+        sync_category: 同步分类（account、capacity、aggregation、config、other）。
+        status: 同步状态（pending、running、completed、failed）。
+        started_at: 同步开始时间。
+        completed_at: 同步完成时间。
+        items_synced: 同步的项目数量。
+        items_created: 创建的项目数量。
+        items_updated: 更新的项目数量。
+        items_deleted: 删除的项目数量。
+        error_message: 错误消息。
+        sync_details: 同步详细信息（JSON）。
+        created_at: 记录创建时间。
+
+    Example:
+        >>> record = SyncInstanceRecord(session_id='abc-123', instance_id=1, instance_name='MySQL-01')
+        >>> record.start_sync()
+        >>> record.complete_sync(items_synced=100, items_created=10)
     """
 
     __tablename__ = "sync_instance_records"
@@ -75,7 +93,11 @@ class SyncInstanceRecord(db.Model):
         self.status = "pending"
 
     def to_dict(self) -> dict[str, any]:
-        """转换为字典"""
+        """转换为字典。
+
+        Returns:
+            包含所有字段的字典表示。
+        """
         return {
             "id": self.id,
             "session_id": self.session_id,
@@ -95,7 +117,10 @@ class SyncInstanceRecord(db.Model):
         }
 
     def start_sync(self) -> None:
-        """开始同步"""
+        """开始同步。
+
+        将状态设置为 running 并记录开始时间。
+        """
         self.status = "running"
         self.started_at = time_utils.now()
 
@@ -107,7 +132,17 @@ class SyncInstanceRecord(db.Model):
         items_deleted: int = 0,
         sync_details: dict | None = None,
     ) -> None:
-        """完成同步"""
+        """完成同步。
+
+        将状态设置为 completed 并记录统计数据。
+
+        Args:
+            items_synced: 同步的项目数量。
+            items_created: 创建的项目数量。
+            items_updated: 更新的项目数量。
+            items_deleted: 删除的项目数量。
+            sync_details: 同步详细信息。
+        """
         self.status = "completed"
         self.completed_at = time_utils.now()
         self.items_synced = items_synced
@@ -117,21 +152,39 @@ class SyncInstanceRecord(db.Model):
         self.sync_details = sync_details
 
     def fail_sync(self, error_message: str, sync_details: dict | None = None) -> None:
-        """同步失败"""
+        """同步失败。
+
+        将状态设置为 failed 并记录错误信息。
+
+        Args:
+            error_message: 错误消息。
+            sync_details: 同步详细信息。
+        """
         self.status = "failed"
         self.completed_at = time_utils.now()
         self.error_message = error_message
         self.sync_details = sync_details
 
     def get_duration_seconds(self) -> float | None:
-        """获取同步持续时间（秒）"""
+        """获取同步持续时间。
+
+        Returns:
+            同步持续时间（秒），如果未完成则返回 None。
+        """
         if not self.started_at or not self.completed_at:
             return None
         return (self.completed_at - self.started_at).total_seconds()
 
     @staticmethod
     def get_records_by_session(session_id: str) -> list["SyncInstanceRecord"]:
-        """根据会话ID获取所有实例记录"""
+        """根据会话 ID 获取所有实例记录。
+
+        Args:
+            session_id: 同步会话 ID。
+
+        Returns:
+            实例记录列表，按创建时间升序排列。
+        """
         return (
             SyncInstanceRecord.query.filter_by(session_id=session_id)
             .order_by(SyncInstanceRecord.created_at.asc())

@@ -14,7 +14,14 @@ from app.models.unified_log import UnifiedLog
 
 
 class LogQueueWorker:
-    """后台线程，按批次将日志写入数据库。"""
+    """后台线程，按批次将日志写入数据库。
+
+    Attributes:
+        app: Flask 应用实例。
+        queue: 日志条目队列。
+        batch_size: 批次大小。
+        flush_interval: 刷新间隔（秒）。
+    """
 
     def __init__(
         self,
@@ -24,6 +31,14 @@ class LogQueueWorker:
         batch_size: int = 100,
         flush_interval: float = 3.0,
     ) -> None:
+        """初始化日志队列工作线程。
+
+        Args:
+            app: Flask 应用实例。
+            queue_size: 队列最大容量，默认 1000。
+            batch_size: 批次大小，默认 100。
+            flush_interval: 刷新间隔（秒），默认 3.0。
+        """
         self.app = app
         self.queue: Queue[dict[str, Any]] = Queue(maxsize=queue_size)
         self.batch_size = batch_size
@@ -35,6 +50,11 @@ class LogQueueWorker:
         self._thread.start()
 
     def enqueue(self, log_entry: dict[str, Any]) -> None:
+        """将日志条目加入队列。
+
+        Args:
+            log_entry: 日志条目字典。
+        """
         if self._shutdown.is_set():
             return
         try:
@@ -45,11 +65,17 @@ class LogQueueWorker:
             )
 
     def shutdown(self, timeout: float = 5.0) -> None:
+        """关闭工作线程并刷新剩余日志。
+
+        Args:
+            timeout: 等待线程结束的超时时间（秒），默认 5.0。
+        """
         self._shutdown.set()
         self._thread.join(timeout=timeout)
         self._flush_buffer()
 
     def _run(self) -> None:
+        """工作线程主循环，从队列中取出日志并批量写入数据库。"""
         while not self._shutdown.is_set():
             try:
                 log_entry = self.queue.get(timeout=0.5)
@@ -64,6 +90,11 @@ class LogQueueWorker:
         self._flush_buffer()
 
     def _should_flush(self) -> bool:
+        """判断是否应该刷新缓冲区。
+
+        Returns:
+            如果缓冲区达到批次大小或超过刷新间隔，返回 True。
+        """
         if not self._buffer:
             return False
         if len(self._buffer) >= self.batch_size:
@@ -71,6 +102,7 @@ class LogQueueWorker:
         return time.time() - self._last_flush >= self.flush_interval
 
     def _flush_buffer(self) -> None:
+        """将缓冲区中的日志批量写入数据库。"""
         if not self._buffer:
             return
 

@@ -1,6 +1,19 @@
 (function (global, document) {
   'use strict';
 
+  /**
+   * 创建日志详情模态框控制器。
+   *
+   * @param {Object} [options] - 配置选项
+   * @param {Object} [options.ui] - UI 工具对象
+   * @param {Object} [options.toast] - Toast 通知对象
+   * @param {Object} [options.timeUtils] - 时间工具对象
+   * @param {string} [options.modalSelector] - 模态框选择器
+   * @param {string} [options.contentSelector] - 内容容器选择器
+   * @param {string} [options.copyButtonSelector] - 复制按钮选择器
+   * @return {Object} 控制器对象，包含 open 和 destroy 方法
+   * @throws {Error} 当 UI.createModal 未加载或模态框创建失败时抛出
+   */
   function createController(options = {}) {
     const {
       ui = global.UI,
@@ -32,12 +45,32 @@
       copyButton.addEventListener('click', handleCopyClick);
     }
 
+    /**
+     * 打开日志详情模态框。
+     *
+     * @param {Object} log - 日志对象
+     * @param {number|string} [log.id] - 日志 ID
+     * @param {string} [log.level] - 日志级别
+     * @param {string} [log.module] - 模块名称
+     * @param {string} [log.timestamp] - 时间戳
+     * @param {string} [log.message] - 日志消息
+     * @param {string} [log.traceback] - 堆栈信息
+     * @param {Object} [log.context] - 上下文数据
+     * @param {Object} [log.metadata] - 元数据
+     * @return {void}
+     */
     function open(log) {
       const safeLog = log && typeof log === 'object' ? log : {};
       renderLogDetail(safeLog);
       modal.open({ logId: safeLog.id });
     }
 
+    /**
+     * 渲染日志详情内容。
+     *
+     * @param {Object} log - 日志对象
+     * @return {void}
+     */
     function renderLogDetail(log) {
       const detailPayload = log.context || log.metadata || {};
       const detailTitle = log.context ? '上下文' : log.metadata ? '元数据' : '详情';
@@ -76,6 +109,12 @@
       contentElement.innerHTML = detailHtml;
     }
 
+    /**
+     * 构建上下文内容 HTML。
+     *
+     * @param {*} payload - 上下文数据
+     * @return {string} 上下文 HTML
+     */
     function buildContextContent(payload) {
       if (payload === null || payload === undefined) {
         return '<div class="text-muted">暂无上下文数据</div>';
@@ -103,6 +142,12 @@
       return `<pre class="bg-light p-3 rounded">${escapeHtml(String(payload))}</pre>`;
     }
 
+    /**
+     * 格式化时间戳。
+     *
+     * @param {string|Date} timestamp - 时间戳
+     * @return {string} 格式化后的时间字符串
+     */
     function formatTimestamp(timestamp) {
       if (!timestamp) {
         return '-';
@@ -117,6 +162,12 @@
       }
     }
 
+    /**
+     * 转义 HTML 特殊字符。
+     *
+     * @param {*} value - 要转义的值
+     * @return {string} 转义后的字符串
+     */
     function escapeHtml(value) {
       if (value === null || value === undefined) {
         return '';
@@ -129,6 +180,12 @@
         .replace(/'/g, '&#39;');
     }
 
+    /**
+     * 处理复制按钮点击事件。
+     *
+     * @param {Event} event - 点击事件
+     * @return {Promise<void>}
+     */
     async function handleCopyClick(event) {
       event?.preventDefault?.();
       const text = contentElement.innerText || contentElement.textContent || '';
@@ -148,6 +205,12 @@
       }
     }
 
+    /**
+     * 复制文本到剪贴板。
+     *
+     * @param {string} text - 要复制的文本
+     * @return {Promise<boolean>} 复制是否成功
+     */
     async function copyToClipboard(text) {
       if (navigator.clipboard?.writeText && global.isSecureContext !== false) {
         await navigator.clipboard.writeText(text);
@@ -162,6 +225,12 @@
       return false;
     }
 
+    /**
+     * 使用 textarea 方式复制文本。
+     *
+     * @param {string} text - 要复制的文本
+     * @return {boolean} 复制是否成功
+     */
     function copyUsingTextarea(text) {
       try {
         const textarea = document.createElement('textarea');
@@ -181,6 +250,12 @@
       }
     }
 
+    /**
+     * 使用 Selection API 复制文本。
+     *
+     * @param {Element} target - 目标元素
+     * @return {boolean} 复制是否成功
+     */
     function copyUsingSelection(target) {
       if (!target) {
         return false;
@@ -203,6 +278,11 @@
       }
     }
 
+    /**
+     * 销毁控制器，清理事件监听器和 DOM。
+     *
+     * @return {void}
+     */
     function destroy() {
       copyButton?.removeEventListener('click', handleCopyClick);
       modal.destroy?.();

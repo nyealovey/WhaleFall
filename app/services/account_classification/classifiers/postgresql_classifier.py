@@ -1,4 +1,7 @@
-"""PostgreSQL 规则分类器。"""
+"""PostgreSQL 规则分类器。
+
+实现 PostgreSQL 数据库的账户分类规则评估逻辑，支持预定义角色、角色属性、数据库权限和模式权限的匹配。
+"""
 
 from __future__ import annotations
 
@@ -10,9 +13,49 @@ from .base import BaseRuleClassifier
 
 
 class PostgreSQLRuleClassifier(BaseRuleClassifier):
+    """PostgreSQL 规则分类器。
+
+    实现 PostgreSQL 数据库的账户分类规则评估，支持以下规则类型：
+    - predefined_roles: 预定义角色匹配
+    - role_attributes: 角色属性匹配（如 SUPERUSER、CREATEDB 等）
+    - database_privileges: 数据库级权限匹配
+    - schema_privileges: 模式级权限匹配
+
+    Attributes:
+        db_type: 数据库类型标识符，固定为 'postgresql'。
+
+    Example:
+        >>> classifier = PostgreSQLRuleClassifier()
+        >>> rule = {'predefined_roles': ['pg_read_all_data'], 'operator': 'OR'}
+        >>> classifier.evaluate(account, rule)
+        True
+    """
+
     db_type = "postgresql"
 
     def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:  # noqa: ANN001
+        """评估账户是否满足 PostgreSQL 规则表达式。
+
+        Args:
+            account: 账户权限对象。
+            rule_expression: 规则表达式字典，支持以下字段：
+                - operator: 逻辑运算符（'AND' 或 'OR'），默认为 'OR'
+                - predefined_roles: 预定义角色列表
+                - role_attributes: 角色属性列表
+                - database_privileges: 数据库权限列表
+                - schema_privileges: 模式权限列表
+
+        Returns:
+            如果账户满足规则返回 True，否则返回 False。
+
+        Example:
+            >>> rule = {
+            ...     'role_attributes': ['SUPERUSER'],
+            ...     'operator': 'AND'
+            ... }
+            >>> classifier.evaluate(account, rule)
+            False
+        """
         try:
             permissions = account.get_permissions_by_db_type()
             if not permissions:

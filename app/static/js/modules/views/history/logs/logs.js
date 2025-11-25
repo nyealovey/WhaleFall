@@ -1,3 +1,10 @@
+/**
+ * 日志管理页面模块。
+ *
+ * 提供日志列表展示、筛选、统计和详情查看功能。
+ *
+ * @module LogsPage
+ */
 (function (global) {
     'use strict';
 
@@ -11,6 +18,13 @@
     let logDetailModalController = null;
     const logCache = new Map();
 
+    /**
+     * 挂载日志页面。
+     *
+     * 初始化所有必需的组件，包括网格、筛选器和模态框。
+     *
+     * @return {void}
+     */
     function mount() {
         helpers = global.DOMHelpers;
         if (!helpers) {
@@ -37,6 +51,11 @@
         });
     }
 
+    /**
+     * 初始化日志列表网格。
+     *
+     * @return {void}
+     */
     function initializeGrid() {
         const container = document.getElementById('logs-grid');
         if (!container) {
@@ -62,6 +81,12 @@
         logsGrid.init();
     }
 
+    /**
+     * 处理服务器响应数据。
+     *
+     * @param {Object} response - 服务器响应对象
+     * @return {Array} 格式化后的行数据数组
+     */
     function handleServerResponse(response) {
         const payload = response?.data || response || {};
         const items = Array.isArray(payload.items) ? payload.items : [];
@@ -80,6 +105,11 @@
         });
     }
 
+    /**
+     * 构建网格列配置。
+     *
+     * @return {Array} 列配置数组
+     */
     function buildColumns() {
         const gridHtml = global.gridjs?.html;
         return [
@@ -144,6 +174,13 @@
         ];
     }
 
+    /**
+     * 渲染日志级别徽章。
+     *
+     * @param {Object} log - 日志对象
+     * @param {Function} gridHtml - Grid.js HTML 渲染函数
+     * @return {string|Object} 渲染的 HTML 或纯文本
+     */
     function renderLevelBadge(log, gridHtml) {
         const colors = {
             DEBUG: 'secondary',
@@ -160,10 +197,22 @@
         return gridHtml(`<span class="badge bg-${color}">${escapeHtml(level)}</span>`);
     }
 
+    /**
+     * 从行数据中解析元数据。
+     *
+     * @param {Object} row - 行对象
+     * @return {Object} 元数据对象
+     */
     function resolveRowMeta(row) {
         return row?.cells?.[row.cells.length - 1]?.data || {};
     }
 
+    /**
+     * 规范化日志项数据。
+     *
+     * @param {Object} item - 原始日志项
+     * @return {Object} 规范化后的日志对象
+     */
     function normalizeLogItem(item) {
         return {
             id: item.id,
@@ -177,6 +226,11 @@
         };
     }
 
+    /**
+     * 初始化筛选卡片。
+     *
+     * @return {void}
+     */
     function initializeFilterCard() {
         const factory = global.UI?.createFilterCard;
         if (!factory) {
@@ -196,12 +250,24 @@
         });
     }
 
+    /**
+     * 处理筛选条件变化。
+     *
+     * @param {Object} values - 筛选值对象
+     * @return {void}
+     */
     function handleFilterChange(values) {
         const filters = sanitizeFilters(resolveFilters(values));
         logsGrid?.updateFilters(filters);
         refreshStats(filters);
     }
 
+    /**
+     * 解析筛选条件。
+     *
+     * @param {Object} [rawValues] - 原始筛选值
+     * @return {Object} 解析后的筛选对象
+     */
     function resolveFilters(rawValues) {
         const { selectOne } = helpers;
         const sourceValues =
@@ -222,6 +288,12 @@
         return filters;
     }
 
+    /**
+     * 清理筛选条件，移除空值。
+     *
+     * @param {Object} filters - 筛选对象
+     * @return {Object} 清理后的筛选对象
+     */
     function sanitizeFilters(filters) {
         const result = {};
         Object.entries(filters || {}).forEach(([key, value]) => {
@@ -233,6 +305,12 @@
         return result;
     }
 
+    /**
+     * 清理文本值。
+     *
+     * @param {string} value - 文本值
+     * @return {string} 清理后的文本
+     */
     function sanitizeText(value) {
         if (typeof value !== 'string') {
             return '';
@@ -241,6 +319,12 @@
         return trimmed === '' ? '' : trimmed;
     }
 
+    /**
+     * 收集表单值。
+     *
+     * @param {HTMLElement} form - 表单元素
+     * @return {Object} 表单值对象
+     */
     function collectFormValues(form) {
         if (logFilterCard?.serialize) {
             return logFilterCard.serialize();
@@ -266,6 +350,11 @@
         return result;
     }
 
+    /**
+     * 设置默认时间范围。
+     *
+     * @return {void}
+     */
     function setDefaultTimeRange() {
         const { selectOne } = helpers || {};
         if (!selectOne) {
@@ -285,6 +374,12 @@
         }
     }
 
+    /**
+     * 从时间范围字符串获取小时数。
+     *
+     * @param {string} timeRange - 时间范围字符串（如 '1h', '1d', '1w', '1m'）
+     * @return {number} 小时数
+     */
     function getHoursFromTimeRange(timeRange) {
         switch (timeRange) {
             case '1h':
@@ -300,6 +395,12 @@
         }
     }
 
+    /**
+     * 刷新统计数据。
+     *
+     * @param {Object} filters - 筛选条件对象
+     * @return {void}
+     */
     function refreshStats(filters) {
         if (!logsService) {
             return;
@@ -321,6 +422,12 @@
             });
     }
 
+    /**
+     * 更新统计数据显示。
+     *
+     * @param {Object} stats - 统计数据对象
+     * @return {void}
+     */
     function updateStatsDisplay(stats) {
         const { selectOne } = helpers || {};
         if (!selectOne) {
@@ -340,6 +447,12 @@
         });
     }
 
+    /**
+     * 显示统计错误消息。
+     *
+     * @param {string} message - 错误消息
+     * @return {void}
+     */
     function showStatsError(message) {
         if (global.toast?.error) {
             global.toast.error(message);
@@ -348,6 +461,11 @@
         }
     }
 
+    /**
+     * 初始化日志详情模态框。
+     *
+     * @return {void}
+     */
     function initializeLogDetailModal() {
         if (!global.LogsLogDetailModal?.createController) {
             console.error('LogsLogDetailModal 未加载，无法初始化日志详情模态');
@@ -367,6 +485,12 @@
         }
     }
 
+    /**
+     * 转义 HTML 特殊字符。
+     *
+     * @param {*} value - 要转义的值
+     * @return {string} 转义后的字符串
+     */
     function escapeHtml(value) {
         if (value === undefined || value === null) {
             return '';
@@ -379,6 +503,12 @@
             .replace(/'/g, '&#39;');
     }
 
+    /**
+     * 根据 ID 打开日志详情。
+     *
+     * @param {number|string} logId - 日志 ID
+     * @return {void}
+     */
     function openLogDetailById(logId) {
         const numericId = Number(logId);
         if (!numericId) {
@@ -405,6 +535,13 @@
             });
     }
 
+    /**
+     * 日志页面公共接口。
+     *
+     * @namespace LogsPage
+     * @property {Function} mount - 挂载页面
+     * @property {Function} openDetail - 打开日志详情
+     */
     global.LogsPage = {
         mount,
         openDetail: openLogDetailById,

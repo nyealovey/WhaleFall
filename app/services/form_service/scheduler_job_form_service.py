@@ -1,5 +1,6 @@
-"""
-定时任务表单服务
+"""定时任务表单服务。
+
+提供内置定时任务触发器的编辑功能，支持 Cron、Interval 和 Date 三种触发器类型。
 """
 
 from __future__ import annotations
@@ -19,14 +20,48 @@ from app.utils.structlog_config import log_error, log_info
 
 
 class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
-    """负责内置任务触发器的编辑。"""
+    """定时任务表单服务。
+
+    负责内置任务触发器的编辑，支持 Cron、Interval 和 Date 三种触发器类型。
+
+    Attributes:
+        model: 占位模型，不会持久化到数据库。
+
+    Example:
+        >>> service = SchedulerJobFormService()
+        >>> result = service.upsert({'trigger_type': 'cron', 'cron_expression': '0 0 * * *'}, resource)
+        >>> result.success
+        True
+    """
 
     model = dict  # 占位，不会持久化
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        """清理表单数据。
+
+        Args:
+            payload: 原始表单数据。
+
+        Returns:
+            清理后的数据字典。
+        """
         return dict(payload or {})
 
     def load(self, job_id: str) -> dict[str, Any]:
+        """加载定时任务。
+
+        从调度器中获取指定 ID 的任务及调度器实例。
+
+        Args:
+            job_id: 任务 ID。
+
+        Returns:
+            包含 job 和 scheduler 的字典。
+
+        Raises:
+            SystemError: 调度器未启动时抛出。
+            NotFoundError: 任务不存在时抛出。
+        """
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
             log_error("调度器未启动，无法加载任务", module="scheduler")

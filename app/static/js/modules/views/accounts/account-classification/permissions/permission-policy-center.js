@@ -10,16 +10,35 @@
 
   /**
    * 基础策略类，提供默认渲染/选择逻辑。
+   *
+   * @class
    */
   class PermissionStrategy {
+    /**
+     * 构造函数。
+     *
+     * @constructor
+     * @param {string} dbType - 数据库类型
+     */
     constructor(dbType) {
       this.dbType = dbType;
     }
 
+    /**
+     * 渲染权限选择器。
+     *
+     * @return {string} 渲染的 HTML 字符串
+     */
     renderSelector() {
       return `<div class="alert alert-info">当前数据库类型 (${this.dbType}) 暂未提供权限策略。</div>`;
     }
 
+    /**
+     * 收集选中的权限。
+     *
+     * @param {HTMLElement} container - 容器元素
+     * @return {Object} 包含选中权限的对象
+     */
     collectSelected(container) {
       const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
       const permissions = Array.from(checkboxes).map((checkbox) => checkbox.value);
@@ -34,6 +53,13 @@
       };
     }
 
+    /**
+     * 设置选中的权限。
+     *
+     * @param {Object} ruleExpression - 规则表达式对象
+     * @param {HTMLElement} container - 容器元素
+     * @return {void}
+     */
     setSelected(ruleExpression, container) {
       const permissions = ruleExpression?.permissions || [];
       permissions.forEach((perm) => {
@@ -42,6 +68,12 @@
       });
     }
 
+    /**
+     * 渲染权限显示。
+     *
+     * @param {Object} ruleExpression - 规则表达式对象
+     * @return {string} 渲染的 HTML 字符串
+     */
     renderDisplay(ruleExpression) {
       const permissions = ruleExpression?.permissions || [];
       if (permissions.length === 0) {
@@ -67,12 +99,27 @@
 
   /**
    * MySQL 专属策略，支持全局/数据库权限选择。
+   *
+   * @class
+   * @extends PermissionStrategy
    */
   class MySQLPermissionStrategy extends PermissionStrategy {
+    /**
+     * 构造函数。
+     *
+     * @constructor
+     */
     constructor() {
       super("mysql");
     }
 
+    /**
+     * 渲染 MySQL 权限选择器。
+     *
+     * @param {Object} [permissions={}] - 权限配置对象
+     * @param {string} [prefix=""] - ID 前缀
+     * @return {string} 渲染的 HTML 字符串
+     */
     renderSelector(permissions = {}, prefix = "") {
       const globals = Array.isArray(permissions.global_privileges) ? permissions.global_privileges : [];
       const databases = Array.isArray(permissions.database_privileges) ? permissions.database_privileges : [];
@@ -601,12 +648,28 @@
     }
   }
 
+  /**
+   * 将徽章区块推入数组。
+   *
+   * @param {Array} sections - 区块数组
+   * @param {string} title - 标题
+   * @param {string} icon - 图标类名
+   * @param {string} color - 颜色类名
+   * @param {Array} items - 项目数组
+   * @return {void}
+   */
   function pushBadgeSection(sections, title, icon, color, items) {
     if (Array.isArray(items) && items.length > 0) {
       sections.push({ title, icon, color, items });
     }
   }
 
+  /**
+   * 渲染显示区块。
+   *
+   * @param {Array} sections - 区块数组
+   * @return {string} 渲染的 HTML 字符串
+   */
   function renderDisplaySections(sections) {
     if (!Array.isArray(sections) || sections.length === 0) {
       return '<div class="text-muted">无权限配置</div>';
@@ -626,6 +689,12 @@
     return `<div class="row">${columns}</div>`;
   }
 
+  /**
+   * 根据数据库类型获取对应的策略实例。
+   *
+   * @param {string} dbType - 数据库类型
+   * @return {PermissionStrategy} 策略实例
+   */
   function getStrategy(dbType) {
     switch (dbType) {
       case "mysql":
@@ -641,7 +710,20 @@
     }
   }
 
+  /**
+   * 权限策略中心，负责加载和管理权限配置。
+   *
+   * @class
+   */
   class PermissionPolicyCenter {
+    /**
+     * 加载权限配置。
+     *
+     * @param {string} dbType - 数据库类型
+     * @param {string} containerId - 容器元素 ID
+     * @param {string} [prefix=""] - ID 前缀
+     * @return {Promise<void>}
+     */
     static async load(dbType, containerId, prefix = "") {
       const container = document.getElementById(containerId);
       if (!container) {
@@ -684,6 +766,14 @@
       }
     }
 
+    /**
+     * 收集选中的权限。
+     *
+     * @param {string} dbType - 数据库类型
+     * @param {string} containerId - 容器元素 ID
+     * @param {string} [prefix=""] - ID 前缀
+     * @return {Object} 选中的权限对象
+     */
     static collectSelected(dbType, containerId, prefix = "") {
       const container = document.getElementById(containerId);
       if (!container) {
@@ -693,6 +783,12 @@
       return getStrategy(dbType).collectSelected(container, prefix);
     }
 
+    /**
+     * 检查是否有选中的权限。
+     *
+     * @param {Object|Array} selected - 选中的权限对象或数组
+     * @return {boolean} 如果有选中的权限返回 true
+     */
     static hasSelection(selected) {
       if (!selected) return false;
       if (Array.isArray(selected)) {
@@ -709,10 +805,27 @@
       });
     }
 
+    /**
+     * 构建权限表达式。
+     *
+     * @param {string} dbType - 数据库类型
+     * @param {Object} selectedPermissions - 选中的权限对象
+     * @param {string} operator - 逻辑运算符
+     * @return {Object} 权限表达式对象
+     */
     static buildExpression(dbType, selectedPermissions, operator) {
       return getStrategy(dbType).buildExpression(selectedPermissions, operator);
     }
 
+    /**
+     * 设置选中的权限。
+     *
+     * @param {string} dbType - 数据库类型
+     * @param {Object} ruleExpression - 规则表达式对象
+     * @param {string} containerId - 容器元素 ID
+     * @param {string} [prefix=""] - ID 前缀
+     * @return {void}
+     */
     static setSelected(dbType, ruleExpression, containerId, prefix = "") {
       const container = document.getElementById(containerId);
       if (!container) {
@@ -722,6 +835,13 @@
       getStrategy(dbType).setSelected(ruleExpression || {}, container, prefix);
     }
 
+    /**
+     * 渲染权限显示。
+     *
+     * @param {string} dbType - 数据库类型
+     * @param {Object} ruleExpression - 规则表达式对象
+     * @return {string} 渲染的 HTML 字符串
+     */
     static renderDisplay(dbType, ruleExpression) {
       return getStrategy(dbType).renderDisplay(ruleExpression || {});
     }
@@ -735,6 +855,15 @@
 (function (global) {
   "use strict";
 
+  /**
+   * 创建权限视图。
+   *
+   * @param {Object} options - 配置选项
+   * @param {Object} options.PermissionPolicyCenter - 权限策略中心实例
+   * @param {Object} options.toast - Toast 通知实例
+   * @param {Function} options.handleRequestError - 错误处理函数
+   * @return {Object} 视图对象
+   */
   function createView(options) {
     const {
       PermissionPolicyCenter = global.PermissionPolicyCenter,
@@ -746,6 +875,12 @@
       throw new Error("policy-center-view: PermissionPolicyCenter 未加载");
     }
 
+    /**
+     * 根据前缀加载权限配置。
+     *
+     * @param {string} [prefix=""] - ID 前缀
+     * @return {Promise<void>}
+     */
     function loadByPrefix(prefix = "") {
       const elementId = prefix ? `${prefix}RuleDbType` : "ruleDbType";
       const dbTypeElement = document.getElementById(elementId);

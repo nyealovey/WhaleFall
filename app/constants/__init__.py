@@ -1,4 +1,16 @@
-# 常量包初始化
+"""常量模块。
+
+集中管理所有系统常量，包括颜色、状态、错误消息、HTTP 相关常量等。
+
+主要常量：
+- ThemeColors: 主题颜色常量
+- DatabaseType: 数据库类型常量
+- SyncStatus: 同步状态常量
+- UserRole: 用户角色常量
+- ErrorMessages: 错误消息常量
+- HttpStatus: HTTP 状态码常量
+- TimeConstants: 时间常量
+"""
 
 # 导入颜色常量
 from .colors import ThemeColors
