@@ -195,10 +195,19 @@
 
     let autoRefreshTimer = null;
 
+    /**
+     * 统一派发事件。
+     *
+     * @param {string} eventName 事件名称。
+     * @param {Object} [payload] 默认附带 state 快照。
+     */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? cloneState(state));
     }
 
+    /**
+     * 根据配置开启自动刷新定时器。
+     */
     function scheduleAutoRefresh() {
       clearAutoRefresh();
       if (!state.autoRefresh.enabled) {
@@ -209,6 +218,8 @@
       }, state.autoRefresh.interval);
     }
 
+    /**
+     * 清理自动刷新定时器。
     function clearAutoRefresh() {
       if (autoRefreshTimer) {
         clearInterval(autoRefreshTimer);
@@ -216,6 +227,11 @@
       }
     }
 
+    /**
+     * 解析列表响应并更新 session/pagination。
+     *
+     * @param {Object} response 后端返回结果。
+     */
     function applyListResponse(response) {
       state.sessions = extractSessions(response);
       state.pagination = resolvePagination(response, {
@@ -230,12 +246,23 @@
       });
     }
 
+    /**
+     * 统一失败处理，记录错误并发出事件。
+     *
+     * @param {Error|Object|string} error 捕获的异常。
+     */
     function handleRequestFailure(error) {
       state.lastError = error;
       emit("syncSessions:error", { error: error, state: cloneState(state) });
     }
 
     const debugEnabled = window.DEBUG_SYNC_SESSIONS ?? false;
+    /**
+     * 调试日志输出，受 DEBUG_SYNC_SESSIONS 控制。
+     *
+     * @param {string} message 文本描述。
+     * @param {*} payload 可选附加对象。
+     */
     function debugLog(message, payload) {
       if (!debugEnabled) {
         return;

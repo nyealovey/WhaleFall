@@ -149,7 +149,15 @@ class TimeUtils:
 
     @staticmethod
     def format_utc_time(dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT) -> str:
-        """格式化UTC时间显示"""
+        """格式化 UTC 时间显示。
+
+        Args:
+            dt: 待格式化的日期时间对象或 ISO 字符串。
+            format_str: strftime 兼容格式，默认为 `%Y-%m-%d %H:%M:%S`。
+
+        Returns:
+            成功时返回格式化后的 UTC 字符串；转换失败时返回 `-`。
+        """
         utc_dt = TimeUtils.to_utc(dt)
         if not utc_dt:
             return "-"
@@ -195,7 +203,14 @@ class TimeUtils:
 
     @staticmethod
     def is_today(dt: str | date | datetime | None) -> bool:
-        """判断是否为今天"""
+        """判断给定时间是否属于今天（以中国时区为准）。
+
+        Args:
+            dt: 日期、时间或字符串表示。
+
+        Returns:
+            True 表示在当前中国日期内；无法解析或不属于今天则为 False。
+        """
         china_dt = TimeUtils.to_china(dt)
         if not china_dt:
             return False
@@ -208,7 +223,14 @@ class TimeUtils:
 
     @staticmethod
     def get_time_range(hours: int = 24) -> dict[str, str]:
-        """获取时间范围"""
+        """获取指定小时跨度的起止时间。
+
+        Args:
+            hours: 向前追溯的小时数，默认 24 小时。
+
+        Returns:
+            包含本地/UTC 起止时间的字典。
+        """
         now = TimeUtils.now_china()
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         if hours < 24:
@@ -223,7 +245,14 @@ class TimeUtils:
 
     @staticmethod
     def to_json_serializable(dt: str | date | datetime | None) -> str | None:
-        """转换为JSON可序列化的ISO格式"""
+        """转换时间对象为 JSON 可序列化的 ISO 字符串。
+
+        Args:
+            dt: 字符串、date 或 datetime 实例。
+
+        Returns:
+            ISO 格式字符串；若无法转换则返回 None。
+        """
         if not dt:
             return None
 

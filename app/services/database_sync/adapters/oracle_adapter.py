@@ -1,3 +1,5 @@
+"""Oracle 容量同步适配器实现。"""
+
 from __future__ import annotations
 
 from typing import List, Optional, Sequence

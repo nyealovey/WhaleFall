@@ -21,7 +21,16 @@ TASK_MODULE = "aggregation_tasks"
 
 
 def _select_periods(requested: Optional[Sequence[str]], logger, allowed_periods: Sequence[str]) -> List[str]:
-    """根据请求的周期返回有效周期列表"""
+    """根据请求的周期返回有效周期列表。
+
+    Args:
+        requested: 用户指定的周期集合，None 表示全部。
+        logger: 用于记录未知周期的 logger。
+        allowed_periods: 服务可用的周期序列。
+
+    Returns:
+        过滤并按允许顺序排列的周期列表。
+    """
     allowed = list(allowed_periods)
     if not allowed:
         return []
@@ -55,6 +64,14 @@ def _select_periods(requested: Optional[Sequence[str]], logger, allowed_periods:
 
 
 def _extract_processed_records(result: dict[str, Any] | None) -> int:
+    """提取聚合结果中的处理数量。
+
+    Args:
+        result: 聚合任务返回的结果字典。
+
+    Returns:
+        已处理记录数量，缺失时返回 0。
+    """
     if not result:
         return 0
     return int(
@@ -66,6 +83,14 @@ def _extract_processed_records(result: dict[str, Any] | None) -> int:
 
 
 def _extract_error_message(result: dict[str, Any] | None) -> str:
+    """提取聚合结果中的错误消息。
+
+    Args:
+        result: 聚合任务返回的结果字典。
+
+    Returns:
+        合并后的错误消息文本。
+    """
     if not result:
         return "无返回结果"
     errors = result.get("errors")

@@ -17,6 +17,8 @@ class SQLServerConnection(DatabaseConnection):
         self.driver_type: str | None = None
 
     def connect(self) -> bool:
+        """建立 SQL Server 连接（当前仅支持 pymssql）。"""
+
         password = self.instance.credential.get_plain_password() if self.instance.credential else ""
         username = self.instance.credential.username if self.instance.credential else ""
         database_name = self.instance.database_name or get_default_schema("sqlserver") or "master"
@@ -39,6 +41,8 @@ class SQLServerConnection(DatabaseConnection):
             return False
 
     def _try_pymssql_connection(self, username: str, password: str, database_name: str) -> bool:
+        """使用 pymssql 尝试连接 SQL Server。"""
+
         try:
             import pymssql
 
@@ -83,6 +87,8 @@ class SQLServerConnection(DatabaseConnection):
             return False
 
     def disconnect(self) -> None:
+        """断开 SQL Server 连接并清理状态。"""
+
         if self.connection:
             try:
                 self.connection.close()
@@ -99,6 +105,8 @@ class SQLServerConnection(DatabaseConnection):
                 self.is_connected = False
 
     def test_connection(self) -> dict[str, Any]:
+        """测试连接并返回版本信息。"""
+
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -115,6 +123,8 @@ class SQLServerConnection(DatabaseConnection):
             self.disconnect()
 
     def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
+        """执行 SQL 查询并返回 `fetchall` 结果。"""
+
         if not self.is_connected and not self.connect():
             raise Exception("无法建立数据库连接")
 
@@ -126,6 +136,8 @@ class SQLServerConnection(DatabaseConnection):
             cursor.close()
 
     def get_version(self) -> str | None:
+        """查询 SQL Server 版本字符串。"""
+
         try:
             result = self.execute_query("SELECT @@VERSION")
             if result:

@@ -132,8 +132,12 @@ class PasswordManager:
 # 全局密码管理器实例（延迟初始化）
 _password_manager = None
 
-def get_password_manager():
-    """获取密码管理器实例（延迟初始化）"""
+def get_password_manager() -> PasswordManager:
+    """获取密码管理器实例（延迟初始化）。
+
+    Returns:
+        PasswordManager: 全局复用的管理器实例。
+    """
     global _password_manager
     if _password_manager is None:
         _password_manager = PasswordManager()

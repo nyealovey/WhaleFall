@@ -57,6 +57,9 @@ function mountAuthListPage(global) {
     bindCreateButton();
   });
 
+  /**
+   * 初始化用户创建/编辑模态控制器。
+   */
   function initializeUserModals() {
     if (!global.UserModals?.createController) {
       console.warn('UserModals 未加载，创建/编辑模态不可用');
@@ -72,6 +75,9 @@ function mountAuthListPage(global) {
     userModals.init?.();
   }
 
+  /**
+   * 初始化用户列表 gridjs 表格。
+   */
   function initializeGrid() {
     const container = document.getElementById('users-grid');
     if (!container) {
@@ -202,6 +208,9 @@ function mountAuthListPage(global) {
     }
   }
 
+  /**
+   * 绑定“新建用户”按钮事件。
+   */
   function bindCreateButton() {
     const createBtn = selectOne('[data-action="create-user"]');
     if (createBtn.length && userModals) {
@@ -212,6 +221,9 @@ function mountAuthListPage(global) {
     }
   }
 
+  /**
+   * 初始化用户过滤器表单。
+   */
   function initializeFilterCard() {
     const form = document.getElementById(USER_FILTER_FORM_ID);
     if (!form) {
@@ -250,10 +262,16 @@ function mountAuthListPage(global) {
     from(global).on('beforeunload', filterUnloadHandler);
   }
 
+  /**
+   * 销毁过滤器相关资源。
+   */
   function destroyFilterCard() {
     filterCard = null;
   }
 
+  /**
+   * 将筛选条件应用到 grid 或跳转到新 URL。
+   */
   function applyUserFilters(form, overrideValues) {
     const targetForm = resolveFormElement(form);
     if (!targetForm) {
@@ -275,6 +293,9 @@ function mountAuthListPage(global) {
     global.location.href = query ? `${action}?${query}` : action;
   }
 
+  /**
+   * 重置表单并重新加载数据。
+   */
   function resetUserFilters(form) {
     const targetForm = resolveFormElement(form);
     if (targetForm) {
@@ -283,6 +304,9 @@ function mountAuthListPage(global) {
     applyUserFilters(targetForm, {});
   }
 
+  /**
+   * 根据 FormData 解析过滤条件。
+   */
   function resolveUserFilters(form, overrideValues) {
     const rawValues = overrideValues && Object.keys(overrideValues || {}).length ? overrideValues : collectFormValues(form);
     return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
@@ -301,6 +325,9 @@ function mountAuthListPage(global) {
     }, {});
   }
 
+  /**
+   * 清理空值，保留有效过滤项。
+   */
   function normalizeGridFilters(filters) {
     const normalized = { ...(filters || {}) };
     ['role', 'status'].forEach((key) => {
@@ -311,6 +338,9 @@ function mountAuthListPage(global) {
     return normalized;
   }
 
+  /**
+   * 过滤输入，转换空/默认值为 null。
+   */
   function sanitizeFilterValue(value) {
     if (Array.isArray(value)) {
       return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
@@ -318,6 +348,9 @@ function mountAuthListPage(global) {
     return sanitizePrimitiveValue(value);
   }
 
+  /**
+   * 规范化单个表单值。
+   */
   function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
       return value.name;
@@ -332,6 +365,9 @@ function mountAuthListPage(global) {
     return value;
   }
 
+  /**
+   * 将过滤条件编码成 URLSearchParams。
+   */
   function buildQueryParams(filters) {
     const params = new URLSearchParams();
     Object.entries(filters || {}).forEach(([key, value]) => {
@@ -344,6 +380,9 @@ function mountAuthListPage(global) {
     return params;
   }
 
+  /**
+   * 接受 selector/元素，返回 DOM 表单。
+   */
   function resolveFormElement(form) {
     if (!form && filterCard?.form) {
       return filterCard.form;
@@ -363,6 +402,9 @@ function mountAuthListPage(global) {
     return form;
   }
 
+  /**
+   * 收集表单数据，兼容 serializeForm 缺失。
+   */
   function collectFormValues(form) {
     const serializer = global.UI?.serializeForm;
     if (serializer) {
@@ -386,6 +428,9 @@ function mountAuthListPage(global) {
     return result;
   }
 
+  /**
+   * 简单 HTML 转义。
+   */
   function escapeHtmlValue(value) {
     if (value === undefined || value === null) {
       return '';
@@ -398,6 +443,9 @@ function mountAuthListPage(global) {
       .replace(/'/g, '&#39;');
   }
 
+  /**
+   * 打开用户编辑模态。
+   */
   function openUserEditor(userId) {
     if (!userModals || !userId) {
       return;
@@ -405,6 +453,9 @@ function mountAuthListPage(global) {
     userModals.openEdit(userId);
   }
 
+  /**
+   * 提示确认并请求删除用户。
+   */
   function requestDeleteUser(userId, username) {
     if (!userService || !userId || !canManageUsers) {
       return;
@@ -436,6 +487,9 @@ function mountAuthListPage(global) {
       .finally(() => hideLoadingState(trigger, '删除'));
   }
 
+  /**
+   * 在按钮上展示加载状态。
+   */
   function showLoadingState(element, text) {
     const target = from(element);
     if (!target.length) {
@@ -446,6 +500,9 @@ function mountAuthListPage(global) {
     target.attr('disabled', 'disabled');
   }
 
+  /**
+   * 恢复按钮原样。
+   */
   function hideLoadingState(element, fallbackText) {
     const target = from(element);
     if (!target.length) {

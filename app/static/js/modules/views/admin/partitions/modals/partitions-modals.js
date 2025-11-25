@@ -92,6 +92,9 @@
         yearSelect.appendChild(option);
       }
 
+      /**
+       * 根据当前年份更新月份选项。
+       */
       const updateMonthOptions = () => {
         const selectedYear = parseInt(yearSelect.value, 10);
         Array.from(monthSelect.options).forEach((option) => {

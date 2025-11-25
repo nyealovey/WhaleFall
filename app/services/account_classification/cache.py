@@ -40,12 +40,28 @@ class ClassificationCache:
 
     # ---- Rules cache (per db type) --------------------------------------
     def set_rules_by_db_type(self, db_type: str, rules: Iterable[dict[str, Any]]) -> bool:
+        """写入指定数据库类型的分类规则缓存。
+
+        Args:
+            db_type: 数据库类型标识，例如 mysql、postgres。
+            rules: 分类规则列表，将持久化到缓存。
+
+        Returns:
+            bool: 写入成功返回 True，失败返回 False。
+        """
+
         if not self.manager:
             return False
         return self.manager.set_classification_rules_by_db_type_cache(db_type, list(rules))
 
     # ---- Invalidation helpers -------------------------------------------
     def invalidate_all(self) -> bool:
+        """清空全部分类缓存数据。
+
+        Returns:
+            bool: 成功执行失效操作时为 True，否则 False。
+        """
+
         if not self.manager:
             return False
         self.manager.invalidate_classification_cache()
@@ -53,6 +69,15 @@ class ClassificationCache:
         return True
 
     def invalidate_db_type(self, db_type: str) -> bool:
+        """按数据库类型清空规则缓存。
+
+        Args:
+            db_type: 需要刷新缓存的数据库类型。
+
+        Returns:
+            bool: 缓存存在且成功失效时为 True。
+        """
+
         if not self.manager:
             return False
         self.manager.invalidate_db_type_cache(db_type)

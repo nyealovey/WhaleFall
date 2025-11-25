@@ -13,12 +13,20 @@ from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.utils.response_utils import unified_error_response, unified_success_response
 from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
 
 MODULE = "partition_tasks"
 
 
 def _as_app_error(error: Exception) -> AppError:
-    """确保返回 AppError 实例，便于统一错误上下文"""
+    """确保返回 AppError 实例，便于统一错误上下文。
+
+    Args:
+        error: 捕获到的任意异常。
+
+    Returns:
+        AppError: 若已是 AppError 则原样返回，否则包装为 DatabaseError。
+    """
     return error if isinstance(error, AppError) else DatabaseError(message=str(error))
 
 
@@ -153,9 +161,13 @@ def monitor_partition_health() -> dict[str, object]:
 
 
 def get_partition_management_status() -> dict[str, object]:
-    """
-    获取分区管理状态
-    用于 API 接口和监控页面
+    """获取分区管理状态，用于 API 接口和监控页面。
+
+    Returns:
+        字典包含健康状态、分区数量与缺失分区列表。
+
+    Raises:
+        AppError: 当查询分区信息失败时抛出。
     """
     stats_service = PartitionStatisticsService()
     try:

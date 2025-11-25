@@ -118,10 +118,16 @@
       lastError: null,
     };
 
+    /**
+     * 发布事件并默认附带 state 快照。
+     */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
     }
 
+    /**
+     * 统一错误处理。
+     */
     function handleError(error, meta) {
       state.lastError = error;
       emit("batchAssign:error", {
@@ -131,6 +137,9 @@
       });
     }
 
+    /**
+     * 更新可选实例列表并清理无效选择。
+     */
     function setInstances(instances) {
       state.instances = Array.isArray(instances) ? instances.slice() : [];
       const validIds = new Set(state.instances.map(function (item) {
@@ -144,6 +153,9 @@
       emit("batchAssign:instancesUpdated", cloneState(state));
     }
 
+    /**
+     * 更新标签列表并同步选择集。
+     */
     function setTags(tags) {
       state.tags = Array.isArray(tags) ? tags.slice() : [];
       const validIds = new Set(state.tags.map(function (item) {
@@ -157,6 +169,9 @@
       emit("batchAssign:tagsUpdated", cloneState(state));
     }
 
+    /**
+     * 通知外部选择集发生变化。
+     */
     function emitSelection(kind) {
       emit("batchAssign:selectionChanged", {
         kind: kind,
@@ -166,6 +181,9 @@
       });
     }
 
+    /**
+     * 根据 check 状态更新集合中的 ID。
+     */
     function setSelection(setRef, ids, checked) {
       const incoming = normalizeIds(ids);
       incoming.forEach(function (id) {

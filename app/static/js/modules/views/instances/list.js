@@ -127,6 +127,9 @@ function mountInstancesListPage() {
         }
     }
 
+    /**
+     * 初始化实例相关模态。
+     */
     function initializeModals() {
         if (global.InstanceModals?.createController) {
             try {
@@ -150,6 +153,9 @@ function mountInstancesListPage() {
         }
     }
 
+    /**
+     * 初始化实例列表 gridjs。
+     */
     function initializeGrid() {
         const container = document.getElementById('instances-grid');
         if (!container) {
@@ -359,6 +365,9 @@ function mountInstancesListPage() {
         });
     }
 
+    /**
+     * 渲染数据库类型徽章。
+     */
     function renderDbTypeBadge(dbType) {
         const typeStr = typeof dbType === 'string' ? dbType : (dbType || '').toString();
         const meta = dbTypeMap[typeStr] || {};
@@ -371,6 +380,9 @@ function mountInstancesListPage() {
         return gridHtml(`<span class="badge bg-${color}"><i class="fas ${icon} me-1"></i>${escapeHtml(label)}</span>`);
     }
 
+    /**
+     * 渲染标签列表。
+     */
     function renderTags(tags) {
         if (!gridHtml) {
             return (tags || []).map((tag) => tag.display_name || tag.name).join(', ') || '无标签';
@@ -389,6 +401,9 @@ function mountInstancesListPage() {
         );
     }
 
+    /**
+     * 渲染活跃状态。
+     */
     function renderStatusBadge(isActive) {
         if (!gridHtml) {
             return isActive ? '正常' : '禁用';
@@ -398,6 +413,9 @@ function mountInstancesListPage() {
         return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
     }
 
+    /**
+     * 渲染最后同步时间。
+     */
     function renderLastSync(timestamp) {
         if (!gridHtml) {
             return timestamp || '暂无同步记录';
@@ -408,6 +426,9 @@ function mountInstancesListPage() {
         return gridHtml(`<small class="text-muted">${escapeHtml(formatTimestamp(timestamp))}</small>`);
     }
 
+    /**
+     * 渲染操作按钮列。
+     */
     function renderActions(meta) {
         if (!gridHtml) {
             return '';
@@ -424,14 +445,23 @@ function mountInstancesListPage() {
         return gridHtml(`<div class="btn-group btn-group-sm" role="group">${buttons.join('')}</div>`);
     }
 
+    /**
+     * grid 渲染完成后的回调。
+     */
     function handleGridUpdated() {
         syncSelectionCheckboxes();
     }
 
+    /**
+     * 从 gridjs 行中取出 meta 数据。
+     */
     function resolveRowMeta(row) {
         return row?.cells?.[row.cells.length - 1]?.data || {};
     }
 
+    /**
+     * 初始化筛选表单。
+     */
     function initializeFilterCard() {
         const factory = global.UI?.createFilterCard;
         if (!factory) {
@@ -472,6 +502,9 @@ function mountInstancesListPage() {
         });
     }
 
+    /**
+     * 应用过滤条件。
+     */
     function handleFilterChange(values) {
         if (!instancesGrid) {
             return;
@@ -482,6 +515,12 @@ function mountInstancesListPage() {
         syncUrl(filters);
     }
 
+    /**
+     * 获取筛选值，支持覆盖。
+     *
+     * @param {Object} [overrideValues] 外部传入的新值。
+     * @returns {Object} 规范化后的筛选条件。
+     */
     function resolveFilters(overrideValues) {
         const values =
             overrideValues && Object.keys(overrideValues || {}).length
@@ -495,6 +534,11 @@ function mountInstancesListPage() {
         };
     }
 
+    /**
+     * 收集筛选表单字段。
+     *
+     * @returns {Object} 表单值映射。
+     */
     function collectFormValues() {
         if (instanceFilterCard?.serialize) {
             return instanceFilterCard.serialize();
@@ -520,6 +564,12 @@ function mountInstancesListPage() {
         return result;
     }
 
+    /**
+     * 清理空值，返回有效 filters。
+     *
+     * @param {Object} raw 原始过滤值。
+     * @returns {Object} 去除空值后的过滤值。
+     */
     function normalizeFilters(raw) {
         const filters = { ...(raw || {}) };
         Object.keys(filters).forEach((key) => {
@@ -537,6 +587,12 @@ function mountInstancesListPage() {
         return filters;
     }
 
+    /**
+     * 去除文本空格。
+     *
+     * @param {string} value 输入值。
+     * @returns {string} 处理后的文本。
+     */
     function sanitizeText(value) {
         if (typeof value !== 'string') {
             return '';
@@ -545,6 +601,12 @@ function mountInstancesListPage() {
         return trimmed || '';
     }
 
+    /**
+     * 规范化数组型参数。
+     *
+     * @param {string|Array<string>} value 元素集合或逗号分隔字符串。
+     * @returns {Array<string>} 清洗后的数组。
+     */
     function normalizeArrayValue(value) {
         if (!value) {
             return [];
@@ -561,11 +623,22 @@ function mountInstancesListPage() {
         return [];
     }
 
+    /**
+     * 构造后端 API URL。
+     *
+     * @returns {string} API 地址。
+     */
     function buildBaseUrl() {
         const base = '/instances/api/instances';
         return `${base}?sort=id&order=desc`;
     }
 
+    /**
+     * 将 filters 编码为查询字符串。
+     *
+     * @param {Object} filters 过滤条件。
+     * @returns {URLSearchParams}
+     */
     function buildSearchParams(filters) {
         const params = new URLSearchParams();
         Object.entries(filters || {}).forEach(([key, value]) => {
@@ -581,6 +654,11 @@ function mountInstancesListPage() {
         return params;
     }
 
+    /**
+     * 使用 history API 更新地址栏。
+     *
+     * @param {Object} filters 过滤条件。
+     */
     function syncUrl(filters) {
         if (!global.history?.replaceState) {
             return;
@@ -591,6 +669,9 @@ function mountInstancesListPage() {
         global.history.replaceState(null, '', path);
     }
 
+    /**
+     * 初始化标签筛选器组件。
+     */
     function initializeTagFilter() {
         if (!global.TagSelectorHelper) {
             console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
@@ -618,6 +699,9 @@ function mountInstancesListPage() {
         });
     }
 
+    /**
+     * 解析隐藏字段中的标签。
+     */
     function parseInitialTagValues(raw) {
         if (!raw) {
             return [];
@@ -628,6 +712,9 @@ function mountInstancesListPage() {
             .filter(Boolean);
     }
 
+    /**
+     * 绑定工具栏批量操作按钮。
+     */
     function bindToolbarActions() {
         const createButtons = select('[data-action="create-instance"]');
         createButtons.each((el) => {
@@ -660,6 +747,9 @@ function mountInstancesListPage() {
         }
     }
 
+    /**
+     * 触发批量删除。
+     */
     function handleBatchDelete(event) {
         event.preventDefault();
         if (!instanceStore?.actions?.batchDeleteSelected) {
@@ -686,6 +776,9 @@ function mountInstancesListPage() {
             });
     }
 
+    /**
+     * 触发批量测试。
+     */
     function handleBatchTest(event) {
         event.preventDefault();
         if (!selectedInstanceIds.size) {
@@ -713,6 +806,9 @@ function mountInstancesListPage() {
             });
     }
 
+    /**
+     * 导出当前筛选下的实例。
+     */
     function exportInstances() {
         const filters = normalizeFilters(resolveFilters());
         const params = buildSearchParams(filters);
@@ -721,6 +817,9 @@ function mountInstancesListPage() {
         global.location.href = url;
     }
 
+    /**
+     * 订阅 store 的 selection 事件。
+     */
     function subscribeToStoreEvents() {
         if (!instanceStore?.subscribe) {
             return;
@@ -736,6 +835,9 @@ function mountInstancesListPage() {
         });
     }
 
+    /**
+     * 更新页面上的选中统计。
+     */
     function updateSelectionSummary() {
         const element = document.getElementById('instances-selection-summary');
         if (!element) {
@@ -748,6 +850,9 @@ function mountInstancesListPage() {
         element.textContent = `已选择 ${selectedInstanceIds.size} 个实例`;
     }
 
+    /**
+     * 同步 grid 复选框的状态。
+     */
     function syncSelectionCheckboxes() {
         if (!canManage) {
             return;
@@ -763,6 +868,9 @@ function mountInstancesListPage() {
         updateBatchActionState();
     }
 
+    /**
+     * 根据当前选中情况更新全选按钮。
+     */
     function updateSelectAllCheckbox(checkboxes) {
         const selectAll = document.getElementById('grid-select-all');
         if (!selectAll) {
@@ -787,6 +895,9 @@ function mountInstancesListPage() {
         selectAll.addEventListener('change', handleSelectAllChange);
     }
 
+    /**
+     * 收集当前页面可选的实例 ID。
+     */
     function collectAvailableInstanceIds(checkboxes) {
         const state = instanceStore?.getState?.();
         const fromState = Array.isArray(state?.availableInstanceIds) ? state.availableInstanceIds : [];
@@ -801,6 +912,9 @@ function mountInstancesListPage() {
             .filter((id) => Number.isFinite(id));
     }
 
+    /**
+     * 根据选中数量启用或禁用批量按钮。
+     */
     function updateBatchActionState() {
         const batchDeleteBtn = selectOne('[data-action="batch-delete"]').first();
         const batchTestBtn = selectOne('[data-action="batch-test"]').first();
@@ -821,6 +935,9 @@ function mountInstancesListPage() {
         }
     }
 
+    /**
+     * 将当前选中的实例同步到 store。
+     */
     function syncStoreSelection() {
         if (!instanceStore?.actions?.setSelection) {
             return;
@@ -833,6 +950,9 @@ function mountInstancesListPage() {
         }
     }
 
+    /**
+     * 行复选框变动事件处理。
+     */
     function handleRowSelectionChange(event) {
         const checkbox = event.currentTarget;
         const id = Number(checkbox.value);
@@ -850,6 +970,9 @@ function mountInstancesListPage() {
         updateSelectAllCheckbox();
     }
 
+    /**
+     * 全选复选框变动事件处理。
+     */
     function handleSelectAllChange(event) {
         const checked = event.currentTarget.checked;
         const availableIds = collectAvailableInstanceIds();
@@ -864,6 +987,9 @@ function mountInstancesListPage() {
         syncSelectionCheckboxes();
     }
 
+    /**
+     * 测试实例连接并展示结果。
+     */
     function handleTestConnection(instanceId, trigger) {
         const connectionManager = global.connectionManager;
         if (!connectionManager?.testInstanceConnection) {
@@ -891,6 +1017,9 @@ function mountInstancesListPage() {
             });
     }
 
+    /**
+     * 切换按钮 loading 状态。
+     */
     function toggleButtonLoading(button, loading, placeholder) {
         if (!button) {
             return;
@@ -909,6 +1038,9 @@ function mountInstancesListPage() {
         }
     }
 
+    /**
+     * 安全解析 JSON，失败时返回 fallback。
+     */
     function safeParseJSON(value, fallback) {
         try {
             return value ? JSON.parse(value) : fallback;
@@ -918,6 +1050,9 @@ function mountInstancesListPage() {
         }
     }
 
+    /**
+     * 格式化时间戳。
+     */
     function formatTimestamp(value) {
         if (!value) {
             return '';
@@ -939,6 +1074,9 @@ function mountInstancesListPage() {
         return value;
     }
 
+    /**
+     * 暴露对外的全局方法。
+     */
     function exposeGlobalActions() {
         global.InstanceListActions = {
             openDetail: (instanceId) => {
@@ -952,6 +1090,9 @@ function mountInstancesListPage() {
         };
     }
 
+    /**
+     * 简单 HTML 转义。
+     */
     function escapeHtml(value) {
         if (value === undefined || value === null) {
             return '';

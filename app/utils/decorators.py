@@ -110,7 +110,14 @@ def admin_required(f: Any) -> Any:  # noqa: ANN401
 
 
 def login_required(f: Any) -> Any:  # noqa: ANN401
-    """要求调用者已登录的装饰器。"""
+    """要求调用者已登录的装饰器。
+
+    Args:
+        f: 原始视图函数。
+
+    Returns:
+        包装后的函数，若用户未登录将重定向或抛出异常。
+    """
 
     @wraps(f)
     def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
@@ -159,7 +166,14 @@ def login_required(f: Any) -> Any:  # noqa: ANN401
 
 
 def permission_required(permission: str) -> Any:  # noqa: ANN401
-    """校验指定权限（view/create/update/delete）的装饰器工厂。"""
+    """校验指定权限（view/create/update/delete）的装饰器工厂。
+
+    Args:
+        permission: 需要验证的权限字符串。
+
+    Returns:
+        可装饰视图的校验器，未通过时会告警或抛出异常。
+    """
 
     def decorator(f: Any) -> Any:  # noqa: ANN401
         @wraps(f)
@@ -245,7 +259,11 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
 
 
 def _extract_csrf_token() -> Optional[str]:
-    """从请求中提取 CSRF 令牌."""
+    """从请求头、JSON 或表单中提取 CSRF 令牌。
+
+    Returns:
+        提取到的 CSRF 字符串，若不存在返回 None。
+    """
     token = request.headers.get(CSRF_HEADER)
     if token:
         return token
@@ -261,7 +279,14 @@ def _extract_csrf_token() -> Optional[str]:
 
 
 def require_csrf(f: Any) -> Any:  # noqa: ANN401
-    """统一的 CSRF 校验装饰器."""
+    """统一的 CSRF 校验装饰器。
+
+    Args:
+        f: 需要保护的视图函数。
+
+    Returns:
+        装饰后的函数，校验失败时抛出 AuthorizationError。
+    """
 
     @wraps(f)
     def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401
@@ -315,7 +340,15 @@ def require_csrf(f: Any) -> Any:  # noqa: ANN401
 
 
 def has_permission(user: Any, permission: str) -> bool:
-    """检查给定用户是否具备指定权限。"""
+    """检查给定用户是否具备指定权限。
+
+    Args:
+        user: 当前用户对象。
+        permission: 待验证的权限字符串。
+
+    Returns:
+        True 表示具有权限，False 表示缺失或未登录。
+    """
     if not user or not user.is_authenticated:
         return False
 
@@ -341,7 +374,15 @@ def has_permission(user: Any, permission: str) -> bool:
 
 
 def view_required(f: Any = None, *, permission: str = "view") -> Any:  # noqa: ANN401
-    """校验查看权限的装饰器，可直接使用或指定自定义权限。"""
+    """校验查看权限的装饰器，可直接使用或指定自定义权限。
+
+    Args:
+        f: 待装饰函数，支持无参直接使用。
+        permission: 自定义权限名称，默认 `view`。
+
+    Returns:
+        满足 Flask 惰性装饰器模式的函数或装饰器。
+    """
 
     def decorator(func: Any) -> Any:
         return permission_required(permission)(func)
@@ -352,7 +393,15 @@ def view_required(f: Any = None, *, permission: str = "view") -> Any:  # noqa: A
 
 
 def create_required(f: Any = None, *, permission: str = "create") -> Any:  # noqa: ANN401
-    """校验创建权限的装饰器。"""
+    """校验创建权限的装饰器。
+
+    Args:
+        f: 待装饰函数。
+        permission: 自定义权限名称，默认为 `create`。
+
+    Returns:
+        装饰器或已装饰函数。
+    """
 
     def decorator(func: Any) -> Any:
         return permission_required(permission)(func)
@@ -363,7 +412,15 @@ def create_required(f: Any = None, *, permission: str = "create") -> Any:  # noq
 
 
 def update_required(f: Any = None, *, permission: str = "update") -> Any:  # noqa: ANN401
-    """校验更新权限的装饰器。"""
+    """校验更新权限的装饰器。
+
+    Args:
+        f: 待装饰函数。
+        permission: 自定义权限名称，默认为 `update`。
+
+    Returns:
+        装饰器或已装饰函数。
+    """
 
     def decorator(func: Any) -> Any:
         return permission_required(permission)(func)
@@ -374,7 +431,15 @@ def update_required(f: Any = None, *, permission: str = "update") -> Any:  # noq
 
 
 def delete_required(f: Any = None, *, permission: str = "delete") -> Any:  # noqa: ANN401
-    """校验删除权限的装饰器。"""
+    """校验删除权限的装饰器。
+
+    Args:
+        f: 待装饰函数。
+        permission: 自定义权限名称，默认为 `delete`。
+
+    Returns:
+        装饰器或已装饰函数。
+    """
 
     def decorator(func: Any) -> Any:
         return permission_required(permission)(func)
@@ -385,10 +450,24 @@ def delete_required(f: Any = None, *, permission: str = "delete") -> Any:  # noq
 
 
 def scheduler_view_required(f: Any) -> Any:  # noqa: ANN401
-    """定时任务查看权限装饰器."""
+    """定时任务查看权限装饰器。
+
+    Args:
+        f: 原始视图函数。
+
+    Returns:
+        添加 scheduler.view 权限校验后的函数。
+    """
     return permission_required("scheduler.view")(f)
 
 
 def scheduler_manage_required(f: Any) -> Any:  # noqa: ANN401
-    """定时任务管理权限装饰器."""
+    """定时任务管理权限装饰器。
+
+    Args:
+        f: 原始视图函数。
+
+    Returns:
+        添加 scheduler.manage 权限校验后的函数。
+    """
     return permission_required("scheduler.manage")(f)

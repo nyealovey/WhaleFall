@@ -11,6 +11,12 @@ class MySQLConnection(DatabaseConnection):
     """MySQL 数据库连接。"""
 
     def connect(self) -> bool:
+        """建立 MySQL 连接并缓存连接对象。
+
+        Returns:
+            bool: 连接成功返回 True，失败返回 False。
+        """
+
         try:
             import pymysql
 
@@ -42,6 +48,8 @@ class MySQLConnection(DatabaseConnection):
             return False
 
     def disconnect(self) -> None:
+        """关闭当前连接并复位状态标识。"""
+
         if self.connection:
             try:
                 self.connection.close()
@@ -58,6 +66,8 @@ class MySQLConnection(DatabaseConnection):
                 self.is_connected = False
 
     def test_connection(self) -> dict[str, Any]:
+        """快速测试数据库连通性并返回版本信息。"""
+
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -74,6 +84,16 @@ class MySQLConnection(DatabaseConnection):
             self.disconnect()
 
     def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
+        """执行 SQL 查询并返回全部结果。
+
+        Args:
+            query: 待执行的 SQL 语句。
+            params: 绑定参数元组。
+
+        Returns:
+            Any: pymysql `fetchall` 的结果。
+        """
+
         if not self.is_connected and not self.connect():
             raise Exception("无法建立数据库连接")
 
@@ -85,6 +105,12 @@ class MySQLConnection(DatabaseConnection):
             cursor.close()
 
     def get_version(self) -> str | None:
+        """查询数据库版本。
+
+        Returns:
+            str | None: 成功时返回版本字符串，否则 None。
+        """
+
         try:
             result = self.execute_query("SELECT VERSION()")
             if result:

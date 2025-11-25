@@ -57,6 +57,9 @@ class StructlogConfig:
 
         Args:
             app: Flask 应用实例，可选。如果提供，将附加应用特定配置。
+
+        Returns:
+            None.
         """
         if not self.configured:
             structlog.configure(
@@ -84,6 +87,14 @@ class StructlogConfig:
             self._attach_app(app)
 
     def _attach_app(self, app):  # noqa: ANN001
+        """绑定位于 Flask 应用上的队列配置。
+
+        Args:
+            app: 当前 Flask 应用。
+
+        Returns:
+            None.
+        """
         if not self.worker:
             queue_size = int(app.config.get("LOG_QUEUE_SIZE", 1000))
             batch_size = int(app.config.get("LOG_BATCH_SIZE", 100))
@@ -100,12 +111,32 @@ class StructlogConfig:
         self.debug_filter.set_enabled(enable_debug)
 
     def _add_request_context(self, logger, method_name, event_dict):  # noqa: ANN001
+        """向事件字典写入请求上下文。
+
+        Args:
+            logger: 当前 logger 实例。
+            method_name: 调用的方法名。
+            event_dict: structlog 事件字典。
+
+        Returns:
+            包含 request_id/user_id 的事件字典。
+        """
         if has_request_context():
             event_dict["request_id"] = request_id_var.get()
             event_dict["user_id"] = user_id_var.get()
         return event_dict
 
     def _add_user_context(self, logger, method_name, event_dict):  # noqa: ANN001
+        """附加当前用户上下文。
+
+        Args:
+            logger: 当前 logger。
+            method_name: 日志级别名称。
+            event_dict: 事件字典。
+
+        Returns:
+            更新后的事件字典。
+        """
         try:
             if current_user and getattr(current_user, "is_authenticated", False):
                 event_dict["current_user_id"] = getattr(current_user, "id", None)
@@ -115,6 +146,16 @@ class StructlogConfig:
         return event_dict
 
     def _add_global_context(self, logger, method_name, event_dict):  # noqa: ANN001
+        """附加环境、版本等全局上下文。
+
+        Args:
+            logger: 当前 logger。
+            method_name: 日志方法。
+            event_dict: 事件字典。
+
+        Returns:
+            更新后的事件字典。
+        """
         event_dict["app_name"] = "鲸落"
         try:
             event_dict["app_version"] = getattr(current_app.config, "APP_VERSION", "unknown")
@@ -130,6 +171,11 @@ class StructlogConfig:
         return event_dict
 
     def _get_console_renderer(self):
+        """根据终端能力返回渲染器。
+
+        Returns:
+            structlog renderer，用于控制台输出。
+        """
         if sys.stdout.isatty():
             return structlog.dev.ConsoleRenderer(
                 colors=True,
@@ -175,6 +221,9 @@ def configure_structlog(app):  # noqa: ANN001
 
     Args:
         app: Flask 应用实例。
+
+    Returns:
+        None.
     """
     structlog_config.configure(app)
 
@@ -204,6 +253,9 @@ def log_info(message: str, module: str = "app", **kwargs):
         module: 模块名称，默认为 'app'。
         **kwargs: 额外的上下文信息。
 
+    Returns:
+        None.
+
     Example:
         >>> log_info('用户登录成功', module='auth', user_id=123)
     """
@@ -219,6 +271,9 @@ def log_warning(message: str, module: str = "app", exception: Exception | None =
         module: 模块名称，默认为 'app'。
         exception: 可选的异常对象。
         **kwargs: 额外的上下文信息。
+
+    Returns:
+        None.
 
     Example:
         >>> log_warning('配置项缺失', module='config', key='API_KEY')
@@ -238,6 +293,9 @@ def log_error(message: str, module: str = "app", exception: Exception | None = N
         module: 模块名称，默认为 'app'。
         exception: 可选的异常对象，会记录堆栈信息。
         **kwargs: 额外的上下文信息。
+
+    Returns:
+        None.
 
     Example:
         >>> try:
@@ -261,6 +319,9 @@ def log_critical(message: str, module: str = "app", exception: Exception | None 
         exception: 可选的异常对象，会记录堆栈信息。
         **kwargs: 额外的上下文信息。
 
+    Returns:
+        None.
+
     Example:
         >>> log_critical('数据库连接失败', module='database', exception=e)
     """
@@ -281,6 +342,9 @@ def log_debug(message: str, module: str = "app", **kwargs):
         module: 模块名称，默认为 'app'。
         **kwargs: 额外的上下文信息。
 
+    Returns:
+        None.
+
     Example:
         >>> log_debug('查询参数', module='api', params={'page': 1})
     """
@@ -291,26 +355,62 @@ def log_debug(message: str, module: str = "app", **kwargs):
 
 
 def get_system_logger() -> structlog.BoundLogger:
+    """返回系统级 logger。
+
+    Returns:
+        structlog.BoundLogger: 绑定系统模块的 logger。
+    """
+
     return get_logger("system")
 
 
 def get_api_logger() -> structlog.BoundLogger:
+    """返回 API 级 logger。
+
+    Returns:
+        structlog.BoundLogger: 针对 API 模块的 logger。
+    """
+
     return get_logger("api")
 
 
 def get_auth_logger() -> structlog.BoundLogger:
+    """返回认证模块 logger。
+
+    Returns:
+        structlog.BoundLogger: 认证场景使用的 logger。
+    """
+
     return get_logger("auth")
 
 
 def get_db_logger() -> structlog.BoundLogger:
+    """返回数据库操作 logger。
+
+    Returns:
+        structlog.BoundLogger: 数据库相关的 logger。
+    """
+
     return get_logger("database")
 
 
 def get_sync_logger() -> structlog.BoundLogger:
+    """返回同步任务 logger。
+
+    Returns:
+        structlog.BoundLogger: 同步模块 logger。
+    """
+
     return get_logger("sync")
 
 
 def get_task_logger() -> structlog.BoundLogger:
+    """返回后台任务 logger。
+
+    Returns:
+        structlog.BoundLogger: 背景任务 logger。
+    """
+
     return get_logger("task")
 
 
@@ -376,6 +476,16 @@ def enhanced_error_handler(
 
 
 def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict[str, Any]) -> None:
+    """根据严重度输出增强错误。
+
+    Args:
+        error: 捕获的异常。
+        metadata: 推导出的错误元数据。
+        payload: 序列化后的错误响应。
+
+    Returns:
+        None.
+    """
     log_kwargs = {
         "module": "error_handler",
         "error_id": payload["error_id"],
@@ -395,6 +505,15 @@ def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict
 
 
 def error_handler(func: Callable):
+    """Flask 视图装饰器，统一捕获异常并输出结构化日志。
+
+    Args:
+        func: 原始视图函数。
+
+    Returns:
+        包含 try/except 的包装函数。
+    """
+
     from functools import wraps
     from flask import jsonify
 

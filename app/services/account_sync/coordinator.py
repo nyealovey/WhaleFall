@@ -1,3 +1,5 @@
+"""账户同步协调器，封装连接管理、清单/权限双阶段流程。"""
+
 from __future__ import annotations
 
 from contextlib import AbstractContextManager

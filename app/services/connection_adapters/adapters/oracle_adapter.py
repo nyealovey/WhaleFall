@@ -11,6 +11,8 @@ class OracleConnection(DatabaseConnection):
     """Oracle 数据库连接。"""
 
     def connect(self) -> bool:
+        """建立 Oracle 连接并在必要时初始化客户端。"""
+
         username_for_connection = None
         try:
             import os
@@ -81,6 +83,8 @@ class OracleConnection(DatabaseConnection):
             return False
 
     def disconnect(self) -> None:
+        """断开 Oracle 连接并清理句柄。"""
+
         if self.connection:
             try:
                 self.connection.close()
@@ -97,6 +101,8 @@ class OracleConnection(DatabaseConnection):
                 self.is_connected = False
 
     def test_connection(self) -> dict[str, Any]:
+        """测试 Oracle 连接并返回版本信息。"""
+
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -113,6 +119,8 @@ class OracleConnection(DatabaseConnection):
             self.disconnect()
 
     def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:  # noqa: ANN401
+        """执行 SQL 查询并返回全部行。"""
+
         if not self.is_connected and not self.connect():
             raise Exception("无法建立数据库连接")
 
@@ -124,6 +132,8 @@ class OracleConnection(DatabaseConnection):
             cursor.close()
 
     def get_version(self) -> str | None:
+        """获取 Oracle 版本字符串。"""
+
         try:
             result = self.execute_query("SELECT * FROM v$version WHERE rownum = 1")
             if result:

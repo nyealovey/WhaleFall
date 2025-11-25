@@ -213,6 +213,12 @@
         operator: [helpers.required(messages.classificationRuleOperator)],
     };
 
+    /**
+     * 校验 Cron 单字段是否合法。
+     *
+     * @param {string|number} value 待校验的 cron 字段字符串。
+     * @returns {boolean} 合法则为 true。
+     */
     function isValidCronField(value) {
         if (value == null) {
             return false;
@@ -224,6 +230,12 @@
         return /^[A-Za-z0-9*/?,\-]+$/.test(trimmed);
     }
 
+    /**
+     * 判断密码是否满足强度要求。
+     *
+     * @param {string} value 待校验的密码。
+     * @returns {boolean} 满足长度与字符类型约束时返回 true。
+     */
     function isStrongPassword(value) {
         if (value == null) {
             return false;

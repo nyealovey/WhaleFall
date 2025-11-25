@@ -82,6 +82,9 @@
       lastError: null,
     };
 
+    /**
+     * 派发事件，默认为调用方提供状态快照。
+     */
     function emit(eventName, payload) {
       emitter.emit(
         eventName,
@@ -91,6 +94,9 @@
       );
     }
 
+    /**
+     * 广播选择集变化。
+     */
     function emitSelection(reason) {
       emit("tagList:selectionChanged", {
         reason: reason || "update",

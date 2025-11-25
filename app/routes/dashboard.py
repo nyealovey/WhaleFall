@@ -284,11 +284,23 @@ def get_chart_data(chart_type: str = "all") -> dict:
 
 @dashboard_cache(timeout=300)
 def get_log_trend_data() -> list[dict[str, int | str]]:
+    """获取日志趋势数据。
+
+    Returns:
+        list[dict[str, int | str]]: 最近 7 天的日志数，包含日期与数量。
+    """
+
     return fetch_log_trend_data()
 
 
 @dashboard_cache(timeout=300)
 def get_log_level_distribution() -> list[dict[str, int | str]]:
+    """获取日志级别分布。
+
+    Returns:
+        list[dict[str, int | str]]: 各日志级别对应的数量。
+    """
+
     return fetch_log_level_distribution()
 
 

@@ -286,6 +286,9 @@ function mountCredentialsListPage(global) {
     credentialModals.init?.();
   }
 
+  /**
+   * 初始化删除确认模态框。
+   */
   function initializeDeleteConfirmation() {
     const factory = global.UI?.createModal;
     if (!factory) {
@@ -303,6 +306,9 @@ function mountCredentialsListPage(global) {
     confirmDeleteButton = selectOne("#confirmDelete");
   }
 
+  /**
+   * 处理删除模态确认按钮点击。
+   */
   function handleDeleteConfirmation(event) {
     event?.preventDefault?.();
     if (!deleteCredentialId) {
@@ -324,6 +330,9 @@ function mountCredentialsListPage(global) {
       });
   }
 
+  /**
+   * 打开删除确认模态。
+   */
   function deleteCredential(credentialId, credentialName) {
     if (!credentialId) {
       return;
@@ -336,6 +345,9 @@ function mountCredentialsListPage(global) {
     deleteModal?.open();
   }
 
+  /**
+   * 打开凭据编辑模态。
+   */
   function openCredentialEditor(credentialId) {
     if (!credentialModals || !credentialId) {
       return;
@@ -343,6 +355,9 @@ function mountCredentialsListPage(global) {
     credentialModals.openEdit(credentialId);
   }
 
+  /**
+   * 显示按钮 loading 状态。
+   */
   function showLoadingState(target, text) {
     const element = from(target);
     if (!element.length) {
@@ -353,6 +368,9 @@ function mountCredentialsListPage(global) {
     element.attr("disabled", "disabled");
   }
 
+  /**
+   * 恢复按钮默认状态。
+   */
   function hideLoadingState(target, fallbackText) {
     const element = from(target);
     if (!element.length) {
@@ -364,6 +382,9 @@ function mountCredentialsListPage(global) {
     element.attr("data-original-text", null);
   }
 
+  /**
+   * 初始化筛选表单及自动提交逻辑。
+   */
   function initializeCredentialFilterCard() {
     const form = document.getElementById(CREDENTIAL_FILTER_FORM_ID);
     if (!form) {
@@ -420,10 +441,16 @@ function mountCredentialsListPage(global) {
     from(global).on("beforeunload", filterUnloadHandler);
   }
 
+  /**
+   * 销毁筛选表单引用，移除事件。
+   */
   function destroyCredentialFilterCard() {
     credentialFilterCard = null;
   }
 
+  /**
+   * 应用筛选条件并刷新 grid 或跳转。
+   */
   function applyCredentialFilters(form, values) {
     const targetForm = resolveFormElement(form);
     if (!targetForm) {
@@ -449,6 +476,9 @@ function mountCredentialsListPage(global) {
     global.location.href = query ? `${action}?${query}` : action;
   }
 
+  /**
+   * 解析表单字段并规范化值。
+   */
   function resolveCredentialFilters(form, overrideValues) {
     const rawValues =
       overrideValues && Object.keys(overrideValues || {}).length ? overrideValues : collectFormValues(form);
@@ -468,6 +498,9 @@ function mountCredentialsListPage(global) {
     }, {});
   }
 
+  /**
+   * 清理空值，返回有效过滤条件。
+   */
   function normalizeGridFilters(filters) {
     const normalized = { ...(filters || {}) };
     ["credential_type", "db_type", "status"].forEach((key) => {
@@ -488,6 +521,9 @@ function mountCredentialsListPage(global) {
     return normalized;
   }
 
+  /**
+   * 将表单值转换为接口可用格式。
+   */
   function sanitizeFilterValue(value) {
     if (Array.isArray(value)) {
       return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
@@ -495,6 +531,9 @@ function mountCredentialsListPage(global) {
     return sanitizePrimitiveValue(value);
   }
 
+  /**
+   * 规范化单个字段的原始值。
+   */
   function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
       return value.name;
@@ -509,6 +548,9 @@ function mountCredentialsListPage(global) {
     return value;
   }
 
+  /**
+   * 将过滤条件编码为查询参数。
+   */
   function buildCredentialQueryParams(filters) {
     const params = new URLSearchParams();
     Object.entries(filters || {}).forEach(([key, value]) => {
@@ -521,6 +563,9 @@ function mountCredentialsListPage(global) {
     return params;
   }
 
+  /**
+   * 重置筛选表单并应用空过滤。
+   */
   function resetCredentialFilters(form) {
     const targetForm = resolveFormElement(form);
     if (targetForm) {
@@ -529,6 +574,9 @@ function mountCredentialsListPage(global) {
     applyCredentialFilters(targetForm, {});
   }
 
+  /**
+   * 接受 selector/DOM，统一为表单元素。
+   */
   function resolveFormElement(form) {
     if (!form && credentialFilterCard?.form) {
       return credentialFilterCard.form;
@@ -548,6 +596,9 @@ function mountCredentialsListPage(global) {
     return form;
   }
 
+  /**
+   * 收集表单字段，如果存在 serializeForm 则优先使用。
+   */
   function collectFormValues(form) {
     if (credentialFilterCard?.serialize) {
       return credentialFilterCard.serialize();
@@ -574,6 +625,9 @@ function mountCredentialsListPage(global) {
     return result;
   }
 
+  /**
+   * 去除文本值的多余空格。
+   */
   function normalizeText(value) {
     const text = (value || "").toString().trim();
     if (typeof LodashUtils.toLower === "function") {
@@ -582,6 +636,9 @@ function mountCredentialsListPage(global) {
     return text.toLowerCase();
   }
 
+  /**
+   * 简单 HTML 转义。
+   */
   function escapeHtmlValue(value) {
     if (value === undefined || value === null) {
       return "";
@@ -594,6 +651,9 @@ function mountCredentialsListPage(global) {
       .replace(/'/g, "&#39;");
   }
 
+  /**
+   * 根据数据库类型返回徽章元信息。
+   */
   function getDbBadgeMeta(dbType) {
     const normalized = (dbType || "").toLowerCase();
     const map = {
@@ -638,6 +698,9 @@ function mountCredentialsListPage(global) {
     };
   }
 
+  /**
+   * 订阅凭据 store 的事件。
+   */
   function bindCredentialsStoreEvents() {
     if (!credentialsStore) {
       return;
@@ -655,6 +718,9 @@ function mountCredentialsListPage(global) {
     });
   }
 
+  /**
+   * 关闭删除凭据模态。
+   */
   function closeDeleteModal() {
     deleteModal?.close?.();
   }

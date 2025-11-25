@@ -72,6 +72,13 @@ function mountAccountClassificationPage(window, document) {
 
     const logError =
         window.logErrorWithContext ||
+        /**
+         * 默认错误记录器，控制台兜底输出。
+         *
+         * @param {Error|Object|string} error 捕获的错误。
+         * @param {string} context 错误发生场景。
+         * @param {Object} [extras] 附加信息。
+         */
         function fallbackLogger(error, context, extras) {
             console.error(`[AccountClassificationPage] ${context}`, error, extras || {});
         };
@@ -555,6 +562,9 @@ function renderRuleRow(rule) {
     }
 
     /* ========== 其他辅助 ========== */
+    /**
+     * 监听规则详情弹窗中的 Enter 键快捷搜索事件。
+     */
     function setupGlobalSearchListener() {
         document.addEventListener('keypress', function (event) {
             if (event.target?.id === 'accountSearchInput' && event.key === 'Enter') {
@@ -567,6 +577,13 @@ function renderRuleRow(rule) {
         });
     }
 
+    /**
+     * 统一处理请求失败并展示提示。
+     *
+     * @param {Error|Object} error 后端或前端错误。
+     * @param {string} [fallbackMessage] 默认提示文本。
+     * @param {string} [context] 日志上下文。
+     */
     function handleRequestError(error, fallbackMessage, context) {
         logError(error, context || 'account_classification', {
             fallbackMessage,

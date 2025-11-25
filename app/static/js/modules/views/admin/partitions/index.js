@@ -101,11 +101,17 @@ function mountAdminPartitionsPage(global) {
         subscribeToPartitionStore('partitions:cleanup:success', handleCleanupSuccess);
     }
 
+    /**
+     * 订阅 store 事件并记录，便于销毁。
+     */
     function subscribeToPartitionStore(eventName, handler) {
         partitionStore.subscribe(eventName, handler);
         partitionStoreSubscriptions.push({ eventName, handler });
     }
 
+    /**
+     * 取消订阅并销毁 store。
+     */
     function teardownPartitionStore() {
         if (!partitionStore) {
             return;
@@ -118,6 +124,9 @@ function mountAdminPartitionsPage(global) {
         partitionStore = null;
     }
 
+    /**
+     * 绑定创建/清理按钮事件。
+     */
     function bindEvents() {
         if (!modalsController) {
             console.error('PartitionsModals 未加载，模态事件不生效');
@@ -127,6 +136,9 @@ function mountAdminPartitionsPage(global) {
         selectOne('#cleanupPartitionsBtn').on('click', (event) => modalsController.openCleanup(event));
     }
 
+    /**
+     * 初始化分区操作模态。
+     */
     function initializeModals() {
         if (!global.PartitionsModals?.createController) {
             throw new Error('PartitionsModals 未加载，分区管理模态无法初始化');
@@ -142,6 +154,9 @@ function mountAdminPartitionsPage(global) {
         });
     }
 
+    /**
+     * 直接从服务端加载分区统计。
+     */
     async function loadPartitionData() {
         if (partitionStore) {
             return partitionStore.actions.loadInfo();
@@ -161,6 +176,9 @@ function mountAdminPartitionsPage(global) {
         }
     }
 
+    /**
+     * 刷新 store 并在完成后通知 grid 重载。
+     */
     function refreshPartitionData(options = {}) {
         const loadPromise = partitionStore
             ? partitionStore.actions.loadInfo({ silent: options.silent ?? true })
@@ -170,6 +188,9 @@ function mountAdminPartitionsPage(global) {
         });
     }
 
+    /**
+     * 更新仪表盘统计展示。
+     */
     function updatePartitionStats(data) {
         const stats = data && typeof data === 'object' ? data : {};
         selectOne('#totalPartitions').text(stats.total_partitions ?? 0);
@@ -178,6 +199,9 @@ function mountAdminPartitionsPage(global) {
         selectOne('#partitionStatus').text(resolvePartitionStatusLabel(stats.status));
     }
 
+    /**
+     * 将分区状态映射为颜色。
+     */
     function getStatusColor(status) {
         switch (status) {
             case 'current':
@@ -198,11 +222,17 @@ function mountAdminPartitionsPage(global) {
         });
     };
 
+    /**
+     * store 通知：信息更新。
+     */
     function handleInfoUpdated(payload) {
         const stats = payload?.stats || payload?.state?.stats || {};
         updatePartitionStats(stats);
     }
 
+    /**
+     * store 通知：加载状态变更。
+     */
     function handlePartitionLoading(payload) {
         const target = payload?.target;
         if (target === 'info') {
@@ -210,6 +240,9 @@ function mountAdminPartitionsPage(global) {
         }
     }
 
+    /**
+     * store 通知：操作失败。
+     */
     function handlePartitionError(payload) {
         const target = payload?.meta?.target;
         if (target === 'info') {
@@ -223,16 +256,25 @@ function mountAdminPartitionsPage(global) {
         }
     }
 
+    /**
+     * 分区创建成功后的提示与刷新。
+     */
     function handleCreateSuccess() {
         global.toast?.success?.('分区创建成功') || global.alert('分区创建成功');
         refreshPartitionData();
     }
 
+    /**
+     * 分区清理成功后的提示与刷新。
+     */
     function handleCleanupSuccess() {
         global.toast?.success?.('分区清理成功') || global.alert('分区清理成功');
         refreshPartitionData();
     }
 
+    /**
+     * 显示统计相关错误。
+     */
     function notifyStatsError(message) {
         if (global.toast?.error) {
             global.toast.error(message);
@@ -241,10 +283,16 @@ function mountAdminPartitionsPage(global) {
         }
     }
 
+    /**
+     * 发出自定义事件，通知列表刷新。
+     */
     function requestPartitionGridRefresh() {
         global.dispatchEvent?.(new CustomEvent('partitionList:refresh'));
     }
 
+    /**
+     * 将状态码转为文案。
+     */
     function resolvePartitionStatusLabel(status) {
         const normalized = (status || '').toLowerCase();
         if (normalized === 'healthy') {

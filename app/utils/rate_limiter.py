@@ -313,11 +313,14 @@ def password_reset_rate_limit(func=None, *, limit: int = None, window: int = Non
 
 
 # 初始化速率限制器
-def init_rate_limiter(cache: Cache = None):
+def init_rate_limiter(cache: Cache = None) -> None:
     """初始化速率限制器。
 
     Args:
         cache: Flask-Caching 缓存实例，可选。如果不提供则使用内存模式。
+
+    Returns:
+        None.
 
     Example:
         >>> from flask_caching import Cache

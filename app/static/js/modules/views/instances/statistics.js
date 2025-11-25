@@ -42,6 +42,11 @@ function mountInstanceStatisticsPage() {
     let instanceStore = null;
     const instanceStoreSubscriptions = [];
 
+    /**
+     * 校验 InstanceManagementService 是否初始化。
+     *
+     * @returns {boolean} 是否可用。
+     */
     function ensureInstanceService() {
         if (!instanceService) {
             if (global.toast?.error) {
@@ -69,6 +74,9 @@ function mountInstanceStatisticsPage() {
         from(document).on('visibilitychange', handleVisibilityChange);
     });
 
+    /**
+     * 初始化 InstanceStore 并加载统计。
+     */
     function initializeInstanceStore() {
         if (!global.createInstanceStore) {
             console.warn('createInstanceStore 未加载，跳过实例 Store 初始化');
@@ -98,6 +106,9 @@ function mountInstanceStatisticsPage() {
             });
     }
 
+    /**
+     * 订阅 store 事件。
+     */
     function bindInstanceStoreEvents() {
         if (!instanceStore) {
             return;
@@ -105,11 +116,22 @@ function mountInstanceStatisticsPage() {
         subscribeToInstanceStore('instances:statsUpdated', handleStatsUpdated);
     }
 
+    /**
+     * 订阅单个 store 事件。
+     *
+     * @param {string} eventName 事件名称。
+     * @param {Function} handler 回调函数。
+     */
     function subscribeToInstanceStore(eventName, handler) {
         instanceStore.subscribe(eventName, handler);
         instanceStoreSubscriptions.push({ eventName, handler });
     }
 
+    /**
+     * store 通报统计更新后的处理。
+     *
+     * @param {Object} payload store 推送的数据。
+     */
     function handleStatsUpdated(payload) {
         const stats =
             payload?.stats ||
@@ -120,6 +142,9 @@ function mountInstanceStatisticsPage() {
         showDataUpdatedNotification();
     }
 
+    /**
+     * 销毁 store 并移除订阅。
+     */
     function teardownInstanceStore() {
         if (!instanceStore) {
             return;
@@ -132,6 +157,9 @@ function mountInstanceStatisticsPage() {
         instanceStore = null;
     }
 
+    /**
+     * 页面可见性变化时管理自动刷新。
+     */
     function handleVisibilityChange() {
         if (document.hidden) {
             stopAutoRefresh();
@@ -140,6 +168,9 @@ function mountInstanceStatisticsPage() {
         }
     }
 
+    /**
+     * 基于版本统计渲染环状图。
+     */
     function createVersionChart() {
         const ctxWrapper = selectOne('#versionChart');
         if (!ctxWrapper.length) {
@@ -163,6 +194,11 @@ function mountInstanceStatisticsPage() {
         });
     }
 
+    /**
+     * 从 data 属性或全局变量读取统计数据。
+     *
+     * @returns {Array<Object>|null}
+     */
     function getVersionStats() {
         const versionStatsElement = selectOne('[data-version-stats]');
         if (versionStatsElement.length) {
@@ -178,6 +214,12 @@ function mountInstanceStatisticsPage() {
         return null;
     }
 
+    /**
+     * 按数据库类型分组版本数据。
+     *
+     * @param {Array<Object>} versionStats 原始数据。
+     * @returns {Object} 分组后的映射。
+     */
     function groupStatsByDbType(versionStats) {
         if (!Array.isArray(versionStats)) {
             return {};
@@ -185,6 +227,12 @@ function mountInstanceStatisticsPage() {
         return LodashUtils.groupBy(versionStats, (stat) => stat?.db_type || 'unknown');
     }
 
+    /**
+     * 将分组数据转换为 Chart.js 数据结构。
+     *
+     * @param {Object} groupedStats 分组数据。
+     * @returns {Object} Chart.js data 字段。
+     */
     function createChartData(groupedStats) {
         const dbTypeColors = {
             mysql: 'rgba(40, 167, 69, 0.8)',
@@ -232,6 +280,12 @@ function mountInstanceStatisticsPage() {
         };
     }
 
+    /**
+     * 将半透明颜色转换为不透明色。
+     *
+     * @param {string} color RGBA 颜色值。
+     * @returns {string} 不透明颜色。
+     */
     function toOpaqueColor(color) {
         if (typeof color !== 'string') {
             return 'rgba(108, 117, 125, 1)';
@@ -242,6 +296,11 @@ function mountInstanceStatisticsPage() {
         return color;
     }
 
+    /**
+     * 返回 Chart.js 选项。
+     *
+     * @returns {Object} 配置项。
+     */
     function getChartOptions() {
         return {
             responsive: true,
@@ -276,6 +335,11 @@ function mountInstanceStatisticsPage() {
         };
     }
 
+    /**
+     * 在画布上渲染“暂无数据”。
+     *
+     * @param {HTMLCanvasElement} ctx 画布。
+     */
     function showEmptyChart(ctx) {
         const canvas = ctx.getContext('2d');
         canvas.font = '16px Arial';
@@ -284,6 +348,9 @@ function mountInstanceStatisticsPage() {
         canvas.fillText('暂无版本数据', ctx.width / 2, ctx.height / 2);
     }
 
+    /**
+     * 启动定时刷新。
+     */
     function startAutoRefresh() {
         if (refreshInterval) {
             return;
@@ -293,6 +360,9 @@ function mountInstanceStatisticsPage() {
         }, 60000);
     }
 
+    /**
+     * 停止定时刷新。
+     */
     function stopAutoRefresh() {
         if (refreshInterval) {
             clearInterval(refreshInterval);
@@ -300,6 +370,9 @@ function mountInstanceStatisticsPage() {
         }
     }
 
+    /**
+     * 主动刷新统计数据。
+     */
     function refreshStatistics() {
         if (!ensureInstanceService()) {
             return;
@@ -320,6 +393,11 @@ function mountInstanceStatisticsPage() {
             });
     }
 
+    /**
+     * 更新统计卡片。
+     *
+     * @param {Object} stats 最新统计数据。
+     */
     function updateStatistics(stats) {
         const totalInstancesElement = selectOne('.card.bg-primary .card-title');
         const activeInstancesElement = selectOne('.card.bg-success .card-title');
@@ -336,6 +414,11 @@ function mountInstanceStatisticsPage() {
         }
     }
 
+    /**
+     * 使用新的版本数据更新图表。
+     *
+     * @param {Array<Object>} versionStats 数据。
+     */
     function updateVersionChart(versionStats) {
         if (!versionChart || !versionStats || versionStats.length === 0) {
             return;
@@ -345,10 +428,16 @@ function mountInstanceStatisticsPage() {
         versionChart.update();
     }
 
+    /**
+     * 移除已存在的通知元素。
+     */
     function removeExistingNotification() {
         select('.data-updated').remove();
     }
 
+    /**
+     * 显示数据已更新提示。
+     */
     function showDataUpdatedNotification() {
         removeExistingNotification();
 
@@ -365,6 +454,11 @@ function mountInstanceStatisticsPage() {
         }, 3000);
     }
 
+    /**
+     * 显示错误提示。
+     *
+     * @param {string} message 错误文案。
+     */
     function showErrorNotification(message) {
         removeExistingNotification();
 
@@ -382,6 +476,9 @@ function mountInstanceStatisticsPage() {
         }, 5000);
     }
 
+    /**
+     * 手动刷新按钮处理。
+     */
     function manualRefresh(trigger) {
         const buttonWrapper = trigger ? from(trigger) : selectOne('.refresh-btn');
         if (!buttonWrapper.length) {

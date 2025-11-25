@@ -199,6 +199,9 @@ function mountChangePasswordPage(global) {
         requirementsContainer.html(html);
     }
 
+    /**
+     * 返回密码强度要求达成情况。
+     */
     function checkPasswordRequirements(password) {
         return [
             { text: '至少6个字符', met: password.length >= 6 },
@@ -210,6 +213,9 @@ function mountChangePasswordPage(global) {
         ];
     }
 
+    /**
+     * 初始化修改密码表单的前端校验。
+     */
     function initializeFormValidation() {
         if (!global.FormValidator || !global.ValidationRules) {
             console.error('表单校验模块未正确加载');

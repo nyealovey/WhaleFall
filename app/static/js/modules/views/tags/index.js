@@ -179,6 +179,9 @@ function mountTagsIndexPage(global) {
     }
   }
 
+  /**
+   * 初始化标签创建/编辑模态。
+   */
   function initializeTagModals() {
     if (!global.TagModals?.createController) {
       console.warn("TagModals 未加载，创建/编辑模态不可用");
@@ -194,6 +197,9 @@ function mountTagsIndexPage(global) {
     tagModals.init?.();
   }
 
+  /**
+   * 绑定工具栏快捷按钮。
+   */
   function bindQuickActions() {
     const createBtn = selectOne('[data-action="create-tag"]');
     if (createBtn.length && tagModals) {
@@ -204,6 +210,9 @@ function mountTagsIndexPage(global) {
     }
   }
 
+  /**
+   * 初始化删除确认模态。
+   */
   function initializeDeleteModal() {
     const factory = global.UI?.createModal;
     if (!factory) {
@@ -224,11 +233,20 @@ function mountTagsIndexPage(global) {
     });
   }
 
+  /**
+   * 打开删除模态。
+   *
+   * @param {number|string} tagId 标签 ID。
+   * @param {string} tagName 标签名称。
+   */
   function confirmDeleteTag(tagId, tagName) {
     pendingDeleteTagId = tagId;
     deleteModal?.open({ tagName });
   }
 
+  /**
+   * 删除模态确认按钮处理。
+   */
   function handleDeleteConfirmation(event) {
     event?.preventDefault?.();
     if (!pendingDeleteTagId) {
@@ -256,6 +274,9 @@ function mountTagsIndexPage(global) {
       });
   }
 
+  /**
+   * 初始化标签筛选表单。
+   */
   function initializeFilterCard() {
     const form = document.getElementById(TAG_FILTER_FORM_ID);
     if (!form) {
@@ -294,10 +315,19 @@ function mountTagsIndexPage(global) {
     from(global).on('beforeunload', filterUnloadHandler);
   }
 
+  /**
+   * 销毁筛选卡片引用。
+   */
   function destroyFilterCard() {
     filterCard = null;
   }
 
+  /**
+   * 应用筛选条件。
+   *
+   * @param {HTMLFormElement|Element|string} form 表单或选择器。
+   * @param {Object} [overrideValues] 额外的过滤参数。
+   */
   function applyTagFilters(form, overrideValues) {
     const targetForm = resolveFormElement(form);
     if (!targetForm) {
@@ -319,6 +349,11 @@ function mountTagsIndexPage(global) {
     global.location.href = query ? `${action}?${query}` : action;
   }
 
+  /**
+   * 重置筛选表单。
+   *
+   * @param {HTMLFormElement|Element|string} form 表单引用。
+   */
   function resetTagFilters(form) {
     const targetForm = resolveFormElement(form);
     if (targetForm) {
@@ -327,6 +362,13 @@ function mountTagsIndexPage(global) {
     applyTagFilters(targetForm, {});
   }
 
+  /**
+   * 解析表单字段。
+   *
+   * @param {HTMLFormElement|Element|string} form 表单。
+   * @param {Object} [overrideValues] 外部传入值。
+   * @returns {Object} 过滤值。
+   */
   function resolveTagFilters(form, overrideValues) {
     const rawValues = overrideValues && Object.keys(overrideValues || {}).length ? overrideValues : collectFormValues(form);
     return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
@@ -345,6 +387,9 @@ function mountTagsIndexPage(global) {
     }, {});
   }
 
+  /**
+   * 清理空值，返回有效 filters。
+   */
   function normalizeGridFilters(filters) {
     const normalized = { ...(filters || {}) };
     ['category', 'status'].forEach((key) => {
@@ -355,6 +400,9 @@ function mountTagsIndexPage(global) {
     return normalized;
   }
 
+  /**
+   * 规范化单个过滤值。
+   */
   function sanitizeFilterValue(value) {
     if (Array.isArray(value)) {
       return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
@@ -362,6 +410,9 @@ function mountTagsIndexPage(global) {
     return sanitizePrimitiveValue(value);
   }
 
+  /**
+   * 处理基本类型的过滤值。
+   */
   function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
       return value.name;
@@ -376,6 +427,9 @@ function mountTagsIndexPage(global) {
     return value;
   }
 
+  /**
+   * 将过滤值编码为 URLSearchParams。
+   */
   function buildQueryParams(filters) {
     const params = new URLSearchParams();
     Object.entries(filters || {}).forEach(([key, value]) => {
@@ -388,6 +442,9 @@ function mountTagsIndexPage(global) {
     return params;
   }
 
+  /**
+   * 统一处理 selector/DOM 对象。
+   */
   function resolveFormElement(form) {
     if (!form && filterCard?.form) {
       return filterCard.form;
@@ -407,6 +464,9 @@ function mountTagsIndexPage(global) {
     return form;
   }
 
+  /**
+   * 收集表单字段。
+   */
   function collectFormValues(form) {
     const serializer = global.UI?.serializeForm;
     if (serializer) {
@@ -430,6 +490,12 @@ function mountTagsIndexPage(global) {
     return result;
   }
 
+  /**
+   * 简单 HTML 转义。
+   *
+   * @param {string} value 待处理字符串。
+   * @returns {string} 转义后的字符串。
+   */
   function escapeHtmlValue(value) {
     if (value === undefined || value === null) {
       return '';
@@ -442,6 +508,9 @@ function mountTagsIndexPage(global) {
       .replace(/'/g, '&#39;');
   }
 
+  /**
+   * 打开标签编辑模态。
+   */
   function openTagEditor(tagId) {
     if (!tagModals || !tagId) {
       return;
@@ -449,6 +518,12 @@ function mountTagsIndexPage(global) {
     tagModals.openEdit(tagId);
   }
 
+  /**
+   * 显示按钮 loading 状态。
+   *
+   * @param {Element|import('umbrella-storage').default} target 目标元素或包装器。
+   * @param {string} text 加载中文案。
+   */
   function showLoadingState(target, text) {
     const element = from(target);
     if (!element.length) {
@@ -459,6 +534,12 @@ function mountTagsIndexPage(global) {
     element.attr('disabled', 'disabled');
   }
 
+  /**
+   * 恢复按钮默认状态。
+   *
+   * @param {Element|import('umbrella-storage').default} target 目标元素。
+   * @param {string} fallbackText 默认文本。
+   */
   function hideLoadingState(target, fallbackText) {
     const element = from(target);
     if (!element.length) {

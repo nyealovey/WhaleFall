@@ -89,10 +89,16 @@
     return formSelector;
   }
 
+  /**
+   * 创建过滤表单控制器，统一处理自动提交/清空等行为。
+   *
+   * @param {Object} config 选项，如 formSelector/onSubmit 等。
+   * @returns {Object|null} 包含销毁函数与事件接口。
+   */
   function createFilterCard({
-    formSelector,
-    onSubmit,
-    onClear,
+        formSelector,
+        onSubmit,
+        onClear,
     onChange,
     autoSubmitOnChange = true,
     autoSubmitSelectors = DEFAULT_AUTO_SUBMIT_SELECTORS,
@@ -109,6 +115,9 @@
     const listeners = [];
     const busHandlers = [];
 
+    /**
+     * 通过全局事件总线广播过滤动作。
+     */
     function emitEvent(action, payload = {}, { internal = false } = {}) {
       if (!eventBus || typeof eventBus.emit !== "function") {
         return;
@@ -127,6 +136,9 @@
       eventBus.emit(`filters:${action}`, detail);
     }
 
+    /**
+     * 处理 submit 事件并回调/触发真正提交。
+     */
     function handleSubmit(event) {
       event?.preventDefault?.();
       const values = serializeForm(form);
@@ -138,6 +150,9 @@
       emitEvent("submit", { trigger: event?.type || "submit", values }, { internal: true });
     }
 
+    /**
+     * 处理清空行为并触发回调。
+     */
     function handleClear(event) {
       event?.preventDefault?.();
       form.reset();
@@ -150,6 +165,9 @@
       emitEvent("clear", { trigger: event?.type || "clear", values }, { internal: true });
     }
 
+    /**
+     * 统一处理控件 change 事件。
+     */
     function handleChange(event, control) {
       const values = serializeForm(form);
       if (typeof onChange === "function") {
@@ -216,6 +234,11 @@
 
     if (eventBus && typeof eventBus.on === "function") {
       ["change", "submit", "clear"].forEach((action) => {
+        /**
+         * EventBus 事件处理器，用于跨组件同步过滤行为。
+         *
+         * @param {Object} detail 事件负载，包含 formId/values 等。
+         */
         const handler = (detail) => {
           if (!detail) {
             return;

@@ -62,6 +62,9 @@
     const listeners = [];
     let confirmButton = loadingSelector ? toElement(loadingSelector) : modalElement.querySelector(confirmSelector);
 
+    /**
+     * 切换确认按钮 loading 状态。
+     */
     function setLoading(isLoading, text = loadingText) {
       if (!confirmButton) {
         return;
@@ -77,30 +80,48 @@
       }
     }
 
+    /**
+     * 打开模态框并记录 payload。
+     */
     function open(payload) {
       modalElement.dataset.modalPayload = payload ? JSON.stringify(payload) : "";
       instance.show();
     }
 
+    /**
+     * 关闭模态框。
+     */
     function close() {
       instance.hide();
     }
 
+    /**
+     * `shown.bs.modal` 回调。
+     */
     function handleShown(event) {
       onOpen?.({ event, modal: api, payload: modalElement.dataset.modalPayload });
     }
 
+    /**
+     * `hidden.bs.modal` 回调，负责清理状态。
+     */
     function handleHidden(event) {
       onClose?.({ event, modal: api, payload: modalElement.dataset.modalPayload });
       modalElement.dataset.modalPayload = "";
       setLoading(false);
     }
 
+    /**
+     * 处理确认按钮点击。
+     */
     function handleConfirm(event) {
       event?.preventDefault?.();
       onConfirm?.({ event, modal: api, payload: modalElement.dataset.modalPayload });
     }
 
+    /**
+     * 处理取消按钮点击。
+     */
     function handleCancel(event) {
       onCancel?.({ event, modal: api, payload: modalElement.dataset.modalPayload });
     }

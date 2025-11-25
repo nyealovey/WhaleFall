@@ -269,10 +269,22 @@
       lastError: null,
     };
 
+    /**
+     * 统一发布分区 Store 事件。
+     *
+     * @param {string} eventName 事件名称。
+     * @param {Object} [payload] 可选数据，默认附带 state 快照。
+     */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
     }
 
+    /**
+     * 更新 loading 状态并广播。
+     *
+     * @param {string} target 进入 loading 的模块。
+     * @param {boolean} loading 当前 loading 状态。
+     */
     function emitLoading(target, loading) {
       state.loading[target] = loading;
       emit(EVENT_NAMES.loading, {
@@ -282,6 +294,12 @@
       });
     }
 
+    /**
+     * 统一处理分区相关错误。
+     *
+     * @param {Error|Object|string} error 错误对象。
+     * @param {Object} meta 附加上下文信息。
+     */
     function handleError(error, meta) {
       state.lastError = error;
       emit(EVENT_NAMES.error, {

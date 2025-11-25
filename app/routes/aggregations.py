@@ -25,6 +25,18 @@ aggregations_bp = Blueprint('aggregations', __name__)
 
 # 核心聚合功能API
 def _normalize_task_result(result: dict | None, *, context: str) -> dict:
+    """标准化异步任务返回结果。
+
+    Args:
+        result: 任务执行返回的字典。
+        context: 当前任务场景描述，便于日志输出。
+
+    Returns:
+        处理后的结果字典，将 status 字段统一为小写。
+
+    Raises:
+        SystemError: 当 result 为空或包含失败状态时抛出。
+    """
     if not result:
         raise SystemError(f"{context}任务返回为空")
     status = (result.get("status") or "completed").lower()

@@ -37,6 +37,9 @@ class DebugFilter:
 
         Args:
             enabled: 是否启用 DEBUG 日志。
+
+        Returns:
+            None.
         """
         self.enabled = enabled
 
@@ -80,6 +83,9 @@ class DatabaseLogHandler:
 
         Args:
             worker: 日志队列工作线程实例。
+
+        Returns:
+            None.
         """
         self.worker = worker
 

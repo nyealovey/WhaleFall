@@ -135,6 +135,11 @@
       lastError: null,
     };
 
+    /**
+     * 返回 state 的浅拷贝，避免外部直接修改内部引用。
+     *
+     * @returns {Object} 包含 jobs/stats/loading 的快照。
+     */
     function cloneState() {
       return {
         jobs: cloneJobs(state.jobs),
@@ -144,10 +149,22 @@
       };
     }
 
+    /**
+     * 统一派发 mitt 事件。
+     *
+     * @param {string} eventName 事件名称。
+     * @param {Object} [payload] 附带数据，默认使用状态快照。
+     */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? cloneState());
     }
 
+    /**
+     * 记录错误并广播。
+     *
+     * @param {Error|Object|string} error 捕获的异常。
+     * @param {string} target 出错阶段。
+     */
     function handleError(error, target) {
       state.lastError = error;
       emit("scheduler:error", {
@@ -157,11 +174,22 @@
       });
     }
 
+    /**
+     * 更新任务列表并重算统计数据。
+     *
+     * @param {Array<Object>} jobs 任务数组。
+     */
     function setJobs(jobs) {
       state.jobs = cloneJobs(Array.isArray(jobs) ? jobs : []);
       state.stats = computeStats(state.jobs);
     }
 
+    /**
+     * 静默刷新任务列表，复用 loadJobs。
+     *
+     * @param {Object} [options] 透传给 loadJobs 的参数。
+     * @returns {Promise<Object>} 刷新完成后的状态。
+     */
     function refreshJobs(options) {
       return api.actions.loadJobs(Object.assign({ silent: true }, options));
     }

@@ -276,10 +276,22 @@
       }
     });
 
+    /**
+     * 发布 mitt 事件并附带最新状态。
+     *
+     * @param {string} eventName 事件名称。
+     * @param {Object} [payload] 可选 payload，默认为 state 快照。
+     */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
     }
 
+    /**
+     * 统一处理实例相关错误。
+     *
+     * @param {Error|Object|string} error 捕获到的异常。
+     * @param {Object} meta 附加上下文信息。
+     */
     function handleError(error, meta) {
       state.lastError = error;
       emit(EVENT_NAMES.error, {
@@ -289,6 +301,11 @@
       });
     }
 
+    /**
+     * 当选择集发生变化时广播变更事件。
+     *
+     * @param {string} [reason="update"] 触发原因，便于上层区分来源。
+     */
     function emitSelectionChanged(reason) {
       emit(EVENT_NAMES.selectionChanged, {
         reason: reason || "update",
@@ -298,6 +315,13 @@
       });
     }
 
+    /**
+     * 更新当前选择集，仅保留合法实例 ID。
+     *
+     * @param {Iterable<number|string>} ids 待应用的 ID 列表。
+     * @param {string} [reason] 触发原因。
+     * @returns {boolean} 选择集发生变化时返回 true。
+     */
     function applySelection(ids, reason) {
       const normalized = new Set();
       normalizeIds(ids).forEach(function (value) {
@@ -326,6 +350,11 @@
       return changed;
     }
 
+    /**
+     * 从选择集移除已不在可选范围内的实例。
+     *
+     * @param {string} [reason="prune"] 触发原因，默认为 prune。
+     */
     function pruneSelection(reason) {
       let changed = false;
       state.selection.forEach(function (id) {
@@ -339,6 +368,11 @@
       }
     }
 
+    /**
+     * 广播 loading 状态，供 UI 响应。
+     *
+     * @param {string} target 当前进入 loading 的模块名称。
+     */
     function emitLoading(target) {
       emit(EVENT_NAMES.loading, {
         target: target,
@@ -347,6 +381,13 @@
       });
     }
 
+    /**
+     * 标记某实例的异步操作状态。
+     *
+     * @param {string} operation 操作名称，如 syncAccounts。
+     * @param {number|string} instanceId 实例 ID。
+     * @param {boolean} inProgress 是否进入执行状态。
+     */
     function markOperation(operation, instanceId, inProgress) {
       const targetSet = state.operations[operation];
       if (!targetSet || typeof targetSet.add !== "function") {

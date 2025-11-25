@@ -208,6 +208,12 @@
       lastError: null,
     };
 
+    /**
+     * 对外发布 mitt 事件，统一附带状态副本。
+     *
+     * @param {string} eventName 事件名称。
+     * @param {Object} [payload] 附带数据；为空时自动提供 state 快照。
+     */
     function emit(eventName, payload) {
       emitter.emit(
         eventName,
@@ -218,6 +224,12 @@
       );
     }
 
+    /**
+     * 统一处理错误并广播 error 事件。
+     *
+     * @param {Error|Object|string} error 后端或前端错误对象。
+     * @param {Object} meta 附加上下文，用于调试。
+     */
     function handleError(error, meta) {
       state.lastError = error;
       emit("accountClassification:error", {
@@ -227,6 +239,12 @@
       });
     }
 
+    /**
+     * 为规则附加匹配统计信息。
+     *
+     * @param {Object} rulesByDbType 按数据库类型分组的规则集合。
+     * @returns {Promise<Object>} 追加统计后的规则映射。
+     */
     function attachRuleStats(rulesByDbType) {
       const ids = collectRuleIds(rulesByDbType);
       if (!ids.length) {
@@ -258,6 +276,13 @@
         });
     }
 
+    /**
+     * 包装异步行为并管理 loading 状态。
+     *
+     * @param {string} key loading 标识，决定通知内容。
+     * @param {Function} promiseFactory 返回 Promise 的回调。
+     * @returns {Promise<*>} promiseFactory 的执行结果。
+     */
     function withLoading(key, promiseFactory) {
       state.loading[key] = true;
       emit("accountClassification:loading", {

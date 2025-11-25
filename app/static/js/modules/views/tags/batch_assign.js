@@ -14,6 +14,9 @@ if (!TagManagementService) {
 
 const tagService = new TagManagementService(window.httpU);
 
+/**
+ * 批量分配/移除标签的控制器。
+ */
 class BatchAssignManager {
     constructor() {
         this.selectedInstances = new Set();

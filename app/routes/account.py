@@ -243,7 +243,14 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
 @login_required
 @view_required
 def get_account_permissions(account_id: int) -> tuple[Response, int]:
-    """获取账户权限详情"""
+    """获取账户权限详情。
+
+    Args:
+        account_id: 账户权限记录 ID。
+
+    Returns:
+        (payload, status_code) 的元组，成功时包含权限详情。
+    """
     try:
         account = AccountPermission.query.get_or_404(account_id)
         instance = account.instance
@@ -306,7 +313,11 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def list_accounts_api() -> Response:
-    """Grid.js 账户列表 API"""
+    """Grid.js 账户列表 API。
+
+    Returns:
+        JSON 响应对象，包含分页后的账户数据。
+    """
 
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", 20, type=int)

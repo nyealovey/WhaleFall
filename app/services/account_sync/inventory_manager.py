@@ -1,3 +1,5 @@
+"""账户清单同步管理器，负责维护 InstanceAccount 状态。"""
+
 from __future__ import annotations
 
 from typing import Iterable, List, Tuple

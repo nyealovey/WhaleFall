@@ -139,6 +139,9 @@
             return raw;
         }
 
+        /**
+         * 将触发器参数填充到 Cron 表单。
+         */
         function populateCron(triggerArgs) {
             if (!triggerArgs || typeof triggerArgs !== 'object') {
                 return;
@@ -282,6 +285,9 @@
             return payload;
         }
 
+        /**
+         * 根据触发器类型显示配置块。
+         */
         function toggleTriggerConfig(type) {
             document.querySelectorAll('.edit-trigger-config').forEach(function (el) {
                 el.style.display = 'none';
@@ -292,6 +298,9 @@
             }
         }
 
+        /**
+         * 设置输入控件的值。
+         */
         function setFieldValue(selector, value) {
             const el = document.querySelector(selector);
             if (el) {
@@ -299,6 +308,9 @@
             }
         }
 
+        /**
+         * 读取输入控件值，缺省时使用 fallback。
+         */
         function getFieldValue(selector, fallback) {
             const el = document.querySelector(selector);
             if (!el) return fallback;

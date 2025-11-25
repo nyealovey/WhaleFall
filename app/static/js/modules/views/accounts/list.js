@@ -244,10 +244,19 @@ function mountAccountsListPage() {
         };
     }
 
+    /**
+     * 从 gridjs 行中取出附加的 meta 数据。
+     *
+     * @param {Object} row gridjs 行对象。
+     * @returns {Object} 元信息。
+     */
     function resolveRowMeta(row) {
         return row?.cells?.[row.cells.length - 1]?.data || {};
     }
 
+    /**
+     * 渲染标签列。
+     */
     function renderTags(tags) {
         if (!gridHtml) {
             return tags.map((tag) => tag.display_name || tag.name).join(', ') || '无标签';
@@ -265,6 +274,9 @@ function mountAccountsListPage() {
         return gridHtml(content);
     }
 
+    /**
+     * 渲染分类徽章列表。
+     */
     function renderClassifications(list) {
         if (!gridHtml) {
             return list.map((item) => item.name).join(', ') || '未分类';
@@ -282,6 +294,9 @@ function mountAccountsListPage() {
         return gridHtml(content);
     }
 
+    /**
+     * 渲染数据库类型徽章。
+     */
     function renderDbTypeBadge(dbType) {
         const map = {
             mysql: { color: 'success', label: 'MySQL', icon: 'fa-database' },
@@ -298,6 +313,9 @@ function mountAccountsListPage() {
         return gridHtml(`<span class="badge bg-${meta.color}"><i class="fas ${meta.icon} me-1"></i>${escapeHtml(meta.label || '-')}</span>`);
     }
 
+    /**
+     * 渲染锁定状态标签。
+     */
     function renderStatusBadge(isLocked) {
         if (!gridHtml) {
             return isLocked ? '已锁定' : '正常';
@@ -307,6 +325,9 @@ function mountAccountsListPage() {
         return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
     }
 
+    /**
+     * 渲染操作列按钮。
+     */
     function renderActions(meta) {
         if (!meta?.id) {
             return '';
@@ -321,6 +342,9 @@ function mountAccountsListPage() {
         `);
     }
 
+    /**
+     * 初始化账户筛选卡片，接管 onSubmit/onChange 行为。
+     */
     function initializeFilterCard() {
         const factory = global.UI?.createFilterCard;
         if (!factory) {
@@ -361,6 +385,11 @@ function mountAccountsListPage() {
         });
     }
 
+    /**
+     * 根据筛选值刷新 URL 并触发重载。
+     *
+     * @param {Object} values 表单值。
+     */
     function handleFilterChange(values) {
         if (!accountsGrid) {
             return;
@@ -371,6 +400,9 @@ function mountAccountsListPage() {
         syncUrl(filters);
     }
 
+    /**
+     * 统一解析筛选字段，支持覆盖值。
+     */
     function resolveFilters(overrideValues) {
         const values =
             overrideValues && Object.keys(overrideValues || {}).length
@@ -386,6 +418,9 @@ function mountAccountsListPage() {
         };
     }
 
+    /**
+     * 收集筛选表单字段。
+     */
     function collectFormValues() {
         if (accountFilterCard?.serialize) {
             return accountFilterCard.serialize();
@@ -412,6 +447,9 @@ function mountAccountsListPage() {
         return result;
     }
 
+    /**
+     * 移除空或默认值，生成最终 filters。
+     */
     function normalizeFilters(raw) {
         const filters = { ...(raw || {}) };
         Object.keys(filters).forEach((key) => {
@@ -423,6 +461,9 @@ function mountAccountsListPage() {
         return filters;
     }
 
+    /**
+     * 去除文本前后空格，不合法时返回空字符串。
+     */
     function sanitizeText(value) {
         if (typeof value !== 'string') {
             return '';
@@ -431,6 +472,9 @@ function mountAccountsListPage() {
         return trimmed || '';
     }
 
+    /**
+     * 将布尔字符串标准化为 'true'/'false'。
+     */
     function sanitizeFlag(value) {
         if (value === 'true' || value === 'false') {
             return value;
@@ -438,6 +482,9 @@ function mountAccountsListPage() {
         return '';
     }
 
+    /**
+     * 规范化数组输入，兼容逗号分隔字符串。
+     */
     function normalizeArrayValue(value) {
         if (!value) {
             return [];
@@ -454,6 +501,9 @@ function mountAccountsListPage() {
         return [];
     }
 
+    /**
+     * 绑定数据库类型切换按钮点击事件。
+     */
     function bindDatabaseTypeButtons() {
         const buttons = document.querySelectorAll('[data-db-type-btn]');
         buttons.forEach((button) => {
@@ -465,6 +515,9 @@ function mountAccountsListPage() {
         });
     }
 
+    /**
+     * 切换视图并刷新 URL 中的 db_type。
+     */
     function switchDatabaseType(dbType) {
         currentDbType = dbType;
         const filters = normalizeFilters(resolveFilters());
@@ -475,11 +528,17 @@ function mountAccountsListPage() {
         global.location.href = query ? `${basePath}?${query}` : basePath;
     }
 
+    /**
+     * 构造账户列表 API 基础 URL。
+     */
     function buildBaseUrl() {
         const base = currentDbType && currentDbType !== 'all' ? `/account/api/list?db_type=${encodeURIComponent(currentDbType)}` : '/account/api/list';
         return base.includes('?') ? `${base}&sort=username&order=asc` : `${base}?sort=username&order=asc`;
     }
 
+    /**
+     * 将过滤条件转为 URL 查询参数。
+     */
     function buildSearchParams(filters) {
         const params = new URLSearchParams();
         Object.entries(filters || {}).forEach(([key, value]) => {
@@ -495,6 +554,9 @@ function mountAccountsListPage() {
         return params;
     }
 
+    /**
+     * 使用 history.replaceState 同步地址栏。
+     */
     function syncUrl(filters) {
         if (!global.history?.replaceState) {
             return;
@@ -506,6 +568,9 @@ function mountAccountsListPage() {
         global.history.replaceState(null, '', nextUrl);
     }
 
+    /**
+     * 初始化标签筛选器交互。
+     */
     function initializeTagFilter() {
         if (!global.TagSelectorHelper) {
             console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
@@ -538,6 +603,9 @@ function mountAccountsListPage() {
         });
     }
 
+    /**
+     * 解析初始标签值（JSON/逗号分隔）。
+     */
     function parseInitialTagValues(raw) {
         if (!raw) {
             return [];
@@ -548,6 +616,9 @@ function mountAccountsListPage() {
             .filter(Boolean);
     }
 
+    /**
+     * 若未选择时间范围则回填默认值。
+     */
     function setDefaultTimeRange() {
         const timeRangeSelect = document.getElementById('time_range');
         if (!timeRangeSelect) {
@@ -564,6 +635,9 @@ function mountAccountsListPage() {
         }
     }
 
+    /**
+     * 更新表格上方的总数提示。
+     */
     function updateTotalCount(total) {
         const element = document.getElementById('accounts-total');
         if (element) {
@@ -571,6 +645,9 @@ function mountAccountsListPage() {
         }
     }
 
+    /**
+     * 将新实现暴露到全局命名空间，兼容旧模板。
+     */
     function exposeGlobalActions() {
         global.AccountsActions = {
             viewPermissions: (accountId) => global.viewAccountPermissions?.(accountId),
@@ -579,6 +656,9 @@ function mountAccountsListPage() {
         global.syncAllAccounts = syncAllAccounts;
     }
 
+    /**
+     * 依据当前过滤条件导出账户列表。
+     */
     function exportAccountsCSV() {
         const filters = normalizeFilters(resolveFilters());
         filters.db_type = currentDbType;
@@ -589,6 +669,9 @@ function mountAccountsListPage() {
         global.location.href = url;
     }
 
+    /**
+     * 调用批量同步接口，并在按钮上展示 loading。
+     */
     function syncAllAccounts(trigger) {
         const button = trigger instanceof Element ? trigger : global.event?.target;
         const wrapper = button ? from(button) : null;
@@ -621,6 +704,9 @@ function mountAccountsListPage() {
             });
     }
 
+    /**
+     * 简单 HTML 转义，用于渲染徽章文本。
+     */
     function escapeHtml(value) {
         if (value === undefined || value === null) {
             return '';

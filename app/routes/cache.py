@@ -97,7 +97,11 @@ def clear_user_cache() -> Response:
 @admin_required
 @require_csrf
 def clear_instance_cache() -> Response:
-    """清除实例缓存"""
+    """清除实例缓存。
+
+    Returns:
+        成功时返回统一成功响应，失败抛出业务异常。
+    """
     data = request.get_json() or {}
     instance_id = data.get("instance_id")
 
@@ -131,7 +135,11 @@ def clear_instance_cache() -> Response:
 @admin_required
 @require_csrf
 def clear_all_cache() -> Response:
-    """清除所有缓存"""
+    """清除所有缓存。
+
+    Returns:
+        统一成功响应，data 中包含已清理实例数量。
+    """
     try:
         instances = Instance.query.filter_by(is_active=True).all()
     except Exception as exc:
@@ -162,7 +170,11 @@ def clear_all_cache() -> Response:
 @update_required
 @require_csrf
 def clear_classification_cache() -> Response:
-    """清除分类相关缓存"""
+    """清除分类相关缓存。
+
+    Returns:
+        成功响应，失败时抛出异常交由统一处理。
+    """
     service = AccountClassificationService()
     try:
         result = service.invalidate_cache()
@@ -186,7 +198,14 @@ def clear_classification_cache() -> Response:
 @update_required
 @require_csrf
 def clear_db_type_cache(db_type: str) -> Response:
-    """清除特定数据库类型的缓存"""
+    """清除特定数据库类型的缓存。
+
+    Args:
+        db_type: 数据库类型字符串，例如 mysql。
+
+    Returns:
+        成功响应，其中 message 描述已清理的类型。
+    """
     valid_db_types = {"mysql", "postgresql", "sqlserver", "oracle"}
     normalized_type = db_type.lower()
     if normalized_type not in valid_db_types:
@@ -214,7 +233,11 @@ def clear_db_type_cache(db_type: str) -> Response:
 @login_required
 @view_required
 def get_classification_cache_stats() -> Response:
-    """获取分类缓存统计信息"""
+    """获取分类缓存统计信息。
+
+    Returns:
+        包含缓存状态和按 db_type 划分统计的 JSON 响应。
+    """
     if cache_manager is None:
         raise SystemError("缓存管理器未初始化")
 

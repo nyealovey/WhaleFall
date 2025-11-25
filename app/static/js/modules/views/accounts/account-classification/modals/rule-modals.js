@@ -210,6 +210,9 @@
       }
     }
 
+    /**
+     * 触发表单校验并在校验通过后提交创建。
+     */
     function triggerCreate() {
       if (state.validators.create?.revalidate) {
         state.validators.create.revalidate();
@@ -284,6 +287,13 @@
       }
     }
 
+    /**
+     * 从表单控件收集规则配置。
+     *
+     * @param {HTMLFormElement} form 表单元素。
+     * @param {Object} options 字段选择器合集。
+     * @returns {Object|null} 标准化 payload。
+     */
     function collectRulePayload(form, options) {
       if (!permissionView) {
         toast?.error?.("权限配置模块未加载");
@@ -328,6 +338,9 @@
       }
     }
 
+    /**
+     * 重置创建表单并清理权限配置。
+     */
     function resetCreateForm() {
       const form = document.getElementById("createRuleForm");
       if (form) {
@@ -336,6 +349,9 @@
       permissionView?.reset?.("permissionsConfig");
     }
 
+    /**
+     * 重置编辑表单状态。
+     */
     function resetEditForm() {
       const form = document.getElementById("editRuleForm");
       if (form) {
@@ -348,6 +364,9 @@
       permissionView?.reset?.("editPermissionsConfig", "edit");
     }
 
+    /**
+     * 重置查看模态数据字段。
+     */
     function resetViewModal() {
       const modal = document.getElementById("viewRuleModal");
       if (modal?.dataset) {
@@ -377,6 +396,9 @@
       }
     }
 
+    /**
+     * 初始化创建/编辑规则的表单校验。
+     */
     function initFormValidators() {
       const validatorFactory = FormValidator || global.FormValidator;
       const rules = ValidationRules || global.ValidationRules;
@@ -401,6 +423,9 @@
       }
     }
 
+    /**
+     * 根据前缀加载权限配置。
+     */
     function loadPermissions(prefix = "") {
       return permissionView?.loadByPrefix
         ? permissionView.loadByPrefix(prefix)

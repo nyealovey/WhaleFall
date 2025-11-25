@@ -6,7 +6,12 @@
     throw new Error("Lodash 未加载，无法初始化 LodashUtils");
   }
 
-  // 绑定 lodash this，避免直接引用时上下文丢失
+  /**
+   * 绑定 lodash 上下文，避免直接解构导致 this 丢失。
+   *
+   * @param {Function} method lodash 原方法。
+   * @returns {Function} 绑定上下文后的安全函数。
+   */
   const wrap = (method) => method.bind(lodash);
   const methodsToExpose = [
     "cloneDeep",

@@ -57,11 +57,17 @@ function ensurePermissionModal() {
     return window.PermissionModalInstance;
 }
 
+/**
+ * 打开权限模态框。
+ */
 function openPermissionModal() {
     const instance = ensurePermissionModal();
     instance.open();
 }
 
+/**
+ * 重置模态内容，显示加载状态。
+ */
 function resetPermissionModal() {
     const helpers = window.DOMHelpers;
     if (!helpers) {
@@ -84,6 +90,9 @@ function resetPermissionModal() {
     }
 }
 
+/**
+ * 根据账户和数据库类型渲染权限详情。
+ */
 function updateModalContent(permissions, account, dbType) {
     const helpers = window.DOMHelpers;
     if (!helpers) {

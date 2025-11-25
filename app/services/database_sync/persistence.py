@@ -1,3 +1,5 @@
+"""容量采集结果持久化工具。"""
+
 from __future__ import annotations
 
 from typing import Iterable, List

@@ -1,3 +1,8 @@
+"""维护 docs/reports/code_analysis_report.md 的静态代码分析脚本。
+
+扫描 app 目录统计文件数量与行数，生成 Markdown 表格并写回报告。
+"""
+
 import os
 import re
 from collections import defaultdict

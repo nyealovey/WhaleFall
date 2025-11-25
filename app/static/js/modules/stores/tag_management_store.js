@@ -272,6 +272,9 @@
         return;
       }
 
+      /**
+       * 根据 key 生成比较用字符串。
+       */
       const compareFn = function (tag) {
         if (key === "id") {
           return String(tag.id);

@@ -70,6 +70,20 @@ class AutoClassifyService:
         created_by: int | None,
         use_optimized: Any = True,
     ) -> AutoClassifyResult:
+        """执行账户自动分类。
+
+        Args:
+            instance_id: 目标实例 ID，为空时表示全量分类。
+            created_by: 触发该任务的用户 ID，可为空。
+            use_optimized: 是否使用优化版分类器，接受布尔或字符串值。
+
+        Returns:
+            AutoClassifyResult: 标准化的自动分类结果载体。
+
+        Raises:
+            AutoClassifyError: 分类执行过程中出现业务或系统错误时抛出。
+        """
+
         normalized_instance_id = self._normalize_instance_id(instance_id)
         normalized_use_optimized = self._coerce_bool(use_optimized, default=True)
 

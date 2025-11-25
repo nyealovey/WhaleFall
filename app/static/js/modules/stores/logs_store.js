@@ -275,15 +275,31 @@
       selectedLog: null,
     };
 
+    /**
+     * 发布日志相关事件。
+     *
+     * @param {string} eventName 事件名称。
+     * @param {Object} [payload] 附带数据，默认为状态快照。
+     */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? cloneState(state));
     }
 
+    /**
+     * 统一处理日志 store 的错误。
+     *
+     * @param {Error|Object|string} error 捕获的异常。
+     */
     function handleError(error) {
       state.lastError = error;
       emit("logs:error", { error: error, state: cloneState(state) });
     }
 
+    /**
+     * 解析日志列表响应并更新内部状态。
+     *
+     * @param {Object} response 后端返回的数据。
+     */
     function applyListResponse(response) {
       state.logs = extractLogs(response);
       state.pagination = resolvePagination(response, state.pagination);
