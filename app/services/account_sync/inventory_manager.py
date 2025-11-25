@@ -10,20 +10,51 @@ from app.utils.time_utils import time_utils
 
 
 class AccountInventoryManager:
-    """维护 InstanceAccount 清单同步的管理器。"""
+    """维护 InstanceAccount 清单同步的管理器。
+
+    负责将远程数据库账户与本地 InstanceAccount 表进行同步，
+    包括创建新账户、重新激活已删除账户、停用不存在的账户。
+
+    Attributes:
+        logger: 同步日志记录器。
+    """
 
     def __init__(self) -> None:
+        """初始化账户清单管理器。"""
         self.logger = get_sync_logger()
 
     def synchronize(self, instance: Instance, remote_accounts: Iterable[dict]) -> Tuple[dict, List[InstanceAccount]]:
         """根据远端账户列表同步 InstanceAccount 表。
 
+        将远程账户数据与本地数据库进行对比，执行以下操作：
+        - 创建新发现的账户
+        - 重新激活之前被删除的账户
+        - 停用远程不存在的账户
+        - 更新所有账户的最后可见时间
+
         Args:
-            instance: 数据库实例
-            remote_accounts: 远程账户数据列表，每项至少包含 username、db_type、is_active
+            instance: 数据库实例对象。
+            remote_accounts: 远程账户数据列表，每项至少包含以下字段：
+                - username: 账户用户名
+                - db_type: 数据库类型（可选，默认使用实例类型）
+                - is_active: 是否活跃（可选，默认为 True）
 
         Returns:
-            Tuple[dict, List[InstanceAccount]]: 同步统计信息与活跃账户对象列表
+            包含两个元素的元组：
+            - 同步统计信息字典，包含以下字段：
+                {
+                    'created': 新创建的账户数,
+                    'refreshed': 刷新的账户数,
+                    'reactivated': 重新激活的账户数,
+                    'deactivated': 停用的账户数,
+                    'active_count': 活跃账户总数,
+                    'total_remote': 远程账户总数,
+                    'processed_records': 处理的记录数
+                }
+            - 活跃账户对象列表
+
+        Raises:
+            Exception: 当数据库提交失败时抛出。
         """
         remote_accounts = list(remote_accounts or [])
         now_ts = time_utils.now()

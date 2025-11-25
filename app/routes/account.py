@@ -33,7 +33,17 @@ account_bp = Blueprint("account", __name__)
 @login_required
 @view_required
 def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
-    """账户列表页面"""
+    """账户列表页面。
+
+    显示账户列表，支持按数据库类型、实例、搜索关键词、锁定状态、
+    超级用户状态、插件、标签和分类进行筛选。
+
+    Args:
+        db_type: 数据库类型筛选，可选值：mysql/postgresql/oracle/sqlserver/all。
+
+    Returns:
+        渲染的账户列表页面 HTML。
+    """
     # 获取查询参数
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)

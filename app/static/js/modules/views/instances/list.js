@@ -1,3 +1,15 @@
+/**
+ * 挂载实例列表页面。
+ *
+ * 初始化实例列表页面的所有组件，包括服务、Store、Grid、筛选器、
+ * 工具栏操作和事件订阅。负责页面的完整生命周期管理。
+ *
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountInstancesListPage();
+ */
 function mountInstancesListPage() {
     'use strict';
 
@@ -58,6 +70,14 @@ function mountInstancesListPage() {
         updateBatchActionState();
     });
 
+    /**
+     * 初始化服务实例。
+     *
+     * 创建 InstanceService 和 InstanceManagementService 实例，
+     * 用于后续的数据查询和管理操作。
+     *
+     * @return {void}
+     */
     function initializeServices() {
         if (global.InstanceService) {
             try {
@@ -77,6 +97,13 @@ function mountInstancesListPage() {
         }
     }
 
+    /**
+     * 初始化实例 Store。
+     *
+     * 创建 InstanceStore 实例并初始化状态，包括选中的实例 ID 集合。
+     *
+     * @return {void}
+     */
     function initializeInstanceStore() {
         if (!global.createInstanceStore || !managementService) {
             return;
@@ -156,6 +183,14 @@ function mountInstancesListPage() {
         }
     }
 
+    /**
+     * 构建表格列配置。
+     *
+     * 根据用户权限和页面配置，动态构建 Grid.js 表格的列定义，
+     * 包括选择框、实例信息、数据库类型、标签、状态等列。
+     *
+     * @return {Array<Object>} Grid.js 列配置数组
+     */
     function buildColumns() {
         const columns = [];
 
@@ -280,6 +315,18 @@ function mountInstancesListPage() {
         return columns;
     }
 
+    /**
+     * 处理服务器响应数据。
+     *
+     * 解析服务器返回的实例列表数据，更新 Store 中的可用实例 ID，
+     * 并返回格式化后的数据供 Grid.js 渲染。
+     *
+     * @param {Object} response - 服务器响应对象
+     * @param {Object} response.data - 响应数据
+     * @param {Array<Object>} response.data.items - 实例列表
+     * @param {number} response.data.total - 总数
+     * @return {Object} 包含 data 和 total 的对象
+     */
     function handleServerResponse(response) {
         const payload = response?.data || response || {};
         const items = payload.items || [];

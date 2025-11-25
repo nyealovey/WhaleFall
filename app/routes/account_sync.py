@@ -26,6 +26,17 @@ account_sync_bp = Blueprint("account_sync", __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
+    """获取实例或抛出错误。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        实例对象。
+
+    Raises:
+        NotFoundError: 当实例不存在时抛出。
+    """
     instance = Instance.query.filter_by(id=instance_id).first()
     if instance is None:
         raise NotFoundError("实例不存在")
@@ -33,6 +44,17 @@ def _get_instance(instance_id: int) -> Instance:
 
 
 def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, dict]:
+    """规范化同步结果。
+
+    将同步服务返回的结果转换为统一格式。
+
+    Args:
+        result: 同步结果字典，可能为 None。
+        context: 上下文描述，用于生成默认消息。
+
+    Returns:
+        (是否成功, 规范化后的结果字典)。
+    """
     if not result:
         return False, {"status": "failed", "message": f"{context}返回为空"}
 
@@ -53,7 +75,17 @@ def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, 
 @update_required
 @require_csrf
 def sync_all_accounts() -> str | Response | tuple[Response, int]:
-    """触发后台批量同步所有实例的账户信息"""
+    """触发后台批量同步所有实例的账户信息。
+
+    在后台线程中启动批量同步任务，不阻塞请求。
+
+    Returns:
+        JSON 响应，包含任务 ID。
+
+    Raises:
+        AppValidationError: 当没有活跃实例时抛出。
+        SystemError: 当任务触发失败时抛出。
+    """
     try:
         log_info("触发批量账户同步", module="account_sync", user_id=current_user.id)
 
@@ -118,7 +150,18 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 @update_required
 @require_csrf
 def sync_instance_accounts(instance_id: int) -> Response:
-    """同步指定实例的账户信息，统一返回 JSON"""
+    """同步指定实例的账户信息，统一返回 JSON。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        JSON 响应，包含同步结果和统计信息。
+
+    Raises:
+        NotFoundError: 当实例不存在时抛出。
+        SystemError: 当同步失败时抛出。
+    """
     instance = Instance.query.get_or_404(instance_id)
     try:
         log_info(

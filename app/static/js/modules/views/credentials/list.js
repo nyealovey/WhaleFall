@@ -1,3 +1,16 @@
+/**
+ * 挂载凭据列表页面。
+ *
+ * 初始化凭据列表页面的所有组件，包括服务、Store、Grid、筛选器、
+ * 模态框和事件订阅。负责页面的完整生命周期管理。
+ *
+ * @param {Object} global - 全局 window 对象
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountCredentialsListPage(window);
+ */
 function mountCredentialsListPage(global) {
   "use strict";
 
@@ -61,6 +74,11 @@ function mountCredentialsListPage(global) {
 
   /**
    * 页面入口：初始化模态、删除确认、筛选、实时搜索。
+   *
+   * 按顺序初始化页面的各个组件，包括表格、模态框、删除确认、
+   * 筛选器和 Store 事件订阅。
+   *
+   * @return {void}
    */
   function initializeCredentialsListPage() {
     initializeCredentialsGrid();
@@ -70,6 +88,14 @@ function mountCredentialsListPage(global) {
     bindCredentialsStoreEvents();
   }
 
+  /**
+   * 初始化凭据表格。
+   *
+   * 创建 Grid.js 表格实例，配置列定义、服务端分页、排序和筛选。
+   * 根据用户权限动态显示操作列。
+   *
+   * @return {void}
+   */
   function initializeCredentialsGrid() {
     const container = document.getElementById("credentials-grid");
     if (!container) {
@@ -100,25 +126,40 @@ function mountCredentialsListPage(global) {
           id: "credential_type",
           formatter: (cell, row) => {
             const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            const credentialType = (cell || meta.credential_type || "-").toString().toUpperCase();
-            const dbBadgeMeta = getDbBadgeMeta(meta.db_type);
+            const credentialTypeRaw = (cell || meta.credential_type || "-").toString();
+            const credentialType = credentialTypeRaw.toUpperCase();
             const credentialBadgeMap = {
               database: "bg-success",
               api: "bg-primary",
               ssh: "bg-warning",
             };
             const credentialClass =
-              credentialBadgeMap[(cell || "").toString().toLowerCase()] || "bg-secondary";
+              credentialBadgeMap[credentialTypeRaw.toLowerCase()] || "bg-secondary";
             if (!gridHtml) {
-              return `${credentialType} - ${dbBadgeMeta.label}`;
+              return credentialType;
+            }
+            return gridHtml(
+              `<span class="badge credential-type-badge ${credentialClass}">${escapeHtmlValue(credentialType)}</span>`,
+            );
+          },
+        },
+        {
+          name: "子类型",
+          id: "db_type",
+          formatter: (cell, row) => {
+            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
+            const dbTypeRaw = cell || meta.db_type;
+            if (!dbTypeRaw) {
+              return gridHtml ? gridHtml('<span class="text-muted">-</span>') : "-";
+            }
+            const dbBadgeMeta = getDbBadgeMeta(dbTypeRaw);
+            if (!gridHtml) {
+              return dbBadgeMeta.label;
             }
             return gridHtml(`
-              <div class="credential-type-cell">
-                <span class="badge ${credentialClass}">${escapeHtmlValue(credentialType)}</span>
-                <span class="credential-db-badge ${dbBadgeMeta.className}">
-                  <i class="${dbBadgeMeta.icon} me-1"></i>${dbBadgeMeta.label}
-                </span>
-              </div>
+              <span class="${dbBadgeMeta.className}">
+                <i class="${dbBadgeMeta.icon} me-1"></i>${dbBadgeMeta.label}
+              </span>
             `);
           },
         },
@@ -194,6 +235,7 @@ function mountCredentialsListPage(global) {
           return items.map((item) => [
             item.name,
             item.credential_type,
+            item.db_type,
             item.username,
             item.is_active,
             item.instance_count ?? 0,

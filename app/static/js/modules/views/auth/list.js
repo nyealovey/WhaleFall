@@ -1,3 +1,16 @@
+/**
+ * 挂载用户管理页面。
+ *
+ * 初始化用户管理页面的所有组件，包括用户列表表格、筛选器、
+ * 创建/编辑/删除模态框等功能。支持用户的 CRUD 操作和角色管理。
+ *
+ * @param {Object} global - 全局 window 对象
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountAuthListPage(window);
+ */
 function mountAuthListPage(global) {
   "use strict";
 

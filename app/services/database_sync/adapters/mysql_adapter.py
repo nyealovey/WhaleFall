@@ -9,11 +9,39 @@ from app.utils.time_utils import time_utils
 
 
 class MySQLCapacityAdapter(BaseCapacityAdapter):
-    """MySQL 容量同步适配器。"""
+    """MySQL 容量同步适配器。
+
+    实现 MySQL 数据库的库存查询和容量采集功能。
+    通过 INNODB_TABLESPACES 或 INNODB_SYS_TABLESPACES 视图采集表空间大小。
+
+    Attributes:
+        _SYSTEM_DATABASES: MySQL 系统数据库集合。
+
+    Example:
+        >>> adapter = MySQLCapacityAdapter()
+        >>> inventory = adapter.fetch_inventory(instance, connection)
+        >>> capacity = adapter.fetch_capacity(instance, connection, ['mydb'])
+    """
 
     _SYSTEM_DATABASES = {"information_schema", "performance_schema", "mysql", "sys"}
 
     def fetch_inventory(self, instance, connection) -> List[dict]:
+        """列出 MySQL 实例当前的数据库清单。
+
+        Args:
+            instance: 实例对象。
+            connection: MySQL 数据库连接对象。
+
+        Returns:
+            数据库清单列表，每个元素包含：
+            - database_name: 数据库名称
+            - is_system: 是否为系统数据库
+
+        Example:
+            >>> inventory = adapter.fetch_inventory(instance, connection)
+            >>> print(inventory[0])
+            {'database_name': 'mydb', 'is_system': False}
+        """
         result = connection.execute_query("SHOW DATABASES")
         metadata: List[dict] = []
 
@@ -84,6 +112,17 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         return data
 
     def _assert_permission(self, connection, instance) -> None:
+        """验证 MySQL 权限。
+
+        检查是否有权限访问 information_schema.SCHEMATA 视图。
+
+        Args:
+            connection: MySQL 数据库连接对象。
+            instance: 实例对象。
+
+        Raises:
+            ValueError: 当权限不足时抛出。
+        """
         test_query = "SELECT COUNT(*) FROM information_schema.SCHEMATA"
         result = connection.execute_query(test_query)
         if not result:
@@ -101,6 +140,21 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         )
 
     def _collect_tablespace_sizes(self, connection, instance) -> Dict[str, int]:
+        """采集 MySQL 表空间大小。
+
+        从 INNODB_TABLESPACES 或 INNODB_SYS_TABLESPACES 视图中查询表空间大小，
+        并按数据库名称聚合。
+
+        Args:
+            connection: MySQL 数据库连接对象。
+            instance: 实例对象。
+
+        Returns:
+            数据库名称到总字节数的映射字典。
+
+        Raises:
+            Exception: 当查询失败时抛出。
+        """
         queries: List[Tuple[str, str]] = self._build_tablespace_queries(instance)
         aggregated: Dict[str, int] = {}
 
@@ -209,7 +263,20 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
     @staticmethod
     def _normalize_database_name(raw_name: str) -> str:
-        """将 MySQL tablespace 名称中的 @XXXX 转回正常字符。"""
+        """将 MySQL tablespace 名称中的 @XXXX 转回正常字符。
+
+        MySQL 在某些情况下会将特殊字符编码为 @XXXX 格式（十六进制）。
+
+        Args:
+            raw_name: 原始数据库名称。
+
+        Returns:
+            规范化后的数据库名称。
+
+        Example:
+            >>> MySQLCapacityAdapter._normalize_database_name('test@002d01')
+            'test-01'
+        """
         if not raw_name:
             return raw_name
 
@@ -223,6 +290,18 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         return re.sub(r"@([0-9A-Fa-f]{4})", _replace, raw_name)
 
     def _build_tablespace_queries(self, instance) -> List[Tuple[str, str]]:
+        """构建表空间查询语句列表。
+
+        根据 MySQL 版本选择合适的视图（MySQL 8.x 优先使用 INNODB_TABLESPACES，
+        MySQL 5.x 优先使用 INNODB_SYS_TABLESPACES）。
+
+        Args:
+            instance: 实例对象，包含版本信息。
+
+        Returns:
+            查询列表，每个元素为 (视图名称, SQL 查询语句) 元组。
+            按优先级排序，会依次尝试直到成功。
+        """
         normalized_version = (instance.main_version or "").strip().lower()
         query_innodb_tablespaces = """
             SELECT

@@ -842,6 +842,18 @@ class BatchAssignManager {
     }
 }
 
+/**
+ * 挂载标签批量分配页面。
+ *
+ * 创建 BatchAssignManager 实例并挂载到全局 window 对象，
+ * 用于管理标签的批量分配操作。
+ *
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountBatchAssignPage();
+ */
 function mountBatchAssignPage() {
     window.batchAssignManager = new BatchAssignManager();
 }

@@ -15,7 +15,16 @@ from .repositories import ClassificationRepository
 
 
 class AccountClassificationService:
-    """协调规则加载、账户分组与分类执行。"""
+    """账户分类编排服务。
+
+    协调规则加载、账户分组与分类执行的核心服务。
+    负责自动分类账户、管理分类规则和缓存。
+
+    Attributes:
+        repository: 分类数据仓库。
+        cache: 分类缓存管理器。
+        classifier_factory: 分类器工厂。
+    """
 
     def __init__(
         self,

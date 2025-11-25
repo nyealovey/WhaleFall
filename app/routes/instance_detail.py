@@ -35,7 +35,15 @@ FALSY_VALUES = {"0", "false", "off", "no", "n"}
 
 
 def _parse_is_active_value(data: Any, default: bool = False) -> bool:
-    """从请求数据中解析 is_active，兼容表单/JSON/checkbox"""
+    """从请求数据中解析 is_active，兼容表单/JSON/checkbox。
+
+    Args:
+        data: 请求数据对象（表单或 JSON）。
+        default: 默认值，默认为 False。
+
+    Returns:
+        解析后的布尔值。
+    """
     value: Any
     if hasattr(data, "getlist"):
         values = data.getlist("is_active")
@@ -72,7 +80,20 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
 @login_required
 @view_required
 def detail(instance_id: int) -> str | Response | tuple[Response, int]:
-    """实例详情"""
+    """实例详情页面。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        渲染的实例详情页面，包含账户列表和统计信息。
+
+    Raises:
+        NotFoundError: 当实例不存在时抛出。
+
+    Query Parameters:
+        include_deleted: 是否包含已删除账户，默认 'true'。
+    """
     instance = Instance.query.get_or_404(instance_id)
     
     # 确保标签关系被加载
@@ -195,7 +216,20 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
 @update_required
 @require_csrf
 def edit_api(instance_id: int) -> Response:
-    """编辑实例API"""
+    """编辑实例 API。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        JSON 响应，包含更新后的实例信息。
+
+    Raises:
+        NotFoundError: 当实例不存在时抛出。
+        ValidationError: 当数据验证失败时抛出。
+        ConflictError: 当实例名称已存在时抛出。
+        SystemError: 当更新失败时抛出。
+    """
     instance = Instance.query.get_or_404(instance_id)
     data = request.get_json() if request.is_json else request.form
 
@@ -272,7 +306,28 @@ def edit_api(instance_id: int) -> Response:
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int) -> Response:
-    """获取指定实例的数据库大小数据（最新或历史）"""
+    """获取指定实例的数据库大小数据（最新或历史）。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        JSON 响应，包含数据库大小数据列表和统计信息。
+
+    Raises:
+        NotFoundError: 当实例不存在时抛出。
+        ValidationError: 当参数无效时抛出。
+        SystemError: 当获取数据失败时抛出。
+
+    Query Parameters:
+        start_date: 开始日期（YYYY-MM-DD），可选。
+        end_date: 结束日期（YYYY-MM-DD），可选。
+        database_name: 数据库名称筛选，可选。
+        latest_only: 是否只返回最新数据，默认 false。
+        include_inactive: 是否包含非活跃数据库，默认 false。
+        limit: 返回数量限制，默认 100。
+        offset: 偏移量，默认 0。
+    """
     Instance.query.get_or_404(instance_id)
 
     start_date = request.args.get("start_date")
@@ -336,7 +391,20 @@ def get_instance_database_sizes(instance_id: int) -> Response:
 @login_required
 @view_required
 def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
-    """获取账户权限详情"""
+    """获取账户权限详情。
+
+    根据数据库类型返回相应的权限信息（全局权限、角色、数据库权限等）。
+
+    Args:
+        instance_id: 实例 ID。
+        account_id: 账户 ID。
+
+    Returns:
+        JSON 响应，包含账户权限详情。
+
+    Raises:
+        NotFoundError: 当实例或账户不存在时抛出。
+    """
     instance = Instance.query.get_or_404(instance_id)
 
     account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()

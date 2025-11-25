@@ -445,14 +445,15 @@ def calculate_database_size_aggregations(
 
 
 def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
-    """
-    计算指定实例的统计聚合
-    
+    """计算指定实例的统计聚合。
+
+    为指定实例计算所有周期（日/周/月/季）的聚合数据。
+
     Args:
-        instance_id: 实例ID
-        
+        instance_id: 实例ID。
+
     Returns:
-        Dict[str, Any]: 聚合结果
+        聚合结果字典，包含状态、消息和各周期的聚合详情。
     """
     from app import create_app
     

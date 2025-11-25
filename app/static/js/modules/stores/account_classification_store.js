@@ -3,6 +3,21 @@
 
   /**
    * 校验 service 提供 store 运行所需的方法。
+   *
+   * @param {Object} service - 服务对象
+   * @param {Function} service.listClassifications - 获取分类列表的方法
+   * @param {Function} service.createClassification - 创建分类的方法
+   * @param {Function} service.updateClassification - 更新分类的方法
+   * @param {Function} service.deleteClassification - 删除分类的方法
+   * @param {Function} service.listRules - 获取规则列表的方法
+   * @param {Function} service.createRule - 创建规则的方法
+   * @param {Function} service.updateRule - 更新规则的方法
+   * @param {Function} service.deleteRule - 删除规则的方法
+   * @param {Function} service.ruleStats - 获取规则统计的方法
+   * @param {Function} service.triggerAutomation - 触发自动化的方法
+   * @param {Function} service.fetchPermissions - 获取权限列表的方法
+   * @return {Object} 校验后的服务对象
+   * @throws {Error} 当 service 为空或缺少必需方法时抛出
    */
   function ensureService(service) {
     if (!service) {
@@ -39,6 +54,10 @@
 
   /**
    * 统一获得 mitt 事件总线。
+   *
+   * @param {Object} [emitter] - 可选的 mitt 实例
+   * @return {Object} mitt 事件总线实例
+   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
    */
   function ensureEmitter(emitter) {
     if (emitter) {
@@ -52,6 +71,9 @@
 
   /**
    * 深拷贝分类数组。
+   *
+   * @param {Array} items - 分类数组
+   * @return {Array} 分类数组的拷贝
    */
   function cloneClassifications(items) {
     return (items || []).map(function (classification) {
@@ -61,6 +83,9 @@
 
   /**
    * 深拷贝规则字典。
+   *
+   * @param {Object} source - 规则字典对象
+   * @return {Object} 规则字典的拷贝
    */
   function cloneRulesMap(source) {
     const result = {};
@@ -74,6 +99,9 @@
 
   /**
    * 构造 state 快照，供事件附带。
+   *
+   * @param {Object} state - 状态对象
+   * @return {Object} 状态对象的拷贝
    */
   function cloneState(state) {
     return {
@@ -87,6 +115,9 @@
 
   /**
    * 保证返回数组。
+   *
+   * @param {*} value - 任意值
+   * @return {Array} 数组
    */
   function ensureArray(value) {
     return Array.isArray(value) ? value : [];
@@ -94,6 +125,9 @@
 
   /**
    * 从响应中提取分类数组。
+   *
+   * @param {Object} response - API 响应对象
+   * @return {Array} 分类数组
    */
   function extractClassifications(response) {
     const collection =
@@ -103,6 +137,9 @@
 
   /**
    * 从响应提取规则 map。
+   *
+   * @param {Object} response - API 响应对象
+   * @return {Object} 规则字典对象
    */
   function extractRules(response) {
     const raw =
@@ -119,6 +156,9 @@
 
   /**
    * 汇总所有规则 ID，便于请求统计。
+   *
+   * @param {Object} rulesByDbType - 按数据库类型分组的规则字典
+   * @return {Array} 规则 ID 数组
    */
   function collectRuleIds(rulesByDbType) {
     const ids = [];
@@ -132,6 +172,24 @@
     return ids;
   }
 
+  /**
+   * 创建账户分类状态管理 Store。
+   *
+   * 提供账户分类和规则的查询、创建、更新、删除等功能的状态管理。
+   *
+   * @param {Object} options - 配置选项
+   * @param {Object} options.service - 账户分类服务对象
+   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
+   * @return {Object} Store API 对象
+   *
+   * @example
+   * const store = createAccountClassificationStore({
+   *   service: accountClassificationService
+   * });
+   * store.init().then(() => {
+   *   console.log(store.getState());
+   * });
+   */
   function createAccountClassificationStore(options) {
     const opts = options || {};
     const service = ensureService(opts.service);

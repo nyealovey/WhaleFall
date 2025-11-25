@@ -10,14 +10,36 @@ from cryptography.fernet import Fernet
 
 
 class PasswordManager:
-    """密码管理器"""
+    """密码管理器。
+
+    使用 Fernet 对称加密算法安全地加密和解密数据库密码。
+    密钥从环境变量 PASSWORD_ENCRYPTION_KEY 读取，如果未设置则生成临时密钥。
+
+    Attributes:
+        key: 加密密钥（bytes）。
+        cipher: Fernet 加密器实例。
+
+    Example:
+        >>> manager = PasswordManager()
+        >>> encrypted = manager.encrypt_password("my_password")
+        >>> decrypted = manager.decrypt_password(encrypted)
+        >>> decrypted == "my_password"
+        True
+    """
 
     def __init__(self):
         self.key = self._get_or_create_key()
         self.cipher = Fernet(self.key)
 
     def _get_or_create_key(self):
-        """获取或创建加密密钥"""
+        """获取或创建加密密钥。
+
+        从环境变量 PASSWORD_ENCRYPTION_KEY 读取密钥，如果未设置则生成新密钥。
+        生成新密钥时会记录警告日志并提示设置环境变量。
+
+        Returns:
+            加密密钥（bytes）。
+        """
         key = os.getenv("PASSWORD_ENCRYPTION_KEY")
         if not key:
             # 如果没有设置密钥，生成一个新的

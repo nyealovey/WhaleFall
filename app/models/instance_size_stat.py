@@ -9,7 +9,24 @@ from app.utils.time_utils import time_utils
 
 
 class InstanceSizeStat(db.Model):
-    """实例大小统计模型"""
+    """实例大小统计模型。
+
+    存储数据库实例的总大小统计数据，按日期记录实例的容量变化。
+    支持软删除和历史数据追踪。
+
+    Attributes:
+        id: 主键 ID。
+        instance_id: 关联的实例 ID。
+        total_size_mb: 实例总大小（MB）。
+        database_count: 数据库数量。
+        collected_date: 采集日期。
+        collected_at: 采集时间。
+        is_deleted: 是否已删除。
+        deleted_at: 删除时间。
+        created_at: 创建时间。
+        updated_at: 更新时间。
+        instance: 关联的实例对象。
+    """
 
     __tablename__ = "instance_size_stats"
 
@@ -31,7 +48,11 @@ class InstanceSizeStat(db.Model):
         return f"<InstanceSizeStat(instance_id={self.instance_id}, total_size_mb={self.total_size_mb}, collected_date={self.collected_date})>"
 
     def to_dict(self):
-        """转换为字典格式"""
+        """转换为字典格式。
+
+        Returns:
+            包含所有字段的字典。
+        """
         return {
             'id': self.id,
             'instance_id': self.instance_id,

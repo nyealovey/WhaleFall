@@ -1,4 +1,17 @@
-// 会话中心 Grid.js 版本
+/**
+ * 挂载同步会话列表页面。
+ *
+ * 初始化同步会话中心页面的所有组件，包括会话列表表格、筛选器、
+ * 详情模态框和自动刷新功能。支持查看各类同步任务的执行历史。
+ *
+ * @param {Object} [global=window] - 全局 window 对象
+ * @param {Document} [documentRef=document] - document 对象
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountSyncSessionsPage();
+ */
 function mountSyncSessionsPage(global = window, documentRef = document) {
   const gridjs = global.gridjs;
   const GridWrapper = global.GridWrapper;
@@ -41,6 +54,13 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     ready();
   }
 
+  /**
+   * 初始化同步会话服务。
+   *
+   * 创建 SyncSessionsService 实例，用于后续的数据查询操作。
+   *
+   * @return {boolean} 初始化是否成功
+   */
   function initializeService() {
     try {
       syncSessionsService = new SyncSessionsService(global.httpU);

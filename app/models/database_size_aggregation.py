@@ -21,10 +21,31 @@ from app.utils.time_utils import time_utils
 
 
 class DatabaseSizeAggregation(db.Model):
-    """
-    数据库大小聚合统计表（分区表）
-    存储每周、每月、每季度的统计信息
-    按 period_start 字段按月分区
+    """数据库大小聚合统计表（分区表）。
+
+    存储每周、每月、每季度的数据库大小聚合统计信息。
+    按 period_start 字段按月分区，支持增量/减量统计。
+
+    Attributes:
+        id: 主键 ID（BigInteger）。
+        instance_id: 关联的实例 ID。
+        database_name: 数据库名称。
+        period_type: 统计周期类型（weekly/monthly/quarterly）。
+        period_start: 统计周期开始日期（用于分区）。
+        period_end: 统计周期结束日期。
+        avg_size_mb: 平均大小（MB）。
+        max_size_mb: 最大大小（MB）。
+        min_size_mb: 最小大小（MB）。
+        data_count: 统计的数据点数量。
+        avg_data_size_mb: 平均数据大小（MB）。
+        max_data_size_mb: 最大数据大小（MB）。
+        min_data_size_mb: 最小数据大小（MB）。
+        avg_log_size_mb: 平均日志大小（MB，SQL Server）。
+        max_log_size_mb: 最大日志大小（MB，SQL Server）。
+        min_log_size_mb: 最小日志大小（MB，SQL Server）。
+        size_change_mb: 总大小变化量（MB，可为负值）。
+        size_change_percent: 总大小变化百分比（%，可为负值）。
+        data_size_change_mb: 数据大小变化量（MB，可为负值）。
     """
     
     __tablename__ = "database_size_aggregations"

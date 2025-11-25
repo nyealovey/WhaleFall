@@ -26,7 +26,22 @@ from app.utils.time_utils import time_utils
 
 
 class StructlogConfig:
-    """structlog 配置核心类。"""
+    """structlog 配置核心类。
+
+    负责配置和管理 structlog 日志系统，包括处理器、过滤器和工作线程。
+    支持数据库日志持久化、异步批量写入和调试日志过滤。
+
+    Attributes:
+        handler: 数据库日志处理器。
+        debug_filter: 调试日志过滤器。
+        worker: 日志队列工作线程。
+        configured: 是否已配置标志。
+
+    Example:
+        >>> config = StructlogConfig()
+        >>> config.configure(app)
+        >>> logger = get_logger('my_module')
+    """
 
     def __init__(self) -> None:
         self.handler = DatabaseLogHandler()
@@ -35,7 +50,14 @@ class StructlogConfig:
         self.configured = False
 
     def configure(self, app=None):  # noqa: ANN001
-        """初始化 structlog 处理器（幂等）。"""
+        """初始化 structlog 处理器（幂等）。
+
+        配置 structlog 的处理器链、上下文管理和日志工厂。
+        可以多次调用，只会配置一次。
+
+        Args:
+            app: Flask 应用实例，可选。如果提供，将附加应用特定配置。
+        """
         if not self.configured:
             structlog.configure(
                 processors=[
@@ -116,6 +138,11 @@ class StructlogConfig:
         return structlog.dev.ConsoleRenderer(colors=False)
 
     def shutdown(self) -> None:
+        """关闭日志系统。
+
+        停止日志队列工作线程，刷新所有待处理的日志。
+        通常在应用退出时自动调用。
+        """
         if self.worker:
             self.worker.shutdown()
             self.handler.set_worker(None)
@@ -127,11 +154,28 @@ atexit.register(structlog_config.shutdown)
 
 
 def get_logger(name: str) -> structlog.BoundLogger:
+    """获取结构化日志记录器。
+
+    Args:
+        name: 日志记录器名称，通常使用模块名。
+
+    Returns:
+        绑定的 structlog 日志记录器实例。
+
+    Example:
+        >>> logger = get_logger('my_module')
+        >>> logger.info('操作成功', user_id=123)
+    """
     structlog_config.configure()
     return structlog.get_logger(name)
 
 
 def configure_structlog(app):  # noqa: ANN001
+    """配置 structlog 并注册 Flask 钩子。
+
+    Args:
+        app: Flask 应用实例。
+    """
     structlog_config.configure(app)
 
     @app.teardown_appcontext
@@ -141,6 +185,11 @@ def configure_structlog(app):  # noqa: ANN001
 
 
 def should_log_debug() -> bool:
+    """检查是否应该记录调试日志。
+
+    Returns:
+        如果启用调试日志返回 True，否则返回 False。
+    """
     try:
         return bool(current_app.config.get("ENABLE_DEBUG_LOG", False))
     except RuntimeError:
@@ -148,11 +197,32 @@ def should_log_debug() -> bool:
 
 
 def log_info(message: str, module: str = "app", **kwargs):
+    """记录信息级别日志。
+
+    Args:
+        message: 日志消息。
+        module: 模块名称，默认为 'app'。
+        **kwargs: 额外的上下文信息。
+
+    Example:
+        >>> log_info('用户登录成功', module='auth', user_id=123)
+    """
     logger = get_logger("app")
     logger.info(message, module=module, **kwargs)
 
 
 def log_warning(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
+    """记录警告级别日志。
+
+    Args:
+        message: 日志消息。
+        module: 模块名称，默认为 'app'。
+        exception: 可选的异常对象。
+        **kwargs: 额外的上下文信息。
+
+    Example:
+        >>> log_warning('配置项缺失', module='config', key='API_KEY')
+    """
     logger = get_logger("app")
     if exception:
         logger.warning(message, module=module, exception=str(exception), **kwargs)
@@ -161,6 +231,20 @@ def log_warning(message: str, module: str = "app", exception: Exception | None =
 
 
 def log_error(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
+    """记录错误级别日志。
+
+    Args:
+        message: 日志消息。
+        module: 模块名称，默认为 'app'。
+        exception: 可选的异常对象，会记录堆栈信息。
+        **kwargs: 额外的上下文信息。
+
+    Example:
+        >>> try:
+        ...     risky_operation()
+        ... except Exception as e:
+        ...     log_error('操作失败', module='service', exception=e)
+    """
     logger = get_logger("app")
     if exception:
         logger.error(message, module=module, error=str(exception), **kwargs, exc_info=True)
@@ -169,6 +253,17 @@ def log_error(message: str, module: str = "app", exception: Exception | None = N
 
 
 def log_critical(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
+    """记录严重错误级别日志。
+
+    Args:
+        message: 日志消息。
+        module: 模块名称，默认为 'app'。
+        exception: 可选的异常对象，会记录堆栈信息。
+        **kwargs: 额外的上下文信息。
+
+    Example:
+        >>> log_critical('数据库连接失败', module='database', exception=e)
+    """
     logger = get_logger("app")
     if exception:
         logger.critical(message, module=module, error=str(exception), **kwargs, exc_info=True)
@@ -177,6 +272,18 @@ def log_critical(message: str, module: str = "app", exception: Exception | None 
 
 
 def log_debug(message: str, module: str = "app", **kwargs):
+    """记录调试级别日志。
+
+    仅在启用调试日志时记录。
+
+    Args:
+        message: 日志消息。
+        module: 模块名称，默认为 'app'。
+        **kwargs: 额外的上下文信息。
+
+    Example:
+        >>> log_debug('查询参数', module='api', params={'page': 1})
+    """
     if not should_log_debug():
         return
     logger = get_logger("app")
@@ -213,6 +320,31 @@ def enhanced_error_handler(
     *,
     extra: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """增强的错误处理器。
+
+    将异常转换为结构化的错误响应，包含错误分类、严重级别和建议。
+
+    Args:
+        error: 异常对象。
+        context: 错误上下文，可选。如果未提供会自动创建。
+        extra: 额外的上下文信息，可选。
+
+    Returns:
+        结构化的错误响应字典，包含以下字段：
+        - error_id: 错误唯一标识
+        - category: 错误分类
+        - severity: 严重级别
+        - message: 错误消息
+        - suggestions: 解决建议
+        - context: 错误上下文
+
+    Example:
+        >>> try:
+        ...     operation()
+        ... except Exception as e:
+        ...     payload = enhanced_error_handler(e, extra={'user_id': 123})
+        ...     return jsonify(payload), 500
+    """
     context = context or ErrorContext(error)
     context.ensure_request()
 

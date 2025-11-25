@@ -1,5 +1,15 @@
 /**
- * 修改密码页面：统一使用 Umbrella JS 封装的 DOMHelpers。
+ * 挂载修改密码页面。
+ *
+ * 初始化修改密码页面的所有组件，包括密码显示/隐藏切换、
+ * 密码强度检测、表单验证等功能。统一使用 Umbrella JS 处理 DOM 和事件。
+ *
+ * @param {Object} global - 全局 window 对象
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountChangePasswordPage(window);
  */
 function mountChangePasswordPage(global) {
     'use strict';

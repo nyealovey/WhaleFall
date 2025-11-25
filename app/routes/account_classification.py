@@ -49,7 +49,11 @@ _auto_classify_service = AutoClassifyService()
 @login_required
 @view_required
 def index() -> str:
-    """账户分类管理首页"""
+    """账户分类管理首页。
+
+    Returns:
+        渲染的账户分类管理页面。
+    """
     # 传递颜色选项到模板
     color_options = ThemeColors.COLOR_MAP
     return render_template("accounts/account_classification/index.html", color_options=color_options)
@@ -76,7 +80,16 @@ def get_color_options() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_classifications() -> tuple[Response, int]:
-    """获取所有账户分类"""
+    """获取所有账户分类。
+
+    按优先级和创建时间排序，包含规则数量统计。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含分类列表。
+
+    Raises:
+        SystemError: 当获取失败时抛出。
+    """
     try:
         classifications = (
             AccountClassification.query.filter_by(is_active=True)
@@ -121,7 +134,14 @@ def get_classifications() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_classification() -> tuple[Response, int]:
-    """创建账户分类"""
+    """创建账户分类。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)。
+
+    Raises:
+        ValidationError: 当表单验证失败时抛出。
+    """
     payload = request.get_json() or {}
     result = _classification_form_service.upsert(payload)
     if not result.success or not result.data:
@@ -183,7 +203,21 @@ def update_classification(classification_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_classification(classification_id: int) -> tuple[Response, int]:
-    """删除账户分类"""
+    """删除账户分类。
+
+    系统分类不能删除。
+
+    Args:
+        classification_id: 分类 ID。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)。
+
+    Raises:
+        ValidationError: 当尝试删除系统分类时抛出。
+        NotFoundError: 当分类不存在时抛出。
+        SystemError: 当删除失败时抛出。
+    """
     classification = AccountClassification.query.get_or_404(classification_id)
 
     if classification.is_system:
@@ -210,7 +244,20 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rules() -> tuple[Response, int]:
-    """获取分类规则"""
+    """获取分类规则。
+
+    支持按分类 ID 和数据库类型筛选。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含规则列表。
+
+    Raises:
+        SystemError: 当获取失败时抛出。
+
+    Query Parameters:
+        classification_id: 分类 ID 筛选，可选。
+        db_type: 数据库类型筛选，可选。
+    """
     classification_id = request.args.get("classification_id", type=int)
     db_type = request.args.get("db_type")
 
@@ -330,7 +377,14 @@ def get_rule_stats() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_rule() -> tuple[Response, int]:
-    """创建分类规则"""
+    """创建分类规则。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)。
+
+    Raises:
+        ValidationError: 当表单验证失败时抛出。
+    """
     payload = request.get_json() or {}
     result = _classification_rule_form_service.upsert(payload)
     if not result.success or not result.data:
@@ -415,7 +469,16 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def auto_classify() -> tuple[Response, int]:
-    """自动分类账户 - 使用优化后的服务"""
+    """自动分类账户 - 使用优化后的服务。
+
+    根据分类规则自动为账户分配分类。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含分类结果统计。
+
+    Raises:
+        SystemError: 当自动分类失败时抛出。
+    """
     data = request.get_json(silent=True) or {}
     created_by = current_user.id if current_user.is_authenticated else None
 
@@ -561,7 +624,14 @@ account_classification_bp.add_url_rule(
 
 
 def _get_db_permissions(db_type: str) -> dict:
-    """获取数据库权限列表"""
+    """获取数据库权限列表。
+
+    Args:
+        db_type: 数据库类型。
+
+    Returns:
+        权限配置字典。
+    """
     from app.models.permission_config import PermissionConfig
 
     # 从数据库获取权限配置

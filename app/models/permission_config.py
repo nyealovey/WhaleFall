@@ -9,7 +9,22 @@ from app.utils.time_utils import time_utils
 
 
 class PermissionConfig(db.Model):
-    """权限配置数据模型"""
+    """权限配置数据模型。
+
+    存储不同数据库类型的权限配置信息，用于权限展示和验证。
+    默认权限数据通过 SQL 初始化脚本下发，模型层仅负责读取和序列化。
+
+    Attributes:
+        id: 主键 ID。
+        db_type: 数据库类型（mysql/postgresql/sqlserver/oracle）。
+        category: 权限分类（如 global_privileges、server_roles 等）。
+        permission_name: 权限名称。
+        description: 权限描述。
+        is_active: 是否启用。
+        sort_order: 排序顺序。
+        created_at: 创建时间。
+        updated_at: 更新时间。
+    """
 
     __tablename__ = "permission_configs"
 
@@ -39,7 +54,11 @@ class PermissionConfig(db.Model):
         return f"<PermissionConfig {self.db_type}.{self.category}.{self.permission_name}>"
 
     def to_dict(self) -> dict:
-        """序列化为字典"""
+        """序列化为字典。
+
+        Returns:
+            包含所有字段的字典。
+        """
         return {
             "id": self.id,
             "db_type": self.db_type,
@@ -54,7 +73,18 @@ class PermissionConfig(db.Model):
 
     @classmethod
     def get_permissions_by_db_type(cls, db_type: str) -> dict[str, list[dict[str, str | None]]]:
-        """按数据库类型返回权限配置，供 UI 展示"""
+        """按数据库类型返回权限配置，供 UI 展示。
+
+        Args:
+            db_type: 数据库类型。
+
+        Returns:
+            按分类分组的权限配置字典，格式：
+            {
+                'category1': [{'name': 'perm1', 'description': 'desc1'}, ...],
+                'category2': [...]
+            }
+        """
         permissions = (
             cls.query.filter_by(db_type=db_type, is_active=True)
             .order_by(cls.category, cls.sort_order, cls.permission_name)

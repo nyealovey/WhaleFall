@@ -49,7 +49,13 @@ batch_deletion_service = InstanceBatchDeletionService()
 @login_required
 @view_required
 def index() -> str:
-    """实例管理首页"""
+    """实例管理首页。
+
+    渲染实例列表页面，支持搜索、筛选和标签过滤。
+
+    Returns:
+        渲染后的 HTML 页面。
+    """
     search = (request.args.get("search") or request.args.get("q") or "").strip()
     db_type = (request.args.get("db_type") or "").strip()
     status_param = (request.args.get("status") or "").strip()
@@ -108,7 +114,18 @@ def index() -> str:
 @create_required
 @require_csrf
 def create_api() -> Response:
-    """创建实例API"""
+    """创建实例 API。
+
+    接收 JSON 或表单数据，验证后创建新的数据库实例。
+
+    Returns:
+        包含新创建实例信息的 JSON 响应。
+
+    Raises:
+        ValidationError: 当数据验证失败时抛出。
+        ConflictError: 当实例名称已存在时抛出。
+        SystemError: 当创建失败时抛出。
+    """
     data = request.get_json() if request.is_json else request.form
 
     # 清理输入数据
@@ -183,7 +200,19 @@ def create_api() -> Response:
 @delete_required
 @require_csrf
 def delete(instance_id: int) -> str | Response | tuple[Response, int]:
-    """删除实例"""
+    """删除实例。
+
+    删除指定实例及其关联的所有数据（账户、同步记录、变更日志等）。
+
+    Args:
+        instance_id: 实例ID。
+
+    Returns:
+        包含删除统计信息的 JSON 响应。
+
+    Raises:
+        SystemError: 当删除失败时抛出。
+    """
     instance = Instance.query.get_or_404(instance_id)
 
     try:

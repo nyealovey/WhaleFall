@@ -36,21 +36,40 @@ TIME_FORMATS = {
 
 
 class TimeUtils:
-    """统一时间处理工具类"""
+    """统一时间处理工具类。
+
+    提供一致的时间处理功能，包括时区转换、时间格式化、
+    相对时间计算等。基于 Python 3.9+ 的 zoneinfo 模块。
+    """
 
     @staticmethod
     def now() -> datetime:
-        """获取当前UTC时间"""
+        """获取当前 UTC 时间。
+
+        Returns:
+            带 UTC 时区信息的当前时间。
+        """
         return datetime.now(UTC)
 
     @staticmethod
     def now_china() -> datetime:
-        """获取当前中国时间"""
+        """获取当前中国时间。
+
+        Returns:
+            带中国时区信息的当前时间。
+        """
         return datetime.now(CHINA_TZ)
 
     @staticmethod
     def to_china(dt: str | date | datetime | None) -> datetime | None:
-        """将时间转换为中国时区"""
+        """将时间转换为中国时区。
+
+        Args:
+            dt: 待转换的时间，可以是字符串、date 或 datetime 对象。
+
+        Returns:
+            转换后的中国时区时间，转换失败时返回 None。
+        """
         if not dt:
             return None
 
@@ -76,7 +95,14 @@ class TimeUtils:
 
     @staticmethod
     def to_utc(dt: str | date | datetime | None) -> datetime | None:
-        """将时间转换为UTC时区"""
+        """将时间转换为 UTC 时区。
+
+        Args:
+            dt: 待转换的时间，可以是字符串、date 或 datetime 对象。
+
+        Returns:
+            转换后的 UTC 时区时间，转换失败时返回 None。
+        """
         if not dt:
             return None
 
@@ -103,7 +129,15 @@ class TimeUtils:
     def format_china_time(
         dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT
     ) -> str:
-        """格式化中国时间显示"""
+        """格式化中国时间显示。
+
+        Args:
+            dt: 待格式化的时间。
+            format_str: 时间格式字符串，默认为 '%Y-%m-%d %H:%M:%S'。
+
+        Returns:
+            格式化后的时间字符串，失败时返回 '-'。
+        """
         china_dt = TimeUtils.to_china(dt)
         if not china_dt:
             return "-"
@@ -127,7 +161,16 @@ class TimeUtils:
 
     @staticmethod
     def get_relative_time(dt: str | date | datetime | None) -> str:
-        """获取相对时间描述"""
+        """获取相对时间描述。
+
+        将时间转换为人类可读的相对时间描述，如"刚刚"、"5分钟前"、"2小时前"等。
+
+        Args:
+            dt: 待转换的时间。
+
+        Returns:
+            相对时间描述字符串，失败时返回 '-'。
+        """
         china_dt = TimeUtils.to_china(dt)
         if not china_dt:
             return "-"

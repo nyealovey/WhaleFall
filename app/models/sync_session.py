@@ -10,7 +10,27 @@ from app.constants import SyncStatus
 
 
 class SyncSession(db.Model):
-    """同步会话模型 - 管理批量同步会话"""
+    """同步会话模型 - 管理批量同步会话。
+
+    记录批量同步任务的会话信息，包括同步类型、状态、时间、
+    实例统计等。支持账户同步、容量采集、聚合等多种同步类型。
+
+    Attributes:
+        id: 主键 ID。
+        session_id: 会话唯一标识（UUID）。
+        sync_type: 同步操作方式（manual_single/manual_batch/manual_task/scheduled_task）。
+        sync_category: 同步分类（account/capacity/config/aggregation/other）。
+        status: 会话状态（pending/running/completed/failed）。
+        started_at: 开始时间。
+        completed_at: 完成时间。
+        total_instances: 总实例数。
+        successful_instances: 成功实例数。
+        failed_instances: 失败实例数。
+        created_by: 创建用户 ID（手动同步时）。
+        created_at: 创建时间。
+        updated_at: 更新时间。
+        instance_records: 关联的实例同步记录。
+    """
 
     __tablename__ = "sync_sessions"
 

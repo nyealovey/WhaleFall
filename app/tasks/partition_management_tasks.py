@@ -23,9 +23,12 @@ def _as_app_error(error: Exception) -> AppError:
 
 
 def create_database_size_partitions() -> dict[str, object]:
-    """
-    创建数据库大小统计表的分区
-    每天凌晨 2 点执行，创建未来 3 个月的分区
+    """创建数据库大小统计表的分区。
+
+    每天凌晨 2 点执行，创建未来 3 个月的分区，确保数据有足够的存储空间。
+
+    Returns:
+        包含分区创建结果的字典，包括处理的月份数和创建的分区列表。
     """
     management_service = PartitionManagementService()
     try:
@@ -50,9 +53,13 @@ def create_database_size_partitions() -> dict[str, object]:
 
 
 def cleanup_database_size_partitions() -> dict[str, object]:
-    """
-    清理数据库大小统计表的旧分区
-    每天凌晨 3 点执行，清理保留期外的分区
+    """清理数据库大小统计表的旧分区。
+
+    每天凌晨 3 点执行，清理保留期外的分区，释放存储空间。
+    保留期由配置项 DATABASE_SIZE_RETENTION_MONTHS 控制，默认 12 个月。
+
+    Returns:
+        包含清理结果的字典，包括截止日期和删除的分区列表。
     """
     service = PartitionManagementService()
     try:
@@ -82,9 +89,13 @@ def cleanup_database_size_partitions() -> dict[str, object]:
 
 
 def monitor_partition_health() -> dict[str, object]:
-    """
-    监控分区健康状态
-    每小时执行一次，检查分区状态和容量
+    """监控分区健康状态。
+
+    每小时执行一次，检查分区状态和容量。如果发现下个月的分区不存在，
+    会自动尝试创建。
+
+    Returns:
+        包含分区健康状态的字典，包括分区数量、总大小、记录数等信息。
     """
     management_service = PartitionManagementService()
     stats_service = PartitionStatisticsService()

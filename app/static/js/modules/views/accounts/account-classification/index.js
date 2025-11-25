@@ -1,4 +1,17 @@
-/* 账户分类管理页面脚本（模块化重构版） */
+/**
+ * 挂载账户分类管理页面。
+ *
+ * 初始化账户分类管理页面的所有组件，包括分类列表、规则管理、
+ * 创建/编辑/删除模态框等功能。支持账户分类和规则的 CRUD 操作。
+ *
+ * @param {Window} window - 全局 window 对象
+ * @param {Document} document - document 对象
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountAccountClassificationPage(window, document);
+ */
 function mountAccountClassificationPage(window, document) {
     'use strict';
 

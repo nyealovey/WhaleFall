@@ -7,7 +7,32 @@ from app.utils.time_utils import time_utils
 
 
 class AccountPermission(BaseSyncData):
-    """账户权限快照（支持复杂权限结构）"""
+    """账户权限快照（支持复杂权限结构）。
+
+    存储不同数据库类型账户的权限信息快照，支持 MySQL、PostgreSQL、
+    SQL Server 和 Oracle 的权限结构。继承自 BaseSyncData。
+
+    Attributes:
+        instance_account_id: 关联的实例账户 ID。
+        username: 账户名。
+        is_superuser: 是否为超级用户。
+        is_locked: 是否被锁定。
+        global_privileges: MySQL 全局权限（JSON）。
+        database_privileges: MySQL 数据库权限（JSON）。
+        predefined_roles: PostgreSQL 预定义角色（JSON）。
+        role_attributes: PostgreSQL 角色属性（JSON）。
+        database_privileges_pg: PostgreSQL 数据库权限（JSON）。
+        tablespace_privileges: PostgreSQL 表空间权限（JSON）。
+        server_roles: SQL Server 服务器角色（JSON）。
+        server_permissions: SQL Server 服务器权限（JSON）。
+        database_roles: SQL Server 数据库角色（JSON）。
+        database_permissions: SQL Server 数据库权限（JSON）。
+        oracle_roles: Oracle 角色（JSON）。
+        system_privileges: Oracle 系统权限（JSON）。
+        tablespace_privileges_oracle: Oracle 表空间权限（JSON）。
+        type_specific: 其他类型特定字段（JSON）。
+        last_sync_time: 最后同步时间。
+    """
 
     __tablename__ = "account_permission"
 

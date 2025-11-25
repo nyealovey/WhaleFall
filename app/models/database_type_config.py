@@ -11,7 +11,29 @@ from app.utils.time_utils import time_utils
 
 
 class DatabaseTypeConfig(db.Model):
-    """数据库类型配置模型"""
+    """数据库类型配置模型。
+
+    管理数据库类型的配置信息，包括连接参数、显示样式、特性列表等。
+    支持系统内置类型和自定义类型。
+
+    Attributes:
+        id: 主键 ID。
+        name: 数据库类型名称（唯一）。
+        display_name: 显示名称。
+        driver: 驱动名称。
+        default_port: 默认端口。
+        default_schema: 默认 Schema。
+        connection_timeout: 连接超时时间（秒）。
+        description: 描述信息。
+        icon: 图标类名（Font Awesome）。
+        color: 主题颜色。
+        features: 特性列表（JSON 字符串）。
+        is_active: 是否启用。
+        is_system: 是否系统内置。
+        sort_order: 排序顺序。
+        created_at: 创建时间。
+        updated_at: 更新时间。
+    """
 
     __tablename__ = "database_type_configs"
 

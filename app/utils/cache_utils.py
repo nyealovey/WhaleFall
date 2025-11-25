@@ -15,7 +15,15 @@ from app.utils.structlog_config import get_system_logger
 
 
 class CacheManager:
-    """缓存管理器"""
+    """缓存管理器。
+
+    基于 Flask-Caching 的通用缓存管理器，提供缓存的增删改查和装饰器功能。
+
+    Attributes:
+        cache: Flask-Caching 实例。
+        default_timeout: 默认超时时间（秒），默认 300 秒。
+        system_logger: 系统日志记录器。
+    """
 
     def __init__(self, cache: Cache) -> None:
         self.cache = cache
@@ -23,7 +31,18 @@ class CacheManager:
         self.system_logger = get_system_logger()
 
     def _generate_key(self, prefix: str, *args, **kwargs: Any) -> str:  # noqa: ANN401
-        """生成缓存键"""
+        """生成缓存键。
+
+        使用 SHA256 哈希算法生成唯一的缓存键。
+
+        Args:
+            prefix: 缓存键前缀。
+            *args: 位置参数。
+            **kwargs: 关键字参数。
+
+        Returns:
+            格式为 "prefix:hash" 的缓存键。
+        """
         # 将参数序列化为字符串
         key_data = {"args": args, "kwargs": sorted(kwargs.items())}
         key_string = json.dumps(key_data, sort_keys=True, default=str)
@@ -34,7 +53,14 @@ class CacheManager:
         return f"{prefix}:{key_hash}"
 
     def get(self, key: str) -> Any | None:
-        """获取缓存值"""
+        """获取缓存值。
+
+        Args:
+            key: 缓存键。
+
+        Returns:
+            缓存值，如果不存在或获取失败返回 None。
+        """
         try:
             return self.cache.get(key)
         except Exception as e:
@@ -42,7 +68,16 @@ class CacheManager:
             return None
 
     def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
-        """设置缓存值"""
+        """设置缓存值。
+
+        Args:
+            key: 缓存键。
+            value: 缓存值。
+            timeout: 超时时间（秒），默认使用 default_timeout。
+
+        Returns:
+            设置成功返回 True，失败返回 False。
+        """
         try:
             timeout = timeout or self.default_timeout
             self.cache.set(key, value, timeout=timeout)

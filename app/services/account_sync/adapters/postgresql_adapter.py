@@ -13,11 +13,37 @@ from app.utils.structlog_config import get_sync_logger
 
 
 class PostgreSQLAccountAdapter(BaseAccountAdapter):
+    """PostgreSQL 账户同步适配器。
+
+    实现 PostgreSQL 数据库的账户查询和权限采集功能。
+    通过 pg_roles 视图和权限查询函数采集角色信息和权限。
+
+    Attributes:
+        logger: 同步日志记录器。
+        filter_manager: 数据库过滤管理器。
+
+    Example:
+        >>> adapter = PostgreSQLAccountAdapter()
+        >>> accounts = adapter.fetch_accounts(instance, connection)
+        >>> enriched = adapter.enrich_permissions(instance, connection, accounts)
+    """
+
     def __init__(self) -> None:
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
+        """拉取 PostgreSQL 原始账户信息。
+
+        从 pg_roles 视图中查询角色基本信息。
+
+        Args:
+            instance: 实例对象。
+            connection: PostgreSQL 数据库连接对象。
+
+        Returns:
+            原始账户信息列表，每个元素包含用户名、超级用户标志、角色属性等。
+        """
         try:
             where_clause, params = self._build_filter_conditions()
             roles_sql = (
@@ -101,6 +127,17 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
+        """规范化 PostgreSQL 账户信息。
+
+        将原始账户信息转换为统一格式。
+
+        Args:
+            instance: 实例对象。
+            account: 原始账户信息字典。
+
+        Returns:
+            规范化后的账户信息字典。
+        """
         permissions = account.get("permissions") or {}
         type_specific = permissions.setdefault("type_specific", {})
         permissions.setdefault("role_attributes", {})
@@ -200,6 +237,19 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         *,
         usernames: Sequence[str] | None = None,
     ) -> List[Dict[str, Any]]:
+        """丰富 PostgreSQL 账户的权限信息。
+
+        为指定账户查询详细的权限信息，包括角色属性、预定义角色、数据库权限等。
+
+        Args:
+            instance: 实例对象。
+            connection: PostgreSQL 数据库连接对象。
+            accounts: 账户信息列表。
+            usernames: 可选的目标用户名列表。
+
+        Returns:
+            丰富后的账户信息列表。
+        """
         target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
         if not target_usernames:
             return accounts

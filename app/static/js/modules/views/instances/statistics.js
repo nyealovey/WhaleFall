@@ -1,9 +1,17 @@
+/**
+ * 挂载实例统计页面。
+ *
+ * 初始化实例统计页面的所有组件，包括实例管理服务、Store、
+ * 图表渲染、自动刷新和状态提示等功能。
+ *
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountInstanceStatisticsPage();
+ */
 function mountInstanceStatisticsPage() {
     const global = window;
-    /**
-     * 实例统计页面 JavaScript
-     * 负责图表渲染、自动刷新与状态提示
-     */
     'use strict';
 
     const helpers = global.DOMHelpers;
