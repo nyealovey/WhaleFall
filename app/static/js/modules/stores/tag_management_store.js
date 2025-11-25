@@ -520,7 +520,6 @@
     return api;
   }
 
-  window.createTagManagementStore = createTagManagementStore;
   /**
    * 规范化 ID 数组，过滤无效值。
    *
@@ -540,3 +539,6 @@
         return value !== null;
       });
   }
+
+  window.createTagManagementStore = createTagManagementStore;
+})(window);

@@ -3,6 +3,14 @@
 
   /**
    * 验证 service 是否实现批量打标签所需的方法。
+   *
+   * @param {Object} service - 服务对象
+   * @param {Function} service.listInstances - 获取实例列表的方法
+   * @param {Function} service.listAllTags - 获取所有标签的方法
+   * @param {Function} service.batchAssign - 批量分配标签的方法
+   * @param {Function} service.batchRemoveAll - 批量移除标签的方法
+   * @return {Object} 校验后的服务对象
+   * @throws {Error} 当 service 为空或缺少必需方法时抛出
    */
   function ensureService(service) {
     if (!service) {
@@ -18,6 +26,10 @@
 
   /**
    * 获取 mitt 事件总线。
+   *
+   * @param {Object} [emitter] - 可选的 mitt 实例
+   * @return {Object} mitt 事件总线实例
+   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
    */
   function ensureEmitter(emitter) {
     if (emitter) {
@@ -31,6 +43,9 @@
 
   /**
    * 拷贝 state，以便事件 payload 使用。
+   *
+   * @param {Object} state - 状态对象
+   * @return {Object} 状态对象的拷贝
    */
   function cloneState(state) {
     return {
@@ -46,6 +61,9 @@
 
   /**
    * 将 id 列表转换为数值数组。
+   *
+   * @param {Array} ids - ID 数组
+   * @return {Array} 规范化后的数字 ID 数组
    */
   function normalizeIds(ids) {
     if (!Array.isArray(ids)) {
@@ -61,6 +79,26 @@
       });
   }
 
+  /**
+   * 创建标签批量分配状态管理 Store。
+   *
+   * 提供批量为实例分配或移除标签的功能，包括实例选择、标签选择和批量操作。
+   *
+   * @param {Object} options - 配置选项
+   * @param {Object} options.service - 标签批量操作服务对象
+   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
+   * @param {string} [options.initialMode='assign'] - 初始模式，'assign' 或 'remove'
+   * @return {Object} Store API 对象
+   *
+   * @example
+   * const store = createTagBatchStore({
+   *   service: tagBatchService,
+   *   initialMode: 'assign'
+   * });
+   * store.init().then(() => {
+   *   console.log(store.getState());
+   * });
+   */
   function createTagBatchStore(options) {
     const opts = options || {};
     const service = ensureService(opts.service);

@@ -3,6 +3,10 @@
 
   /**
    * 选用 http 客户端，默认使用全局 httpU。
+   *
+   * @param {Object} client - HTTP 客户端实例
+   * @return {Object} HTTP 客户端实例
+   * @throws {Error} 当客户端未初始化时抛出
    */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
@@ -14,6 +18,9 @@
 
   /**
    * 构造查询字符串，兼容对象/URLSearchParams/字符串。
+   *
+   * @param {Object|URLSearchParams|string} params - 查询参数
+   * @return {string} 查询字符串，以 ? 开头，如果为空则返回空字符串
    */
   function toQueryString(params) {
     if (!params) {
@@ -47,6 +54,10 @@
 
   /**
    * 实例管理 API 封装：同步、批量操作、统计等。
+   *
+   * 提供实例的同步、批量创建、批量删除、统计查询等功能。
+   *
+   * @class
    */
   class InstanceManagementService {
     constructor(httpClient) {

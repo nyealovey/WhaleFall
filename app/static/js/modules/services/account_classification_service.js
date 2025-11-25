@@ -5,6 +5,10 @@
 
   /**
    * 选用 http 客户端，默认使用 httpU。
+   *
+   * @param {Object} client - HTTP 客户端实例
+   * @return {Object} HTTP 客户端实例
+   * @throws {Error} 当客户端未初始化时抛出
    */
   function ensureHttpClient(client) {
     const resolved = client || global.httpU || global.http || null;
@@ -16,6 +20,9 @@
 
   /**
    * 将对象或字符串拼接为 query string。
+   *
+   * @param {Object|URLSearchParams|string} params - 查询参数
+   * @return {string} 查询字符串，以 ? 开头，如果为空则返回空字符串
    */
   function buildQueryString(params) {
     if (!params) {
@@ -49,25 +56,61 @@
 
   /**
    * 账户分类/规则/自动化相关接口封装。
+   *
+   * 提供账户分类、规则管理、权限查询和自动化触发等功能。
+   *
+   * @class
    */
   class AccountClassificationService {
+    /**
+     * 构造函数。
+     *
+     * @constructor
+     * @param {Object} httpClient - HTTP 客户端实例
+     */
     constructor(httpClient) {
       this.httpClient = ensureHttpClient(httpClient);
     }
 
+    /**
+     * 获取分类列表。
+     *
+     * @return {Promise<Object>} 分类列表响应
+     */
     listClassifications() {
       return this.httpClient.get(`${BASE_PATH}/classifications`);
     }
 
+    /**
+     * 获取分类详情。
+     *
+     * @param {number|string} id - 分类 ID
+     * @return {Promise<Object>} 分类详情响应
+     * @throws {Error} 当 id 无效时抛出
+     */
     getClassification(id) {
       this.assertId(id, "getClassification");
       return this.httpClient.get(`${BASE_PATH}/classifications/${id}`);
     }
 
+    /**
+     * 创建分类。
+     *
+     * @param {Object} payload - 分类数据
+     * @return {Promise<Object>} 创建结果响应
+     */
     createClassification(payload) {
       return this.httpClient.post(`${BASE_PATH}/classifications`, payload);
     }
 
+    /**
+     * 更新分类。
+     *
+     * @param {number|string} id - 分类 ID
+     * @param {Object} payload - 更新数据
+     * @return {Promise<Object>} 更新结果响应
+     * @throws {Error} 当 id 无效时抛出
+     */
     updateClassification(id, payload) {
       this.assertId(id, "updateClassification");
       return this.httpClient.put(
@@ -76,6 +119,13 @@
       );
     }
 
+    /**
+     * 删除分类。
+     *
+     * @param {number|string} id - 分类 ID
+     * @return {Promise<Object>} 删除结果响应
+     * @throws {Error} 当 id 无效时抛出
+     */
     deleteClassification(id) {
       this.assertId(id, "deleteClassification");
       return this.httpClient.delete(`${BASE_PATH}/classifications/${id}`);
