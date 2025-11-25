@@ -25,7 +25,11 @@ account_stat_bp = Blueprint("account_stat", __name__)
 @login_required
 @view_required
 def statistics() -> str:
-    """账户统计页面"""
+    """账户统计页面。
+
+    Returns:
+        渲染的账户统计页面，包含统计数据、最近同步记录和活跃实例列表。
+    """
     try:
         stats = build_aggregated_statistics()
     except SystemError:
@@ -50,7 +54,14 @@ def statistics() -> str:
 @login_required
 @view_required
 def statistics_api() -> tuple[Response, int]:
-    """账户统计API"""
+    """账户统计 API。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含聚合统计数据。
+
+    Raises:
+        SystemError: 当获取统计信息失败时抛出。
+    """
     try:
         summary = build_aggregated_statistics()
         return jsonify_unified_success(data={"stats": summary}, message="获取账户统计信息成功")
@@ -65,7 +76,17 @@ def statistics_api() -> tuple[Response, int]:
 @login_required
 @view_required
 def statistics_summary_api() -> tuple[Response, int]:
-    """账户统计汇总"""
+    """账户统计汇总。
+
+    支持按实例 ID 和数据库类型筛选。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含统计汇总数据。
+
+    Query Parameters:
+        instance_id: 实例 ID 筛选，可选。
+        db_type: 数据库类型筛选，可选。
+    """
     instance_id = request.args.get("instance_id", type=int)
     db_type = request.args.get("db_type", type=str)
 
@@ -77,7 +98,11 @@ def statistics_summary_api() -> tuple[Response, int]:
 @login_required
 @view_required
 def statistics_db_type_api() -> tuple[Response, int]:
-    """按数据库类型统计"""
+    """按数据库类型统计。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含各数据库类型的账户统计。
+    """
     stats = fetch_db_type_stats()
     return jsonify_unified_success(data=stats, message="获取数据库类型统计成功")
 
@@ -86,6 +111,10 @@ def statistics_db_type_api() -> tuple[Response, int]:
 @login_required
 @view_required
 def statistics_classification_api() -> tuple[Response, int]:
-    """按分类统计"""
+    """按分类统计。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含各分类的账户统计。
+    """
     stats = fetch_classification_stats()
     return jsonify_unified_success(data=stats, message="获取账户分类统计成功")

@@ -26,7 +26,18 @@ _tag_form_service = TagFormService()
 @login_required
 @view_required
 def index() -> str:
-    """标签管理首页"""
+    """标签管理首页。
+
+    渲染标签管理页面，支持搜索、分类和状态筛选。
+
+    Returns:
+        渲染后的 HTML 页面。
+
+    Query Parameters:
+        search: 搜索关键词，可选。
+        category: 标签分类，可选。
+        status: 状态筛选（'all'、'active'、'inactive'），默认 'all'。
+    """
     search = request.args.get("search", "", type=str)
     category = request.args.get("category", "", type=str)
     status_param = request.args.get("status", "all", type=str)
@@ -51,7 +62,14 @@ def index() -> str:
 @create_required
 @require_csrf
 def create_api() -> tuple[Response, int]:
-    """创建标签API"""
+    """创建标签 API。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)。
+
+    Raises:
+        ValidationError: 当表单验证失败时抛出。
+    """
     payload = sanitize_form_data(request.get_json(silent=True) if request.is_json else request.form or {})
     result = _tag_form_service.upsert(payload)
     if not result.success or not result.data:
@@ -89,7 +107,19 @@ def edit_api(tag_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete(tag_id: int) -> Response:
-    """删除标签"""
+    """删除标签。
+
+    硬删除标签及其关联关系。如果标签正在被实例使用，则拒绝删除。
+
+    Args:
+        tag_id: 标签 ID。
+
+    Returns:
+        JSON 响应或重定向。
+
+    Raises:
+        NotFoundError: 当标签不存在时抛出。
+    """
     try:
         tag = Tag.query.get_or_404(tag_id)
 
@@ -147,7 +177,22 @@ def delete(tag_id: int) -> Response:
 @login_required
 @view_required
 def list_tags_api() -> tuple[Response, int]:
-    """Grid.js 标签列表 API"""
+    """Grid.js 标签列表 API。
+
+    支持分页、排序、搜索和筛选，返回标签列表及实例数量统计。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)。
+
+    Query Parameters:
+        page: 页码，默认 1。
+        limit: 每页数量，默认 20。
+        sort: 排序字段，默认 'sort_order'。
+        order: 排序方向（'asc'、'desc'），默认 'asc'。
+        search: 搜索关键词，可选。
+        category: 分类筛选，可选。
+        status: 状态筛选，可选。
+    """
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", 20, type=int)
     sort_field = request.args.get("sort", "sort_order")

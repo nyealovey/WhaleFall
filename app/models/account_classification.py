@@ -10,7 +10,26 @@ from app.constants.colors import ThemeColors
 
 
 class AccountClassification(db.Model):
-    """账户分类模型"""
+    """账户分类模型。
+
+    管理账户的分类信息，支持自定义分类、风险等级、颜色、图标等。
+    可以通过规则自动分类或手动分配。
+
+    Attributes:
+        id: 主键 ID。
+        name: 分类名称，唯一。
+        description: 分类描述。
+        risk_level: 风险等级（low/medium/high/critical）。
+        color: 显示颜色。
+        icon_name: 图标名称（Font Awesome）。
+        priority: 优先级，数字越大优先级越高。
+        is_system: 是否为系统分类。
+        is_active: 是否启用。
+        created_at: 创建时间。
+        updated_at: 更新时间。
+        rules: 关联的分类规则。
+        account_assignments: 关联的账户分配记录。
+    """
 
     __tablename__ = "account_classifications"
 

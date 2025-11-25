@@ -1,5 +1,15 @@
 /**
- * 登录页面脚本：统一使用 Umbrella JS 处理 DOM/事件，并依赖表单校验封装。
+ * 挂载登录页面。
+ *
+ * 初始化登录页面的所有组件，包括密码显示/隐藏切换、表单验证、
+ * 密码强度检测等功能。统一使用 Umbrella JS 处理 DOM 和事件。
+ *
+ * @param {Object} global - 全局 window 对象
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountLoginPage(window);
  */
 function mountLoginPage(global) {
     'use strict';

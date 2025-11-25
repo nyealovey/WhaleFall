@@ -1,8 +1,17 @@
+/**
+ * 挂载系统仪表板页面。
+ *
+ * 初始化系统仪表板的所有组件，包括日志趋势图表、系统状态监控等功能。
+ * 提供系统运行状态的可视化展示。
+ *
+ * @param {Object} global - 全局 window 对象
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountDashboardOverview(window);
+ */
 function mountDashboardOverview(global) {
-    /**
-     * 系统仪表板页面 JavaScript
-     * 处理图表初始化、系统状态更新等功能
-     */
     'use strict';
 
     const helpers = global.DOMHelpers;

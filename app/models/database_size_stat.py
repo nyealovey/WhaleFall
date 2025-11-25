@@ -21,9 +21,23 @@ from app.utils.time_utils import time_utils
 
 
 class DatabaseSizeStat(db.Model):
-    """
+    """数据库大小统计模型。
+
     存储每个数据库在特定时间点的大小统计信息。
-    支持 PostgreSQL 分区表，按日期分区。
+    支持 PostgreSQL 分区表，按日期（collected_date）分区。
+
+    Attributes:
+        id: 主键 ID（BigInteger）。
+        instance_id: 关联的实例 ID。
+        database_name: 数据库名称。
+        size_mb: 数据库总大小（MB）。
+        data_size_mb: 数据部分大小（MB，如果可获取）。
+        log_size_mb: 日志部分大小（MB，SQL Server 特有）。
+        collected_date: 采集日期（用于分区）。
+        collected_at: 采集时间戳。
+        created_at: 记录创建时间。
+        updated_at: 记录更新时间。
+        instance: 关联的实例对象。
     """
 
     __tablename__ = "database_size_stats"

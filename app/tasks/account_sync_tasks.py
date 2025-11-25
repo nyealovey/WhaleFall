@@ -16,7 +16,22 @@ from app.utils.time_utils import time_utils
 
 
 def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwargs: Any) -> None:  # noqa: ANN401
-    """同步账户任务 - 同步所有实例的账户信息"""
+    """同步账户任务 - 同步所有实例的账户信息。
+
+    遍历所有启用的数据库实例，同步账户清单和权限信息。
+    创建同步会话记录，跟踪每个实例的同步状态和结果。
+
+    Args:
+        manual_run: 是否为手动触发，默认 False（定时任务）。
+        created_by: 触发用户 ID，手动触发时必填。
+        **kwargs: 其他可选参数。
+
+    Returns:
+        None
+
+    Raises:
+        Exception: 当任务执行失败时抛出。
+    """
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()

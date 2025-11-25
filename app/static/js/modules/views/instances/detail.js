@@ -1,8 +1,15 @@
 /**
- * 实例详情页面JavaScript
- * 处理连接测试、账户同步、权限查看等功能
+ * 挂载实例详情页面。
+ *
+ * 初始化实例详情页面的所有组件，包括实例管理服务、Store、
+ * 历史记录模态框等。提供连接测试、账户同步、权限查看等功能。
+ *
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountInstanceDetailPage();
  */
-
 function mountInstanceDetailPage() {
 
 const LodashUtils = window.LodashUtils;

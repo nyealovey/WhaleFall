@@ -19,7 +19,16 @@ from app.models.unified_log import UnifiedLog
 
 
 def get_active_tags() -> list[Tag]:
-    """获取所有激活状态的标签，按分类与排序顺序排列。"""
+    """获取所有激活状态的标签，按分类与排序顺序排列。
+
+    Returns:
+        标签对象列表，按 category、sort_order、name 排序。
+
+    Example:
+        >>> tags = get_active_tags()
+        >>> for tag in tags:
+        ...     print(f"{tag.category}: {tag.name}")
+    """
     return (
         Tag.query.filter(Tag.is_active.is_(True))
         .order_by(Tag.category.asc(), Tag.sort_order.asc(), Tag.name.asc())
@@ -28,7 +37,20 @@ def get_active_tags() -> list[Tag]:
 
 
 def get_active_tag_options() -> list[dict[str, str]]:
-    """返回适用于下拉多选的标签选项字典。"""
+    """返回适用于下拉多选的标签选项字典。
+
+    Returns:
+        标签选项列表，每个选项包含：
+        - value: 标签名称
+        - label: 显示名称
+        - color: 标签颜色
+        - category: 标签分类
+
+    Example:
+        >>> options = get_active_tag_options()
+        >>> print(options[0])
+        {'value': 'prod', 'label': '生产环境', 'color': '#ff0000', 'category': 'env'}
+    """
     tags = get_active_tags()
     return [
         {
@@ -42,10 +64,19 @@ def get_active_tag_options() -> list[dict[str, str]]:
 
 
 def get_tag_categories() -> list[dict[str, str]]:
-    """
-    获取当前存在的标签分类。
+    """获取当前存在的标签分类。
 
     分类展示名称优先使用 Tag 内置的映射，若找不到则退回原始分类值。
+
+    Returns:
+        分类选项列表，每个选项包含：
+        - value: 分类值
+        - label: 分类显示名称
+
+    Example:
+        >>> categories = get_tag_categories()
+        >>> print(categories)
+        [{'value': 'env', 'label': '环境'}, {'value': 'region', 'label': '区域'}]
     """
     label_mapping = {value: label for value, label in Tag.get_category_choices()}
     rows: Iterable[tuple[str]] = (
@@ -67,7 +98,16 @@ def get_tag_categories() -> list[dict[str, str]]:
 
 
 def get_classifications() -> list[AccountClassification]:
-    """获取可用的账户分类，按优先级与名称排序。"""
+    """获取可用的账户分类，按优先级与名称排序。
+
+    Returns:
+        账户分类对象列表，按 priority 降序、name 升序排列。
+
+    Example:
+        >>> classifications = get_classifications()
+        >>> for c in classifications:
+        ...     print(f"{c.name} (优先级: {c.priority})")
+    """
     return (
         AccountClassification.query.filter(AccountClassification.is_active.is_(True))
         .order_by(AccountClassification.priority.desc(), AccountClassification.name.asc())
@@ -76,7 +116,19 @@ def get_classifications() -> list[AccountClassification]:
 
 
 def get_classification_options() -> list[dict[str, str]]:
-    """返回账户分类下拉选项。"""
+    """返回账户分类下拉选项。
+
+    Returns:
+        分类选项列表，每个选项包含：
+        - value: 分类 ID（字符串）
+        - label: 分类名称
+        - color: 分类颜色
+
+    Example:
+        >>> options = get_classification_options()
+        >>> print(options[0])
+        {'value': '1', 'label': '业务账户', 'color': '#00ff00'}
+    """
     classifications = get_classifications()
     return [
         {"value": str(classification.id), "label": classification.name, "color": classification.color or ""}
@@ -101,7 +153,22 @@ def get_instances_by_db_type(db_type: str | None = None, *, include_inactive: bo
 
 
 def get_instance_options(db_type: str | None = None) -> list[dict[str, str]]:
-    """返回实例下拉选项。"""
+    """返回实例下拉选项。
+
+    Args:
+        db_type: 可选的数据库类型过滤。
+
+    Returns:
+        实例选项列表，每个选项包含：
+        - value: 实例 ID（字符串）
+        - label: 实例显示名称（包含数据库类型）
+        - db_type: 数据库类型
+
+    Example:
+        >>> options = get_instance_options('mysql')
+        >>> print(options[0])
+        {'value': '1', 'label': 'prod-mysql-01 (mysql)', 'db_type': 'mysql'}
+    """
     instances = get_instances_by_db_type(db_type=db_type)
     return [
         {
@@ -114,7 +181,19 @@ def get_instance_options(db_type: str | None = None) -> list[dict[str, str]]:
 
 
 def get_databases_by_instance(instance_id: int) -> list[InstanceDatabase]:
-    """获取指定实例下仍然活跃的数据库列表，按名称排序。"""
+    """获取指定实例下仍然活跃的数据库列表，按名称排序。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        数据库对象列表，按 database_name 排序。
+
+    Example:
+        >>> databases = get_databases_by_instance(1)
+        >>> for db in databases:
+        ...     print(db.database_name)
+    """
     return (
         InstanceDatabase.query.filter(
             InstanceDatabase.instance_id == instance_id, InstanceDatabase.is_active.is_(True)
@@ -125,7 +204,22 @@ def get_databases_by_instance(instance_id: int) -> list[InstanceDatabase]:
 
 
 def get_database_options(instance_id: int) -> list[dict[str, str]]:
-    """返回数据库选择下拉选项。"""
+    """返回数据库选择下拉选项。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        数据库选项列表，每个选项包含：
+        - value: 数据库 ID（字符串）
+        - label: 数据库名称
+        - name: 数据库名称
+
+    Example:
+        >>> options = get_database_options(1)
+        >>> print(options[0])
+        {'value': '10', 'label': 'mydb', 'name': 'mydb'}
+    """
     databases = get_databases_by_instance(instance_id)
     return [
         {
@@ -138,11 +232,18 @@ def get_database_options(instance_id: int) -> list[dict[str, str]]:
 
 
 def get_log_modules(limit_hours: int | None = None) -> list[str]:
-    """
-    获取日志模块列表。
+    """获取日志模块列表。
 
     Args:
         limit_hours: 限制只统计最近多少小时内的日志；为 None 时无限制。
+
+    Returns:
+        模块名称列表，按字母顺序排序。
+
+    Example:
+        >>> modules = get_log_modules(limit_hours=24)
+        >>> print(modules)
+        ['api', 'auth', 'database', 'sync']
     """
     query = db.session.query(distinct(UnifiedLog.module))
     if limit_hours is not None:

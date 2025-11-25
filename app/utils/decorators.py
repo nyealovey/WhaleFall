@@ -18,7 +18,21 @@ CSRF_HEADER = HttpHeaders.X_CSRF_TOKEN
 SAFE_CSRF_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 def admin_required(f: Any) -> Any:  # noqa: ANN401
-    """确保被装饰函数仅允许管理员访问的装饰器。"""
+    """确保被装饰函数仅允许管理员访问的装饰器。
+
+    验证当前用户是否已认证且具有管理员角色。
+    如果验证失败，根据请求类型返回 JSON 错误或重定向到登录页。
+
+    Args:
+        f: 被装饰的函数。
+
+    Returns:
+        装饰后的函数。
+
+    Raises:
+        AuthenticationError: 当用户未认证时抛出（JSON 请求）。
+        AuthorizationError: 当用户权限不足时抛出（JSON 请求）。
+    """
 
     @wraps(f)
     def decorated_function(*args, **kwargs: Any) -> Any:  # noqa: ANN401

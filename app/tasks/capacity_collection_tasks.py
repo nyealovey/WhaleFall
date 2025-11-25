@@ -15,9 +15,13 @@ from app.utils.structlog_config import get_sync_logger
 
 
 def collect_database_sizes():
-    """
-    容量同步定时任务
-    每天凌晨3点执行，同步所有活跃实例的数据库容量信息
+    """容量同步定时任务。
+
+    每天凌晨3点执行，同步所有活跃实例的数据库容量信息。
+    创建同步会话，遍历所有活跃实例，采集数据库大小并保存。
+
+    Returns:
+        包含同步结果的字典，包括成功/失败实例数、总容量等信息。
     """
     from app import create_app
     from app.services.sync_session_service import sync_session_service
@@ -338,14 +342,16 @@ def collect_database_sizes():
 
 
 def collect_specific_instance_database_sizes(instance_id: int) -> Dict[str, Any]:
-    """
-    采集指定实例的数据库大小信息
-    
+    """采集指定实例的数据库大小信息。
+
+    连接到指定实例，同步数据库清单，采集容量数据并保存。
+    完成后自动触发当日聚合计算。
+
     Args:
-        instance_id: 实例ID
-        
+        instance_id: 实例ID。
+
     Returns:
-        Dict[str, Any]: 采集结果
+        采集结果字典，包含成功状态、数据库数量、总容量等信息。
     """
     from app import create_app
     from app.services.database_sync import DatabaseSizeCollectorService

@@ -24,7 +24,14 @@ cache_bp = Blueprint("cache", __name__)
 @cache_bp.route("/api/stats", methods=["GET"])
 @login_required
 def get_cache_stats() -> Response:
-    """获取缓存统计信息"""
+    """获取缓存统计信息。
+
+    Returns:
+        包含缓存统计数据的 JSON 响应。
+
+    Raises:
+        SystemError: 当获取统计失败时抛出。
+    """
     try:
         stats = cache_manager.get_cache_stats()
     except Exception as exc:
@@ -39,7 +46,22 @@ def get_cache_stats() -> Response:
 @admin_required
 @require_csrf
 def clear_user_cache() -> Response:
-    """清除用户缓存"""
+    """清除用户缓存。
+
+    清除指定实例和用户名的缓存数据。
+
+    Request Body:
+        instance_id: 实例 ID。
+        username: 用户名。
+
+    Returns:
+        操作结果的 JSON 响应。
+
+    Raises:
+        ValidationError: 当缺少必要参数时抛出。
+        NotFoundError: 当实例不存在时抛出。
+        SystemError: 当清除失败时抛出。
+    """
     data = request.get_json() or {}
     instance_id = data.get("instance_id")
     username = data.get("username")

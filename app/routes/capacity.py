@@ -25,6 +25,17 @@ capacity_bp = Blueprint('capacity', __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
+    """获取实例或抛出错误。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        实例对象。
+
+    Raises:
+        NotFoundError: 当实例不存在时抛出。
+    """
     instance = Instance.query.filter_by(id=instance_id).first()
     if instance is None:
         raise NotFoundError("实例不存在")
@@ -32,6 +43,24 @@ def _get_instance(instance_id: int) -> Instance:
 
 
 def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
+    """采集实例容量信息。
+
+    连接数据库，同步数据库列表，采集大小信息并保存。
+
+    Args:
+        instance: 实例对象。
+
+    Returns:
+        包含采集结果的字典：
+        - success: 是否成功
+        - databases: 数据库列表
+        - database_count: 数据库数量
+        - total_size_mb: 总大小（MB）
+        - saved_count: 保存的记录数
+        - instance_stat_updated: 实例统计是否更新
+        - inventory: 数据库清单同步结果
+        - message: 结果消息
+    """
     collector = DatabaseSizeCollectorService(instance)
 
     if not collector.connect():
@@ -133,11 +162,17 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
 def sync_instance_capacity(instance_id: int) -> Response:
     """同步指定实例的容量信息。
 
+    采集数据库大小信息并保存到统计表，同时触发聚合计算。
+
     Args:
-        instance_id: 实例ID。
+        instance_id: 实例 ID。
 
     Returns:
-        Response: 包含容量同步结果的 JSON 响应。
+        JSON 响应，包含容量同步结果、数据库数量和总大小。
+
+    Raises:
+        NotFoundError: 当实例不存在时抛出。
+        SystemError: 当同步失败时抛出。
     """
     try:
         instance = _get_instance(instance_id)

@@ -8,7 +8,25 @@ from app.constants import TaskStatus
 
 
 class AccountChangeLog(db.Model):
-    """账户变更日志表"""
+    """账户变更日志表。
+
+    记录账户的变更历史，包括新增、权限变更、其他修改和删除操作。
+    支持变更差异对比和会话关联。
+
+    Attributes:
+        id: 主键 ID。
+        instance_id: 关联的实例 ID。
+        db_type: 数据库类型。
+        username: 账户名。
+        change_type: 变更类型（add/modify_privilege/modify_other/delete）。
+        change_time: 变更时间。
+        session_id: 关联的同步会话 ID。
+        status: 变更状态（success/failed）。
+        message: 变更消息。
+        privilege_diff: 权限变更差异（JSON）。
+        other_diff: 其他字段变更差异（JSON）。
+        instance: 关联的实例对象。
+    """
 
     __tablename__ = "account_change_log"
 
@@ -48,7 +66,11 @@ class AccountChangeLog(db.Model):
         return f"<AccountChangeLog {self.username}@{self.db_type}:{self.change_type}>"
 
     def to_dict(self) -> dict:
-        """转换为字典"""
+        """转换为字典。
+
+        Returns:
+            包含所有字段的字典。
+        """
         return {
             "id": self.id,
             "instance_id": self.instance_id,

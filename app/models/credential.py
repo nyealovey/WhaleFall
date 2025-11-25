@@ -8,7 +8,25 @@ from app.utils.time_utils import time_utils
 
 
 class Credential(db.Model):
-    """凭据模型"""
+    """凭据模型。
+
+    存储数据库连接凭据，支持密码加密存储。
+
+    Attributes:
+        id: 凭据主键。
+        name: 凭据名称，唯一。
+        credential_type: 凭据类型（database、ssh、windows等）。
+        db_type: 数据库类型，可选。
+        username: 用户名。
+        password: 加密后的密码。
+        description: 描述信息。
+        instance_ids: 关联的实例ID列表。
+        category_id: 分类ID。
+        is_active: 是否激活。
+        created_at: 创建时间。
+        updated_at: 更新时间。
+        deleted_at: 删除时间。
+    """
 
     __tablename__ = "credentials"
 
@@ -37,18 +55,17 @@ class Credential(db.Model):
         category_id: int | None = None,
         description: str | None = None,
     ) -> None:
-        """
-        初始化凭据
+        """初始化凭据。
 
         Args:
-            name: 凭据名称
-            credential_type: 凭据类型
-            username: 用户名
-            password: 密码
-            db_type: 数据库类型
-            instance_ids: 关联实例ID列表
-            category_id: 分类ID
-            description: 描述
+            name: 凭据名称，必须唯一。
+            credential_type: 凭据类型。
+            username: 用户名。
+            password: 原始密码（将被加密存储）。
+            db_type: 数据库类型，可选。
+            instance_ids: 关联实例ID列表，可选。
+            category_id: 分类ID，可选。
+            description: 描述信息，可选。
         """
         self.name = name
         self.credential_type = credential_type
@@ -60,24 +77,26 @@ class Credential(db.Model):
         self.description = description
 
     def set_password(self, password: str) -> None:
-        """
-        设置密码（加密）
+        """设置密码（加密存储）。
+
+        使用加密管理器对密码进行加密后存储。
 
         Args:
-            password: 原始密码
+            password: 原始明文密码。
         """
         # 使用新的加密方式存储密码
         self.password = get_password_manager().encrypt_password(password)
 
     def check_password(self, password: str) -> bool:
-        """
-        验证密码
+        """验证密码。
+
+        支持多种密码格式：bcrypt 哈希（旧格式）、加密格式和明文。
 
         Args:
-            password: 原始密码
+            password: 待验证的原始密码。
 
         Returns:
-            bool: 密码是否正确
+            密码正确返回 True，否则返回 False。
         """
         # 如果是bcrypt哈希（旧格式），使用bcrypt验证
         if self.password.startswith("$2b$"):
@@ -103,11 +122,13 @@ class Credential(db.Model):
         return "*" * len(self.password)
 
     def get_plain_password(self) -> str:
-        """
-        获取原始密码（用于数据库连接）
+        """获取原始密码（用于数据库连接）。
+
+        解密存储的密码并返回明文。对于旧格式的 bcrypt 哈希，
+        尝试从环境变量获取默认密码。
 
         Returns:
-            str: 原始密码
+            解密后的原始密码，失败时返回空字符串。
         """
         # 如果密码是bcrypt哈希，说明是旧格式，需要特殊处理
         if self.password.startswith("$2b$"):

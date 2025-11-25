@@ -14,11 +14,38 @@ from app.utils.structlog_config import get_sync_logger
 
 
 class SQLServerAccountAdapter(BaseAccountAdapter):
+    """SQL Server 账户同步适配器。
+
+    实现 SQL Server 数据库的账户查询和权限采集功能。
+    通过 sys.server_principals、sys.server_role_members、sys.database_principals 等视图采集登录信息和权限。
+    支持批量优化查询，提高多用户权限采集效率。
+
+    Attributes:
+        logger: 同步日志记录器。
+        filter_manager: 数据库过滤管理器。
+
+    Example:
+        >>> adapter = SQLServerAccountAdapter()
+        >>> accounts = adapter.fetch_accounts(instance, connection)
+        >>> enriched = adapter.enrich_permissions(instance, connection, accounts)
+    """
+
     def __init__(self) -> None:
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
+        """拉取 SQL Server 原始账户信息。
+
+        从 sys.server_principals 视图中查询登录基本信息。
+
+        Args:
+            instance: 实例对象。
+            connection: SQL Server 数据库连接对象。
+
+        Returns:
+            原始账户信息列表，每个元素包含登录名、是否禁用、是否为系统管理员等。
+        """
         try:
             users = self._fetch_logins(connection)
             accounts: List[Dict[str, Any]] = []
@@ -56,6 +83,17 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
+        """规范化 SQL Server 账户信息。
+
+        将原始账户信息转换为统一格式。
+
+        Args:
+            instance: 实例对象。
+            account: 原始账户信息字典。
+
+        Returns:
+            规范化后的账户信息字典。
+        """
         permissions = account.get("permissions") or {}
         type_specific = permissions.setdefault("type_specific", {})
         if "is_disabled" not in type_specific:
@@ -87,6 +125,20 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         *,
         usernames: List[str] | None = None,
     ) -> List[Dict[str, Any]]:
+        """丰富 SQL Server 账户的权限信息。
+
+        为指定账户查询详细的权限信息，包括服务器角色、服务器权限、数据库角色和数据库权限。
+        使用批量优化查询提高性能。
+
+        Args:
+            instance: 实例对象。
+            connection: SQL Server 数据库连接对象。
+            accounts: 账户信息列表。
+            usernames: 可选的目标用户名列表。
+
+        Returns:
+            丰富后的账户信息列表。
+        """
         target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
         if not target_usernames:
             return accounts
@@ -340,6 +392,24 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         connection: Any,
         usernames: Sequence[str],
     ) -> Dict[str, Dict[str, Any]]:
+        """批量查询所有用户的数据库权限（优化版）。
+
+        通过 UNION ALL 合并多个数据库的查询，一次性获取所有用户在所有数据库中的权限信息。
+        显著提高多用户、多数据库场景下的查询效率。
+
+        Args:
+            connection: SQL Server 数据库连接对象。
+            usernames: 用户名列表。
+
+        Returns:
+            用户权限字典，键为登录名，值包含角色和权限信息。
+            格式：{
+                'login_name': {
+                    'roles': {'db_name': ['role1', 'role2']},
+                    'permissions': {'db_name': {'database': [...], 'schema': {...}, 'table': {...}}}
+                }
+            }
+        """
         usernames = [name for name in usernames if name]
         if not usernames:
             return {}

@@ -10,7 +10,10 @@ from app.models.instance_size_aggregation import InstanceSizeAggregation
 
 
 class AggregationQueryService:
-    """封装聚合记录的查询与格式化逻辑。"""
+    """封装聚合记录的查询与格式化逻辑。
+
+    提供数据库级和实例级聚合数据的查询和格式化功能。
+    """
 
     def get_database_aggregations(
         self,
@@ -20,6 +23,20 @@ class AggregationQueryService:
         end_date: date | None = None,
         database_name: str | None = None,
     ) -> List[Dict[str, Any]]:
+        """获取数据库级聚合数据。
+
+        查询指定实例的数据库级聚合记录，支持按时间范围和数据库名称过滤。
+
+        Args:
+            instance_id: 实例 ID。
+            period_type: 周期类型，如 'daily'、'weekly'、'monthly'、'quarterly'。
+            start_date: 开始日期，可选。
+            end_date: 结束日期，可选。
+            database_name: 数据库名称，可选。
+
+        Returns:
+            格式化的聚合数据列表，按周期开始时间倒序排列。
+        """
         query = DatabaseSizeAggregation.query.filter(
             DatabaseSizeAggregation.instance_id == instance_id,
             DatabaseSizeAggregation.period_type == period_type,
@@ -42,6 +59,19 @@ class AggregationQueryService:
         start_date: date | None = None,
         end_date: date | None = None,
     ) -> List[Dict[str, Any]]:
+        """获取实例级聚合数据。
+
+        查询指定实例的实例级聚合记录，支持按时间范围过滤。
+
+        Args:
+            instance_id: 实例 ID。
+            period_type: 周期类型，如 'daily'、'weekly'、'monthly'、'quarterly'。
+            start_date: 开始日期，可选。
+            end_date: 结束日期，可选。
+
+        Returns:
+            格式化的聚合数据列表，按周期开始时间倒序排列。
+        """
         query = InstanceSizeAggregation.query.filter(
             InstanceSizeAggregation.instance_id == instance_id,
             InstanceSizeAggregation.period_type == period_type,
@@ -56,6 +86,14 @@ class AggregationQueryService:
         return [self._format_instance_aggregation(agg) for agg in aggregations]
 
     def _format_database_aggregation(self, aggregation: DatabaseSizeAggregation) -> Dict[str, Any]:
+        """格式化数据库级聚合记录。
+
+        Args:
+            aggregation: 数据库级聚合对象。
+
+        Returns:
+            格式化的聚合数据字典。
+        """
         return {
             "id": aggregation.id,
             "instance_id": aggregation.instance_id,
@@ -93,6 +131,14 @@ class AggregationQueryService:
         }
 
     def _format_instance_aggregation(self, aggregation: InstanceSizeAggregation) -> Dict[str, Any]:
+        """格式化实例级聚合记录。
+
+        Args:
+            aggregation: 实例级聚合对象。
+
+        Returns:
+            格式化的聚合数据字典。
+        """
         return {
             "id": aggregation.id,
             "instance_id": aggregation.instance_id,

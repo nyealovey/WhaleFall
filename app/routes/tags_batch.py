@@ -24,7 +24,15 @@ tags_batch_bp = Blueprint("tags_batch", __name__)
 @create_required
 @require_csrf
 def batch_assign_tags() -> tuple[Response, int]:
-    """批量分配标签给实例"""
+    """批量分配标签给实例。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含分配统计。
+
+    Raises:
+        ValidationError: 当参数无效时抛出。
+        NotFoundError: 当实例或标签不存在时抛出。
+    """
     data = request.get_json(silent=True) or {}
     if not data:
         raise ValidationError(
@@ -117,7 +125,15 @@ def batch_assign_tags() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def batch_remove_tags() -> tuple[Response, int]:
-    """批量移除实例的标签"""
+    """批量移除实例的标签。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含移除统计。
+
+    Raises:
+        ValidationError: 当参数无效时抛出。
+        NotFoundError: 当实例或标签不存在时抛出。
+    """
     data = request.get_json(silent=True) or {}
     if not data:
         raise ValidationError(
@@ -210,7 +226,15 @@ def batch_remove_tags() -> tuple[Response, int]:
 @view_required
 @require_csrf
 def api_instance_tags() -> tuple[Response, int]:
-    """获取实例的已关联标签API"""
+    """获取实例的已关联标签 API。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含标签列表和分类名称映射。
+
+    Raises:
+        ValidationError: 当参数无效时抛出。
+        NotFoundError: 当实例不存在时抛出。
+    """
     data = request.get_json(silent=True) or {}
     if not data:
         raise ValidationError(
@@ -264,7 +288,17 @@ def api_instance_tags() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def batch_remove_all_tags() -> tuple[Response, int]:
-    """批量移除实例的所有标签"""
+    """批量移除实例的所有标签。
+
+    清空指定实例的所有标签关联。
+
+    Returns:
+        (JSON 响应, HTTP 状态码)，包含移除统计。
+
+    Raises:
+        ValidationError: 当参数无效时抛出。
+        NotFoundError: 当实例不存在时抛出。
+    """
     data = request.get_json(silent=True) or {}
     if not data:
         raise ValidationError(
@@ -393,7 +427,13 @@ def api_all_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def batch_assign() -> str:
-    """批量分配标签页面"""
+    """批量分配标签页面。
+
+    仅管理员可访问。
+
+    Returns:
+        渲染的批量分配页面或重定向到标签列表。
+    """
     if current_user.role != UserRole.ADMIN:
         flash("您没有权限访问此页面", FlashCategory.ERROR)
         return redirect(url_for("tags.index"))

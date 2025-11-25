@@ -15,7 +15,21 @@ from app.utils.time_utils import time_utils
 
 
 class UnifiedLog(db.Model):
-    """统一日志表"""
+    """统一日志表。
+
+    基于 structlog 的统一日志存储模型，记录系统运行过程中的所有日志信息。
+    支持多级别日志、模块分类、错误追踪和上下文信息存储。
+
+    Attributes:
+        id: 主键 ID。
+        timestamp: 日志时间戳（UTC）。
+        level: 日志级别（DEBUG/INFO/WARNING/ERROR/CRITICAL）。
+        module: 模块/组件名。
+        message: 日志消息。
+        traceback: 错误堆栈追踪（仅 ERROR/CRITICAL）。
+        context: 附加上下文（JSON 格式）。
+        created_at: 记录创建时间。
+    """
 
     __tablename__ = "unified_logs"
 

@@ -16,7 +16,20 @@ from app.utils.structlog_config import get_sync_logger
 
 
 class MySQLAccountAdapter(BaseAccountAdapter):
-    """负责拉取 MySQL 账户信息与权限快照。"""
+    """负责拉取 MySQL 账户信息与权限快照。
+
+    实现 MySQL 数据库的账户查询和权限采集功能。
+    通过 mysql.user 表和 SHOW GRANTS 语句采集账户信息和权限。
+
+    Attributes:
+        logger: 同步日志记录器。
+        filter_manager: 数据库过滤管理器。
+
+    Example:
+        >>> adapter = MySQLAccountAdapter()
+        >>> accounts = adapter.fetch_accounts(instance, connection)
+        >>> enriched = adapter.enrich_permissions(instance, connection, accounts)
+    """
 
     def __init__(self) -> None:
         self.logger = get_sync_logger()
@@ -26,6 +39,35 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # BaseAccountAdapter 实现
     # ------------------------------------------------------------------
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
+        """拉取 MySQL 原始账户信息。
+
+        从 mysql.user 表中查询账户基本信息，包括用户名、主机、超级用户标志等。
+
+        Args:
+            instance: 实例对象。
+            connection: MySQL 数据库连接对象。
+
+        Returns:
+            原始账户信息列表，每个元素包含：
+            - username: 唯一用户名（格式：user@host）
+            - original_username: 原始用户名
+            - host: 主机名
+            - is_superuser: 是否为超级用户
+            - is_locked: 是否被锁定
+            - permissions: 权限信息字典
+
+        Example:
+            >>> accounts = adapter._fetch_raw_accounts(instance, connection)
+            >>> print(accounts[0])
+            {
+                'username': 'root@localhost',
+                'original_username': 'root',
+                'host': 'localhost',
+                'is_superuser': True,
+                'is_locked': False,
+                'permissions': {...}
+            }
+        """
         try:
             where_clause, params = self._build_filter_conditions()
             user_sql = (
@@ -87,6 +129,24 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
+        """规范化 MySQL 账户信息。
+
+        将原始账户信息转换为统一格式。
+
+        Args:
+            instance: 实例对象。
+            account: 原始账户信息字典。
+
+        Returns:
+            规范化后的账户信息字典，包含：
+            - username: 唯一用户名
+            - display_name: 显示名称
+            - db_type: 数据库类型
+            - is_superuser: 是否为超级用户
+            - is_locked: 是否被锁定
+            - is_active: 是否激活
+            - permissions: 权限信息
+        """
         permissions = account.get("permissions", {})
         type_specific = permissions.setdefault("type_specific", {})
         type_specific.setdefault("host", account.get("host"))
@@ -111,12 +171,39 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # 内部工具方法
     # ------------------------------------------------------------------
     def _build_filter_conditions(self) -> tuple[str, List[Any]]:  # noqa: ANN401
+        """构建 MySQL 账户过滤条件。
+
+        根据过滤规则生成 WHERE 子句和参数。
+
+        Returns:
+            包含 WHERE 子句和参数列表的元组。
+        """
         filter_rules = self.filter_manager.get_filter_rules("mysql")
         builder = SafeQueryBuilder(db_type="mysql")
         builder.add_database_specific_condition("User", filter_rules.get("exclude_users", []), filter_rules.get("exclude_patterns", []))
         return builder.build_where_clause()
 
     def _get_user_permissions(self, connection: Any, username: str, host: str) -> Dict[str, Any]:  # noqa: ANN401
+        """获取 MySQL 用户权限详情。
+
+        通过 SHOW GRANTS 语句查询用户的全局权限和数据库级权限。
+
+        Args:
+            connection: MySQL 数据库连接对象。
+            username: 用户名。
+            host: 主机名。
+
+        Returns:
+            权限信息字典，包含：
+            - global_privileges: 全局权限列表
+            - database_privileges: 数据库级权限字典
+            - type_specific: 数据库特定信息
+
+        Example:
+            >>> perms = adapter._get_user_permissions(connection, 'root', 'localhost')
+            >>> print(perms['global_privileges'])
+            ['SELECT', 'INSERT', 'UPDATE', ...]
+        """
         try:
             grants = connection.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
             grant_statements = [row[0] for row in grants]
@@ -175,6 +262,24 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         *,
         usernames: Sequence[str] | None = None,
     ) -> List[Dict[str, Any]]:
+        """丰富 MySQL 账户的权限信息。
+
+        为指定账户查询详细的权限信息，包括全局权限和数据库级权限。
+
+        Args:
+            instance: 实例对象。
+            connection: MySQL 数据库连接对象。
+            accounts: 账户信息列表。
+            usernames: 可选的目标用户名列表。如果为 None，处理所有账户。
+
+        Returns:
+            丰富后的账户信息列表，每个账户的 permissions 字段包含详细权限。
+
+        Example:
+            >>> enriched = adapter.enrich_permissions(instance, connection, accounts)
+            >>> print(enriched[0]['permissions']['global_privileges'])
+            ['SELECT', 'INSERT', 'UPDATE', ...]
+        """
         target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
         if not target_usernames:
             return accounts
@@ -232,6 +337,26 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         global_privileges: List[str],
         database_privileges: Dict[str, List[str]],
     ) -> None:
+        """解析 MySQL GRANT 语句。
+
+        从 GRANT 语句中提取权限信息，并分类为全局权限或数据库级权限。
+
+        Args:
+            grant_statement: GRANT 语句字符串。
+            global_privileges: 全局权限列表（会被修改）。
+            database_privileges: 数据库级权限字典（会被修改）。
+
+        Example:
+            >>> global_privs = []
+            >>> db_privs = {}
+            >>> adapter._parse_grant_statement(
+            ...     'GRANT SELECT ON `mydb`.* TO `user`@`host`',
+            ...     global_privs,
+            ...     db_privs
+            ... )
+            >>> print(db_privs)
+            {'mydb': ['SELECT']}
+        """
         try:
             has_grant_option = "WITH GRANT OPTION" in grant_statement.upper()
             simple_grant = grant_statement.upper().replace("GRANT ", "").replace(" WITH GRANT OPTION", "")
@@ -265,6 +390,15 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             )
 
     def _extract_privileges(self, privilege_str: str, *, is_global: bool) -> List[str]:
+        """从权限字符串中提取权限列表。
+
+        Args:
+            privilege_str: 权限字符串。
+            is_global: 是否为全局权限。
+
+        Returns:
+            权限名称列表。
+        """
         privileges_part = privilege_str.split(" ON ")[0].strip()
         if "ALL PRIVILEGES" in privileges_part.upper():
             return self._expand_all_privileges(is_global)

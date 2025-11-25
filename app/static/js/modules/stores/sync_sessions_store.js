@@ -6,6 +6,14 @@
 
   /**
    * 确保 service 提供同步会话所需接口。
+   *
+   * @param {Object} service - 服务对象
+   * @param {Function} service.list - 获取会话列表的方法
+   * @param {Function} service.detail - 获取会话详情的方法
+   * @param {Function} service.errorLogs - 获取错误日志的方法
+   * @param {Function} service.cancel - 取消会话的方法
+   * @return {Object} 校验后的服务对象
+   * @throws {Error} 当 service 为空或缺少必需方法时抛出
    */
   function ensureService(service) {
     if (!service) {
@@ -21,6 +29,10 @@
 
   /**
    * 统一获取 mitt 实例。
+   *
+   * @param {Object} [emitter] - 可选的 mitt 实例
+   * @return {Object} mitt 事件总线实例
+   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
    */
   function ensureEmitter(emitter) {
     if (emitter) {
@@ -34,6 +46,9 @@
 
   /**
    * 拷贝当前 state。
+   *
+   * @param {Object} state - 状态对象
+   * @return {Object} 状态对象的拷贝
    */
   function cloneState(state) {
     return {
@@ -50,6 +65,10 @@
 
   /**
    * 将分页信息转换为统一结构。
+   *
+   * @param {Object} data - 分页数据对象
+   * @param {Object} fallback - 回退默认值对象
+   * @return {Object} 标准化后的分页对象
    */
   function normalizePagination(data, fallback) {
     const source = data || {};
@@ -89,6 +108,9 @@
 
   /**
    * 从响应体提取会话数组。
+   *
+   * @param {Object} response - API 响应对象
+   * @return {Array} 会话数组
    */
   function extractSessions(response) {
     if (!response) {
@@ -102,12 +124,43 @@
     return list;
   }
 
+  /**
+   * 从响应推断分页信息。
+   *
+   * @param {Object} response - API 响应对象
+   * @param {Object} fallback - 回退默认值对象
+   * @return {Object} 分页信息对象
+   */
   function resolvePagination(response, fallback) {
     const payload = response?.data ?? response ?? {};
     const pagination = payload.pagination ?? response?.pagination ?? null;
     return normalizePagination(pagination, fallback);
   }
 
+  /**
+   * 创建同步会话状态管理 Store。
+   *
+   * 提供同步会话查询、过滤、分页、自动刷新等功能的状态管理。
+   *
+   * @param {Object} options - 配置选项
+   * @param {Object} options.service - 同步会话服务对象
+   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
+   * @param {Object} [options.initialFilters] - 初始过滤条件
+   * @param {number} [options.perPage] - 每页数量
+   * @param {boolean} [options.autoRefresh=true] - 是否启用自动刷新
+   * @param {number} [options.autoRefreshInterval=30000] - 自动刷新间隔（毫秒）
+   * @return {Object} Store API 对象
+   *
+   * @example
+   * const store = createSyncSessionsStore({
+   *   service: syncSessionsService,
+   *   autoRefresh: true,
+   *   autoRefreshInterval: 30000
+   * });
+   * store.init().then(() => {
+   *   console.log(store.getState());
+   * });
+   */
   function createSyncSessionsStore(options) {
     const opts = options || {};
     const service = ensureService(opts.service);

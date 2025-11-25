@@ -8,7 +8,22 @@ from app.constants.colors import ThemeColors
 
 
 class Tag(db.Model):
-    """标签模型"""
+    """标签模型。
+
+    用于对实例进行分类和标记，支持多种分类（地区、环境、项目等）。
+
+    Attributes:
+        id: 标签主键。
+        name: 标签代码（如 wenzhou），唯一。
+        display_name: 显示名称（如 温州）。
+        category: 标签分类（如 location、environment）。
+        color: 标签颜色（如 primary、success）。
+        description: 描述信息。
+        sort_order: 排序顺序。
+        is_active: 是否激活。
+        created_at: 创建时间。
+        updated_at: 更新时间。
+    """
 
     __tablename__ = "tags"
 
@@ -36,17 +51,16 @@ class Tag(db.Model):
         sort_order: int = 0,
         is_active: bool = True,
     ) -> None:
-        """
-        初始化标签
+        """初始化标签。
 
         Args:
-            name: 标签代码（如：wenzhou）
-            display_name: 显示名称（如：温州）
-            category: 标签分类（如：location=地区、company_type=公司类型、environment=环境）
-            color: 标签颜色（如：primary=蓝色、success=绿色、info=青色、warning=黄色、danger=红色）
-            description: 描述
-            sort_order: 排序顺序
-            is_active: 是否激活
+            name: 标签代码（如 wenzhou），必须唯一。
+            display_name: 显示名称（如 温州）。
+            category: 标签分类（如 location=地区、environment=环境）。
+            color: 标签颜色（如 primary=蓝色、success=绿色），默认为 primary。
+            description: 描述信息，可选。
+            sort_order: 排序顺序，默认为 0。
+            is_active: 是否激活，默认为 True。
         """
         self.name = name
         self.display_name = display_name
@@ -58,21 +72,37 @@ class Tag(db.Model):
 
     @property
     def color_value(self):
-        """获取实际颜色值"""
+        """获取实际颜色值。
+
+        Returns:
+            颜色的十六进制值。
+        """
         return ThemeColors.get_color_value(self.color)
     
     @property
     def color_name(self):
-        """获取颜色名称"""
+        """获取颜色名称。
+
+        Returns:
+            颜色的中文名称。
+        """
         return ThemeColors.get_color_name(self.color)
     
     @property
     def css_class(self):
-        """获取CSS类名"""
+        """获取 CSS 类名。
+
+        Returns:
+            Bootstrap 颜色类名。
+        """
         return ThemeColors.get_css_class(self.color)
     
     def to_dict(self) -> dict:
-        """转换为字典格式"""
+        """转换为字典格式。
+
+        Returns:
+            包含标签完整信息的字典。
+        """
         return {
             "id": self.id,
             "name": self.name,
@@ -92,22 +122,44 @@ class Tag(db.Model):
 
     @staticmethod
     def get_active_tags() -> list:
-        """获取所有活跃标签"""
+        """获取所有活跃标签。
+
+        Returns:
+            按分类、排序顺序和名称排序的活跃标签列表。
+        """
         return Tag.query.filter_by(is_active=True).order_by(Tag.category, Tag.sort_order, Tag.name).all()
 
     @staticmethod
     def get_tags_by_category(category: str) -> list:
-        """根据分类获取标签"""
+        """根据分类获取标签。
+
+        Args:
+            category: 标签分类名称。
+
+        Returns:
+            指定分类的活跃标签列表。
+        """
         return Tag.query.filter_by(category=category, is_active=True).order_by(Tag.sort_order, Tag.name).all()
 
     @staticmethod
     def get_tag_by_name(name: str) -> "Tag | None":
-        """根据名称获取标签"""
+        """根据名称获取标签。
+
+        Args:
+            name: 标签代码。
+
+        Returns:
+            匹配的标签对象，不存在时返回 None。
+        """
         return Tag.query.filter_by(name=name).first()
 
     @staticmethod
     def get_category_choices() -> list:
-        """获取标签分类选项"""
+        """获取标签分类选项。
+
+        Returns:
+            标签分类的选项列表，每项包含分类代码和显示名称。
+        """
         return [
             ("location", "地区标签"),
             ("company_type", "公司类型"),

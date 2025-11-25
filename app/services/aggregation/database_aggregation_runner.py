@@ -22,7 +22,17 @@ from app.utils.time_utils import time_utils
 
 
 class DatabaseAggregationRunner:
-    """负责数据库级聚合的执行。"""
+    """负责数据库级聚合的执行。
+
+    从数据库容量统计数据中计算各周期的聚合指标，包括平均值、最大值、
+    最小值、变化量和增长率等。
+
+    Attributes:
+        _ensure_partition_for_date: 确保分区存在的回调函数。
+        _commit_with_partition_retry: 提交数据的回调函数。
+        _period_calculator: 周期计算器。
+        _module: 模块名称，用于日志记录。
+    """
 
     def __init__(
         self,
@@ -32,6 +42,14 @@ class DatabaseAggregationRunner:
         period_calculator: PeriodCalculator,
         module: str,
     ) -> None:
+        """初始化数据库聚合执行器。
+
+        Args:
+            ensure_partition_for_date: 确保分区存在的回调函数。
+            commit_with_partition_retry: 提交数据的回调函数。
+            period_calculator: 周期计算器实例。
+            module: 模块名称。
+        """
         self._ensure_partition_for_date = ensure_partition_for_date
         self._commit_with_partition_retry = commit_with_partition_retry
         self._period_calculator = period_calculator
@@ -60,7 +78,21 @@ class DatabaseAggregationRunner:
         on_instance_complete: Callable[[Instance, dict[str, Any]], None] | None = None,
         on_instance_error: Callable[[Instance, dict[str, Any]], None] | None = None,
     ) -> Dict[str, Any]:
-        """聚合所有激活实例在指定周期内的数据库统计。"""
+        """聚合所有激活实例在指定周期内的数据库统计。
+
+        遍历所有活跃实例，为每个实例的每个数据库计算指定周期的聚合指标。
+
+        Args:
+            period_type: 周期类型，如 'daily'、'weekly'、'monthly'、'quarterly'。
+            start_date: 周期开始日期。
+            end_date: 周期结束日期。
+            on_instance_start: 实例开始处理时的回调函数，可选。
+            on_instance_complete: 实例处理完成时的回调函数，可选。
+            on_instance_error: 实例处理失败时的回调函数，可选。
+
+        Returns:
+            周期聚合结果字典，包含处理统计和错误信息。
+        """
         instances = Instance.query.filter_by(is_active=True).all()
         summary = PeriodSummary(
             period_type=period_type,
@@ -186,7 +218,17 @@ class DatabaseAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> InstanceSummary:
-        """为指定实例计算指定周期的数据库级聚合。"""
+        """为指定实例计算指定周期的数据库级聚合。
+
+        Args:
+            instance: 数据库实例对象。
+            period_type: 周期类型。
+            start_date: 周期开始日期。
+            end_date: 周期结束日期。
+
+        Returns:
+            实例聚合汇总信息。
+        """
         stats = self._query_database_stats(instance.id, start_date, end_date)
 
         extra_details = {
@@ -255,7 +297,15 @@ class DatabaseAggregationRunner:
         )
 
     def aggregate_daily_for_instance(self, instance: Instance, target_date: date) -> InstanceSummary:
-        """为指定实例计算当天数据库级聚合。"""
+        """为指定实例计算当天数据库级聚合。
+
+        Args:
+            instance: 数据库实例对象。
+            target_date: 目标日期。
+
+        Returns:
+            实例聚合汇总信息。
+        """
         return self.aggregate_database_period(
             instance,
             period_type="daily",

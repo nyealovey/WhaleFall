@@ -53,17 +53,35 @@ OTHER_FIELD_LABELS: Dict[str, str] = {
 
 
 class PermissionSyncError(RuntimeError):
-    """权限同步阶段出现错误时抛出，携带阶段 summary。"""
+    """权限同步阶段出现错误时抛出，携带阶段 summary。
+
+    Attributes:
+        summary: 同步阶段的统计信息字典。
+    """
 
     def __init__(self, summary: Dict[str, Any], message: str | None = None) -> None:
+        """初始化权限同步错误。
+
+        Args:
+            summary: 同步阶段的统计信息。
+            message: 错误消息，可选。
+        """
         super().__init__(message or summary.get("message") or "权限同步失败")
         self.summary = summary
 
 
 class AccountPermissionManager:
-    """处理权限快照的增量更新。"""
+    """处理权限快照的增量更新。
+
+    负责将远程账户权限与本地 AccountPermission 表进行同步，
+    包括创建新权限记录、更新已变更的权限、记录权限变更日志。
+
+    Attributes:
+        logger: 同步日志记录器。
+    """
 
     def __init__(self) -> None:
+        """初始化账户权限管理器。"""
         self.logger = get_sync_logger()
 
     def synchronize(
@@ -74,6 +92,36 @@ class AccountPermissionManager:
         *,
         session_id: str | None = None,
     ) -> Dict[str, Any]:
+        """同步账户权限数据。
+
+        将远程账户权限与本地数据库进行对比，执行以下操作：
+        - 创建新账户的权限记录
+        - 更新已变更的权限
+        - 记录权限变更日志
+
+        Args:
+            instance: 数据库实例对象。
+            remote_accounts: 远程账户数据列表，每项包含 username、permissions、
+                is_superuser、is_locked 等字段。
+            active_accounts: 活跃的 InstanceAccount 对象列表。
+            session_id: 同步会话 ID，可选。
+
+        Returns:
+            同步统计信息字典，包含以下字段：
+            {
+                'created': 新创建的权限记录数,
+                'updated': 更新的权限记录数,
+                'skipped': 跳过的记录数,
+                'processed_records': 处理的记录总数,
+                'errors': 错误信息列表,
+                'status': 同步状态（'completed' 或 'failed'）,
+                'message': 同步结果消息
+            }
+
+        Raises:
+            SQLAlchemyError: 当数据库提交失败时抛出。
+            PermissionSyncError: 当权限同步过程中发生错误时抛出。
+        """
         remote_map = {account["username"]: account for account in remote_accounts}
         created = 0
         updated = 0

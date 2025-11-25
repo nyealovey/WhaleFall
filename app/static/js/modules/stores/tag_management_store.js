@@ -13,6 +13,13 @@
 
   /**
    * 校验 service 是否具备 store 运行所需的 API。
+   *
+   * @param {Object} service - 服务对象
+   * @param {Function} service.listTags - 获取标签列表的方法
+   * @param {Function} service.listCategories - 获取分类列表的方法
+   * @param {Function} service.batchDelete - 批量删除标签的方法
+   * @return {Object} 校验后的服务对象
+   * @throws {Error} 当 service 为空或缺少必需方法时抛出
    */
   function ensureService(service) {
     if (!service) {
@@ -28,6 +35,10 @@
 
   /**
    * 补全一个 mitt 事件总线，若未传入则退回全局 mitt。
+   *
+   * @param {Object} [emitter] - 可选的 mitt 实例
+   * @return {Object} mitt 事件总线实例
+   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
    */
   function ensureEmitter(emitter) {
     if (emitter) {
@@ -41,6 +52,9 @@
 
   /**
    * 统一处理分类/搜索过滤器，避免大小写或空白差异。
+   *
+   * @param {Object} filters - 过滤条件对象
+   * @return {Object} 规范化后的过滤条件
    */
   function normalizeFilters(filters) {
     const source = filters && typeof filters === "object" ? filters : {};
@@ -52,6 +66,9 @@
 
   /**
    * 按激活状态与名称对标签排序，确保 UI 展示一致。
+   *
+   * @param {Array} items - 标签数组
+   * @return {Array} 排序后的标签数组
    */
   function orderTags(items) {
     if (!Array.isArray(items)) {
@@ -85,6 +102,9 @@
 
   /**
    * 深拷贝 store 状态的核心字段，用于事件派发。
+   *
+   * @param {Object} state - 状态对象
+   * @return {Object} 状态对象的拷贝
    */
   function cloneState(state) {
     return {
@@ -100,7 +120,24 @@
   }
 
   /**
-   * 标签管理 store，负责缓存分类/标签列表与用户选择。
+   * 创建标签管理状态管理 Store。
+   *
+   * 提供标签和分类的查询、过滤、选择、删除等功能的状态管理。
+   *
+   * @param {Object} options - 配置选项
+   * @param {Object} options.service - 标签管理服务对象
+   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
+   * @param {Object} [options.initialFilters] - 初始过滤条件
+   * @return {Object} Store API 对象
+   *
+   * @example
+   * const store = createTagManagementStore({
+   *   service: tagManagementService,
+   *   initialFilters: { category: 'all', search: '' }
+   * });
+   * store.init().then(() => {
+   *   console.log(store.getState());
+   * });
    */
   function createTagManagementStore(options) {
     const opts = options || {};
@@ -484,7 +521,12 @@
   }
 
   window.createTagManagementStore = createTagManagementStore;
-})(window);
+  /**
+   * 规范化 ID 数组，过滤无效值。
+   *
+   * @param {Array} ids - ID 数组
+   * @return {Array} 规范化后的数字 ID 数组
+   */
   function normalizeIds(ids) {
     if (!Array.isArray(ids)) {
       return [];

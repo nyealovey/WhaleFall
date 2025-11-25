@@ -41,7 +41,18 @@ function ensureSchedulerStore() {
     return false;
 }
 
-// 页面入口：初始化服务、store 与模态
+/**
+ * 挂载调度器管理页面。
+ *
+ * 初始化调度器管理页面的所有组件，包括 SchedulerService、SchedulerStore、
+ * 模态框控制器和事件绑定。提供定时任务的查看、暂停、恢复、执行等管理功能。
+ *
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountSchedulerPage();
+ */
 function mountSchedulerPage() {
 
     const SchedulerService = window.SchedulerService;

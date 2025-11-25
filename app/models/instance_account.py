@@ -8,7 +8,24 @@ from app.utils.time_utils import time_utils
 
 
 class InstanceAccount(db.Model):
-    """实例-账户关系模型"""
+    """实例-账户关系模型。
+
+    维护实例包含的账户信息，跟踪账户的存在状态和生命周期。
+    支持账户的首次发现、持续存在和删除状态的记录。
+
+    Attributes:
+        id: 主键 ID。
+        instance_id: 关联的实例 ID。
+        username: 账户名（含必要的主机信息）。
+        db_type: 数据库类型。
+        is_active: 账户是否活跃。
+        first_seen_at: 首次发现时间。
+        last_seen_at: 最后发现时间。
+        deleted_at: 删除时间（软删除）。
+        created_at: 创建时间。
+        updated_at: 更新时间。
+        instance: 关联的实例对象。
+    """
 
     __tablename__ = "instance_accounts"
 

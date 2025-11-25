@@ -19,9 +19,18 @@ from app.utils.time_utils import time_utils
 
 
 class ClassificationRepository:
-    """封装账户分类场景下的数据库访问。"""
+    """封装账户分类场景下的数据库访问。
+
+    提供账户分类相关的数据查询、清理和更新操作。
+    负责规则查询、账户查询和分类分配管理。
+    """
 
     def fetch_active_rules(self) -> list[ClassificationRule]:
+        """获取所有启用的分类规则。
+
+        Returns:
+            按创建时间排序的启用规则列表。
+        """
         return (
             ClassificationRule.query.options(joinedload(ClassificationRule.classification))
             .filter_by(is_active=True)
@@ -30,6 +39,14 @@ class ClassificationRepository:
         )
 
     def fetch_accounts(self, instance_id: int | None = None) -> list[AccountPermission]:
+        """获取需要分类的账户列表。
+
+        Args:
+            instance_id: 可选的实例 ID，用于筛选特定实例的账户。
+
+        Returns:
+            符合条件的账户权限列表（仅活跃实例和账户）。
+        """
         query = (
             AccountPermission.query.join(Instance)
             .join(InstanceAccount, AccountPermission.instance_account)
@@ -44,7 +61,16 @@ class ClassificationRepository:
         return query.all()
 
     def cleanup_all_assignments(self) -> int:
-        """重新分类前清理所有既有分配关系。"""
+        """重新分类前清理所有既有分配关系。
+
+        删除所有现有的账户分类分配记录，为重新分类做准备。
+
+        Returns:
+            删除的记录数量。
+
+        Raises:
+            Exception: 当清理操作失败时抛出。
+        """
         try:
             deleted = db.session.query(AccountClassificationAssignment).delete()
             if deleted:
@@ -67,7 +93,21 @@ class ClassificationRepository:
         *,
         rule_id: int | None = None,
     ) -> int:
-        """为指定账户集重新写入分类分配记录。"""
+        """为指定账户集重新写入分类分配记录。
+
+        先删除现有的分配记录，然后批量插入新的分配记录。
+
+        Args:
+            matched_accounts: 匹配的账户列表。
+            classification_id: 分类 ID。
+            rule_id: 可选的规则 ID。
+
+        Returns:
+            插入的记录数量。
+
+        Raises:
+            Exception: 当操作失败时抛出。
+        """
         if not matched_accounts:
             return 0
 

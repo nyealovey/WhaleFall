@@ -35,7 +35,24 @@ files_bp = Blueprint("files", __name__)
 @login_required
 @view_required
 def export_accounts() -> Response:
-    """导出账户数据为CSV"""
+    """导出账户数据为 CSV。
+
+    支持按数据库类型、实例、锁定状态、超级用户和标签筛选。
+
+    Returns:
+        CSV 文件响应。
+
+    Raises:
+        SystemError: 当导出失败时抛出。
+
+    Query Parameters:
+        db_type: 数据库类型筛选，可选。
+        search: 搜索关键词，可选。
+        instance_id: 实例 ID 筛选，可选。
+        is_locked: 锁定状态筛选，可选。
+        is_superuser: 超级用户筛选，可选。
+        tags: 标签筛选（数组），可选。
+    """
     try:
         # 获取查询参数（与列表页保持一致）
         db_type = request.args.get("db_type", type=str)
@@ -159,7 +176,20 @@ def export_accounts() -> Response:
 @login_required
 @view_required
 def export_instances() -> Response:
-    """导出实例数据为CSV"""
+    """导出实例数据为 CSV。
+
+    支持按搜索关键词和数据库类型筛选。
+
+    Returns:
+        CSV 文件响应。
+
+    Raises:
+        SystemError: 当导出失败时抛出。
+
+    Query Parameters:
+        search: 搜索关键词，可选。
+        db_type: 数据库类型筛选，可选。
+    """
     try:
         search = request.args.get("search", "", type=str)
         db_type = request.args.get("db_type", "", type=str)
@@ -243,7 +273,25 @@ def export_instances() -> Response:
 @files_bp.route("/api/log-export", methods=["GET"])
 @login_required
 def export_logs() -> Response:
-    """导出日志API"""
+    """导出日志 API。
+
+    支持 JSON 和 CSV 两种格式，可按级别、模块和时间范围筛选。
+
+    Returns:
+        JSON 或 CSV 文件响应。
+
+    Raises:
+        ValidationError: 当参数格式无效时抛出。
+        SystemError: 当导出失败时抛出。
+
+    Query Parameters:
+        format: 导出格式（'json' 或 'csv'），默认 'json'。
+        level: 日志级别筛选，可选。
+        module: 模块名称筛选，可选。
+        start_time: 开始时间（ISO 8601 格式），可选。
+        end_time: 结束时间（ISO 8601 格式），可选。
+        limit: 最大导出数量，默认 1000。
+    """
     try:
         format_type = request.args.get("format", "json")
         level = request.args.get("level")
@@ -369,7 +417,14 @@ def export_logs() -> Response:
 @login_required
 @view_required
 def download_instances_template() -> Response:
-    """下载实例批量导入模板"""
+    """下载实例批量导入模板。
+
+    Returns:
+        CSV 模板文件响应。
+
+    Raises:
+        SystemError: 当下载失败时抛出。
+    """
     try:
         output = io.StringIO()
         writer = csv.writer(output)

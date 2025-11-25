@@ -16,14 +16,39 @@ from app.utils.structlog_config import log_info
 
 
 class ChangePasswordFormService(BaseResourceService[User]):
-    """负责编排修改密码表单的校验与提交。"""
+    """负责编排修改密码表单的校验与提交。
+
+    提供密码修改的表单校验、数据规范化和保存功能。
+
+    Attributes:
+        model: 关联的 User 模型类。
+    """
 
     model = User
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        """清理表单数据。
+
+        Args:
+            payload: 原始表单数据。
+
+        Returns:
+            清理后的数据字典。
+        """
         return sanitize_form_data(payload or {})
 
     def validate(self, data: dict[str, Any], *, resource: User | None) -> ServiceResult[dict[str, Any]]:
+        """校验密码修改数据。
+
+        校验必填字段、密码一致性、旧密码正确性和新密码强度。
+
+        Args:
+            data: 清理后的数据。
+            resource: 当前用户实例。
+
+        Returns:
+            校验结果，成功时返回包含新密码的数据，失败时返回错误信息。
+        """
         if resource is None:
             return ServiceResult.fail("用户未登录")
 
@@ -50,9 +75,21 @@ class ChangePasswordFormService(BaseResourceService[User]):
         return ServiceResult.ok({"new_password": new_password})
 
     def assign(self, instance: User, data: dict[str, Any]) -> None:
+        """将新密码赋值给用户实例。
+
+        Args:
+            instance: 用户实例。
+            data: 已校验的数据。
+        """
         instance.set_password(data["new_password"])
 
     def after_save(self, instance: User, data: dict[str, Any]) -> None:
+        """保存后记录日志。
+
+        Args:
+            instance: 已保存的用户实例。
+            data: 已校验的数据。
+        """
         log_info(
             "用户修改密码成功",
             module="auth",
@@ -60,6 +97,15 @@ class ChangePasswordFormService(BaseResourceService[User]):
         )
 
     def upsert(self, payload: Mapping[str, Any], resource: User | None = None) -> ServiceResult[User]:
+        """执行密码修改操作。
+
+        Args:
+            payload: 原始表单数据。
+            resource: 当前用户实例。
+
+        Returns:
+            操作结果，成功时返回用户实例，失败时返回错误信息。
+        """
         sanitized = self.sanitize(payload)
         validation = self.validate(sanitized, resource=resource)
         if not validation.success:

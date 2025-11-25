@@ -1,3 +1,16 @@
+/**
+ * 挂载标签管理页面。
+ *
+ * 初始化标签管理页面的所有组件，包括标签列表表格、筛选器、
+ * 创建/编辑/删除模态框和快捷操作。支持标签的 CRUD 操作。
+ *
+ * @param {Object} global - 全局 window 对象
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountTagsIndexPage(window);
+ */
 function mountTagsIndexPage(global) {
   "use strict";
 
@@ -39,6 +52,14 @@ function mountTagsIndexPage(global) {
     bindQuickActions();
   });
 
+  /**
+   * 初始化标签表格。
+   *
+   * 创建 Grid.js 表格实例，配置列定义、服务端分页和筛选。
+   * 根据用户权限动态显示操作列。
+   *
+   * @return {void}
+   */
   function initializeGrid() {
     const container = document.getElementById("tags-grid");
     if (!container) {

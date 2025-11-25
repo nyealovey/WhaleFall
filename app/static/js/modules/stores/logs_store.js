@@ -6,6 +6,16 @@
 
   /**
    * 校验 service 是否实现日志模块接口。
+   *
+   * 检查服务对象是否存在，并验证是否实现了所有必需的方法。
+   *
+   * @param {Object} service - 服务对象
+   * @param {Function} service.fetchModules - 获取模块列表的方法
+   * @param {Function} service.fetchStats - 获取日志统计的方法
+   * @param {Function} service.searchLogs - 搜索日志的方法
+   * @param {Function} service.fetchLogDetail - 获取日志详情的方法
+   * @return {Object} 校验后的服务对象
+   * @throws {Error} 当 service 为空或缺少必需方法时抛出
    */
   function ensureService(service) {
     if (!service) {
@@ -21,6 +31,12 @@
 
   /**
    * 获取 mitt 事件总线。
+   *
+   * 如果提供了 emitter 则直接返回，否则从 window.mitt 创建新实例。
+   *
+   * @param {Object} [emitter] - 可选的 mitt 实例
+   * @return {Object} mitt 事件总线实例
+   * @throws {Error} 当 emitter 为空且 window.mitt 不存在时抛出
    */
   function ensureEmitter(emitter) {
     if (emitter) {
@@ -34,6 +50,11 @@
 
   /**
    * 清洗过滤条件并填充默认值。
+   *
+   * 移除空值，并为缺失的必需字段填充默认值。
+   *
+   * @param {Object} filters - 原始过滤条件对象
+   * @return {Object} 规范化后的过滤条件对象
    */
   function normalizeFilters(filters) {
     const base = filters && typeof filters === "object" ? filters : {};
@@ -52,6 +73,11 @@
 
   /**
    * 拷贝 state 用于事件 payload。
+   *
+   * 创建状态对象的浅拷贝，避免外部修改影响内部状态。
+   *
+   * @param {Object} state - 状态对象
+   * @return {Object} 状态对象的拷贝
    */
   function cloneState(state) {
     return {
@@ -68,6 +94,12 @@
 
   /**
    * 标准化分页数据。
+   *
+   * 从不同格式的响应中提取分页信息，并统一为标准格式。
+   *
+   * @param {Object} data - 分页数据对象
+   * @param {Object} fallback - 回退默认值对象
+   * @return {Object} 标准化后的分页对象
    */
   function normalizePagination(data, fallback) {
     const source = data || {};
@@ -117,6 +149,11 @@
 
   /**
    * 提取日志数组。
+   *
+   * 从响应对象中提取日志列表，兼容多种响应格式。
+   *
+   * @param {Object} response - API 响应对象
+   * @return {Array} 日志数组
    */
   function extractLogs(response) {
     if (!response) {
@@ -132,6 +169,10 @@
 
   /**
    * 从响应推断分页信息。
+   *
+   * @param {Object} response - API 响应对象
+   * @param {Object} fallback - 回退默认值对象
+   * @return {Object} 分页信息对象
    */
   function resolvePagination(response, fallback) {
     const payload = response?.data ?? response ?? {};
@@ -141,6 +182,9 @@
 
   /**
    * 提取模块列表。
+   *
+   * @param {Object} response - API 响应对象
+   * @return {Array} 模块数组
    */
   function extractModules(response) {
     const payload = response?.data ?? response ?? {};
@@ -153,6 +197,9 @@
 
   /**
    * 提取统计对象。
+   *
+   * @param {Object} response - API 响应对象
+   * @return {Object} 统计信息对象
    */
   function extractStats(response) {
     const payload = response?.data ?? response ?? {};
@@ -173,6 +220,27 @@
     );
   }
 
+  /**
+   * 创建日志状态管理 Store。
+   *
+   * 提供日志查询、过滤、分页等功能的状态管理。
+   *
+   * @param {Object} options - 配置选项
+   * @param {Object} options.service - 日志服务对象
+   * @param {Object} [options.emitter] - 可选的 mitt 事件总线实例
+   * @param {Object} [options.initialFilters] - 初始过滤条件
+   * @param {number} [options.perPage] - 每页数量
+   * @return {Object} Store API 对象
+   *
+   * @example
+   * const store = createLogsStore({
+   *   service: logsService,
+   *   initialFilters: { hours: 24 }
+   * });
+   * store.init().then(() => {
+   *   console.log(store.getState());
+   * });
+   */
   function createLogsStore(options) {
     const opts = options || {};
     const service = ensureService(opts.service);

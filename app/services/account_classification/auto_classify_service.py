@@ -12,12 +12,26 @@ from app.utils.structlog_config import log_error, log_info
 
 
 class AutoClassifyError(Exception):
-    """自动分类过程中出现业务或系统错误。"""
+    """自动分类过程中出现业务或系统错误。
+
+    用于标识账户自动分类过程中的异常情况。
+    """
 
 
 @dataclass(slots=True)
 class AutoClassifyResult:
-    """自动分类结果载体，便于在路由与服务之间传递。"""
+    """自动分类结果载体。
+
+    便于在路由与服务之间传递分类结果数据。
+
+    Attributes:
+        message: 结果消息。
+        classified_accounts: 已分类的账户数量。
+        total_classifications_added: 添加的分类总数。
+        failed_count: 失败数量。
+        errors: 错误列表。
+        metadata: 元数据字典。
+    """
 
     message: str
     classified_accounts: int = 0
@@ -37,7 +51,14 @@ class AutoClassifyResult:
 
 
 class AutoClassifyService:
-    """封装账户分类调度逻辑，负责参数校验、日志与错误管理。"""
+    """账户自动分类服务。
+
+    封装账户分类调度逻辑，负责参数校验、日志与错误管理。
+    将路由层与编排器解耦，提供统一的分类接口。
+
+    Attributes:
+        classification_service: 账户分类编排服务实例。
+    """
 
     def __init__(self, classification_service: AccountClassificationService | None = None) -> None:
         self.classification_service = classification_service or AccountClassificationService()

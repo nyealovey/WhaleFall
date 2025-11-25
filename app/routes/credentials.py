@@ -40,6 +40,13 @@ _credential_form_service = CredentialFormService()
 
 
 def _parse_payload() -> dict:
+    """解析并清理请求负载。
+
+    从 JSON 或表单数据中提取并清理数据。
+
+    Returns:
+        清理后的数据字典。
+    """
     data = request.get_json(silent=True) if request.is_json else request.form
     return sanitize_form_data(data or {})
 
@@ -62,6 +69,17 @@ def _handle_db_exception(action: str, error: Exception) -> None:
 
 
 def _get_credential_or_error(credential_id: int) -> Credential:
+    """获取凭据或抛出错误。
+
+    Args:
+        credential_id: 凭据 ID。
+
+    Returns:
+        凭据对象。
+
+    Raises:
+        NotFoundError: 当凭据不存在时抛出。
+    """
     credential = Credential.query.filter_by(id=credential_id).first()
     if credential is None:
         raise NotFoundError(message="凭据不存在")
@@ -79,7 +97,22 @@ def _save_via_service(data: dict, credential: Credential | None = None) -> Crede
 @login_required
 @view_required
 def index() -> str:
-    """凭据管理首页"""
+    """凭据管理首页。
+
+    渲染凭据管理页面，支持搜索、类型、数据库类型、状态和标签筛选。
+
+    Returns:
+        渲染后的 HTML 页面或 JSON 响应（当请求为 JSON 时）。
+
+    Query Parameters:
+        page: 页码，默认 1。
+        per_page: 每页数量，默认 10。
+        search: 搜索关键词，可选。
+        credential_type: 凭据类型筛选，可选。
+        db_type: 数据库类型筛选，可选。
+        status: 状态筛选，可选。
+        tags: 标签筛选（逗号分隔或数组），可选。
+    """
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 10, type=int)
     search = request.args.get("search", "", type=str)
@@ -211,7 +244,15 @@ def index() -> str:
 @create_required
 @require_csrf
 def create_api() -> "Response":
-    """创建凭据API"""
+    """创建凭据 API。
+
+    Returns:
+        JSON 响应，包含创建的凭据信息。
+
+    Raises:
+        AppValidationError: 当表单验证失败时抛出。
+        DatabaseError: 当数据库操作失败时抛出。
+    """
     payload = _parse_payload()
     credential = _save_via_service(payload)
     return jsonify_unified_success(
@@ -241,7 +282,18 @@ def edit_api(credential_id: int) -> "Response":
 @delete_required
 @require_csrf
 def delete(credential_id: int) -> "Response":
-    """删除凭据"""
+    """删除凭据。
+
+    Args:
+        credential_id: 凭据 ID。
+
+    Returns:
+        JSON 响应或重定向。
+
+    Raises:
+        NotFoundError: 当凭据不存在时抛出。
+        DatabaseError: 当数据库操作失败时抛出。
+    """
     credential = _get_credential_or_error(credential_id)
 
     credential_name = credential.name
@@ -283,7 +335,24 @@ def delete(credential_id: int) -> "Response":
 @login_required
 @view_required
 def api_list() -> "Response":
-    """获取凭据列表API"""
+    """获取凭据列表 API。
+
+    支持分页、排序、搜索和筛选，返回凭据列表及实例数量统计。
+
+    Returns:
+        JSON 响应。
+
+    Query Parameters:
+        page: 页码，默认 1。
+        limit: 每页数量，默认 20。
+        sort: 排序字段，默认 'created_at'。
+        order: 排序方向（'asc'、'desc'），默认 'desc'。
+        search: 搜索关键词，可选。
+        credential_type: 凭据类型筛选，可选。
+        db_type: 数据库类型筛选，可选。
+        status: 状态筛选，可选。
+        tags: 标签筛选（逗号分隔或数组），可选。
+    """
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", 20, type=int)
     sort_field = request.args.get("sort", "created_at")

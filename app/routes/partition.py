@@ -28,8 +28,10 @@ partition_bp = Blueprint('partition', __name__)
 @login_required
 @view_required
 def partitions_page():
-    """
-    分区管理页面
+    """分区管理页面。
+
+    Returns:
+        渲染的分区管理页面。
     """
     return render_template('admin/partitions/index.html')
 
@@ -38,7 +40,11 @@ def partitions_page():
 @login_required
 @view_required
 def get_partition_info() -> Response:
-    """获取分区信息API"""
+    """获取分区信息 API。
+
+    Returns:
+        JSON 响应，包含分区信息、状态和缺失分区列表。
+    """
     log_info("开始获取分区信息", module="partition", user_id=getattr(current_user, "id", None))
     stats_service = PartitionStatisticsService()
     result = stats_service.get_partition_info()
@@ -56,7 +62,17 @@ def get_partition_info() -> Response:
 
 
 def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int = 100) -> int:
-    """解析并限制整数参数范围"""
+    """解析并限制整数参数范围。
+
+    Args:
+        value: 待解析的字符串值。
+        default: 默认值。
+        minimum: 最小值，默认 1。
+        maximum: 最大值，默认 100。
+
+    Returns:
+        解析后的整数，限制在 [minimum, maximum] 范围内。
+    """
     try:
         parsed = int(value) if value is not None else default
     except (TypeError, ValueError):
@@ -101,7 +117,16 @@ def _build_partition_status(
 @login_required
 @view_required
 def get_partition_status() -> Response:
-    """获取分区管理状态"""
+    """获取分区管理状态。
+
+    检查分区健康状态，包括缺失分区检测。
+
+    Returns:
+        JSON 响应，包含分区状态、总数、大小和缺失分区列表。
+
+    Raises:
+        SystemError: 当获取状态失败时抛出。
+    """
 
     stats_service = PartitionStatisticsService()
     try:
@@ -130,7 +155,22 @@ def get_partition_status() -> Response:
 @login_required
 @view_required
 def list_partitions() -> Response:
-    """分页返回分区列表，供 Grid.js 使用"""
+    """分页返回分区列表，供 Grid.js 使用。
+
+    支持分页、排序、搜索和筛选（按表类型、状态）。
+
+    Returns:
+        JSON 响应，包含分区列表和分页信息。
+
+    Query Parameters:
+        page: 页码，默认 1。
+        limit: 每页数量，默认 20，最大 200。
+        sort: 排序字段，默认 'name'。
+        order: 排序方向（'asc'、'desc'），默认 'asc'。
+        search: 搜索关键词，可选。
+        table_type: 表类型筛选，可选。
+        status: 状态筛选，可选。
+    """
 
     stats_service = PartitionStatisticsService()
     partition_info = stats_service.get_partition_info()
@@ -289,7 +329,11 @@ def cleanup_partitions() -> Response:
 @login_required
 @view_required
 def get_partition_statistics() -> Response:
-    """获取分区统计信息"""
+    """获取分区统计信息。
+
+    Returns:
+        JSON 响应，包含分区统计数据。
+    """
     service = PartitionStatisticsService()
     result = service.get_partition_statistics()
 

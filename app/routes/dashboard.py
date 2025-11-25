@@ -45,7 +45,13 @@ dashboard_bp = Blueprint("dashboard", __name__)
 @dashboard_bp.route("/")
 @login_required
 def index() -> str:
-    """系统仪表板首页"""
+    """系统仪表板首页。
+
+    渲染系统概览页面，展示实例、账户、容量等统计信息和图表。
+
+    Returns:
+        渲染后的 HTML 页面或 JSON 响应（根据请求类型）。
+    """
     import time
 
     start_time = time.time()
@@ -82,7 +88,13 @@ def index() -> str:
 @dashboard_bp.route("/api/overview")
 @login_required
 def api_overview() -> "Response":
-    """获取系统概览API"""
+    """获取系统概览 API。
+
+    返回系统的统计概览数据，包括用户、实例、账户、容量等信息。
+
+    Returns:
+        包含系统概览数据的 JSON 响应。
+    """
     import time
 
     start_time = time.time()
@@ -158,7 +170,14 @@ def api_status() -> "Response":
 
 @dashboard_cache(timeout=300)
 def get_system_overview() -> dict:
-    """获取系统概览数据（缓存版本）"""
+    """获取系统概览数据（缓存版本）。
+
+    聚合各模块的统计数据，包括用户、实例、账户、分类、容量和数据库信息。
+    结果缓存 5 分钟。
+
+    Returns:
+        包含系统概览数据的字典。
+    """
     try:
         db.session.rollback()
         # 基础统计
@@ -377,7 +396,14 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
 
 @dashboard_cache(timeout=30)
 def get_system_status() -> dict:
-    """获取系统状态"""
+    """获取系统状态。
+
+    检查系统资源使用情况（CPU、内存、磁盘）和服务健康状态（数据库、Redis）。
+    结果缓存 30 秒。
+
+    Returns:
+        包含系统状态信息的字典。
+    """
     try:
         # 系统资源状态
         cpu_percent = psutil.cpu_percent(interval=None)

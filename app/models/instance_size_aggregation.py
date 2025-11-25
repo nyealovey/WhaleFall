@@ -21,10 +21,31 @@ from app.utils.time_utils import time_utils
 
 
 class InstanceSizeAggregation(db.Model):
-    """
-    实例大小聚合统计表（分区表）
-    存储每周、每月、每季度的实例级别统计信息
-    按 period_start 字段按月分区
+    """实例大小聚合统计表（分区表）。
+
+    存储实例级别的每日、每周、每月、每季度的聚合统计信息。
+    按 period_start 字段按月分区，支持容量变化和增长率统计。
+
+    Attributes:
+        id: 主键 ID（BigInteger）。
+        instance_id: 关联的实例 ID。
+        period_type: 统计周期类型（daily/weekly/monthly/quarterly）。
+        period_start: 统计周期开始日期（用于分区）。
+        period_end: 统计周期结束日期。
+        total_size_mb: 实例总大小（MB）。
+        avg_size_mb: 平均大小（MB）。
+        max_size_mb: 最大大小（MB）。
+        min_size_mb: 最小大小（MB）。
+        data_count: 统计的数据点数量。
+        database_count: 数据库数量。
+        avg_database_count: 平均数据库数量。
+        max_database_count: 最大数据库数量。
+        min_database_count: 最小数据库数量。
+        total_size_change_mb: 总大小变化（MB）。
+        total_size_change_percent: 总大小变化百分比。
+        database_count_change: 数据库数量变化。
+        database_count_change_percent: 数据库数量变化百分比。
+        growth_rate: 增长率（百分比）。
     """
     
     __tablename__ = "instance_size_aggregations"

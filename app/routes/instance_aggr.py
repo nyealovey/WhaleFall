@@ -24,6 +24,17 @@ instance_aggr_bp = Blueprint('instance_aggr', __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
+    """获取实例或抛出错误。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        实例对象。
+
+    Raises:
+        NotFoundError: 当实例不存在时抛出。
+    """
     instance = Instance.query.filter_by(id=instance_id).first()
     if instance is None:
         raise NotFoundError("实例不存在")
@@ -31,6 +42,18 @@ def _get_instance(instance_id: int) -> Instance:
 
 
 def _parse_iso_date(value: str, field_name: str) -> date:
+    """解析 ISO 格式日期字符串。
+
+    Args:
+        value: 日期字符串，格式 'YYYY-MM-DD'。
+        field_name: 字段名称，用于错误消息。
+
+    Returns:
+        解析后的日期对象。
+
+    Raises:
+        AppValidationError: 当日期格式无效时抛出。
+    """
     try:
         return datetime.strptime(value, '%Y-%m-%d').date()
     except ValueError as exc:

@@ -9,7 +9,23 @@ from app.utils.time_utils import time_utils
 
 
 class InstanceDatabase(db.Model):
-    """实例-数据库关系模型"""
+    """实例-数据库关系模型。
+
+    维护实例包含的数据库信息，跟踪数据库的存在状态和生命周期。
+    支持数据库的首次发现、持续存在和删除状态的记录。
+
+    Attributes:
+        id: 主键 ID。
+        instance_id: 关联的实例 ID。
+        database_name: 数据库名称。
+        is_active: 数据库是否活跃（未删除）。
+        first_seen_date: 首次发现日期。
+        last_seen_date: 最后发现日期。
+        deleted_at: 删除时间（软删除）。
+        created_at: 创建时间。
+        updated_at: 更新时间。
+        instance: 关联的实例对象。
+    """
 
     __tablename__ = "instance_databases"
 

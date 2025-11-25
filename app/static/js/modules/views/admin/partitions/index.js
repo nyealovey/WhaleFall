@@ -1,8 +1,17 @@
+/**
+ * 挂载分区管理页面。
+ *
+ * 初始化分区管理页面的所有组件，包括分区 Store、模态框、
+ * 事件绑定和数据加载。提供分区创建、清理、状态监控等功能。
+ *
+ * @param {Object} global - 全局 window 对象
+ * @return {void}
+ *
+ * @example
+ * // 在页面加载时调用
+ * mountAdminPartitionsPage(window);
+ */
 function mountAdminPartitionsPage(global) {
-    /**
-     * 分区管理页面 JavaScript
-     * 提供分区创建、清理、状态监控等功能
-     */
     'use strict';
 
     const helpers = global.DOMHelpers;
@@ -33,7 +42,12 @@ function mountAdminPartitionsPage(global) {
     });
 
     /**
-     * 初始化分区 store，如缺失则退回直连服务。
+     * 初始化分区 Store。
+     *
+     * 创建或复用 PartitionStore 实例，如果 Store 不可用则退回直连服务模式。
+     * Store 初始化成功后会触发 'partitionStore:ready' 事件。
+     *
+     * @return {boolean} Store 是否初始化成功
      */
     function initializePartitionStore() {
         if (!global.createPartitionStore) {

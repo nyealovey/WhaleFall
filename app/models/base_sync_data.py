@@ -9,7 +9,16 @@ from app import db
 
 
 class BaseSyncData(db.Model):
-    """基础同步数据模型（抽象基类）"""
+    """基础同步数据模型（抽象基类）。
+
+    为同步数据模型提供通用字段和方法的抽象基类。
+    所有同步相关的模型（如 AccountPermission）都应继承此类。
+
+    Attributes:
+        id: 主键 ID。
+        instance_id: 关联的实例 ID（外键）。
+        db_type: 数据库类型（mysql/postgresql/sqlserver/oracle）。
+    """
 
     __abstract__ = True
 
@@ -28,7 +37,11 @@ class BaseSyncData(db.Model):
     # 关联实例 - 在子类中定义
 
     def to_dict(self) -> dict:
-        """转换为字典"""
+        """转换为字典。
+
+        Returns:
+            包含基础字段的字典。
+        """
         return {
             "id": self.id,
             "instance_id": self.instance_id,

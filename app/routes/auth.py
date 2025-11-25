@@ -51,7 +51,18 @@ auth_logger = get_auth_logger()
 @require_csrf
 @login_rate_limit
 def login_api() -> "Response":
-    """用户登录API"""
+    """用户登录 API。
+
+    验证用户名和密码，成功后返回 JWT token。
+
+    Returns:
+        JSON 响应，包含 access_token、refresh_token 和用户信息。
+
+    Raises:
+        AppValidationError: 当用户名或密码为空时抛出。
+        AuthorizationError: 当账户被禁用时抛出。
+        AuthenticationError: 当用户名或密码错误时抛出。
+    """
     # 添加调试日志
     auth_logger.info(
         "收到API登录请求",
@@ -135,7 +146,17 @@ def login_api() -> "Response":
 @login_rate_limit
 @require_csrf
 def login() -> "str | Response":
-    """用户登录页面"""
+    """用户登录页面。
+
+    GET 请求渲染登录页面，POST 请求处理登录逻辑。
+
+    Returns:
+        GET: 渲染的登录页面。
+        POST: 成功时重定向到首页，失败时重新渲染登录页面。
+
+    Query Parameters:
+        next: 登录成功后的重定向地址，可选。
+    """
     if request.method == HttpMethod.POST:
         # 添加调试日志
         auth_logger.info(
@@ -205,7 +226,13 @@ def login() -> "str | Response":
 @login_required
 @require_csrf
 def logout() -> "Response":
-    """用户登出"""
+    """用户登出。
+
+    清除用户会话并重定向到登录页面。
+
+    Returns:
+        JSON 响应或重定向到登录页面。
+    """
     # 记录登出日志
     auth_logger.info(
         "用户登出",
@@ -230,7 +257,11 @@ def logout() -> "Response":
 @auth_bp.route("/profile")
 @login_required
 def profile() -> "str | Response":
-    """用户资料页面"""
+    """用户资料页面。
+
+    Returns:
+        渲染的用户资料页面或 JSON 响应（当请求为 JSON 时）。
+    """
     if request.is_json:
         return jsonify_unified_success(
             data={
@@ -253,7 +284,17 @@ def profile() -> "str | Response":
 @password_reset_rate_limit
 @require_csrf
 def change_password_api() -> "Response":
-    """修改密码API"""
+    """修改密码 API。
+
+    验证旧密码并设置新密码。
+
+    Returns:
+        JSON 响应。
+
+    Raises:
+        AuthenticationError: 当旧密码错误时抛出。
+        AppValidationError: 当表单验证失败时抛出。
+    """
     payload = request.get_json(silent=True) if request.is_json else request.form
     payload = payload or {}
 
@@ -285,7 +326,11 @@ def change_password_api() -> "Response":
 # API路由
 @auth_bp.route("/api/csrf-token", methods=["GET"])
 def get_csrf_token() -> "Response":
-    """获取CSRF令牌"""
+    """获取 CSRF 令牌。
+
+    Returns:
+        JSON 响应，包含 CSRF token。
+    """
     from flask_wtf.csrf import generate_csrf
     return jsonify_unified_success(
         data={"csrf_token": generate_csrf()},
@@ -297,7 +342,13 @@ def get_csrf_token() -> "Response":
 @require_csrf
 @jwt_required(refresh=True)
 def refresh() -> "Response":
-    """刷新JWT token"""
+    """刷新 JWT token。
+
+    使用 refresh token 获取新的 access token。
+
+    Returns:
+        JSON 响应，包含新的 access_token。
+    """
     current_user_id = get_jwt_identity()
     access_token = create_access_token(identity=current_user_id)
     return jsonify_unified_success(
@@ -313,7 +364,16 @@ def refresh() -> "Response":
 @auth_bp.route("/api/me")
 @jwt_required()
 def me() -> "Response":
-    """获取当前用户信息"""
+    """获取当前用户信息。
+
+    通过 JWT token 获取当前登录用户的详细信息。
+
+    Returns:
+        JSON 响应，包含用户信息。
+
+    Raises:
+        NotFoundError: 当用户不存在时抛出。
+    """
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
 

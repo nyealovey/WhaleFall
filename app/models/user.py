@@ -10,7 +10,20 @@ from app.constants import UserRole
 
 
 class User(UserMixin, db.Model):
-    """用户模型"""
+    """用户模型。
+
+    管理系统用户的认证和授权信息，包括用户名、密码、角色等。
+    继承 Flask-Login 的 UserMixin 提供会话管理功能。
+
+    Attributes:
+        id: 用户 ID，主键。
+        username: 用户名，唯一索引。
+        password: 加密后的密码（bcrypt）。
+        role: 用户角色，可选值：admin、user。
+        created_at: 创建时间。
+        last_login: 最后登录时间。
+        is_active: 是否启用。
+    """
 
     __tablename__ = "users"
 

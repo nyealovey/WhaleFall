@@ -17,14 +17,39 @@ from app.utils.structlog_config import log_error, log_info
 
 
 class InstanceFormService(BaseResourceService[Instance]):
-    """负责实例创建/编辑的表单服务。"""
+    """负责实例创建/编辑的表单服务。
+
+    提供实例的表单校验、数据规范化、标签同步和保存功能。
+
+    Attributes:
+        model: 关联的 Instance 模型类。
+    """
 
     model = Instance
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        """清理表单数据。
+
+        Args:
+            payload: 原始表单数据。
+
+        Returns:
+            清理后的数据字典。
+        """
         return DataValidator.sanitize_form_data(payload)
 
     def validate(self, data: dict[str, Any], *, resource: Instance | None) -> ServiceResult[dict[str, Any]]:
+        """校验实例数据。
+
+        校验必填字段、端口号、凭据有效性、标签和唯一性。
+
+        Args:
+            data: 清理后的数据。
+            resource: 已存在的实例（编辑场景），创建时为 None。
+
+        Returns:
+            校验结果，成功时返回规范化的数据，失败时返回错误信息。
+        """
         is_valid, error = DataValidator.validate_instance_data(data)
         if not is_valid:
             return ServiceResult.fail(error or "表单验证失败")
@@ -50,6 +75,12 @@ class InstanceFormService(BaseResourceService[Instance]):
         return ServiceResult.ok(normalized)
 
     def assign(self, instance: Instance, data: dict[str, Any]) -> None:
+        """将数据赋值给实例。
+
+        Args:
+            instance: 实例对象。
+            data: 已校验的数据。
+        """
         instance.name = data["name"]
         instance.db_type = data["db_type"]
         instance.host = data["host"]
@@ -61,6 +92,12 @@ class InstanceFormService(BaseResourceService[Instance]):
         instance.type_specific = instance.type_specific or {}
 
     def after_save(self, instance: Instance, data: dict[str, Any]) -> None:
+        """保存后同步标签并记录日志。
+
+        Args:
+            instance: 已保存的实例。
+            data: 已校验的数据。
+        """
         tag_names = data.get("tag_names", [])
         self._sync_tags(instance, tag_names)
         log_info(
@@ -73,6 +110,14 @@ class InstanceFormService(BaseResourceService[Instance]):
         )
 
     def build_context(self, *, resource: Instance | None) -> dict[str, Any]:
+        """构建模板渲染上下文。
+
+        Args:
+            resource: 实例对象，创建时为 None。
+
+        Returns:
+            包含凭据、数据库类型和标签选项的上下文字典。
+        """
         credentials = Credential.query.filter_by(is_active=True).all()
         database_types = DatabaseTypeService.get_active_types()
         all_tags = Tag.get_active_tags()
@@ -90,6 +135,17 @@ class InstanceFormService(BaseResourceService[Instance]):
     # Helpers
     # ------------------------------------------------------------------ #
     def _resolve_credential_id(self, credential_raw: Any) -> int | None:
+        """解析凭据 ID。
+
+        Args:
+            credential_raw: 原始凭据 ID（可能是整数、字符串或列表）。
+
+        Returns:
+            解析后的凭据 ID，如果为空则返回 None。
+
+        Raises:
+            ValueError: 当凭据 ID 无效或凭据不存在时抛出。
+        """
         if credential_raw in (None, "", []):
             return None
         try:
@@ -103,6 +159,14 @@ class InstanceFormService(BaseResourceService[Instance]):
         return credential_id
 
     def _normalize_tag_names(self, tag_field: Any) -> list[str]:
+        """规范化标签名称列表。
+
+        Args:
+            tag_field: 原始标签字段（可能是列表或逗号分隔的字符串）。
+
+        Returns:
+            规范化后的标签名称列表。
+        """
         if not tag_field:
             return []
         if isinstance(tag_field, list):
@@ -112,6 +176,15 @@ class InstanceFormService(BaseResourceService[Instance]):
         return [value.strip() for value in values if value and value.strip()]
 
     def _parse_is_active(self, data: Mapping[str, Any], *, default: bool) -> bool:
+        """解析 is_active 字段。
+
+        Args:
+            data: 表单数据。
+            default: 默认值。
+
+        Returns:
+            解析后的布尔值。
+        """
         value = data.get("is_active", default)
         if isinstance(value, list):
             value = value[-1]
@@ -125,6 +198,14 @@ class InstanceFormService(BaseResourceService[Instance]):
         return bool(value)
 
     def _sync_tags(self, instance: Instance, tag_names: list[str]) -> None:
+        """同步实例的标签。
+
+        清除现有标签并添加新标签。
+
+        Args:
+            instance: 实例对象。
+            tag_names: 标签名称列表。
+        """
         try:
             instance.tags.clear()
             if not tag_names:

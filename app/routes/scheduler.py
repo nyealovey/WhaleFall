@@ -33,7 +33,13 @@ scheduler_bp.add_url_rule(
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def index() -> str:
-    """定时任务管理页面"""
+    """定时任务管理页面。
+
+    渲染定时任务管理界面，提供任务查看、暂停、恢复、执行等功能。
+
+    Returns:
+        渲染的定时任务管理页面 HTML。
+    """
     return render_template("admin/scheduler/index.html")
 
 
@@ -41,7 +47,16 @@ def index() -> str:
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def get_jobs() -> Response:
-    """获取所有定时任务"""
+    """获取所有定时任务。
+
+    查询调度器中的所有任务，包括任务状态、触发器信息等。
+
+    Returns:
+        包含任务列表的 JSON 响应。
+
+    Raises:
+        SystemError: 当调度器未启动时抛出。
+    """
     try:
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:

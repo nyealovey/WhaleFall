@@ -34,9 +34,19 @@ database_aggr_bp = Blueprint('database_aggr', __name__)
 @login_required
 @view_required
 def database_aggregations():
-    """
-    数据库统计聚合页面（数据库统计层面）
-    返回HTML页面
+    """数据库统计聚合页面（数据库统计层面）。
+
+    Returns:
+        渲染的数据库统计聚合页面，包含筛选选项和图表。
+
+    Query Parameters:
+        db_type: 数据库类型筛选，可选。
+        instance: 实例 ID 筛选，可选。
+        database_id: 数据库 ID 筛选，可选。
+        database: 数据库名称筛选，可选。
+        period_type: 统计周期类型，默认 'daily'。
+        start_date: 开始日期，可选。
+        end_date: 结束日期，可选。
     """
     database_type_configs = DatabaseTypeService.get_active_types()
     if database_type_configs:
@@ -103,7 +113,29 @@ def database_aggregations():
 @login_required
 @view_required
 def get_databases_aggregations() -> Response:
-    """获取数据库统计聚合数据（数据库统计层面）"""
+    """获取数据库统计聚合数据（数据库统计层面）。
+
+    支持分页、筛选和日期范围查询。
+
+    Returns:
+        JSON 响应，包含聚合数据列表和分页信息。
+
+    Raises:
+        ValidationError: 当参数无效时抛出。
+        SystemError: 当获取数据失败时抛出。
+
+    Query Parameters:
+        instance_id: 实例 ID 筛选，可选。
+        db_type: 数据库类型筛选，可选。
+        database_name: 数据库名称筛选，可选。
+        database_id: 数据库 ID 筛选，可选。
+        period_type: 统计周期类型，可选。
+        start_date: 开始日期（YYYY-MM-DD），可选。
+        end_date: 结束日期（YYYY-MM-DD），可选。
+        page: 页码，默认 1。
+        per_page: 每页数量，默认 20。
+        get_all: 是否获取全部数据，默认 false。
+    """
     instance_id = request.args.get('instance_id', type=int)
     db_type = request.args.get('db_type')
     database_name = request.args.get('database_name')
@@ -153,6 +185,18 @@ def get_databases_aggregations() -> Response:
 
 
 def _parse_date(value: str, field: str) -> date:
+    """解析日期字符串。
+
+    Args:
+        value: 日期字符串，格式 'YYYY-MM-DD'。
+        field: 字段名称，用于错误消息。
+
+    Returns:
+        解析后的日期对象。
+
+    Raises:
+        ValidationError: 当日期格式无效时抛出。
+    """
     try:
         parsed_dt = time_utils.to_china(value + 'T00:00:00')
         if parsed_dt is None:
@@ -166,7 +210,24 @@ def _parse_date(value: str, field: str) -> date:
 @login_required
 @view_required
 def get_databases_aggregations_summary() -> Response:
-    """获取数据库统计聚合汇总信息"""
+    """获取数据库统计聚合汇总信息。
+
+    Returns:
+        JSON 响应，包含汇总统计数据。
+
+    Raises:
+        ValidationError: 当参数无效时抛出。
+        SystemError: 当获取汇总失败时抛出。
+
+    Query Parameters:
+        instance_id: 实例 ID 筛选，可选。
+        db_type: 数据库类型筛选，可选。
+        database_name: 数据库名称筛选，可选。
+        database_id: 数据库 ID 筛选，可选。
+        period_type: 统计周期类型，可选。
+        start_date: 开始日期（YYYY-MM-DD），可选。
+        end_date: 结束日期（YYYY-MM-DD），可选。
+    """
     instance_id = request.args.get('instance_id', type=int)
     db_type = request.args.get('db_type')
     database_name = request.args.get('database_name')

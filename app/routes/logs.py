@@ -28,7 +28,16 @@ logs_bp = Blueprint("logs", __name__)
 @logs_bp.route("/")
 @login_required
 def logs_dashboard() -> str | tuple[dict, int]:
-    """日志中心仪表板"""
+    """日志中心仪表板。
+
+    渲染日志查询和展示页面，提供日志级别、模块和时间范围的筛选选项。
+
+    Returns:
+        渲染的日志仪表板 HTML 页面。
+
+    Raises:
+        SystemError: 当页面加载失败时抛出。
+    """
     try:
         module_values = load_log_modules()
         module_options = [{"value": value, "label": value} for value in module_values]
@@ -67,7 +76,28 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
 @logs_bp.route("/api/search", methods=["GET"])
 @login_required
 def search_logs() -> Response:
-    """搜索日志API"""
+    """搜索日志 API。
+
+    支持按日志级别、模块、关键词、时间范围等条件搜索日志。
+    支持分页查询和排序。
+
+    Query Parameters:
+        page: 页码，默认 1。
+        per_page: 每页数量，默认 50。
+        level: 日志级别筛选。
+        module: 模块筛选。
+        q: 搜索关键词。
+        start_time: 开始时间（ISO 格式）。
+        end_time: 结束时间（ISO 格式）。
+        hours: 最近 N 小时。
+
+    Returns:
+        包含日志列表和分页信息的 JSON 响应。
+
+    Raises:
+        ValidationError: 当参数验证失败时抛出。
+        SystemError: 当查询失败时抛出。
+    """
     try:
         # 获取查询参数
         page = int(request.args.get("page", 1))
