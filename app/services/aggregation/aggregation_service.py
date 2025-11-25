@@ -198,6 +198,15 @@ class AggregationService:
         return normalized
 
     def aggregate_database_periods(self, periods: Sequence[str] | None = None) -> dict[str, Dict[str, Any]]:
+        """计算数据库级聚合结果。
+
+        Args:
+            periods: 指定的周期名称列表，如 day/week/month；为空时默认全部。
+
+        Returns:
+            dict[str, Dict[str, Any]]: key 为周期名称，value 为聚合结果字典。
+        """
+
         normalized = self._normalize_periods(periods)
         results: dict[str, Dict[str, Any]] = {}
 

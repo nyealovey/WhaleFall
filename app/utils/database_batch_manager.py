@@ -71,6 +71,9 @@ class DatabaseBatchManager:
             entity: 数据库实体对象，必须是 SQLAlchemy 模型实例。
             description: 操作描述，用于日志记录和错误追踪。
 
+        Returns:
+            None.
+
         Example:
             >>> manager.add_operation('add', user, 'Add new user')
             >>> manager.add_operation('update', user, 'Update user status')
@@ -198,6 +201,9 @@ class DatabaseBatchManager:
 
         回滚当前事务并清空待处理队列。通常在异常情况下调用。
 
+        Returns:
+            None.
+
         Example:
             >>> try:
             ...     manager.add_operation('add', user)
@@ -265,6 +271,9 @@ class DatabaseBatchManager:
             exc_type: 异常类型。
             exc_val: 异常值。
             exc_tb: 异常追踪信息。
+
+        Returns:
+            None.
         """
         if exc_type is None:
             # 正常退出，提交剩余操作

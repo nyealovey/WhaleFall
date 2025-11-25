@@ -21,17 +21,23 @@ class SchedulerJobFormView(ResourceFormView):
 
     def get(self, *args, **kwargs):
         """GET 请求处理（不支持）。
-        
+
         Raises:
             NotFoundError: 始终抛出，因为不支持此操作。
+
+        Returns:
+            Never returns; 总是抛出 NotFoundError。
         """
         raise NotFoundError("不支持的操作")
 
     def post(self, *args, **kwargs):
         """POST 请求处理（不支持）。
-        
+
         Raises:
             NotFoundError: 始终抛出，因为不支持此操作。
+
+        Returns:
+            Never returns; 总是抛出 NotFoundError。
         """
         raise NotFoundError("不支持的操作")
 

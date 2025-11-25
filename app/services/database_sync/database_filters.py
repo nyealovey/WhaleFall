@@ -32,6 +32,8 @@ class DatabaseSyncFilterManager:
 
     @property
     def config_path(self) -> Path:
+        """返回当前生效的配置文件路径。"""
+
         return self._config_path
 
     def reload(self) -> None:

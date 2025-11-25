@@ -194,6 +194,9 @@
     if (refreshHandlerBound) {
       return;
     }
+    /**
+     * 触发分区 grid 刷新。
+     */
     const handler = () => {
       if (!partitionGrid) {
         return;

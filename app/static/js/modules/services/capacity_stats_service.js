@@ -28,6 +28,11 @@
   function toSearchParams(params, defaults) {
     const search = new URLSearchParams();
 
+    /**
+     * 遍历参数源并过滤空值追加到 URLSearchParams。
+     *
+     * @param {Object|URLSearchParams} source 用户或默认参数来源。
+     */
     const append = (source) => {
       if (!source) {
         return;

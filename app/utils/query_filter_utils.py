@@ -143,6 +143,9 @@ def get_instances_by_db_type(db_type: str | None = None, *, include_inactive: bo
     Args:
         db_type: 数据库类型标识，例如 mysql、postgresql。
         include_inactive: 是否包含已禁用的实例。
+
+    Returns:
+        指定过滤条件下的实例对象列表，按名称升序排列。
     """
     query = Instance.query
     if not include_inactive:

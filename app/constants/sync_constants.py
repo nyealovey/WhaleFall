@@ -69,17 +69,38 @@ class SyncConstants:
     
     @staticmethod
     def is_valid_operation_type(value: str) -> bool:
-        """验证操作方式是否有效"""
+        """验证操作方式是否有效。
+
+        Args:
+            value: 操作方式的字符串值。
+
+        Returns:
+            True 表示存在于支持列表，否则 False。
+        """
         return value in SyncConstants.OPERATION_TYPE_VALUES
     
     @staticmethod
     def is_valid_category(value: str) -> bool:
-        """验证同步分类是否有效"""
+        """验证同步分类是否有效。
+
+        Args:
+            value: 分类字符串。
+
+        Returns:
+            True 表示有效分类，否则 False。
+        """
         return value in SyncConstants.CATEGORY_VALUES
     
     @staticmethod
     def get_operation_type_display(value: str) -> str:
-        """获取操作方式的中文显示名称"""
+        """获取操作方式的中文显示名称。
+
+        Args:
+            value: 操作方式取值。
+
+        Returns:
+            对应中文标签，无法解析时返回原值。
+        """
         try:
             operation_type = SyncOperationType(value)
             return SyncConstants.OPERATION_TYPE_DISPLAY.get(operation_type, value)
@@ -88,7 +109,14 @@ class SyncConstants:
     
     @staticmethod
     def get_category_display(value: str) -> str:
-        """获取同步分类的中文显示名称"""
+        """获取同步分类的中文显示名称。
+
+        Args:
+            value: 分类取值。
+
+        Returns:
+            中文标签，未匹配时返回原值。
+        """
         try:
             category = SyncCategory(value)
             return SyncConstants.CATEGORY_DISPLAY.get(category, value)
@@ -97,7 +125,14 @@ class SyncConstants:
     
     @staticmethod
     def get_operation_type_description(value: str) -> str:
-        """获取操作方式的英文描述"""
+        """获取操作方式的英文描述。
+
+        Args:
+            value: 操作方式取值。
+
+        Returns:
+            英文描述文本，未知值返回原值。
+        """
         try:
             operation_type = SyncOperationType(value)
             return SyncConstants.OPERATION_TYPE_DESCRIPTIONS.get(operation_type, value)
@@ -106,7 +141,14 @@ class SyncConstants:
     
     @staticmethod
     def get_category_description(value: str) -> str:
-        """获取同步分类的英文描述"""
+        """获取同步分类的英文描述。
+
+        Args:
+            value: 分类取值。
+
+        Returns:
+            英文描述文本，未知值返回原值。
+        """
         try:
             category = SyncCategory(value)
             return SyncConstants.CATEGORY_DESCRIPTIONS.get(category, value)
@@ -115,7 +157,11 @@ class SyncConstants:
     
     @staticmethod
     def get_all_operation_types() -> List[Dict[str, str]]:
-        """获取所有操作方式的选项列表"""
+        """获取所有操作方式的选项列表。
+
+        Returns:
+            包含 value/label/description 的字典列表。
+        """
         return [
             {
                 "value": op_type.value,
@@ -127,7 +173,11 @@ class SyncConstants:
     
     @staticmethod
     def get_all_categories() -> List[Dict[str, str]]:
-        """获取所有同步分类的选项列表"""
+        """获取所有同步分类的选项列表。
+
+        Returns:
+            包含 value/label/description 的字典列表。
+        """
         return [
             {
                 "value": category.value,

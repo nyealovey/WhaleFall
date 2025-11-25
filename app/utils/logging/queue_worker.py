@@ -54,6 +54,9 @@ class LogQueueWorker:
 
         Args:
             log_entry: 日志条目字典。
+
+        Returns:
+            None.
         """
         if self._shutdown.is_set():
             return
@@ -69,13 +72,20 @@ class LogQueueWorker:
 
         Args:
             timeout: 等待线程结束的超时时间（秒），默认 5.0。
+
+        Returns:
+            None.
         """
         self._shutdown.set()
         self._thread.join(timeout=timeout)
         self._flush_buffer()
 
     def _run(self) -> None:
-        """工作线程主循环，从队列中取出日志并批量写入数据库。"""
+        """工作线程主循环，从队列中取出日志并批量写入数据库。
+
+        Returns:
+            None.
+        """
         while not self._shutdown.is_set():
             try:
                 log_entry = self.queue.get(timeout=0.5)
@@ -102,7 +112,11 @@ class LogQueueWorker:
         return time.time() - self._last_flush >= self.flush_interval
 
     def _flush_buffer(self) -> None:
-        """将缓冲区中的日志批量写入数据库。"""
+        """将缓冲区中的日志批量写入数据库。
+
+        Returns:
+            None.
+        """
         if not self._buffer:
             return
 

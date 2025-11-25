@@ -48,6 +48,9 @@ class ErrorContext:
 
         如果 request 为空且在请求上下文中，则自动获取 Flask 请求对象。
         同时提取 URL、HTTP 方法、IP 地址和 User-Agent 等信息。
+
+        Returns:
+            None.
         """
         if self.request is None and has_request_context():
             from flask import request as flask_request

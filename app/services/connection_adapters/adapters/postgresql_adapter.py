@@ -11,6 +11,12 @@ class PostgreSQLConnection(DatabaseConnection):
     """PostgreSQL 数据库连接。"""
 
     def connect(self) -> bool:
+        """建立 PostgreSQL 连接。
+
+        Returns:
+            bool: 连接成功返回 True，否则 False。
+        """
+
         try:
             import psycopg
 
@@ -38,6 +44,8 @@ class PostgreSQLConnection(DatabaseConnection):
             return False
 
     def disconnect(self) -> None:
+        """关闭 PostgreSQL 连接并复位状态。"""
+
         if self.connection:
             try:
                 self.connection.close()
@@ -54,6 +62,8 @@ class PostgreSQLConnection(DatabaseConnection):
                 self.is_connected = False
 
     def test_connection(self) -> dict[str, Any]:
+        """测试连接并返回版本信息。"""
+
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -70,6 +80,8 @@ class PostgreSQLConnection(DatabaseConnection):
             self.disconnect()
 
     def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
+        """执行 SQL 查询并返回所有结果。"""
+
         if not self.is_connected and not self.connect():
             raise Exception("无法建立数据库连接")
 
@@ -81,6 +93,8 @@ class PostgreSQLConnection(DatabaseConnection):
             cursor.close()
 
     def get_version(self) -> str | None:
+        """查询数据库版本字符串。"""
+
         try:
             result = self.execute_query("SELECT version()")
             if result:

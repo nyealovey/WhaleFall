@@ -9,6 +9,38 @@
   const accountClassificationService = new AccountClassificationService(window.httpU);
 
   /**
+   * 渲染权限复选组。
+   *
+   * @param {string} prefix DOM id 前缀。
+   * @param {Array<Object>} items 权限项。
+   * @param {string} idPrefix 字段前缀。
+   * @param {string} icon FontAwesome 图标类。
+   * @param {string} color Bootstrap 颜色名。
+   * @param {string} fallback 空态文本。
+   * @returns {string} HTML 片段。
+   */
+  function renderPermissionGroup(prefix, items, idPrefix, icon, color, fallback) {
+    return (
+      items
+        ?.map(
+          (item) => `
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" value="${item.name}" id="${prefix}${idPrefix}_${item.name}">
+          <label class="form-check-label d-flex align-items-center" for="${prefix}${idPrefix}_${item.name}">
+            <i class="${icon} text-${color} me-2"></i>
+            <div>
+              <div class="fw-bold">${item.name}</div>
+              <small class="text-muted">${item.description || fallback}</small>
+            </div>
+          </label>
+        </div>
+      `,
+        )
+        .join('') || `<div class="text-muted">${fallback}暂无配置</div>`
+    );
+  }
+
+  /**
    * 基础策略类，提供默认渲染/选择逻辑。
    *
    * @class
@@ -254,48 +286,53 @@
       const serverPermissions = Array.isArray(permissions.server_permissions) ? permissions.server_permissions : [];
       const databasePermissions = Array.isArray(permissions.database_privileges) ? permissions.database_privileges : [];
 
-      const renderGroup = (items, idPrefix, icon, color, fallback) =>
-        items
-          .map(
-            (item) => `
-        <div class="form-check mb-2">
-          <input class="form-check-input" type="checkbox" value="${item.name}" id="${prefix}${idPrefix}_${item.name}">
-          <label class="form-check-label d-flex align-items-center" for="${prefix}${idPrefix}_${item.name}">
-            <i class="${icon} text-${color} me-2"></i>
-            <div>
-              <div class="fw-bold">${item.name}</div>
-              <small class="text-muted">${item.description || fallback}</small>
-            </div>
-          </label>
-        </div>
-      `
-          )
-          .join("") || `<div class="text-muted">${fallback}暂无配置</div>`;
-
+      /**
+       * 渲染 SQL Server 权限复选组。
+       */
+      /**
+       * 渲染 SQL Server 权限复选组。
+       *
+       * @param {Array<Object>} items 权限条目集合。
+       * @param {string} idPrefix DOM id 前缀。
+       * @param {string} icon FontAwesome 类名。
+       * @param {string} color Bootstrap 颜色。
+       * @param {string} fallback 当集合为空时展示的提示。
+       * @returns {string} HTML 字符串。
+       */
+      /**
+       * 渲染 SQL Server 权限复选组。
+       *
+       * @param {Array<Object>} items 权限项。
+       * @param {string} idPrefix DOM id 前缀。
+       * @param {string} icon 图标类。
+       * @param {string} color Bootstrap 颜色。
+       * @param {string} fallback 空态提示。
+       * @returns {string} HTML 片段。
+       */
       return `
         <div class="row">
           <div class="col-6">
             <h6 class="text-info mb-3"><i class="fas fa-users me-2"></i>服务器角色</h6>
             <div class="permission-section">
-              ${renderGroup(serverRoles, "server_role", "fas fa-users", "info", "服务器角色")}
+              ${renderPermissionGroup(prefix, serverRoles, "server_role", "fas fa-users", "info", "服务器角色")}
             </div>
           </div>
           <div class="col-6">
             <h6 class="text-warning mb-3"><i class="fas fa-user-shield me-2"></i>服务器权限</h6>
             <div class="permission-section">
-              ${renderGroup(serverPermissions, "server_perm", "fas fa-user-shield", "warning", "服务器权限")}
+              ${renderPermissionGroup(prefix, serverPermissions, "server_perm", "fas fa-user-shield", "warning", "服务器权限")}
             </div>
           </div>
           <div class="col-6">
             <h6 class="text-success mb-3"><i class="fas fa-database me-2"></i>数据库角色</h6>
             <div class="permission-section">
-              ${renderGroup(databaseRoles, "db_role", "fas fa-database", "success", "数据库角色")}
+              ${renderPermissionGroup(prefix, databaseRoles, "db_role", "fas fa-database", "success", "数据库角色")}
             </div>
           </div>
           <div class="col-6">
             <h6 class="text-primary mb-3"><i class="fas fa-key me-2"></i>数据库权限</h6>
             <div class="permission-section">
-              ${renderGroup(databasePermissions, "db_perm", "fas fa-key", "primary", "数据库权限")}
+              ${renderPermissionGroup(prefix, databasePermissions, "db_perm", "fas fa-key", "primary", "数据库权限")}
             </div>
           </div>
         </div>
@@ -378,6 +415,9 @@
     }
   }
 
+  /**
+   * PostgreSQL 权限策略，负责渲染/收集 PG 权限配置。
+   */
   class PostgreSQLPermissionStrategy extends PermissionStrategy {
     constructor() {
       super("postgresql");
@@ -389,48 +429,40 @@
       const databasePrivileges = Array.isArray(permissions.database_privileges) ? permissions.database_privileges : [];
       const tablespacePrivileges = Array.isArray(permissions.tablespace_privileges) ? permissions.tablespace_privileges : [];
 
-      const renderGroup = (items, idPrefix, icon, color, fallback) =>
-        items
-          .map(
-            (item) => `
-        <div class="form-check mb-2">
-          <input class="form-check-input" type="checkbox" value="${item.name}" id="${prefix}${idPrefix}_${item.name}">
-          <label class="form-check-label d-flex align-items-center" for="${prefix}${idPrefix}_${item.name}">
-            <i class="${icon} text-${color} me-2"></i>
-            <div>
-              <div class="fw-bold">${item.name}</div>
-              <small class="text-muted">${item.description || fallback}</small>
-            </div>
-          </label>
-        </div>
-      `
-          )
-          .join("") || `<div class="text-muted">${fallback}暂无配置</div>`;
-
+      /**
+       * 渲染 PostgreSQL 权限复选组。
+       *
+       * @param {Array<Object>} items 权限条目集合。
+       * @param {string} idPrefix DOM id 前缀。
+       * @param {string} icon FontAwesome 图标类。
+       * @param {string} color Bootstrap 颜色名。
+       * @param {string} fallback 空态文案。
+       * @returns {string} HTML 片段。
+       */
       return `
         <div class="row">
           <div class="col-6">
             <h6 class="text-primary mb-3"><i class="fas fa-user-tag me-2"></i>预定义角色</h6>
             <div class="permission-section">
-              ${renderGroup(predefinedRoles, "predefined_role", "fas fa-user-tag", "primary", "预定义角色")}
+              ${renderPermissionGroup(prefix, predefinedRoles, "predefined_role", "fas fa-user-tag", "primary", "预定义角色")}
             </div>
           </div>
           <div class="col-6">
             <h6 class="text-success mb-3"><i class="fas fa-user-check me-2"></i>角色属性</h6>
             <div class="permission-section">
-              ${renderGroup(roleAttributes, "role_attr", "fas fa-user-check", "success", "角色属性")}
+              ${renderPermissionGroup(prefix, roleAttributes, "role_attr", "fas fa-user-check", "success", "角色属性")}
             </div>
           </div>
           <div class="col-6">
             <h6 class="text-warning mb-3"><i class="fas fa-database me-2"></i>数据库权限</h6>
             <div class="permission-section">
-              ${renderGroup(databasePrivileges, "db_perm", "fas fa-database", "warning", "数据库权限")}
+              ${renderPermissionGroup(prefix, databasePrivileges, "db_perm", "fas fa-database", "warning", "数据库权限")}
             </div>
           </div>
           <div class="col-6">
             <h6 class="text-info mb-3"><i class="fas fa-layer-group me-2"></i>表空间权限</h6>
             <div class="permission-section">
-              ${renderGroup(tablespacePrivileges, "tablespace_perm", "fas fa-layer-group", "info", "表空间权限")}
+              ${renderPermissionGroup(prefix, tablespacePrivileges, "tablespace_perm", "fas fa-layer-group", "info", "表空间权限")}
             </div>
           </div>
         </div>
@@ -513,6 +545,9 @@
     }
   }
 
+  /**
+   * Oracle 权限策略，封装角色/系统权限等表单渲染。
+   */
   class OraclePermissionStrategy extends PermissionStrategy {
     constructor() {
       super("oracle");
@@ -524,48 +559,30 @@
       const tablespacePermissions = Array.isArray(permissions.tablespace_privileges) ? permissions.tablespace_privileges : [];
       const tablespaceQuotas = Array.isArray(permissions.tablespace_quotas) ? permissions.tablespace_quotas : [];
 
-      const renderGroup = (items, idPrefix, icon, color, fallback) =>
-        items
-          .map(
-            (item) => `
-        <div class="form-check mb-2">
-          <input class="form-check-input" type="checkbox" value="${item.name}" id="${prefix}${idPrefix}_${item.name}">
-          <label class="form-check-label d-flex align-items-center" for="${prefix}${idPrefix}_${item.name}">
-            <i class="${icon} text-${color} me-2"></i>
-            <div>
-              <div class="fw-bold">${item.name}</div>
-              <small class="text-muted">${item.description || fallback}</small>
-            </div>
-          </label>
-        </div>
-      `
-          )
-          .join("") || `<div class="text-muted">${fallback}暂无配置</div>`;
-
       return `
         <div class="row">
           <div class="col-6">
             <h6 class="text-primary mb-3"><i class="fas fa-user-shield me-2"></i>角色</h6>
             <div class="permission-section">
-              ${renderGroup(roles, "role", "fas fa-user-shield", "primary", "角色")}
+              ${renderPermissionGroup(prefix, roles, "role", "fas fa-user-shield", "primary", "角色")}
             </div>
           </div>
           <div class="col-6">
             <h6 class="text-success mb-3"><i class="fas fa-cogs me-2"></i>系统权限</h6>
             <div class="permission-section">
-              ${renderGroup(systemPermissions, "sys_perm", "fas fa-cogs", "success", "系统权限")}
+              ${renderPermissionGroup(prefix, systemPermissions, "sys_perm", "fas fa-cogs", "success", "系统权限")}
             </div>
           </div>
           <div class="col-6">
             <h6 class="text-warning mb-3"><i class="fas fa-layer-group me-2"></i>表空间权限</h6>
             <div class="permission-section">
-              ${renderGroup(tablespacePermissions, "tablespace_perm", "fas fa-layer-group", "warning", "表空间权限")}
+              ${renderPermissionGroup(prefix, tablespacePermissions, "tablespace_perm", "fas fa-layer-group", "warning", "表空间权限")}
             </div>
           </div>
           <div class="col-6">
             <h6 class="text-info mb-3"><i class="fas fa-balance-scale me-2"></i>表空间配额</h6>
             <div class="permission-section">
-              ${renderGroup(tablespaceQuotas, "tablespace_quota", "fas fa-balance-scale", "info", "表空间配额")}
+              ${renderPermissionGroup(prefix, tablespaceQuotas, "tablespace_quota", "fas fa-balance-scale", "info", "表空间配额")}
             </div>
           </div>
         </div>

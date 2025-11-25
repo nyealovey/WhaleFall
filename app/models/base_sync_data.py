@@ -26,6 +26,12 @@ class BaseSyncData(db.Model):
 
     @declared_attr
     def instance_id(cls) -> Mapped[int]:
+        """返回与实例表关联的外键字段定义。
+
+        Returns:
+            sqlalchemy.orm.Mapped: 指向 `instances.id` 的整型外键列。
+        """
+
         return db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
 
     db_type = db.Column(

@@ -1,3 +1,5 @@
+"""账户同步适配器基础定义，提供统一的抓取/归一化接口。"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

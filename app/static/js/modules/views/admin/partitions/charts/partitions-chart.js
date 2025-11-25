@@ -15,7 +15,9 @@ if (!DOMHelpers) {
 
 const { selectOne, ready, from } = DOMHelpers;
 
-// 分区聚合图表入口
+/**
+ * 分区聚合图表入口，负责初始化服务及管理器。
+ */
 function mountAggregationsChart() {
 const PartitionService = window.PartitionService;
 if (!PartitionService) {
@@ -24,6 +26,9 @@ if (!PartitionService) {
 const partitionService = new PartitionService(window.httpU);
 const createPartitionStore = window.createPartitionStore;
 
+/**
+ * 将过滤条件序列化为查询参数。
+ */
 function buildChartQueryParams(values) {
     const params = new URLSearchParams();
     Object.entries(values || {}).forEach(([key, value]) => {
@@ -48,6 +53,9 @@ function buildChartQueryParams(values) {
     return params;
 }
 
+/**
+ * 负责监听 store、拉取数据并渲染 Chart.js。
+ */
 class AggregationsChartManager {
     constructor() {
         this.chart = null;
@@ -719,6 +727,9 @@ class AggregationsChartManager {
 
 // 页面加载完成后初始化
 ready(() => {
+    /**
+     * 确保 Chart.js 加载后再初始化图表管理器。
+     */
     function initManager() {
         if (typeof Chart !== 'undefined' && typeof AggregationsChartManager !== 'undefined') {
             window.aggregationsChartManager = new AggregationsChartManager();

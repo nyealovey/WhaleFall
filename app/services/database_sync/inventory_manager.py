@@ -1,3 +1,5 @@
+"""容量同步库存管理器，实现 instance_databases 的增量更新。"""
+
 from __future__ import annotations
 
 from typing import Iterable, List

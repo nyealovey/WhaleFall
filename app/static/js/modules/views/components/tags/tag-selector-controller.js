@@ -386,6 +386,9 @@
     }
   }
 
+  /**
+   * 管理 TagSelectorController 的单例容器。
+   */
   class TagSelectorManager {
     constructor() {
       this.instances = new Map();

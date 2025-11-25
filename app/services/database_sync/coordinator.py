@@ -1,3 +1,5 @@
+"""容量同步协调器，实现连接、库存同步与容量采集整体流程。"""
+
 from __future__ import annotations
 
 from typing import Iterable, List, Optional, Sequence
@@ -41,10 +43,14 @@ class CapacitySyncCoordinator:
 
     @property
     def inventory_manager(self) -> InventoryManager:
+        """返回库存同步管理器实例。"""
+
         return self._inventory_manager
 
     @property
     def persistence(self) -> CapacityPersistence:
+        """返回容量持久化服务。"""
+
         return self._persistence
 
     def connect(self) -> bool:

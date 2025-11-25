@@ -229,6 +229,12 @@
     return instance.isSame(reference, "day");
   }
 
+  /**
+   * 生成相对当前时间的时间区间。
+   *
+   * @param {number} [hours=24] 回溯小时数，超出 24 小时将定位到当天零点后再扩展。
+   * @returns {Object} 包含 ISO 字符串与格式化文本的区间对象。
+   */
   function buildTimeRange(hours = 24) {
     const now = dayjsLib();
     let start;

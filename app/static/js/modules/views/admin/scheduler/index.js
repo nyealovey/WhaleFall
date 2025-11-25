@@ -15,7 +15,9 @@ var addJobValidator = null;
 var schedulerModalsController = null;
 var schedulerExports = {};
 
-// 校验 SchedulerService 是否已初始化
+/**
+ * 校验 SchedulerService 是否已初始化。
+ */
 function ensureSchedulerService() {
     if (schedulerService) {
         return true;
@@ -28,7 +30,9 @@ function ensureSchedulerService() {
     return false;
 }
 
-// 校验 SchedulerStore 是否已初始化
+/**
+ * 校验 SchedulerStore 是否已初始化。
+ */
 function ensureSchedulerStore() {
     if (schedulerStore) {
         return true;
@@ -98,6 +102,9 @@ window.SchedulerPage = {
 };
 
 // 初始化定时任务管理页面（移除自动刷新）
+/**
+ * 初始化调度器页面：加载 store、模态和校验器。
+ */
 function initializeSchedulerPage() {
     if (!schedulerService || !schedulerStore) {
         console.error('SchedulerService/SchedulerStore 未初始化，无法加载任务页面');
@@ -110,6 +117,9 @@ function initializeSchedulerPage() {
 }
 
 // 初始化事件处理器（移除立即执行绑定）
+/**
+ * 绑定页面内的交互事件与按钮。
+ */
 function initializeEventHandlers() {
     // 设置默认日期时间 - 使用统一的时间处理
     const now = timeUtils.getChinaTime();
@@ -118,6 +128,9 @@ function initializeEventHandlers() {
     value('#runDate', localTime.toISOString().slice(0, 16));
 
     // Cron表达式生成和预览
+    /**
+     * 根据输入控件实时生成 cron 表达式。
+     */
     function updateCronPreview() {
         const second = value('#cronSecond') || '0';
         const minute = value('#cronMinute') || '0';
@@ -219,6 +232,9 @@ function initializeEventHandlers() {
     }
 }
 
+/**
+ * 初始化新增任务表单的校验规则。
+ */
 function initializeSchedulerValidators() {
     if (typeof FormValidator === 'undefined' || typeof ValidationRules === 'undefined') {
         console.warn('FormValidator 或 ValidationRules 未加载，跳过定时任务表单校验初始化');
@@ -264,7 +280,9 @@ function initializeSchedulerValidators() {
 
 }
 
-// 加载任务列表
+/**
+ * 从 store 拉取任务列表并清理占位容器。
+ */
 function loadJobs() {
     if (!ensureSchedulerStore()) {
         return;
@@ -275,7 +293,9 @@ function loadJobs() {
     schedulerStore.actions.loadJobs();
 }
 
-// 显示任务列表
+/**
+ * 将任务数据渲染为卡片并统计数量。
+ */
 function displayJobs(jobs) {
     const list = Array.isArray(jobs) ? jobs : [];
     if (list.length === 0) {
@@ -301,6 +321,9 @@ function displayJobs(jobs) {
 
     const activeContainer = document.getElementById('activeJobsContainer');
     const pausedContainer = document.getElementById('pausedJobsContainer');
+    /**
+     * 创建列容器包装任务卡片。
+     */
     const createColumn = () => {
         const wrapper = document.createElement('div');
         wrapper.className = 'col-4';
@@ -361,6 +384,9 @@ function displayJobs(jobs) {
 }
 
 // 创建任务卡片
+/**
+ * 生成单个任务的卡片 DOM。
+ */
 function createJobCard(job) {
     const statusClass = getStatusClass(job.state);
     const statusText = getStatusText(job.state);
@@ -404,7 +430,9 @@ function createJobCard(job) {
     return template.content.firstElementChild;
 }
 
-// 获取状态样式类
+/**
+ * 将任务状态映射为卡片 CSS 类。
+ */
 function getStatusClass(state) {
     switch (state) {
         case 'STATE_RUNNING':
@@ -419,7 +447,9 @@ function getStatusClass(state) {
     }
 }
 
-// 获取状态文本
+/**
+ * 将状态码翻译为中文。
+ */
 function getStatusText(state) {
     switch (state) {
         case 'STATE_RUNNING':
@@ -434,7 +464,9 @@ function getStatusText(state) {
     }
 }
 
-// 格式化触发器信息
+/**
+ * 格式化触发器参数为 HTML 描述。
+ */
 function formatTriggerInfo(triggerArgs) {
     if (!triggerArgs) return '无配置';
 
@@ -465,7 +497,9 @@ function formatTriggerInfo(triggerArgs) {
     }
 }
 
-// 获取操作按钮
+/**
+ * 根据状态生成操作按钮 HTML。
+ */
 function getActionButtons(job) {
     let buttons = '';
 
@@ -503,7 +537,9 @@ function getActionButtons(job) {
 
 
 
-// 启用任务
+/**
+ * 调用 store 恢复任务。
+ */
 function enableJob(jobId) {
     if (!ensureSchedulerStore()) {
         return;
@@ -524,7 +560,9 @@ function enableJob(jobId) {
         });
 }
 
-// 禁用任务
+/**
+ * 调用 store 暂停任务。
+ */
 function disableJob(jobId) {
     if (!ensureSchedulerStore()) {
         return;
@@ -545,7 +583,9 @@ function disableJob(jobId) {
         });
 }
 
-// 立即执行任务
+/**
+ * 触发任务立即执行。
+ */
 function runJobNow(jobId) {
     if (!ensureSchedulerStore()) {
         return;
@@ -566,7 +606,9 @@ function runJobNow(jobId) {
         });
 }
 
-// 删除任务
+/**
+ * 删除指定任务。
+ */
 function deleteJob(jobId) {
     if (!ensureSchedulerStore()) {
         return;
@@ -597,7 +639,9 @@ function deleteJob(jobId) {
         });
 }
 
-// 查看任务日志
+/**
+ * 占位：查看任务日志。
+ */
 function viewJobLogs(jobId) {
     const job = getSchedulerJob(jobId);
     if (!job) {
@@ -610,6 +654,9 @@ function viewJobLogs(jobId) {
 }
 
 // 添加任务
+/**
+ * 提交新增任务表单。
+ */
 function addJob(form) {
     if (!ensureSchedulerStore()) {
         return;
@@ -691,6 +738,9 @@ function addJob(form) {
 
 
 // 显示加载状态
+/**
+ * 为按钮显示加载态。
+ */
 function showLoadingState(element, text) {
     const normalized = normalizeElements(element);
     if (!normalized.length) {
@@ -706,6 +756,9 @@ function showLoadingState(element, text) {
 }
 
 // 隐藏加载状态
+/**
+ * 恢复按钮原有文案并取消禁用。
+ */
 function hideLoadingState(element, originalText) {
     const normalized = normalizeElements(element);
     if (!normalized.length) {
@@ -721,11 +774,17 @@ function hideLoadingState(element, originalText) {
 
 
 // 格式化时间 - 使用统一的时间工具
+/**
+ * 将时间字符串格式化为本地时间。
+ */
 function formatTime(timeString) {
     // 强制使用统一的时间工具
     return timeUtils.formatTime(timeString, 'datetime');
 }
 
+/**
+ * 订阅 store 事件刷新 UI。
+ */
 function bindSchedulerStoreEvents() {
     if (!schedulerStore) {
         return;
@@ -748,6 +807,9 @@ function bindSchedulerStoreEvents() {
     });
 }
 
+/**
+ * 从 store 当前状态查找指定任务。
+ */
 function getSchedulerJob(jobId) {
     if (!schedulerStore) {
         return null;
@@ -771,6 +833,9 @@ window.addJob = addJob;
 window.formatTime = formatTime;
 window.getSchedulerJob = getSchedulerJob;
 
+/**
+ * 将选择器或 DOM 节点转换为 Umbrella.js 集合。
+ */
 function normalizeElements(target) {
     if (typeof target === 'string') {
         return select(target);
@@ -778,6 +843,9 @@ function normalizeElements(target) {
     return from(target);
 }
 
+/**
+ * 显示 DOM 元素。
+ */
 function showElement(target) {
     const element = normalizeElements(target);
     if (!element.length) {
@@ -788,6 +856,9 @@ function showElement(target) {
     });
 }
 
+/**
+ * 隐藏 DOM 元素。
+ */
 function hideElement(target) {
     const element = normalizeElements(target);
     if (!element.length) {
@@ -798,6 +869,9 @@ function hideElement(target) {
     });
 }
 
+/**
+ * 清空元素内部 HTML。
+ */
 function clearContainer(target) {
     const element = normalizeElements(target);
     if (!element.length) {
@@ -806,6 +880,9 @@ function clearContainer(target) {
     element.html('');
 }
 
+/**
+ * 关闭新增任务模态框。
+ */
 function hideAddJobModal() {
     const modalEl = document.getElementById('addJobModal');
     if (!modalEl || typeof bootstrap === 'undefined') {

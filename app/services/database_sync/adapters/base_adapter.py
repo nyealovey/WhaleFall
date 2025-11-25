@@ -1,3 +1,5 @@
+"""容量采集适配器基类，约束 inventory 与 capacity 的实现接口。"""
+
 from __future__ import annotations
 
 from typing import Iterable, List, Optional, Sequence

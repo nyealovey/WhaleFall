@@ -163,6 +163,15 @@ class ClassificationRepository:
     # --------- Cache serialization helpers ---------------------------------
     @staticmethod
     def serialize_rules(rules: Iterable[ClassificationRule]) -> list[dict]:
+        """序列化规则模型以便写入缓存。
+
+        Args:
+            rules: 数据库读取的规则对象列表。
+
+        Returns:
+            list[dict]: 仅包含缓存必要字段的轻量化字典列表。
+        """
+
         payload: list[dict] = []
         for rule in rules:
             payload.append(
@@ -181,6 +190,15 @@ class ClassificationRepository:
 
     @staticmethod
     def hydrate_rules(rules_data: Iterable[dict]) -> list[ClassificationRule]:
+        """从缓存字典还原规则模型。
+
+        Args:
+            rules_data: 缓存中的规则字典集合。
+
+        Returns:
+            list[ClassificationRule]: 还原后的 `ClassificationRule` 对象列表。
+        """
+
         hydrated: list[ClassificationRule] = []
         for data in rules_data:
             try:

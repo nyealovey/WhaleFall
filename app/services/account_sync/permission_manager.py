@@ -1,3 +1,5 @@
+"""账户权限同步管理器，实现权限增量及变更日志。"""
+
 from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Optional

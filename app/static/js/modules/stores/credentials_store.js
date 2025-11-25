@@ -108,10 +108,22 @@
       lastError: null,
     };
 
+    /**
+     * 发布 mitt 事件并附带最新状态。
+     *
+     * @param {string} eventName 事件名称。
+     * @param {Object} [payload] 附加信息，默认携带 state 快照。
+     */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
     }
 
+    /**
+     * 统一处理错误并广播 error 事件。
+     *
+     * @param {Error|Object|string} error 服务返回的错误。
+     * @param {Object} meta 调试所需的上下文字段。
+     */
     function handleError(error, meta) {
       state.lastError = error;
       emit("credentials:error", {

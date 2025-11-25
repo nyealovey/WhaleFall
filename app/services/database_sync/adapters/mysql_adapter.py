@@ -1,3 +1,5 @@
+"""MySQL 容量同步适配器实现。"""
+
 from __future__ import annotations
 
 import math
@@ -72,6 +74,8 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         connection,
         target_databases: Optional[Sequence[str]] = None,
     ) -> List[dict]:
+        """采集指定数据库的容量数据。"""
+
         normalized_target = self._normalize_targets(target_databases)
 
         if normalized_target == set():

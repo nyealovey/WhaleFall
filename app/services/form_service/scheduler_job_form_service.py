@@ -74,6 +74,16 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return {"job": job, "scheduler": scheduler}
 
     def validate(self, data: dict[str, Any], *, resource: dict[str, Any] | None) -> ServiceResult[dict[str, Any]]:
+        """校验触发器配置是否合法。
+
+        Args:
+            data: 清洗后的表单数据。
+            resource: 包含 scheduler/job 的上下文。
+
+        Returns:
+            ServiceResult: 成功时携带构造好的 trigger。
+        """
+
         job = resource["job"] if resource else None
         if job is None:
             return ServiceResult.fail("任务不存在", message_key="NOT_FOUND")
@@ -92,11 +102,15 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return ServiceResult.ok({"trigger": trigger})
 
     def assign(self, instance: dict[str, Any], data: dict[str, Any]) -> None:
+        """将新的触发器应用到调度器。"""
+
         scheduler = instance["scheduler"]
         job = instance["job"]
         scheduler.modify_job(job.id, trigger=data["trigger"])
 
     def after_save(self, instance: dict[str, Any], data: dict[str, Any]) -> None:
+        """触发器更新后的善后处理，负责记录下一次执行时间。"""
+
         job = instance["job"]
         scheduler = instance["scheduler"]
         updated_job = scheduler.get_job(job.id)
@@ -109,6 +123,8 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         )
 
     def upsert(self, payload: Mapping[str, Any], resource: dict[str, Any] | None = None) -> ServiceResult[dict[str, Any]]:
+        """更新内置任务的触发器配置。"""
+
         sanitized = self.sanitize(payload)
         validation = self.validate(sanitized, resource=resource)
         if not validation.success:

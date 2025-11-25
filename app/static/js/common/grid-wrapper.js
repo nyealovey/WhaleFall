@@ -9,6 +9,13 @@
 
   const { Grid } = gridjs;
 
+  /**
+   * gridjs 包装器，统一处理服务端分页/排序。
+   *
+   * @param {HTMLElement} container 承载 gridjs 表格的容器。
+   * @param {Object} [options={}] gridjs 初始化参数。
+   * @constructor
+   */
   function GridWrapper(container, options = {}) {
     if (!container) {
       throw new Error("GridWrapper: container 未定义");

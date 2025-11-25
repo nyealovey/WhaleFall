@@ -87,7 +87,14 @@ class CacheManager:
             return False
 
     def delete(self, key: str) -> bool:
-        """删除缓存值"""
+        """删除缓存值。
+
+        Args:
+            key: 缓存键。
+
+        Returns:
+            删除成功返回 True，失败返回 False。
+        """
         try:
             self.cache.delete(key)
             return True
@@ -96,7 +103,11 @@ class CacheManager:
             return False
 
     def clear(self) -> bool:
-        """清空所有缓存"""
+        """清空所有缓存。
+
+        Returns:
+            成功返回 True，失败返回 False。
+        """
         try:
             self.cache.clear()
             return True
@@ -105,7 +116,18 @@ class CacheManager:
             return False
 
     def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs: Any) -> Any:  # noqa: ANN401
-        """获取缓存值，如果不存在则设置"""
+        """获取缓存值，如果不存在则调用函数生成并写入。
+
+        Args:
+            key: 缓存键。
+            func: 当缓存缺失时执行的回调。
+            timeout: 缓存超时时间，None 表示使用默认值。
+            *args: 传递给回调的可变位置参数。
+            **kwargs: 传递给回调的关键字参数。
+
+        Returns:
+            缓存中已有的值或刚计算出的函数返回值。
+        """
         value = self.get(key)
         if value is None:
             value = func(*args, **kwargs)
@@ -113,7 +135,14 @@ class CacheManager:
         return value
 
     def invalidate_pattern(self, pattern: str) -> int:
-        """根据模式删除缓存"""
+        """根据模式批量删除缓存项。
+
+        Args:
+            pattern: Redis 等后端支持的通配模式。
+
+        Returns:
+            实际删除的键数量，不支持模式删除时返回 0。
+        """
         try:
             # 这里需要根据具体的缓存后端实现
             # Redis支持模式匹配，其他后端可能需要遍历
@@ -131,7 +160,11 @@ cache_manager = None
 
 
 def init_cache_manager(cache: Cache) -> None:
-    """初始化缓存管理器"""
+    """初始化全局缓存管理器。
+
+    Args:
+        cache: Flask-Caching 创建的缓存实例。
+    """
     global cache_manager
     cache_manager = CacheManager(cache)
     system_logger = get_system_logger()
@@ -144,14 +177,16 @@ def cached(
     unless: Callable | None = None,
     key_func: Callable | None = None,
 ) -> Callable:
-    """
-    缓存装饰器
+    """缓存装饰器，自动复用函数返回值。
 
     Args:
-        timeout: 缓存超时时间（秒）
-        key_prefix: 键前缀
-        unless: 条件函数，返回True时跳过缓存
-        key_func: 自定义键生成函数
+        timeout: 缓存超时时间（秒）。
+        key_prefix: 键前缀，用于区分不同函数。
+        unless: 条件函数，返回 True 时跳过缓存。
+        key_func: 自定义缓存键生成函数。
+
+    Returns:
+        可用于装饰目标函数的包装器。
     """
 
     def cache_decorator(f: Callable) -> Callable:
@@ -188,5 +223,12 @@ def cached(
 
 
 def dashboard_cache(timeout: int = 60) -> Callable:
-    """仪表板缓存装饰器"""
+    """仪表板缓存装饰器，绑定统一前缀。
+
+    Args:
+        timeout: 缓存超时时间（秒），默认为 1 分钟。
+
+    Returns:
+        应用于仪表板查询函数的缓存装饰器。
+    """
     return cached(timeout=timeout, key_prefix="dashboard")

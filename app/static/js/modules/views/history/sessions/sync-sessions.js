@@ -37,6 +37,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   let sessionDetailModalController = null;
   let autoRefreshTimer = null;
 
+  /**
+   * DOM 就绪回调，负责初始化服务与组件。
+   */
   const ready = () => {
     if (!initializeService()) {
       return;
@@ -71,6 +74,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     }
   }
 
+  /**
+   * 初始化同步会话详情模态。
+   */
   function initializeModals() {
     if (!global.SyncSessionDetailModal?.createController) {
       console.warn('SyncSessionDetailModal 未加载，将无法查看详情');
@@ -92,6 +98,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     }
   }
 
+  /**
+   * 初始化同步筛选表单。
+   */
   function initializeFilterCard() {
     const factory = global.UI?.createFilterCard;
     if (!factory) {
@@ -107,6 +116,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     });
   }
 
+  /**
+   * 初始化 gridjs 会话列表。
+   */
   function initializeSessionsGrid() {
     const container = documentRef.getElementById(GRID_CONTAINER_ID);
     if (!container) {
@@ -138,6 +150,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     sessionsGrid.init();
   }
 
+  /**
+   * 构建 Grid 列配置。
+   */
   function buildColumns() {
     return [
       {
@@ -195,6 +210,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     ];
   }
 
+  /**
+   * 处理服务端响应，返回 gridjs 可消费数据。
+   */
   function handleServerResponse(response) {
     const payload = response?.data || response || {};
     const items = payload.items || [];
@@ -211,10 +229,16 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     ]);
   }
 
+  /**
+   * 从 gridjs 行取出原始数据。
+   */
   function resolveRowMeta(row) {
     return row?.cells?.[row.cells.length - 1]?.data || {};
   }
 
+  /**
+   * 渲染会话 ID 单元格。
+   */
   function renderSessionId(meta) {
     if (!gridHtml) {
       return meta.session_id || '-';
@@ -225,6 +249,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return gridHtml(`<span class="font-monospace small" title="${escapeHtml(rawId)}">${sessionId}</span>`);
   }
 
+  /**
+   * 渲染同步类型徽章。
+   */
   function renderSyncType(meta) {
     if (!gridHtml) {
       return getSyncTypeText(meta.sync_type);
@@ -233,6 +260,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return gridHtml(`<span class="badge bg-primary">${text}</span>`);
   }
 
+  /**
+   * 渲染同步分类徽章。
+   */
   function renderSyncCategory(meta) {
     if (!gridHtml) {
       return getSyncCategoryText(meta.sync_category);
@@ -249,6 +279,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
   }
 
+  /**
+   * 渲染状态标签。
+   */
   function renderStatusBadge(meta) {
     if (!gridHtml) {
       return getStatusText(meta.status);
@@ -258,6 +291,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
   }
 
+  /**
+   * 渲染进度条。
+   */
   function renderProgress(meta) {
     if (!gridHtml) {
       return '-';
@@ -281,6 +317,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     `);
   }
 
+  /**
+   * 渲染任务开始时间。
+   */
   function renderTimestamp(value) {
     if (!gridHtml) {
       return value || '-';
@@ -292,6 +331,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return gridHtml(`<span class="text-muted small">${escapeHtml(formatted || value)}</span>`);
   }
 
+  /**
+   * 渲染任务耗时。
+   */
   function renderDuration(meta) {
     if (!gridHtml) {
       return getDurationBadge(meta.started_at, meta.completed_at);
@@ -299,6 +341,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return gridHtml(getDurationBadge(meta.started_at, meta.completed_at));
   }
 
+  /**
+   * 渲染详情/取消按钮。
+   */
   function renderActions(meta) {
     if (!gridHtml) {
       return '';
@@ -314,6 +359,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return gridHtml(`<div class="d-flex gap-2">${viewBtn}${cancelBtn}</div>`);
   }
 
+  /**
+   * 绑定表格上的按钮事件。
+   */
   function bindGridEvents() {
     const container = documentRef.getElementById(GRID_CONTAINER_ID);
     if (!container) {
@@ -334,6 +382,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     });
   }
 
+  /**
+   * 启动自动刷新定时器。
+   */
   function setupAutoRefresh() {
     if (!sessionsGrid) {
       return;
@@ -345,6 +396,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     global.addEventListener('beforeunload', clearAutoRefresh, { once: true });
   }
 
+  /**
+   * 停止自动刷新。
+   */
   function clearAutoRefresh() {
     if (autoRefreshTimer) {
       clearInterval(autoRefreshTimer);
@@ -352,6 +406,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     }
   }
 
+  /**
+   * 应用筛选条件。
+   */
   function applySyncFilters(values) {
     if (!sessionsGrid) {
       return;
@@ -360,6 +417,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     sessionsGrid.updateFilters(filters);
   }
 
+  /**
+   * 解析表单筛选值，支持覆盖。
+   */
   function resolveSyncFilters(overrideValues) {
     const rawValues = overrideValues && Object.keys(overrideValues || {}).length
       ? overrideValues
@@ -381,6 +441,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return result;
   }
 
+  /**
+   * 收集表单数据。
+   */
   function collectFormValues() {
     if (filterCard?.serialize) {
       return filterCard.serialize();
@@ -406,6 +469,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return result;
   }
 
+  /**
+   * 移除空值，返回有效过滤列表。
+   */
   function normalizeFilters(raw) {
     const filters = { ...(raw || {}) };
     Object.keys(filters).forEach((key) => {
@@ -417,6 +483,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return filters;
   }
 
+  /**
+   * 规范化过滤值。
+   */
   function sanitizeFilterValue(value) {
     if (Array.isArray(value)) {
       return value
@@ -426,6 +495,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return sanitizePrimitiveValue(value);
   }
 
+  /**
+   * 处理单个值（数字/字符串）。
+   */
   function sanitizePrimitiveValue(value) {
     if (typeof value === 'string') {
       const trimmed = value.trim();
@@ -437,6 +509,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return value;
   }
 
+  /**
+   * 打开详情模态。
+   */
   function viewSessionDetail(sessionId) {
     if (!sessionId) {
       return;
@@ -454,6 +529,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       });
   }
 
+  /**
+   * 渲染并展示详情模态内容。
+   */
   function showSessionDetail(session) {
     if (sessionDetailModalController) {
       sessionDetailModalController.open(session);
@@ -462,6 +540,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     console.warn('会话详情模态未初始化');
   }
 
+  /**
+   * 调用 API 取消会话。
+   */
   function cancelSession(sessionId) {
     if (!sessionId) {
       return;
@@ -482,6 +563,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       });
   }
 
+  /**
+   * 统一成功提示。
+   */
   function notifySuccess(message) {
     if (global.toast?.success) {
       global.toast.success(message);
@@ -490,6 +574,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     }
   }
 
+  /**
+   * 统一错误提示。
+   */
   function notifyError(message) {
     if (global.toast?.error) {
       global.toast.error(message);
@@ -498,6 +585,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     }
   }
 
+  /**
+   * 简单 HTML 转义。
+   */
   function escapeHtml(value) {
     if (value === undefined || value === null) {
       return '';
@@ -521,6 +611,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   global.getDurationBadge = getDurationBadge;
 }
 
+/**
+ * 根据成功率返回进度条样式。
+ */
 function getProgressInfo(successRate, totalInstances, successfulInstances, failedInstances) {
   if (totalInstances === 0) {
     return { barClass: 'bg-secondary', textClass: 'text-muted', icon: 'fas fa-question-circle', tooltip: '无实例数据' };
@@ -547,15 +640,24 @@ function getProgressInfo(successRate, totalInstances, successfulInstances, faile
   };
 }
 
+/**
+ * 输出状态名称。
+ */
 function getStatusText(status) {
   return status || '-';
 }
 
+/**
+ * 状态对应的徽章颜色。
+ */
 function getStatusColor(status) {
   const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning' };
   return map[status] || 'secondary';
 }
 
+/**
+ * 同步类型文本。
+ */
 function getSyncTypeText(type) {
   const typeMap = {
     manual_single: '手动单台',
@@ -566,6 +668,9 @@ function getSyncTypeText(type) {
   return typeMap[type] || type || '-';
 }
 
+/**
+ * 同步类别文本。
+ */
 function getSyncCategoryText(category) {
   const categoryMap = {
     account: '账户同步',
@@ -577,7 +682,10 @@ function getSyncCategoryText(category) {
   return categoryMap[category] || category || '-';
 }
 
-function getDurationBadge(startedAt, completedAt) {
+  /**
+   * 构造耗时徽章 HTML。
+   */
+  function getDurationBadge(startedAt, completedAt) {
   if (!startedAt || !completedAt) {
     return '<span class="text-muted">-</span>';
   }
