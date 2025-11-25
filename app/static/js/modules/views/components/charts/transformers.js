@@ -30,6 +30,10 @@
 
   /**
    * 将 hex 颜色转换为带透明度的 rgba。
+   *
+   * @param {string} hexColor - 十六进制颜色值
+   * @param {number} alpha - 透明度（0-1）
+   * @return {string} rgba 颜色字符串
    */
   function colorWithAlpha(hexColor, alpha) {
     const normalized = hexColor.startsWith("#")
@@ -46,6 +50,10 @@
 
   /**
    * 解析标签，支持函数或字段名。
+   *
+   * @param {Function|string} extractor - 标签提取函数或字段名
+   * @param {Object} item - 数据项
+   * @return {Object} 包含 key 和 label 的对象
    */
   function normalizeLabel(extractor, item) {
     if (typeof extractor === "function") {

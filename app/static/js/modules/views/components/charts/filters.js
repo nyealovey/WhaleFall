@@ -11,6 +11,9 @@
 
   /**
    * 工具：支持 selector 或 Element。
+   *
+   * @param {string|Element} selector - CSS 选择器或 DOM 元素
+   * @return {Element|null} DOM 元素或 null
    */
   function getElement(selector) {
     if (!selector) {
@@ -27,6 +30,9 @@
 
   /**
    * 读取下拉框值，找不到则返回空字符串。
+   *
+   * @param {string|Element} selector - CSS 选择器或 DOM 元素
+   * @return {string} 下拉框的值
    */
   function readSelectValue(selector) {
     const element = getElement(selector);
@@ -38,6 +44,10 @@
 
   /**
    * 获取 radio 组当前选中值，无则返回 fallback。
+   *
+   * @param {string} name - radio 组的 name 属性
+   * @param {string} fallback - 默认值
+   * @return {string} 选中的值或默认值
    */
   function readRadioValue(name, fallback) {
     if (!name) {
@@ -49,6 +59,9 @@
 
   /**
    * 初始化筛选（实例/数据库/周期等）。
+   *
+   * @param {Object} config - 配置对象
+   * @return {Object} 筛选条件对象
    */
   function readInitialFilters(config) {
     const dbType = readSelectValue("#db_type");
