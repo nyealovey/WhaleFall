@@ -39,6 +39,11 @@ try {
 let instanceStore = null;
 let historyModal = null;
 
+/**
+ * 确保实例服务已初始化。
+ *
+ * @return {boolean} 如果服务已初始化返回 true，否则返回 false
+ */
 function ensureInstanceService() {
     if (!instanceService) {
         if (window.toast?.error) {
@@ -63,7 +68,11 @@ ready(() => {
     }
 });
 
-// 初始化实例 store
+/**
+ * 初始化实例 Store。
+ *
+ * @return {void}
+ */
 function initializeInstanceStore() {
     if (!window.createInstanceStore) {
         console.warn('createInstanceStore 未加载，跳过实例 Store 初始化');
@@ -90,7 +99,11 @@ function initializeInstanceStore() {
     window.addEventListener('beforeunload', teardownInstanceStore, { once: true });
 }
 
-// 页面卸载时销毁 store
+/**
+ * 页面卸载时销毁 Store。
+ *
+ * @return {void}
+ */
 function teardownInstanceStore() {
     if (!instanceStore) {
         return;
@@ -99,7 +112,14 @@ function teardownInstanceStore() {
     instanceStore = null;
 }
 
-// 测试连接 - 使用新的连接管理API
+/**
+ * 测试数据库连接。
+ *
+ * 使用连接管理 API 测试实例的数据库连接状态。
+ *
+ * @param {Event} event - 点击事件对象
+ * @return {void}
+ */
 function testConnection(event) {
     const fallbackBtn = selectOne('button[onclick="testConnection()"]').first();
     const testBtn = event?.currentTarget || event?.target || fallbackBtn;
@@ -174,7 +194,12 @@ function testConnection(event) {
     });
 }
 
-// 同步账户
+/**
+ * 同步实例账户。
+ *
+ * @param {Event} event - 点击事件对象
+ * @return {void}
+ */
 function syncAccounts(event) {
     if (!ensureInstanceService()) {
         return;
@@ -245,7 +270,14 @@ function syncAccounts(event) {
         });
 }
 
-// 同步容量
+/**
+ * 同步实例容量数据。
+ *
+ * @param {number|string} instanceId - 实例 ID
+ * @param {string} instanceName - 实例名称
+ * @param {Event} event - 点击事件对象
+ * @return {void}
+ */
 function syncCapacity(instanceId, instanceName, event) {
     if (!ensureInstanceService()) {
         return;
@@ -317,7 +349,12 @@ function syncCapacity(instanceId, instanceName, event) {
         });
 }
 
-// 查看实例账户权限
+/**
+ * 查看实例账户权限。
+ *
+ * @param {number|string} accountId - 账户 ID
+ * @return {void}
+ */
 function viewInstanceAccountPermissions(accountId) {
     // 调用全局的 viewAccountPermissions 函数，指定instances页面的API URL
     window.viewAccountPermissions(accountId, {
@@ -325,6 +362,12 @@ function viewInstanceAccountPermissions(accountId) {
     });
 }
 
+/**
+ * 转义 HTML 特殊字符。
+ *
+ * @param {*} value - 要转义的值
+ * @return {string} 转义后的字符串
+ */
 function escapeHtml(value) {
     if (value === null || value === undefined) {
         return '';
@@ -337,6 +380,12 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+/**
+ * 渲染权限差异条目。
+ *
+ * @param {Array} diffEntries - 差异条目数组
+ * @return {string} 渲染的 HTML 字符串
+ */
 function renderPrivilegeDiffEntries(diffEntries) {
     if (!Array.isArray(diffEntries) || diffEntries.length === 0) {
         return '';
@@ -370,6 +419,12 @@ function renderPrivilegeDiffEntries(diffEntries) {
     return html;
 }
 
+/**
+ * 渲染其他差异条目。
+ *
+ * @param {Array} diffEntries - 差异条目数组
+ * @return {string} 渲染的 HTML 字符串
+ */
 function renderOtherDiffEntries(diffEntries) {
     if (!Array.isArray(diffEntries) || diffEntries.length === 0) {
         return '';
@@ -384,7 +439,12 @@ function renderOtherDiffEntries(diffEntries) {
     return html;
 }
 
-// 查看账户变更历史
+/**
+ * 查看账户变更历史。
+ *
+ * @param {number|string} accountId - 账户 ID
+ * @return {void}
+ */
 function viewAccountChangeHistory(accountId) {
     if (!ensureInstanceService()) {
         return;
@@ -441,7 +501,11 @@ function viewAccountChangeHistory(accountId) {
         });
 }
 
-// 切换已删除账户显示
+/**
+ * 切换已删除账户的显示/隐藏。
+ *
+ * @return {void}
+ */
 function toggleDeletedAccounts() {
     const checkbox = selectOne('#showDeletedAccounts');
     const accountRows = select('.account-row');
@@ -470,13 +534,22 @@ function toggleDeletedAccounts() {
 
 // 显示提示信息
 
-// 工具函数
+/**
+ * 获取实例 ID。
+ *
+ * @return {string} 实例 ID
+ */
 function getInstanceId() {
     // 从页面URL或数据属性中获取实例ID
     const urlParts = window.location.pathname.split('/');
     return urlParts[urlParts.length - 1];
 }
 
+/**
+ * 获取实例名称。
+ *
+ * @return {string} 实例名称
+ */
 function getInstanceName() {
     const titleElement = selectOne('h2');
     if (titleElement.length) {
@@ -485,6 +558,12 @@ function getInstanceName() {
     return '未知实例';
 }
 
+/**
+ * 将 MB 值格式化为 GB 标签。
+ *
+ * @param {number} mbValue - MB 值
+ * @return {string} 格式化后的字符串
+ */
 function formatGbLabelFromMb(mbValue) {
     const numeric = Number(mbValue) || 0;
     return window.NumberFormat.formatBytesFromMB(numeric, {
@@ -497,7 +576,11 @@ function formatGbLabelFromMb(mbValue) {
 
 // CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
 
-// 数据库容量相关函数
+/**
+ * 加载数据库容量数据。
+ *
+ * @return {void}
+ */
 function loadDatabaseSizes() {
     if (!ensureInstanceService()) {
         return;
@@ -539,6 +622,12 @@ function loadDatabaseSizes() {
         });
 }
 
+/**
+ * 显示数据库容量数据。
+ *
+ * @param {Object} payload - 容量数据对象
+ * @return {void}
+ */
 function displayDatabaseSizes(payload) {
     const contentDiv = selectOne('#databaseSizesContent');
     if (!contentDiv.length) {
@@ -697,6 +786,12 @@ function displayDatabaseSizes(payload) {
     toggleDeletedDatabases();
 }
 
+/**
+ * 显示数据库容量加载错误。
+ *
+ * @param {Error|Object} error - 错误对象
+ * @return {void}
+ */
 function displayDatabaseSizesError(error) {
     const contentDiv = selectOne('#databaseSizesContent');
     if (!contentDiv.length) {
@@ -714,11 +809,20 @@ function displayDatabaseSizesError(error) {
     `);
 }
 
+/**
+ * 刷新数据库容量数据。
+ *
+ * @return {void}
+ */
 function refreshDatabaseSizes() {
     loadDatabaseSizes();
 }
 
-// 切换已删除数据库显示/隐藏
+/**
+ * 切换已删除数据库的显示/隐藏。
+ *
+ * @return {void}
+ */
 function toggleDeletedDatabases() {
     const checkbox = selectOne('#showDeletedDatabases');
     const rows = select('#databaseSizesContent tbody tr[data-is-active]');
@@ -753,6 +857,11 @@ ready(() => {
 window.InstanceDetailPage = {
     mount: mountInstanceDetailPage,
 };
+/**
+ * 初始化历史记录模态框。
+ *
+ * @return {void}
+ */
 function initializeHistoryModal() {
     const factory = window.UI?.createModal;
     if (!factory) {
@@ -764,6 +873,12 @@ function initializeHistoryModal() {
     });
 }
 
+/**
+ * 确保历史记录模态框已初始化。
+ *
+ * @throws {Error} 当模态框未初始化时抛出
+ * @return {void}
+ */
 function ensureHistoryModal() {
     if (!historyModal) {
         throw new Error('变更历史模态未初始化');
@@ -771,6 +886,11 @@ function ensureHistoryModal() {
     return historyModal;
 }
 
+/**
+ * 重置历史记录内容。
+ *
+ * @return {void}
+ */
 function resetHistoryContent() {
     const wrapper = selectOne('#historyContent');
     if (wrapper.length) {

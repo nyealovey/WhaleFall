@@ -11,15 +11,45 @@ from app.utils.response_utils import jsonify_unified_error_message, jsonify_unif
 
 
 class SchedulerJobFormView(ResourceFormView):
+    """统一处理定时任务编辑的视图。
+    
+    Attributes:
+        form_definition: 定时任务表单定义配置。
+    """
+    
     form_definition = SCHEDULER_JOB_FORM_DEFINITION
 
     def get(self, *args, **kwargs):
+        """GET 请求处理（不支持）。
+        
+        Raises:
+            NotFoundError: 始终抛出，因为不支持此操作。
+        """
         raise NotFoundError("不支持的操作")
 
     def post(self, *args, **kwargs):
+        """POST 请求处理（不支持）。
+        
+        Raises:
+            NotFoundError: 始终抛出，因为不支持此操作。
+        """
         raise NotFoundError("不支持的操作")
 
     def put(self, job_id: str, **kwargs) -> Response:
+        """PUT 请求处理，更新定时任务。
+        
+        Args:
+            job_id: 任务 ID。
+            **kwargs: 额外的关键字参数。
+            
+        Returns:
+            JSON 响应对象。
+            
+        Raises:
+            NotFoundError: 当任务不存在时抛出。
+            ValidationError: 当验证失败时抛出。
+            SystemError: 当系统错误时抛出。
+        """
         try:
             resource = self._load_resource(job_id)
             payload = self._extract_payload(request)
@@ -37,4 +67,12 @@ class SchedulerJobFormView(ResourceFormView):
             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
 
     def _load_resource(self, job_id):
+        """加载任务资源。
+        
+        Args:
+            job_id: 任务 ID。
+            
+        Returns:
+            任务对象。
+        """
         return self.service.load(job_id)

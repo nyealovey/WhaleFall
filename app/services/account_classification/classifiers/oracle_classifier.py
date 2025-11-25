@@ -1,4 +1,7 @@
-"""Oracle 规则分类器。"""
+"""Oracle 规则分类器。
+
+实现 Oracle 数据库的账户分类规则评估逻辑，支持角色、系统权限和对象权限的匹配。
+"""
 
 from __future__ import annotations
 
@@ -10,9 +13,47 @@ from .base import BaseRuleClassifier
 
 
 class OracleRuleClassifier(BaseRuleClassifier):
+    """Oracle 规则分类器。
+
+    实现 Oracle 数据库的账户分类规则评估，支持以下规则类型：
+    - roles: 角色匹配
+    - system_privileges: 系统权限匹配
+    - object_privileges: 对象权限匹配
+
+    Attributes:
+        db_type: 数据库类型标识符，固定为 'oracle'。
+
+    Example:
+        >>> classifier = OracleRuleClassifier()
+        >>> rule = {'roles': ['DBA'], 'operator': 'OR'}
+        >>> classifier.evaluate(account, rule)
+        True
+    """
+
     db_type = "oracle"
 
     def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:  # noqa: ANN001
+        """评估账户是否满足 Oracle 规则表达式。
+
+        Args:
+            account: 账户权限对象。
+            rule_expression: 规则表达式字典，支持以下字段：
+                - operator: 逻辑运算符（'AND' 或 'OR'），默认为 'OR'
+                - roles: 角色列表
+                - system_privileges: 系统权限列表
+                - object_privileges: 对象权限列表
+
+        Returns:
+            如果账户满足规则返回 True，否则返回 False。
+
+        Example:
+            >>> rule = {
+            ...     'system_privileges': ['CREATE SESSION', 'CREATE TABLE'],
+            ...     'operator': 'AND'
+            ... }
+            >>> classifier.evaluate(account, rule)
+            True
+        """
         try:
             permissions = account.get_permissions_by_db_type()
             if not permissions:

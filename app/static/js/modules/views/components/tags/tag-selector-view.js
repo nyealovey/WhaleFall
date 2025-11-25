@@ -6,6 +6,9 @@
 
   /**
    * 将多种输入转换为 DOM 元素，方便外部引用选择器。
+   *
+   * @param {string|Element} target - 目标元素或选择器
+   * @return {Element|null} DOM 元素，未找到则返回 null
    */
   function toElement(target) {
     if (!target) {
@@ -22,6 +25,9 @@
 
   /**
    * 对分类列表进行去重和排序，保持 UI 稳定。
+   *
+   * @param {Array<Object>} items - 分类数组
+   * @return {Array<Object>} 去重并排序后的分类数组
    */
   function orderCategories(items) {
     const collection = Array.isArray(items) ? items.filter(Boolean) : [];
@@ -33,6 +39,9 @@
 
   /**
    * 按激活状态与名称排序标签，用于列表与已选区。
+   *
+   * @param {Array<Object>} items - 标签数组
+   * @return {Array<Object>} 排序后的标签数组
    */
   function orderTags(items) {
     if (!Array.isArray(items)) {
@@ -53,6 +62,10 @@
 
   /**
    * 将标签颜色转成 badge 的 class/style。
+   *
+   * @param {Object} tag - 标签对象
+   * @param {string} [tag.color] - 标签颜色
+   * @return {Object} 包含 className 和 style 的对象
    */
   function resolveBadge(tag) {
     const color = tag?.color || "";
@@ -70,6 +83,9 @@
 
   /**
    * 使用统一的数字格式化工具展示统计数。
+   *
+   * @param {number} value - 数值
+   * @return {string} 格式化后的字符串
    */
   function formatNumber(value) {
     return NumberFormat?.formatInteger
@@ -79,8 +95,21 @@
 
   /**
    * 负责标签选择器的 DOM 渲染与用户交互绑定。
+   *
+   * @class
    */
   class TagSelectorView {
+    /**
+     * 构造函数。
+     *
+     * @constructor
+     * @param {string|Element} root - 根元素或选择器
+     * @param {Object} [handlers] - 事件处理器
+     * @param {Function} [handlers.onCategoryChange] - 分类切换回调
+     * @param {Function} [handlers.onTagToggle] - 标签切换回调
+     * @param {Function} [handlers.onSelectedRemove] - 移除已选标签回调
+     * @throws {Error} 当 root 未找到时抛出
+     */
     constructor(root, handlers = {}) {
       this.root = toElement(root);
       if (!this.root) {
@@ -97,6 +126,8 @@
 
     /**
      * 缓存组件用到的核心节点，避免重复查询。
+     *
+     * @return {Object} 包含所有缓存元素的对象
      */
     cacheElements() {
       return {
@@ -115,6 +146,8 @@
 
     /**
      * 绑定分类切换、标签点击与已选标签删除等交互。
+     *
+     * @return {void}
      */
     bindEvents() {
       const { categoryGroup, tagList, selectedList } = this.elements;
@@ -154,6 +187,10 @@
 
     /**
      * 渲染分类按钮，出现错误时输出告警文案。
+     *
+     * @param {Array<Object>} [categories] - 分类数组
+     * @param {string} [error] - 错误消息
+     * @return {void}
      */
     renderCategories(categories = [], error) {
       const group = this.elements.categoryGroup;
@@ -195,6 +232,11 @@
 
     /**
      * 渲染标签列表，结合当前选择状态展示。
+     *
+     * @param {Array<Object>} [tags] - 标签数组
+     * @param {Set<number>} [selection] - 已选标签 ID 集合
+     * @param {Object} [options] - 渲染选项
+     * @return {void}
      */
     renderTagList(tags = [], selection = new Set(), options = {}) {
       const list = this.elements.tagList;
@@ -238,6 +280,8 @@
 
     /**
      * 返回用于标签列表的加载占位 DOM 片段。
+     *
+     * @return {string} 加载状态 HTML
      */
     renderLoadingState() {
       return `
@@ -262,6 +306,9 @@
 
     /**
      * 返回错误态占位 DOM 片段。
+     *
+     * @param {string} message - 错误消息
+     * @return {string} 错误状态 HTML
      */
     renderErrorState(message) {
       return `
@@ -272,6 +319,9 @@
 
     /**
      * 根据已选标签渲染 chips 区域。
+     *
+     * @param {Array<Object>} [tags] - 已选标签数组
+     * @return {void}
      */
     updateSelectedDisplay(tags = []) {
       const selectedList = this.elements.selectedList;
@@ -300,6 +350,13 @@
 
     /**
      * 更新统计条展示。
+     *
+     * @param {Object} [stats] - 统计数据
+     * @param {number} [stats.total] - 总标签数
+     * @param {number} [stats.selected] - 已选标签数
+     * @param {number} [stats.active] - 激活标签数
+     * @param {number} [stats.filtered] - 筛选后标签数
+     * @return {void}
      */
     updateStats(stats = {}) {
       if (!this.elements.statsWrapper) {

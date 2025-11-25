@@ -2,7 +2,16 @@
   'use strict';
 
   /**
-   * 用户新建/编辑模态控制器。
+   * 创建用户新建/编辑模态控制器。
+   *
+   * @param {Object} [options] - 配置选项
+   * @param {Object} [options.http] - HTTP 请求工具
+   * @param {Object} [options.FormValidator] - 表单验证器
+   * @param {Object} [options.ValidationRules] - 验证规则
+   * @param {Object} [options.toast] - Toast 通知工具
+   * @param {Object} [options.DOMHelpers] - DOM 辅助工具
+   * @return {Object} 控制器对象，包含 init、openCreate、openEdit 方法
+   * @throws {Error} 当必需的依赖未初始化时抛出
    */
   function createController(options) {
     const {
@@ -36,6 +45,8 @@
 
     /**
      * 初始化表单验证与事件。
+     *
+     * @return {void}
      */
     function init() {
       if (!FormValidator || !ValidationRules) {
@@ -55,6 +66,8 @@
 
     /**
      * 重置表单状态为创建模式。
+     *
+     * @return {void}
      */
     function resetForm() {
       form.reset();
@@ -70,6 +83,8 @@
 
     /**
      * 打开新建模态。
+     *
+     * @return {void}
      */
     function openCreate() {
       resetForm();
@@ -78,6 +93,9 @@
 
     /**
      * 打开编辑模态并填充数据。
+     *
+     * @param {number|string} userId - 用户 ID
+     * @return {Promise<void>}
      */
     async function openEdit(userId) {
       if (!userId) {
@@ -110,6 +128,9 @@
 
     /**
      * 表单提交入口，按模式调用创建/更新。
+     *
+     * @param {Event} event - 提交事件
+     * @return {void}
      */
     function handleSubmit(event) {
       event.preventDefault();
@@ -127,6 +148,8 @@
 
     /**
      * 将表单值组装为 payload。
+     *
+     * @return {Object|null} 表单数据对象
      */
     function buildPayload() {
       const data = new FormData(form);
@@ -147,6 +170,9 @@
 
     /**
      * 调用后端创建用户。
+     *
+     * @param {Object} payload - 用户数据
+     * @return {void}
      */
     function submitCreate(payload) {
       http.post('/users/api/users', payload)
@@ -167,6 +193,9 @@
 
     /**
      * 调用后端更新用户。
+     *
+     * @param {Object} payload - 用户数据
+     * @return {void}
      */
     function submitUpdate(payload) {
       const userId = payload.id;
@@ -193,6 +222,9 @@
 
     /**
      * 切换提交按钮 loading 状态。
+     *
+     * @param {boolean} loading - 是否显示加载状态
+     * @return {void}
      */
     function toggleLoading(loading) {
       if (!submitBtn) {

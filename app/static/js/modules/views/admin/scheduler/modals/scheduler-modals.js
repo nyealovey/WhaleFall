@@ -1,6 +1,22 @@
 (function (window, document) {
     'use strict';
 
+    /**
+     * 创建调度器任务编辑模态控制器。
+     *
+     * @param {Object} [options] - 配置选项
+     * @param {Object} [options.FormValidator] - 表单验证器
+     * @param {Object} [options.ValidationRules] - 验证规则
+     * @param {Object} [options.toast] - Toast 通知工具
+     * @param {Function} [options.getJob] - 获取任务的函数
+     * @param {Function} [options.ensureStore] - 确保状态管理的函数
+     * @param {Function} [options.getStore] - 获取状态管理的函数
+     * @param {Function} [options.showLoadingState] - 显示加载状态的函数
+     * @param {Function} [options.hideLoadingState] - 隐藏加载状态的函数
+     * @param {Object} [options.timeUtils] - 时间工具对象
+     * @return {Object} 控制器对象，包含 init、openEdit 方法
+     * @throws {Error} 当缺少必需的 store 访问方法时抛出
+     */
     function createController(options) {
         const {
             FormValidator,
@@ -23,6 +39,11 @@
         const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
         let editValidator = null;
 
+        /**
+         * 初始化表单验证器。
+         *
+         * @return {void}
+         */
         function init() {
             if (FormValidator && ValidationRules && editForm) {
                 editValidator = FormValidator.create('#editJobForm');
@@ -54,6 +75,12 @@
             }
         }
 
+        /**
+         * 打开编辑任务模态框。
+         *
+         * @param {string|number} jobId - 任务 ID
+         * @return {void}
+         */
         function openEdit(jobId) {
             if (!ensureStore()) {
                 return;
@@ -68,6 +95,12 @@
             editModal?.show();
         }
 
+        /**
+         * 填充编辑表单数据。
+         *
+         * @param {Object} job - 任务对象
+         * @return {void}
+         */
         function fillEditForm(job) {
             setFieldValue('#editJobId', job.id);
             setFieldValue('#editJobName', job.name);
@@ -87,6 +120,12 @@
             populateCron(triggerArgs);
         }
 
+        /**
+         * 解析触发器参数。
+         *
+         * @param {string|Object} raw - 原始触发器参数
+         * @return {Object} 解析后的参数对象
+         */
         function parseTriggerArgs(raw) {
             if (!raw) return {};
             if (typeof raw === 'string') {
@@ -132,6 +171,11 @@
             updateCronPreview();
         }
 
+        /**
+         * 更新 Cron 表达式预览。
+         *
+         * @return {void}
+         */
         function updateCronPreview() {
             const second = getFieldValue('#editCronSecond', '0');
             const minute = getFieldValue('#editCronMinute', '0');
@@ -145,6 +189,11 @@
             setFieldValue('#editCronPreview', expression);
         }
 
+        /**
+         * 处理表单提交。
+         *
+         * @return {void}
+         */
         function handleSubmit() {
             if (!ensureStore()) {
                 return;
@@ -178,6 +227,14 @@
                 });
         }
 
+        /**
+         * 构建提交数据。
+         *
+         * @param {HTMLFormElement} formElement - 表单元素
+         * @param {FormData} formData - 表单数据
+         * @param {Object} originalJob - 原始任务对象
+         * @return {Object} 提交数据对象
+         */
         function buildPayload(formElement, formData, originalJob) {
             const isBuiltInJob = [
                 'sync_accounts',

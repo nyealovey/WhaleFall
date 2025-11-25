@@ -1,6 +1,6 @@
-"""
-鲸落 - SQL Server连接诊断工具
-分析SQL Server连接失败的具体原因
+"""SQL Server 连接诊断工具。
+
+分析 SQL Server 连接失败的具体原因，提供诊断信息和解决方案建议。
 """
 
 import socket
@@ -11,22 +11,51 @@ from app.utils.structlog_config import get_sync_logger
 
 
 class SQLServerConnectionDiagnostics:
-    """SQL Server连接诊断工具"""
+    """SQL Server 连接诊断工具。
+
+    提供 SQL Server 连接错误的诊断功能，包括错误类型识别、网络检查、
+    端口可达性测试和连接字符串建议。
+
+    Attributes:
+        diag_logger: 同步日志记录器。
+
+    Example:
+        >>> diag = SQLServerConnectionDiagnostics()
+        >>> result = diag.diagnose_connection_error("Login failed", "localhost", 1433)
+        >>> result['error_type']
+        'authentication_failed'
+    """
 
     def __init__(self) -> None:
+        """初始化 SQL Server 连接诊断工具。"""
         self.diag_logger = get_sync_logger()
 
     def diagnose_connection_error(self, error_message: str, host: str, port: int) -> Dict[str, Any]:
-        """
-        诊断SQL Server连接错误
-        
+        """诊断 SQL Server 连接错误。
+
+        分析错误消息，识别错误类型，执行网络和端口检查，提供可能的原因和解决方案。
+
         Args:
-            error_message: 错误消息
-            host: 主机地址
-            port: 端口号
-            
+            error_message: 连接错误消息。
+            host: 数据库主机地址。
+            port: 数据库端口号。
+
         Returns:
-            诊断结果
+            诊断结果字典，包含以下字段：
+            - host: 主机地址
+            - port: 端口号
+            - error_message: 错误消息
+            - error_type: 错误类型（authentication_failed、connection_failed、timeout 等）
+            - possible_causes: 可能的原因列表
+            - solutions: 解决方案建议列表
+            - network_check: 网络连通性检查结果
+            - port_check: 端口可达性检查结果
+
+        Example:
+            >>> diag = SQLServerConnectionDiagnostics()
+            >>> result = diag.diagnose_connection_error("Error 18456", "localhost", 1433)
+            >>> result['error_type']
+            'authentication_failed'
         """
         diagnosis = {
             "host": host,
@@ -104,7 +133,16 @@ class SQLServerConnectionDiagnostics:
         return diagnosis
 
     def _check_network_connectivity(self, host: str) -> bool:
-        """检查网络连通性"""
+        """检查网络连通性。
+
+        通过 DNS 解析测试主机是否可达。
+
+        Args:
+            host: 主机地址。
+
+        Returns:
+            如果主机可达返回 True，否则返回 False。
+        """
         try:
             socket.gethostbyname(host)
             return True
@@ -112,7 +150,17 @@ class SQLServerConnectionDiagnostics:
             return False
 
     def _check_port_accessibility(self, host: str, port: int) -> bool:
-        """检查端口可访问性"""
+        """检查端口可访问性。
+
+        尝试建立 TCP 连接测试端口是否开放。
+
+        Args:
+            host: 主机地址。
+            port: 端口号。
+
+        Returns:
+            如果端口可访问返回 True，否则返回 False。
+        """
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(10)
@@ -123,7 +171,26 @@ class SQLServerConnectionDiagnostics:
             return False
 
     def get_connection_string_suggestions(self, host: str, port: int, username: str, database: str = "master") -> List[str]:
-        """获取连接字符串建议"""
+        """获取连接字符串建议。
+
+        生成多种 SQL Server 连接字符串配置建议，包括基本连接、带超时、
+        带加密和带重试的配置。
+
+        Args:
+            host: 主机地址。
+            port: 端口号。
+            username: 用户名。
+            database: 数据库名称，默认为 'master'。
+
+        Returns:
+            连接字符串建议列表。
+
+        Example:
+            >>> diag = SQLServerConnectionDiagnostics()
+            >>> suggestions = diag.get_connection_string_suggestions("localhost", 1433, "sa")
+            >>> len(suggestions) > 0
+            True
+        """
         suggestions = []
         
         # 基本连接字符串
@@ -141,7 +208,26 @@ class SQLServerConnectionDiagnostics:
         return suggestions
 
     def analyze_error_patterns(self, error_message: str) -> Dict[str, Any]:
-        """分析错误模式"""
+        """分析错误模式。
+
+        通过关键词匹配识别错误消息中的错误类型模式。
+
+        Args:
+            error_message: 错误消息。
+
+        Returns:
+            错误模式字典，包含以下布尔字段：
+            - has_network_error: 是否包含网络错误
+            - has_auth_error: 是否包含认证错误
+            - has_server_error: 是否包含服务器错误
+            - has_permission_error: 是否包含权限错误
+
+        Example:
+            >>> diag = SQLServerConnectionDiagnostics()
+            >>> patterns = diag.analyze_error_patterns("Login failed for user")
+            >>> patterns['has_auth_error']
+            True
+        """
         patterns = {
             "has_network_error": any(keyword in error_message.lower() for keyword in ["timeout", "connection", "network", "unreachable"]),
             "has_auth_error": any(keyword in error_message.lower() for keyword in ["login", "authentication", "password", "user"]),

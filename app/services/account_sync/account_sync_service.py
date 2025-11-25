@@ -136,12 +136,16 @@ class AccountSyncService:
         """单实例同步 - 无会话管理。
 
         用于实例页面的直接同步调用，不创建持久化会话记录。
+        使用临时会话 ID 进行同步，完成后更新实例的最后连接时间。
 
         Args:
             instance: 数据库实例对象。
 
         Returns:
-            同步结果字典，包含成功状态、消息和统计信息。
+            同步结果字典，格式与 sync_accounts 方法相同。
+
+        Raises:
+            Exception: 同步过程中的任何异常都会被捕获并转换为错误结果。
         """
         temp_session_id = str(uuid4())
         try:
@@ -182,15 +186,19 @@ class AccountSyncService:
     def _sync_with_session(self, instance: Instance, sync_type: str, created_by: int | None) -> dict[str, Any]:
         """带会话管理的同步 - 用于批量同步。
 
-        创建新的同步会话，执行同步并记录结果。
+        创建新的同步会话，执行同步并记录结果。会话记录会持久化到数据库，
+        用于追踪批量同步的进度和结果。
 
         Args:
             instance: 数据库实例对象。
-            sync_type: 同步操作方式。
-            created_by: 创建者用户 ID。
+            sync_type: 同步操作方式，如 'manual_batch'、'scheduled_task'。
+            created_by: 创建者用户 ID，手动同步时必须提供。
 
         Returns:
-            同步结果字典，包含成功状态、消息和统计信息。
+            同步结果字典，格式与 sync_accounts 方法相同。
+
+        Raises:
+            Exception: 会话创建或同步过程中的异常会被捕获并转换为错误结果。
         """
         try:
             # 创建同步会话
@@ -263,15 +271,18 @@ class AccountSyncService:
     ) -> dict[str, Any]:
         """使用现有会话 ID 进行同步。
 
-        在已有会话的上下文中执行同步操作。
+        在已有会话的上下文中执行同步操作，用于批量同步场景中的单个实例同步。
 
         Args:
             instance: 数据库实例对象。
-            session_id: 已存在的会话 ID。
-            sync_type: 同步操作方式，可选。
+            session_id: 已存在的会话 ID，用于关联同步记录。
+            sync_type: 同步操作方式，可选，用于日志记录。
 
         Returns:
-            同步结果字典，包含成功状态、消息和统计信息。
+            同步结果字典，格式与 sync_accounts 方法相同。
+
+        Raises:
+            Exception: 同步过程中的异常会被捕获，数据库会回滚。
         """
         try:
             with AccountSyncCoordinator(instance) as coordinator:

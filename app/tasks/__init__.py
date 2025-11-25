@@ -1,6 +1,13 @@
-"""
-鲸落定时任务模块
-包含各种定时任务的实现
+"""定时任务模块。
+
+包含各种定时任务的实现，由 APScheduler 调度执行。
+
+主要任务：
+- log_cleanup_tasks: 日志清理任务
+- account_sync_tasks: 账户同步任务
+- capacity_collection_tasks: 容量采集任务
+- capacity_aggregation_tasks: 容量聚合任务
+- partition_management_tasks: 分区管理任务
 """
 
 from .log_cleanup_tasks import cleanup_old_logs

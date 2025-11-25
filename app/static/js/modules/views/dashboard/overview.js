@@ -41,6 +41,8 @@ function mountDashboardOverview(global) {
 
     /**
      * 页面入口：初始化仪表盘图表。
+     *
+     * @return {void}
      */
     function initCharts() {
         initLogTrendChart();
@@ -48,6 +50,9 @@ function mountDashboardOverview(global) {
 
     /**
      * 读取 CSS 变量值。
+     *
+     * @param {string} variable - CSS 变量名称，例如 '--danger-color'
+     * @return {string} CSS 变量的值
      */
     function getCssVariable(variable) {
         return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
@@ -55,6 +60,12 @@ function mountDashboardOverview(global) {
 
     /**
      * 带透明度的颜色转换。
+     *
+     * 将十六进制或 RGB 颜色转换为带透明度的 RGBA 格式。
+     *
+     * @param {string} color - 颜色值，支持十六进制（#RRGGBB）或 RGB 格式
+     * @param {number} alpha - 透明度，范围 0-1
+     * @return {string} RGBA 格式的颜色字符串
      */
     function colorWithAlpha(color, alpha) {
         if (color.startsWith('#')) {
@@ -71,6 +82,10 @@ function mountDashboardOverview(global) {
 
     /**
      * 初始化日志趋势图表。
+     *
+     * 从服务端获取日志趋势数据并渲染为折线图，展示错误日志和告警日志的趋势。
+     *
+     * @return {void}
      */
     function initLogTrendChart() {
         const canvasWrapper = selectOne('#logTrendChart');
@@ -160,6 +175,12 @@ function mountDashboardOverview(global) {
             });
     }
 
+    /**
+     * 从事件或引用中解析按钮元素。
+     *
+     * @param {Element|Event|Object} reference - 按钮引用或事件对象
+     * @return {Element|null} 按钮元素，未找到则返回 null
+     */
     function resolveButton(reference) {
         if (!reference && global.event && global.event.target) {
             return global.event.target;
@@ -179,6 +200,14 @@ function mountDashboardOverview(global) {
         return null;
     }
 
+    /**
+     * 刷新仪表盘。
+     *
+     * 显示加载状态并重新加载页面。
+     *
+     * @param {Element|Event} trigger - 触发刷新的按钮或事件
+     * @return {void}
+     */
     function refreshDashboard(trigger) {
         const button = resolveButton(trigger);
         const buttonWrapper = button ? from(button) : null;
@@ -201,6 +230,19 @@ function mountDashboardOverview(global) {
         }
     }
 
+    /**
+     * 更新系统状态显示。
+     *
+     * @param {Object} status - 系统状态数据
+     * @param {Object} status.system - 系统资源信息
+     * @param {number} status.system.cpu - CPU 使用率
+     * @param {Object} status.system.memory - 内存信息
+     * @param {number} status.system.memory.percent - 内存使用率
+     * @param {Object} status.system.disk - 磁盘信息
+     * @param {number} status.system.disk.percent - 磁盘使用率
+     * @param {string} status.uptime - 系统运行时间
+     * @return {void}
+     */
     function updateSystemStatus(status) {
         updateResourceUsage('cpu', status.system.cpu);
         updateResourceUsage('memory', status.system.memory.percent);
@@ -209,6 +251,13 @@ function mountDashboardOverview(global) {
         showDataUpdatedNotification('数据已更新');
     }
 
+    /**
+     * 更新资源使用率显示。
+     *
+     * @param {string} type - 资源类型：'cpu'、'memory'、'disk'
+     * @param {number} percent - 使用率百分比
+     * @return {void}
+     */
     function updateResourceUsage(type, percent) {
         const selectors = {
             cpu: {
@@ -245,18 +294,36 @@ function mountDashboardOverview(global) {
         bar.attr('class', `progress-bar ${barClass}`);
     }
 
+    /**
+     * 获取资源徽章样式类。
+     *
+     * @param {number} percent - 使用率百分比
+     * @return {string} Bootstrap 样式类名
+     */
     function getResourceBadgeClass(percent) {
         if (percent > 80) return 'bg-danger';
         if (percent > 60) return 'bg-warning';
         return 'bg-success';
     }
 
+    /**
+     * 获取资源进度条样式类。
+     *
+     * @param {number} percent - 使用率百分比
+     * @return {string} Bootstrap 样式类名
+     */
     function getResourceBarClass(percent) {
         if (percent > 80) return 'bg-danger';
         if (percent > 60) return 'bg-warning';
         return 'bg-success';
     }
 
+    /**
+     * 更新系统运行时间显示。
+     *
+     * @param {string} uptime - 运行时间字符串
+     * @return {void}
+     */
     function updateUptime(uptime) {
         const uptimeElement = selectOne('.card-body .mt-3 small');
         if (!uptimeElement.length) {
@@ -265,6 +332,12 @@ function mountDashboardOverview(global) {
         uptimeElement.html(`<i class="fas fa-clock me-1"></i>系统运行时间: ${uptime || '未知'}`);
     }
 
+    /**
+     * 显示数据更新通知。
+     *
+     * @param {string} message - 通知消息
+     * @return {void}
+     */
     function showDataUpdatedNotification(message) {
         select('.data-updated').remove();
 
@@ -280,14 +353,32 @@ function mountDashboardOverview(global) {
         }, 3000);
     }
 
+    /**
+     * 显示错误消息。
+     *
+     * @param {string} message - 错误消息
+     * @return {void}
+     */
     function showError(message) {
         global.toast.error(message);
     }
 
+    /**
+     * 显示成功消息。
+     *
+     * @param {string} message - 成功消息
+     * @return {void}
+     */
     function showSuccess(message) {
         global.toast.success(message);
     }
 
+    /**
+     * 显示警告消息。
+     *
+     * @param {string} message - 警告消息
+     * @return {void}
+     */
     function showWarning(message) {
         global.toast.warning(message);
     }

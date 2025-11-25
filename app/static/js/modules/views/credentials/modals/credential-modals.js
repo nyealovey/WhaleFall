@@ -1,6 +1,18 @@
 (function (window, document) {
   'use strict';
 
+  /**
+   * 创建凭据新建/编辑模态控制器。
+   *
+   * @param {Object} [options] - 配置选项
+   * @param {Object} [options.http] - HTTP 请求工具
+   * @param {Object} [options.FormValidator] - 表单验证器
+   * @param {Object} [options.ValidationRules] - 验证规则
+   * @param {Object} [options.toast] - Toast 通知工具
+   * @param {Object} [options.DOMHelpers] - DOM 辅助工具
+   * @return {Object} 控制器对象，包含 init、openCreate、openEdit 方法
+   * @throws {Error} 当必需的依赖未初始化时抛出
+   */
   function createController(options) {
     const {
       http = window.httpU,
@@ -35,6 +47,11 @@
     let validator = null;
     let mode = 'create';
 
+    /**
+     * 初始化表单验证与事件。
+     *
+     * @return {void}
+     */
     function init() {
       if (!FormValidator || !ValidationRules) {
         console.warn('CredentialModals: FormValidator 或 ValidationRules 未加载');
@@ -56,6 +73,11 @@
       handleCredentialTypeChange();
     }
 
+    /**
+     * 处理凭据类型变化。
+     *
+     * @return {void}
+     */
     function handleCredentialTypeChange() {
       if (!typeSelect || !dbTypeField || !dbTypeSelect) {
         return;
@@ -72,6 +94,12 @@
       validator?.revalidateField('#credentialDbType');
     }
 
+    /**
+     * 切换密码显示/隐藏。
+     *
+     * @param {Event} event - 点击事件
+     * @return {void}
+     */
     function handleTogglePassword(event) {
       if (!passwordInput) {
         return;
@@ -85,6 +113,11 @@
       }
     }
 
+    /**
+     * 重置表单状态为创建模式。
+     *
+     * @return {void}
+     */
     function resetForm() {
       form.reset();
       form.dataset.formMode = 'create';
@@ -97,11 +130,22 @@
       validator?.instance?.refresh?.();
     }
 
+    /**
+     * 打开新建模态。
+     *
+     * @return {void}
+     */
     function openCreate() {
       resetForm();
       modal.show();
     }
 
+    /**
+     * 打开编辑模态并填充数据。
+     *
+     * @param {number|string} credentialId - 凭据 ID
+     * @return {Promise<void>}
+     */
     async function openEdit(credentialId) {
       if (!credentialId) {
         return;
@@ -133,6 +177,12 @@
       }
     }
 
+    /**
+     * 表单提交入口，按模式调用创建/更新。
+     *
+     * @param {Event} event - 提交事件
+     * @return {void}
+     */
     function handleSubmit(event) {
       event?.preventDefault?.();
       const payload = buildPayload();
@@ -147,6 +197,11 @@
       }
     }
 
+    /**
+     * 将表单值组装为 payload。
+     *
+     * @return {Object|null} 表单数据对象
+     */
     function buildPayload() {
       const data = new FormData(form);
       const payload = {
@@ -167,6 +222,12 @@
       return payload;
     }
 
+    /**
+     * 调用后端创建凭据。
+     *
+     * @param {Object} payload - 凭据数据
+     * @return {void}
+     */
     function submitCreate(payload) {
       http.post('/credentials/api/create', payload)
         .then((resp) => {
@@ -184,6 +245,12 @@
         .finally(() => toggleLoading(false));
     }
 
+    /**
+     * 调用后端更新凭据。
+     *
+     * @param {Object} payload - 凭据数据
+     * @return {void}
+     */
     function submitUpdate(payload) {
       const credentialId = payload.id;
       if (!credentialId) {
@@ -207,6 +274,12 @@
         .finally(() => toggleLoading(false));
     }
 
+    /**
+     * 切换提交按钮 loading 状态。
+     *
+     * @param {boolean} loading - 是否显示加载状态
+     * @return {void}
+     */
     function toggleLoading(loading) {
       if (!submitBtn) {
         return;

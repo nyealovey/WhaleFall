@@ -6,6 +6,11 @@
   let refreshHandlerBound = false;
   let initialized = false;
 
+  /**
+   * 挂载分区列表组件。
+   *
+   * @return {void}
+   */
   function mount() {
     const helpers = global.DOMHelpers;
     if (!helpers) {
@@ -23,6 +28,11 @@
     });
   }
 
+  /**
+   * 初始化分区列表表格。
+   *
+   * @return {void}
+   */
   function initializeGrid() {
     const container = document.getElementById("partitions-grid");
     if (!container) {
@@ -62,6 +72,11 @@
     partitionGrid.init();
   }
 
+  /**
+   * 构建表格列配置。
+   *
+   * @return {Array<Object>} 列配置数组
+   */
   function buildColumns() {
     const gridHtml = global.gridjs?.html;
     return [
@@ -120,10 +135,23 @@
     ];
   }
 
+  /**
+   * 解析行元数据。
+   *
+   * @param {Object} row - 表格行对象
+   * @return {Object} 元数据对象
+   */
   function resolveRowMeta(row) {
     return row?.cells?.[row.cells.length - 1]?.data || {};
   }
 
+  /**
+   * 渲染状态徽章。
+   *
+   * @param {string} status - 状态值
+   * @param {Function} gridHtml - Grid.js HTML 函数
+   * @return {string|Object} 徽章 HTML 或文本
+   */
   function renderStatusBadge(status, gridHtml) {
     const normalized = (status || "unknown").toLowerCase();
     const meta = {
@@ -139,6 +167,12 @@
     return gridHtml(`<span class="badge bg-${resolved.color}">${resolved.text}</span>`);
   }
 
+  /**
+   * 转义 HTML 特殊字符。
+   *
+   * @param {*} value - 要转义的值
+   * @return {string} 转义后的字符串
+   */
   function escapeHtml(value) {
     if (value === undefined || value === null) {
       return "";
@@ -151,6 +185,11 @@
       .replace(/'/g, "&#39;");
   }
 
+  /**
+   * 绑定刷新事件监听器。
+   *
+   * @return {void}
+   */
   function bindRefreshEvent() {
     if (refreshHandlerBound) {
       return;
@@ -165,6 +204,11 @@
     refreshHandlerBound = true;
   }
 
+  /**
+   * 刷新分区列表。
+   *
+   * @return {void}
+   */
   function refresh() {
     if (partitionGrid) {
       partitionGrid.refresh?.();

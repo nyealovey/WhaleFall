@@ -9,6 +9,11 @@ Flask 服务位于 `app/`，拆分为若干聚焦模块：`api/` 负责服务端
 ## 编码风格与命名约定
 统一使用四个空格缩进，单行不超过 120 个字符。将 `app` 视为一方导入根目录，依赖 `black`、`isort`、`ruff` 完成格式化与静态检查。模块、函数、变量采用 `snake_case`，类名使用 `CapWords`，蓝图名称需与对应的路由模块保持一致。尽量使用结构化日志工具而非 `print`。
 
+- **Google 风格对齐**  
+  - Python 代码遵循 Google 风格：docstring 必须包含单行摘要、详细描述以及 `Args/Returns/Raises` 区块；模块/函数/类/常量分别使用 `snake_case`、`CapWords`、`CAPS_WITH_UNDER`；所有对外函数需保持类型注解；注释使用中英文皆可但需清晰具体。  
+  - JavaScript 代码遵循相同理念：文件/变量使用 `camelCase`/`kebab-case`，类名 `UpperCamelCase`，常量 `CONSTANT_CASE`；函数命名前缀用动词；注释描述行为而非实现细节；避免魔法字符串和匈牙利命名。  
+  - 以上要求直接落在命名脚本与质量门禁中，一旦偏离需立即修复。
+
 - **命名规范守卫（强制要求）**
   - **模块/文件**: 使用完整单词加 `snake_case`，禁止缩写，如 `database_aggr.py`、`instance_aggr.py`。服务目录 `app/services/form_service/` 内文件名称不得再使用 `_form_service` 后缀，必须改为 `resource_service.py`、`password_service.py` 等。
   - **路由/视图**: 蓝图函数必须以动词短语命名，例如 `list_instances`、`get_user`；禁止 `api_list`、`statistics_api` 之类前后缀。任何 `_api`、`api_` 前后缀均视为违规。

@@ -2,7 +2,18 @@
   'use strict';
 
   /**
-   * 分区创建/清理模态控制器。
+   * 创建分区创建/清理模态控制器。
+   *
+   * @param {Object} [options] - 配置选项
+   * @param {Object} [options.document] - Document 对象
+   * @param {Object} [options.UI] - UI 工具对象
+   * @param {Object} [options.toast] - Toast 通知工具
+   * @param {Object} [options.service] - 分区服务对象
+   * @param {Function} [options.getStore] - 获取状态管理的函数
+   * @param {Object} [options.timeUtils] - 时间工具对象
+   * @param {Function} [options.onReload] - 重载回调函数
+   * @return {Object} 控制器对象，包含 openCreate、openCleanup 方法
+   * @throws {Error} 当必需的依赖未初始化时抛出
    */
   function createController(options) {
     const {
@@ -33,16 +44,35 @@
       onConfirm: handleCleanupPartitions,
     });
 
+    /**
+     * 打开创建分区模态框。
+     *
+     * @param {Event} [event] - 触发事件
+     * @return {void}
+     */
     function openCreate(event) {
       event?.preventDefault?.();
       createModal?.open();
     }
 
+    /**
+     * 打开清理分区模态框。
+     *
+     * @param {Event} [event] - 触发事件
+     * @return {void}
+     */
     function openCleanup(event) {
       event?.preventDefault?.();
       cleanupModal?.open();
     }
 
+    /**
+     * 准备创建分区表单。
+     *
+     * 初始化年份和月份选择器，设置可选范围。
+     *
+     * @return {void}
+     */
     function prepareCreatePartitionForm() {
       const yearSelect = document.getElementById('partitionYear');
       const monthSelect = document.getElementById('partitionMonth');
@@ -78,6 +108,11 @@
       updateMonthOptions();
     }
 
+    /**
+     * 处理创建分区请求。
+     *
+     * @return {Promise<void>}
+     */
     async function handleCreatePartition() {
       const year = document.getElementById('partitionYear')?.value;
       const month = document.getElementById('partitionMonth')?.value;
@@ -109,6 +144,11 @@
       }
     }
 
+    /**
+     * 处理清理分区请求。
+     *
+     * @return {Promise<void>}
+     */
     async function handleCleanupPartitions() {
       const retentionInput = document.getElementById('retentionMonths');
       const retentionMonths = retentionInput ? Number(retentionInput.value) : 0;

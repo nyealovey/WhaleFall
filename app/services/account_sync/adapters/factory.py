@@ -1,3 +1,8 @@
+"""账户同步适配器工厂。
+
+根据数据库类型返回对应的账户同步适配器实例。
+"""
+
 from __future__ import annotations
 
 from typing import Dict, Type
@@ -19,6 +24,22 @@ _ADAPTERS: Dict[str, Type[BaseAccountAdapter]] = {
 
 
 def get_account_adapter(db_type: str) -> BaseAccountAdapter:
+    """根据数据库类型获取账户同步适配器实例。
+
+    Args:
+        db_type: 数据库类型（mysql、postgresql、sqlserver、oracle）。
+
+    Returns:
+        对应的账户同步适配器实例。
+
+    Raises:
+        ValueError: 当数据库类型不支持时抛出。
+
+    Example:
+        >>> adapter = get_account_adapter('mysql')
+        >>> type(adapter).__name__
+        'MySQLAccountAdapter'
+    """
     normalized = (db_type or "").lower()
     adapter_cls = _ADAPTERS.get(normalized)
     if not adapter_cls:

@@ -1,6 +1,6 @@
-"""
-聚合服务
-支持数据库级与实例级的周期聚合计算
+"""聚合服务。
+
+支持数据库级与实例级的周期聚合计算，包括日、周、月、季度四种周期类型。
 """
 
 from __future__ import annotations
@@ -27,9 +27,26 @@ MODULE = "aggregation_service"
 
 
 class AggregationService:
-    """聚合服务"""
+    """聚合服务。
+
+    提供数据库级和实例级的周期聚合计算功能，支持日、周、月、季度四种周期类型。
+
+    Attributes:
+        period_types: 支持的周期类型列表。
+        period_calculator: 周期计算器。
+        database_runner: 数据库级聚合执行器。
+        instance_runner: 实例级聚合执行器。
+        query_service: 聚合查询服务。
+
+    Example:
+        >>> service = AggregationService()
+        >>> result = service.calculate_daily_aggregations()
+        >>> result['status']
+        'completed'
+    """
     
-    def __init__(self):
+    def __init__(self) -> None:
+        """初始化聚合服务。"""
         self.period_types = ['daily', 'weekly', 'monthly', 'quarterly']
         self.period_calculator = PeriodCalculator()
         self.database_runner = DatabaseAggregationRunner(

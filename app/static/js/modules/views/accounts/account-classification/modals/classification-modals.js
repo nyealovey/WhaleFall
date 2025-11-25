@@ -2,7 +2,20 @@
   "use strict";
 
   /**
-   * 分类模态控制器，负责新建/编辑分类。
+   * 创建账户分类新建/编辑模态控制器。
+   *
+   * @param {Object} [options] - 配置选项
+   * @param {Object} [options.document] - Document 对象
+   * @param {Object} [options.UI] - UI 工具对象
+   * @param {Object} [options.toast] - Toast 通知工具
+   * @param {Object} [options.FormValidator] - 表单验证器
+   * @param {Object} [options.ValidationRules] - 验证规则
+   * @param {Object} [options.api] - API 服务对象
+   * @param {Function} [options.debugLog] - 调试日志函数
+   * @param {Function} [options.handleRequestError] - 请求错误处理函数
+   * @param {Function} [options.onMutated] - 数据变更回调
+   * @return {Object} 控制器对象
+   * @throws {Error} 当必需的依赖未初始化时抛出
    */
   function createController(options) {
     const {
@@ -35,6 +48,9 @@
 
     /**
      * 初始化模态与表单验证。
+     *
+     * @return {void}
+     * @throws {Error} 当 UI.createModal 未加载时抛出
      */
     function init() {
       if (!UI?.createModal) {
@@ -55,12 +71,25 @@
       initFormValidators();
     }
 
+    /**
+     * 打开新建分类模态框。
+     *
+     * @param {Event} [event] - 触发事件
+     * @return {void}
+     */
     function openCreate(event) {
       event?.preventDefault?.();
       resetCreateForm();
       modals.create?.open();
     }
 
+    /**
+     * 根据 ID 打开编辑分类模态框。
+     *
+     * @param {number|string} id - 分类 ID
+     * @param {Event} [event] - 触发事件
+     * @return {Promise<void>}
+     */
     async function openEditById(id, event) {
       event?.preventDefault?.();
       if (!id) {
@@ -82,6 +111,11 @@
       }
     }
 
+    /**
+     * 触发创建分类操作。
+     *
+     * @return {void}
+     */
     function triggerCreate() {
       if (validators.create?.revalidate) {
         validators.create.revalidate();
@@ -97,6 +131,11 @@
       }
     }
 
+    /**
+     * 触发更新分类操作。
+     *
+     * @return {void}
+     */
     function triggerUpdate() {
       if (validators.edit?.revalidate) {
         validators.edit.revalidate();
@@ -112,6 +151,12 @@
       }
     }
 
+    /**
+     * 提交创建分类请求。
+     *
+     * @param {HTMLFormElement} form - 表单元素
+     * @return {Promise<void>}
+     */
     async function submitCreate(form) {
       const payload = collectPayload(form, {
         name: "#classificationName",
@@ -140,6 +185,12 @@
       }
     }
 
+    /**
+     * 提交更新分类请求。
+     *
+     * @param {HTMLFormElement} form - 表单元素
+     * @return {Promise<void>}
+     */
     async function submitUpdate(form) {
       const payload = collectPayload(form, {
         name: "#editClassificationName",
@@ -168,6 +219,13 @@
       }
     }
 
+    /**
+     * 收集表单数据。
+     *
+     * @param {HTMLFormElement} form - 表单元素
+     * @param {Object} selectors - 选择器对象
+     * @return {Object|null} 表单数据对象或 null
+     */
     function collectPayload(form, selectors) {
       const nameInput = form.querySelector(selectors.name);
       const colorSelect = form.querySelector(selectors.color);
@@ -193,6 +251,12 @@
       return payload;
     }
 
+    /**
+     * 解析优先级值。
+     *
+     * @param {string|number} value - 优先级值
+     * @return {number} 解析后的优先级（0-100）
+     */
     function parsePriority(value) {
       const parsed = Number(value);
       if (Number.isNaN(parsed) || parsed < 0) {
@@ -204,6 +268,12 @@
       return parsed;
     }
 
+    /**
+     * 填充编辑表单数据。
+     *
+     * @param {Object} classification - 分类对象
+     * @return {void}
+     */
     function fillEditForm(classification) {
       document.getElementById("editClassificationId").value = classification.id;
       document.getElementById("editClassificationName").value = classification.name || "";
@@ -226,11 +296,23 @@
       updateColorPreview("editColorPreview", document.getElementById("editClassificationColor"));
     }
 
+    /**
+     * 设置颜色预览监听器。
+     *
+     * @return {void}
+     */
     function setupColorPreviewListeners() {
       bindColorPreview(document.getElementById("classificationColor"), "colorPreview");
       bindColorPreview(document.getElementById("editClassificationColor"), "editColorPreview");
     }
 
+    /**
+     * 绑定颜色预览。
+     *
+     * @param {HTMLSelectElement} selectElement - 选择框元素
+     * @param {string} previewId - 预览元素 ID
+     * @return {void}
+     */
     function bindColorPreview(selectElement, previewId) {
       if (!selectElement || !previewId) {
         return;
@@ -241,6 +323,13 @@
       updateColorPreview(previewId, selectElement);
     }
 
+    /**
+     * 更新颜色预览。
+     *
+     * @param {string} previewId - 预览元素 ID
+     * @param {HTMLSelectElement} selectElement - 选择框元素
+     * @return {void}
+     */
     function updateColorPreview(previewId, selectElement) {
       const preview = document.getElementById(previewId);
       if (!preview || !selectElement) {
@@ -263,6 +352,12 @@
       }
     }
 
+    /**
+     * 重置颜色预览。
+     *
+     * @param {string} previewId - 预览元素 ID
+     * @return {void}
+     */
     function resetColorPreview(previewId) {
       const preview = document.getElementById(previewId);
       if (preview) {
@@ -270,6 +365,11 @@
       }
     }
 
+    /**
+     * 初始化表单验证器。
+     *
+     * @return {void}
+     */
     function initFormValidators() {
       const validatorFactory = FormValidator || global.FormValidator;
       const rules = ValidationRules || global.ValidationRules;
@@ -314,6 +414,15 @@
       }
     }
 
+    /**
+     * 绑定字段重新验证。
+     *
+     * @param {HTMLFormElement} form - 表单元素
+     * @param {string} selector - 字段选择器
+     * @param {Object} validator - 验证器对象
+     * @param {string} [eventName] - 事件名称
+     * @return {void}
+     */
     function bindRevalidate(form, selector, validator, eventName) {
       const field = form.querySelector(selector);
       if (!field || !validator) {
@@ -327,6 +436,11 @@
       });
     }
 
+    /**
+     * 重置创建表单。
+     *
+     * @return {void}
+     */
     function resetCreateForm() {
       const form = document.getElementById("createClassificationForm");
       if (form) {
@@ -336,6 +450,11 @@
       refreshValidator(validators.create);
     }
 
+    /**
+     * 重置编辑表单。
+     *
+     * @return {void}
+     */
     function resetEditForm() {
       const form = document.getElementById("editClassificationForm");
       if (form) {
@@ -345,12 +464,25 @@
       refreshValidator(validators.edit);
     }
 
+    /**
+     * 刷新验证器。
+     *
+     * @param {Object} validator - 验证器对象
+     * @return {void}
+     */
     function refreshValidator(validator) {
       if (validator?.instance?.refresh) {
         validator.instance.refresh();
       }
     }
 
+    /**
+     * 输出调试信息。
+     *
+     * @param {string} message - 调试消息
+     * @param {*} [payload] - 附加数据
+     * @return {void}
+     */
     function debug(message, payload) {
       if (typeof debugLog === "function") {
         debugLog(message, payload);
